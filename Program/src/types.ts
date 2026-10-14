@@ -1824,10 +1824,14 @@ export interface WorkLifeView {
 /** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */
 export interface MediaNow {
   id: string; kind: 'book' | 'show' | 'music'; title: string; by: string; format: string; text: string
-  set_by_you: boolean; started_on: string; on_hold: string | null
+  set_by_you: boolean; started_on: string
+  /** Something the user recommended, ahead of their own pick (`waiting`, the title it holds up). */
+  recommended?: boolean; waiting?: string | null
 }
 export interface MediaView {
   off: boolean; today: string; realism: number; real: boolean
+  /** The bank their titles come from (companion/world/data/media), for era-fitting examples. */
+  bank?: string
   now: MediaNow[]
   lately: { id: string; kind: 'book' | 'show' | 'music'; title: string; ended_on: string; text: string }[]
   /** Hidden values (show_home_meters). */

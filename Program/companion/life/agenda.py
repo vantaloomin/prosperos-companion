@@ -16,7 +16,7 @@ from companion import consequences, self_facts
 from companion.almanac.context import city_for as almanac_city
 from companion.characters import by_id, definition_for_timeline
 from companion.characters import current as in_focus
-from companion.clock import parse, stamp
+from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
     admin,
@@ -274,7 +274,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         entry = kitchen.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
                               scope['world'], scope['now'])
         entry = media.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
-                            scope['world'])
+                            scope['world'], scope['now'].astimezone(zone(scope.get('timezone') or 'UTC')).date())
         entry = home.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), seed, definition, scope['world'],
                            scope['now'])
         entry = wardrobe.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,

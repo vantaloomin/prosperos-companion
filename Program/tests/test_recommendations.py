@@ -94,3 +94,23 @@ def test_interests_tip_the_verdict_warmer():
             for index in range(300)]
     cold = [recommendations.verdict({**rec, 'id': f'r{index}'}, {}) for index in range(300)]
     assert warm.count('loved it') > cold.count('loved it')
+
+
+def test_a_day_drawn_again_keeps_its_session_and_it_finishes_once(client, mira, clock):
+    send(client, 'You should read Piranesi', 'client-rec-04')
+    clock.advance(timedelta(hours=13))
+    reconcile(client)
+    with client.app.state.database.connect(write=True) as connection:
+        rows = connection.execute("SELECT id, starts_at FROM life_agenda WHERE status='upcoming' AND "
+                                  "json_extract(entry, '$.recommendation.id') IS NOT NULL ORDER BY starts_at").fetchall()
+        assert len(rows) >= 2
+        # A pastime redrawn on one day (companion/life/hobbies.py `redraw`) leaves the later sessions in place.
+        connection.execute('DELETE FROM life_agenda WHERE id=?', (rows[0]['id'],))
+        connection.execute('UPDATE agenda_cursors SET through=MIN(through, ?)', (rows[0]['starts_at'],))
+    clock.advance(timedelta(days=7))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        sessions = [decode(row['entry'])['recommendation'] for row in connection.execute(
+            "SELECT entry FROM life_agenda WHERE json_extract(entry, '$.recommendation.id') IS NOT NULL "
+            'ORDER BY starts_at')]
+    assert sum(1 for item in sessions if item['verdict']) == 1 and sessions[-1]['verdict']

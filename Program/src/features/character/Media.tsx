@@ -7,7 +7,7 @@ import { calendarDay } from '../../when.ts'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Field } from '../../components/Fields'
-import { LATELY_SHOWN, MEDIA_KEY, byLabel, examples, itemNumbers, kindNoun, numbersLine, panelHeading, titled, verdictSplit } from './mediaText'
+import { LATELY_SHOWN, MEDIA_KEY, byLabel, examples, itemNumbers, kindNoun, numbersLine, panelHeading, recommendedNote, titled, verdictSplit } from './mediaText'
 
 type Feedback = { tone: 'info' | 'error'; text: string } | null
 type Save = (body: object, done: string) => Promise<boolean>
@@ -64,11 +64,11 @@ function NowRow({ item, view, save }: { item: MediaNow; view: MediaView; save: S
       <Icon aria-hidden="true" className="media-icon" />
       <div className="media-body">
         <p><Titled text={item.text} title={item.title} kind={item.kind} />{item.set_by_you && <span className="badge media-mine">Set by you</span>}</p>
-        {item.on_hold && <p className="subtle">On hold while they get through {item.on_hold}, which you recommended.</p>}
+        {item.recommended && <p className="subtle">{recommendedNote(item)}</p>}
         {numbers && <p className="subtle">{numbers}</p>}
         {editing
-          ? <ChangeForm item={item} save={save} onDone={() => setEditing(false)} />
-          : <div className="person-actions">
+          ? <ChangeForm item={item} bank={view.bank} save={save} onDone={() => setEditing(false)} />
+          : !item.recommended && <div className="person-actions">
             <button type="button" className="text-button" onClick={() => setEditing(true)}><Pencil aria-hidden="true" />Change {kindNoun(item.kind)}</button>
             {item.set_by_you && <button type="button" className="text-button" onClick={() => void save({ kind: item.kind, reset: true }, 'Back to a pick of their own.')}><RotateCcw aria-hidden="true" />Back to their own pick</button>}
           </div>}
@@ -95,10 +95,10 @@ function Lately({ view }: { view: MediaView }) {
   )
 }
 
-function ChangeForm({ item, save, onDone }: { item: MediaNow; save: Save; onDone: () => void }) {
+function ChangeForm({ item, bank, save, onDone }: { item: MediaNow; bank?: string; save: Save; onDone: () => void }) {
   const [title, setTitle] = useState('')
   const [by, setBy] = useState('')
-  const example = examples(item.kind)
+  const example = examples(item.kind, bank)
   const second = byLabel(item.kind)
   const submit = async (event: FormEvent) => {
     event.preventDefault()
