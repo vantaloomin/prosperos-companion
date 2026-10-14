@@ -26,7 +26,7 @@ def correct_line(request: Request, key: str, body: Correction):
     database = request.app.state.database
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        history.correct(connection, companion, key, body.text, database.now())
+        history.correct(connection, companion, key, body.text, database.now(), database.clock.now())
         return history.view(connection, companion, database.clock.now())
 
 
@@ -36,5 +36,5 @@ def restore_line(request: Request, key: str):
     database = request.app.state.database
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        history.correct(connection, companion, key, None, database.now())
+        history.correct(connection, companion, key, None, database.now(), database.clock.now())
         return history.view(connection, companion, database.clock.now())

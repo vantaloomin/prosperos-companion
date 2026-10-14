@@ -27,6 +27,7 @@ from companion.errors import require
 from companion.life import occasions
 from companion.memory import closeness
 from companion.memory.consolidation import excluded_sources, usable_summaries
+from companion.world import newcomers, wording
 
 WEEKS_BACK = 12
 MONTHS_BACK = 12
@@ -119,57 +120,61 @@ def stretches(first: date, today: date) -> list[Stretch]:
     return [item for item in found if item.start <= item.end]
 
 
-def holding(found: list[Stretch], day: str) -> Stretch | None:
+def holding(found: list[Stretch], day: str, skip: tuple = ()) -> Stretch | None:
+    """The stretch a day falls in, or None when it is in a shorter stretch the user left out."""
+    if any(low <= day <= high for low, high in skip):
+        return None
     for item in found:
         if item.start.isoformat() <= day <= item.end.isoformat():
             return item
     return None
 
 
-def gather(connection, companion: dict, now, found: list[Stretch], timezone):
-    """What happened in each stretch, from the timeline's own records."""
+def gather(connection, companion: dict, now, found: list[Stretch], timezone, skip: tuple = ()):
+    """What happened in each stretch, from the timeline's own records. Days in `skip` (weeks or months the user left
+    out, now part of a longer line) add nothing but the days talked."""
     if not found:
         return
     timeline_id, name = companion['active_timeline_id'], first_name(companion)
     low, high = found[0].start, found[-1].end
     talked_days(connection, timeline_id, found, low, high, timezone)
-    words(connection, companion, found)
+    words(connection, companion, found, skip)
     current = closeness.state(connection, companion, now)
     for step in current['history']:
-        if step.get('on') and (item := holding(found, step['on'])):
+        if step.get('on') and (item := holding(found, step['on'], skip)):
             item.closer.append(current['stages'][step['level'] - 1])
     for memory in closeness.shared_moments(connection, companion, timeline_id, now, None):
-        if item := holding(found, happened(memory, timezone)):
+        if item := holding(found, happened(memory, timezone), skip):
             item.moments.append(memory['subject'])
     for row in many(connection, 'SELECT started_on, title, told FROM life_chapters WHERE timeline_id=? AND '
                     'undone_at IS NULL AND started_on>=? AND started_on<=? ORDER BY started_on',
                     (timeline_id, low.isoformat(), high.isoformat())):
-        if item := holding(found, row['started_on']):
+        if item := holding(found, row['started_on'], skip):
             item.life.append((row['told'].rstrip('.'), row['title']))
     for row in many(connection, "SELECT start_date, city_name FROM trips WHERE timeline_id=? AND status='planned' "
                     'AND start_date>=? AND end_date<=? ORDER BY start_date',
                     (timeline_id, low.isoformat(), high.isoformat())):
-        if item := holding(found, row['start_date']):
+        if item := holding(found, row['start_date'], skip):
             item.life.append((f"You went away to {row['city_name']}", f"{name} went away to {row['city_name']}"))
 
 
 def talked_days(connection, timeline_id, found, low, high, timezone):
-    rows = many(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND role='user' AND active=1 AND "
-                'import_id IS NULL AND created_at>=? AND created_at<?',
+    rows = many(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND role='user' AND active=1 AND status='complete' AND "
+                'redacted_at IS NULL AND import_id IS NULL AND created_at>=? AND created_at<?',
                 (timeline_id, instant(low, timezone), instant(high + timedelta(days=1), timezone)))
     for day in sorted({parse(row['created_at']).astimezone(timezone).date().isoformat() for row in rows}):
         if item := holding(found, day):
             item.days += 1
 
 
-def words(connection, companion, found):
+def words(connection, companion, found, skip=()):
     """The user's own sentences from the day summaries: the longest of each day's, a few a stretch, in order."""
     summaries = usable_summaries(connection, companion['active_timeline_id'],
                                  excluded_sources(connection, companion['id']))
     picked: dict[str, list[tuple[str, str]]] = {}
     for row in summaries:
         said = QUOTED.findall(row['text'])
-        if said and (item := holding(found, row['day'])):
+        if said and (item := holding(found, row['day'], skip)):
             picked.setdefault(item.key, []).append((row['day'], max(said, key=len)))
     for item in found:
         best = sorted(picked.get(item.key, []), key=lambda pair: -len(pair[1]))[:SAY[item.kind]]
@@ -177,12 +182,13 @@ def words(connection, companion, found):
 
 
 def merged(found: list[Stretch], fixed: dict[str, str]) -> list[Stretch]:
-    """Bare stretches of the same kind in a row, none of them corrected, share one line: "6 Jul to 2 Aug 2026,
-    9 days"."""
+    """Bare stretches of the same kind in a row share one line: "6 Jul to 2 Aug 2026, 9 days". The user's words for
+    such a line are kept on each of its stretches, so it stays one line with them."""
     result: list[Stretch] = []
     for item in found:
         last = result[-1] if result else None
-        if last and last.kind == item.kind and plain(last, fixed) and plain(item, fixed):
+        if last and last.kind == item.kind and plain(last, fixed) and plain(item, fixed) and \
+                fixed.get(last.key) == fixed.get(item.key):
             last.until, last.days = item.end, last.days + item.days
             continue
         result.append(item)
@@ -190,16 +196,24 @@ def merged(found: list[Stretch], fixed: dict[str, str]) -> list[Stretch]:
 
 
 def plain(item: Stretch, fixed: dict[str, str]) -> bool:
-    return item.bare() and item.key not in fixed and not carried(item, fixed)
+    return item.bare() and not carried(item, fixed)
 
 
-def label(item: Stretch) -> str:
-    """"Week of 6 Oct 2026", "September 2026", "2025", or the span of quiet ones in a row."""
+def day_label(day: date, american: bool, year: bool = True) -> str:
+    """"Oct 5, 2026" in the United States, "5 Oct 2026" elsewhere (companion/world/wording.py)."""
+    if american:
+        return f'{day:%b} {day.day}' + (f', {day.year}' if year else '')
+    return f'{day.day} {day:%b}' + (f' {day.year}' if year else '')
+
+
+def label(item: Stretch, american: bool = False) -> str:
+    """"Week of Oct 5, 2026", "September 2026", "2025", or the span of quiet ones in a row, dated the way the
+    scrapbook dates them (src/features/year/yearText.ts stretchText)."""
     end = item.until or item.end
     if item.kind == 'week':
-        start = f'{item.start.day} {item.start:%b}'
-        return f'Week of {start} {item.start.year}' if not item.until else \
-            f'{start} to {end.day} {end:%b} {end.year}'
+        if not item.until:
+            return f'Week of {day_label(date.fromisoformat(item.key[1:]), american)}'
+        return f'{day_label(item.start, american, item.start.year != end.year)} to {day_label(end, american)}'
     if item.kind == 'month':
         if item.until:
             return f'{MONTHS[item.start.month - 1]} to {MONTHS[end.month - 1]} {end.year}'
@@ -219,7 +233,7 @@ def parts(item: Stretch, for_prompt: bool, name: str) -> list[str]:
     found = [days_text(item)]
     who = 'The user said' if for_prompt else 'You said'
     found += [f'{who} “{quote_short(said)}”' for _day, said in item.said]
-    found += item.moments[:MOMENTS[item.kind]]
+    found += list(dict.fromkeys(item.moments))[:MOMENTS[item.kind]]  # the same outing twice reads once
     found += [f"{'You two' if for_prompt else f'You and {name}'} got closer (now “{stage}”)" for stage in item.closer[-1:]]
     found += [own if for_prompt else theirs for own, theirs in item.life]
     return found
@@ -254,6 +268,19 @@ def carried(item: Stretch, fixed: dict[str, str]) -> list[str]:
             if key[0] in finer and text.strip() and low <= key_start(key) <= high]
 
 
+def left_out(found: list[Stretch], fixed: dict[str, str]) -> tuple:
+    """The days of weeks or months the user left out that are now part of a longer line: (first, last) each."""
+    shown = {item.key for item in found}
+    return tuple((key_start(key), key_end(key)) for key, text in fixed.items() if not text.strip() and key not in shown)
+
+
+def key_end(key: str) -> str:
+    start = date.fromisoformat(key_start(key))
+    end = {'w': start + timedelta(days=6), 'm': add_months(start, 1) - timedelta(days=1),
+           'y': date(start.year, 12, 31)}[key[0]]
+    return end.isoformat()
+
+
 def key_start(key: str) -> str:
     """The first day a line's key stands for: w2026-10-06, m2026-10 or y2026."""
     return {'w': key[1:], 'm': f'{key[1:]}-01', 'y': f'{key[1:]}-01-01'}[key[0]]
@@ -267,8 +294,9 @@ def lines(connection, companion: dict, now) -> list[dict]:
     if not first:
         return []
     found = stretches(first, now.astimezone(timezone).date())
-    gather(connection, companion, now, found, timezone)
     fixed = corrections(connection, timeline_id)
+    gather(connection, companion, now, found, timezone, left_out(found, fixed))
+    american = wording.american(newcomers.city_for(connection, companion['version']['definition']))
     result = []
     for item in merged(found, fixed):
         own, theirs = parts(item, True, name), parts(item, False, name)
@@ -276,7 +304,7 @@ def lines(connection, companion: dict, now) -> list[dict]:
         mine = [f'In your words: “{text}”' for text in carried(item, fixed)]
         # The user sees the days talked beside the line, so their line starts with what happened (Iris).
         result.append({'key': item.key, 'kind': item.kind, 'start': item.start.isoformat(),
-                       'end': (item.until or item.end).isoformat(), 'label': label(item), 'days': item.days,
+                       'end': (item.until or item.end).isoformat(), 'label': label(item, american), 'days': item.days,
                        'count': own[0], 'prompt': joined([*own[:1], *extra, *own[1:]], LINE_LIMIT[item.kind]),
                        'text': joined([*mine, *theirs[1:]], LINE_LIMIT[item.kind]) if len(theirs) > 1 or mine else '',
                        'corrected': fixed.get(item.key)})
@@ -313,16 +341,29 @@ def view(connection, companion: dict, now) -> dict:
                       for line in lines(connection, companion, now)]}
 
 
-def correct(connection, companion: dict, key: str, text: str | None, timestamp: str):
-    """The user's own words for a line (empty: leave it out), or None to put the app's line back."""
+def correct(connection, companion: dict, key: str, text: str | None, timestamp: str, now=None):
+    """The user's own words for a line (empty: leave it out), or None to put the app's line back. A line for quiet
+    weeks or months in a row keeps the words on each of them."""
     require(bool(KEY.match(key)), 'There is no line for that stretch of time.', 404)
     timeline_id = companion['active_timeline_id']
+    line = next((line for line in lines(connection, companion, now) if line['key'] == key), None) if now else None
+    require(text is None or now is None or line is not None, 'There is no line for that stretch of time.', 404)
+    keys = run(key, line['end']) if line else [key]
     if text is None:
-        connection.execute('DELETE FROM history_corrections WHERE timeline_id=? AND period_key=?', (timeline_id, key))
+        connection.executemany('DELETE FROM history_corrections WHERE timeline_id=? AND period_key=?',
+                               [(timeline_id, each) for each in keys])
         return
     text = ' '.join(text.split())
     require(len(text) <= CORRECTION_LIMIT, f'Keep it under {CORRECTION_LIMIT} characters.', 422)
-    connection.execute('INSERT INTO history_corrections (timeline_id, period_key, text, updated_at) VALUES (?, ?, ?, ?) '
-                       'ON CONFLICT(timeline_id, period_key) DO UPDATE SET text=excluded.text, '
-                       'updated_at=excluded.updated_at', (timeline_id, key, text, timestamp))
+    connection.executemany('INSERT INTO history_corrections (timeline_id, period_key, text, updated_at) VALUES (?, ?, ?, ?) '
+                           'ON CONFLICT(timeline_id, period_key) DO UPDATE SET text=excluded.text, '
+                           'updated_at=excluded.updated_at', [(timeline_id, each, text, timestamp) for each in keys])
 
+
+def run(key: str, end: str) -> list[str]:
+    """The keys of the stretches a line stands for, from its first to `end`: one, or each of the quiet ones in a row."""
+    found, day = [], date.fromisoformat(key_start(key))
+    while day.isoformat() <= end:
+        found.append({'w': f'w{day.isoformat()}', 'm': f'm{day:%Y-%m}', 'y': f'y{day.year}'}[key[0]])
+        day = {'w': day + timedelta(weeks=1), 'm': add_months(day, 1), 'y': date(day.year + 1, 1, 1)}[key[0]]
+    return found
