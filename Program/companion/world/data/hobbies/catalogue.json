@@ -105,7 +105,7 @@
    "their schedule changed",
    "they were tired most evenings",
    "they got into something else for a while",
-   "a busy stretch at home",
+   "home got busy",
    "they kept putting it off",
    "their usual spot closed for a few weeks",
    "they were not enjoying it as much",
@@ -217,14 +217,18 @@
    "ask": null,
    "gear": [
     "$$",
-    "bought a secondhand keyboard"
+    "had the piano tuned"
    ],
    "fees": [
     "$$",
     "piano lessons"
    ],
    "picture": "seated at an upright piano at home, hands on the keys, sheet music open",
-   "event": null
+   "event": null,
+   "not": [
+    "mechanical keyboard",
+    "computer keyboard"
+   ]
   },
   {
    "id": "violin",
@@ -537,7 +541,12 @@
     "a month at the climbing gym"
    ],
    "picture": "on an indoor climbing wall, chalked hands reaching for a hold",
-   "event": null
+   "event": null,
+   "not": [
+    "corporate ladder",
+    "climbing the ladder",
+    "social climb"
+   ]
   },
   {
    "id": "running",
@@ -612,13 +621,13 @@
    "ask": "come swimming with me",
    "gear": [
     "$",
-    "bought new goggles and a swim cap"
+    "bought a new bathing suit"
    ],
    "fees": [
     "$",
     "pool passes"
    ],
-   "picture": "at the edge of a swimming pool in a swim cap and goggles",
+   "picture": "at the edge of a swimming bath, hair tucked under a cap",
    "event": null
   },
   {
@@ -657,7 +666,7 @@
     "had their bike tuned up"
    ],
    "fees": null,
-   "picture": "on a bicycle on a quiet road, helmet on, mid-ride",
+   "picture": "on a bicycle on a quiet road, mid-ride",
    "event": null
   },
   {
@@ -730,7 +739,10 @@
    ],
    "fees": null,
    "picture": "on a tennis court with a racket, ready to return a serve",
-   "event": null
+   "event": null,
+   "not": [
+    "table tennis"
+   ]
   },
   {
    "id": "boxing",
@@ -843,14 +855,17 @@
    "ask": "come watch me fence",
    "gear": [
     "$$",
-    "had their foil and jacket fitted"
+    "had a padded jacket and a practice sword fitted"
    ],
    "fees": [
     "$$",
-    "fencing club dues"
+    "fencing school fees"
    ],
-   "picture": "in fencing whites holding a foil, mask under one arm, in a long hall",
-   "event": null
+   "picture": "in a padded jacket holding a blunted practice sword, mid-lunge, in a long hall",
+   "event": null,
+   "not": [
+    "sword collect"
+   ]
   },
   {
    "id": "archery",
@@ -921,7 +936,11 @@
    ],
    "fees": null,
    "picture": "on horseback on an open trail, reins in hand",
-   "event": null
+   "event": null,
+   "not": [
+    "horse racing",
+    "horse betting"
+   ]
   },
   {
    "id": "rowing",
@@ -965,7 +984,12 @@
     "rowing club dues"
    ],
    "picture": "rowing a narrow boat on a calm river in early light",
-   "event": null
+   "event": null,
+   "not": [
+    "crew neck",
+    "crew cut",
+    "film crew"
+   ]
   },
   {
    "id": "skating",
@@ -1125,7 +1149,8 @@
    ],
    "words": [
     "salsa",
-    "bachata"
+    "bachata",
+    "latin danc"
    ],
    "session": "went to salsa class",
    "place": {
@@ -1824,7 +1849,11 @@
    ],
    "fees": null,
    "picture": "at an easel with a brush in hand, a half-finished canvas in front of {possessive}",
-   "event": null
+   "event": null,
+   "not": [
+    "essential oils",
+    "oil change"
+   ]
   },
   {
    "id": "drawing",
@@ -1852,16 +1881,16 @@
      "quiet"
     ]
    },
-   "where": "at a café",
+   "where": "in a quiet corner",
    "when": "any",
    "together": null,
    "ask": null,
    "gear": [
     "$",
-    "bought a new sketchbook and pencils"
+    "bought a new sketchbook"
    ],
    "fees": null,
-   "picture": "sketching in a notebook at a café table, pencil in hand",
+   "picture": "sketching in a notebook in a quiet corner, head bent over the page",
    "event": null
   },
   {
@@ -1928,10 +1957,10 @@
    "ask": null,
    "gear": [
     "$",
-    "bought new nibs and ink"
+    "bought fresh ink and good paper"
    ],
    "fees": null,
-   "picture": "at a desk with a dip pen, ink and a sheet of careful lettering",
+   "picture": "at a desk with pen and ink, bent over a sheet of careful lettering",
    "event": null
   },
   {
@@ -2071,7 +2100,7 @@
     "bought a good wooden set"
    ],
    "fees": null,
-   "picture": "over a chessboard at a café table, one hand hovering over a piece",
+   "picture": "over a chessboard at a table, one hand hovering over a piece",
    "event": null
   },
   {
@@ -2117,7 +2146,8 @@
     "d&d",
     "dnd",
     "tabletop rpg",
-    "game night"
+    "game night",
+    "board gaming"
    ],
    "session": "played at board game night",
    "place": {
@@ -2177,7 +2207,11 @@
    "gear": null,
    "fees": null,
    "picture": "at a card table with a hand of cards fanned out, a lamp overhead",
-   "event": null
+   "event": null,
+   "not": [
+    "bridge build",
+    "bridges"
+   ]
   },
   {
    "id": "crosswords",
@@ -2496,7 +2530,7 @@
    ],
    "session": "went to sign language class",
    "place": null,
-   "where": "at class",
+   "where": "at the community center",
    "when": "evening",
    "together": null,
    "ask": null,
@@ -2535,7 +2569,14 @@
    ],
    "fees": null,
    "picture": "reading an old book at a candlelit desk, notes beside",
-   "event": null
+   "event": null,
+   "not": [
+    "latin danc",
+    "latin music",
+    "latin jazz",
+    "latin food",
+    "latin american"
+   ]
   },
   {
    "id": "writing",
@@ -2565,7 +2606,13 @@
    ],
    "fees": null,
    "picture": "writing at a desk by a window, a notebook and a cup beside {possessive}",
-   "event": null
+   "event": null,
+   "not": [
+    "writing code",
+    "writing software",
+    "writing tests",
+    "writing emails"
+   ]
   },
   {
    "id": "poetry",
@@ -2618,7 +2665,12 @@
    ],
    "fees": null,
    "picture": "kneeling in a garden bed with gloves on, planting seedlings",
-   "event": null
+   "event": null,
+   "not": [
+    "olive garden",
+    "beer garden",
+    "garden party"
+   ]
   },
   {
    "id": "houseplants",
@@ -2863,9 +2915,9 @@
     "camper",
     "wild camp"
    ],
-   "session": "planned a camping trip",
+   "session": "went camping",
    "place": null,
-   "where": "at home",
+   "where": "at the campground",
    "when": "any",
    "together": null,
    "ask": null,
@@ -2928,16 +2980,16 @@
    ],
    "session": "went out stargazing",
    "place": null,
-   "where": "at home",
+   "where": "at the edge of town",
    "when": "evening",
    "together": "a night of stargazing",
    "ask": "come stargazing with me",
    "gear": [
-    "$$$",
-    "bought a small telescope"
+    "$",
+    "bought a new star chart"
    ],
    "fees": null,
-   "picture": "beside a small telescope under a clear night sky",
+   "picture": "looking up at a clear night sky full of stars, a star chart in hand",
    "event": null
   },
   {
@@ -3004,7 +3056,7 @@
      "music"
     ]
    },
-   "where": "at choir",
+   "where": "at the hall",
    "when": "evening",
    "together": "their choir concert",
    "ask": "come to my concert",
@@ -3014,7 +3066,11 @@
     "choir dues"
    ],
    "picture": "singing in a choir row, sheet music held up",
-   "event": "their choir concert"
+   "event": "their choir concert",
+   "not": [
+    "in the shower",
+    "singing along"
+   ]
   },
   {
    "id": "open-mic",
@@ -3144,7 +3200,7 @@
      "theatre"
     ]
    },
-   "where": "at rehearsal",
+   "where": "at the hall",
    "when": "evening",
    "together": "their play",
    "ask": "come see the play",
@@ -3212,6 +3268,258 @@
    "fees": null,
    "picture": "singing in a four-part harmony group, straw boaters on",
    "event": "their quartet performance"
+  },
+  {
+   "id": "dancing",
+   "label": "Dancing",
+   "name": "dancing",
+   "kind": "dance",
+   "eras": [
+    "any"
+   ],
+   "words": [
+    "dancing",
+    "dance",
+    "dance class",
+    "dance lessons"
+   ],
+   "session": "went dancing",
+   "place": {
+    "kinds": [
+     "nightlife",
+     "venue"
+    ],
+    "tags": [
+     "dancing"
+    ]
+   },
+   "where": "at the hall",
+   "when": "evening",
+   "together": "a night of dancing",
+   "ask": "come dancing with me",
+   "gear": null,
+   "fees": null,
+   "picture": "mid-turn on a crowded dance floor, music playing",
+   "event": null
+  },
+  {
+   "id": "baseball",
+   "label": "Baseball",
+   "name": "baseball",
+   "kind": "sport",
+   "eras": [
+    "modern",
+    "jazz-age",
+    "frontier"
+   ],
+   "words": [
+    "baseball",
+    "softball",
+    "batting cage"
+   ],
+   "session": "played baseball",
+   "place": {
+    "kinds": [
+     "park"
+    ],
+    "tags": [
+     "baseball",
+     "sports"
+    ]
+   },
+   "where": "at the ballfield",
+   "when": "evening",
+   "together": "their baseball game",
+   "ask": "come watch my game",
+   "gear": [
+    "$$",
+    "bought a new glove"
+   ],
+   "fees": [
+    "$",
+    "team dues"
+   ],
+   "picture": "on a baseball diamond in a cap, bat on {possessive} shoulder, waiting for the pitch",
+   "event": "their baseball game"
+  },
+  {
+   "id": "golf",
+   "label": "Golf",
+   "name": "golf",
+   "kind": "sport",
+   "eras": [
+    "modern",
+    "jazz-age",
+    "victorian"
+   ],
+   "words": [
+    "golf",
+    "golfer",
+    "driving range"
+   ],
+   "session": "played a round of golf",
+   "place": {
+    "kinds": [
+     "park"
+    ],
+    "tags": [
+     "golf"
+    ]
+   },
+   "where": "at the golf course",
+   "when": "morning",
+   "together": "a round of golf",
+   "ask": "play nine holes with me",
+   "gear": [
+    "$$$",
+    "bought a set of secondhand clubs"
+   ],
+   "fees": [
+    "$$",
+    "green fees"
+   ],
+   "picture": "on a golf course mid-swing, club raised, a green fairway behind",
+   "event": null
+  },
+  {
+   "id": "soccer",
+   "label": "Soccer",
+   "name": "soccer",
+   "kind": "sport",
+   "eras": [
+    "modern"
+   ],
+   "words": [
+    "soccer",
+    "five-a-side",
+    "futsal",
+    "sunday league"
+   ],
+   "session": "played soccer",
+   "place": {
+    "kinds": [
+     "park"
+    ],
+    "tags": [
+     "sports",
+     "soccer"
+    ]
+   },
+   "where": "at the park",
+   "when": "evening",
+   "together": "a pickup game",
+   "ask": "come play soccer with me",
+   "gear": [
+    "$$",
+    "bought new cleats"
+   ],
+   "fees": [
+    "$",
+    "league fees"
+   ],
+   "picture": "on a grass field in a jersey, mid-kick, a ball at {possessive} feet",
+   "event": null
+  },
+  {
+   "id": "skiing",
+   "label": "Skiing",
+   "name": "skiing",
+   "kind": "sport",
+   "eras": [
+    "modern"
+   ],
+   "words": [
+    "skiing",
+    "skier",
+    "ski trip",
+    "snowboard"
+   ],
+   "session": "went skiing",
+   "place": null,
+   "where": "on the slopes",
+   "when": "morning",
+   "together": null,
+   "ask": null,
+   "gear": [
+    "$$",
+    "bought secondhand skis"
+   ],
+   "fees": [
+    "$$",
+    "lift tickets"
+   ],
+   "picture": "on a snowy slope in a ski jacket, poles planted, mountains behind",
+   "event": null
+  },
+  {
+   "id": "video-games",
+   "label": "Video games",
+   "name": "video games",
+   "kind": "games",
+   "eras": [
+    "modern"
+   ],
+   "words": [
+    "video game",
+    "gaming",
+    "gamer",
+    "nintendo",
+    "playstation",
+    "xbox",
+    "speedrun"
+   ],
+   "session": "played video games",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a night of co-op games",
+   "ask": "come play a co-op game with me",
+   "gear": [
+    "$$",
+    "bought a new game"
+   ],
+   "fees": null,
+   "picture": "on the sofa with a game controller in hand, a screen glowing in front of {possessive}",
+   "event": null
+  },
+  {
+   "id": "card-tcg",
+   "label": "Trading card games",
+   "name": "trading card games",
+   "kind": "games",
+   "eras": [
+    "modern"
+   ],
+   "words": [
+    "pokémon",
+    "pokemon",
+    "trading card",
+    "magic: the gathering",
+    "yu-gi-oh",
+    "tcg",
+    "deckbuilding"
+   ],
+   "session": "played trading card games",
+   "place": {
+    "kinds": [
+     "shopping",
+     "cafe"
+    ],
+    "tags": [
+     "games"
+    ]
+   },
+   "where": "at the game shop",
+   "when": "evening",
+   "together": "a card night",
+   "ask": "come to card night with me",
+   "gear": [
+    "$",
+    "bought a few booster packs"
+   ],
+   "fees": null,
+   "picture": "at a table with a playmat and a deck of trading cards, mid-game",
+   "event": null
   }
  ]
 }

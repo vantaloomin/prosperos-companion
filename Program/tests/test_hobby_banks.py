@@ -96,3 +96,18 @@ def test_every_hobby_has_milestones_at_every_level_in_its_eras(kind):
             specific = [item for item in milestones if hobby['id'] in item['for'] and in_era(item['eras'], era)]
             if kind != 'general':
                 assert len(specific) >= 3, (hobby['id'], era, len(specific))
+
+
+# The chat turns "their"/"they" into "your"/"you" (hobbies.yours), so a line never uses them for someone else.
+OTHERS_THEIR = re.compile(r'\b(?:beginners?|neighbou?r|friends?|student|someone|stranger|teacher|coach|children|kids|'
+                          r'child|people|group|class|everyone|audience|partner|rival|newcomer|members?|regulars?|crowd|'
+                          r'family|parents|mother|father|sister|brother|club|players?|opponent|judges?)\b[^.]*'
+                          r'\b(?:their|they|them|themselves|theirs)\b', re.I)
+
+
+@pytest.mark.parametrize('kind', kinds())
+def test_every_era_has_a_hundred_milestones_and_their_means_the_companion(kind):
+    milestones = bank(kind)['milestones']
+    for era in ERAS:
+        assert sum(in_era(item['eras'], era) for item in milestones) >= 100, era
+    assert not [item['text'] for item in milestones if OTHERS_THEIR.search(item['text'])]

@@ -2,12 +2,13 @@
 milestones, dry spells, money, the chat and doing them together."""
 import re
 from datetime import date, timedelta
+from unittest.mock import patch
 
 import pytest
 from conftest import reconcile, send, set_life, show
 
 from companion.database import decode
-from companion.life import body, composer, hobbies, outings
+from companion.life import body, composer, hobbies, money, outings
 from companion.providers.chat import Chunk
 from companion.world import catalog
 from companion.world.source import CatalogWorld
@@ -181,3 +182,80 @@ def test_bank_lines_about_them_are_said_to_them_in_the_chat():
     assert hobbies.yours('learned their first barre chord, which they had wanted for themselves') == \
         'learned your first barre chord, which you had wanted for yourself'
     assert hobbies.yours('theory class') == 'theory class'
+
+
+def test_interests_find_the_right_pastime_in_plurals_and_not_lookalikes():
+    assert hobbies.match('board games')['id'] == 'board-games'
+    assert hobbies.match('video games')['id'] == 'video-games'
+    assert hobbies.match('competitive Pokémon')['id'] == 'card-tcg'
+    assert hobbies.match('salsa and Latin dance')['id'] == 'salsa'
+    assert hobbies.match('mechanical keyboards') is None or hobbies.match('mechanical keyboards')['id'] != 'piano'
+    assert hobbies.match('Dancing')['id'] == 'dancing' and hobbies.match('golf')['id'] == 'golf'
+    assert hobbies.custom('{metal} detecting')['name'] == 'metal detecting'
+
+
+def test_a_written_interest_out_of_its_era_is_still_tracked():
+    [(interest, item)] = hobbies.written({'interests': ['video games']}, 'medieval')
+    assert interest == 'video games' and item['id'] == 'video-games'
+
+
+def test_the_chat_lines_speak_to_them_in_their_own_words():
+    row = {'label': 'Theatre', 'name': 'theatre', 'status': 'dropped', 'status_since': '2026-09-01',
+           'reason': hobbies.USER_DROP}
+    us = {'country': 'United States'}
+    assert hobbies.pastime_line(row, date(2026, 10, 5), us) == '- Theater: you gave it up in September.'
+    assert hobbies.pastime_line({**row, 'reason': ''}, date(2026, 10, 5), None).endswith('after a dry spell.')
+    invite = hobbies.invite_reason({'name': 'baseball', 'skill': 30, 'started_on': '2025-01-01'},
+                                   hobbies.by_id()['baseball'], date(2026, 10, 10), '14:00')
+    assert 'your baseball game' in invite and 'their' not in invite.split('.')[0]
+    assert money.SPENT_ON['hobby'] == 'on your pastimes'
+    assert outings.ASKING.search('Could I come climbing with you Saturday?')
+
+
+def test_a_session_at_their_usual_spot_says_where_once():
+    life = type('Life', (), {'connection': None, 'data': None, 'era': 'modern'})()
+    row = {'id': 'r1', 'hobby': 'darts', 'name': 'darts', 'label': 'Darts', 'kind': 'games'}
+    place = {'id': 'p1', 'name': "The Owl's Head", 'kind': 'bar', 'neighborhood': ''}
+    with patch.object(hobbies, 'spot', lambda *_args: place), \
+            patch.object(hobbies, 'optional', lambda *_args: None):
+        entry = hobbies.session_entry(life, row, {'id': 's1', 'local_date': '2026-10-05'}, None, {'start': '19:00', 'end': '21:00'}, {'name': 'Kim'})
+    assert "Kim played darts at The Owl's Head." in entry['summary'] and 'the pub' not in entry['summary']
+
+
+def test_a_pastime_together_takes_its_usual_time_counts_and_is_remembered(client, kim, provider, clock):
+    client.get('/api/life/hobbies')
+    provider.replies.append([Chunk('Yes, come along!'), Chunk('', 'stop')])
+    send(client, 'Could I come climbing with you Saturday?', 'client-hobby-3')
+    [outing] = client.get('/api/life/outings').json()['outings']
+    saturday = date(2026, 10, 10)
+    reconcile(client)
+    assert outing['at_time'] == hobbies.usual_time(hobbies.by_id()['climbing'], saturday)
+    with client.app.state.database.connect() as connection:
+        together = connection.execute("SELECT details FROM hobby_log WHERE kind='session' AND local_date=?",
+                                      (saturday.isoformat(),)).fetchall()
+    assert any(decode(row['details']).get('together') for row in together)
+    clock.advance(timedelta(days=7))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        subjects = [row['subject'] for row in connection.execute(
+            "SELECT subject FROM memories WHERE layer='shared_experience'").fetchall()]
+    assert any(subject.startswith('Rock climbing together at ') for subject in subjects), subjects
+    assert not any('together together' in subject for subject in subjects)
+
+
+def test_the_panel_shows_numbers_as_of_today_not_the_days_walked_ahead(client, kim):
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        timeline = connection.execute('SELECT active_timeline_id FROM companions').fetchone()['active_timeline_id']
+        ahead = {row['id']: row['sessions'] for row in rows(client)}
+        today = {row['id']: row['sessions'] for row in hobbies.as_of(connection, timeline, TODAY)}
+        later = connection.execute("SELECT hobby_id, COUNT(*) AS n FROM hobby_log WHERE kind='session' AND local_date>? "
+                                   'GROUP BY hobby_id', (TODAY.isoformat(),)).fetchall()
+    assert later
+    for row in later:
+        assert today[row['hobby_id']] <= ahead[row['hobby_id']] - row['n']
+
+
+def test_a_stall_reads_after_because():
+    # "let chess slide for a while because home got busy", never "because a busy stretch at home".
+    assert all(re.match(r'(?:they|their|the|work|money|other|life|home)\b', line) for line in hobbies.lines('stalls'))

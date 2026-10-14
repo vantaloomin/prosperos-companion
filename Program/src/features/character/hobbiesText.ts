@@ -46,7 +46,7 @@ export function recentLine(text: string, name: string): string {
 export function hobbyNumbers(hobby: Hobby): string | null {
   const found = hobby.numbers
   if (!found) return null
-  return `Skill ${found.skill} of 100 (best ${found.best}), ${found.sessions} sessions, next milestone at ${found.next_at}, talent ${found.talent.toFixed(2)}.`
+  return `Skill ${found.skill} of 100 (best ${found.best}), ${found.sessions} ${found.sessions === 1 ? 'session' : 'sessions'}, next milestone at ${found.next_at}, talent ${found.talent.toFixed(2)}.`
 }
 
 /** Short dates for the Lately list: "Oct 5". */

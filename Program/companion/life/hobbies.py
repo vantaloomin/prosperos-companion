@@ -33,7 +33,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, routine
-from companion.world import generators
+from companion.world import generators, wording
 
 COMPANION = 'companion'
 BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'hobbies'
@@ -45,6 +45,8 @@ NEWS = True
 INVITES = True
 
 MAX_ACTIVE = 3
+# The reason kept on a pastime the user gave up for them (not a dry spell).
+USER_DROP = 'set aside by the user'
 USER_MAX = 6
 GAIN = 0.9
 CEILING = 105
@@ -111,7 +113,7 @@ def word_patterns() -> list[tuple[re.Pattern, int, str]]:
     result = []
     for item in catalogue()['hobbies']:
         for word in item['words']:
-            tail = r'\w*' if len(word) > 4 and ' ' not in word else r'\b'
+            tail = r'\w*' if len(word) > 4 else r'\b'
             result.append((re.compile(rf'\b{re.escape(word)}{tail}', re.I), len(word), item['id']))
     return sorted(result, key=lambda found: -found[1])
 
@@ -120,14 +122,15 @@ def match(text: str, era: str | None = None) -> dict | None:
     """The catalogue pastime a phrase names ("bouldering on weekends" is rock climbing), in the era when given."""
     for pattern, _length, hobby_id in word_patterns():
         item = by_id()[hobby_id]
-        if pattern.search(text or '') and (era is None or in_era(item['eras'], era)):
+        if pattern.search(text or '') and (era is None or in_era(item['eras'], era)) and not any(
+                re.search(rf'\b{re.escape(phrase)}', text, re.I) for phrase in item.get('not', ())):
             return item
     return None
 
 
 def custom(name: str) -> dict:
     """A pastime the catalogue does not know, as the user wrote it: the general bank's milestones."""
-    clean = ' '.join(name.split())[:40]
+    clean = ' '.join(name.replace('{', '').replace('}', '').split())[:40]
     return {'id': 'custom', 'label': clean[:1].upper() + clean[1:], 'name': clean, 'kind': 'general', 'eras': ['any'],
             'words': [], 'session': f'spent some time on {clean}', 'place': None, 'where': '', 'when': 'any',
             'together': None, 'ask': None, 'gear': None, 'fees': None, 'event': None,
@@ -156,7 +159,7 @@ def written(definition: dict, era: str, extra=()) -> list[tuple[str, dict]]:
     """(interest, catalogue entry) for each written interest that names a pastime, first ones first, no repeats."""
     seen, result = set(), []
     for interest in [*(definition.get('interests') or ()), *extra]:
-        item = match(interest, era)
+        item = match(interest, era) or match(interest)
         if item and item['id'] not in seen:
             seen.add(item['id'])
             result.append((interest, item))
@@ -229,6 +232,15 @@ def as_of(connection, timeline_id: str, day: date) -> list[dict]:
                 'active'
             row = {**row, 'status': status, 'status_since': last['local_date'] if last else row['created_on'],
                    'reason': decode(last['details']).get('reason', '') if last else ''}
+        # Practice already walked for the days ahead is not shown yet: the numbers as of the last session or mark.
+        if optional(connection, "SELECT id FROM hobby_log WHERE hobby_id=? AND kind='session' AND local_date>? LIMIT 1",
+                    (row['id'], day.isoformat())):
+            known = optional(connection, "SELECT details FROM hobby_log WHERE hobby_id=? AND kind IN ('mark', 'session') "
+                             "AND local_date<=? AND json_extract(details, '$.skill') IS NOT NULL ORDER BY local_date "
+                             "DESC, kind='session' DESC, created_at DESC LIMIT 1", (row['id'], day.isoformat()))
+            if known:
+                numbers = decode(known['details'])
+                row = {**row, **{key: numbers[key] for key in ('skill', 'best', 'sessions', 'next_at') if key in numbers}}
         result.append(row)
     return result
 
@@ -465,10 +477,12 @@ def practise(life: Life, row: dict, day: date, now, together=False) -> None:
     row['skill'] = round(row['skill'] + GAIN * row['talent'] * max(0.0, 1 - row['skill'] / CEILING), 3)
     row['best'] = max(row['best'], row['skill'])
     item = entry_of(row)
-    log(life.connection, row, day, 'session', now, level=level_of(row['skill']), details={'together': together})
+    log(life.connection, row, day, 'session', now, level=level_of(row['skill']),
+        details={'together': together, **{key: row[key] for key in ('skill', 'best', 'sessions', 'next_at')}})
     month = day.isoformat()[:7]
     if item.get('fees') and row['paid_through'] != month:
-        log(life.connection, row, day, 'fees', now, text=f"paid for {item['fees'][1]}", spend=item['fees'][0])
+        log(life.connection, row, day, 'fees', now, text=wording.regional(life.data, f"paid for {item['fees'][1]}"),
+            spend=item['fees'][0])
         row['paid_through'] = month
     if row['skill'] >= row['next_at']:
         milestone(life, row, day, now)
@@ -493,8 +507,8 @@ def milestone(life: Life, row: dict, day: date, now) -> None:
     index, item = found
     row['used'] = encode(sorted(used | {index}))
     name = row['name']
-    log(life.connection, row, day, 'milestone', now, text=item['text'].replace('{hobby}', name),
-        post=item['post'].replace('{hobby}', name), level=level)
+    log(life.connection, row, day, 'milestone', now, text=wording.regional(life.data, item['text'].replace('{hobby}', name)),
+        post=wording.regional(life.data, item['post'].replace('{hobby}', name)), level=level)
 
 
 def rust(row: dict, day: date) -> None:
@@ -524,7 +538,7 @@ def change(life: Life, row: dict, day: date, kind: str, now) -> None:
         row['status'] = 'dropped'
         text = generators.pick(row['id'], f'drop:{day.isoformat()}', lines('drops')).format(name=name) + \
             ' after a long dry spell'
-    log(life.connection, row, day, kind, now, text=text, details={'reason': row['reason']})
+    log(life.connection, row, day, kind, now, text=wording.regional(life.data, text), details={'reason': row['reason']})
 
 
 def monthly(life: Life, day: date, now) -> None:
@@ -556,9 +570,10 @@ def take_up(life: Life, day: date, now) -> None:
     insert(life.connection, row)
     life.rows.append(row)
     how = generators.pick(row['id'], 'how', lines('pickups'))
-    log(life.connection, row, day, 'started', now, text=f"took up {row['name']} {how}")
+    log(life.connection, row, day, 'started', now, text=wording.regional(life.data, f"took up {row['name']} {how}"))
     if item.get('gear') and item['gear'][1]:
-        log(life.connection, row, day, 'gear', now, text=item['gear'][1], spend=item['gear'][0])
+        log(life.connection, row, day, 'gear', now, text=wording.regional(life.data, item['gear'][1]),
+            spend=item['gear'][0])
 
 
 def life_for(connection, timeline_id: str, definition: dict, world, now, timezone: str = 'UTC',
@@ -670,9 +685,14 @@ def spot(life: Life, row: dict) -> dict | None:
 def session_entry(life: Life, row: dict, session: dict, entry: dict | None, block: dict, definition: dict) -> dict:
     item, name = entry_of(row), definition['name']
     place = spot(life, row)
-    where = f" at {place['name']}" if place else f" {item['where']}" if item.get('where') and \
-        item['where'] not in item['session'] else ''
-    summary = f"{name} {item['session']}{where}."
+    did, where = item['session'], ''
+    if place and item.get('where') and item['where'] in did:
+        did = did.replace(item['where'], f"at {place['name']}")
+    elif place:
+        where = f" at {place['name']}"
+    elif item.get('where') and item['where'] not in did:
+        where = f" {item['where']}"
+    summary = f"{name} {did}{where}."
     milestone_row = optional(life.connection, "SELECT * FROM hobby_log WHERE hobby_id=? AND local_date=? AND "
                              "kind='milestone'", (row['id'], session['local_date']))
     if milestone_row:
@@ -696,7 +716,7 @@ def session_line(life: Life, row: dict, seed: str) -> str:
     options = [line['text'] for line in bank(row['kind']).get('sessions', ())
                if in_era(line['eras'], life.era) and ('any' in line['for'] or row['hobby'] in line['for'])]
     line = generators.pick(seed, 'line', options)
-    return line.replace('{hobby}', row['name']) if line else ''
+    return wording.regional(life.data, line.replace('{hobby}', row['name'])) if line else ''
 
 
 # --- In words ---
@@ -745,16 +765,17 @@ def context_lines(connection, timeline_id: str, now, timezone: str, definition: 
         when = 'today' if day == today else 'yesterday' if day == today - timedelta(days=1) else \
             f'on {day:%A, %B} {day.day}'
         result.append((f"hobbies:milestone:{found['id']}",
-                       f"- Lately: {when} you {yours(found['text'])} ({found['label']})."))
+                       f"- Lately: {when} you {yours(found['text'])} ({wording.regional(data, found['label'])})."))
     return result
 
 
 def pastime_line(row: dict, today: date, data: dict | None) -> str:
-    label = row['label']
+    label = wording.regional(data, row['label'])
     if row['status'] == 'dropped':
         if (today - date.fromisoformat(row['status_since'])).days > GAVE_UP_DAYS:
             return ''
-        return f"- {label}: you gave it up in {month_text(row['status_since'])} after a dry spell."
+        why = '' if row.get('reason') == USER_DROP else ' after a dry spell'
+        return f"- {label}: you gave it up in {month_text(row['status_since'])}{why}."
     how = f"{since_text(row, today)} in, {LEVEL_TEXT[level_of(row['skill'])]}"
     if row['status'] == 'stalled':
         return f"- {label}: {how}; it has stalled lately ({yours(row['reason'])})."
@@ -845,9 +866,9 @@ def invite_reason(row: dict, item: dict, day: date, at: str) -> str:
     when = f'{day:%A, %B} {day.day} at {datetime.strptime(at, "%H:%M"):%I:%M %p}'.replace(' 0', ' ')
     since = since_text(row, day)
     if item.get('event'):
-        return (f"You have {item['event']} on {when}, and you want the user to come and watch. You have been doing "
+        return (f"You have {yours(item['event'])} on {when}, and you want the user to come and watch. You have been doing "
                 f"{row['name']} for {since}. Invite them in your own words, naming the day.")
-    return (f"You want the user to come along to {item['together']} with you on {when}. You have been doing "
+    return (f"You want the user to come along to {yours(item['together'])} with you on {when}. You have been doing "
             f"{row['name']} for {since} and are {LEVEL_TEXT[level_of(row['skill'])]}, so it is fine if they are new "
             'to it. Invite them in your own words, naming the day.')
 
@@ -869,6 +890,22 @@ def settle_invite(connection, companion: dict, message: dict, trigger, timestamp
 
 
 # --- Going together (outings.py) ---
+
+def usual_at(connection, row_id: str, day: date) -> str | None:
+    """The time of day they usually do this pastime ("go birding Saturday" is a morning), for a plan with no time."""
+    row = optional(connection, 'SELECT * FROM hobbies WHERE id=?', (row_id,))
+    return usual_time(entry_of(row), day) if row else None
+
+
+def outing_added(connection, companion: dict, now) -> None:
+    """A pastime with the user was just planned: the days already walked ahead are walked again, so the session
+    together counts (and a stalled pastime picks back up)."""
+    version = companion['version']
+    timeline_id, today = companion['active_timeline_id'], now.astimezone(zone(version['timezone'] or 'UTC')).date()
+    life = life_for(connection, timeline_id, version['definition'], None, now, version['timezone'])
+    rewind(life, today, now)
+    after_edit(connection, timeline_id, today, now)
+
 
 def patterns(connection, timeline_id: str) -> list[dict]:
     """Each pastime they still do, with the words that name it in a message ("want to go climbing Saturday?")."""
@@ -911,7 +948,9 @@ def view(connection, timeline_id: str, definition: dict, world, now, timezone: s
     life = life_for(connection, timeline_id, definition, world, now, timezone)
     today = now.astimezone(zone(timezone or 'UTC')).date()
     evolve(life, today, now)
-    result = [row_view(connection, row, today, show_numbers) for row in as_of(connection, timeline_id, today)]
+    result = [row_view(connection, {**row, 'label': wording.regional(life.data, row['label']),
+                                    'name': wording.regional(life.data, row['name'])}, today, show_numbers)
+              for row in as_of(connection, timeline_id, today)]
     going = sum(row['status'] != 'dropped' for row in result)
     return {'today': today.isoformat(), 'hobbies': result, 'level_names': list(LEVEL_TEXT), 'realism': life.level,
             'can_add': going < USER_MAX}
@@ -983,7 +1022,8 @@ def edit(connection, timeline_id: str, row_id: str, body: dict, definition: dict
     if body.get('kept') is not None:
         changes['kept'] = int(body['kept'])
     if body.get('status') in ('active', 'dropped') and body['status'] != row['status']:
-        changes.update(status=body['status'], status_since=today.isoformat(), reason='')
+        changes.update(status=body['status'], status_since=today.isoformat(),
+                       reason=USER_DROP if body['status'] == 'dropped' else '')
         if body['status'] == 'active':
             changes['kept'] = 1
     if changes:
