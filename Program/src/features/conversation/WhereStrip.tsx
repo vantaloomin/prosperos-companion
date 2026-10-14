@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { DoorOpen, Home, MapPin, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Undo2 } from 'lucide-react'
+import { DoorOpen, Home, Luggage, MapPin, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { TOGETHER_KEY } from '../today/outingText'
 import { useWhere } from './useWhere'
-import { WHERE_KEY, callActions, callClock, stripAction, stripLine, type CallAction, type StripAction, type WhereCall, type WhereState } from './whereText'
+import { WHERE_KEY, callActions, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
 const ACTION_GLYPHS = { 'Head home': Home, Undo: Undo2 } as Record<string, typeof Home>
 const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Phone } as Record<CallAction['action'], typeof Home>
@@ -12,29 +12,43 @@ const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Pho
 /**
  * The "where you are" strip above the composer, in every chat style: while they are together (out somewhere, at
  * their place, at yours) where and until when, with Head home, Say goodbye or Not now, and Undo for a minute or two
- * after; on a call, how long with End call, and their call ringing with Answer and Decline. Nothing while apart.
+ * after; on a call, how long with End call, and their call ringing with Answer and Decline; a weekend visit across
+ * the distance, who is staying with whom and until when (it ends on its own; Today can call one off before it starts).
+ * Nothing while apart.
  */
 export function WhereStrip({ name }: { name: string }) {
   const client = useQueryClient()
   const where = useWhere()
   const line = stripLine(where.data, name)
-  const action = stripAction(where.data)
-  const outing = where.data?.outing
   const call = where.data?.call
   const refresh = (found?: WhereState) => {
     if (found) client.setQueryData(WHERE_KEY, found)
     void client.invalidateQueries({ queryKey: WHERE_KEY })
     void client.invalidateQueries({ queryKey: ['chats'] })
   }
-  if (!line) return null
+  if (!line || !where.data) return null
   if (call) return <CallStrip call={call} lead={line.lead} tail={line.tail} name={name} onDone={refresh} />
+  if (where.data.visit) return (
+    <aside className="where-strip" aria-label="Where you are" aria-live="polite">
+      <Luggage aria-hidden="true" />
+      <span>{line.lead}{line.tail}</span>
+    </aside>
+  )
+  return <OutingStrip where={where.data} line={line} onDone={refresh} />
+}
+
+/** Time together out or at one of your places, with its one button. */
+function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLine; onDone: () => void }) {
+  const client = useQueryClient()
+  const outing = where.outing
   if (!outing) return null
+  const action = stripAction(where)
   const act = async (verb: StripAction['action']) => {
     await api(`/life/outings/${outing.id}/${verb}`, {}).catch(() => undefined)
     void client.invalidateQueries({ queryKey: TOGETHER_KEY })
-    refresh()
+    onDone()
   }
-  const Glyph = where.data?.kind === 'out' ? MapPin : Home
+  const Glyph = where.kind === 'out' ? MapPin : Home
   return (
     <aside className="where-strip" aria-label="Where you are" aria-live="polite">
       <Glyph aria-hidden="true" />

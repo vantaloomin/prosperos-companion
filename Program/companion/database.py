@@ -290,6 +290,13 @@ ADDED_COLUMNS = (
     # Getting together (companion/life/together.py, Settings > Realism): how often companions suggest meeting up,
     # invite the user over and drop by, 0 never on their own, 1 light, 2 true to life, 3 often.
     ('life_settings', 'together_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (together_realism BETWEEN 0 AND 3)'),
+    # Long distance (companion/life/long_distance.py): a trip that is a weekend visit with the user, 'to-you' (they come
+    # to stay with the user) or 'host' (the user comes to stay with them); the message that asked for it, the memory it
+    # left, and when the user called it off.
+    ('trips', 'visit', "TEXT NOT NULL DEFAULT '' CHECK (visit IN ('', 'to-you', 'host'))"),
+    ('trips', 'message_id', 'TEXT'),
+    ('trips', 'memory_id', 'TEXT'),
+    ('trips', 'cancelled_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

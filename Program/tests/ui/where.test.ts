@@ -65,3 +65,16 @@ test('on a call their status line says so', () => {
   assert.deepEqual(shown(status), { text: 'On a call', away: 'phone' })
   assert.deepEqual(shown({ ...status, where: { state: 'apart', kind: 'ringing', text: 'Calling you' } }), { text: 'Calling you', away: 'phone' })
 })
+
+test('a weekend visit across the distance says who is staying with whom, and until when', async () => {
+  const { canCall, notTexting } = await import('../../src/features/conversation/whereText.ts')
+  const visit = { id: 't1', direction: 'to-you' as const, city_name: 'Baltimore', start_date: '2026-10-17', end_date: '2026-10-18', leave_at: '16:00' }
+  const staying: WhereState = { state: 'together', kind: 'staying', text: 'Staying with you until Sunday', outing: null, call: null, visit }
+  const line = stripLine(staying, 'Mira')
+  assert.equal(line?.lead, 'Mira is staying with you')
+  assert.match(line?.tail ?? '', /^ until Sun/)
+  assert.equal(stripAction(staying), null)
+  assert.ok(notTexting(staying) && !canCall(staying))
+  const hosting: WhereState = { ...staying, kind: 'hosting', visit: { ...visit, direction: 'host', city_name: 'Chicago' } }
+  assert.equal(stripLine(hosting, 'Mira')?.lead, 'Staying with Mira in Chicago')
+})

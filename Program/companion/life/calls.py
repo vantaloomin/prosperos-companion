@@ -44,7 +44,9 @@ TOLD_FOR = timedelta(hours=2)
 # Ringing the user: the chance a day brings a call, by the slider; more for someone in another city. Only someone at
 # least Comfortable (Friends) with the user rings (companion/memory/closeness.py).
 RING_CHANCE = {1: 0.06, 2: 0.15, 3: 0.3}
+# Long distance (companion/life/long_distance.py): twice as often within a weekend visit's reach, three times beyond it.
 FAR_TIMES = 2
+BEYOND_TIMES = 3
 RING_HOURS = (10, 22)
 CLOSE = 3
 # A call they missed from the user is answered with a text when they are next free, within this long.
@@ -199,7 +201,7 @@ def blocked(connection, companion: dict, now: datetime) -> str | None:
     """Why no call can start at all: they are together already, or a call is on or ringing."""
     if not ACTIVE:
         return 'off'
-    if together.together_now(connection, companion, now):
+    if together.in_person(connection, companion, now):
         return 'together'
     found = now_for(connection, companion, now)
     return found['status'] if found and found['status'] in ('on', 'ringing') else None
@@ -364,9 +366,11 @@ def ring_due(connection, companion: dict, now: datetime) -> list:
     if optional(connection, 'SELECT id FROM calls WHERE timeline_id=? AND trigger_key=?',
                 (companion['active_timeline_id'], key)):
         return []
-    far = where.between(connection, version['definition']).long_distance
+    between = where.between(connection, version['definition'])
+    far = between.long_distance
+    times = (FAR_TIMES if between.within_reach else BEYOND_TIMES) if far else 1
     rng = random.Random(f"{companion['id']}:{key}")
-    if rng.random() >= chance * (FAR_TIMES if far else 1) or \
+    if rng.random() >= chance * times or \
             local.hour * 60 + local.minute < rng.randint(RING_HOURS[0] * 60, RING_HOURS[1] * 60 - 30):
         return []
     if blocked(connection, companion, now) or why_not(connection, companion, now) or not close(connection, companion,

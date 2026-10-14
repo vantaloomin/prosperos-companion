@@ -1,14 +1,16 @@
 /** Together or apart (companion/life/together.py): the "where you are" strip's state and wording, kept apart from the component for tests. */
-import { timeText, type Outing } from '../today/outingText.ts'
+import { dayText, timeText, type Outing } from '../today/outingText.ts'
 
 export const WHERE_KEY = ['where']
 
-/** Out somewhere, at their place, at yours, or a knock at your door; apart in the same city, or long distance; on a call, or ringing you. */
-export type WhereKind = 'apart' | 'long-distance' | 'out' | 'theirs' | 'yours' | 'knock' | 'call' | 'ringing'
+/** Out somewhere, at their place, at yours, or a knock at your door; apart in the same city, or long distance; on a call, or ringing you; a weekend visit across the distance, them staying with you or you with them. */
+export type WhereKind = 'apart' | 'long-distance' | 'out' | 'theirs' | 'yours' | 'knock' | 'call' | 'ringing' | 'staying' | 'hosting'
 export interface WhereOuting extends Outing { not_now: boolean }
 /** A call (companion/life/calls.py): on, ringing, or one that just ended or went unanswered. `direction` is who called: 'you' or 'them'. */
 export interface WhereCall { id: string; direction: 'you' | 'them'; status: 'ringing' | 'on' | 'missed' | 'declined' | 'ended'; started_at: string | null; until_at: string | null; ended_at: string | null }
-export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string; outing: WhereOuting | null; call?: WhereCall | null }
+/** A weekend visit under way (companion/life/long_distance.py): 'to-you' when they came to stay with you, 'host' when you went to stay with them. `leave_at` is when the visit ends on its last day. */
+export interface WhereVisit { id: string; direction: 'to-you' | 'host'; city_name: string; start_date: string; end_date: string; leave_at: string }
+export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string; outing: WhereOuting | null; call?: WhereCall | null; visit?: WhereVisit | null }
 export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string }
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
@@ -21,6 +23,7 @@ export interface CallAction { action: 'answer' | 'decline' | 'end' | 'call'; lab
 /** Null while apart: the strip shows only time together, or a call. */
 export function stripLine(where: WhereState | undefined, name: string): StripLine | null {
   if (where?.call) return callLine(where.call, name)
+  if (where?.visit) return visitLine(where.visit, name)
   const outing = where?.outing
   if (!where || !outing) return null
   return outing.state === 'done' ? endedLine(where.kind, outing, name) : liveLine(where.kind, outing, name)
@@ -37,6 +40,13 @@ function liveLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine
   if (kind === 'theirs') return { lead: `At ${name}'s place`, place: null, tail }
   if (kind === 'knock' && outing.not_now) return { lead: `${name} dropped by and is at your place`, place: null, tail }
   return { lead: `${name} is at your place`, place: null, tail }
+}
+
+/** A weekend visit: who is staying with whom, and until when ("until Sun, Oct 18"). */
+export function visitLine(visit: WhereVisit, name: string): StripLine {
+  const tail = ` until ${dayText(visit.end_date)}`
+  if (visit.direction === 'to-you') return { lead: `${name} is staying with you`, place: null, tail }
+  return { lead: `Staying with ${name} in ${visit.city_name}`, place: null, tail }
 }
 
 /** What the strip says about a call; how long it has been on is ticked by the strip itself (callClock). */

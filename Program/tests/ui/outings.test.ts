@@ -10,7 +10,7 @@ const outing: Outing = {
 const trip: Trip = {
   id: 't1', start_date: '2026-10-17', end_date: '2026-10-18', city_id: 'new-york', city_name: 'New York', kind: 'getaway',
   company: { id: 'p1', name: 'Dana', role: 'sister' }, landmark: { name: 'The High Line', summary: '' }, sunny: false,
-  cost_text: '$520', state: 'planned', postcard_message_id: null,
+  cost_text: '$520', state: 'planned', postcard_message_id: null, visit: '', undo: false,
 }
 
 test('an outing reads as what, where and when, with who picked the place', () => {
@@ -31,6 +31,9 @@ test('trips read as days and who they go with', () => {
   assert.equal(tripTitle(trip), 'A weekend in New York with Dana')
   assert.equal(tripTitle({ ...trip, end_date: '2026-10-19', company: null }), 'A long weekend in New York')
   assert.equal(tripTitle({ ...trip, kind: 'family', company: { id: 'p2', name: 'Rosa', role: 'mother' } }), 'Visiting Rosa in New York')
+  // Weekend visits across the distance (companion/life/long_distance.py).
+  assert.equal(tripTitle({ ...trip, visit: 'to-you', city_name: 'Baltimore' }, 'Mira'), 'Mira comes to stay with you')
+  assert.equal(tripTitle({ ...trip, visit: 'host', city_name: 'Chicago' }, 'Mira'), 'You stay with Mira in Chicago')
 })
 
 test('called-off ones leave Today, and visits read as your place or theirs', () => {
