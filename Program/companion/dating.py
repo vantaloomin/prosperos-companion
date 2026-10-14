@@ -109,7 +109,8 @@ def look_in(database, city_id: str) -> dict:
     with database.connect(write=True) as connection:
         require(profile(connection) is not None, 'Set up your profile first.', 409)
         story.city_data(connection, city_id)  # 404 for an unknown city.
-        connection.execute('UPDATE dating_profile SET city_id=?, updated_at=? WHERE id=1', (city_id, database.now()))
+        connection.execute("UPDATE dating_profile SET city_id=?, last_answer='', updated_at=? WHERE id=1",
+                           (city_id, database.now()))
     return state(database)
 
 
@@ -192,32 +193,37 @@ def swipe(database, key: str, like: bool) -> dict:
         connection.execute(
             'INSERT INTO dating_swipes (person_key, city_id, town, liked, matched, created_at) VALUES (?, ?, ?, ?, ?, ?)',
             (key, data['id'], town, int(like), int(matched), database.now()))
+        connection.execute('UPDATE dating_profile SET last_answer=? WHERE id=1', (key,))
     return state(database) | {'matched': card(sheet, data, database) if matched else None}
 
 
 def undo(database, key: str) -> dict:
-    """Take back the user's last answer, so the person is back on top of the deck. Only the latest answer, and not
-    once a match became a companion or was met on a date."""
+    """Take back the user's last answer, so the person is back on top of the deck. Only the answer just given, once:
+    seeing passed people again, an unmatch or another city starts afresh, and not once a match became a companion
+    or was met on a date."""
     with database.connect(write=True) as connection:
-        last = optional(connection, 'SELECT person_key FROM dating_swipes ORDER BY rowid DESC LIMIT 1')
-        require(last is not None and last['person_key'] == key, 'Only your last answer can be undone.', 409)
+        mine = profile(connection)
+        require(mine is not None and mine['last_answer'] == key, 'Only your last answer can be undone.', 409)
         require(optional(connection, 'SELECT 1 FROM companions WHERE townsfolk_key=?', (key,)) is None,
                 'They are already a companion.', 409)
         require(optional(connection, 'SELECT 1 FROM dating_dates WHERE person_key=?', (key,)) is None,
                 'You already met them on a date.', 409)
         connection.execute('DELETE FROM dating_swipes WHERE person_key=?', (key,))
+        connection.execute("UPDATE dating_profile SET last_answer='' WHERE id=1")
     return state(database)
 
 
 def see_passed_again(database) -> dict:
     with database.connect(write=True) as connection:
         connection.execute('DELETE FROM dating_swipes WHERE liked=0')
+        connection.execute("UPDATE dating_profile SET last_answer='' WHERE id=1")
     return state(database)
 
 
 def unmatch(database, key: str) -> dict:
     with database.connect(write=True) as connection:
         connection.execute('DELETE FROM dating_swipes WHERE person_key=? AND matched=1', (key,))
+        connection.execute("UPDATE dating_profile SET last_answer='' WHERE id=1")
     return state(database)
 
 
@@ -363,4 +369,5 @@ def state(database) -> dict:
                 'persona': persona(connection), 'story': story_on(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),
                 'deck': [dating.card(sheet, data, database.clock.now().date(), found) for sheet, found in shown],
                 'remaining': left, 'matches': matches(connection, database), 'date': date,
+                'undo': (mine or {}).get('last_answer') or None,
                 'all_matches': bool(settings(connection).get('debug_all_matches'))}

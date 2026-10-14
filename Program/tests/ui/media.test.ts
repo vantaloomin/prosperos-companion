@@ -32,3 +32,14 @@ test('the heading goes by first name and titles and verdicts split out of the li
   assert.deepEqual(verdictSplit('Gave up on Ripley partway through.'), ['Gave up on Ripley partway through.', null])
   assert.equal(byLabel('show'), null)
 })
+
+test('change-form examples come from their own time and place, and a recommendation says what waits', async () => {
+  const { examples, recommendedNote } = await import('../../src/features/character/mediaText.ts')
+  assert.equal(examples('book').title, 'e.g. Piranesi')
+  assert.deepEqual(examples('music', 'jazz-age'), { title: 'e.g. Sweet Georgia Brown', by: 'e.g. Ben Bernie' })
+  assert.equal(examples('show', 'tales').title, 'e.g. The Trial of the Talking Pig')
+  assert.deepEqual(examples('book', 'future'), { title: '', by: '' })
+  const item = { id: 'r', kind: 'book' as const, title: 'The Great Gatsby', by: '', format: 'book', text: '', set_by_you: false, started_on: '', recommended: true }
+  assert.equal(recommendedNote({ ...item, waiting: 'In Our Time' }), 'You recommended it. In Our Time waits until they finish.')
+  assert.equal(recommendedNote(item), 'You recommended it.')
+})

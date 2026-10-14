@@ -28,7 +28,7 @@ from pathlib import Path
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import admin, money, outings, routine
-from companion.world import catalog, generators
+from companion.world import catalog, generators, wording
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'work_life.json'
 # Off in tests unless a test turns it on (tests/conftest.py), so other tests' days stay as written.
@@ -37,12 +37,16 @@ LEVELS = (0, 1, 2, 3)
 DEFAULT_LEVEL = 2
 # Per level: the chance a week is slammed, and that it is slow; the rest are ordinary.
 WEEKS = {0: (0.0, 0.0), 1: (0.06, 0.2), 2: (0.18, 0.15), 3: (0.28, 0.12)}
+# The chance the week a project is due is slammed, by level: on Steady a deadline is mostly met without a crunch.
+DUE_SLAMMED = {0: 0.0, 1: 0.3, 2: 1.0, 3: 1.0}
 # Late nights on the calendar in a slammed week, by level (fewest, most).
 LATE_NIGHTS = {0: (0, 0), 1: (0, 1), 2: (1, 2), 3: (1, 3)}
 LATE_MINUTES = (90, 180)
 # At the yearly review: the chance of a promotion instead of a raise, and of no raise at all.
 PROMOTION = {0: 0.0, 1: 0.1, 2: 0.15, 3: 0.2}
 PROMOTION_RAISE = (8.0, 15.0)
+# A storyline promotion raises pay only when there was no promotion in the year before it.
+PROMOTION_GAP_DAYS = 365
 FREEZE = {0: 0.0, 1: 0.0, 2: 0.08, 3: 0.15}
 # Dramatic only: the weekly chance of being laid off, and of quitting (times QUIT_SLAMMED after two slammed weeks).
 LAYOFF_WEEKLY = 0.0012
@@ -58,7 +62,8 @@ OUTCOMES = {0: (0.6, 0.3), 1: (0.65, 0.3), 2: (0.55, 0.3), 3: (0.45, 0.3)}
 OUTCOME_WORDS = {'well': 'it went well', 'fine': 'it went fine', 'rough': 'it was a rough one'}
 # Disruptions' work table tilted by the week (companion/life/disruptions.py tilts).
 TILTS = {'slammed': {'over': 3.0}, 'slow': {'over': 0.25}}
-CATCH_UP_DAYS = 60
+# Long enough that a yearly review is never skipped after months away.
+CATCH_UP_DAYS = 400
 AHEAD_DAYS = 14
 RECENT_DAYS = 30
 # Days off the agenda shows for work life (agenda.holiday_block), by the name it is given.
@@ -83,6 +88,75 @@ KINDS = {
     'public': ('government', 'law', 'law-enforcement', 'public-safety', 'security', 'military', 'army', 'defense',
                'gates', 'labour'),
 }
+# Which projects in a kind's bank fit a career (the projects' `fits`; a project without `fits` suits anyone of the
+# kind): by career id first, then by sector. A career with neither draws only the projects anyone of the kind could do.
+TRADES_BY_SECTOR = {
+    'finance': ('finance', 'insurance'), 'insurance': ('insurance', 'finance'), 'legal': ('legal',),
+    'real-estate': ('property',), 'business': ('marketing', 'clerical'), 'clerical': ('clerical',),
+    'commerce': ('clerical', 'trade'), 'trade': ('trade', 'finance'),
+    'technology': ('software',), 'biotech': ('science',), 'science': ('science',), 'engineering': ('engineering',),
+    'aerospace': ('engineering',),
+    'healthcare': ('clinical',), 'medicine': ('clinical',), 'healing': ('clinical', 'pharmacy'), 'care': ('clinical',),
+    'social-services': ('social',), 'religion': ('church',), 'church': ('church',), 'spiritualism': ('church',),
+    'education': ('school',), 'learning': ('school', 'library'),
+    'hospitality': ('food',), 'food': ('food',), 'victualling': ('food',), 'retail': ('retail',),
+    'tourism': ('leisure',), 'recreation': ('leisure',), 'fitness': ('leisure',), 'services': ('hospitality',),
+    'domestic': ('household',), 'domestic-service': ('household',), 'household': ('household',),
+    'court': ('household',), 'palace': ('household', 'food'), 'gardens': ('household',),
+    'construction': ('building',), 'building': ('building',), 'city-works': ('building',), 'crafts': ('crafts',),
+    'cloth': ('crafts',), 'garment': ('crafts',), 'textiles': ('crafts', 'industry'), 'agriculture': ('farming',),
+    'farming': ('farming',), 'ranching': ('farming',), 'forest': ('farming',), 'milling': ('farming', 'industry'),
+    'fishing': ('sea',), 'maritime': ('sea',), 'marine-trades': ('sea', 'crafts'), 'shipbuilding': ('sea', 'crafts'),
+    'manufacturing': ('industry',), 'mining': ('industry',), 'quarrying': ('industry',),
+    'logistics': ('shipping',), 'shipping': ('shipping',), 'river': ('shipping',), 'transit': ('transit',),
+    'railroad': ('transit',), 'freight': ('freight',), 'communications': ('post',),
+    'entertainment': ('stage', 'music'), 'music': ('music',), 'creative': ('design',), 'arts': ('photo', 'design'),
+    'media': ('press',), 'press': ('press',), 'newspaper': ('press',),
+    'law': ('police',), 'law-enforcement': ('police',), 'security': ('police',), 'gates': ('police',),
+    'public-safety': ('police',), 'military': ('military',), 'army': ('military',), 'defense': ('military',),
+    'government': ('government',), 'labour': ('government',),
+}
+TRADES_BY_CAREER = {
+    'underwriter': ('insurance', 'finance'), 'marketing-coordinator': ('marketing',), 'counting-clerk': ('trade', 'finance'),
+    'merchant-factor': ('trade', 'finance'), 'courier': ('clerical', 'trade'), 'office-clerk': ('clerical',),
+    'stenographer': ('clerical', 'legal'), 'typist': ('clerical',), 'scribe': ('clerical', 'legal'),
+    'arbiter': ('legal',), 'court-clerk': ('government',),
+    'radio-repairman': ('radio',), 'defense-engineer': ('engineering',), 'chart-copyist': ('science',),
+    'navigator': ('science',), 'tube-fitter': ('engineering',), 'draughtsman': ('engineering',),
+    'pharmacist': ('pharmacy',), 'druggist': ('pharmacy',), 'apothecary': ('pharmacy', 'clinical'),
+    'medical-researcher': ('research',), 'physician-resident': ('clinical', 'research'),
+    'biologist': ('academic',), 'professor': ('academic',), 'graduate-student': ('academic',),
+    'undergraduate': ('academic',), 'institute-lecturer': ('academic',), 'folklore-lecturer': ('academic',),
+    'librarian': ('library',), 'museum-curator': ('library',), 'rare-books-cataloguer': ('library',),
+    'convent-teacher': ('school',),
+    'hotel-clerk': ('hospitality',), 'hotel-front-desk': ('hospitality',), 'event-planner': ('hospitality', 'food'),
+    'casino-dealer': ('hospitality', 'leisure'), 'innkeeper': ('food', 'hospitality'), 'chauffeur': ('household',),
+    'hatcheck-attendant': ('food', 'hospitality'), 'cook': ('food', 'household'), 'palace-cook': ('food', 'household'),
+    'bootblack': ('retail',), 'elevator-operator': ('hospitality',), 'market-keeper': ('retail', 'food'),
+    'fishmonger': ('retail', 'food'),
+    'blacksmith': ('crafts', 'mechanic'), 'garage-mechanic': ('mechanic',), 'boatbuilder': ('sea', 'crafts'),
+    'dressmaker': ('crafts',), 'undertaker': ('crafts', 'building'), 'iceman': ('industry',),
+    'dowser': ('farming',), 'mill-hand': ('industry',), 'assayer': ('industry',), 'lighthouse-keeper': ('sea',),
+    'tide-clerk': ('sea',), 'emerald-cutter': ('crafts',),
+    'port-logistics': ('shipping', 'freight'), 'cabman': ('transit',), 'railway-porter': ('transit',),
+    'railway-signalman': ('transit',), 'carter': ('freight',), 'canal-boatman': ('shipping',),
+    'lock-keeper': ('shipping',), 'airship-mail-rigger': ('post',), 'telegraph-operator': ('post',),
+    'stage-driver': ('freight', 'transit'), 'teamster': ('freight',), 'miller': ('farming', 'industry'),
+    'actor': ('stage',), 'dancer': ('stage',), 'chorus-dancer': ('stage',), 'burlesque-dancer': ('stage',),
+    'taxi-dancer': ('stage', 'music'), 'art-model': ('photo',), 'performer': ('stage', 'music'),
+    'musician': ('music',), 'jazz-musician': ('music',), 'saloon-pianist': ('music',), 'song-plugger': ('music',),
+    'town-musician': ('music',), 'minstrel': ('music', 'stage'), 'music-hall-singer': ('music', 'stage'),
+    'photographer': ('photo',), 'graphic-designer': ('design',), 'fashion-assistant': ('design', 'photo'),
+    'private-detective': ('police',), 'tide-waiter': ('government',),
+    'subscription-creator': ('creator',), 'cam-model': ('creator',), 'glamour-model': ('creator', 'film'),
+    'adult-film-performer': ('film',), 'adult-video-editor': ('editor',), 'exotic-dancer': ('dancer',),
+    'burlesque-performer': ('dancer',), 'phone-sex-operator': ('phone',), 'professional-dominatrix': ('domme',),
+    'adult-store-clerk': ('shop',), 'erotica-author': ('author',),
+}
+# Careers whose sector would put them in the wrong bank.
+KIND_BY_CAREER = {'defense-engineer': 'tech', 'scribe': 'office', 'arbiter': 'office', 'convent-teacher': 'teaching'}
+# Fewer fitting projects than this for an era, and the general bank joins in.
+MIN_OPTIONS = 4
 ERA_GROUPS = {'modern': 'modern', 'future': 'modern', 'other': 'modern', 'jazz-age': 'jazz-age',
               'victorian': 'industrial', 'steampunk': 'industrial', 'frontier': 'industrial'}
 
@@ -123,6 +197,22 @@ def workdays(definition: dict) -> frozenset[int]:
     return frozenset(day for block in routine.blocks(definition)[0] if block.kind == 'work' for day in block.days)
 
 
+def after_work(definition: dict, day: date, block: dict) -> str | None:
+    """When a late night starts: the end of the day's work, or the start of the free time that follows within an
+    hour and a half. None after an overnight shift or when the day has no free time after work (a 12-hour shift that
+    ends in sleep), so a late night never lands on a day off or the next morning."""
+    if block['end'] <= block['start']:
+        return None
+    end = admin.minutes_of(block['end'])
+    for free in admin.free_blocks(routine.blocks(definition)[0], day):
+        start, stop = admin.minutes_of(free['start']), admin.minutes_of(free['end']) or 24 * 60
+        if start <= end < stop:
+            return block['end']
+        if end < start <= end + 90:
+            return free['start']
+    return None
+
+
 def work_block(definition: dict, day: date) -> dict | None:
     """The day's last work block (the one a late night follows)."""
     found = [block.view() for block in routine.blocks(definition)[0] if block.kind == 'work' and day.weekday() in
@@ -143,6 +233,8 @@ def kind_of(career: dict | None) -> str:
     """The project bank a career draws from: adult work its own, then by sector, else the general bank."""
     if not career:
         return 'general'
+    if career['id'] in KIND_BY_CAREER:
+        return KIND_BY_CAREER[career['id']]
     if career.get('adult') and 'modern' in (career.get('eras') or ['modern']):
         return 'adult'
     sector = (career.get('sector') or '').lower()
@@ -152,9 +244,33 @@ def kind_of(career: dict | None) -> str:
     return 'general'
 
 
-def projects(kind: str, group: str) -> list[str]:
+def trades_of(career: dict | None) -> frozenset[str]:
+    if not career:
+        return frozenset()
+    return frozenset(TRADES_BY_CAREER.get(career['id']) or TRADES_BY_SECTOR.get((career.get('sector') or '').lower(), ()))
+
+
+def in_world(item: dict, city: dict | None) -> bool:
+    """A project that names one world stays in it (the Emerald City's gates only in Oz), one with dragons or elves
+    only in a made-up world, and one about kings and dukes never in a republic."""
+    city = city or {}
+    if item.get('cities') and city.get('id') not in item['cities']:
+        return False
+    if item.get('fantasy') and city.get('setting') != 'fictional':
+        return False
+    return not (item.get('monarchy') and 'republic' in (city.get('country') or '').lower())
+
+
+def projects(kind: str, group: str, trades: frozenset[str] = frozenset(), city: dict | None = None) -> list[str]:
+    """The projects a career could be running: its kind's that fit its trades (or anyone of the kind), in its era and
+    world; the general bank joins in when that leaves too few."""
     bank = data()['projects']
-    found = [item['title'] for item in bank.get(kind, ()) if group in item['eras']]
+    def pool(name: str) -> list[str]:
+        return [item['title'] for item in bank.get(name, ()) if group in item['eras'] and in_world(item, city)
+                and (not item.get('fits') or trades & set(item['fits']))]
+    found = pool(kind) if kind != 'general' else []
+    if len(found) < MIN_OPTIONS:
+        found += pool('general')
     return found or [item['title'] for item in bank['general'] if group in item['eras']]
 
 
@@ -173,10 +289,12 @@ def state(connection, timeline_id: str) -> dict | None:
     return {**row, 'project': decode(row['project'])} if row else None
 
 
-def new_project(seed: str, index: int, kind: str, group: str, start: date, used: list[str]) -> dict:
-    """The next running project, from the bank, not one of the last few."""
-    options = [title for title in projects(kind, group) if title not in used[-8:]] or projects(kind, group)
-    title = generators.pick(seed, f'project:{index}', options)
+def new_project(seed: str, index: int, career: dict | None, city: dict | None, start: date, used: list[str]) -> dict:
+    """The next running project, from the bank, fitting their career, not one of the last few, in the city's own
+    English."""
+    found = [wording.regional(city, title)
+             for title in projects(kind_of(career), era_group(city), trades_of(career), city)]
+    title = generators.pick(seed, f'project:{index}', [title for title in found if title not in used[-8:]] or found)
     weeks = PROJECT_WEEKS[0] + int(generators.unit(seed, 'weeks', index) * (PROJECT_WEEKS[1] - PROJECT_WEEKS[0] + 1))
     due = monday_of(start) + timedelta(weeks=weeks, days=int(generators.unit(seed, 'due-day', index) * 5))
     return {'title': title, 'index': index, 'started': start.isoformat(), 'due': max(due, start).isoformat()}
@@ -198,8 +316,7 @@ def ensure(connection, companion: dict, today: date, now: datetime) -> dict | No
     started = today - timedelta(days=0 if found else 200 + int(generators.unit(seed, 'tenure') * 2400))
     month = rules(city).get('review_month')
     review = f'{month:02d}-{1 + int(generators.unit(seed, "review") * 27):02d}' if month else started.strftime('%m-%d')
-    project = new_project(seed, 0, kind_of(career), era_group(city),
-                          today - timedelta(days=int(generators.unit(seed, 'into') * 14)), [])
+    project = new_project(seed, 0, career, city, today - timedelta(days=int(generators.unit(seed, 'into') * 14)), [])
     connection.execute(
         'INSERT INTO work_life (timeline_id, career, kind, started_on, review_on, pay, status, project, used, '
         'checked_through, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?) '
@@ -231,14 +348,16 @@ def update(connection, timeline_id: str, now: datetime, **fields):
 # --- How each week goes ---
 
 def workload(found: dict, monday: date, chosen: int) -> str:
-    """'slammed', 'normal' or 'slow' for the week starting this Monday: slammed the week the project is due."""
+    """'slammed', 'normal' or 'slow' for the week starting this Monday: slammed the week the project is due (on Steady
+    only some of those weeks)."""
     if not chosen or found['status'] != 'working':
         return 'normal'
     due = date.fromisoformat(found['project']['due'])
-    if monday <= due < monday + timedelta(days=7):
+    roll = generators.unit(f"work:{found['timeline_id']}", 'week', monday)
+    if monday <= due < monday + timedelta(days=7) and generators.unit(f"work:{found['timeline_id']}", 'due', monday) \
+            < DUE_SLAMMED[chosen]:
         return 'slammed'
     slammed, slow = WEEKS[chosen]
-    roll = generators.unit(f"work:{found['timeline_id']}", 'week', monday)
     return 'slammed' if roll < slammed else 'slow' if roll < slammed + slow else 'normal'
 
 
@@ -346,6 +465,11 @@ def review(connection, companion: dict, found: dict, day: date, chosen: int, rul
     pay = found['pay']
     roll = generators.unit(seed, 'review')
     low, high = rule.get('raise') or (2.0, 4.0)
+    if not rule.get('paid', True):
+        # No money where they live (Oz): now and then a promotion, never a raise or a freeze.
+        if roll < PROMOTION[chosen]:
+            record(connection, timeline_id, f'review:{day.year}', 'promotion', day, 'promoted at work', pay, 0, now)
+        return pay
     if roll < PROMOTION[chosen]:
         change = PROMOTION_RAISE[0] + generators.unit(seed, 'promotion') * (PROMOTION_RAISE[1] - PROMOTION_RAISE[0])
         record(connection, timeline_id, f'review:{day.year}', 'promotion', day,
@@ -372,10 +496,28 @@ def finish_project(connection, companion: dict, found: dict, day: date, chosen: 
     outcome = 'well' if roll < well else 'fine' if roll < well + fine else 'rough'
     record(connection, timeline_id, f"project:{found['career']}:{project['index']}", 'project', day,
            f"wrapped up {project['title']}; {OUTCOME_WORDS[outcome]}", found['pay'], 0, now)
-    city = outings.city_data(connection, companion['version']['definition'])
-    used = decode(found['used']) if isinstance(found['used'], str) else found['used']
-    following = new_project(seed, project['index'] + 1, found['kind'], era_group(city), day + timedelta(days=1), used)
-    return {'project': following, 'used': [*used, following['title']][-12:]}
+    following = next_project(connection, companion, found)
+    return {'project': following, 'used': [*used_titles(found), following['title']][-12:]}
+
+
+def used_titles(found: dict) -> list[str]:
+    return decode(found['used']) if isinstance(found['used'], str) else found['used']
+
+
+def next_project(connection, companion: dict, found: dict) -> dict:
+    """The project that follows the running one, from the day after it is due. Seeded, so a late night or a day planned
+    ahead can name it before it starts."""
+    definition = companion['version']['definition']
+    city = outings.city_data(connection, definition)
+    start = date.fromisoformat(found['project']['due']) + timedelta(days=2)
+    return new_project(f"work:{companion['active_timeline_id']}:{found['career']}", found['project']['index'] + 1,
+                       career_of(definition, city), city, start, used_titles(found))
+
+
+def project_on(connection, companion: dict, found: dict, day: date) -> dict:
+    """The project they are on that day: the running one until it is due, then the one after it."""
+    return found['project'] if day.isoformat() <= found['project']['due'] else \
+        next_project(connection, companion, found)
 
 
 def lose_job(connection, companion: dict, found: dict, day: date, slammed_run: int, now) -> dict | None:
@@ -388,7 +530,7 @@ def lose_job(connection, companion: dict, found: dict, day: date, slammed_run: i
         return None
     weeks = HUNT_WEEKS[0] + int(generators.unit(seed, 'weeks') * (HUNT_WEEKS[1] - HUNT_WEEKS[0] + 1))
     until = day + timedelta(weeks=weeks)
-    text = 'laid off, and looking for work' if reason == 'laid-off' else 'quit your job, and looking for work'
+    text = 'laid off' if reason == 'laid-off' else 'quit the job'
     record(connection, companion['active_timeline_id'], f'lose:{day.isoformat()}', reason, day, text,
            found['pay'], 0, now)
     return {'status': 'hunting', 'hunt_since': day.isoformat(), 'hunt_until': until.isoformat(), 'hunt_reason': reason}
@@ -409,22 +551,35 @@ def new_job(connection, companion: dict, found: dict, day: date, now) -> dict:
     record(connection, timeline_id, f'job:{day.isoformat()}', 'new-job', day,
            f'started a new job{" at " + employer if employer and not employer.startswith("a ") else ""}', pay,
            (pay / found['pay'] - 1) * 100, now)
-    used = decode(found['used']) if isinstance(found['used'], str) else found['used']
+    used = used_titles(found)
     project = new_project(f'work:{timeline_id}:{found["career"]}:{day.isoformat()}', found['project']['index'] + 1,
-                          found['kind'], era_group(city), day, used)
+                          career_of(definition, city), city, day, used)
     return {'status': 'working', 'hunt_until': None, 'hunt_reason': None, 'employer': employer, 'pay': pay,
             'started_on': day.isoformat(), 'review_on': day.strftime('%m-%d') if not rules(city).get('review_month')
             else found['review_on'], 'project': project, 'used': [*used, project['title']][-12:]}
 
 
-def storyline_promotions(connection, companion: dict, found: dict, today: date, now) -> float:
-    """A promotion storyline that ended with the promotion (companion/life/storylines.py) raises their pay too."""
+def promoted_since(connection, timeline_id: str, since: date) -> bool:
+    return optional(connection, "SELECT 1 FROM work_events WHERE timeline_id=? AND kind='promotion' AND local_date>=?",
+                    (timeline_id, since.isoformat())) is not None
+
+
+def storyline_promotions(connection, companion: dict, found: dict, today: date, now, paid: bool = True) -> float:
+    """A promotion storyline that ended with the promotion (companion/life/storylines.py) raises their pay too, at
+    most once a year: a second one within PROMOTION_GAP_DAYS is the storyline's alone."""
     pay = found['pay']
     for row in many(connection, "SELECT id, stages FROM storylines WHERE timeline_id=? AND story='promotion_chance'",
                     (companion['active_timeline_id'],)):
         for stage in decode(row['stages']):
             if stage.get('tone') == 'good' and 'got the promotion' in stage.get('text', '') and \
                     found['started_on'] <= stage['on'] <= today.isoformat():
+                on = date.fromisoformat(stage['on'])
+                if promoted_since(connection, companion['active_timeline_id'], on - timedelta(days=PROMOTION_GAP_DAYS)):
+                    continue
+                if not paid:
+                    record(connection, companion['active_timeline_id'], f"storyline:{row['id']}", 'promotion', on,
+                           'promoted at work', pay, 0, now)
+                    continue
                 change = PROMOTION_RAISE[0] + generators.unit(row['id'], 'promotion') * \
                     (PROMOTION_RAISE[1] - PROMOTION_RAISE[0])
                 if record(connection, companion['active_timeline_id'], f"storyline:{row['id']}", 'promotion',
@@ -443,7 +598,7 @@ def advance(connection, companion: dict, now: datetime) -> dict | None:
         return None
     chosen = level(connection)
     city = outings.city_data(connection, companion['version']['definition'])
-    rule = rules(city)
+    rule = {**rules(city), 'paid': not city or city['currency']['code'] != 'none'}
     day = max(date.fromisoformat(found['checked_through']) + timedelta(days=1), today - timedelta(days=CATCH_UP_DAYS))
     changes: dict = {}
     while chosen and day <= today:
@@ -462,7 +617,7 @@ def advance(connection, companion: dict, now: datetime) -> dict | None:
                     changes.update(lost)
         day += timedelta(days=1)
     if chosen:
-        changes['pay'] = storyline_promotions(connection, companion, {**found, **changes}, today, now)
+        changes['pay'] = storyline_promotions(connection, companion, {**found, **changes}, today, now, rule['paid'])
     update(connection, timeline_id, now, checked_through=today.isoformat(), **changes)
     return state(connection, timeline_id)
 
@@ -472,7 +627,12 @@ def plan_late_nights(connection, companion: dict, found: dict, today: date, chos
     time against plans with the user on True to life and up (admin.stands), and move for them on Light."""
     definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
     days, added = workdays(definition), 0
-    off = days_off(connection, companion, today, today + timedelta(days=AHEAD_DAYS + 7))
+    off = set(days_off(connection, companion, today, today + timedelta(days=AHEAD_DAYS + 7)))
+    city = outings.city_data(connection, definition)
+    if city:
+        # No late night on a public holiday: there is no work to stay late at.
+        off |= {item['date'] for item in generators.holidays(city, today, today + timedelta(days=AHEAD_DAYS + 7))
+                if item['kind'] == 'public'}
     for week in range(0, AHEAD_DAYS // 7 + 1):
         monday = monday_of(today) + timedelta(weeks=week)
         if workload(found, monday, chosen) != 'slammed':
@@ -486,16 +646,21 @@ def plan_late_nights(connection, companion: dict, found: dict, today: date, chos
         due = date.fromisoformat(found['project']['due'])
         picks = sorted(options, key=lambda day: (day != due - timedelta(days=1), generators.unit(seed, 'day', day)))
         last = max(options, default=None)
+        picks = [day for day in picks if (block := work_block(definition, day)) and after_work(definition, day, block)]
         for index, day in enumerate(picks[:count]):
             block = work_block(definition, day)
-            if not block or day < today:
+            if day < today:
                 continue
             minutes = LATE_MINUTES[0] + int(generators.unit(seed, 'minutes', index) * 4) * 30
-            title = found['project']['title']
+            title = project_on(connection, companion, found, day)['title']
+            key = f'work:late:{monday.isoformat()}:{index}'
+            # One taken off while Work life was Off comes back with it.
+            connection.execute("UPDATE life_admin SET status='planned', updated_at=? WHERE timeline_id=? AND key=? "
+                               "AND status='removed' AND local_date>=?", (stamp(now), timeline_id, key, today.isoformat()))
             added += bool(admin.add(
-                connection, companion, key=f'work:late:{monday.isoformat()}:{index}', source='work', kind='late-night',
+                connection, companion, key=key, source='work', kind='late-night',
                 title=LATE_TITLE, done=f'{LATE_DONE}{title}', day=day,
-                at=block['end'] if block['end'] > block['start'] else None, minutes=min(minutes, 180),
+                at=after_work(definition, day, block), minutes=min(minutes, 180),
                 fixed=chosen >= 2, deadline=last, out=False, now=now))
     return added
 
@@ -560,7 +725,7 @@ def touch(connection, companion: dict, entry: dict | None, block: dict, day: dat
     found = state(connection, companion['active_timeline_id'])
     if not week or not found:
         return entry
-    label, project = routine_label(block), found['project']['title']
+    label, project = routine_label(block), project_on(connection, companion, found, day)['title']
     if week == 'slammed':
         lines, posts, mood = SLAMMED, SLAMMED_POSTS, 'busy'
     elif week == 'slow':
@@ -634,12 +799,12 @@ def vacation_line(days: list[str], today: date) -> str:
 
 
 EVENT_LINES = {
-    'raise': 'On {day} you got {text} at work.',
+    'raise': 'On {day} you got your yearly raise at work, about {change:g}%.',
     'promotion': 'On {day} you were {text}.',
     'freeze': 'At your review on {day} there was {text}: your pay stays as it is.',
     'project': 'On {day} you {text}.',
-    'laid-off': 'On {day} you were {text}.',
-    'quit': 'On {day} you {text}.',
+    'laid-off': 'On {day} you were laid off.',
+    'quit': 'On {day} you quit your job.',
     'new-job': 'On {day} you {text}.',
 }
 
@@ -669,7 +834,8 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
             lines.append(('vacation', line))
     for event in recent_events(connection, timeline_id, (today - timedelta(days=RECENT_DAYS)).isoformat())[-3:]:
         lines.append((f"event:{event['id']}",
-                      EVENT_LINES[event['kind']].format(day=short_day(event['local_date']), text=event['text'])))
+                      EVENT_LINES[event['kind']].format(day=short_day(event['local_date']), text=event['text'],
+                                                        change=round(event['change'], 1))))
     return [(f'work:{today.isoformat()}:{key}', f'- {line}') for key, line in lines]
 
 

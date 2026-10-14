@@ -17,7 +17,8 @@ export function interestText(profile: DatingProfile): string {
   const who = GENDERS.filter(([value]) => profile.interested_in.includes(value)).map(([, , plural]) => plural.toLowerCase())
   const list = who.length > 1 ? `${who.slice(0, -1).join(', ')} and ${who[who.length - 1]}` : who[0]
   const aim = AIMS.find(([value]) => value === profile.looking_for)?.[1].toLowerCase() ?? ''
-  return `Showing ${list} aged ${profile.age_min} to ${profile.age_max}, looking for ${aim}.`
+  const ages = profile.age_min === profile.age_max ? `${profile.age_min}` : `${profile.age_min} to ${profile.age_max}`
+  return `Showing ${list} aged ${ages}, looking for ${aim}.`
 }
 
 /** The profile starts as the user's persona (Settings > Worlds), so there is nothing to type unless they want to. */

@@ -266,7 +266,7 @@
    ]
   },
   {
-   "text": "led a small group of beginners on their first outing",
+   "text": "led a small group of beginners on a first outing",
    "post": "Led my first group. Everyone came home happy.",
    "level": 3,
    "for": [
@@ -277,7 +277,7 @@
    ]
   },
   {
-   "text": "gave a talk at the local club about their favourite places",
+   "text": "gave a talk about their favourite places at the local club",
    "post": "Talked for half an hour about my favourite spots. Could have gone on.",
    "level": 3,
    "for": [
@@ -347,7 +347,7 @@
    ]
   },
   {
-   "text": "lent their spare gear to a newcomer and talked them through it",
+   "text": "lent their spare gear to a newcomer, with a full walk-through",
    "post": "Kitted out a newcomer. Paying it forward.",
    "level": 3,
    "for": [
@@ -399,7 +399,7 @@
    ]
   },
   {
-   "text": "knew the countryside so well that people came to them for directions",
+   "text": "knew the countryside well enough to be the one asked for directions",
    "post": "I'm the one people ask now. Good feeling.",
    "level": 4,
    "for": [
@@ -954,7 +954,7 @@
    ]
   },
   {
-   "text": "taught a neighbour's child to cast and watched them catch their first fish",
+   "text": "taught a neighbour's child to cast, right up to a first fish",
    "post": "Taught a kid to fish. Their face when it bit.",
    "level": 3,
    "for": [
@@ -1753,6 +1753,337 @@
    ],
    "eras": [
     "modern"
+   ]
+  },
+  {
+   "text": "landed a first fish without help",
+   "post": "First fish. Small. Counts.",
+   "level": 0,
+   "for": [
+    "fishing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to tie a knot that holds",
+   "post": "The knot held!",
+   "level": 0,
+   "for": [
+    "fishing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned the best spot on the river",
+   "post": "Found the spot.",
+   "level": 1,
+   "for": [
+    "fishing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "caught enough for supper",
+   "post": "Supper, caught.",
+   "level": 1,
+   "for": [
+    "fishing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "landed a fish too big for the basket",
+   "post": "Too big for the basket!",
+   "level": 2,
+   "for": [
+    "fishing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "caught fish on a day nobody else did",
+   "post": "Only one catching today.",
+   "level": 2,
+   "for": [
+    "fishing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked for advice by an old angler",
+   "post": "An old angler asked ME.",
+   "level": 3,
+   "for": [
+    "fishing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "landed the biggest fish seen on the river in years",
+   "post": "Biggest in years.",
+   "level": 4,
+   "for": [
+    "fishing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to find the north star",
+   "post": "North star, found.",
+   "level": 0,
+   "for": [
+    "stargazing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "named five constellations without help",
+   "post": "Five constellations, named.",
+   "level": 0,
+   "for": [
+    "stargazing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "watched a whole meteor shower until dawn",
+   "post": "Shooting stars till dawn.",
+   "level": 1,
+   "for": [
+    "stargazing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to tell a planet from a star by its steady light",
+   "post": "Planets don't twinkle.",
+   "level": 1,
+   "for": [
+    "stargazing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "drew a chart of the night sky from their own watching",
+   "post": "My own star chart.",
+   "level": 2,
+   "for": [
+    "stargazing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "told the seasons by the stars alone",
+   "post": "Seasons in the stars.",
+   "level": 3,
+   "for": [
+    "stargazing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was sought out by travellers wanting to know the stars",
+   "post": "Travellers ask me the way by the stars.",
+   "level": 4,
+   "for": [
+    "stargazing"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to tell three safe mushrooms apart",
+   "post": "Three safe ones, learned.",
+   "level": 0,
+   "for": [
+    "foraging"
+   ],
+   "eras": [
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "came home with a full basket",
+   "post": "Full basket.",
+   "level": 0,
+   "for": [
+    "foraging"
+   ],
+   "eras": [
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "found a patch of wild garlic nobody else knew about",
+   "post": "Secret garlic patch.",
+   "level": 1,
+   "for": [
+    "foraging"
+   ],
+   "eras": [
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned the hedgerows well enough to forage all year",
+   "post": "Something to find every season.",
+   "level": 1,
+   "for": [
+    "foraging"
+   ],
+   "eras": [
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "made a whole meal from what they gathered",
+   "post": "Dinner, all foraged.",
+   "level": 2,
+   "for": [
+    "foraging"
+   ],
+   "eras": [
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to identify a find by a worried neighbour",
+   "post": "Saved a neighbour a bellyache.",
+   "level": 3,
+   "for": [
+    "foraging"
+   ],
+   "eras": [
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "knew every wild food within a day's walk",
+   "post": "Every wild food for miles.",
+   "level": 4,
+   "for": [
+    "foraging"
+   ],
+   "eras": [
+    "frontier",
+    "medieval",
+    "fantasy"
    ]
   }
  ],

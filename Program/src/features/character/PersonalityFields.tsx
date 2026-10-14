@@ -4,7 +4,7 @@ import { Dices, X } from 'lucide-react'
 import { api } from '../../api'
 import type { CharacterDefinition, PersonalitySlider, PersonalitySliders, PersonalityTrait, PersonalityView } from '../../types'
 import { useSettled } from './useSettled'
-import { PERSONALITY_KEY, TYPES, chipsOf, levelLabel, moved, released, sameSliders, sourceLabel, typeOf } from './personalityText'
+import { PERSONALITY_KEY, TYPES, chipsOf, levelLabel, moved, released, sameSliders, sourceLabel, stillShown, typeOf } from './personalityText'
 
 interface Props {
   definition: () => CharacterDefinition
@@ -22,6 +22,8 @@ function usePersonality({ definition, value, set, seed }: Props) {
     queryKey: [...PERSONALITY_KEY, body, seed],
     queryFn: () => api<PersonalityView>('/companion/personality', { definition: body, seed }),
     staleTime: Infinity,
+    // The sliders stay on screen while a move is checked, so the panel and the keyboard focus stay put.
+    placeholderData: stillShown,
   })
   useEffect(() => {
     if (found.data && !sameSliders(found.data.sliders, value)) set({ personality_sliders: found.data.sliders })

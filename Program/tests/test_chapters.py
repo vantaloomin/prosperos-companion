@@ -8,7 +8,8 @@ from test_storylines import WORKDAY
 
 from companion import consequences
 from companion.characters import require_current
-from companion.life import chapters, circle, home, storylines
+from companion.life import chapters, circle, home, outings, storylines
+from companion.world import catalog
 
 
 def test_the_table_has_one_option_per_kind_of_chapter():
@@ -163,3 +164,16 @@ def test_a_fork_keeps_the_chapters_begun_before_it(client, mira, clock, monkeypa
         assert [row['title'] for row in copied] == [listed[0]['title']]
         subject = consequences.by_id(connection, copied[0]['consequence_id'])['subject']
     assert subject == f"chapter:{fork}:{listed[0]['started_on']}"
+
+
+def test_a_new_job_renames_a_work_block_named_for_the_old_career(client, mira, clock, monkeypatch):
+    with client.app.state.database.connect() as connection:
+        connection.execute("UPDATE character_versions SET definition=json_set(definition, '$.schedule[0].label', "
+                           "'Barista')")
+    arrange(client, monkeypatch, clock, 'new_job')
+    reconcile(client)
+    definition = current(client)['version']['definition']
+    with client.app.state.database.connect() as connection:
+        offered = catalog.careers_for(outings.city_data(connection, definition))
+    [block] = [block for block in definition['schedule'] if block['kind'] == 'work']
+    assert block['label'] == offered[definition['money']['career']]['name'] and block['key'] == 'work'

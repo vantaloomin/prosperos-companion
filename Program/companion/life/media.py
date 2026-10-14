@@ -27,11 +27,11 @@ from datetime import UTC, date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 
-from companion.clock import stamp, zone
+from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, money
-from companion.world import generators
+from companion.world import generators, looks, wording
 
 COMPANION = 'companion'
 BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'media'
@@ -49,6 +49,14 @@ REGIONS = (('us', ('us', 'usa', 'united states', 'united states of america', 'am
            ('uk', ('uk', 'united kingdom', 'england', 'scotland', 'wales', 'britain', 'great britain')),
            ('jp', ('japan',)), ('kr', ('korea', 'south korea')))
 ERA_REGIONS = {'frontier': 'us', 'victorian': 'uk', 'steampunk': 'uk', 'jazz-age': 'us'}
+# A city set in a year of its own (names.year, as companion/world/naming.py reads it) caps the titles at that year;
+# one of era 'other' reads from the bank of its century.
+YEAR_BANKS = ('modern', 'jazz-age', 'nineteenth')
+# What was running then: a serial, a picture serial, a Broadway show or a radio program from the last few years, not
+# one from decades before (a play can be a revival). The window widens until the bank still offers SHOWING_LEAST.
+SHOWING_FORMATS = {'serial', 'film-serial', 'broadway', 'radio'}
+SHOWING_YEARS = (4, 10, 20, 40)
+SHOWING_LEAST = 100
 
 # Their interests and likes, read as the banks' genre tags.
 TAG_WORDS = {
@@ -57,14 +65,15 @@ TAG_WORDS = {
     'fantasy': ('fantasy', 'dragons', 'magic', 'tolkien'), 'scifi': ('sci-fi', 'scifi', 'science fiction', 'space'),
     'horror': ('horror', 'scary', 'spooky', 'ghost'), 'history': ('history', 'historical', 'museum'),
     'biography': ('biography', 'biographies'), 'memoir': ('memoir', 'memoirs'),
-    'science': ('science', 'physics', 'biology', 'astronomy', 'chemistry', 'tech'),
+    # Not plain 'science': 'science fiction' is the scifi tag's, and 'novels' or 'reading' only say they read.
+    'science': ('popular science', 'physics', 'biology', 'astronomy', 'chemistry', 'tech'),
     'nature': ('nature', 'hiking', 'birds', 'birdwatching', 'gardening', 'plants', 'animals', 'outdoors', 'wildlife'),
     'travel': ('travel', 'travelling', 'traveling'), 'poetry': ('poetry', 'poems', 'poet'),
     'humor': ('comedy', 'humor', 'humour', 'stand-up', 'jokes'), 'comedy': ('comedy', 'sitcom', 'funny', 'stand-up'),
     'cooking': ('cooking', 'baking', 'food', 'chef', 'recipes'), 'art': ('art', 'painting', 'drawing', 'design'),
     'music': ('music', 'concert', 'band', 'guitar', 'piano'), 'sports': ('sports', 'football', 'basketball', 'soccer',
                                                                           'baseball', 'running', 'tennis'),
-    'philosophy': ('philosophy',), 'literary': ('literature', 'literary', 'novels', 'classics', 'reading'),
+    'philosophy': ('philosophy',), 'literary': ('literature', 'literary', 'classics'),
     'classic': ('classics', 'classic'), 'anime': ('anime', 'manga'), 'kdrama': ('k-drama', 'kdrama', 'korean drama'),
     'documentary': ('documentary', 'documentaries'), 'reality': ('reality tv', 'reality shows'),
     'pop': ('pop',), 'rock': ('rock',), 'indie': ('indie',), 'hiphop': ('hip hop', 'hip-hop', 'rap'),
@@ -146,7 +155,13 @@ def place_of(data: dict | None) -> dict:
     country = ((data or {}).get('country') or 'United States').casefold()
     region = ERA_REGIONS.get(era) or next((key for key, names in REGIONS if country in names or any(
         len(name) > 3 and name in country for name in names)), 'world')
-    return {'bank': ERA_BANKS.get(era, 'modern'), 'year': ERA_YEARS.get(era), 'region': region, 'era': era}
+    bank_id, year = ERA_BANKS.get(era, 'modern'), ERA_YEARS.get(era)
+    own = ((data or {}).get('names') or {}).get('year')
+    if own and bank_id in YEAR_BANKS:
+        if era == 'other':
+            bank_id = 'nineteenth' if own < 1900 else 'jazz-age' if own < 1930 else 'modern'
+        year = min(own, year or own)
+    return {'bank': bank_id, 'year': year, 'region': region, 'era': era}
 
 
 def tastes(definition: dict) -> tuple[set, set]:
@@ -199,16 +214,23 @@ def weight(item: dict, kind: str, me: dict, liked: set, disliked: set, born: int
 
 def candidates(me: dict, kind: str, taken: set) -> list[dict]:
     year = me.get('year')
-    return [item for item in bank(me['bank'])[kind]
-            if (not year or not item['year'] or item['year'] <= year) and item['title'].casefold() not in taken]
+    found = [item for item in bank(me['bank'])[kind]
+             if (not year or not item['year'] or item['year'] <= year) and item['title'].casefold() not in taken]
+    if not year or me['bank'] == 'modern':
+        return found
+    for span in SHOWING_YEARS:
+        showing = [item for item in found
+                   if item['format'] not in SHOWING_FORMATS or not item['year'] or item['year'] > year - span]
+        if len(showing) >= SHOWING_LEAST:
+            return showing
+    return found
 
 
 def choose(seed: str, label: str, me: dict, kind: str, definition: dict, taken: set) -> dict | None:
     """A pick for one kind: era-correct, not one they have had, leaning to their tastes."""
     options = candidates(me, kind, taken) or candidates(me, kind, set())
     liked, disliked = tastes(definition)
-    age = definition.get('age')
-    born = (me.get('year') or ERA_YEARS['modern']) - age if isinstance(age, int) else None
+    born = (me.get('year') or ERA_YEARS['modern']) - looks.age_of(definition, seed)
     return generators.pick(seed, label, options, [weight(item, kind, me, liked, disliked, born) for item in options])
 
 
@@ -219,16 +241,54 @@ def realism(connection) -> int:
     return row['media_realism'] if row and row['media_realism'] is not None else 2
 
 
-def ensure(connection, timeline_id: str, definition: dict, world) -> dict:
-    """Their media state, seeded the first time it is needed."""
+def ensure(connection, timeline_id: str, definition: dict, world, today: date | None = None) -> dict:
+    """Their media state, seeded the first time it is needed (and placed again when their city's year moved)."""
     state = optional(connection, 'SELECT * FROM media_state WHERE timeline_id=?', (timeline_id,))
     if state:
-        return state
+        return replaced(connection, state, definition, world, today) if today else state
     seed = f'media:{timeline_id}'
     found = profile(seed, definition, circle.city_data(definition, world))
     connection.execute('INSERT INTO media_state (timeline_id, seed, profile, created_at, updated_at) '
                        'VALUES (?, ?, ?, ?, ?)', (timeline_id, seed, encode(found), stamp_now(), stamp_now()))
     return optional(connection, 'SELECT * FROM media_state WHERE timeline_id=?', (timeline_id,))
+
+
+def replaced(connection, state: dict, definition: dict, world, today: date) -> dict:
+    """State saved before the city's own year capped the titles (a 1925 city once ran to 1926): the bank and year
+    are read again, and what they are on today from after that year is drawn again."""
+    data = circle.city_data(definition, world)
+    me = decode(state['profile'])
+    found = place_of(data) if data else None
+    if not found or (found['bank'], found['year']) == (me['bank'], me['year']):
+        return state
+    old, me = me, {**me, **found}
+    timeline_id = state['timeline_id']
+    connection.execute('UPDATE media_state SET profile=?, updated_at=? WHERE timeline_id=?',
+                       (encode(me), stamp_now(), timeline_id))
+    rewind(connection, timeline_id, today)
+    years = {item['title'].casefold(): item['year'] for kind in KINDS for item in bank(old['bank'])[kind]}
+    for item in items(connection, timeline_id):
+        late = (years.get(item['title'].casefold()) or 0) > (me['year'] or 9999) or old['bank'] != me['bank']
+        if item['status'] == 'current' and item['source'] == 'bank' and late:
+            connection.execute('DELETE FROM media_items WHERE id=?', (item['id'],))
+    return optional(connection, 'SELECT * FROM media_state WHERE timeline_id=?', (timeline_id,))
+
+
+def rewind(connection, timeline_id: str, today: date, kinds=KINDS):
+    """Back to today: the agenda draws the chains ahead of time, so what it started after today goes and what it
+    ended after today is current again, to be drawn afresh (a recommendation came in, or the city's year changed)."""
+    iso, marks = today.isoformat(), ','.join('?' * len(kinds))
+    connection.execute(f"DELETE FROM media_items WHERE timeline_id=? AND kind IN ({marks}) AND started_on>? "
+                       "AND status!='replaced'", (timeline_id, *kinds, iso))
+    connection.execute(f"UPDATE media_items SET status='current' WHERE timeline_id=? AND kind IN ({marks}) AND "
+                       "status='done' AND started_on<=? AND ends_on>?", (timeline_id, *kinds, iso, iso))
+
+
+def rewind_at(connection, timeline_id: str, timestamp: str):
+    """`rewind` to the companion's own date at an instant."""
+    row = optional(connection, 'SELECT v.timezone FROM timelines t JOIN companions c ON c.id=t.companion_id '
+                   'JOIN character_versions v ON v.id=c.active_version_id WHERE t.id=?', (timeline_id,))
+    rewind(connection, timeline_id, parse(timestamp).astimezone(zone(row['timezone'] if row else 'UTC')).date())
 
 
 def stamp_now() -> str:
@@ -292,9 +352,11 @@ def insert(connection, timeline_id: str, kind: str, item: dict, source: str, sta
          planned['verdict'], stamp_now()))
 
 
-def advance(connection, timeline_id: str, definition: dict, world, through: date) -> list[dict]:
-    """Every kind's chain up to a local date: what ended is done and the next has started. Returns the items."""
-    state = ensure(connection, timeline_id, definition, world)
+def advance(connection, timeline_id: str, definition: dict, world, through: date,
+            today: date | None = None) -> list[dict]:
+    """Every kind's chain up to a local date: what ended is done and the next has started. Returns the items.
+    `today` (the companion's own date now, when known) lets a state saved before the city's year counted be redrawn."""
+    state = ensure(connection, timeline_id, definition, world, today)
     level = realism(connection)
     if level == 0:
         return []
@@ -407,43 +469,58 @@ def now_key(item: dict, day: date, bank_id: str) -> str:
     return {'radio': 'radio', 'series': 'watching'}.get(fmt, 'following')
 
 
-def now_text(item: dict, day: date, bank_id: str, person: str = 'they') -> str:
+def said_here(text: str, region: str = '') -> str:
+    """A line as said where they live: one full stop after a name that ends in one ("Gary Clark Jr."), and American
+    words in the United States ("installments", "at the movies")."""
+    text = re.sub(r'(?<!\.)\.\.(?!\.)', '.', text)
+    return wording.americanize(text) if region == 'us' else text
+
+
+def now_text(item: dict, day: date, bank_id: str, person: str = 'they', region: str = '') -> str:
     """'Reading Middlemarch by George Eliot: about halfway.' (Character page) or, for the chat, 'You are reading
     Middlemarch by George Eliot (about halfway).'"""
     words = NOW_WORDS[now_key(item, day, bank_id)][person == 'you']
     where = ' at the pictures' if item['format'] == 'film-serial' else ' told at the inn' \
         if item['format'] == 'cycle' else ''
-    return words.format(t=item['title'], by=by_line(item, item['kind']), p=progress_words(item, day), where=where)
+    return said_here(words.format(t=item['title'], by=by_line(item, item['kind']), p=progress_words(item, day),
+                                  where=where), region)
 
 
-def ended_text(item: dict, person: str = 'they') -> str:
-    """'Finished Middlemarch: loved it.' / 'Gave up on X partway through.'"""
+def ended_verb(item: dict) -> str:
+    """What ending it is: a play is seen, a season of a series finished, anything else finished."""
+    return 'saw' if item['format'] in ('play', 'broadway') else 'finished a season of' \
+        if item['format'] == 'series' else 'finished'
+
+
+def ended_text(item: dict, person: str = 'they', region: str = '') -> str:
+    """'Finished Middlemarch: loved it.', 'Saw Rose-Marie: loved it.' / 'Gave up on X partway through.'"""
     if item['outcome'] == 'drop':
-        return f"Gave up on {item['title']} partway through."
+        return said_here(f"Gave up on {item['title']} partway through.", region)
     if item['kind'] == 'music':
-        return f"Moved on from {item['title']}."
-    thought = item['verdict']
+        return said_here(f"Moved on from {item['title']}.", region)
+    thought, verb = item['verdict'], ended_verb(item)
     if person == 'you':
-        return f"You finished {item['title']}{by_line(item, item['kind'])}: you {thought}."
-    return f"Finished {item['title']}{by_line(item, item['kind'])}: {thought}."
+        return said_here(f"You {verb} {item['title']}{by_line(item, item['kind'])}: you {thought}.", region)
+    return said_here(f"{verb[:1].upper()}{verb[1:]} {item['title']}{by_line(item, item['kind'])}: {thought}.", region)
 
 
 # --- Agenda ---
 
 def touch(connection, timeline_id: str, subject: str, entry: dict | None, local_date: str, definition: dict,
-          world) -> dict | None:
+          world, today: date | None = None) -> dict | None:
     """The companion's agenda entry with what they are reading, watching or playing woven in, once a day."""
     if subject != COMPANION or not entry or entry.get('media') or not WEAVE or realism(connection) == 0:
         return entry
     day = date.fromisoformat(local_date)
-    found = advance(connection, timeline_id, definition, world, day)
+    found = advance(connection, timeline_id, definition, world, day, today)
     if not found or woven_on(connection, timeline_id, day):
         return entry
     state = optional(connection, 'SELECT * FROM media_state WHERE timeline_id=?', (timeline_id,))
-    bank_id = decode(state['profile'])['bank']
-    sentence, item = moment(found, entry.get('activity'), day, definition['name'], bank_id)
+    me = decode(state['profile'])
+    sentence, item = moment(found, entry.get('activity'), day, definition['name'], me['bank'])
     if not sentence:
         return entry
+    sentence = said_here(sentence, me.get('region', ''))
     return {**entry, 'summary': f"{entry['summary'].rstrip()} {sentence}",
             'media': {'id': item['id'], 'kind': item['kind'], 'sentence': sentence}}
 
@@ -472,7 +549,8 @@ def moment(found: list[dict], activity, day: date, name: str, bank_id: str) -> t
 def ended_sentence(item: dict, name: str) -> str:
     if item['outcome'] == 'drop':
         return f"{name} gave up on {item['title']} partway through."
-    verb = 'finished' if item['kind'] == 'book' or item['format'] in HOME_FORMATS else 'saw the last of'
+    verb = 'finished' if item['kind'] == 'book' or item['format'] in HOME_FORMATS - {'series'} else \
+        'saw the last of' if item['format'] in ('film-serial', 'cycle') else ended_verb(item)
     return f"{name} {verb} {item['title']} and {item['verdict']}."
 
 
@@ -490,14 +568,16 @@ def context_lines(connection, timeline_id: str, definition: dict, world, now, ti
         return []
     today = now.astimezone(zone(timezone)).date()
     found = items(connection, timeline_id)  # read only: the agenda and the panel move the chains on
-    bank_id = decode(state['profile'])['bank']
+    me = decode(state['profile'])
+    region = me.get('region', '')
     lines = []
     for item in current(found, today):
-        lines.append((f"media:{item['id']}:{today.isoformat()}", f"- {now_text(item, today, bank_id, 'you')}"))
+        lines.append((f"media:{item['id']}:{today.isoformat()}",
+                      f"- {now_text(item, today, me['bank'], 'you', region)}"))
     for item in finished(found, today, CONTEXT_FINISHED)[:2]:
         when = 'yesterday' if item['ends_on'] == (today - timedelta(days=1)).isoformat() else \
             f"on {date.fromisoformat(item['ends_on']):%B} {date.fromisoformat(item['ends_on']).day}"
-        lines.append((f"media:{item['id']}:ended", f'- {ended_text(item, "you")[:-1]} ({when}).'))
+        lines.append((f"media:{item['id']}:ended", f'- {ended_text(item, "you", region)[:-1]} ({when}).'))
     return lines
 
 
@@ -538,7 +618,7 @@ def purchases(connection, timeline_id: str, start: date, end: date, definition: 
             continue
         share = COSTS.get(item['format'], 0)
         if share:
-            bought.append({'text': bought_text(item), 'date': item['started_on'], 'spend': '',
+            bought.append({'text': said_here(bought_text(item), me.get('region', '')), 'date': item['started_on'], 'spend': '',
                            'cost': round(share * month, 2), 'for': 'media'})
     if streaming:
         bought.append({'text': 'paid for a month of streaming', 'date': start.isoformat(), 'spend': '',
@@ -573,11 +653,12 @@ def recommend_due(connection, companion: dict, now) -> list:
                 generators.unit(state['seed'], 'recommend', item['id']) >= RECOMMEND[level]:
             continue
         verb = 'read' if item['kind'] == 'book' else 'watch' if item['format'] in HOME_FORMATS else 'see'
-        reason = (f"You just finished {item['title']}{by_line(item, item['kind'])} and loved it. Recommend it to the "
-                  f'user in your own words: say what it did for you, not what happens in it. Never quote from it, and '
-                  'do not describe its plot or people.')
-        return [Trigger(f"media-rec:{item['id']}", 'media_recommendation', reason,
-                        f"Just finished {item['title']} and I loved it. You should {verb} it.", (item['id'],))]
+        ended, region = ended_verb(item), decode(state['profile']).get('region', '')
+        reason = said_here(f"You just {ended} {item['title']}{by_line(item, item['kind'])} and loved it. Recommend it "
+                           'to the user in your own words: say what it did for you, not what happens in it. Never quote '
+                           'from it, and do not describe its plot or people.', region)
+        template = said_here(f"Just {ended} {item['title']} and I loved it. You should {verb} it.", region)
+        return [Trigger(f"media-rec:{item['id']}", 'media_recommendation', reason, template, (item['id'],))]
     return []
 
 
@@ -589,18 +670,24 @@ def view(connection, timeline_id: str, definition: dict, world, now, timezone: s
     today = now.astimezone(zone(timezone)).date()
     if level == 0:
         return {'off': True, 'today': today.isoformat(), 'now': [], 'lately': [], 'realism': 0, 'real': True}
-    found = advance(connection, timeline_id, definition, world, today)
+    found = advance(connection, timeline_id, definition, world, today, today)
+    forget_stale(connection, timeline_id, now)
     state = optional(connection, 'SELECT * FROM media_state WHERE timeline_id=?', (timeline_id,))
     me = decode(state['profile'])
-    shown = current(found, today)
-    on_hold = waiting_on(connection, timeline_id)
+    region, shown = me.get('region', ''), current(found, today)
+    on, ended = recommended(connection, timeline_id, today, timezone)
+    own = [{'id': item['id'], 'kind': item['kind'], 'title': item['title'], 'by': item['creator'],
+            'format': item['format'], 'text': now_text(item, today, me['bank'], region=region),
+            'set_by_you': item['source'] == 'user', 'started_on': item['started_on']} for item in shown]
+    mine = {item['kind']: item['title'] for item in own}
+    lately = [{'id': item['id'], 'kind': item['kind'], 'title': item['title'], 'ended_on': item['ends_on'],
+               'text': ended_text(item, region=region)} for item in finished(found, today, RECENT_DAYS)]
     result = {'off': False, 'today': today.isoformat(), 'realism': level, 'real': bank(me['bank'])['real'],
-              'now': [{'id': item['id'], 'kind': item['kind'], 'title': item['title'], 'by': item['creator'],
-                       'format': item['format'], 'text': now_text(item, today, me['bank']),
-                       'set_by_you': item['source'] == 'user', 'started_on': item['started_on'],
-                       'on_hold': on_hold.get(item['kind'])} for item in shown],
-              'lately': [{'id': item['id'], 'kind': item['kind'], 'title': item['title'], 'ended_on': item['ends_on'],
-                          'text': ended_text(item)} for item in finished(found, today, RECENT_DAYS)[:20]]}
+              'bank': me['bank'],
+              'now': sorted([*(item for item in own if item['kind'] not in on),
+                             *({**row, 'waiting': mine.get(kind)} for kind, row in on.items())],
+                            key=lambda item: KINDS.index(item['kind'])),
+              'lately': sorted([*lately, *ended], key=lambda item: item['ended_on'], reverse=True)[:20]}
     if show_numbers:
         result['numbers'] = {'reader': me['reader'], 'watcher': me['watcher'], 'library': me['library'],
                              'items': {item['id']: {'along': round(quarter(item, today) * 100),
@@ -611,11 +698,42 @@ def view(connection, timeline_id: str, definition: dict, world, now, timezone: s
     return result
 
 
-def waiting_on(connection, timeline_id: str) -> dict:
-    """Kinds whose own pick waits while they are on something the user recommended: {kind: title}."""
+def recommended(connection, timeline_id: str, today: date, timezone: str) -> tuple[dict, list]:
+    """A book, show or song the user recommended (companion/life/recommendations.py) as the panel shows it: the one
+    they are on now goes ahead of their own pick ({kind: row}), and one they finished joins Lately with its verdict."""
     from companion.life import recommendations
-    return {item['kind']: item['title'] for item in recommendations.progress(connection, timeline_id)
-            if item['state'] == 'started' and item['kind'] in KINDS}
+    on, ended, since = {}, [], (today - timedelta(days=RECENT_DAYS)).isoformat()
+    for rec in recommendations.progress(connection, timeline_id):
+        if rec['kind'] not in KINDS:
+            continue
+        fmt = 'series' if rec['kind'] == 'show' else rec['kind']
+        if rec['state'] == 'started':
+            row = optional(connection, 'SELECT sessions FROM recommendations WHERE id=?', (rec['id'],))
+            share = rec['sessions_done'] / max(row['sessions'] if row else 1, 1)
+            steps = PROGRESS.get(fmt, PROGRESS['book'])
+            words = NOW_WORDS[{'book': 'reading', 'show': 'watching', 'music': 'song'}[rec['kind']]][0]
+            on[rec['kind']] = {'id': rec['id'], 'kind': rec['kind'], 'title': rec['title'], 'by': '', 'format': fmt,
+                               'text': words.format(t=rec['title'], by='', where='',
+                                                    p=steps[1 if share < 0.4 else 2 if share < 0.68 else 3]),
+                               'set_by_you': False, 'recommended': True, 'started_on': rec['created_at'][:10]}
+        elif rec['state'] == 'finished':
+            day = parse(rec['finished_at']).astimezone(zone(timezone)).date().isoformat()
+            verb = 'Listened to' if rec['kind'] == 'music' else 'Finished'
+            if day >= since:
+                ended.append({'id': rec['id'], 'kind': rec['kind'], 'title': rec['title'], 'ended_on': day,
+                              'text': f"{verb} {rec['title']}, which you recommended: {rec['verdict']}."})
+    return on, ended
+
+
+def forget_stale(connection, timeline_id: str, now):
+    """Upcoming days that mention something no longer on their list (drawn again) are composed again."""
+    removed = connection.execute(
+        "DELETE FROM life_agenda WHERE timeline_id=? AND subject='companion' AND status='upcoming' AND "
+        "json_extract(entry, '$.media.id') IS NOT NULL AND json_extract(entry, '$.media.id') NOT IN "
+        '(SELECT id FROM media_items WHERE timeline_id=?)', (timeline_id, timeline_id)).rowcount
+    if removed:
+        connection.execute('UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=? AND subject=?',
+                           (stamp(now), timeline_id, COMPANION))
 
 
 def change(connection, timeline_id: str, body: dict, definition: dict, world, now, timezone: str):
@@ -625,7 +743,7 @@ def change(connection, timeline_id: str, body: dict, definition: dict, world, no
     level = realism(connection)
     require(level > 0, 'Reading, watching and listening is off in Settings > Realism.', 409)
     today = now.astimezone(zone(timezone)).date()
-    advance(connection, timeline_id, definition, world, today)
+    advance(connection, timeline_id, definition, world, today, today)
     state = optional(connection, 'SELECT * FROM media_state WHERE timeline_id=?', (timeline_id,))
     me, seed = decode(state['profile']), state['seed']
     chain = items(connection, timeline_id, kind)

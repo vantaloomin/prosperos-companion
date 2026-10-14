@@ -7,6 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Field, Toggle } from '../../components/Fields'
 import { AVOID_LABELS, DIET_LABELS, KITCHEN_KEY, WEEK_SHOWN, cuisineLine, favoritesLine, mealDay, mealLine, numbersLine, parseFavorites, skillLabel } from './kitchenText'
+import { panelTitle } from './panelText'
 
 type Feedback = { tone: 'info' | 'error'; text: string } | null
 
@@ -29,7 +30,7 @@ export function Kitchen({ name }: { name: string }) {
   const view = kitchen.data
   return (
     <section className="home-panel kitchen-panel" aria-labelledby="kitchen-heading">
-      <h2 id="kitchen-heading">{name}'s kitchen</h2>
+      <h2 id="kitchen-heading">{panelTitle(name, 'kitchen')}</h2>
       <p className="subtle">How they cook and eat, from who they are and their city. Their dinners, grocery runs and what runs out happen on their own; change anything below and the days ahead follow.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {kitchen.isPending && <Loading label="Loading their kitchen" />}

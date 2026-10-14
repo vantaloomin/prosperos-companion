@@ -204,6 +204,7 @@ def welcome(connection, group_id: str, person: dict, timestamp: str, by: str, se
     third visit makes them a regular, who stays."""
     stay = join_as(connection, group_id, person['key'], person['full'] if ' ' in person['name'] else person['name'],
                    timestamp, sees_from, person['host'], person['relation'])
+    connection.execute('UPDATE group_members SET brought_by=? WHERE id=?', (by, stay['id']))
     if by == 'user':
         note(connection, group_id, timestamp, f"You added {stay['name']}, {person['relation']}.")
     else:
@@ -358,7 +359,7 @@ def leave_everywhere(connection, companion_id: str, timestamp: str):
     """Start over or Delete: the companion leaves every group. Their old lines stay, under their name."""
     rows = many(connection, 'SELECT * FROM group_members WHERE member=? AND left_at IS NULL',
                 (member_key(companion_id),))
-    # Guests they brought from their own circle or town go with them; anyone the user added stays until quiet.
+    # Guests who know them (from their circle or around town) go with them, whoever added them.
     rows += many(connection, 'SELECT * FROM group_members WHERE host=? AND left_at IS NULL', (member_key(companion_id),))
     for stay in rows:
         leave(connection, stay['group_id'], stay, timestamp, f"{stay['name']} is no longer in the group.")
@@ -648,9 +649,17 @@ def weights(connection, group_id: str, members: list[dict], now) -> dict[str, fl
         since = next((index for index, row in enumerate(rows) if row['author'] == stay['member']), len(rows))
         companion = by_id(connection, companion_of(stay['member']) or '')
         level = closeness.state(connection, companion, now)['level'] if companion else 1
-        share = group_guests.GUEST_WEIGHT if group_guests.is_guest(stay['member']) else 1
-        result[stay['member']] = (1 + min(since, 10) / 2 + level / 4) * share
-    return result
+        result[stay['member']] = 1 + min(since, 10) / 2 + level / 4
+    return guests_weighed(result)
+
+
+def guests_weighed(result: dict[str, float]) -> dict[str, float]:
+    """Guests answer a little less often than members (GUEST_WEIGHT): a guest who has been quiet a while counts no
+    more than the members' average before the share, since guests say little and would otherwise always look due."""
+    members = [weight for key, weight in result.items() if not group_guests.is_guest(key)]
+    usual = sum(members) / len(members) if members else None
+    return {key: min(weight, usual or weight) * group_guests.GUEST_WEIGHT if group_guests.is_guest(key) else weight
+            for key, weight in result.items()}
 
 
 def plan(members: list[dict], text: str, seed: str, cap: int, weight: dict[str, float],
@@ -753,6 +762,10 @@ def record(database, group_id: str, text: str, client_id: str) -> dict:
         if existing:
             return existing
         require_group(connection, group_id)
+        # Guests whose time is up (the chat went quiet, or they're gone from their host's life) leave before this
+        # line, not on the next background check.
+        for stay, line_text in group_guests.drifting(connection, group_id, database.clock.now()):
+            leave(connection, group_id, stay, database.now(), line_text)
         require(current_members(connection, group_id), 'Add someone to this group to keep talking.', 409)
         row = add_line(connection, group_id, database.now(), 'user', USER, text, client_id=client_id)
         secrets.witness(connection, row)  # The user can tell them; then they know.

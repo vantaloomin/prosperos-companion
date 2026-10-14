@@ -156,7 +156,7 @@
    ]
   },
   {
-   "text": "helped a nervous newcomer through their first session",
+   "text": "helped a nervous newcomer through a first session",
    "post": "Showed a beginner the ropes today. Felt good.",
    "level": 2,
    "for": [
@@ -332,7 +332,7 @@
    ]
   },
   {
-   "text": "coached a beginner all the way to their own first competition",
+   "text": "coached a beginner all the way to a first competition",
    "post": "My first student competed today. Prouder than of any win.",
    "level": 4,
    "for": [
@@ -1696,6 +1696,998 @@
    "level": 2,
    "for": [
     "skateboarding"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "made it through a full practice without stopping",
+   "post": "Full practice. Still standing.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned the basic form properly",
+   "post": "Form first. Got it.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "stopped feeling sore the day after",
+   "post": "No more aching mornings.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept up with the group for the first time",
+   "post": "Kept up today!",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "went three times in one week",
+   "post": "Three times this week.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to breathe properly while working hard",
+   "post": "Breathing right changes everything.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was told their form had improved",
+   "post": "Form's improving, apparently.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "got up early to practise and liked it",
+   "post": "Early start. Liked it?!",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to warm up properly",
+   "post": "Warm-up, done right.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to rest properly between sessions",
+   "post": "Rest is training too.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "beat their own best effort",
+   "post": "New best.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "trained through bad weather without missing a session",
+   "post": "Rain or not, I went.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "felt strong for the first time",
+   "post": "Felt strong today.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "made a skill that once felt impossible look easy",
+   "post": "Impossible last month. Easy today.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept going a whole season without a break",
+   "post": "A whole season. No breaks.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to read an opponent's next move",
+   "post": "Saw the move before it came.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was paired with someone better and held up",
+   "post": "Held up against someone better.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "found a steady rhythm in training",
+   "post": "Found my rhythm.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "recovered from a bad day and came back stronger",
+   "post": "Bad day, better comeback.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won a friendly contest",
+   "post": "Won a friendly one!",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was picked for the side",
+   "post": "Picked!",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "trained a beginner through the basics",
+   "post": "Teaching the basics.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "took part in the town games",
+   "post": "Town games, done.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "finished in the top three of a local contest",
+   "post": "Top three!",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned an advanced technique after months of trying",
+   "post": "Months of trying. Got it.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "trained twice a day for a whole week",
+   "post": "Twice a day all week.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was trusted to lead the practice for a day",
+   "post": "Led practice today.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "felt the work pay off in a real contest",
+   "post": "It paid off.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept steady nerves through a whole contest",
+   "post": "Steady all the way.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won a contest outright",
+   "post": "Won it outright.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "beat a long-time rival",
+   "post": "Finally beat the rival.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "represented the town at a contest further afield",
+   "post": "Representing the town!",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was given a place on the best side in town",
+   "post": "On the best side in town.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "set a mark that still stands in town",
+   "post": "My mark stands.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to help train the younger ones",
+   "post": "Training the young ones.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "came back from behind in a contest to win",
+   "post": "From behind to the win.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "earned real respect from the old hands",
+   "post": "Respect from the old hands.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won a prize at the summer fair",
+   "post": "Summer fair prize!",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won the biggest contest of the year",
+   "post": "Biggest win of the year.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was called the best in the region",
+   "post": "Best in the region? Me?",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "trained a pupil who went on to win",
+   "post": "My student won!",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "went a whole year unbeaten",
+   "post": "Unbeaten all year.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was invited to show the sport before honoured guests",
+   "post": "Showing off for honoured guests.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won a contest still talked about",
+   "post": "Still talked about.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "became the one the young ones want to be like",
+   "post": "The young ones look up to me now.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won the champion's prize at the great fair",
+   "post": "Champion at the great fair.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a contest named in their honour",
+   "post": "A contest named for me.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "got a first clean hit",
+   "post": "Clean hit!",
+   "level": 0,
+   "for": [
+    "baseball"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "frontier"
+   ]
+  },
+  {
+   "text": "caught a fly ball without flinching",
+   "post": "Caught it!",
+   "level": 1,
+   "for": [
+    "baseball"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "frontier"
+   ]
+  },
+  {
+   "text": "hit a double with runners on base",
+   "post": "Double! Runs in!",
+   "level": 2,
+   "for": [
+    "baseball"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "frontier"
+   ]
+  },
+  {
+   "text": "hit a home run",
+   "post": "HOME RUN.",
+   "level": 3,
+   "for": [
+    "baseball"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "frontier"
+   ]
+  },
+  {
+   "text": "was voted the team's most valuable player",
+   "post": "MVP. Me.",
+   "level": 4,
+   "for": [
+    "baseball"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "frontier"
+   ]
+  },
+  {
+   "text": "hit a drive straight down the fairway",
+   "post": "Straight down the middle.",
+   "level": 0,
+   "for": [
+    "golf"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "victorian"
+   ]
+  },
+  {
+   "text": "finished nine holes without losing a ball",
+   "post": "Nine holes, zero lost balls.",
+   "level": 1,
+   "for": [
+    "golf"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "victorian"
+   ]
+  },
+  {
+   "text": "made par on a hard hole",
+   "post": "Par on the hard one.",
+   "level": 2,
+   "for": [
+    "golf"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "victorian"
+   ]
+  },
+  {
+   "text": "beat a scoring goal set a year ago",
+   "post": "Goal broken.",
+   "level": 3,
+   "for": [
+    "golf"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "victorian"
+   ]
+  },
+  {
+   "text": "hit a hole in one",
+   "post": "HOLE IN ONE.",
+   "level": 4,
+   "for": [
+    "golf"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age",
+    "victorian"
+   ]
+  },
+  {
+   "text": "made a first clean pass in a real game",
+   "post": "Clean pass!",
+   "level": 0,
+   "for": [
+    "soccer"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "scored a first goal",
+   "post": "GOAL.",
+   "level": 1,
+   "for": [
+    "soccer"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "played a whole game without being subbed off",
+   "post": "Full game.",
+   "level": 2,
+   "for": [
+    "soccer"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "scored the winning goal in a league game",
+   "post": "Winner!",
+   "level": 3,
+   "for": [
+    "soccer"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "was named captain of the side",
+   "post": "Captain now.",
+   "level": 4,
+   "for": [
+    "soccer"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "made it down a beginner slope without falling",
+   "post": "No falls!",
+   "level": 0,
+   "for": [
+    "skiing"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "linked turns all the way down a run",
+   "post": "Linked turns!",
+   "level": 1,
+   "for": [
+    "skiing"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "skied a harder run for the first time",
+   "post": "Harder run, done.",
+   "level": 2,
+   "for": [
+    "skiing"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "skied fresh powder at first light",
+   "post": "First tracks.",
+   "level": 3,
+   "for": [
+    "skiing"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "made it down the steepest run on the mountain",
+   "post": "The steep one. Done.",
+   "level": 4,
+   "for": [
+    "skiing"
    ],
    "eras": [
     "modern"

@@ -69,7 +69,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
           {matched && <Notice action={<StartTalking name={matched.name} matchKey={matched.key} go={go} />}>
             {data.words.matched}: {matched.name} likes you too.</Notice>}
           <Deck data={data} onSwipe={swipe} onUndo={undo} onPassedAgain={() => void run(() => api<DatingData>('/dating/swipes/passed', undefined, 'DELETE'))} />
-          <Matches data={data} go={go} onUnmatch={(key) => void run(() => api<DatingData>(`/dating/matches/${encodeURIComponent(key)}`, undefined, 'DELETE'))}
+          <Matches data={data} go={go} onUnmatch={(key) => void run(() => api<DatingData>(`/dating/matches/${encodeURIComponent(key)}`, undefined, 'DELETE')).then(() => setMatched((shown) => shown?.key === key ? null : shown))}
             onDate={async (key, placeId) => { await run(async () => { await api('/dating/dates', { key, place_id: placeId }); return api<DatingData>('/dating') }); go('story') }} />
         </>}
     </section>

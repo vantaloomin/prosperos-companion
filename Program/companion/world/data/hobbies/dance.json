@@ -167,7 +167,7 @@
    ]
   },
   {
-   "text": "got a compliment from the teacher on their timing",
+   "text": "got a compliment on their timing from the teacher",
    "post": "Teacher said my timing was good. Floating home.",
    "level": 1,
    "for": [
@@ -376,7 +376,7 @@
    ]
   },
   {
-   "text": "taught a class of their own for a whole season",
+   "text": "taught their own class for a whole season",
    "post": "A whole season teaching my own class. Who knew?",
    "level": 4,
    "for": [
@@ -1429,6 +1429,893 @@
     "medieval",
     "fantasy",
     "victorian"
+   ]
+  },
+  {
+   "text": "made it through a whole dance without stopping",
+   "post": "Whole dance, no stopping.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned the first steps well enough to stop staring at their feet",
+   "post": "Eyes up. Mostly.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "stopped counting out loud",
+   "post": "No more counting under my breath.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced a whole evening without treading on a single toe",
+   "post": "Zero toes trodden on.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to find the beat in a new tune",
+   "post": "Found the beat on my own.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "got through the opening figure without a mistake",
+   "post": "Opening figure: clean.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced with a stranger and kept up",
+   "post": "Kept up with a stranger. Proud.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "worked out which way to turn without thinking",
+   "post": "Left, right, no thinking.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "went back for a second dance the same night",
+   "post": "Couldn't sit this one out.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "practised a step at home until it stuck",
+   "post": "Practised in the kitchen. It stuck.",
+   "level": 0,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned a whole new dance in one evening",
+   "post": "New dance, learned in a night.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked for a second dance by the same partner",
+   "post": "Asked back for another. Good sign.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept time through a fast tune without losing the step",
+   "post": "Fast tune, kept up.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to lead and to follow",
+   "post": "Can lead, can follow.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "got through a long set without needing a rest",
+   "post": "Whole set, no rest.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "remembered every figure of a long dance",
+   "post": "Every figure, remembered.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced at a wedding and held the floor",
+   "post": "Wedding dance floor: held.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "helped a nervous friend onto the floor",
+   "post": "Got a friend dancing. Mission complete.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "felt the music instead of thinking about it",
+   "post": "Stopped thinking. Started dancing.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "added a little flourish of their own",
+   "post": "A bit of flair. Just a bit.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to dance in a crowded room without bumping into anyone",
+   "post": "Crowded floor, no collisions.",
+   "level": 1,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was picked to lead a dance at the festival",
+   "post": "Leading at the festival!",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced every dance at a long celebration",
+   "post": "Every single dance. Feet aching.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned a tricky turn that took weeks",
+   "post": "Weeks for one turn. Worth it.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had their footwork praised by an old hand",
+   "post": "An old hand liked my footwork.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced a solo turn while the room watched",
+   "post": "Solo turn. Room watching. Survived.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "partnered someone new and made it look easy",
+   "post": "Made it look easy. It wasn't.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept the whole line in step when the music sped up",
+   "post": "Kept the line together.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned three new dances in a single season",
+   "post": "Three new ones this season.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced until the musicians packed up",
+   "post": "Last ones on the floor.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked for lessons for the first time",
+   "post": "Someone asked me for lessons!",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept dancing after a stumble as if it were planned",
+   "post": "Stumbled. Made it a move.",
+   "level": 2,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to open the dancing at a celebration",
+   "post": "Opened the dancing. Heart pounding.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "taught a whole room a new dance",
+   "post": "Taught the room. It worked.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced in a performance in front of a crowd",
+   "post": "Danced for a crowd tonight.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "made up a short dance that others now dance",
+   "post": "My little dance, being danced.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won a dance contest at the fair",
+   "post": "Won the dance contest!",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was trusted to call the figures for a whole evening",
+   "post": "Called the whole evening.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "helped get the dancers ready for a big occasion",
+   "post": "Got everyone ready. Proud.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced every part of a long dance, leading and following",
+   "post": "Every part, both sides.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was invited to dance at a grand occasion",
+   "post": "Invited to a grand occasion. To dance!",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was given the place of honour at the head of the line",
+   "post": "Place of honour. Wow.",
+   "level": 3,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "became the one everyone watches on the floor",
+   "post": "Apparently I'm worth watching.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "taught dancing to a whole season of beginners",
+   "post": "A season of beginners, all dancing now.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "led the dancing at the biggest celebration of the year",
+   "post": "Led the biggest night of the year.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to teach at a hall in another town",
+   "post": "Teaching in another town!",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "made the old hands stop and applaud",
+   "post": "The old hands applauded. I may cry.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced with the best dancer in town and kept pace",
+   "post": "Kept pace with the best.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won the dance contest two years running",
+   "post": "Two years running.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "made up a dance now done at every celebration in town",
+   "post": "My dance, at every party.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "could pick up any dance at first sight",
+   "post": "Show me once. That's all.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to dance before honoured guests",
+   "post": "Danced for honoured guests.",
+   "level": 4,
+   "for": [
+    "any"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "danced a whole night without sitting one out",
+   "post": "Didn't sit one out.",
+   "level": 0,
+   "for": [
+    "dancing"
+   ],
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "text": "picked up the dance everyone was doing on the first try",
+   "post": "First try!",
+   "level": 1,
+   "for": [
+    "dancing"
+   ],
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "text": "got the whole room dancing",
+   "post": "Whole room up.",
+   "level": 2,
+   "for": [
+    "dancing"
+   ],
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "text": "was asked to lead the dancing for the evening",
+   "post": "Leading the dancing!",
+   "level": 3,
+   "for": [
+    "dancing"
+   ],
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "text": "became the one everyone wants to dance with",
+   "post": "Dance card full.",
+   "level": 4,
+   "for": [
+    "dancing"
+   ],
+   "eras": [
+    "any"
    ]
   }
  ],

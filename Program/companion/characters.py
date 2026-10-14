@@ -36,7 +36,25 @@ def with_chapters(connection, companion: dict) -> dict:
     definition = companion['version']['definition']
     for row in rows:
         definition = apply_changes(definition, decode(row['changes']))
+    if (definition.get('money') or {}).get('career') != (companion['version']['definition'].get('money') or {}).get('career'):
+        definition = {**definition, 'schedule': relabeled(connection, definition)}
     return {**companion, 'version': {**companion['version'], 'definition': definition}} if rows else companion
+
+
+def relabeled(connection, definition: dict) -> list[dict]:
+    """The schedule after a new job: a work block named for a career ("Software engineer") takes the new career's
+    name; a block the user named themselves keeps it."""
+    from companion.life.outings import city_data
+    from companion.life.routine import slug
+    from companion.world import catalog
+    city = city_data(connection, definition)
+    offered = catalog.careers_for(city) if city else {}
+    career = offered.get((definition.get('money') or {}).get('career') or '')
+    names = {item['name'].lower() for item in offered.values()}
+    # The block keeps its key, so the days already planned stay its own.
+    return [{**block, 'key': block.get('key') or slug(block['label']), 'label': career['name']}
+            if career and block.get('kind') == 'work' and block.get('label', '').lower() in names else block
+            for block in definition.get('schedule') or []]
 
 
 def apply_changes(definition: dict, changes: dict) -> dict:

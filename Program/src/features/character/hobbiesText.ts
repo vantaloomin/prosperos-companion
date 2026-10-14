@@ -42,11 +42,12 @@ export function recentLine(text: string, name: string): string {
   return `${name} ${trimmed}${/[.!?]$/.test(trimmed) ? '' : '.'}`
 }
 
-/** Hidden values: "Skill 34 of 100 (best 36), 41 sessions, next milestone at 38, talent 1.1." */
+/** Hidden values: "Skill 34 of 100 (best 36) · next milestone at 38 · 41 sessions so far · talent ×1.10". */
 export function hobbyNumbers(hobby: Hobby): string | null {
   const found = hobby.numbers
   if (!found) return null
-  return `Skill ${found.skill} of 100 (best ${found.best}), ${found.sessions} sessions, next milestone at ${found.next_at}, talent ${found.talent.toFixed(2)}.`
+  const sessions = found.sessions ? `${found.sessions} ${found.sessions === 1 ? 'session' : 'sessions'} so far` : 'no sessions tracked yet'
+  return `Skill ${found.skill} of 100 (best ${found.best}) · next milestone at ${found.next_at} · ${sessions} · talent ×${found.talent.toFixed(2)}`
 }
 
 /** Short dates for the Lately list: "Oct 5". */

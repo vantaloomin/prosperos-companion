@@ -143,3 +143,62 @@ def test_guests_can_be_removed_and_leave_with_their_host(client, cast):
         groups.leave_everywhere(connection, cast['Mira'], client.app.state.database.now())
     members = ok(client.get(f"/api/groups/{billy_group['id']}"))['group']['members']
     assert [member['companion_id'] for member in members] == [cast['Billy']]
+
+
+def test_someone_the_user_added_does_not_hold_back_a_pull_in(client, cast, provider, monkeypatch):
+    friend, other = cast['circle'][0], cast['circle'][1]
+    monkeypatch.setattr(group_guests, 'PULL_CHANCE', (0.0, 1.0, 1.0, 1.0))
+    add_guest(client, cast['group'], friend['key'])
+    say(client, cast['group'], f"Honestly we should ask {other['name']} along.", 'pull-user-0001')
+    members = {member['key'] for member in ok(client.get(f"/api/groups/{cast['group']}"))['group']['members']}
+    assert other['key'] in members
+
+
+def test_a_guest_whose_time_is_up_leaves_before_the_next_message(client, cast, clock, provider):
+    friend = cast['circle'][0]
+    ok(client.put('/api/life/settings', json={'guests_realism': 0}))
+    add_guest(client, cast['group'], friend['key'])
+    say(client, cast['group'], 'Hello everyone', 'quiet-0001')
+    clock.advance(group_guests.QUIET + timedelta(minutes=1))
+    say(client, cast['group'], f"Morning! {friend['name']}, still here?", 'quiet-0002')
+    lines = messages(client, cast['group'])
+    asked = next(line for line in lines if line['text'].startswith('Morning!'))
+    assert lines[asked['seq'] - 2]['text'].endswith('slipped out of the group.')
+    assert not any(line['kind'] == 'guest' and line['seq'] > asked['seq'] for line in lines)
+
+
+def test_guests_stay_put_while_the_app_is_paused(app, client, cast, clock):
+    friend = cast['circle'][0]
+    add_guest(client, cast['group'], friend['key'])
+    clock.advance(group_guests.QUIET + timedelta(minutes=1))
+    ok(client.post('/api/pause'))
+    app.state.life.spread_news()
+    assert friend['key'] in {member['key'] for member in ok(client.get(f"/api/groups/{cast['group']}"))['group']['members']}
+    ok(client.post('/api/resume'))
+    app.state.life.spread_news()
+    assert friend['key'] not in {member['key'] for member in ok(client.get(f"/api/groups/{cast['group']}"))['group']['members']}
+
+
+def test_a_renamed_circle_person_joins_under_the_name_the_user_gave(client, cast, provider):
+    sister = cast['circle'][1]
+    with client.app.state.database.connect(write=True) as connection:  # Seeded with a family name, as in a city.
+        connection.execute('UPDATE circle_people SET details=json_set(details, \'$.full_name\', ?) WHERE id=?',
+                           (f"{sister['name']} Moreno", sister['id']))
+    assert next(person for person in guest_list(client, cast['group'])
+                if person['key'] == sister['key'])['name'] == f"{sister['name']} Moreno"
+    ok(client.patch(f"/api/life/circle/{sister['id']}", json={'name': 'Lizzie'}))
+    listed = next(person for person in guest_list(client, cast['group']) if person['key'] == sister['key'])
+    assert listed['name'] == 'Lizzie Moreno'
+    add_guest(client, cast['group'], sister['key'])
+    provider.requests.clear()
+    say(client, cast['group'], 'Lizzie, what are you up to?', 'rename-0001')
+    asked = next(request for request in provider.requests if speaker(request['messages']) == 'Lizzie')
+    assert 'Who you are: Lizzie Moreno, ' in asked['prompt']
+
+
+def test_a_guest_answers_a_little_less_often_than_members_however_long_they_have_been_quiet():
+    weights = groups.guests_weighed({'companion:a': 2.0, 'companion:b': 3.0, 'circle:t:0': 6.0, 'circle:t:1': 1.0})
+    assert weights['companion:a'] == 2.0 and weights['companion:b'] == 3.0
+    assert weights['circle:t:0'] == 2.5 * group_guests.GUEST_WEIGHT  # The members' average, then the share.
+    assert weights['circle:t:1'] == 1.0 * group_guests.GUEST_WEIGHT
+    assert all(weights[guest] < min(weights['companion:a'], weights['companion:b']) for guest in ('circle:t:0', 'circle:t:1'))

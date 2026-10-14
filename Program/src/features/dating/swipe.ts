@@ -38,12 +38,19 @@ export function stamp(dx: number, width: number): { like: number; pass: number }
   return dx > 0 ? { like: amount, pass: 0 } : { like: 0, pass: dx < 0 ? amount : 0 }
 }
 
-/** Arrow keys answer the top card, unless the user is typing or choosing in a field. */
-export function arrowWay(key: string, target: { tagName?: string; isContentEditable?: boolean } | null): SwipeWay | null {
-  if (key !== 'ArrowLeft' && key !== 'ArrowRight') return null
-  const tag = target?.tagName?.toLowerCase() ?? ''
-  if (['input', 'select', 'textarea'].includes(tag) || target?.isContentEditable) return null
+/** Arrow keys answer the top card, unless the user is typing or choosing in a field. A held key answers once, not
+ * the whole deck. */
+export function arrowWay(key: string, target: KeyTarget | null, repeat = false): SwipeWay | null {
+  if (repeat || (key !== 'ArrowLeft' && key !== 'ArrowRight') || typing(target)) return null
   return key === 'ArrowRight' ? 'like' : 'pass'
+}
+
+interface KeyTarget { tagName?: string; isContentEditable?: boolean }
+
+/** Whether the keys belong to a field the user is typing or choosing in. */
+function typing(target: KeyTarget | null): boolean {
+  const tag = target?.tagName?.toLowerCase() ?? ''
+  return ['input', 'select', 'textarea'].includes(tag) || !!target?.isContentEditable
 }
 
 /** The line under the buttons: arrow keys on a computer, the buttons on a touch screen with no keyboard. */
@@ -51,6 +58,18 @@ export function hintText(left: number, touch: boolean, swipes: boolean): string 
   const count = left > 0 ? `${left} more after this one.` : 'The last one for now.'
   if (!swipes) return count
   return `${count} ${touch ? 'Swipe the card, or use the buttons.' : 'Drag the card, or use the arrow keys.'}`
+}
+
+/** Who is next, as a screen reader hears it: a personal-column notice gives initials only, so it is never named. */
+export function nextHeard(surface: string, heading: string | null): string | null {
+  return heading && surface === 'column' ? 'another notice' : heading
+}
+
+/** Undo shows for the answer the app says can still be taken back (the one just given; gone once passed people
+ * come back, a match is unmatched or the city changes), and not while the next answer is saving, when it would
+ * take back the one before. */
+export function undoShown(answered: string | null, undoable: string | null | undefined, busy: boolean): boolean {
+  return answered !== null && answered === undoable && !busy
 }
 
 /** What a screen reader hears after an answer: "Liked Ashanti. Next: Rachel, 40." */

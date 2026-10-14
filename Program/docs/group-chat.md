@@ -416,7 +416,8 @@ the shared prefix stays the same) and `kept`.
   everything so far, and remove them like anyone else.
 
 **What they say.** A guest answers like a member, anyone named first, then by weight (a little less often than
-members, `GUEST_WEIGHT`), and right away when a member has just brought them in. They write at most four replies a
+members, `GUEST_WEIGHT`: however long a guest has been quiet, they count no more than the members' average before
+that share), and right away when a member has just brought them in. They write at most four replies a
 conversation (a conversation ends after three quiet hours) and never answer while asleep. Their reply is one model
 call with the same shared part as everyone's (rules, cast, transcript), then their own short sheet in place of a
 companion's 1:1 sections: the in-character rules ("Who the companion is", with "a guest in a group chat with the user,
@@ -429,7 +430,8 @@ here must not find out, and news. A guest has no 1:1 chat, memory or mood: they 
 history. In the cast everyone sees them as `- Ada (Mira's close friend, a guest): <Others see>`.
 
 **How long they stay.** Once the chat has been quiet for three hours, a passing guest slips out ("Ada slipped out of
-the group."), checked with the news every ten minutes, rules only. Someone whose third visit it is becomes a regular
+the group."), checked with the news every ten minutes (not while paused) and whenever the user writes in the group,
+rules only. Someone whose third visit it is becomes a regular
 ("Ada is a regular here now.") and stays, and **Keep in group** in the people panel keeps anyone with one tap.
 Someone who is gone from their host's life (removed from the circle, the host deleted or starting over) leaves at
 once. An unnamed group's title lists only those who stay, so a guest passing through doesn't rename it.

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { undoLabel, answeredText, arrowWay, decide, hintText, pose, stamp, threshold, tilt } from '../../src/features/dating/swipe.ts'
+import { BLANK, interestText } from '../../src/features/dating/datingText.ts'
+import { undoLabel, answeredText, arrowWay, decide, hintText, nextHeard, pose, stamp, threshold, tilt, undoShown } from '../../src/features/dating/swipe.ts'
 
 test('a drag past a third of the card likes to the right and passes to the left', () => {
   assert.equal(threshold(360), 120)
@@ -38,6 +40,12 @@ test('arrow keys answer, except while typing or choosing', () => {
   assert.equal(arrowWay('ArrowRight', null), 'like')
 })
 
+test('a held arrow key answers once, not the whole deck', () => {
+  assert.equal(arrowWay('ArrowRight', { tagName: 'BODY' }, false), 'like')
+  assert.equal(arrowWay('ArrowRight', { tagName: 'BODY' }, true), null)
+  assert.equal(arrowWay('ArrowLeft', { tagName: 'BUTTON' }, true), null)
+})
+
 test('the hint names the arrow keys on a computer and the buttons on a phone', () => {
   assert.equal(hintText(3, false, true), '3 more after this one. Drag the card, or use the arrow keys.')
   assert.equal(hintText(0, true, true), 'The last one for now. Swipe the card, or use the buttons.')
@@ -59,4 +67,37 @@ test('a card flies off the way it was answered, and only fades when motion is re
 test('Undo names who it brings back for a screen reader', () => {
   assert.equal(undoLabel('Ashanti', 'like'), 'Undo liking Ashanti')
   assert.equal(undoLabel('Rachel', 'pass'), 'Undo passing on Rachel')
+})
+
+test('a personal-column notice is never named, not even as the next one', () => {
+  assert.equal(nextHeard('column', 'Gertrude, 34'), 'another notice')
+  assert.equal(nextHeard('app', 'Rachel, 40'), 'Rachel, 40')
+  assert.equal(nextHeard('matchmaker', 'Euron, 37'), 'Euron, 37')
+  assert.equal(nextHeard('column', null), null)
+})
+
+test('Undo shows only for the answer the app can still take back, and not while the next one saves', () => {
+  assert.equal(undoShown('town:a', 'town:a', false), true)
+  assert.equal(undoShown('town:a', 'town:a', true), false)
+  assert.equal(undoShown('town:a', null, false), false)  // Passed people back, an unmatch or another city.
+  assert.equal(undoShown('town:a', 'town:b', false), false)
+  assert.equal(undoShown(null, null, false), false)
+})
+
+test('Pass and Like keep keyboard focus while the card flies, so it can move to the next card', () => {
+  const deck = readFileSync(new URL('../../src/features/dating/Deck.tsx', import.meta.url), 'utf8')
+  assert.doesNotMatch(deck, /disabled=\{busy\}/)
+  assert.match(deck, /aria-disabled=\{busy \|\| undefined\}/)
+})
+
+test('the Like stamp sits on the edge that stays on screen, and a notice wraps its actions under the text', () => {
+  const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8')
+  assert.match(css, /\.dating-stamp\.like \{ left: 20px;/)
+  assert.match(css, /\.notice \{ display: flex; flex-wrap: wrap;/)
+  assert.match(css, /\.notice > span \{ flex: 1 1 14rem;/)
+})
+
+test('the interest line names one age once when the range is a single year', () => {
+  assert.match(interestText({ ...BLANK, age_min: 22, age_max: 22 }), /aged 22, looking/)
+  assert.match(interestText({ ...BLANK, age_min: 22, age_max: 30 }), /aged 22 to 30, looking/)
 })
