@@ -31,10 +31,12 @@ export function dayText(iso: string): string {
   return calendarDay(iso, { weekday: true })
 }
 
-/** "7:00 PM" from "19:00", in the user's own clock style. */
+/** "7:00 PM" from "19:00", in the user's own clock style, kept on one line. */
 export function timeText(hhmm: string): string {
   const [hours, minutes] = hhmm.split(':').map(Number)
-  return new Date(Date.UTC(2000, 0, 1, hours, minutes)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+  const text = new Date(Date.UTC(2000, 0, 1, hours, minutes)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+  // A no-break space, so "7:00" and "PM" never land on different lines.
+  return text.replace(/\s/gu, '\u00a0')
 }
 
 /** "Dinner at Ouzo Bay". */

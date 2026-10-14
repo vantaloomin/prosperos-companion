@@ -128,6 +128,8 @@ def test_long_distance_they_cannot_just_come_over(client, monkeypatch, provider,
     assert client.get('/api/life/outings').json()['outings'] == []
     assert "you live in Chicago" in notes(provider) and "so you can't just come over" in notes(provider)
     assert where(client)['kind'] == 'long-distance' and where(client)['text'].startswith('Long distance, Chicago')
+    with client.app.state.database.connect() as connection:
+        assert not together.invites(connection, current(connection))  # No dinner or hobby invites either.
 
 
 def knock(client, clock):

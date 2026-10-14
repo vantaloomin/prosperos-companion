@@ -27,7 +27,7 @@ export function WhereStrip({ name }: { name: string }) {
   }
   const Glyph = where.data?.kind === 'out' ? MapPin : Home
   return (
-    <aside className="where-strip" aria-label="Where you are">
+    <aside className="where-strip" aria-label="Where you are" aria-live="polite">
       <Glyph aria-hidden="true" />
       <span>{line.lead}{line.place && <a className="where-strip-place" href={`#map/${encodeURIComponent(line.place.id)}`} title="Show on map">{line.place.name}</a>}{line.tail}</span>
       {action && <StripButton action={action} onClick={() => void act(action.action)} />}

@@ -61,7 +61,7 @@ export function ChatList({ go, current = null, onOpened }: { go: (view: View) =>
 /** Together or apart in plain words under the preview ("At your place", "Long distance, Lisbon"); nothing while apart nearby. */
 export function ChatWhere({ chat }: { chat: Chat }) {
   const text = chat.status?.where?.text
-  return text ? <span className="chat-row-where"><MapPin aria-hidden="true" />{text}</span> : null
+  return text ? <span className="chat-row-where"><MapPin aria-hidden="true" /><span>{text}</span></span> : null
 }
 
 export function ChatAvatar({ chat }: { chat: Chat }) {

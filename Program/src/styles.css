@@ -1668,10 +1668,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-row-time { flex-shrink: 0; color: var(--muted); font-size: 0.75rem; }
 .chat-row-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.8125rem; }
 /* Together or apart (companion/life/together.py): "At your place", "Long distance, Lisbon, 5 hours ahead". */
-.chat-row-where, .where-line { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.75rem; }
-.chat-row-where { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chat-row-where > svg, .where-line > svg { flex: none; width: 0.85rem; height: 0.85rem; color: var(--accent); }
-.where-line { margin: 4px 0 0; font-size: 0.8125rem; }
+.chat-row-where { display: flex; align-items: flex-start; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.75rem; }
+.chat-row-where > span { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.chat-row-where > svg { flex: none; width: 0.85rem; height: 0.85rem; margin-top: 1px; color: var(--accent); }
 .side-bubbles .chat-row.current .chat-row-where, .side-bubbles .chat-row.current .chat-row-where > svg { color: var(--on-accent); opacity: .85; }
 .chat-row.unread .chat-row-top strong { font-weight: 700; }
 .chat-row.unread .chat-row-preview { color: var(--text); }
