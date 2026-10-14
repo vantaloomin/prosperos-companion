@@ -144,12 +144,17 @@ def test_changing_the_character_rebuilds_upcoming_entries(client, baltimore, clo
 
 
 def test_rename_and_remove_rebuild_entries_that_name_the_person(client, baltimore, clock):
-    clock.advance(timedelta(hours=1))
-    reconcile(client)
-    named = [decode(row['entry'])['with'] for row in rows(client, subject='companion', status='upcoming')
-             if row['entry'] and decode(row['entry']).get('with')]
-    # Someone with days of their own here (not everyone close lives in town), so restoring can rebuild them.
-    local = [person for person in named if rows(client, subject=person['id'], status='upcoming')]
+    # Someone with days of their own here (not everyone close lives in town), so restoring can rebuild them. Who
+    # they see is seeded on the random timeline id, so look a few days ahead until someone local turns up.
+    local = []
+    for _day in range(7):
+        clock.advance(timedelta(hours=1) if not _day else timedelta(days=1))
+        reconcile(client)
+        named = [decode(row['entry'])['with'] for row in rows(client, subject='companion', status='upcoming')
+                 if row['entry'] and decode(row['entry']).get('with')]
+        local = [person for person in named if rows(client, subject=person['id'], status='upcoming')]
+        if local:
+            break
     assert local
     person_id = local[0]['id']
     renamed = client.patch(f'/api/life/circle/{person_id}', json={'name': 'Rowan'}).json()

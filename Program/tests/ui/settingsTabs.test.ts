@@ -76,7 +76,7 @@ test('prompts are grouped in order and their placeholders explained', () => {
 test('everything that dials realism down is on the Realism tab, and search finds it there', () => {
   const tab = (query: string) => searchSettings(query, true).map((match) => match.tab.id)
   assert.equal(availableTabs(true).findIndex((item) => item.id === 'realism'), availableTabs(true).findIndex((item) => item.id === 'life') + 1)
-  for (const query of ['never closer than', 'closeness', 'cooling', 'hidden values', 'moods', 'odds', 'paced replies', 'drama', 'off plan', 'realism', 'haircut', 'hair colour', 'pets', 'vet', 'life admin']) {
+  for (const query of ['never closer than', 'closeness', 'cooling', 'hidden values', 'moods', 'odds', 'paced replies', 'drama', 'off plan', 'realism', 'haircut', 'hair colour', 'pets', 'vet', 'life admin', 'guests']) {
     assert.ok(tab(query).length && tab(query).every((id) => id === 'realism'), query)
   }
   assert.equal(pickTab('realism', true), 'realism')
@@ -84,7 +84,7 @@ test('everything that dials realism down is on the Realism tab, and search finds
 
 test('realism presets match the settings they set, and a new world starts on real life', async () => {
   const { REALISM_PRESETS, matchPreset } = await import('../../src/features/settings/presetChoices.ts')
-  const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2 } as unknown as LifeSettings
+  const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2, work_realism: 2, guests_realism: 2, media_realism: 2, hobbies_realism: 2 } as unknown as LifeSettings
   const fresh = {} as WorkspaceSettings
   assert.equal(matchPreset(life, fresh)?.id, 'real')
   for (const preset of REALISM_PRESETS) {

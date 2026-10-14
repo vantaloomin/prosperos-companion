@@ -7,6 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { LOOKS_KEY, changeLine, fixedLine } from './looksLatelyText'
+import { firstName } from './panelText'
 
 /** How the companion looks lately: haircuts, nails, a tan and the occasional bold change, in words, with a switch to
  * keep their looks as they are. The numbers behind it show only with Hidden values on. */
@@ -22,7 +23,7 @@ export function LooksLately({ name }: { name: string }) {
   const view = looks.data
   return (
     <section className="home-panel looks-panel" aria-labelledby="looks-lately-heading">
-      <h2 id="looks-lately-heading">How {name} looks lately</h2>
+      <h2 id="looks-lately-heading">How {firstName(name)} looks lately</h2>
       <p className="subtle">Hair grows and gets cut, nails get done, a tan comes and fades, and every few months they try something new. Pictures and replies follow it. Anything you wrote about their looks stays as you wrote it.</p>
       {looks.isPending && <Loading label="Loading how they look" />}
       {looks.isError && <ErrorNotice error={looks.error} />}

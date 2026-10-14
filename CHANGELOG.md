@@ -49,6 +49,25 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.11.0 (2026-10-14)
+
+- **Work life:** slammed, ordinary and slow weeks with a project deadline, a yearly review with raises by country and
+  era, vacation days, late nights that can move dinner plans, layoffs on Drama, and a Work life panel.
+- **Hobbies that progress:** up to three pastimes (yours first) with practice, milestones, gear and class costs,
+  invitations along, and a pastimes panel.
+- **Reading, watching and listening:** a book, a show and a song they're in the middle of, era-fitting titles,
+  verdicts when they finish, and your own picks on their Character page.
+- **Group chat guests:** companions bring in people they know, **Add someone**, regulars and **Keep in group**, and
+  guests who sound like themselves.
+- **Our history at a glance:** weekly, monthly and yearly lines about your whole time together, with an **All of it**
+  scrapbook view you can correct.
+- **Personality sliders:** five plain-word sliders for every companion and townsperson, set by the app, tunable in
+  **Show details**.
+- **Swipe in Matchlight:** drag or flick through profile cards, with **Undo** for the last answer.
+- **More Realism sliders:** work life, pastimes, reading and watching, and guests, set by the presets.
+- **Fixes:** "I'll cook" invitations become dinner plans, looks with each companion's pronouns, era-fitting topics,
+  old errand prices re-priced once, and first names in panel headings.
+
 ## v0.10.0 (2026-10-13)
 
 - **Pets with lives of their own:** off days, vet visits, checkups and old age (a rare death on Real life and Drama,

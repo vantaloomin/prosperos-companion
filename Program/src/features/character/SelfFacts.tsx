@@ -6,6 +6,7 @@ import type { SelfFact } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { conflictText, orderFacts, selfFactText } from './selfFactText'
 import { PETS_KEY } from '../pets/petText'
+import { firstName } from './panelText'
 
 const KEY = ['self-facts']
 
@@ -30,7 +31,7 @@ export function SelfFacts({ name }: { name: string }) {
   const list = orderFacts(facts.data?.facts ?? [])
   return (
     <section className="settings-section" aria-labelledby="self-facts-heading">
-      <h2 id="self-facts-heading">What {name} has said about themselves</h2>
+      <h2 id="self-facts-heading">What {firstName(name)} has said about themselves</h2>
       <p className="subtle">Picked up from {name}'s own messages so later replies stay consistent. Keep the ones you like; remove any you don't want to hold.</p>
       {error && <Notice tone="error">{error}</Notice>}
       {list.length === 0 ? <p className="subtle">Nothing yet. Things like "I hate cilantro" or "my brother Theo" show up here.</p> : (

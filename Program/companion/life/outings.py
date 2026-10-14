@@ -45,6 +45,8 @@ ACTIVITIES = {
     'market': (r'market|shopping', ('market', 'shopping'), '11:00', 1.5, 'market', 'a look around the shops'),
     # Dinner at the companion's place (companion/life/kitchen.py): found by HOSTED below, never by its own words.
     'dinner-in': (r'(?!x)x', ('home',), '19:00', 3.0, 'dinner-in', 'dinner at their place'),
+    # One of their pastimes together (companion/life/hobbies.py): found by the words of the pastimes they have.
+    'hobby': (r'(?!x)x', (), '18:30', 2.0, 'hobby', 'a pastime together'),
 }
 HOME = '~home'
 FOOD = re.compile(r"\b(?:dinner|supper|eat|a meal|cook\w*|something to eat)\b", re.IGNORECASE)
@@ -64,7 +66,7 @@ OUT = re.compile(r"\b(?:go out|hang out|get together|a date|date night|do someth
                  re.IGNORECASE)
 ASKING = re.compile(r"\b(?:let'?s|lets|we should|shall we|wanna|want to|would you like|do you want|you want to|"
                     r"how about|what about|are you free|you free|up for|care to|come with me|join me|"
-                    r"go out with me|take you|treat you)\b", re.IGNORECASE)
+                    r"go out with me|take you|treat you|can i come|could i come|can i join|could i join|tag along)\b", re.IGNORECASE)
 TOGETHER = re.compile(r"\b(?:we|us|together|with me|you and me|you and i)\b", re.IGNORECASE)
 # Staying in, a call or a story is not going out: "come over for dinner, I'll cook", "a movie on FaceTime", "want to
 # hear about my coffee disaster?", "walk me through it".
@@ -192,26 +194,41 @@ def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
     return day_in(sentence, today, holidays)
 
 
-def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bool = False) -> dict | None:
-    """{activity, day, at, place} for the first sentence of a message that asks to go out together."""
+def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bool = False,
+             pastimes=()) -> dict | None:
+    """{activity, day, at, place} for the first sentence of a message that asks to go out together. `pastimes` are
+    the companion's own (companion/life/hobbies.py `patterns`): "want to go climbing Saturday?" is one of them."""
     text = own_plans.QUOTED.sub(' ', own_plans.ACTIONS.sub(' ', text)).replace('’', "'")
-    for sentence in (part.strip() for part in SENTENCE.findall(text)):
+    sentences = [part.strip() for part in SENTENCE.findall(text)]
+    for index, sentence in enumerate(sentences):
         day = day_asked(sentence, today, holidays) if sentence else None
-        if sentence and (found := hosted(sentence, firm, day)):
+        if sentence and (found := hosted(with_food(sentences, index, day), firm, day)):
             return found
         if not sentence or not asked(sentence, firm, day):
             continue
         place = named_place(sentence, data)
-        activity = which(sentence, place)
+        pastime = next((found['id'] for found in pastimes if found['pattern'].search(sentence)), None)
+        activity = 'hobby' if pastime else which(sentence, place)
         if activity is None:
             continue
         # "We should grab coffee sometime" is a wish; "How about a date sometime?" asks, and the companion picks the day.
         if day is None and (firm or VAGUE.search(sentence) and not sentence.rstrip().endswith('?')):
             return None
         at, _said = own_plans.clock(sentence)
-        return {'activity': activity, 'day': day, 'at': at, 'place': place, 'word': word_for(sentence, activity),
-                'waterside': bool(WATERSIDE.search(sentence)), 'sentence': sentence[:300]}
+        return {'activity': activity, 'day': day, 'at': at, 'place': None if pastime else place,
+                'word': word_for(sentence, activity), 'waterside': bool(WATERSIDE.search(sentence)),
+                'sentence': sentence[:300], 'hobby': pastime}
     return None
+
+
+def with_food(sentences: list[str], index: int, day: date | None) -> str:
+    """The sentence, read together with the next one when it names the day and the next one the food: "Want to come
+    over Saturday? I'll cook." is one invitation."""
+    sentence = sentences[index]
+    after = sentences[index + 1] if index + 1 < len(sentences) else ''
+    if day and after and not FOOD.search(sentence) and FOOD.search(after):
+        return f'{sentence} {after}'
+    return sentence
 
 
 def hosted(sentence: str, firm: bool, day: date | None) -> dict | None:
@@ -384,10 +401,13 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
     definition = version['definition']
     local_now = parse(message['created_at']).astimezone(zone(version['timezone']))
     data = city_data(connection, definition)
+    from companion.life import hobbies
     wanted = proposal(message['text'], local_now.date(), own_plans.holiday_dates(
-        connection, definition, local_now.date()), data, firm)
+        connection, definition, local_now.date()), data, firm, hobbies.patterns(connection, companion['active_timeline_id']))
     if not wanted or not data:
         return None
+    if wanted['activity'] == 'hobby' and not wanted['at']:
+        wanted = {**wanted, 'at': hobbies.usual_at(connection, wanted['hobby'], wanted['day'] or local_now.date())}
     found = when_free(connection, companion, {**wanted, 'firm': firm}, local_now)
     if not found:
         return None
@@ -410,6 +430,8 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
         return get(connection, outing_id)
     cost, affordable = bill(definition, wanted['activity'], day,
                             money.spendable(connection, companion['active_timeline_id'], definition, day))
+    if wanted['activity'] == 'hobby':
+        return save_pastime(connection, companion, message, wanted, data, day, at, timestamp, cost)
     item = wanted['place'] or pick_place(data, wanted['activity'], day, at, definition, f"outing:{message['id']}",
                                          not affordable, wanted.get('word', ''), wanted.get('waterside', False))
     if item is None:
@@ -425,6 +447,26 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
          int(wanted['place'] is not None), cost if affordable else round(cost * 0.6, 2), timestamp))
     from companion.life import admin
     admin.make_room(connection, companion, day, at, parse(timestamp))
+    return get(connection, outing_id)
+
+
+def save_pastime(connection, companion, message, wanted, data, day: date, at: str, timestamp: str, cost: float):
+    """One of their pastimes with the user, at their usual spot for it (companion/life/hobbies.py)."""
+    from companion.life import admin, hobbies
+    place = hobbies.outing_place(connection, companion['active_timeline_id'], wanted['hobby'],
+                                 companion['version']['definition'], data)
+    if place is None:
+        return None
+    if place.get('cost') == 'free' or place.get('kind') == 'home':
+        cost = 0.0
+    outing_id = identifier()
+    connection.execute(
+        'INSERT INTO outings (id, companion_id, message_id, local_date, at_time, until_time, activity, asked_date, '
+        'place, named, cost, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
+        (outing_id, companion['id'], message['id'], day.isoformat(), at, until(at, 'hobby'), 'hobby',
+         wanted['day'].isoformat() if wanted['day'] else None, encode(place), cost, timestamp))
+    admin.make_room(connection, companion, day, at, parse(timestamp))
+    hobbies.outing_added(connection, companion, parse(timestamp))
     return get(connection, outing_id)
 
 
@@ -486,6 +528,11 @@ def doing(outing: dict) -> str:
     place, activity = outing['place']['name'], outing['activity']
     if activity == 'dinner-in':
         return f"had you over for {menu_text(outing['place'].get('menu') or {})} at home"
+    if activity == 'hobby':
+        hobby = outing['place']['hobby']
+        if hobby.get('event'):
+            return f"had {hobby['event']} at {place}, and you came to watch"
+        return f"{hobby['session']} at {place}"
     if activity == 'walk':
         return f'went for a walk at {place}'
     if activity in ('dinner', 'lunch-out', 'coffee', 'drinks'):
@@ -510,7 +557,8 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
     place = outing['place']
     area = f" in {place['neighborhood']}" if place['neighborhood'] and place['neighborhood'] not in place['name'] \
         and outing['activity'] != 'dinner-in' else ''
-    summary = f"{definition['name']} {doing(outing)}{area}" + ('.' if outing['activity'] == 'dinner-in' else ' with you.')
+    alone = outing['activity'] == 'dinner-in' or (place.get('hobby') or {}).get('event')
+    summary = f"{definition['name']} {doing(outing)}{area}" + ('.' if alone else ' with you.')
     seed = f"outing:{outing['id']}:{outing['rolls']}"
     spot = generators.pick(seed, SPOT, place.get('spots') or [])
     if spot:
@@ -520,7 +568,7 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
                                                                                 'neighborhood')},
             'with': None, 'weather': block.get('weather'), 'inside': spot or None,
             'outing': {'id': outing['id'], 'message_id': outing['message_id'], 'at': outing['at_time'],
-                       'until': outing['until_time']}, 'composer_version': 'outing-1'}
+                       'until': outing['until_time']}, 'hobby': place.get('hobby'), 'composer_version': 'outing-1'}
 
 
 CAPTIONS = ('Good company.', 'One of the good evenings.', 'Would do this again.', 'Worth getting dressed for.',
@@ -543,6 +591,9 @@ def what(outing: dict) -> str:
     place = outing['place']
     if outing['activity'] == 'dinner-in':
         return f"{menu_text(place.get('menu') or {})} at your place"
+    if outing['activity'] == 'hobby':
+        hobby = place['hobby']
+        return f"{hobby.get('event') or hobby['together']} at {place['name']}"
     kind = f"{place['cuisine']} {place['kind']}".strip() if place.get('cuisine') else place['kind']
     area = f" in {place['neighborhood']}" if place['neighborhood'] else ''
     return f"{ACTIVITIES[outing['activity']][5]} at {place['name']} ({kind}{area})"
@@ -670,7 +721,8 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
             continue
         day = date.fromisoformat(outing['local_date'])
         place = outing['place']
-        fields = {'layer': 'shared_experience', 'subject': f"{ACTIVITIES[outing['activity']][5].capitalize()} "
+        pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
+        fields = {'layer': 'shared_experience', 'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} "
                   f"together at {place['name']}",
                   'value': f"Went out together for {what(outing)} on {day:%A, %B} {day.day}.",
                   'stated_at': stamp(min(now, window(outing, timezone)[1])), 'applies_from': None, 'applies_until': None}

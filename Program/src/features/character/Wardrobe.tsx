@@ -8,6 +8,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { sentence } from './homeText'
 import { grouped, pieceSince, pieceTitle, wearingText } from './wardrobeText'
+import { panelTitle } from './panelText'
 
 const WARDROBE_KEY = ['wardrobe']
 
@@ -36,7 +37,7 @@ export function Wardrobe({ name }: { name: string }) {
   const wearing = view ? wearingText(view.wearing) : null
   return (
     <section className="home-panel wardrobe-panel" aria-labelledby="wardrobe-heading">
-      <h2 id="wardrobe-heading">{name}'s wardrobe</h2>
+      <h2 id="wardrobe-heading">{panelTitle(name, 'wardrobe')}</h2>
       <p className="subtle">Sized and styled from their pay, job and personality, and changing slowly as they shop and wear things out. Replies and pictures dress them from these. Edits apply to upcoming days.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {wardrobe.isPending && <Loading label="Loading their wardrobe" />}

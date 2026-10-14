@@ -261,6 +261,36 @@ all at once gives the same log.
 | PATCH | `/api/life/home/items/{id}` | `{name?, description?, variety?}` | the same view |
 | POST | `/api/life/home/items/{id}/remove` / `restore` | | the same view |
 
+### Pastimes
+
+`companion/life/hobbies.py` gives each companion up to three pastimes, without a model. Written
+interests that name one (`match`, by its words and era) come first; the app picks the rest from
+`companion/world/data/hobbies/catalogue.json` to fit their era and city (a climbing gym, a lake).
+Each has a seeded skill (0 to 100) and talent; every session adds to it, less as it grows, and it
+slips after a month without practice. Passing a seeded threshold logs a milestone from the kind's
+bank (`<kind>.json`, 100+ era-tagged lines at five levels), which becomes a feed post and a picture.
+
+- **Days.** `agenda` calls `hobbies.touch` per companion entry: sessions take the first free slot
+  that fits the pastime's time of day (`entry.hobby`, activity `hobby`). The walk is written once to
+  `hobby_log`, with a Monday `mark` of the state, so a rewind (slider change, user edit, fork) walks
+  again the same way.
+- **Months.** Once a month, on a seeded day, a pastime may stall, pick back up, or (app-added, not kept,
+  after a dry spell of eight weeks) be given up; with room, a new one may start. The odds come from
+  `life_settings.hobbies_realism` (0 off to 3 dramatic). Written interests and the user's own are
+  never given up on their own.
+- **Money.** Gear on taking one up and monthly fees go through `hobbies.purchases` into
+  `money.household`.
+- **Chat.** The "Your pastimes" section lists each one (how long, how good in words, how often) and
+  the last three weeks of milestones. First texts: `hobby_news` shares a milestone from today, and
+  `hobby_invite` asks the user along a few days off, which saves an outing (`activity: hobby`).
+  When the user asks to go do one together, `outings.proposal` names it before other activities.
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/api/life/hobbies` | | `{today, hobbies, level_names, realism, can_add}` (`numbers` per pastime with Hidden values on) |
+| POST | `/api/life/hobbies` | `{name, level?}` | the same view |
+| PATCH | `/api/life/hobbies/{id}` | `{level?, kept?, status?: active \| dropped}` | the same view |
+
 ### Wardrobe
 
 `companion/life/wardrobe.py` (piece catalogue in `companion/life/clothing.py`) assembles the

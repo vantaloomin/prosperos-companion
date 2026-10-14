@@ -171,7 +171,9 @@ def test_seeded_admin_plans_ahead_and_counts_its_costs(client, mira, monkeypatch
     reconcile(client)
     panel = client.get('/api/life/admin').json()
     assert panel['upcoming'], panel
-    assert all('2026-10-05' <= item['local_date'] <= '2026-10-27' for item in panel['upcoming'])
+    # Planned up to AHEAD days out, then moved to the nearest free time, which can be up to MOVE_DAYS later.
+    last = (date(2026, 10, 5) + timedelta(days=admin.AHEAD + admin.MOVE_DAYS)).isoformat()
+    assert all('2026-10-05' <= item['local_date'] <= last for item in panel['upcoming'])
     assert {item['title'] for item in panel['later']} >= {'Dentist check-up', 'File taxes'}
     # Again the same: seeded, not rolled afresh.
     reconcile(client)
@@ -315,3 +317,17 @@ def test_in_older_eras_errands_out_keep_daylight_hours():
     found = taken.fits(saturday, None, True, False)
     assert found is None or found < '18:00'
     assert taken.fits(saturday, None, False, False) >= '18:00'  # Paperwork at home can wait for the evening.
+
+
+def test_errands_planned_at_an_old_price_are_priced_again_once(client, mira):
+    """Errands planned before small errands cost an everyday price kept theirs ("Drop a ring for resizing $220")."""
+    old = add(client, key='admin:test:ring', title='Drop a ring for resizing', day=TUESDAY, spend='$', cost=220)
+    fair = add(client, key='admin:test:stamps', title='Buy stamps', day=TUESDAY, spend='$', cost=9)
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        from companion.characters import require_current
+        companion = require_current(connection)
+        assert admin.reprice_old(connection, companion, database.clock.now()) == 1
+        assert admin.reprice_old(connection, companion, database.clock.now()) == 0
+        costs = {row['key']: row['cost'] for row in connection.execute('SELECT key, cost FROM life_admin')}
+    assert 0 < costs[old['key']] <= 20 and costs[fair['key']] == 9

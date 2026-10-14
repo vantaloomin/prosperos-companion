@@ -174,8 +174,8 @@ def test_takeout_counts_as_spending_and_the_chat_knows_dinner(client, kim, provi
 
 
 def test_cooking_nights_name_the_dish_in_their_day(client, kim, clock):
-    # Their week is seeded from the timeline's random id, so look over a few days rather than one.
-    for _day in range(5):
+    # Their week is seeded from the timeline's random id, so look over two weeks rather than one day.
+    for _day in range(14):
         reconcile(client)
         clock.advance(timedelta(days=1))
     with client.app.state.database.connect() as connection:

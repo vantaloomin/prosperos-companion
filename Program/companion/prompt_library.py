@@ -55,6 +55,15 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'whatever this says.',
            constant('companion.memory.context', 'GUIDANCE'),
            {'name': "the companion's name", 'relationship': 'the relationship framing from the character'}),
+    Prompt('chat-personality', CHAT, 'How the companion acts',
+           "Follows the character sheet in every chat reply and first text: one line of behaviour for each of the "
+           "companion's personality sliders that isn't in the middle (Character > Life details > Personality).",
+           constant('companion.memory.context', 'PERSONALITY'),
+           {'lines': 'what their personality sliders say, one behaviour per line'}),
+    Prompt('our-history', CHAT, 'Your history together',
+           'Opens the line-a-week (then a month, then a year) record of your whole time together in every chat reply. '
+           'The lines come from what happened and your corrections in the scrapbook\'s "All of it" view.',
+           constant('companion.memory.history', 'INTRO')),
     Prompt('first-texts', CHAT, 'Texting first',
            'Added when the companion writes to you first, such as a check-in. The app picks the reason.',
            constant('companion.life.openers', 'INSTRUCTION'),
@@ -97,6 +106,13 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'what from their day they share; the others then answer as usual.',
            constant('companion.group_openers', 'INSTRUCTION'),
            {'name': "the member's name", 'news': 'what happened in their day, from the life sim'}),
+    Prompt('group-guest', CHAT, 'Guests in group chats',
+           "Who a guest is, in their own reply: someone from a member's circle or around town who joined the chat. "
+           'The app picks who comes in and writes the rest of their sheet; the group rules and staying in '
+           'character apply as for everyone.',
+           constant('companion.group_guests', 'SHEET'),
+           {'who': 'their name, who they are to the member who knows them, and their work',
+            'host': 'the member who brought them in', 'lines': 'how others see them and how they see themselves'}),
     Prompt('character-rules.md', DRAFTING, 'What makes a character believable', 'Sent with every draft and rewrite.',
            drafting_file('character-rules.md')),
     Prompt('character-draft.md', DRAFTING, 'Drafting a whole character',

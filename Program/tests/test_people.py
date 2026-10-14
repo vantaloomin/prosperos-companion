@@ -1,4 +1,5 @@
 """The people in the user's life: learned from what the user says, remembered, and asked about now and then."""
+import re
 from datetime import UTC, datetime, timedelta
 
 from conftest import send
@@ -92,7 +93,7 @@ def test_people_are_remembered_and_shown_to_the_companion(client, connected):
     assert "- Jo (the user's sister): work: nurse; likes: climbing; news (told you 2026-10-05): got engaged" in text
     assert "The user's mum (name not known yet): home city: Cork" in text
     prompt = client.get('/api/context/preview').json()['prompt']
-    assert 'Jo' not in prompt.split("## What you know about the user")[-1].split('## ')[0]
+    assert not re.search(r'\bJo\b', prompt.split("## What you know about the user")[-1].split('## ')[0])
 
 
 def test_a_name_learned_later_joins_the_same_person(client, connected):

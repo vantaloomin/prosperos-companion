@@ -160,7 +160,18 @@ export interface CharacterDefinition {
   texting?: TextingStyle
   /** Their adult side as the user set it (companion/world/intimacy.py); empty fields use the roll. */
   intimacy?: IntimacySetup | null
+  /** Personality sliders (companion/world/personality.py); null, or a trait left out, is read from their words and rolled. */
+  personality_sliders?: PersonalitySliders | null
 }
+
+export type PersonalityKey = 'social' | 'warmth' | 'order' | 'curiosity' | 'stress'
+/** One slider: 0 low, 1 in between, 2 high, and who set it. */
+export interface PersonalitySlider { level: 0 | 1 | 2; source: 'rolled' | 'idea' | 'you' }
+export type PersonalitySliders = Partial<Record<PersonalityKey, PersonalitySlider>>
+/** A slider's words: its name, each end and what each stop looks like. */
+export interface PersonalityTrait { key: PersonalityKey; name: string; low: string; high: string; shows: [string, string, string] }
+/** The sliders as profiles show them: summary chips and the four-letter type they read as. */
+export interface PersonalityView { sliders: Required<PersonalitySliders>; chips: string[]; type: string | null; traits?: PersonalityTrait[] }
 
 export interface IntimacySetup { orientation: string; level: string; drive: string; interests: string[]; note: string }
 
@@ -192,7 +203,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -281,7 +292,7 @@ export interface WorkspaceSettings {
   adult_side?: boolean
   /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
   show_adult_side?: boolean
-  /** The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values). */
+  /** The numbers behind their life, such as upkeep meters (Settings > Realism > Hidden values). */
   show_home_meters?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
@@ -446,6 +457,14 @@ export interface LifeSettings {
   kitchen_realism: number
   /** Life admin (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   admin_realism: number
+  /** Work life (companion/life/work.py): 0 off, 1 steady, 2 true to life, 3 dramatic. */
+  work_realism: number
+  /** Group chat guests (companion/group_guests.py): how often someone named in a group is pulled in, 0 never to 3. */
+  guests_realism: number
+  /** Reading, watching and listening (companion/life/media.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
+  media_realism: number
+  /** Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
+  hobbies_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -1167,6 +1186,10 @@ export type ScrapbookPage =
   | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
   | { kind: 'closing'; title: string; text: string }
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
+/** Our history at a glance: one line a week lately, a month, then a year further back (companion/memory/history.py).
+ * `corrected` is the user's own words, an empty string when they left the line out, or null for the app's line. */
+export interface HistoryLine { key: string; kind: 'week' | 'month' | 'year'; start: string; end: string; label: string; days: number; text: string; corrected: string | null }
+export interface History { name: string; lines: HistoryLine[] }
 export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
 
 export interface HomeItem {
@@ -1195,6 +1218,36 @@ export type MealKind = 'cook' | 'leftovers' | 'takeout' | 'simple' | 'out' | 'ho
 export type StapleState = 'stocked' | 'low' | 'out'
 
 /** The Character page's Kitchen panel (GET /api/life/kitchen): all in words; `numbers` only with hidden values shown. */
+export type HobbyStatus = 'active' | 'stalled' | 'dropped'
+export type HobbySource = 'interest' | 'app' | 'user'
+export interface Hobby {
+  id: string
+  label: string
+  /** In a sentence: "the cello", "rock climbing". */
+  name: string
+  kind: string
+  source: HobbySource
+  status: HobbyStatus
+  /** 0 just starting out to 4 really good. */
+  level: number
+  kept: boolean
+  /** "Good at the cello". */
+  level_text: string
+  /** "About two years in". */
+  since_text: string
+  /** "Twice a week.", "Stalled lately: work got busy.", "Gave it up in March." */
+  status_text: string
+  recent: { date: string; kind: 'milestone' | 'stalled' | 'resumed' | 'dropped' | 'started'; text: string }[]
+  numbers?: { skill: number; best: number; sessions: number; next_at: number; talent: number }
+}
+export interface HobbiesView {
+  today: string
+  hobbies: Hobby[]
+  level_names: string[]
+  realism: number
+  can_add: boolean
+}
+
 export interface KitchenView {
   today: string
   diet: string
@@ -1358,6 +1411,8 @@ export interface Townsperson {
   comes_across: string | null
   /** From the third meeting: how they once described themselves. */
   says_they_are: string | null
+  /** Their personality sliders (companion/life/town_personality.py); null for a companion living in town. */
+  personality?: PersonalityView | null
   /** With the adult side on: who they're drawn to, once the companion knows their heart. */
   orientation?: string | null
   /** With the adult side on and shown in Hidden values: all of it, for the user's eyes only. */
@@ -1486,6 +1541,8 @@ export interface Dating {
   remaining: number
   matches: DatingMatch[]
   date: { key: string; name: string; place_id: string } | null
+  /** The person the user just answered, whose answer Undo can take back; null once undone or anything else changed. */
+  undo?: string | null
   /** After a like: the person, when they liked the user back. */
   matched?: DatingCard | null
 }
@@ -1493,6 +1550,8 @@ export interface Dating {
 /** Group chats (companion/groups.py, docs/group-chat.md). */
 export interface GroupMember {
   companion_id: string | null
+  /** Their person key: `companion:<id>`, or a guest's circle or townsfolk key. */
+  key: string
   /** Their full name now; `label` is how the chat names them (a first name unless two share it). */
   name: string
   label: string
@@ -1502,6 +1561,32 @@ export interface GroupMember {
   sees_from: number
   /** How they seem right now (companion/moods.py), read-only; only in a chat's own view. */
   mood?: GroupMood | null
+  /** Someone from a member's life who joined for a while (companion/group_guests.py); null for companions. */
+  guest?: GroupGuest | null
+}
+
+export interface GroupGuest {
+  /** The companion who knows them. */
+  host_id: string | null
+  /** "Mira's close friend". */
+  relation: string
+  /** The user kept them: they stay however quiet the chat gets. */
+  kept: boolean
+  /** They came back often enough to stay on their own. */
+  regular: boolean
+  visits: number
+  regular_after: number
+  replies_left: number
+  replies_each: number
+}
+
+/** Someone a companion in the group knows who could join it (GET /api/groups/{id}/guests). */
+export interface GuestOption {
+  key: string
+  name: string
+  relation: string
+  kind: 'circle' | 'town'
+  host_id: string | null
 }
 
 /** Record model calls (companion/model_calls.py), Settings > Debug. */
@@ -1520,8 +1605,8 @@ export interface GroupMood {
 export interface GroupMessage {
   id: string
   seq: number
-  /** The user, a companion, or the app's own line about who joined or left. */
-  kind: 'user' | 'companion' | 'app'
+  /** The user, a companion, a guest, or the app's own line about who joined or left. */
+  kind: 'user' | 'companion' | 'guest' | 'app'
   companion_id: string | null
   name: string
   text: string
@@ -1674,7 +1759,7 @@ export interface TownsfolkMix {
 export interface AdminItem {
   id: string
   key: string
-  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks'
+  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks' | 'work'
   kind: string
   title: string
   /** What just happened, for a surprise ("A parking ticket was tucked under the wiper"). */
@@ -1693,6 +1778,8 @@ export interface AdminItem {
   cost_text: string
   /** False for another feature's item shown read-only (Looks' haircuts follow their own draw). */
   movable: boolean
+  /** A late night's project, shown under its title (companion/life/work.py); empty otherwise. */
+  detail?: string
 }
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
@@ -1707,4 +1794,49 @@ export interface AdminView {
   level: number
   /** 0 to 100, only with Hidden values' home-life meters on. */
   meter: number | null
+}
+
+/** Something that changed at work (companion/life/work.py): a raise, a promotion, a project wrapped up, a new job. */
+export interface WorkEvent {
+  id: string
+  kind: 'raise' | 'freeze' | 'promotion' | 'project' | 'laid-off' | 'quit' | 'new-job'
+  local_date: string
+  /** "the yearly raise, about 3.2%", "wrapped up the spring menu change; it went well". */
+  text: string
+}
+
+/** The Character page's Work life panel (GET /api/life/work). */
+export interface WorkLifeView {
+  state: string[]
+  workload: 'slammed' | 'normal' | 'slow' | null
+  status: 'working' | 'hunting'
+  project: { title: string; index: number; started: string; due: string }
+  started_on: string
+  tenure: string
+  employer: string
+  late_nights: AdminItem[]
+  /** Vacation days still to come this year. */
+  vacation: string[]
+  events: WorkEvent[]
+  level: number
+  /** Only with Hidden values' home-life meters on. */
+  meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
+}
+
+/** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */
+export interface MediaNow {
+  id: string; kind: 'book' | 'show' | 'music'; title: string; by: string; format: string; text: string
+  set_by_you: boolean; started_on: string
+  /** Something the user recommended, ahead of their own pick (`waiting`, the title it holds up). */
+  recommended?: boolean; waiting?: string | null
+}
+export interface MediaView {
+  off: boolean; today: string; realism: number; real: boolean
+  /** The bank their titles come from (companion/world/data/media), for era-fitting examples. */
+  bank?: string
+  now: MediaNow[]
+  lately: { id: string; kind: 'book' | 'show' | 'music'; title: string; ended_on: string; text: string }[]
+  /** Hidden values (show_home_meters). */
+  numbers?: { reader: number; watcher: number; library: boolean; drop: number; recommend: number
+    items: Record<string, { along: number; days_left: number; ends: 'finish' | 'put down' }> }
 }

@@ -31,6 +31,7 @@ from companion import (
     worlds,
 )
 from companion.almanac.context import city_for
+from companion.errors import DomainError
 from companion.identity import APP_ID, VERSION
 from companion.images.prompts import in_photos
 from companion.imports import cards
@@ -58,6 +59,7 @@ from companion.models import (
     NotificationCheck,
     NotificationSettingsUpdate,
     PerceptionRequest,
+    PersonalityRequest,
     PromptUpdate,
     RecapRead,
     SettingsUpdate,
@@ -68,7 +70,7 @@ from companion.models import (
     TimelineUpdate,
     TownSeed,
 )
-from companion.world import intimacy, looks, perception
+from companion.world import intimacy, looks, perception, personality
 
 router = APIRouter(prefix='/api')
 
@@ -175,6 +177,25 @@ def perception_suggestions(request: Request, body: PerceptionRequest):
         city = city_for(connection, body.definition)
     found = perception.suggestions(body.definition, companion['id'] if companion else 'new', city=city)
     return found if companion else {**found, 'automatic': None}
+
+
+@router.post('/companion/personality')
+def personality_sliders(request: Request, body: PersonalityRequest):
+    """The character form's personality sliders as it stands (companion/world/personality.py): what it stores, what
+    its own words settle, and the rest rolled from the saved companion's id (or the form's `seed` for a new one).
+    `roll` rolls the Rolled ones again and `type` sets four from a four-letter type. No model is involved."""
+    with request.app.state.database.connect() as connection:
+        companion = characters.current(connection)
+    seed = companion['id'] if companion else body.seed or 'new'
+    sliders = personality.settle(body.definition, seed)
+    if body.roll:
+        sliders = personality.reroll(sliders, f'{seed}:roll:{body.roll}')
+    if body.type:
+        try:
+            sliders = personality.from_type(body.type, sliders)
+        except ValueError as error:
+            raise DomainError(str(error), 422) from error
+    return {**personality.view(sliders), 'traits': personality.form_traits()}
 
 
 @router.post('/companion/adult-side')

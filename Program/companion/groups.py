@@ -20,7 +20,8 @@ Seams the later group chat PRs build on:
 - `group_lines`: the speaker's private group section (secrets, news, closeness between members, mood).
 - `plan`, `weights` and `chime_in`: who answers whom (closeness between members; nobody answers someone they
   aren't speaking to, companion/moods.py).
-- Members are person keys (`companion:<id>`), so guests from a circle or the town can join as another kind.
+- Members are person keys (`companion:<id>`); guests from a member's circle or the town join under their own keys
+  (companion/group_guests.py), with a short rule-made sheet in place of the 1:1 sections.
 
 Groups also start conversations on their own: a member shares something from their day and the others answer
 it as they answer the user (`GroupChats.first_words`; the rules are in companion/group_openers.py).
@@ -36,6 +37,7 @@ from dataclasses import dataclass, field
 from companion import (
     authors_note,
     away,
+    group_guests,
     group_openers,
     in_character,
     moods,
@@ -121,6 +123,11 @@ def companion_of(key: str) -> str | None:
     return key.split(':', 1)[1] if key.startswith('companion:') else None
 
 
+def key_from(value: str) -> str:
+    """A member named by companion id or by person key (a guest's)."""
+    return value if ':' in value else member_key(value)
+
+
 # Groups and members ---------------------------------------------------------------------------------
 
 def require_group(connection, group_id: str) -> dict:
@@ -177,14 +184,35 @@ def note(connection, group_id: str, timestamp: str, text: str) -> dict:
 
 def join(connection, group_id: str, companion_id: str, timestamp: str, sees_from: int | None = None) -> dict:
     """A new stay; `sees_from` None means from their join on."""
-    name = companion_name(connection, companion_id)
+    return join_as(connection, group_id, member_key(companion_id), companion_name(connection, companion_id), timestamp,
+                   sees_from)
+
+
+def join_as(connection, group_id: str, key: str, name: str, timestamp: str, sees_from: int | None = None,
+            host: str | None = None, relation: str = '') -> dict:
     taken = {stay['name'] for stay in current_members(connection, group_id)}
     stay_id = identifier()
-    connection.execute('INSERT INTO group_members (id, group_id, member, name, joined_at, sees_from) '
-                       'VALUES (?, ?, ?, ?, ?, ?)',
-                       (stay_id, group_id, member_key(companion_id), label_for(name, taken), timestamp,
-                        sees_from or next_seq(connection, group_id)))
+    connection.execute('INSERT INTO group_members (id, group_id, member, name, joined_at, sees_from, host, relation) '
+                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                       (stay_id, group_id, key, label_for(name, taken), timestamp,
+                        sees_from or next_seq(connection, group_id), host, relation))
     return one(connection, 'SELECT * FROM group_members WHERE id=?', (stay_id,))
+
+
+def welcome(connection, group_id: str, person: dict, timestamp: str, by: str, sees_from: int | None = None) -> dict:
+    """A guest joins (companion/group_guests.py): brought in by the user or by the member who knows them. Their
+    third visit makes them a regular, who stays."""
+    stay = join_as(connection, group_id, person['key'], person['full'] if ' ' in person['name'] else person['name'],
+                   timestamp, sees_from, person['host'], person['relation'])
+    connection.execute('UPDATE group_members SET brought_by=? WHERE id=?', (by, stay['id']))
+    if by == 'user':
+        note(connection, group_id, timestamp, f"You added {stay['name']}, {person['relation']}.")
+    else:
+        who = next((item['name'] for item in current_members(connection, group_id) if item['member'] == by), 'Someone')
+        note(connection, group_id, timestamp, f"{who} brought {stay['name']}, {person['tie']}.")
+    if group_guests.visits(connection, group_id, person['key']) == group_guests.REGULAR_VISITS:
+        note(connection, group_id, timestamp, f"{stay['name']} is a regular here now.")
+    return stay
 
 
 def names_text(names: list[str]) -> str:
@@ -234,7 +262,9 @@ def update(database, group_id: str, name: str | None = None, reply_cap: int | No
 
 def add(database, group_id: str, companion_id: str, everything: bool = False, ties=None) -> dict:
     """Add someone later. By default they see the chat from now on; `everything` shows them all of it. `ties` as
-    for create."""
+    for create. A person key instead of a companion id adds a guest someone in the group knows."""
+    if ':' in companion_id:
+        return add_guest(database, group_id, companion_id, everything)
     timestamp = database.now()
     with database.connect(write=True) as connection:
         group = require_group(connection, group_id)
@@ -254,6 +284,56 @@ def add(database, group_id: str, companion_id: str, everything: bool = False, ti
         return group_view(connection, group_id)
 
 
+def add_guest(database, group_id: str, key: str, everything: bool = False) -> dict:
+    """The user brings in someone a member knows (`guests`): someone from their circle or around town."""
+    timestamp = database.now()
+    with database.connect(write=True) as connection:
+        group = require_group(connection, group_id)
+        members = current_members(connection, group_id)
+        require(all(stay['member'] != key for stay in members), 'They are already in this group.', 409)
+        person = next((item for item in group_guests.candidates(connection, members, database.clock.now())
+                       if item['key'] == key), None)
+        require(person is not None, 'Nobody in this group knows them any more.', 404)
+        welcome(connection, group_id, person, timestamp, 'user', sees_from=1 if everything else None)
+        if everything:
+            secrets.history(connection, group_id, key, timestamp)
+            reactions.showed_everything(connection, group, key, database.clock.now())
+        return group_view(connection, group_id)
+
+
+def guests(database, group_id: str) -> list[dict]:
+    """Everyone the companions in the group know who could join it, for Add someone."""
+    with database.connect() as connection:
+        require_group(connection, group_id)
+        found = group_guests.candidates(connection, current_members(connection, group_id), database.clock.now())
+        return [{'key': item['key'], 'name': item['full'], 'relation': item['relation'], 'kind': item['kind'],
+                 'host_id': companion_of(item['host'])} for item in found]
+
+
+def keep_guest(database, group_id: str, key: str, kept: bool = True) -> dict:
+    """Keep a guest in the group however quiet it gets (one tap), or let them come and go again."""
+    with database.connect(write=True) as connection:
+        require_group(connection, group_id)
+        stay = next((item for item in current_members(connection, group_id) if item['member'] == key), None)
+        require(stay is not None and group_guests.is_guest(key), "They aren't a guest in this group.", 404)
+        connection.execute('UPDATE group_members SET kept=? WHERE id=?', (int(kept), stay['id']))
+        return group_view(connection, group_id)
+
+
+def drift(database) -> int:
+    """Guests who slip out of every group now that it has gone quiet (companion/group_guests.py), rules only.
+    Returns how many left."""
+    count = 0
+    with database.connect(write=True) as connection:
+        now, timestamp = database.clock.now(), database.now()
+        for group in many(connection, 'SELECT DISTINCT group_id FROM group_members WHERE host IS NOT NULL AND '
+                          'left_at IS NULL'):
+            for stay, text in group_guests.drifting(connection, group['group_id'], now):
+                leave(connection, group['group_id'], stay, timestamp, text)
+                count += 1
+    return count
+
+
 def leave(connection, group_id: str, stay: dict, timestamp: str, text: str):
     """The stay ends before this line: nothing from here on reaches them. What they saw stays known."""
     line = add_line(connection, group_id, timestamp, APP, '', text)
@@ -264,11 +344,12 @@ def leave(connection, group_id: str, stay: dict, timestamp: str, text: str):
 
 
 def remove(database, group_id: str, companion_id: str) -> dict:
+    """Take someone out: a companion by id, or a guest by person key."""
     timestamp = database.now()
     with database.connect(write=True) as connection:
         require_group(connection, group_id)
         stay = next((item for item in current_members(connection, group_id)
-                     if item['member'] == member_key(companion_id)), None)
+                     if item['member'] == key_from(companion_id)), None)
         require(stay is not None, "They aren't in this group.", 404)
         leave(connection, group_id, stay, timestamp, f"You removed {stay['name']}.")
         return group_view(connection, group_id)
@@ -278,6 +359,8 @@ def leave_everywhere(connection, companion_id: str, timestamp: str):
     """Start over or Delete: the companion leaves every group. Their old lines stay, under their name."""
     rows = many(connection, 'SELECT * FROM group_members WHERE member=? AND left_at IS NULL',
                 (member_key(companion_id),))
+    # Guests who know them (from their circle or around town) go with them, whoever added them.
+    rows += many(connection, 'SELECT * FROM group_members WHERE host=? AND left_at IS NULL', (member_key(companion_id),))
     for stay in rows:
         leave(connection, stay['group_id'], stay, timestamp, f"{stay['name']} is no longer in the group.")
     pairs.forget(connection, companion_id)
@@ -285,7 +368,7 @@ def leave_everywhere(connection, companion_id: str, timestamp: str):
 
 
 def copy(database, group_id: str) -> dict:
-    """New group with these people: the same members, a fresh history."""
+    """New group with these people: the same companions (guests don't come along), a fresh history."""
     with database.connect() as connection:
         members = [companion_of(stay['member']) for stay in current_members(connection, group_id)]
     return create(database, [member for member in members if member])
@@ -305,7 +388,8 @@ def delete(database, group_id: str) -> dict:
 # Views ------------------------------------------------------------------------------------------------
 
 def message_view(row: dict, kept: frozenset = frozenset()) -> dict:
-    kind = 'user' if row['author'] == 'user' else APP if row['author'] == APP else 'companion'
+    kind = 'user' if row['author'] == 'user' else APP if row['author'] == APP else \
+        'companion' if companion_of(row['author']) else 'guest'
     return {'id': row['id'], 'seq': row['seq'], 'kind': kind, 'companion_id': companion_of(row['author']),
             'name': row['name'], 'text': row['text'], 'status': row['status'], 'error': row['error'],
             'reply_to': row['reply_to'], 'guard': row['guard'], 'created_at': row['created_at'],
@@ -315,13 +399,16 @@ def message_view(row: dict, kept: frozenset = frozenset()) -> dict:
 def member_view(connection, stay: dict) -> dict:
     companion_id = companion_of(stay['member'])
     found = by_id(connection, companion_id) if companion_id else None
-    return {'companion_id': companion_id, 'name': found['version']['name'] if found else stay['name'],
-            'label': stay['name'], 'main': bool(found and found['slot'] == 1), 'joined_at': stay['joined_at'],
-            'sees_from': stay['sees_from']}
+    return {'companion_id': companion_id, 'key': stay['member'],
+            'name': found['version']['name'] if found else stay['name'], 'label': stay['name'],
+            'main': bool(found and found['slot'] == 1), 'joined_at': stay['joined_at'], 'sees_from': stay['sees_from'],
+            'guest': group_guests.view(connection, stay)}
 
 
 def title(connection, group: dict) -> str:
-    return group['name'] or names_text([stay['name'] for stay in current_members(connection, group['id'])] or ['Nobody'])
+    """The group's name, else who is in it; a guest passing through doesn't change it."""
+    settled = [stay['name'] for stay in current_members(connection, group['id']) if group_guests.settled(connection, stay)]
+    return group['name'] or names_text(settled or ['Nobody'])
 
 
 def group_view(connection, group_id: str) -> dict:
@@ -405,30 +492,35 @@ def window(rows: list[dict], budget: int) -> int:
     return start
 
 
-def public_line(connection, member: str) -> str:
+def public_line(connection, member: str, stay: dict | None = None, now=None) -> str:
     """How others see this member ("Others see", world/perception.py), for the cast block. Only the public line:
     their private "I see myself" lines ride in their own character section. Must not depend on who is speaking,
-    or the shared prefix would differ."""
+    or the shared prefix would differ. A guest's comes from their rule sheet (companion/group_guests.py)."""
     companion_id = companion_of(member)
-    return perception.companion_lines(connection, companion_id)['public'] if companion_id else ''
+    if companion_id:
+        return perception.companion_lines(connection, companion_id)['public']
+    found = stay and group_guests.sheet(connection, stay, now)
+    return found['public'] if found else ''
 
 
-def cast_text(connection, group_id: str) -> str:
+def cast_text(connection, group_id: str, now=None) -> str:
     lines = []
     for stay in current_members(connection, group_id):
-        public = public_line(connection, stay['member'])
-        lines.append(f"- {stay['name']}" + (f': {public}' if public else ''))
+        public = public_line(connection, stay['member'], stay, now)
+        guest = f" ({stay['relation']}, a guest)" if group_guests.is_guest(stay['member']) else ''
+        lines.append(f"- {stay['name']}{guest}" + (f': {public}' if public else ''))
     return '## Who is in this group (besides the user)\n' + '\n'.join(lines)
 
 
-def shared_part(connection, group: dict, member: str, budget: int, until_seq: int | None) -> tuple[str, list[dict]]:
+def shared_part(connection, group: dict, member: str, budget: int, until_seq: int | None,
+                now=None) -> tuple[str, list[dict]]:
     """The group rules, the cast and the transcript; returns the text and the messages trimmed from it."""
     rows = visible(connection, group['id'], member, until_seq)
     start = window(rows, int(budget * TRANSCRIPT_SHARE))
     kept = rows[start:]
     transcript = '## The group chat so far\n' + ('\n'.join(line(row) for row in kept) or '(No messages yet.)')
     rules = prompt_library.text(connection, 'group-rules')
-    return '\n\n'.join((rules, cast_text(connection, group['id']), transcript)), rows[:start]
+    return '\n\n'.join((rules, cast_text(connection, group['id'], now), transcript)), rows[:start]
 
 
 def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str]]:
@@ -478,7 +570,7 @@ def prompt(connection, group: dict, companion: dict, stay: dict, now, config: di
     """One speaker's request: the shared part, then their private sections, then the turn (by default, their
     next message; a group starting a conversation passes its own)."""
     budget = config['context_tokens'] - config['max_output_tokens']
-    shared, trimmed = shared_part(connection, group, stay['member'], budget, until_seq)
+    shared, trimmed = shared_part(connection, group, stay['member'], budget, until_seq, now)
     earlier = visible(connection, group['id'], stay['member'], until_seq)
     private = context.build(connection, companion, now, max(budget - token_estimate(shared), 1000), group={
         'older': recall_rows(trimmed, group, title(connection, group)), 'query': query,
@@ -489,6 +581,50 @@ def prompt(connection, group: dict, companion: dict, stay: dict, now, config: di
     return {'system': f"{shared}\n\n{private['system']}", 'shared': shared, 'note': private['note'], 'turn': turn,
             'messages': [{'role': 'user', 'content': f"{context.NOTE_OPEN}\n{private['note']}\n\n{turn}"}],
             'receipt': private['receipt']}
+
+
+GUEST_RELATIONSHIP = 'a guest in a group chat with the user, whom you know only through {host}'
+
+
+def guest_prompt(connection, group: dict, stay: dict, now, config: dict, until_seq: int,
+                 turn: str | None = None) -> dict:
+    """A guest's request (companion/group_guests.py): the same shared part, then their rule-made sheet in place of a
+    companion's 1:1 sections, and the same group section with how they feel about each member and what they know."""
+    budget = config['context_tokens'] - config['max_output_tokens']
+    shared, _trimmed = shared_part(connection, group, stay['member'], budget, until_seq, now)
+    found = group_guests.sheet(connection, stay, now)
+    require(found is not None, f"{stay['name']} isn't around any more.", 404)
+    own = '\n'.join((prompt_library.text(connection, 'chat-character', name=stay['name'],
+                                         relationship=GUEST_RELATIONSHIP.format(host=found['host_name'])),
+                     prompt_library.text(connection, 'group-guest', who=found['who'], host=found['host_name'],
+                                         lines=perception.own_text(found['public'], found['private']))))
+    if found['behaviour']:  # A townsperson's sliders, as a companion's own show (memory/context.py).
+        own += '\n' + prompt_library.text(connection, 'chat-personality',
+                                          lines='\n'.join(f'- {line}' for line in found['behaviour']))
+    clock = f"Your local time: {context.local_time(now, found['timezone'])}."
+    right_now = clock + (f"\nWhat you're doing: {found['doing']}." if found['doing'] else '')
+    found_lines = [text for _key, text in group_lines(connection, group, stay, now)]
+    at = 2 if stay['sees_from'] > 1 else 1  # Right after who they are here and when they joined.
+    section = '\n'.join([*found_lines[:at], group_guests.NO_HISTORY, *found_lines[at:]])
+    note = f"## {context.NOW['time']}\n{right_now}\n\n## {context.NOW['group']}\n{section}"
+    turn = turn or TURN.format(name=stay['name'], group=title(connection, group))
+    return {'system': f'{shared}\n\n{own}', 'shared': shared, 'note': note, 'turn': turn,
+            'messages': [{'role': 'user', 'content': f'{context.NOTE_OPEN}\n{note}\n\n{turn}'}],
+            'receipt': {'guest': True}}
+
+
+# A guest named in the user's message who has said all they will this conversation (group_guests.GUEST_REPLIES):
+# whoever answers is told, so nobody answers in their place.
+STEPPED_BACK = ("{names} stepped back from the chat for now and won't answer this. Don't answer in their place; "
+                'if the user asked them something, you can say they have gone quiet.')
+
+
+def stepped_back(connection, group_id: str, user: dict) -> list[str]:
+    members = current_members(connection, group_id)
+    named = set(mentioned(user['text'], members)) - {row['author'] for row in many(
+        connection, "SELECT author FROM group_messages WHERE reply_to=? AND status='complete'", (user['id'],))}
+    return [stay['name'] for stay in members if stay['member'] in named and group_guests.is_guest(stay['member'])
+            and not group_guests.replies_left(connection, group_id, stay['member'])]
 
 
 def add_note(packet: dict, text: str) -> dict:
@@ -531,7 +667,16 @@ def weights(connection, group_id: str, members: list[dict], now) -> dict[str, fl
         companion = by_id(connection, companion_of(stay['member']) or '')
         level = closeness.state(connection, companion, now)['level'] if companion else 1
         result[stay['member']] = 1 + min(since, 10) / 2 + level / 4
-    return result
+    return guests_weighed(result)
+
+
+def guests_weighed(result: dict[str, float]) -> dict[str, float]:
+    """Guests answer a little less often than members (GUEST_WEIGHT): a guest who has been quiet a while counts no
+    more than the members' average before the share, since guests say little and would otherwise always look due."""
+    members = [weight for key, weight in result.items() if not group_guests.is_guest(key)]
+    usual = sum(members) / len(members) if members else None
+    return {key: min(weight, usual or weight) * group_guests.GUEST_WEIGHT if group_guests.is_guest(key) else weight
+            for key, weight in result.items()}
 
 
 def plan(members: list[dict], text: str, seed: str, cap: int, weight: dict[str, float],
@@ -634,6 +779,10 @@ def record(database, group_id: str, text: str, client_id: str) -> dict:
         if existing:
             return existing
         require_group(connection, group_id)
+        # Guests whose time is up (the chat went quiet, or they're gone from their host's life) leave before this
+        # line, not on the next background check.
+        for stay, line_text in group_guests.drifting(connection, group_id, database.clock.now()):
+            leave(connection, group_id, stay, database.now(), line_text)
         require(current_members(connection, group_id), 'Add someone to this group to keep talking.', 409)
         row = add_line(connection, group_id, database.now(), 'user', USER, text, client_id=client_id)
         secrets.witness(connection, row)  # The user can tell them; then they know.
@@ -795,8 +944,11 @@ class GroupChats:
                 connection, "SELECT author FROM group_messages WHERE reply_to=? AND status='complete'", (user['id'],)))
             now = self.database.clock.now()
             queue = plan(members, user['text'], user['id'], group['reply_cap'],
-                         weights(connection, group_id, members, now), done, cold(connection, members, user['author'], now))
+                         weights(connection, group_id, members, now), done,
+                         cold(connection, members, user['author'], now) | group_guests.resting(connection, members, now))
         spoken, extra = set(done), True
+        if not done:
+            self.pull(group_id, user, queue, first=False)
         self.walk_out(group_id)
         while queue:
             member = queue.pop(0)
@@ -812,13 +964,31 @@ class GroupChats:
             if not reply or reply['status'] != 'complete':
                 continue
             self.walk_out(group_id)
+            if self.pull(group_id, reply, queue):
+                continue
             with self.database.connect() as connection:
-                skip = spoken | cold(connection, members, member, self.database.clock.now())
+                now = self.database.clock.now()
+                skip = spoken | cold(connection, members, member, now) | group_guests.resting(connection, members, now)
                 if banter(queue, skip, reply['text'], members, extra):
                     extra = False
                 elif extra and not mentioned(reply['text'], members) and \
                         chime_in(connection, queue, skip, member, members, reply['id'], self.database.clock.now()):
                     extra = False
+
+    def pull(self, group_id: str, row: dict, queue: list[str], first: bool = True) -> bool:
+        """Someone a finished message names joins as a guest when the rules say so (companion/group_guests.py), and
+        answers: right away when a member just brought them in, after the planned replies for the user's message."""
+        with self.database.connect(write=True) as connection:
+            members = current_members(connection, group_id)
+            person = group_guests.pull_in(connection, group_id, row, members, self.database.clock.now())
+            if person is None:
+                return False
+            stay = welcome(connection, group_id, person, self.database.now(), person['host'])
+        if first:
+            queue.insert(0, stay['member'])
+        else:
+            queue.append(stay['member'])
+        return True
 
     def walk_out(self, group_id: str) -> dict | None:
         """Someone furious walks out, when the group allows it (companion/moods.py)."""
@@ -854,9 +1024,10 @@ class GroupChats:
             with database.connect() as connection:
                 group = require_group(connection, group_id)
                 companion = by_id(connection, companion_of(stay['member']) or '')
-                require(companion is not None, 'That companion is no longer in this workspace.', 404)
+                require(companion is not None or group_guests.is_guest(stay['member']),
+                        'That companion is no longer in this workspace.', 404)
                 packet = await asyncio.to_thread(self.packet, group, companion, stay, config, row['seq'], user)
-            active = in_character.applies(user['text'], companion['version']['definition'])
+            active = in_character.applies(user['text'], companion['version']['definition'] if companion else {})
             status, error = await self.write(config, packet, text, running, active)
             if (watch or shoulder) and status == 'complete':
                 status, error, guard = await self.review(config, packet, text, running, active, stay, watch, row)
@@ -928,11 +1099,17 @@ class GroupChats:
 
     def packet(self, group, companion, stay, config, until_seq, user) -> dict:
         with self.database.connect() as connection:
-            packet = prompt(connection, group, companion, stay, self.database.clock.now(), config, until_seq,
-                            user['text'], user.get('turn'))
+            if companion is None:
+                packet = guest_prompt(connection, group, stay, self.database.clock.now(), config, until_seq,
+                                      user.get('turn'))
+            else:
+                packet = prompt(connection, group, companion, stay, self.database.clock.now(), config, until_seq,
+                                user['text'], user.get('turn'))
             # A reply to the user carries the group's author's note; a member starting a conversation does not.
             if user['text'] and not in_character.out_of_character(user['text']):
                 packet = steer(packet, authors_note.prompt_text(connection, f"group:{group['id']}"))
+            if user.get('author') == 'user' and (gone := stepped_back(connection, group['id'], user)):
+                packet = add_note(packet, STEPPED_BACK.format(names=names_text(gone)))
         if in_character.out_of_character(user['text']):
             reminder = in_character.OUT_OF_CHARACTER_NOTE.format(name=stay['name'], model=default_name(config))
             packet = add_note(packet, reminder)
@@ -974,8 +1151,9 @@ class GroupChats:
             if status == 'complete':
                 secrets.witness(connection, saved)
                 news.witness(connection, saved)
-                moods.counted(connection, stay['member'], database.clock.now())
-                moods.nudge(connection, stay['member'], text, members, database.clock.now())
+                if companion:  # Moods are companions' own (companion/moods.py); a guest passing through has none.
+                    moods.counted(connection, stay['member'], database.clock.now())
+                    moods.nudge(connection, stay['member'], text, members, database.clock.now())
         running.live.pop(row['id'], None)
         if status == 'complete':
             running.shown_at, running.before = time.monotonic(), text

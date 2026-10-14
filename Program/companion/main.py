@@ -45,8 +45,10 @@ from companion.launcher_routes import router as launcher_router
 from companion.life import (
     admin_routes,
     grooming_routes,
+    hobbies_routes,
     home_routes,
     kitchen_routes,
+    media_routes,
     outings,
     pets_routes,
     scrapbook_routes,
@@ -55,6 +57,7 @@ from companion.life import (
     trips,
     upkeep_routes,
     wardrobe_routes,
+    work_routes,
 )
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
@@ -67,7 +70,7 @@ from companion.lora import training as lora_training
 from companion.mcp import routes as context_routes
 from companion.mcp import weather as observed_weather
 from companion.mcp.lookups import Lookups
-from companion.memory import closeness_routes, people_routes
+from companion.memory import closeness_routes, history_routes, people_routes
 from companion.memory.worker import MemoryWorker
 from companion.phone import access as phone_access
 from companion.phone import lan as phone_lan
@@ -262,9 +265,13 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(upkeep_routes.router)
     app.include_router(grooming_routes.router)
     app.include_router(kitchen_routes.router)
+    app.include_router(media_routes.router)
+    app.include_router(hobbies_routes.router)
     app.include_router(admin_routes.router)
+    app.include_router(work_routes.router)
     app.include_router(traditions_routes.router)
     app.include_router(scrapbook_routes.router)
+    app.include_router(history_routes.router)
     app.include_router(life_routes.today_router)
     app.include_router(life_routes.feed_router)
     app.include_router(world_routes.router)

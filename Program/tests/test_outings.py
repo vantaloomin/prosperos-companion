@@ -234,3 +234,13 @@ def test_by_the_harbor_means_on_the_water_not_a_name_that_says_harbor():
              for n in range(30)}
     assert 'Golden Harbor Chinese Restaurant' not in picks
     assert all(outings.waterside(item, data) for item in data['places'] if item['name'] in picks)
+
+
+def test_an_invitation_over_two_sentences_is_dinner_at_their_place():
+    data = catalog.city('baltimore')
+    for text in ("Want to come over Saturday? I'll cook.", "Come over Saturday. I'll cook."):
+        found = outings.proposal(text, TODAY, {}, data, firm=True)
+        assert found and (found['activity'], found['day']) == ('dinner-in', date(2026, 10, 10)), text
+    # Without food it is not dinner, and the user cooking is never the companion having them over.
+    assert outings.proposal('Want to come over Saturday? We could watch a movie.', TODAY, {}, data, firm=True) is None
+    assert outings.proposal("Want to come over Saturday? I'll cook.", TODAY, {}, data) is None

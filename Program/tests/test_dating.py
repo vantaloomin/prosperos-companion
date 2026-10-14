@@ -137,6 +137,49 @@ def match_someone(client, profile=PROFILE) -> dict:
     raise AssertionError('Nobody liked the user back.')
 
 
+def test_the_last_answer_can_be_undone_until_they_become_a_companion(client, clock):
+    state = ok(client.put('/api/dating/profile', json=PROFILE))
+    first, second = state['deck'][0]['key'], state['deck'][1]['key']
+    ok(client.post('/api/dating/swipes', json={'key': first, 'like': False}))
+    state = ok(client.post('/api/dating/swipes', json={'key': second, 'like': False}))
+    assert client.delete(f'/api/dating/swipes/{first}').status_code == 409  # Only the latest.
+    undone = ok(client.delete(f'/api/dating/swipes/{second}'))
+    assert undone['deck'][0]['key'] == second and undone['remaining'] == state['remaining'] + 1
+    assert client.delete(f'/api/dating/swipes/{second}').status_code == 409  # Nothing left to undo for them.
+
+    match = match_someone(client)
+    undone = ok(client.delete(f"/api/dating/swipes/{match['key']}"))
+    assert undone['matches'] == [] and undone['deck'][0]['key'] == match['key']
+    match = match_someone(client)
+    draft = ok(client.get('/api/companion/cast/draft', params={'key': match['key']}))
+    ok(client.post('/api/companion/cast/switch', json={'key': match['key'], 'definition': draft['definition']}))
+    assert client.delete(f"/api/dating/swipes/{match['key']}").status_code == 409
+
+
+def test_undo_takes_back_only_the_answer_just_given_and_only_once(client, clock):
+    state = ok(client.put('/api/dating/profile', json=PROFILE))
+    first, second, third = (card['key'] for card in state['deck'][:3])
+    ok(client.post('/api/dating/swipes', json={'key': first, 'like': False}))
+    assert ok(client.post('/api/dating/swipes', json={'key': second, 'like': False}))['undo'] == second
+    assert ok(client.delete(f'/api/dating/swipes/{second}'))['undo'] is None
+    assert client.delete(f'/api/dating/swipes/{first}').status_code == 409  # Never the one before, even after an undo.
+
+    ok(client.post('/api/dating/swipes', json={'key': third, 'like': False}))
+    assert ok(client.delete('/api/dating/swipes/passed'))['undo'] is None  # Passed people back: nothing to undo.
+    assert client.delete(f'/api/dating/swipes/{third}').status_code == 409
+
+    match = match_someone(client)
+    ok(client.delete(f"/api/dating/matches/{match['key']}"))
+    assert client.delete(f"/api/dating/swipes/{match['key']}").status_code == 409  # Unmatched: nothing to undo.
+
+    key = ok(client.get('/api/dating'))['deck'][0]['key']
+    ok(client.post('/api/dating/swipes', json={'key': key, 'like': False}))
+    city = ok(client.get('/api/dating'))['city']['id']
+    other = next(item['id'] for item in ok(client.get('/api/world/cities')) if item['id'] != city)
+    assert ok(client.put('/api/dating/city', json={'city_id': other}))['undo'] is None  # Another city starts afresh.
+    assert client.delete(f'/api/dating/swipes/{key}').status_code == 409
+
+
 def test_a_match_becomes_a_companion_even_as_the_first_one(client, clock, provider):
     match = match_someone(client)
     draft = ok(client.get('/api/companion/cast/draft', params={'key': match['key']}))

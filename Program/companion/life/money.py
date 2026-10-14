@@ -72,11 +72,14 @@ COSTS = {
     'browse': ((), 1, 0.008),
     'festival': ((), 1, 0.008),
     'birthday': (('dinner', 'inn-meal', 'chophouse', 'eating-house', 'meal'), 2, 0.02),
+    # A pastime with the user (companion/life/hobbies.py): a day pass, a class or a lane for two.
+    'hobby': ((), 1, 0.004),
 }
 OUTING_NAMES = {'dinner': 'dinner out', 'drinks': 'a night out for drinks', 'show': 'tickets to a show',
                 'museum': 'museum tickets', 'lunch-out': 'lunch out', 'coffee': 'café coffee',
                 'study-cafe': 'an afternoon at a café', 'market': 'a browse at the market',
-                'browse': 'a bit of shopping', 'festival': 'a day at a festival', 'birthday': 'a birthday dinner'}
+                'browse': 'a bit of shopping', 'festival': 'a day at a festival', 'birthday': 'a birthday dinner',
+                'hobby': 'a pastime together'}
 
 SPLURGES = {
     'modern': ('new running shoes', 'a really nice dinner out', 'concert tickets', 'an impulse-buy jacket',
@@ -433,18 +436,21 @@ PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 
 
 def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
-    """The home's rent, pets and vehicles, and what home changes, new clothes, looks, takeout, outings with the user and
-    trips cost this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, grooming.py's,
-    kitchen.py's, outings.py's, trips.py's and admin.py's
+    """The home's rent, pets and vehicles, and what home changes, new clothes, looks, takeout, pastimes, outings with the
+    user and trips cost this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, grooming.py's,
+    kitchen.py's, media.py's, hobbies.py's, outings.py's, trips.py's and admin.py's
     `purchases`. None before the home exists or where money does not apply."""
     from companion.life import (  # all build from this budget, so import late
         admin,
         grooming,
+        hobbies,
         home,
         kitchen,
+        media,
         outings,
         trips,
         wardrobe,
+        work,
     )
 
     found = profile(definition)
@@ -456,8 +462,12 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *grooming.purchases(connection, timeline_id, start, day),
               *outings.purchases(connection, timeline_id, start, day), *trips.purchases(connection, timeline_id, start, day),
               *kitchen.purchases(connection, timeline_id, start, day, definition, None, None),
-              *admin.purchases(connection, timeline_id, start, day)]
-    return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date'])}
+              *media.purchases(connection, timeline_id, start, day, definition),
+              *admin.purchases(connection, timeline_id, start, day),
+              *hobbies.purchases(connection, timeline_id, start, day)]
+    # Raises, promotions and time between jobs (companion/life/work.py).
+    return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
+            'pay': work.pay(connection, timeline_id, day)}
 
 
 def monthly_share(found: Profile) -> float:
@@ -465,8 +475,11 @@ def monthly_share(found: Profile) -> float:
     return found.income if found.period == 'month' else found.income * 52 / 12
 
 
-def with_home(found: Profile, costs: dict) -> Profile:
-    """The budget with the home's rent (when it names one in this city's money) and its upkeep."""
+def with_home(found: Profile, costs: dict, pay: dict | None = None) -> Profile:
+    """The budget with the home's rent (when it names one in this city's money) and its upkeep, and their pay after
+    raises, or what they live on between jobs (`pay`, from work.pay)."""
+    if pay and pay.get('factor'):
+        found = replace(found, income=found.income * pay['factor'])
     rent = found.rent
     if costs.get('rent') and (costs.get('currency') or found.city['currency']) == found.city['currency']:
         rent = costs['rent'] if costs.get('rent_period', 'month') == found.period else \
@@ -500,7 +513,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
     `household`: with it, rent and upkeep come from their home and its purchases count as spending."""
     found = profile(definition)
     if found and home:
-        found = with_home(found, home['costs'])
+        found = with_home(found, home['costs'], home.get('pay'))
     if not found:
         city = city_for(definition)
         reason = f"There is no money in {city['name']}." if city else \
@@ -517,6 +530,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'available': True, 'currency': currency, 'period': found.period, 'style': found.style,
         'career': {'id': found.career['id'], 'name': found.career['name'], 'pay': found.career['pay'],
                    'guessed': found.guessed} if found.career else None,
+        'between_jobs': bool(home and (home.get('pay') or {}).get('between_jobs')),
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
         'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
                                                                   'saving')},
@@ -545,6 +559,9 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     place = 'your home' if view['rent_from'] == 'home' else \
         f"{view['housing']['label']} in {view['housing']['neighborhood']}"
     lines = [('budget', f"- You take home about {text['income']} {per}{work}; rent is about {text['rent']} for {place}.")]
+    if view.get('between_jobs'):
+        lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; rent is about "
+                            f"{text['rent']} for {place}.")]
     if view['budget']['upkeep']:
         lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
     for item in view['bought']:
@@ -563,7 +580,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     return [(f'money:{local_date}:{key}', line) for key, line in lines]
 
 
-SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout'}
+SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
+            'hobby': 'on your pastimes'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

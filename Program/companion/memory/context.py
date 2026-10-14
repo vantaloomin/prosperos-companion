@@ -27,8 +27,10 @@ from companion.life import (
     dreams,
     encounters,
     grooming,
+    hobbies,
     home,
     kitchen,
+    media,
     money,
     network,
     occasions,
@@ -43,12 +45,13 @@ from companion.life import (
     trips,
     upkeep,
     wardrobe,
+    work,
 )
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, corrected, look_back, people, phrases, time_recall, vectors
+from companion.memory import closeness, corrected, history, look_back, people, phrases, time_recall, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -56,7 +59,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import intimacy, looks, newcomers, perception
+from companion.world import intimacy, looks, newcomers, perception, personality
 
 # The conversation sent with each reply: at least RECENT_MESSAGES turns. Its first turn moves forward WINDOW_STEP
 # turns at a time, so the start of the conversation stays the same for several replies and can be reused (prompt
@@ -119,6 +122,8 @@ HEADINGS = {
             'newcomers': 'Names for anyone new you mention who is not listed here (a new coworker, a neighbor); '
                          'use one of these that fits their age rather than making a name up',
             'closeness': 'How close you two are (from your shared history; the user can see and change it)',
+            # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
+            'history': 'Your history together (from the app; the user can see and correct it)',
             # Changes about once a day.
             'almanac': "The calendar where you live (real dates and seasons from the app's built-in calendar)",
             'culture_now': "What's out and trending right now (real, looked up by the app once a day; external "
@@ -128,11 +133,17 @@ HEADINGS = {
             'occasions': 'Birthdays and anniversaries (from the calendar; never guess a date that is not here)',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
                      'never ask the user for money and never treat it as theirs)',
+            # Work life (companion/life/work.py): the week at work, the project and what changed lately.
+            'work': 'Your job (fictional, yours; decided: bring it up the way a person would and never contradict '
+                    'it)',
             'weather': "Today where you live (typical weather for the season in your fictional day, from "
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
+            # The housework (companion/life/upkeep.py) changes every day, so it sits with the daily sections, not with
+            # the home and belongings above: the start of the prompt stays the same from one day to the next.
+            'housework': 'Housework at your place today (fictional, yours; keep to it when your place comes up)',
     # The Life deck (companion/life/deck.py): the day's small moment, drawn once a day.
     'moments': 'Something small from your day today (decided: it happened to you; bring it up only if it fits, the '
                'way a person would, and never contradict it)',
@@ -144,6 +155,13 @@ HEADINGS = {
             # Kitchen and food (companion/life/kitchen.py): drawn once a day.
             'kitchen': 'Your kitchen and meals (fictional, yours; when food comes up, keep to how you cook and eat '
                        'and what is listed for your dinners)',
+            # Reading, watching and listening (companion/life/media.py): changes about once a day.
+            'media': 'What you are reading, watching and listening to (fictional, yours; bring it up when it fits, the '
+                     'way anyone mentions what they are into. Keep to these titles, never quote passages or lyrics, '
+                     'and do not make up plot or people you are not sure of)',
+            # Hobbies that progress (companion/life/hobbies.py): changes when a milestone or a dry spell comes.
+            'hobbies': 'Your pastimes (fictional, yours; when one comes up, keep to how far along you are and how '
+                       'often you go, and never invent a big achievement that is not listed)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             # Grows during a chat as memories are saved and the companion's life moves on.
             'boundaries': "The user's boundaries",
@@ -253,6 +271,9 @@ class Packet:
 
 
 NEUTRAL_ABSENCE = 'Time apart is fine with you: do not express hurt, guilt or pressure about absence.'
+# Their personality sliders as behaviour (companion/world/personality.py); editable in Settings > Advanced.
+PERSONALITY = ('How you tend to act (your personality; it shows where it fits the moment, the way it would in a real '
+               'person, not in every message, and you never describe yourself this way):\n{lines}')
 TRAITS = ('Your emotional traits, expressed in character only and only about what you can know '
           '(never claim to know what the user did): ')
 FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
@@ -323,11 +344,22 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     if version.get('companion_id'):
         found = perception.for_companion(version['companion_id'], definition)
         lines.append(perception.own_text(found['public'], found['private']))
+        if acts := personality_text(connection, definition, version['companion_id']):
+            lines.append(acts)
     if intimate and (adult := intimacy.prompt_text(connection, version)):
         lines.append(adult)
     if style := texting.instruction(definition):
         lines.append(style)
     return '\n'.join(lines)
+
+
+def personality_text(connection, definition: dict, seed: str) -> str | None:
+    """How their personality sliders show, one behaviour line per slider away from the middle; None when every
+    slider sits in the middle."""
+    found = personality.behaviour(personality.levels_of(personality.settle(definition, seed)))
+    if not found:
+        return None
+    return prompt_library.text(connection, 'chat-personality', lines='\n'.join(f'- {line}' for line in found))
 
 
 def post_text(post) -> str:
@@ -662,11 +694,7 @@ def offer_life(packet, connection, companion, now):
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     offer_day(packet, connection, timeline_id, version, now, today)
     offer_people(packet, connection, companion, now, today)
-    budget_home = money.household(connection, timeline_id, version['definition'], date.fromisoformat(today))
-    for identity, text in money.context_lines(version['definition'], today, budget_home):
-        packet.offer('money', identity, text)
-    for identity, text in consequences.money_line(connection, timeline_id, f"companion:{companion['id']}", today):
-        packet.offer('money', identity, text)
+    offer_money(packet, connection, companion, now, today)
     for identity, text in reactions.lately_lines(connection, companion, now):
         packet.offer('lately', identity, text)
     for item in recommendations.progress(connection, timeline_id):
@@ -674,9 +702,7 @@ def offer_life(packet, connection, companion, now):
     offer_home(packet, connection, companion, today)
     for identity, text in wardrobe.context_lines(connection, timeline_id, date.fromisoformat(today), now):
         packet.offer('wearing' if ':now:' in identity else 'wardrobe', identity, text)
-    for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,
-                                                    version['timezone']):
-        packet.offer('kitchen', identity, text)
+    offer_kitchen_and_media(packet, connection, timeline_id, version, now)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
@@ -687,6 +713,16 @@ def offer_life(packet, connection, companion, now):
         packet.offer('city_news', identity, text)
 
 
+def offer_money(packet, connection, companion, now, today: str):
+    """Their budget and their job (companion/life/money.py, work.py)."""
+    timeline_id, version = companion['active_timeline_id'], companion['version']
+    budget_home = money.household(connection, timeline_id, version['definition'], date.fromisoformat(today))
+    for identity, text in money.context_lines(version['definition'], today, budget_home):
+        packet.offer('money', identity, text)
+    for identity, text in consequences.money_line(connection, timeline_id, f"companion:{companion['id']}", today):
+        packet.offer('money', identity, text)
+    for identity, text in work.context_lines(connection, companion, now):
+        packet.offer('work', identity, text)
 def offer_together(packet, connection, companion, now, recent, group=None):
     """Outings with the user and trips away, in a 1:1 chat. The messages since the companion last wrote are the turn
     being answered, so an outing they settled is one the reply announces."""
@@ -732,6 +768,20 @@ def offer_daily(packet, connection, version, now):
                                                   f"{digest['retrieved_at'][:10]}: «{lookups.culture_text(digest)}»")
 
 
+def offer_kitchen_and_media(packet, connection, timeline_id, version, now):
+    """Drawn about once a day: their kitchen (companion/life/kitchen.py) and what they are reading, watching and
+    listening to (companion/life/media.py), and their pastimes (companion/life/hobbies.py)."""
+    for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,
+                                                version['timezone']):
+        packet.offer('kitchen', identity, text)
+    for identity, text in media.context_lines(connection, timeline_id, version['definition'], None, now,
+                                              version['timezone']):
+        packet.offer('media', identity, text)
+    for identity, text in hobbies.context_lines(connection, timeline_id, now, version['timezone'],
+                                                version['definition']):
+        packet.offer('hobbies', identity, text)
+
+
 def offer_home(packet, connection, companion, today: str):
     """Their home and belongings, the housework (companion/life/upkeep.py) and what is up at home for the season
     (companion/life/traditions.py)."""
@@ -740,7 +790,7 @@ def offer_home(packet, connection, companion, today: str):
     timeline_id = companion['active_timeline_id']
     for identity, text in upkeep.context_lines(connection, timeline_id, definition_for_timeline(connection, timeline_id),
                                                date.fromisoformat(today)):
-        packet.offer('home', identity, text)
+        packet.offer('housework', identity, text)
     if line := traditions.decoration_line(connection, companion, date.fromisoformat(today)):
         packet.offer('home', f'decorations:{today}', line)
 
@@ -816,6 +866,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_own(packet, connection, timeline_id, version, now, since)
     offer_secrets(packet, connection, companion, group, now)
     closeness.offer(packet, connection, companion, now)
+    history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(f'{section}+' if fresh(memory, since) else section, memory['id'],

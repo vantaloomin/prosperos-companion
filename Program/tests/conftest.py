@@ -87,6 +87,13 @@ def no_storylines(monkeypatch):
     # And dinners and grocery runs woven into the day, and dinner invitations (companion/life/kitchen.py).
     monkeypatch.setattr('companion.life.kitchen.WEAVE', False)
     monkeypatch.setattr('companion.life.kitchen.INVITES', False)
+    # And books, shows and songs woven into the day, and recommendations to the user (companion/life/media.py).
+    monkeypatch.setattr('companion.life.media.WEAVE', False)
+    monkeypatch.setattr('companion.life.media.RECOMMENDS', False)
+    # And pastimes' practice sessions, milestone news and invitations (companion/life/hobbies.py).
+    monkeypatch.setattr('companion.life.hobbies.WEAVE', False)
+    monkeypatch.setattr('companion.life.hobbies.NEWS', False)
+    monkeypatch.setattr('companion.life.hobbies.INVITES', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.
@@ -98,6 +105,13 @@ def no_trips(monkeypatch):
     """Weekends away (companion/life/trips.py) are seeded dice; their own tests turn them on."""
     from companion.life import trips
     monkeypatch.setattr(trips, 'ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
+def no_work_life(monkeypatch):
+    """Work weeks, late nights and vacation days (companion/life/work.py) would change unrelated tests' days;
+    tests/test_work_life.py turns them on."""
+    monkeypatch.setattr('companion.life.work.ACTIVE', False)
 
 
 @pytest.fixture(autouse=True)

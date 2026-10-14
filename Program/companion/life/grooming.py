@@ -28,7 +28,7 @@ from datetime import date, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, composer, money, pronouns
+from companion.life import circle, composer, money
 from companion.world import catalog, generators, looks
 
 COMPANION = 'companion'
@@ -330,8 +330,7 @@ class Draw:
             return None
         style = generators.pick(seed, 'look', bank()['nails'])
         salon = habit == 2 and self.found['tier'] >= 1
-        text = f"had {pronouns.their(self.definition)} nails done: {style}" if salon else \
-            f"painted {pronouns.their(self.definition)} nails at home: {style}"
+        text = f'had their nails done: {style}' if salon else f'painted their nails at home: {style}'
         return {'kind': 'nails' if salon else 'nails-home', 'change': {'nails': style}, 'spend': '$' if salon else '',
                 'text': text}
 
@@ -381,9 +380,9 @@ class Draw:
         weights = [1.0 + (self.found['daring'] if entry['tone'] == 'bold' else 0) for entry in choices]
         entry = generators.pick(seed, 'colour', choices, weights)
         change = {'colour': None, 'highlights': None, 'over': None, entry['kind']: entry['text']}
-        said = {'colour': f"dyed {pronouns.their(self.definition)} hair {entry['text']}",
+        said = {'colour': f"dyed their hair {entry['text']}",
                 'highlights': f"got {entry['text']} put in at the salon",
-                'over': f"had {pronouns.their(self.definition)} hair {entry['text']}"}[entry['kind']]
+                'over': f"had their hair {entry['text']}"}[entry['kind']]
         return {'kind': 'colour', 'change': change, 'spend': self.price('$$', '$$$'), 'text': said}
 
     def cut(self, seed, day, so_far):
@@ -401,16 +400,15 @@ class Draw:
         entry = generators.pick(seed, 'cut', choices)
         if entry is None:
             return None
-        their = pronouns.their(self.definition)
-        text = f"had {their} hair put in {entry['text']}" if re.search(r'\b(?:braids?|twists|locs)\b', entry['text']) \
-            else f"had {their} hair cut into {entry['text']}" if entry['length'] < length \
-            else f"had {their} hair restyled into {entry['text']}"
+        text = f"had their hair put in {entry['text']}" if re.search(r'\b(?:braids?|twists|locs)\b', entry['text']) \
+            else f"had their hair cut into {entry['text']}" if entry['length'] < length \
+            else f"had their hair restyled into {entry['text']}"
         return {'kind': 'cut', 'change': {'cut': {'text': entry['text'], 'length': entry['length']}},
                 'spend': self.price('$$', '$$$'), 'text': text}
 
     def grow(self, seed, day, so_far):
         return {'kind': 'grow', 'change': {'cut': None, 'length': length_now(self.parsed, so_far, day), 'growing': True},
-                'text': f'decided to grow {pronouns.their(self.definition)} hair out'}
+                'text': 'decided to grow their hair out'}
 
     def glasses(self, seed, day, so_far):
         era = self.found['era'] in MODERN
@@ -568,7 +566,7 @@ def swappable(entry: dict | None, block: dict) -> bool:
         return False
     if entry is None:
         return True
-    planned = any(entry.get(key) for key in ('outing', 'own_plan', 'trip', 'recommendation', 'with'))
+    planned = any(entry.get(key) for key in ('outing', 'own_plan', 'trip', 'recommendation', 'with', 'hobby'))
     return not planned and entry.get('activity') not in KEPT_ACTIVITIES
 
 
@@ -600,8 +598,8 @@ def purchases(connection, timeline_id: str, start: date, end: date) -> list[dict
     """Haircuts, colour, salon nails and glasses between two local dates inclusive, as money.household purchases."""
     rows = many(connection, "SELECT * FROM grooming_log WHERE timeline_id=? AND spend!='' AND local_date>=? AND "
                 'local_date<=? ORDER BY local_date', (timeline_id, start.isoformat(), end.isoformat()))
-    return [{'date': row['local_date'], 'kind': row['kind'], 'text': row['text'], 'spend': row['spend'],
-             'for': 'looks'} for row in rows]
+    return [{'date': row['local_date'], 'kind': row['kind'], 'text': composer.neutral_looks(row['text']),
+             'spend': row['spend'], 'for': 'looks'} for row in rows]
 
 
 def appointments(connection, timeline_id: str, start: date, end: date) -> list[dict]:
@@ -609,8 +607,9 @@ def appointments(connection, timeline_id: str, start: date, end: date) -> list[d
     {date, kind, title, text, spend}. Read-only there: they follow the seeded draw and the Realism setting."""
     rows = many(connection, 'SELECT * FROM grooming_log WHERE timeline_id=? AND local_date>=? AND local_date<=? '
                 'ORDER BY local_date', (timeline_id, start.isoformat(), end.isoformat()))
-    return [{'date': row['local_date'], 'kind': row['kind'], 'title': APPOINTMENTS[row['kind']], 'text': row['text'],
-             'spend': row['spend']} for row in rows if row['kind'] in APPOINTMENTS]
+    return [{'date': row['local_date'], 'kind': row['kind'], 'title': APPOINTMENTS[row['kind']],
+             'text': composer.neutral_looks(row['text']), 'spend': row['spend']} for row in rows
+            if row['kind'] in APPOINTMENTS]
 
 
 # --- View and edits ---
@@ -630,7 +629,7 @@ def view(connection, companion: dict, day: date, show_numbers=False) -> dict:
     return {'today': day.isoformat(), 'kept': bool(state['kept']), 'level': setting, 'level_name': LEVEL_NAMES[setting],
             'lines': lines(now_sheet, fields, so_far, found, day) if active else [],
             'fixed': sorted(set(FIELDS) - fields), 'lora': lora_pictured(connection, companion['id']),
-            'changes': [{**row, 'bold': bool(row['bold'])} for row in changes],
+            'changes': [{**row, 'text': composer.neutral_looks(row['text']), 'bold': bool(row['bold'])} for row in changes],
             'numbers': numbers(so_far, found, day) if show_numbers and active else None}
 
 

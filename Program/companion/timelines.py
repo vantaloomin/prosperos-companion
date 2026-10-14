@@ -23,8 +23,10 @@ from companion.life import (
     encounters,
     feed,
     grooming,
+    hobbies,
     home,
     kitchen,
+    media,
     network,
     social,
     storylines,
@@ -32,6 +34,7 @@ from companion.life import (
     upkeep,
     wardrobe,
 )
+from companion.memory import history
 from companion.voice import notes as voice_notes
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
@@ -195,6 +198,8 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     upkeep.copy(connection, parent_id, new_id, cutoff)
     grooming.copy(connection, parent_id, new_id, cutoff, ids)
     kitchen.copy(connection, parent_id, new_id, cutoff)
+    media.copy(connection, parent_id, new_id, cutoff)
+    hobbies.copy(connection, parent_id, new_id, cutoff)
     traditions.copy(connection, parent_id, new_id, ids)
     copy_posts(connection, posts, ids, new_id)
     social.copy(connection, parent_id, new_id, cutoff, ids, remap)
@@ -206,6 +211,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
+    copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
     network.copy(connection, parent_id, new_id, cutoff)
     encounters.copy(connection, parent_id, new_id, cutoff)
     agenda = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND status IN ('happened','skipped') "
@@ -241,6 +247,23 @@ def copy_chapters(connection, parent_id, new_id, ids, cutoff_date):
             connection, row['consequence_id'], new_id, f"chapter:{new_id}:{row['started_on']}")} for row in rows])
     if optional(connection, 'SELECT through FROM chapter_days WHERE timeline_id=?', (parent_id,)):
         connection.execute('INSERT INTO chapter_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
+
+
+def copy_recall(connection, parent_id, new_id, ids, cutoff_date):
+    """What "Your history together" (companion/memory/history.py) is built from that lives beside the messages: the
+    day summaries of copied messages, the trips begun by the fork and the user's own words for lines before it (left-out
+    lines included), so a branch remembers that time the way the user said it went."""
+    insert(connection, 'memory_summaries', [
+        {**row, 'id': identifier(), 'timeline_id': new_id, 'basis': '',
+         'source_message_ids': encode([ids[source] for source in decode(row['source_message_ids'])])}
+        for row in many(connection, 'SELECT * FROM memory_summaries WHERE timeline_id=? AND day<=?', (parent_id, cutoff_date))
+        if all(source in ids for source in decode(row['source_message_ids']))])
+    insert(connection, 'trips', [{**row, 'id': identifier(), 'timeline_id': new_id, 'company': remap(row['company'], ids)}
+                                 for row in many(connection, 'SELECT * FROM trips WHERE timeline_id=? AND start_date<=?',
+                                                 (parent_id, cutoff_date))])
+    insert(connection, 'history_corrections', [
+        {**row, 'timeline_id': new_id} for row in many(connection, 'SELECT * FROM history_corrections WHERE timeline_id=?',
+                                                       (parent_id,)) if history.key_start(row['period_key']) <= cutoff_date])
 
 
 def post_links(connection, post_id) -> list[dict]:

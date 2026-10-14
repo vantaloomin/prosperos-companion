@@ -17,14 +17,14 @@ import re
 
 from companion import cast, characters, dating, worlds
 from companion.clock import zone
-from companion.database import encode, identifier
+from companion.database import decode, encode, identifier
 from companion.errors import DomainError
 from companion.images.adapters.base import AdapterError
 from companion.images.storage import sniff
 from companion.imports import formats
 from companion.lora import references
 from companion.models import CharacterDefinition
-from companion.world import generators, townsfolk
+from companion.world import generators, personality, townsfolk
 
 BACKGROUND = 12000
 LIMITS = {'personality': 8000, 'voice': 4000, 'appearance': 4000, 'in_photos': 2000}
@@ -95,7 +95,45 @@ def definition(connection, database, character: dict, focus: dict | None) -> tup
     if not name:  # A nameless card's "{{char}} restores old boats" reads with the name they were given.
         fields, description = texts(character, made.name)
         made = CharacterDefinition.model_validate(values | fields)
+    made = CharacterDefinition.model_validate({**made.model_dump(), 'personality_sliders': card_sliders(fields, description)})
     return made, description[BACKGROUND:].strip()
+
+
+def card_sliders(fields: dict, description: str) -> dict | None:
+    """The personality sliders a card's own words settle (companion/world/personality.py). Most cards say who
+    {{char}} is in the description, which becomes the background, and the background is not read for sliders."""
+    found = personality.from_words(f"{fields['personality']} {description}")
+    return {key: {'level': level, 'source': 'idea'} for key, level in found.items()} or None
+
+
+def card_sliders_upgrade(connection):
+    """Companions imported before the card's description was read for their sliders (they have none stored) read it
+    now, from the personality and background the import kept. Only sliders still Rolled change; From your idea stays.
+    The active version is updated in place, since nothing the user said changed; once stored, it is never read again,
+    and anyone whose card settles nothing is left as they were."""
+    rows = connection.execute(
+        "SELECT v.id, v.companion_id, v.definition FROM companions c JOIN character_versions v "
+        "ON v.id = c.active_version_id WHERE EXISTS (SELECT 1 FROM character_versions f WHERE f.companion_id = c.id "
+        "AND f.number = 1 AND f.note LIKE 'Imported from %' AND f.note NOT LIKE 'Imported from Prospero''s Study%')"
+    ).fetchall()
+    for version_id, companion_id, stored in rows:
+        definition = decode(stored)
+        sliders = None if definition.get('personality_sliders') else card_read(definition, companion_id)
+        if sliders:
+            connection.execute('UPDATE character_versions SET definition=? WHERE id=?',
+                               (encode({**definition, 'personality_sliders': sliders}), version_id))
+
+
+def card_read(definition: dict, seed: str) -> dict | None:
+    """Their sliders with the Rolled ones the card's words settle now From your idea (even at the same stop), the rest rolled
+    again around them by seed; None when the card's words change nothing."""
+    current = personality.settle(definition, seed)
+    words = card_sliders({'personality': definition.get('personality') or ''}, definition.get('background') or '') or {}
+    read = {key: value for key, value in words.items() if current[key]['source'] == 'rolled'}
+    if not read:
+        return None
+    kept = {key: value for key, value in current.items() if value['source'] != 'rolled'}
+    return personality.settle({**definition, 'personality_sliders': {**kept, **read}}, seed)
 
 
 def add_companion(connection, timestamp: str, made: CharacterDefinition, note: str, focus: dict | None) -> str:

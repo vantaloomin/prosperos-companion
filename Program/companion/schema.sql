@@ -1389,8 +1389,9 @@ CREATE TABLE IF NOT EXISTS group_chats (
   updated_at TEXT NOT NULL
 );
 
--- Membership over time, one row per stay. `member` is a person key (companion:<id>), `name` how the chat names
--- them. They see messages from seq `sees_from` (1 when added with everything so far) until `left_seq`.
+-- Membership over time, one row per stay. `member` is a person key (companion:<id>, or a guest's circle or townsfolk
+-- key, companion/group_guests.py), `name` how the chat names them. They see messages from seq `sees_from` (1 when
+-- added with everything so far) until `left_seq`.
 CREATE TABLE IF NOT EXISTS group_members (
   id TEXT PRIMARY KEY,
   group_id TEXT NOT NULL REFERENCES group_chats(id),
@@ -1955,7 +1956,7 @@ CREATE TABLE IF NOT EXISTS life_admin (
   id TEXT PRIMARY KEY,
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   key TEXT NOT NULL,
-  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks')),
+  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work')),
   kind TEXT NOT NULL,
   title TEXT NOT NULL,
   done_text TEXT NOT NULL,
@@ -1980,3 +1981,146 @@ CREATE TABLE IF NOT EXISTS life_admin (
   UNIQUE (timeline_id, key)
 );
 CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date);
+
+-- Work life (companion/life/work.py): the companion's job state. `career` is the career it is for (a new career
+-- starts it afresh); `review_on` is the yearly review day ('MM-DD'); `pay` is their pay as a share of the career's
+-- base after raises and promotions; between jobs `status` is 'hunting' until `hunt_until`. `project` is the running
+-- project ({title, index, started, due}) and `used` the recent titles, so one does not come back soon.
+CREATE TABLE IF NOT EXISTS work_life (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  career TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL DEFAULT 'general',
+  started_on TEXT NOT NULL,
+  review_on TEXT NOT NULL,
+  pay REAL NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'working' CHECK (status IN ('working', 'hunting')),
+  hunt_since TEXT,
+  hunt_until TEXT,
+  hunt_reason TEXT,
+  employer TEXT NOT NULL DEFAULT '',
+  project TEXT NOT NULL,
+  used TEXT NOT NULL DEFAULT '[]',
+  checked_through TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- What changed at work (companion/life/work.py): reviews, promotions, projects wrapped up, a lost job and a new one.
+-- `key` keeps each from being recorded twice; `pay` is the pay share after it and `change` the percent change.
+CREATE TABLE IF NOT EXISTS work_events (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('raise', 'freeze', 'promotion', 'project', 'laid-off', 'quit', 'new-job')),
+  local_date TEXT NOT NULL,
+  text TEXT NOT NULL,
+  pay REAL NOT NULL DEFAULT 1,
+  change REAL NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, key)
+);
+CREATE INDEX IF NOT EXISTS work_events_day ON work_events(timeline_id, local_date);
+
+-- Personality sliders the user changed on a townsperson's profile (companion/world/personality.py), by town (a
+-- companion's own town seed, '' for the city's shared townsfolk) and townsperson key. The rest stays rolled.
+CREATE TABLE IF NOT EXISTS townsfolk_personality (
+  town TEXT NOT NULL,
+  key TEXT NOT NULL,
+  sliders TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (town, key)
+);
+-- Our history at a glance (companion/memory/history.py): the user's own words for a line of the "All of it" view,
+-- keyed by its stretch (w2026-10-06, m2026-09, y2025). Empty text leaves the line out; no row keeps the app's line.
+CREATE TABLE IF NOT EXISTS history_corrections (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  period_key TEXT NOT NULL,
+  text TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, period_key)
+);
+
+-- Reading, watching and listening (companion/life/media.py): the companion's seeded taste profile (their bank, how keen
+-- a reader and viewer they are, whether they borrow books) and the chain of books, shows and songs they are on. Each
+-- item's days, how it ends and the verdict are decided when it starts; `held` counts days it waited while they were on
+-- something the user recommended. `source` is 'bank' for the app's pick and 'user' for one set on the Character page.
+CREATE TABLE IF NOT EXISTS media_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  profile TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS media_items (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('book', 'show', 'music')),
+  seq INTEGER NOT NULL DEFAULT 0,
+  title TEXT NOT NULL,
+  creator TEXT NOT NULL DEFAULT '',
+  format TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL CHECK (source IN ('bank', 'user')),
+  started_on TEXT NOT NULL,
+  ends_on TEXT NOT NULL,
+  outcome TEXT NOT NULL DEFAULT 'finish' CHECK (outcome IN ('finish', 'drop')),
+  verdict TEXT NOT NULL DEFAULT '',
+  held INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'current' CHECK (status IN ('current', 'done', 'replaced')),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS media_items_chain ON media_items(timeline_id, kind, started_on);
+
+-- Hobbies that progress (companion/life/hobbies.py): the companion's tracked pastimes, each with a skill that grows
+-- with practice, and how far their life has been walked. `hobby_log` keeps what happened (sessions, milestones,
+-- stalls, new starts, gear and fees) and a weekly `mark` of every pastime, so the days ahead can be walked again after
+-- a change.
+CREATE TABLE IF NOT EXISTS hobby_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  through TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS hobbies (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  hobby TEXT NOT NULL,
+  label TEXT NOT NULL,
+  name TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('interest', 'app', 'user')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'stalled', 'dropped')),
+  skill REAL NOT NULL DEFAULT 0,
+  best REAL NOT NULL DEFAULT 0,
+  talent REAL NOT NULL DEFAULT 1,
+  per_week INTEGER NOT NULL DEFAULT 1,
+  started_on TEXT NOT NULL,
+  status_since TEXT NOT NULL,
+  last_practice TEXT,
+  sessions INTEGER NOT NULL DEFAULT 0,
+  next_at REAL NOT NULL DEFAULT 0,
+  used TEXT NOT NULL DEFAULT '[]',
+  reason TEXT NOT NULL DEFAULT '',
+  paid_through TEXT NOT NULL DEFAULT '',
+  kept INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1)),
+  position INTEGER NOT NULL DEFAULT 0,
+  created_on TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hobbies_timeline ON hobbies(timeline_id, position);
+CREATE TABLE IF NOT EXISTS hobby_log (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  hobby_id TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  text TEXT NOT NULL DEFAULT '',
+  post TEXT NOT NULL DEFAULT '',
+  level INTEGER NOT NULL DEFAULT 0,
+  spend TEXT NOT NULL DEFAULT '',
+  details TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hobby_log_day ON hobby_log(timeline_id, local_date, kind);

@@ -89,6 +89,16 @@ class Looks(Input):
     drawn: dict[str, int | str] = Field(default_factory=dict, max_length=20)
 
 
+class PersonalitySlider(Input):
+    """One personality slider (companion/world/personality.py): low (0), in between (1) or high (2), and who set
+    it: the roll, the character's own words, or the user."""
+    level: int = Field(ge=0, le=2)
+    source: Literal['rolled', 'idea', 'you'] = 'rolled'
+
+
+PersonalityTrait = Literal['social', 'warmth', 'order', 'curiosity', 'stress']
+
+
 class CharacterDefinition(Input):
     # Empty when creating gives them a name that fits (companion/characters.py); a revision needs one.
     name: str = Field(default='', max_length=120)
@@ -131,6 +141,9 @@ class CharacterDefinition(Input):
     money: MoneySetup = Field(default_factory=MoneySetup)
     # Their adult side, only used with Settings > Realism > Adult side of life on; None uses the roll.
     intimacy: IntimacySetup | None = None
+    # Personality sliders (companion/world/personality.py); None, or a trait left out, is read from their words and
+    # rolled.
+    personality_sliders: dict[PersonalityTrait, PersonalitySlider] | None = None
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
@@ -153,6 +166,21 @@ class CharacterDraftRequest(Input):
 class PerceptionRequest(Input):
     """The character form as it stands, for suggestions for how others see them and how they see themselves."""
     definition: dict
+
+
+class PersonalityRequest(Input):
+    """The character form as it stands, for its personality sliders: what its words settle and the rest rolled.
+    `roll` > 0 rolls the Rolled sliders again; `type` sets four of them from a four-letter type."""
+    definition: dict
+    seed: str = Field(default='', max_length=80)
+    roll: int = Field(default=0, ge=0, le=100000)
+    type: str = Field(default='', max_length=4)
+
+
+class TownsfolkPersonality(Input):
+    """The sliders the user set on a townsperson's profile; a trait left out goes back to the roll."""
+    key: str = Field(min_length=1, max_length=200)
+    sliders: dict[PersonalityTrait, PersonalitySlider] = Field(default_factory=dict)
 
 
 class FieldDraftRequest(Input):
@@ -400,12 +428,20 @@ class LifeSettingsUpdate(Input):
     drama: int | None = Field(default=None, ge=0, le=3)
     # Kitchen ups and downs (companion/life/kitchen.py), on the same scale.
     kitchen_realism: int | None = Field(default=None, ge=0, le=3)
+    # Reading, watching and listening (companion/life/media.py), on the same scale.
+    media_realism: int | None = Field(default=None, ge=0, le=3)
     # "MM-DD", or empty to forget it (companion/life/occasions.py).
     # Replies wait while the companion is at work or asleep (companion/life/pacing.py).
     paced_replies: bool | None = None
     day_shifts: bool | None = None
     # Life admin calendar (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic.
     admin_realism: int | None = Field(default=None, ge=0, le=3)
+    # Work life (companion/life/work.py): 0 off, 1 steady, 2 true to life, 3 dramatic.
+    work_realism: int | None = Field(default=None, ge=0, le=3)
+    # Group chat guests (companion/group_guests.py): how often someone named in a group is pulled in, 0 never to 3.
+    guests_realism: int | None = Field(default=None, ge=0, le=3)
+    # Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic.
+    hobbies_realism: int | None = Field(default=None, ge=0, le=3)
     on_her_mind: bool | None = None
     # Looks that change (companion/life/grooming.py): never (0), now and then, like real life, often (3).
     looks_realism: int | None = Field(default=None, ge=0, le=3)

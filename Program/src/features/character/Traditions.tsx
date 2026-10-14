@@ -7,6 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { decorationsText, nextText } from './traditionsText'
+import { panelTitle } from './panelText'
 
 const TRADITIONS_KEY = ['traditions']
 const TEXT_LIMIT = 400
@@ -32,7 +33,7 @@ export function Traditions({ name }: { name: string }) {
   }
   return (
     <section className="home-panel traditions-panel" aria-labelledby="traditions-heading">
-      <h2 id="traditions-heading">{name}'s family traditions</h2>
+      <h2 id="traditions-heading">{panelTitle(name, 'family traditions')}</h2>
       <p className="subtle">The holidays their family keeps, from their city's calendar and the people in their life. They come up in chat the week before, and the day itself goes to them.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {view.isPending && <Loading label="Loading their traditions" />}

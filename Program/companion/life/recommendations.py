@@ -109,6 +109,9 @@ def rebuild_upcoming(connection, timeline_id, timestamp):
                        'AND starts_at>?', (timeline_id, timestamp))
     connection.execute("UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=? AND subject='companion'",
                        (timestamp, timeline_id))
+    # Their own book or show, drawn ahead with the old days, waits for the recommendation (companion/life/media.py).
+    from companion.life import media
+    media.rewind_at(connection, timeline_id, timestamp)
 
 
 def verdict(rec: dict, definition: dict) -> str:
@@ -141,8 +144,13 @@ def session_for(connection, timeline_id, slot, block, definition, seed, company=
     for rec in active(connection, timeline_id):
         if slot.starts_at < parse(rec['starts_after']):
             continue
-        done = scheduled(connection, timeline_id, rec['id'])
-        if len(done) >= rec['sessions'] or any(item['local_date'] == slot.local_date.isoformat() for item in done):
+        # Sessions are counted from the days before this one: a day drawn again (a pastime or a plan changed it)
+        # keeps its place, and nothing comes after the session that finished it.
+        day, done = slot.local_date.isoformat(), scheduled(connection, timeline_id, rec['id'])
+        if any(item['local_date'] == day or item.get('verdict') for item in done):
+            continue
+        done = [item for item in done if item['local_date'] < day]
+        if len(done) >= rec['sessions']:
             continue
         if random.Random(f'{seed}:recommendation').random() >= SESSION_SHARE:
             return None

@@ -5,7 +5,9 @@ from companion.memory.context import HEADINGS, NOTE_CLOSE, NOTE_OPEN, NOW, Packe
 PER_MESSAGE = ('time', 'wording', 'outside', 'recalled', 'circle_now', 'wearing', 'intentions', 'photo')
 # Saved during a chat: after what changes once a day, so a new memory leaves the start of the prompt alone.
 GROWS = ('profile', 'people', 'self_facts', 'commitments')
-DAILY = ('almanac', 'money', 'weather', 'body', 'wardrobe', 'circle')
+DAILY = ('almanac', 'money', 'weather', 'body', 'housework', 'wardrobe', 'circle')
+# Change about once a week or less: before every daily section.
+STABLE = ('persona', 'lore', 'home', 'acquaintances', 'closeness', 'history')
 
 
 def packet(clock, memory, wording='You keep repeating: "honestly". Say it differently.'):
@@ -24,6 +26,7 @@ def test_sections_that_change_with_every_message_are_not_in_the_system_prompt():
     keys = list(HEADINGS)
     assert not set(PER_MESSAGE) & set(HEADINGS) and set(PER_MESSAGE) <= set(NOW)
     assert max(keys.index(key) for key in DAILY) < min(keys.index(key) for key in GROWS)
+    assert max(keys.index(key) for key in STABLE) < min(keys.index(key) for key in DAILY)
     assert list(NOW)[-1] == 'time'
 
 
