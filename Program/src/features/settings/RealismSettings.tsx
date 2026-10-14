@@ -12,6 +12,7 @@ import { KITCHEN_LEVELS } from '../character/kitchenText'
 import { WORK_LEVELS } from '../character/workText'
 import { MEDIA_LEVELS } from '../character/mediaText'
 import { HOBBY_LEVELS } from '../character/hobbiesText'
+import { TOGETHER_LEVELS } from '../conversation/whereText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -55,6 +56,7 @@ export function PaceSettings() {
   const guests = GUEST_LEVELS[data.guests_realism] ?? GUEST_LEVELS[2]
   const media = MEDIA_LEVELS[data.media_realism] ?? MEDIA_LEVELS[2]
   const pastimes = HOBBY_LEVELS[data.hobbies_realism] ?? HOBBY_LEVELS[2]
+  const together = TOGETHER_LEVELS[data.together_realism] ?? TOGETHER_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
@@ -73,6 +75,10 @@ export function PaceSettings() {
       <Field label={`Their pastimes: ${pastimes.label}`} hint={pastimes.hint} tip="Pastimes from their interests, and ones you add, are never given up on their own.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.hobbies_realism} label={pastimes.label}
           onChange={(hobbies_realism) => void save({ hobbies_realism })} />}
+      </Field>
+      <Field label={`Getting together: ${together.label}`} hint={together.hint} tip="You can always ask them over or out yourself, and say not now when someone knocks.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.together_realism} label={together.label}
+          onChange={(together_realism) => void save({ together_realism })} />}
       </Field>
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}

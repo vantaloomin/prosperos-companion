@@ -30,6 +30,7 @@ from companion.life import (
     social,
     storylines,
     today,
+    together,
     town_personality,
     trips,
     web,
@@ -283,6 +284,14 @@ def read_outings(request: Request):
     with database.connect() as connection:
         companion, now = require_current(connection), database.clock.now()
         return {'outings': outings.listing(connection, companion, now), 'trips': trips.listing(connection, companion, now)}
+
+
+@router.get('/where')
+def read_where(request: Request):
+    """Where the companion in focus is with the user right now, for the chat strip (companion/life/together.py)."""
+    database = db(request)
+    with database.connect() as connection:
+        return together.view(connection, require_current(connection), database.clock.now())
 
 
 @router.post('/outings/{outing_id}/{action}')

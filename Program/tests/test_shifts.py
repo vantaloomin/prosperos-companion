@@ -182,6 +182,10 @@ def test_a_shift_holds_against_dinner_like_work_always_has(client, ines, provide
     provider.replies.append([Chunk("I'm behind the bar then, another night?"), Chunk('', 'stop')])
     send(client, f"Dinner {shift.strftime('%A')} at 7?", 'client-shift-01')
     found = client.get('/api/life/outings').json()['outings']
+    work_block = next(block for block in schedule if block.key == 'work')
+    if all(work_block.on(shift + timedelta(days=offset)) for offset in range(7)):
+        assert not found  # a full week of shifts: no free evening to move dinner to
+        return
     assert found and found[0]['local_date'] != shift.isoformat()
     assert not outings.busy_at(schedule, date.fromisoformat(found[0]['local_date']), found[0]['at_time'] or '19:00')
 

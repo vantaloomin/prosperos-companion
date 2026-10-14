@@ -41,6 +41,7 @@ from companion.life import (
     reactions,
     recommendations,
     storylines,
+    together,
     traditions,
     trips,
     upkeep,
@@ -222,6 +223,8 @@ NOW = {
        'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
                   'never explain it unless asked)',
        # Go somewhere together and Trips and postcards (companion/life/outings.py, trips.py).
+       # Together or apart (companion/life/together.py): a visit turned down, or time together that just ended.
+       'where': 'Where you are with the user (decided by the app; keep to it)',
        'together': 'Going out with the user, and your trips (decided: you agreed to these plans and picked the '
                    'places, and your trips are booked; keep to them, never move them or name another place, and '
                    'when the time comes they happen as listed)',
@@ -739,6 +742,8 @@ def offer_together(packet, connection, companion, now, recent, group=None):
     for identity, text in [*outings.context_lines(connection, companion, now, turn),
                            *trips.context_lines(connection, companion, now)]:
         packet.offer('booked' if identity.endswith(':booked') else 'together', identity, text)
+    for identity, text in together.context_lines(connection, companion, now, turn):
+        packet.offer('where', identity, text)
 
 
 def offer_attachments(packet, connection, latest, photo):
