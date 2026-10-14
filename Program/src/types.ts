@@ -1541,6 +1541,8 @@ export interface Dating {
   remaining: number
   matches: DatingMatch[]
   date: { key: string; name: string; place_id: string } | null
+  /** The person the user just answered, whose answer Undo can take back; null once undone or anything else changed. */
+  undo?: string | null
   /** After a like: the person, when they liked the user back. */
   matched?: DatingCard | null
 }

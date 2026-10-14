@@ -8,8 +8,9 @@ looking for and the ages, an optional bio). Then they swipe through the townsfol
 The deck is a stack (`src/features/dating/Deck.tsx`, rules in `swipe.ts`): the top card is dragged or flicked
 right to like or left to pass, tilting with a Like or Pass stamp, and springs back if let go before a third of
 its width. Pass and Like stay under the stack and the arrow keys answer too; reduced motion only fades. Undo
-takes back the last answer only (`DELETE /dating/swipes/{key}`), until a match becomes a companion or is met
-on a date. Cards are text first and never wait on a photo. Older eras (the personal column, the matchmaker)
+takes back the answer just given, once (`DELETE /dating/swipes/{key}`; the state's `undo` names who it is). It
+is gone once passed people come back, a match is unmatched or the city changes, and refused once a match became
+a companion or was met on a date. Cards are text first and never wait on a photo. Older eras (the personal column, the matchmaker)
 show one notice at a time with the buttons and arrow keys, no dragging.
 
 Everyone on the app is a townsperson (`companion/world/townsfolk.py`), and everything about them is decided by

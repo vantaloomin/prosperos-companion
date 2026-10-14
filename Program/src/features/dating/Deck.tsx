@@ -4,7 +4,7 @@ import type { Dating as DatingData, DatingCard } from '../../types'
 import { reducedMotion } from '../../motion'
 import { cardHeading } from './datingText'
 import { Photo } from './Photo'
-import { FLY_MS, answeredText, arrowWay, decide, hintText, pose, undoLabel, type SwipeWay } from './swipe'
+import { FLY_MS, answeredText, arrowWay, decide, hintText, nextHeard, pose, undoLabel, undoShown, type SwipeWay } from './swipe'
 
 /** Answers the card; true once the app took it. */
 type Answer = (key: string, like: boolean) => Promise<boolean>
@@ -25,15 +25,17 @@ export function Deck({ data, onSwipe, onUndo, onPassedAgain }: DeckProps) {
   const answered: Answer = async (key, like) => {
     // A personal-column notice gives initials only, so it is never named.
     const name = data.surface === 'column' ? 'the notice' : data.deck.find((item) => item.key === key)?.name ?? ''
+    // The card's buttons go with it, so a keyboard user's focus moves to the next card's same button.
+    const kept = document.activeElement?.closest('.dating-actions') ? (like ? '.button.primary' : '.button:not(.primary)') : null
     const done = await onSwipe(key, like)
-    if (done) { setSaid({ key, name, way: like ? 'like' : 'pass' }); setBack('') }
+    if (done) { setSaid({ key, name, way: like ? 'like' : 'pass' }); setBack(''); if (kept) refocus(kept) }
     return done
   }
   const undo = said && (() => void onUndo(said.key).then((done) => { if (done) { refocus(); setBack(`${said.name.charAt(0).toUpperCase()}${said.name.slice(1)} is back.`); setSaid(null) } }))
-  const heard = <p className="visually-hidden" role="status">{back || (said ? answeredText(said.name, said.way, card ? cardHeading(card) : null) : '')}</p>
-  const takeBack = said && undo ? <UndoButton said={said} onUndo={undo} /> : null
+  const heard = <p className="visually-hidden" role="status">{back || (said ? answeredText(said.name, said.way, nextHeard(data.surface, card ? cardHeading(card) : null)) : '')}</p>
+  const takeBack = (busy: boolean) => said && undo && undoShown(said.key, data.undo, busy) ? <UndoButton said={said} onUndo={undo} /> : null
   if (!card) {
-    return <div className="dating-empty">{heard}<p className="subtle">{data.words.empty} {takeBack}</p>
+    return <div className="dating-empty">{heard}<p className="subtle">{data.words.empty} {takeBack(false)}</p>
       <button type="button" className="text-button" onClick={onPassedAgain}>See people you passed on again</button></div>
   }
   return <>
@@ -45,8 +47,8 @@ export function Deck({ data, onSwipe, onUndo, onPassedAgain }: DeckProps) {
 }
 
 /** After Undo the link is gone, so focus goes to the returned card's Like button rather than the page. */
-function refocus() {
-  window.setTimeout(() => document.querySelector<HTMLButtonElement>('.dating-actions .button.primary')?.focus())
+function refocus(button = '.button.primary') {
+  window.setTimeout(() => document.querySelector<HTMLButtonElement>(`.dating-actions ${button}`)?.focus())
 }
 
 /** "Undo": the last answer only, gone with the next one. */
@@ -54,7 +56,7 @@ function UndoButton({ said, onUndo }: { said: Said; onUndo: () => void }) {
   return <button type="button" className="text-button inline dating-undo" aria-label={undoLabel(said.name, said.way)} onClick={onUndo}>Undo</button>
 }
 
-interface CardProps { data: DatingData; card: DatingCard; onSwipe: Answer; takeBack: ReactNode }
+interface CardProps { data: DatingData; card: DatingCard; onSwipe: Answer; takeBack: (busy: boolean) => ReactNode }
 
 /** The personal column or the matchmaker: no dragging a newspaper, just the answers and the arrow keys. */
 function Notice({ data, card, onSwipe, takeBack }: CardProps) {
@@ -150,16 +152,16 @@ function Details({ card }: { card: DatingCard }) {
   </>
 }
 
-interface AnswersProps { data: DatingData; busy: boolean; onAnswer: (way: SwipeWay) => void; takeBack: ReactNode; hint?: boolean }
+interface AnswersProps { data: DatingData; busy: boolean; onAnswer: (way: SwipeWay) => void; takeBack: (busy: boolean) => ReactNode; hint?: boolean }
 
 function Answers({ data, busy, onAnswer, takeBack, hint = false }: AnswersProps) {
   const touch = window.matchMedia('(pointer: coarse)').matches
   return <>
     <div className="form-actions dating-actions">
-      <button type="button" className="button" disabled={busy} aria-keyshortcuts="ArrowLeft" onClick={() => onAnswer('pass')}><X aria-hidden="true" />{data.words.pass}</button>
-      <button type="button" className="button primary" disabled={busy} aria-keyshortcuts="ArrowRight" onClick={() => onAnswer('like')}><Heart aria-hidden="true" />{data.words.like}</button>
+      <button type="button" className="button" aria-disabled={busy || undefined} aria-keyshortcuts="ArrowLeft" onClick={() => onAnswer('pass')}><X aria-hidden="true" />{data.words.pass}</button>
+      <button type="button" className="button primary" aria-disabled={busy || undefined} aria-keyshortcuts="ArrowRight" onClick={() => onAnswer('like')}><Heart aria-hidden="true" />{data.words.like}</button>
     </div>
-    <p className="subtle dating-left">{hintText(data.remaining - 1, touch, hint)} {takeBack}</p>
+    <p className="subtle dating-left">{hintText(data.remaining - 1, touch, hint)} {takeBack(busy)}</p>
   </>
 }
 
@@ -170,7 +172,7 @@ function useArrowKeys(answer: (way: SwipeWay) => void) {
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || document.querySelector('dialog[open]')) return
-      const way = arrowWay(event.key, event.target as HTMLElement | null)
+      const way = arrowWay(event.key, event.target as HTMLElement | null, event.repeat)
       if (!way) return
       event.preventDefault()
       latest.current(way)
