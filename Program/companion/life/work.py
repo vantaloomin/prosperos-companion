@@ -635,6 +635,10 @@ def plan_late_nights(connection, companion: dict, found: dict, today: date, chos
     for week in range(0, AHEAD_DAYS // 7 + 1):
         monday = monday_of(today) + timedelta(weeks=week)
         if workload(found, monday, chosen) != 'slammed':
+            # A week that is no longer slammed (the slider moved, the project is due another week) has no late nights.
+            connection.execute("UPDATE life_admin SET status='removed', updated_at=? WHERE timeline_id=? AND "
+                               "source='work' AND status='planned' AND key LIKE ? AND local_date>=?",
+                               (stamp(now), timeline_id, f'work:late:{monday.isoformat()}:%', today.isoformat()))
             continue
         seed = f'work:{timeline_id}:late:{monday.isoformat()}'
         low, high = LATE_NIGHTS[chosen]
