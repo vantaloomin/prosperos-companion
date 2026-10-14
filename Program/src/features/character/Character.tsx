@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { MapPin } from 'lucide-react'
 import { queueWriteUp } from '../ready/useReady'
 import { api, ApiError } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
@@ -281,6 +282,7 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
       <div>
         {companion ? <h2>Character</h2> : <h1>Create your companion</h1>}
         <p className="subtle">{companion ? `${companion.version.name}, version ${companion.version.number}. Saving creates a new version that applies from the next reply; earlier messages keep the version they used.` : 'Nothing here is required, and you can change everything later.'}</p>
+        {companion?.status?.where?.text && <p className="where-line"><MapPin aria-hidden="true" />{companion.status.where.text}</p>}
       </div>
       {companion && <div className="form-actions">
         <button type="button" className="button" onClick={() => go('portraits')}>Profile pictures</button>

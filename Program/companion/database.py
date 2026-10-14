@@ -287,6 +287,9 @@ ADDED_COLUMNS = (
     # Where you live in this world (companion/life/where.py): a city id and a neighbourhood id in it.
     ('persona', 'home_city_id', "TEXT NOT NULL DEFAULT ''"),
     ('persona', 'home_neighbourhood', "TEXT NOT NULL DEFAULT ''"),
+    # Getting together (companion/life/together.py, Settings > Realism): how often companions suggest meeting up,
+    # invite the user over and drop by, 0 never on their own, 1 light, 2 true to life, 3 often.
+    ('life_settings', 'together_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (together_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

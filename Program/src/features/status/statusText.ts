@@ -1,11 +1,14 @@
 /** Status messages (companion/life/status.py): what shows, kept apart from the components for tests. */
 
 export type AwayGlyph = 'moon' | 'briefcase' | 'pin'
-export interface CompanionStatus { text: string; set_by: 'app' | 'you'; away: { text: string; glyph: AwayGlyph } | null }
+/** Together or apart (companion/life/together.py), in plain words; the text is empty while apart in the same city. */
+export interface StatusWhere { state: 'together' | 'apart'; kind: string; text: string }
+export interface CompanionStatus { text: string; set_by: 'app' | 'you'; away: { text: string; glyph: AwayGlyph } | null; where?: StatusWhere | null }
 
-/** The away line while they are asleep, at work or out, else their status. */
+/** Where they are with you while together ("At your place"), the away line while they are asleep, at work or out, else their status. */
 export function shown(status: CompanionStatus | null | undefined): { text: string; away: AwayGlyph | null } | null {
   if (!status) return null
+  if (status.where?.state === 'together' && status.where.text) return { text: status.where.text, away: 'pin' }
   return status.away ? { text: status.away.text, away: status.away.glyph } : status.text ? { text: status.text, away: null } : null
 }
 

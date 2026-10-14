@@ -1667,6 +1667,12 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-row-top strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .chat-row-time { flex-shrink: 0; color: var(--muted); font-size: 0.75rem; }
 .chat-row-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.8125rem; }
+/* Together or apart (companion/life/together.py): "At your place", "Long distance, Lisbon, 5 hours ahead". */
+.chat-row-where, .where-line { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.75rem; }
+.chat-row-where { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-row-where > svg, .where-line > svg { flex: none; width: 0.85rem; height: 0.85rem; color: var(--accent); }
+.where-line { margin: 4px 0 0; font-size: 0.8125rem; }
+.side-bubbles .chat-row.current .chat-row-where, .side-bubbles .chat-row.current .chat-row-where > svg { color: var(--on-accent); opacity: .85; }
 .chat-row.unread .chat-row-top strong { font-weight: 700; }
 .chat-row.unread .chat-row-preview { color: var(--text); }
 .chat-row.unread .chat-row-time { color: var(--accent); }
@@ -1855,14 +1861,14 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .admin-later dd { margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
 .together-undo { grid-template-columns: 1fr auto; align-items: center; }
 /* The strip shares the composer row's edges (input through Send) in every chat style. */
-.out-now { display: flex; align-items: center; gap: 8px; max-width: 696px; width: calc(100% - 64px); margin: 0 auto 8px; padding: 6px 8px 6px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-tint); font-family: system-ui, sans-serif; font-size: 0.875rem; }
-.chat-community .out-now { max-width: none; }
-.chat-retro .out-now { max-width: none; width: calc(100% - 12px); }
-@media (max-width: 720px) { .out-now, .chat-community .out-now { width: calc(100% - 20px); } }
-.out-now-place { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-.out-now > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
-.out-now > span { flex: 1; min-width: 0; }
-.out-now .text-button { flex: none; }
+.where-strip { display: flex; align-items: center; gap: 8px; max-width: 696px; width: calc(100% - 64px); margin: 0 auto 8px; padding: 6px 8px 6px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-tint); font-family: system-ui, sans-serif; font-size: 0.875rem; }
+.chat-community .where-strip { max-width: none; }
+.chat-retro .where-strip { max-width: none; width: calc(100% - 12px); }
+@media (max-width: 720px) { .where-strip, .chat-community .where-strip { width: calc(100% - 20px); } }
+.where-strip-place { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.where-strip > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
+.where-strip > span { flex: 1; min-width: 0; }
+.where-strip .text-button { flex: none; }
 
 /* Who knows who (src/features/web): a draggable web of people. */
 .web-page { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }

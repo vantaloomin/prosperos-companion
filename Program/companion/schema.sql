@@ -2124,3 +2124,13 @@ CREATE TABLE IF NOT EXISTS hobby_log (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS hobby_log_day ON hobby_log(timeline_id, local_date, kind);
+-- Together or apart (companion/life/together.py): a visit the user asked for that the companion had to turn down
+-- (at work, asleep, too far away), so the reply to that message says why.
+CREATE TABLE IF NOT EXISTS together_asks (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL UNIQUE REFERENCES messages(id),
+  kind TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);

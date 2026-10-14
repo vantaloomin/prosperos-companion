@@ -571,11 +571,17 @@ def upcoming(connection, timeline_id, basis, now, hours=24, limit=4) -> list[dic
     return [entry_view(row) for row in rows]
 
 
+VISITS = {'visit-in': 'having the user over at your place', 'visit-yours': "going over to the user's place",
+          'dinner-yours': "dinner at the user's place"}
+
+
 def intention_text(item) -> str:
     entry = item['entry']
     text = f"- {item['local_date']}, {item['block']['label'].lower()} ({item['block']['start']}): "
     if entry['activity'] == 'dinner-in':  # the user coming over (companion/life/outings.py)
         return text + 'having the user over for dinner at your place'
+    if entry['activity'] in VISITS:  # visits (companion/life/together.py)
+        return text + VISITS[entry['activity']]
     if entry.get('hobby'):  # a practice session (companion/life/hobbies.py)
         place = f" at {entry['place']['name']}" if entry.get('place') else ''
         return text + f"{entry['hobby']['label'].lower()}{place}"

@@ -465,6 +465,8 @@ export interface LifeSettings {
   media_realism: number
   /** Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   hobbies_realism: number
+  /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
+  together_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }

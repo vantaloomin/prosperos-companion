@@ -47,6 +47,10 @@ ACTIVITIES = {
     'dinner-in': (r'(?!x)x', ('home',), '19:00', 3.0, 'dinner-in', 'dinner at their place'),
     # One of their pastimes together (companion/life/hobbies.py): found by the words of the pastimes they have.
     'hobby': (r'(?!x)x', (), '18:30', 2.0, 'hobby', 'a pastime together'),
+    # Visits (companion/life/together.py): found by its own words, never by these.
+    'visit-in': (r'(?!x)x', ('home',), '19:00', 3.0, 'visit', 'time together at their place'),
+    'visit-yours': (r'(?!x)x', ('your-home',), '19:00', 3.0, 'visit', "time together at the user's place"),
+    'dinner-yours': (r'(?!x)x', ('your-home',), '19:00', 3.0, 'visit', "dinner at the user's place"),
 }
 HOME = '~home'
 FOOD = re.compile(r"\b(?:dinner|supper|eat|a meal|cook\w*|something to eat)\b", re.IGNORECASE)
@@ -404,7 +408,12 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
     from companion.life import hobbies
     wanted = proposal(message['text'], local_now.date(), own_plans.holiday_dates(
         connection, definition, local_now.date()), data, firm, hobbies.patterns(connection, companion['active_timeline_id']))
-    if not wanted or not data:
+    if not wanted:
+        # Not going out: maybe a visit, or saying goodbye while together (companion/life/together.py).
+        from companion.life import together
+        together.note(connection, message, companion, timestamp)
+        return None
+    if not data:
         return None
     if wanted['activity'] == 'hobby' and not wanted['at']:
         wanted = {**wanted, 'at': hobbies.usual_at(connection, wanted['hobby'], wanted['day'] or local_now.date())}
@@ -528,6 +537,8 @@ def doing(outing: dict) -> str:
     place, activity = outing['place']['name'], outing['activity']
     if activity == 'dinner-in':
         return f"had you over for {menu_text(outing['place'].get('menu') or {})} at home"
+    if activity in VISIT_DOING:
+        return VISIT_DOING['knock' if place_knock(outing) else activity]
     if activity == 'hobby':
         hobby = outing['place']['hobby']
         if hobby.get('event'):
@@ -540,6 +551,15 @@ def doing(outing: dict) -> str:
     if activity == 'show':
         return f'went to see a show at {place}'
     return f'spent a few hours at {place}' if activity == 'museum' else f'browsed around {place}'
+
+
+# Visits (companion/life/together.py), as their day tells them.
+VISIT_DOING = {'visit-in': 'had you over at home', 'visit-yours': 'came over to your place',
+               'dinner-yours': 'came over to your place for dinner', 'knock': 'dropped by your place'}
+
+
+def place_knock(outing: dict) -> bool:
+    return bool(outing['place'].get('knock'))
 
 
 def menu_text(menu: dict) -> str:
@@ -556,8 +576,8 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
     outing = plan['outing']
     place = outing['place']
     area = f" in {place['neighborhood']}" if place['neighborhood'] and place['neighborhood'] not in place['name'] \
-        and outing['activity'] != 'dinner-in' else ''
-    alone = outing['activity'] == 'dinner-in' or (place.get('hobby') or {}).get('event')
+        and place['kind'] not in ('home', 'your-home') else ''
+    alone = outing['activity'] in ('dinner-in', *VISIT_DOING) or (place.get('hobby') or {}).get('event')
     summary = f"{definition['name']} {doing(outing)}{area}" + ('.' if alone else ' with you.')
     seed = f"outing:{outing['id']}:{outing['rolls']}"
     spot = generators.pick(seed, SPOT, place.get('spots') or [])
@@ -591,6 +611,10 @@ def what(outing: dict) -> str:
     place = outing['place']
     if outing['activity'] == 'dinner-in':
         return f"{menu_text(place.get('menu') or {})} at your place"
+    if outing['activity'] in VISIT_DOING:
+        area = f" in {place['neighborhood']}" if place.get('neighborhood') else ''
+        return {'visit-in': 'time together at your place', 'visit-yours': f"a visit to the user's place{area}",
+                'dinner-yours': f"dinner at the user's place{area} (they are cooking)"}[outing['activity']]
     if outing['activity'] == 'hobby':
         hobby = place['hobby']
         return f"{hobby.get('event') or hobby['together']} at {place['name']}"
@@ -630,6 +654,8 @@ def scene(connection, companion: dict, outing: dict) -> str:
     seed = f"outing:{outing['id']}:{outing['rolls']}"
     spot = generators.pick(seed, SPOT, place.get('spots') or [])
     conditions = generators.conditions(data, date.fromisoformat(outing['local_date'])) if data else None
+    if outing['activity'] in VISIT_DOING:
+        return visit_scene(outing, spot, conditions)
     if outing['activity'] == 'dinner-in':
         spot = generators.pick(seed, SPOT, place.get('spots') or [])
         return '- ' + ' '.join(part for part in (
@@ -644,10 +670,34 @@ def scene(connection, companion: dict, outing: dict) -> str:
     return '- ' + ' '.join(part.strip() for part in parts if part.strip())
 
 
+IN_PERSON = ('Talk as if you are there together, face to face, not texting: what you say and do in the room, no '
+             'separate texts, no typos.')
+
+
+def visit_scene(outing: dict, spot: str | None, conditions) -> str:
+    """Being at the user's place, or having them at yours, in person."""
+    from companion.life import agenda
+    place = outing['place']
+    area = f" in {place['neighborhood']}" if place.get('neighborhood') else ''
+    if outing['activity'] == 'visit-in':
+        first = f"Right now the user is over at your place, in person, until about {outing['until_time']}."
+    elif place.get('knock'):
+        first = (f"Right now you are at the user's place{area}, in person: you dropped by without telling them first, "
+                 f"and you can stay until about {outing['until_time']}.")
+    else:
+        food = ' for dinner, which they are cooking' if outing['activity'] == 'dinner-yours' else ''
+        first = f"Right now you are over at the user's place{area}{food}, in person, until about {outing['until_time']}."
+    spot = None if place.get('knock') else spot  # Just in from the door, not settled anywhere yet.
+    weather = f'Weather outside: {agenda.weather_text(conditions)}' if conditions else ''
+    return '- ' + ' '.join(part for part in (first, f'You are {spot}.' if spot else '', weather, IN_PERSON) if part)
+
+
 def planned_line(outing: dict) -> str:
     line = f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}, with the user."
     if outing['activity'] == 'dinner-in':
         return line + ' You are cooking.'
+    if outing['activity'] in VISIT_DOING:
+        return line
     return line + (' They picked the place.' if outing['named'] else ' You picked the place.')
 
 
@@ -656,6 +706,9 @@ def booked_line(outing: dict, holding: dict | None = None) -> str:
     if outing['activity'] == 'dinner-in':
         line = f"- You are having the user over: {what(outing)}, {day_text(outing['local_date'])} at " \
             f"{outing['at_time']}. Confirm when and what you will make in this reply, in your own words."
+    elif outing['activity'] in VISIT_DOING:
+        line = f"- You agreed: {what(outing)}, {day_text(outing['local_date'])} at {outing['at_time']}. " \
+            'Confirm when in this reply, in your own words.'
     else:
         line = f"- You agreed to go: {what(outing)}, {day_text(outing['local_date'])} at {outing['at_time']}. " \
             'Confirm where and when in this reply, in your own words.'
@@ -708,6 +761,7 @@ def money_text(companion: dict, outing: dict) -> str:
 def finish_due(connection, companion: dict, now: datetime) -> int:
     """Outings on this timeline that have ended: kept as a memory, and marked done (the bill is read from the
     outing by money.household). Cheap: no model."""
+    from companion.life import together
     from companion.memory import records
     timezone = companion['version']['timezone']
     # From the oldest one still planned, however long ago: after a long absence it still finishes.
@@ -719,18 +773,32 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
     for outing in in_force(connection, companion['active_timeline_id'], oldest['since']):
         if outing['status'] != 'planned' or state(outing, timezone, now) != 'done' or undoable_home(outing, now):
             continue
-        day = date.fromisoformat(outing['local_date'])
-        place = outing['place']
-        pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
-        fields = {'layer': 'shared_experience', 'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} "
-                  f"together at {place['name']}",
-                  'value': f"Went out together for {what(outing)} on {day:%A, %B} {day.day}.",
+        if together.turned_away(outing, timezone):
+            connection.execute("UPDATE outings SET status='done' WHERE id=?", (outing['id'],))
+            continue
+        fields = {**memory_text(outing), 'layer': 'shared_experience',
                   'stated_at': stamp(min(now, window(outing, timezone)[1])), 'applies_from': None, 'applies_until': None}
         memory, _created = records.insert(connection, companion, fields, now=stamp(now), origin='automatic',
                                           sources=(outing['message_id'],))
         connection.execute("UPDATE outings SET status='done', memory_id=? WHERE id=?", (memory['id'], outing['id']))
         done += 1
     return done
+
+
+def memory_text(outing: dict) -> dict:
+    """{subject, value} of the shared memory an outing leaves."""
+    day = date.fromisoformat(outing['local_date'])
+    place = outing['place']
+    on = f"on {day:%A, %B} {day.day}"
+    if outing['activity'] in VISIT_DOING:
+        subject = {'visit-in': 'The user came over to your place', 'visit-yours': "You went over to the user's place",
+                   'dinner-yours': "Dinner at the user's place"}[outing['activity']]
+        if place_knock(outing):
+            subject = "You dropped by the user's place"
+        return {'subject': subject, 'value': f'{subject} {on}.'}
+    pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
+    return {'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} together at {place['name']}",
+            'value': f"Went out together for {what(outing)} {on}."}
 
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
