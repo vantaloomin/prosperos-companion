@@ -30,9 +30,14 @@ def college(id, name, type, hood, size, known_for):
             'source': S}
 
 
+# How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
+EMPLOYMENT = {'asylum-attendant': 'rota', 'spiritualist-medium': 'freelance', 'dowser': 'freelance',
+              'wireless-operator': 'rota', 'ferry-deckhand': 'rota'}
+
+
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': [ERA]}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
 
 
 def employer(id, name, sector, hood, size, summary, careers):

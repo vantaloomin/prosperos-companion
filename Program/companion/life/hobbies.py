@@ -391,7 +391,7 @@ class Life:
 
     def free(self, day: date) -> list[str]:
         """The start times of free blocks in their routine that day."""
-        return [block.view()['start'] for block in self.schedule if day.weekday() in block.days and
+        return [block.view()['start'] for block in self.schedule if block.on(day) and
                 block.kind in OPEN_BLOCKS]
 
     def week_days(self, row: dict, monday: date) -> set[date]:

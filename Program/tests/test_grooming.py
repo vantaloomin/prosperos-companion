@@ -48,6 +48,9 @@ def history(client, through: date) -> list[dict]:
         # six weeks.
         connection.execute("UPDATE grooming_state SET seed='grooming:rosa', profile=json_set(profile, '$.nails', 2, "
                            "'$.trim_days', 42, '$.tier', 1) WHERE timeline_id=?", (tid,))
+        # The read above drew today with her random seed; start again from the fixed one.
+        connection.execute('DELETE FROM grooming_log WHERE timeline_id=?', (tid,))
+        connection.execute('UPDATE grooming_state SET next_period=0 WHERE timeline_id=?', (tid,))
         grooming.evolve(connection, tid, ROSA, through, client.app.state.database.clock.now())
         return [dict(row) for row in connection.execute(
             'SELECT * FROM grooming_log WHERE timeline_id=? ORDER BY local_date, track', (tid,))]

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { CareerSummary, CitySummary, MoneySetup, SpendingStyle } from '../../types'
+import type { CareerSummary, CitySummary, Employment, MoneySetup, SpendingStyle } from '../../types'
 import { Field, TextInput } from '../../components/Fields'
 import { useWorkspaceSettings } from '../../companion'
 import { careersFor, todayIso } from './money'
@@ -9,6 +9,13 @@ const STYLES: { value: SpendingStyle; label: string }[] = [
   { value: 'careful', label: 'Careful: saves first, rarely runs short' },
   { value: 'balanced', label: 'Balanced' },
   { value: 'spender', label: 'Spender: treats themselves, often broke before payday' },
+]
+
+const HOURS: { value: Employment; label: string }[] = [
+  { value: '', label: 'As their work goes' },
+  { value: 'staff', label: 'Same days every week' },
+  { value: 'rota', label: 'Shifts that change each week' },
+  { value: 'freelance', label: 'Freelance gigs, busy and quiet spells' },
 ]
 
 interface Props { money: MoneySetup; homeCity: string; onChange: (money: MoneySetup) => void }
@@ -35,6 +42,13 @@ export function MoneyFields({ money, homeCity, onChange }: Props) {
             <option value="">Guess from who they are</option>
             {listed.filter((career) => !career.adult).map(option)}
             {listed.some((career) => career.adult) && <optgroup label="Adult work">{listed.filter((career) => career.adult).map(option)}</optgroup>}
+          </select>
+        )}
+      </Field>
+      <Field label="Hours" hint="Left as their work goes, a bartender or nurse gets new shifts each week and a freelancer has gigs that come and go; an office job keeps the same days.">
+        {(id, hint) => (
+          <select id={id} aria-describedby={hint} value={money.employment} onChange={(event) => set({ employment: event.target.value as Employment })}>
+            {HOURS.map((hours) => <option key={hours.value} value={hours.value}>{hours.label}</option>)}
           </select>
         )}
       </Field>

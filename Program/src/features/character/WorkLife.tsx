@@ -7,6 +7,8 @@ import { AdminList } from '../today/AdminList'
 import { WORK_KEY, eventDay, eventText, meterText, timeOffText } from './workText'
 import { panelTitle } from './panelText'
 
+const HOURS_TEXT = { staff: '', rota: ' Their shifts change each week.', freelance: ' Freelance work comes and goes, in busy and quiet spells.' }
+
 /** The companion's job in plain words: the week, the project, late nights, time off and what changed lately. Nothing
  * for a companion without work in their week. */
 export function WorkLife({ name }: { name: string }) {
@@ -16,7 +18,7 @@ export function WorkLife({ name }: { name: string }) {
   return (
     <section id="work-life" className="home-panel work-panel" aria-labelledby="work-heading">
       <h2 id="work-heading">{panelTitle(name, 'work life')}</h2>
-      <p className="subtle">Busy weeks, slow weeks, a project on the go and a raise once a year, as their job and city do them. Picked for them; move a late night like anything on their calendar.</p>
+      <p className="subtle">Busy weeks, slow weeks, a project on the go and a raise once a year, as their job and city do them.{view && HOURS_TEXT[view.hours]} Picked for them; move a late night like anything on their calendar.</p>
       {query.isPending && <Loading label="Loading their work life" />}
       {query.isError && <ErrorNotice error={query.error} />}
       {view && <WorkDetails view={view} />}

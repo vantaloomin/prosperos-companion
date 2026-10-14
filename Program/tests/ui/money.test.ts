@@ -47,6 +47,6 @@ test('adult work is listed only with the adult side on, and a current pick alway
 })
 
 test('older saved characters get a default money setup', () => {
-  assert.deepEqual(completeDefinition({ name: 'Mira' }).money, { career: '', style: 'balanced', saving_for: '', goal: 0, goal_since: '' })
-  assert.equal(completeDefinition({ name: 'Mira', money: { career: 'teacher', style: 'careful', saving_for: '', goal: 0, goal_since: '' } }).money.career, 'teacher')
+  assert.deepEqual(completeDefinition({ name: 'Mira' }).money, { career: '', style: 'balanced', saving_for: '', goal: 0, goal_since: '', employment: '' })
+  assert.equal(completeDefinition({ name: 'Mira', money: { career: 'teacher', style: 'careful', saving_for: '', goal: 0, goal_since: '', employment: '' } }).money.career, 'teacher')
 })

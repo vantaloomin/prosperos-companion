@@ -2810,6 +2810,7 @@
    "name": "Hard-rock miner",
    "sector": "mining",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Ten-hour shifts underground in the Sarah Ann for four dollars a day, drilling, blasting and mucking by candlelight.",
    "themes": [
@@ -2828,6 +2829,7 @@
    "name": "Stamp mill hand",
    "sector": "mining",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$",
    "summary": "Feeding ore and tending the amalgam plates at the stamp mill on day or night shift, in constant noise.",
    "themes": [
@@ -2845,6 +2847,7 @@
    "name": "Assayer",
    "sector": "mining",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Testing ore samples with furnace and balance for the company and for prospectors who bring rocks in a sack.",
    "themes": [
@@ -2861,6 +2864,7 @@
    "name": "Telegraph operator",
    "sector": "railroad",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Keying train orders and messages at the depot, the first in town to hear any news.",
    "themes": [
@@ -2878,6 +2882,7 @@
    "name": "Railroad brakeman",
    "sector": "railroad",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Riding freights to the junction and back, setting brakes on car roofs and coupling cars in the yard.",
    "themes": [
@@ -2895,6 +2900,7 @@
    "name": "Freighter",
    "sector": "freight",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Driving ore and freight wagons behind twelve-mule teams between the mill, the depot and the camps.",
    "themes": [
@@ -2912,6 +2918,7 @@
    "name": "Stagecoach driver",
    "sector": "freight",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Driving the daily Concord to Copper Basin and the springs with the mail and sometimes the payroll.",
    "themes": [
@@ -2929,6 +2936,7 @@
    "name": "Ranch hand",
    "sector": "ranching",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Riding for the Turkey Creek outfits for thirty dollars a month and found: fences, windmills, roundup and branding.",
    "themes": [
@@ -2947,6 +2955,7 @@
    "name": "Blacksmith",
    "sector": "trades",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Shoeing horses and mules, sharpening drill steel and mending wagons at the forge.",
    "themes": [
@@ -2963,6 +2972,7 @@
    "name": "Store clerk",
    "sector": "retail",
    "schedule": "office",
+   "employment": "rota",
    "pay": "$",
    "summary": "Measuring calico, weighing coffee and keeping the ledger behind the mercantile counter, six days a week.",
    "themes": [
@@ -2979,6 +2989,7 @@
    "name": "Bank clerk",
    "sector": "finance",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Counting gold coin and keeping accounts at the bank, in a starched collar and sleeve garters.",
    "themes": [
@@ -2995,6 +3006,7 @@
    "name": "Printer's devil and typesetter",
    "sector": "newspaper",
    "schedule": "evening",
+   "employment": "staff",
    "pay": "$",
    "summary": "Setting type by hand and inking the press for the weekly Gazette, working late before press day.",
    "themes": [
@@ -3012,6 +3024,7 @@
    "name": "Hotel clerk",
    "sector": "hospitality",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Keeping the register and the keys at the Cosmopolitan and meeting every train.",
    "themes": [
@@ -3028,6 +3041,7 @@
    "name": "Cook",
    "sector": "hospitality",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Cooking for a hotel, chophouse or boarding house from before dawn, on a wood range.",
    "themes": [
@@ -3044,6 +3058,7 @@
    "name": "Laundress",
    "sector": "trades",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Washing, boiling, starching and ironing other people's shirts and linens by the piece.",
    "themes": [
@@ -3060,6 +3075,7 @@
    "name": "Dressmaker",
    "sector": "trades",
    "schedule": "flexible",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Making and altering dresses from catalogue patterns for fittings in the shop or at customers' homes.",
    "themes": [
@@ -3076,6 +3092,7 @@
    "name": "Schoolteacher",
    "sector": "education",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$",
    "summary": "Teaching forty children of every age in one room for sixty dollars a month, and boarding with a local family.",
    "themes": [
@@ -3093,6 +3110,7 @@
    "name": "Doctor",
    "sector": "medicine",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$$$",
    "summary": "Company and town doctor: mine injuries, fevers, confinements and buggy calls to the ranches at night.",
    "themes": [
@@ -3110,6 +3128,7 @@
    "name": "Deputy sheriff",
    "sector": "law",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Serving papers, collecting taxes and keeping order for the county sheriff, mostly on foot along Main Street.",
    "themes": [
@@ -3127,6 +3146,7 @@
    "name": "Saloon pianist",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$",
    "summary": "Playing popular songs and waltzes at the Palace from supper until the small hours, and for dances on Saturdays.",
    "themes": [
@@ -3144,6 +3164,7 @@
    "name": "Bartender",
    "sector": "hospitality",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Pouring whiskey and beer and keeping the peace behind a saloon bar.",
    "themes": [
@@ -3160,6 +3181,7 @@
    "name": "Cavalry trooper",
    "sector": "military",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Thirteen dollars a month at Fort Merritt: stables, drill, escort duty and long scouts in the mountains.",
    "themes": [

@@ -2842,6 +2842,7 @@
    "name": "Castle servant",
    "sector": "household",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Kitchen, buttery, laundry or chamber work in the King's household, paid in wages, food and a livery gown at Christmas.",
    "themes": [
@@ -2859,6 +2860,7 @@
    "name": "Groom of the stables",
    "sector": "household",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Feeding, mucking out, grooming and exercising horses in the royal stables.",
    "themes": [
@@ -2876,6 +2878,7 @@
    "name": "Falconer",
    "sector": "household",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Training and flying the King's hawks and falcons from the mews, and riding out with hunting parties.",
    "themes": [
@@ -2893,6 +2896,7 @@
    "name": "Squire",
    "sector": "household",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$",
    "summary": "Serving a knight: arming him, carving at his table, keeping his horses and gear, and training for knighthood.",
    "themes": [
@@ -2910,6 +2914,7 @@
    "name": "Man-at-arms",
    "sector": "household",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Garrison soldier on watch at the gates and walls, escorting travellers and keeping order at fairs.",
    "themes": [
@@ -2927,6 +2932,7 @@
    "name": "Clerk of the court",
    "sector": "government",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Writing letters, writs and accounts for the King's chancery and exchequer at the castle.",
    "themes": [
@@ -2944,6 +2950,7 @@
    "name": "Scribe",
    "sector": "church",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$",
    "summary": "Copying and illuminating books in the abbey scriptorium, or writing letters and wills for townsfolk.",
    "themes": [
@@ -2961,6 +2968,7 @@
    "name": "Armourer",
    "sector": "crafts",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Making and mending mail and plate in a Smithgate forge, with a rush of work before every tournament.",
    "themes": [
@@ -2978,6 +2986,7 @@
    "name": "Blacksmith",
    "sector": "crafts",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Shoeing horses and making nails, hinges, tools and ploughshares at a town forge.",
    "themes": [
@@ -2995,6 +3004,7 @@
    "name": "Alewife",
    "sector": "victualling",
    "schedule": "evening",
+   "employment": "staff",
    "pay": "$",
    "summary": "Brewing ale in her own house, selling it under an ale-stake and keeping the alehouse in the evenings.",
    "themes": [
@@ -3012,6 +3022,7 @@
    "name": "Baker",
    "sector": "victualling",
    "schedule": "early",
+   "employment": "rota",
    "pay": "$",
    "summary": "Up before dawn to fire the oven and bake loaves to the assize weight for the morning trade.",
    "themes": [
@@ -3029,6 +3040,7 @@
    "name": "Innkeeper's hand",
    "sector": "victualling",
    "schedule": "evening",
+   "employment": "staff",
    "pay": "$",
    "summary": "Serving, cooking, making beds and stabling horses at one of the town's inns.",
    "themes": [
@@ -3046,6 +3058,7 @@
    "name": "Weaver",
    "sector": "cloth",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Working a broadloom in a Southgate house for a clothier who supplies the yarn and buys the cloth.",
    "themes": [
@@ -3063,6 +3076,7 @@
    "name": "Dyer",
    "sector": "cloth",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Steeping cloth in woad, madder and weld vats, with blue hands to show for it.",
    "themes": [
@@ -3080,6 +3094,7 @@
    "name": "Tanner",
    "sector": "crafts",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Scraping hides and working the tan pits at Barkers End outside the walls.",
    "themes": [
@@ -3097,6 +3112,7 @@
    "name": "Mason",
    "sector": "building",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Cutting and laying stone at the minster works or the castle, under a master mason in the lodge.",
    "themes": [
@@ -3114,6 +3130,7 @@
    "name": "Minstrel",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Playing harp, fiddle or pipe and telling tales in the castle hall, the Guildhall undercroft and the inns.",
    "themes": [
@@ -3131,6 +3148,7 @@
    "name": "Healer at the infirmary",
    "sector": "healing",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$",
    "summary": "Nursing the sick, setting bones and making salves at the Hospital of St Giles.",
    "themes": [
@@ -3148,6 +3166,7 @@
    "name": "Merchant",
    "sector": "trade",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$$$",
    "summary": "Buying wool, wine and cloth by the barge load and selling from a shop on Cheapside.",
    "themes": [
@@ -3165,6 +3184,7 @@
    "name": "Bargeman",
    "sector": "river",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Poling and towing barges on the Cam between Bridgefoot and Astolat with wool, timber and wine.",
    "themes": [
@@ -3182,6 +3202,7 @@
    "name": "Miller",
    "sector": "river",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Running the King's mill on the Cam, grinding grain and taking the toll.",
    "themes": [
@@ -3199,6 +3220,7 @@
    "name": "Farmer",
    "sector": "farming",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Working strips in Woolston's open fields, keeping pigs and geese, and owing days of labour on the King's demesne.",
    "themes": [
@@ -3216,6 +3238,7 @@
    "name": "Chantry priest",
    "sector": "church",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$",
    "summary": "Singing daily masses at the minster and teaching a few boys their letters between services.",
    "themes": [

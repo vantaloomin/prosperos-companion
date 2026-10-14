@@ -114,6 +114,8 @@ def no_work_life(monkeypatch):
     """Work weeks, late nights and vacation days (companion/life/work.py) would change unrelated tests' days;
     tests/test_work_life.py turns them on."""
     monkeypatch.setattr('companion.life.work.ACTIVE', False)
+    # And shifts and gigs (companion/life/shifts.py); tests/test_shifts.py turns them on.
+    monkeypatch.setattr('companion.life.shifts.ACTIVE', False)
 
 
 @pytest.fixture(autouse=True)

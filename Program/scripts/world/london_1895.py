@@ -33,9 +33,15 @@ def employer(id, name, sector, hood, size, summary, careers):
             'careers': careers, 'source': S}
 
 
+# How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
+EMPLOYMENT = {'telegraph-operator': 'rota', 'cabman': 'rota', 'railway-porter': 'rota', 'constable': 'rota',
+              'nurse': 'rota', 'retail-associate': 'rota', 'performer': 'freelance', 'actor': 'freelance',
+              'bartender': 'rota', 'waiter': 'rota', 'detective': 'freelance'}
+
+
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': [ERA]}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
 
 
 def line(id, name, kind, summary):

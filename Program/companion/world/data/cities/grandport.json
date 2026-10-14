@@ -2784,6 +2784,7 @@
    "name": "Dockhand",
    "sector": "logistics",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Hauling cargo on the Grand Quay for a day wage, hired at the line each morning.",
    "themes": [
@@ -2801,6 +2802,7 @@
    "name": "Tide-waiter",
    "sector": "government",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "A Dock Office officer who boards ships to measure and tax their cargo.",
    "themes": [
@@ -2818,6 +2820,7 @@
    "name": "Counting-house clerk",
    "sector": "commerce",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Copying ledgers, contracts and cargo lists in a stone-floored counting house.",
    "themes": [
@@ -2835,6 +2838,7 @@
    "name": "Merchant's factor",
    "sector": "commerce",
    "schedule": "flexible",
+   "employment": "freelance",
    "pay": "$$$",
    "summary": "Buying, selling and negotiating for a great house in port and abroad.",
    "themes": [
@@ -2852,6 +2856,7 @@
    "name": "Underwriter",
    "sector": "finance",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$$",
    "summary": "Pricing the risk on hulls and cargoes at the Insurers' Exchange.",
    "themes": [
@@ -2869,6 +2874,7 @@
    "name": "Courier",
    "sector": "commerce",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$",
    "summary": "Running sealed letters between counting houses, palaces and the Two Houses.",
    "themes": [
@@ -2886,6 +2892,7 @@
    "name": "Arbiter of Nomion",
    "sector": "religion",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Hearing disputes and witnessing contracts at the Temple of Nomion.",
    "themes": [
@@ -2903,6 +2910,7 @@
    "name": "Pile-driver",
    "sector": "construction",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Driving oak piles through estuary silt to bedrock for new foundations.",
    "themes": [
@@ -2920,6 +2928,7 @@
    "name": "Guild mason",
    "sector": "construction",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Cutting and laying ashlar for counting houses and merchant palaces.",
    "themes": [
@@ -2937,6 +2946,7 @@
    "name": "Guild surveyor",
    "sector": "construction",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Inspecting joints and recording each house's yearly settling.",
    "themes": [
@@ -2954,6 +2964,7 @@
    "name": "Timber-framer",
    "sector": "construction",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Raising oak frames and steep gables, and rebuilding after fires.",
    "themes": [
@@ -2971,6 +2982,7 @@
    "name": "Joiner",
    "sector": "crafts",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Making chests, panelling and furniture in a guild workshop.",
    "themes": [
@@ -2988,6 +3000,7 @@
    "name": "Shipwright",
    "sector": "shipbuilding",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Framing and planking carracks and merchant hulls on the slipways.",
    "themes": [
@@ -3005,6 +3018,7 @@
    "name": "Caulker",
    "sector": "shipbuilding",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Packing seams with oakum and hot pitch so the hulls stay dry.",
    "themes": [
@@ -3022,6 +3036,7 @@
    "name": "Sailmaker",
    "sector": "shipbuilding",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Cutting and stitching canvas in the sail loft.",
    "themes": [
@@ -3039,6 +3054,7 @@
    "name": "Ropewalk spinner",
    "sector": "shipbuilding",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Walking backwards down the ropewalk spinning hemp into cable.",
    "themes": [
@@ -3056,6 +3072,7 @@
    "name": "Sailor",
    "sector": "logistics",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$",
    "summary": "Crewing a merchant or navy ship between the islands and foreign ports.",
    "themes": [
@@ -3073,6 +3090,7 @@
    "name": "Ship's man-at-arms",
    "sector": "military",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$",
    "summary": "A professional boarding fighter with shield, seax and gambeson.",
    "themes": [
@@ -3090,6 +3108,7 @@
    "name": "Naval officer",
    "sector": "military",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$$",
    "summary": "A lieutenant or captain whose commission was most likely bought.",
    "themes": [
@@ -3107,6 +3126,7 @@
    "name": "Signal-keeper",
    "sector": "military",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Reading and sending flag and lantern signals across the island chain.",
    "themes": [
@@ -3124,6 +3144,7 @@
    "name": "Militia longbowman",
    "sector": "military",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$",
    "summary": "A district militia archer who drills on rest days and works a trade otherwise.",
    "themes": [
@@ -3141,6 +3162,7 @@
    "name": "Fire-watcher",
    "sector": "public-safety",
    "schedule": "shift-night",
+   "employment": "rota",
    "pay": "$",
    "summary": "Watching the rooftops from a tower all night and ringing the bell at smoke.",
    "themes": [
@@ -3158,6 +3180,7 @@
    "name": "House guard",
    "sector": "security",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Guarding a merchant prince's palace, gates and secrets.",
    "themes": [
@@ -3175,6 +3198,7 @@
    "name": "House servant",
    "sector": "domestic",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Cooking, cleaning or waiting in a raft palace.",
    "themes": [
@@ -3192,6 +3216,7 @@
    "name": "Navigator",
    "sector": "science",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$$$",
    "summary": "Fixing positions with sextant and tables, trained in the new Republic methods.",
    "themes": [
@@ -3209,6 +3234,7 @@
    "name": "Chart copyist",
    "sector": "science",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$",
    "summary": "Copying and correcting charts at the Chart House.",
    "themes": [
@@ -3226,6 +3252,7 @@
    "name": "Printer",
    "sector": "press",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Setting type and pulling sheets at the Republic Press.",
    "themes": [
@@ -3243,6 +3270,7 @@
    "name": "Tavern keeper",
    "sector": "hospitality",
    "schedule": "evening",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Running an alehouse: barrels, regulars, debts and the watch.",
    "themes": [
@@ -3260,6 +3288,7 @@
    "name": "Tavern server",
    "sector": "hospitality",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$",
    "summary": "Carrying ale and gossip between tables, binding the regulars together.",
    "themes": [
@@ -3277,6 +3306,7 @@
    "name": "Cookshop cook",
    "sector": "hospitality",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Stews, pies and bread for dockers and clerks.",
    "themes": [
@@ -3294,6 +3324,7 @@
    "name": "Tavern musician",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Playing hurdy-gurdy, fiddle or pipes for coins and supper.",
    "themes": [
@@ -3311,6 +3342,7 @@
    "name": "Dancer",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Dancing in the halls of Strangers' Wharf for coin and patrons.",
    "themes": [
@@ -3328,6 +3360,7 @@
    "name": "Fishmonger",
    "sector": "food",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Selling the night's catch on the Fish Steps.",
    "themes": [
@@ -3345,6 +3378,7 @@
    "name": "Baker",
    "sector": "food",
    "schedule": "early",
+   "employment": "rota",
    "pay": "$",
    "summary": "Baking oat and barley bread before dawn under guild fire rules.",
    "themes": [
@@ -3362,6 +3396,7 @@
    "name": "Farmhand",
    "sector": "agriculture",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Working barley fields and dykes in the Marsh Fields.",
    "themes": [
@@ -3379,6 +3414,7 @@
    "name": "Dairy worker",
    "sector": "agriculture",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Milking, churning and cheese-making at a marsh dairy.",
    "themes": [
@@ -3396,6 +3432,7 @@
    "name": "Drover",
    "sector": "agriculture",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Bringing cattle down the market road to the Cattle Ground.",
    "themes": [
@@ -3413,6 +3450,7 @@
    "name": "Public school teacher",
    "sector": "education",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Teaching letters, sums and civics at the Republic's public school.",
    "themes": [
