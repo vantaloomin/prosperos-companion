@@ -774,7 +774,8 @@ def offer_kitchen_and_media(packet, connection, timeline_id, version, now):
     for identity, text in media.context_lines(connection, timeline_id, version['definition'], None, now,
                                               version['timezone']):
         packet.offer('media', identity, text)
-    for identity, text in hobbies.context_lines(connection, timeline_id, now, version['timezone']):
+    for identity, text in hobbies.context_lines(connection, timeline_id, now, version['timezone'],
+                                                version['definition']):
         packet.offer('hobbies', identity, text)
 
 

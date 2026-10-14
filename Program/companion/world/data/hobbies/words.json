@@ -57,7 +57,7 @@
    ]
   },
   {
-   "text": "admitted out loud to friends that they had taken up {hobby}",
+   "text": "admitted out loud that they had taken up {hobby}",
    "post": "Said it out loud. Now I have to keep going.",
    "level": 0,
    "for": [
@@ -112,7 +112,7 @@
    ]
   },
   {
-   "text": "talked a friend into trying {hobby} alongside them",
+   "text": "talked a friend into trying {hobby} too",
    "post": "Got a study buddy. Misery loves company. Joy too.",
    "level": 1,
    "for": [
@@ -189,7 +189,7 @@
    ]
   },
   {
-   "text": "found a teacher for {hobby} they genuinely look forward to seeing",
+   "text": "found a {hobby} teacher worth looking forward to every week",
    "post": "Best part of my week is this lesson.",
    "level": 2,
    "for": [
@@ -211,7 +211,7 @@
    ]
   },
   {
-   "text": "helped a beginner through their first weeks of {hobby}",
+   "text": "helped a beginner through the first weeks of {hobby}",
    "post": "Helped someone start. Felt like paying it back.",
    "level": 3,
    "for": [
@@ -222,7 +222,7 @@
    ]
   },
   {
-   "text": "became the friend people bring their {hobby} questions to",
+   "text": "became the go-to friend for {hobby} questions",
    "post": "Question desk is open. Apparently I run it.",
    "level": 3,
    "for": [
@@ -310,7 +310,7 @@
    ]
   },
   {
-   "text": "started a {hobby} circle of their own and kept it going for a year",
+   "text": "started their own {hobby} circle and kept it going for a year",
    "post": "My own circle, a year old today.",
    "level": 4,
    "for": [
@@ -1262,7 +1262,7 @@
    ]
   },
   {
-   "text": "helped a younger student through their Latin examination",
+   "text": "helped a younger student through a Latin examination",
    "post": "Tutored a pupil. They passed. I am very proud.",
    "level": 3,
    "for": [
@@ -1390,7 +1390,7 @@
    ]
   },
   {
-   "text": "read a story aloud to friends and they asked what happened next",
+   "text": "read a story aloud to friends and was asked what happened next",
    "post": "They asked what happens next. Best question.",
    "level": 2,
    "for": [
@@ -1570,7 +1570,7 @@
    ]
   },
   {
-   "text": "wrote a poem for a friend's birthday that made them tear up, happily",
+   "text": "wrote a poem for a friend's birthday that brought happy tears",
    "post": "Gave a poem as a gift. Happy tears.",
    "level": 2,
    "for": [
@@ -1625,7 +1625,7 @@
    ]
   },
   {
-   "text": "shared a poem online and a stranger said it stayed with them",
+   "text": "shared a poem online and heard it had stayed with a stranger for days",
    "post": "A stranger online kept my poem. Moved.",
    "level": 1,
    "for": [
@@ -1660,6 +1660,703 @@
     "steampunk",
     "jazz-age",
     "frontier"
+   ]
+  },
+  {
+   "text": "finished a first piece of writing and kept it",
+   "post": "Finished one. Keeping it.",
+   "level": 0,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote every day for a week",
+   "post": "Every day this week.",
+   "level": 0,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "filled a first notebook",
+   "post": "Notebook one: full.",
+   "level": 0,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "read a piece aloud to one trusted friend",
+   "post": "Read it out loud. Once.",
+   "level": 0,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "found a quiet corner just for writing",
+   "post": "My writing corner.",
+   "level": 0,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote a line worth keeping",
+   "post": "One good line.",
+   "level": 0,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "stopped tearing up early drafts",
+   "post": "Keeping the drafts.",
+   "level": 0,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote something true and didn't hide it",
+   "post": "True and unhidden.",
+   "level": 0,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "finished a piece in a single evening",
+   "post": "One evening, one piece.",
+   "level": 1,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "rewrote a piece until it sang",
+   "post": "Rewrote it till it sang.",
+   "level": 1,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote a piece for a friend's wedding",
+   "post": "Wedding words.",
+   "level": 1,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "found a voice that sounds like their own",
+   "post": "Sounds like me.",
+   "level": 1,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept a journal through a whole season",
+   "post": "A season of pages.",
+   "level": 1,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote a piece that made a reader laugh",
+   "post": "Made someone laugh.",
+   "level": 1,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to cut what wasn't working",
+   "post": "Cut it. Better.",
+   "level": 1,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote a letter so good it was passed around",
+   "post": "My letter got passed around.",
+   "level": 1,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a piece read aloud at a gathering",
+   "post": "Read aloud at a gathering.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "finished a long piece months in the making",
+   "post": "Months in the making. Done.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote words for a farewell that were kept and treasured",
+   "post": "Words for a farewell.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a piece copied out by hand by an admirer",
+   "post": "Someone copied it out by hand.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "found a reader who waits for every new page",
+   "post": "A reader who waits for more.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote in a new form and made it work",
+   "post": "New form, it works.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote through a hard time and came out with something good",
+   "post": "Something good from a hard time.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to write words for a celebration",
+   "post": "Words for a celebration.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote something new every week for a season",
+   "post": "Weekly, all season.",
+   "level": 2,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a piece copied and shared around town",
+   "post": "Being passed around town.",
+   "level": 3,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won a prize for a piece of writing",
+   "post": "Won a prize for my writing!",
+   "level": 3,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to write for the town's festival",
+   "post": "Writing for the festival.",
+   "level": 3,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "read to a full room and held it",
+   "post": "Full room, held.",
+   "level": 3,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "finished a long work and started the next one the same day",
+   "post": "Finished. Started the next.",
+   "level": 3,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a line quoted back by a stranger",
+   "post": "A stranger quoted me.",
+   "level": 3,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote a piece that was asked for again and again",
+   "post": "Asked for again.",
+   "level": 3,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to help a younger writer",
+   "post": "Helping a younger writer.",
+   "level": 3,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a whole collection of their work bound together",
+   "post": "A whole collection, bound.",
+   "level": 4,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won the most respected prize around",
+   "post": "The big prize.",
+   "level": 4,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a piece set to music",
+   "post": "Set to music!",
+   "level": 4,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was known by name for their writing",
+   "post": "Known by name.",
+   "level": 4,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a piece learned by heart by schoolchildren",
+   "post": "Kids learn it by heart now.",
+   "level": 4,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "wrote the piece read at the year's biggest celebration",
+   "post": "My words at the big celebration.",
+   "level": 4,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had a piece still being repeated years later",
+   "post": "Still repeated.",
+   "level": 4,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked to teach writing",
+   "post": "Teaching writing now.",
+   "level": 4,
+   "for": [
+    "writing",
+    "poetry"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
    ]
   }
  ],

@@ -288,7 +288,7 @@
    ]
   },
   {
-   "text": "took a complete beginner under their wing for a season",
+   "text": "spent a season showing a complete beginner the ropes",
    "post": "Showing a newcomer the ropes. Remembering how lost I was.",
    "level": 3,
    "for": [
@@ -299,7 +299,7 @@
    ]
   },
   {
-   "text": "was trusted to look after a friend's whole setup while they travelled",
+   "text": "was trusted with a friend's whole setup for a month away",
    "post": "Minding someone else's pride and joy. No pressure.",
    "level": 3,
    "for": [
@@ -435,7 +435,7 @@
    ]
   },
   {
-   "text": "heard a newcomer say they took it up because of them",
+   "text": "was told by a newcomer that it all started with watching over the fence",
    "post": "Someone started because of me. Best compliment there is.",
    "level": 4,
    "for": [
@@ -578,7 +578,7 @@
    ]
   },
   {
-   "text": "helped a neighbour dig and plan their first vegetable patch",
+   "text": "helped a neighbour dig and plan a first vegetable patch",
    "post": "Helped next door start their patch. The garden gang grows.",
    "level": 3,
    "for": [
@@ -919,7 +919,7 @@
    ]
   },
   {
-   "text": "talked a newer member through wiring their first branch",
+   "text": "talked a newer member through wiring a first branch",
    "post": "Helped someone wire their first branch. Their hands shook. Mine did too, once.",
    "level": 3,
    "for": [
@@ -1106,7 +1106,7 @@
    ]
   },
   {
-   "text": "showed a nervous friend inside a hive without either of them flinching",
+   "text": "showed a nervous friend inside a hive without a single flinch",
    "post": "Opened the hive for a friend. They stayed calm, so did I.",
    "level": 3,
    "for": [
@@ -1332,7 +1332,7 @@
    ]
   },
   {
-   "text": "had people come from the next village for cuttings from their garden",
+   "text": "had cuttings from their garden asked for by people from the next village",
    "post": "Visitors from two villages over, asking for cuttings.",
    "level": 4,
    "for": [
@@ -1371,6 +1371,540 @@
     "fantasy",
     "frontier",
     "victorian"
+   ]
+  },
+  {
+   "text": "kept a first row of seedlings alive to harvest",
+   "post": "They lived! All of them!",
+   "level": 0,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned which weeds to pull and which to leave",
+   "post": "Weed or not weed. I know now.",
+   "level": 0,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "dug a new bed by hand",
+   "post": "New bed, dug by hand.",
+   "level": 0,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "grew something from seed and ate it",
+   "post": "Seed to plate.",
+   "level": 0,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned when to plant by watching the weather",
+   "post": "Watching the sky now.",
+   "level": 0,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept the garden going through a dry spell",
+   "post": "Watered through the dry spell.",
+   "level": 1,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "saved seed from a favourite plant",
+   "post": "Saving seed for next year.",
+   "level": 1,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had the first flowers of the year in the house",
+   "post": "First flowers on the table.",
+   "level": 1,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to tell when a crop is ready by touch",
+   "post": "Ready by feel.",
+   "level": 1,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "grew plenty to share along the street",
+   "post": "Plenty to share.",
+   "level": 2,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "planted a new bed laid out to a plan of their own",
+   "post": "My own plan, planted.",
+   "level": 2,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "got a fussy plant to flower at last",
+   "post": "It flowered! Finally!",
+   "level": 2,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had passers-by stop to admire the garden",
+   "post": "People stop to look now.",
+   "level": 2,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "grew a whole bed of herbs for the kitchen",
+   "post": "Herbs for days.",
+   "level": 2,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won a prize for a vegetable at the fair",
+   "post": "Prize vegetable. Ribbon pinned up.",
+   "level": 3,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "grew enough to keep the kitchen supplied all summer",
+   "post": "Didn't buy greens all summer.",
+   "level": 3,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was asked for advice by a neighbour starting out",
+   "post": "Advice-giver now.",
+   "level": 3,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "brought a neglected plot back to life",
+   "post": "Neglected plot, back to life.",
+   "level": 3,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had the garden opened for visitors",
+   "post": "Garden open to visitors!",
+   "level": 4,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "grew a rare plant others had given up on",
+   "post": "The rare one thrives here.",
+   "level": 4,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "won best garden in town",
+   "post": "Best garden in town!",
+   "level": 4,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "became the one the whole street asks about plants",
+   "post": "The street's plant person.",
+   "level": 4,
+   "for": [
+    "gardening",
+    "herbs"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "opened the hive for the first time without fuss",
+   "post": "First look inside. Calm.",
+   "level": 0,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "learned to move slowly around the bees",
+   "post": "Slow and calm. The bees like that.",
+   "level": 0,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "took a first small harvest of honey",
+   "post": "First honey. Sticky everything.",
+   "level": 1,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "spotted the queen without help",
+   "post": "Found the queen myself.",
+   "level": 1,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "caught a swarm and settled it in a new hive",
+   "post": "Caught a swarm!",
+   "level": 2,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "got the bees through a hard winter",
+   "post": "Every hive made it through.",
+   "level": 2,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "sold honey at the market",
+   "post": "Honey for sale.",
+   "level": 3,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "had enough honey to give a jar to everyone at the table",
+   "post": "Honey for everyone.",
+   "level": 3,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "kept a whole row of thriving hives",
+   "post": "A row of hives, all humming.",
+   "level": 4,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
+   ]
+  },
+  {
+   "text": "was called in to help with a neighbour's swarm",
+   "post": "Called in for a swarm.",
+   "level": 4,
+   "for": [
+    "beekeeping"
+   ],
+   "eras": [
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "medieval",
+    "fantasy"
    ]
   }
  ],

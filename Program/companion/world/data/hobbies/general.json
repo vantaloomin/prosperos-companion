@@ -35,7 +35,7 @@
    ]
   },
   {
-   "text": "made a complete beginner's mess of their first attempt and laughed about it",
+   "text": "made a complete mess of their first attempt and laughed about it",
    "post": "Gloriously bad first attempt. Laughed the whole way through.",
    "level": 0,
    "for": [
@@ -552,7 +552,7 @@
    ]
   },
   {
-   "text": "had a stranger stop to watch them at {hobby}",
+   "text": "had a stranger stop and watch a whole {hobby} session",
    "post": "A stranger stopped to watch. Tried not to show off. Failed.",
    "level": 2,
    "for": [
@@ -563,7 +563,7 @@
    ]
   },
   {
-   "text": "met someone they had long admired and talked {hobby} for an hour",
+   "text": "talked {hobby} for an hour with someone long admired",
    "post": "Met someone I really admire. Talked for an hour.",
    "level": 2,
    "for": [
@@ -827,7 +827,7 @@
    ]
   },
   {
-   "text": "made a friend of their keenest rival from the next town over",
+   "text": "turned their keenest rival from the next town over into a friend",
    "post": "My rival is my friend now. Friendly competition.",
    "level": 3,
    "for": [
@@ -860,7 +860,7 @@
    ]
   },
   {
-   "text": "heard a newcomer say they took up {hobby} after watching them",
+   "text": "was named by a newcomer as the reason for taking up {hobby}",
    "post": "Someone started because of me. Best feeling.",
    "level": 3,
    "for": [
@@ -1025,7 +1025,7 @@
    ]
   },
   {
-   "text": "had someone travel a long way just to learn from them",
+   "text": "was sought out by someone who travelled a long way just to learn",
    "post": "Someone travelled for days to learn from me. Humbling.",
    "level": 4,
    "for": [
@@ -1036,7 +1036,7 @@
    ]
   },
   {
-   "text": "mentored a newcomer all the way to their first prize",
+   "text": "mentored a newcomer all the way to a first prize",
    "post": "My student won! Prouder than if I had.",
    "level": 4,
    "for": [

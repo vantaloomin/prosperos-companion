@@ -66,7 +66,7 @@ OUT = re.compile(r"\b(?:go out|hang out|get together|a date|date night|do someth
                  re.IGNORECASE)
 ASKING = re.compile(r"\b(?:let'?s|lets|we should|shall we|wanna|want to|would you like|do you want|you want to|"
                     r"how about|what about|are you free|you free|up for|care to|come with me|join me|"
-                    r"go out with me|take you|treat you)\b", re.IGNORECASE)
+                    r"go out with me|take you|treat you|can i come|could i come|can i join|could i join|tag along)\b", re.IGNORECASE)
 TOGETHER = re.compile(r"\b(?:we|us|together|with me|you and me|you and i)\b", re.IGNORECASE)
 # Staying in, a call or a story is not going out: "come over for dinner, I'll cook", "a movie on FaceTime", "want to
 # hear about my coffee disaster?", "walk me through it".
@@ -395,6 +395,8 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
         connection, definition, local_now.date()), data, firm, hobbies.patterns(connection, companion['active_timeline_id']))
     if not wanted or not data:
         return None
+    if wanted['activity'] == 'hobby' and not wanted['at']:
+        wanted = {**wanted, 'at': hobbies.usual_at(connection, wanted['hobby'], wanted['day'] or local_now.date())}
     found = when_free(connection, companion, {**wanted, 'firm': firm}, local_now)
     if not found:
         return None
@@ -444,6 +446,8 @@ def save_pastime(connection, companion, message, wanted, data, day: date, at: st
                                  companion['version']['definition'], data)
     if place is None:
         return None
+    if place.get('cost') == 'free' or place.get('kind') == 'home':
+        cost = 0.0
     outing_id = identifier()
     connection.execute(
         'INSERT INTO outings (id, companion_id, message_id, local_date, at_time, until_time, activity, asked_date, '
@@ -451,6 +455,7 @@ def save_pastime(connection, companion, message, wanted, data, day: date, at: st
         (outing_id, companion['id'], message['id'], day.isoformat(), at, until(at, 'hobby'), 'hobby',
          wanted['day'].isoformat() if wanted['day'] else None, encode(place), cost, timestamp))
     admin.make_room(connection, companion, day, at, parse(timestamp))
+    hobbies.outing_added(connection, companion, parse(timestamp))
     return get(connection, outing_id)
 
 
@@ -705,7 +710,8 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
             continue
         day = date.fromisoformat(outing['local_date'])
         place = outing['place']
-        fields = {'layer': 'shared_experience', 'subject': f"{ACTIVITIES[outing['activity']][5].capitalize()} "
+        pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
+        fields = {'layer': 'shared_experience', 'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} "
                   f"together at {place['name']}",
                   'value': f"Went out together for {what(outing)} on {day:%A, %B} {day.day}.",
                   'stated_at': stamp(min(now, window(outing, timezone)[1])), 'applies_from': None, 'applies_until': None}

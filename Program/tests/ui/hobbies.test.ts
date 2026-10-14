@@ -23,6 +23,8 @@ test('a pastime reads in words: where it came from, how far along and how often'
   assert.equal(hobbyNumbers(hobby()), null)
   assert.equal(hobbyNumbers(hobby({ numbers: { skill: 34, best: 36, sessions: 41, next_at: 38, talent: 1.1 } })),
     'Skill 34 of 100 (best 36), 41 sessions, next milestone at 38, talent 1.10.')
+  assert.equal(hobbyNumbers(hobby({ numbers: { skill: 3, best: 3, sessions: 1, next_at: 6, talent: 1 } })),
+    'Skill 3 of 100 (best 3), 1 session, next milestone at 6, talent 1.00.')
   assert.deepEqual(HOBBY_LEVELS.map((level) => level.label), ['Off', 'Light', 'True to life', 'Dramatic'])
 })
 
