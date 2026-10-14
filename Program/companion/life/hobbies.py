@@ -840,8 +840,8 @@ def invite_due(connection, companion: dict, now: datetime) -> list:
     local = now.astimezone(zone(version['timezone']))
     state = optional(connection, 'SELECT * FROM hobby_state WHERE timeline_id=?', (timeline_id,))
     level = realism(connection)
-    if not INVITES or not state or not 10 <= local.hour < 21 or not together.level(connection):
-        return []  # Getting together off (companion/life/together.py): nobody invites the user on their own.
+    if not INVITES or not state or not 10 <= local.hour < 21 or not together.invites(connection, companion):
+        return []  # Getting together off, or long distance (companion/life/together.py): no invitations over.
     window = local.date().toordinal() // INVITE_EVERY
     if generators.unit(state['seed'], 'invite?', window) >= INVITE_CHANCE[level]:
         return []

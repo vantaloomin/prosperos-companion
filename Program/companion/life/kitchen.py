@@ -933,8 +933,8 @@ def invite_due(connection, companion: dict, now: datetime) -> list:
     version = companion['version']
     definition, timeline_id = version['definition'], companion['active_timeline_id']
     local = now.astimezone(zone(version['timezone']))
-    if not INVITES or not 10 <= local.hour < 21 or not together.level(connection):
-        return []  # Getting together off (companion/life/together.py): nobody invites the user on their own.
+    if not INVITES or not 10 <= local.hour < 21 or not together.invites(connection, companion):
+        return []  # Getting together off, or long distance (companion/life/together.py): no invitations over.
     state = optional(connection, 'SELECT * FROM kitchen_state WHERE timeline_id=?', (timeline_id,))
     if not state:
         return []

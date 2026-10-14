@@ -80,6 +80,12 @@ def level(connection) -> int:
     return row['together_realism'] if row and row['together_realism'] in range(4) else DEFAULT_LEVEL
 
 
+def invites(connection, companion: dict) -> bool:
+    """Whether they may ask the user over or along on their own (kitchen.py, hobbies.py): the slider is not off, and
+    they live in the user's city (long distance gets weekend visits instead)."""
+    return bool(level(connection)) and not where.between(connection, companion['version']['definition']).long_distance
+
+
 # --- Places -----------------------------------------------------------------------------------------------------
 
 def your_place(connection) -> dict:
