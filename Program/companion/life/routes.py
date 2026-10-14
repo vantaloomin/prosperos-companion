@@ -19,6 +19,7 @@ from companion.life import (
     deck,
     encounters,
     feed,
+    long_distance,
     money,
     mood,
     network,
@@ -313,6 +314,17 @@ def change_call(request: Request, call_id: str, action: Literal['answer', 'decli
     database = db(request)
     with database.connect(write=True) as connection:
         return calls.act(connection, require_current(connection), call_id, action, database.clock.now())
+
+
+@router.post('/trips/{trip_id}/{action}')
+def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo']):
+    """Call off a weekend visit with the user that has not started (companion/life/long_distance.py), or undo that."""
+    database = db(request)
+    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo}[action]
+    with database.connect(write=True) as connection:
+        changed = change(connection, require_current(connection), trip_id, database.clock.now())
+    request.app.state.life.extend_agenda('return')
+    return changed
 
 
 @router.post('/outings/{outing_id}/{action}')

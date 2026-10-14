@@ -413,7 +413,7 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
         from companion.life import together
         together.note(connection, message, companion, timestamp)
         return None
-    if not data:
+    if not data or across_distance(connection, message, companion, wanted, timestamp):
         return None
     if wanted['activity'] == 'hobby' and not wanted['at']:
         wanted = {**wanted, 'at': hobbies.usual_at(connection, wanted['hobby'], wanted['day'] or local_now.date())}
@@ -422,6 +422,23 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
         return None
     day, at = found
     return save(connection, companion, message, wanted, data, day, at, timestamp)
+
+
+def across_distance(connection, message: dict, companion: dict, wanted: dict, timestamp: str) -> bool:
+    """Living in different cities, nothing is booked (companion/life/long_distance.py): while a weekend visit is under
+    way they are already together, and otherwise the reply to the user's ask says why they can't just meet up."""
+    from companion.life import long_distance, together
+    if long_distance.visiting(connection, companion, parse(message['created_at'])):
+        return True
+    between = long_distance.far(connection, companion)
+    if between is None:
+        return False
+    if message['role'] == 'user' and not optional(connection, 'SELECT id FROM together_asks WHERE message_id=?',
+                                                  (message['id'],)):
+        kind = 'visit-in' if wanted['activity'] == 'dinner-in' else 'out'
+        together.record(connection, companion, message, kind, {'why': 'far', 'city': between.their_city['name'],
+                                                               'km': between.km, 'out': kind == 'out'}, timestamp)
+    return True
 
 
 def save(connection, companion, message, wanted, data, day: date, at: str, timestamp: str) -> dict | None:

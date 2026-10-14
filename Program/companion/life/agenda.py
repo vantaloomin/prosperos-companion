@@ -30,6 +30,7 @@ from companion.life import (
     hobbies,
     home,
     kitchen,
+    long_distance,
     media,
     network,
     occasions,
@@ -128,6 +129,7 @@ def extend(connection, companion, world, now) -> dict:
         companion = by_id(connection, companion['id'])  # A new job or home shapes the days ahead.
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
     trips.plan_ahead(connection, companion, world, now)
+    long_distance.finish_due(connection, companion, now)
     outings.finish_due(connection, companion, now)
     if work.plan_ahead(connection, companion, world, now).get('shifts'):
         companion = by_id(connection, companion['id'])  # This week's shifts or gigs shape the days ahead.

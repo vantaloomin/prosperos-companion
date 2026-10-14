@@ -546,7 +546,7 @@ class Conversation:
                 status, error = 'withheld', 'Memories or the character changed while this reply was written.'
             now = self.database.clock.now()
             spoken = calls.speaking(connection, companion, now, attempt['reply_to'])
-            if status == 'complete' and not together.together_now(connection, companion, now) and not spoken:
+            if status == 'complete' and not together.in_person(connection, companion, now) and not spoken:
                 # Texting habits (typos, lowercase) stop while they are together in person (companion/life/together.py)
                 # or on the phone (companion/life/calls.py).
                 text = texting.restyle(text, companion['version']['definition'], attempt_id)

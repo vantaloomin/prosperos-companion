@@ -38,6 +38,7 @@ test('while together, their status line says where', () => {
   const status = { text: 'coffee first', set_by: 'app' as const, away: null, where: { state: 'together' as const, kind: 'yours', text: 'At your place' } }
   assert.deepEqual(shown(status), { text: 'At your place', away: 'pin' })
   assert.deepEqual(shown({ ...status, where: { state: 'apart', kind: 'long-distance', text: 'Long distance, Lisbon' } }), { text: 'coffee first', away: null })
+  assert.deepEqual(shown({ ...status, where: { state: 'together', kind: 'staying', text: 'Staying with you until Sunday' } }), { text: 'Staying with you until Sunday', away: 'luggage' })
 })
 
 test('on a call the strip says with whom and how long, with End call; a ring offers Answer and Decline', async () => {
@@ -64,4 +65,17 @@ test('on a call their status line says so', () => {
   const status = { text: 'coffee first', set_by: 'app' as const, away: null, where: { state: 'call' as const, kind: 'call', text: 'On a call' } }
   assert.deepEqual(shown(status), { text: 'On a call', away: 'phone' })
   assert.deepEqual(shown({ ...status, where: { state: 'apart', kind: 'ringing', text: 'Calling you' } }), { text: 'Calling you', away: 'phone' })
+})
+
+test('a weekend visit across the distance says who is staying with whom, and until when', async () => {
+  const { canCall, notTexting } = await import('../../src/features/conversation/whereText.ts')
+  const visit = { id: 't1', direction: 'to-you' as const, city_name: 'Baltimore', start_date: '2026-10-17', end_date: '2026-10-18', leave_at: '16:00' }
+  const staying: WhereState = { state: 'together', kind: 'staying', text: 'Staying with you until Sunday', outing: null, call: null, visit }
+  const line = stripLine(staying, 'Mira')
+  assert.equal(line?.lead, 'Mira is staying with you')
+  assert.match(line?.tail ?? '', /^ until Sun/)
+  assert.equal(stripAction(staying), null)
+  assert.ok(notTexting(staying) && !canCall(staying))
+  const hosting: WhereState = { ...staying, kind: 'hosting', visit: { ...visit, direction: 'host', city_name: 'Chicago' } }
+  assert.equal(stripLine(hosting, 'Mira')?.lead, 'Staying with Mira in Chicago')
 })

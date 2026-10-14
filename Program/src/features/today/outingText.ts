@@ -12,10 +12,12 @@ export interface Outing {
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
   ended_at: string | null; undo: boolean
 }
+/** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; '' for a trip of their own. `undo` is true for a visit called off a little while ago. */
 export interface Trip {
   id: string; start_date: string; end_date: string; city_id: string; city_name: string; kind: 'getaway' | 'family'
   company: { id: string; name: string; role: string } | null; landmark: { name: string; summary: string } | null
   sunny: boolean; cost_text: string; state: OutingState; postcard_message_id: string | null
+  visit: '' | 'to-you' | 'host'; undo: boolean
 }
 export interface Together { outings: Outing[]; trips: Trip[] }
 
@@ -97,8 +99,10 @@ export function tripDays(trip: Pick<Trip, 'start_date' | 'end_date'>): string {
   return `${dayText(trip.start_date)} – ${dayText(trip.end_date)}`
 }
 
-/** "A weekend in New York with Dana", "Visiting Mom in Chicago". */
-export function tripTitle(trip: Trip): string {
+/** "A weekend in New York with Dana", "Visiting Mom in Chicago"; a visit, "Mira comes to stay with you", "You stay with Mira in Chicago". */
+export function tripTitle(trip: Trip, name = ''): string {
+  if (trip.visit === 'to-you') return `${name} comes to stay with you`
+  if (trip.visit === 'host') return `You stay with ${name} in ${trip.city_name}`
   const nights = (Date.parse(trip.end_date) - Date.parse(trip.start_date)) / 86_400_000
   const length = nights >= 2 ? 'A long weekend' : 'A weekend'
   if (trip.kind === 'family' && trip.company) return `Visiting ${trip.company.name} in ${trip.city_name}`

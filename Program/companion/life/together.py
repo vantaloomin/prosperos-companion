@@ -198,6 +198,12 @@ def together_now(connection, companion: dict, now: datetime) -> dict | None:
                  if outings.state(outing, timezone, now) == 'now'), None)
 
 
+def in_person(connection, companion: dict, now: datetime) -> bool:
+    """Together right now: out, at one of their places, or on a weekend visit (companion/life/long_distance.py)."""
+    from companion.life import long_distance
+    return bool(together_now(connection, companion, now) or long_distance.visiting(connection, companion, now))
+
+
 def outing_today(connection, companion: dict, day: date, now: datetime) -> bool:
     """Plans with the user still to come today (a visit now would run into them)."""
     timezone = companion['version']['timezone']
@@ -254,6 +260,9 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     now = parse(message['created_at'])
     if ended_by_words(connection, companion, message, now):
         return True
+    from companion.life import long_distance
+    if long_distance.note(connection, message, companion, timestamp):
+        return True  # A weekend visit across the distance, or anything about visiting while one is under way.
     kind = asked(message['text'])
     if kind is None or optional(connection, 'SELECT id FROM outings WHERE message_id=?', (message['id'],)) or \
             optional(connection, 'SELECT id FROM together_asks WHERE message_id=?', (message['id'],)):
@@ -268,10 +277,10 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     at, _said = own_plans.clock(message['text'])
     later = (day and day != local.date()) or (at and at > (local + timedelta(hours=1)).strftime('%H:%M'))
     if later and kind != 'door':
-        between = where.between(connection, version['definition'])
-        if between.long_distance:
-            return record(connection, companion, message, kind, {'why': 'far', 'city': between.their_city['name'],
-                                                                 'km': between.km}, timestamp)
+        if long_distance.far(connection, companion):
+            # "Come over Saturday?" from another city: a weekend visit, when one works.
+            return long_distance.request(connection, companion, message, long_distance.HOST if activity == 'visit-in'
+                                         else long_distance.TO_YOU, day or local.date(), timestamp)
         visit_later(connection, companion, message, activity, day or local.date(), at, timestamp)
         return True
     reason = why_not(connection, companion, now)
@@ -316,14 +325,17 @@ def turned_away(outing: dict, timezone: str) -> bool:
 
 ASKED = {'visit-yours': 'you to come over to their place now', 'dinner-yours': 'you to come over to theirs for dinner',
          'visit-in': 'to come over to your place now', 'door': 'to be let in: they say they are at your door',
-         'call': 'to talk on the phone now'}  # On a call (companion/life/calls.py).
+         'call': 'to talk on the phone now',  # On a call (companion/life/calls.py).
+         # Long distance (companion/life/long_distance.py) and going out (outings.py) from another city.
+         'weekend-to-you': 'you to come and stay with them for a weekend',
+         'weekend-host': 'to come and stay with you for a weekend', 'out': 'to meet up and go out together'}
 
 
 def reason_text(reason: dict) -> str:
     why = reason['why']
     if why == 'far':
         far = f", about {round(reason['km']):,} km away" if reason.get('km') else ''
-        return f"you live in {reason['city']}{far}, so you can't just come over"
+        return f"you live in {reason['city']}{far}, so you can't just {'meet up' if reason.get('out') else 'come over'}"
     if why == 'busy':
         return f"you are at {reason['label']} until {reason['until']}"
     if why == 'asleep':
@@ -334,6 +346,8 @@ def reason_text(reason: dict) -> str:
         return f"you are out ({reason['label']}) until about {reason['until']}"
     if why == 'plans':
         return 'you already have plans with them'
+    if why in FAR_REASONS:
+        return FAR_REASONS[why]
     return 'it is getting late for you, and you have an early night or work soon'
 
 
@@ -363,6 +377,10 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     return result
 
 
+FAR_REASONS = {'money': "you can't afford the trip this pay period",
+               'weekends': 'you have no free weekend in the next few weeks',
+               'no-time': 'it is too far for just a weekend, and you have no time off coming up'}
+
 ENDED = {'visit-yours': "You left the user's place a little while ago.", 'dinner-yours':
          "You left the user's place after dinner a little while ago.",
          'visit-in': 'The user headed home from your place a little while ago.',
@@ -376,10 +394,13 @@ def state(connection, companion: dict, now: datetime) -> dict:
     """{state: 'together'|'apart'|'call', kind, text, outing}: what the chat strip, the chat list and the Character page
     show. Apart in the same city says nothing; long distance says where and the time difference. On a call, or
     ringing, says so (companion/life/calls.py)."""
-    from companion.life import calls
+    from companion.life import calls, long_distance
     on_phone = calls.state(connection, companion, now)
     if on_phone:
         return {**on_phone, 'outing': None}
+    weekend = long_distance.state(connection, companion, now)
+    if weekend:
+        return {**weekend, 'outing': None}  # A weekend visit across the distance, under way.
     found = together_now(connection, companion, now)
     if found and not found['ended_at']:
         return {'state': 'together', 'kind': kind_of(found), 'text': together_text(found, companion), 'outing': found}
@@ -439,8 +460,9 @@ def view(connection, companion: dict, now: datetime) -> dict:
                            < NOT_NOW_WINDOW}
     else:
         found['outing'] = None
-    from companion.life import calls
+    from companion.life import calls, long_distance
     found['call'] = calls.view(connection, companion, now)
+    found['visit'] = long_distance.view(connection, companion, now)
     return found
 
 

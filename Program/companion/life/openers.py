@@ -40,6 +40,7 @@ from companion.life import (
     encounters,
     hobbies,
     kitchen,
+    long_distance,
     media,
     occasions,
     own_plans,
@@ -418,7 +419,7 @@ PAST_WAITING = {'occasion', 'postcard'}
 # A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early; so does a
 # call (companion/life/calls.py), and the text after a missed one.
 FINDERS = [occasion, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
-           kitchen.invite_due, together.suggest_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
+           kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
@@ -445,7 +446,7 @@ def held(connection, companion, life, now, occasion: bool = False) -> str | None
     slot, _next = routine.current_and_next(schedule, version['timezone'], now)
     if slot and slot.block.kind in routine.RESTING:
         return 'asleep'
-    if together.together_now(connection, companion, now):
+    if together.in_person(connection, companion, now):
         return 'together'  # In person with the user (companion/life/together.py): nobody texts the person beside them.
     if calls.blocked(connection, companion, now):
         return 'call'  # On the phone with the user, or ringing them (companion/life/calls.py).

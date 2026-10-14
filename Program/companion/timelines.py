@@ -258,7 +258,8 @@ def copy_recall(connection, parent_id, new_id, ids, cutoff_date):
          'source_message_ids': encode([ids[source] for source in decode(row['source_message_ids'])])}
         for row in many(connection, 'SELECT * FROM memory_summaries WHERE timeline_id=? AND day<=?', (parent_id, cutoff_date))
         if all(source in ids for source in decode(row['source_message_ids']))])
-    insert(connection, 'trips', [{**row, 'id': identifier(), 'timeline_id': new_id, 'company': remap(row['company'], ids)}
+    insert(connection, 'trips', [{**row, 'id': identifier(), 'timeline_id': new_id, 'company': remap(row['company'], ids),
+                                  'message_id': ids.get(row['message_id'])}
                                  for row in many(connection, 'SELECT * FROM trips WHERE timeline_id=? AND start_date<=?',
                                                  (parent_id, cutoff_date))])
     insert(connection, 'history_corrections', [
