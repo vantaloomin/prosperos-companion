@@ -239,6 +239,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .dating-stamp.like { left: 20px; color: var(--accent-hover); transform: rotate(-12deg); }
 .dating-stamp.pass { right: 20px; color: var(--danger); transform: rotate(12deg); }
 .dating-empty { margin-bottom: 24px; }
+.dating-again { min-height: 44px; padding-inline: 0; }
+.dating-again svg { width: 16px; height: 16px; }
 .dating-matches ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .dating-matches li { padding: 12px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
 .dating-date { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }

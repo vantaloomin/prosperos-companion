@@ -64,7 +64,7 @@ function NowRow({ item, view, save }: { item: MediaNow; view: MediaView; save: S
       <Icon aria-hidden="true" className="media-icon" />
       <div className="media-body">
         <p><Titled text={item.text} title={item.title} kind={item.kind} />{item.set_by_you && <span className="badge media-mine">Set by you</span>}</p>
-        {item.recommended && <p className="subtle">{recommendedNote(item)}</p>}
+        {item.recommended && <p className="subtle"><Titled text={recommendedNote(item)} title={item.waiting ?? ''} kind="book" /></p>}
         {numbers && <p className="subtle">{numbers}</p>}
         {editing
           ? <ChangeForm item={item} bank={view.bank} save={save} onDone={() => setEditing(false)} />

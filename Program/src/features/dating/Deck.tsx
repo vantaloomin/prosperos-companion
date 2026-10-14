@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { Heart, X } from 'lucide-react'
+import { Heart, RotateCcw, X } from 'lucide-react'
 import type { Dating as DatingData, DatingCard } from '../../types'
 import { reducedMotion } from '../../motion'
 import { cardHeading } from './datingText'
@@ -36,7 +36,7 @@ export function Deck({ data, onSwipe, onUndo, onPassedAgain }: DeckProps) {
   const takeBack = (busy: boolean) => said && undo && undoShown(said.key, data.undo, busy) ? <UndoButton said={said} onUndo={undo} /> : null
   if (!card) {
     return <div className="dating-empty">{heard}<p className="subtle">{data.words.empty} {takeBack(false)}</p>
-      <button type="button" className="text-button" onClick={onPassedAgain}>See people you passed on again</button></div>
+      <button type="button" className="text-button dating-again" onClick={onPassedAgain}><RotateCcw aria-hidden="true" />See people you passed on again</button></div>
   }
   return <>
     {heard}
