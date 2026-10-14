@@ -29,7 +29,7 @@ from companion import backup, cast, characters, dating, lore, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
-from companion.life import pets
+from companion.life import pets, where
 from companion.models import CharacterDefinition
 from companion.world import catalog, changes, custom, generators, mix, townsfolk
 
@@ -125,6 +125,7 @@ def first_registry(database: Database) -> dict:
         city = city_of(connection)
     world = {'id': identifier(), 'name': city['name'], 'persona_id': persona['id'], 'folder': '',
              'city_id': city['id'], 'created_at': timestamp, 'used_at': timestamp}
+    world['home'] = where.picked(city, world['id'])
     return {'version': 1, 'active': world['id'], 'personas': [persona], 'worlds': [world]}
 
 
@@ -145,6 +146,11 @@ def follow_first_companion(database: Database):
         return
     others = {**data, 'worlds': [item for item in data['worlds'] if item['id'] != world['id']]}
     world |= {'name': unique_name(others, city['name']), 'city_id': city['id']}
+    with database.connect(write=True) as connection:
+        # A home the app picked moves with the world's city; one the user picked stays.
+        if settle_home(connection, world):
+            write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now(),
+                          world['home'])
     save(database.root, data)
 
 
@@ -165,19 +171,36 @@ def start(database: Database):
         database.use(path)
     mix.load(database)
     with database.connect(write=True) as connection:
-        write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now())
+        if settle_home(connection, world):
+            save(database.root, data)
+        write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now(),
+                      world['home'])
 
 
 # Personas in a world ------------------------------------------------------------------------------------
 
-def write_persona(connection, persona: dict, timestamp: str):
-    """Who the user is in this world, for the prompt (companion/memory/context.py) and Matchlight."""
+def write_persona(connection, persona: dict, timestamp: str, home: dict | None = None):
+    """Who the user is in this world, and where they live in it (`home`, the world's), for the prompt
+    (companion/memory/context.py), Matchlight and Where you are (companion/life/where.py)."""
+    home = home or {}
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
-                       'townsfolk_key, town_seed, pets) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood) '
+                       'VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                        (persona['id'], persona['name'], persona['gender'], persona['age'], persona['about'],
                         timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', ''),
-                        json.dumps(persona.get('pets') or [])))
+                        json.dumps(persona.get('pets') or []), home.get('city_id', ''), home.get('neighbourhood', '')))
     connection.execute('UPDATE life_settings SET user_birthday=? WHERE id=1', (persona.get('birthday') or '',))
+
+
+def world_city(connection, world: dict, cities: dict[str, dict]) -> dict:
+    """The city the world is in: the one it was made in, else (a city since deleted) its companion's."""
+    return cities.get(world.get('city_id') or '') or city_of(connection)
+
+
+def settle_home(connection, world: dict) -> bool:
+    """The world's home for its persona, picked when it has none (companion/life/where.py). True when it changed."""
+    cities = where.known_cities(connection)
+    return where.settle(world, world_city(connection, world, cities), cities)
 
 
 def read_back(database: Database, data: dict):
@@ -208,21 +231,27 @@ def companions_in(path: Path) -> list[str]:
         return []
 
 
-def world_view(database: Database, data: dict, world: dict) -> dict:
+def world_view(database: Database, data: dict, world: dict, cities: dict[str, dict] | None = None) -> dict:
+    if cities is None:
+        with database.connect() as connection:
+            cities = where.known_cities(connection)
     return {**world, 'active': world['id'] == data['active'], 'first': not world['folder'],
-            'companions': companions_in(world_path(database.home, world))}
+            'companions': companions_in(world_path(database.home, world)),
+            'home': where.view(world.get('home'), cities)}
 
 
 def view(database: Database) -> dict:
     data = registry(database)
     active = found(data['worlds'], data['active'], 'world')
+    with database.connect() as connection:
+        cities = where.known_cities(connection)
     personas = [{**persona, 'active': persona['id'] == active['persona_id'],
-                 'worlds': [world_view(database, data, world) for world in
+                 'worlds': [world_view(database, data, world, cities) for world in
                             sorted(data['worlds'], key=lambda item: item['used_at'], reverse=True)
                             if world['persona_id'] == persona['id']]}
                 for persona in data['personas']]
     return {'active_world_id': active['id'], 'active_persona_id': active['persona_id'],
-            'world': world_view(database, data, active),
+            'world': world_view(database, data, active, cities),
             'persona': find(personas, active['persona_id']), 'personas': personas, 'genders': list(GENDERS)}
 
 
@@ -293,9 +322,11 @@ def switch(state, world_id: str) -> dict:
     carry_settings(target, previous, database.now())
     data['active'], world['used_at'] = world['id'], database.now()
     database.world = world['id']
-    save(database.root, data)
     with database.connect(write=True) as connection:
-        write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now())
+        settle_home(connection, world)
+        write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now(),
+                      world['home'])
+    save(database.root, data)
     recover(state)
     return view(database)
 
@@ -339,7 +370,7 @@ def starter(connection, data: dict, seed: str, timestamp: str, today: date, pers
 
 
 def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None,
-          town_mix: dict | None = None):
+          town_mix: dict | None = None, home: dict | None = None):
     """A new world's database: the user's settings and the persona; when the user became one of a town's people
     (`town`), also a starter companion from that person's circle. Its townsfolk mix (companion/world/mix.py) is
     `town_mix`, else the one of the world it was made from."""
@@ -352,7 +383,7 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
     with made.connect(write=True) as connection, mix.using(town_mix):
         if town_mix != mix.DEFAULTS:
             mix.write(connection, town_mix, made.now())
-        write_persona(connection, persona, made.now())
+        write_persona(connection, persona, made.now(), home)
         data = dating.city_for(connection, city_id, seed[:16] if town is None else town)
         if town is not None:
             today = made.clock.now().astimezone(zone(data['timezone'])).date()
@@ -388,14 +419,15 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
         city = story.city_data(connection, city_id) if city_id else city_of(connection)
     folder = f'{FOLDER}/{world_id}'
     path = database.root / folder / DATABASE
+    home = where.picked(city, world_id)
     try:
-        build(database, path, persona, city['id'], world_id, town, town_mix)
+        build(database, path, persona, city['id'], world_id, town, town_mix, home)
     except BaseException:
         shutil.rmtree(path.parent, ignore_errors=True)
         raise
     timestamp = database.now()
     world = {'id': world_id, 'name': (name or '').strip()[:80] or unique_name(data, city['name']),
-             'persona_id': persona['id'], 'folder': folder, 'city_id': city['id'],
+             'persona_id': persona['id'], 'folder': folder, 'city_id': city['id'], 'home': home,
              'created_at': timestamp, 'used_at': timestamp}
     data['worlds'].append(world)
     save(database.root, data)
@@ -520,7 +552,7 @@ def update_persona(database: Database, persona_id: str, body) -> dict:
     active = found(data['worlds'], data['active'], 'world')
     if active['persona_id'] == persona_id:
         with database.connect(write=True) as connection:
-            write_persona(connection, persona, database.now())
+            write_persona(connection, persona, database.now(), active.get('home'))
     return view(database)
 
 
@@ -536,7 +568,41 @@ def update_world(database: Database, world_id: str, body) -> dict:
         world['persona_id'] = persona['id']
         if world['id'] == data['active']:
             with database.connect(write=True) as connection:
-                write_persona(connection, persona, database.now())
+                write_persona(connection, persona, database.now(), world.get('home'))
+    save(database.root, data)
+    return view(database)
+
+
+def home_choices(database: Database, world_id: str, city_id: str | None = None) -> dict:
+    """Where the persona can live in a world (companion/life/where.py): its home, the cities they can pick and the
+    neighbourhoods of `city_id` (else of their home's city)."""
+    data = registry(database)
+    world = found(data['worlds'], world_id, 'world')
+    with database.connect() as connection:
+        cities = where.known_cities(connection)
+        here = world_city(connection, world, cities)
+    listed = where.choices(here, cities)
+    shown = cities.get(city_id or (world.get('home') or {}).get('city_id') or '') or here
+    return {'home': where.view(world.get('home'), cities),
+            'cities': [{'id': city['id'], 'name': city['name'], 'region': city.get('region', ''),
+                        'country': city.get('country', ''), 'category': catalog.category(city)} for city in listed],
+            'city_id': shown['id'],
+            'neighbourhoods': [{'id': hood['id'], 'name': hood['name']}
+                               for hood in sorted(shown.get('neighborhoods') or [], key=lambda hood: hood['name'])]}
+
+
+def change_home(database: Database, world_id: str, body) -> dict:
+    """The user moves: a city they can live in from this world and a neighbourhood there (blank lets the app pick)."""
+    data = registry(database)
+    world = found(data['worlds'], world_id, 'world')
+    with database.connect(write=True) as connection:
+        cities = where.known_cities(connection)
+        city = cities.get(body.city_id)
+        require(city is not None, 'That city is no longer here.', 404)
+        where.change(world, world_city(connection, world, cities), city, body.neighbourhood or '')
+        if world['id'] == data['active']:
+            write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now(),
+                          world['home'])
     save(database.root, data)
     return view(database)
 

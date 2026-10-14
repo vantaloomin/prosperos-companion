@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request
 
 from companion import worlds
-from companion.models import Become, NewPersona, NewWorld, PersonaInput, WorldChange
+from companion.models import Become, HomeChange, NewPersona, NewWorld, PersonaInput, WorldChange
 
 router = APIRouter(prefix='/api/worlds')
 
@@ -33,6 +33,17 @@ async def become(request: Request, body: Become):
 @router.patch('/{world_id}')
 def change_world(request: Request, world_id: str, body: WorldChange):
     return worlds.update_world(db(request), world_id, body)
+
+
+@router.get('/{world_id}/home')
+def home(request: Request, world_id: str, city_id: str | None = None):
+    """Where the persona lives in this world, the cities they can live in and the neighbourhoods of `city_id`."""
+    return worlds.home_choices(db(request), world_id, city_id)
+
+
+@router.put('/{world_id}/home')
+def change_home(request: Request, world_id: str, body: HomeChange):
+    return worlds.change_home(db(request), world_id, body)
 
 
 @router.delete('/{world_id}')

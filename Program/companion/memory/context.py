@@ -45,6 +45,7 @@ from companion.life import (
     trips,
     upkeep,
     wardrobe,
+    where,
     work,
 )
 from companion.life import mood as moods
@@ -286,7 +287,9 @@ def persona_text(connection, today: date | None = None) -> str | None:
     if not row:
         return None
     parts = [f"Name: {row['name']}" if row['name'].strip() else '', f"Age: {row['age']}" if row['age'] else '',
-             f"Gender: {row['gender']}" if row['gender'] else '', row['about'].strip()]
+             f"Gender: {row['gender']}" if row['gender'] else '',
+             # Where they live in this world (companion/life/where.py): the app's pick until they change it.
+             f'Lives in: {home}' if (home := where.home_text(connection)) else '', row['about'].strip()]
     # The user's own pets, as they wrote them, and how each is today (companion/life/pets.py).
     if found := pets.persona_lines(connection, today or date.today()):
         parts.append('Pets: ' + '; '.join(found))
