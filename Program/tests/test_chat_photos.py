@@ -93,7 +93,8 @@ def test_a_photo_of_the_current_moment_becomes_the_feed_image(client, life, cloc
     photo = reply['photo']
     assert photo['status'] == 'queued' and photo['in_feed'] is False
     # The reply knew what it was sending, told as "you" (the feed keeps the summary about them).
-    assert re.sub(r'(^|\. )Mira\b', r'\1You', photo['summary']) in photo_section(provider)  # Every sentence about Mira.
+    told = re.sub(r'(^|\. )Mira\b', r'\1You', photo['summary']).replace(' Mira ', ' you ')  # Every mention of Mira.
+    assert told in photo_section(provider)
     drain(client)
     shown = client.get(f"/api/images/photos/{reply['id']}").json()
     assert shown['status'] == 'completed' and shown['ref']
