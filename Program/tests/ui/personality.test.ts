@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { PersonalitySliders, PersonalityTrait } from '../../src/types.ts'
-import { TYPES, chipsOf, moved, released, sameSliders, sourceLabel, typeOf } from '../../src/features/character/personalityText.ts'
+import { TYPES, chipsOf, moved, released, sameSliders, sourceLabel, stillShown, typeOf } from '../../src/features/character/personalityText.ts'
 
 const TRAITS: PersonalityTrait[] = [
   { key: 'social', name: 'How social', low: 'Reserved', high: 'Outgoing', shows: ['a', 'b', 'c'] },
@@ -34,4 +34,10 @@ test('moving a slider makes it the user\'s; handing it back leaves it to the rol
   assert.equal(sourceLabel('rolled'), 'Rolled')
   assert.ok(sameSliders(sliders, { social: rolled(2) }))
   assert.ok(!sameSliders(sliders, moved(sliders, 'social', 2)))
+})
+
+test('while a moved slider is checked the form keeps the answer it had, so the panel stays and keeps focus', () => {
+  const shown = { sliders: { social: rolled(2) }, chips: ['Outgoing'], type: null }
+  assert.equal(stillShown(shown), shown)
+  assert.equal(stillShown(undefined), undefined)
 })

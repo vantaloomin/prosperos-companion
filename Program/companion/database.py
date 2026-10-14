@@ -307,6 +307,8 @@ def initialize(connection, timestamp: str):
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     connection.execute('CREATE INDEX IF NOT EXISTS memories_person ON memories(person_id)')
     backfill_subject_keys(connection)
+    from companion.imports.characters import card_sliders_upgrade
+    card_sliders_upgrade(connection)
     from companion.text_models import adopt_legacy, split_recall
     adopt_legacy(connection, timestamp)
     split_recall(connection, timestamp)

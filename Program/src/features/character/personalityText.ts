@@ -9,6 +9,12 @@ export const TYPES = ['ENFJ', 'ENFP', 'ENTJ', 'ENTP', 'ESFJ', 'ESFP', 'ESTJ', 'E
 /** Which slider each of a type's letters sets (E/I outgoing, N/S curious, F/T warm, J/P organized). */
 const TYPE_LETTERS: [PersonalityKey, string, string][] = [['social', 'E', 'I'], ['curiosity', 'N', 'S'], ['warmth', 'F', 'T'], ['order', 'J', 'P']]
 
+/** While the app checks a moved slider, the form keeps showing the answer it had (the query's placeholder), so the
+ * Personality panel never empties and the slider being moved keeps the keyboard focus. */
+export function stillShown<T>(previous: T | undefined): T | undefined {
+  return previous
+}
+
 /** A stop's words: an end's words, or "In between". */
 export function levelLabel(trait: PersonalityTrait, level: number): string {
   return level === 0 ? trait.low : level === 2 ? trait.high : 'In between'
