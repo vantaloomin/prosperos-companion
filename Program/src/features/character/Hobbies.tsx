@@ -7,6 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { HOBBIES_KEY, gaveUpLine, hobbyDate, hobbyNumbers, levelLabel, metaParts, recentLine, sourceText } from './hobbiesText'
+import { panelTitle } from './panelText'
 
 type Act = (action: () => Promise<HobbiesView>, done: string | null) => Promise<boolean>
 type Patch = (hobby: Hobby, body: object, done: string | null) => Promise<boolean>
@@ -27,10 +28,9 @@ export function Hobbies({ name }: { name: string }) {
       return false
     }
   }
-  const first = name.split(' ')[0]
   return (
     <section className="home-panel hobbies-panel" aria-labelledby="hobbies-heading">
-      <h2 id="hobbies-heading">{first}'s pastimes</h2>
+      <h2 id="hobbies-heading">{panelTitle(name, 'pastimes')}</h2>
       <p className="subtle">What they do with their free time, from their interests and their city. They get better with practice, and some weeks one slides; how often depends on Settings &gt; Realism.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {hobbies.isPending && <Loading label="Loading their pastimes" />}

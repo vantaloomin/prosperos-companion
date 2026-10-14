@@ -317,3 +317,17 @@ def test_in_older_eras_errands_out_keep_daylight_hours():
     found = taken.fits(saturday, None, True, False)
     assert found is None or found < '18:00'
     assert taken.fits(saturday, None, False, False) >= '18:00'  # Paperwork at home can wait for the evening.
+
+
+def test_errands_planned_at_an_old_price_are_priced_again_once(client, mira):
+    """Errands planned before small errands cost an everyday price kept theirs ("Drop a ring for resizing $220")."""
+    old = add(client, key='admin:test:ring', title='Drop a ring for resizing', day=TUESDAY, spend='$', cost=220)
+    fair = add(client, key='admin:test:stamps', title='Buy stamps', day=TUESDAY, spend='$', cost=9)
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        from companion.characters import require_current
+        companion = require_current(connection)
+        assert admin.reprice_old(connection, companion, database.clock.now()) == 1
+        assert admin.reprice_old(connection, companion, database.clock.now()) == 0
+        costs = {row['key']: row['cost'] for row in connection.execute('SELECT key, cost FROM life_admin')}
+    assert 0 < costs[old['key']] <= 20 and costs[fair['key']] == 9

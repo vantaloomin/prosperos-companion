@@ -248,11 +248,25 @@ OWN_BIRTHDAY_LINE = re.compile(r' (?:treated themselves.*|went out\b.* with .+) 
 OWN_BIRTHDAY_SAID = (('treated themselves', 'treated {themselves}'), ('for their birthday', 'for {their} birthday'))
 OWN = (('went home to their ', 'went home to {their} '), ('celebrated their birthday', 'celebrated {their} birthday'),
        ('retracing their steps', 'retracing {their} steps'), ('a cafe they stopped at', 'a cafe {they} stopped at'),
-       ('one they like almost', 'one {they} like{s} almost'))
+       ('one they like almost', 'one {they} like{s} almost'),
+       # Looks that change (companion/life/grooming.py).
+       ('had their nails done', 'had {their} nails done'), ('painted their nails', 'painted {their} nails'),
+       ('dyed their hair', 'dyed {their} hair'), ('had their hair ', 'had {their} hair '),
+       ('grow their hair out', 'grow {their} hair out'))
+# Looks changes are stored saying "their"; ones written before kept "her" or "his", which read wrong in a post ("I had
+# her nails done") and beside product copy ("they had her nails done").
+OLD_LOOKS = re.compile(r'\b(?:had (?:her|his) (?:nails done|hair (?:put in|cut into|restyled into|dyed|split-dyed))|'
+                       r'painted (?:her|his) nails|dyed (?:her|his) hair|grow (?:her|his) hair out)\b')
+
+
+def neutral_looks(text: str | None) -> str | None:
+    """A looks change as stored now: "had her nails done" is "had their nails done"."""
+    return OLD_LOOKS.sub(lambda found: re.sub(r'\b(?:her|his)\b', 'their', found.group(0)), text) if text else text
 
 
 def said(text: str | None, definition: dict, found: dict | None = None) -> str | None:
     """A day event's summary with the companion's own pronouns, when those are known (`found` gives other forms)."""
+    text = neutral_looks(text)
     if text and TRADITION_MARK in text:
         text = pronouns.said(text, TRADITION_OWN, definition, found)
     if text and OWN_BIRTHDAY_LINE.search(text):
@@ -576,42 +590,59 @@ class Thread:
     opening: str
     endings: tuple[str, ...]
     days: tuple[int, int] = (2, 5)
+    # The eras of the home city it fits ('any' for every one): no record player or video in Camelot.
+    eras: tuple[str, ...] = ('any',)
 
 
+MODERN_ONLY = ('modern',)
+# Cities with shops, cafes, novels and houseplants.
+TOWN_ERAS = ('modern', 'jazz-age', 'victorian', 'steampunk')
+OLD_ERAS = ('medieval', 'fantasy', 'frontier', 'victorian', 'steampunk')
 THREADS = (
     Thread('repair', '{name} reported a leaky faucet to the landlord and is waiting for the repair.',
            ('The landlord finally sent someone to fix {name}\'s leaky faucet.',
-            '{name} gave up waiting and fixed the leaky faucet with the help of a video.')),
+            '{name} gave up waiting and fixed the leaky faucet with the help of a video.'), eras=MODERN_ONLY),
     Thread('parcel', '{name} ordered a secondhand record player and is waiting for it to arrive.',
            ('{name}\'s record player arrived, and it works.',
-            'The record player arrived with a cracked lid, but it still plays.')),
+            'The record player arrived with a cracked lid, but it still plays.'), eras=MODERN_ONLY),
     Thread('waitlist', '{name} joined the waitlist for an evening pottery class.',
            ('A spot opened up in the pottery class, and {name} took it.',
-            'The pottery class filled up, so {name} is on the list for next term.')),
+            'The pottery class filled up, so {name} is on the list for next term.'), eras=MODERN_ONLY),
     Thread('novel', '{name} started a long novel for a friend\'s book club.',
            ('{name} finished the novel just in time for book club.',
-            '{name} went to book club only halfway through the novel and enjoyed it anyway.')),
+            '{name} went to book club only halfway through the novel and enjoyed it anyway.'), eras=TOWN_ERAS),
     Thread('friend-visit', 'An old friend of {name}\'s might come to visit, but nothing is settled yet.',
            ('The friend booked the trip, and {name} is already making a list of places to go.',
             'The friend\'s visit fell through for now; they promised to try again in the spring.')),
     Thread('plant', '{name} is trying to rescue a drooping houseplant.',
            ('{name}\'s houseplant perked up with new leaves.',
-            'The houseplant did not make it; {name} kept a cutting just in case.')),
+            'The houseplant did not make it; {name} kept a cutting just in case.'), eras=TOWN_ERAS),
     Thread('lost-scarf', '{name} lost a favorite scarf somewhere around town and is retracing their steps.',
            ('Someone had handed in {name}\'s scarf at a cafe they stopped at.',
-            '{name} gave up on the scarf and found a new one they like almost as much.')),
+            '{name} gave up on the scarf and found a new one they like almost as much.'), eras=TOWN_ERAS),
     Thread('noisy-neighbor', 'A neighbor of {name}\'s started a noisy renovation.',
            ('The neighbor\'s renovation wrapped up, and it is quiet again.',
-            '{name} and the neighbor agreed on quiet hours, and it is better now.')),
+            '{name} and the neighbor agreed on quiet hours, and it is better now.'), eras=('modern', 'jazz-age')),
     Thread('recipe', '{name} is trying to get a tricky recipe right after two failed attempts.',
            ('The third try worked, and {name} is proud of it.',
             '{name} shelved the recipe for now after another flop.')),
     Thread('tickets', '{name} is hoping to get tickets to a show that sold out fast.',
            ('{name} found resale tickets to the show at a fair price.',
-            'No luck with the tickets; {name} will catch the show next time.')),
+            'No luck with the tickets; {name} will catch the show next time.'), eras=MODERN_ONLY),
     Thread('gift', '{name} is hunting for the right birthday present for a friend.',
            ('{name} found the perfect present at a little shop.',
             '{name} settled on a handwritten card and a small present.')),
+    # Older and made-up worlds, in place of the parcels, classes and tickets above.
+    Thread('letter', '{name} sent a letter to a cousin far away and is waiting on a reply.',
+           ('A reply from {name}\'s cousin finally came, full of family news.',
+            'No reply yet; {name} hears the cousin has been traveling and will write again soon.'), (4, 9),
+           eras=OLD_ERAS),
+    Thread('mending', '{name} left a torn cloak with the tailor and is waiting to have it back.',
+           ('The tailor mended {name}\'s cloak so well the tear barely shows.',
+            'The tailor could only patch the cloak, but {name} likes the patch.'), eras=OLD_ERAS),
+    Thread('lost-glove', '{name} lost a good glove somewhere about town and is retracing their steps.',
+           ('A neighbor found {name}\'s glove by the well and brought it round.',
+            '{name} gave up on the glove and is knitting a new pair.'), eras=OLD_ERAS),
 )
 # A thread is not opened again within this many days of the last time, so a long run does not repeat itself.
 THREAD_REPEAT_DAYS = 120
@@ -621,10 +652,17 @@ def find_thread(key) -> Thread:
     return next(thread for thread in THREADS if thread.key == key)
 
 
-def open_thread(definition: dict, seed: str, local_date: str, used=()) -> dict | None:
-    """Sometimes, a new open thread; never one of the keys in `used`."""
+def thread_era(city: dict | None) -> str:
+    """The home city's era for threads: 'modern' for today's and future cities and any city the world does not know."""
+    era = (city or {}).get('era') or 'modern'
+    return 'modern' if era == 'future' else era
+
+
+def open_thread(definition: dict, seed: str, local_date: str, used=(), era: str = 'modern') -> dict | None:
+    """Sometimes, a new open thread that fits the home city's era; never one of the keys in `used`."""
     rng = random.Random(f'thread:{seed}')
-    options = [thread for thread in THREADS if thread.key not in set(used)]
+    options = [thread for thread in THREADS if thread.key not in set(used)
+               and ('any' in thread.eras or era in thread.eras)]
     if not options or rng.random() >= THREAD_SHARE:
         return None
     chosen = rng.choice(options)

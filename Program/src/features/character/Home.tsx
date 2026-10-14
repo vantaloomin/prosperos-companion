@@ -8,6 +8,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { KIND_LABELS, homeTitle, itemDetail, rentText, sentence, sinceText } from './homeText'
 import { Upkeep } from './Upkeep'
+import { panelTitle } from './panelText'
 
 const HOME_KEY = ['home']
 /** Pets have their own panel (Pets.tsx), so they are added and shown there. */
@@ -36,7 +37,7 @@ export function Home({ name }: { name: string }) {
   }
   return (
     <section className="home-panel" aria-labelledby="home-heading">
-      <h2 id="home-heading">{name}'s home and belongings</h2>
+      <h2 id="home-heading">{panelTitle(name, 'home and belongings')}</h2>
       <p className="subtle">Drawn from their city's housing data and changing slowly over time. Their moments, pictures and replies mention these. Edits apply to upcoming days; what already happened stays.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {home.isPending && <Loading label="Loading their home" />}

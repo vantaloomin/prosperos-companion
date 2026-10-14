@@ -7,6 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { MAX_PET_AGE, PETS_KEY, ageChoice, petDate, petNumbers, sentenceOf } from '../pets/petText'
 import { Stepper } from '../../components/NumberFields'
+import { panelTitle } from './panelText'
 
 type Act = (action: () => Promise<PetsView>, done: string) => Promise<boolean>
 
@@ -31,7 +32,7 @@ export function Pets({ name }: { name: string }) {
   }
   return (
     <section className="home-panel pets-panel" aria-labelledby="pets-heading">
-      <h2 id="pets-heading">{name.split(' ')[0]}'s pets</h2>
+      <h2 id="pets-heading">{panelTitle(name, 'pets')}</h2>
       <p className="subtle">Pets have lives of their own: off days, vet visits and growing old. How often depends on Settings &gt; Realism.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {pets.isPending && <Loading label="Loading their pets" />}

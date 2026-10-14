@@ -452,14 +452,38 @@ def priced(definition: dict, spend: str, seed: str) -> float:
     """A price tier as an amount in their city's money, seeded 60% to 140% of the tier's price so two small bills are
     not the same to the cent: '$' and '$$' are a share of a cheap meal there (or of a month's pay where the city lists
     no meal), '$$$' a share of a month's pay. 0 where money does not apply."""
+    base = tier_price(definition, spend)
+    if not base:
+        return 0.0
+    cost = base * (0.6 + 0.8 * generators.unit(seed, 'price'))
+    return round(cost, 0 if cost >= 20 else 2)
+
+
+def tier_price(definition: dict, spend: str) -> float:
+    """The middle price of a tier in their city's money (what `priced` spreads 60% to 140% around); 0 without money."""
     found = money.profile(definition)
     if not found or not spend:
         return 0.0
     meals, share = EVERYDAY.get(spend, (None, money.PURCHASES.get(spend, 0)))
     meal = money.price(found.city, MEALS) if meals else None
-    base = meals * meal if meal else share * money.monthly_share(found)
-    cost = base * (0.6 + 0.8 * generators.unit(seed, 'price'))
-    return round(cost, 0 if cost >= 20 else 2)
+    return meals * meal if meal else share * money.monthly_share(found)
+
+
+def reprice_old(connection, companion: dict, now) -> int:
+    """Errands planned before small errands cost an everyday price kept the price they were planned with ("Drop a ring
+    for resizing $220"). One still ahead that costs more than its tier can now is priced again, seeded by its key; after
+    that it is in range, so this changes each entry once. Done entries keep what they cost."""
+    definition, tops = companion['version']['definition'], {}
+    rows = many(connection, "SELECT id, key, spend, cost FROM life_admin WHERE timeline_id=? AND source='admin' AND "
+                "status='planned' AND spend!='' AND cost>0", (companion['active_timeline_id'],))
+    changed = 0
+    for row in rows:
+        top = tops.setdefault(row['spend'], tier_price(definition, row['spend']) * 1.4)
+        if top and row['cost'] > top + 0.5:  # Past the top of the range, allowing for rounding to whole amounts.
+            connection.execute('UPDATE life_admin SET cost=?, updated_at=? WHERE id=?',
+                               (priced(definition, row['spend'], row['key']), stamp(now), row['id']))
+            changed += 1
+    return changed
 
 
 def recent_titles(connection, timeline_id: str, around: date) -> set[str]:
@@ -570,6 +594,7 @@ def plan_ahead(connection, companion: dict, world, now) -> dict:
     """Called each time the agenda extends: finish what is over, plan the next three weeks, move what clashes and
     what gets put off. Cheap: no model."""
     finished = finish_due(connection, companion, now)
+    reprice_old(connection, companion, now)
     today = local_now(companion, now).date()
     added = 0
     chosen = level(connection)

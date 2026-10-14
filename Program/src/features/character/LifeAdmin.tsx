@@ -7,6 +7,7 @@ import { AdminList } from '../today/AdminList'
 import { ADMIN_KEY } from '../today/adminText'
 import { dayText } from '../today/outingText'
 import { calendarDay } from '../../when'
+import { panelTitle } from './panelText'
 
 /** The companion's life admin in plain words: what is on the list, what comes due later and what got done lately. */
 export function LifeAdmin({ name }: { name: string }) {
@@ -14,7 +15,7 @@ export function LifeAdmin({ name }: { name: string }) {
   const view = admin.data
   return (
     <section id="life-admin" className="home-panel admin-panel" aria-labelledby="admin-heading">
-      <h2 id="admin-heading">{name}'s life admin</h2>
+      <h2 id="admin-heading">{panelTitle(name, 'life admin')}</h2>
       <p className="subtle">The dentist, taxes, the lease and the week's errands, as their city does them. Picked for them; move anything to another day.</p>
       {admin.isPending && <Loading label="Loading their life admin" />}
       {admin.isError && <ErrorNotice error={admin.error} />}
