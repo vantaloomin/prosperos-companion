@@ -67,6 +67,9 @@ class MoneySetup(Input):
     saving_for: str = Field(default='', max_length=120)
     goal: float = Field(default=0, ge=0, le=100_000_000)
     goal_since: str = Field(default='', pattern=r'^(\d{4}-\d{2}-\d{2})?$')
+    # Their hours (companion/life/shifts.py): empty follows their work (shifts that change each week for a bartender,
+    # gigs for a freelancer), or the same days every week ('staff'), shifts ('rota') or gigs ('freelance').
+    employment: Literal['', 'staff', 'rota', 'freelance'] = ''
 
 
 class Looks(Input):
@@ -144,6 +147,9 @@ class CharacterDefinition(Input):
     # Personality sliders (companion/world/personality.py); None, or a trait left out, is read from their words and
     # rolled.
     personality_sliders: dict[PersonalityTrait, PersonalitySlider] | None = None
+    # The weeks of shifts or gigs the app adds when it reads the companion (companion/life/shifts.py). Accepted so a
+    # form can send back what it was given, and never saved.
+    rota: dict | None = Field(default=None, exclude=True)
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',

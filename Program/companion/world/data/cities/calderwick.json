@@ -2645,6 +2645,7 @@
    "name": "Tube fitter",
    "sector": "engineering",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Installing and repairing pneumatic tube runs in shops, banks and offices across town and beyond.",
    "themes": [
@@ -2662,6 +2663,7 @@
    "name": "Tube drawer",
    "sector": "manufacturing",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$",
    "summary": "Drawing hot and cold metal tube on the benches of a tube mill, on day and night turns.",
    "themes": [
@@ -2679,6 +2681,7 @@
    "name": "Boilermaker",
    "sector": "manufacturing",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Riveting and caulking boiler plate for engines and compressors.",
    "themes": [
@@ -2696,6 +2699,7 @@
    "name": "Iron moulder",
    "sector": "manufacturing",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Making sand moulds and pouring castings in a foundry.",
    "themes": [
@@ -2712,6 +2716,7 @@
    "name": "Draughtsman",
    "sector": "engineering",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Drawing engineering plans in a works drawing office, with evening classes at the Institute.",
    "themes": [
@@ -2729,6 +2734,7 @@
    "name": "Mill hand",
    "sector": "textiles",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Minding looms in a worsted shed from six in the morning, as many young women in town do.",
    "themes": [
@@ -2746,6 +2752,7 @@
    "name": "Canal boatman",
    "sector": "transport",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$",
    "summary": "Working a horse-drawn narrowboat between the basin and the coast with family aboard.",
    "themes": [
@@ -2763,6 +2770,7 @@
    "name": "Lock-keeper",
    "sector": "transport",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Keeping a canal lock and its cottage, working the gates for every boat.",
    "themes": [
@@ -2779,6 +2787,7 @@
    "name": "Railway signalman",
    "sector": "transport",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Working the levers and bells in a signal box on eight-hour turns.",
    "themes": [
@@ -2795,6 +2804,7 @@
    "name": "Telegraphist",
    "sector": "communications",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Sending and taking telegrams at the post office instrument room.",
    "themes": [
@@ -2811,6 +2821,7 @@
    "name": "Tube post sorter",
    "sector": "communications",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Sorting and dispatching carriers in the town's pneumatic post office.",
    "themes": [
@@ -2827,6 +2838,7 @@
    "name": "Airship mail rigger",
    "sector": "transport",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Handling lines, gas bags and mail at the mooring mast and flying as crew on the mail run.",
    "themes": [
@@ -2844,6 +2856,7 @@
    "name": "Typist",
    "sector": "clerical",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$",
    "summary": "Typing letters and invoices in a works or merchant's office, one of the new jobs open to young women.",
    "themes": [
@@ -2860,6 +2873,7 @@
    "name": "Clerk",
    "sector": "clerical",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Keeping ledgers and copying letters in a counting house or company office.",
    "themes": [
@@ -2876,6 +2890,7 @@
    "name": "Shop assistant",
    "sector": "retail",
    "schedule": "shift-day",
+   "employment": "rota",
    "pay": "$",
    "summary": "Serving behind the counter in a store, long hours, living in above the shop.",
    "themes": [
@@ -2892,6 +2907,7 @@
    "name": "Infirmary nurse",
    "sector": "healthcare",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Ward nursing at the Royal Infirmary, living in the nurses' home.",
    "themes": [
@@ -2908,6 +2924,7 @@
    "name": "Board school teacher",
    "sector": "education",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$",
    "summary": "Teaching a class of sixty in a board school, mostly children of mill and works families.",
    "themes": [
@@ -2924,6 +2941,7 @@
    "name": "Institute lecturer",
    "sector": "education",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Teaching mechanics and drawing at the Pennock Institute, many classes in the evening.",
    "themes": [
@@ -2940,6 +2958,7 @@
    "name": "Music hall singer",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "staff",
    "pay": "$",
    "summary": "Singing comic and sentimental songs twice nightly, touring the halls between bookings.",
    "themes": [
@@ -2957,6 +2976,7 @@
    "name": "Union organiser",
    "sector": "labour",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$",
    "summary": "Recruiting members and fighting grievances for the tube workers' union.",
    "themes": [
@@ -2974,6 +2994,7 @@
    "name": "Pastry cook",
    "sector": "food",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Baking tarts, pies and cakes from four in the morning for a confectioner and tea room.",
    "themes": [
@@ -2990,6 +3011,7 @@
    "name": "Compositor",
    "sector": "press",
    "schedule": "shift-night",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Setting type by hand for the morning paper, through the night.",
    "themes": [
@@ -3006,6 +3028,7 @@
    "name": "Reporter",
    "sector": "press",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Covering council meetings, police court, accidents and football for the town paper.",
    "themes": [
@@ -3022,6 +3045,7 @@
    "name": "Photographer",
    "sector": "arts",
    "schedule": "flexible",
+   "employment": "freelance",
    "pay": "$$",
    "summary": "Taking studio portraits, wedding groups and works outings.",
    "themes": [
@@ -3038,6 +3062,7 @@
    "name": "Bar staff",
    "sector": "hospitality",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$",
    "summary": "Pulling pints and keeping order in a brewery tied house.",
    "themes": [

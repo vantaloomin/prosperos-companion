@@ -37,9 +37,14 @@ def hub(id, name, hoods, sectors, summary):
     return {'id': id, 'name': name, 'neighborhoods': hoods, 'sectors': sectors, 'summary': summary, 'source': S}
 
 
+# How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
+EMPLOYMENT = {'song-plugger': 'freelance', 'cigarette-seller': 'rota', 'taxi-dancer': 'rota', 'subway-guard': 'rota',
+              'elevator-operator': 'rota'}
+
+
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': [ERA]}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
 
 
 def line(id, name, kind, summary):

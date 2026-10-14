@@ -129,7 +129,8 @@ def extend(connection, companion, world, now) -> dict:
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
     trips.plan_ahead(connection, companion, world, now)
     outings.finish_due(connection, companion, now)
-    work.plan_ahead(connection, companion, world, now)
+    if work.plan_ahead(connection, companion, world, now).get('shifts'):
+        companion = by_id(connection, companion['id'])  # This week's shifts or gigs shape the days ahead.
     admin.plan_ahead(connection, companion, world, now)
     found = subjects(connection, companion, world, now)
     active = [subject for subject, _definition, _basis in found]
@@ -215,7 +216,7 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
                 days[local_date]['plans'] = plans[local_date]
                 days[local_date]['pinned'] = own_plans.assign(plans[local_date], [
                     holiday_block(block.view(), days_off.get(local_date)) for block in schedule
-                    if slot.local_date.weekday() in block.days])
+                    if block.on(slot.local_date)])
         written += write_slot(connection, scope, slot, days[local_date], recent)
     connection.execute('INSERT INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?) '
                        'ON CONFLICT (timeline_id, subject) DO UPDATE SET through=excluded.through',

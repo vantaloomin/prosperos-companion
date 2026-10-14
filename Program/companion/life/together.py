@@ -157,7 +157,7 @@ def end_of_visit(definition: dict, local_now: datetime, hours: float) -> str:
                                                                                                 microsecond=0)
     end = min(end, midnight)
     tomorrow = local_now.date() + timedelta(days=1)
-    early = any(tomorrow.weekday() in block.days and block.view()['kind'] in ('work', 'study')
+    early = any(block.on(tomorrow) and block.view()['kind'] in ('work', 'study')
                 and '04:00' <= block.view()['start'] < EARLY_START for block in schedule)
     if early:
         end = min(end, datetime.combine(local_now.date(), datetime.strptime(SCHOOL_NIGHT, '%H:%M').time(),

@@ -25,9 +25,13 @@ def employer(id, name, sector, hood, size, summary, careers):
             'careers': careers, 'source': S}
 
 
+# How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
+EMPLOYMENT: dict[str, str] = {}
+
+
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': ['modern']}
+            'themes': themes, 'eras': ['modern'], 'employment': EMPLOYMENT.get(id, 'staff')}
 
 
 def event(id, name, months, hood, summary):

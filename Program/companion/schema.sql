@@ -2134,6 +2134,21 @@ CREATE TABLE IF NOT EXISTS together_asks (
   reason TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL
 );
+-- Shifts and gigs (companion/life/shifts.py): a rota job's shifts or a freelancer's gigs, one row per week once it is
+-- planned, so a past week stays as it was. `days` are weekday numbers (0 is Monday); `pay` is the week's against an
+-- ordinary one.
+CREATE TABLE IF NOT EXISTS work_weeks (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  monday TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('rota', 'freelance')),
+  career TEXT NOT NULL DEFAULT '',
+  days TEXT NOT NULL DEFAULT '[]',
+  spell TEXT NOT NULL DEFAULT '',
+  workload TEXT NOT NULL DEFAULT 'normal',
+  pay REAL NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, monday)
+);
 -- On a call (companion/life/calls.py): a phone call with the user, started by either side. A ring nobody answers
 -- reads as missed and a call ends on its own when its time is up or the line goes quiet, worked out when read.
 CREATE TABLE IF NOT EXISTS calls (

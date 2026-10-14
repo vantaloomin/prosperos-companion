@@ -272,14 +272,14 @@ def busy_at(schedule, day: date, at: str) -> bool:
     for block in schedule:
         view = block.view()
         start_day = day - timedelta(days=1) if view['start'] > view['end'] and at < view['end'] else day
-        if start_day.weekday() in block.days and view['kind'] in NOT_BUSY and own_plans.holds(view, at):
+        if block.on(start_day) and view['kind'] in NOT_BUSY and own_plans.holds(view, at):
             return True
     return False
 
 
 def cut_short(schedule, day: date, at: str, end: str) -> bool:
     """Work, study or sleep starts before the outing would be over (a shift at 3 for a museum at 2)."""
-    return any(day.weekday() in block.days and block.view()['kind'] in NOT_BUSY and at < block.view()['start'] < end
+    return any(block.on(day) and block.view()['kind'] in NOT_BUSY and at < block.view()['start'] < end
                for block in schedule)
 
 

@@ -42,6 +42,9 @@ SYNONYMS = {
     'fantasy-medieval': 'fantasy', 'sci-fi': 'future', 'futuristic': 'future', 'cyberpunk': 'future',
     '9-to-5': 'office', 'day': 'office', 'shift': 'shift-day', 'nights': 'shift-night', 'night-shift': 'shift-night',
     'part-time': 'flexible', 'freelance': 'flexible', 'school': 'academic',
+    'self-employed': 'freelance', 'freelancer': 'freelance', 'gig': 'freelance', 'gigs': 'freelance',
+    'salaried': 'staff', 'employee': 'staff', 'employed': 'staff', 'fixed': 'staff', 'shifts': 'rota',
+    'roster': 'rota', 'rotation': 'rota',
 }
 # Local colour kinds stay open, but these words mean a known one (schema.LOCAL_COLOR_KINDS).
 COLOR_KINDS = {'legends': 'legend', 'folklore': 'legend', 'myth': 'legend', 'myths': 'legend', 'folk-tale': 'legend',

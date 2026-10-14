@@ -298,14 +298,14 @@ class Day:
     def work_hours(self, day: date) -> float:
         total = 0.0
         for block in self.schedule:
-            if day.weekday() in block.days and block.kind in ('work', 'study'):
+            if block.on(day) and block.kind in ('work', 'study'):
                 start = block.start.hour + block.start.minute / 60
                 end = block.end.hour + block.end.minute / 60
                 total += end - start if end > start else end + 24 - start
         return total
 
     def late(self, day: date) -> bool:
-        return any(day.weekday() in block.days and block.kind == 'work' and
+        return any(block.on(day) and block.kind == 'work' and
                    (block.end.hour >= 18 or block.end < block.start) for block in self.schedule)
 
     def weather(self, day: date) -> dict | None:

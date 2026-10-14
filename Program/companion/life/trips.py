@@ -89,7 +89,7 @@ def days_off(data: dict, saturday: date, vacation: set[str] = frozenset()) -> li
 def free(definition: dict, days: list[date], holidays: set[str]) -> bool:
     """No work or classes on these days (a public holiday is a day off)."""
     schedule, _default = routine.blocks(definition)
-    return not any(day.weekday() in block.days and block.kind in {'work', 'study'} and day.isoformat() not in holidays
+    return not any(block.on(day) and block.kind in {'work', 'study'} and day.isoformat() not in holidays
                    for day in days for block in schedule)
 
 
@@ -353,7 +353,7 @@ def entry(trip: dict, slot_view: dict, definition: dict, world, seed: str, ends:
 
 def ends(schedule, day: date, trip: dict, block_key: str) -> str | None:
     """'first' for the first waking block of the first day, 'last' for the last of the last day."""
-    keys = [block.key for block in schedule if day.weekday() in block.days and block.kind not in routine.RESTING]
+    keys = [block.key for block in schedule if block.on(day) and block.kind not in routine.RESTING]
     if not keys:
         return None
     if day.isoformat() == trip['start_date'] and block_key == keys[0]:

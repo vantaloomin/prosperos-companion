@@ -17,7 +17,7 @@ export function guessTimezone(): string {
 }
 
 export function emptyMoney(): MoneySetup {
-  return { career: '', style: 'balanced', saving_for: '', goal: 0, goal_since: '' }
+  return { career: '', style: 'balanced', saving_for: '', goal: 0, goal_since: '', employment: '' }
 }
 
 export function emptyDefinition(timezone = 'UTC'): CharacterDefinition {
