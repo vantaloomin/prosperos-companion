@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { outNow, outNowText, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
+import { outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
 
 const outing: Outing = {
   id: 'o1', local_date: '2026-10-08', at_time: '19:00', until_time: '21:00', activity: 'dinner', asked_date: null,
@@ -33,11 +33,7 @@ test('trips read as days and who they go with', () => {
   assert.equal(tripTitle({ ...trip, kind: 'family', company: { id: 'p2', name: 'Rosa', role: 'mother' } }), 'Visiting Rosa in New York')
 })
 
-test('the chat strip shows only an outing under way, and called-off ones leave Today', () => {
-  assert.equal(outNow({ outings: [outing], trips: [] }), null)
-  const now = { ...outing, state: 'now' as const }
-  assert.equal(outNow({ outings: [outing, now], trips: [] }), now)
-  assert.match(outNowText(now, 'Mira'), /^Out with Mira at Ouzo Bay until 9:00/)
+test('called-off ones leave Today, and visits read as your place or theirs', () => {
   assert.deepEqual(shown([outing, { ...outing, id: 'o2', state: 'cancelled' }]).map((item) => item.id), ['o1'])
   // Just called off, or just headed home: collapsed with Undo.
   const off = { ...outing, id: 'o3', state: 'cancelled' as const, undo: true }
@@ -45,6 +41,8 @@ test('the chat strip shows only an outing under way, and called-off ones leave T
   assert.equal(undoText(off), 'Called off.')
   const home = { ...outing, state: 'done' as const, undo: true }
   assert.equal(undoText(home), 'Headed home.')
-  assert.equal(outNow({ outings: [home], trips: [] }), home)
   assert.equal(undoText(outing), '')
+  const yours = { ...outing, activity: 'visit-yours', place: { ...outing.place, id: '~yours', name: 'Your place', kind: 'your-home', neighborhood: 'Canton' } }
+  assert.equal(outingTitle(yours), 'A visit at your place')
+  assert.equal(placeLine(yours.place), 'Your place in Canton')
 })

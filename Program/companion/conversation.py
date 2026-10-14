@@ -29,7 +29,7 @@ from companion.characters import by_id, for_timeline, require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
-from companion.life import occasions, outings, own_plans, pacing, recommendations
+from companion.life import occasions, outings, own_plans, pacing, recommendations, together
 from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
@@ -514,7 +514,8 @@ class Conversation:
                 return
             if status == 'complete' and not still_current(connection, attempt, companion):
                 status, error = 'withheld', 'Memories or the character changed while this reply was written.'
-            if status == 'complete':
+            if status == 'complete' and not together.together_now(connection, companion, self.database.clock.now()):
+                # Texting habits (typos, lowercase) stop while they are together in person (companion/life/together.py).
                 text = texting.restyle(text, companion['version']['definition'], attempt_id)
             connection.execute('UPDATE messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
                                (text, status, error, self.database.now(), attempt_id))

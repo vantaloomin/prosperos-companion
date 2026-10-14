@@ -22,6 +22,8 @@ export interface Together { outings: Outing[]; trips: Trip[] }
 const WHAT: Record<string, string> = {
   dinner: 'Dinner', 'lunch-out': 'Lunch', coffee: 'Coffee', drinks: 'Drinks', show: 'A show', museum: 'A few hours',
   walk: 'A walk', market: 'A look around', 'dinner-in': 'Dinner', hobby: 'A pastime',
+  // Visits (companion/life/together.py).
+  'visit-in': 'Time together', 'visit-yours': 'A visit', 'dinner-yours': 'Dinner',
 }
 
 /** "Thu, Oct 8" from a local date. */
@@ -29,15 +31,18 @@ export function dayText(iso: string): string {
   return calendarDay(iso, { weekday: true })
 }
 
-/** "7:00 PM" from "19:00", in the user's own clock style. */
+/** "7:00 PM" from "19:00", in the user's own clock style, kept on one line. */
 export function timeText(hhmm: string): string {
   const [hours, minutes] = hhmm.split(':').map(Number)
-  return new Date(Date.UTC(2000, 0, 1, hours, minutes)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+  const text = new Date(Date.UTC(2000, 0, 1, hours, minutes)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+  // A no-break space, so "7:00" and "PM" never land on different lines.
+  return text.replace(/\s/gu, '\u00a0')
 }
 
 /** "Dinner at Ouzo Bay". */
 export function outingTitle(outing: Pick<Outing, 'activity' | 'place'>): string {
   if (outing.activity === 'hobby' && outing.place.hobby) return `${outing.place.hobby.label} at ${outing.place.name}`
+  if (outing.place.kind === 'your-home') return `${WHAT[outing.activity] ?? 'A visit'} at your place`
   return `${WHAT[outing.activity] ?? 'Out'} at ${outing.place.name}`
 }
 
@@ -50,10 +55,14 @@ const JOINED: Record<string, string> = {
   'irish-american': 'Irish-American', 'creole-italian': 'Creole-Italian', 'greek-turkish': 'Greek-Turkish', 'latin-asian': 'Latin-Asian',
 }
 
+// Their place for dinner or a visit, and the user's own (companion/life/together.py).
+const HOMES: Record<string, string> = { home: 'Their place', 'your-home': 'Your place' }
+
 /** "Greek restaurant in Harbor East", "Irish pub in Canton", "Tex-Mex restaurant in Fells Point". */
 export function placeLine(place: OutingPlace): string {
   if (place.kind === 'spot') return place.city ? `Somewhere in ${place.city}` : 'Somewhere nearby'
-  if (place.kind === 'home') return place.neighborhood ? `Their place in ${place.neighborhood}` : 'Their place'
+  const home = HOMES[place.kind]
+  if (home) return place.neighborhood ? `${home} in ${place.neighborhood}` : home
   const cuisine = JOINED[place.cuisine] ?? place.cuisine.replace(/-/g, ' ')
   const kind = !cuisine ? place.kind : PLACE_WORDS.test(cuisine) ? cuisine : `${cuisine} ${place.kind}`
   const text = place.neighborhood ? `${kind} in ${place.neighborhood}` : kind
@@ -94,16 +103,6 @@ export function tripTitle(trip: Trip): string {
   const length = nights >= 2 ? 'A long weekend' : 'A weekend'
   if (trip.kind === 'family' && trip.company) return `Visiting ${trip.company.name} in ${trip.city_name}`
   return `${length} in ${trip.city_name}${trip.company ? ` with ${trip.company.name}` : ''}`
-}
-
-/** The chat strip while an outing is under way: "Out with Mira at Ouzo Bay until 9:00 PM". */
-export function outNowText(outing: Outing, name: string): string {
-  return `Out with ${name} at ${outing.place.name} until ${timeText(outing.until_time)}`
-}
-
-/** The outing under way, or one the user just headed home from (still undoable). */
-export function outNow(data: Together | undefined): Outing | null {
-  return data?.outings.find((outing) => outing.state === 'now' || (outing.state === 'done' && outing.undo)) ?? null
 }
 
 /** What Today lists: everything but what was called off, unless it can still be undone. */

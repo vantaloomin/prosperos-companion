@@ -46,6 +46,7 @@ from companion.life import (
     recommendations,
     routine,
     storylines,
+    together,
     trips,
     usual_hours,
 )
@@ -413,8 +414,9 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 PAST_WAITING = {'occasion', 'postcard'}
 # A dinner invite comes up about one fortnight in two and waits a day or two at most, so it goes ahead of the daily
 # dream and Life deck news, which otherwise took every day's text first and the invite never went out.
-FINDERS = [occasion, trips.postcard_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
-           kitchen.invite_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
+# A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early.
+FINDERS = [occasion, trips.postcard_due, together.knock_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+           kitchen.invite_due, together.suggest_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
@@ -441,6 +443,8 @@ def held(connection, companion, life, now, occasion: bool = False) -> str | None
     slot, _next = routine.current_and_next(schedule, version['timezone'], now)
     if slot and slot.block.kind in routine.RESTING:
         return 'asleep'
+    if together.together_now(connection, companion, now):
+        return 'together'  # In person with the user (companion/life/together.py): nobody texts the person beside them.
     last = optional(connection, "SELECT role, created_at, id FROM messages WHERE timeline_id=? AND status='complete' "
                     'AND import_id IS NULL ORDER BY seq DESC LIMIT 1', (timeline_id,))
     if last and now - parse(last['created_at']) < timedelta(hours=life['texts_gap_hours']):
@@ -619,6 +623,8 @@ class Openers:
                 kitchen.settle_invite(connection, latest, row, trigger, timestamp)
             if trigger.kind == 'hobby_invite':
                 hobbies.settle_invite(connection, latest, row, trigger, timestamp)
+            if trigger.kind in together.SETTLES:
+                together.settle(connection, latest, row, trigger, timestamp)
             focus = current(connection)
             [view] = voice_notes.decorate(connection, [message_view(row)])
         return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],
