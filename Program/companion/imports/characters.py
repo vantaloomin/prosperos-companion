@@ -125,12 +125,11 @@ def card_sliders_upgrade(connection):
 
 
 def card_read(definition: dict, seed: str) -> dict | None:
-    """Their sliders with the Rolled ones the card's words settle differently now From your idea, the rest rolled
+    """Their sliders with the Rolled ones the card's words settle now From your idea (even at the same stop), the rest rolled
     again around them by seed; None when the card's words change nothing."""
     current = personality.settle(definition, seed)
     words = card_sliders({'personality': definition.get('personality') or ''}, definition.get('background') or '') or {}
-    read = {key: value for key, value in words.items()
-            if current[key]['source'] == 'rolled' and current[key]['level'] != value['level']}
+    read = {key: value for key, value in words.items() if current[key]['source'] == 'rolled'}
     if not read:
         return None
     kept = {key: value for key, value in current.items() if value['source'] != 'rolled'}
