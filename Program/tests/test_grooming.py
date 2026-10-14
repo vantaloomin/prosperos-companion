@@ -44,9 +44,10 @@ def history(client, through: date) -> list[dict]:
     _, tid = ids(client)
     client.get('/api/life/grooming')
     with connect(client) as connection:
-        # Her habits, fixed so the draws are the same whatever her random id: nails usually done, a cut every six weeks.
-        connection.execute("UPDATE grooming_state SET profile=json_set(profile, '$.nails', 2, '$.trim_days', 42, "
-                           "'$.tier', 1) WHERE timeline_id=?", (tid,))
+        # Her habits and seed, fixed so the draws are the same whatever her random id: nails usually done, a cut every
+        # six weeks.
+        connection.execute("UPDATE grooming_state SET seed='grooming:rosa', profile=json_set(profile, '$.nails', 2, "
+                           "'$.trim_days', 42, '$.tier', 1) WHERE timeline_id=?", (tid,))
         grooming.evolve(connection, tid, ROSA, through, client.app.state.database.clock.now())
         return [dict(row) for row in connection.execute(
             'SELECT * FROM grooming_log WHERE timeline_id=? ORDER BY local_date, track', (tid,))]
