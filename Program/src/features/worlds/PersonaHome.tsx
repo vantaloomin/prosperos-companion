@@ -33,7 +33,7 @@ function HomeFields({ world, draft, disabled, onChange }: { world: World; draft:
           </select>
         )}
       </Field>
-      {(hoods.length > 0 || draft.neighbourhood) && <Field label="Neighbourhood">
+      {(hoods.length > 0 || draft.neighbourhood) && <Field label="Neighborhood">
         {(id) => (
           <select id={id} value={draft.neighbourhood} disabled={disabled}
             onChange={(event) => onChange({ ...draft, neighbourhood: event.target.value })}>
