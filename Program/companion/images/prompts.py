@@ -10,7 +10,7 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import feed, grooming, home, pets, traditions, upkeep, wardrobe
+from companion.life import composer, feed, grooming, home, pets, pronouns, traditions, upkeep, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks
@@ -221,7 +221,8 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     style = (style or DEFAULT_STYLE).strip().rstrip('.')
     setting = re.sub(r'(^|\.\s+)Wearing\b', lambda m: f"{m.group(1)}{subject} {'are' if who == 'they' else 'is'} wearing",
                      setting)
-    action = doing(event, subject, possessive, who) or unnamed(f"{event['summary'].strip().rstrip('.')}{where}.", name, who)
+    action = doing(event, subject, possessive, who) or unnamed(f"{told(event['summary'], who).strip().rstrip('.')}{where}.",
+                                                               name, who)
     expression = EXPRESSIONS.get((event.get('mood') or '').strip().lower()) or \
         (f"a {event['mood'].strip().lower()} expression" if event.get('mood') else '')
     opening = FRAMINGS[framing].format(subject=subject.lower(), possessive=possessive) if FRAMINGS[framing] else \
@@ -277,6 +278,12 @@ def picture_of(event) -> str | None:
     if event.get('activity') == 'hobby':
         return (event.get('hobby') or {}).get('picture') or PICTURES['hobby']
     return PICTURES.get(event.get('activity') or '')
+
+
+def told(summary: str, who: str) -> str:
+    """An event's summary with the pictured person's own pronouns in its stored phrases, as the chat and the feed read
+    it (companion/life/composer.said): "Rosa had their nails done" is "Rosa had her nails done" for a "she"."""
+    return composer.said(summary, {}, pronouns.FORMS.get({'she': 'she/her', 'he': 'he/him'}.get(who, ''))) or summary
 
 
 def doing(event, subject, possessive, who) -> str:
