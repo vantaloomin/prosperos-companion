@@ -15,7 +15,7 @@ export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: Wh
 export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string }
 /** The strip's one button: Head home, Say goodbye, Not now, or Undo just after one of those. */
 export interface StripAction { action: 'home' | 'undo'; label: string }
-/** A call's buttons: Answer and Decline while it rings, End call while it is on, Call back after one you missed. */
+/** A call's buttons: Decline and Answer while it rings, End call while it is on, Call back after one you missed. */
 export interface CallAction { action: 'answer' | 'decline' | 'end' | 'call'; label: string }
 
 /** Null while apart: the strip shows only time together, or a call. */
@@ -44,14 +44,15 @@ export function callLine(call: WhereCall, name: string): StripLine {
   const line = (lead: string, tail = '') => ({ lead, place: null, tail })
   if (call.status === 'on') return line(`On a call with ${name}`)
   if (call.status === 'ringing') return line(`${name} is calling`)
-  if (call.status === 'ended') return line('Call ended', call.started_at && call.ended_at ? ` after ${minutesText(Date.parse(call.ended_at) - Date.parse(call.started_at))}` : '')
+  if (call.status === 'ended') return line('Call ended', call.started_at && call.ended_at ? ` after ${minutesText(Date.parse(call.ended_at) - Date.parse(call.started_at))}.` : '.')
   if (call.status === 'declined') return line(`You declined ${name}'s call.`)
   return line(call.direction === 'you' ? `${name} didn't pick up.` : `Missed call from ${name}.`)
 }
 
 export function callActions(call: WhereCall | null | undefined): CallAction[] {
   if (!call) return []
-  if (call.status === 'ringing') return [{ action: 'answer', label: 'Answer' }, { action: 'decline', label: 'Decline' }]
+  // Answer last, nearest the thumb, as phones do.
+  if (call.status === 'ringing') return [{ action: 'decline', label: 'Decline' }, { action: 'answer', label: 'Answer' }]
   if (call.status === 'on') return [{ action: 'end', label: 'End call' }]
   if (call.status === 'missed' && call.direction === 'them') return [{ action: 'call', label: 'Call back' }]
   return []

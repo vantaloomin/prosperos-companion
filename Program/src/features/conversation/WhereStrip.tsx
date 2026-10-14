@@ -57,12 +57,13 @@ function CallStrip({ call, lead, tail, name, onDone }: { call: WhereCall; lead: 
   }
   const Glyph = call.status === 'ringing' ? PhoneIncoming : call.status === 'on' ? Phone : call.status === 'missed' ? PhoneMissed : PhoneOff
   return (
-    <aside className={`where-strip${call.status === 'ringing' ? ' ringing' : ''}`} aria-label={call.status === 'ringing' ? `${name} is calling` : 'Call'} aria-live="polite">
+    <aside className={`where-strip${call.status === 'ringing' ? ' ringing' : ''}`} aria-label={call.status === 'ringing' ? `${name} is calling` : 'Call'}>
       <Glyph aria-hidden="true" />
-      <span>{lead}{tail}{call.status === 'on' && call.started_at && <> · <CallLength since={call.started_at} /></>}</span>
+      {/* Only the state is announced; the ticking length sits outside the live region. */}
+      <span><span aria-live="polite">{lead}{tail}</span>{call.status === 'on' && call.started_at && <> · <CallLength since={call.started_at} /></>}</span>
       {callActions(call).map((item) => {
         const Icon = CALL_GLYPHS[item.action]
-        return <button key={item.action} type="button" className={`text-button call-${item.action}`} onClick={() => void act(item.action)}><Icon aria-hidden="true" />{item.label}</button>
+        return <button key={item.action} type="button" className={item.action === 'answer' ? 'button primary call-answer' : `text-button call-${item.action}`} onClick={() => void act(item.action)}><Icon aria-hidden="true" />{item.label}</button>
       })}
     </aside>
   )

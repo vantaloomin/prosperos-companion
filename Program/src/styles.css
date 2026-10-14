@@ -1872,7 +1872,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip .call-length { font-variant-numeric: tabular-nums; }
 .where-strip.ringing { border-color: var(--accent); }
 .where-strip.ringing > svg { animation: ring-nudge 1.6s ease-in-out infinite; }
-.where-strip .call-answer { font-weight: 600; }
+.where-strip .call-answer { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; }
+.where-strip .call-answer svg { width: 1rem; height: 1rem; }
+@media (max-width: 720px) { .where-strip .text-button, .where-strip .call-answer { min-height: 44px; } }
 @keyframes ring-nudge { 0%, 70%, 100% { transform: rotate(0); } 75%, 85% { transform: rotate(-12deg); } 80%, 90% { transform: rotate(12deg); } }
 @media (prefers-reduced-motion: reduce) { .where-strip.ringing > svg { animation: none; } }
 
