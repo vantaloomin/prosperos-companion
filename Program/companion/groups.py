@@ -598,6 +598,9 @@ def guest_prompt(connection, group: dict, stay: dict, now, config: dict, until_s
                                          relationship=GUEST_RELATIONSHIP.format(host=found['host_name'])),
                      prompt_library.text(connection, 'group-guest', who=found['who'], host=found['host_name'],
                                          lines=perception.own_text(found['public'], found['private']))))
+    if found['behaviour']:  # A townsperson's sliders, as a companion's own show (memory/context.py).
+        own += '\n' + prompt_library.text(connection, 'chat-personality',
+                                          lines='\n'.join(f'- {line}' for line in found['behaviour']))
     clock = f"Your local time: {context.local_time(now, found['timezone'])}."
     right_now = clock + (f"\nWhat you're doing: {found['doing']}." if found['doing'] else '')
     found_lines = [text for _key, text in group_lines(connection, group, stay, now)]
@@ -608,6 +611,20 @@ def guest_prompt(connection, group: dict, stay: dict, now, config: dict, until_s
     return {'system': f'{shared}\n\n{own}', 'shared': shared, 'note': note, 'turn': turn,
             'messages': [{'role': 'user', 'content': f'{context.NOTE_OPEN}\n{note}\n\n{turn}'}],
             'receipt': {'guest': True}}
+
+
+# A guest named in the user's message who has said all they will this conversation (group_guests.GUEST_REPLIES):
+# whoever answers is told, so nobody answers in their place.
+STEPPED_BACK = ("{names} stepped back from the chat for now and won't answer this. Don't answer in their place; "
+                'if the user asked them something, you can say they have gone quiet.')
+
+
+def stepped_back(connection, group_id: str, user: dict) -> list[str]:
+    members = current_members(connection, group_id)
+    named = set(mentioned(user['text'], members)) - {row['author'] for row in many(
+        connection, "SELECT author FROM group_messages WHERE reply_to=? AND status='complete'", (user['id'],))}
+    return [stay['name'] for stay in members if stay['member'] in named and group_guests.is_guest(stay['member'])
+            and not group_guests.replies_left(connection, group_id, stay['member'])]
 
 
 def add_note(packet: dict, text: str) -> dict:
@@ -1091,6 +1108,8 @@ class GroupChats:
             # A reply to the user carries the group's author's note; a member starting a conversation does not.
             if user['text'] and not in_character.out_of_character(user['text']):
                 packet = steer(packet, authors_note.prompt_text(connection, f"group:{group['id']}"))
+            if user.get('author') == 'user' and (gone := stepped_back(connection, group['id'], user)):
+                packet = add_note(packet, STEPPED_BACK.format(names=names_text(gone)))
         if in_character.out_of_character(user['text']):
             reminder = in_character.OUT_OF_CHARACTER_NOTE.format(name=stay['name'], model=default_name(config))
             packet = add_note(packet, reminder)

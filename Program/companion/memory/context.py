@@ -141,6 +141,9 @@ HEADINGS = {
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
+            # The housework (companion/life/upkeep.py) changes every day, so it sits with the daily sections, not with
+            # the home and belongings above: the start of the prompt stays the same from one day to the next.
+            'housework': 'Housework at your place today (fictional, yours; keep to it when your place comes up)',
     # The Life deck (companion/life/deck.py): the day's small moment, drawn once a day.
     'moments': 'Something small from your day today (decided: it happened to you; bring it up only if it fits, the '
                'way a person would, and never contradict it)',
@@ -787,7 +790,7 @@ def offer_home(packet, connection, companion, today: str):
     timeline_id = companion['active_timeline_id']
     for identity, text in upkeep.context_lines(connection, timeline_id, definition_for_timeline(connection, timeline_id),
                                                date.fromisoformat(today)):
-        packet.offer('home', identity, text)
+        packet.offer('housework', identity, text)
     if line := traditions.decoration_line(connection, companion, date.fromisoformat(today)):
         packet.offer('home', f'decorations:{today}', line)
 

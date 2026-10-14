@@ -139,13 +139,14 @@ def group_of(data: dict, sheet: dict) -> tuple[str, int] | None:
     return townsfolk.seed_for(data, f'town:{parts[1]}:{parts[2]}'), int(parts[3])
 
 
-def for_sheet(data: dict, sheet: dict) -> dict:
-    """A townsperson's lines (or a stepped-back companion's, from the town sheet they live by)."""
+def for_sheet(data: dict, sheet: dict, edited: dict | None = None) -> dict:
+    """A townsperson's lines (or a stepped-back companion's, from the town sheet they live by); `edited`: the
+    user's slider changes on their profile."""
     seed, modern = townsfolk.drawn(sheet), townsfolk.modern(data)
     if sheet.get('perception'):
         return wording.regional_all(data, sheet['perception'])
     # Their habit and self-story suit their personality sliders (companion/world/personality.py).
-    levels = personality.levels_of(personality.for_sheet(seed, sheet))
+    levels = personality.levels_of(personality.for_sheet(seed, sheet, edited))
     options = {facet: personality.fitting(facet, found, levels) for facet, found in ids().items()}
     group = group_of(data, sheet)
     if group:
@@ -342,7 +343,7 @@ def sheet_lines(data: dict, sheet: dict, edited: dict | None = None) -> dict:
     """A townsperson's public line and private lines, for a guest in a group (same contract as above), and
     `behaviour`: how their personality sliders show, for their own prompt (`edited`: the user's slider changes on
     their profile, companion/life/townsfolk_personality.py)."""
-    found = for_sheet(data, sheet)
+    found = for_sheet(data, sheet, edited)
     sliders = personality.for_sheet(townsfolk.drawn(sheet), sheet, edited)
     return {'public': found['public'], 'private': found['private'],
             'behaviour': personality.behaviour(personality.levels_of(sliders))}
