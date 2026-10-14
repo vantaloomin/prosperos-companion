@@ -31,7 +31,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, money
-from companion.world import generators, wording
+from companion.world import generators, looks, wording
 
 COMPANION = 'companion'
 BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'media'
@@ -230,8 +230,7 @@ def choose(seed: str, label: str, me: dict, kind: str, definition: dict, taken: 
     """A pick for one kind: era-correct, not one they have had, leaning to their tastes."""
     options = candidates(me, kind, taken) or candidates(me, kind, set())
     liked, disliked = tastes(definition)
-    age = definition.get('age')
-    born = (me.get('year') or ERA_YEARS['modern']) - age if isinstance(age, int) else None
+    born = (me.get('year') or ERA_YEARS['modern']) - looks.age_of(definition, seed)
     return generators.pick(seed, label, options, [weight(item, kind, me, liked, disliked, born) for item in options])
 
 

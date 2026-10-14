@@ -228,3 +228,11 @@ def test_a_recommendation_comes_first_on_the_panel_and_their_own_show_waits(clie
     with client.app.state.database.connect() as connection:
         waited = connection.execute("SELECT MAX(held) FROM media_items WHERE kind='show'").fetchone()[0]
     assert waited > 0
+
+
+def test_songs_lean_to_the_years_they_grew_up_by_the_age_in_their_identity():
+    me = media.place_of(WORLD.find('baltimore'))
+    older, younger = {'name': 'Pat', 'identity': 'Pat, 58, a retired teacher.'}, {'name': 'Jo', 'identity': 'Jo, 22.'}
+    years = [[media.choose(f's{n}', 'music:0', me, 'music', who, set())['year'] for n in range(80)]
+             for who in (older, younger)]
+    assert sum(1984 <= year <= 2000 for year in years[0]) > sum(1984 <= year <= 2000 for year in years[1])
