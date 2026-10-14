@@ -40,7 +40,7 @@ small local models, which follow facts best when they sit right next to the mess
 1. **The system prompt**: who the companion is (the prompt above; in their own chat, while Settings > Realism >
    Adult side of life is on and they read as an adult, followed by the adults-only setting line `SETTING` in
    `companion/world/intimacy.py`), then the sections that change rarely, in
-   `HEADINGS` in `companion/memory/context.py`: the user's persona, always-on lore, home, the circle, how close you are and your history together (a line a week lately, a month or a year further back; it changes once a week), today's calendar, weather and money, then what
+   `HEADINGS` in `companion/memory/context.py`: the user's persona, always-on lore, home, the circle, how close you are and your history together (a line a week lately, a month or a year further back; it changes once a week), today's calendar, weather, money and housework, then what
    grows during a chat (memories, what they have said about themselves, plans, recent life).
 2. **The conversation**: at least the last 20 messages. Its first message moves forward 12 messages at a time,
    not one, so the start of the conversation stays the same for several replies; older messages stay recallable.

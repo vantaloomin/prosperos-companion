@@ -86,6 +86,20 @@ def test_a_member_pulls_in_someone_they_name_by_the_realism_slider(client, cast,
     assert other['key'] not in {member['key'] for member in members}
 
 
+def test_whoever_answers_a_guest_who_has_said_their_piece_is_told_so(client, cast, provider):
+    friend = next(person for person in cast['circle'] if person['role'] == 'close friend')
+    group = add_guest(client, cast['group'], friend['key'])
+    label = next(member['label'] for member in group['members'] if member['key'] == friend['key'])
+    for index in range(group_guests.GUEST_REPLIES):
+        say(client, cast['group'], f'{label}, story time {index}?', f'back-{index:04d}')
+    note = groups.STEPPED_BACK.format(names=label)
+    assert not any(note in request['messages'][-1]['content'] for request in provider.requests)
+    provider.requests.clear()
+    say(client, cast['group'], f'{label}, one more?', 'back-9999')
+    assert provider.requests and all(note in request['messages'][-1]['content'] for request in provider.requests)
+    assert all(speaker(request['messages']) != label for request in provider.requests)
+
+
 def test_a_guest_says_only_so_much_and_never_while_asleep(client, cast, provider, monkeypatch):
     friend = next(person for person in cast['circle'] if person['role'] == 'close friend')
     group = add_guest(client, cast['group'], friend['key'])
@@ -202,3 +216,38 @@ def test_a_guest_answers_a_little_less_often_than_members_however_long_they_have
     assert weights['circle:t:0'] == 2.5 * group_guests.GUEST_WEIGHT  # The members' average, then the share.
     assert weights['circle:t:1'] == 1.0 * group_guests.GUEST_WEIGHT
     assert all(weights[guest] < min(weights['companion:a'], weights['companion:b']) for guest in ('circle:t:0', 'circle:t:1'))
+
+
+def test_a_townsperson_guest_acts_on_their_sliders_with_the_users_edits(client, clock, provider, monkeypatch):
+    from test_social_circle import make
+
+    from companion.life import encounters
+    from companion.world import catalog, personality, townsfolk
+
+    provider.respond = by_speaker
+    monkeypatch.setattr(group_guests, 'doing', lambda connection, person, companion, now: 'at home')
+    mira = make(client, 'Warm and curious.', home_city='baltimore')
+    ok(client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                            'api_key': 'secret-key'}))
+    data = catalog.city('baltimore')
+    sheet = townsfolk.at_place(data, data['places'][0]['id'])[0]
+    original = encounters.history_for
+
+    def met(connection, companion, cast, now, before=None):
+        meetings = [{'place': sheet['place']['name'], 'local_date': f'2026-09-0{day}',
+                     'met_at': f'2026-09-0{day}T18:00:00+00:00'} for day in (1, 2, 3)]
+        return {**original(connection, companion, cast, now, before), sheet['key']: meetings}
+
+    monkeypatch.setattr(encounters, 'history_for', met)
+    group = start(client, [mira['id'], companion_named(client, 'Billy Hart')], 'Friday crew')
+    social = personality.for_sheet(townsfolk.drawn(sheet), sheet)['social']['level']
+    edited = 0 if social == 2 else 2
+    ok(client.post('/api/life/townsfolk/personality',
+                   json={'key': sheet['key'], 'sliders': {'social': {'level': edited, 'source': 'you'}}}))
+    view = ok(client.post(f"/api/groups/{group['id']}/members", json={'companion_id': sheet['key']}))
+    label = next(member['label'] for member in view['members'] if member['key'] == sheet['key'])
+    provider.requests.clear()
+    say(client, group['id'], f'{label}, how was your week?', 'town-0001')
+    system = next(request for request in provider.requests if speaker(request['messages']) == label)['system']
+    acts = system[system.index('How you tend to act'):]
+    assert next(trait for trait in personality.traits() if trait['key'] == 'social')['model'][edited] in acts

@@ -26,7 +26,7 @@ from datetime import timedelta
 from companion.characters import by_id
 from companion.clock import parse, zone
 from companion.database import decode, many, one, optional
-from companion.life import agenda, circle, encounters, network
+from companion.life import agenda, circle, encounters, network, town_personality
 from companion.world import perception
 
 COMPANION = 'companion:'
@@ -154,12 +154,14 @@ def resolve(connection, key: str, host: str, now) -> dict | None:
 
 
 def lines(connection, person: dict, companion: dict) -> dict:
-    """Their "Others see" line and their own "I see myself" lines (world/perception.py), by their person key."""
+    """Their "Others see" line and their own "I see myself" lines (world/perception.py), by their person key, and
+    for a townsperson how their personality sliders show (`behaviour`), with the user's edits on their profile."""
     if person['kind'] == 'town':
         data = network.city(connection, companion)
         sheet = encounters.resolve(data, person['key'], encounters.town_cast(connection, companion, data))
         if sheet:
-            return perception.sheet_lines(data, sheet)
+            edited = town_personality.edited(connection, town_personality.town_of(companion), person['key'])
+            return perception.sheet_lines(data, sheet, edited)
     return perception.seeded_lines(person['key'], perception.era_modern(companion['version']['definition']))
 
 
@@ -198,6 +200,7 @@ def sheet(connection, stay: dict, now) -> dict | None:
         return None
     found = lines(connection, person, companion)
     return {**person, 'who': who(connection, person), 'public': found['public'], 'private': found['private'],
+            'behaviour': found.get('behaviour') or [],
             'host_name': companion['version']['name'].split()[0], 'timezone': companion['version']['timezone'],
             'doing': doing(connection, person, companion, now)}
 

@@ -134,6 +134,10 @@ def test_chat_and_pictures_see_the_mess(client, mira):
     view = client.put('/api/life/upkeep', json={'tidiness': 4}).json()
     system = client.get('/api/context/preview').json()['system']
     assert '- Housework today: ' in system and 'The place is a mess.' in system and '- Your habit: you ' in system
+    # It changes every day, so it sits with the daily sections, after home and belongings (prompt caching).
+    assert system.index('## Housework at your place today') < system.index('- Housework today: ')
+    assert '## Your home and belongings' not in system or \
+        system.index('## Your home and belongings') < system.index('## Housework at your place today')
     with connect(client, False) as connection:
         tid = timeline(client)
         at_home = upkeep.image_hint(connection, tid, {'moment': {'activity': 'slow', 'local_date': view['today']}})
