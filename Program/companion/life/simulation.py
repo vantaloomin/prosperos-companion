@@ -834,11 +834,12 @@ class LifeEngine:
 
     def spread_news(self):
         with self.database.connect(write=True) as connection:
-            if settings(connection)['paused_at'] is None:
+            paused = settings(connection)['paused_at'] is not None
+            if not paused:
                 news.sync(connection, self.now())
                 deck.sync(connection, self.now())
                 dreams.sync(connection, self.now())
-        if self.groups is not None:
+        if self.groups is not None and not paused:
             groups.drift(self.database)  # Guests slip out of chats that have gone quiet (companion/group_guests.py).
 
     async def quietly_think(self):

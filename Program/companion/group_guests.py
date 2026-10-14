@@ -79,9 +79,19 @@ def circle_people(connection, companion: dict) -> list[dict]:
     return circle.people(connection, companion['active_timeline_id']) if companion.get('active_timeline_id') else []
 
 
+def full_name(row: dict, details: dict) -> str:
+    """Their full name as the circle shows it now: a name the user changed wins over the one they were seeded with
+    ("Lizzie Napolitano" once Lisa is renamed Lizzie)."""
+    shown, full = row['name'], details.get('full_name') or row['name']
+    if ' ' in shown:
+        return shown
+    given, _, family = full.partition(' ')
+    return full if given == shown else ' '.join(part for part in (shown, family) if part)
+
+
 def from_circle(row: dict, host: str, host_name: str) -> dict:
     details = decode(row['details']) or {}
-    return {'key': row['seed'], 'kind': 'circle', 'name': row['name'], 'full': details.get('full_name') or row['name'],
+    return {'key': row['seed'], 'kind': 'circle', 'name': row['name'], 'full': full_name(row, details),
             'host': host, 'relation': f"{host_name}'s {row['role']}", 'tie': f"their {row['role']}", 'person_id': row['id'],
             'timeline_id': row['timeline_id']}
 
@@ -258,8 +268,8 @@ def names_in(text: str, person: dict) -> bool:
 
 
 def last_pull_in(connection, group_id: str) -> str | None:
-    row = one(connection, "SELECT MAX(joined_at) AS at FROM group_members WHERE group_id=? AND host IS NOT NULL "
-              "AND host!='user'", (group_id,))
+    row = one(connection, "SELECT MAX(joined_at) AS at FROM group_members WHERE group_id=? AND brought_by IS NOT NULL "
+              "AND brought_by!='user'", (group_id,))
     return row['at']
 
 
