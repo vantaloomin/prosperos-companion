@@ -214,6 +214,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.life.openers = app.state.openers
     app.state.voice = VoiceNotes(app.state.database, app.state.vault, voice_transport, voice_runner)
     app.state.openers.voice = app.state.voice
+    app.state.conversation.voice = app.state.voice
     app.state.debug_time = DebugTime(app.state.database, app.state.life)
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)

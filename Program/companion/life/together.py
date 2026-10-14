@@ -315,7 +315,8 @@ def turned_away(outing: dict, timezone: str) -> bool:
 # --- What the chat context says ---------------------------------------------------------------------------------
 
 ASKED = {'visit-yours': 'you to come over to their place now', 'dinner-yours': 'you to come over to theirs for dinner',
-         'visit-in': 'to come over to your place now', 'door': 'to be let in: they say they are at your door'}
+         'visit-in': 'to come over to your place now', 'door': 'to be let in: they say they are at your door',
+         'call': 'to talk on the phone now'}  # On a call (companion/life/calls.py).
 
 
 def reason_text(reason: dict) -> str:
@@ -372,8 +373,13 @@ ENDED = {'visit-yours': "You left the user's place a little while ago.", 'dinner
 # --- The state, in plain words ------------------------------------------------------------------------------------
 
 def state(connection, companion: dict, now: datetime) -> dict:
-    """{state: 'together'|'apart', kind, text, outing}: what the chat strip, the chat list and the Character page
-    show. Apart in the same city says nothing; long distance says where and the time difference."""
+    """{state: 'together'|'apart'|'call', kind, text, outing}: what the chat strip, the chat list and the Character page
+    show. Apart in the same city says nothing; long distance says where and the time difference. On a call, or
+    ringing, says so (companion/life/calls.py)."""
+    from companion.life import calls
+    on_phone = calls.state(connection, companion, now)
+    if on_phone:
+        return {**on_phone, 'outing': None}
     found = together_now(connection, companion, now)
     if found and not found['ended_at']:
         return {'state': 'together', 'kind': kind_of(found), 'text': together_text(found, companion), 'outing': found}
@@ -414,7 +420,8 @@ def hours_apart(connection, companion: dict, now: datetime) -> str:
 
 
 def view(connection, companion: dict, now: datetime) -> dict:
-    """The strip's state with what it can do: the outing (for Head home and Undo) under way, or just ended."""
+    """The strip's state with what it can do: the outing (for Head home and Undo) under way, or just ended, and the
+    call on, ringing or just over (companion/life/calls.py)."""
     found = state(connection, companion, now)
     outing = found.pop('outing')
     if outing is None:
@@ -432,6 +439,8 @@ def view(connection, companion: dict, now: datetime) -> dict:
                            < NOT_NOW_WINDOW}
     else:
         found['outing'] = None
+    from companion.life import calls
+    found['call'] = calls.view(connection, companion, now)
     return found
 
 

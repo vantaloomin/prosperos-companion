@@ -32,6 +32,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
 from companion.life import (
+    calls,
     chapters,
     composer,
     deck,
@@ -414,8 +415,9 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 PAST_WAITING = {'occasion', 'postcard'}
 # A dinner invite comes up about one fortnight in two and waits a day or two at most, so it goes ahead of the daily
 # dream and Life deck news, which otherwise took every day's text first and the invite never went out.
-# A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early.
-FINDERS = [occasion, trips.postcard_due, together.knock_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+# A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early; so does a
+# call (companion/life/calls.py), and the text after a missed one.
+FINDERS = [occasion, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
@@ -445,6 +447,8 @@ def held(connection, companion, life, now, occasion: bool = False) -> str | None
         return 'asleep'
     if together.together_now(connection, companion, now):
         return 'together'  # In person with the user (companion/life/together.py): nobody texts the person beside them.
+    if calls.blocked(connection, companion, now):
+        return 'call'  # On the phone with the user, or ringing them (companion/life/calls.py).
     last = optional(connection, "SELECT role, created_at, id FROM messages WHERE timeline_id=? AND status='complete' "
                     'AND import_id IS NULL ORDER BY seq DESC LIMIT 1', (timeline_id,))
     if last and now - parse(last['created_at']) < timedelta(hours=life['texts_gap_hours']):
@@ -514,6 +518,11 @@ class Openers:
             if not found and reason:
                 return {'state': reason, 'message': None}
         for trigger in found:
+            if trigger.kind == 'call':
+                rung = self.ring(companion, trigger, now)
+                if rung:
+                    return rung
+                continue
             if trigger.template is None and (config is None or self.resting(companion_id, trigger, now)):
                 continue
             try:
@@ -533,6 +542,20 @@ class Openers:
             return None
         note = await self.voice.record(companion, engine, text) if engine else None
         return self.save(companion, trigger, text, wording, now, note)
+
+    def ring(self, companion, trigger, now) -> dict | None:
+        """They call the user (companion/life/calls.py): no text is written; the chat strip shows the ring."""
+        with self.database.connect(write=True) as connection:
+            latest = by_id(connection, companion['id'])
+            if latest is None or held(connection, latest, one(connection, 'SELECT * FROM life_settings WHERE id=1'),
+                                      now):
+                return None
+            found = calls.ring(connection, latest, trigger, now)
+            focus = current(connection)
+        if found is None:
+            return None
+        return {'state': 'sent', 'kind': 'call', 'message': None, 'companion_id': latest['id'],
+                'focus': bool(focus and focus['id'] == latest['id'])}
 
     def resting(self, companion_id, trigger, now) -> bool:
         tried = self.unusable.get((companion_id, trigger.key))

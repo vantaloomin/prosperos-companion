@@ -12,6 +12,7 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    calls,
     chapters,
     circle,
     citymap,
@@ -292,6 +293,26 @@ def read_where(request: Request):
     database = db(request)
     with database.connect() as connection:
         return together.view(connection, require_current(connection), database.clock.now())
+
+
+@router.post('/calls')
+def start_call(request: Request):
+    """The user calls the companion in focus (the chat header's Call button, companion/life/calls.py): they pick up
+    when they are free, otherwise it is a missed call they text back about."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        now = database.clock.now()
+        calls.call(connection, companion, now)
+        return together.view(connection, companion, now)
+
+
+@router.post('/calls/{call_id}/{action}')
+def change_call(request: Request, call_id: str, action: Literal['answer', 'decline', 'end']):
+    """Answer or decline their call, or end the one under way."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        return calls.act(connection, require_current(connection), call_id, action, database.clock.now())
 
 
 @router.post('/outings/{outing_id}/{action}')

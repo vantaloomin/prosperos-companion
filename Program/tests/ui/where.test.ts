@@ -39,3 +39,29 @@ test('while together, their status line says where', () => {
   assert.deepEqual(shown(status), { text: 'At your place', away: 'pin' })
   assert.deepEqual(shown({ ...status, where: { state: 'apart', kind: 'long-distance', text: 'Long distance, Lisbon' } }), { text: 'coffee first', away: null })
 })
+
+test('on a call the strip says with whom and how long, with End call; a ring offers Answer and Decline', async () => {
+  const { callActions, callClock, canCall, notTexting } = await import('../../src/features/conversation/whereText.ts')
+  const on = { id: 'c1', direction: 'you' as const, status: 'on' as const, started_at: '2026-10-08T19:00:00Z', until_at: '2026-10-08T20:00:00Z', ended_at: null }
+  const calling: WhereState = { state: 'call', kind: 'call', text: 'On a call', outing: null, call: on }
+  assert.equal(stripLine(calling, 'Mira')?.lead, 'On a call with Mira')
+  assert.deepEqual(callActions(on).map((item) => item.label), ['End call'])
+  assert.ok(notTexting(calling) && !canCall(calling))
+  const ringing: WhereState = { state: 'apart', kind: 'ringing', text: 'Calling you', outing: null, call: { ...on, direction: 'them', status: 'ringing', started_at: null } }
+  assert.equal(stripLine(ringing, 'Mira')?.lead, 'Mira is calling')
+  assert.deepEqual(callActions(ringing.call).map((item) => item.label), ['Answer', 'Decline'])
+  assert.ok(!canCall(ringing) && !notTexting(ringing))
+  assert.equal(stripLine({ ...ringing, call: { ...ringing.call!, status: 'missed' } }, 'Mira')?.lead, 'Missed call from Mira.')
+  assert.deepEqual(callActions({ ...ringing.call!, status: 'missed' }).map((item) => item.label), ['Call back'])
+  assert.equal(stripLine({ ...ringing, call: { ...on, status: 'missed' } }, 'Mira')?.lead, "Mira didn't pick up.")
+  const ended = stripLine({ ...ringing, call: { ...on, status: 'ended', ended_at: '2026-10-08T19:12:05Z' } }, 'Mira')
+  assert.equal(`${ended?.lead}${ended?.tail}`, 'Call ended · 12:05')
+  assert.equal(callClock(3_723_000), '1:02:03')
+  assert.ok(canCall({ state: 'apart', kind: 'long-distance', text: 'Long distance, Lisbon', outing: null, call: null }))
+})
+
+test('on a call their status line says so', () => {
+  const status = { text: 'coffee first', set_by: 'app' as const, away: null, where: { state: 'call' as const, kind: 'call', text: 'On a call' } }
+  assert.deepEqual(shown(status), { text: 'On a call', away: 'phone' })
+  assert.deepEqual(shown({ ...status, where: { state: 'apart', kind: 'ringing', text: 'Calling you' } }), { text: 'Calling you', away: 'phone' })
+})

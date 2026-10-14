@@ -1,4 +1,4 @@
-import { MapPin, PanelLeftOpen, UsersRound, X } from 'lucide-react'
+import { MapPin, PanelLeftOpen, Phone, UsersRound, X } from 'lucide-react'
 import type { View } from '../../companion'
 import type { Chat } from '../../types'
 import { Stamp } from '../../components/Stamp'
@@ -8,6 +8,7 @@ import { portraitUrl } from '../conversation/portrait'
 import { badge, chatLabel, isOpen, preview, type OpenChat } from './chatText'
 import { useChats, useOpenChat } from './useChats'
 import { useChatListCollapsed } from './layout'
+import { onThePhone } from '../status/statusText'
 
 /**
  * Every chat, the most recent first, the way a messaging app lists them: who, their latest message, when, and
@@ -58,10 +59,11 @@ export function ChatList({ go, current = null, onOpened }: { go: (view: View) =>
   )
 }
 
-/** Together or apart in plain words under the preview ("At your place", "Long distance, Lisbon"); nothing while apart nearby. */
+/** Together or apart in plain words under the preview ("At your place", "Long distance, Lisbon", "On a call"); nothing while apart nearby. */
 export function ChatWhere({ chat }: { chat: Chat }) {
   const text = chat.status?.where?.text
-  return text ? <span className="chat-row-where"><MapPin aria-hidden="true" /><span>{text}</span></span> : null
+  const Glyph = onThePhone(chat.status?.where) ? Phone : MapPin
+  return text ? <span className="chat-row-where"><Glyph aria-hidden="true" /><span>{text}</span></span> : null
 }
 
 export function ChatAvatar({ chat }: { chat: Chat }) {

@@ -2134,3 +2134,21 @@ CREATE TABLE IF NOT EXISTS together_asks (
   reason TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL
 );
+-- On a call (companion/life/calls.py): a phone call with the user, started by either side. A ring nobody answers
+-- reads as missed and a call ends on its own when its time is up or the line goes quiet, worked out when read.
+CREATE TABLE IF NOT EXISTS calls (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  direction TEXT NOT NULL CHECK (direction IN ('you', 'them')),
+  status TEXT NOT NULL CHECK (status IN ('ringing', 'on', 'missed', 'declined', 'ended')),
+  message_id TEXT REFERENCES messages(id),
+  trigger_key TEXT,
+  reason TEXT NOT NULL DEFAULT '{}',
+  started_at TEXT,
+  until_at TEXT,
+  ended_at TEXT,
+  ended_by TEXT REFERENCES messages(id),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS calls_timeline ON calls(timeline_id, created_at);
