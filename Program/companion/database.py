@@ -280,6 +280,8 @@ ADDED_COLUMNS = (
     # Hobbies that progress (companion/life/hobbies.py, Settings > Realism > Their days): 0 off, 1 light, 2 true to
     # life, 3 dramatic.
     ('life_settings', 'hobbies_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (hobbies_realism BETWEEN 0 AND 3)'),
+    # Matchlight's Undo (companion/dating.py): the person just answered, until it is undone or anything else changes.
+    ('dating_profile', 'last_answer', "TEXT NOT NULL DEFAULT ''"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
