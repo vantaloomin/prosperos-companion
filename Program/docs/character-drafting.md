@@ -44,6 +44,8 @@ the user to set them:
   gets them as behaviour lines (Test 3 in the v0.7 prompt-tweaks run) and only the perception ids that suit them.
 - A character saved before sliders existed reads them from their own words (identity, personality, voice, flaws)
   and rolls the rest from their id, the same every time. Words that disagree with a Rolled slider win.
+- An imported character card also reads its description (kept as their background), where most cards say who
+  they are. Characters imported before that read it once on upgrade; only their Rolled sliders change.
 - On the form, the summary chips show in the quick view and the sliders under Show details: Roll again changes only
   the Rolled ones, a moved slider is Set by you until its × hands it back, and Start from a type sets four of them.
 - The chat prompt gets one behaviour line per slider away from the middle, never a trait name
