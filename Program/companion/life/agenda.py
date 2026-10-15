@@ -580,7 +580,10 @@ VISITS = {'visit-in': 'having the user over at your place', 'visit-yours': "goin
 
 def intention_text(item) -> str:
     entry = item['entry']
-    text = f"- {item['local_date']}, {item['block']['label'].lower()} ({item['block']['start']}): "
+    label = item['block']['label'] if item['block'].get('trip') else item['block']['label'].lower()  # "With you in London"
+    text = f"- {item['local_date']}, {label} ({item['block']['start']}): "
+    if item['block'].get('trip') and entry['activity'] == 'trip' and entry.get('place'):
+        return text + f"at {entry['place']['name']}"
     if entry['activity'] == 'dinner-in':  # the user coming over (companion/life/outings.py)
         return text + 'having the user over for dinner at your place'
     if entry['activity'] in VISITS:  # visits (companion/life/together.py)

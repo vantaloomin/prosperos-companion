@@ -328,7 +328,7 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     at = parse(found['created_at']).astimezone(zone(timezone)).strftime('%H:%M')
     if found['status'] == 'ended':
         minutes = max(1, round((ended - parse(found['started_at'])).total_seconds() / 60))
-        return [(f"call-ended:{found['id']}", f'- You and the user talked on the phone for about {minutes} minutes '
+        return [(f"call-ended:{found['id']}", f'- You and the user talked on the phone for about {minutes} minute{"s" if minutes != 1 else ""} '
                  'and hung up a little while ago. You are texting again.')]
     if found['direction'] == 'you':
         why = together.reason_text(found['reason']) if found['reason'] else 'you were busy'
