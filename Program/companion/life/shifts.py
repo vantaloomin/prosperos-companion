@@ -134,13 +134,16 @@ def evening_work(start: str, end: str) -> bool:
     return start >= '15:00' or end <= start
 
 
-def weights(start: str, end: str, performer: bool) -> list[float]:
+def weights(start: str, end: str, performer: bool, gigs: bool = False) -> list[float]:
     """How likely each weekday is to have a shift: evening and night work leans to Fridays and Saturdays, day work
     a little to the weekend (someone has to cover it), gigs for performers to the weekend, other gigs to weekdays."""
     if performer:
         return [0.5, 0.6, 0.8, 1.2, 2.0, 2.4, 1.0]
     if evening_work(start, end):
         return [0.7, 0.8, 0.9, 1.2, 2.2, 2.4, 1.2]
+    if gigs:
+        # A designer's or a photographer's clients book them in office hours, now and then a weekend.
+        return [1.2, 1.2, 1.2, 1.2, 1.1, 0.4, 0.3]
     return [1.0, 1.0, 1.0, 1.0, 1.1, 1.4, 1.2]
 
 
@@ -212,7 +215,7 @@ def roll(seed: str, monday: date, kind: str, base: list[int], start: str, end: s
     found = spell(seed, monday, chosen)
     low, high = GIGS[found]
     count = max(0, min(6, low + int(generators.unit(week, 'gigs') * (high - low + 1)) + swing))
-    days = draw_days(week, count, weights(start, end, performer))
+    days = draw_days(week, count, weights(start, end, performer, gigs=True))
     rate = GIG_RATE[0] + generators.unit(week, 'rate') * (GIG_RATE[1] - GIG_RATE[0])
     return {'days': days, 'spell': found, 'pay': round(count / USUAL_GIGS * rate, 4)}
 

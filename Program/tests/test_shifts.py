@@ -284,3 +284,13 @@ def test_a_holiday_is_off_in_the_week_s_lines_as_on_the_calendar(client, ines, m
     assert overview == 'This week: Mon, Tue, Wed, Fri and Sat evenings.'
     assert 'Next week: Monday 30, Tuesday 1, Wednesday 2, Thursday 3 and Saturday 5.' in line
     assert thanksgiving.weekday() == 3
+
+
+def test_daytime_gigs_lean_to_weekdays_and_performers_to_the_weekend():
+    def share(start, end, performer):
+        weeks = [shifts.roll('seed', MONDAY + timedelta(weeks=index), 'freelance', [0, 1, 2, 3, 4], start, end,
+                             'normal', 2, performer=performer) for index in range(200)]
+        days = [day for week in weeks for day in week['days']]
+        return sum(day >= 5 for day in days) / len(days)
+    assert share('10:00', '16:00', False) < 0.15
+    assert share('10:00', '16:00', True) > 0.3 and share('19:00', '23:00', False) > 0.3
