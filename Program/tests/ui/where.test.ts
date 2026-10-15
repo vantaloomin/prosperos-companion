@@ -32,6 +32,8 @@ test('apart shows no strip, and just after heading home it offers Undo', () => {
   assert.equal(stripLine(headed, 'Mira')?.lead, 'Headed home from Ouzo Bay.')
   assert.deepEqual(stripAction(headed), { action: 'undo', label: 'Undo' })
   assert.equal(stripLine({ ...headed, kind: 'yours' }, 'Mira')?.lead, 'Mira headed home.')
+  const loud = { ...headed, outing: { ...headed.outing!, place: { ...outing.place, name: 'Power Plant Live!' } } }
+  assert.equal(stripLine(loud, 'Mira')?.lead, 'Headed home from Power Plant Live!')
 })
 
 test('while together, their status line says where', () => {
