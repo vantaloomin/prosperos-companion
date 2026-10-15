@@ -19,6 +19,8 @@ from companion.world import catalog, changes, custom
 
 # Who picked the home: the app (it follows the world's city while the user has not changed it) or the user.
 PICKED, YOURS = 'app', 'you'
+# A city of another era this close to the user's is the same place (London and London, 1895 are 1 km apart).
+SAME_PLACE_KM = 30
 
 
 def known_cities(connection) -> dict[str, dict]:
@@ -133,6 +135,13 @@ def their_city(connection, definition: dict) -> dict | None:
     return None
 
 
+def same_place(yours: dict, theirs: dict) -> bool:
+    """The same city in another era: "Harlem, New York" read as today's New York for a user in New York, 1925.
+    Nobody lives across eras, so a companion's city there is the user's own."""
+    return (theirs.get('era', 'modern') != yours.get('era', 'modern') and 'lat' in yours and 'lat' in theirs
+            and catalog.distance_km(yours, theirs) <= SAME_PLACE_KM)
+
+
 def between(connection, definition: dict) -> Between:
     """The user's home against the companion's city (their home_city, else their location)."""
     yours = your_home(connection)
@@ -140,6 +149,8 @@ def between(connection, definition: dict) -> Between:
     if not yours or not theirs:
         return Between(False, True, yours and yours[0], theirs, None, True)
     city = yours[0]
+    if same_place(city, theirs):
+        theirs = city
     if city['id'] == theirs['id']:
         return Between(True, True, city, theirs, 0.0, True)
     km = catalog.distance_km(city, theirs) if 'lat' in city and 'lat' in theirs else None

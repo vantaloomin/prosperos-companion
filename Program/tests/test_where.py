@@ -143,3 +143,15 @@ def test_a_home_the_world_can_no_longer_reach_goes_back_to_its_city():
     world['home'] = {'city_id': 'new-york', 'neighbourhood': '', 'set_by': where.YOURS}
     assert not where.settle(world, cities['haddon-harbor'], cities)
     assert world['home']['city_id'] == 'new-york'
+
+
+def test_a_city_named_without_its_era_is_the_users_own(client, companion, app):
+    world = listing(client)['world']
+    with app.state.database.connect(write=True) as connection:
+        home = where.picked(catalog.cities()['new-york-1925'], world['id'])
+        worlds.write_persona(connection, {'id': 'p', 'name': 'Dot', 'gender': '', 'age': 27, 'about': ''},
+                             app.state.database.now(), home)
+        harlem = where.between(connection, definition(location='Harlem, New York'))
+        assert harlem.same_city and harlem.their_city['id'] == 'new-york-1925'
+        # Pellmouth is of the same era and its own town: long distance.
+        assert where.between(connection, definition(home_city='pellmouth')).long_distance
