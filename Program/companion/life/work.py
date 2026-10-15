@@ -726,6 +726,10 @@ HUNT_OLD = ('{name} went round asking after work.', '{name} answered a notice fo
             '{name} called on a few places that might be hiring.')
 GIG = ('{name} spent the day on a gig: {project}.', '{name} had a gig today and put it into {project}.',
        'A gig came through, and {name} spent the day on {project}.', '{name} worked a gig for a client: {project}.')
+# Before the jazz age there are no gigs or clients (shifts.old_era).
+GIG_OLD = ('{name} spent the day on an engagement: {project}.',
+           '{name} had an engagement today and put it into {project}.',
+           "Work came {name}'s way, and they spent the day on {project}.", '{name} worked for a patron: {project}.')
 SLAMMED_POSTS = ('Long day. Longer week.', 'Deadline week, send snacks.', 'Inbox: overflowing.')
 SLOW_POSTS = ('Quiet one today.', 'A slow day, for once.', 'Left on time, a miracle.')
 CAPTIONS_HUNT = ('Job hunting is a job.', 'Fingers crossed.', 'Applications out.')
@@ -753,7 +757,8 @@ def touch(connection, companion: dict, entry: dict | None, block: dict, day: dat
     label, project = routine_label(block), project_on(connection, companion, found, day)['title']
     if (gig := shifts.setup(connection, companion)) and gig['kind'] == 'freelance' and \
             generators.unit(seed, 'gig-line') < 0.5:
-        summary = generators.pick(seed, 'gig', list(GIG)).format(name=name, project=project)
+        lines = GIG_OLD if shifts.old_era(connection, companion) else GIG
+        summary = generators.pick(seed, 'gig', list(lines)).format(name=name, project=project)
         return {**entry, 'summary': summary, 'mood': 'busy' if week == 'slammed' else entry.get('mood')}
     if week == 'slammed':
         lines, posts, mood = SLAMMED, SLAMMED_POSTS, 'busy'

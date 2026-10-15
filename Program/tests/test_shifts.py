@@ -1,5 +1,6 @@
 """Shifts and gigs: a weekly rota for service jobs, freelance gigs in busy and dry spells, and the same days every week
 for staff, through everything that reads the routine."""
+import re
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -169,7 +170,8 @@ def test_the_character_page_and_the_chat_name_this_week(client, ines):
         companion = require_current(connection)
         lines = [text for _key, text in work.context_lines(connection, companion, client.app.state.database.clock.now())]
     [line] = [text for text in lines if text.startswith('- Your shifts change every week. ')]
-    assert line.endswith(' Any other day is a day off.') and 'Next week: ' in line and '16:00 to 23:30' in line
+    assert ' Days off: ' in line and 'Next week: ' in line and '16:00 to 23:30' in line
+    assert 'Any other day' not in line
 
 
 def test_a_shift_holds_against_dinner_like_work_always_has(client, ines, provider):
@@ -280,9 +282,13 @@ def test_a_holiday_is_off_in_the_week_s_lines_as_on_the_calendar(client, ines, m
         companion = require_current(connection)
         line = shifts.context_line(connection, companion, date(2026, 11, 24))
         overview = shifts.overview_line(connection, companion, date(2026, 11, 24))
-    assert 'Wednesday 25, Friday 27 and Saturday 28' in line and 'Thursday 26' not in line
+    # Thanksgiving is named only as a day off, by date like the shifts (the A/B in
+    # /mnt/project-files/companion-e2e-v12/ab/shifts/results.md).
+    worked, days_off = line.split(' Days off: ')
+    assert 'Wednesday 25, Friday 27 and Saturday 28' in worked and 'Thursday 26' not in worked
     assert overview == 'This week: Mon, Tue, Wed, Fri and Sat evenings.'
-    assert 'Next week: Monday 30, Tuesday 1, Wednesday 2, Thursday 3 and Saturday 5.' in line
+    assert 'Next week: Monday 30, Tuesday 1, Wednesday 2, Thursday 3 and Saturday 5.' in worked
+    assert days_off == 'Thursday 26 and Sunday 29 this week; Friday 4 and Sunday 6 next week.'
     assert thanksgiving.weekday() == 3
 
 
@@ -398,3 +404,61 @@ def test_a_holiday_or_day_off_on_a_rolled_shift_is_not_named_as_a_shift(client, 
         assert set(days) <= shifts.off_days(connection, companion, MONDAY, following + timedelta(days=6))
         thanksgiving = date(2026, 11, 26)
         assert thanksgiving.isoformat() in shifts.off_days(connection, companion, thanksgiving, thanksgiving)
+
+
+def gig_weeks(client, timeline_id, this, following):
+    with connect(client) as connection:
+        for monday, (days, spell) in (('2026-10-05', this), ('2026-10-12', following)):
+            connection.execute("INSERT OR REPLACE INTO work_weeks (timeline_id, monday, kind, career, days, spell, "
+                               "pay, created_at) VALUES (?, ?, 'freelance', 'bartender', ?, ?, 1, '2026-10-01')",
+                               (timeline_id, monday, str(days), spell))
+        return shifts.context_line(connection, require_current(connection), MONDAY + timedelta(days=2))
+
+
+def test_a_freelancer_s_line_names_next_week_s_gigs_and_free_days_and_its_own_spell(client, ines, monkeypatch):
+    # A dry week then a busy one: next week's spell is said apart ("no more gigs this week and four booked so far
+    # next week" read as a dry next week), with its gigs and the free days by date.
+    assert revise(client, lambda definition: {'money': {**definition['money'], 'employment': 'freelance'}}
+                  ).status_code == 200
+    reconcile(client)
+    monkeypatch.setattr(work, 'days_off', lambda *_args: {})  # no vacation day drawn into these two weeks
+    line = gig_weeks(client, ines['active_timeline_id'], ([0], 'dry'), ([0, 1, 3, 4], 'busy'))
+    assert line == ('- You freelance, so work comes in spells, and lately it is a dry spell: no more gigs this '
+                    'week and next week picks up: gigs Monday 12, Tuesday 13, Thursday 15 and Friday 16 booked so '
+                    'far. Free days: Wednesday 7, Thursday 8, Friday 9, Saturday 10 and Sunday 11 this week; '
+                    'Wednesday 14, Saturday 17 and Sunday 18 next week.')
+    line = gig_weeks(client, ines['active_timeline_id'], ([3], 'steady'), ([2], 'steady'))
+    assert 'gigs Thursday 8 this week and gigs Wednesday 14 booked so far next week.' in line
+
+
+def test_an_old_era_takes_engagements_not_gigs(client, ines, monkeypatch):
+    """Camelot, London 1895, Oz or Grandport: no "freelance", "gigs" or "booked" in the chat, on the Character page
+    or in the day's account; New York 1925 and modern cities keep them (findings/shifts.md F8)."""
+    from companion.life import outings
+    assert revise(client, lambda definition: {'money': {**definition['money'], 'employment': 'freelance'}}
+                  ).status_code == 200
+    reconcile(client)
+    monkeypatch.setattr(work, 'days_off', lambda *_args: {})
+    with connect(client, write=False) as connection:
+        companion = require_current(connection)
+        city = outings.city_data(connection, companion['version']['definition'])
+        for era, old in (('medieval', True), ('victorian', True), ('fantasy', True), ('jazz-age', False),
+                         ('modern', False)):
+            with monkeypatch.context() as patch:
+                patch.setattr(outings, 'city_data', lambda *_args, era=era: {**city, 'era': era})
+                assert shifts.old_era(connection, companion) == old, era
+    for old in (True, False):
+        # The city's era stays Baltimore's here, so the career and its weeks stay the same.
+        monkeypatch.setattr(shifts, 'old_era', lambda *_args, old=old: old)
+        line = gig_weeks(client, ines['active_timeline_id'], ([2, 4], 'steady'), ([1, 3], 'steady'))
+        with connect(client, write=False) as connection:
+            overview = shifts.overview_line(connection, require_current(connection), MONDAY + timedelta(days=2))
+        if old:
+            assert not re.findall(r'\b(?:freelance|gigs?|booked)\b', line + overview), (line, overview)
+            assert line.startswith('- You take work where it comes, so it comes in spells')
+            assert 'engagements Wednesday 7 and Friday 9 this week and engagements Tuesday 13 and Thursday 15 ' \
+                   'arranged so far next week.' in line
+            assert overview == 'Two engagements this week (Wed and Fri), a steady spell.'
+        else:
+            assert line.startswith('- You freelance,') and overview.startswith('Two gigs this week')
+    assert all(not re.search(r'\bgigs?\b|client', text) for text in work.GIG_OLD)

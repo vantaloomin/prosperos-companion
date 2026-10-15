@@ -459,16 +459,24 @@ def part_of_day(start: str, end: str) -> str:
     return ' evenings' if start >= '15:00' else ''
 
 
-def week_text(kind: str, days: list[int], start: str, end: str, short: bool = True) -> str:
-    """'Tue, Thu and Sat nights' or 'Two gigs (Tuesday and Friday)'."""
+def week_text(kind: str, days: list[int], start: str, end: str, short: bool = True, old: bool = False) -> str:
+    """'Tue, Thu and Sat nights' or 'Two gigs (Tuesday and Friday)' ('Two engagements' in an old era)."""
     if kind == 'rota':
         return days_text(days, SHORT_DAYS if short else DAY_NAMES) + part_of_day(start, end) if days else 'no shifts'
-    count = len(days)
-    gigs = f"{COUNTS[count]} gig{'' if count == 1 else 's'}"
-    return f'{gigs} ({days_text(days, SHORT_DAYS if short else DAY_NAMES)})' if days else 'No gigs'
+    count, word = len(days), 'engagement' if old else 'gig'
+    gigs = f"{COUNTS[count]} {word}{'' if count == 1 else 's'}"
+    return f'{gigs} ({days_text(days, SHORT_DAYS if short else DAY_NAMES)})' if days else f'No {word}s'
+
+
+def old_era(connection, companion: dict) -> bool:
+    """A city before the jazz age (Camelot, London 1895, the Emerald City, Grandport): no "gigs" or "freelance"."""
+    from companion.life import outings, work
+    return work.era_group(outings.city_data(connection, companion['version']['definition'])) not in ('modern',
+                                                                                                    'jazz-age')
 
 
 SPELL_WORDS = {'busy': 'a busy spell', 'steady': 'a steady spell', 'dry': 'a dry spell'}
+SPELL_ORDER = {'dry': 0, 'steady': 1, 'busy': 2}
 
 
 def off_days(connection, companion: dict, start: date, end: date) -> set[str]:
@@ -501,10 +509,11 @@ def overview_line(connection, companion: dict, today: date) -> str:
     week = {**week, 'days': working(week['days'], monday, off)}
     if found['kind'] == 'rota':
         return f"This week: {week_text('rota', week['days'], found['start'], found['end'])}."
+    old = old_era(connection, companion)
     if not week['days']:
-        return f"No gigs this week, {SPELL_WORDS[week['spell']]}."
-    return f"{week_text('freelance', week['days'], found['start'], found['end']).replace(' (', ' this week (', 1)}, " \
-           f"{SPELL_WORDS[week['spell']]}."
+        return f"No {'engagements' if old else 'gigs'} this week, {SPELL_WORDS[week['spell']]}."
+    gigs = week_text('freelance', week['days'], found['start'], found['end'], old=old)
+    return f"{gigs.replace(' (', ' this week (', 1)}, {SPELL_WORDS[week['spell']]}."
 
 
 def dated(days: list[int], monday: date) -> str:
@@ -513,9 +522,34 @@ def dated(days: list[int], monday: date) -> str:
     return days_text([f'{DAY_NAMES[day]} {(monday + timedelta(days=day)).day}' for day in days], None)
 
 
+def days_free(left: list[int], following: list[int], today: date, monday: date) -> str:
+    """'Tuesday 13 and Friday 16 this week; Monday 19 and Sunday 25 next week': the days without work by date, so a
+    free day is never worked out by elimination."""
+    free_now = [day for day in range(today.weekday(), 7) if day not in left]
+    free_then = [day for day in range(7) if day not in following]
+    parts = [f'{dated(free_now, monday)} this week'] if free_now else []
+    parts += [f'{dated(free_then, monday + timedelta(weeks=1))} next week'] if free_then else []
+    return '; '.join(parts)
+
+
+def gigs_line(this: dict, following: dict, left: list[int], monday: date, old: bool) -> str:
+    """A freelancer's line: this week's gigs and next week's by date, next week's spell said apart from this week's
+    so a dry week doesn't read as a dry next week too ('engagements' and 'arranged' in an old era)."""
+    gigs, booked = ('engagements', 'arranged') if old else ('gigs', 'booked')
+    now = f"{gigs} {dated(left, monday)} this week" if left else f'no more {gigs} this week'
+    then = f'nothing {booked} next week yet'
+    if following['days']:
+        named = f"{gigs} {dated(following['days'], monday + timedelta(weeks=1))} {booked} so far"
+        turn = SPELL_ORDER[following['spell']] - SPELL_ORDER[this['spell']]
+        then = f"next week {'picks up' if turn > 0 else 'is quieter'}: {named}" if turn else f'{named} next week'
+    opening = 'You take work where it comes, so it comes in spells' if old else 'You freelance, so work comes in spells'
+    return f"- {opening}, and lately it is {SPELL_WORDS[this['spell']]}: {now} and {then}."
+
+
 def context_line(connection, companion: dict, today: date) -> str:
-    """The chat's line in the Work section: the rest of this week's shifts (or gigs) and next week's, by date.
-    The wording won its A/B (/mnt/project-files/companion-shifts/report.md)."""
+    """The chat's line in the Work section: the rest of this week's shifts (or gigs) and next week's, by date, and
+    the days off by date. The wording won its A/Bs (/mnt/project-files/companion-shifts/report.md,
+    /mnt/project-files/companion-e2e-v12/ab/shifts/results.md)."""
     found = setup(connection, companion)
     if not found:
         return ''
@@ -525,13 +559,12 @@ def context_line(connection, companion: dict, today: date) -> str:
     off = off_days(connection, companion, monday, monday + timedelta(days=13))
     following = {**following, 'days': working(following['days'], monday + timedelta(weeks=1), off)}
     left = [day for day in working(this['days'], monday, off) if day >= today.weekday()]
+    free = days_free(left, following['days'], today, monday)
     if found['kind'] == 'rota':
         now = f"The rest of this week: {dated(left, monday)}, {found['start']} to {found['end']}." if left else \
             'No more shifts this week.'
         then = f"Next week: {dated(following['days'], monday + timedelta(weeks=1))}." if following['days'] else \
             'No shifts next week.'
-        return f'- Your shifts change every week. {now} {then} Any other day is a day off.'
-    now = f"gigs {dated(left, monday)} this week" if left else 'no more gigs this week'
-    count = len(following['days'])
-    then = f"{COUNTS[count].lower()} booked so far next week" if count else 'nothing booked next week yet'
-    return f"- You freelance, so work comes in spells, and lately it is {SPELL_WORDS[this['spell']]}: {now} and {then}."
+        return f'- Your shifts change every week. {now} {then}' + (f' Days off: {free}.' if free else '')
+    line = gigs_line(this, following, left, monday, old_era(connection, companion))
+    return line + (f' Free days: {free}.' if free else '')
