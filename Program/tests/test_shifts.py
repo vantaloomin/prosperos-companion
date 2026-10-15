@@ -329,3 +329,21 @@ def test_shifts_written_later_keep_off_a_dinner_already_settled(client, ines, pr
     assert decode(row['days']) == [1, 2, 3, 4, 5]
     assert following.isoformat() not in work_days(client, ines['active_timeline_id'])
     assert shifts.clear_of_plans([0, 1, 2, 3, 4, 5, 6], '16:00', '23:30', [(19 * 60, 21 * 60)]) == [1, 2, 3, 4, 5, 6]
+
+
+def test_a_clock_moved_back_rewrites_no_past_days(client, ines, clock):
+    """With the clock behind what has already happened, the week is not brought in line again: that would write a
+    day off next to a shift that already happened."""
+    reconcile(client)
+    for _ in range(13):
+        clock.advance(timedelta(days=7))
+        reconcile(client)
+    clock.advance(timedelta(days=-88))
+    reconcile(client)
+    with connect(client, write=False) as connection:
+        rows = connection.execute("SELECT local_date, slot_key FROM life_agenda WHERE timeline_id=? AND "
+                                  "subject='companion'", (ines['active_timeline_id'],)).fetchall()
+    keys = {}
+    for row in rows:
+        keys.setdefault(row['local_date'], set()).add(row['slot_key'].split('@')[0])
+    assert not [day for day, found in keys.items() if {'work', 'day-off'} <= found]

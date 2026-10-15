@@ -386,7 +386,10 @@ def refresh_agenda(connection, companion: dict, now: datetime) -> bool:
     moving = {block.key: block for block in schedule if block.kind == 'work' or block.key in (AFTER_WORK, DAY_OFF)}
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
                       (timeline_id, agenda.COMPANION))
-    if not moving or not cursor:
+    if not moving or not cursor or optional(
+            connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND status!='upcoming' AND "
+            'ends_at>? LIMIT 1', (timeline_id, agenda.COMPANION, stamp(now))):
+        # With the clock behind what already happened, nothing is written again (a clock moved back replays nothing).
         return False
     today, written, changed = now.astimezone(zone(companion['version']['timezone'])).date(), set(), False
     for row in many(connection, "SELECT id, slot_key FROM life_agenda WHERE timeline_id=? AND subject=? AND "
