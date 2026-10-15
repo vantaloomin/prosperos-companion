@@ -25,7 +25,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import many, optional, settings
 from companion.errors import require
 from companion.life import money, own_plans, together, trips, where
-from companion.world import generators
+from companion.world import catalog, generators
 
 ACTIVE = True
 # The first text about a visit the app planned; off in most tests (tests/conftest.py).
@@ -58,13 +58,13 @@ NEWS_WITHIN = timedelta(days=3)
 UNDO = timedelta(hours=12)
 
 # The user asking them to come and stay, and asking to come and stay with them.
-COME_TO_YOU = re.compile(r"\b(?:come (?:and |to )?(?:visit|see|stay with) me|visit me|(?:come|fly|drive|take the "
+COME_TO_YOU = re.compile(r"\b(?:(?:come|coming) (?:and |to )?(?:visit|see|stay with) me|visit me|(?:come|fly|drive|take the "
                          r"train) (?:out|up|down|over) (?:here|to (?:see|visit) me)|come (?:out|up|down) (?:here|for "
                          r"the weekend))\b", re.IGNORECASE)
 GO_TO_THEM = re.compile(r"\b(?:(?:can|could|should|may) i (?:come |fly |drive )?(?:out |up |down |over )?(?:to )?"
                         r"(?:visit|see|stay with) you|i(?:'?ll| will| could| should) (?:come|fly|drive) (?:out |up |down "
-                        r"|over )?(?:to )?(?:visit|see) you|(?:let me|i want to|i wanna) (?:come )?(?:visit|see) you "
-                        r"(?:there|in person))\b", re.IGNORECASE)
+                        r"|over )?(?:to )?(?:visit|see) you|(?:let me|i want to|i wanna|i'?d love to) come (?:and )?(?:visit|see|"
+                        r"stay with) you|(?:let me|i want to|i wanna) (?:visit|see) you (?:there|in person))\b", re.IGNORECASE)
 
 
 def far(connection, companion: dict) -> where.Between | None:
@@ -73,13 +73,34 @@ def far(connection, companion: dict) -> where.Between | None:
     return between if between.known and between.long_distance else None
 
 
+def reachable(between: where.Between) -> bool:
+    """A weekend visit can get from one city to the other at all: the same era and the same world, as trips travel
+    (trips.fits: our world's real and invented towns mix, a made-up world's cities only among themselves)."""
+    yours, theirs = between.your_city, between.their_city
+    return bool(yours and theirs) and (trips.fits(yours, theirs) or trips.fits(theirs, yours))
+
+
 def settle_moves(connection, companion: dict, today: date) -> where.Between | None:
-    """`far`, and when they live in the same city now (a move), the visits still to come are called off."""
+    """`far` when a visit can bridge it. Visits still to come that no longer fit where the two of them live (one of
+    them moved: the same city now, another city, or one a visit can't reach) are called off."""
     between = far(connection, companion)
-    if between is None:
-        connection.execute("UPDATE trips SET status='cancelled' WHERE timeline_id=? AND visit!='' AND status='planned' "
-                           'AND start_date>?', (companion['active_timeline_id'], today.isoformat()))
-    return between
+    usable = between if between and reachable(between) else None
+    rows = many(connection, "SELECT id, visit, city_id FROM trips WHERE timeline_id=? AND visit!='' AND "
+                "status='planned' AND start_date>?", (companion['active_timeline_id'], today.isoformat()))
+    for row in rows:
+        city = usable and (usable.your_city if row['visit'] == TO_YOU else usable.their_city)
+        if not city or city['id'] != row['city_id']:
+            connection.execute("UPDATE trips SET status='cancelled' WHERE id=?", (row['id'],))
+    return usable
+
+
+def settle_all(connection, now: datetime):
+    """Right after the user or a companion moves: every companion's visits that no longer fit are called off."""
+    from companion.characters import by_id
+    for row in many(connection, 'SELECT id FROM companions'):
+        companion = by_id(connection, row['id'])
+        if companion and companion.get('version'):
+            settle_moves(connection, companion, now.astimezone(zone(companion['version']['timezone'])).date())
 
 
 # --- Planning a visit -------------------------------------------------------------------------------------------
@@ -109,7 +130,8 @@ def gap(chosen: int, between: where.Between) -> int:
 def recent(connection, companion: dict, saturday: date, days: int) -> bool:
     """A visit within `days` of that weekend, one the user called off included (they don't plan another at once)."""
     return bool(optional(connection, "SELECT id FROM trips WHERE timeline_id=? AND visit!='' AND start_date>? AND "
-                         'start_date<?', (companion['active_timeline_id'],
+                         "start_date<? AND (status='planned' OR cancelled_at IS NOT NULL)",
+                         (companion['active_timeline_id'],
                                                            (saturday - timedelta(days=days)).isoformat(),
                                                            (saturday + timedelta(days=days)).isoformat())))
 
@@ -123,6 +145,8 @@ def weekend(connection, companion: dict, home: dict, between: where.Between,
     vacation = work.vacation_dates(connection, companion, saturday - timedelta(days=2), saturday + timedelta(days=2))
     if between.within_reach:
         days = trips.days_off(home, saturday, vacation)
+        if between.km and between.km > trips.REACH_KM[min(len(days), 3)]:
+            return None  # Too far for two days: only a long weekend reaches it.
     else:
         days = [saturday + timedelta(days=offset) for offset in range(-2, 3)]
     holidays = trips.public_holidays(home, days[0], days[-1]) | vacation
@@ -210,6 +234,10 @@ def request(connection, companion: dict, message: dict, direction: str, day: dat
     kind = f'weekend-{direction}'
     if between is None or home is None:
         return together.record(connection, companion, message, kind, {'why': 'weekends'}, timestamp)
+    if not reachable(between):
+        # No way between their worlds or eras (trips.fits): as far as any visit goes.
+        return together.record(connection, companion, message, kind, {'why': 'far', 'city': between.their_city['name'],
+                                                                      'km': between.km}, timestamp)
     local = parse(message['created_at']).astimezone(zone(companion['version']['timezone'])).date()
     why = 'weekends' if between.within_reach else 'no-time'
     for saturday in weekends(local, day):
@@ -243,16 +271,31 @@ def overlaps(connection, companion: dict, days: list[date]) -> bool:
 # --- Under way ------------------------------------------------------------------------------------------------
 
 def visiting(connection, companion: dict, now: datetime) -> dict | None:
-    """The weekend visit under way now: from their arrival on the first day until they leave on the last."""
+    """The weekend visit under way now: from their arrival on the first day until they leave on the last, by the clock
+    of the city the visit is in (the user's when they come to stay, their own when the user does)."""
     if not ACTIVE:
         return None
-    local = now.astimezone(zone(companion['version']['timezone']))
-    today, clock = local.date().isoformat(), local.strftime('%H:%M')
-    row = optional(connection, "SELECT * FROM trips WHERE timeline_id=? AND visit!='' AND status='planned' AND "
-                   'start_date<=? AND end_date>=?', (companion['active_timeline_id'], today, today))
-    if not row or (today == row['start_date'] and clock < ARRIVE) or (today == row['end_date'] and clock >= LEAVE):
-        return None
-    return trips.view(row)
+    near = now.astimezone(zone(companion['version']['timezone'])).date()
+    rows = many(connection, "SELECT * FROM trips WHERE timeline_id=? AND visit!='' AND status='planned' AND "
+                'start_date<=? AND end_date>=? ORDER BY start_date', (companion['active_timeline_id'],
+                                                                      (near + timedelta(days=1)).isoformat(),
+                                                                      (near - timedelta(days=1)).isoformat()))
+    for row in rows:
+        local = now.astimezone(visit_zone(companion, row))
+        today, clock = local.date().isoformat(), local.strftime('%H:%M')
+        if row['start_date'] <= today <= row['end_date'] and not (today == row['start_date'] and clock < ARRIVE) \
+                and not (today == row['end_date'] and clock >= LEAVE):
+            return trips.view(row)
+    return None
+
+
+def visit_zone(companion: dict, trip: dict):
+    """The time zone of the city a visit is in, else the companion's own."""
+    city = catalog.cities().get(trip['city_id'])
+    try:
+        return zone(city['timezone']) if city and city.get('timezone') else zone(companion['version']['timezone'])
+    except ValueError:
+        return zone(companion['version']['timezone'])
 
 
 def state(connection, companion: dict, now: datetime) -> dict | None:
