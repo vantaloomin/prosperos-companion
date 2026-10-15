@@ -49,8 +49,9 @@ SWAPS = ('rota', 'freelance')
 ARRIVE, LEAVE = '11:00', '16:00'
 # A visit asked for in the chat: the weekend asked or the next free one, from ASK_FROM days ahead, within ASK_WEEKS.
 ASK_FROM, ASK_WEEKS = 4, 6
-# Beyond a trip's reach, the five days a visit can take around a Saturday, as offsets from it, in order of preference.
-FAR_SPANS = (range(-2, 3), range(0, 5), range(-3, 2))
+# Beyond a trip's reach, the days a visit can take around a Saturday, as offsets from it, in order of preference: five
+# days (Thursday to Monday, or beside a week's vacation), else a four-day weekend (Friday to Monday).
+FAR_SPANS = (range(-2, 3), range(0, 5), range(-3, 2), range(-1, 3))
 LATER_WEEKEND = re.compile(r'\b(?:next weekend|(?:the )?weekend after next)\b', re.IGNORECASE)
 # How long a visit is talked about before it comes, after it, and after the user called it off; how long the news of
 # one the app planned can wait; how long calling it off can be undone.
@@ -143,7 +144,7 @@ def weekend(connection, companion: dict, home: dict, between: where.Between,
             saturday: date) -> tuple[list[date], set[str]] | None:
     """(days, vacation days among them) when they are free for a visit that weekend: the weekend with a holiday or
     vacation day beside it, or beyond a trip's reach five days around it (Thursday to Monday, or the weekend and the
-    three days after or before it, which is how a week's vacation meets a weekend)."""
+    three days after or before it, which is how a week's vacation meets a weekend), else Friday to Monday."""
     from companion.life import work
     vacation = work.vacation_dates(connection, companion, saturday - timedelta(days=3), saturday + timedelta(days=4))
     if between.within_reach:

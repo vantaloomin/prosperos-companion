@@ -343,8 +343,11 @@ def test_beyond_reach_a_vacation_week_meets_a_weekend(client, monkeypatch):
         assert not between.within_reach
         before = long_distance.weekend(connection, companion, home, between, date(2026, 10, 17))
         after = long_distance.weekend(connection, companion, home, between, date(2026, 10, 24))
+        monkeypatch.setattr(work, 'vacation_dates', lambda *_args: {'2026-10-16', '2026-10-19'})
+        long_weekend = long_distance.weekend(connection, companion, home, between, date(2026, 10, 17))
         monkeypatch.setattr(work, 'vacation_dates', lambda *_args: set())
         working = long_distance.weekend(connection, companion, home, between, date(2026, 10, 17))
     assert (before[0][0], before[0][-1]) == (date(2026, 10, 17), date(2026, 10, 21))  # Saturday to Wednesday.
     assert (after[0][0], after[0][-1]) == (date(2026, 10, 21), date(2026, 10, 25))  # Wednesday to Sunday.
+    assert (long_weekend[0][0], long_weekend[0][-1]) == (date(2026, 10, 16), date(2026, 10, 19))  # Friday to Monday.
     assert working is None
