@@ -399,11 +399,13 @@ def distance_line(connection, companion: dict, between: where.Between, now: date
     """How far apart they live and the time difference."""
     km = f", about {round(between.km):,} km apart" if between.km else ''
     hours = offset(connection, companion, now)
-    clock = f' and you are {abs(hours):g} hour{"s" if abs(hours) != 1 else ""} {"ahead of" if hours > 0 else "behind"} ' \
+    clock = f' and you are {together.span_text(round(abs(hours) * 60))} {"ahead of" if hours > 0 else "behind"} ' \
         'the user, so mind what time of day it is for each of you' if hours else ''
+    keep = "you see each other on weekend visits now and then, and talk on the phone in between" if reachable(between) \
+        else 'and no trip reaches that far; you keep in touch by phone and letters'
+    joint = '; ' if reachable(between) else ', '
     return (f"- You live in {between.their_city['name']} and the user lives in {between.your_city['name']}{km}: you are "
-            f"long distance{clock}. You can't just meet up or come over; you see each other on weekend visits now and "
-            'then, and talk on the phone in between.')
+            f"long distance{clock}. You can't just meet up or come over{joint}{keep}.")
 
 
 def offset(connection, companion: dict, now: datetime) -> float:

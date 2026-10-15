@@ -391,7 +391,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
             reason = decode(row['reason'])
             result.append((f"together-ask:{row['id']}",
                            f"- The user asked {ASKED[row['kind']]}. You can't: {reason_text(reason)}. Say so kindly in "
-                           'your own words, and suggest another time if you like. You are apart, texting.'))
+                           f"your own words, and suggest {'a weekend visit instead' if reason['why'] == 'far' else 'another time'}"
+                           ' if you like. You are apart, texting.'))
     timezone = companion['version']['timezone']
     since = (now.astimezone(zone(timezone)).date() - timedelta(days=1)).isoformat()
     for outing in outings.in_force(connection, companion['active_timeline_id'], since):

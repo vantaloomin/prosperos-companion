@@ -575,6 +575,25 @@ VISIT_DOING = {'visit-in': 'had you over at home', 'visit-yours': 'came over to 
                'dinner-yours': 'came over to your place for dinner', 'knock': 'dropped by your place'}
 
 
+# A visit as an image prompt says it (images/prompts.py), apart from VISIT_DOING, which the chat and the feed read:
+# the image model can't place "you" or "Your place", and a "you" in the words draws a second person.
+PHOTO_DOING = {'had you over at home': 'had a friend over at home{area}',
+               'came over to your place for dinner': "came over to a friend's apartment{area} for dinner",
+               'came over to your place': "came over to a friend's apartment{area}",
+               'dropped by your place': "dropped by a friend's apartment{area}"}
+
+
+def photo_words(summary: str, activity: str, neighborhood: str | None) -> dict:
+    """A visit's summary and place for a picture: "came over to a friend's apartment in Hampden", not "came over to
+    your place ... at Your place". A summary phrased some other way keeps its words; only the place changes."""
+    area = f' in {neighborhood}' if neighborhood else ''
+    place = f'home{area}' if activity == 'visit-in' else f"a friend's apartment{area}"
+    for said, shown in PHOTO_DOING.items():
+        if f' {said}.' in summary:
+            return {'summary': summary.replace(f' {said}.', f' {shown.format(area=area)}.', 1), 'place': place}
+    return {'summary': summary, 'place': place}
+
+
 def place_knock(outing: dict) -> bool:
     return bool(outing['place'].get('knock'))
 
@@ -662,7 +681,7 @@ def menu(data: dict | None, outing: dict) -> str:
     return ' '.join(part for part in parts if part)
 
 
-def scene(connection, companion: dict, outing: dict) -> str:
+def scene(connection, companion: dict, outing: dict, now: datetime | None = None) -> str:
     """What being there together looks like, from the city data."""
     from companion.life import agenda
     definition = companion['version']['definition']
@@ -672,7 +691,7 @@ def scene(connection, companion: dict, outing: dict) -> str:
     spot = generators.pick(seed, SPOT, place.get('spots') or [])
     conditions = generators.conditions(data, date.fromisoformat(outing['local_date'])) if data else None
     if outing['activity'] in VISIT_DOING:
-        return visit_scene(outing, spot, conditions)
+        return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else ())
     if outing['activity'] == 'dinner-in':
         spot = generators.pick(seed, SPOT, place.get('spots') or [])
         return '- ' + ' '.join(part for part in (
@@ -691,7 +710,20 @@ IN_PERSON = ('Talk as if you are there together, face to face, not texting: what
              'separate texts, no typos.')
 
 
-def visit_scene(outing: dict, spot: str | None, conditions) -> str:
+def here_too(connection, companion: dict, outing: dict, now: datetime) -> list[str]:
+    """The other companions in person at the same place right now (two visits at the user's place at once)."""
+    from companion.characters import by_id
+    from companion.life import together
+    names = []
+    for row in many(connection, 'SELECT id FROM companions WHERE id!=? ORDER BY created_at', (companion['id'],)):
+        other = by_id(connection, row['id'])
+        found = other and together.together_now(connection, other, now)
+        if found and found['place']['id'] == outing['place']['id'] and found['activity'] in together.AT_YOURS:
+            names.append(other['version']['definition']['name'])
+    return names
+
+
+def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
     """Being at the user's place, or having them at yours, in person."""
     from companion.life import agenda
     place = outing['place']
@@ -706,7 +738,9 @@ def visit_scene(outing: dict, spot: str | None, conditions) -> str:
         first = f"Right now you are over at the user's place{area}{food}, in person, until about {outing['until_time']}."
     spot = None if place.get('knock') else spot  # Just in from the door, not settled anywhere yet.
     weather = f'Weather outside: {agenda.weather_text(conditions)}' if conditions else ''
-    return '- ' + ' '.join(part for part in (first, f'You are {spot}.' if spot else '', weather, IN_PERSON) if part)
+    company = ' '.join(f'{name}, also visiting the user, is here too, in person.' for name in others)
+    return '- ' + ' '.join(part for part in (first, company, f'You are {spot}.' if spot else '', weather, IN_PERSON)
+                           if part)
 
 
 def planned_line(outing: dict) -> str:
@@ -754,7 +788,7 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     for outing in in_force(connection, companion['active_timeline_id'], (today - timedelta(days=1)).isoformat()):
         found = state(outing, version['timezone'], now)
         if found == 'now':
-            result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing)))
+            result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing, now)))
         elif found == 'planned':
             result.append((f"outing:{outing['id']}", planned_line(outing)))
             if outing['message_id'] in fresh_ids:
@@ -950,6 +984,7 @@ def moment(companion: dict, outing: dict, composed: dict, key: str) -> dict:
     """The outing as images/prompts.build_moment reads a chat photo's moment."""
     hour = int(outing['at_time'][:2]) + 1
     return {'event_key': key, 'summary': composed['summary'], 'caption': composed['post'], 'mood': 'happy',
-            'place': outing['place']['name'], 'label': f"Out with you at {outing['place']['name']}", 'kind': 'social',
+            'place': outing['place']['name'], 'neighborhood': outing['place'].get('neighborhood'),
+            'label': f"Out with you at {outing['place']['name']}", 'kind': 'social',
             'hour': hour, 'weather': composed.get('weather'), 'activity': outing['activity'], 'with': None,
             'timeline_id': companion['active_timeline_id'], 'local_date': outing['local_date']}

@@ -415,6 +415,15 @@ FRAMINGS = {
 }
 
 
+def visit_words(scene_text: dict, neighborhood: str | None) -> dict:
+    """A visit at the user's place or theirs in words a picture can show (companion/life/outings.photo_words): the
+    moment's own wording, which the chat reads, is left as it is."""
+    from companion.life import outings
+    if scene_text.get('activity') not in outings.VISIT_DOING or not scene_text.get('summary'):
+        return scene_text
+    return {**scene_text, **outings.photo_words(scene_text['summary'], scene_text['activity'], neighborhood)}
+
+
 def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     """The frozen inputs of a chat photo: the companion's current slot as the simulation composes
     it, before it is an event. The moment's wording goes into `captions`, so classification covers
@@ -422,8 +431,9 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     companion out of the picture, so it carries no likeness."""
     companion = require_current(connection)
     definition = companion['version']['definition']
-    scene_text = {key: moment.get(key) for key in ('summary', 'caption', 'mood', 'place', 'hour', 'weather',
-                                                    'activity', 'with', 'hobby')}
+    scene_text = visit_words({key: moment.get(key) for key in ('summary', 'caption', 'mood', 'place', 'hour',
+                                                                'weather', 'activity', 'with', 'hobby')},
+                             moment.get('neighborhood'))
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
     sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))
