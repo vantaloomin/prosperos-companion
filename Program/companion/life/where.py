@@ -57,10 +57,11 @@ def choices(world_city: dict, cities: dict[str, dict]) -> list[dict]:
 
 def settle(world: dict, world_city: dict, cities: dict[str, dict]) -> bool:
     """Gives `world` its home when it has none (an upgrade, a new world), and moves an app-picked home along with the
-    world's city. A home whose city has gone goes back to the world's city. True when the home changed."""
+    world's city. A home whose city has gone, or that the world's city can no longer reach (a world that became Camelot
+    when its first companion lives there), goes back to the world's city. True when the home changed."""
     home = world.get('home') or {}
     city = cities.get(home.get('city_id', ''))
-    if home and city and (home.get('set_by') == YOURS or city['id'] == world_city['id']):
+    if home and city and (city['id'] == world_city['id'] or (home.get('set_by') == YOURS and allowed(world_city, city))):
         if home.get('neighbourhood') and not hood_named(city, home['neighbourhood']):
             home['neighbourhood'] = neighbourhood_for(city, world['id'])
             return True

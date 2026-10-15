@@ -118,3 +118,15 @@ def test_same_city_or_long_distance(client, companion, app):
 def test_the_registry_keeps_the_home(client, companion, app):
     registry = json.loads((app.state.database.root / worlds.REGISTRY).read_text(encoding='utf-8'))
     assert registry['worlds'][0]['home']['city_id'] == 'baltimore'
+
+
+def test_a_home_the_world_can_no_longer_reach_goes_back_to_its_city():
+    cities = catalog.cities()
+    world = {'id': 'w1', 'home': {'city_id': 'new-york', 'neighbourhood': '', 'set_by': where.YOURS}}
+    # The world followed its first companion to Camelot: a New York home is out of its reach.
+    assert where.settle(world, cities['camelot'], cities)
+    assert world['home']['city_id'] == 'camelot' and world['home']['set_by'] == where.PICKED
+    # One a trip could reach stays the user's.
+    world['home'] = {'city_id': 'new-york', 'neighbourhood': '', 'set_by': where.YOURS}
+    assert not where.settle(world, cities['haddon-harbor'], cities)
+    assert world['home']['city_id'] == 'new-york'
