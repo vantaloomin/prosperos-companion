@@ -298,3 +298,16 @@ def test_the_time_difference_reads_plainly_for_half_and_quarter_hour_zones():
     from companion.life import together
     assert [together.span_text(minutes) for minutes in (300, 60, 570, 345, 30, 1020)] == \
         ['5 hours', '1 hour', '9½ hours', '5 hours 45 minutes', '30 minutes', '17 hours']
+
+
+def test_today_shows_a_visit_together_only_from_arrival_to_leaving(client, apart, visits, clock, monkeypatch):
+    monkeypatch.setattr(long_distance, 'turn', lambda *_args: long_distance.TO_YOU)
+    reconcile(client)
+    [visit] = planned(client)
+    assert visit['start_date'] == '2026-10-17'
+    clock.advance(timedelta(days=12, hours=-3))  # Saturday 05:00 in Baltimore: not here yet (they arrive at 11:00).
+    assert planned(client)[0]['state'] == 'planned'
+    clock.advance(timedelta(hours=8))
+    assert planned(client)[0]['state'] == 'now'
+    clock.advance(timedelta(days=1, hours=3))  # Sunday 16:00 in Baltimore: they have just left.
+    assert planned(client)[0]['state'] == 'done'

@@ -562,9 +562,13 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     rows = many(connection, 'SELECT * FROM trips WHERE timeline_id=? AND end_date>=? ORDER BY start_date',
                 (companion['active_timeline_id'], (today - timedelta(days=14)).isoformat()))
     result = []
+    under_way = long_distance.visiting(connection, companion, now)
     for row in map(view, rows):
         found = 'cancelled' if row['status'] == 'cancelled' else 'done' if row['end_date'] < today.isoformat() else \
             'now' if row['start_date'] <= today.isoformat() else 'planned'
+        if row['visit'] and found == 'now' and not (under_way and under_way['id'] == row['id']):
+            # A visit is together from arrival to leaving, not all day (companion/life/long_distance.py).
+            found = 'planned' if row['start_date'] >= today.isoformat() else 'done'
         card = optional(connection, "SELECT message_id FROM openers WHERE timeline_id=? AND trigger_key=?",
                         (row['timeline_id'], f"postcard:{row['id']}"))
         found_cost = money.profile(companion['version']['definition'])
