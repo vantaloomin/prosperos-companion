@@ -276,3 +276,13 @@ def test_nobody_knocks_while_the_user_is_with_someone(client, nearby, provider, 
     with client.app.state.database.connect() as connection:
         assert together.with_someone(connection, clock.now())
         assert together.knock_due(connection, current(connection), clock.now()) == []
+
+
+def test_a_walk_is_gone_for_not_got(client, nearby, clock, monkeypatch):
+    import random
+    monkeypatch.setattr(together, 'SUGGESTIONS', ('walk',))
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        local = clock.now().astimezone(__import__('zoneinfo').ZoneInfo('UTC'))
+        [trigger] = together.outing_suggestion(connection, companion, local, 'get-together:test', random.Random(1))
+    assert trigger.template.startswith('Want to go for a walk at ')

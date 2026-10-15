@@ -594,7 +594,8 @@ def outing_suggestion(connection, companion: dict, local: datetime, key: str, rn
     thing = outings.ACTIVITIES[activity][5]
     return [Trigger(key, 'get_together',
                     f"You'd like to see the user: suggest {thing} at {place['name']} on {day:%A} at {at}. Suggest it in "
-                    'your own words, naming the place and the day.', f"Want to get {thing} at {place['name']} {day:%A}?",
+                    'your own words, naming the place and the day.',
+                    f"Want to {'go for' if activity == 'walk' else 'get'} {thing} at {place['name']} {day:%A}?",
                     (activity, day.isoformat(), at, place['id']))]
 
 
