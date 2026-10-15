@@ -267,6 +267,14 @@ def reference(connection, timeline_id: str) -> date:
     return date.fromisoformat(row['day']) if row and row['day'] else date(2000, 1, 3)
 
 
+def copy(connection, parent_id: str, new_id: str, cutoff: str):
+    """A fork keeps the weeks already planned up to the fork, so its past shifts are the parent's; from the next week
+    on it rolls its own."""
+    connection.execute('INSERT INTO work_weeks (timeline_id, monday, kind, career, days, spell, workload, pay, created_at) '
+                       'SELECT ?, monday, kind, career, days, spell, workload, pay, created_at FROM work_weeks '
+                       'WHERE timeline_id=? AND monday<=?', (new_id, parent_id, cutoff[:10]))
+
+
 def with_rota(connection, companion: dict) -> dict:
     """The companion with their shifts for the weeks around now on their definition, for routine.py (`rota`; the
     saved version never has it). Unchanged when their week stays as written."""

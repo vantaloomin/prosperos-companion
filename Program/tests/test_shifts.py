@@ -250,3 +250,17 @@ def test_weeks_before_the_first_one_written_stay_as_they_were_lived(client, ines
     assert span[MONDAY.isoformat()]['days'] == companion['version']['definition']['rota']['weeks'][MONDAY.isoformat()]
     rota = companion['version']['definition']['rota']['weeks']
     assert rota[(MONDAY - timedelta(weeks=3)).isoformat()] == written
+
+
+def test_a_branch_keeps_the_weeks_planned_before_it(client, ines, provider):
+    reconcile(client)
+    provider.replies.append([Chunk('Busy night.'), Chunk('', 'stop')])
+    sent = send(client, 'How was the bar?', 'client-shift-fork')
+    fork = client.post('/api/timelines', json={'message_id': sent['message']['id'], 'text': 'How was work?'})
+    assert fork.status_code == 200, fork.text
+    timeline_id, fork_id = ines['active_timeline_id'], fork.json()['id']
+    with connect(client, write=False) as connection:
+        weeks = {row['timeline_id']: {r['monday']: r['days'] for r in connection.execute(
+            'SELECT monday, days FROM work_weeks WHERE timeline_id=? AND monday<=?', (row['timeline_id'], MONDAY.isoformat()))}
+            for row in connection.execute('SELECT ? AS timeline_id UNION ALL SELECT ?', (timeline_id, fork_id))}
+    assert weeks[timeline_id] and weeks[fork_id] == weeks[timeline_id]
