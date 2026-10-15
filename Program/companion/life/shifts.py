@@ -316,14 +316,55 @@ def with_rota(connection, companion: dict) -> dict:
     return {**companion, 'version': {**companion['version'], 'definition': definition}}
 
 
+def minutes_of(clock: str) -> int:
+    return int(clock[:2]) * 60 + int(clock[3:5])
+
+
+def plans_in_the_way(connection, found: dict, monday: date) -> list[tuple[int, int]]:
+    """Plans already made for this week that a shift must not land on, as (start, end) minutes from the Monday:
+    outings with the user and trips (companion/life/trips.py), as Life admin keeps out of their way."""
+    from companion.life import outings, trips
+    last = (monday + timedelta(days=7)).isoformat()
+    spans = []
+    for outing in outings.in_force(connection, found['timeline_id'], monday.isoformat()):
+        if outing['local_date'] <= last:
+            start = (date.fromisoformat(outing['local_date']) - monday).days * 1440 + minutes_of(outing['at_time'] or
+                                                                                                  '12:00')
+            end = start + max(minutes_of(outing['until_time'] or '00:00') - (start % 1440), 60)
+            spans.append((start, end))
+    for trip in trips.planned(connection, found['timeline_id'], monday.isoformat()):
+        first, final = date.fromisoformat(trip['start_date']), date.fromisoformat(trip['end_date'])
+        spans.append(((first - monday).days * 1440, ((final - monday).days + 1) * 1440))
+    return spans
+
+
+def clear_of_plans(days: list[int], start: str, end: str, spans: list[tuple[int, int]]) -> list[int]:
+    """The week's shifts moved off days where a plan already stands to free days of the same week, or dropped when
+    no day is free: a shift never lands on a dinner with the user that was settled first."""
+    length = (minutes_of(end) - minutes_of(start)) % 1440 or 1440
+    def clashes(day: int) -> bool:
+        begin = day * 1440 + minutes_of(start)
+        return any(begin < until and since < begin + length for since, until in spans)
+    if not spans or not any(clashes(day) for day in days):
+        return days
+    kept = [day for day in days if not clashes(day)]
+    free = [day for day in range(7) if day not in days and not clashes(day)]
+    return sorted(kept + free[:len(days) - len(kept)])
+
+
 def plan_ahead(connection, companion: dict, today: date, now: datetime) -> int:
-    """Write down this week and the next few, the first time each is planned. Returns how many were added."""
+    """Write down this week and the next few, the first time each is planned, around plans already made. Returns how
+    many were added."""
     found = setup(connection, companion)
     if not found:
         return 0
     span = weeks(connection, companion, today, today + timedelta(weeks=PLAN_WEEKS - 1), found)
+    known = stored(connection, found['timeline_id'], monday_of(today), today + timedelta(weeks=PLAN_WEEKS - 1))
     added = 0
     for monday, week in span.items():
+        if monday not in known or known[monday]['kind'] != found['kind'] or known[monday]['career'] != found['career']:
+            week = {**week, 'days': clear_of_plans(week['days'], found['start'], found['end'],
+                                                   plans_in_the_way(connection, found, date.fromisoformat(monday)))}
         added += connection.execute(
             'INSERT INTO work_weeks (timeline_id, monday, kind, career, days, spell, workload, pay, created_at) '
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (timeline_id, monday) DO UPDATE SET kind=excluded.kind, '

@@ -308,3 +308,24 @@ def test_a_job_the_user_wrote_is_read_from_its_own_sentence():
     for identity in ('Mara is a wedding photographer.', 'Mara drives for a rideshare app.',
                      'Mara is a DJ who plays weekends.', 'Mara picks up gig work as a delivery driver.'):
         assert kind(identity) == 'freelance', identity
+
+
+def test_shifts_written_later_keep_off_a_dinner_already_settled(client, ines, provider, monkeypatch):
+    """Dinner settled on a day off while Work life was Off: once it is on, the new week's shift moves off that day
+    instead of landing on top of it, as Life admin keeps out of the way of plans with the user."""
+    set_life(client, work_realism=0)
+    reconcile(client)
+    following = MONDAY + timedelta(weeks=1)
+    provider.replies.append([Chunk('Monday works!'), Chunk('', 'stop')])
+    send(client, 'Dinner next Monday at 7?', 'client-shift-later-01')
+    [outing] = client.get('/api/life/outings').json()['outings']
+    assert outing['local_date'] == following.isoformat()
+    monkeypatch.setattr(shifts, 'roll', lambda *_args, **_kwargs: {'days': [0, 1, 2, 3, 4], 'spell': '', 'pay': 1.0})
+    set_life(client, work_realism=2)
+    reconcile(client)
+    with connect(client, write=False) as connection:
+        row = connection.execute('SELECT days FROM work_weeks WHERE timeline_id=? AND monday=?',
+                                 (ines['active_timeline_id'], following.isoformat())).fetchone()
+    assert decode(row['days']) == [1, 2, 3, 4, 5]
+    assert following.isoformat() not in work_days(client, ines['active_timeline_id'])
+    assert shifts.clear_of_plans([0, 1, 2, 3, 4, 5, 6], '16:00', '23:30', [(19 * 60, 21 * 60)]) == [1, 2, 3, 4, 5, 6]
