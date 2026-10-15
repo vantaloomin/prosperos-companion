@@ -253,3 +253,15 @@ def test_what_is_not_asking_to_call_or_hanging_up():
         assert not calls.hanging_up(text), text
     for text in ('I gotta go to bed', 'have to go now babe', 'I should go, it is late', 'gotta go'):
         assert calls.hanging_up(text), text
+
+
+def test_their_texting_style_stays_out_of_the_prompt_on_a_call(client, monkeypatch, provider, clock):
+    mira(client, monkeypatch, texting={'bursts': True, 'lowercase': True, 'typos': True})
+    says(provider)
+    send(client, 'hi', 'client-call-style-1')
+    assert 'How you text:' in provider.requests[-1]['system']
+    clock.advance(timedelta(hours=7))
+    press(client)
+    says(provider, 'Hey.')
+    send(client, 'hey you', 'client-call-style-2')
+    assert 'How you text:' not in provider.requests[-1]['system']

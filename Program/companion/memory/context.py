@@ -358,7 +358,7 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     if intimate and (adult := intimacy.prompt_text(connection, version)):
         lines.append(adult)
     if texts and (style := texting.instruction(definition)):
-        lines.append(style)  # Not while together in person (`texts` False): nobody texts the person beside them.
+        lines.append(style)  # Not together in person or on a call (`texts` False): nobody texts while talking.
     return '\n'.join(lines)
 
 
@@ -860,7 +860,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         recent, older = [], messages + group['older']
     packet = Packet(budget)
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
-    texts = group is not None or not together.in_person(connection, companion, now)
+    texts = group is not None or not (together.in_person(connection, companion, now)
+                                       or calls.on_call(connection, companion, now))
     packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today,
                                                               texts=texts))
     if who := persona_text(connection, date.fromisoformat(today)):
