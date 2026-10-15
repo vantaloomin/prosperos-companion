@@ -261,3 +261,18 @@ def test_their_texting_style_stays_out_of_the_prompt_while_together(client, monk
     says(provider)
     send(client, 'nice to see you', 'client-together-26')
     assert 'How you text:' not in provider.requests[-1]['system']
+
+
+def test_nobody_knocks_while_the_user_is_with_someone(client, nearby, provider, clock, monkeypatch):
+    monkeypatch.setattr(together, 'FIRST_TEXTS', True)
+    monkeypatch.setattr(together, 'KNOCK_CHANCE', {2: 1.0, 3: 1.0})
+    monkeypatch.setattr(together, 'close', lambda *_args: True)
+    clock.advance(timedelta(hours=8, minutes=50))  # 20:50, after any seeded minute.
+    with client.app.state.database.connect() as connection:
+        assert together.knock_due(connection, current(connection), clock.now())
+    says(provider)
+    send(client, 'can I come to yours?', 'client-together-27')  # The user goes over to Mira's.
+    assert where(client)['kind'] == 'theirs'
+    with client.app.state.database.connect() as connection:
+        assert together.with_someone(connection, clock.now())
+        assert together.knock_due(connection, current(connection), clock.now()) == []

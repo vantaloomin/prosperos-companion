@@ -520,7 +520,8 @@ def knock_due(connection, companion: dict, now: datetime) -> list:
                                                                               KNOCK_HOURS[1] * 60 - 30):
         return []
     found = where.your_home(connection)
-    if not found or not free_for(connection, companion, now, KNOCK_HOURS_LONG) or not close(connection, companion, now):
+    if not found or not free_for(connection, companion, now, KNOCK_HOURS_LONG) or not close(connection, companion, now) \
+            or with_someone(connection, now):
         return []
     city, hood = found
     area = hood['name'] if hood else city['name']
@@ -530,6 +531,17 @@ def knock_due(connection, companion: dict, now: datetime) -> list:
               'a good time.')
     template = rng.choice(KNOCKS)
     return [Trigger(key, 'drop_in', reason, template, ())]
+
+
+def with_someone(connection, now: datetime) -> bool:
+    """The user is with a companion in person right now (out, at their place or at the user's, or staying with them):
+    nobody knocks at a door the user is not behind, or turns up in the middle of someone else's visit."""
+    from companion.characters import by_id
+    for row in many(connection, 'SELECT id FROM companions'):
+        other = by_id(connection, row['id'])
+        if other and in_person(connection, other, now):
+            return True
+    return False
 
 
 KNOCKS = ("Surprise! I was in the neighborhood and thought I'd knock. Is now okay, or is it a bad time?",
