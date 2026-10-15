@@ -171,7 +171,7 @@ def start(database: Database):
         database.use(path)
     mix.load(database)
     with database.connect(write=True) as connection:
-        if settle_home(connection, world):
+        if restored_home(connection, world) | settle_home(connection, world):
             save(database.root, data)
         write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now(),
                       world['home'])
@@ -183,6 +183,8 @@ def write_persona(connection, persona: dict, timestamp: str, home: dict | None =
     """Who the user is in this world, and where they live in it (`home`, the world's), for the prompt
     (companion/memory/context.py), Matchlight and Where you are (companion/life/where.py)."""
     home = home or {}
+    before = optional(connection, 'SELECT home_city_id FROM persona WHERE id=1')
+    dating.follow_home(connection, before['home_city_id'] if before else '', home.get('city_id', ''))
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
                        'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood) '
                        'VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -195,6 +197,18 @@ def write_persona(connection, persona: dict, timestamp: str, home: dict | None =
 def world_city(connection, world: dict, cities: dict[str, dict]) -> dict:
     """The city the world is in: the one it was made in, else (a city since deleted) its companion's."""
     return cities.get(world.get('city_id') or '') or city_of(connection)
+
+
+def restored_home(connection, world: dict) -> bool:
+    """A world restored from a backup (or brought from another install) remembers where the user lived in it; a home
+    the app picked in this registry gives way to it. True when the home changed."""
+    row = optional(connection, 'SELECT home_city_id, home_neighbourhood FROM persona WHERE id=1')
+    home = world.get('home') or {}
+    if not row or not row['home_city_id'] or home.get('set_by') == where.YOURS or \
+            (row['home_city_id'], row['home_neighbourhood']) == (home.get('city_id'), home.get('neighbourhood')):
+        return False
+    world['home'] = {'city_id': row['home_city_id'], 'neighbourhood': row['home_neighbourhood'], 'set_by': where.YOURS}
+    return True
 
 
 def settle_home(connection, world: dict) -> bool:
@@ -603,6 +617,8 @@ def change_home(database: Database, world_id: str, body) -> dict:
         if world['id'] == data['active']:
             write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now(),
                           world['home'])
+            from companion.life import long_distance
+            long_distance.settle_all(connection, database.clock.now())  # Visits planned for the old home.
     save(database.root, data)
     return view(database)
 

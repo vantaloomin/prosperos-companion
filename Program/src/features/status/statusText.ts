@@ -13,11 +13,18 @@ export function shown(status: CompanionStatus | null | undefined): { text: strin
   return status.away ? { text: status.away.text, away: status.away.glyph } : status.text ? { text: status.text, away: null } : null
 }
 
-/** On a call, or ringing you (companion/life/calls.py). */
 /** A weekend visit across the distance (companion/life/long_distance.py) shows luggage, like the chat strip. */
 function togetherGlyph(where: StatusWhere): AwayGlyph {
   return where.kind === 'staying' || where.kind === 'hosting' ? 'luggage' : 'pin'
 }
+
+/** The glyph beside where they are on the chat list: a phone on a call, luggage on a weekend visit, else a pin. */
+export function whereGlyph(where: StatusWhere | null | undefined): 'phone' | 'luggage' | 'pin' {
+  if (onThePhone(where)) return 'phone'
+  return where ? togetherGlyph(where) as 'luggage' | 'pin' : 'pin'
+}
+
+/** On a call, or ringing you (companion/life/calls.py). */
 
 export function onThePhone(where: StatusWhere | null | undefined): boolean {
   return where?.kind === 'call' || where?.kind === 'ringing'

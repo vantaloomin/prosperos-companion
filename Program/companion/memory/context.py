@@ -327,7 +327,7 @@ def list_lines(definition) -> list[str]:
     return lines
 
 
-def character_text(version, connection=None, intimate: bool = False, day: str | None = None) -> str:
+def character_text(version, connection=None, intimate: bool = False, day: str | None = None, texts: bool = True) -> str:
     """How the character feels about absence is a user-chosen trait; product controls stay neutral.
 
     With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced. `intimate` adds
@@ -357,8 +357,8 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
             lines.append(acts)
     if intimate and (adult := intimacy.prompt_text(connection, version)):
         lines.append(adult)
-    if style := texting.instruction(definition):
-        lines.append(style)
+    if texts and (style := texting.instruction(definition)):
+        lines.append(style)  # Not together in person or on a call (`texts` False): nobody texts while talking.
     return '\n'.join(lines)
 
 
@@ -860,7 +860,10 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         recent, older = [], messages + group['older']
     packet = Packet(budget)
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
-    packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today))
+    texts = group is not None or not (together.in_person(connection, companion, now)
+                                       or calls.on_call(connection, companion, now))
+    packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today,
+                                                              texts=texts))
     if who := persona_text(connection, date.fromisoformat(today)):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:

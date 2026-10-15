@@ -19,6 +19,8 @@ from companion.world import catalog, changes, custom
 
 # Who picked the home: the app (it follows the world's city while the user has not changed it) or the user.
 PICKED, YOURS = 'app', 'you'
+# A city of another era this close to the user's is the same place (London and London, 1895 are 1 km apart).
+SAME_PLACE_KM = 30
 
 
 def known_cities(connection) -> dict[str, dict]:
@@ -57,10 +59,11 @@ def choices(world_city: dict, cities: dict[str, dict]) -> list[dict]:
 
 def settle(world: dict, world_city: dict, cities: dict[str, dict]) -> bool:
     """Gives `world` its home when it has none (an upgrade, a new world), and moves an app-picked home along with the
-    world's city. A home whose city has gone goes back to the world's city. True when the home changed."""
+    world's city. A home whose city has gone, or that the world's city can no longer reach (a world that became Camelot
+    when its first companion lives there), goes back to the world's city. True when the home changed."""
     home = world.get('home') or {}
     city = cities.get(home.get('city_id', ''))
-    if home and city and (home.get('set_by') == YOURS or city['id'] == world_city['id']):
+    if home and city and (city['id'] == world_city['id'] or (home.get('set_by') == YOURS and allowed(world_city, city))):
         if home.get('neighbourhood') and not hood_named(city, home['neighbourhood']):
             home['neighbourhood'] = neighbourhood_for(city, world['id'])
             return True
@@ -132,6 +135,13 @@ def their_city(connection, definition: dict) -> dict | None:
     return None
 
 
+def same_place(yours: dict, theirs: dict) -> bool:
+    """The same city in another era: "Harlem, New York" read as today's New York for a user in New York, 1925.
+    Nobody lives across eras, so a companion's city there is the user's own."""
+    return (theirs.get('era', 'modern') != yours.get('era', 'modern') and 'lat' in yours and 'lat' in theirs
+            and catalog.distance_km(yours, theirs) <= SAME_PLACE_KM)
+
+
 def between(connection, definition: dict) -> Between:
     """The user's home against the companion's city (their home_city, else their location)."""
     yours = your_home(connection)
@@ -139,6 +149,8 @@ def between(connection, definition: dict) -> Between:
     if not yours or not theirs:
         return Between(False, True, yours and yours[0], theirs, None, True)
     city = yours[0]
+    if same_place(city, theirs):
+        theirs = city
     if city['id'] == theirs['id']:
         return Between(True, True, city, theirs, 0.0, True)
     km = catalog.distance_km(city, theirs) if 'lat' in city and 'lat' in theirs else None

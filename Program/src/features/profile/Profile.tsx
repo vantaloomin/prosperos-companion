@@ -9,7 +9,7 @@ import { usePortrait } from '../conversation/portrait'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
 import { StatusEditor } from '../status/StatusLine'
-import { PROFILE_TABS, circleText, handle, profileClass, profileTab, showsCard } from './profileText'
+import { PROFILE_TABS, circleText, handle, placeFact, profileClass, profileTab, showsCard } from './profileText'
 
 /**
  * The companion's profile: Messages, Posts and Character as tabs, then their card. It takes the chat
@@ -88,14 +88,14 @@ function ProfileTies({ name }: { name: string }) {
   )
 }
 
-/** Where they live, their time of day and how many people are in their life. Their status above may say they are
+/** Where they live (and how far from you, when it is another city), their time of day and how many people are in their life. Their status above may say they are
  * away, as an away message would; nothing here says whether they are online. */
 function ProfileFacts({ companion }: { companion: Companion }) {
   const { location, home_city: homeCity, timezone } = companion.version.definition
   const time = useLocalTime(timezone)
   const circle = useQuery({ queryKey: ['circle', false], queryFn: () => api<CirclePerson[]>('/life/circle?include_removed=false') })
   const people = circle.data?.filter((person) => person.status === 'active').length ?? 0
-  const place = location || homeCity
+  const place = placeFact(location || homeCity, companion.status?.where)
   return (
     <ul className="profile-facts">
       {place && <li><MapPin aria-hidden="true" />{place}</li>}

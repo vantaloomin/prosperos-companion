@@ -1,4 +1,4 @@
-import { MapPin, PanelLeftOpen, Phone, UsersRound, X } from 'lucide-react'
+import { Luggage, MapPin, PanelLeftOpen, Phone, UsersRound, X } from 'lucide-react'
 import type { View } from '../../companion'
 import type { Chat } from '../../types'
 import { Stamp } from '../../components/Stamp'
@@ -8,7 +8,7 @@ import { portraitUrl } from '../conversation/portrait'
 import { badge, chatLabel, isOpen, preview, type OpenChat } from './chatText'
 import { useChats, useOpenChat } from './useChats'
 import { useChatListCollapsed } from './layout'
-import { onThePhone } from '../status/statusText'
+import { whereGlyph } from '../status/statusText'
 
 /**
  * Every chat, the most recent first, the way a messaging app lists them: who, their latest message, when, and
@@ -59,10 +59,10 @@ export function ChatList({ go, current = null, onOpened }: { go: (view: View) =>
   )
 }
 
-/** Together or apart in plain words under the preview ("At your place", "Long distance, Lisbon", "On a call"); nothing while apart nearby. */
+/** Together or apart in plain words under the preview ("At your place", "Long distance, Lisbon", "On a call", luggage on a weekend visit); nothing while apart nearby. */
 export function ChatWhere({ chat }: { chat: Chat }) {
   const text = chat.status?.where?.text
-  const Glyph = onThePhone(chat.status?.where) ? Phone : MapPin
+  const Glyph = { phone: Phone, luggage: Luggage, pin: MapPin }[whereGlyph(chat.status?.where)]
   return text ? <span className="chat-row-where"><Glyph aria-hidden="true" /><span>{text}</span></span> : null
 }
 

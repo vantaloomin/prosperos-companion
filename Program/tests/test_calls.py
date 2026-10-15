@@ -1,4 +1,6 @@
 """On a call (companion/life/calls.py): calls started either way, the call in the chat, and how it ends."""
+import asyncio
+import time
 from datetime import timedelta
 
 import pytest
@@ -178,3 +180,88 @@ def test_on_a_call_replies_are_read_aloud_when_a_voice_is_set_up(client, nearby,
     says(provider, 'night!')
     reply = send(client, 'night', 'client-call-12')['reply']
     assert not reply['voice']  # Texting again.
+
+
+def test_a_slow_voice_leaves_a_call_reply_as_text(client, nearby, provider, clock, speaker, monkeypatch):  # noqa: F811
+    from companion import conversation
+    from companion.voice.notes import VoiceNotes
+
+    async def stuck(*_args, **_kwargs):
+        await asyncio.sleep(5)
+
+    monkeypatch.setattr(conversation, 'CALL_VOICE_SECONDS', 0.05)
+    monkeypatch.setattr(VoiceNotes, 'record', stuck)
+    clock.advance(timedelta(hours=7))
+    press(client)
+    says(provider, 'Hey, you.')
+    started = time.monotonic()
+    reply = send(client, 'hey you', 'client-call-slow')['reply']
+    assert reply['status'] == 'complete' and not reply['voice'] and time.monotonic() - started < 4
+
+
+def test_coming_over_during_a_call_ends_it(client, nearby, provider, clock):
+    clock.advance(timedelta(hours=7))  # 19:00, free.
+    press(client)
+    says(provider, 'On my way!')
+    send(client, 'wanna come over now?', 'client-call-13')
+    found = where(client)
+    assert (found['state'], found['kind']) == ('together', 'yours') and found['call'] is None
+    assert 'You are on a phone call' not in notes(provider) and 'talked on the phone' not in notes(provider)
+    with client.app.state.database.connect() as connection:
+        assert calls.latest(connection, current(connection)['active_timeline_id'], clock.now())['status'] == 'ended'
+
+
+def test_one_call_at_a_time_across_companions(client, nearby, clock, monkeypatch):
+    from test_groups import companion_named
+
+    from companion.characters import by_id
+    clock.advance(timedelta(hours=7))
+    mira_id = current_id(client)
+    press(client)  # On with Mira.
+    dana_id = companion_named(client, 'Dana')
+    with client.app.state.database.connect(write=True) as connection:
+        dana = by_id(connection, dana_id)
+        assert calls.line_busy(connection, dana, clock.now())  # Dana can't ring through.
+        assert calls.ring(connection, dana, openers.Trigger('call:x', 'call', 'why'), clock.now()) is None
+    assert client.post('/api/companion/cast/focus', json={'companion_id': dana_id}).status_code == 200
+    monkeypatch.setattr(calls, 'why_not', lambda *_args: None)
+    assert press(client)['call']['status'] == 'on'  # Calling Dana hangs up on Mira.
+    with client.app.state.database.connect() as connection:
+        assert calls.on_call(connection, by_id(connection, mira_id), clock.now()) is None
+
+
+def current_id(client):
+    with client.app.state.database.connect() as connection:
+        return current(connection)['id']
+
+
+def test_a_clock_moved_back_hides_a_call_not_yet_made(client, nearby, clock):
+    clock.advance(timedelta(hours=7))
+    press(client)
+    clock.advance(timedelta(hours=-1))
+    assert where(client)['call'] is None and where(client)['state'] == 'apart'
+
+
+def test_what_is_not_asking_to_call_or_hanging_up():
+    for text in ('you can call me Sam', 'call me crazy but I love it', 'they call me the boss', 'call me old fashioned'):
+        assert not calls.asked(text), text
+    for text in ('can we talk on the phone?', 'call?', 'free for a call?', "I'll call you in a sec", 'call me rn please',
+                 'call me, I miss you'):
+        assert calls.asked(text), text
+    for text in ('we need to go to that place sometime', 'i have to go to the bathroom brb',
+                 'i gotta run to the store later haha but anyway'):
+        assert not calls.hanging_up(text), text
+    for text in ('I gotta go to bed', 'have to go now babe', 'I should go, it is late', 'gotta go'):
+        assert calls.hanging_up(text), text
+
+
+def test_their_texting_style_stays_out_of_the_prompt_on_a_call(client, monkeypatch, provider, clock):
+    mira(client, monkeypatch, texting={'bursts': True, 'lowercase': True, 'typos': True})
+    says(provider)
+    send(client, 'hi', 'client-call-style-1')
+    assert 'How you text:' in provider.requests[-1]['system']
+    clock.advance(timedelta(hours=7))
+    press(client)
+    says(provider, 'Hey.')
+    send(client, 'hey you', 'client-call-style-2')
+    assert 'How you text:' not in provider.requests[-1]['system']

@@ -25,6 +25,17 @@ def test_visits_are_read_from_the_message():
         assert together.asked(text) is None, text
 
 
+def test_more_ways_to_ask_for_a_visit():
+    assert together.asked('dinner at mine tonight?') == 'dinner-yours'
+    assert together.asked('want to come to mine for dinner?') == 'dinner-yours'
+    assert together.asked('Do you want me to come over?') == 'visit-in'
+    assert together.asked('Can I stop by?') == 'visit-in'
+    assert together.asked('mind if I drop by later?') == 'visit-in'
+    # Going to theirs for dinner is a visit, never a restaurant (companion/life/outings.py).
+    from datetime import date
+    assert outings.proposal("want to come to mine for dinner? I'll cook", date(2026, 10, 5), {}, None) is None
+
+
 def mira(client, monkeypatch, **values):
     monkeypatch.setattr(body, 'state_on', lambda *_args: None)
     for name in ('QUIET_SHARE', 'PLAN_SHARE', 'THREAD_SHARE'):
@@ -213,3 +224,65 @@ def test_a_visit_ends_before_bed_and_early_on_a_work_night():
     friday = datetime(2026, 10, 9, 21, 0, tzinfo=ZoneInfo('UTC'))
     assert together.end_of_visit({'name': 'Mira', 'schedule': EVENINGS}, friday, 3.0) == '23:00'
     assert outings.ACTIVITIES['visit-yours'][3] == 3.0
+
+
+def test_tonight_asked_at_work_is_a_visit_this_evening_and_sometime_settles_nothing(client, nearby, provider):
+    says(provider)
+    send(client, 'come over tonight?', 'client-together-20')  # Monday 12:00, at work until 17:00.
+    [visit] = client.get('/api/life/outings').json()['outings']
+    assert (visit['activity'], visit['local_date'], visit['at_time'], visit['state']) == (
+        'visit-yours', '2026-10-05', '19:00', 'planned')
+    assert "You can't" not in notes(provider) and where(client)['state'] == 'apart'
+    says(provider)
+    send(client, 'can I come over sometime next week?', 'client-together-21')
+    assert len(client.get('/api/life/outings').json()['outings']) == 1
+    assert 'The user asked' not in notes(provider)
+
+
+def test_sometime_in_the_evening_is_not_a_visit_from_now(client, nearby, provider, clock):
+    clock.advance(timedelta(hours=7))  # 19:00, free.
+    says(provider)
+    send(client, 'come over sometime next week?', 'client-together-22')
+    assert client.get('/api/life/outings').json()['outings'] == [] and where(client)['state'] == 'apart'
+    says(provider)
+    send(client, 'come over later?', 'client-together-23')  # In the evening, later is now.
+    assert where(client)['state'] == 'together'
+
+
+def test_their_texting_style_stays_out_of_the_prompt_while_together(client, monkeypatch, provider, clock):
+    mira(client, monkeypatch, texting={'bursts': True, 'lowercase': True, 'typos': True})
+    says(provider)
+    send(client, 'hi', 'client-together-24')
+    assert 'How you text:' in provider.requests[-1]['system']
+    clock.advance(timedelta(hours=7))
+    says(provider)
+    send(client, 'come over?', 'client-together-25')
+    assert where(client)['state'] == 'together'
+    says(provider)
+    send(client, 'nice to see you', 'client-together-26')
+    assert 'How you text:' not in provider.requests[-1]['system']
+
+
+def test_nobody_knocks_while_the_user_is_with_someone(client, nearby, provider, clock, monkeypatch):
+    monkeypatch.setattr(together, 'FIRST_TEXTS', True)
+    monkeypatch.setattr(together, 'KNOCK_CHANCE', {2: 1.0, 3: 1.0})
+    monkeypatch.setattr(together, 'close', lambda *_args: True)
+    clock.advance(timedelta(hours=8, minutes=50))  # 20:50, after any seeded minute.
+    with client.app.state.database.connect() as connection:
+        assert together.knock_due(connection, current(connection), clock.now())
+    says(provider)
+    send(client, 'can I come to yours?', 'client-together-27')  # The user goes over to Mira's.
+    assert where(client)['kind'] == 'theirs'
+    with client.app.state.database.connect() as connection:
+        assert together.with_someone(connection, clock.now())
+        assert together.knock_due(connection, current(connection), clock.now()) == []
+
+
+def test_a_walk_is_gone_for_not_got(client, nearby, clock, monkeypatch):
+    import random
+    monkeypatch.setattr(together, 'SUGGESTIONS', ('walk',))
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        local = clock.now().astimezone(__import__('zoneinfo').ZoneInfo('UTC'))
+        [trigger] = together.outing_suggestion(connection, companion, local, 'get-together:test', random.Random(1))
+    assert trigger.template.startswith('Want to go for a walk at ')

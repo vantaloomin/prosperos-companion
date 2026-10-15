@@ -55,18 +55,27 @@ AT_YOURS = ('visit-yours', 'dinner-yours')
 
 # The user asking the companion over: "come over?", "wanna come round tonight?", "come to mine Friday?".
 COME_OVER = re.compile(r"\b(?:come (?:over|round|around|by)|swing by|pop (?:over|round|by)|"
-                       r"come (?:to|over to|round to) (?:mine|my place|my apartment|my flat|my house))\b", re.IGNORECASE)
+                       r"come (?:to|over to|round to) (?:mine|my place|my apartment|my flat|my house)|"
+                       r"(?:dinner|supper) at (?:mine|my place))\b", re.IGNORECASE)
 # The user asking to come to the companion's: "can I come over?", "can I come to yours?".
-COME_TO_YOURS = re.compile(r"\b(?:(?:can|could|may|should) i (?:come|pop|swing|head) (?:over|round|by|to (?:yours|your "
-                           r"place|your apartment|your flat|your house))|(?:come|over) to (?:yours|your place)|"
-                           r"i(?:'?ll| will) come (?:over|round|to yours|to your place))\b", re.IGNORECASE)
+COME_TO_YOURS = re.compile(r"\b(?:(?:can|could|may|should) i (?:come|pop|swing|head|stop|drop) (?:over|round|by|to "
+                           r"(?:yours|your place|your apartment|your flat|your house))|(?:come|over) to (?:yours|your "
+                           r"place)|i(?:'?ll| will) come (?:over|round|to yours|to your place)|mind if i (?:come|pop|"
+                           r"swing|stop|drop) (?:over|round|by)|(?:want|like) me to come (?:over|round|by))\b",
+                           re.IGNORECASE)
 # The user already at the companion's door.
 AT_DOOR = re.compile(r"\b(?:i'?m|i am|im) (?:at|outside|downstairs at|in front of) your (?:door|place|building|"
                      r"apartment|flat|house)|\blet me in\b|\bopen (?:the|your) door\b", re.IGNORECASE)
 # A question or an ask, not a story: "they came over yesterday" is no invitation.
-ASKS = re.compile(r"\?|\b(?:wanna|want to|do you want|can you|could you|come over|let'?s|you should|feel like)\b",
+ASKS = re.compile(r"\?|\b(?:wanna|want to|do you want|can you|could you|come over|let'?s|you should|feel like|mind if)\b",
                   re.IGNORECASE)
-NOW_WORDS = re.compile(r"\b(?:now|right now|rn|tonight|this evening|today)\b", re.IGNORECASE)
+RIGHT_NOW = re.compile(r"\b(?:now|right now|rn|right away|asap)\b", re.IGNORECASE)
+# Tonight, asked while it is still the afternoon, or later on: a visit this evening, not one from now.
+EVENING = re.compile(r"\b(?:tonight|this evening|later(?: on| tonight)?|after (?:work|dinner))\b", re.IGNORECASE)
+EVENING_FROM = '17:00'
+# No day at all ("come over sometime next week?"): a wish for another time, so no visit is settled now.
+SOMEDAY = re.compile(r"\b(?:some ?time|one of these days|some ?day|at some point|soon|next (?:week|month)|this week|"
+                     r"whenever|another (?:day|time))\b", re.IGNORECASE)
 # The user ending it in the chat while together, and turning a knock away.
 LEAVING = re.compile(r"\b(?:i should (?:head|get going|go|get home)|i(?:'?m| am|m) (?:gonna |going to )?(?:head(?:ing)? "
                      r"(?:home|out|off)|leav(?:e|ing) now|off now)|i(?:'?d| had) better (?:go|get going|head)|time for "
@@ -269,18 +278,38 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
         return kind is not None
     if together_now(connection, companion, now):
         return True
+    return settle_ask(connection, companion, message, kind, now, timestamp)
+
+
+def timing(text: str, local: datetime, day: date | None, at: str | None) -> str:
+    """'now', 'later' (a day or a time named, or tonight asked in the afternoon) or 'someday' (no day at all)."""
+    if (day and day != local.date()) or (at and at > (local + timedelta(hours=1)).strftime('%H:%M')):
+        return 'later'
+    if at or RIGHT_NOW.search(text):
+        return 'now'
+    if day is None and SOMEDAY.search(text):
+        return 'someday'
+    return 'later' if EVENING.search(text) and local.strftime('%H:%M') < EVENING_FROM else 'now'
+
+
+def settle_ask(connection, companion: dict, message: dict, kind: str, now: datetime, timestamp: str) -> bool:
+    """A visit asked for: now when they can, later on the day or time it names, or nothing yet for "sometime"."""
+    from companion.life import long_distance
     activity = 'visit-in' if kind == 'door' else kind
     version = companion['version']
     local = now.astimezone(zone(version['timezone']))
     day = outings.day_in(message['text'], local.date(), own_plans.holiday_dates(connection, version['definition'],
                                                                                  local.date()))
     at, _said = own_plans.clock(message['text'])
-    later = (day and day != local.date()) or (at and at > (local + timedelta(hours=1)).strftime('%H:%M'))
-    if later and kind != 'door':
-        if long_distance.far(connection, companion):
-            # "Come over Saturday?" from another city: a weekend visit, when one works.
-            return long_distance.request(connection, companion, message, long_distance.HOST if activity == 'visit-in'
-                                         else long_distance.TO_YOU, day or local.date(), timestamp)
+    when = 'now' if kind == 'door' else timing(message['text'], local, day, at)
+    far = long_distance.far(connection, companion)
+    if when == 'someday' and not far:
+        return True  # "Come over sometime next week?": the reply is free to say when; nothing is settled yet.
+    if when == 'later' and far and (day or at):
+        # "Come over Saturday?" from another city: a weekend visit, when one works.
+        return long_distance.request(connection, companion, message, long_distance.HOST if activity == 'visit-in'
+                                     else long_distance.TO_YOU, day or local.date(), timestamp)
+    if when == 'later' and not far:
         visit_later(connection, companion, message, activity, day or local.date(), at, timestamp)
         return True
     reason = why_not(connection, companion, now)
@@ -433,11 +462,21 @@ def hours_apart(connection, companion: dict, now: datetime) -> str:
     """', 5 hours ahead', ', 3 hours behind', or '' in the same time zone."""
     yours = now.astimezone(zone(settings(connection)['user_timezone'])).utcoffset()
     theirs = now.astimezone(zone(companion['version']['timezone'])).utcoffset()
-    hours = (theirs - yours).total_seconds() / 3600
-    if not hours:
+    minutes = round((theirs - yours).total_seconds() / 60)
+    if not minutes:
         return ''
-    count = f'{abs(hours):g}'
-    return f", {count} hour{'s' if abs(hours) != 1 else ''} {'ahead' if hours > 0 else 'behind'}"
+    return f", {span_text(abs(minutes))} {'ahead' if minutes > 0 else 'behind'}"
+
+
+def span_text(minutes: int) -> str:
+    """'5 hours', '1 hour', '9½ hours' (India), '5 hours 45 minutes' (Nepal), '30 minutes'."""
+    hours, rest = divmod(minutes, 60)
+    if not hours:
+        return f'{rest} minutes'
+    if rest == 30:
+        return f'{hours}½ hours'
+    whole = f"{hours} hour{'s' if hours != 1 else ''}"
+    return f'{whole} {rest} minutes' if rest else whole
 
 
 def view(connection, companion: dict, now: datetime) -> dict:
@@ -491,7 +530,8 @@ def knock_due(connection, companion: dict, now: datetime) -> list:
                                                                               KNOCK_HOURS[1] * 60 - 30):
         return []
     found = where.your_home(connection)
-    if not found or not free_for(connection, companion, now, KNOCK_HOURS_LONG) or not close(connection, companion, now):
+    if not found or not free_for(connection, companion, now, KNOCK_HOURS_LONG) or not close(connection, companion, now) \
+            or with_someone(connection, now):
         return []
     city, hood = found
     area = hood['name'] if hood else city['name']
@@ -501,6 +541,17 @@ def knock_due(connection, companion: dict, now: datetime) -> list:
               'a good time.')
     template = rng.choice(KNOCKS)
     return [Trigger(key, 'drop_in', reason, template, ())]
+
+
+def with_someone(connection, now: datetime) -> bool:
+    """The user is with a companion in person right now (out, at their place or at the user's, or staying with them):
+    nobody knocks at a door the user is not behind, or turns up in the middle of someone else's visit."""
+    from companion.characters import by_id
+    for row in many(connection, 'SELECT id FROM companions'):
+        other = by_id(connection, row['id'])
+        if other and in_person(connection, other, now):
+            return True
+    return False
 
 
 KNOCKS = ("Surprise! I was in the neighborhood and thought I'd knock. Is now okay, or is it a bad time?",
@@ -553,7 +604,8 @@ def outing_suggestion(connection, companion: dict, local: datetime, key: str, rn
     thing = outings.ACTIVITIES[activity][5]
     return [Trigger(key, 'get_together',
                     f"You'd like to see the user: suggest {thing} at {place['name']} on {day:%A} at {at}. Suggest it in "
-                    'your own words, naming the place and the day.', f"Want to get {thing} at {place['name']} {day:%A}?",
+                    'your own words, naming the place and the day.',
+                    f"Want to {'go for' if activity == 'walk' else 'get'} {thing} at {place['name']} {day:%A}?",
                     (activity, day.isoformat(), at, place['id']))]
 
 

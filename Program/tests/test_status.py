@@ -130,8 +130,9 @@ def test_the_retro_bank_is_big_and_never_says_online():
         assert len(line) <= status.LIMIT, line
 
 
-def test_your_own_lyrics_join_retro_im_from_a_file_in_the_data_folder(client, clock):
+def test_your_own_lyrics_join_retro_im_from_a_file_in_the_data_folder(client, clock, monkeypatch):
     """retro-lyrics.txt next to the database: comments are skipped, and lyrics show as a quoted line."""
+    monkeypatch.setattr(status, 'RETRO_KINDS', ())  # Only lyrics on days without a plan, whatever the random seed.
     make(client, 'Warm and curious.', interests=['birdwatching'])
     assert client.put('/api/settings', json={'chat_style': 'retro'}).status_code == 200
     with client.app.state.database.connect() as connection:

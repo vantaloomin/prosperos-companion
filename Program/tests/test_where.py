@@ -118,3 +118,57 @@ def test_same_city_or_long_distance(client, companion, app):
 def test_the_registry_keeps_the_home(client, companion, app):
     registry = json.loads((app.state.database.root / worlds.REGISTRY).read_text(encoding='utf-8'))
     assert registry['worlds'][0]['home']['city_id'] == 'baltimore'
+
+
+def test_matchlight_moves_along_when_the_user_moves(client, companion):
+    world = listing(client)['world']
+    ok(client.put('/api/dating/profile', json={'name': 'Sam', 'age': 31, 'gender': 'man', 'interested_in': ['woman'],
+                                              'looking_for': 'serious', 'age_min': 25, 'age_max': 40, 'bio': ''}))
+    assert ok(client.get('/api/dating'))['city']['id'] == 'baltimore'
+    ok(client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}))
+    assert ok(client.get('/api/dating'))['city']['id'] == 'chicago'
+    # Looking somewhere else on purpose stays, whatever the move.
+    ok(client.put('/api/dating/city', json={'city_id': 'miami'}))
+    ok(client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'new-york'}))
+    assert ok(client.get('/api/dating'))['city']['id'] == 'miami'
+
+
+def test_a_home_the_world_can_no_longer_reach_goes_back_to_its_city():
+    cities = catalog.cities()
+    world = {'id': 'w1', 'home': {'city_id': 'new-york', 'neighbourhood': '', 'set_by': where.YOURS}}
+    # The world followed its first companion to Camelot: a New York home is out of its reach.
+    assert where.settle(world, cities['camelot'], cities)
+    assert world['home']['city_id'] == 'camelot' and world['home']['set_by'] == where.PICKED
+    # One a trip could reach stays the user's.
+    world['home'] = {'city_id': 'new-york', 'neighbourhood': '', 'set_by': where.YOURS}
+    assert not where.settle(world, cities['haddon-harbor'], cities)
+    assert world['home']['city_id'] == 'new-york'
+
+
+def test_a_city_named_without_its_era_is_the_users_own(client, companion, app):
+    world = listing(client)['world']
+    with app.state.database.connect(write=True) as connection:
+        home = where.picked(catalog.cities()['new-york-1925'], world['id'])
+        worlds.write_persona(connection, {'id': 'p', 'name': 'Dot', 'gender': '', 'age': 27, 'about': ''},
+                             app.state.database.now(), home)
+        harlem = where.between(connection, definition(location='Harlem, New York'))
+        assert harlem.same_city and harlem.their_city['id'] == 'new-york-1925'
+        # Pellmouth is of the same era and its own town: long distance.
+        assert where.between(connection, definition(home_city='pellmouth')).long_distance
+
+
+def test_a_restored_world_keeps_the_home_it_remembers(client, companion, app):
+    database = app.state.database
+    hood = catalog.cities()['london']['neighborhoods'][3]
+    with database.connect(write=True) as connection:
+        # As a backup of a world where the user lived in London, restored into a registry that picked Baltimore.
+        connection.execute('UPDATE persona SET home_city_id=?, home_neighbourhood=? WHERE id=1', ('london', hood['id']))
+    worlds.start(database)
+    home = listing(client)['world']['home']
+    assert (home['city_id'], home['neighbourhood'], home['set_by']) == ('london', hood['id'], 'you')
+    # A home the user picked here wins over what the database remembers.
+    ok(client.put(f"/api/worlds/{listing(client)['world']['id']}/home", json={'city_id': 'chicago'}))
+    with database.connect(write=True) as connection:
+        connection.execute("UPDATE persona SET home_city_id='london' WHERE id=1")
+    worlds.start(database)
+    assert listing(client)['world']['home']['city_id'] == 'chicago'

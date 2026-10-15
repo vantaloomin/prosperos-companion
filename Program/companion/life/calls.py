@@ -54,18 +54,26 @@ CALL_BACK_WITHIN = timedelta(hours=12)
 MISSED_TEXT_WITHIN = timedelta(hours=3)
 
 # Asking to talk on the phone now: "can I call you?", "call me?", "facetime?", "I'm calling you".
-ASKS = re.compile(r"\b(?:call me|(?:can|could|may|should) i (?:call|ring|phone|facetime)(?: you)?|(?:can|could|will) you "
+ASKS = re.compile(r"\b(?:call me(?:\s+(?:now|rn|right now|back|asap|please|pls|plz))*(?!\s+[a-z'])|"
+                  r"(?:can|could|may|should) i (?:call|ring|phone|facetime)(?: you)?|(?:can|could|will) you "
                   r"(?:call|ring|phone|facetime) me|(?:wanna|want to|do you want to) (?:call|talk on the phone|"
-                  r"facetime|video ?chat|hop on a call)|give (?:me|you) a (?:call|ring|bell)|ring me|phone me|"
-                  r"facetime(?: me)?|video ?call|(?:i'?m|i am|im) calling you|calling you now|let'?s (?:call|talk on "
-                  r"the phone|facetime|hop on a call))\b", re.IGNORECASE)
+                  r"facetime|video ?chat|hop on a call)|(?:can|could|should|shall) we (?:call|talk on the phone|"
+                  r"facetime|video ?chat|hop on a call)|(?:i'?ll|i will|gonna|going to|about to) (?:call|ring|facetime) "
+                  r"you|free (?:for|to) (?:a )?(?:call|phone call|talk on the phone|facetime)|give (?:me|you) a "
+                  r"(?:call|ring|bell)|ring me|phone me|facetime(?: me)?|video ?call|(?:i'?m|i am|im) calling you|"
+                  r"calling you now|let'?s (?:call|talk on the phone|facetime|hop on a call))\b", re.IGNORECASE)
+# "Call me" before a name or a word is not a call ("you can call me Sam", "call me crazy"); a bare "call?" is.
+BARE = re.compile(r'^\s*(?:call|phone|facetime|ring)\s*\?+\s*$', re.IGNORECASE)
 # A call for another time is talk, not a call now: "call me tonight after work".
 LATER = re.compile(r"\b(?:later|tonight|tomorrow|after (?:work|class|dinner|school)|this (?:evening|weekend)|"
                    r"in (?:a bit|an hour|a few)|when (?:you'?re|you are|i'?m|i am) (?:free|off|home|done|back)|"
                    r"(?:mon|tues|wednes|thurs|fri|satur|sun)day)\b", re.IGNORECASE)
 RIGHT_NOW = re.compile(r'\b(?:right now|now|rn)\b', re.IGNORECASE)
 # Saying goodbye on the phone ends the call.
-HANG_UP = re.compile(r"\b(?:(?:i'?ve |i have |i )?(?:gotta|got to|have to|need to|should) (?:go|run|hang up|get going)|"
+# "I have to go" ends it; "we need to go to that place sometime" and "I gotta run to the store later" don't.
+HANG_UP = re.compile(r"\b(?:(?:i'?ve |i have |i )?(?:gotta|got to|have to|need to|should) (?:go|run|hang up|get going)"
+                     r"(?=\s*(?:$|[.!?,;:)]|now\b|soon\b|sorry\b|though\b|tho\b|anyway\b|bye\b|babe\b|love\b|x+\b|"
+                     r"to (?:bed|sleep|work)\b))|"
                      r"talk (?:to you )?(?:later|soon|tomorrow)|bye+|goodbye|good ?night|night night|hanging up|"
                      r"(?:i'?ll|i will) let you go|ttyl)\b", re.IGNORECASE)
 
@@ -86,7 +94,8 @@ def asked(text: str) -> bool:
     """Whether a user message asks to talk on the phone now."""
     text = own_plans.QUOTED.sub(' ', own_plans.ACTIONS.sub(' ', text)).replace('’', "'")
     for sentence in re.split(r'(?<=[.!?])\s+|\n+', text):
-        if own_plans.PAST.search(sentence) or own_plans.NEGATED.search(sentence) or not ASKS.search(sentence):
+        if own_plans.PAST.search(sentence) or own_plans.NEGATED.search(sentence) or not (
+                ASKS.search(sentence) or BARE.match(sentence)):
             continue
         if LATER.search(sentence) and not RIGHT_NOW.search(sentence):
             continue
@@ -105,9 +114,10 @@ def get(connection, call_id: str) -> dict | None:
     return {**row, 'reason': decode(row['reason'])} if row else None
 
 
-def latest(connection, timeline_id: str) -> dict | None:
-    row = optional(connection, 'SELECT * FROM calls WHERE timeline_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1',
-                   (timeline_id,))
+def latest(connection, timeline_id: str, now: datetime) -> dict | None:
+    """The newest call on a chat as of now (a clock moved back hides calls that have not happened yet)."""
+    row = optional(connection, 'SELECT * FROM calls WHERE timeline_id=? AND created_at<=? '
+                   'ORDER BY created_at DESC, rowid DESC LIMIT 1', (timeline_id, stamp(now)))
     return {**row, 'reason': decode(row['reason'])} if row else None
 
 
@@ -134,9 +144,33 @@ def effective(connection, call: dict | None, now: datetime) -> dict | None:
     return call
 
 
+def as_saved(connection, companion: dict, now: datetime) -> dict | None:
+    return effective(connection, latest(connection, companion['active_timeline_id'], now), now)
+
+
 def now_for(connection, companion: dict, now: datetime) -> dict | None:
-    """The newest call on their chat, as it stands now."""
-    return effective(connection, latest(connection, companion['active_timeline_id']), now)
+    """The newest call on their chat, as it stands now. Once they are together in person (a visit or an outing that
+    began during the call) the call is over: nobody stays on the phone with the person beside them."""
+    found = as_saved(connection, companion, now)
+    if found and found['status'] == 'on' and together.in_person(connection, companion, now):
+        return {**found, 'status': 'ended', 'ended_at': stamp(now)}
+    return found
+
+
+def line_busy(connection, companion: dict, now: datetime) -> bool:
+    """Whether the user is on the phone with someone else, or someone else is ringing them: one call at a time."""
+    rows = many(connection, "SELECT c.* FROM calls c JOIN companions p ON p.active_timeline_id=c.timeline_id "
+                "WHERE c.status IN ('on', 'ringing') AND c.companion_id<>?", (companion['id'],))
+    return any(effective(connection, {**row, 'reason': decode(row['reason'])}, now)['status'] in ('on', 'ringing')
+               for row in rows)
+
+
+def hang_up_others(connection, companion: dict, now: datetime):
+    """Calling someone ends a call under way with anyone else, as on a phone."""
+    for row in many(connection, "SELECT c.* FROM calls c JOIN companions p ON p.active_timeline_id=c.timeline_id "
+                    "WHERE c.status='on' AND c.companion_id<>?", (companion['id'],)):
+        if effective(connection, {**row, 'reason': decode(row['reason'])}, now)['status'] == 'on':
+            end(connection, row, now)
 
 
 def on_call(connection, companion: dict, now: datetime) -> dict | None:
@@ -210,6 +244,7 @@ def blocked(connection, companion: dict, now: datetime) -> str | None:
 def call(connection, companion: dict, now: datetime) -> dict:
     """The user calls them (the Call button): they pick up when free, else it is a missed call they text back about."""
     require(blocked(connection, companion, now) is None, 'You are already together or on a call.', 409)
+    hang_up_others(connection, companion, now)
     reason = why_not(connection, companion, now)
     if reason:
         return insert(connection, companion, 'you', 'missed', now, reason=reason)
@@ -252,7 +287,10 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     if not ACTIVE or message['role'] != 'user' or message['status'] != 'complete':
         return False
     now = parse(message['created_at'])
-    found = now_for(connection, companion, now)
+    found = as_saved(connection, companion, now)
+    if found and found['status'] == 'on' and together.in_person(connection, companion, now):
+        end(connection, found, now)  # They came over (or met up) during the call: the call is over.
+        return False
     if found and found['status'] == 'ringing':
         answer(connection, found, now)
         return True
@@ -268,6 +306,7 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     reason = why_not(connection, companion, now)
     if reason:
         return together.record(connection, companion, message, 'call', reason, timestamp)
+    hang_up_others(connection, companion, now)
     insert(connection, companion, 'you', 'on', now, message['id'])
     return True
 
@@ -278,8 +317,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     """(identity, line) for the 'where' section: the call under way and how it started, a goodbye on the line, a
     call that ended a little while ago, and a call one of you missed."""
     found = now_for(connection, companion, now)
-    if found is None:
-        return []
+    if found is None or together.in_person(connection, companion, now):
+        return []  # In person, the together lines say where they are; a call that ended for it goes unsaid.
     timezone = companion['version']['timezone']
     if found['status'] == 'on' or (found['status'] == 'ended' and found['ended_by'] in fresh_ids):
         return on_lines(connection, companion, found, now, fresh_ids)
@@ -345,6 +384,8 @@ def view(connection, companion: dict, now: datetime) -> dict | None:
     if found is None:
         return None
     done = found['status'] not in ('on', 'ringing')
+    if done and together.in_person(connection, companion, now):
+        return None  # The strip shows the time together instead.
     if done and now - parse(found['ended_at'] or found['created_at']) >= SHOWN_FOR:
         return None
     return {'id': found['id'], 'direction': found['direction'], 'status': found['status'],
@@ -373,8 +414,8 @@ def ring_due(connection, companion: dict, now: datetime) -> list:
     if rng.random() >= chance * times or \
             local.hour * 60 + local.minute < rng.randint(RING_HOURS[0] * 60, RING_HOURS[1] * 60 - 30):
         return []
-    if blocked(connection, companion, now) or why_not(connection, companion, now) or not close(connection, companion,
-                                                                                               now):
+    if blocked(connection, companion, now) or line_busy(connection, companion, now) or \
+            why_not(connection, companion, now) or not close(connection, companion, now):
         return []
     return [Trigger(key, 'call', rng.choice(WHY_FAR if far else WHY))]
 
@@ -386,7 +427,7 @@ def close(connection, companion: dict, now: datetime) -> bool:
 
 def ring(connection, companion: dict, trigger, now: datetime) -> dict | None:
     """Start the ring a first-text check found; None when it can't ring after all."""
-    if blocked(connection, companion, now) or optional(
+    if blocked(connection, companion, now) or line_busy(connection, companion, now) or optional(
             connection, 'SELECT id FROM calls WHERE timeline_id=? AND trigger_key=?',
             (companion['active_timeline_id'], trigger.key)):
         return None
