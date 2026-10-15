@@ -273,9 +273,10 @@ def test_no_visits_between_a_made_up_world_and_ours(client, apart, visits, provi
 def test_a_visit_to_the_user_runs_on_the_clock_where_it_is(client, monkeypatch, visits, clock):
     apart_from(client, monkeypatch, city='Osaka', timezone='Asia/Tokyo', schedule=FREE_WEEK)
     monkeypatch.setattr(long_distance, 'turn', lambda *_args: long_distance.TO_YOU)
+    monkeypatch.setattr(trips, 'price', lambda *_args: 10.0)
     reconcile(client)
     [visit] = planned(client)
-    assert (visit['start_date'], visit['end_date']) == ('2026-10-15', '2026-10-19')
+    assert (visit['visit'], visit['start_date'], visit['end_date']) == (long_distance.TO_YOU, '2026-10-15', '2026-10-19')
     with client.app.state.database.connect() as connection:
         companion = current(connection)
         # Thursday 10:00 in Baltimore (23:00 in Osaka): not here yet; they arrive at 11:00 Baltimore time.
@@ -311,3 +312,14 @@ def test_today_shows_a_visit_together_only_from_arrival_to_leaving(client, apart
     assert planned(client)[0]['state'] == 'now'
     clock.advance(timedelta(days=1, hours=3))  # Sunday 16:00 in Baltimore: they have just left.
     assert planned(client)[0]['state'] == 'done'
+
+
+def test_the_weekend_a_visit_ask_names():
+    from datetime import date
+    monday, sunday = date(2026, 11, 23), date(2026, 11, 22)
+    assert long_distance.visit_day('could I fly out the weekend of December 12?', monday, {}) == date(2026, 12, 12)
+    assert long_distance.visit_day('come visit me next weekend?', monday, {}) == date(2026, 12, 5)
+    assert long_distance.visit_day('come visit me next weekend?', sunday, {}) == date(2026, 11, 28)
+    assert long_distance.visit_day('the weekend after next?', monday, {}) == date(2026, 12, 12)
+    assert long_distance.visit_day('come visit me this weekend?', monday, {}) == date(2026, 11, 28)
+    assert long_distance.visit_day('come visit me sometime?', monday, {}) is None

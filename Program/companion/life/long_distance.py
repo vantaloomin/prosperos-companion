@@ -49,6 +49,7 @@ SWAPS = ('rota', 'freelance')
 ARRIVE, LEAVE = '11:00', '16:00'
 # A visit asked for in the chat: the weekend asked or the next free one, from ASK_FROM days ahead, within ASK_WEEKS.
 ASK_FROM, ASK_WEEKS = 4, 6
+LATER_WEEKEND = re.compile(r'\b(?:next weekend|(?:the )?weekend after next)\b', re.IGNORECASE)
 # How long a visit is talked about before it comes, after it, and after the user called it off; how long the news of
 # one the app planned can wait; how long calling it off can be undone.
 AHEAD_DAYS = 21
@@ -219,10 +220,23 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
             optional(connection, 'SELECT id FROM together_asks WHERE message_id=?', (message['id'],)):
         return True
     local = now.astimezone(zone(companion['version']['timezone'])).date()
-    from companion.life import outings
-    day = outings.day_in(message['text'], local, own_plans.holiday_dates(connection, companion['version']['definition'],
-                                                                         local))
+    day = visit_day(message['text'], local, own_plans.holiday_dates(connection, companion['version']['definition'],
+                                                                    local))
     return request(connection, companion, message, direction, day, timestamp)
+
+
+def visit_day(text: str, today: date, holidays: dict) -> date | None:
+    """The day a visit ask names: a date ("the weekend of December 12", "in three weeks"), next weekend or the one
+    after, this weekend; None when it names none."""
+    from companion.life import outings
+    found = own_plans.when(text, today, holidays)
+    if found and found[0] >= today:
+        return found[0]
+    later = LATER_WEEKEND.search(text)
+    if later:
+        saturday = today - timedelta(days=1) if today.weekday() == 6 else today + timedelta(days=5 - today.weekday())
+        return saturday + timedelta(days=14 if 'after' in later.group(0).lower() else 7)
+    return outings.day_in(text, today, holidays)
 
 
 def request(connection, companion: dict, message: dict, direction: str, day: date | None, timestamp: str) -> bool:
