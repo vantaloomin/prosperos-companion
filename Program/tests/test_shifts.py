@@ -231,3 +231,119 @@ def test_freelance_gigs_show_and_pay_unevenly(client, ines, clock):
                            "VALUES (?, '2026-09-21', 'freelance', 'bartender', '[]', 0, '2026-09-21')",
                            (ines['active_timeline_id'],))
         assert work.pay(connection, ines['active_timeline_id'], MONDAY)['factor'] == 0
+
+
+def test_pay_lands_on_payday_and_holds_until_the_next(client, ines):
+    """Shifts worked count from the last payday: what is left to spend never jumps on a Monday between paydays."""
+    from companion.life import money
+    reconcile(client)
+    timeline_id = ines['active_timeline_id']
+    with connect(client) as connection:
+        for index in range(-6, 5):
+            connection.execute("INSERT OR REPLACE INTO work_weeks (timeline_id, monday, kind, career, days, pay, "
+                               "created_at) VALUES (?, ?, 'rota', 'bartender', '[1,2,3]', ?, '2026-09-01')",
+                               (timeline_id, (MONDAY + timedelta(weeks=index)).isoformat(), 0.6 + 0.1 * (index % 3)))
+        companion = require_current(connection)
+        definition = companion['version']['definition']
+        found = money.profile(definition)
+        start = money.cycle_start(found, MONDAY + timedelta(days=17))
+        days = [start + timedelta(days=offset) for offset in range(found.cycle_days)]
+        assert any(day.weekday() == 0 for day in days[1:])
+        pays = {money.household(connection, timeline_id, definition, day)['pay']['factor'] for day in days}
+    assert len(pays) == 1
+
+
+def test_a_rota_never_runs_past_six_days_in_a_row_across_weeks():
+    """Each week starts from where the last one ended: six days in a row at most, four of twelve-hour nights."""
+    for base, start, end, most in (([1, 2, 3, 4, 5], '16:00', '23:30', 6), ([0, 1, 2], '19:00', '07:30', 4)):
+        worked, previous = [], []
+        for index in range(104):
+            load = ('normal', 'slammed', 'slammed', 'slow')[index % 4]
+            previous = shifts.roll('seed', MONDAY + timedelta(weeks=index), 'rota', base, start, end, load, 3,
+                                   before=shifts.trailing(previous))['days']
+            worked += [day in previous for day in range(7)]
+        runs = ''.join('x' if day else '.' for day in worked).split('.')
+        assert max(len(run) for run in runs) <= most
+
+
+def test_a_holiday_is_off_in_the_week_s_lines_as_on_the_calendar(client, ines, monkeypatch):
+    """Thanksgiving is a day off on their calendar (agenda.holiday_block), so the chat and the Character page never
+    name it as a shift; nor a vacation day."""
+    reconcile(client)
+    monkeypatch.setattr(work, 'days_off', lambda *_args: {'2026-12-04': 'Vacation'})
+    timeline_id, thanksgiving = ines['active_timeline_id'], date(2026, 11, 26)
+    with connect(client) as connection:
+        for monday in ('2026-11-23', '2026-11-30'):
+            connection.execute("INSERT OR REPLACE INTO work_weeks (timeline_id, monday, kind, career, days, pay, "
+                               "created_at) VALUES (?, ?, 'rota', 'bartender', '[0,1,2,3,4,5]', 1, '2026-10-01')",
+                               (timeline_id, monday))
+        companion = require_current(connection)
+        line = shifts.context_line(connection, companion, date(2026, 11, 24))
+        overview = shifts.overview_line(connection, companion, date(2026, 11, 24))
+    assert 'Wednesday 25, Friday 27 and Saturday 28' in line and 'Thursday 26' not in line
+    assert overview == 'This week: Mon, Tue, Wed, Fri and Sat evenings.'
+    assert 'Next week: Monday 30, Tuesday 1, Wednesday 2, Thursday 3 and Saturday 5.' in line
+    assert thanksgiving.weekday() == 3
+
+
+def test_daytime_gigs_lean_to_weekdays_and_performers_to_the_weekend():
+    def share(start, end, performer):
+        weeks = [shifts.roll('seed', MONDAY + timedelta(weeks=index), 'freelance', [0, 1, 2, 3, 4], start, end,
+                             'normal', 2, performer=performer) for index in range(200)]
+        days = [day for week in weeks for day in week['days']]
+        return sum(day >= 5 for day in days) / len(days)
+    assert share('10:00', '16:00', False) < 0.15
+    assert share('10:00', '16:00', True) > 0.3 and share('19:00', '23:00', False) > 0.3
+
+
+def test_a_job_the_user_wrote_is_read_from_its_own_sentence():
+    def kind(identity):
+        return shifts.employment({'identity': identity}, None)
+    # A hobby is not a job.
+    assert kind('Mara is a beekeeper. She loves pub quizzes and to cook for friends.') == 'staff'
+    assert kind('Mara is a podcast host.') == 'staff'
+    for identity in ('Mara is an on-call IT technician.', 'Mara works the overnight shift at a gas station.',
+                     'Mara is a sous chef at a bistro.', 'Mara is a firefighter.'):
+        assert kind(identity) == 'rota', identity
+    for identity in ('Mara is a wedding photographer.', 'Mara drives for a rideshare app.',
+                     'Mara is a DJ who plays weekends.', 'Mara picks up gig work as a delivery driver.'):
+        assert kind(identity) == 'freelance', identity
+
+
+def test_shifts_written_later_keep_off_a_dinner_already_settled(client, ines, provider, monkeypatch):
+    """Dinner settled on a day off while Work life was Off: once it is on, the new week's shift moves off that day
+    instead of landing on top of it, as Life admin keeps out of the way of plans with the user."""
+    set_life(client, work_realism=0)
+    reconcile(client)
+    following = MONDAY + timedelta(weeks=1)
+    provider.replies.append([Chunk('Monday works!'), Chunk('', 'stop')])
+    send(client, 'Dinner next Monday at 7?', 'client-shift-later-01')
+    [outing] = client.get('/api/life/outings').json()['outings']
+    assert outing['local_date'] == following.isoformat()
+    monkeypatch.setattr(shifts, 'roll', lambda *_args, **_kwargs: {'days': [0, 1, 2, 3, 4], 'spell': '', 'pay': 1.0})
+    set_life(client, work_realism=2)
+    reconcile(client)
+    with connect(client, write=False) as connection:
+        row = connection.execute('SELECT days FROM work_weeks WHERE timeline_id=? AND monday=?',
+                                 (ines['active_timeline_id'], following.isoformat())).fetchone()
+    assert decode(row['days']) == [1, 2, 3, 4, 5]
+    assert following.isoformat() not in work_days(client, ines['active_timeline_id'])
+    assert shifts.clear_of_plans([0, 1, 2, 3, 4, 5, 6], '16:00', '23:30', [(19 * 60, 21 * 60)]) == [1, 2, 3, 4, 5, 6]
+
+
+def test_a_clock_moved_back_rewrites_no_past_days(client, ines, clock):
+    """With the clock behind what has already happened, the week is not brought in line again: that would write a
+    day off next to a shift that already happened."""
+    reconcile(client)
+    for _ in range(13):
+        clock.advance(timedelta(days=7))
+        reconcile(client)
+    clock.advance(timedelta(days=-88))
+    reconcile(client)
+    with connect(client, write=False) as connection:
+        rows = connection.execute("SELECT local_date, slot_key FROM life_agenda WHERE timeline_id=? AND "
+                                  "subject='companion'", (ines['active_timeline_id'],)).fetchall()
+    keys = {}
+    for row in rows:
+        keys.setdefault(row['local_date'], set()).add(row['slot_key'].split('@')[0])
+    assert not [day for day, found in keys.items() if {'work', 'day-off'} <= found]

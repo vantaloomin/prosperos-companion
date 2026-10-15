@@ -467,7 +467,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *hobbies.purchases(connection, timeline_id, start, day)]
     # Raises, promotions and time between jobs (companion/life/work.py).
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
-            'pay': work.pay(connection, timeline_id, day)}
+            'pay': work.pay(connection, timeline_id, day, start)}
 
 
 def monthly_share(found: Profile) -> float:

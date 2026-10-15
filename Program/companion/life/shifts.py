@@ -31,6 +31,9 @@ WEEKS_BACK, WEEKS_AHEAD = 9, 3
 PLAN_WEEKS = 3
 # Rota shifts in a week: the pattern's count, kept between these.
 FEWEST, MOST = 2, 6
+# The most days in a row a rota puts someone on, counting from last week's shifts: six of ordinary shifts, four of
+# long ones (ten hours or more, a nurse's twelve-hour nights).
+MOST_IN_A_ROW, LONG_IN_A_ROW, LONG_HOURS = 6, 4, 10
 # The chance an ordinary week has one shift fewer or one more (picked up or given away), by the Work life slider.
 SWAP = {1: 0.12, 2: 0.25, 3: 0.35}
 # How much tips make a week's pay swing either way, for tipped work, by the slider.
@@ -50,14 +53,22 @@ SHORT_DAYS = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
 COUNTS = ('No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven')
 
 # Words that tell a career's employment when the data does not say (a user city's careers, a job the user wrote).
-FREELANCE_WORDS = ('freelance', 'freelancer', 'freelancing', 'self employed', 'gig', 'gigs', 'commissions',
-                   'contract work', 'session musician', 'for hire', 'odd jobs', 'piecework', 'busker', 'busking')
+FREELANCE_WORDS = ('freelance', 'freelancer', 'freelancing', 'freelances', 'self employed', 'gig', 'gigs', 'commissions',
+                   'contract work', 'session musician', 'for hire', 'odd jobs', 'piecework', 'busker', 'busking',
+                   'photographer', 'content creator', 'influencer', 'streamer', 'youtuber', 'tour guide', 'dj',
+                   'rideshare', 'uber', 'lyft', 'doordash', 'dog walker', 'translator')
 ROTA_WORDS = ('bartender', 'barmaid', 'barman', 'barista', 'server', 'waiter', 'waitress', 'waitstaff', 'line cook',
-              'cook', 'dishwasher', 'host', 'hostess', 'retail', 'cashier', 'shop assistant', 'store clerk',
+              'cook', 'dishwasher', 'hostess', 'retail', 'cashier', 'shop assistant', 'store clerk',
               'sales associate', 'front desk', 'hotel clerk', 'concierge', 'nurse', 'orderly', 'attendant',
               'paramedic', 'taxi', 'cab', 'cabman', 'dealer', 'porter', 'guard', 'constable', 'patrolman',
               'deputy', 'dispatcher', 'rota', 'roster', 'waits tables', 'tavern', 'pub', 'diner',
-              'restaurant', 'cafe', 'café', 'call center', 'warehouse', 'lifeguard')
+              'restaurant', 'cafe', 'café', 'call center', 'warehouse', 'lifeguard', 'shift', 'shifts', 'on call',
+              'chef', 'firefighter', 'emt', 'caregiver', 'care worker', 'aide', 'security')
+# The sentences of what they wrote that say what they do for work, so a hobby ("loves pub quizzes") never reads as
+# a job.
+WORK_CUE = re.compile(r"\b(?:work|works|worked|working|job|jobs|career|employed|shifts?|gigs?|freelanc\w*|"
+                      r"self-employed|on[- ]call|drives|(?:is|was|as) an?)\b", re.IGNORECASE)
+SENTENCE = re.compile(r'(?<=[.!?])\s+')
 ROTA_SECTORS = ('hospitality', 'food', 'victualling', 'retail', 'transit', 'transport', 'healthcare', 'care',
                 'healing', 'law-enforcement', 'public-safety', 'security', 'gates', 'services')
 FREELANCE_SECTORS = ('creative', 'arts', 'music', 'entertainment', 'media')
@@ -106,7 +117,8 @@ def employment(definition: dict, career: dict | None) -> str:
     their work (identity and routine, the way a written job is read elsewhere)."""
     if found := chosen_kind(definition):
         return found
-    own = ' '.join(definition.get(key) or '' for key in ('identity', 'routine'))
+    own = ' '.join(sentence for key in ('identity', 'routine') for sentence in SENTENCE.split(definition.get(key) or '')
+                   if WORK_CUE.search(sentence))
     if career and career.get('employment') in KINDS:
         # A tagged career wins, unless they wrote that they freelance at it ("a freelance photographer").
         return 'freelance' if has_words(own, ('freelance', 'freelancer', 'self-employed')) else career['employment']
@@ -131,24 +143,57 @@ def evening_work(start: str, end: str) -> bool:
     return start >= '15:00' or end <= start
 
 
-def weights(start: str, end: str, performer: bool) -> list[float]:
+def weights(start: str, end: str, performer: bool, gigs: bool = False) -> list[float]:
     """How likely each weekday is to have a shift: evening and night work leans to Fridays and Saturdays, day work
     a little to the weekend (someone has to cover it), gigs for performers to the weekend, other gigs to weekdays."""
     if performer:
         return [0.5, 0.6, 0.8, 1.2, 2.0, 2.4, 1.0]
     if evening_work(start, end):
         return [0.7, 0.8, 0.9, 1.2, 2.2, 2.4, 1.2]
+    if gigs:
+        # A designer's or a photographer's clients book them in office hours, now and then a weekend.
+        return [1.2, 1.2, 1.2, 1.2, 1.1, 0.4, 0.3]
     return [1.0, 1.0, 1.0, 1.0, 1.1, 1.4, 1.2]
 
 
-def draw_days(seed: str, count: int, weekday_weights: list[float]) -> list[int]:
-    """`count` distinct weekdays, weighted, seeded."""
+def run_after(days: set[int], day: int, before: int) -> int:
+    """The run of days in a row `day` would be part of, with `before` days worked in a row up to last Sunday."""
+    taken = days | {day}
+    start = day
+    while start - 1 in taken:
+        start -= 1
+    end = day
+    while end + 1 in taken:
+        end += 1
+    return end - start + 1 + (before if start == 0 else 0)
+
+
+def draw_days(seed: str, count: int, weekday_weights: list[float], cap: int = 7, before: int = 0) -> list[int]:
+    """`count` distinct weekdays, weighted, seeded, never more than `cap` in a row (with `before` days in a row
+    worked up to last Sunday); fewer when no day is left that keeps to it."""
     left, chosen = list(range(7)), []
     for index in range(min(count, 7)):
-        day = generators.pick(seed, f'day:{index}', left, [weekday_weights[day] for day in left])
+        allowed = [day for day in left if run_after(set(chosen), day, before) <= cap]
+        if not allowed:
+            break
+        day = generators.pick(seed, f'day:{index}', allowed, [weekday_weights[day] for day in allowed])
         chosen.append(day)
         left.remove(day)
     return sorted(chosen)
+
+
+def in_a_row(start: str, end: str) -> int:
+    """How many days in a row these hours allow."""
+    minutes = (int(end[:2]) * 60 + int(end[3:5]) - int(start[:2]) * 60 - int(start[3:5])) % (24 * 60)
+    return LONG_IN_A_ROW if minutes >= LONG_HOURS * 60 else MOST_IN_A_ROW
+
+
+def trailing(days) -> int:
+    """Days worked in a row up to the week's Sunday."""
+    count = 0
+    while 6 - count in days:
+        count += 1
+    return count
 
 
 def spell(seed: str, monday: date, chosen: int) -> str:
@@ -160,9 +205,10 @@ def spell(seed: str, monday: date, chosen: int) -> str:
 
 
 def roll(seed: str, monday: date, kind: str, base: list[int], start: str, end: str, workload: str, chosen: int,
-         tipped: bool = False, performer: bool = False) -> dict:
+         tipped: bool = False, performer: bool = False, before: int = 0) -> dict:
     """One week: {days, spell, pay}. Seeded by the companion, the week and what shapes it, so the same week rolls
-    the same however often it is asked."""
+    the same however often it is asked. `before` is how many days in a row they worked up to last Sunday, so a rota
+    never runs on past six days in a row (four of long shifts)."""
     week = f'{seed}:{monday.isoformat()}'
     swing = {'slammed': 1, 'slow': -1}.get(workload, 0)
     if kind == 'rota':
@@ -170,7 +216,7 @@ def roll(seed: str, monday: date, kind: str, base: list[int], start: str, end: s
         if not swing and (roll_swap := generators.unit(week, 'swap')) < SWAP[chosen]:
             count += 1 if roll_swap < SWAP[chosen] / 2 else -1
         count = max(FEWEST, min(MOST, count, len(base) + 2))
-        days = draw_days(week, count, weights(start, end, False))
+        days = draw_days(week, count, weights(start, end, False), in_a_row(start, end), before)
         pay = len(days) / max(len(base), 1)
         if tipped:
             pay *= 1 + (generators.unit(week, 'tips') * 2 - 1) * TIPS[chosen]
@@ -178,7 +224,7 @@ def roll(seed: str, monday: date, kind: str, base: list[int], start: str, end: s
     found = spell(seed, monday, chosen)
     low, high = GIGS[found]
     count = max(0, min(6, low + int(generators.unit(week, 'gigs') * (high - low + 1)) + swing))
-    days = draw_days(week, count, weights(start, end, performer))
+    days = draw_days(week, count, weights(start, end, performer, gigs=True))
     rate = GIG_RATE[0] + generators.unit(week, 'rate') * (GIG_RATE[1] - GIG_RATE[0])
     return {'days': days, 'spell': found, 'pay': round(count / USUAL_GIGS * rate, 4)}
 
@@ -219,11 +265,11 @@ def stored(connection, timeline_id: str, first: date, last: date) -> dict[str, d
     return {row['monday']: {**row, 'days': decode(row['days'])} for row in rows}
 
 
-def rolled(found: dict, monday: date) -> dict:
+def rolled(found: dict, monday: date, before: int = 0) -> dict:
     from companion.life import work
     load = work.workload(found['state'], monday, found['level']) if found['state'] else 'normal'
     return {**roll(found['seed'], monday, found['kind'], found['base'], found['start'], found['end'], load,
-                   found['level'], found['tipped'], found['performer']), 'workload': load}
+                   found['level'], found['tipped'], found['performer'], before), 'workload': load}
 
 
 def weeks(connection, companion: dict, first: date, last: date, found: dict | None = None) -> dict[str, dict]:
@@ -231,11 +277,16 @@ def weeks(connection, companion: dict, first: date, last: date, found: dict | No
     found = found or setup(connection, companion)
     if not found:
         return {}
-    kept = {key: week for key, week in stored(connection, found['timeline_id'], monday_of(first), last).items()
+    monday = monday_of(first)
+    kept = {key: week for key, week in stored(connection, found['timeline_id'], monday - timedelta(weeks=1),
+                                              last).items()
             if week['kind'] == found['kind'] and week['career'] == found['career']}
-    result, monday = {}, monday_of(first)
+    # Each week starts from how many days in a row the week before ended on.
+    previous = kept.get((monday - timedelta(weeks=1)).isoformat()) or rolled(found, monday - timedelta(weeks=1))
+    result = {}
     while monday <= last:
-        result[monday.isoformat()] = kept.get(monday.isoformat()) or rolled(found, monday)
+        week = kept.get(monday.isoformat()) or rolled(found, monday, trailing(previous['days']))
+        result[monday.isoformat()] = previous = week
         monday += timedelta(weeks=1)
     return result
 
@@ -265,14 +316,55 @@ def with_rota(connection, companion: dict) -> dict:
     return {**companion, 'version': {**companion['version'], 'definition': definition}}
 
 
+def minutes_of(clock: str) -> int:
+    return int(clock[:2]) * 60 + int(clock[3:5])
+
+
+def plans_in_the_way(connection, found: dict, monday: date) -> list[tuple[int, int]]:
+    """Plans already made for this week that a shift must not land on, as (start, end) minutes from the Monday:
+    outings with the user and trips (companion/life/trips.py), as Life admin keeps out of their way."""
+    from companion.life import outings, trips
+    last = (monday + timedelta(days=7)).isoformat()
+    spans = []
+    for outing in outings.in_force(connection, found['timeline_id'], monday.isoformat()):
+        if outing['local_date'] <= last:
+            start = (date.fromisoformat(outing['local_date']) - monday).days * 1440 + minutes_of(outing['at_time'] or
+                                                                                                  '12:00')
+            end = start + max(minutes_of(outing['until_time'] or '00:00') - (start % 1440), 60)
+            spans.append((start, end))
+    for trip in trips.planned(connection, found['timeline_id'], monday.isoformat()):
+        first, final = date.fromisoformat(trip['start_date']), date.fromisoformat(trip['end_date'])
+        spans.append(((first - monday).days * 1440, ((final - monday).days + 1) * 1440))
+    return spans
+
+
+def clear_of_plans(days: list[int], start: str, end: str, spans: list[tuple[int, int]]) -> list[int]:
+    """The week's shifts moved off days where a plan already stands to free days of the same week, or dropped when
+    no day is free: a shift never lands on a dinner with the user that was settled first."""
+    length = (minutes_of(end) - minutes_of(start)) % 1440 or 1440
+    def clashes(day: int) -> bool:
+        begin = day * 1440 + minutes_of(start)
+        return any(begin < until and since < begin + length for since, until in spans)
+    if not spans or not any(clashes(day) for day in days):
+        return days
+    kept = [day for day in days if not clashes(day)]
+    free = [day for day in range(7) if day not in days and not clashes(day)]
+    return sorted(kept + free[:len(days) - len(kept)])
+
+
 def plan_ahead(connection, companion: dict, today: date, now: datetime) -> int:
-    """Write down this week and the next few, the first time each is planned. Returns how many were added."""
+    """Write down this week and the next few, the first time each is planned, around plans already made. Returns how
+    many were added."""
     found = setup(connection, companion)
     if not found:
         return 0
     span = weeks(connection, companion, today, today + timedelta(weeks=PLAN_WEEKS - 1), found)
+    known = stored(connection, found['timeline_id'], monday_of(today), today + timedelta(weeks=PLAN_WEEKS - 1))
     added = 0
     for monday, week in span.items():
+        if monday not in known or known[monday]['kind'] != found['kind'] or known[monday]['career'] != found['career']:
+            week = {**week, 'days': clear_of_plans(week['days'], found['start'], found['end'],
+                                                   plans_in_the_way(connection, found, date.fromisoformat(monday)))}
         added += connection.execute(
             'INSERT INTO work_weeks (timeline_id, monday, kind, career, days, spell, workload, pay, created_at) '
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (timeline_id, monday) DO UPDATE SET kind=excluded.kind, '
@@ -294,7 +386,10 @@ def refresh_agenda(connection, companion: dict, now: datetime) -> bool:
     moving = {block.key: block for block in schedule if block.kind == 'work' or block.key in (AFTER_WORK, DAY_OFF)}
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
                       (timeline_id, agenda.COMPANION))
-    if not moving or not cursor:
+    if not moving or not cursor or optional(
+            connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND status!='upcoming' AND "
+            'ends_at>? LIMIT 1', (timeline_id, agenda.COMPANION, stamp(now))):
+        # With the clock behind what already happened, nothing is written again (a clock moved back replays nothing).
         return False
     today, written, changed = now.astimezone(zone(companion['version']['timezone'])).date(), set(), False
     for row in many(connection, "SELECT id, slot_key FROM life_agenda WHERE timeline_id=? AND subject=? AND "
@@ -349,13 +444,32 @@ def week_text(kind: str, days: list[int], start: str, end: str, short: bool = Tr
 SPELL_WORDS = {'busy': 'a busy spell', 'steady': 'a steady spell', 'dry': 'a dry spell'}
 
 
+def off_days(connection, companion: dict, first: date, last: date) -> set[str]:
+    """Days with no work whatever the week says, as the agenda has them (agenda.holiday_block): vacation days, public
+    holidays and their family traditions' days."""
+    from companion.life import outings, work
+    definition = companion['version']['definition']
+    off = set(work.days_off(connection, companion, first, last)) | set((definition.get('traditions') or {}))
+    if city := outings.city_data(connection, definition):
+        off |= {item['date'] for item in generators.holidays(city, first, last) if item['kind'] == 'public'}
+    return off
+
+
+def working(days: list[int], monday: date, off: set[str]) -> list[int]:
+    """The week's days without the days off (`off_days`)."""
+    return [day for day in days if (monday + timedelta(days=day)).isoformat() not in off]
+
+
 def overview_line(connection, companion: dict, today: date) -> str:
     """The Character page's line: 'This week: Tue, Thu and Sat nights.' or 'Two gigs this week (Tue and Fri), a busy
     spell.' Empty when their week stays as written."""
     found = setup(connection, companion)
     if not found:
         return ''
-    week = weeks(connection, companion, today, today, found)[monday_of(today).isoformat()]
+    monday = monday_of(today)
+    week = weeks(connection, companion, today, today, found)[monday.isoformat()]
+    week = {**week, 'days': working(week['days'], monday, off_days(connection, companion, monday,
+                                                                     monday + timedelta(days=6)))}
     if found['kind'] == 'rota':
         return f"This week: {week_text('rota', week['days'], found['start'], found['end'])}."
     if not week['days']:
@@ -379,7 +493,10 @@ def context_line(connection, companion: dict, today: date) -> str:
     monday = monday_of(today)
     span = weeks(connection, companion, today, today + timedelta(weeks=1), found)
     this, following = span[monday.isoformat()], span[(monday + timedelta(weeks=1)).isoformat()]
-    left = [day for day in this['days'] if day >= today.weekday()]
+    # Holidays and vacation days are off whatever the rota said, as on their calendar.
+    off = off_days(connection, companion, monday, monday + timedelta(days=13))
+    following = {**following, 'days': working(following['days'], monday + timedelta(weeks=1), off)}
+    left = [day for day in working(this['days'], monday, off) if day >= today.weekday()]
     if found['kind'] == 'rota':
         now = f"The rest of this week: {dated(left, monday)}, {found['start']} to {found['end']}." if left else \
             'No more shifts this week.'

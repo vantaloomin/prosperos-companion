@@ -780,8 +780,9 @@ def recent_events(connection, timeline_id: str, since: str) -> list[dict]:
                 (timeline_id, since))
 
 
-def pay(connection, timeline_id: str, day: date) -> dict | None:
-    """Their pay as a share of the career's base, and whether they are between jobs (money.household)."""
+def pay(connection, timeline_id: str, day: date, payday: date | None = None) -> dict | None:
+    """Their pay as a share of the career's base, and whether they are between jobs (money.household). Shifts and
+    gigs count from the last payday (`payday`, the start of this pay cycle), so the cycle's pay holds until the next."""
     if not ACTIVE:
         return None
     found = state(connection, timeline_id)
@@ -791,7 +792,7 @@ def pay(connection, timeline_id: str, day: date) -> dict | None:
     factor = found['pay'] * (HUNT_PAY.get(found['hunt_reason'] or '', 0.5) if hunting else 1)
     if not hunting and shifts.ACTIVE:
         # Shifts worked and gigs landed lately, tips and all (companion/life/shifts.py).
-        factor *= shifts.pay(connection, timeline_id, day)
+        factor *= shifts.pay(connection, timeline_id, payday or day)
     return {'factor': round(factor, 4), 'between_jobs': hunting}
 
 
