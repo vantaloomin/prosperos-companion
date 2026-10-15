@@ -178,3 +178,46 @@ def test_on_a_call_replies_are_read_aloud_when_a_voice_is_set_up(client, nearby,
     says(provider, 'night!')
     reply = send(client, 'night', 'client-call-12')['reply']
     assert not reply['voice']  # Texting again.
+
+
+def test_coming_over_during_a_call_ends_it(client, nearby, provider, clock):
+    clock.advance(timedelta(hours=7))  # 19:00, free.
+    press(client)
+    says(provider, 'On my way!')
+    send(client, 'wanna come over now?', 'client-call-13')
+    found = where(client)
+    assert (found['state'], found['kind']) == ('together', 'yours') and found['call'] is None
+    assert 'You are on a phone call' not in notes(provider) and 'talked on the phone' not in notes(provider)
+    with client.app.state.database.connect() as connection:
+        assert calls.latest(connection, current(connection)['active_timeline_id'], clock.now())['status'] == 'ended'
+
+
+def test_one_call_at_a_time_across_companions(client, nearby, clock, monkeypatch):
+    from test_groups import companion_named
+
+    from companion.characters import by_id
+    clock.advance(timedelta(hours=7))
+    mira_id = current_id(client)
+    press(client)  # On with Mira.
+    dana_id = companion_named(client, 'Dana')
+    with client.app.state.database.connect(write=True) as connection:
+        dana = by_id(connection, dana_id)
+        assert calls.line_busy(connection, dana, clock.now())  # Dana can't ring through.
+        assert calls.ring(connection, dana, openers.Trigger('call:x', 'call', 'why'), clock.now()) is None
+    assert client.post('/api/companion/cast/focus', json={'companion_id': dana_id}).status_code == 200
+    monkeypatch.setattr(calls, 'why_not', lambda *_args: None)
+    assert press(client)['call']['status'] == 'on'  # Calling Dana hangs up on Mira.
+    with client.app.state.database.connect() as connection:
+        assert calls.on_call(connection, by_id(connection, mira_id), clock.now()) is None
+
+
+def current_id(client):
+    with client.app.state.database.connect() as connection:
+        return current(connection)['id']
+
+
+def test_a_clock_moved_back_hides_a_call_not_yet_made(client, nearby, clock):
+    clock.advance(timedelta(hours=7))
+    press(client)
+    clock.advance(timedelta(hours=-1))
+    assert where(client)['call'] is None and where(client)['state'] == 'apart'
