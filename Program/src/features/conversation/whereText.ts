@@ -31,7 +31,12 @@ export function stripLine(where: WhereState | undefined, name: string): StripLin
 
 function endedLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
   if (kind === 'yours' || kind === 'knock') return { lead: `${name} headed home.`, place: null, tail: '' }
-  return { lead: `Headed home from ${kind === 'theirs' ? `${name}'s place` : outing.place.name}.`, place: null, tail: '' }
+  return { lead: sentence(`Headed home from ${kind === 'theirs' ? `${name}'s place` : outing.place.name}`), place: null, tail: '' }
+}
+
+/** A full stop, unless the words already end in one ("Power Plant Live!", "Pastries & Co."). */
+function sentence(words: string): string {
+  return /[.!?]$/.test(words) ? words : `${words}.`
 }
 
 function liveLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
