@@ -48,7 +48,7 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
     void client.invalidateQueries({ queryKey: TOGETHER_KEY })
     onDone()
   }
-  const Glyph = where.kind === 'out' ? MapPin : Home
+  const Glyph = where.kind === 'out' && outing.state !== 'done' ? MapPin : Home  // Headed home is always the house.
   return (
     <aside className="where-strip" aria-label="Where you are" aria-live="polite">
       <Glyph aria-hidden="true" />
