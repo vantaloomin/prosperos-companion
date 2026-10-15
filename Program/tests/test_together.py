@@ -286,3 +286,52 @@ def test_a_walk_is_gone_for_not_got(client, nearby, clock, monkeypatch):
         local = clock.now().astimezone(__import__('zoneinfo').ZoneInfo('UTC'))
         [trigger] = together.outing_suggestion(connection, companion, local, 'get-together:test', random.Random(1))
     assert trigger.template.startswith('Want to go for a walk at ')
+
+
+def another_companion(client, name):
+    """A second companion in Baltimore, stepped back (a switch of focus brings them in)."""
+    from companion.characters import insert_version
+    from companion.database import identifier
+    from companion.models import CharacterDefinition
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        companion_id, timeline_id, now = identifier(), identifier(), database.now()
+        connection.execute('INSERT INTO companions (id, slot, stepped_back_at, created_at) VALUES (?, NULL, ?, ?)',
+                           (companion_id, now, now))
+        version_id = insert_version(connection, companion_id, 1, CharacterDefinition(
+            name=name, timezone='UTC', home_city='Baltimore', schedule=EVENINGS), '', now)
+        connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
+                           (timeline_id, companion_id, now))
+        connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',
+                           (version_id, timeline_id, companion_id))
+    return companion_id
+
+
+def test_two_companions_at_your_place_know_the_other_is_there(client, nearby, provider, clock):
+    from companion import cast
+    database = client.app.state.database
+    with database.connect() as connection:
+        mira_id = current(connection)['id']
+    sally_id = another_companion(client, 'Sally')
+    clock.advance(timedelta(hours=6))  # 18:00, both free.
+    says(provider)
+    send(client, 'wanna come over now?', 'client-together-28')
+    assert "Right now you are over at the user's place" in notes(provider)
+    assert 'also visiting the user' not in notes(provider)  # Nobody else there yet.
+    cast.focus_on(database, sally_id)
+    says(provider)
+    send(client, 'wanna come over now?', 'client-together-29')
+    says(provider)
+    send(client, 'so what do you two want to do?', 'client-together-30')
+    assert 'Mira, also visiting the user, is here too, in person.' in notes(provider)
+    cast.focus_on(database, mira_id)
+    says(provider)
+    send(client, 'so what do you two want to do?', 'client-together-31')
+    assert 'Sally, also visiting the user, is here too, in person.' in notes(provider)
+    # Once Mira heads home, Sally's prompt no longer names her.
+    says(provider)
+    send(client, "it's late, you should head home", 'client-together-32')
+    cast.focus_on(database, sally_id)
+    says(provider)
+    send(client, 'nice having you here', 'client-together-33')
+    assert 'also visiting the user' not in notes(provider)
