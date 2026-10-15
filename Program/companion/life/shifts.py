@@ -31,6 +31,9 @@ WEEKS_BACK, WEEKS_AHEAD = 9, 3
 PLAN_WEEKS = 3
 # Rota shifts in a week: the pattern's count, kept between these.
 FEWEST, MOST = 2, 6
+# The most days in a row a rota puts someone on, counting from last week's shifts: six of ordinary shifts, four of
+# long ones (ten hours or more, a nurse's twelve-hour nights).
+MOST_IN_A_ROW, LONG_IN_A_ROW, LONG_HOURS = 6, 4, 10
 # The chance an ordinary week has one shift fewer or one more (picked up or given away), by the Work life slider.
 SWAP = {1: 0.12, 2: 0.25, 3: 0.35}
 # How much tips make a week's pay swing either way, for tipped work, by the slider.
@@ -141,14 +144,44 @@ def weights(start: str, end: str, performer: bool) -> list[float]:
     return [1.0, 1.0, 1.0, 1.0, 1.1, 1.4, 1.2]
 
 
-def draw_days(seed: str, count: int, weekday_weights: list[float]) -> list[int]:
-    """`count` distinct weekdays, weighted, seeded."""
+def run_after(days: set[int], day: int, before: int) -> int:
+    """The run of days in a row `day` would be part of, with `before` days worked in a row up to last Sunday."""
+    taken = days | {day}
+    start = day
+    while start - 1 in taken:
+        start -= 1
+    end = day
+    while end + 1 in taken:
+        end += 1
+    return end - start + 1 + (before if start == 0 else 0)
+
+
+def draw_days(seed: str, count: int, weekday_weights: list[float], cap: int = 7, before: int = 0) -> list[int]:
+    """`count` distinct weekdays, weighted, seeded, never more than `cap` in a row (with `before` days in a row
+    worked up to last Sunday); fewer when no day is left that keeps to it."""
     left, chosen = list(range(7)), []
     for index in range(min(count, 7)):
-        day = generators.pick(seed, f'day:{index}', left, [weekday_weights[day] for day in left])
+        allowed = [day for day in left if run_after(set(chosen), day, before) <= cap]
+        if not allowed:
+            break
+        day = generators.pick(seed, f'day:{index}', allowed, [weekday_weights[day] for day in allowed])
         chosen.append(day)
         left.remove(day)
     return sorted(chosen)
+
+
+def in_a_row(start: str, end: str) -> int:
+    """How many days in a row these hours allow."""
+    minutes = (int(end[:2]) * 60 + int(end[3:5]) - int(start[:2]) * 60 - int(start[3:5])) % (24 * 60)
+    return LONG_IN_A_ROW if minutes >= LONG_HOURS * 60 else MOST_IN_A_ROW
+
+
+def trailing(days) -> int:
+    """Days worked in a row up to the week's Sunday."""
+    count = 0
+    while 6 - count in days:
+        count += 1
+    return count
 
 
 def spell(seed: str, monday: date, chosen: int) -> str:
@@ -160,9 +193,10 @@ def spell(seed: str, monday: date, chosen: int) -> str:
 
 
 def roll(seed: str, monday: date, kind: str, base: list[int], start: str, end: str, workload: str, chosen: int,
-         tipped: bool = False, performer: bool = False) -> dict:
+         tipped: bool = False, performer: bool = False, before: int = 0) -> dict:
     """One week: {days, spell, pay}. Seeded by the companion, the week and what shapes it, so the same week rolls
-    the same however often it is asked."""
+    the same however often it is asked. `before` is how many days in a row they worked up to last Sunday, so a rota
+    never runs on past six days in a row (four of long shifts)."""
     week = f'{seed}:{monday.isoformat()}'
     swing = {'slammed': 1, 'slow': -1}.get(workload, 0)
     if kind == 'rota':
@@ -170,7 +204,7 @@ def roll(seed: str, monday: date, kind: str, base: list[int], start: str, end: s
         if not swing and (roll_swap := generators.unit(week, 'swap')) < SWAP[chosen]:
             count += 1 if roll_swap < SWAP[chosen] / 2 else -1
         count = max(FEWEST, min(MOST, count, len(base) + 2))
-        days = draw_days(week, count, weights(start, end, False))
+        days = draw_days(week, count, weights(start, end, False), in_a_row(start, end), before)
         pay = len(days) / max(len(base), 1)
         if tipped:
             pay *= 1 + (generators.unit(week, 'tips') * 2 - 1) * TIPS[chosen]
@@ -219,11 +253,11 @@ def stored(connection, timeline_id: str, first: date, last: date) -> dict[str, d
     return {row['monday']: {**row, 'days': decode(row['days'])} for row in rows}
 
 
-def rolled(found: dict, monday: date) -> dict:
+def rolled(found: dict, monday: date, before: int = 0) -> dict:
     from companion.life import work
     load = work.workload(found['state'], monday, found['level']) if found['state'] else 'normal'
     return {**roll(found['seed'], monday, found['kind'], found['base'], found['start'], found['end'], load,
-                   found['level'], found['tipped'], found['performer']), 'workload': load}
+                   found['level'], found['tipped'], found['performer'], before), 'workload': load}
 
 
 def weeks(connection, companion: dict, first: date, last: date, found: dict | None = None) -> dict[str, dict]:
@@ -231,11 +265,16 @@ def weeks(connection, companion: dict, first: date, last: date, found: dict | No
     found = found or setup(connection, companion)
     if not found:
         return {}
-    kept = {key: week for key, week in stored(connection, found['timeline_id'], monday_of(first), last).items()
+    monday = monday_of(first)
+    kept = {key: week for key, week in stored(connection, found['timeline_id'], monday - timedelta(weeks=1),
+                                              last).items()
             if week['kind'] == found['kind'] and week['career'] == found['career']}
-    result, monday = {}, monday_of(first)
+    # Each week starts from how many days in a row the week before ended on.
+    previous = kept.get((monday - timedelta(weeks=1)).isoformat()) or rolled(found, monday - timedelta(weeks=1))
+    result = {}
     while monday <= last:
-        result[monday.isoformat()] = kept.get(monday.isoformat()) or rolled(found, monday)
+        week = kept.get(monday.isoformat()) or rolled(found, monday, trailing(previous['days']))
+        result[monday.isoformat()] = previous = week
         monday += timedelta(weeks=1)
     return result
 

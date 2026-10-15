@@ -251,3 +251,16 @@ def test_pay_lands_on_payday_and_holds_until_the_next(client, ines):
         assert any(day.weekday() == 0 for day in days[1:])
         pays = {money.household(connection, timeline_id, definition, day)['pay']['factor'] for day in days}
     assert len(pays) == 1
+
+
+def test_a_rota_never_runs_past_six_days_in_a_row_across_weeks():
+    """Each week starts from where the last one ended: six days in a row at most, four of twelve-hour nights."""
+    for base, start, end, most in (([1, 2, 3, 4, 5], '16:00', '23:30', 6), ([0, 1, 2], '19:00', '07:30', 4)):
+        worked, previous = [], []
+        for index in range(104):
+            load = ('normal', 'slammed', 'slammed', 'slow')[index % 4]
+            previous = shifts.roll('seed', MONDAY + timedelta(weeks=index), 'rota', base, start, end, load, 3,
+                                   before=shifts.trailing(previous))['days']
+            worked += [day in previous for day in range(7)]
+        runs = ''.join('x' if day else '.' for day in worked).split('.')
+        assert max(len(run) for run in runs) <= most
