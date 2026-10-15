@@ -264,3 +264,23 @@ def test_a_rota_never_runs_past_six_days_in_a_row_across_weeks():
             worked += [day in previous for day in range(7)]
         runs = ''.join('x' if day else '.' for day in worked).split('.')
         assert max(len(run) for run in runs) <= most
+
+
+def test_a_holiday_is_off_in_the_week_s_lines_as_on_the_calendar(client, ines, monkeypatch):
+    """Thanksgiving is a day off on their calendar (agenda.holiday_block), so the chat and the Character page never
+    name it as a shift; nor a vacation day."""
+    reconcile(client)
+    monkeypatch.setattr(work, 'days_off', lambda *_args: {'2026-12-04': 'Vacation'})
+    timeline_id, thanksgiving = ines['active_timeline_id'], date(2026, 11, 26)
+    with connect(client) as connection:
+        for monday in ('2026-11-23', '2026-11-30'):
+            connection.execute("INSERT OR REPLACE INTO work_weeks (timeline_id, monday, kind, career, days, pay, "
+                               "created_at) VALUES (?, ?, 'rota', 'bartender', '[0,1,2,3,4,5]', 1, '2026-10-01')",
+                               (timeline_id, monday))
+        companion = require_current(connection)
+        line = shifts.context_line(connection, companion, date(2026, 11, 24))
+        overview = shifts.overview_line(connection, companion, date(2026, 11, 24))
+    assert 'Wednesday 25, Friday 27 and Saturday 28' in line and 'Thursday 26' not in line
+    assert overview == 'This week: Mon, Tue, Wed, Fri and Sat evenings.'
+    assert 'Next week: Monday 30, Tuesday 1, Wednesday 2, Thursday 3 and Saturday 5.' in line
+    assert thanksgiving.weekday() == 3
