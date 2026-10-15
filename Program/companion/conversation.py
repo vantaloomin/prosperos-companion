@@ -114,6 +114,8 @@ def history(database, before_seq=None, limit=100) -> dict:
 
 
 SEARCH_LIMIT = 50
+# A call reply waits this long for its voice before it stays a text, so Stop and memory work aren't held up.
+CALL_VOICE_SECONDS = 15
 
 
 def search(database, query: str, limit=SEARCH_LIMIT) -> dict:
@@ -439,7 +441,11 @@ class Conversation:
             message = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
             companion = for_timeline(connection, message['timeline_id'])
         try:
-            note = await self.voice.record(companion, engine, message['text'], voice_notes.CALL_CHARACTERS)
+            note = await asyncio.wait_for(self.voice.record(companion, engine, message['text'],
+                                                            voice_notes.CALL_CHARACTERS), CALL_VOICE_SECONDS)
+        except TimeoutError:
+            LOG.warning('A call reply took too long to read aloud, so it stays a text.')
+            return
         except Exception:  # noqa: BLE001 - a voice that fails leaves the reply as text.
             LOG.exception('A call reply could not be read aloud.')
             return

@@ -1,4 +1,6 @@
 """On a call (companion/life/calls.py): calls started either way, the call in the chat, and how it ends."""
+import asyncio
+import time
 from datetime import timedelta
 
 import pytest
@@ -178,6 +180,23 @@ def test_on_a_call_replies_are_read_aloud_when_a_voice_is_set_up(client, nearby,
     says(provider, 'night!')
     reply = send(client, 'night', 'client-call-12')['reply']
     assert not reply['voice']  # Texting again.
+
+
+def test_a_slow_voice_leaves_a_call_reply_as_text(client, nearby, provider, clock, speaker, monkeypatch):  # noqa: F811
+    from companion import conversation
+    from companion.voice.notes import VoiceNotes
+
+    async def stuck(*_args, **_kwargs):
+        await asyncio.sleep(5)
+
+    monkeypatch.setattr(conversation, 'CALL_VOICE_SECONDS', 0.05)
+    monkeypatch.setattr(VoiceNotes, 'record', stuck)
+    clock.advance(timedelta(hours=7))
+    press(client)
+    says(provider, 'Hey, you.')
+    started = time.monotonic()
+    reply = send(client, 'hey you', 'client-call-slow')['reply']
+    assert reply['status'] == 'complete' and not reply['voice'] and time.monotonic() - started < 4
 
 
 def test_coming_over_during_a_call_ends_it(client, nearby, provider, clock):
