@@ -1,4 +1,5 @@
 import type { ChatStyle } from '../../types'
+import type { StatusWhere } from '../status/statusText'
 
 /** The companion's profile holds four views; the address keeps the older names so every link still works. */
 export type ProfileTab = 'conversation' | 'feed' | 'memories' | 'character'
@@ -36,4 +37,10 @@ export function profileClass(style: ChatStyle, retroDark: boolean): string {
 
 export function circleText(count: number): string {
   return `${count} ${count === 1 ? 'person' : 'people'} in their circle`
+}
+
+/** Where they live on the card: "Long distance, Lisbon, 5 hours ahead" when they live in another city than yours
+ * (companion/life/together.py state), else the place their definition names. */
+export function placeFact(place: string, where: StatusWhere | null | undefined): string {
+  return where?.kind === 'long-distance' && where.text ? where.text : place
 }
