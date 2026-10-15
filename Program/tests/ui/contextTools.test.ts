@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { argumentKind, canSave, initialMapping, propertyLabel, withAppFilled, withPurpose, withSource, missingArguments, observationSummary, sentArguments, serviceBody, sourcesFor } from '../../src/features/settings/contextTools.ts'
 import type { ContextTool, Observation } from '../../src/types.ts'
@@ -66,4 +67,9 @@ test('tool arguments read as words and are offered by their type', () => {
   const filled = withAppFilled({ tool: 'web_search', arguments: { objective: { source: 'topic' } }, run_in: ['conversation'] }, search)
   assert.deepEqual(filled.arguments, { objective: { source: 'topic' }, session_id: { source: 'session' } })
   assert.equal(withAppFilled(filled, search), filled)
+})
+
+test('the add-a-lookup buttons wrap onto new lines on a phone', () => {
+  const page = readFileSync(new URL('../../src/features/settings/ContextSettings.tsx', import.meta.url), 'utf8')
+  assert.match(page, /<div className="form-actions wrap">\s*\{\(\['weather', 'pulse', 'culture'\]/)
 })

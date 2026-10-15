@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { basisText, milestoneText, stageText } from '../../src/features/memories/closenessText.ts'
 import type { Closeness } from '../../src/types.ts'
@@ -35,4 +36,9 @@ test('a milestone says when and why', () => {
   assert.equal(milestoneText({ kind: 'start', level: 3, on: null }, stages), 'Started at Friends.')
   assert.match(milestoneText({ kind: 'set', level: 4, on: '2026-10-08' }, stages), /^You set it to Close friends on .*2026\.$/)
   assert.match(milestoneText({ level: 2, on: '2026-10-03', days: 3, moments: 0 }, stages), /^Getting to know each other on .*2026, after 3 days talking and 0 shared moments\.$/)
+})
+
+test('a long shared moment stays inside the picker on a phone instead of widening the page', () => {
+  const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8')
+  assert.match(css, /\.closeness-pick \.field, \.closeness-pick select \{ max-width: 100%; \}/)
 })
