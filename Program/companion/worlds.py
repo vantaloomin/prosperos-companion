@@ -171,7 +171,7 @@ def start(database: Database):
         database.use(path)
     mix.load(database)
     with database.connect(write=True) as connection:
-        if settle_home(connection, world):
+        if restored_home(connection, world) | settle_home(connection, world):
             save(database.root, data)
         write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now(),
                       world['home'])
@@ -197,6 +197,18 @@ def write_persona(connection, persona: dict, timestamp: str, home: dict | None =
 def world_city(connection, world: dict, cities: dict[str, dict]) -> dict:
     """The city the world is in: the one it was made in, else (a city since deleted) its companion's."""
     return cities.get(world.get('city_id') or '') or city_of(connection)
+
+
+def restored_home(connection, world: dict) -> bool:
+    """A world restored from a backup (or brought from another install) remembers where the user lived in it; a home
+    the app picked in this registry gives way to it. True when the home changed."""
+    row = optional(connection, 'SELECT home_city_id, home_neighbourhood FROM persona WHERE id=1')
+    home = world.get('home') or {}
+    if not row or not row['home_city_id'] or home.get('set_by') == where.YOURS or \
+            (row['home_city_id'], row['home_neighbourhood']) == (home.get('city_id'), home.get('neighbourhood')):
+        return False
+    world['home'] = {'city_id': row['home_city_id'], 'neighbourhood': row['home_neighbourhood'], 'set_by': where.YOURS}
+    return True
 
 
 def settle_home(connection, world: dict) -> bool:

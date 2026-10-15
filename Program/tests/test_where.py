@@ -155,3 +155,20 @@ def test_a_city_named_without_its_era_is_the_users_own(client, companion, app):
         assert harlem.same_city and harlem.their_city['id'] == 'new-york-1925'
         # Pellmouth is of the same era and its own town: long distance.
         assert where.between(connection, definition(home_city='pellmouth')).long_distance
+
+
+def test_a_restored_world_keeps_the_home_it_remembers(client, companion, app):
+    database = app.state.database
+    hood = catalog.cities()['london']['neighborhoods'][3]
+    with database.connect(write=True) as connection:
+        # As a backup of a world where the user lived in London, restored into a registry that picked Baltimore.
+        connection.execute('UPDATE persona SET home_city_id=?, home_neighbourhood=? WHERE id=1', ('london', hood['id']))
+    worlds.start(database)
+    home = listing(client)['world']['home']
+    assert (home['city_id'], home['neighbourhood'], home['set_by']) == ('london', hood['id'], 'you')
+    # A home the user picked here wins over what the database remembers.
+    ok(client.put(f"/api/worlds/{listing(client)['world']['id']}/home", json={'city_id': 'chicago'}))
+    with database.connect(write=True) as connection:
+        connection.execute("UPDATE persona SET home_city_id='london' WHERE id=1")
+    worlds.start(database)
+    assert listing(client)['world']['home']['city_id'] == 'chicago'
