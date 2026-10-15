@@ -226,16 +226,32 @@ def rolled(found: dict, monday: date) -> dict:
                    found['level'], found['tipped'], found['performer']), 'workload': load}
 
 
+def as_written(found: dict) -> dict:
+    """A week lived before their weeks were first written down (before the upgrade that brought shifts, or before
+    the job became shift work): the written pattern, as it was then."""
+    return {'days': list(found['base']), 'spell': 'steady' if found['kind'] == 'freelance' else '', 'pay': 1.0,
+            'workload': 'normal'}
+
+
+def first_written(connection, timeline_id: str) -> str | None:
+    row = optional(connection, 'SELECT MIN(monday) AS monday FROM work_weeks WHERE timeline_id=?', (timeline_id,))
+    return row['monday'] if row else None
+
+
 def weeks(connection, companion: dict, first: date, last: date, found: dict | None = None) -> dict[str, dict]:
-    """{Monday: week} from the week of `first` through the week of `last`: as written down, else as it would roll."""
+    """{Monday: week} from the week of `first` through the week of `last`: as written down, else as it would roll.
+    Weeks before the first one written down stay as they were lived, on the written pattern, so a past week never
+    changes (an upgrade from before shifts and gigs rolls only from the week it is first planned)."""
     found = found or setup(connection, companion)
     if not found:
         return {}
     kept = {key: week for key, week in stored(connection, found['timeline_id'], monday_of(first), last).items()
             if week['kind'] == found['kind'] and week['career'] == found['career']}
+    start = first_written(connection, found['timeline_id'])
     result, monday = {}, monday_of(first)
     while monday <= last:
-        result[monday.isoformat()] = kept.get(monday.isoformat()) or rolled(found, monday)
+        key = monday.isoformat()
+        result[key] = kept.get(key) or (as_written(found) if start and key < start else rolled(found, monday))
         monday += timedelta(weeks=1)
     return result
 

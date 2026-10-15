@@ -231,3 +231,22 @@ def test_freelance_gigs_show_and_pay_unevenly(client, ines, clock):
                            "VALUES (?, '2026-09-21', 'freelance', 'bartender', '[]', 0, '2026-09-21')",
                            (ines['active_timeline_id'],))
         assert work.pay(connection, ines['active_timeline_id'], MONDAY)['factor'] == 0
+
+
+def test_weeks_before_the_first_one_written_stay_as_they_were_lived(client, ines):
+    # An upgrade from before shifts and gigs: the weeks already lived were the written pattern, and stay so.
+    reconcile(client)
+    timeline_id = ines['active_timeline_id']
+    with connect(client, write=False) as connection:
+        companion = require_current(connection)
+        found = shifts.setup(connection, companion)
+        first = shifts.first_written(connection, timeline_id)
+        span = shifts.weeks(connection, companion, MONDAY - timedelta(weeks=4), MONDAY, found)
+    assert first == MONDAY.isoformat()
+    written = sorted(next(block for block in BARTENDER if block['kind'] == 'work')['days'])
+    for monday, week in span.items():
+        if monday < first:
+            assert week['days'] == written and week['pay'] == 1.0
+    assert span[MONDAY.isoformat()]['days'] == companion['version']['definition']['rota']['weeks'][MONDAY.isoformat()]
+    rota = companion['version']['definition']['rota']['weeks']
+    assert rota[(MONDAY - timedelta(weeks=3)).isoformat()] == written
