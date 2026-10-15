@@ -439,6 +439,13 @@ def visit_time_text(now, city: str, tz, previous) -> str:
     return '\n'.join(lines)
 
 
+def clock_text(connection, companion, now, previous, group) -> str:
+    """Both local times, or during a weekend visit one clock, the visit city's (companion/life/long_distance.py)."""
+    if group is None and (visit := long_distance.visiting(connection, companion, now)):
+        return visit_time_text(now, visit['city_name'], long_distance.visit_zone(companion, visit), previous)
+    return time_text(now, settings(connection)['user_timezone'], companion['version']['timezone'], previous)
+
+
 def clock_time(instant: datetime, tz) -> str:
     return instant.astimezone(tz).strftime('%H:%M')
 
@@ -879,13 +886,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))
     previous = recent[-2]['created_at'] if len(recent) > 1 else (group or {}).get('previous')
-    if group is None and (visit := long_distance.visiting(connection, companion, now)):
-        # Together for a weekend visit: one clock, the visit city's (companion/life/long_distance.py).
-        packet.require('time', 'clock', visit_time_text(now, visit['city_name'],
-                                                        long_distance.visit_zone(companion, visit), previous))
-    else:
-        packet.require('time', 'clock', time_text(now, settings(connection)['user_timezone'], version['timezone'],
-                                                  previous))
+    packet.require('time', 'clock', clock_text(connection, companion, now, previous, group))
     if today := day_text(connection, companion, now):
         packet.offer('time', 'day', today)
     conversation = fit_conversation(packet, recent)
