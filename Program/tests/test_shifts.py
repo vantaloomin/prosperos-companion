@@ -264,3 +264,21 @@ def test_a_branch_keeps_the_weeks_planned_before_it(client, ines, provider):
             'SELECT monday, days FROM work_weeks WHERE timeline_id=? AND monday<=?', (row['timeline_id'], MONDAY.isoformat()))}
             for row in connection.execute('SELECT ? AS timeline_id UNION ALL SELECT ?', (timeline_id, fork_id))}
     assert weeks[timeline_id] and weeks[fork_id] == weeks[timeline_id]
+
+
+def test_a_holiday_or_day_off_on_a_rolled_shift_is_not_named_as_a_shift(client, ines, monkeypatch):
+    # The agenda makes a public holiday, a tradition day or a vacation day a day off (agenda.holiday_block), so
+    # the shift lines leave it out ("Thursday 26" listed on Thanksgiving, when they are at their dad's).
+    reconcile(client)
+    with connect(client, write=False) as connection:
+        companion = require_current(connection)
+        following = MONDAY + timedelta(weeks=1)
+        rolled = shifts.weeks(connection, companion, following, following)[following.isoformat()]['days']
+        assert rolled
+        days = {(following + timedelta(days=day)).isoformat(): 'Vacation' for day in rolled}
+        monkeypatch.setattr(work, 'days_off', lambda *_args: days)
+        line = shifts.context_line(connection, companion, MONDAY)
+        assert 'No shifts next week.' in line
+        assert set(days) <= shifts.off_days(connection, companion, MONDAY, following + timedelta(days=6))
+        thanksgiving = date(2026, 11, 26)
+        assert thanksgiving.isoformat() in shifts.off_days(connection, companion, thanksgiving, thanksgiving)

@@ -373,13 +373,34 @@ def week_text(kind: str, days: list[int], start: str, end: str, short: bool = Tr
 SPELL_WORDS = {'busy': 'a busy spell', 'steady': 'a steady spell', 'dry': 'a dry spell'}
 
 
+def off_days(connection, companion: dict, start: date, end: date) -> set[str]:
+    """Local dates the agenda turns work into a day off (companion/life/agenda.py holiday_block): public holidays,
+    the family's tradition days, vacation days and job-hunt days. A shift or gig rolled onto one of them isn't
+    worked, so the lines below leave it out."""
+    from companion.almanac.context import city_for
+    from companion.life import outings, traditions, work
+    definition = companion['version']['definition']
+    off = set(work.days_off(connection, companion, start, end))
+    if city := outings.city_data(connection, definition):
+        off |= {item['date'] for item in generators.holidays(city, start, end) if item['kind'] == 'public'}
+    off |= set(traditions.on_dates(connection, companion, city_for(connection, definition), start, end))
+    return off
+
+
+def worked(days: list[int], monday: date, off: set[str]) -> list[int]:
+    return [day for day in days if (monday + timedelta(days=day)).isoformat() not in off]
+
+
 def overview_line(connection, companion: dict, today: date) -> str:
     """The Character page's line: 'This week: Tue, Thu and Sat nights.' or 'Two gigs this week (Tue and Fri), a busy
     spell.' Empty when their week stays as written."""
     found = setup(connection, companion)
     if not found:
         return ''
-    week = weeks(connection, companion, today, today, found)[monday_of(today).isoformat()]
+    monday = monday_of(today)
+    week = weeks(connection, companion, today, today, found)[monday.isoformat()]
+    off = off_days(connection, companion, monday, monday + timedelta(days=6))
+    week = {**week, 'days': worked(week['days'], monday, off)}
     if found['kind'] == 'rota':
         return f"This week: {week_text('rota', week['days'], found['start'], found['end'])}."
     if not week['days']:
@@ -403,7 +424,9 @@ def context_line(connection, companion: dict, today: date) -> str:
     monday = monday_of(today)
     span = weeks(connection, companion, today, today + timedelta(weeks=1), found)
     this, following = span[monday.isoformat()], span[(monday + timedelta(weeks=1)).isoformat()]
-    left = [day for day in this['days'] if day >= today.weekday()]
+    off = off_days(connection, companion, monday, monday + timedelta(days=13))
+    following = {**following, 'days': worked(following['days'], monday + timedelta(weeks=1), off)}
+    left = [day for day in worked(this['days'], monday, off) if day >= today.weekday()]
     if found['kind'] == 'rota':
         now = f"The rest of this week: {dated(left, monday)}, {found['start']} to {found['end']}." if left else \
             'No more shifts this week.'
