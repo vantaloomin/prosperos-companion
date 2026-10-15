@@ -54,18 +54,26 @@ CALL_BACK_WITHIN = timedelta(hours=12)
 MISSED_TEXT_WITHIN = timedelta(hours=3)
 
 # Asking to talk on the phone now: "can I call you?", "call me?", "facetime?", "I'm calling you".
-ASKS = re.compile(r"\b(?:call me|(?:can|could|may|should) i (?:call|ring|phone|facetime)(?: you)?|(?:can|could|will) you "
+ASKS = re.compile(r"\b(?:call me(?:\s+(?:now|rn|right now|back|asap|please|pls|plz))*(?!\s+[a-z'])|"
+                  r"(?:can|could|may|should) i (?:call|ring|phone|facetime)(?: you)?|(?:can|could|will) you "
                   r"(?:call|ring|phone|facetime) me|(?:wanna|want to|do you want to) (?:call|talk on the phone|"
-                  r"facetime|video ?chat|hop on a call)|give (?:me|you) a (?:call|ring|bell)|ring me|phone me|"
-                  r"facetime(?: me)?|video ?call|(?:i'?m|i am|im) calling you|calling you now|let'?s (?:call|talk on "
-                  r"the phone|facetime|hop on a call))\b", re.IGNORECASE)
+                  r"facetime|video ?chat|hop on a call)|(?:can|could|should|shall) we (?:call|talk on the phone|"
+                  r"facetime|video ?chat|hop on a call)|(?:i'?ll|i will|gonna|going to|about to) (?:call|ring|facetime) "
+                  r"you|free (?:for|to) (?:a )?(?:call|phone call|talk on the phone|facetime)|give (?:me|you) a "
+                  r"(?:call|ring|bell)|ring me|phone me|facetime(?: me)?|video ?call|(?:i'?m|i am|im) calling you|"
+                  r"calling you now|let'?s (?:call|talk on the phone|facetime|hop on a call))\b", re.IGNORECASE)
+# "Call me" before a name or a word is not a call ("you can call me Sam", "call me crazy"); a bare "call?" is.
+BARE = re.compile(r'^\s*(?:call|phone|facetime|ring)\s*\?+\s*$', re.IGNORECASE)
 # A call for another time is talk, not a call now: "call me tonight after work".
 LATER = re.compile(r"\b(?:later|tonight|tomorrow|after (?:work|class|dinner|school)|this (?:evening|weekend)|"
                    r"in (?:a bit|an hour|a few)|when (?:you'?re|you are|i'?m|i am) (?:free|off|home|done|back)|"
                    r"(?:mon|tues|wednes|thurs|fri|satur|sun)day)\b", re.IGNORECASE)
 RIGHT_NOW = re.compile(r'\b(?:right now|now|rn)\b', re.IGNORECASE)
 # Saying goodbye on the phone ends the call.
-HANG_UP = re.compile(r"\b(?:(?:i'?ve |i have |i )?(?:gotta|got to|have to|need to|should) (?:go|run|hang up|get going)|"
+# "I have to go" ends it; "we need to go to that place sometime" and "I gotta run to the store later" don't.
+HANG_UP = re.compile(r"\b(?:(?:i'?ve |i have |i )?(?:gotta|got to|have to|need to|should) (?:go|run|hang up|get going)"
+                     r"(?=\s*(?:$|[.!?,;:)]|now\b|soon\b|sorry\b|though\b|tho\b|anyway\b|bye\b|babe\b|love\b|x+\b|"
+                     r"to (?:bed|sleep|work)\b))|"
                      r"talk (?:to you )?(?:later|soon|tomorrow)|bye+|goodbye|good ?night|night night|hanging up|"
                      r"(?:i'?ll|i will) let you go|ttyl)\b", re.IGNORECASE)
 
@@ -86,7 +94,8 @@ def asked(text: str) -> bool:
     """Whether a user message asks to talk on the phone now."""
     text = own_plans.QUOTED.sub(' ', own_plans.ACTIONS.sub(' ', text)).replace('’', "'")
     for sentence in re.split(r'(?<=[.!?])\s+|\n+', text):
-        if own_plans.PAST.search(sentence) or own_plans.NEGATED.search(sentence) or not ASKS.search(sentence):
+        if own_plans.PAST.search(sentence) or own_plans.NEGATED.search(sentence) or not (
+                ASKS.search(sentence) or BARE.match(sentence)):
             continue
         if LATER.search(sentence) and not RIGHT_NOW.search(sentence):
             continue
