@@ -42,7 +42,7 @@ export function ContextSettings({ name }: { name: string }) {
       </ol>
       <SearchPresets data={data} refresh={refresh} setResult={setResult} />
       {adding ? <AddService onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
-        : <div className="form-actions">
+        : <div className="form-actions wrap">
           {(['weather', 'pulse', 'culture'] as const).filter((kind) => !data.services.some((service) => service.builtin === kind))
             .map((kind) => <AddBuiltin key={kind} kind={kind} refresh={refresh} setResult={setResult} />)}
           <button type="button" className="button" onClick={() => setAdding(true)}>Add a lookup service</button>

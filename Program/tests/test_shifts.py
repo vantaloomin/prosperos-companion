@@ -347,3 +347,54 @@ def test_a_clock_moved_back_rewrites_no_past_days(client, ines, clock):
     for row in rows:
         keys.setdefault(row['local_date'], set()).add(row['slot_key'].split('@')[0])
     assert not [day for day, found in keys.items() if {'work', 'day-off'} <= found]
+
+
+def test_weeks_before_the_first_one_written_stay_as_they_were_lived(client, ines):
+    # An upgrade from before shifts and gigs: the weeks already lived were the written pattern, and stay so.
+    reconcile(client)
+    timeline_id = ines['active_timeline_id']
+    with connect(client, write=False) as connection:
+        companion = require_current(connection)
+        found = shifts.setup(connection, companion)
+        first = shifts.first_written(connection, timeline_id)
+        span = shifts.weeks(connection, companion, MONDAY - timedelta(weeks=4), MONDAY, found)
+    assert first == MONDAY.isoformat()
+    written = sorted(next(block for block in BARTENDER if block['kind'] == 'work')['days'])
+    for monday, week in span.items():
+        if monday < first:
+            assert week['days'] == written and week['pay'] == 1.0
+    assert span[MONDAY.isoformat()]['days'] == companion['version']['definition']['rota']['weeks'][MONDAY.isoformat()]
+    rota = companion['version']['definition']['rota']['weeks']
+    assert rota[(MONDAY - timedelta(weeks=3)).isoformat()] == written
+
+
+def test_a_branch_keeps_the_weeks_planned_before_it(client, ines, provider):
+    reconcile(client)
+    provider.replies.append([Chunk('Busy night.'), Chunk('', 'stop')])
+    sent = send(client, 'How was the bar?', 'client-shift-fork')
+    fork = client.post('/api/timelines', json={'message_id': sent['message']['id'], 'text': 'How was work?'})
+    assert fork.status_code == 200, fork.text
+    timeline_id, fork_id = ines['active_timeline_id'], fork.json()['id']
+    with connect(client, write=False) as connection:
+        weeks = {row['timeline_id']: {r['monday']: r['days'] for r in connection.execute(
+            'SELECT monday, days FROM work_weeks WHERE timeline_id=? AND monday<=?', (row['timeline_id'], MONDAY.isoformat()))}
+            for row in connection.execute('SELECT ? AS timeline_id UNION ALL SELECT ?', (timeline_id, fork_id))}
+    assert weeks[timeline_id] and weeks[fork_id] == weeks[timeline_id]
+
+
+def test_a_holiday_or_day_off_on_a_rolled_shift_is_not_named_as_a_shift(client, ines, monkeypatch):
+    # The agenda makes a public holiday, a tradition day or a vacation day a day off (agenda.holiday_block), so
+    # the shift lines leave it out ("Thursday 26" listed on Thanksgiving, when they are at their dad's).
+    reconcile(client)
+    with connect(client, write=False) as connection:
+        companion = require_current(connection)
+        following = MONDAY + timedelta(weeks=1)
+        rolled = shifts.weeks(connection, companion, following, following)[following.isoformat()]['days']
+        assert rolled
+        days = {(following + timedelta(days=day)).isoformat(): 'Vacation' for day in rolled}
+        monkeypatch.setattr(work, 'days_off', lambda *_args: days)
+        line = shifts.context_line(connection, companion, MONDAY)
+        assert 'No shifts next week.' in line
+        assert set(days) <= shifts.off_days(connection, companion, MONDAY, following + timedelta(days=6))
+        thanksgiving = date(2026, 11, 26)
+        assert thanksgiving.isoformat() in shifts.off_days(connection, companion, thanksgiving, thanksgiving)

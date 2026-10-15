@@ -272,8 +272,22 @@ def rolled(found: dict, monday: date, before: int = 0) -> dict:
                    found['level'], found['tipped'], found['performer'], before), 'workload': load}
 
 
+def as_written(found: dict) -> dict:
+    """A week lived before their weeks were first written down (before the upgrade that brought shifts, or before
+    the job became shift work): the written pattern, as it was then."""
+    return {'days': list(found['base']), 'spell': 'steady' if found['kind'] == 'freelance' else '', 'pay': 1.0,
+            'workload': 'normal'}
+
+
+def first_written(connection, timeline_id: str) -> str | None:
+    row = optional(connection, 'SELECT MIN(monday) AS monday FROM work_weeks WHERE timeline_id=?', (timeline_id,))
+    return row['monday'] if row else None
+
+
 def weeks(connection, companion: dict, first: date, last: date, found: dict | None = None) -> dict[str, dict]:
-    """{Monday: week} from the week of `first` through the week of `last`: as written down, else as it would roll."""
+    """{Monday: week} from the week of `first` through the week of `last`: as written down, else as it would roll.
+    Weeks before the first one written down stay as they were lived, on the written pattern, so a past week never
+    changes (an upgrade from before shifts and gigs rolls only from the week it is first planned)."""
     found = found or setup(connection, companion)
     if not found:
         return {}
@@ -282,11 +296,16 @@ def weeks(connection, companion: dict, first: date, last: date, found: dict | No
                                               last).items()
             if week['kind'] == found['kind'] and week['career'] == found['career']}
     # Each week starts from how many days in a row the week before ended on.
-    previous = kept.get((monday - timedelta(weeks=1)).isoformat()) or rolled(found, monday - timedelta(weeks=1))
+    start = first_written(connection, found['timeline_id'])
+
+    def week_of(day: date, trailing_days: int = 0) -> dict:
+        key = day.isoformat()
+        return kept.get(key) or (as_written(found) if start and key < start else rolled(found, day, trailing_days))
+
+    previous = week_of(monday - timedelta(weeks=1))
     result = {}
     while monday <= last:
-        week = kept.get(monday.isoformat()) or rolled(found, monday, trailing(previous['days']))
-        result[monday.isoformat()] = previous = week
+        result[monday.isoformat()] = previous = week_of(monday, trailing(previous['days']))
         monday += timedelta(weeks=1)
     return result
 
@@ -300,6 +319,14 @@ def reference(connection, timeline_id: str) -> date:
                    "UNION ALL SELECT substr(COALESCE(activated_at, created_at), 1, 10) FROM timelines WHERE id=?)",
                    (timeline_id, timeline_id, timeline_id))
     return date.fromisoformat(row['day']) if row and row['day'] else date(2000, 1, 3)
+
+
+def copy(connection, parent_id: str, new_id: str, cutoff: str):
+    """A fork keeps the weeks already planned up to the fork, so its past shifts are the parent's; from the next week
+    on it rolls its own."""
+    connection.execute('INSERT INTO work_weeks (timeline_id, monday, kind, career, days, spell, workload, pay, created_at) '
+                       'SELECT ?, monday, kind, career, days, spell, workload, pay, created_at FROM work_weeks '
+                       'WHERE timeline_id=? AND monday<=?', (new_id, parent_id, cutoff[:10]))
 
 
 def with_rota(connection, companion: dict) -> dict:
@@ -444,19 +471,21 @@ def week_text(kind: str, days: list[int], start: str, end: str, short: bool = Tr
 SPELL_WORDS = {'busy': 'a busy spell', 'steady': 'a steady spell', 'dry': 'a dry spell'}
 
 
-def off_days(connection, companion: dict, first: date, last: date) -> set[str]:
-    """Days with no work whatever the week says, as the agenda has them (agenda.holiday_block): vacation days, public
-    holidays and their family traditions' days."""
-    from companion.life import outings, work
+def off_days(connection, companion: dict, start: date, end: date) -> set[str]:
+    """Local dates the agenda turns work into a day off (companion/life/agenda.py holiday_block): public holidays,
+    the family's tradition days, vacation days and job-hunt days. A shift or gig rolled onto one of them isn't
+    worked, so the lines below leave it out."""
+    from companion.almanac.context import city_for
+    from companion.life import outings, traditions, work
     definition = companion['version']['definition']
-    off = set(work.days_off(connection, companion, first, last)) | set((definition.get('traditions') or {}))
+    off = set(work.days_off(connection, companion, start, end))
     if city := outings.city_data(connection, definition):
-        off |= {item['date'] for item in generators.holidays(city, first, last) if item['kind'] == 'public'}
+        off |= {item['date'] for item in generators.holidays(city, start, end) if item['kind'] == 'public'}
+    off |= set(traditions.on_dates(connection, companion, city_for(connection, definition), start, end))
     return off
 
 
 def working(days: list[int], monday: date, off: set[str]) -> list[int]:
-    """The week's days without the days off (`off_days`)."""
     return [day for day in days if (monday + timedelta(days=day)).isoformat() not in off]
 
 
@@ -468,8 +497,8 @@ def overview_line(connection, companion: dict, today: date) -> str:
         return ''
     monday = monday_of(today)
     week = weeks(connection, companion, today, today, found)[monday.isoformat()]
-    week = {**week, 'days': working(week['days'], monday, off_days(connection, companion, monday,
-                                                                     monday + timedelta(days=6)))}
+    off = off_days(connection, companion, monday, monday + timedelta(days=6))
+    week = {**week, 'days': working(week['days'], monday, off)}
     if found['kind'] == 'rota':
         return f"This week: {week_text('rota', week['days'], found['start'], found['end'])}."
     if not week['days']:
@@ -493,7 +522,6 @@ def context_line(connection, companion: dict, today: date) -> str:
     monday = monday_of(today)
     span = weeks(connection, companion, today, today + timedelta(weeks=1), found)
     this, following = span[monday.isoformat()], span[(monday + timedelta(weeks=1)).isoformat()]
-    # Holidays and vacation days are off whatever the rota said, as on their calendar.
     off = off_days(connection, companion, monday, monday + timedelta(days=13))
     following = {**following, 'days': working(following['days'], monday + timedelta(weeks=1), off)}
     left = [day for day in working(this['days'], monday, off) if day >= today.weekday()]
