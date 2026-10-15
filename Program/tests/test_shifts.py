@@ -294,3 +294,17 @@ def test_daytime_gigs_lean_to_weekdays_and_performers_to_the_weekend():
         return sum(day >= 5 for day in days) / len(days)
     assert share('10:00', '16:00', False) < 0.15
     assert share('10:00', '16:00', True) > 0.3 and share('19:00', '23:00', False) > 0.3
+
+
+def test_a_job_the_user_wrote_is_read_from_its_own_sentence():
+    def kind(identity):
+        return shifts.employment({'identity': identity}, None)
+    # A hobby is not a job.
+    assert kind('Mara is a beekeeper. She loves pub quizzes and to cook for friends.') == 'staff'
+    assert kind('Mara is a podcast host.') == 'staff'
+    for identity in ('Mara is an on-call IT technician.', 'Mara works the overnight shift at a gas station.',
+                     'Mara is a sous chef at a bistro.', 'Mara is a firefighter.'):
+        assert kind(identity) == 'rota', identity
+    for identity in ('Mara is a wedding photographer.', 'Mara drives for a rideshare app.',
+                     'Mara is a DJ who plays weekends.', 'Mara picks up gig work as a delivery driver.'):
+        assert kind(identity) == 'freelance', identity

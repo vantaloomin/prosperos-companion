@@ -53,14 +53,22 @@ SHORT_DAYS = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
 COUNTS = ('No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven')
 
 # Words that tell a career's employment when the data does not say (a user city's careers, a job the user wrote).
-FREELANCE_WORDS = ('freelance', 'freelancer', 'freelancing', 'self employed', 'gig', 'gigs', 'commissions',
-                   'contract work', 'session musician', 'for hire', 'odd jobs', 'piecework', 'busker', 'busking')
+FREELANCE_WORDS = ('freelance', 'freelancer', 'freelancing', 'freelances', 'self employed', 'gig', 'gigs', 'commissions',
+                   'contract work', 'session musician', 'for hire', 'odd jobs', 'piecework', 'busker', 'busking',
+                   'photographer', 'content creator', 'influencer', 'streamer', 'youtuber', 'tour guide', 'dj',
+                   'rideshare', 'uber', 'lyft', 'doordash', 'dog walker', 'translator')
 ROTA_WORDS = ('bartender', 'barmaid', 'barman', 'barista', 'server', 'waiter', 'waitress', 'waitstaff', 'line cook',
-              'cook', 'dishwasher', 'host', 'hostess', 'retail', 'cashier', 'shop assistant', 'store clerk',
+              'cook', 'dishwasher', 'hostess', 'retail', 'cashier', 'shop assistant', 'store clerk',
               'sales associate', 'front desk', 'hotel clerk', 'concierge', 'nurse', 'orderly', 'attendant',
               'paramedic', 'taxi', 'cab', 'cabman', 'dealer', 'porter', 'guard', 'constable', 'patrolman',
               'deputy', 'dispatcher', 'rota', 'roster', 'waits tables', 'tavern', 'pub', 'diner',
-              'restaurant', 'cafe', 'café', 'call center', 'warehouse', 'lifeguard')
+              'restaurant', 'cafe', 'café', 'call center', 'warehouse', 'lifeguard', 'shift', 'shifts', 'on call',
+              'chef', 'firefighter', 'emt', 'caregiver', 'care worker', 'aide', 'security')
+# The sentences of what they wrote that say what they do for work, so a hobby ("loves pub quizzes") never reads as
+# a job.
+WORK_CUE = re.compile(r"\b(?:work|works|worked|working|job|jobs|career|employed|shifts?|gigs?|freelanc\w*|"
+                      r"self-employed|on[- ]call|drives|(?:is|was|as) an?)\b", re.IGNORECASE)
+SENTENCE = re.compile(r'(?<=[.!?])\s+')
 ROTA_SECTORS = ('hospitality', 'food', 'victualling', 'retail', 'transit', 'transport', 'healthcare', 'care',
                 'healing', 'law-enforcement', 'public-safety', 'security', 'gates', 'services')
 FREELANCE_SECTORS = ('creative', 'arts', 'music', 'entertainment', 'media')
@@ -109,7 +117,8 @@ def employment(definition: dict, career: dict | None) -> str:
     their work (identity and routine, the way a written job is read elsewhere)."""
     if found := chosen_kind(definition):
         return found
-    own = ' '.join(definition.get(key) or '' for key in ('identity', 'routine'))
+    own = ' '.join(sentence for key in ('identity', 'routine') for sentence in SENTENCE.split(definition.get(key) or '')
+                   if WORK_CUE.search(sentence))
     if career and career.get('employment') in KINDS:
         # A tagged career wins, unless they wrote that they freelance at it ("a freelance photographer").
         return 'freelance' if has_words(own, ('freelance', 'freelancer', 'self-employed')) else career['employment']
