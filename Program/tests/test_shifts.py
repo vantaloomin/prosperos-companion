@@ -231,3 +231,23 @@ def test_freelance_gigs_show_and_pay_unevenly(client, ines, clock):
                            "VALUES (?, '2026-09-21', 'freelance', 'bartender', '[]', 0, '2026-09-21')",
                            (ines['active_timeline_id'],))
         assert work.pay(connection, ines['active_timeline_id'], MONDAY)['factor'] == 0
+
+
+def test_pay_lands_on_payday_and_holds_until_the_next(client, ines):
+    """Shifts worked count from the last payday: what is left to spend never jumps on a Monday between paydays."""
+    from companion.life import money
+    reconcile(client)
+    timeline_id = ines['active_timeline_id']
+    with connect(client) as connection:
+        for index in range(-6, 5):
+            connection.execute("INSERT OR REPLACE INTO work_weeks (timeline_id, monday, kind, career, days, pay, "
+                               "created_at) VALUES (?, ?, 'rota', 'bartender', '[1,2,3]', ?, '2026-09-01')",
+                               (timeline_id, (MONDAY + timedelta(weeks=index)).isoformat(), 0.6 + 0.1 * (index % 3)))
+        companion = require_current(connection)
+        definition = companion['version']['definition']
+        found = money.profile(definition)
+        start = money.cycle_start(found, MONDAY + timedelta(days=17))
+        days = [start + timedelta(days=offset) for offset in range(found.cycle_days)]
+        assert any(day.weekday() == 0 for day in days[1:])
+        pays = {money.household(connection, timeline_id, definition, day)['pay']['factor'] for day in days}
+    assert len(pays) == 1
