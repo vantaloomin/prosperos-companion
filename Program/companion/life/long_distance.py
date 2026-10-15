@@ -49,6 +49,8 @@ SWAPS = ('rota', 'freelance')
 ARRIVE, LEAVE = '11:00', '16:00'
 # A visit asked for in the chat: the weekend asked or the next free one, from ASK_FROM days ahead, within ASK_WEEKS.
 ASK_FROM, ASK_WEEKS = 4, 6
+# Beyond a trip's reach, the five days a visit can take around a Saturday, as offsets from it, in order of preference.
+FAR_SPANS = (range(-2, 3), range(0, 5), range(-3, 2))
 LATER_WEEKEND = re.compile(r'\b(?:next weekend|(?:the )?weekend after next)\b', re.IGNORECASE)
 # How long a visit is talked about before it comes, after it, and after the user called it off; how long the news of
 # one the app planned can wait; how long calling it off can be undone.
@@ -140,23 +142,32 @@ def recent(connection, companion: dict, saturday: date, days: int) -> bool:
 def weekend(connection, companion: dict, home: dict, between: where.Between,
             saturday: date) -> tuple[list[date], set[str]] | None:
     """(days, vacation days among them) when they are free for a visit that weekend: the weekend with a holiday or
-    vacation day beside it, or beyond a trip's reach Thursday to Monday."""
+    vacation day beside it, or beyond a trip's reach five days around it (Thursday to Monday, or the weekend and the
+    three days after or before it, which is how a week's vacation meets a weekend)."""
     from companion.life import work
-    definition = companion['version']['definition']
-    vacation = work.vacation_dates(connection, companion, saturday - timedelta(days=2), saturday + timedelta(days=2))
+    vacation = work.vacation_dates(connection, companion, saturday - timedelta(days=3), saturday + timedelta(days=4))
     if between.within_reach:
         days = trips.days_off(home, saturday, vacation)
         if between.km and between.km > trips.REACH_KM[min(len(days), 3)]:
             return None  # Too far for two days: only a long weekend reaches it.
+        spans = [days]
     else:
-        days = [saturday + timedelta(days=offset) for offset in range(-2, 3)]
+        spans = [[saturday + timedelta(days=offset) for offset in offsets] for offsets in FAR_SPANS]
+    for days in spans:
+        if free_for(connection, companion, home, days, vacation):
+            return days, vacation & {day.isoformat() for day in days}
+    return None
+
+
+def free_for(connection, companion: dict, home: dict, days: list[date], vacation: set[str]) -> bool:
+    """No work or classes those days (holidays and vacation days off), and nothing else has them."""
+    definition = companion['version']['definition']
     holidays = trips.public_holidays(home, days[0], days[-1]) | vacation
     if (definition.get('rota') or {}).get('kind') in SWAPS:
         # Shifts are swapped and gigs turned down for a visit: their usual week decides (companion/life/shifts.py).
         definition = {**definition, 'rota': None}
-    if not trips.free(definition, days, holidays) or trips.booked(connection, companion, days):
-        return None
-    return days, vacation & {day.isoformat() for day in days}
+    return trips.free(definition, days, holidays) and not trips.booked(connection, companion, days) and \
+        not overlaps(connection, companion, days)
 
 
 def turn(connection, companion: dict, saturday: date, seed: str) -> str:

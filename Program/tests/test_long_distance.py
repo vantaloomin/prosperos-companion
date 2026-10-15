@@ -323,3 +323,28 @@ def test_the_weekend_a_visit_ask_names():
     assert long_distance.visit_day('the weekend after next?', monday, {}) == date(2026, 12, 12)
     assert long_distance.visit_day('come visit me this weekend?', monday, {}) == date(2026, 11, 28)
     assert long_distance.visit_day('come visit me sometime?', monday, {}) is None
+
+
+OFFICE_WEEK = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'days': [0, 1, 2, 3, 4], 'start': '09:00', 'end': '17:00'},
+               *FREE_WEEK]
+
+
+def test_beyond_reach_a_vacation_week_meets_a_weekend(client, monkeypatch):
+    from datetime import date
+
+    from companion.life import work
+    apart_from(client, monkeypatch, city='london', timezone='Europe/London', schedule=OFFICE_WEEK)
+    week = {f'2026-10-{day}' for day in range(19, 24)}  # Monday to Friday off.
+    monkeypatch.setattr(work, 'vacation_dates', lambda *_args: week)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        between = long_distance.far(connection, companion)
+        home = trips.catalog.cities()['london']
+        assert not between.within_reach
+        before = long_distance.weekend(connection, companion, home, between, date(2026, 10, 17))
+        after = long_distance.weekend(connection, companion, home, between, date(2026, 10, 24))
+        monkeypatch.setattr(work, 'vacation_dates', lambda *_args: set())
+        working = long_distance.weekend(connection, companion, home, between, date(2026, 10, 17))
+    assert (before[0][0], before[0][-1]) == (date(2026, 10, 17), date(2026, 10, 21))  # Saturday to Wednesday.
+    assert (after[0][0], after[0][-1]) == (date(2026, 10, 21), date(2026, 10, 25))  # Wednesday to Sunday.
+    assert working is None
