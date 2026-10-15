@@ -120,6 +120,19 @@ def test_the_registry_keeps_the_home(client, companion, app):
     assert registry['worlds'][0]['home']['city_id'] == 'baltimore'
 
 
+def test_matchlight_moves_along_when_the_user_moves(client, companion):
+    world = listing(client)['world']
+    ok(client.put('/api/dating/profile', json={'name': 'Sam', 'age': 31, 'gender': 'man', 'interested_in': ['woman'],
+                                              'looking_for': 'serious', 'age_min': 25, 'age_max': 40, 'bio': ''}))
+    assert ok(client.get('/api/dating'))['city']['id'] == 'baltimore'
+    ok(client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}))
+    assert ok(client.get('/api/dating'))['city']['id'] == 'chicago'
+    # Looking somewhere else on purpose stays, whatever the move.
+    ok(client.put('/api/dating/city', json={'city_id': 'miami'}))
+    ok(client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'new-york'}))
+    assert ok(client.get('/api/dating'))['city']['id'] == 'miami'
+
+
 def test_a_home_the_world_can_no_longer_reach_goes_back_to_its_city():
     cities = catalog.cities()
     world = {'id': 'w1', 'home': {'city_id': 'new-york', 'neighbourhood': '', 'set_by': where.YOURS}}

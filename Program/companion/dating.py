@@ -65,6 +65,13 @@ def default_city(connection) -> str:
     return found[0]['id'] if found else story.default_city(connection)
 
 
+def follow_home(connection, before: str, after: str):
+    """Matchlight looks where the user lives until they look somewhere else, so a move takes it along."""
+    if before and after and before != after:
+        connection.execute("UPDATE dating_profile SET city_id=?, last_answer='' WHERE id=1 AND city_id=?",
+                           (after, before))
+
+
 def looking_in(connection, mine: dict | None) -> dict:
     """The city the user is looking in: the one on their profile, else their own, else the companion's, else
     Baltimore."""

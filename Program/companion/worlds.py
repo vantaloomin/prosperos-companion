@@ -183,6 +183,8 @@ def write_persona(connection, persona: dict, timestamp: str, home: dict | None =
     """Who the user is in this world, and where they live in it (`home`, the world's), for the prompt
     (companion/memory/context.py), Matchlight and Where you are (companion/life/where.py)."""
     home = home or {}
+    before = optional(connection, 'SELECT home_city_id FROM persona WHERE id=1')
+    dating.follow_home(connection, before['home_city_id'] if before else '', home.get('city_id', ''))
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
                        'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood) '
                        'VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
