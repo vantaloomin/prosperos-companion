@@ -215,3 +215,86 @@ def test_moving_to_their_city_calls_off_visits_to_come(client, apart, visits, mo
     assert client.put(f"/api/worlds/{apart['id']}/home", json={'city_id': 'chicago'}).status_code == 200
     reconcile(client)
     assert planned(client)[0]['state'] == 'cancelled'
+
+
+def test_too_far_for_two_days_only_a_long_weekend_reaches(client, monkeypatch, visits):
+    # Miami is about 1,540 km from Baltimore: past a two-day trip's reach (1,200 km), within a long weekend's.
+    apart_from(client, monkeypatch, city='Miami', timezone='America/New_York')
+    reconcile(client)
+    assert planned(client) == []
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        between = long_distance.far(connection, companion)
+        home = trips.catalog.cities()['miami']
+        assert between.within_reach and long_distance.weekend(connection, companion, home, between,
+                                                              trips.date(2026, 10, 17)) is None
+        monkeypatch.setattr(trips, 'public_holidays', lambda *_args: {'2026-10-16'})
+        found = long_distance.weekend(connection, companion, home, between, trips.date(2026, 10, 17))
+    assert found and len(found[0]) == 3
+
+
+def test_a_companion_moving_away_calls_off_visits_to_their_old_city(client, apart, visits, monkeypatch):
+    monkeypatch.setattr(long_distance, 'turn', lambda *_args: long_distance.HOST)
+    reconcile(client)
+    [visit] = planned(client)
+    assert (visit['visit'], visit['city_id']) == (long_distance.HOST, 'chicago')
+    companion = client.get('/api/companion').json()['companion']
+    definition = {**companion['version']['definition'], 'home_city': 'new-orleans'}
+    response = client.post('/api/companion/versions', json={'definition': definition, 'note': 'moved',
+                                                            'expected_version_id': companion['active_version_id']})
+    assert response.status_code == 200, response.text
+    assert [trip['state'] for trip in planned(client)] == ['cancelled']  # At once, with nothing to undo.
+    assert not planned(client)[0]['undo']
+
+
+def test_the_user_moving_to_another_city_calls_off_visits_to_the_old_one(client, apart, visits, monkeypatch):
+    monkeypatch.setattr(long_distance, 'turn', lambda *_args: long_distance.TO_YOU)
+    reconcile(client)
+    assert planned(client)[0]['city_id'] == 'baltimore'
+    assert client.put(f"/api/worlds/{apart['id']}/home", json={'city_id': 'new-york'}).status_code == 200
+    assert planned(client)[0]['state'] == 'cancelled'
+
+
+def test_no_visits_between_a_made_up_world_and_ours(client, apart, visits, provider):
+    # The companion moves to Camelot on the Character form; the user stays in Baltimore.
+    companion = client.get('/api/companion').json()['companion']
+    definition = {**companion['version']['definition'], 'home_city': 'camelot', 'timezone': 'Europe/London'}
+    assert client.post('/api/companion/versions', json={'definition': definition, 'note': 'moved', 'expected_version_id':
+                                                        companion['active_version_id']}).status_code == 200
+    assert where(client)['text'].startswith('Long distance, Camelot')
+    reconcile(client)
+    assert planned(client) == []
+    says(provider)
+    send(client, 'come visit me?', 'client-far-world')
+    assert planned(client) == []
+    assert "You can't: you live in Camelot" in notes(provider)
+
+
+def test_a_visit_to_the_user_runs_on_the_clock_where_it_is(client, monkeypatch, visits, clock):
+    apart_from(client, monkeypatch, city='Osaka', timezone='Asia/Tokyo', schedule=FREE_WEEK)
+    monkeypatch.setattr(long_distance, 'turn', lambda *_args: long_distance.TO_YOU)
+    reconcile(client)
+    [visit] = planned(client)
+    assert (visit['start_date'], visit['end_date']) == ('2026-10-15', '2026-10-19')
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        # Thursday 10:00 in Baltimore (23:00 in Osaka): not here yet; they arrive at 11:00 Baltimore time.
+        thursday = clock.now() + timedelta(days=10, hours=2)
+        assert long_distance.visiting(connection, companion, thursday) is None
+        assert long_distance.visiting(connection, companion, thursday + timedelta(hours=2))
+        # Monday 15:00 in Baltimore (Tuesday 04:00 in Osaka): still here until 16:00.
+        monday = clock.now() + timedelta(days=14, hours=7)
+        assert long_distance.visiting(connection, companion, monday)
+        assert long_distance.visiting(connection, companion, monday + timedelta(hours=2)) is None
+
+
+def test_more_ways_of_asking_for_a_visit():
+    assert long_distance.asked('When are you coming to see me?') == long_distance.TO_YOU
+    assert long_distance.asked("I'd love to come visit you, can I?") == long_distance.HOST
+    assert long_distance.asked('I want to see you so much') is None
+
+
+def test_the_time_difference_reads_plainly_for_half_and_quarter_hour_zones():
+    from companion.life import together
+    assert [together.span_text(minutes) for minutes in (300, 60, 570, 345, 30, 1020)] == \
+        ['5 hours', '1 hour', '9½ hours', '5 hours 45 minutes', '30 minutes', '17 hours']
