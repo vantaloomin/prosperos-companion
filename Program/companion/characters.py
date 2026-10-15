@@ -138,6 +138,8 @@ def revise(database, body) -> dict:
         version_id = insert_version(connection, companion['id'], number, body.definition, body.note,
                                     database.now())
         connection.execute('UPDATE companions SET active_version_id=? WHERE id=?', (version_id, companion['id']))
+        from companion.life import long_distance
+        long_distance.settle_all(connection, database.clock.now())  # A move: visits planned for their old city.
         return current(connection)
 
 

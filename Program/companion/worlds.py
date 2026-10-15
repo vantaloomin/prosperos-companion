@@ -617,6 +617,8 @@ def change_home(database: Database, world_id: str, body) -> dict:
         if world['id'] == data['active']:
             write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now(),
                           world['home'])
+            from companion.life import long_distance
+            long_distance.settle_all(connection, database.clock.now())  # Visits planned for the old home.
     save(database.root, data)
     return view(database)
 

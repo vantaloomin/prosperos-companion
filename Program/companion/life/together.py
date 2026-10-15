@@ -433,11 +433,21 @@ def hours_apart(connection, companion: dict, now: datetime) -> str:
     """', 5 hours ahead', ', 3 hours behind', or '' in the same time zone."""
     yours = now.astimezone(zone(settings(connection)['user_timezone'])).utcoffset()
     theirs = now.astimezone(zone(companion['version']['timezone'])).utcoffset()
-    hours = (theirs - yours).total_seconds() / 3600
-    if not hours:
+    minutes = round((theirs - yours).total_seconds() / 60)
+    if not minutes:
         return ''
-    count = f'{abs(hours):g}'
-    return f", {count} hour{'s' if abs(hours) != 1 else ''} {'ahead' if hours > 0 else 'behind'}"
+    return f", {span_text(abs(minutes))} {'ahead' if minutes > 0 else 'behind'}"
+
+
+def span_text(minutes: int) -> str:
+    """'5 hours', '1 hour', '9½ hours' (India), '5 hours 45 minutes' (Nepal), '30 minutes'."""
+    hours, rest = divmod(minutes, 60)
+    if not hours:
+        return f'{rest} minutes'
+    if rest == 30:
+        return f'{hours}½ hours'
+    whole = f"{hours} hour{'s' if hours != 1 else ''}"
+    return f'{whole} {rest} minutes' if rest else whole
 
 
 def view(connection, companion: dict, now: datetime) -> dict:
