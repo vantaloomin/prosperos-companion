@@ -237,3 +237,17 @@ def test_an_ex_writes_on_the_users_birthday_but_not_about_the_day_they_met(clien
     says(provider)
     send(client, "I'm breaking up with you.", 'client-ex-1')
     assert [trigger.key.split(':')[1] for trigger in triggers(client) if trigger.kind == 'occasion'] == ['user_birthday']
+
+
+def test_an_ex_in_a_group_chat_knows_they_broke_up(client, couple, provider):
+    from test_groups import by_speaker, companion_named, say, start
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-group-1')
+    provider.respond = by_speaker
+    with client.app.state.database.connect() as connection:
+        mira_id = current(connection)['id']
+    group = start(client, [mira_id, companion_named(client, 'Billy Hart')])
+    say(client, group['id'], 'Hi both', 'client-group-2')
+    prompts = [request['prompt'] for request in provider.requests if 'You are Mira' in request['prompt']]
+    assert prompts and 'You and the user broke up on' in prompts[-1]
+    assert 'The user just broke up with you' not in prompts[-1]  # Only where things stand, in a group.

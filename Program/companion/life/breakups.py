@@ -653,17 +653,25 @@ def who_said(row: dict, by: str) -> str:
     return 'the user' if row[by] == 'you' else 'you'
 
 
-def context_lines(connection, companion: dict, now: datetime, turn: set[str]) -> list[tuple[str, str]]:
-    """(identity, line) for the 'breakup' section: at most one line."""
+# In a group chat only where things stand: telling the user, or waiting for their answer, belongs to the 1:1 chat.
+STANDING = {'break_tell': 'break', 'end_tell': 'ended', 'fell_out_tell': 'fell_out', 'reach_waiting': 'ended'}
+
+
+def context_lines(connection, companion: dict, now: datetime, turn: set[str],
+                  standing: bool = False) -> list[tuple[str, str]]:
+    """(identity, line) for the 'breakup' section: at most one line; `standing` for a group chat."""
     if not applies(connection, companion):
         return []
     row, found = latest(connection, companion)
     if row is None:
         return []
     key = line_key(connection, row, found, now, turn)
+    friend = row['ladder'] == 'friendship'
+    if standing and key:
+        key = STANDING.get(key, key)
+        key = 'fell_out' if friend and key == 'ended' else key
     if key is None:
         return []
-    friend = row['ladder'] == 'friendship'
     if key == 'together':
         what = 'a falling out' if friend else 'breaking up' if stage_before_together(connection, row) == 'ended' \
             else 'a break'
@@ -714,15 +722,13 @@ def line_key(connection, row: dict, found: str, now: datetime, turn: set[str]) -
 
 
 def offer(packet, connection, companion: dict, now: datetime, recent: list[dict], group=None) -> None:
-    """Adds the 'breakup' section, in a 1:1 chat only."""
-    if group is not None:
-        return
+    """Adds the 'breakup' section; in a group chat only where things stand (so an ex in a group knows it)."""
     turn = set()
-    for message in reversed(recent):
+    for message in reversed(recent if group is None else []):
         if message['role'] != 'user':
             break
         turn.add(message['id'])
-    for identity, text in context_lines(connection, companion, now, turn):
+    for identity, text in context_lines(connection, companion, now, turn, standing=group is not None):
         packet.offer('breakup', identity, text)
 
 
