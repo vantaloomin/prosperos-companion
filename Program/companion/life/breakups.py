@@ -344,10 +344,7 @@ def after_end(connection, companion: dict, now: datetime) -> None:
 
 
 def moving_out(connection, companion: dict, now: datetime) -> None:
-    try:
-        from companion.life import moving_in
-    except ImportError:  # Moving in together (companion/life/moving_in.py) is its own feature.
-        return
+    from companion.life import moving_in  # Imported here: moving_in reads the steps ladder, which reads breakups.
     moving_in.move_out(connection, companion, now)
 
 

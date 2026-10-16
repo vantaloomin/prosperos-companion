@@ -28,6 +28,7 @@ from companion.life import (
     kitchen,
     love_life,
     media,
+    moving_in,
     network,
     shifts,
     social,
@@ -260,6 +261,8 @@ def copy_steps(connection, parent_id, new_id, cutoff_date):
     rows = many(connection, 'SELECT * FROM relationship_steps WHERE timeline_id=? AND reached_on<=?', (parent_id, cutoff_date))
     insert(connection, 'relationship_steps', [{**row, 'id': identifier(), 'timeline_id': new_id, 'ask_id': None}
                                               for row in rows])
+    # Moving in together (companion/life/moving_in.py) as it stood.
+    insert(connection, 'moving_in', moving_in.copy(connection, parent_id, new_id, cutoff_date))
 
 
 def copy_impressions(connection, parent_id, new_id, ids, cutoff_date):

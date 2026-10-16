@@ -34,6 +34,7 @@ from companion.life import (
     long_distance,
     love_life,
     media,
+    moving_in,
     network,
     occasions,
     outings,
@@ -155,6 +156,7 @@ def extend(connection, companion, world, now) -> dict:
     # Breaks and breakups (companion/life/breakups.py) read the rough patches just settled.
     breakups.daily(connection, companion, now)
     steps.advance(connection, companion, now)
+    moving_in.advance(connection, companion, now)
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}

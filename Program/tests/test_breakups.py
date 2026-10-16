@@ -5,12 +5,12 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
-from conftest import send, set_life, show
+from conftest import reconcile, send, set_life, show
 from test_together import mira, notes, says
 
 from companion import consequences
 from companion.characters import current
-from companion.life import breakups, openers, rough_patches, steps
+from companion.life import breakups, moving_in, openers, rough_patches, steps
 
 BANKS = Path(__file__).resolve().parents[1] / 'companion' / 'world' / 'data' / 'breakups'
 
@@ -126,6 +126,23 @@ def test_the_user_ends_it_and_asks_to_get_back_together(client, couple, provider
     with client.app.state.database.connect() as connection:
         items = breakups.scrapbook_items(connection, current(connection), '2000-01-01', '2100-01-01')
     assert {'You broke up', 'You got back together', 'You got married'} <= {item['text'] for item in items}
+
+
+def test_breaking_up_while_living_together_they_move_out(client, couple, provider, clock, monkeypatch):
+    from test_moving_in import ask_to_move_in, moving_day
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # Yes, at your place.
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-out-1')
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        found = moving_in.latest(connection, companion['active_timeline_id'])
+        assert found['status'] == 'moved_out' and not moving_in.living(connection, companion)
+    clock.advance(timedelta(days=1, hours=1))
+    reconcile(client)  # The daily pass leaves them moved out: the step stands, but they moved out since.
+    with client.app.state.database.connect() as connection:
+        assert moving_in.latest(connection, current(connection)['active_timeline_id'])['status'] == 'moved_out'
 
 
 def test_asking_for_a_break_and_talking_them_round(client, couple, provider):

@@ -36,6 +36,7 @@ from companion.life import (
     love_life,
     media,
     money,
+    moving_in,
     network,
     occasions,
     outings,
@@ -780,7 +781,8 @@ def offer_together(packet, connection, companion, now, recent, group=None):
         packet.offer('booked' if identity.endswith(':booked') else 'together', identity, text)
     for identity, text in [*together.context_lines(connection, companion, now, turn),
                            *calls.context_lines(connection, companion, now, turn),
-                           *long_distance.context_lines(connection, companion, now, turn)]:
+                           *long_distance.context_lines(connection, companion, now, turn),
+                           *moving_in.context_lines(connection, companion, now, turn)]:
         packet.offer('where', identity, text)
 
 

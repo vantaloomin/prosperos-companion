@@ -24,6 +24,7 @@ from companion.life import (
     love_life,
     money,
     mood,
+    moving_in,
     network,
     outings,
     pets,
@@ -305,6 +306,16 @@ def read_where(request: Request):
         return together.view(connection, require_current(connection), database.clock.now())
 
 
+@router.post('/living/{action}')
+def home_together(request: Request, action: Literal['out', 'home']):
+    """Living together (companion/life/moving_in.py): the user heads out for a while (the chat texts), or is home."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        companion, now = require_current(connection), database.clock.now()
+        moving_in.set_out(connection, companion, action == 'out', now)
+        return together.view(connection, companion, now)
+
+
 @router.post('/calls')
 def start_call(request: Request):
     """The user calls the companion in focus (the chat header's Call button, companion/life/calls.py): they pick up
@@ -489,6 +500,11 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         return storylines.change_outcome(db(request), consequence_id, body.option)
     if subject.startswith('chapter:'):
         return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
+    if subject.startswith('moving_in:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return moving_in.change(connection, require_current(connection), consequence_id, body.option,
+                                    database.clock.now())
     if subject.startswith('love:'):
         database = db(request)
         with database.connect(write=True) as connection:
