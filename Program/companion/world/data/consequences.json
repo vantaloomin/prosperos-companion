@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing.",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -822,6 +822,54 @@
               "why": "{name} has few friends nearby"
             }
           ]
+        },
+        {
+          "label": "{name} meets someone",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "can_relationship",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} is already seeing someone, or has no love life of their own here"
+            },
+            {
+              "reader": "love_life",
+              "at_most": 1,
+              "times": 0.4,
+              "why": "the love life setting is on quiet"
+            },
+            {
+              "reader": "love_life",
+              "at_least": 3,
+              "times": 2,
+              "why": "the love life setting is on lots going on"
+            },
+            {
+              "reader": "card",
+              "at_least": 1,
+              "times": 3,
+              "why": "someone caught {name}'s eye lately"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 0.7,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.8,
+              "why": "{name} has been low lately"
+            }
+          ]
         }
       ]
     },
@@ -1054,6 +1102,172 @@
           "label": "{name} would rather stay friends",
           "weight": 2,
           "rules": []
+        }
+      ]
+    },
+    "love:next": {
+      "label": "How things go for {name} and {partner}",
+      "options": [
+        {
+          "label": "{name} and {partner} move on to {step}",
+          "weight": 1.4,
+          "rules": [
+            {
+              "reader": "can_up",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} is already married"
+            },
+            {
+              "reader": "love_life",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the love life setting is on lots going on"
+            },
+            {
+              "reader": "love_life",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the love life setting is on quiet"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 0.8,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "Things stay as they are for now",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "can_up",
+              "at_most": 0,
+              "times": 4,
+              "why": "married couples tend to carry on"
+            }
+          ]
+        },
+        {
+          "label": "{name} and {partner} break up",
+          "weight": 0.22,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.8,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.3,
+              "why": "the drama level is quiet"
+            },
+            {
+              "reader": "step",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "it's still early days"
+            },
+            {
+              "reader": "step",
+              "at_least": 5,
+              "times": 0.4,
+              "why": "{name} has settled into a shared life"
+            },
+            {
+              "reader": "love_life",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the love life setting is on quiet"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.3,
+              "why": "{name}'s description says they're stubborn"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 0.7,
+              "why": "{name}'s description says they're forgiving"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "love:secret": {
+      "label": "Whether {name} starts seeing someone behind your back this month",
+      "options": [
+        {
+          "label": "{name} stays true to you",
+          "weight": 14,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 5,
+              "times": 1.6,
+              "why": "{name} feels very close to you"
+            }
+          ]
+        },
+        {
+          "label": "{name} starts seeing someone on the side",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "love_life",
+              "at_most": 1,
+              "times": 0.5,
+              "why": "the love life setting is on quiet"
+            },
+            {
+              "reader": "love_life",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the love life setting is on lots going on"
+            },
+            {
+              "reader": "card",
+              "at_least": 1,
+              "times": 3,
+              "why": "someone caught {name}'s eye lately"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "{name} has been low lately"
+            }
+          ]
         }
       ]
     },

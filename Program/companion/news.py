@@ -23,7 +23,7 @@ from companion import consequences, secrets
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
 from companion.database import decode, identifier, many, settings
-from companion.life import circle, storylines
+from companion.life import circle, love_life, storylines
 from companion.memory import pairs
 
 CHOICE = 'news:pass_on'
@@ -56,7 +56,8 @@ def found(connection, companion: dict, now) -> list[dict]:
                     'AND started_on>=? AND started_on<=?', (companion['active_timeline_id'], since, today.isoformat())):
         result.append({'source': f"chapter:{row['id']}", 'text': row['title'].rstrip('.'),
                        'happened_on': row['started_on']})
-    return result
+    # Their own love life (companion/life/love_life.py): steps and breakups, never a secret.
+    return result + love_life.news_items(connection, companion, since, today.isoformat())
 
 
 def register(connection, companion: dict, now) -> None:
