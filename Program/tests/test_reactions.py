@@ -116,7 +116,8 @@ def test_an_agreed_plan_passing_without_a_word(client, companion, clock, monkeyp
     reconcile(client)
     listed = client.get('/api/life/reactions').json()
     assert [item['choice'] for item in listed] == ['user:missed_plan']
-    assert listed[0]['marks'][0]['note'] == 'Mira is let down the plan (movie night together) passed without a word'
+    # By its name, not its words, which can say "tomorrow" (E2E v0.13).
+    assert listed[0]['marks'][0]['note'] == 'Mira is let down the plan (movie night) passed without a word'
 
 
 def test_telling_someone_a_secret_in_a_group(client, companion, connected, provider, monkeypatch):

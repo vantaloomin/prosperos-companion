@@ -567,7 +567,7 @@
               "on": "me",
               "amount": -1,
               "days": 4,
-              "note": "{name} is let down the plan ({plan}) passed without a word",
+              "note": "{name} is let down the plan ({plan_shown}) passed without a word",
               "told": "You're a little let down that the plan ({plan}) came and went without a word from the user."
             }
           ]
