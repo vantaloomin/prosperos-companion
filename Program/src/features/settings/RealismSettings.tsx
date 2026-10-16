@@ -15,6 +15,7 @@ import { HOBBY_LEVELS } from '../character/hobbiesText'
 import { TOGETHER_LEVELS } from '../conversation/whereText'
 import { ROUGH_PATCH_LEVELS } from '../profile/roughPatchText'
 import { PACE_LEVELS } from '../character/stepsText'
+import { BREAKUPS_HINT } from '../character/breakupText'
 import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
@@ -125,6 +126,8 @@ export function LoveSettings() {
       <Toggle label="Friends can fall for you" checked={data.friends_fall} onChange={(value) => void save({ friends_fall: value })}
         hint={'Now and then a close friend falls for you and tells you. Say yes and you start dating; say no and the friendship carries on after a few awkward days. Rare on a real life, likelier with more drama.'}
         tip="Keep a friend as just friends on their Character page." />
+      <Toggle label="Breaks and breakups" checked={data.breakups} onChange={(value) => void save({ breakups: value })}
+        hint={BREAKUPS_HINT} tip="Either of you can end it, and getting back together is possible later. Nothing is deleted." />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )

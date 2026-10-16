@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { CloudRain, HeartCrack, Undo2 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { COMPANION_KEY } from '../../companion'
@@ -9,6 +10,8 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, askText, howText, plannedText, stepDate } from './stepsText'
+import { BREAKUP_KEY, breakupLine, mendLabel, mendedText, type BreakupView } from './breakupText'
+import { UNDO_MS } from '../profile/roughPatchText'
 
 /** Where you and them stand (companion/life/steps.py): one plain line, the steps so far, what came up lately and,
  * for a friend, the "just friends" lock. The app moves it on; the user can set it here. Nothing for a mentor or family. */
@@ -31,6 +34,7 @@ export function Steps({ name }: { name: string }) {
     <section id="steps" className="home-panel steps-panel" aria-labelledby="steps-heading">
       <h2 id="steps-heading">You and {who}</h2>
       <p className="steps-line">{view.text}</p>
+      <BreakupLine name={name} />
       <Field label="Where things stand" hint={`Picked and moved on by the app, as ${who} brings things up and you answer. Set it yourself any time; moving it back takes the later steps back.`}>
         {(id, describedBy) => (
           <select id={id} aria-describedby={describedBy} value={view.step} onChange={(event) => void save({ step: event.target.value })}>
@@ -77,5 +81,41 @@ function StepsSoFar({ view, name }: { view: StepsView; name: string }) {
         {view.planned.consequence_id && <WhyItWent id={view.planned.consequence_id} />}
       </div>
     )}
+  </>
+}
+
+/** Breaks and breakups (companion/life/breakups.py): "Things are strained", "They're thinking about a break", a break or
+ * the breakup, with "Why it went this way" for each roll (Hidden values > odds) and the override, with Undo after. */
+function BreakupLine({ name }: { name: string }) {
+  const client = useQueryClient()
+  const query = useQuery({ queryKey: BREAKUP_KEY, queryFn: () => api<BreakupView>('/life/breakup') })
+  const [mended, setMended] = useState<{ id: string; text: string } | null>(null)
+  useEffect(() => {
+    if (!mended) return
+    const timer = window.setTimeout(() => setMended(null), UNDO_MS)
+    return () => window.clearTimeout(timer)
+  }, [mended])
+  const act = async (id: string, action: 'mend' | 'undo', text = '') => {
+    client.setQueryData(BREAKUP_KEY, await api<BreakupView>(`/life/breakup/${id}/${action}`, {}))
+    setMended(action === 'mend' ? { id, text } : null)
+    void client.invalidateQueries({ queryKey: STEPS_KEY })
+  }
+  if (mended) return (
+    <p className="breakup-line" role="status" aria-live="polite">
+      <span>{mended.text}</span>
+      <button type="button" className="text-button" onClick={() => void act(mended.id, 'undo')}><Undo2 aria-hidden="true" />Undo</button>
+    </p>
+  )
+  const view = query.data
+  const line = breakupLine(view, name)
+  if (!view?.id || !line) return null
+  const Glyph = view.stage === 'ended' ? HeartCrack : CloudRain
+  const id = view.id
+  return <>
+    <p className="breakup-line">
+      <span className="breakup-text"><Glyph aria-hidden="true" />{line}</span>
+      {view.mendable && <button type="button" className="text-button" onClick={() => void act(id, 'mend', mendedText(view))}>{mendLabel(view)}</button>}
+    </p>
+    {view.odds.map((odds) => <WhyItWent key={odds} id={odds} />)}
   </>
 }

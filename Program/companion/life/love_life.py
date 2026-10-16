@@ -97,8 +97,8 @@ def mode(connection, companion: dict) -> str | None:
     definition = companion['version']['definition']
     if intimacy.reads_as_minor(definition) or sheet_partner(connection, companion):
         return None
-    if definition.get('relationship') != 'romance':
-        return 'free'
+    if definition.get('relationship') != 'romance' or steps.apart(connection, companion) == 'ended':
+        return 'free'  # A friend, or an ex (companion/life/breakups.py): free to date.
     if is_open(definition):
         return 'open'
     return 'secret' if steps.drama(connection) >= 3 and exclusive(connection, companion) else None
@@ -106,6 +106,8 @@ def mode(connection, companion: dict) -> str | None:
 
 def exclusive(connection, companion: dict) -> bool:
     """The user and this companion are exclusive or further along (companion/life/steps.py)."""
+    if steps.apart(connection, companion) == 'ended':
+        return False
     rows = steps.reached(connection, companion['active_timeline_id'], LADDER)
     return any(steps.index_of(LADDER, row['step']) >= 1 for row in rows)
 

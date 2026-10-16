@@ -32,6 +32,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
 from companion.life import (
+    breakups,
     calls,
     chapters,
     composer,
@@ -424,7 +425,7 @@ PAST_WAITING = {'occasion', 'postcard'}
 # call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
 # (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
 # meet their people (companion/life/their_people.py).
-FINDERS = [occasion, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
@@ -434,12 +435,20 @@ COOLED = {check_in, usual_time, together.suggest_due, together.knock_due, calls.
           hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due}
 
 
+# While apart (companion/life/breakups.py) texting drops off: on a break only what the break itself brings; exes still
+# say happy birthday, and may reach out about trying again.
+APART = {'break': {breakups.news_due}, 'ended': {breakups.news_due, occasion}}
+
+
 def candidates(connection, companion, now) -> list[Trigger]:
     timeline_id = companion['active_timeline_id']
     fired = {row['trigger_key'] for row in many(connection, 'SELECT trigger_key FROM openers WHERE timeline_id=?',
                                                  (timeline_id,))}
     cool = rough_patches.cool(connection, companion, now)
-    return [trigger for finder in FINDERS if not (cool and finder in COOLED)
+    held_back = breakups.holds(connection, companion)
+    allowed = APART.get(held_back)
+    cool = cool or held_back == 'cool'
+    return [trigger for finder in FINDERS if not (cool and finder in COOLED) and (allowed is None or finder in allowed)
             for trigger in finder(connection, companion, now) if trigger.key not in fired]
 
 
@@ -667,6 +676,8 @@ class Openers:
                 steps.settle(connection, latest, row, trigger, timestamp)
             if trigger.kind in their_people.SETTLES:
                 their_people.settle(connection, latest, row, trigger, timestamp)
+            if trigger.kind in breakups.SETTLES:
+                breakups.settle(connection, latest, row, trigger, timestamp)
             focus = current(connection)
             [view] = voice_notes.decorate(connection, [message_view(row)])
         return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],

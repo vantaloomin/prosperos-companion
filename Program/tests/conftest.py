@@ -102,6 +102,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.long_distance.FIRST_TEXTS', False)
     # Nor rough patches opening from what the user says or misses (companion/life/rough_patches.py).
     monkeypatch.setattr('companion.life.rough_patches.ACTIVE', False)
+    # Nor warnings, breaks and breakups growing out of them (companion/life/breakups.py).
+    monkeypatch.setattr('companion.life.breakups.ACTIVE', False)
     # Nor a next step or a confession brought up in a first text (companion/life/steps.py).
     monkeypatch.setattr('companion.life.steps.FIRST_TEXTS', False)
     # Nor news from their own love life, or a friend who saw someone out with another (companion/life/love_life.py).
