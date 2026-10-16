@@ -8,7 +8,7 @@ import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
-import { STEPS_KEY, askText, howText, stepDate } from './stepsText'
+import { STEPS_KEY, askText, howText, plannedText, stepDate } from './stepsText'
 
 /** Where you and them stand (companion/life/steps.py): one plain line, the steps so far, what came up lately and,
  * for a friend, the "just friends" lock. The app moves it on; the user can set it here. Nothing for a mentor or family. */
@@ -41,7 +41,7 @@ export function Steps({ name }: { name: string }) {
       <StepsSoFar view={view} name={name} />
       {view.can_fall && (
         <Toggle label="Just friends" checked={view.just_friends} onChange={(just_friends) => void save({ just_friends })}
-          hint={`${who} never falls for you. Off, a close friend now and then does, if Friends can fall for you is on in Settings > Realism.`} />
+          hint={`On: ${who} stays a friend. Off: a close friend can fall for you now and then, if Friends can fall for you is on in Settings > Realism.`} />
       )}
       {error && <Notice tone="error">{error}</Notice>}
     </section>
@@ -50,7 +50,6 @@ export function Steps({ name }: { name: string }) {
 
 /** The steps so far with their dates, what came up lately and (with odds shown) what is planned. */
 function StepsSoFar({ view, name }: { view: StepsView; name: string }) {
-  const who = firstName(name)
   return <>
     {view.steps && view.steps.length > 1 && (
       <ol className="steps-list">
@@ -73,8 +72,8 @@ function StepsSoFar({ view, name }: { view: StepsView; name: string }) {
       </details>
     )}
     {view.planned && (
-      <div>
-        <p className="subtle">{who} plans to bring up the next step around {stepDate(view.planned.due_on)}.</p>
+      <div className="steps-planned">
+        <p className="subtle">{plannedText(view.planned, name)}</p>
         {view.planned.consequence_id && <WhyItWent id={view.planned.consequence_id} />}
       </div>
     )}

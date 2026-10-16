@@ -293,3 +293,12 @@ def test_odds_show_only_with_hidden_values(client, provider, clock, monkeypatch,
     response = client.post(f"/api/life/consequences/{ask['consequence_id']}/change", json={'option': 1})
     assert response.status_code == 200, response.text
     assert view(client)['step'] == 'dating'
+
+
+def test_each_reason_sits_under_the_answer_it_moved():
+    """"Doesn't feel close enough yet" makes yes less likely, so it is listed under yes, which it lowered."""
+    facts = {'pace': 2, 'sheet': set(), 'social': 1, 'closeness_over': 0, 'mood': 0, 'short_days': 0, 'skips': 0}
+    plain, apart = (consequences.odds('steps:answer', dict(facts, closeness_over=value), {'name': 'Mira', 'step': 'x'})
+                    for value in (0, -1))
+    assert apart[0]['reasons'] == ["Mira doesn't feel close enough yet"] and apart[0]['odds'] < plain[0]['odds']
+    assert apart[1]['reasons'] == []

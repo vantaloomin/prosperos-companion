@@ -382,6 +382,9 @@ def context_line(found: dict) -> str:
     whose = 'Together' if found['ladder'] == 'romance' else 'Friends'
     dated = [item for item in found['steps'] if item['how'] != 'history']
     since = f" {whose} since {long_date(found['since'])}." if dated and dated[0]['step'] == found['steps'][0]['step'] else ''
+    latest = found['steps'][-1]
+    if len(found['steps']) > 1 and latest['how'] not in ('history', 'start'):
+        since += f" You {step.did} on {long_date(latest['on'])}."
     return (f'- {step.line}{since} Keep to where things stand: do not act further along than this, and do not bring up '
             'a next step yourself unless a line here says you do.')
 
@@ -898,7 +901,8 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     planned = None
     if show_odds:
         row = next(iter(asks(connection, companion['active_timeline_id'], ('planned',))), None)
-        planned = {'step': row['step'], 'due_on': row['due_on'], 'consequence_id': row['consequence_id']} if row else None
+        planned = {'step': row['step'], 'due_on': row['due_on'], 'consequence_id': row['consequence_id'],
+                   'topic': topic_of(row)} if row else None
     recent = many(connection, "SELECT * FROM step_asks WHERE timeline_id=? AND status NOT IN ('planned', 'dropped') "
                   'ORDER BY created_at DESC LIMIT 6', (companion['active_timeline_id'],))
     return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,

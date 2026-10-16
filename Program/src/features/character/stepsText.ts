@@ -37,7 +37,15 @@ export function askText(ask: Ask, name: string): string {
   return `You brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${ask.status === 'yes' ? `${who} said yes.` : `${who} said not yet.`}`
 }
 
-/** "11 October 2026", from a date. */
+/** "Oct 11, 2026", from a date, as dates read elsewhere in the app; it never breaks across lines. */
 export function stepDate(day: string): string {
-  return new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    .replace(/ /g, '\u00a0')
+}
+
+/** "Mira plans to bring up meeting their people around Oct 28, 2026." */
+export function plannedText(planned: NonNullable<StepsView['planned']>, name: string): string {
+  const who = firstName(name)
+  const what = planned.step === 'confession' ? 'tell you how they feel' : `bring up ${planned.topic.replace(/\byour\b/, 'their')}`
+  return `${who} plans to ${what} around ${stepDate(planned.due_on)}.`
 }

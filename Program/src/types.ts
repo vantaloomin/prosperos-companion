@@ -490,7 +490,7 @@ export interface StepsView {
   steps?: { step: string; label: string; on: string; how: 'start' | 'history' | 'them' | 'you' | 'set' | 'confession' }[]
   ladder_steps?: { step: string; label: string }[]
   /** Only with Hidden values' odds on. */
-  planned?: { step: string; due_on: string; consequence_id: string | null } | null
+  planned?: { step: string; due_on: string; consequence_id: string | null; topic: string } | null
   asks?: { id: string; step: string; side: 'them' | 'you'; status: 'open' | 'yes' | 'not_yet' | 'no' | 'lapsed'; topic: string; on: string; consequence_id: string | null }[]
 }
 
