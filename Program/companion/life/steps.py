@@ -306,7 +306,9 @@ def start(connection, companion: dict, ladder: str, now) -> list[tuple[str, str]
             found.append('their_people')
     elif level >= 5 and (days >= 90 or head >= 5):
         found.append('best_friends')
-    return [(key, 'start') for key in found]
+    # They knew each other before the first talk (the user wrote how they know each other): the day they got together
+    # is not the first talk, so it gets no date of its own ("Best friends", not "Friends for 1 day").
+    return [(key, 'history' if text.strip() else 'start') for key in found]
 
 
 def ensure(connection, companion: dict, now) -> str | None:

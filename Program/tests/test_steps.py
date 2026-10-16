@@ -128,8 +128,12 @@ def test_how_you_know_each_other_sets_the_start(client, monkeypatch):
 
 
 def test_a_friend_close_from_the_start_is_a_best_friend(client, monkeypatch):
-    make(client, monkeypatch, relationship='friendship', starting_closeness=5)
-    assert view(client)['step'] == 'best_friends'
+    make(client, monkeypatch, relationship='friendship', starting_closeness=5,
+         history_together='Close since we met at a reading room three years ago.')
+    found = view(client)
+    # Not "Friends for 1 day": they knew each other long before the first talk (E2E v0.13).
+    assert found['step'] == 'best_friends' and found['text'] == 'Best friends'
+    assert [item['how'] for item in found['steps']] == ['history', 'history']
 
 
 def test_mentors_and_family_have_no_ladder(client, provider, monkeypatch):
