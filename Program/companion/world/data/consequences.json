@@ -499,14 +499,15 @@
             {
               "reader": "minds",
               "at_least": 2,
+              "at_most": 2,
               "times": 2,
-              "why": "strongly so"
+              "why": "\"{trait}\" is strong in {name}"
             },
             {
               "reader": "minds",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very strongly so"
+              "times": 3,
+              "why": "\"{trait}\" is very strong in {name}"
             }
           ],
           "marks": [
@@ -549,14 +550,15 @@
             {
               "reader": "minds",
               "at_least": 2,
+              "at_most": 2,
               "times": 2,
-              "why": "strongly so"
+              "why": "\"{trait}\" is strong in {name}"
             },
             {
               "reader": "minds",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very strongly so"
+              "times": 3,
+              "why": "\"{trait}\" is very strong in {name}"
             }
           ],
           "marks": [
@@ -599,14 +601,15 @@
             {
               "reader": "minds",
               "at_least": 2,
+              "at_most": 2,
               "times": 2,
-              "why": "strongly so"
+              "why": "\"{trait}\" is strong in {name}"
             },
             {
               "reader": "minds",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very strongly so"
+              "times": 3,
+              "why": "\"{trait}\" is very strong in {name}"
             }
           ],
           "marks": [
@@ -649,14 +652,15 @@
             {
               "reader": "minds",
               "at_least": 2,
+              "at_most": 2,
               "times": 2,
-              "why": "strongly so"
+              "why": "\"{trait}\" is strong in {name}"
             },
             {
               "reader": "minds",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very strongly so"
+              "times": 3,
+              "why": "\"{trait}\" is very strong in {name}"
             }
           ],
           "marks": [

@@ -1174,12 +1174,15 @@ export interface LifeChapter {
   undone: boolean
 }
 
+/** Which way a reason pushed the odds of the option it sits under. */
+export type ReasonMove = 'more' | 'less' | 'out' | 'possible'
 /** How a turning in the world went and why (companion/consequences.py). */
 export interface Consequence {
   id: string
   label: string
   decided_on: string
-  options: { option: number; label: string; odds: number; reasons: string[] }[]
+  /** `moves` says which way each reason pushed its option (missing on outcomes recorded before v0.13). */
+  options: { option: number; label: string; odds: number; reasons: string[]; moves?: ReasonMove[] }[]
   picked: number
   picked_by: 'dice' | 'user'
   /** What it left behind for a while, tilting later odds; a ripple reached a companion close to them. */
