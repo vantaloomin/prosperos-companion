@@ -2141,13 +2141,13 @@
               "reader": "theirs_nearer",
               "at_least": 1,
               "times": 1.5,
-              "why": "{name}'s place is nearer where {name} works"
+              "why": "{name}'s place is nearer their work"
             },
             {
               "reader": "their_pets",
               "at_least": 1,
               "times": 1.4,
-              "why": "{name}'s pets are settled at {name}'s place"
+              "why": "{name}'s pets are settled at their place"
             },
             {
               "reader": "sheet",
@@ -2200,13 +2200,13 @@
               "reader": "rooted",
               "at_most": 0,
               "times": 1.8,
-              "why": "{name} has few ties in {name}'s city"
+              "why": "{name} has few ties where they live"
             },
             {
               "reader": "rooted",
               "at_least": 3,
               "times": 0.4,
-              "why": "{name} is rooted in {name}'s city"
+              "why": "{name} is rooted where they live"
             },
             {
               "reader": "family",

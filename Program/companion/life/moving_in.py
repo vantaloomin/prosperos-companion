@@ -42,6 +42,8 @@ OTHER_CITY_DAYS = (30, 60)
 EVENING = '18:00'
 # "I'm out" in the chat, or Heading out on the strip: texting for this long, unless they say they're home sooner.
 OUT_FOR = timedelta(hours=3)
+# Living together, they don't ring the moment the user steps out of the door.
+JUST_OUT = timedelta(hours=1)
 # How long the chat context keeps moving day, and a move out.
 TOLD_DAYS = 3
 UNITS = ('shared', 'studio', 'one_bedroom', 'two_bedroom')
@@ -302,12 +304,25 @@ def advance(connection, companion: dict, now) -> None:
     today = local_today(companion, now)
     if not reached(connection, companion, now) or chapter_undone(connection, row):
         move_out(connection, companion, now)
-    elif row['status'] == 'moving' and row['move_on'] <= today.isoformat():
-        move(connection, companion, row, now)
+    elif row['status'] == 'moving' and row['move_on'] <= today.isoformat() and not after_visit(connection, row, today):
+        move(connection, companion, current(connection, companion['active_timeline_id']), now)
     elif row['status'] == 'waiting':
         settle_waiting(connection, companion, row, now)
     elif row['status'] == 'moved' and moved_away(connection, row):
         move_out(connection, companion, now, 'you')
+
+
+def after_visit(connection, row: dict, today: date) -> bool:
+    """A weekend visit across the distance under way on moving day puts the move off until the day after it ends
+    (nobody moves out of the city the user is staying in with them). True while it is still to come."""
+    found = optional(connection, "SELECT MAX(end_date) AS until FROM trips WHERE timeline_id=? AND visit!='' AND "
+                     "status='planned' AND start_date<=? AND end_date>=?", (row['timeline_id'], today.isoformat(),
+                                                                           row['move_on']))
+    if not found or not found['until']:
+        return False
+    day = date.fromisoformat(found['until']) + timedelta(days=1)
+    connection.execute('UPDATE moving_in SET move_on=? WHERE id=?', (day.isoformat(), row['id']))
+    return day > today
 
 
 def follow_step(connection, companion: dict, now) -> None:
@@ -500,12 +515,13 @@ def move_out(connection, companion: dict, now, who: str | None = None) -> dict |
                            (today.isoformat(), row['id']))
         return latest(connection, companion['active_timeline_id'])
     leaving = who or who_leaves(connection, companion, row)
-    if leaving == 'them' and not chapter_undone(connection, row):
+    undone = chapter_undone(connection, row)  # The move undone on the Character page: it never happened.
+    if leaving == 'them' and not undone:
         place_of_their_own(connection, companion, row, today, now)
     elif leaving == 'you':
         share_theirs(connection, companion, row, today, False)
     connection.execute("UPDATE moving_in SET status='moved_out', out_on=?, out_who=? WHERE id=?",
-                       (today.isoformat(), leaving, row['id']))
+                       (today.isoformat(), None if undone else leaving, row['id']))
     return latest(connection, companion['active_timeline_id'])
 
 
@@ -557,7 +573,9 @@ def turn(companion: dict, day: date, task: str) -> str:
     they do the dishes; on other days cooking takes turns and the dishes go to whoever didn't cook; laundry and
     tidying take turns week by week."""
     from companion.life import upkeep
-    seed = random.Random(f"{companion['active_timeline_id']}:{task}:turns").randrange(2)
+    # Cooking and the dishes share one seed, so the dishes always go to whoever didn't cook.
+    shared = 'cooking' if task in ('cooking', 'dishes') else task
+    seed = random.Random(f"{companion['active_timeline_id']}:{shared}:turns").randrange(2)
     if task in ('cooking', 'dishes'):
         cooks = 'user' if day.weekday() in upkeep.busy_days(companion['version']['definition']) else \
             ('you', 'user')[(day.toordinal() + seed) % 2]
@@ -567,6 +585,12 @@ def turn(companion: dict, day: date, task: str) -> str:
 
 def out_now(row: dict, now: datetime) -> bool:
     return bool(row['out_until'] and parse(row['out_until']) > now)
+
+
+def just_out(connection, companion: dict, now: datetime) -> bool:
+    """The user headed out less than an hour ago (calls.py waits a while before they ring)."""
+    row = living(connection, companion, local_today(companion, now))
+    return bool(row and out_now(row, now) and parse(row['out_until']) - OUT_FOR > now - JUST_OUT)
 
 
 def at_home_now(connection, companion: dict, now: datetime) -> bool:
@@ -594,8 +618,8 @@ def view_strip(connection, companion: dict, now: datetime) -> dict | None:
     row = living(connection, companion, local_today(companion, now))
     if not row:
         return None
-    if out_now(row, now):
-        return {'status': 'out', 'until': row['out_until']}
+    if out_now(row, now):  # Whether they are home meanwhile, or at work or out themselves.
+        return {'status': 'out', 'until': row['out_until'], 'they_home': at_home_now(connection, companion, now)}
     return {'status': 'home'} if home_state(connection, companion, now) else None
 
 
@@ -683,7 +707,7 @@ def chores_text(companion: dict, day: date) -> str:
     for side, owner in (('you', 'yours'), ('user', "the user's")):
         tasks = [CHORES[task] for task in TASKS if who[task] == side]
         if tasks:
-            parts.append(f"{listed(tasks)} {'is' if len(tasks) == 1 else 'are'} {owner}")
+            parts.append(f"{listed(tasks)} {'is' if tasks in (['cooking'], ['the laundry'], ['tidying up']) else 'are'} {owner}")
     return f"Today {'; '.join(parts)}."
 
 
@@ -768,9 +792,20 @@ def change(connection, companion: dict, consequence_id: str, option: int, now) -
 
 
 def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> list[dict]:
-    """A fork keeps the plan or the shared home as it stood then (timelines.py inserts the rows)."""
-    return [{**row, 'id': identifier(), 'timeline_id': new_id, 'chapter_id': None, 'home_item_id': None,
-             'message_id': None, 'out_until': None}
-            for row in many(connection, 'SELECT * FROM moving_in WHERE timeline_id=? AND decided_on<=?',
-                            (parent_id, cutoff_date))]
-
+    """A fork keeps the plan or the shared home as it stood then (timelines.py inserts the rows): a move or a move out
+    that came after the fork point has not happened in the copy yet (`advance` carries a move out again on its day),
+    and the outcome under Hidden values is copied with it, so it can still be changed there."""
+    rows = []
+    for row in many(connection, 'SELECT * FROM moving_in WHERE timeline_id=? AND decided_on<=? ORDER BY created_at',
+                    (parent_id, cutoff_date)):
+        found = {**row, 'id': identifier(), 'timeline_id': new_id, 'chapter_id': None, 'home_item_id': None,
+                 'message_id': None, 'out_until': None,
+                 'consequence_id': row['consequence_id'] and consequences.copy(
+                     connection, row['consequence_id'], new_id, f'moving_in:{new_id}:{len(rows) + 1}')}
+        rows.append(found)
+        if row['out_on'] and row['out_on'] > cutoff_date:
+            found.update(status='moved', out_on=None, out_who=None)
+        if found['status'] != 'moved_out' and (not row['moved_on'] or row['moved_on'] > cutoff_date):
+            found.update(status='waiting' if row['plan'] == 'you' and not row['move_on'] else 'moving',
+                         moved_on=None, ended_item_ids='[]')
+    return rows

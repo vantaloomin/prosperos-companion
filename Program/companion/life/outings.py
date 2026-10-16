@@ -83,8 +83,9 @@ TOGETHER = re.compile(r"\b(?:we|us|together|with me|you and me|you and i)\b", re
 # hear about my coffee disaster?", "walk me through it".
 STAY = re.compile(r"\b(?:my place|your place|my apartment|your apartment|at home|at mine|at yours|to mine|come over|stay in|"
                   r"i'?ll cook|cook(?:ing)? (?:for|dinner|together)|order in|takeout|take-out|facetime|video call|"
-                  r"on (?:a )?call|stream (?:it|one|a)|netflix|walk (?:me|you|us) through|hear about|tell you about)\b",
-                  re.IGNORECASE)
+                  r"on (?:a )?call|stream (?:it|one|a)|netflix|walk (?:me|you|us) through|hear about|tell you about|"
+                  r"what(?:'s| is) for (?:dinner|supper|lunch)|what (?:should|shall|do|can) we (?:have|eat|make|cook) "
+                  r"for (?:dinner|supper|lunch|tonight))\b", re.IGNORECASE)
 # "Sometime", "next time": a wish, not a plan for a day.
 VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one of these days|when you'?re back|"
                    r"at some point|again sometime)\b", re.IGNORECASE)

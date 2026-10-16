@@ -287,3 +287,124 @@ def test_a_chore_left_undone_on_your_turn_can_start_a_small_rough_patch(client, 
         moving_in.skipped(connection, companion, living, f"sorry, I totally forgot the {words[mine]}", clock.now())
     assert seen and seen[0][0] == 'chore' and moving_in.CHORES[mine] in seen[0][3]
     assert moving_in.SKIPPED.search("I didn't get round to the washing up") and not moving_in.SKIPPED.search('dinner was great')
+
+
+def test_the_dishes_go_to_whoever_did_not_cook_every_day(client, monkeypatch):
+    mira(client, monkeypatch, relationship='romance')
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+    for timeline in range(8):  # The turns are seeded by the timeline: a few of them.
+        other = {**companion, 'active_timeline_id': f'timeline-{timeline}'}
+        for offset in range(14):
+            day = date(2026, 10, 5) + timedelta(days=offset)
+            assert moving_in.turn(other, day, 'cooking') != moving_in.turn(other, day, 'dishes'), (timeline, day)
+
+
+def test_a_fork_from_before_moving_day_moves_in_again_on_its_own(client, provider, clock, monkeypatch, always):
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    sent = client.get('/api/conversation').json()['messages'][-1]
+    clock.advance(timedelta(days=1))
+    says(provider)
+    send(client, 'packing tomorrow', 'client-move-fork-1')  # The fork point is before moving day.
+    moving_day(client, clock)
+    assert row(client)['status'] == 'moved'
+    fork = client.post('/api/timelines', json={'message_id': sent['id']}).json()
+    assert client.post(f"/api/timelines/{fork['id']}/activate").status_code == 200
+    found = row(client)
+    assert (found['timeline_id'], found['status'], found['moved_on']) == (fork['id'], 'moving', None)
+    consequence = client.get(f"/api/life/consequences/{found['consequence_id']}").json()
+    assert consequence['timeline_id'] == fork['id']
+    reconcile(client)
+    assert row(client)['status'] == 'moved'
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        shared = moving_in.their_home(connection, companion, clock.now().date())
+        assert shared['shared'] and optional(connection, "SELECT id FROM life_chapters WHERE kind='move_in' AND "
+                                             'timeline_id=?', (fork['id'],))
+
+
+def test_asking_what_to_have_for_dinner_at_home_is_not_going_out(client, provider, clock, monkeypatch, always):
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    says(provider)
+    send(client, 'what should we have for dinner?', 'client-move-dinner-1')
+    assert client.get('/api/life/outings').json()['outings'] == []
+
+
+def test_out_at_midday_the_strip_knows_they_are_not_home_either(client, provider, clock, monkeypatch, always):
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    clock.advance(timedelta(hours=-clock.now().hour + 12))  # Midday: they are at work.
+    says(provider)
+    send(client, "I'm at the gym", 'client-move-midday-1')
+    assert where(client)['home'] == {'status': 'out', 'until': row(client)['out_until'], 'they_home': False}
+    clock.advance(timedelta(hours=7))  # 19:00, still out: they are home now.
+    send_out = client.post('/api/life/living/out', json={}).json()
+    assert send_out['home']['they_home'] is True
+
+
+def test_a_visit_under_way_on_moving_day_puts_the_move_off(client, provider, clock, monkeypatch, always):
+    apart_from(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    found = row(client)
+    move_on = date.fromisoformat(found['move_on'])
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        connection.execute(
+            "INSERT INTO trips (id, companion_id, timeline_id, start_date, end_date, city_id, city_name, kind, visit, "
+            "status, created_at) VALUES ('stay', ?, ?, ?, ?, 'chicago', 'Chicago', 'getaway', 'host', 'planned', ?)",
+            (companion['id'], companion['active_timeline_id'], (move_on - timedelta(days=1)).isoformat(),
+             (move_on + timedelta(days=2)).isoformat(), clock.now().isoformat()))
+    moving_day(client, clock)
+    found = row(client)
+    assert (found['status'], found['move_on']) == ('moving', (move_on + timedelta(days=3)).isoformat())
+    moving_day(client, clock)
+    found = row(client)
+    assert (found['status'], found['moved_on']) == ('moved', (move_on + timedelta(days=3)).isoformat())
+
+
+def test_a_move_undone_on_the_character_page_is_not_told_as_moving_out(client, provider, clock, monkeypatch, always):
+    apart_from(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    chapter = client.get('/api/life/chapters').json()[0]
+    assert client.post(f"/api/life/chapters/{chapter['id']}/undo").status_code == 200
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        found = moving_in.latest(connection, current(connection)['active_timeline_id'])
+    assert (found['status'], found['out_who']) == ('moved_out', None)
+    says(provider)
+    send(client, 'hey', 'client-move-undone-1')
+    assert 'You moved out of the place you shared' not in notes(provider)
+    assert where(client)['kind'] == 'long-distance'
+
+
+def test_they_do_not_ring_the_moment_you_head_out(client, provider, clock, monkeypatch, always):
+    from companion.life import calls
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    monkeypatch.setattr(calls, 'FIRST_TEXTS', True)
+    monkeypatch.setattr(calls, 'RING_CHANCE', {1: 1.0, 2: 1.0, 3: 1.0})
+    monkeypatch.setattr(calls, 'close', lambda *_args: True)
+    monkeypatch.setattr(calls, 'why_not', lambda *_args: None)
+    clock.advance(timedelta(hours=-clock.now().hour + 21, minutes=-clock.now().minute + 31))  # After the seeded minute.
+    assert where(client)['kind'] == 'home'
+    assert client.post('/api/life/living/out', json={}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert calls.ring_due(connection, current(connection), clock.now()) == []  # They just left.
+    monkeypatch.setattr(moving_in, 'JUST_OUT', timedelta(0))  # Later on, they would.
+    with client.app.state.database.connect() as connection:
+        assert len(calls.ring_due(connection, current(connection), clock.now())) == 1
+
+
+def test_the_chores_line_reads_right_with_the_dishes_alone(monkeypatch):
+    owners = {'cooking': 'user', 'dishes': 'you', 'laundry': 'user', 'tidying': 'user'}
+    monkeypatch.setattr(moving_in, 'turn', lambda _companion, _day, task: owners[task])
+    assert moving_in.chores_text({}, date(2026, 11, 5)) == \
+        "Today the dishes are yours; cooking, the laundry and tidying up are the user's."
+    owners.update(dishes='user', laundry='you')
+    assert moving_in.chores_text({}, date(2026, 11, 5)).startswith('Today the laundry is yours;')
