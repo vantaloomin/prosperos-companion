@@ -49,3 +49,9 @@ export function recommendationText(item: Pick<Recommendation, 'kind' | 'state' |
   if (item.state === 'started') return `${name} is ${STARTED[item.kind]}, not done yet.`
   return `${name} means to get to it soon.`
 }
+
+/** The map place an event's "Show on map" opens, or null for a home that isn't on the map: their place ("~home") or
+ * their family's ("~family", companion/life/their_people.py). */
+export function mapPlace(place?: { id?: string } | null): string | null {
+  return place?.id && !place.id.startsWith('~') ? place.id : null
+}
