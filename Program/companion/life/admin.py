@@ -162,7 +162,7 @@ class Taken:
         for plan in own_plans.in_force(connection, timeline_id, start.isoformat()):
             self.times.setdefault(plan['local_date'], []).append(plan['at_time'] or '19:00')
         for outing in outings.in_force(connection, timeline_id, start.isoformat()):
-            self.times.setdefault(outing['local_date'], []).append(outing['at_time'])
+            self.times.setdefault(outing['local_date'], []).extend([outing['at_time'], *outings.later_hours(outing)])
         self.entries: dict[str, list[str]] = {}
         self.jitter = 0.0  # Where in a free block an entry goes (time_in), seeded by the caller.
         for row in many(connection, "SELECT id, local_date, at_time FROM life_admin WHERE timeline_id=? AND "

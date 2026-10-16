@@ -310,3 +310,32 @@ def test_the_yes_does_not_read_as_agreeing_to_an_outing_and_the_day_has_its_year
     found = panel(client)
     day = date.fromisoformat(found['date'])
     assert f"{day:%A %B} {day.day}, {day.year} at" in text
+
+
+def test_the_wedding_takes_every_block_it_runs_through(client, clock, provider):
+    """Its later blocks are quiet time with the user: no errand or evening of their own during the reception."""
+    from companion.characters import require_current
+    from companion.database import decode
+    from companion.life import admin, agenda, routine
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-11')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    found = panel(client)
+    at(clock, (date.fromisoformat(found['date']) - timedelta(days=2)).isoformat(), '10:00')
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        agenda.extend(connection, companion, client.app.state.life.world, clock.now())
+        rows = many(connection, "SELECT * FROM life_agenda WHERE subject='companion' AND local_date=? ORDER BY starts_at",
+                    (found['date'],))
+        day = date.fromisoformat(found['date'])
+        taken = admin.Taken(connection, companion, day, 2)
+        evening = [block for block in admin.free_blocks(routine.blocks(companion['version']['definition'])[0], day)
+                   if found['at'] < block['start'] < found['until']]
+    blocks = [(decode(row['block']), decode(row['entry']) if row['entry'] else None) for row in rows]
+    during = [(block, entry) for block, entry in blocks if block['kind'] not in routine.RESTING
+              and found['at'] < block['start'] < found['until']]
+    assert any((entry or {}).get('activity') == 'wedding' for _block, entry in blocks)
+    assert during and all(entry is None and block.get('with_user') for block, entry in during)
+    assert evening and all(taken.held(day, block, by_user_only=True) for block in evening)

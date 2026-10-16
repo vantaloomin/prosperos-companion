@@ -555,7 +555,17 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
     for outing in in_force(connection, timeline_id, since):
         result.setdefault(outing['local_date'], []).append(
             {'id': f"outing:{outing['id']}:{outing['rolls']}", 'at_time': outing['at_time'], 'outing': outing})
+        # A wedding runs on past its first block: the later ones are quiet, still time with the user, not free time.
+        result[outing['local_date']] += [{'id': f"outing:{outing['id']}:{outing['rolls']}:{at}", 'at_time': at,
+                                          'outing': outing, 'continues': True} for at in later_hours(outing)]
     return result
+
+
+def later_hours(outing: dict) -> list[str]:
+    """The whole hours after a wedding's start, up to its end ('16:00' ... '22:00'): blocks it also takes."""
+    if outing['activity'] != 'wedding' or outing['until_time'] <= outing['at_time']:
+        return []
+    return [f'{hour:02d}:00' for hour in range(int(outing['at_time'][:2]) + 1, int(outing['until_time'][:2]))]
 
 
 def doing(outing: dict) -> str:
