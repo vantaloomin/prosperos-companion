@@ -742,12 +742,12 @@ TEXT = {'strained': 'Things are strained', 'thinking': "They're thinking about a
 
 
 def view(connection, companion: dict, now: datetime) -> dict:
-    """{stage, text, since, by, id, odds, strip, mendable, ladder, on} for the Character page and the chat strip.
+    """{stage, text, summary, since, by, id, odds, strip, mendable, ladder, on} for the Character page and the chat strip.
     `odds` are the rolls behind it, for "Why it went this way" with Hidden values > odds; `mendable` offers the override
     (getting back together always, a warning or a break with Hidden values > moods); `strip` is false a week after it
     ended."""
     empty = {'stage': None, 'text': '', 'since': None, 'by': None, 'id': None, 'odds': [], 'strip': False,
-             'mendable': False,
+             'mendable': False, 'summary': '',
              'ladder': ladder_of(companion) if companion else None, 'on': bool(companion) and switched_on(connection)}
     if not ACTIVE or not companion:
         return empty
@@ -762,10 +762,27 @@ def view(connection, companion: dict, now: datetime) -> dict:
     odds = [row[column] for column in ('ended_id', 'break_id', 'thinking_id', 'strained_id') if row[column]][:1]
     recent = found != 'ended' or now - parse(row['ended_at']) < STRIP_ENDED
     return {**empty, 'stage': found, 'id': row['id'], 'since': local_day(companion, row[when]),
+            'summary': summary(connection, companion, row, found, now),
             'text': TEXT['fell_out' if friend and found == 'ended' else found],
             'by': 'you' if by == 'you' else 'them' if by else None, 'strip': recent,
             'mendable': found == 'ended' or bool(shown.get('show_moods')),
             'odds': odds if shown.get('show_odds') else []}
+
+
+def summary(connection, companion: dict, row: dict, found: str, now: datetime) -> str:
+    """What stands in for the steps line ("Together 8 months, in love") while apart: "On a break", "Broke up after 8
+    months", "Fell out after 2 years". Empty while it is only a warning."""
+    if found == 'break':
+        return 'On a break'
+    if found != 'ended':
+        return ''
+    steps_now = steps.state(connection, companion, now, write=False)
+    first = steps_now['steps'][0] if steps_now and steps_now['steps'] else None
+    what = 'Fell out' if row['ladder'] == 'friendship' else 'Broke up'
+    if not first or first['how'] == 'history':
+        return what
+    days = (date.fromisoformat(local_day(companion, row['ended_at'])) - date.fromisoformat(first['on'])).days
+    return f'{what} after {steps.span_text(days)}'
 
 
 def mend(database, breakup_id: str) -> dict:

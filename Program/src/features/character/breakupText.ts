@@ -10,6 +10,8 @@ export type BreakupStage = 'strained' | 'thinking' | 'break' | 'ended'
 export interface BreakupView {
   stage: BreakupStage | null
   text: string
+  /** Stands in for the steps line while apart: "On a break", "Broke up after 8 months". */
+  summary: string
   since: string | null
   by: 'you' | 'them' | null
   id: string | null
@@ -20,14 +22,19 @@ export interface BreakupView {
   on: boolean
 }
 
-/** The Character page: "Things are strained", "They're thinking about a break", "On a break since Oct 12, 2026 · you
- * asked for it", "Broke up Oct 12, 2026 · Mira ended it". */
-export function breakupLine(view: BreakupView | undefined, name: string): string {
-  if (!view?.stage || !view.since) return ''
-  const who = view.by === 'you' ? 'you' : firstName(name)
-  if (view.stage === 'break') return `On a break since ${stepDate(view.since)} · ${who} asked for it`
-  if (view.stage === 'ended') return `${view.text} ${stepDate(view.since)} · ${who} ended it`
-  return view.text
+/** The Character page, as a status and a quieter detail: "Things are strained"; "On a break since Oct 12, 2026." with
+ * "Mira asked for it."; "Broke up Oct 12, 2026." with "You ended it.". */
+export function breakupLine(view: BreakupView | undefined, name: string): { status: string; detail: string } {
+  if (!view?.stage || !view.since) return { status: '', detail: '' }
+  const who = view.by === 'you' ? 'You' : firstName(name)
+  if (view.stage === 'break') return { status: `On a break since ${stepDate(view.since)}.`, detail: `${who} asked for it.` }
+  if (view.stage === 'ended') return { status: `${view.text} ${stepDate(view.since)}.`, detail: `${who} ended it.` }
+  return { status: view.text, detail: '' }
+}
+
+/** Apart (a break or broken up): the steps line and the "Where things stand" picker give way. */
+export function isApart(view: BreakupView | undefined): boolean {
+  return view?.stage === 'break' || view?.stage === 'ended'
 }
 
 /** The chat strip, with their name: "Things are strained with Mira", "You and Mira broke up". */
@@ -35,10 +42,10 @@ export function breakupStrip(view: BreakupView | undefined, name: string): strin
   if (!view?.stage || !view.strip) return ''
   const who = firstName(name)
   return {
-    strained: `Things are strained with ${who}`,
-    thinking: `${who} is thinking about a break`,
-    break: `You and ${who} are on a break`,
-    ended: view.ladder === 'friendship' ? `You and ${who} fell out` : `You and ${who} broke up`,
+    strained: `Things are strained with ${who}.`,
+    thinking: `${who} is thinking about a break.`,
+    break: `You and ${who} are on a break.`,
+    ended: view.ladder === 'friendship' ? `You and ${who} fell out.` : `You and ${who} broke up.`,
   }[view.stage]
 }
 
@@ -54,4 +61,4 @@ export function mendedText(view: BreakupView): string {
 }
 
 /** The Breakups switch's hint, Settings > Realism > Love and friendship. */
-export const BREAKUPS_HINT = 'When rough patches drag on, things can get strained, then they may think about a break, ask for one, and after it end things. A friendship can fall out. You see the warnings first, and you can talk them round at every step. Off on an easy life.'
+export const BREAKUPS_HINT = 'When rough patches drag on, things can get strained, then they may think about a break, ask for one, and after it end things. A friendship can fall out. You see the warnings first, and you can talk them around at every step. Always off on Easy.'
