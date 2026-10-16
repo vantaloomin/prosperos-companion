@@ -9,7 +9,7 @@ from conftest import reconcile, send, set_life, show
 from test_openers import check, history
 from test_together import mira, notes, says
 
-from companion import consequences
+from companion import consequences, moods
 from companion.characters import current, insert_version
 from companion.database import identifier
 from companion.life import love_life, openers, rough_patches
@@ -92,6 +92,24 @@ def test_the_odds_can_be_changed_on_today(client, patches, provider):
     assert outcome['picked'] == 1
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
     assert not patch(client)['open']
+
+
+def test_ordinary_chat_does_not_sting_or_count_as_an_apology():
+    for text in ('I want to go away for the weekend, somewhere with a beach.', "This headache doesn't go away.",
+                 "My kids wouldn't leave me alone all morning.", "Shut up, you got the job?! That's amazing!",
+                 'Can we go away together sometime?', 'I hate you have to work tonight.',
+                 'I just need everyone to leave me alone today, work was a lot'):
+        assert rough_patches.stings(text) is None, text
+        assert moods.hurtful(text) is None, text
+    for text in ('Whatever you want is fine with me.', "I don't care what we eat, you pick.", 'My stupid phone died.',
+                 'The new manager is an idiot honestly.', "I'll have whatever you're having."):
+        assert moods.hurtful(text) is None, text
+    for text in ('please just go away', 'go away for good', 'I hate you for that', "you're so stupid"):
+        assert rough_patches.stings(text) and moods.hurtful(text), text
+    assert moods.hurtful('ugh, whatever.') and moods.hurtful('stupid bot')
+    assert not rough_patches.says('apologies', "I'm sorry to hear that, that sounds rough.")
+    assert rough_patches.says('apologies', "oh no I'm so sorry, I forgot")
+    assert rough_patches.says('apologies', "I'm sorry to hear you're upset, I'm sorry I forgot")
 
 
 def test_off_starts_nothing_and_easy_fades_overnight(client, patches, provider, clock):

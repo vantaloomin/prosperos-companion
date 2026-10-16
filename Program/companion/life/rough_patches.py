@@ -85,9 +85,12 @@ MINDS = {'words': r'sensitive|thin[- ]skinned|insecure|proud|need|lonely|sulk',
 STINGS = re.compile(r"\b(?:shut up|go away|leave me alone|you'?re (?:so )?(?:annoying|useless|boring|pathetic|"
                     r"stupid|dumb|an idiot)|you (?:idiot|loser)|i hate you|(?:you|you'?re) (?:are )?(?:so )?"
                     r"(?:selfish|clingy|exhausting))\b", re.IGNORECASE)
-NEGATED = re.compile(r"\b(?:not|never|no|don'?t|didn'?t|isn'?t|wasn'?t|won'?t|n't)\b[\w' ]{0,12}$", re.IGNORECASE)
+NEGATED = re.compile(r"\b(?:not|never|no way|don'?t|didn'?t|isn'?t|wasn'?t|won'?t|n't)\b[\w' ]{0,12}$", re.IGNORECASE)
 NOT_AN_APOLOGY = re.compile(r"\bsorry (?:if |that )?you (?:feel|think|took|see)|\bsorry not sorry|\bsorry,? but you\b",
                             re.IGNORECASE)
+# "I'm sorry to hear that": sympathy, not an apology.
+SYMPATHY = re.compile(r" (?:to hear|for your loss|(?:that|this) happened to you|you(?:'re| are) (?:going through|dealing "
+                      r"with)|you have to)\b")
 # "I'll call you tonight", "I promise I'll text you after work": a promise the app can check.
 PROMISE = re.compile(r"\b(?:i'?ll|i will|i promise(?: i'?ll| to| i will)?|i'?m (?:going to|gonna))\s+(?:call|text|"
                      r"message|ring|phone|facetime|write to|get back to)\s+(?:you|u)(?:\s+back)?\b(?P<when>[^.!?\n]{0,40})",
@@ -128,17 +131,15 @@ def says(name: str, text: str) -> bool:
     words = plain(text)
     if name == 'apologies' and NOT_AN_APOLOGY.search(words):
         return False
-    return any(not NEGATED.search(words[:found.start()]) for found in pattern(name).finditer(words))
+    return any(not NEGATED.search(words[:found.start()]) and not (name == 'apologies' and SYMPATHY.match(words, found.end()))
+               for found in pattern(name).finditer(words))
 
 
 def stings(text: str) -> str | None:
     """The sentence of the message that stings, aimed at them, if any; jokes and negations don't count."""
-    from companion.moods import JOKING
-    for sentence in re.split(r'(?<=[.!?])\s+|\n+', text or ''):
-        found = STINGS.search(sentence)
-        if found and not JOKING.search(sentence) and not NEGATED.search(sentence[:found.start()].casefold()):
-            return sentence.strip()[:80]
-    return None
+    from companion.moods import JOKING, hurtful
+    sentence = hurtful(text, STINGS, NEGATED, skip=JOKING)
+    return sentence[:80] if sentence else None
 
 
 # Opening ------------------------------------------------------------------------------------------------------
@@ -278,7 +279,7 @@ def note(connection, message: dict, companion: dict, now: datetime):
     text = message['text'] or ''
     lapsed(connection, companion, now)
     if sentence := stings(text):
-        consider(connection, companion, 'words', f"words:{message['id']}", f'the user said to you: "{sentence}"',
+        consider(connection, companion, 'words', f"words:{message['id']}", f'the user said to you: "{sentence.rstrip(".")}"',
                  now, shown=f'over what you said: "{quoted(sentence)}"')
     promised(connection, companion, message, now)
     lvl = level(connection)
