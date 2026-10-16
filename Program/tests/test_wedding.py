@@ -339,3 +339,28 @@ def test_the_wedding_takes_every_block_it_runs_through(client, clock, provider):
     assert any((entry or {}).get('activity') == 'wedding' for _block, entry in blocks)
     assert during and all(entry is None and block.get('with_user') for block, entry in during)
     assert evening and all(taken.held(day, block, by_user_only=True) for block in evening)
+
+
+def test_at_the_wedding_they_wear_their_wedding_clothes(client, clock, provider):
+    """In the chat's "Wearing right now" and in a picture of the wedding, not the day's everyday outfit."""
+    from companion.characters import require_current
+    from companion.life import agenda, wardrobe
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-12')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    found = panel(client)
+    at(clock, found['date'], found['at'])
+    clock.advance(timedelta(hours=4))  # The reception, past the block the ceremony started in.
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        agenda.extend(connection, companion, client.app.state.life.world, clock.now())
+        timeline_id = companion['active_timeline_id']
+        row = wedding.current(connection, timeline_id)
+        lines = dict(wardrobe.context_lines(connection, timeline_id, date.fromisoformat(found['date']), clock.now()))
+        hint = wardrobe.image_hint(connection, timeline_id, {'local_date': found['date'], 'activity': 'wedding'})
+    worn = wedding.attire(companion['version']['definition'], row['culture'])
+    assert any(f'(at your wedding): {worn}.' in line for line in lines.values())
+    assert not any('Wearing right now (' in line and 'at your wedding' not in line for line in lines.values())
+    assert hint == f'Wearing {worn}.'

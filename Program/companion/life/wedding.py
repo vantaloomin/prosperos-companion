@@ -818,6 +818,23 @@ def caption(outing: dict) -> str:
     return generators.pick(f"wedding:{outing['id']}", 'married', bank()['married'])
 
 
+def dressed(connection, timeline_id: str, local_date: str, now: datetime | None = None) -> str:
+    """What they wear at their wedding on this local date ('a white wedding dress'), else ''. With `now`, only while
+    it is under way (companion/life/wardrobe.py: the chat's "Wearing right now" and the pictures)."""
+    from companion.characters import by_id
+    row = optional(connection, "SELECT * FROM weddings WHERE timeline_id=? AND local_date=? AND status IN ('planned', "
+                   "'done') ORDER BY created_at DESC LIMIT 1", (timeline_id, local_date))
+    timeline = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,)) if row else None
+    companion = by_id(connection, timeline['companion_id']) if timeline else None
+    if companion is None:
+        return ''
+    if now is not None:
+        outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'] or '',))
+        if not outing or outings.state(outings.view(outing), companion['version']['timezone'], now) != 'now':
+            return ''
+    return attire(companion['version']['definition'], row['culture'])
+
+
 def photo_wearing(connection, companion: dict, outing: dict) -> str:
     row = of_outing(connection, outing)
     culture = row['culture'] if row else 'modern'
