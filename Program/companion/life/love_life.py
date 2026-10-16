@@ -796,6 +796,9 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -
              rolled.get(row['consequence_id'], row['consequence_id']), row['created_at']))
         connection.execute('UPDATE relationship_steps SET other=? WHERE timeline_id=? AND other=?',
                            (f'love:{new}', new_id, f"love:{row['id']}"))
+        # The chapter they met in (copied before this) undoes the copy's partner, not the parent's.
+        connection.execute('UPDATE life_chapters SET undo=REPLACE(undo, ?, ?) WHERE timeline_id=?',
+                           (row['id'], new, new_id))
         copy_rolls(connection, f"love:{row['id']}:", f'love:{new}:', new_id, cutoff_date)
 
 

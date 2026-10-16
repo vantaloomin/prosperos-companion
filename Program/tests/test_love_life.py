@@ -322,3 +322,21 @@ def test_a_fork_keeps_how_their_rolls_went_before_it(client, mira, clock, monkey
         assert copied['ended_on'] is None
         assert consequences.recorded(connection, f"love:{copied['id']}:exclusive:1", love_life.NEXT)['picked'] == 1
     assert found['name'] == copied['name']
+
+
+def test_undoing_the_chapter_on_a_fork_takes_back_only_its_own_partner(client, mira, clock, monkeypatch, provider):  # noqa: F811
+    from conftest import send
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    arrange(client, monkeypatch, clock, 'relationship')
+    reconcile(client)
+    parent = current(client)['active_timeline_id']
+    sent = send(client, 'Tell me about them.', 'client-love-02')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id']}).json()['id']
+    assert client.post(f'/api/timelines/{fork}/activate').status_code == 200
+    [chapter] = client.get('/api/life/chapters').json()
+    assert client.post(f"/api/life/chapters/{chapter['id']}/undo").status_code == 200
+    with client.app.state.database.connect() as connection:
+        [kept] = love_life.partners(connection, parent, active=False)
+        [taken] = love_life.partners(connection, fork, active=False)
+    assert kept['ended_how'] is None and taken['ended_how'] == 'undone'
