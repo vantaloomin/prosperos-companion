@@ -770,9 +770,20 @@ def change(connection, companion: dict, consequence_id: str, option: int, now) -
 
 
 def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> list[dict]:
-    """A fork keeps the plan or the shared home as it stood then (timelines.py inserts the rows)."""
-    return [{**row, 'id': identifier(), 'timeline_id': new_id, 'chapter_id': None, 'home_item_id': None,
-             'message_id': None, 'out_until': None}
-            for row in many(connection, 'SELECT * FROM moving_in WHERE timeline_id=? AND decided_on<=?',
-                            (parent_id, cutoff_date))]
-
+    """A fork keeps the plan or the shared home as it stood then (timelines.py inserts the rows): a move or a move out
+    that came after the fork point has not happened in the copy yet (`advance` carries a move out again on its day),
+    and the outcome under Hidden values is copied with it, so it can still be changed there."""
+    rows = []
+    for row in many(connection, 'SELECT * FROM moving_in WHERE timeline_id=? AND decided_on<=? ORDER BY created_at',
+                    (parent_id, cutoff_date)):
+        found = {**row, 'id': identifier(), 'timeline_id': new_id, 'chapter_id': None, 'home_item_id': None,
+                 'message_id': None, 'out_until': None,
+                 'consequence_id': row['consequence_id'] and consequences.copy(
+                     connection, row['consequence_id'], new_id, f'moving_in:{new_id}:{len(rows) + 1}')}
+        rows.append(found)
+        if row['out_on'] and row['out_on'] > cutoff_date:
+            found.update(status='moved', out_on=None, out_who=None)
+        if found['status'] != 'moved_out' and (not row['moved_on'] or row['moved_on'] > cutoff_date):
+            found.update(status='waiting' if row['plan'] == 'you' and not row['move_on'] else 'moving',
+                         moved_on=None, ended_item_ids='[]')
+    return rows

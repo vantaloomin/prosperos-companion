@@ -299,3 +299,27 @@ def test_the_dishes_go_to_whoever_did_not_cook_every_day(client, monkeypatch):
             day = date(2026, 10, 5) + timedelta(days=offset)
             assert moving_in.turn(other, day, 'cooking') != moving_in.turn(other, day, 'dishes'), (timeline, day)
 
+
+def test_a_fork_from_before_moving_day_moves_in_again_on_its_own(client, provider, clock, monkeypatch, always):
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    sent = client.get('/api/conversation').json()['messages'][-1]
+    clock.advance(timedelta(days=1))
+    says(provider)
+    send(client, 'packing tomorrow', 'client-move-fork-1')  # The fork point is before moving day.
+    moving_day(client, clock)
+    assert row(client)['status'] == 'moved'
+    fork = client.post('/api/timelines', json={'message_id': sent['id']}).json()
+    assert client.post(f"/api/timelines/{fork['id']}/activate").status_code == 200
+    found = row(client)
+    assert (found['timeline_id'], found['status'], found['moved_on']) == (fork['id'], 'moving', None)
+    consequence = client.get(f"/api/life/consequences/{found['consequence_id']}").json()
+    assert consequence['timeline_id'] == fork['id']
+    reconcile(client)
+    assert row(client)['status'] == 'moved'
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        shared = moving_in.their_home(connection, companion, clock.now().date())
+        assert shared['shared'] and optional(connection, "SELECT id FROM life_chapters WHERE kind='move_in' AND "
+                                             'timeline_id=?', (fork['id'],))
+
