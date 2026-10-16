@@ -303,3 +303,26 @@ def test_a_branch_from_after_a_breakup_keeps_it_and_one_from_before_does_not(cli
     for name, stage in (('after', 'ended'), ('before', None)):
         assert client.post(f'/api/timelines/{forks[name]}/activate').status_code == 200
         assert view(client)['stage'] == stage, name
+
+
+def test_a_move_not_made_yet_waits_while_they_are_on_a_break(client, couple, provider, clock, monkeypatch):
+    from test_moving_in import ask_to_move_in, row
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # Yes, at your place.
+    monkeypatch.setattr(breakups, 'BREAK_DAYS', {2: 60, 3: 60})  # The break lasts past moving day.
+    ask_to_move_in(client, provider)
+    days = (date.fromisoformat(row(client)['move_on']) - clock.now().date()).days
+    says(provider)
+    send(client, 'I think we should take a break.', 'client-wait-1')
+    clock.advance(timedelta(days=days, hours=1))
+    reconcile(client)
+    assert row(client)['status'] == 'moving'
+    says(provider)
+    send(client, 'hi', 'client-wait-2')
+    assert "moving into the user's place" not in notes(provider)
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[-1]['option'])  # Yes, they try again.
+    says(provider)
+    send(client, 'can we try again?', 'client-wait-3')
+    assert view(client)['stage'] is None
+    clock.advance(timedelta(days=1, hours=1))
+    reconcile(client)
+    assert row(client)['status'] == 'moved'

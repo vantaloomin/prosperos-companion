@@ -302,12 +302,26 @@ def advance(connection, companion: dict, now) -> None:
     today = local_today(companion, now)
     if not reached(connection, companion, now) or chapter_undone(connection, row):
         move_out(connection, companion, now)
+    elif row['status'] in ('moving', 'waiting') and on_break(connection, companion):
+        hold(connection, row, today)
     elif row['status'] == 'moving' and row['move_on'] <= today.isoformat():
         move(connection, companion, row, now)
     elif row['status'] == 'waiting':
         settle_waiting(connection, companion, row, now)
     elif row['status'] == 'moved' and moved_away(connection, row):
         move_out(connection, companion, now, 'you')
+
+
+def on_break(connection, companion: dict) -> bool:
+    from companion.life import breakups  # Imported here: breakups reads the steps ladder, which this module reads too.
+    return breakups.apart(connection, companion) == 'break'
+
+
+def hold(connection, row: dict, today: date) -> None:
+    """On a break (Breaks and breakups) a move not made yet waits: moving day moves on a day at a time."""
+    if row['move_on'] and row['move_on'] <= today.isoformat():
+        connection.execute('UPDATE moving_in SET move_on=? WHERE id=?',
+                           ((today + timedelta(days=1)).isoformat(), row['id']))
 
 
 def follow_step(connection, companion: dict, now) -> None:
@@ -748,6 +762,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         who = 'You moved out' if row['out_who'] == 'them' else 'The user moved out'
         return [(f"moving-in:{row['id']}:out", f"- {who} of the place you shared on {day_text(row['out_on'])}. You "
                  'no longer live together.')]
+    if on_break(connection, companion):
+        return []  # The move waits while they are on a break (`hold`); the 'breakup' section says where they stand.
     lines = [(f"moving-in:{row['id']}:plan", f'- {plan_line(connection, row)}')]
     if row['message_id'] and row['message_id'] in fresh_ids:
         lines.append((f"moving-in:{row['id']}:just", '- You just agreed to live together, and this is how it will '
