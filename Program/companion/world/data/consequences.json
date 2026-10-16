@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause and closeness (for user:rough_patch: the Rough patches slider 0 to 3, what happened, and how close the companion feels to the user 1 to 5), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion.",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -671,6 +671,101 @@
               "days": 5,
               "note": "{name} feels exposed that {a} can read everything said in {group}",
               "told": "You feel a little exposed that the user let {a} read everything said in {group} before they joined."
+            }
+          ]
+        }
+      ]
+    },
+    "user:rough_patch": {
+      "label": "Whether a rough patch starts with {name} over {about}",
+      "options": [
+        {
+          "label": "{name} lets it go",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            }
+          ]
+        },
+        {
+          "label": "A rough patch with {name}",
+          "weight": 0.54,
+          "rules": [
+            {
+              "reader": "level",
+              "at_most": 0,
+              "times": 0,
+              "why": "rough patches are turned off"
+            },
+            {
+              "reader": "level",
+              "is": 1,
+              "times": 0.6,
+              "why": "on an easy life things blow over"
+            },
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 2,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "cause",
+              "is": "missed_plan",
+              "times": 1.25,
+              "why": "a plan with a date meant something"
+            },
+            {
+              "reader": "cause",
+              "is": "forgot_occasion",
+              "times": 1.5,
+              "why": "the day mattered to {name}"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_told",
+              "times": 2.8,
+              "why": "{name} trusted you with it"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_kept",
+              "times": 2.8,
+              "why": "you kept it from {name}"
+            },
+            {
+              "reader": "cause",
+              "is": "seeing_someone",
+              "times": 16,
+              "why": "you two are exclusive"
+            },
+            {
+              "reader": "cause",
+              "is": "called_off",
+              "times": 0.8,
+              "why": "calling off on the day is only a small thing"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 2,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} holds on to things"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "you two are close, so it hurts more"
             }
           ]
         }

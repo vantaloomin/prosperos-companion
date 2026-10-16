@@ -1466,6 +1466,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-facts, .profile-interests { list-style: none; display: flex; flex-wrap: wrap; margin: 12px 40px 0; padding: 0; }
 .profile-facts { gap: 6px 18px; color: var(--muted); font-size: 0.8125rem; }
 .profile-facts li { display: inline-flex; align-items: center; gap: 6px; }
+.profile-patch-text { display: inline-flex; align-items: center; gap: 6px; }
+.profile-facts li.profile-patch.has-reason { flex-basis: 100%; flex-wrap: wrap; gap: 4px 12px; }
+.profile-bubbles .profile-facts li.profile-patch.has-reason { justify-content: center; text-align: center; }
+.profile-patch .text-button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--muted); }
 .profile-interests { gap: 6px; }
 .profile-ties { margin-top: 6px; }
 .profile-interests li { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.75rem; }
@@ -1565,6 +1569,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @media (max-width: 720px) {
   .profile-cover { height: 96px; }
   .profile-who, .profile-bio, .profile-facts, .profile-interests { margin-inline: 16px; }
+  .profile-patch .text-button { min-height: 44px; }
+  .profile-facts li.profile-patch.has-reason .text-button { flex-basis: 100%; justify-content: flex-start; }
+  .profile-bubbles .profile-facts li.profile-patch.has-reason .text-button { justify-content: center; }
   .profile-tabs { padding: 0 8px; }
   .profile-community .profile-card { margin: 12px 12px 0; }
   .profile-retro .profile-card, .profile-retro .profile-tabs { margin-inline: 4px; }

@@ -73,6 +73,7 @@ def told_secret(connection, secret: dict, told: str, now):
         if companion and companion['active_timeline_id']:
             react(connection, companion, 'user:told_secret', f"secret:{secret['id']}:{told}>{holder}", {'a': listener},
                   local_day(companion, now), now)
+            rough_patches().told_secret(connection, companion, secret, listener, now)
 
 
 def showed_everything(connection, group: dict, added: str, now):
@@ -98,11 +99,18 @@ def daily(connection, companion: dict, now) -> int:
             if not said:
                 react(connection, companion, 'user:missed_plan', f"plan:{plan['id']}", {'plan': plan['value']},
                       day.isoformat(), now)
+                rough_patches().consider(connection, companion, 'missed_plan', f"plan:{plan['id']}",
+                                         f"the plan ({plan['value']}) came and went without a word from the user", now,
+                                         shown=f"over the plan ({plan['value']}) passing without a word")
                 found += 1
         what = occasion_on(connection, companion, day, timezone)
         if what and said and not any(MENTIONS.search(text) for text in said):
             react(connection, companion, 'user:forgot_occasion', f"occasion:{companion['active_timeline_id']}:{day.isoformat()}", {'occasion': what},
                   day.isoformat(), now)
+            rough_patches().consider(connection, companion, 'forgot_occasion',
+                                     f"occasion:{companion['active_timeline_id']}:{day.isoformat()}",
+                                     f'the user chatted with you on {what} without mentioning it', now,
+                                     shown=f"over you not mentioning {what.replace('your birthday', 'their birthday')}")
             found += 1
     return found
 
@@ -138,6 +146,12 @@ def occasion_on(connection, companion: dict, day: date, timezone) -> str | None:
     first = occasions.first_talk(connection, companion['active_timeline_id'], timezone)
     span = occasions.milestone(first, day) if first and day > first else None
     return f'{span} since you two first talked' if span else None
+
+
+def rough_patches():
+    """Rough patches (companion/life/rough_patches.py) reads this module, so it is imported when used."""
+    from companion.life import rough_patches as found
+    return found
 
 
 def local_day(companion: dict, now) -> str:
