@@ -19,7 +19,7 @@ export function HiddenValues({ name }: { name: string }) {
   const [error, setError] = useState('')
   const flag = (key: Flag, shown = false) => settings.data?.[key] ?? shown
   const refresh = () => {
-    for (const queryKey of [['today'], ['news'], ['reactions'], ['townsfolk'], ['grooming'], GROUPS_KEY, ['group'], ['pets'], ['home']]) void client.invalidateQueries({ queryKey })
+    for (const queryKey of [['today'], ['news'], ['reactions'], ['townsfolk'], ['grooming'], GROUPS_KEY, ['group'], ['pets'], ['home'], ['rough-patch']]) void client.invalidateQueries({ queryKey })
   }
   const save = async (change: Partial<Record<Flag, boolean>>) => {
     setError('')

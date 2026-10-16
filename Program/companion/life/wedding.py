@@ -54,8 +54,6 @@ PROPOSE_KINDS = {'restaurant': 'dinner', 'inn': 'dinner', 'tavern': 'dinner', 'p
 PROPOSE_AT = {'dinner': '19:30', 'walk': '18:00'}
 # The preferred evening: a Friday or a Saturday at least two days on.
 PROPOSE_DAYS = (4, 5)
-# How long things stay raw after the user says no, by the drama level (until Rough patches takes it over).
-NO_DAYS = (1, 2, 4, 7)
 SIZES = ('small', 'proper', 'big')
 SIZE_WORDS = {'small': 'a small wedding', 'proper': 'a proper wedding', 'big': 'a big wedding'}
 SIZE_LABELS = {'small': 'Small', 'proper': 'A proper wedding', 'big': 'Big'}
@@ -319,23 +317,17 @@ def proposal_lines(connection, outing: dict) -> str:
 
 
 def answered(connection, companion: dict, ask: dict, said: str, now: datetime) -> None:
-    """The user answered their proposal (companion/life/steps.py settles the step): yes plans the wedding, no leaves
-    things raw for a while."""
+    """The user answered their proposal (companion/life/steps.py settles the step): yes plans the wedding; no keeps things where
+    they were, and can start a rough patch (companion/life/rough_patches.py, sized by its slider)."""
     if said == 'yes':
         plan(connection, companion, now)
         return
     if said != 'no' or ask['side'] != 'them':
         return
-    from companion.memory import pairs
-    day = local_today(companion, now)
-    consequences.add_mark(connection, {
-        'timeline_id': companion['active_timeline_id'], 'consequence_id': ask['consequence_id'] or ask['id'],
-        'holder': pairs.companion_key(companion['id']), 'kind': 'mood', 'amount': -1, 'about': None,
-        'note': f"{first(companion['version']['definition']['name'])} is hurt the user said no to marrying them",
-        'told': "You asked the user to marry you and they said no. It hurt, and things feel a little raw between you "
-                "for now, though you still love them and you're staying together.",
-        'starts_on': day.isoformat(),
-        'ends_on': (day + timedelta(days=NO_DAYS[min(steps.drama(connection), 3)])).isoformat()}, stamp(now))
+    from companion.life import rough_patches
+    rough_patches.consider(connection, companion, 'proposal_no', f"proposal:{ask['id']}",
+                           'the user said no when you asked them to marry you', now,
+                           shown='over you saying no when they asked you to marry them')
 
 
 # Planning the wedding -------------------------------------------------------------------------------------------------

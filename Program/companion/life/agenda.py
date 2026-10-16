@@ -39,6 +39,7 @@ from companion.life import (
     own_plans,
     reactions,
     recommendations,
+    rough_patches,
     routine,
     steps,
     storylines,
@@ -150,6 +151,7 @@ def extend(connection, companion, world, now) -> dict:
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
     reactions.daily(connection, companion, now)
+    rough_patches.daily(connection, companion, now)
     steps.advance(connection, companion, now)
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)

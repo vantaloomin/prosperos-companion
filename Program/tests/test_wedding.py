@@ -157,15 +157,18 @@ def test_yes_makes_them_engaged_and_plans_the_wedding(client, clock, provider, i
         assert any(item.get('for') == 'ring' and item['savings'] for item in home['purchases'])
 
 
-def test_no_keeps_things_where_they_were_with_a_rough_spell(client, clock, provider, invites):
+def test_no_keeps_things_where_they_were_with_a_rough_patch(client, clock, provider, invites, monkeypatch):
+    from companion.life import rough_patches
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
     proposed(client, clock, provider)
     says(provider, 'Oh.')
     send(client, "No, I'm sorry, I can't.", 'client-wed-3')
     assert step_now(client, clock) == 'moving_in'
     assert panel(client) is None
     with client.app.state.database.connect() as connection:
-        marks = many(connection, "SELECT * FROM marks WHERE kind='mood'")
-    assert any('said no to marrying them' in mark['note'] for mark in marks)
+        patch = optional(connection, "SELECT * FROM rough_patches WHERE cause='proposal_no'")
+    assert patch is not None and patch['size'] == 'big' and 'marry' in patch['shown']
 
 
 def test_the_user_can_propose_and_the_engine_answers(client, clock, provider, monkeypatch):

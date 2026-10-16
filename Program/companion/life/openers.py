@@ -47,6 +47,7 @@ from companion.life import (
     own_plans,
     pacing,
     recommendations,
+    rough_patches,
     routine,
     steps,
     storylines,
@@ -424,15 +425,23 @@ PAST_WAITING = {'occasion', 'postcard'}
 # call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
 # (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
 # meet their people (companion/life/their_people.py), and the evening they plan to propose (companion/life/wedding.py).
-FINDERS = [occasion, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+FINDERS = [occasion, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
+
+
+# While a rough patch of the user's making is open (companion/life/rough_patches.py) they hold back: no check-ins,
+# invitations, knocks, calls or next steps of their own.
+COOLED = {check_in, usual_time, together.suggest_due, together.knock_due, calls.ring_due, kitchen.invite_due,
+          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due}
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
     timeline_id = companion['active_timeline_id']
     fired = {row['trigger_key'] for row in many(connection, 'SELECT trigger_key FROM openers WHERE timeline_id=?',
                                                  (timeline_id,))}
-    return [trigger for finder in FINDERS for trigger in finder(connection, companion, now) if trigger.key not in fired]
+    cool = rough_patches.cool(connection, companion, now)
+    return [trigger for finder in FINDERS if not (cool and finder in COOLED)
+            for trigger in finder(connection, companion, now) if trigger.key not in fired]
 
 
 def held(connection, companion, life, now, occasion: bool = False) -> str | None:

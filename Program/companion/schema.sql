@@ -2167,6 +2167,44 @@ CREATE TABLE IF NOT EXISTS calls (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS calls_timeline ON calls(timeline_id, created_at);
+-- Rough patches and making up (companion/life/rough_patches.py): something that could start a falling-out with a
+-- companion, rolled once (consequence_id, choice user:rough_patch) or started by them (fault 'companion'), and how it
+-- was mended. Open while not mended, picked to start and not faded by time; worked out when read.
+CREATE TABLE IF NOT EXISTS rough_patches (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  cause TEXT NOT NULL,
+  subject TEXT NOT NULL UNIQUE,
+  about TEXT NOT NULL DEFAULT '',
+  shown TEXT NOT NULL DEFAULT '',
+  fault TEXT NOT NULL CHECK (fault IN ('user', 'companion')),
+  size TEXT NOT NULL CHECK (size IN ('small', 'big')),
+  consequence_id TEXT,
+  outing_id TEXT,
+  needs INTEGER NOT NULL DEFAULT 1,
+  apologised_at TEXT,
+  gesture_at TEXT,
+  started_at TEXT NOT NULL,
+  started_on TEXT NOT NULL,
+  mended_at TEXT,
+  mended_by TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS rough_patches_timeline ON rough_patches(timeline_id, mended_at);
+-- A promise the user made in the chat that the app can check ("I'll call you tonight"): kept by a word from them
+-- after a gap, or a call, by `due_at`; broken ones can start a rough patch.
+CREATE TABLE IF NOT EXISTS rough_patch_promises (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL UNIQUE REFERENCES messages(id),
+  what TEXT NOT NULL,
+  due_at TEXT NOT NULL,
+  settled_at TEXT,
+  kept INTEGER,
+  created_at TEXT NOT NULL
+);
 -- Next steps (companion/life/steps.py): each step a pair has reached on its ladder, with the day. `other` is who the
 -- companion is paired with ('user' for the user); `how` says who moved it there: the app's pick at the start ('start',
 -- or 'history' from how they know each other), the companion bringing it up ('them'), the user ('you'), the Character

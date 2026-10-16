@@ -13,6 +13,7 @@ import { WORK_LEVELS } from '../character/workText'
 import { MEDIA_LEVELS } from '../character/mediaText'
 import { HOBBY_LEVELS } from '../character/hobbiesText'
 import { TOGETHER_LEVELS } from '../conversation/whereText'
+import { ROUGH_PATCH_LEVELS } from '../profile/roughPatchText'
 import { PACE_LEVELS } from '../character/stepsText'
 import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
 import { Notice } from '../../components/Feedback'
@@ -52,13 +53,14 @@ export function RealismIntro() {
 export function PaceSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
-  const level = DRAMA_LEVELS[data.drama] ?? DRAMA_LEVELS[1]
-  const looks = LOOKS_LEVELS[data.looks_realism] ?? LOOKS_LEVELS[2]
-  const work = WORK_LEVELS[data.work_realism] ?? WORK_LEVELS[2]
-  const guests = GUEST_LEVELS[data.guests_realism] ?? GUEST_LEVELS[2]
-  const media = MEDIA_LEVELS[data.media_realism] ?? MEDIA_LEVELS[2]
-  const pastimes = HOBBY_LEVELS[data.hobbies_realism] ?? HOBBY_LEVELS[2]
-  const together = TOGETHER_LEVELS[data.together_realism] ?? TOGETHER_LEVELS[2]
+  const level = step(DRAMA_LEVELS, data.drama, 1)
+  const looks = step(LOOKS_LEVELS, data.looks_realism, 2)
+  const work = step(WORK_LEVELS, data.work_realism, 2)
+  const guests = step(GUEST_LEVELS, data.guests_realism, 2)
+  const media = step(MEDIA_LEVELS, data.media_realism, 2)
+  const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
+  const together = step(TOGETHER_LEVELS, data.together_realism, 2)
+  const rough = step(ROUGH_PATCH_LEVELS, data.rough_patches_realism, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
@@ -81,6 +83,10 @@ export function PaceSettings() {
       <Field label={`Getting together: ${together.label}`} hint={together.hint} tip="You can always ask them over or out yourself, and say not now when someone knocks.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.together_realism} label={together.label}
           onChange={(together_realism) => void save({ together_realism })} />}
+      </Field>
+      <Field label={`Rough patches: ${rough.label}`} hint={rough.hint} tip="You can always clear the air yourself. Companions can be the ones at fault too, and then they apologise first.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.rough_patches_realism} label={rough.label}
+          onChange={(rough_patches_realism) => void save({ rough_patches_realism })} />}
       </Field>
       <LoveLifeSlider value={data.love_life} onChange={(love_life) => void save({ love_life })} />
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
@@ -169,6 +175,11 @@ export function HomeLifeSettings() {
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
+}
+
+/** A slider's step as shown, or the fallback step when the saved value is out of range. */
+function step<T>(levels: readonly T[], value: number, fallback: number): T {
+  return levels[value] ?? levels[fallback]
 }
 
 /** A four-step Realism slider (0 to 3) in the accent colour, with a tick at each step and the step's name read out. */
