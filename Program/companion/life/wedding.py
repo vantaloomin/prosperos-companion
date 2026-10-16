@@ -994,6 +994,17 @@ def paper_items(connection, data: dict, week: tuple[date, date]) -> list[dict]:
     return result
 
 
+def copy_proposals(connection, asks: dict[str, str], new_id: str) -> None:
+    """Their proposal behind an ask a branch keeps open (steps.copy_open): asked, the ring bought."""
+    for ask_id, copied in asks.items():
+        row = optional(connection, "SELECT * FROM proposals WHERE ask_id=? AND status='asked'", (ask_id,))
+        if row:
+            connection.execute('INSERT INTO proposals (id, timeline_id, ask_id, status, due_on, outing_id, ring, ring_cost, '
+                               "asked_on, created_at, settled_at) VALUES (?, ?, ?, 'asked', ?, ?, ?, ?, ?, ?, ?)",
+                               (identifier(), new_id, copied, row['due_on'], row['outing_id'], row['ring'],
+                                row['ring_cost'], row['asked_on'], row['created_at'], row['settled_at']))
+
+
 def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> None:
     """A wedding planned by the fork carries over (re-booked on the copy); one held after it is the copy's own."""
     for row in many(connection, "SELECT * FROM weddings WHERE timeline_id=? AND engaged_on<=? AND status!='called_off'",

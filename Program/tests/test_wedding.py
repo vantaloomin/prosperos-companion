@@ -364,3 +364,30 @@ def test_at_the_wedding_they_wear_their_wedding_clothes(client, clock, provider)
     assert any(f'(at your wedding): {worn}.' in line for line in lines.values())
     assert not any('Wearing right now (' in line and 'at your wedding' not in line for line in lines.values())
     assert hint == f'Wearing {worn}.'
+
+
+def test_a_branch_from_the_proposal_can_still_be_answered(client, clock, provider, invites, monkeypatch):
+    """Branch from here on the reply that asked: the question is still open on the branch, and no keeps things where they
+    were with a rough patch."""
+    from companion.life import rough_patches
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+    proposed(client, clock, provider)
+    asked = client.get('/api/conversation').json()['messages'][-1]
+    assert asked['role'] == 'companion'
+    clock.advance(timedelta(minutes=2))
+    says(provider, 'You said yes!')
+    send(client, 'Yes! Of course yes!', 'client-wed-13')
+    assert step_now(client, clock) == 'engaged'
+    branch = client.post('/api/timelines', json={'message_id': asked['id'], 'label': 'Say no'}).json()
+    assert client.post(f"/api/timelines/{branch['id']}/activate").status_code == 200
+    assert step_now(client, clock) == 'moving_in'
+    says(provider, 'Oh.')
+    send(client, "No, I'm sorry, I can't.", 'client-wed-14')
+    assert step_now(client, clock) == 'moving_in'
+    with client.app.state.database.connect() as connection:
+        ask = optional(connection, "SELECT * FROM step_asks WHERE timeline_id=? AND step='engaged'", (branch['id'],))
+        patch = optional(connection, "SELECT * FROM rough_patches WHERE timeline_id=? AND cause='proposal_no'",
+                         (branch['id'],))
+        ring = optional(connection, "SELECT * FROM proposals WHERE timeline_id=? AND status='asked'", (branch['id'],))
+    assert ask['status'] == 'no' and patch is not None and ring['ring_cost'] > 0
