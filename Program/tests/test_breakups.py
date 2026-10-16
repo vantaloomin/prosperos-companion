@@ -1,7 +1,7 @@
 """Breaks and breakups (companion/life/breakups.py): warnings that grow out of rough patches, a break, exes, and
 getting back together."""
 import json
-from datetime import timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -220,3 +220,17 @@ def test_an_ending_changed_on_today_moves_them_back_in_and_out_again(client, cou
     assert view(client)['stage'] == 'ended'
     with database.connect() as connection:
         assert not moving_in.living(connection, current(connection))
+
+
+def test_an_ex_writes_on_the_users_birthday_but_not_about_the_day_they_met(client, couple, provider, monkeypatch):
+    from companion.life import occasions
+    found = [occasions.occasion('anniversary', date.today(), 0, '100 days since you and the user first talked', '',
+                                span='100 days'),
+             occasions.occasion('user_birthday', date.today(), 0, "the user's birthday", ''),
+             occasions.occasion('own_birthday', date.today(), 0, 'your birthday', '')]
+    monkeypatch.setattr(occasions, 'occasions', lambda *_args: found)
+    assert {trigger.key.split(':')[1] for trigger in triggers(client) if trigger.kind == 'occasion'} == {
+        'anniversary', 'user_birthday', 'own_birthday'}
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-ex-1')
+    assert [trigger.key.split(':')[1] for trigger in triggers(client) if trigger.kind == 'occasion'] == ['user_birthday']

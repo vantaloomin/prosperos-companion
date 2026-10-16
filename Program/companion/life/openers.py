@@ -439,6 +439,13 @@ COOLED = {check_in, usual_time, together.suggest_due, together.knock_due, calls.
 # While apart (companion/life/breakups.py) texting drops off: on a break only what the break itself brings; exes still
 # say happy birthday, and may reach out about trying again.
 APART = {'break': {breakups.news_due}, 'ended': {breakups.news_due, occasion}}
+# The one occasion an ex still writes about: the user's birthday (not the day they first talked, a step's anniversary,
+# their own birthday or a family holiday).
+EX_OCCASION = 'occasion:user_birthday:'
+
+
+def apart_allows(held_back: str | None, trigger: Trigger) -> bool:
+    return held_back != 'ended' or trigger.kind != 'occasion' or trigger.key.startswith(EX_OCCASION)
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
@@ -450,7 +457,8 @@ def candidates(connection, companion, now) -> list[Trigger]:
     allowed = APART.get(held_back)
     cool = cool or held_back == 'cool'
     return [trigger for finder in FINDERS if not (cool and finder in COOLED) and (allowed is None or finder in allowed)
-            for trigger in finder(connection, companion, now) if trigger.key not in fired]
+            for trigger in finder(connection, companion, now) if trigger.key not in fired
+            and apart_allows(held_back, trigger)]
 
 
 def held(connection, companion, life, now, occasion: bool = False) -> str | None:
