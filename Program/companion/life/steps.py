@@ -89,7 +89,8 @@ ROMANCE = (
          'You are exclusive and you have both said "I love you". The user has not met your family and friends yet.'),
     Step('their_people', 'Met their people', 'met their people', 'met each other\'s people', 'meeting your people',
          (90, 45, 21), 3, True,
-         'You are in love, and the user has met your family and friends. You do not have keys to each other\'s places.'),
+         'You are in love, and you have agreed it is time the user met your family and friends (if they have not '
+         'met yet, it is planned). You do not have keys to each other\'s places.'),
     Step('key', 'A key to their place', 'with a key to their place', 'swapped keys', 'a key to your place',
          (120, 60, 30), 4, True,
          'You are in love and the user has a key to your place. You do not live together.'),
