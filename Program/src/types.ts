@@ -649,6 +649,8 @@ export interface CirclePerson {
   knows?: CircleTie[]
   /** How close they and the companion feel, both ways (companion/memory/pairs.py); read-only. */
   stage?: PairStage | null
+  /** What they think of you, once they have met you (companion/life/their_people.py). */
+  met?: CircleMet | null
   now: RoutineBlock | null
   recent: DiaryEntry[]
   /** Their pets (companion/life/pets.py), seeded by who they are. */
@@ -657,6 +659,19 @@ export interface CirclePerson {
   love?: string
   /** The latest roll for the two of them, only with Hidden values' odds on. */
   love_odds?: string | null
+}
+
+/** A circle person who has met the user, or is about to (companion/life/their_people.py). `before` is a couple who go
+ * back years, so they have always known you; `meeting` is a meet-up still to come ('soon') or under way ('now'). `consequence_id` only with Hidden
+ * values' odds on. */
+export interface CircleMet {
+  met_on: string | null
+  before: boolean
+  meeting: 'soon' | 'now' | null
+  impression: 'warm' | 'smitten' | 'curious' | 'protective' | 'wary'
+  warmth: number
+  label: string
+  consequence_id: string | null
 }
 
 /** Someone around the circle, a few layers out (companion/life/network.py); built on request, never stored. */
