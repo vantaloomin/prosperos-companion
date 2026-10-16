@@ -6,7 +6,9 @@ export const TOGETHER_KEY = ['outings']
 export type OutingState = 'planned' | 'now' | 'done' | 'cancelled'
 /** A pastime together (companion/life/hobbies.py) carries the pastime itself under `hobby`. */
 export interface OutingHobby { id: string; label: string; session: string; together: string; event: string | null; picture: string }
-export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null }
+/** Meeting their people (companion/life/their_people.py): who comes, and whether it is the first time you meet them. */
+export interface OutingPerson { id: string; name: string; role: string }
+export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; first?: boolean }
 export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
@@ -26,6 +28,8 @@ const WHAT: Record<string, string> = {
   walk: 'A walk', market: 'A look around', 'dinner-in': 'Dinner', hobby: 'A pastime',
   // Visits (companion/life/together.py).
   'visit-in': 'Time together', 'visit-yours': 'A visit', 'dinner-yours': 'Dinner',
+  // Meeting their people (companion/life/their_people.py).
+  'meet-family': 'Family dinner', 'meet-friends': 'Drinks with friends',
 }
 
 /** "Thu, Oct 8" from a local date. */
@@ -58,7 +62,7 @@ const JOINED: Record<string, string> = {
 }
 
 // Their place for dinner or a visit, and the user's own (companion/life/together.py).
-const HOMES: Record<string, string> = { home: 'Their place', 'your-home': 'Your place' }
+const HOMES: Record<string, string> = { home: 'Their place', 'your-home': 'Your place', 'family-home': 'Their family\'s home' }
 
 /** "Greek restaurant in Harbor East", "Irish pub in Canton", "Tex-Mex restaurant in Fells Point". */
 export function placeLine(place: OutingPlace): string {
@@ -69,6 +73,14 @@ export function placeLine(place: OutingPlace): string {
   const kind = !cuisine ? place.kind : PLACE_WORDS.test(cuisine) ? cuisine : `${cuisine} ${place.kind}`
   const text = place.neighborhood ? `${kind} in ${place.neighborhood}` : kind
   return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+/** "With Ana (mom), Rui (dad) and Leo (brother)", for meeting their people; '' for any other outing. */
+export function peopleLine(place: OutingPlace): string {
+  const people = (place.people ?? []).map((person) => `${person.name} (${person.role})`)
+  if (!people.length) return ''
+  const list = people.length === 1 ? people[0] : `${people.slice(0, -1).join(', ')} and ${people[people.length - 1]}`
+  return `With ${list}${place.first ? ', meeting you for the first time' : ''}`
 }
 
 /** When it is, and who picked the place. */

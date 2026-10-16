@@ -8,7 +8,8 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { stageText } from '../memories/pairText'
-import { displayName, personFacts, personNow, personTies, personWork } from './circleText'
+import { displayName, metText, personFacts, personNow, personTies, personWork } from './circleText'
+import { WhyItWent } from './WhyItWent'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
@@ -107,8 +108,20 @@ function PersonHeader({ person, companion }: { person: CirclePerson; companion: 
       {person.love && <p className="subtle pair-stage">{person.love}</p>}
       {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
       {person.love_odds && <WhyItWent id={person.love_odds} />}
+      <MetYou person={person} />
     </header>
   )
+}
+
+/** Whether they have met you, and what they think of you (companion/life/their_people.py), with the odds under
+ * Hidden values. */
+function MetYou({ person }: { person: CirclePerson }) {
+  const text = metText(person)
+  if (!text) return null
+  return <>
+    <p className="subtle met-you">{text}</p>
+    {person.met?.consequence_id && !person.met.meeting && <WhyItWent id={person.met.consequence_id} />}
+  </>
 }
 
 interface ActionsProps { gone: boolean; diary: boolean; network: boolean; onRename: () => void; onDiary: () => void; onNetwork: () => void; onRemove: () => void; onRestore: () => void }

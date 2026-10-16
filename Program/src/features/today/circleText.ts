@@ -1,4 +1,5 @@
 import type { CirclePerson } from '../../types'
+import { stepDate } from '../character/stepsText.ts'
 
 /** "close friend · she/her · 40" or "sister · married, born Smith · she/her · 31": how they relate to the companion, then what is known about them. */
 export function personFacts(person: CirclePerson): string {
@@ -32,4 +33,13 @@ export function personTies(person: CirclePerson): string | null {
   const others = known.filter((item) => item.how !== 'married' && item.how !== 'divorced').map((item) => `${item.name} (${item.how})`)
   const text = [...partners, ...(others.length ? [`Knows ${others.join(', ')}.`] : [])].join(' ')
   return text || null
+}
+
+/** "Met you Oct 17, 2026 · Liked you right away", "Knows you from way back · Warmed to you", or "Meeting you soon"
+ * (companion/life/their_people.py). What they think stays unsaid until they have met you. */
+export function metText(person: CirclePerson): string | null {
+  const met = person.met
+  if (!met) return null
+  if (met.meeting) return 'Meeting you soon'
+  return `${met.before ? 'Knows you from way back' : `Met you ${stepDate(met.met_on ?? '')}`} · ${met.label}`
 }
