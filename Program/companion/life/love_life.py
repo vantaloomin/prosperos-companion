@@ -780,7 +780,9 @@ def take_back(connection, found: dict, day: date, now) -> None:
 
 def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -> None:
     """A fork keeps the partners met by then, with their steps (copied by companion/timelines.py) moved to the copy's
-    own partner rows; what happened after stays with the parent."""
+    own partner rows, and the rolls made by then (so they are not rolled again, another way, in the past); what
+    happened after stays with the parent."""
+    rolled = copy_rolls(connection, f'love:{parent_id}:secret:', f'love:{new_id}:secret:', new_id, cutoff_date)
     for row in many(connection, 'SELECT * FROM love_partners WHERE timeline_id=? AND met_on<=?', (parent_id, cutoff_date)):
         new = identifier()
         ended = row['ended_on'] if row['ended_on'] and row['ended_on'] <= cutoff_date else None
@@ -790,7 +792,16 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (new, new_id, row['companion_id'], ids.get(row['person_id']), row['name'], row['details'], row['secret'],
              row['met_on'], ended, row['ended_how'] if ended else None, row['out_via'] if ended else None,
-             row['witness_id'] if ended else None, row['place'] if ended else None, row['consequence_id'],
-             row['created_at']))
+             row['witness_id'] if ended else None, row['place'] if ended else None,
+             rolled.get(row['consequence_id'], row['consequence_id']), row['created_at']))
         connection.execute('UPDATE relationship_steps SET other=? WHERE timeline_id=? AND other=?',
                            (f'love:{new}', new_id, f"love:{row['id']}"))
+        copy_rolls(connection, f"love:{row['id']}:", f'love:{new}:', new_id, cutoff_date)
+
+
+def copy_rolls(connection, prefix: str, new_prefix: str, new_id: str, cutoff_date: str) -> dict[str, str]:
+    """The love:* outcomes decided by the fork, onto the copy under its own subjects: {old id: copy's id}."""
+    rows = many(connection, 'SELECT id, subject FROM consequences WHERE subject LIKE ? AND decided_on<=?',
+                (f'{prefix}%', cutoff_date))
+    return {row['id']: consequences.copy(connection, row['id'], new_id, new_prefix + row['subject'][len(prefix):])
+            for row in rows}

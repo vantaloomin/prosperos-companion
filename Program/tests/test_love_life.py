@@ -299,3 +299,26 @@ def test_a_secret_that_came_out_while_the_user_was_away_still_reaches_them(clien
         [after] = love_life.partners(connection, companion['active_timeline_id'], active=False)
         assert after['ended_how'] == 'came_out' and after['ended_on'] == steps.local_today(companion, clock.now()).isoformat()
         assert len(love_life.came_out_due(connection, companion, clock.now())) == 1
+
+
+def test_a_fork_keeps_how_their_rolls_went_before_it(client, mira, clock, monkeypatch, provider):  # noqa: F811
+    from conftest import send
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    found = begin_partner(client, clock)
+    force(monkeypatch, 1)  # Not yet: exclusive is rolled again some weeks later.
+    clock.advance(timedelta(days=40))
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
+    sent = send(client, 'How are things with them?', 'client-love-01')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'How are you two?'}).json()['id']
+    assert client.post(f'/api/timelines/{fork}/activate').status_code == 200
+    force(monkeypatch, 2)  # Any roll made again on the fork would split them up, in the past.
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        assert companion['active_timeline_id'] == fork
+        love_life.advance(connection, companion, client.app.state.life.world, clock.now())
+        [copied] = love_life.partners(connection, fork, active=False)
+        assert copied['ended_on'] is None
+        assert consequences.recorded(connection, f"love:{copied['id']}:exclusive:1", love_life.NEXT)['picked'] == 1
+    assert found['name'] == copied['name']
