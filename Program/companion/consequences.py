@@ -140,7 +140,8 @@ def decide(connection, *, timeline_id: str, choice: str, subject: str, facts: di
 # (companion/life/pronouns.py). A "them" about someone in the story stays ("can talk them round").
 OWN = (('would bother them', 'would bother {them}'), ("says they're ", 'says {they} {are} '),
        ('fits their budget', 'fits {their} budget'), ('of their own', 'of {their} own'),
-       ('in their circle', 'in {their} circle'))
+       ('in their circle', 'in {their} circle'), ('nearer their work', 'nearer {their} work'),
+       ('at their place', 'at {their} place'), ('where they live', 'where {they} live{s}'))
 
 
 def said(options: list[dict], definition: dict) -> list[dict]:

@@ -2223,7 +2223,7 @@
           ]
         },
         {
-          "label": "{name} asks you to move to their city",
+          "label": "{name} asks you to move to {name}'s city",
           "weight": 1,
           "rules": [
             {
