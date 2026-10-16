@@ -21,6 +21,18 @@ def test_answers_are_read_from_the_message():
     assert steps.answer('how was work?') is None
 
 
+def test_answers_are_not_misread():
+    # E2E v0.13: excitement read as no, a hesitation or a plain refusal read as yes, "no" in passing read as no.
+    assert steps.answer("I can't wait! Yes!") == 'yes'
+    assert steps.answer('oh no, of course I will') == 'yes'
+    assert steps.answer('No pressure, but yes') == 'yes'
+    assert steps.answer("I'm not sure") == 'not_yet'
+    assert steps.answer('I need to think about it') == 'not_yet'
+    for text in ('Absolutely not', 'of course not', 'definitely not.', "I can't, sorry", 'no way'):
+        assert steps.answer(text) == 'no', text
+    assert steps.answer('I have no idea what to cook tonight') is None
+
+
 def test_steps_brought_up_are_read_from_the_message():
     assert steps.raised('Can we be exclusive?', ['exclusive', 'love']) == 'exclusive'
     assert steps.raised('will you be my girlfriend?', ['exclusive']) == 'exclusive'
@@ -32,6 +44,12 @@ def test_steps_brought_up_are_read_from_the_message():
     for text in ('she said I love you to him', "I don't want to be exclusive", 'if I said I love you, what then',
                  'I love your cooking', 'be exclusive', 'they were exclusive last year?'):
         assert steps.raised(text, ['exclusive', 'love']) is None, text
+    # Said sincerely, or as a plain wish: E2E v0.13.
+    assert steps.raised('I just wanted to say I love you', ['exclusive', 'love']) == 'love'
+    assert steps.raised('I have to tell you, I love you', ['exclusive', 'love']) == 'love'
+    assert steps.raised('I think we should be exclusive', ['exclusive', 'love']) == 'exclusive'
+    assert steps.raised('We should move in together', ['moving_in']) == 'moving_in'
+    assert steps.raised('I told my mom I love you', ['exclusive', 'love']) is None
     assert steps.confessed('I think I have feelings for you')
     assert not steps.confessed("I don't have feelings for you")
 

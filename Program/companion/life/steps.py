@@ -144,11 +144,14 @@ REASONS = {
 NOT_YET = re.compile(r"\b(?:not yet|not ready|too (?:soon|early|fast)|slow (?:down|things down)|take (?:it|things|this) "
                      r"slow|give me (?:some |a little |a bit (?:of |more )?|more )?time|need (?:some |a little |more )?time|"
                      r"maybe (?:later|someday|some day|one day|soon|down the line)|can we wait|wait a (?:bit|while|little)|"
-                     r"not right now|let me think|not just yet|in a while)\b", re.IGNORECASE)
-NO = re.compile(r"\b(?:no|nope|nah|i don'?t (?:think so|want|feel|see|love you)|i can'?t|not interested|just friends|(?:only |just )?see you as (?:a |just a |only a )?friend|only "
-                r"(?:as )?(?:a )?friends?|don'?t feel the same|not (?:in )?that way|i'?m not (?:looking|interested|in love)|"
-                r"i'?d rather (?:not|stay friends|keep (?:things|it))|rather we didn'?t|stay friends|i'?m seeing someone)\b",
-                re.IGNORECASE)
+                     r"not right now|let me think|think about it|not just yet|in a while|not sure|unsure|i don'?t know "
+                     r"yet)\b", re.IGNORECASE)
+NO = re.compile(r"\b(?:no(?! (?:idea|pressure|worries|problem|doubt|matter)\b)(?<!oh no)|nope|nah|i don'?t (?:think so|"
+                r"want|feel|see|love you)|i can'?t(?! (?:wait|believe|stop|imagine|help))|(?:absolutely|definitely|of "
+                r"course|certainly|obviously|totally) not|not interested|just friends|(?:only |just )?see you as (?:a |just "
+                r"a |only a )?friend|only (?:as )?(?:a )?friends?|don'?t feel the same|not (?:in )?that way|i'?m not "
+                r"(?:looking|interested|in love)|i'?d rather (?:not|stay friends|keep (?:things|it))|rather we didn'?t|stay "
+                r"friends|i'?m seeing someone)\b", re.IGNORECASE)
 YES = re.compile(r"\b(?:yes|yess+|yeah|yea|yep|yup|ya|of course|absolutely|definitely|i'?d love (?:that|to|it)|love to|"
                  r"(?:i )?love you too|i love you|me too|you(?:'re| are) mine too|let'?s do (?:it|this)|i'?m in|sure|"
                  r"totally|obviously|why not|ok(?:ay)?|deal|i want that|count me in|i do|feel the same|same here|i'?d like "
@@ -156,7 +159,7 @@ YES = re.compile(r"\b(?:yes|yess+|yeah|yea|yep|yup|ya|of course|absolutely|defin
 
 # The user bringing a step up themselves. An ask needs a question, or a plain wish ("I want", "let's").
 ASKS = re.compile(r"\?|\b(?:wanna|want to|do you want|would you|will you|can we|could we|should we|let'?s|i want|i'?d "
-                  r"love|i'?d like|how about|what if we)\b", re.IGNORECASE)
+                  r"love|i'?d like|how about|what if we|we should|we could|maybe we|i think we)\b", re.IGNORECASE)
 RAISES = {
     'exclusive': re.compile(r"\b(?:be (?:exclusive|official)|make (?:it|this|us|things) official|only (?:see|date) each "
                             r"other|be my (?:boyfriend|girlfriend|partner|significant other|sweetheart)|go steady|be "
@@ -189,6 +192,9 @@ FEELINGS = re.compile(r"\b(?:i (?:have|'?ve got|'?ve had|have had|got) (?:feelin
 # Words around a phrase that mean it isn't said now and meant: "if I said I love you", "she said I love you".
 NOT_MEANT = re.compile(r"\b(?:if|what if|imagine|pretend|suppose|said|says|say|told|tell|telling|asked|asks|wish|"
                        r"would you ever|when (?:she|he|they))\b[^.!?]*$", re.IGNORECASE)
+# ... except the user saying it themselves: "I just wanted to say I love you", "I have to tell you, I love you".
+SINCERE = re.compile(r"\bi (?:just |really |finally |have |had )?(?:wanted|want|have|had|need|needed|got|gotta|have been "
+                     r"meaning) to (?:say|tell you)(?: (?:it|this|something|that))?\b", re.IGNORECASE)
 
 
 @cache
@@ -640,7 +646,8 @@ def answer(text: str) -> str | None:
 
 
 def meant(sentence: str, found: re.Match) -> bool:
-    return not NOT_MEANT.search(sentence[:found.start()]) and not own_plans.PAST.search(sentence[:found.start()])
+    before = SINCERE.sub(' ', sentence[:found.start()])
+    return not NOT_MEANT.search(before) and not own_plans.PAST.search(before)
 
 
 def raised(text: str, keys: list[str]) -> str | None:
