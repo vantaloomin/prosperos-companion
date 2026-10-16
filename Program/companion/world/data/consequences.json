@@ -699,19 +699,19 @@
               "reader": "level",
               "at_most": 0,
               "times": 0,
-              "why": "Rough patches are turned off"
+              "why": "rough patches are turned off"
             },
             {
               "reader": "level",
               "is": 1,
               "times": 0.6,
-              "why": "an easy life: things blow over"
+              "why": "on an easy life things blow over"
             },
             {
               "reader": "level",
               "is": 3,
               "times": 2,
-              "why": "Rough patches are set to dramatic"
+              "why": "rough patches are set to dramatic"
             },
             {
               "reader": "cause",
@@ -729,13 +729,13 @@
               "reader": "cause",
               "is": "secret_told",
               "times": 2.8,
-              "why": "it was told in trust"
+              "why": "{name} trusted you with it"
             },
             {
               "reader": "cause",
               "is": "secret_kept",
               "times": 2.8,
-              "why": "it was kept from {name}"
+              "why": "you kept it from {name}"
             },
             {
               "reader": "cause",
@@ -747,7 +747,7 @@
               "reader": "cause",
               "is": "called_off",
               "times": 0.8,
-              "why": "a plan called off on the day stings a little"
+              "why": "calling off on the day is only a small thing"
             },
             {
               "reader": "minds",
@@ -765,7 +765,7 @@
               "reader": "closeness",
               "at_least": 4,
               "times": 1.3,
-              "why": "it means more from someone this close"
+              "why": "you two are close, so it hurts more"
             }
           ]
         }
