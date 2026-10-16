@@ -68,21 +68,35 @@ function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
 }
 
 const LEADS: [ReasonMove, string][] = [
-  ['more', 'More likely because'], ['possible', 'Possible because'], ['less', 'Less likely because'], ['out', 'Ruled out because'],
+  ['possible', 'Possible because'], ['more', 'More likely because'], ['less', 'Less likely because'], ['out', 'Ruled out because'],
 ]
+const SHOWN = 3
 
 /** An option's reasons under the way each one pushed it ("Less likely because Mira doesn't feel close enough yet"),
- * so a reason that lowered the odds never reads as one for them. Outcomes from before v0.13 keep the plain list. */
+ * so a reason that lowered the odds never reads as one for them. A ruled-out option shows only why it was ruled out.
+ * Outcomes from before v0.13 keep the plain list. */
 export function Reasons({ reasons, moves }: { reasons: string[]; moves?: ReasonMove[] }) {
   if (reasons.length === 0) return null
   if (moves?.length !== reasons.length) return <p className="subtle">{reasons.join('. ')}.</p>
+  const leads = moves.includes('out') ? LEADS.filter(([way]) => way === 'out') : LEADS
   return (
-    <>
-      {LEADS.map(([way, lead]) => {
+    <div>
+      {leads.map(([way, lead]) => {
         const these = reasons.filter((_, index) => moves[index] === way)
-        return these.length > 0 && <p key={way} className="subtle">{lead} {listed(these)}.</p>
+        return these.length > 0 && <ReasonGroup key={way} lead={lead} reasons={these} />
       })}
-    </>
+    </div>
+  )
+}
+
+function ReasonGroup({ lead, reasons }: { lead: string; reasons: string[] }) {
+  const [all, setAll] = useState(false)
+  if (all || reasons.length <= SHOWN) return <p className="subtle reason-group">{lead} {listed(reasons)}.</p>
+  return (
+    <p className="subtle reason-group">
+      {lead} {reasons.slice(0, SHOWN).join(', ')} and{' '}
+      <button type="button" className="text-button" onClick={() => setAll(true)}>{reasons.length - SHOWN} more</button>.
+    </p>
   )
 }
 
