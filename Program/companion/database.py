@@ -373,11 +373,26 @@ def upgrade_needed(path: Path) -> bool:
         return False  # An empty database without an identity yet.
 
 
+# Settings > Realism's sliders and switches from v0.13 on a world from before them, as its preset sets them
+# (src/features/settings/presetChoices.ts), told apart by its drama: an easy life keeps breakups and friends falling for
+# the user off, and a dramatic one stays dramatic. Any other world takes the columns' defaults (a real life).
+UPGRADE_REALISM = {0: {'rough_patches_realism': 1, 'steps_pace': 1, 'love_life': 1, 'friends_fall': 0, 'breakups': 0},
+                   3: {'rough_patches_realism': 3, 'steps_pace': 3, 'love_life': 3}}
+
+
 def add_columns(connection):
+    added = set()
     for table, column, definition in ADDED_COLUMNS:
         existing = {row[1] for row in connection.execute(f'PRAGMA table_info({table})')}
         if column not in existing:
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+            added.add((table, column))
+    if ('life_settings', 'breakups') in added:
+        row = connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()
+        picked = UPGRADE_REALISM.get(row[0]) if row else None
+        if picked:
+            connection.execute(f"UPDATE life_settings SET {', '.join(f'{key}=?' for key in picked)} WHERE id=1",  # noqa: S608
+                               tuple(picked.values()))
 
 
 def widen_context_categories(connection):
