@@ -1,4 +1,4 @@
-/** Engagement and wedding (companion/life/wedding.py): the Life admin panel's wording, kept apart for tests. */
+/** Engagement and wedding (companion/life/wedding.py): the wedding card's wording, kept apart for tests. */
 import type { WeddingPlan } from '../../types.ts'
 import { calendarDay } from '../../when.ts'
 
@@ -19,6 +19,26 @@ export function budgetLine(plan: Pick<WeddingPlan, 'budget_text' | 'share_text'>
 export function guestCount(plan: Pick<WeddingPlan, 'guest_count' | 'size'>): string {
   const who = plan.size === 'small' ? 'close family and a few friends' : 'family and friends from both sides'
   return `About ${plan.guest_count} guests, ${who}.`
+}
+
+/** "With Ana (Mira's sister), Jo (your friend) and about 90 more" on the scrapbook page. */
+export function guestsLine(guests: string[], more: number): string {
+  if (!more) return `With ${guests.join(', ')}`
+  return `With ${guests.join(', ')} and about ${more} more`
+}
+
+/** "Booked the wedding venue, Aug 17." or "Book the wedding venue by Aug 17.": the plan's one task as a line. */
+export function taskLine(task: { title: string; date: string; done: boolean; done_text?: string }, day: (date: string) => string): string {
+  return task.done ? `${task.done_text || task.title}, ${day(task.date)}.` : `${task.title} by ${day(task.date)}.`
+}
+
+// Today's "Change the plan" opens the Character page; the wedding card scrolls itself into view once it is there.
+let opening = false
+export function openWedding(): void { opening = true }
+export function takeOpening(): boolean {
+  const found = opening
+  opening = false
+  return found
 }
 
 /** Tomorrow as a local ISO date: the earliest day the wedding can move to. */

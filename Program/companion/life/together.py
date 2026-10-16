@@ -490,8 +490,13 @@ def view(connection, companion: dict, now: datetime) -> dict:
     if outing is None:
         timezone = companion['version']['timezone']
         since = (now.astimezone(zone(timezone)).date() - timedelta(days=1)).isoformat()
-        outing = next((item for item in outings.in_force(connection, companion['active_timeline_id'], since)
-                       if outings.undoable_home(item, now)), None)
+        found_in = outings.in_force(connection, companion['active_timeline_id'], since)
+        outing = next((item for item in found_in if outings.undoable_home(item, now)), None)
+        if outing is None and found['state'] == 'apart':
+            # Your wedding stays on the strip ("Married today at ...") for the rest of its day.
+            today = now.astimezone(zone(timezone)).date().isoformat()
+            outing = next((item for item in found_in if item['activity'] == 'wedding' and item['local_date'] == today
+                           and outings.state(item, timezone, now) == 'done'), None)
         if outing:
             found = {**found, 'kind': kind_of(outing), 'text': together_text(outing, companion)}
     if outing:

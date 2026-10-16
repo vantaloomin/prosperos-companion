@@ -68,7 +68,7 @@ SMALL_FRIENDS = 3
 # Places nobody marries at, whatever their kind.
 NOT_VENUES = re.compile(r'\b(?:station|hospital|clinic|campus|transit|airport|stadium|arena|gym|fitness|library|'
                         r'prison|jail|court|police|school|office|parking|mall|outlet|pizza|burger|pancake|sandwich|'
-                        r'taco|hot dog|diner|deli|food hall)\b', re.IGNORECASE)
+                        r'taco|hot dog|diner|deli|food hall|murals?|street|avenue|paseo|surgical)\b', re.IGNORECASE)
 # Words in a place's description that mark it as somewhere people marry ("Victorian glass houses", "a 1926 ballroom").
 WEDDING_WORDS = re.compile(r'\b(?:chapel|church|cathedral|garden|conservatory|ballroom|mansion|manor|estate|winery|'
                            r'pavilion|terrace|lighthouse|temple|shrine|great hall|opera hall|castle|palace|glass ?houses?)',
@@ -79,6 +79,11 @@ EATERIES = {'restaurant', 'tavern'}
 # a music club hardly ever.
 VENUE_KINDS = {'garden': 1.0, 'park': 0.8, 'landmark': 0.8, 'temple': 1.0, 'inn': 0.8, 'museum': 0.5, 'beach': 0.4,
                'restaurant': 0.08, 'venue': 0.08, 'tavern': 0.3}
+# Outdoor places, kept out of a wedding in a month whose typical high is below COLD_F (a park in a Chicago February).
+OUTDOOR = {'garden', 'park', 'beach'}
+OUTDOOR_NAMES = re.compile(r'\b(?:gate|lighthouse|fountain|statue|bridge|plaza|square|pier|monument|beach|park|'
+                           r'gardens?|lawn|meadow|trail|lakefront|waterfront|promenade|fort|harbou?r)\b', re.IGNORECASE)
+COLD_F = 55
 VENUE = '~venue'
 SHOWN_GUESTS = 8
 # How long the ceremony takes at the start of the day, in minutes.
@@ -375,7 +380,7 @@ def plan(connection, companion: dict, now: datetime) -> dict | None:
         'culture, budget, share, guests, guest_count, created_at, updated_at) '
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (row_id, timeline_id, reached['on'], size, outcome['id'] if outcome else None, day.isoformat(), rules['at'],
-         rules['until'], encode(venue_for(data, rules, size, seed)), culture, budget, share, encode(guests), count,
+         rules['until'], encode(venue_for(data, rules, size, seed, day=day)), culture, budget, share, encode(guests), count,
          timestamp, timestamp))
     row = view(one(connection, 'SELECT * FROM weddings WHERE id=?', (row_id,)))
     book(connection, companion, row, now)
@@ -420,9 +425,15 @@ def budget_for(definition: dict, rules: dict, size: str) -> tuple[float, float]:
     return total, round(total * rules['share'], 2)
 
 
-def venue_for(data: dict | None, rules: dict, size: str, seed: str, without: tuple = ()) -> dict:
-    """A venue in their city that fits the customs, the size and the budget; words like chapel or garden count most.
-    Somewhere unnamed when the city isn't known."""
+def cold(data: dict | None, day: date | None) -> bool:
+    """Whether the day falls in a month too cold for an outdoor wedding there, by the city's climate."""
+    climate = (data or {}).get('climate')
+    return bool(day and climate) and climate['months'][day.month - 1]['high_f'] < COLD_F
+
+
+def venue_for(data: dict | None, rules: dict, size: str, seed: str, without: tuple = (), day: date | None = None) -> dict:
+    """A venue in their city that fits the customs, the size and the budget; words like chapel or garden count most,
+    and nowhere outdoors in a cold month. Somewhere unnamed when the city isn't known."""
     if not data:
         return {'id': VENUE, 'name': 'the wedding venue', 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
                 'cuisine': '', 'city': '', 'city_id': '', 'spots': []}
@@ -432,6 +443,9 @@ def venue_for(data: dict | None, rules: dict, size: str, seed: str, without: tup
                and not NOT_VENUES.search(item['name'])]
     if not options:
         options = [item for item in data['places'] if item['id'] not in without] or data['places']
+    if cold(data, day):
+        options = [item for item in options if item['kind'] not in OUTDOOR and not OUTDOOR_NAMES.search(item['name'])
+                   ] or options
     dear = {'small': {'free', '', '$', '$$'}, 'proper': {'$$', '$$$'}, 'big': {'$$$', '$$$$'}}[size]
 
     def weight(item: dict) -> float:
@@ -633,13 +647,18 @@ def change(connection, companion: dict, now: datetime, *, day: date | None = Non
         fields |= {'size': size, 'budget': budget, 'share': share, 'guests': encode(guests),
                    'guest_count': max(low + int(generators.unit(seed, 'guests') * (high - low)),
                                       sum(item['invited'] for item in guests) + 2)}
-    if venue:
-        data = outings.city_data(connection, companion['version']['definition'])
+    data = outings.city_data(connection, companion['version']['definition']) if venue or day else None
+    # Moving the day into a cold month takes the wedding indoors.
+    place = row['venue'] or {}
+    outdoors = day is not None and cold(data, day) and (place.get('kind') in OUTDOOR
+                                                         or bool(OUTDOOR_NAMES.search(place.get('name', ''))))
+    if venue or outdoors:
         rolls = row['venue_rolls'] + 1
         seed = f"wedding:{row['timeline_id']}:{row['engaged_on']}:{rolls}"
         found = venue_for(data, customs(row['culture']), fields.get('size', row['size']), seed,
-                          without=((row['venue'] or {}).get('id'),))
-        require(found['id'] != (row['venue'] or {}).get('id'), 'There is nowhere else like it in their city.', 409)
+                          without=((row['venue'] or {}).get('id'),), day=day or date.fromisoformat(row['local_date']))
+        require(not venue or found['id'] != (row['venue'] or {}).get('id'), 'There is nowhere else like it in their city.',
+                409)
         fields |= {'venue': encode(found), 'venue_rolls': rolls}
     if guest is not None:
         guests = row['guests']
@@ -678,7 +697,8 @@ def panel(connection, companion: dict, now: datetime, show_odds: bool) -> dict |
     found = money.profile(definition)
     currency = found.city['currency'] if found else None
     venue = row['venue'] or {}
-    tasks = many(connection, "SELECT title, local_date, status FROM life_admin WHERE timeline_id=? AND key LIKE ? AND "
+    prep = {item['key']: item['done'] for item in customs(row['culture'])['prep']}
+    tasks = many(connection, "SELECT key, title, local_date, status FROM life_admin WHERE timeline_id=? AND key LIKE ? AND "
                  "status!='removed' ORDER BY local_date", (row['timeline_id'], f"wedding:{row['id']}:%"))
     return {'id': row['id'], 'status': row['status'], 'engaged_on': row['engaged_on'], 'date': row['local_date'],
             'at': row['at_time'], 'until': row['until_time'], 'size': row['size'], 'size_label': SIZE_LABELS[row['size']],
@@ -689,8 +709,8 @@ def panel(connection, companion: dict, now: datetime, show_odds: bool) -> dict |
             'share_text': money.amount(row['share'], currency) if currency and row['share'] else '',
             'guest_count': row['guest_count'], 'guests': row['guests'], 'moved_by_user': bool(row['moved_by_user']),
             'customs': customs(row['culture'])['ceremony'],
-            'tasks': [{'title': task['title'], 'date': task['local_date'], 'done': task['status'] == 'done'}
-                      for task in tasks],
+            'tasks': [{'title': task['title'], 'date': task['local_date'], 'done': task['status'] == 'done',
+                       'done_text': prep.get(task['key'].rsplit(':', 1)[-1], '').capitalize()} for task in tasks],
             'consequence_id': row['consequence_id'] if show_odds else None}
 
 
@@ -920,11 +940,12 @@ def scrapbook_page(connection, companion: dict, low: str, high: str) -> dict | N
                     (outing['photo_post_id'] or '',)) if outing else None
     guests = [f"{guest['name']} ({guest['who']})" if guest['name'] else guest['who'].capitalize()
               for guest in found['guests'] if guest['invited']][:12]
+    more = found['guest_count'] - len(guests) if guests else 0
     venue = (found['venue'] or {}).get('name', 'the venue')
     return {'kind': 'wedding', 'title': 'Your wedding', 'date': found['local_date'],
             'text': f"Married at {venue}, with about {found['guest_count']} guests.",
             'items': [{'text': moment.capitalize()} for moment in customs(found['culture'])['moments']],
-            'guests': guests, 'photo': post['image_ref'] if post and post['image_ref'] else None,
+            'guests': guests, 'more': max(more, 0), 'photo': post['image_ref'] if post and post['image_ref'] else None,
             'photo_alt': f"{companion['version']['name']} on your wedding day at {venue}"}
 
 

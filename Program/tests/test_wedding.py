@@ -229,6 +229,10 @@ def test_the_wedding_day_makes_them_married(client, clock, provider):
     send(client, 'I can not believe it', 'client-wed-5')
     text = prompt(provider)
     assert 'your wedding day' in text and 'Your guests are here' in text
+    at(clock, found['date'], found['until'])
+    clock.advance(timedelta(minutes=10))
+    where = client.get('/api/life/where').json()  # "Married today at ..." stays on the strip for the rest of the day.
+    assert where['outing']['activity'] == 'wedding' and where['outing']['state'] == 'done'
     at(clock, found['date'], '23:59')
     clock.advance(timedelta(hours=2))
     advance(client, clock)
@@ -268,3 +272,14 @@ def test_customs_follow_the_city_and_era():
     assert wedding.customs('nowhere') == wedding.bank()['customs']['modern']
     assert wedding.attire({'name': 'Ana', 'pronouns': 'she/her'}, 'us')
     assert scrapbook  # The page joins the scrapbook (companion/life/scrapbook.py).
+
+
+def test_a_winter_wedding_in_a_cold_city_is_held_indoors():
+    from companion.world import catalog
+    data = catalog.city(catalog.resolve('Chicago', [])['city'], [])
+    rules = wedding.customs(wedding.culture_of(data))
+    assert wedding.cold(data, date(2027, 2, 20)) and not wedding.cold(data, date(2027, 7, 20))
+    for seed in range(30):
+        for size in wedding.SIZES:
+            found = wedding.venue_for(data, rules, size, f'winter-{seed}', day=date(2027, 2, 20))
+            assert found['kind'] not in wedding.OUTDOOR and not wedding.OUTDOOR_NAMES.search(found['name']), found['name']

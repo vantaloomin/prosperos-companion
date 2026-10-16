@@ -1875,6 +1875,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .wedding-line { font-weight: 500; line-height: 1.5; }
 .wedding-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 12px; margin-top: 4px; }
 .wedding-venue { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 0.875rem; }
+.wedding-venue-actions { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
 .wedding-guests { border: 0; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
 .wedding-guests legend { font-size: 0.8125rem; font-weight: 600; color: var(--muted); padding: 0; margin-bottom: 4px; }
 .wedding-guests .check-row { display: flex; gap: 8px; align-items: center; font-size: 0.875rem; min-height: 32px; }
@@ -2109,6 +2110,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .year-items li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .year-items li:not(:has(time)) { grid-template-columns: 1fr; }
 .year-items time { color: var(--muted); font-size: 0.8125rem; padding-top: 2px; }
+.year-day-label { margin: 4px 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+.year-day { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 1rem; line-height: 1.4; }
 .year-closing { margin: 0; font-size: 1.375rem; line-height: 1.45; }
 .year-page-sparse { justify-content: center; }
 .year-page-sparse .year-quote blockquote, .year-page-sparse .year-items li { font-size: 1.1875rem; line-height: 1.55; }

@@ -1238,7 +1238,7 @@ export type ScrapbookPage =
   | { kind: 'jokes'; title: string; items: ScrapbookItem[]; note: string | null }
   | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
   | { kind: 'closing'; title: string; text: string }
-  | { kind: 'wedding'; title: string; date: string; text: string; items: ScrapbookItem[]; guests: string[]; photo: string | null; photo_alt: string }
+  | { kind: 'wedding'; title: string; date: string; text: string; items: ScrapbookItem[]; guests: string[]; more?: number; photo: string | null; photo_alt: string }
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
 /** Our history at a glance: one line a week lately, a month, then a year further back (companion/memory/history.py).
  * `corrected` is the user's own words, an empty string when they left the line out, or null for the app's line. */
@@ -1856,7 +1856,7 @@ export interface WeddingPlan {
   size: 'small' | 'proper' | 'big'; size_label: string; sizes: { key: string; label: string }[]
   venue: { id: string; name: string; kind: string; neighborhood: string; mapped: boolean }
   budget_text: string; share_text: string; guest_count: number; guests: WeddingGuest[]; moved_by_user: boolean
-  customs: string; tasks: { title: string; date: string; done: boolean }[]; consequence_id: string | null
+  customs: string; tasks: { title: string; date: string; done: boolean; done_text?: string }[]; consequence_id: string | null
 }
 
 /** The Character page's Life admin panel (/api/life/admin). */

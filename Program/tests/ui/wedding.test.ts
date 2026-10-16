@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { budgetLine, guestCount, planLine, tomorrow } from '../../src/features/character/weddingText.ts'
+import { budgetLine, guestCount, guestsLine, planLine, taskLine, tomorrow } from '../../src/features/character/weddingText.ts'
 import { outingTitle } from '../../src/features/today/outingText.ts'
-import { stripLine, type WhereState } from '../../src/features/conversation/whereText.ts'
+import { stripAction, stripLine, type WhereState } from '../../src/features/conversation/whereText.ts'
 
 const venue = { id: 'bal-belvedere', name: 'The Belvedere', kind: 'venue', neighborhood: 'Mount Vernon', mapped: true }
 const plan = { size: 'proper' as const, size_label: 'A proper wedding', date: '2027-06-12', venue, guest_count: 80 }
@@ -23,9 +23,18 @@ test('the wedding day says so on Today and in the strip', () => {
   const where: WhereState = { state: 'together', kind: 'out', text: '', outing }
   const line = stripLine(where, 'Mira')
   assert.equal(line?.lead, 'Your wedding at ')
+  assert.deepEqual(stripAction(where), { action: 'home', label: 'Call it a night' })
   assert.deepEqual(line?.place, { id: 'bal-belvedere', name: 'The Belvedere' })
   const unmapped = stripLine({ ...where, outing: { ...outing, place: { ...place, id: '~venue', name: 'the wedding venue' } } }, 'Mira')
   assert.equal(unmapped?.lead, 'Your wedding at the wedding venue')
   assert.equal(unmapped?.place, null)
   assert.equal(stripLine({ ...where, outing: { ...outing, state: 'done' } }, 'Mira')?.lead, 'Married today at ')
+})
+
+test('the scrapbook names the guests and counts the rest, and one task reads as a line', () => {
+  assert.equal(guestsLine(['Ana (Mira\'s sister)'], 0), "With Ana (Mira's sister)")
+  assert.equal(guestsLine(['Ana', 'Jo'], 90), 'With Ana, Jo and about 90 more')
+  const day = (date: string) => date.slice(5)
+  assert.equal(taskLine({ title: 'Book the wedding venue', date: '2027-08-17', done: true, done_text: 'Booked the wedding venue' }, day), 'Booked the wedding venue, 08-17.')
+  assert.equal(taskLine({ title: 'Book the wedding venue', date: '2027-08-17', done: false }, day), 'Book the wedding venue by 08-17.')
 })

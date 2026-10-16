@@ -15,7 +15,8 @@ export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: Wh
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
 export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string }
-/** The strip's one button: Head home, Say goodbye, Not now, or Undo just after one of those. */
+/** The strip's one button: Head home (Call it a night at your own wedding), Say goodbye, Not now, or Undo just after
+ * one of those. */
 export interface StripAction { action: 'home' | 'undo'; label: string }
 /** A call's buttons: Decline and Answer while it rings, End call while it is on, Call back after one you missed. */
 export interface CallAction { action: 'answer' | 'decline' | 'end' | 'call'; label: string }
@@ -109,7 +110,12 @@ export function stripAction(where: WhereState | undefined): StripAction | null {
   if (outing.state === 'done') return outing.undo ? { action: 'undo', label: 'Undo' } : null
   if (where.kind === 'knock' && outing.not_now) return { action: 'home', label: 'Not now' }
   if (where.kind === 'yours' || where.kind === 'knock') return { action: 'home', label: 'Say goodbye' }
-  return { action: 'home', label: 'Head home' }
+  return { action: 'home', label: leaveLabel(outing) }
+}
+
+/** Heading home from your own wedding reads oddly, so the long day ends with Call it a night. */
+function leaveLabel(outing: WhereOuting): string {
+  return outing.activity === 'wedding' ? 'Call it a night' : 'Head home'
 }
 
 /** Whether the chat writes in person now: texting habits like bursts stop while they are together. */

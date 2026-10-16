@@ -8,6 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { imageFile } from '../feed/imageState'
 import { ALL_OF_IT, SCRAPBOOKS_KEY, rememberMode, rememberedMode, type ScrapbookMode, dayText, firstKey, pageAt, spanText, sparse } from './yearText'
+import { guestsLine } from '../character/weddingText'
 import { AllOfIt } from './AllOfIt'
 import { reducedMotion } from '../../motion'
 
@@ -172,8 +173,9 @@ function WeddingPage({ page }: { page: Extract<ScrapbookPage, { kind: 'wedding' 
     <h2>{page.title}</h2>
     {page.photo && <figure className="year-wedding-photo"><img src={imageFile(page.photo)} alt={page.photo_alt} loading="lazy" /></figure>}
     <p className="year-closing">{page.text}</p>
-    <Items items={page.items} />
-    {page.guests.length > 0 && <p className="subtle">With {page.guests.join(', ')}</p>}
+    <h3 className="year-day-label">The day</h3>
+    <ul className="year-day">{page.items.map((item) => <li key={item.text}>{item.text}</li>)}</ul>
+    {page.guests.length > 0 && <p className="subtle">{guestsLine(page.guests, page.more ?? 0)}</p>}
   </>
 }
 
