@@ -210,7 +210,8 @@ def seeing_someone(connection, companion: dict, other: str, now: datetime, subje
 
 def seen_with_others(connection, companion: dict, now: datetime) -> None:
     """Once this pair is exclusive (companion/life/steps.py), the user's other romances (any other companion on the
-    romance ladder) come to their notice in the next daily pass: each one rolls once (`seeing_someone`)."""
+    romance ladder that the user hasn't broken up with) come to their notice in the next daily pass: each one rolls
+    once (`seeing_someone`)."""
     from companion.characters import by_id
     from companion.life import steps
     if level(connection) < 2 or not steps.exclusive(connection, companion, now):
@@ -218,7 +219,7 @@ def seen_with_others(connection, companion: dict, now: datetime) -> None:
     for row in many(connection, 'SELECT id FROM companions WHERE id<>?', (companion['id'],)):
         other = by_id(connection, row['id'])
         found = steps.state(connection, other, now, write=False) if other else None
-        if found and found['ladder'] == 'romance':
+        if found and found['ladder'] == 'romance' and steps.apart(connection, other) != 'ended':  # Not an ex.
             seeing_someone(connection, companion, other['version']['name'], now,
                            subject=f"seeing:{companion['id']}:{other['id']}")
 

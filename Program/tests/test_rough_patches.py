@@ -12,7 +12,7 @@ from test_together import mira, notes, says
 from companion import consequences, moods
 from companion.characters import current, insert_version
 from companion.database import identifier
-from companion.life import love_life, openers, rough_patches
+from companion.life import breakups, love_life, openers, rough_patches
 from companion.models import CharacterDefinition
 
 BANKS = Path(__file__).resolve().parents[1] / 'companion' / 'world' / 'data' / 'rough_patches'
@@ -261,6 +261,10 @@ def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
     assert not patch(client)['open']  # Only dating: nobody minds yet.
     assert client.put('/api/life/steps', json={'step': 'exclusive'}).status_code == 200
     show(client, show_moods=True)
+    with database.connect(write=True) as connection, monkeypatch.context() as broken_up:
+        broken_up.setattr(breakups, 'apart', lambda _connection, companion: 'ended' if companion['id'] == other else None)
+        rough_patches.seen_with_others(connection, current(connection), database.clock.now())
+    assert not patch(client)['open']  # An ex is not someone you're seeing.
     with database.connect(write=True) as connection:
         rough_patches.seen_with_others(connection, current(connection), database.clock.now())
     assert patch(client)['about'] == "over them finding out you're seeing Theo too"
