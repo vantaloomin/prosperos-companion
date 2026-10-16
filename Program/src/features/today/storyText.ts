@@ -2,14 +2,21 @@ import { calendarDay } from '../../when.ts'
 import type { Occasion } from '../../types'
 
 /** One line for Today: "Your birthday is in 3 days", "Tomorrow: Thanksgiving is always at their mom Ruth's…",
- * "It's been three months since you two started talking". */
+ * "It's been three months since you two started talking", "In 3 days it will be a year since you two swapped keys". */
 export function occasionText(item: Occasion, name: string): string {
   const when = item.days === 0 ? 'today' : item.days === 1 ? 'tomorrow' : `in ${item.days} days`
   if (item.kind === 'user_birthday') return item.days === 0 ? 'Happy birthday! It is your birthday today.' : `Your birthday is ${when}.`
   if (item.kind === 'own_birthday') return `It is ${name}'s birthday ${when}.`
   if (item.kind === 'circle_birthday') return `It is ${name}'s ${item.relation} ${item.person}'s birthday ${when}.`
   if (item.kind === 'tradition') return `${when.charAt(0).toUpperCase()}${when.slice(1)}: ${item.teaser ? `${item.teaser}.` : item.tradition}`
+  if (item.kind === 'step_anniversary') return stepAnniversaryText(item, when)
   return `It's been ${item.span} since you two started talking.`
+}
+
+/** A step's anniversary (companion/life/steps.py): "It's been a year since you two became exclusive." */
+function stepAnniversaryText(item: Occasion, when: string): string {
+  if (item.days === 0) return `It's been ${item.span} since you two ${item.did}.`
+  return `${when.charAt(0).toUpperCase()}${when.slice(1)} it will be ${item.span} since you two ${item.did}.`
 }
 
 /** "Mon, Oct 5" for a local date ("2026-10-05"), like every other date in the app (when.ts's calendarDay). */

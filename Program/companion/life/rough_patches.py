@@ -180,7 +180,10 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
     if fault == 'user':
         known, trait = facts(connection, companion, cause, now)
         first = companion['version']['definition']['name'].split()[0]
-        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': about}
+        # The label is the user's to read on Today for weeks ("... over you calling off dinner on the day"), never the
+        # companion's words.
+        shown_about = re.sub(r' today$', ' on the day', shown.removeprefix('over '))
+        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': shown_about or about}
         table = consequences.tables()[CHOICE]
         outcome = consequences.decide(
             connection, timeline_id=companion['active_timeline_id'], choice=CHOICE, subject=f'patch:{subject}',
@@ -203,7 +206,12 @@ def seeing_someone(connection, companion: dict, other: str, now: datetime, subje
     """They found out you're seeing someone else once you two are exclusive (Next steps decides that, and calls
     this). Never on an easy life."""
     return consider(connection, companion, 'seeing_someone', subject or f"seeing:{companion['id']}:{other}",
-                    f'you found out the user is seeing {other} too', now, shown=f"over them finding out you're seeing {other} too")
+                    f'you found out the user is seeing {other} too', now,
+                    shown=f"over {first_name(companion)} finding out you're seeing {other} too")
+
+
+def first_name(companion: dict) -> str:
+    return companion['version']['definition']['name'].split()[0]
 
 
 def seen_with_others(connection, companion: dict, now: datetime) -> None:
@@ -216,7 +224,8 @@ def seen_with_others(connection, companion: dict, now: datetime) -> None:
     for row in many(connection, 'SELECT id FROM companions WHERE id<>?', (companion['id'],)):
         other = by_id(connection, row['id'])
         found = steps.state(connection, other, now, write=False) if other else None
-        if found and found['ladder'] == 'romance':
+        # An ex (companion/life/breakups.py) is not someone the user is seeing.
+        if found and found['ladder'] == 'romance' and steps.apart(connection, other) != 'ended':
             seeing_someone(connection, companion, other['version']['name'], now,
                            subject=f"seeing:{companion['id']}:{other['id']}")
 

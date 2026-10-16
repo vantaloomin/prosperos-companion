@@ -21,6 +21,18 @@ def test_answers_are_read_from_the_message():
     assert steps.answer('how was work?') is None
 
 
+def test_answers_are_not_misread():
+    # E2E v0.13: excitement read as no, a hesitation or a plain refusal read as yes, "no" in passing read as no.
+    assert steps.answer("I can't wait! Yes!") == 'yes'
+    assert steps.answer('oh no, of course I will') == 'yes'
+    assert steps.answer('No pressure, but yes') == 'yes'
+    assert steps.answer("I'm not sure") == 'not_yet'
+    assert steps.answer('I need to think about it') == 'not_yet'
+    for text in ('Absolutely not', 'of course not', 'definitely not.', "I can't, sorry", 'no way'):
+        assert steps.answer(text) == 'no', text
+    assert steps.answer('I have no idea what to cook tonight') is None
+
+
 def test_steps_brought_up_are_read_from_the_message():
     assert steps.raised('Can we be exclusive?', ['exclusive', 'love']) == 'exclusive'
     assert steps.raised('will you be my girlfriend?', ['exclusive']) == 'exclusive'
@@ -32,6 +44,12 @@ def test_steps_brought_up_are_read_from_the_message():
     for text in ('she said I love you to him', "I don't want to be exclusive", 'if I said I love you, what then',
                  'I love your cooking', 'be exclusive', 'they were exclusive last year?'):
         assert steps.raised(text, ['exclusive', 'love']) is None, text
+    # Said sincerely, or as a plain wish: E2E v0.13.
+    assert steps.raised('I just wanted to say I love you', ['exclusive', 'love']) == 'love'
+    assert steps.raised('I have to tell you, I love you', ['exclusive', 'love']) == 'love'
+    assert steps.raised('I think we should be exclusive', ['exclusive', 'love']) == 'exclusive'
+    assert steps.raised('We should move in together', ['moving_in']) == 'moving_in'
+    assert steps.raised('I told my mom I love you', ['exclusive', 'love']) is None
     assert steps.confessed('I think I have feelings for you')
     assert not steps.confessed("I don't have feelings for you")
 
@@ -110,8 +128,18 @@ def test_how_you_know_each_other_sets_the_start(client, monkeypatch):
 
 
 def test_a_friend_close_from_the_start_is_a_best_friend(client, monkeypatch):
-    make(client, monkeypatch, relationship='friendship', starting_closeness=5)
-    assert view(client)['step'] == 'best_friends'
+    make(client, monkeypatch, relationship='friendship', starting_closeness=5,
+         history_together='Close since we met at a reading room three years ago.')
+    found = view(client)
+    # Not "Friends for 1 day": they knew each other long before the first talk (E2E v0.13).
+    assert found['step'] == 'best_friends' and found['text'] == 'Best friends'
+    assert [item['how'] for item in found['steps']] == ['history', 'history']
+
+
+def test_a_match_from_the_dating_app_counts_from_the_first_talk(client, monkeypatch):
+    make(client, monkeypatch, starting_closeness=3, history_together='Matched on Matchlight.')
+    found = view(client)
+    assert found['text'] == 'Together 1 day, exclusive' and found['steps'][0]['how'] == 'start'
 
 
 def test_mentors_and_family_have_no_ladder(client, provider, monkeypatch):
@@ -175,6 +203,12 @@ def test_you_bring_it_up_and_the_engine_answers(client, provider, clock, monkeyp
     found = view(client)
     # "I love you" while only dating is being exclusive and in love at once.
     assert found['step'] == 'love' and [item['step'] for item in found['steps']] == ['dating', 'exclusive', 'love']
+    # Making their answer go the other way and back again brings back the step it skipped too (E2E v0.13).
+    client.put('/api/settings', json={'show_odds': True})
+    outcome = view(client)['asks'][0]['consequence_id']
+    for option in (1, 0):
+        assert client.post(f'/api/life/consequences/{outcome}/change', json={'option': option}).status_code == 200
+    assert [item['step'] for item in view(client)['steps']] == ['dating', 'exclusive', 'love']
 
 
 def test_too_soon_they_are_not_ready(client, provider, monkeypatch):
@@ -206,6 +240,24 @@ def test_a_friend_falls_for_you_and_yes_makes_it_a_romance(client, provider, clo
     assert 'they just said they feel the same' in prompt(provider)
     found = view(client)
     assert found['ladder'] == 'romance' and found['steps'][0]['how'] == 'confession'
+
+
+def test_making_a_friend_fall_for_you_puts_a_smaller_step_off(client, clock, monkeypatch, always):
+    # E2E v0.13: "Make it go this way" on a month they stayed a friend planned the confession for the same day as the
+    # first trip they were about to bring up.
+    make(client, monkeypatch, relationship='friendship', starting_closeness=5)
+    client.put('/api/settings', json={'show_odds': True})
+    view(client)
+    close(client, 5)
+    clock.advance(timedelta(days=200))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        assert [row['step'] for row in steps.asks(connection, timeline_id, ('planned',))] == ['trip']
+        [falls] = [row['id'] for row in connection.execute("SELECT id FROM consequences WHERE choice='steps:falls'")]
+    assert client.post(f'/api/life/consequences/{falls}/change', json={'option': 1}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert [row['step'] for row in steps.asks(connection, timeline_id, ('planned',))] == ['confession']
 
 
 def test_a_friend_told_no_stays_a_friend_after_an_awkward_spell(client, provider, clock, monkeypatch):
@@ -277,6 +329,8 @@ def test_each_step_is_an_anniversary_and_exclusive_is_known(client, clock, monke
                  if item['kind'] == 'step_anniversary']
     assert [item['text'] for item in found] == [
         f"- Today it has been a year since you and the user became exclusive ({date(2026, 10, 5):%d %B %Y})."]
+    # Today says which step it was (E2E v0.13: it read "a year since you two started talking").
+    assert (found[0]['did'], found[0]['span']) == ('became exclusive', 'a year')
 
 
 def test_odds_show_only_with_hidden_values(client, provider, clock, monkeypatch, always):
