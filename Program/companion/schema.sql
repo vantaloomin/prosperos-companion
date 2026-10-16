@@ -2208,3 +2208,25 @@ CREATE TABLE IF NOT EXISTS step_settings (
   just_friends INTEGER NOT NULL DEFAULT 0 CHECK (just_friends IN (0, 1)),
   updated_at TEXT NOT NULL
 );
+-- Their own love life (companion/life/love_life.py): someone a companion is seeing. Their steps are in
+-- relationship_steps with other 'love:<id>'. `person_id` is their place in the circle (none for a secret, which never
+-- joins the circle the user sees); `ended_how` is split, removed (the user took them out of the circle), faded,
+-- came_out (a secret found out, `out_via` small_world or news, seen by `witness_id` at `place`) or undone.
+CREATE TABLE IF NOT EXISTS love_partners (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  person_id TEXT,
+  name TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '{}',
+  secret INTEGER NOT NULL DEFAULT 0 CHECK (secret IN (0, 1)),
+  met_on TEXT NOT NULL,
+  ended_on TEXT,
+  ended_how TEXT CHECK (ended_how IN ('split', 'removed', 'faded', 'came_out', 'undone')),
+  out_via TEXT CHECK (out_via IN ('small_world', 'news')),
+  witness_id TEXT,
+  place TEXT,
+  consequence_id TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS love_partners_timeline ON love_partners(timeline_id, ended_on);

@@ -45,6 +45,10 @@ ROLE_DEFAULTS = {
     'longtime friend': (3, 0.25, 0.25), 'old friend from school': (3, 0.25, 0.25), 'friend': (3, 0.25, 0.25),
     'cousin': (2, 0.3, 0.0), 'roommate from years ago': (2, 0.3, 0.0),
     'coworker': (2, 0.2, 0.0), 'neighbor': (2, 0.2, 0.0), 'new friend': (2, 0.2, 0.0), 'mentor': (2, 0.2, 0.0),
+    # Someone a companion is seeing (companion/life/love_life.py), closer the further along they are.
+    'girlfriend': (4, 0.0, 0.3), 'boyfriend': (4, 0.0, 0.3), 'partner': (4, 0.0, 0.3),
+    'fiancée': (4, 0.5, 0.0), 'fiancé': (4, 0.5, 0.0), 'wife': (5, 0.0, 0.2), 'husband': (5, 0.0, 0.2),
+    'spouse': (5, 0.0, 0.2), 'ex': (2, 0.0, 0.3),
 }
 UNKNOWN_ROLE = (1, 0.0, 0.0)
 # Meetings around town -> the stage they start at, highest first (the same as companion/cast.py for the user).

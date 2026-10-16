@@ -12,6 +12,7 @@ import { displayName, personFacts, personNow, personTies, personWork } from './c
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
+import { WhyItWent } from './WhyItWent'
 
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
@@ -79,11 +80,7 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
   const restore = () => act(() => api(`/life/circle/${person.id}/restore`, {}), `${person.name} is back in ${companion}'s life.`)
   return (
     <li className={`person-card${gone ? ' removed' : ''}`}>
-      <header>
-        <h3>{displayName(person)}</h3>
-        <p className="subtle">{personFacts(person)}</p>
-        {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
-      </header>
+      <PersonHeader person={person} companion={companion} />
       {gone ? <p className="subtle">Removed. Moments that already happened still mention them.</p> : <PersonDetails person={person} work={work} />}
       {renaming && <RenameForm person={person} act={act} onDone={() => setRenaming(false)} />}
       {!renaming && <PersonActions gone={gone} diary={diary} network={network} onRename={() => setRenaming(true)} onDiary={() => setDiary((open) => !open)}
@@ -99,6 +96,18 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
         </ConfirmDialog>
       )}
     </li>
+  )
+}
+
+function PersonHeader({ person, companion }: { person: CirclePerson; companion: string }) {
+  return (
+    <header>
+      <h3>{displayName(person)}</h3>
+      <p className="subtle">{personFacts(person)}</p>
+      {person.love && <p className="subtle pair-stage">{person.love}</p>}
+      {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
+      {person.love_odds && <WhyItWent id={person.love_odds} />}
+    </header>
   )
 }
 

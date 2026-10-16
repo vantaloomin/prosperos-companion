@@ -33,6 +33,7 @@ export function Paper() {
       {headlines.length > 0
         ? <ul className="plain-list">{headlines.map((item) => <li key={'id' in item ? item.id : item.key}><strong>{item.headline}</strong> {item.text}</li>)}</ul>
         : <p className="subtle">A quiet week in {paper.city}.</p>}
+      <Couples items={paper.couples} />
       {paper.seen.length > 0 && <>
         <h3>Seen around town</h3>
         <ul className="plain-list">{paper.seen.map((item) => <li key={item.companion_id}>{item.text}</li>)}</ul>
@@ -50,4 +51,13 @@ export function Paper() {
       </>}
     </section>
   )
+}
+
+/** Townsfolk engagements and weddings that week (companion/world/couples.py). */
+function Couples({ items }: { items?: TownPaper['couples'] }) {
+  if (!items?.length) return null
+  return <>
+    <h3>Engagements and weddings</h3>
+    <ul className="plain-list">{items.map((item) => <li key={item.key}><strong>{item.headline}</strong> {item.text}</li>)}</ul>
+  </>
 }
