@@ -297,6 +297,10 @@ ADDED_COLUMNS = (
     ('trips', 'message_id', 'TEXT'),
     ('trips', 'memory_id', 'TEXT'),
     ('trips', 'cancelled_at', 'TEXT'),
+    # Next steps (companion/life/steps.py, Settings > Realism): how soon companions bring up the next step, 0 only when
+    # the user does, 1 slow, 2 true to life, 3 fast; and whether a close friend can fall for the user.
+    ('life_settings', 'steps_pace', 'INTEGER NOT NULL DEFAULT 2 CHECK (steps_pace BETWEEN 0 AND 3)'),
+    ('life_settings', 'friends_fall', 'INTEGER NOT NULL DEFAULT 1 CHECK (friends_fall IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

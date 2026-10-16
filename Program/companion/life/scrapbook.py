@@ -22,7 +22,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.errors import require
 from companion.images import photos
-from companion.life import occasions
+from companion.life import occasions, steps
 from companion.memory import closeness
 
 QUOTE_LIMIT = 280
@@ -183,6 +183,8 @@ def together(connection, companion, now, period, timezone) -> list[dict]:
     low, high = period['start'].isoformat(), period['end'].isoformat()
     reached = [{'date': step['on'], 'text': state['stages'][step['level'] - 1] + (' (you set it)' if step.get('kind') == 'set' else '')}
                for step in state['history'] if step.get('on') and low <= step['on'] <= high]
+    # The steps you took together (companion/life/steps.py), in with the stages.
+    reached = sorted(reached + steps.scrapbook_items(connection, companion, low, high), key=lambda item: item['date'])
     nickname = f"They call you “{state['nickname']}”." if state['nickname'] else None
     pages = []
     if reached:

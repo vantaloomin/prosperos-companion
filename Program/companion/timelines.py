@@ -213,6 +213,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
+    copy_steps(connection, parent_id, new_id, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
     network.copy(connection, parent_id, new_id, cutoff)
     encounters.copy(connection, parent_id, new_id, cutoff)
@@ -249,6 +250,13 @@ def copy_chapters(connection, parent_id, new_id, ids, cutoff_date):
             connection, row['consequence_id'], new_id, f"chapter:{new_id}:{row['started_on']}")} for row in rows])
     if optional(connection, 'SELECT through FROM chapter_days WHERE timeline_id=?', (parent_id,)):
         connection.execute('INSERT INTO chapter_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
+
+
+def copy_steps(connection, parent_id, new_id, cutoff_date):
+    """Steps reached by the fork carry over (companion/life/steps.py); what was brought up and not answered stays."""
+    rows = many(connection, 'SELECT * FROM relationship_steps WHERE timeline_id=? AND reached_on<=?', (parent_id, cutoff_date))
+    insert(connection, 'relationship_steps', [{**row, 'id': identifier(), 'timeline_id': new_id, 'ask_id': None}
+                                              for row in rows])
 
 
 def copy_recall(connection, parent_id, new_id, ids, cutoff_date):
