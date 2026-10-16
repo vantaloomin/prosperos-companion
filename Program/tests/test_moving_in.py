@@ -333,6 +333,19 @@ def test_asking_what_to_have_for_dinner_at_home_is_not_going_out(client, provide
     assert client.get('/api/life/outings').json()['outings'] == []
 
 
+def test_out_at_midday_the_strip_knows_they_are_not_home_either(client, provider, clock, monkeypatch, always):
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    clock.advance(timedelta(hours=-clock.now().hour + 12))  # Midday: they are at work.
+    says(provider)
+    send(client, "I'm at the gym", 'client-move-midday-1')
+    assert where(client)['home'] == {'status': 'out', 'until': row(client)['out_until'], 'they_home': False}
+    clock.advance(timedelta(hours=7))  # 19:00, still out: they are home now.
+    send_out = client.post('/api/life/living/out', json={}).json()
+    assert send_out['home']['they_home'] is True
+
+
 def test_a_visit_under_way_on_moving_day_puts_the_move_off(client, provider, clock, monkeypatch, always):
     apart_from(client, monkeypatch, relationship='romance')
     ask_to_move_in(client, provider)
@@ -367,3 +380,4 @@ def test_a_move_undone_on_the_character_page_is_not_told_as_moving_out(client, p
     send(client, 'hey', 'client-move-undone-1')
     assert 'You moved out of the place you shared' not in notes(provider)
     assert where(client)['kind'] == 'long-distance'
+

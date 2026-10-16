@@ -11,7 +11,7 @@ export interface WhereCall { id: string; direction: 'you' | 'them'; status: 'rin
 /** A weekend visit under way (companion/life/long_distance.py): 'to-you' when they came to stay with you, 'host' when you went to stay with them. `leave_at` is when the visit ends on its last day. */
 export interface WhereVisit { id: string; direction: 'to-you' | 'host'; city_name: string; start_date: string; end_date: string; leave_at: string }
 /** Living together (companion/life/moving_in.py): both home of an evening, or you out for a while (`until`). */
-export interface WhereHome { status: 'home' | 'out'; until?: string }
+export interface WhereHome { status: 'home' | 'out'; until?: string; they_home?: boolean }
 export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string; outing: WhereOuting | null; call?: WhereCall | null; visit?: WhereVisit | null; home?: WhereHome | null }
 export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string }
 
@@ -72,7 +72,7 @@ export function visitLine(visit: WhereVisit, name: string): StripLine {
  * when nothing else (a call, a visit, an outing) is on the strip. */
 export function homeLine(where: WhereState | undefined, name: string): { lead: string; action: 'out' | 'home'; label: string } | null {
   if (!where?.home || where.call || where.visit || where.outing) return null
-  if (where.home.status === 'out') return { lead: `You're out. ${name}'s at home.`, action: 'home', label: "I'm home" }
+  if (where.home.status === 'out') return { lead: where.home.they_home === false ? "You're out." : `You're out. ${name}'s at home.`, action: 'home', label: "I'm home" }
   return { lead: `Home together with ${name}`, action: 'out', label: 'Heading out' }
 }
 

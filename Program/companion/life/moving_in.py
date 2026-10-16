@@ -610,8 +610,8 @@ def view_strip(connection, companion: dict, now: datetime) -> dict | None:
     row = living(connection, companion, local_today(companion, now))
     if not row:
         return None
-    if out_now(row, now):
-        return {'status': 'out', 'until': row['out_until']}
+    if out_now(row, now):  # Whether they are home meanwhile, or at work or out themselves.
+        return {'status': 'out', 'until': row['out_until'], 'they_home': at_home_now(connection, companion, now)}
     return {'status': 'home'} if home_state(connection, companion, now) else None
 
 
