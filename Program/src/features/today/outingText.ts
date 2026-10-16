@@ -77,12 +77,14 @@ export function placeLine(place: OutingPlace): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-/** "With Ana (mom), Rui (dad) and Leo (brother)", for meeting their people; '' for any other outing. */
-export function peopleLine(place: OutingPlace): string {
+/** "With Ana (mom), Rui (dad) and Leo (brother)", for meeting their people; '' for any other outing. Once the evening
+ * is over, the first meeting is told as past. */
+export function peopleLine(place: OutingPlace, state?: OutingState): string {
   const people = (place.people ?? []).map((person) => `${person.name} (${person.role})`)
   if (!people.length) return ''
   const list = people.length === 1 ? people[0] : `${people.slice(0, -1).join(', ')} and ${people[people.length - 1]}`
-  return `With ${list}${place.first ? ', meeting you for the first time' : ''}`
+  const first = state === 'done' ? ', the first time you met' : ', meeting you for the first time'
+  return `With ${list}${place.first ? first : ''}`
 }
 
 /** When it is, and who picked the place. */
