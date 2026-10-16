@@ -2330,3 +2330,52 @@ CREATE TABLE IF NOT EXISTS moving_in (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS moving_in_timeline ON moving_in(timeline_id, status);
+-- Breaks and breakups (companion/life/breakups.py): a relationship with a companion coming apart, one row from the
+-- first warning on. Each stage is a roll in the consequence engine (`*_id`, read when shown, so changing it on Today
+-- moves it) or the user's own doing (`*_by` 'you'). `ended_by` 'break' means the roll at the end of a break decides
+-- (`ended_id`: try again or end it). `message_id` is the user's message that ended it or asked for a break; `answer_id`
+-- and `answer_said` the user's latest ask to try again and the answer. `steps_back` (JSON) lists the steps taken back
+-- on getting back together, which the scrapbook keeps.
+CREATE TABLE IF NOT EXISTS breakups (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  ladder TEXT NOT NULL CHECK (ladder IN ('romance', 'friendship')),
+  patch_id TEXT,
+  strained_id TEXT,
+  strained_by TEXT,
+  strained_at TEXT,
+  thinking_id TEXT,
+  thinking_at TEXT,
+  break_id TEXT,
+  break_by TEXT CHECK (break_by IN ('them', 'you')),
+  break_at TEXT,
+  ended_id TEXT,
+  ended_by TEXT CHECK (ended_by IN ('them', 'you', 'break')),
+  ended_at TEXT,
+  eased_at TEXT,
+  together_id TEXT,
+  together_by TEXT,
+  together_at TEXT,
+  talked INTEGER NOT NULL DEFAULT 0,
+  message_id TEXT,
+  answer_id TEXT,
+  answer_said TEXT,
+  steps_back TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS breakups_timeline ON breakups(timeline_id, created_at);
+-- An ex reaching out about trying again (companion/life/breakups.py): planned by a roll, sent as a first text, then
+-- answered, lapsed or dropped.
+CREATE TABLE IF NOT EXISTS breakup_reaches (
+  id TEXT PRIMARY KEY,
+  breakup_id TEXT NOT NULL REFERENCES breakups(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'open', 'yes', 'no', 'lapsed', 'dropped')),
+  due_on TEXT NOT NULL,
+  consequence_id TEXT,
+  message_id TEXT,
+  answer_id TEXT,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);

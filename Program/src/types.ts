@@ -477,6 +477,8 @@ export interface LifeSettings {
   steps_pace: number
   /** Whether a close friend can fall for you (companion/life/steps.py). */
   friends_fall: boolean
+  /** Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life. */
+  breakups: boolean
   /** Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on. */
   love_life: number
 }

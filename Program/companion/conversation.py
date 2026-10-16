@@ -30,6 +30,7 @@ from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
 from companion.life import (
+    breakups,
     calls,
     moving_in,
     occasions,
@@ -91,6 +92,8 @@ def record_user(database, body) -> dict:
         moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
         # Rough patches (companion/life/rough_patches.py): words that sting, a promise, an apology or making up.
         rough_patches.note(connection, message, companion, database.clock.now())
+        # Breaks and breakups (companion/life/breakups.py): ending it, a break, asking to try again.
+        breakups.note(connection, message, companion, database.clock.now())
         return message
 
 

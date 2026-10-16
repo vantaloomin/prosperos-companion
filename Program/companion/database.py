@@ -307,6 +307,9 @@ ADDED_COLUMNS = (
     # Their own love life (companion/life/love_life.py, Settings > Realism): 0 nothing new, 1 quiet, 2 true to life,
     # 3 lots going on.
     ('life_settings', 'love_life', 'INTEGER NOT NULL DEFAULT 2 CHECK (love_life BETWEEN 0 AND 3)'),
+    # Breaks and breakups (companion/life/breakups.py, Settings > Realism): whether strained rough patches can lead to a
+    # break and a breakup (or a falling out with a friend). On for real life and drama, off for an easy life.
+    ('life_settings', 'breakups', 'INTEGER NOT NULL DEFAULT 1 CHECK (breakups IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

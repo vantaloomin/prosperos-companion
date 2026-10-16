@@ -12,6 +12,7 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    breakups,
     calls,
     chapters,
     circle,
@@ -379,6 +380,24 @@ def let_go_rough_patch(request: Request, patch_id: str):
 def undo_let_go_rough_patch(request: Request, patch_id: str):
     """Take back Let it go."""
     return rough_patches.undo_let_go(db(request), patch_id)
+
+
+@router.get('/breakup')
+def read_breakup(request: Request):
+    """Whether things are strained, on a break or over with the companion in focus (companion/life/breakups.py)."""
+    return breakups.read(db(request))
+
+
+@router.post('/breakup/{breakup_id}/mend')
+def mend_breakup(request: Request, breakup_id: str):
+    """The user overrides: things are fine again, or exes are back together."""
+    return breakups.mend(db(request), breakup_id)
+
+
+@router.post('/breakup/{breakup_id}/undo')
+def undo_mend_breakup(request: Request, breakup_id: str):
+    """Take back the override."""
+    return breakups.undo_mend(db(request), breakup_id)
 
 
 @router.get('/web')

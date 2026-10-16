@@ -19,6 +19,7 @@ from companion.events import committed
 from companion.life import (
     agenda,
     body,
+    breakups,
     calls,
     chapters,
     circle,
@@ -238,6 +239,8 @@ NOW = {
                   'never explain it unless asked)',
        # Rough patches and making up (companion/life/rough_patches.py): a falling-out with the user, or making up.
        'patch': 'How things are between you and the user (decided by the app; keep to it)',
+       # Breaks and breakups (companion/life/breakups.py): strained, a break, exes, getting back together.
+       'breakup': 'Where the two of you stand after a hard time (decided by the app; keep to it)',
        # Go somewhere together and Trips and postcards (companion/life/outings.py, trips.py).
        # Together or apart (companion/life/together.py): a visit turned down, or time together that just ended; and
        # On a call (companion/life/calls.py): the call under way, or one that just ended or was missed.
@@ -916,6 +919,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_secrets(packet, connection, companion, group, now)
     closeness.offer(packet, connection, companion, now)
     steps.offer(packet, connection, companion, now, recent, group)
+    breakups.offer(packet, connection, companion, now, recent, group)
     love_life.offer(packet, connection, companion, now, group)
     their_people.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)

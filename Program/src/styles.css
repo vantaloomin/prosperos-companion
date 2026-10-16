@@ -2202,6 +2202,21 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .steps-planned { padding-left: 18px; margin-top: 10px; }
 .steps-detail { color: var(--muted); font-size: 0.875rem; }
 .steps-detail p { margin: 2px 0 0; }
+.breakup-block { display: grid; gap: 8px; }
+.breakup-block .why-it-went, .steps-panel .breakup-block .why-it-went { margin: 0; padding-left: 22px; }
+.breakup-line { display: flex; align-items: flex-start; gap: 6px 8px; margin: 0; }
+.breakup-line > svg { flex: none; width: 1rem; height: 1rem; margin-top: 0.2em; color: var(--muted); }
+.breakup-text { display: grid; gap: 2px; margin: 0; }
+.breakup-text small { font-size: 0.8125rem; }
+.breakup-line .text-button { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; white-space: nowrap; color: var(--muted); }
+p.breakup-line { align-items: center; }
+.apart-strip { margin-top: -4px; background: none; color: var(--muted); }
+.apart-strip > svg { color: var(--muted); }
+@media (max-width: 720px) {
+  .breakup-line { flex-wrap: wrap; }
+  .breakup-line .text-button { flex-basis: 100%; min-height: 44px; margin-left: 24px; padding-left: 0; }
+  .breakup-block { gap: 0; }
+}
 .steps-panel .why-it-went { margin-top: 8px; }
 .steps-panel .why-it-went .text-button { padding-left: 0; }
 @media (max-width: 720px) {
