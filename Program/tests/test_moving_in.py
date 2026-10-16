@@ -399,3 +399,12 @@ def test_they_do_not_ring_the_moment_you_head_out(client, provider, clock, monke
     monkeypatch.setattr(moving_in, 'JUST_OUT', timedelta(0))  # Later on, they would.
     with client.app.state.database.connect() as connection:
         assert len(calls.ring_due(connection, current(connection), clock.now())) == 1
+
+
+def test_the_chores_line_reads_right_with_the_dishes_alone(monkeypatch):
+    owners = {'cooking': 'user', 'dishes': 'you', 'laundry': 'user', 'tidying': 'user'}
+    monkeypatch.setattr(moving_in, 'turn', lambda _companion, _day, task: owners[task])
+    assert moving_in.chores_text({}, date(2026, 11, 5)) == \
+        "Today the dishes are yours; cooking, the laundry and tidying up are the user's."
+    owners.update(dishes='user', laundry='you')
+    assert moving_in.chores_text({}, date(2026, 11, 5)).startswith('Today the laundry is yours;')

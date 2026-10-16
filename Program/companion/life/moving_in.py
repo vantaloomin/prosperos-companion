@@ -707,7 +707,7 @@ def chores_text(companion: dict, day: date) -> str:
     for side, owner in (('you', 'yours'), ('user', "the user's")):
         tasks = [CHORES[task] for task in TASKS if who[task] == side]
         if tasks:
-            parts.append(f"{listed(tasks)} {'is' if len(tasks) == 1 else 'are'} {owner}")
+            parts.append(f"{listed(tasks)} {'is' if tasks in (['cooking'], ['the laundry'], ['tidying up']) else 'are'} {owner}")
     return f"Today {'; '.join(parts)}."
 
 
