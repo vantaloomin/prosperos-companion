@@ -871,3 +871,32 @@ def read(database) -> dict:
     from companion.characters import require_current
     with database.connect() as connection:
         return view(connection, require_current(connection), database.clock.now())
+
+
+# Branching (companion/timelines.py) ---------------------------------------------------------------------------------
+
+# What a later moment set, and the columns it set: a fork from before it never had it.
+LATER = (('thinking_at', ('thinking_id', 'thinking_at')), ('break_at', ('break_id', 'break_by', 'break_at')),
+         ('ended_at', ('ended_id', 'ended_by', 'ended_at')), ('eased_at', ('eased_at',)),
+         ('together_at', ('together_id', 'together_by', 'together_at', 'steps_back')))
+
+
+def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str) -> None:
+    """Warnings, breaks and breakups begun by the fork carry over as they stood then, with their rolls; reaching out
+    is the copy's own."""
+    for row in rows(connection, parent_id):
+        if row['created_at'] > cutoff:
+            continue
+        found = {**row, 'id': identifier(), 'timeline_id': new_id, 'message_id': ids.get(row['message_id']),
+                 'answer_id': ids.get(row['answer_id'])}
+        for at, columns in LATER:
+            if row[at] and row[at] > cutoff:
+                found.update(dict.fromkeys(columns))
+        for column in ('strained_id', 'thinking_id', 'break_id', 'ended_id', 'together_id'):
+            if found[column]:
+                subject = optional(connection, 'SELECT subject FROM consequences WHERE id=?', (found[column],))
+                found[column] = consequences.copy(connection, found[column], new_id, (subject or {}).get(
+                    'subject', '').replace(row['id'], found['id']) or f"breakup:{found['id']}:{column}")
+        marks = ', '.join('?' * len(found))
+        connection.execute(f"INSERT INTO breakups ({', '.join(found)}) VALUES ({marks})",  # noqa: S608
+                           tuple(found.values()))

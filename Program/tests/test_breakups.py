@@ -284,3 +284,22 @@ def test_a_roll_that_held_things_back_changed_on_today_moves_them_on_at_once(cli
     assert view(client)['text'] == "They're thinking about a break"
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
     assert view(client)['stage'] == 'strained'
+
+
+def test_a_branch_from_after_a_breakup_keeps_it_and_one_from_before_does_not(client, couple, provider, clock):
+    says(provider)
+    before = send(client, 'hello', 'client-fork-1')['message']
+    clock.advance(timedelta(minutes=10))
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-fork-2')
+    clock.advance(timedelta(minutes=10))
+    says(provider)
+    after = send(client, 'bye then', 'client-fork-3')['message']
+    forks = {}
+    for name, message in (('before', before), ('after', after)):
+        response = client.post('/api/timelines', json={'message_id': message['id']})
+        assert response.status_code == 200, response.text
+        forks[name] = response.json()['id']
+    for name, stage in (('after', 'ended'), ('before', None)):
+        assert client.post(f'/api/timelines/{forks[name]}/activate').status_code == 200
+        assert view(client)['stage'] == stage, name
