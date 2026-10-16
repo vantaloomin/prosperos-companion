@@ -381,3 +381,21 @@ def test_a_move_undone_on_the_character_page_is_not_told_as_moving_out(client, p
     assert 'You moved out of the place you shared' not in notes(provider)
     assert where(client)['kind'] == 'long-distance'
 
+
+def test_they_do_not_ring_the_moment_you_head_out(client, provider, clock, monkeypatch, always):
+    from companion.life import calls
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    monkeypatch.setattr(calls, 'FIRST_TEXTS', True)
+    monkeypatch.setattr(calls, 'RING_CHANCE', {1: 1.0, 2: 1.0, 3: 1.0})
+    monkeypatch.setattr(calls, 'close', lambda *_args: True)
+    monkeypatch.setattr(calls, 'why_not', lambda *_args: None)
+    clock.advance(timedelta(hours=-clock.now().hour + 21, minutes=-clock.now().minute + 31))  # After the seeded minute.
+    assert where(client)['kind'] == 'home'
+    assert client.post('/api/life/living/out', json={}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert calls.ring_due(connection, current(connection), clock.now()) == []  # They just left.
+    monkeypatch.setattr(moving_in, 'JUST_OUT', timedelta(0))  # Later on, they would.
+    with client.app.state.database.connect() as connection:
+        assert len(calls.ring_due(connection, current(connection), clock.now())) == 1

@@ -42,6 +42,8 @@ OTHER_CITY_DAYS = (30, 60)
 EVENING = '18:00'
 # "I'm out" in the chat, or Heading out on the strip: texting for this long, unless they say they're home sooner.
 OUT_FOR = timedelta(hours=3)
+# Living together, they don't ring the moment the user steps out of the door.
+JUST_OUT = timedelta(hours=1)
 # How long the chat context keeps moving day, and a move out.
 TOLD_DAYS = 3
 UNITS = ('shared', 'studio', 'one_bedroom', 'two_bedroom')
@@ -583,6 +585,12 @@ def turn(companion: dict, day: date, task: str) -> str:
 
 def out_now(row: dict, now: datetime) -> bool:
     return bool(row['out_until'] and parse(row['out_until']) > now)
+
+
+def just_out(connection, companion: dict, now: datetime) -> bool:
+    """The user headed out less than an hour ago (calls.py waits a while before they ring)."""
+    row = living(connection, companion, local_today(companion, now))
+    return bool(row and out_now(row, now) and parse(row['out_until']) - OUT_FOR > now - JUST_OUT)
 
 
 def at_home_now(connection, companion: dict, now: datetime) -> bool:

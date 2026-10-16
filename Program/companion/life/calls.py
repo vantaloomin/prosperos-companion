@@ -414,8 +414,10 @@ def ring_due(connection, companion: dict, now: datetime) -> list:
     if rng.random() >= chance * times or \
             local.hour * 60 + local.minute < rng.randint(RING_HOURS[0] * 60, RING_HOURS[1] * 60 - 30):
         return []
+    from companion.life import moving_in
     if blocked(connection, companion, now) or line_busy(connection, companion, now) or \
-            why_not(connection, companion, now) or not close(connection, companion, now):
+            why_not(connection, companion, now) or not close(connection, companion, now) or \
+            moving_in.just_out(connection, companion, now):
         return []
     return [Trigger(key, 'call', rng.choice(WHY_FAR if far else WHY))]
 
