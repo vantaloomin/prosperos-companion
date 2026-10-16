@@ -65,10 +65,11 @@ PACE_STRETCH = (1.25, 1.25, 1.0, 0.75)
 # Who in their circle comes: family always, friends by the size of it.
 PARTNERS = {'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée', 'fiancé', 'ex', 'spouse'}
 SMALL_FRIENDS = 3
-# Places nobody marries at, whatever their kind.
+# Places nobody marries at, whatever their kind (a concert or music hall is a "hall" by name only).
 NOT_VENUES = re.compile(r'\b(?:station|hospital|clinic|campus|transit|airport|stadium|arena|gym|fitness|library|'
                         r'prison|jail|court|police|school|office|parking|mall|outlet|pizza|burger|pancake|sandwich|'
-                        r'taco|hot dog|diner|deli|food hall|murals?|street|avenue|paseo|surgical)\b', re.IGNORECASE)
+                        r'taco|hot dog|diner|deli|food hall|murals?|street|avenue|paseo|surgical|music hall|symphony|concert|'
+                        r'festival hall)\b', re.IGNORECASE)
 # Words in a place's description that mark it as somewhere people marry ("Victorian glass houses", "a 1926 ballroom").
 WEDDING_WORDS = re.compile(r'\b(?:chapel|church|cathedral|garden|conservatory|ballroom|mansion|manor|estate|winery|'
                            r'pavilion|terrace|lighthouse|temple|shrine|great hall|opera hall|castle|palace|glass ?houses?)',

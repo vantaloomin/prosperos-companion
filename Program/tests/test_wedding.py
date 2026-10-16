@@ -1,4 +1,5 @@
 """Engagement and wedding (companion/life/wedding.py): the proposal, planning the wedding, the day and after."""
+import re
 from datetime import date, datetime, timedelta
 
 import pytest
@@ -404,3 +405,14 @@ def test_they_propose_somewhere_open_in_the_evening(client, clock, provider):
             day = date(2027, 1, 20) + timedelta(days=seed * 9)
             item = wedding.favourite(connection, companion, data, f"p{seed}", day)
             assert outings.fits(item, day, wedding.PROPOSE_AT[wedding.PROPOSE_KINDS[item['kind']]]), item['name']
+
+
+def test_no_wedding_at_a_concert_or_music_hall():
+    """'Hall' is a wedding word, but not in Symphony Hall or a Victorian music hall."""
+    from companion.world import catalog
+    for city, day in (('baltimore', date(2027, 1, 16)), ('london-1895', date(2027, 6, 12))):
+        data = catalog.city(city, [])
+        rules = wedding.customs(wedding.culture_of(data))
+        for seed in range(60):
+            found = wedding.venue_for(data, rules, 'proper', f'hall-{seed}', day=day)
+            assert not re.search(r'symphony|music hall', found['name'], re.IGNORECASE), found['name']
