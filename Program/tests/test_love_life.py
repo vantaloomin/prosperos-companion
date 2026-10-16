@@ -7,7 +7,7 @@ from test_chapters import arrange, current, mira  # noqa: F401 - the fixture is 
 from test_consequences import change
 
 from companion import consequences
-from companion.life import chapters, circle, love_life, steps
+from companion.life import chapters, circle, love_life, rough_patches, steps
 from companion.world import catalog, couples, paper, townsfolk
 
 
@@ -199,14 +199,20 @@ def test_on_drama_a_secret_stays_hidden_until_it_comes_out(client, romance, cloc
         assert love_life.news_items(connection, current(client), '2000-01-01', '2100-01-01') == []
 
     monkeypatch.setattr(love_life, 'OUT_CHANCE', 1)
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(rough_patches, 'FIRST_TEXTS', True)
     clock.advance(timedelta(days=8))
     with client.app.state.database.connect(write=True) as connection:
         love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
         [after] = love_life.partners(connection, current(client)['active_timeline_id'], active=False)
-        triggers = love_life.came_out_due(connection, current(client), clock.now())
-    # With no other companion in town to see them, word got around; they own up first.
+        patch = rough_patches.current(connection, current(client), clock.now())
+        triggers = love_life.came_out_due(connection, current(client), clock.now()) + \
+            rough_patches.apology_due(connection, current(client), clock.now())
+    # With no other companion in town to see them, word got around; they own up first, in one text, and a rough
+    # patch opens over it (companion/life/rough_patches.py).
     assert after['ended_how'] == 'came_out' and after['out_via'] == 'news'
-    assert triggers and found['name'].split()[0] in triggers[0].reason
+    assert patch and patch['cause'] == 'hidden_partner' and patch['fault'] == 'companion'
+    assert len(triggers) == 1 and found['name'].split()[0] in triggers[0].reason
     prompt = client.get('/api/context/preview').json()['prompt']
     assert 'behind their back (word got around and reached them)' in prompt
 

@@ -659,6 +659,9 @@ def came_out_due(connection, companion: dict, now) -> list:
     rows = many(connection, "SELECT * FROM love_partners WHERE timeline_id=? AND ended_how='came_out' AND "
                 "out_via='news' AND ended_on>=?", (companion['active_timeline_id'],
                                                     (today - timedelta(days=FRESH_DAYS)).isoformat()))
+    # An open rough patch over it sends its own apology (rough_patches.apology_due); one text, not two.
+    rows = [row for row in rows if not optional(connection, 'SELECT id FROM rough_patches WHERE subject=? AND '
+                                                'mended_at IS NULL', (f"hidden-partner:{row['id']}",))]
     return [Trigger(f"love-out:{row['id']}", 'storyline',
                     f"Word has got around, and the user now knows you were seeing {first(row['name'])} behind their "
                     "back. You've ended it. Text them first: own up and say you're sorry, in your own words, without "
