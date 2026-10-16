@@ -227,6 +227,14 @@ def insert_row(connection, table: str, row: dict):
 RIPPLE_LEVEL = 4
 
 
+class Names(dict):
+    """An outcome's names; one recorded before a name's `_shown` form (the user's words) was kept uses the plain one."""
+    def __missing__(self, key: str) -> str:
+        if not key.endswith('_shown'):
+            raise KeyError(key)
+        return self[key.removesuffix('_shown')]
+
+
 def leave_marks(connection, outcome: dict, holders: dict, names: dict, timestamp: str, now=None,
                 since: date | None = None):
     """Write the marks the picked option leaves, from the day it was decided or `since` when later (the day the
@@ -239,7 +247,8 @@ def leave_marks(connection, outcome: dict, holders: dict, names: dict, timestamp
             continue
         row = {'timeline_id': outcome['timeline_id'], 'consequence_id': outcome['id'], 'holder': holder,
                'kind': mark['kind'], 'amount': mark.get('amount', 0), 'about': holders.get(mark.get('about')),
-               'note': mark['note'].format(**names), 'told': mark['told'].format(**names) if 'told' in mark else None,
+               'note': mark['note'].format_map(Names(names)),
+               'told': mark['told'].format_map(Names(names)) if 'told' in mark else None,
                'starts_on': start.isoformat(),
                'ends_on': (start + timedelta(days=mark['days'])).isoformat()}
         add_mark(connection, row, timestamp)

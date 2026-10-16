@@ -473,7 +473,7 @@
       ]
     },
     "user:told_secret": {
-      "label": "How {name} takes the user telling {a} a secret",
+      "label": "How {name} takes you telling {a} a secret",
       "options": [
         {
           "label": "{name} lets it go",
@@ -516,7 +516,7 @@
               "on": "me",
               "amount": -1,
               "days": 7,
-              "note": "{name} is hurt the user told {a} a secret {name} was keeping",
+              "note": "{name} is hurt you told {a} a secret {name} was keeping",
               "told": "You're still a little hurt that the user told {a} something you were keeping secret."
             }
           ]
@@ -575,7 +575,7 @@
       ]
     },
     "user:forgot_occasion": {
-      "label": "How {name} takes the user not mentioning {occasion}",
+      "label": "How {name} takes you not mentioning {occasion_shown}",
       "options": [
         {
           "label": "{name} doesn't mind",
@@ -618,7 +618,7 @@
               "on": "me",
               "amount": -1,
               "days": 5,
-              "note": "{name} is hurt the user chatted on {occasion} without mentioning it",
+              "note": "{name} is hurt you didn't mention {occasion_shown}",
               "told": "You're a little hurt that the user chatted with you on {occasion} without mentioning it."
             }
           ]
@@ -1146,15 +1146,15 @@
           "rules": [
             {
               "reader": "drama",
-              "at_least": 2,
+              "is": 2,
               "times": 2,
               "why": "the drama level is high"
             },
             {
               "reader": "drama",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very high"
+              "times": 3,
+              "why": "the drama level is very high"
             },
             {
               "reader": "closeness",
