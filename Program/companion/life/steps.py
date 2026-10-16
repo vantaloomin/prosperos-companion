@@ -412,7 +412,9 @@ def facts(connection, companion: dict, found: dict, step: Step, now) -> dict:
 
 
 def names(companion: dict, topic: str) -> dict:
-    return {'name': companion['version']['definition']['name'].split()[0], 'step': topic, 'a': 'someone', 'b': ''}
+    """Names for the odds labels the user reads: "meeting your people" (the companion's words) is "their people"."""
+    return {'name': companion['version']['definition']['name'].split()[0],
+            'step': re.sub(r'\byour\b', 'their', topic), 'a': 'someone', 'b': ''}
 
 
 def decide(connection, companion: dict, choice: str, subject: str, found_facts: dict, topic: str, now) -> dict:
