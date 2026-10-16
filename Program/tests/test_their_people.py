@@ -352,3 +352,15 @@ def test_a_planned_dinner_is_not_sent_once_they_break_up(client, provider, clock
     send(client, "I'm sorry but I'm breaking up with you.", 'client-people-end-2')
     clock.advance(timedelta(days=7))
     assert invite(client, clock) == (None, None)
+
+
+def test_an_invitation_a_week_ahead_says_next_saturday():
+    from datetime import date
+    saturday, next_saturday = date(2026, 10, 31), date(2026, 11, 7)
+    people = [{'name': 'Muriel', 'role': 'sister'}]
+    for index in range(40):
+        row = {'id': f'meetup-{index}', 'kind': 'family'}
+        text = their_people.invitation(row, people, next_saturday, saturday, '6:30', "my sister's place")
+        assert 'next saturday' in text.lower() and 'this next' not in text.lower() and text[0].isupper(), text
+        near = their_people.invitation(row, people, next_saturday, date(2026, 11, 3), '6:30', "my sister's place")
+        assert 'Saturday' in near and 'next Saturday' not in near
