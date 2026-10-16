@@ -572,12 +572,17 @@ def apology_due(connection, companion: dict, now: datetime) -> list:
                         f"You let the user down: {row['about']}. You have ended it, and you feel terrible. Apologise "
                         'to the user in your own words and mean it, without excuses; give them room.',
                         seed.choice(bank('companion_confessions')))]
-    plan, _, reason = row['about'].partition(' (')
+    # The written-out text, used when the model's can't be: the plan as the user names it ("the visit", not "a visit
+    # to the user's place"), and the reason in the last brackets (a place can have its own: "Tengu (kushikatsu ...)").
+    from companion.life import outings
+    found = optional(connection, 'SELECT id FROM outings WHERE id=?', (row['outing_id'] or '',))
+    plan = plan_name(outings.get(connection, found['id'])) if found else 'our plans'
+    reason = row['about'].rpartition(' (')[2].removesuffix(')')
     template = seed.choice(bank('companion_apologies'))
     return [Trigger(f"patch:{row['id']}", 'apology',
                     f'You called off {row["about"]} at the last minute, and you feel bad. Apologise to the user in your '
                     'own words, say briefly what happened, and offer to make it up to them if it fits.',
-                    template.format(plan=plan, reason=reason.rstrip(')')))]
+                    template.format(plan=plan, reason=reason))]
 
 
 # Showing it -----------------------------------------------------------------------------------------------------

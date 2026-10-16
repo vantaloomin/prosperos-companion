@@ -233,6 +233,7 @@ def test_they_can_stand_you_up_and_apologise_first(client, patches, provider, cl
         companion = current(connection)
         [trigger] = rough_patches.apology_due(connection, companion, clock.now())
         assert trigger.kind == 'apology' and 'You called off' in trigger.reason
+        assert 'the visit' in trigger.template and 'the user' not in trigger.template and ')' not in trigger.template
         assert not rough_patches.cool(connection, companion, clock.now())
         assert trigger.key in {item.key for item in openers.candidates(connection, companion, clock.now())}
     says(provider, "I'm so sorry about tonight, work ran late.")
