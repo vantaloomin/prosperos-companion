@@ -302,3 +302,4 @@ def test_each_reason_sits_under_the_answer_it_moved():
                     for value in (0, -1))
     assert apart[0]['reasons'] == ["Mira doesn't feel close enough yet"] and apart[0]['odds'] < plain[0]['odds']
     assert apart[1]['reasons'] == []
+    assert apart[0]['moves'] == ['less'], 'Today says "Less likely because Mira doesn\'t feel close enough yet"'
