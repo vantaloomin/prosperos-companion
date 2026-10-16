@@ -910,7 +910,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     closeness.offer(packet, connection, companion, now)
     steps.offer(packet, connection, companion, now, recent, group)
     love_life.offer(packet, connection, companion, now, group)
-    their_people.offer(packet, connection, companion, group)
+    their_people.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

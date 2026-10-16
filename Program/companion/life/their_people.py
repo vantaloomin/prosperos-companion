@@ -35,6 +35,7 @@ from companion import consequences
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import circle, outings, steps
+from companion.life.upkeep import days_ago
 from companion.world import catalog
 
 ACTIVE = True
@@ -547,28 +548,30 @@ def where_met(connection, row: dict) -> str:
     return f"dinner at {place['name']}" if outing['activity'] == AT_FAMILY else f"drinks at {place['name']}"
 
 
-def context_lines(connection, companion: dict) -> list[tuple[str, str]]:
-    """(identity, line) for the 'their_people' section: what each person who has met the user thinks of them."""
+def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str, str]]:
+    """(identity, line) for the 'their_people' section: what each person who has met the user thinks of them. The
+    date says how long ago, or a week-old dinner reads as this weekend's (A/B, 2026-10-16)."""
     if not companion.get('active_timeline_id'):
         return []
-    result = []
+    today, result = local_today(companion, now), []
     for row in met(connection, companion['active_timeline_id']):
         who = f"{row['name']} (your {row['role']})"
         if row['met_on'] == 'before':
             text = f'- {who} has known the user for a long time: {thinks(row, row["name"])}.'
         else:
             at = where_met(connection, row)
-            text = f"- {who} met the user on {long_date(row['met_on'])}{', at ' + at if at else ''}: " \
+            when = f"{long_date(row['met_on'])} ({days_ago(date.fromisoformat(row['met_on']), today)})"
+            text = f"- {who} met the user on {when}{', at ' + at if at else ''}: " \
                    f"{thinks(row, row['name'])}."
         result.append((f"their-people:{row['id']}:{row['warmth']}", text))
     return result
 
 
-def offer(packet, connection, companion: dict, group=None) -> None:
+def offer(packet, connection, companion: dict, now: datetime, group=None) -> None:
     """Adds the 'their_people' section, in a 1:1 chat."""
     if group is not None:
         return
-    for identity, text in context_lines(connection, companion):
+    for identity, text in context_lines(connection, companion, now):
         packet.offer('their_people', identity, text)
 
 
