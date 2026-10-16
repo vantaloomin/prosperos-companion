@@ -1007,8 +1007,12 @@ def change(connection, companion: dict, consequence_id: str, option: int, now) -
         connection.execute('UPDATE step_asks SET status=? WHERE id=?', (status, row['id']))
         connection.execute('UPDATE relationship_steps SET undone_at=? WHERE ask_id=? AND undone_at IS NULL',
                            (timestamp, row['id']))
-        if status == 'yes':
-            insert_step(connection, row['timeline_id'], row['ladder'], row['step'], today, 'you', timestamp, row['id'])
+        if status == 'yes':  # With any step it skips ("I love you" while dating is being exclusive too).
+            have = {item['step'] for item in reached(connection, row['timeline_id'], row['ladder'])}
+            for step in LADDERS[row['ladder']][:index_of(row['ladder'], row['step']) + 1]:
+                if step.key not in have:
+                    insert_step(connection, row['timeline_id'], row['ladder'], step.key, today, 'you', timestamp,
+                                row['id'])
     elif outcome['choice'] == 'steps:falls':
         if option == 1 and not row:
             insert_ask(connection, companion['active_timeline_id'], 'friendship', CONFESSION, 'them', 'planned',

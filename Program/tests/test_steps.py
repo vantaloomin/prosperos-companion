@@ -197,6 +197,12 @@ def test_you_bring_it_up_and_the_engine_answers(client, provider, clock, monkeyp
     found = view(client)
     # "I love you" while only dating is being exclusive and in love at once.
     assert found['step'] == 'love' and [item['step'] for item in found['steps']] == ['dating', 'exclusive', 'love']
+    # Making their answer go the other way and back again brings back the step it skipped too (E2E v0.13).
+    client.put('/api/settings', json={'show_odds': True})
+    outcome = view(client)['asks'][0]['consequence_id']
+    for option in (1, 0):
+        assert client.post(f'/api/life/consequences/{outcome}/change', json={'option': option}).status_code == 200
+    assert [item['step'] for item in view(client)['steps']] == ['dating', 'exclusive', 'love']
 
 
 def test_too_soon_they_are_not_ready(client, provider, monkeypatch):
