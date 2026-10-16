@@ -58,8 +58,12 @@ CAUSES = {
     'words': ('big', 'user'), 'missed_plan': ('big', 'user'), 'forgot_occasion': ('big', 'user'),
     'secret_told': ('big', 'user'), 'secret_kept': ('big', 'user'), 'promise': ('big', 'user'),
     'seeing_someone': ('big', 'user'), 'called_off': ('small', 'user'), 'chore': ('small', 'user'),
-    'stood_up': ('big', 'companion'),
+    'stood_up': ('big', 'companion'), 'hidden_partner': ('big', 'companion'),
 }
+# What they did, for the lines about their own fault: (in the chat context, after "You let the user down: ", and
+# after "The user forgave you for "). `hidden_partner` comes from Their own love life (companion/life/love_life.py).
+THEIR_DEED = {'stood_up': ('you called off {about}', 'calling off {about}'),
+              'hidden_partner': ('{about}', 'seeing someone behind their back')}
 # On drama these need both an apology and a gesture.
 SERIOUS = {'secret_told', 'secret_kept', 'seeing_someone'}
 # Calm days before it mends by itself, by slider level, for (the user's fault, theirs). Level 1 fades overnight.
@@ -484,14 +488,20 @@ LINES = {
                 'helps, but you are not over it yet: take it in, and stay a little guarded until they {missing}.'),
     'small': ('- A small thing is bugging you a little today: {about}. Let it show a bit (a little shorter, a little '
               'cooler), and let it go by tomorrow.'),
-    'theirs': ('- You let the user down: you called off {about}. You feel bad about it. Apologise first, in your own '
+    'theirs': ('- You let the user down: {what}. You feel bad about it. Apologise first, in your own '
                'words, before anything else, and mean it; say what happened without piling on excuses.'),
-    'theirs_said': ('- You let the user down recently (you called off {about}) and you have apologised. Do not bring it '
+    'theirs_said': ('- You let the user down recently ({what}) and you have apologised. Do not bring it '
                     'up again unless they do; be a little extra warm.'),
     'mended': ('- Things were tense between you and the user (what happened: {about}). They just {how}, and that is '
                'enough for you: accept it in your own words and let things be warm between you again.'),
-    'forgiven': '- The user forgave you for calling off {about}. Things are good between you again.',
+    'forgiven': '- The user forgave you for {deed}. Things are good between you again.',
 }
+def deed(row: dict) -> tuple[str, str]:
+    """What they did, said two ways (THEIR_DEED), for a rough patch of their making."""
+    what, doing = THEIR_DEED.get(row['cause'], THEIR_DEED['stood_up'])
+    return what.format(about=row['about']), doing.format(about=row['about'])
+
+
 MENDED_HOW = {'apology': 'apologised', 'gesture': 'made it up to you', 'you': 'cleared the air'}
 
 
@@ -506,12 +516,12 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         if made is None or made['size'] == 'small' or not picked_open(connection, made):
             return []
         if made['fault'] == 'companion':
-            return [(f"patch:{made['id']}:forgiven", LINES['forgiven'].format(about=made['about']))]
+            return [(f"patch:{made['id']}:forgiven", LINES['forgiven'].format(deed=deed(made)[1]))]
         return [(f"patch:{made['id']}:mended", LINES['mended'].format(
             how=MENDED_HOW.get(made['mended_by'], 'made up with you'), about=made['about']))]
     if row['fault'] == 'companion':
         key = 'theirs_said' if apologised(connection, row) else 'theirs'
-        return [(f"patch:{row['id']}:{key}", LINES[key].format(about=row['about']))]
+        return [(f"patch:{row['id']}:{key}", LINES[key].format(what=deed(row)[0]))]
     if row['size'] == 'small':
         return [(f"patch:{row['id']}:small", LINES['small'].format(about=row['about']))]
     if row['apologised_at'] or row['gesture_at']:
@@ -525,15 +535,21 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
 # The apology first text ------------------------------------------------------------------------------------------
 
 def apology_due(connection, companion: dict, now: datetime) -> list:
-    """They called off a plan with the user: they text first to apologise (a first text, companion/life/openers.py)."""
+    """They called off a plan with the user, or were found seeing someone behind their back: they text first to apologise (a first text, companion/life/openers.py)."""
     if not ACTIVE or not FIRST_TEXTS:
         return []
     from companion.life.openers import Trigger
     row = current(connection, companion, now)
     if row is None or row['fault'] != 'companion' or apologised(connection, row):
         return []
+    seed = random.Random(f"apology:{row['id']}")
+    if row['cause'] == 'hidden_partner':
+        return [Trigger(f"patch:{row['id']}", 'apology',
+                        f"You let the user down: {row['about']}. You have ended it, and you feel terrible. Apologise "
+                        'to the user in your own words and mean it, without excuses; give them room.',
+                        seed.choice(bank('companion_confessions')))]
     plan, _, reason = row['about'].partition(' (')
-    template = random.Random(f"apology:{row['id']}").choice(bank('companion_apologies'))
+    template = seed.choice(bank('companion_apologies'))
     return [Trigger(f"patch:{row['id']}", 'apology',
                     f'You called off {row["about"]} at the last minute, and you feel bad. Apologise to the user in your '
                     'own words, say briefly what happened, and offer to make it up to them if it fits.',

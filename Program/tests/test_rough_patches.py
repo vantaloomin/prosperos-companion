@@ -12,7 +12,7 @@ from test_together import mira, notes, says
 from companion import consequences
 from companion.characters import current, insert_version
 from companion.database import identifier
-from companion.life import openers, rough_patches
+from companion.life import love_life, openers, rough_patches
 from companion.models import CharacterDefinition
 
 BANKS = Path(__file__).resolve().parents[1] / 'companion' / 'world' / 'data' / 'rough_patches'
@@ -33,7 +33,7 @@ def patch(client):
 
 
 def test_every_bank_has_a_hundred_entries_and_no_gendered_words():
-    for name in ('apologies', 'gestures', 'accepting', 'stand_up_reasons', 'companion_apologies'):
+    for name in ('apologies', 'gestures', 'accepting', 'stand_up_reasons', 'companion_apologies', 'companion_confessions'):
         data = json.loads((BANKS / f'{name}.json').read_text(encoding='utf-8'))
         entries = data.get('phrases') or data.get('reasons') or data['templates']
         assert len(entries) >= 100 and len(set(entries)) == len(entries), name
@@ -223,3 +223,19 @@ def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
         connection.execute('DELETE FROM rough_patches')
         rough_patches.seen_with_others(connection, current(connection), database.clock.now())
     assert not patch(client)['open']  # Never on an easy life.
+
+
+def test_their_secret_partner_coming_out_is_theirs_to_apologise_for(client, patches, provider, clock):
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        love_life.rough_patch(connection, companion, {'id': 'p1', 'name': 'Jordan Lee'}, clock.now())
+        [trigger] = rough_patches.apology_due(connection, companion, clock.now())
+        assert trigger.template in rough_patches.bank('companion_confessions')
+    assert patch(client)['open']
+    says(provider)
+    send(client, 'hey', 'client-patch-30')
+    assert 'You let the user down: the user found out you had been seeing Jordan behind their back.' in notes(provider)
+    says(provider)
+    send(client, "I forgive you", 'client-patch-31')
+    assert not patch(client)['open']
+    assert 'The user forgave you for seeing someone behind their back' in notes(provider)

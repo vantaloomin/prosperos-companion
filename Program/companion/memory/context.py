@@ -32,6 +32,7 @@ from companion.life import (
     home,
     kitchen,
     long_distance,
+    love_life,
     media,
     money,
     network,
@@ -130,6 +131,8 @@ HEADINGS = {
             'closeness': 'How close you two are (from your shared history; the user can see and change it)',
             # Next steps (companion/life/steps.py): changes when a step is reached, brought up or answered.
             'steps': 'Where things stand between you (decided by the app; the user can see and change it)',
+            # Their own love life (companion/life/love_life.py): changes when they meet someone, take a step or split.
+            'love': 'Your own love life (decided by the app; keep to it)',
             # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
             'history': 'Your history together (from the app; the user can see and correct it)',
             # Changes about once a day.
@@ -907,6 +910,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_secrets(packet, connection, companion, group, now)
     closeness.offer(packet, connection, companion, now)
     steps.offer(packet, connection, companion, now, recent, group)
+    love_life.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

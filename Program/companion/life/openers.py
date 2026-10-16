@@ -41,6 +41,7 @@ from companion.life import (
     hobbies,
     kitchen,
     long_distance,
+    love_life,
     media,
     occasions,
     own_plans,
@@ -421,7 +422,7 @@ PAST_WAITING = {'occasion', 'postcard'}
 # A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early; so does a
 # call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
 # (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too.
-FINDERS = [occasion, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+FINDERS = [occasion, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 

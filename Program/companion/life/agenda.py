@@ -31,6 +31,7 @@ from companion.life import (
     home,
     kitchen,
     long_distance,
+    love_life,
     media,
     network,
     occasions,
@@ -150,6 +151,7 @@ def extend(connection, companion, world, now) -> dict:
     reactions.daily(connection, companion, now)
     rough_patches.daily(connection, companion, now)
     steps.advance(connection, companion, now)
+    love_life.advance(connection, companion, world, now)
     return {'written': written, 'settled': settled, 'storylines': started}
 
 

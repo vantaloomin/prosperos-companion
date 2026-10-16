@@ -304,6 +304,9 @@ ADDED_COLUMNS = (
     # the user does, 1 slow, 2 true to life, 3 fast; and whether a close friend can fall for the user.
     ('life_settings', 'steps_pace', 'INTEGER NOT NULL DEFAULT 2 CHECK (steps_pace BETWEEN 0 AND 3)'),
     ('life_settings', 'friends_fall', 'INTEGER NOT NULL DEFAULT 1 CHECK (friends_fall IN (0, 1))'),
+    # Their own love life (companion/life/love_life.py, Settings > Realism): 0 nothing new, 1 quiet, 2 true to life,
+    # 3 lots going on.
+    ('life_settings', 'love_life', 'INTEGER NOT NULL DEFAULT 2 CHECK (love_life BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
