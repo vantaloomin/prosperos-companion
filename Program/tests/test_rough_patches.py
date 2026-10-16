@@ -90,6 +90,8 @@ def test_the_odds_can_be_changed_on_today(client, patches, provider):
     send(client, 'leave me alone', 'client-patch-5')
     [outcome] = [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:rough_patch']
     assert outcome['picked'] == 1
+    # Today reads it as "you", not the line the companion is told (E2E v0.13).
+    assert outcome['label'] == 'Whether a rough patch starts with Mira over what you said: "leave me alone"'
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
     assert not patch(client)['open']
 
@@ -223,6 +225,14 @@ def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
         connection.execute('DELETE FROM rough_patches')
         rough_patches.seen_with_others(connection, current(connection), database.clock.now())
     assert not patch(client)['open']  # Never on an easy life.
+    set_life(client, rough_patches_realism=2)
+    from companion.life import steps
+    monkeypatch.setattr(steps, 'apart', lambda _connection, companion: 'ended' if companion['id'] == other else None)
+    with database.connect(write=True) as connection:
+        connection.execute('DELETE FROM rough_patches')
+        connection.execute('DELETE FROM consequences')
+        rough_patches.seen_with_others(connection, current(connection), database.clock.now())
+    assert not patch(client)['open']  # An ex is not someone you're seeing (E2E v0.13).
 
 
 def test_their_secret_partner_coming_out_is_theirs_to_apologise_for(client, patches, provider, clock):

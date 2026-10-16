@@ -180,7 +180,8 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
     if fault == 'user':
         known, trait = facts(connection, companion, cause, now)
         first = companion['version']['definition']['name'].split()[0]
-        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': about}
+        # The label is the user's to read ("... over you calling off dinner today"), never the companion's words.
+        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': shown.removeprefix('over ') or about}
         table = consequences.tables()[CHOICE]
         outcome = consequences.decide(
             connection, timeline_id=companion['active_timeline_id'], choice=CHOICE, subject=f'patch:{subject}',
@@ -216,7 +217,8 @@ def seen_with_others(connection, companion: dict, now: datetime) -> None:
     for row in many(connection, 'SELECT id FROM companions WHERE id<>?', (companion['id'],)):
         other = by_id(connection, row['id'])
         found = steps.state(connection, other, now, write=False) if other else None
-        if found and found['ladder'] == 'romance':
+        # An ex (companion/life/breakups.py) is not someone the user is seeing.
+        if found and found['ladder'] == 'romance' and steps.apart(connection, other) != 'ended':
             seeing_someone(connection, companion, other['version']['name'], now,
                            subject=f"seeing:{companion['id']}:{other['id']}")
 
