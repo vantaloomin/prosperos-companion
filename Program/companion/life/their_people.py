@@ -424,12 +424,18 @@ def impress(connection, companion: dict, person: dict, meetup_id: str | None, no
 def follow(connection, companion: dict, now: datetime) -> None:
     """Meet-ups follow their outings: over (everyone at it has now met the user), called off (planned once more,
     a few weeks on), or a planned one that could not go out in all this time (dropped)."""
+    from companion.life import long_distance
     timeline_id = companion['active_timeline_id']
     today = local_today(companion, now)
     timestamp = stamp(now)
+    far = None
     for row in meetups(connection, timeline_id, ('planned', 'booked')):
         if row['status'] == 'planned':
-            if (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
+            far = far if far is not None else bool(long_distance.far(connection, companion))
+            if far and row['due_on'] < today.isoformat():
+                # Living apart it waits until they live in one city (meet_due), so it never lapses meanwhile.
+                connection.execute('UPDATE people_meetups SET due_on=? WHERE id=?', (today.isoformat(), row['id']))
+            elif (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
                 connection.execute("UPDATE people_meetups SET status='dropped', settled_at=? WHERE id=?",
                                    (timestamp, row['id']))
             continue

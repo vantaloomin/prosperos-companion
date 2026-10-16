@@ -280,6 +280,15 @@ def test_far_apart_nothing_is_sent_and_it_stays_planned(client, clock, invites, 
     monkeypatch.setattr(long_distance, 'far', lambda _connection, _companion: object())
     assert invite(client, clock) == (None, None)
     assert meetups(client)[0]['status'] == 'planned'
+    # It waits as long as they live apart, never lapsing, and is sent once they live in one city.
+    for _week in range(20):
+        clock.advance(timedelta(days=7))
+        advance(client, clock)
+    assert [row['status'] for row in meetups(client)] == ['planned']
+    monkeypatch.setattr(long_distance, 'far', lambda _connection, _companion: None)
+    advance(client, clock)
+    trigger, _outing = invite(client, clock)
+    assert trigger is not None
 
 
 def test_family_dinner_cannot_move_elsewhere(client, clock, invites):
