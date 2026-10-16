@@ -47,6 +47,7 @@ from companion.life import (
     pacing,
     recommendations,
     routine,
+    steps,
     storylines,
     together,
     trips,
@@ -417,8 +418,9 @@ PAST_WAITING = {'occasion', 'postcard'}
 # A dinner invite comes up about one fortnight in two and waits a day or two at most, so it goes ahead of the daily
 # dream and Life deck news, which otherwise took every day's text first and the invite never went out.
 # A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early; so does a
-# call (companion/life/calls.py), and the text after a missed one.
-FINDERS = [occasion, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+# call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
+# (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too.
+FINDERS = [occasion, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
@@ -649,6 +651,8 @@ class Openers:
                 hobbies.settle_invite(connection, latest, row, trigger, timestamp)
             if trigger.kind in together.SETTLES:
                 together.settle(connection, latest, row, trigger, timestamp)
+            if trigger.kind in steps.SETTLES:
+                steps.settle(connection, latest, row, trigger, timestamp)
             focus = current(connection)
             [view] = voice_notes.decorate(connection, [message_view(row)])
         return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],

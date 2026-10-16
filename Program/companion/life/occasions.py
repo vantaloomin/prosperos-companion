@@ -12,6 +12,7 @@ Three kinds of day, all from saved state and the calendar, never from a model:
   It is the companion's news, not the user's, so it carries no hint to wish anyone and opens no conversation;
   on the day the companion may celebrate with them (companion/life/composer.py).
 - a family tradition (companion/life/traditions.py): a holiday their family keeps, with how they keep it.
+- a step in the relationship (companion/life/steps.py): a year since they became exclusive, two since moving in.
 - how long the two have been talking: a month, three months, six months, a hundred days, then each
   year, counted from the timeline's first message. For a romance it is their anniversary.
 
@@ -24,7 +25,7 @@ from datetime import date, timedelta
 
 from companion.clock import parse, zone
 from companion.database import optional, settings
-from companion.life import circle, traditions
+from companion.life import circle, steps, traditions
 from companion.world import generators
 
 SOON = 7
@@ -46,7 +47,8 @@ TOMORROW = re.compile(r"\b(?:tomorrow(?: is|'s) my (?:birthday|bday)|my (?:birth
 NOT_MINE = re.compile(r"\b(?:if|when|what if|imagine|pretend|suppose|wish)\b", re.IGNORECASE)
 TEMPLATES = {'user_birthday': 'Happy birthday!! I hope today is a really good one.',
              'own_birthday': "Guess who's a year older today.",
-             'anniversary': "Okay, random, but it's been {span} since we started talking. Just saying."}
+             'anniversary': "Okay, random, but it's been {span} since we started talking. Just saying.",
+             'step_anniversary': "Can you believe it's been {span} since we {did}?"}
 
 
 def month_day(month: str, day: str) -> str | None:
@@ -151,6 +153,11 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     for item in traditions.upcoming(connection, companion, own_today, SOON):
         found.append(occasion('tradition', item['date'], item['days'], item['name'], '', tradition=item))
     first = first_talk(connection, companion['active_timeline_id'], user_tz)
+    for item in steps.anniversaries(connection, companion, own_today, SOON):
+        years = 'a year' if item['years'] == 1 else f"{item['years']} years"
+        found.append(occasion('step_anniversary', item['date'], item['days'],
+                              f"{years} since you and the user {item['did']} ({date.fromisoformat(item['on']).strftime('%d %B %Y')})",
+                              '', span=years, did=item['did'], step=item['step']))
     span = milestone(first, user_today) if first else None
     if span:
         romance = companion['version']['definition'].get('relationship') == 'romance'
@@ -161,15 +168,17 @@ def occasions(connection, companion: dict, now) -> list[dict]:
 
 
 def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', person: dict | None = None,
-             tradition: dict | None = None) -> dict:
+             tradition: dict | None = None, did: str = '', step: str = '') -> dict:
     when = 'Today' if ahead == 0 else 'Tomorrow' if ahead == 1 else f"In {ahead} days ({day.strftime('%A %d %B')})"
     text = f"- {when} is {what}." if kind != 'anniversary' else f'- Today it has been {what}.'
+    if kind == 'step_anniversary':
+        text = f"- {when} it will be {what}." if ahead else f'- Today it has been {what}.'
     if tradition:
         text += f" Your family's tradition: {tradition['text']}"
-    whose = f"{person['id']}:" if person else f"{tradition['holiday']}:" if tradition else ''
+    whose = f"{person['id']}:" if person else f"{tradition['holiday']}:" if tradition else f'{step}:' if step else ''
     found = {'key': f'occasion:{kind}:{whose}{day.isoformat()}', 'kind': kind, 'date': day.isoformat(), 'days': ahead,
              'span': span, 'text': f'{text} {hint}'.strip() if ahead == 0 else text,
-             'template': TEMPLATES[kind].format(span=span) if ahead == 0 and kind in TEMPLATES else None}
+             'template': TEMPLATES[kind].format(span=span, did=did) if ahead == 0 and kind in TEMPLATES else None}
     if person:
         found |= {'person': person['name'], 'relation': person['role']}
     if tradition:

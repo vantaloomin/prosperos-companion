@@ -2182,3 +2182,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .history-when { grid-auto-flow: column; justify-content: start; gap: 8px; }
   .history-action { min-height: 44px; }
 }
+/* You and them (companion/life/steps.py): where things stand, then the steps so far. */
+.steps-line { margin: 0; font-size: 1.15rem; font-weight: 600; }
+.steps-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; }

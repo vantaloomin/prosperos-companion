@@ -42,6 +42,7 @@ from companion.life import (
     pets,
     reactions,
     recommendations,
+    steps,
     storylines,
     together,
     traditions,
@@ -126,6 +127,8 @@ HEADINGS = {
             'newcomers': 'Names for anyone new you mention who is not listed here (a new coworker, a neighbor); '
                          'use one of these that fits their age rather than making a name up',
             'closeness': 'How close you two are (from your shared history; the user can see and change it)',
+            # Next steps (companion/life/steps.py): changes when a step is reached, brought up or answered.
+            'steps': 'Where things stand between you (decided by the app; the user can see and change it)',
             # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
             'history': 'Your history together (from the app; the user can see and correct it)',
             # Changes about once a day.
@@ -898,6 +901,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_own(packet, connection, timeline_id, version, now, since)
     offer_secrets(packet, connection, companion, group, now)
     closeness.offer(packet, connection, companion, now)
+    steps.offer(packet, connection, companion, now, recent, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

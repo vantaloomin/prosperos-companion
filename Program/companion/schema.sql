@@ -2167,3 +2167,44 @@ CREATE TABLE IF NOT EXISTS calls (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS calls_timeline ON calls(timeline_id, created_at);
+-- Next steps (companion/life/steps.py): each step a pair has reached on its ladder, with the day. `other` is who the
+-- companion is paired with ('user' for the user); `how` says who moved it there: the app's pick at the start ('start',
+-- or 'history' from how they know each other), the companion bringing it up ('them'), the user ('you'), the Character
+-- page ('set') or a friend's confession ('confession'). A step taken back keeps its row with `undone_at`.
+CREATE TABLE IF NOT EXISTS relationship_steps (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  other TEXT NOT NULL DEFAULT 'user',
+  ladder TEXT NOT NULL CHECK (ladder IN ('romance', 'friendship')),
+  step TEXT NOT NULL,
+  reached_on TEXT NOT NULL,
+  how TEXT NOT NULL CHECK (how IN ('start', 'history', 'them', 'you', 'set', 'confession')),
+  ask_id TEXT,
+  undone_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS relationship_steps_pair ON relationship_steps(timeline_id, other, ladder);
+-- A next step brought up by either side, or a confession: planned for a day (`due_on`), open once said, then answered.
+CREATE TABLE IF NOT EXISTS step_asks (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  other TEXT NOT NULL DEFAULT 'user',
+  ladder TEXT NOT NULL,
+  step TEXT NOT NULL,
+  side TEXT NOT NULL CHECK (side IN ('them', 'you')),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'open', 'yes', 'not_yet', 'no', 'lapsed', 'dropped')),
+  due_on TEXT,
+  message_id TEXT,
+  answer_id TEXT,
+  consequence_id TEXT,
+  round INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS step_asks_timeline ON step_asks(timeline_id, status);
+-- The per-companion "just friends" lock: a friend who never falls for the user.
+CREATE TABLE IF NOT EXISTS step_settings (
+  companion_id TEXT PRIMARY KEY REFERENCES companions(id),
+  just_friends INTEGER NOT NULL DEFAULT 0 CHECK (just_friends IN (0, 1)),
+  updated_at TEXT NOT NULL
+);

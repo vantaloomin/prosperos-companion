@@ -29,7 +29,7 @@ from companion.characters import by_id, for_timeline, require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
-from companion.life import calls, occasions, outings, own_plans, pacing, recommendations, together
+from companion.life import calls, occasions, outings, own_plans, pacing, recommendations, steps, together
 from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
@@ -72,6 +72,8 @@ def record_user(database, body) -> dict:
         outings.note(connection, message, companion, database.now())
         # Answering a ring, hanging up, or asking to call (companion/life/calls.py), likewise before the reply.
         calls.note(connection, message, companion, database.now())
+        # An answer to a next step they brought up, or one the user brings up (companion/life/steps.py), likewise.
+        steps.note(connection, message, companion, database.now())
         self_checks.heed(connection, message, database.now())
         moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
         return message

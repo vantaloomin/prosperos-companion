@@ -13,6 +13,7 @@ import { WORK_LEVELS } from '../character/workText'
 import { MEDIA_LEVELS } from '../character/mediaText'
 import { HOBBY_LEVELS } from '../character/hobbiesText'
 import { TOGETHER_LEVELS } from '../conversation/whereText'
+import { PACE_LEVELS } from '../character/stepsText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -92,6 +93,30 @@ export function PaceSettings() {
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
       <Toggle label="Let their days go off plan" checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
         hint={`Now and then they run late, stay late, have plans fall through, have something come up or get a surprise visit. Rolled with fixed dice, so a day never changes after the fact. Off: every day goes as planned.`} />
+      {result && <Notice tone={result.tone}>{result.text}</Notice>}
+    </section>
+  )
+}
+
+/** Love and friendship (companion/life/steps.py): how soon companions bring up the next step, and whether a close
+ * friend can fall for you. */
+export function LoveSettings() {
+  const { settings, data, save, result } = useLifeSettings()
+  if (!data) return <SectionPending queries={[settings]} heading="love-heading" title="Love and friendship" />
+  const pace = PACE_LEVELS[data.steps_pace] ?? PACE_LEVELS[2]
+  return (
+    <section className="settings-section form-stack" aria-labelledby="love-heading">
+      <div>
+        <h2 id="love-heading">Love and friendship</h2>
+        <p className="subtle">Relationships move on by themselves: being exclusive, saying "I love you", meeting their people, becoming best friends. You can always bring a step up yourself, or set it on their Character page.</p>
+      </div>
+      <Field label={`Relationship pace: ${pace.label}`} hint={pace.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.steps_pace} label={pace.label}
+          onChange={(steps_pace) => void save({ steps_pace })} />}
+      </Field>
+      <Toggle label="Friends can fall for you" checked={data.friends_fall} onChange={(value) => void save({ friends_fall: value })}
+        hint={'Now and then a close friend falls for you and tells you. Say yes and you start dating; say no and the friendship carries on after a few awkward days. Rare on a real life, likelier with more drama.'}
+        tip="Keep a friend as just friends on their Character page." />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
