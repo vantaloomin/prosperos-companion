@@ -225,6 +225,34 @@ def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
     assert not patch(client)['open']  # Never on an easy life.
 
 
+def add_romance(database, name, created_at):
+    with database.connect(write=True) as connection:
+        other = identifier()
+        connection.execute('INSERT INTO companions (id, slot, stepped_back_at, created_at) VALUES (?, NULL, ?, ?)',
+                           (other, created_at, created_at))
+        version = insert_version(connection, other, 1, CharacterDefinition(
+            name=name, personality='Easygoing.', timezone='UTC', relationship='romance'), '', created_at)
+        connection.execute('UPDATE companions SET active_version_id=? WHERE id=?', (version, other))
+
+
+def test_a_pair_the_app_started_out_exclusive_only_minds_romances_that_came_later(client, monkeypatch):
+    """An upgrade from v0.12 starts couples at the step their history says, with no question asked: the romances the
+    user already had then are no news to them, so the first daily pass opens no rough patch over them."""
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[-1]['option'])
+    mira(client, monkeypatch, relationship='romance', history_together='We have been dating for a year.')
+    database = client.app.state.database
+    add_romance(database, 'Theo', '2026-01-01T00:00:00+00:00')  # Already there before the app started them.
+    show(client, show_moods=True)
+    with database.connect(write=True) as connection:
+        rough_patches.seen_with_others(connection, current(connection), database.clock.now())
+    assert not patch(client)['open']
+    add_romance(database, 'Zed', database.now())
+    with database.connect(write=True) as connection:
+        rough_patches.seen_with_others(connection, current(connection), database.clock.now())
+    assert patch(client)['about'] == "over them finding out you're seeing Zed too"
+
+
 def test_their_secret_partner_coming_out_is_theirs_to_apologise_for(client, patches, provider, clock):
     with client.app.state.database.connect(write=True) as connection:
         companion = current(connection)
