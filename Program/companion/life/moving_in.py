@@ -304,6 +304,8 @@ def advance(connection, companion: dict, now) -> None:
     today = local_today(companion, now)
     if not reached(connection, companion, now) or chapter_undone(connection, row):
         move_out(connection, companion, now)
+    elif row['status'] in ('moving', 'waiting') and on_break(connection, companion):
+        hold(connection, row, today)
     elif row['status'] == 'moving' and row['move_on'] <= today.isoformat() and not after_visit(connection, row, today):
         move(connection, companion, current(connection, companion['active_timeline_id']), now)
     elif row['status'] == 'waiting':
@@ -323,6 +325,18 @@ def after_visit(connection, row: dict, today: date) -> bool:
     day = date.fromisoformat(found['until']) + timedelta(days=1)
     connection.execute('UPDATE moving_in SET move_on=? WHERE id=?', (day.isoformat(), row['id']))
     return day > today
+
+
+def on_break(connection, companion: dict) -> bool:
+    from companion.life import breakups  # Imported here: breakups reads the steps ladder, which this module reads too.
+    return breakups.apart(connection, companion) == 'break'
+
+
+def hold(connection, row: dict, today: date) -> None:
+    """On a break (Breaks and breakups) a move not made yet waits: moving day moves on a day at a time."""
+    if row['move_on'] and row['move_on'] <= today.isoformat():
+        connection.execute('UPDATE moving_in SET move_on=? WHERE id=?',
+                           ((today + timedelta(days=1)).isoformat(), row['id']))
 
 
 def follow_step(connection, companion: dict, now) -> None:
@@ -523,6 +537,28 @@ def move_out(connection, companion: dict, now, who: str | None = None) -> dict |
     connection.execute("UPDATE moving_in SET status='moved_out', out_on=?, out_who=? WHERE id=?",
                        (today.isoformat(), None if undone else leaving, row['id']))
     return latest(connection, companion['active_timeline_id'])
+
+
+def move_back(connection, companion: dict, since: str, now) -> dict | None:
+    """A breakup taken back on Today (Breaks and breakups): a move out on or after `since` (a local day) is undone, so
+    they live together as before; a plan dropped before moving day goes on."""
+    from companion.life import chapters  # Imported here: chapters reads love_life, which reads the steps ladder.
+    timeline_id = companion.get('active_timeline_id') or ''
+    row = latest(connection, timeline_id)
+    if row is None or row['status'] != 'moved_out' or (row['out_on'] or '') < since:
+        return None
+    if row['out_who'] == 'them':
+        chapter = optional(connection, "SELECT * FROM life_chapters WHERE timeline_id=? AND kind='move_out' AND "
+                           'undone_at IS NULL AND started_on=? ORDER BY created_at DESC LIMIT 1',
+                           (timeline_id, row['out_on']))
+        if chapter:
+            chapters.reverse(connection, decode(chapter['undo']), now)
+            connection.execute('UPDATE life_chapters SET undone_at=? WHERE id=?', (stamp(now), chapter['id']))
+    elif row['out_who'] == 'you':
+        share_theirs(connection, companion, row, local_today(companion, now), True)
+    status = 'moved' if row['moved_on'] else 'waiting' if row['plan'] == 'you' else 'moving'
+    connection.execute('UPDATE moving_in SET status=?, out_on=NULL, out_who=NULL WHERE id=?', (status, row['id']))
+    return latest(connection, timeline_id)
 
 
 def place_of_their_own(connection, companion: dict, row: dict, day: date, now) -> None:
@@ -750,6 +786,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         who = 'You moved out' if row['out_who'] == 'them' else 'The user moved out'
         return [(f"moving-in:{row['id']}:out", f"- {who} of the place you shared on {day_text(row['out_on'])}. You "
                  'no longer live together.')]
+    if on_break(connection, companion):
+        return []  # The move waits while they are on a break (`hold`); the 'breakup' section says where they stand.
     lines = [(f"moving-in:{row['id']}:plan", f'- {plan_line(connection, row)}')]
     if row['message_id'] and row['message_id'] in fresh_ids:
         lines.append((f"moving-in:{row['id']}:just", '- You just agreed to live together, and this is how it will '

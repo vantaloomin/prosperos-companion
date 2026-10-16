@@ -355,7 +355,9 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     today = storylines.local_today(companion, now)
     since = (today - timedelta(days=TOLD_DAYS)).isoformat()
     rows = many(connection, 'SELECT * FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL AND started_on>=? '
-                'AND started_on<=? ORDER BY started_on', (companion['active_timeline_id'], since, today.isoformat()))
+                'AND started_on<=? AND id NOT IN (SELECT chapter_id FROM moving_in WHERE status=? AND chapter_id IS NOT '
+                'NULL) ORDER BY started_on', (companion['active_timeline_id'], since, today.isoformat(), 'moved_out'))
+    # Moving in together stops being "how your life is now" once they moved out again (companion/life/moving_in.py).
     return [(f"chapter:{row['id']}", f"- A new chapter, since {row['started_on']}: {row['told']} This is how your "
              'life is now; it replaces anything older about it.') for row in rows]
 
