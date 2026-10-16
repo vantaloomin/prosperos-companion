@@ -323,3 +323,11 @@ def test_a_fork_from_before_moving_day_moves_in_again_on_its_own(client, provide
         assert shared['shared'] and optional(connection, "SELECT id FROM life_chapters WHERE kind='move_in' AND "
                                              'timeline_id=?', (fork['id'],))
 
+
+def test_asking_what_to_have_for_dinner_at_home_is_not_going_out(client, provider, clock, monkeypatch, always):
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    says(provider)
+    send(client, 'what should we have for dinner?', 'client-move-dinner-1')
+    assert client.get('/api/life/outings').json()['outings'] == []
