@@ -463,7 +463,25 @@ def describe(found: dict) -> str:
     parts = [str(details['age'])] if details.get('age') else []
     if details.get('career'):
         parts.append(str(details['career']).lower() + (f" at {details['employer']}" if details.get('employer') else ''))
+    if details.get('pronouns'):
+        parts.append(str(details['pronouns']))
     return f" ({', '.join(parts)})" if parts else ''
+
+
+def on(day: str, today: date) -> str:
+    """'on Wednesday 14 October 2026, 5 days ago', or 'today (...)' / 'yesterday (...)'."""
+    text = when(day, today)
+    return text if text.startswith(('today', 'yesterday')) else f'on {text}'
+
+
+def when(day: str, today: date) -> str:
+    """'today (Monday 19 October 2026)', 'yesterday (Sunday 18 October 2026)', 'Wednesday 14 October 2026, 5 days ago'."""
+    found = date.fromisoformat(day)
+    days = (today - found).days
+    if days in (0, 1):
+        return f"{'today' if days == 0 else 'yesterday'} ({found:%A} {steps.long_date(day)})"
+    weekday = f'{found:%A} ' if days < 7 else ''
+    return f'{weekday}{steps.long_date(day)}, {days} days ago'
 
 
 def pair_text(connection, companion: dict, found: dict, today: date) -> str:
@@ -498,10 +516,11 @@ def partner_line(connection, companion: dict, found: dict, today: date) -> str:
 
 
 ENDED = {
-    'split': '- You and {name} broke up on {date}. It still stings a little; you do not have to bring it up.',
-    'came_out': ('- The user found out on {date} that you had been seeing {name} behind their back ({via}). You ended '
-                 'it with {name} that day. You know you hurt the user: own it, do not make excuses, and do not push '
-                 'them to forgive you.'),
+    'split': ('- You and {name} broke up {date}. It still stings a little. You need not bring it up yourself, but '
+              'if the user asks about {first}, tell them you two broke up.'),
+    'came_out': ('- The user found out {date} that you had been seeing {name} behind their back ({via}). You ended '
+                 'it with {first} that same day, and it is over: tell the user so. You know you hurt them: own it, do '
+                 'not make excuses, and do not push them to forgive you.'),
 }
 VIA = {'small_world': 'a friend of theirs saw you two together', 'news': 'word got around and reached them'}
 
@@ -520,14 +539,16 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
             result += fresh_steps(connection, companion, found, today)
         elif found['ended_how'] in ENDED and (today - date.fromisoformat(found['ended_on'])).days <= TOLD_DAYS:
             result.append((f"love:{found['id']}:{found['ended_how']}", ENDED[found['ended_how']].format(
-                name=found['name'], date=steps.long_date(found['ended_on']), via=VIA.get(found['out_via'] or '', ''))))
+                name=found['name'], first=first(found['name']), date=on(found['ended_on'], today),
+                via=VIA.get(found['out_via'] or '', ''))))
     return result + saw_lines(connection, companion, today)
 
 
 def fresh_steps(connection, companion: dict, found: dict, today: date) -> list[tuple[str, str]]:
     since = (today - timedelta(days=FRESH_DAYS)).isoformat()
-    return [(f"love-step:{row['id']}", f"- You and {first(found['name'])} {steps.step_of(LADDER, row['step']).did} on "
-             f"{steps.long_date(row['reached_on'])}. It is new, and it matters to you.")
+    return [(f"love-step:{row['id']}", f"- You and {first(found['name'])} {steps.step_of(LADDER, row['step']).did} "
+             f"{on(row['reached_on'], today)}. It is big, happy news and it matters to you; you would want to tell "
+             'the user.')
             for row in steps.reached(connection, companion['active_timeline_id'], LADDER, key_of(found))
             if row['how'] == 'them' and row['reached_on'] >= since]
 
