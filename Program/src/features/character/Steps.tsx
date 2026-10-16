@@ -11,7 +11,7 @@ import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { Wedding } from './WeddingPlan'
 import { STEPS_KEY, askText, howText, movingText, plannedText, stepDate } from './stepsText'
-import { BREAKUP_KEY, breakupLine, isApart, mendLabel, mendedText, type BreakupView } from './breakupText'
+import { apartHint, BREAKUP_KEY, breakupLine, isApart, mendLabel, mendedText, type BreakupView } from './breakupText'
 import { UNDO_MS } from '../profile/roughPatchText'
 
 /** Where you and them stand (companion/life/steps.py): one plain line, the steps so far, what came up lately and,
@@ -34,8 +34,8 @@ export function Steps({ name }: { name: string }) {
   const who = firstName(name)
   // On a break or broken up (companion/life/breakups.py) the summary says so, and the steps wait.
   const apart = isApart(breakup.data)
-  const hint = apart ? 'Get back together to pick up where you left off.'
-    : `Picked and moved on by the app, as ${who} brings things up and you answer. Set it yourself any time; moving it back takes the later steps back.`
+  const hint = apartHint(breakup.data) ||
+    `Picked and moved on by the app, as ${who} brings things up and you answer. Set it yourself any time; moving it back takes the later steps back.`
   return (
     <section id="steps" className="home-panel steps-panel" aria-labelledby="steps-heading">
       <h2 id="steps-heading">You and {who}</h2>
