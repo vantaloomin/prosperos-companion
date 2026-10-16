@@ -513,12 +513,13 @@ def move_out(connection, companion: dict, now, who: str | None = None) -> dict |
                            (today.isoformat(), row['id']))
         return latest(connection, companion['active_timeline_id'])
     leaving = who or who_leaves(connection, companion, row)
-    if leaving == 'them' and not chapter_undone(connection, row):
+    undone = chapter_undone(connection, row)  # The move undone on the Character page: it never happened.
+    if leaving == 'them' and not undone:
         place_of_their_own(connection, companion, row, today, now)
     elif leaving == 'you':
         share_theirs(connection, companion, row, today, False)
     connection.execute("UPDATE moving_in SET status='moved_out', out_on=?, out_who=? WHERE id=?",
-                       (today.isoformat(), leaving, row['id']))
+                       (today.isoformat(), None if undone else leaving, row['id']))
     return latest(connection, companion['active_timeline_id'])
 
 

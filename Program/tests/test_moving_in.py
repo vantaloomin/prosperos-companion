@@ -351,3 +351,19 @@ def test_a_visit_under_way_on_moving_day_puts_the_move_off(client, provider, clo
     moving_day(client, clock)
     found = row(client)
     assert (found['status'], found['moved_on']) == ('moved', (move_on + timedelta(days=3)).isoformat())
+
+
+def test_a_move_undone_on_the_character_page_is_not_told_as_moving_out(client, provider, clock, monkeypatch, always):
+    apart_from(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    chapter = client.get('/api/life/chapters').json()[0]
+    assert client.post(f"/api/life/chapters/{chapter['id']}/undo").status_code == 200
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        found = moving_in.latest(connection, current(connection)['active_timeline_id'])
+    assert (found['status'], found['out_who']) == ('moved_out', None)
+    says(provider)
+    send(client, 'hey', 'client-move-undone-1')
+    assert 'You moved out of the place you shared' not in notes(provider)
+    assert where(client)['kind'] == 'long-distance'
