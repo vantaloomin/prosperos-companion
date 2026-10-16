@@ -9,10 +9,10 @@ from conftest import reconcile, send, set_life, show
 from test_openers import check, history
 from test_together import mira, notes, says
 
-from companion import consequences
+from companion import consequences, moods
 from companion.characters import current, insert_version
 from companion.database import identifier
-from companion.life import love_life, openers, rough_patches
+from companion.life import breakups, love_life, openers, rough_patches
 from companion.models import CharacterDefinition
 
 BANKS = Path(__file__).resolve().parents[1] / 'companion' / 'world' / 'data' / 'rough_patches'
@@ -84,6 +84,21 @@ def test_it_shows_what_about_with_moods_shown_and_can_be_let_go(client, patches,
     assert rough_patches.quoted('x' * 80) == 'x' * 59 + '…'
 
 
+def test_let_it_go_clears_the_air_over_everything_open(client, patches, provider):
+    show(client, show_moods=True)
+    for number, text in enumerate(('go away', 'leave me alone')):
+        says(provider)
+        send(client, f'{text}.', f'client-patch-4{number}')
+    found = patch(client)
+    assert found['about'] in ('over what you said: "go away"', 'over what you said: "leave me alone"')
+    assert not client.post(f"/api/life/rough-patch/{found['id']}/let-go").json()['open']
+    assert not patch(client)['open']  # Not the one before it instead.
+    client.post(f"/api/life/rough-patch/{found['id']}/undo")
+    assert patch(client)['id'] == found['id']
+    with client.app.state.database.connect() as connection:
+        assert len(rough_patches.open_rows(connection, current(connection), 2, client.app.state.database.clock.now())) == 2
+
+
 def test_the_odds_can_be_changed_on_today(client, patches, provider):
     show(client, show_moods=True)
     says(provider)
@@ -94,6 +109,37 @@ def test_the_odds_can_be_changed_on_today(client, patches, provider):
     assert outcome['label'] == 'Whether a rough patch starts with Mira over what you said: "leave me alone"'
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
     assert not patch(client)['open']
+
+
+def test_one_let_go_can_still_be_made_to_start_on_today_after_the_daily_pass(client, patches, provider, monkeypatch):
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])
+    show(client, show_moods=True)
+    says(provider)
+    send(client, 'leave me alone', 'client-patch-30')
+    reconcile(client)  # The daily pass must not close it while it could still be changed.
+    [outcome] = [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:rough_patch']
+    assert outcome['picked'] == 0 and not patch(client)['open']
+    assert outcome['label'] == 'Whether a rough patch starts with Mira over what you said: "leave me alone"'
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 1})
+    assert patch(client)['open']
+
+
+def test_ordinary_chat_does_not_sting_or_count_as_an_apology():
+    for text in ('I want to go away for the weekend, somewhere with a beach.', "This headache doesn't go away.",
+                 "My kids wouldn't leave me alone all morning.", "Shut up, you got the job?! That's amazing!",
+                 'Can we go away together sometime?', 'I hate you have to work tonight.',
+                 'I just need everyone to leave me alone today, work was a lot'):
+        assert rough_patches.stings(text) is None, text
+        assert moods.hurtful(text) is None, text
+    for text in ('Whatever you want is fine with me.', "I don't care what we eat, you pick.", 'My stupid phone died.',
+                 'The new manager is an idiot honestly.', "I'll have whatever you're having."):
+        assert moods.hurtful(text) is None, text
+    for text in ('please just go away', 'go away for good', 'I hate you for that', "you're so stupid"):
+        assert rough_patches.stings(text) and moods.hurtful(text), text
+    assert moods.hurtful('ugh, whatever.') and moods.hurtful('stupid bot')
+    assert not rough_patches.says('apologies', "I'm sorry to hear that, that sounds rough.")
+    assert rough_patches.says('apologies', "oh no I'm so sorry, I forgot")
+    assert rough_patches.says('apologies', "I'm sorry to hear you're upset, I'm sorry I forgot")
 
 
 def test_off_starts_nothing_and_easy_fades_overnight(client, patches, provider, clock):
@@ -193,6 +239,7 @@ def test_they_can_stand_you_up_and_apologise_first(client, patches, provider, cl
         companion = current(connection)
         [trigger] = rough_patches.apology_due(connection, companion, clock.now())
         assert trigger.kind == 'apology' and 'You called off' in trigger.reason
+        assert 'the visit' in trigger.template and 'the user' not in trigger.template and ')' not in trigger.template
         assert not rough_patches.cool(connection, companion, clock.now())
         assert trigger.key in {item.key for item in openers.candidates(connection, companion, clock.now())}
     says(provider, "I'm so sorry about tonight, work ran late.")
@@ -221,6 +268,10 @@ def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
     assert not patch(client)['open']  # Only dating: nobody minds yet.
     assert client.put('/api/life/steps', json={'step': 'exclusive'}).status_code == 200
     show(client, show_moods=True)
+    with database.connect(write=True) as connection, monkeypatch.context() as broken_up:
+        broken_up.setattr(breakups, 'apart', lambda _connection, companion: 'ended' if companion['id'] == other else None)
+        rough_patches.seen_with_others(connection, current(connection), database.clock.now())
+    assert not patch(client)['open']  # An ex is not someone you're seeing.
     with database.connect(write=True) as connection:
         rough_patches.seen_with_others(connection, current(connection), database.clock.now())
     assert patch(client)['about'] == "over Mira finding out you're seeing Theo too"
@@ -253,3 +304,21 @@ def test_their_secret_partner_coming_out_is_theirs_to_apologise_for(client, patc
     send(client, "I forgive you", 'client-patch-31')
     assert not patch(client)['open']
     assert 'The user forgave you for seeing someone behind their back' in notes(provider)
+
+
+def test_reasons_for_calling_off_fit_the_era(client):
+    with client.app.state.database.connect() as connection:
+        def drawn(city):
+            return set(rough_patches.reasons(connection, {'version': {'definition': {'home_city': city}}}))
+        camelot, london, new_york, baltimore = drawn('camelot'), drawn('london-1895'), drawn('new-york-1925'), drawn('baltimore')
+    assert 'the car would not start' in baltimore and 'the car would not start' in new_york
+    assert 'the train broke down halfway there' in london and 'the car would not start' not in london
+    assert not {'the car would not start', 'the train broke down halfway there', 'the bank froze a card and it took hours to fix'} & camelot
+    assert 'the bank froze a card and it took hours to fix' not in new_york and len(camelot) >= 60
+
+
+def test_a_plan_is_named_as_the_user_would():
+    assert rough_patches.plan_name({'activity': 'dinner', 'place': {'name': 'Lupa'}}) == 'dinner at Lupa'
+    assert rough_patches.plan_name({'activity': 'walk', 'place': {'name': 'Patterson Park'}}) == 'a walk at Patterson Park'
+    assert rough_patches.plan_name({'activity': 'visit-yours', 'place': {'name': 'Your place'}}) == 'the visit'
+    assert rough_patches.plan_name({'activity': 'hobby', 'place': {'name': 'The Clay Room'}}) == 'the plan at The Clay Room'
