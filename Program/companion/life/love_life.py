@@ -422,7 +422,8 @@ def secret_weeks(connection, companion: dict, found: dict, today: date, now) -> 
     week = 1
     while (day := met + timedelta(days=7 * week)) <= today:
         if random.Random(f"{found['id']}:out:{week}").random() < OUT_CHANCE:
-            comes_out(connection, companion, found, day, now)
+            # On the day the app notices (after days away, the week's roll is in the past), as the rough patch is.
+            comes_out(connection, companion, found, today, now)
             return
         if random.Random(f"{found['id']}:fizzle:{week}").random() < FIZZLE_CHANCE:
             end(connection, found, 'faded', day)

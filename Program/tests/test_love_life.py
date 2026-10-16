@@ -280,3 +280,22 @@ def test_what_a_friend_saw_comes_only_from_the_branch_being_lived(client, mira, 
                  clock.now().isoformat()))
         assert len(love_life.saw_lines(connection, companion, steps.local_today(companion, clock.now()))) == 1
         assert len(love_life.spotted_due(connection, companion, clock.now())) == 1
+
+
+def test_a_secret_that_came_out_while_the_user_was_away_still_reaches_them(client, romance, clock, monkeypatch):
+    # The weekly roll that brings it out is in the past when the app catches up after days away; it comes out the
+    # day the app notices (when the rough patch opens too), so the owning-up text is not already stale.
+    monkeypatch.setattr(love_life, 'FIRST_TEXTS', True)
+    set_life(client, drama=3)
+    force(monkeypatch, 1)
+    monkeypatch.setattr(love_life, 'OUT_CHANCE', 0)
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.maybe_secret(connection, current(client), client.app.state.life.world, clock.now())
+    monkeypatch.setattr(love_life, 'OUT_CHANCE', 1)
+    clock.advance(timedelta(days=12))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        love_life.advance(connection, companion, client.app.state.life.world, clock.now())
+        [after] = love_life.partners(connection, companion['active_timeline_id'], active=False)
+        assert after['ended_how'] == 'came_out' and after['ended_on'] == steps.local_today(companion, clock.now()).isoformat()
+        assert len(love_life.came_out_due(connection, companion, clock.now())) == 1
