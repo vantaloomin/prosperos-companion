@@ -435,3 +435,25 @@ def test_the_planning_follows_a_new_venue_and_day(client, clock, provider):
     soon = (date.fromisoformat(venue_task()['local_date']) - timedelta(days=1)).isoformat()
     assert client.put('/api/life/admin/wedding', json={'day': soon}).status_code == 200
     assert venue_task()['status'] == 'removed'
+
+
+def test_moving_away_keeps_the_wedding_in_their_city(client, clock, provider):
+    """Long distance calls plans in person off, but not the wedding: it is in their city, and the user travels to it."""
+    from companion.characters import require_current
+    from companion.life import long_distance
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-16')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    for _day in range(3):
+        clock.advance(timedelta(days=1))
+        with client.app.state.database.connect(write=True) as connection:
+            companion = require_current(connection)
+            long_distance.settle_moves(connection, companion, clock.now().date(), clock.now())
+        advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        rows = many(connection, "SELECT status FROM outings WHERE activity='wedding'")
+    assert [row['status'] for row in rows] == ['planned']
