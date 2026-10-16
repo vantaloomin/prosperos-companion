@@ -180,8 +180,10 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
     if fault == 'user':
         known, trait = facts(connection, companion, cause, now)
         first = companion['version']['definition']['name'].split()[0]
-        # The label is the user's to read ("... over you calling off dinner today"), never the companion's words.
-        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': shown.removeprefix('over ') or about}
+        # The label is the user's to read on Today for weeks ("... over you calling off dinner on the day"), never the
+        # companion's words.
+        shown_about = re.sub(r' today$', ' on the day', shown.removeprefix('over '))
+        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': shown_about or about}
         table = consequences.tables()[CHOICE]
         outcome = consequences.decide(
             connection, timeline_id=companion['active_timeline_id'], choice=CHOICE, subject=f'patch:{subject}',

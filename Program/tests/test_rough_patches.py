@@ -167,6 +167,10 @@ def test_calling_off_on_the_day_is_small_friction(client, patches, provider, clo
     [visit] = client.get('/api/life/outings').json()['outings']
     client.post(f"/api/life/outings/{visit['id']}/cancel")
     assert not patch(client)['open']  # Small ones show only with moods shown.
+    with client.app.state.database.connect() as connection:
+        [label] = [row['label'] for row in connection.execute(
+            "SELECT label FROM consequences WHERE choice='user:rough_patch'")]
+    assert label == 'Whether a rough patch starts with Mira over you calling off the visit on the day'  # Read later.
     says(provider)
     send(client, 'sorry!', 'client-patch-18')
     assert 'A small thing is bugging you a little today: the user called off' in notes(provider)
