@@ -1249,6 +1249,7 @@ export type ScrapbookPage =
   | { kind: 'jokes'; title: string; items: ScrapbookItem[]; note: string | null }
   | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
   | { kind: 'closing'; title: string; text: string }
+  | { kind: 'wedding'; title: string; date: string; text: string; items: ScrapbookItem[]; guests: string[]; more?: number; photo: string | null; photo_alt: string }
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
 /** Our history at a glance: one line a week lately, a month, then a year further back (companion/memory/history.py).
  * `corrected` is the user's own words, an empty string when they left the line out, or null for the app's line. */
@@ -1857,6 +1858,18 @@ export interface AdminItem {
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
 
+/** A guest on the wedding list: `side` is 'theirs' (their family and friends) or 'yours' (people you told them about,
+ * your other companions). `who` is how they know the couple ("Mira's mom", "your sister"). */
+export interface WeddingGuest { key: string; name: string; who: string; side: 'theirs' | 'yours'; invited: boolean }
+/** The wedding an engagement plans (companion/life/wedding.py): picked by the app, changed by the user. */
+export interface WeddingPlan {
+  id: string; status: 'planned' | 'done'; engaged_on: string; date: string; at: string; until: string
+  size: 'small' | 'proper' | 'big'; size_label: string; sizes: { key: string; label: string }[]
+  venue: { id: string; name: string; kind: string; neighborhood: string; mapped: boolean }
+  budget_text: string; share_text: string; guest_count: number; guests: WeddingGuest[]; moved_by_user: boolean
+  customs: string; tasks: { title: string; date: string; done: boolean; done_text?: string }[]; consequence_id: string | null
+}
+
 /** The Character page's Life admin panel (/api/life/admin). */
 export interface AdminView {
   state: string[]
@@ -1867,6 +1880,8 @@ export interface AdminView {
   level: number
   /** 0 to 100, only with Hidden values' home-life meters on. */
   meter: number | null
+  /** The wedding being planned (companion/life/wedding.py), null when there is none. */
+  wedding: WeddingPlan | null
 }
 
 /** Something that changed at work (companion/life/work.py): a raise, a promotion, a project wrapped up, a new job. */

@@ -22,7 +22,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.errors import require
 from companion.images import photos
-from companion.life import breakups, occasions, steps
+from companion.life import breakups, occasions, steps, wedding
 from companion.memory import closeness
 
 QUOTE_LIMIT = 280
@@ -142,6 +142,7 @@ def build(connection, companion: dict, key: str, now) -> dict:
                    if row['role'] == 'user'})
     pages = [cover(period, name, days, messages, sent), opening(period, first, messages, timezone),
              pictures(name, sent, messages, timezone), *together(connection, companion, now, period, timezone),
+             wedding.scrapbook_page(connection, companion, period['start'].isoformat(), period['end'].isoformat()),
              their_year(connection, companion, period, name), closing(period, days, name)]
     return {**view(period), 'name': name, 'pages': [page for page in pages if page]}
 

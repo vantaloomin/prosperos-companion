@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Home, MapPin, Undo2, X } from 'lucide-react'
+import { Home, MapPin, Moon, Undo2, X } from 'lucide-react'
 import { api } from '../../api'
 import { Notice } from '../../components/Feedback'
 import { WHERE_KEY } from '../conversation/whereText'
+import { firstName } from '../character/panelText'
+import { openWedding } from '../character/weddingText'
 import { OUTING_STATES, TOGETHER_KEY, outingNote, outingTitle, outingWhen, peopleLine, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
 import { useTogether } from './useTogether'
 
@@ -47,17 +49,29 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
         <strong>{outingTitle(outing)}</strong>
         <span className="badge">{OUTING_STATES[outing.state]}</span>
       </div>
-      <p className="subtle">{outingWhen(outing, name)} · {placeLine(outing.place)}{outing.place.kind !== 'family-home' && <> <a className="text-button show-on-map" href={`#map/${encodeURIComponent(outing.place.id)}`}>Show on map</a></>}</p>
+      <p className="subtle">{outingWhen(outing, name)} · {placeLine(outing.place)}{outing.place.kind !== 'family-home' && !outing.place.id.startsWith('~') && <> <a className="text-button show-on-map" href={`#map/${encodeURIComponent(outing.place.id)}`}>Show on map</a></>}</p>
       {peopleLine(outing.place) && <p className="subtle">{peopleLine(outing.place)}</p>}
       {note && <p className="subtle">{note}</p>}
-      {outing.state === 'planned' && <div className="together-actions">
-        {outing.activity !== 'dinner-in' && outing.activity !== 'meet-family' && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/elsewhere`)}><MapPin aria-hidden="true" />Somewhere else</button>}
-        <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
-      </div>}
+      {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <div className="together-actions">
-        <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}><Home aria-hidden="true" />Head home</button>
+        {outing.activity === 'wedding'
+          ? <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}><Moon aria-hidden="true" />Call it a night</button>
+          : <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}><Home aria-hidden="true" />Head home</button>}
       </div>}
     </li>
+  )
+}
+
+/** Call it off or somewhere else; the wedding is changed on its card on the Character page (companion/life/wedding.py). */
+function Planned({ outing, name, act }: { outing: Outing; name: string; act: (path: string) => Promise<void> }) {
+  if (outing.activity === 'wedding') return (
+    <p className="subtle">Planned with {firstName(name)}. <a className="text-button inline" href="#character" onClick={openWedding}>Change the plan</a></p>
+  )
+  return (
+    <div className="together-actions">
+      {outing.activity !== 'dinner-in' && outing.activity !== 'meet-family' && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/elsewhere`)}><MapPin aria-hidden="true" />Somewhere else</button>}
+      <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
+    </div>
   )
 }
 

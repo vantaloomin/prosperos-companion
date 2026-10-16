@@ -56,6 +56,7 @@ from companion.life import (
     together,
     trips,
     usual_hours,
+    wedding,
 )
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context, pairs
@@ -424,15 +425,15 @@ PAST_WAITING = {'occasion', 'postcard'}
 # A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early; so does a
 # call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
 # (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
-# meet their people (companion/life/their_people.py).
-FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+# meet their people (companion/life/their_people.py), and the evening they plan to propose (companion/life/wedding.py).
+FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
 # While a rough patch of the user's making is open (companion/life/rough_patches.py) they hold back: no check-ins,
 # invitations, knocks, calls or next steps of their own.
 COOLED = {check_in, usual_time, together.suggest_due, together.knock_due, calls.ring_due, kitchen.invite_due,
-          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due}
+          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due, wedding.propose_due}
 
 
 # While apart (companion/life/breakups.py) texting drops off: on a break only what the break itself brings; exes still
@@ -666,22 +667,22 @@ class Openers:
             row = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
             self_facts.note(connection, row, timestamp)
             own_plans.note(connection, row, latest, timestamp)
-            if trigger.kind == 'dinner_invite':
-                kitchen.settle_invite(connection, latest, row, trigger, timestamp)
-            if trigger.kind == 'hobby_invite':
-                hobbies.settle_invite(connection, latest, row, trigger, timestamp)
-            if trigger.kind in together.SETTLES:
-                together.settle(connection, latest, row, trigger, timestamp)
-            if trigger.kind in steps.SETTLES:
-                steps.settle(connection, latest, row, trigger, timestamp)
-            if trigger.kind in their_people.SETTLES:
-                their_people.settle(connection, latest, row, trigger, timestamp)
-            if trigger.kind in breakups.SETTLES:
-                breakups.settle(connection, latest, row, trigger, timestamp)
+            settle(connection, latest, row, trigger, timestamp)
             focus = current(connection)
             [view] = voice_notes.decorate(connection, [message_view(row)])
         return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],
                 'focus': bool(focus and focus['id'] == latest['id'])}
+
+
+def settle(connection, companion, row, trigger, timestamp):
+    """What a first text sets going once it is sent: an invitation booked, an ask opened, a proposal evening."""
+    if trigger.kind == 'dinner_invite':
+        kitchen.settle_invite(connection, companion, row, trigger, timestamp)
+    if trigger.kind == 'hobby_invite':
+        hobbies.settle_invite(connection, companion, row, trigger, timestamp)
+    for module in (together, steps, their_people, wedding, breakups):
+        if trigger.kind in module.SETTLES:
+            module.settle(connection, companion, row, trigger, timestamp)
 
 
 def plain(text: str) -> str:

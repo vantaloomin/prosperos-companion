@@ -450,6 +450,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
         outings,
         trips,
         wardrobe,
+        wedding,
         work,
     )
 
@@ -467,7 +468,8 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *kitchen.purchases(connection, timeline_id, start, day, definition, None, None),
               *media.purchases(connection, timeline_id, start, day, definition),
               *admin.purchases(connection, timeline_id, start, day),
-              *hobbies.purchases(connection, timeline_id, start, day)]
+              *hobbies.purchases(connection, timeline_id, start, day),
+              *wedding.purchases(connection, timeline_id, start, day)]
     # Raises, promotions and time between jobs (companion/life/work.py).
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
             'pay': work.pay(connection, timeline_id, day, start)}
@@ -497,11 +499,13 @@ def with_home(found: Profile, costs: dict, pay: dict | None = None) -> Profile:
 
 def spent_at_home(found: Profile, purchases: list[dict]) -> list[dict]:
     """Home changes, clothes, outings and trips this cycle with what they cost ({label, on, cost, for}). Outings and
-    trips carry their own cost."""
+    trips carry their own cost. An engagement ring and their share of the wedding come from savings
+    (`savings`), so they leave this cycle's money alone."""
     month = monthly_share(found)
     return [{'label': item['text'], 'on': item['date'],
              'cost': round(item.get('cost') or PURCHASES.get(item['spend'], 0) * month, 2),
-             'for': item.get('for', 'home')} for item in purchases if item.get('cost') or PURCHASES.get(item['spend'])]
+             'for': item.get('for', 'home'), **({'savings': True} if item.get('savings') else {})}
+            for item in purchases if item.get('cost') or PURCHASES.get(item['spend'])]
 
 
 def spendable(connection, timeline_id: str, definition: dict, day: date) -> float:
@@ -525,7 +529,8 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
     day = date.fromisoformat(local_date)
     start = cycle_start(found, day)
     bought = spent_at_home(found, home['purchases']) if home else []
-    current, left = cycle(found, start), left_on(found, day) - sum(item['cost'] for item in bought)
+    current = cycle(found, start)
+    left = left_on(found, day) - sum(item['cost'] for item in bought if not item.get('savings'))
     setup = definition.get('money') or {}
     currency = found.city['currency']
     payday = start + timedelta(days=found.cycle_days)
@@ -584,7 +589,7 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
 
 
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
-            'hobby': 'on your pastimes'}
+            'hobby': 'on your pastimes', 'ring': 'from your savings', 'wedding': 'from your savings'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

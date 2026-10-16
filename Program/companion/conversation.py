@@ -41,6 +41,7 @@ from companion.life import (
     rough_patches,
     steps,
     together,
+    wedding,
 )
 from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
@@ -585,6 +586,7 @@ class Conversation:
                 self_facts.note(connection, finished, self.database.now())
                 own_plans.note(connection, finished, companion, self.database.now())
                 outings.note(connection, finished, companion, self.database.now())
+                wedding.after_reply(connection, finished, companion, self.database.clock.now())
             return status == 'complete' and spoken
 
 

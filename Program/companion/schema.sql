@@ -2379,3 +2379,49 @@ CREATE TABLE IF NOT EXISTS breakup_reaches (
   created_at TEXT NOT NULL,
   settled_at TEXT
 );
+
+-- Engagement and wedding (companion/life/wedding.py): the evening a companion plans to propose, for the "engaged" ask
+-- they planned (step_asks): invited to in a first text that books its outing at one of their favourite places, the
+-- question asked over that evening, and the ring (`ring` in words, `ring_cost` in the city's money, paid that day).
+CREATE TABLE IF NOT EXISTS proposals (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  ask_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'booked', 'asked', 'dropped')),
+  due_on TEXT NOT NULL,
+  outing_id TEXT,
+  ring TEXT NOT NULL DEFAULT '',
+  ring_cost REAL NOT NULL DEFAULT 0,
+  asked_on TEXT,
+  asked_message_id TEXT,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS proposals_timeline ON proposals(timeline_id, status);
+-- The wedding an engagement plans, decided by the app and changed by the user on the Life admin panel: the size
+-- (wedding:size), the day and hours, the venue (JSON, a city place), the budget and the companion's share of it in the
+-- city's money, the culture its customs follow, the guests (JSON: [{key, name, who, side, invited}]) and how many come
+-- in all. Its outing is booked on the timeline; done, it is the "married" step.
+CREATE TABLE IF NOT EXISTS weddings (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'done', 'called_off')),
+  engaged_on TEXT NOT NULL,
+  size TEXT NOT NULL CHECK (size IN ('small', 'proper', 'big')),
+  consequence_id TEXT,
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  until_time TEXT NOT NULL,
+  venue TEXT,
+  venue_rolls INTEGER NOT NULL DEFAULT 0,
+  culture TEXT NOT NULL,
+  budget REAL NOT NULL DEFAULT 0,
+  share REAL NOT NULL DEFAULT 0,
+  guests TEXT NOT NULL DEFAULT '[]',
+  guest_count INTEGER NOT NULL DEFAULT 0,
+  outing_id TEXT,
+  moved_by_user INTEGER NOT NULL DEFAULT 0 CHECK (moved_by_user IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS weddings_timeline ON weddings(timeline_id, status);

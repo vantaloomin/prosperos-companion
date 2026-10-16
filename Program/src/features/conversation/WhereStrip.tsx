@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { DoorOpen, Home, Luggage, MapPin, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Undo2 } from 'lucide-react'
+import { DoorOpen, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { TOGETHER_KEY } from '../today/outingText'
 import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, callActions, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
-const ACTION_GLYPHS = { 'Head home': Home, Undo: Undo2 } as Record<string, typeof Home>
+const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
 const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Phone } as Record<CallAction['action'], typeof Home>
 
 /**

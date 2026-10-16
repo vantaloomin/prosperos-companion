@@ -17,7 +17,8 @@ export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: Wh
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
 export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string }
-/** The strip's one button: Head home, Say goodbye, Not now, or Undo just after one of those. */
+/** The strip's one button: Head home (Call it a night at your own wedding), Say goodbye, Not now, or Undo just after
+ * one of those. */
 export interface StripAction { action: 'home' | 'undo'; label: string }
 /** A call's buttons: Decline and Answer while it rings, End call while it is on, Call back after one you missed. */
 export interface CallAction { action: 'answer' | 'decline' | 'end' | 'call'; label: string }
@@ -33,7 +34,14 @@ export function stripLine(where: WhereState | undefined, name: string): StripLin
 
 function endedLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
   if (kind === 'yours' || kind === 'knock') return { lead: `${name} headed home.`, place: null, tail: '' }
+  if (outing.activity === 'wedding') return mapped('Married today at ', outing, '.')
   return { lead: sentence(`Headed home from ${kind === 'theirs' ? `${name}'s place` : outing.place.name}`), place: null, tail: '' }
+}
+
+/** The place linked to the map, unless it isn't on it (a wedding venue in a city the app doesn't know). */
+function mapped(lead: string, outing: WhereOuting, tail: string): StripLine {
+  if (outing.place.id.startsWith('~')) return { lead: `${lead}${outing.place.name}`, place: null, tail }
+  return { lead, place: { id: outing.place.id, name: outing.place.name }, tail }
 }
 
 /** A full stop, unless the words already end in one ("Power Plant Live!", "Pastries & Co."). */
@@ -45,6 +53,8 @@ function liveLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine
   const tail = ` until ${timeText(outing.until_time)}`
   // Dinner at their family's home (companion/life/their_people.py) isn't on the map.
   if (kind === 'out' && outing.place.kind === 'family-home') return { lead: `Together at ${outing.place.name}`, place: null, tail }
+  // Your wedding (companion/life/wedding.py).
+  if (kind === 'out' && outing.activity === 'wedding') return mapped('Your wedding at ', outing, tail)
   if (kind === 'out') return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail }
   if (kind === 'theirs') return { lead: `At ${name}'s place`, place: null, tail }
   if (kind === 'knock' && outing.not_now) return { lead: `${name} dropped by and is at your place`, place: null, tail }
@@ -110,7 +120,12 @@ export function stripAction(where: WhereState | undefined): StripAction | null {
   if (outing.state === 'done') return outing.undo ? { action: 'undo', label: 'Undo' } : null
   if (where.kind === 'knock' && outing.not_now) return { action: 'home', label: 'Not now' }
   if (where.kind === 'yours' || where.kind === 'knock') return { action: 'home', label: 'Say goodbye' }
-  return { action: 'home', label: 'Head home' }
+  return { action: 'home', label: leaveLabel(outing) }
+}
+
+/** Heading home from your own wedding reads oddly, so the long day ends with Call it a night. */
+function leaveLabel(outing: WhereOuting): string {
+  return outing.activity === 'wedding' ? 'Call it a night' : 'Head home'
 }
 
 /** Whether the chat writes in person now: texting habits like bursts stop while they are together. */

@@ -36,6 +36,7 @@ from companion.life import (
     traditions,
     upkeep,
     wardrobe,
+    wedding,
 )
 from companion.memory import history
 from companion.voice import notes as voice_notes
@@ -217,6 +218,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
     copy_steps(connection, parent_id, new_id, cutoff[:10])
     love_life.copy(connection, parent_id, new_id, ids, cutoff[:10])
+    wedding.copy(connection, parent_id, new_id, cutoff[:10])
     copy_impressions(connection, parent_id, new_id, ids, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
     network.copy(connection, parent_id, new_id, cutoff)

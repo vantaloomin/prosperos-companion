@@ -50,6 +50,7 @@ from companion.life import (
     trips,
     upkeep,
     wardrobe,
+    wedding,
     work,
 )
 from companion.memory import pairs
@@ -159,6 +160,7 @@ def extend(connection, companion, world, now) -> dict:
     moving_in.advance(connection, companion, now)
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)
+    wedding.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
 
 
