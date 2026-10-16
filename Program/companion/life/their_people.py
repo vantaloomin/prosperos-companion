@@ -171,8 +171,8 @@ def advance(connection, companion: dict, now: datetime) -> None:
     follow(connection, companion, now)
     drift(connection, companion, now)
     found = steps.state(connection, companion, now, write=False)
-    if found is None:
-        return
+    if found is None or steps.apart(connection, companion):
+        return  # Nothing new on a break or once it has ended (companion/life/breakups.py).
     if found['ladder'] == 'romance':
         plan_for_step(connection, companion, found, now)
     elif steps.index_of('friendship', found['step']) >= steps.index_of('friendship', 'best_friends'):

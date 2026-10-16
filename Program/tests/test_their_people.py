@@ -324,3 +324,31 @@ def test_a_branch_after_the_dinner_does_not_plan_it_again(client, provider, cloc
     with client.app.state.database.connect() as connection:
         lines = their_people.context_lines(connection, current(connection), clock.now())
     assert lines and all("at dinner at " in text for _identity, text in lines)
+
+
+def test_nothing_is_planned_or_sent_while_apart(client, provider, clock, invites, monkeypatch):
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    make(client)
+    set_step(client, 'their_people')
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-people-end')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    advance(client, clock)
+    # No family dinner for an ex: nothing planned, and no invitation.
+    assert meetups(client) == []
+    assert invite(client, clock) == (None, None)
+
+
+def test_a_planned_dinner_is_not_sent_once_they_break_up(client, provider, clock, invites, monkeypatch):
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    assert len(meetups(client)) == 1
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-people-end-2')
+    clock.advance(timedelta(days=7))
+    assert invite(client, clock) == (None, None)
