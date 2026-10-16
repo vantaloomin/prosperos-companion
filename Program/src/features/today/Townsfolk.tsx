@@ -44,13 +44,13 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
   return (
     <div className="town-detail">
       <p>About {person.age}, {person.temperament}; {person.quirk}.</p>
+      <TownLove love={person.love} />
       <ComesAcross person={person} />
       <TownPersonality person={person} />
       <LifeDetails person={person} />
       {person.goal && <p>Trying to {person.goal}.{person.lately ? ` Last heard: ${person.lately}.` : ''}</p>}
       {person.reached.length > 0 && <p className="subtle">Already managed to {person.reached.join('; ')}.</p>}
       {person.routine && <p className="subtle">Usually {person.routine}.</p>}
-      <TownLove love={person.love} />
       {person.flaw && <p>{person.flaw.charAt(0).toUpperCase()}{person.flaw.slice(1)}; seems to want {person.desire}.</p>}
       <AdultSide person={person} />
       {!person.goal && <p className="subtle">Cross paths again to learn more.</p>}
@@ -144,5 +144,5 @@ function TownSwitch({ person, go }: { person: Townsperson; go: (view: View) => v
 
 /** Where their love life stands, once the companion knows them well enough (companion/world/couples.py). */
 function TownLove({ love }: { love?: string | null }) {
-  return love ? <p className="subtle">{love.charAt(0).toUpperCase()}{love.slice(1)}.</p> : null
+  return love ? <p>{love.charAt(0).toUpperCase()}{love.slice(1)}.</p> : null
 }

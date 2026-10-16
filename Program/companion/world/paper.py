@@ -109,7 +109,7 @@ def couples_news(data: dict, week: tuple[date, date]) -> list[dict]:
                               'their engagement.')
         else:
             headline, text = (f"{sheet['name']} and {item['partner']['name']} got {wed}.",
-                              f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} were {wed} on "
+                              f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} {wed} on "
                               f"{WEEKDAYS[item['day'].weekday()]}.")
         result.append({'key': f"{sheet['key']}:{item['what']}", 'headline': headline, 'text': text})
     return result

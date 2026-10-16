@@ -128,7 +128,7 @@ export function LoveSettings() {
 function LoveLifeSlider({ value, onChange }: { value: number; onChange: (value: number) => void }) {
   const love = LOVE_LIFE_LEVELS[value] ?? LOVE_LIFE_LEVELS[2]
   return (
-    <Field label={`Their love life: ${love.label}`} hint={love.hint} tip="Anyone they start seeing joins the people in their life. You can remove them there, or undo it on Today.">
+    <Field label={`Their love life: ${love.label}`} hint={love.hint} tip="Anyone they start seeing joins the people in their life. You can remove them there, or undo it on Today. Someone in a relationship with you only sees other people in an open relationship, or in secret on Drama.">
       {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={value} label={love.label} onChange={onChange} />}
     </Field>
   )
