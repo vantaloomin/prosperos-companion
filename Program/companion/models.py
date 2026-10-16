@@ -450,6 +450,8 @@ class LifeSettingsUpdate(Input):
     hobbies_realism: int | None = Field(default=None, ge=0, le=3)
     # Getting together (companion/life/together.py): 0 never on their own, 1 light, 2 true to life, 3 often.
     together_realism: int | None = Field(default=None, ge=0, le=3)
+    # Rough patches (companion/life/rough_patches.py): 0 off, 1 easy, 2 true to life, 3 dramatic.
+    rough_patches_realism: int | None = Field(default=None, ge=0, le=3)
     # Next steps (companion/life/steps.py): 0 only when the user brings it up, 1 slow, 2 true to life, 3 fast.
     steps_pace: int | None = Field(default=None, ge=0, le=3)
     friends_fall: bool | None = None

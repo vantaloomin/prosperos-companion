@@ -29,6 +29,7 @@ from companion.life import (
     pets,
     reactions,
     recommendations,
+    rough_patches,
     routine,
     simulation,
     social,
@@ -355,8 +356,29 @@ def change_outing(request: Request, outing_id: str, action: Literal['cancel', 'e
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         changed = change(connection, companion, outing_id, database.clock.now())
+        if action == 'cancel':
+            # Calling it off on the day can leave a little friction (companion/life/rough_patches.py).
+            rough_patches.called_off(connection, companion, changed, database.clock.now())
     request.app.state.life.extend_agenda('return')
     return changed
+
+
+@router.get('/rough-patch')
+def read_rough_patch(request: Request):
+    """Whether things are tense with the companion in focus (companion/life/rough_patches.py), for the Character page."""
+    return rough_patches.read(db(request))
+
+
+@router.post('/rough-patch/{patch_id}/let-go')
+def let_go_rough_patch(request: Request, patch_id: str):
+    """The user clears the air: that rough patch ends now."""
+    return rough_patches.let_go(db(request), patch_id)
+
+
+@router.post('/rough-patch/{patch_id}/undo')
+def undo_let_go_rough_patch(request: Request, patch_id: str):
+    """Take back Let it go."""
+    return rough_patches.undo_let_go(db(request), patch_id)
 
 
 @router.get('/web')

@@ -265,3 +265,25 @@ def test_a_couple_who_already_live_together_share_their_place(client, provider, 
     send(client, 'hey love', 'client-move-9')
     assert 'You and the user live together, ' in notes(provider)
     assert 'You have decided to live together' not in notes(provider)  # Married: the steps line says so.
+
+
+def test_a_chore_left_undone_on_your_turn_can_start_a_small_rough_patch(client, provider, clock, monkeypatch, always):
+    from companion.life import rough_patches
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    seen = []
+    monkeypatch.setattr(rough_patches, 'friction', lambda connection, companion, cause, subject, about, now, shown='':
+                        seen.append((cause, subject, about, shown)))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        today = moving_in.local_today(companion, clock.now())
+        living = moving_in.living(connection, companion, today)
+        mine = next(task for task in moving_in.TASKS if moving_in.turn(companion, today, task) == 'user')
+        theirs = next(task for task in moving_in.TASKS if moving_in.turn(companion, today, task) == 'you')
+        words = {'cooking': 'cook', 'dishes': 'dishes', 'laundry': 'laundry', 'tidying': 'tidy up'}
+        moving_in.skipped(connection, companion, living, f"ugh I forgot to do the {words[theirs]}", clock.now())
+        assert seen == []  # Their turn, not the user's.
+        moving_in.skipped(connection, companion, living, f"sorry, I totally forgot the {words[mine]}", clock.now())
+    assert seen and seen[0][0] == 'chore' and moving_in.CHORES[mine] in seen[0][3]
+    assert moving_in.SKIPPED.search("I didn't get round to the washing up") and not moving_in.SKIPPED.search('dinner was great')

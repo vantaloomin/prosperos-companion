@@ -193,6 +193,8 @@ def found_out(connection, secret: dict, member: str, now):
         return
     feeling, intensity = ('angry', 3) if temper(connection, member) else ('hurt', 2)
     save(connection, member, feeling, intensity, target, f"found out {secret['statement'].rstrip('.')}", now)
+    from companion.life import rough_patches  # A secret about the user coming out can start a rough patch.
+    rough_patches.found_out(connection, secret, member, now)
 
 
 def feeling_in(sentence: str) -> str | None:

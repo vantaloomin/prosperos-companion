@@ -44,6 +44,7 @@ from companion.life import (
     pets,
     reactions,
     recommendations,
+    rough_patches,
     steps,
     storylines,
     their_people,
@@ -235,6 +236,8 @@ NOW = {
        # How they feel right now, from their own day and how the user talks to them (companion/moods.py).
        'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
                   'never explain it unless asked)',
+       # Rough patches and making up (companion/life/rough_patches.py): a falling-out with the user, or making up.
+       'patch': 'How things are between you and the user (decided by the app; keep to it)',
        # Go somewhere together and Trips and postcards (companion/life/outings.py, trips.py).
        # Together or apart (companion/life/together.py): a visit turned down, or time together that just ended; and
        # On a call (companion/life/calls.py): the call under way, or one that just ended or was missed.
@@ -864,6 +867,8 @@ def offer_secrets(packet, connection, companion, group: dict | None, now: dateti
             packet.offer('news', identity, text)
         for identity, text in feelings.chat_lines(connection, companion, now):
             packet.offer('feeling', identity, text)
+        for identity, text in rough_patches.context_lines(connection, companion, now):
+            packet.offer('patch', identity, text)
 
 
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,

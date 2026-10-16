@@ -53,6 +53,13 @@ OUT = re.compile(r"\b(?:i'?m|i am|im) (?:(?:still )?(?:out|at work|at the office
                  r"(?:out|to work)\b|\bwon'?t be home (?:until|till|for)\b", re.IGNORECASE)
 HOME = re.compile(r"\b(?:i'?m|i am|im) (?:back )?home\b|\b(?:just )?got (?:back )?home\b|\bback home now\b|"
                   r"\bwalking in the door\b", re.IGNORECASE)
+# The user saying a chore was left undone: on a day it was their turn, a small rough patch can start
+# (companion/life/rough_patches.py `friction`, which rolls whether it does).
+SKIPPED = re.compile(r"\b(?:forgot|didn'?t (?:get to|do|get round to)|did not do|haven'?t done|never did|skipped|"
+                     r"left)\b[\w' ]{0,20}?\b(?P<task>cook(?:ing)?|dinner|dishes|washing[- ]up|laundry|tidy(?:ing)?(?: up)?|"
+                     r"clean(?:ing)? up)\b", re.IGNORECASE)
+SKIPPED_TASKS = (('cook', 'cooking'), ('dinner', 'cooking'), ('dishes', 'dishes'), ('washing', 'dishes'),
+                 ('laundry', 'laundry'), ('tidy', 'tidying'), ('clean', 'tidying'))
 
 
 # Reading -------------------------------------------------------------------------------------------------------
@@ -612,6 +619,21 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> None:
         connection.execute('UPDATE moving_in SET out_until=NULL WHERE id=?', (row['id'],))
     elif OUT.search(message['text']):
         connection.execute('UPDATE moving_in SET out_until=? WHERE id=?', (stamp(now + OUT_FOR), row['id']))
+    skipped(connection, companion, row, message['text'], now)
+
+
+def skipped(connection, companion: dict, row: dict, text: str, now: datetime):
+    """A chore the user says they left undone on their own turn: everyday friction, at most one roll a chore a day."""
+    found = SKIPPED.search(text)
+    task = found and next(task for start, task in SKIPPED_TASKS if found['task'].lower().startswith(start))
+    today = local_today(companion, now)
+    if not task or turn(companion, today, task) != 'user':
+        return
+    from companion.life import rough_patches
+    chore = CHORES[task]
+    rough_patches.friction(connection, companion, 'chore', f"chore:{row['id']}:{today.isoformat()}:{task}",
+                           f'the user left {chore} undone when it was their turn', now,
+                           shown=f'over you leaving {chore} undone')
 
 
 # What the chat context says ('where' section) ---------------------------------------------------------------------------
