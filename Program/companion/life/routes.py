@@ -357,6 +357,12 @@ def let_go_rough_patch(request: Request, patch_id: str):
     return rough_patches.let_go(db(request), patch_id)
 
 
+@router.post('/rough-patch/{patch_id}/undo')
+def undo_let_go_rough_patch(request: Request, patch_id: str):
+    """Take back Let it go."""
+    return rough_patches.undo_let_go(db(request), patch_id)
+
+
 @router.get('/web')
 def read_web(request: Request):
     """Who knows who: everyone the user has met or heard about and how they are tied (companion/life/web.py)."""

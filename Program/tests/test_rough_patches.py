@@ -75,9 +75,11 @@ def test_it_shows_what_about_with_moods_shown_and_can_be_let_go(client, patches,
     says(provider)
     send(client, 'shut up', 'client-patch-4')
     found = patch(client)
-    assert found['about'] == 'Over what you said ("shut up")'
+    assert found['about'] == 'over what you said: "shut up"'
     response = client.post(f"/api/life/rough-patch/{found['id']}/let-go")
     assert response.status_code == 200 and not response.json()['open']
+    assert client.post(f"/api/life/rough-patch/{found['id']}/undo").json()['open']
+    assert rough_patches.quoted('x' * 80) == 'x' * 59 + '…'
 
 
 def test_the_odds_can_be_changed_on_today(client, patches, provider):
@@ -140,7 +142,7 @@ def test_a_broken_promise_starts_one_when_the_user_comes_back(client, patches, p
     send(client, 'morning!', 'client-patch-13')
     assert "What happened: the user said they'd call you tonight and didn't" in notes(provider)
     show(client, show_moods=True)
-    assert patch(client)['about'] == "Over you saying you'd call them tonight and not doing it"
+    assert patch(client)['about'] == "over you saying you'd call them tonight and not doing it"
 
 
 def test_a_promise_kept_starts_nothing(client, patches, provider, clock):

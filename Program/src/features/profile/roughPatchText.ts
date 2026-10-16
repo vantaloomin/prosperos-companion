@@ -13,8 +13,13 @@ export const ROUGH_PATCH_LEVELS = [
   { label: 'Dramatic', hint: 'Falling-outs come more easily and linger until you make up. Something serious, like a secret coming out, takes both an apology and a gesture.' },
 ]
 
-/** "Things are a bit tense", with what it is over when moods are shown: "Things are a bit tense · Over what you said". */
+/** One sentence: "Things are a bit tense", and with moods shown what it is over ("Things are a bit tense over what you
+ * said: "…""), or what they did ("Things are a bit tense: they called off dinner at the last minute"). */
 export function roughPatchLine(patch: RoughPatch | undefined): string {
   if (!patch?.open) return ''
-  return patch.about ? `${patch.text} · ${patch.about}` : patch.text
+  if (!patch.about) return patch.text
+  return patch.about.startsWith('over ') ? `${patch.text} ${patch.about}` : `${patch.text}: ${patch.about}`
 }
+
+/** How long "You let it go. Undo" stays before it drops. */
+export const UNDO_MS = 6000

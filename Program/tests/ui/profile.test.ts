@@ -53,7 +53,8 @@ test('a rough patch says things are tense, and what about only with moods shown'
   assert.equal(roughPatchLine(closed), '')
   const tense = { open: true, id: 'p1', text: 'Things are a bit tense', since: '2026-10-05', about: null, small: false }
   assert.equal(roughPatchLine(tense), 'Things are a bit tense')
-  assert.equal(roughPatchLine({ ...tense, about: 'Over what you said' }), 'Things are a bit tense · Over what you said')
+  assert.equal(roughPatchLine({ ...tense, about: 'over what you said: "go away"' }), 'Things are a bit tense over what you said: "go away"')
+  assert.equal(roughPatchLine({ ...tense, about: 'they called off dinner at the last minute' }), 'Things are a bit tense: they called off dinner at the last minute')
   assert.equal(ROUGH_PATCH_LEVELS.length, 4)
   for (const level of ROUGH_PATCH_LEVELS) assert.doesNotMatch(level.hint, /\b(?:she|he|her|him|his)\b/i)
 })

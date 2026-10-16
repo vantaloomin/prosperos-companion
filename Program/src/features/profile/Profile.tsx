@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Clock, CloudRain, MapPin, MessageCircle, Users } from 'lucide-react'
+import { Check, Clock, CloudRain, MapPin, MessageCircle, Undo2, Users } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CirclePerson, Companion, PairTie } from '../../types'
@@ -10,7 +10,7 @@ import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
 import { StatusEditor } from '../status/StatusLine'
 import { PROFILE_TABS, circleText, handle, placeFact, profileClass, profileTab, showsCard } from './profileText'
-import { ROUGH_PATCH_KEY, roughPatchLine, type RoughPatch } from './roughPatchText'
+import { ROUGH_PATCH_KEY, UNDO_MS, roughPatchLine, type RoughPatch } from './roughPatchText'
 
 /**
  * The companion's profile: Messages, Posts and Character as tabs, then their card. It takes the chat
@@ -108,19 +108,33 @@ function ProfileFacts({ companion }: { companion: Companion }) {
 }
 
 /** "Things are a bit tense" while a rough patch is open (companion/life/rough_patches.py). With Hidden values > moods
- * on it also says what it is over, and Let it go clears the air. */
+ * on it also says what it is over, on a line of its own, and Let it go clears the air, with a short Undo after. */
 function RoughPatchFact() {
   const client = useQueryClient()
   const patch = useQuery({ queryKey: ROUGH_PATCH_KEY, queryFn: () => api<RoughPatch>('/life/rough-patch') })
+  const [letGo, setLetGo] = useState<string | null>(null)
+  useEffect(() => {
+    if (!letGo) return
+    const timer = window.setTimeout(() => setLetGo(null), UNDO_MS)
+    return () => window.clearTimeout(timer)
+  }, [letGo])
+  const act = async (id: string, action: 'let-go' | 'undo') => {
+    client.setQueryData(ROUGH_PATCH_KEY, await api<RoughPatch>(`/life/rough-patch/${id}/${action}`, {}))
+    setLetGo(action === 'let-go' ? id : null)
+  }
+  if (letGo) return (
+    <li className="profile-patch" role="status" aria-live="polite">
+      <span>You let it go.</span>
+      <button type="button" className="text-button" onClick={() => void act(letGo, 'undo')}><Undo2 aria-hidden="true" />Undo</button>
+    </li>
+  )
   const line = roughPatchLine(patch.data)
   if (!line || !patch.data) return null
-  const letGo = async () => {
-    client.setQueryData(ROUGH_PATCH_KEY, await api<RoughPatch>(`/life/rough-patch/${patch.data.id}/let-go`, {}))
-  }
+  const { id, about, small } = patch.data
   return (
-    <li className="profile-patch">
-      <CloudRain aria-hidden="true" />{line}
-      {patch.data.about && <button type="button" className="text-button" onClick={() => void letGo()}>Let it go</button>}
+    <li className={about ? 'profile-patch has-reason' : 'profile-patch'}>
+      <span className="profile-patch-text"><CloudRain aria-hidden="true" />{line}</span>
+      {about && id && !small && <button type="button" className="text-button" onClick={() => void act(id, 'let-go')}><Check aria-hidden="true" />Let it go</button>}
     </li>
   )
 }

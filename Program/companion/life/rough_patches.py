@@ -160,7 +160,7 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
              outing_id: str | None = None, shown: str = '') -> dict | None:
     """Something happened that could start a rough patch: roll it once (a second call returns the first), and keep
     the row either way, so the user changing how it went on Today opens or closes it. `about` is said to the
-    companion ("the user calling off ..."), `shown` to the user on the Character page ("Over you calling off ...")."""
+    companion ("the user calling off ..."), `shown` to the user on the Character page ("over you calling off ...")."""
     if not ACTIVE or companion is None or not companion.get('active_timeline_id'):
         return None
     lvl = level(connection)
@@ -197,7 +197,7 @@ def seeing_someone(connection, companion: dict, other: str, now: datetime, subje
     """They found out you're seeing someone else once you two are exclusive (Next steps decides that, and calls
     this). Never on an easy life."""
     return consider(connection, companion, 'seeing_someone', subject or f"seeing:{companion['id']}:{other}",
-                    f'you found out the user is seeing {other} too', now, shown=f"Over finding out you're seeing {other} too")
+                    f'you found out the user is seeing {other} too', now, shown=f"over them finding out you're seeing {other} too")
 
 
 def friction(connection, companion: dict, cause: str, subject: str, about: str, now: datetime,
@@ -215,13 +215,13 @@ def found_out(connection, secret: dict, member: str, now: datetime):
     if companion:
         consider(connection, companion, 'secret_kept', f"secret-kept:{secret['id']}>{member}",
                  f"the user kept something from you, and you found out ({secret['statement'].rstrip('.')})", now,
-                 shown='Over finding out you kept something from them')
+                 shown='over them finding out you kept something from them')
 
 
 def told_secret(connection, companion: dict, secret: dict, listener: str, now: datetime):
     consider(connection, companion, 'secret_told', f"secret-told:{secret['id']}:{listener}>{companion['id']}",
              f"the user told {listener} something you trusted them with ({secret['statement'].rstrip('.')})", now,
-             shown=f'Over you telling {listener} something they trusted you with')
+             shown=f'over you telling {listener} something they trusted you with')
 
 
 def called_off(connection, companion: dict, outing: dict, now: datetime):
@@ -230,7 +230,12 @@ def called_off(connection, companion: dict, outing: dict, now: datetime):
         from companion.life import outings
         consider(connection, companion, 'called_off', f"called-off:{outing['id']}",
                  f'the user called off {outings.what(outing)} today', now, outing_id=outing['id'],
-                 shown=f'Over you calling off {plan_name(outing)} today')
+                 shown=f'over you calling off {plan_name(outing)} today')
+
+
+def quoted(sentence: str, limit: int = 60) -> str:
+    """What they said, as the Character page quotes it: at most about 60 characters."""
+    return sentence if len(sentence) <= limit else sentence[:limit - 1].rstrip() + '…'
 
 
 def plan_name(outing: dict) -> str:
@@ -253,7 +258,7 @@ def note(connection, message: dict, companion: dict, now: datetime):
     lapsed(connection, companion, now)
     if sentence := stings(text):
         consider(connection, companion, 'words', f"words:{message['id']}", f'the user said to you: "{sentence}"',
-                 now, shown=f'Over what you said ("{sentence}")')
+                 now, shown=f'over what you said: "{quoted(sentence)}"')
     promised(connection, companion, message, now)
     lvl = level(connection)
     for row in open_rows(connection, companion, lvl, now):
@@ -339,7 +344,7 @@ def lapsed(connection, companion: dict, now: datetime):
                           promise['what']).strip()
             consider(connection, companion, 'promise', f"promise:{promise['id']}",
                      f"the user said they'd {what} and didn't", now,
-                     shown=f"Over you saying you'd {re.sub(r'\byou\b', 'them', what)} and not doing it")
+                     shown=f"over you saying you'd {re.sub(r'\byou\b', 'them', what)} and not doing it")
 
 
 # Every so often ---------------------------------------------------------------------------------------------
@@ -397,7 +402,7 @@ def stand_ups(connection, companion: dict, now: datetime):
         reason = dice.choice(bank('stand_up_reasons'))
         connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE id=?", (stamp(now), outing['id']))
         consider(connection, companion, 'stood_up', subject, f'{outings.what(outing)} ({reason})', now,
-                 outing_id=outing['id'], shown=f'They called off {plan_name(outing)} at the last minute')
+                 outing_id=outing['id'], shown=f'they called off {plan_name(outing)} at the last minute')
 
 
 # What is open --------------------------------------------------------------------------------------------------
@@ -541,6 +546,17 @@ def let_go(database, patch_id: str) -> dict:
                        (patch_id, companion['active_timeline_id']))
         require(row is not None, 'That rough patch is not on this timeline.', 404)
         mend(connection, row, 'you', database.clock.now())
+        return view(connection, companion, database.clock.now())
+
+
+def undo_let_go(database, patch_id: str) -> dict:
+    """Take back Let it go: the rough patch is open again as it was."""
+    from companion.characters import require_current
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        changed = connection.execute("UPDATE rough_patches SET mended_at=NULL, mended_by=NULL WHERE id=? AND timeline_id=? "
+                                     "AND mended_by='you'", (patch_id, companion['active_timeline_id'])).rowcount
+        require(changed == 1, 'That can no longer be undone.', 409)
         return view(connection, companion, database.clock.now())
 
 

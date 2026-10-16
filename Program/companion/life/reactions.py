@@ -101,7 +101,7 @@ def daily(connection, companion: dict, now) -> int:
                       day.isoformat(), now)
                 rough_patches().consider(connection, companion, 'missed_plan', f"plan:{plan['id']}",
                                          f"the plan ({plan['value']}) came and went without a word from the user", now,
-                                         shown=f"Over the plan ({plan['value']}) passing without a word")
+                                         shown=f"over the plan ({plan['value']}) passing without a word")
                 found += 1
         what = occasion_on(connection, companion, day, timezone)
         if what and said and not any(MENTIONS.search(text) for text in said):
@@ -110,7 +110,7 @@ def daily(connection, companion: dict, now) -> int:
             rough_patches().consider(connection, companion, 'forgot_occasion',
                                      f"occasion:{companion['active_timeline_id']}:{day.isoformat()}",
                                      f'the user chatted with you on {what} without mentioning it', now,
-                                     shown=f"Over you not mentioning {what.replace('your birthday', 'their birthday')}")
+                                     shown=f"over you not mentioning {what.replace('your birthday', 'their birthday')}")
             found += 1
     return found
 
