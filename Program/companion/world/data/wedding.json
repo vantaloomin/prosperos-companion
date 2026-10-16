@@ -14,7 +14,7 @@
         "cutting the cake"
       ],
       "venues": {
-        "words": "chapel|church|garden|hall|hotel|inn|manor|estate|conservatory|museum|ballroom|club|terrace|winery|barn|lodge|loft|mansion|house|pavilion",
+        "words": "chapel|church|garden|hall|hotel|inn|manor|estate|conservatory|ballroom|terrace|winery|barn|lodge|loft|mansion|pavilion",
         "kinds": [
           "garden",
           "landmark",
@@ -143,7 +143,7 @@
         "cutting the cake"
       ],
       "venues": {
-        "words": "chapel|church|garden|hall|hotel|inn|manor|estate|house|museum|club|terrace|barn|lodge|registry|register office|pavilion",
+        "words": "chapel|church|garden|hall|hotel|inn|manor|estate|terrace|barn|lodge|registry|register office|pavilion",
         "kinds": [
           "garden",
           "landmark",
@@ -271,7 +271,7 @@
         "the letter read to the parents"
       ],
       "venues": {
-        "words": "shrine|chapel|hotel|hall|garden|club|terrace|house|kaikan",
+        "words": "shrine|chapel|hotel|hall|garden|terrace|kaikan",
         "kinds": [
           "temple",
           "garden",
@@ -397,7 +397,7 @@
         "the pyebaek in hanbok"
       ],
       "venues": {
-        "words": "hall|hotel|chapel|church|garden|house|convention|terrace",
+        "words": "hall|hotel|chapel|church|garden|convention|terrace",
         "kinds": [
           "venue",
           "landmark",
@@ -523,7 +523,7 @@
         "cutting the cake"
       ],
       "venues": {
-        "words": "church|chapel|cathedral|hotel|hall|club|garden|house|ballroom|inn",
+        "words": "church|chapel|cathedral|hotel|hall|garden|ballroom|inn",
         "kinds": [
           "temple",
           "landmark",
@@ -640,7 +640,7 @@
         "cutting the cake"
       ],
       "venues": {
-        "words": "church|chapel|hall|hotel|house|grange|ranch|meeting house|inn",
+        "words": "church|chapel|hall|hotel|grange|ranch|meeting house|inn",
         "kinds": [
           "temple",
           "landmark",
@@ -969,7 +969,7 @@
         "cutting the cake"
       ],
       "venues": {
-        "words": "chapel|church|garden|hall|hotel|inn|manor|estate|conservatory|museum|ballroom|club|terrace|lodge|house|pavilion",
+        "words": "chapel|church|garden|hall|hotel|inn|manor|estate|conservatory|ballroom|terrace|lodge|pavilion",
         "kinds": [
           "garden",
           "landmark",
@@ -1097,7 +1097,7 @@
         "cutting the cake"
       ],
       "venues": {
-        "words": "church|chapel|cathedral|hall|hotel|house|club|guild",
+        "words": "church|chapel|cathedral|hall|hotel|guild",
         "kinds": [
           "temple",
           "landmark",

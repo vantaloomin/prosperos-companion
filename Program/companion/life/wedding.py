@@ -69,7 +69,18 @@ PARTNERS = {'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée',
 SMALL_FRIENDS = 3
 # Places nobody marries at, whatever their kind.
 NOT_VENUES = re.compile(r'\b(?:station|hospital|clinic|campus|transit|airport|stadium|arena|gym|fitness|library|'
-                        r'prison|jail|court|police|school|office|parking|mall|outlet)\b', re.IGNORECASE)
+                        r'prison|jail|court|police|school|office|parking|mall|outlet|pizza|burger|pancake|sandwich|'
+                        r'taco|hot dog|diner|deli|food hall)\b', re.IGNORECASE)
+# Words in a place's description that mark it as somewhere people marry ("Victorian glass houses", "a 1926 ballroom").
+WEDDING_WORDS = re.compile(r'\b(?:chapel|church|cathedral|garden|conservatory|ballroom|mansion|manor|estate|winery|'
+                           r'pavilion|terrace|lighthouse|temple|shrine|great hall|opera hall|castle|palace|glass ?houses?)',
+                           re.IGNORECASE)
+# Restaurants and taverns host a wedding only now and then, whatever their name says ("Crab House").
+EATERIES = {'restaurant', 'tavern'}
+# How likely each kind of place is when nothing in its words says weddings: a park or a garden often, a restaurant or
+# a music club hardly ever.
+VENUE_KINDS = {'garden': 1.0, 'park': 0.8, 'landmark': 0.8, 'temple': 1.0, 'inn': 0.8, 'museum': 0.5, 'beach': 0.4,
+               'restaurant': 0.08, 'venue': 0.08, 'tavern': 0.3}
 VENUE = '~venue'
 SHOWN_GUESTS = 8
 MARRIED = 'married'
@@ -430,8 +441,15 @@ def venue_for(data: dict | None, rules: dict, size: str, seed: str, without: tup
     dear = {'small': {'free', '', '$', '$$'}, 'proper': {'$$', '$$$'}, 'big': {'$$$', '$$$$'}}[size]
 
     def weight(item: dict) -> float:
-        named = 4.0 if words.search(item['name']) or words.search(item.get('summary', '')) else 1.0
-        return named * (2.0 if item.get('cost', '') in dear else 1.0) * (1.5 if 'date' in item.get('good_for', ()) else 1.0)
+        if item['kind'] in EATERIES:
+            named = 1.0 if words.search(item['name']) or WEDDING_WORDS.search(item.get('summary', '')) else 0.08
+        elif words.search(item['name']) or WEDDING_WORDS.search(item['name']):
+            named = 8.0
+        elif WEDDING_WORDS.search(item.get('summary', '')):
+            named = 4.0
+        else:
+            named = VENUE_KINDS.get(item['kind'], 0.3)
+        return named * (1.5 if item.get('cost', '') in dear else 1.0) * (1.3 if 'date' in item.get('good_for', ()) else 1.0)
     item = generators.pick(seed, 'venue', options, [weight(item) for item in options])
     return outings.place_view(item, data)
 
