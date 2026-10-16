@@ -37,6 +37,8 @@ TransitKind = Id
 Setting = Literal['real', 'fictional', 'original']
 Era = Literal['modern', 'victorian', 'medieval', 'fantasy', 'steampunk', 'frontier', 'jazz-age', 'future', 'other']
 ScheduleKind = Literal['office', 'shift-day', 'shift-night', 'rotating', 'evening', 'early', 'flexible', 'academic']
+# Same days every week, a rota of shifts that changes weekly, or freelance gigs (companion/life/shifts.py).
+Employment = Literal['staff', 'rota', 'freelance']
 
 
 class Record(BaseModel):
@@ -174,6 +176,8 @@ class Career(Record):
     name: Text
     sector: Id
     schedule: ScheduleKind
+    # Left out, it is read from the career's words (companion/life/shifts.py `employment_of`).
+    employment: Employment | None = None
     pay: Cost
     summary: Text
     # Themes the life simulation may draw on for this work.

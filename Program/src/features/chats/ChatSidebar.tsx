@@ -2,7 +2,7 @@ import type { View } from '../../companion'
 import type { Chat, ChatStyle } from '../../types'
 import { Stamp } from '../../components/Stamp'
 import { badge, chatLabel, isOpen, preview, type OpenChat } from './chatText'
-import { ChatAvatar } from './ChatsPanel'
+import { ChatAvatar, ChatWhere } from './ChatsPanel'
 import { useChats, useOpenChat } from './useChats'
 import { useChatListCollapsed, useChatListWidth } from './layout'
 import { CollapseButton, ResizeHandle } from './SideControls'
@@ -50,6 +50,7 @@ function ConversationList({ chats, busy, here, current, style, onOpen }: ListPro
               <span className="chat-row-text">
                 <span className="chat-row-top"><strong>{chat.name}</strong>{chat.last && <Stamp className="chat-row-time" value={chat.last.at} />}</span>
                 <span className="chat-row-preview">{busy === chat.id ? 'Opening…' : preview(chat)}</span>
+                <ChatWhere chat={chat} />
               </span>
               {chat.unread > 0 && <span className="unread-badge" aria-hidden="true">{badge(chat.unread)}</span>}
             </button>

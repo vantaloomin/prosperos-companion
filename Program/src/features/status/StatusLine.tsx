@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Briefcase, MapPin, Moon, Pencil } from 'lucide-react'
+import { Briefcase, Luggage, MapPin, Moon, Pencil, Phone } from 'lucide-react'
 import { api } from '../../api'
 import { COMPANION_KEY } from '../../companion'
 import { shown, statusLabel, stickHint, type AwayGlyph, type CompanionStatus } from './statusText'
 
-const GLYPHS: Record<AwayGlyph, typeof Moon> = { moon: Moon, briefcase: Briefcase, pin: MapPin }
+const GLYPHS: Record<AwayGlyph, typeof Moon> = { moon: Moon, briefcase: Briefcase, pin: MapPin, phone: Phone, luggage: Luggage }
 
 /**
  * A companion's status, or their away line while they sleep, work or are out (italic, with an outline glyph).

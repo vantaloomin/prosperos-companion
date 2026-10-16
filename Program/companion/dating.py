@@ -14,7 +14,7 @@ from companion.characters import current
 from companion.database import decode, encode, identifier, many, optional, settings
 from companion.errors import DomainError, require
 from companion.images import backends
-from companion.life import encounters
+from companion.life import encounters, where
 from companion.world import catalog, dating, mix, townsfolk
 
 # The app's name in modern and future cities: made up, so it is nobody's real app.
@@ -60,11 +60,21 @@ def persona(connection) -> dict | None:
 
 
 def default_city(connection) -> str:
-    return story.default_city(connection)
+    """Where the user lives in this world (companion/life/where.py), else the companion's city, else Baltimore."""
+    found = where.your_home(connection)
+    return found[0]['id'] if found else story.default_city(connection)
+
+
+def follow_home(connection, before: str, after: str):
+    """Matchlight looks where the user lives until they look somewhere else, so a move takes it along."""
+    if before and after and before != after:
+        connection.execute("UPDATE dating_profile SET city_id=?, last_answer='' WHERE id=1 AND city_id=?",
+                           (after, before))
 
 
 def looking_in(connection, mine: dict | None) -> dict:
-    """The city the user is looking in: the one on their profile, else the companion's, else Baltimore."""
+    """The city the user is looking in: the one on their profile, else their own, else the companion's, else
+    Baltimore."""
     city_id = (mine or {}).get('city_id') or default_city(connection)
     try:
         return story.city_data(connection, city_id)

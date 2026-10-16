@@ -2124,3 +2124,46 @@ CREATE TABLE IF NOT EXISTS hobby_log (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS hobby_log_day ON hobby_log(timeline_id, local_date, kind);
+-- Together or apart (companion/life/together.py): a visit the user asked for that the companion had to turn down
+-- (at work, asleep, too far away), so the reply to that message says why.
+CREATE TABLE IF NOT EXISTS together_asks (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL UNIQUE REFERENCES messages(id),
+  kind TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+-- Shifts and gigs (companion/life/shifts.py): a rota job's shifts or a freelancer's gigs, one row per week once it is
+-- planned, so a past week stays as it was. `days` are weekday numbers (0 is Monday); `pay` is the week's against an
+-- ordinary one.
+CREATE TABLE IF NOT EXISTS work_weeks (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  monday TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('rota', 'freelance')),
+  career TEXT NOT NULL DEFAULT '',
+  days TEXT NOT NULL DEFAULT '[]',
+  spell TEXT NOT NULL DEFAULT '',
+  workload TEXT NOT NULL DEFAULT 'normal',
+  pay REAL NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, monday)
+);
+-- On a call (companion/life/calls.py): a phone call with the user, started by either side. A ring nobody answers
+-- reads as missed and a call ends on its own when its time is up or the line goes quiet, worked out when read.
+CREATE TABLE IF NOT EXISTS calls (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  direction TEXT NOT NULL CHECK (direction IN ('you', 'them')),
+  status TEXT NOT NULL CHECK (status IN ('ringing', 'on', 'missed', 'declined', 'ended')),
+  message_id TEXT REFERENCES messages(id),
+  trigger_key TEXT,
+  reason TEXT NOT NULL DEFAULT '{}',
+  started_at TEXT,
+  until_at TEXT,
+  ended_at TEXT,
+  ended_by TEXT REFERENCES messages(id),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS calls_timeline ON calls(timeline_id, created_at);

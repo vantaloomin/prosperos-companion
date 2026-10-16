@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { shown, spoken, statusLabel, stickHint } from '../../src/features/status/statusText.ts'
+import { shown, spoken, statusLabel, stickHint, whereGlyph } from '../../src/features/status/statusText.ts'
 import { preview } from '../../src/features/chats/chatText.ts'
 
 test('the away line shows while they are away, else their status', () => {
@@ -27,4 +27,12 @@ test('Retro IM decorations are not read aloud', () => {
   assert.equal(spoken('i <3 my friends'), 'i love my friends')
   assert.equal(spoken('*pokes you*'), '*pokes you*')
   assert.equal(statusLabel('Maya', { text: '♪ Yellow - Coldplay ♪', set_by: 'app', away: null }), "Maya's status: Yellow - Coldplay")
+})
+
+test('the chat list shows luggage on a weekend visit, a phone on a call, else a pin', () => {
+  assert.equal(whereGlyph({ state: 'together', kind: 'staying', text: 'Staying with you until Sunday' }), 'luggage')
+  assert.equal(whereGlyph({ state: 'together', kind: 'hosting', text: "You're staying in London until Monday" }), 'luggage')
+  assert.equal(whereGlyph({ state: 'call', kind: 'call', text: 'On a call' }), 'phone')
+  assert.equal(whereGlyph({ state: 'apart', kind: 'long-distance', text: 'Long distance, London, 5 hours ahead' }), 'pin')
+  assert.equal(whereGlyph(null), 'pin')
 })

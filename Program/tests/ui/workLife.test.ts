@@ -5,7 +5,9 @@ import { meterText, timeOffText } from '../../src/features/character/workText.ts
 test('time off reads as a sentence, a run of days as one stretch', () => {
   assert.equal(timeOffText([]), 'No time off booked.')
   assert.match(timeOffText(['2026-11-13']), /^1 vacation day coming up: .*13\.$/)
+  assert.match(timeOffText(['2026-11-06', '2026-12-04', '2026-12-11']), /^Vacation days coming up: .*6, .*4 and .*11\.$/)
   assert.match(timeOffText(['2026-11-27', '2026-11-23', '2026-11-24', '2026-11-25', '2026-11-26']), /^Vacation .*23 to .*27 \(5 days\)\.$/)
+  assert.ok(!/[A-Z][a-z]{2} \d/.test(timeOffText(['2026-12-11'])), 'a date never splits between month and day')
 })
 
 test('the numbers behind work read as words', () => {

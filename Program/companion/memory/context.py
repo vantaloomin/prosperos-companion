@@ -19,6 +19,7 @@ from companion.events import committed
 from companion.life import (
     agenda,
     body,
+    calls,
     chapters,
     circle,
     composer,
@@ -30,6 +31,7 @@ from companion.life import (
     hobbies,
     home,
     kitchen,
+    long_distance,
     media,
     money,
     network,
@@ -41,10 +43,12 @@ from companion.life import (
     reactions,
     recommendations,
     storylines,
+    together,
     traditions,
     trips,
     upkeep,
     wardrobe,
+    where,
     work,
 )
 from companion.life import mood as moods
@@ -221,6 +225,9 @@ NOW = {
        'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
                   'never explain it unless asked)',
        # Go somewhere together and Trips and postcards (companion/life/outings.py, trips.py).
+       # Together or apart (companion/life/together.py): a visit turned down, or time together that just ended; and
+       # On a call (companion/life/calls.py): the call under way, or one that just ended or was missed.
+       'where': 'Where you are with the user (decided by the app; keep to it)',
        'together': 'Going out with the user, and your trips (decided: you agreed to these plans and picked the '
                    'places, and your trips are booked; keep to them, never move them or name another place, and '
                    'when the time comes they happen as listed)',
@@ -286,7 +293,9 @@ def persona_text(connection, today: date | None = None) -> str | None:
     if not row:
         return None
     parts = [f"Name: {row['name']}" if row['name'].strip() else '', f"Age: {row['age']}" if row['age'] else '',
-             f"Gender: {row['gender']}" if row['gender'] else '', row['about'].strip()]
+             f"Gender: {row['gender']}" if row['gender'] else '',
+             # Where they live in this world (companion/life/where.py): the app's pick until they change it.
+             f'Lives in: {home}' if (home := where.home_text(connection)) else '', row['about'].strip()]
     # The user's own pets, as they wrote them, and how each is today (companion/life/pets.py).
     if found := pets.persona_lines(connection, today or date.today()):
         parts.append('Pets: ' + '; '.join(found))
@@ -318,7 +327,7 @@ def list_lines(definition) -> list[str]:
     return lines
 
 
-def character_text(version, connection=None, intimate: bool = False, day: str | None = None) -> str:
+def character_text(version, connection=None, intimate: bool = False, day: str | None = None, texts: bool = True) -> str:
     """How the character feels about absence is a user-chosen trait; product controls stay neutral.
 
     With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced. `intimate` adds
@@ -348,8 +357,8 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
             lines.append(acts)
     if intimate and (adult := intimacy.prompt_text(connection, version)):
         lines.append(adult)
-    if style := texting.instruction(definition):
-        lines.append(style)
+    if texts and (style := texting.instruction(definition)):
+        lines.append(style)  # Not together in person or on a call (`texts` False): nobody texts while talking.
     return '\n'.join(lines)
 
 
@@ -418,6 +427,23 @@ def time_text(now, user_tz, companion_tz, previous) -> str:
         if hours >= 6:
             lines.append(f'The previous message in this conversation was about {round(hours)} hours ago.')
     return '\n'.join(lines)
+
+
+def visit_time_text(now, city: str, tz, previous) -> str:
+    """During a weekend visit they are in the same room: only the local time where the visit is."""
+    lines = [f"Local time ({city}): {now.astimezone(tz).strftime('%A %d %B %Y, %H:%M (%Z)')}."]
+    if previous:
+        hours = (now - parse(previous)).total_seconds() / 3600
+        if hours >= 6:
+            lines.append(f'The previous message in this conversation was about {round(hours)} hours ago.')
+    return '\n'.join(lines)
+
+
+def clock_text(connection, companion, now, previous, group) -> str:
+    """Both local times, or during a weekend visit one clock, the visit city's (companion/life/long_distance.py)."""
+    if group is None and (visit := long_distance.visiting(connection, companion, now)):
+        return visit_time_text(now, visit['city_name'], long_distance.visit_zone(companion, visit), previous)
+    return time_text(now, settings(connection)['user_timezone'], companion['version']['timezone'], previous)
 
 
 def clock_time(instant: datetime, tz) -> str:
@@ -736,6 +762,10 @@ def offer_together(packet, connection, companion, now, recent, group=None):
     for identity, text in [*outings.context_lines(connection, companion, now, turn),
                            *trips.context_lines(connection, companion, now)]:
         packet.offer('booked' if identity.endswith(':booked') else 'together', identity, text)
+    for identity, text in [*together.context_lines(connection, companion, now, turn),
+                           *calls.context_lines(connection, companion, now, turn),
+                           *long_distance.context_lines(connection, companion, now, turn)]:
+        packet.offer('where', identity, text)
 
 
 def offer_attachments(packet, connection, latest, photo):
@@ -847,14 +877,16 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         recent, older = [], messages + group['older']
     packet = Packet(budget)
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
-    packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today))
+    texts = group is not None or not (together.in_person(connection, companion, now)
+                                       or calls.on_call(connection, companion, now))
+    packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today,
+                                                              texts=texts))
     if who := persona_text(connection, date.fromisoformat(today)):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))
     previous = recent[-2]['created_at'] if len(recent) > 1 else (group or {}).get('previous')
-    packet.require('time', 'clock', time_text(now, settings(connection)['user_timezone'], version['timezone'],
-                                              previous))
+    packet.require('time', 'clock', clock_text(connection, companion, now, previous, group))
     if today := day_text(connection, companion, now):
         packet.offer('time', 'day', today)
     conversation = fit_conversation(packet, recent)

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { outNow, outNowText, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
+import { outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
 
 const outing: Outing = {
   id: 'o1', local_date: '2026-10-08', at_time: '19:00', until_time: '21:00', activity: 'dinner', asked_date: null,
@@ -10,7 +10,7 @@ const outing: Outing = {
 const trip: Trip = {
   id: 't1', start_date: '2026-10-17', end_date: '2026-10-18', city_id: 'new-york', city_name: 'New York', kind: 'getaway',
   company: { id: 'p1', name: 'Dana', role: 'sister' }, landmark: { name: 'The High Line', summary: '' }, sunny: false,
-  cost_text: '$520', state: 'planned', postcard_message_id: null,
+  cost_text: '$520', state: 'planned', postcard_message_id: null, visit: '', undo: false,
 }
 
 test('an outing reads as what, where and when, with who picked the place', () => {
@@ -31,13 +31,12 @@ test('trips read as days and who they go with', () => {
   assert.equal(tripTitle(trip), 'A weekend in New York with Dana')
   assert.equal(tripTitle({ ...trip, end_date: '2026-10-19', company: null }), 'A long weekend in New York')
   assert.equal(tripTitle({ ...trip, kind: 'family', company: { id: 'p2', name: 'Rosa', role: 'mother' } }), 'Visiting Rosa in New York')
+  // Weekend visits across the distance (companion/life/long_distance.py).
+  assert.equal(tripTitle({ ...trip, visit: 'to-you', city_name: 'Baltimore' }, 'Mira'), 'Mira comes to stay with you')
+  assert.equal(tripTitle({ ...trip, visit: 'host', city_name: 'Chicago' }, 'Mira'), 'You stay with Mira in Chicago')
 })
 
-test('the chat strip shows only an outing under way, and called-off ones leave Today', () => {
-  assert.equal(outNow({ outings: [outing], trips: [] }), null)
-  const now = { ...outing, state: 'now' as const }
-  assert.equal(outNow({ outings: [outing, now], trips: [] }), now)
-  assert.match(outNowText(now, 'Mira'), /^Out with Mira at Ouzo Bay until 9:00/)
+test('called-off ones leave Today, and visits read as your place or theirs', () => {
   assert.deepEqual(shown([outing, { ...outing, id: 'o2', state: 'cancelled' }]).map((item) => item.id), ['o1'])
   // Just called off, or just headed home: collapsed with Undo.
   const off = { ...outing, id: 'o3', state: 'cancelled' as const, undo: true }
@@ -45,6 +44,8 @@ test('the chat strip shows only an outing under way, and called-off ones leave T
   assert.equal(undoText(off), 'Called off.')
   const home = { ...outing, state: 'done' as const, undo: true }
   assert.equal(undoText(home), 'Headed home.')
-  assert.equal(outNow({ outings: [home], trips: [] }), home)
   assert.equal(undoText(outing), '')
+  const yours = { ...outing, activity: 'visit-yours', place: { ...outing.place, id: '~yours', name: 'Your place', kind: 'your-home', neighborhood: 'Canton' } }
+  assert.equal(outingTitle(yours), 'A visit at your place')
+  assert.equal(placeLine(yours.place), 'Your place in Canton')
 })

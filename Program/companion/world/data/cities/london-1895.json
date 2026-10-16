@@ -3322,6 +3322,7 @@
    "name": "Office clerk",
    "sector": "commerce",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$",
    "summary": "Copying letters, keeping ledgers and running errands in a merchant's or solicitor's office from half past nine to six, Saturdays till two.",
    "themes": [
@@ -3339,6 +3340,7 @@
    "name": "Bank clerk",
    "sector": "finance",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "A desk in a City bank, counting, posting and checking figures under strict rules about dress and punctuality.",
    "themes": [
@@ -3356,6 +3358,7 @@
    "name": "Typewriter girl",
    "sector": "commerce",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$",
    "summary": "Typing letters and documents on a Remington in an office or a typewriting bureau, a new kind of work for young women.",
    "themes": [
@@ -3373,6 +3376,7 @@
    "name": "Telegraph clerk",
    "sector": "communications",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Sending and receiving messages by Morse sounder at the Central Telegraph Office, on day and night turns.",
    "themes": [
@@ -3390,6 +3394,7 @@
    "name": "Postman",
    "sector": "communications",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Up to twelve deliveries a day on a fixed round, starting before seven in the morning.",
    "themes": [
@@ -3406,6 +3411,7 @@
    "name": "Governess",
    "sector": "education",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$",
    "summary": "Living in with a family to teach their children lessons, music and manners, neither servant nor family.",
    "themes": [
@@ -3423,6 +3429,7 @@
    "name": "Board school teacher",
    "sector": "education",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$",
    "summary": "Teaching a class of fifty or sixty children reading, writing and arithmetic in a London School Board school.",
    "themes": [
@@ -3439,6 +3446,7 @@
    "name": "Housemaid",
    "sector": "domestic-service",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Up at six to clean grates, carry water and keep a household running, with one afternoon off a week.",
    "themes": [
@@ -3456,6 +3464,7 @@
    "name": "Cook",
    "sector": "domestic-service",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Running the kitchen of a private house, planning meals with the mistress and ordering from tradesmen.",
    "themes": [
@@ -3472,6 +3481,7 @@
    "name": "Cabman",
    "sector": "transport",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Driving a hired hansom from a cab rank, paying the proprietor a daily rent for horse and cab and keeping the rest.",
    "themes": [
@@ -3489,6 +3499,7 @@
    "name": "Railway porter",
    "sector": "transport",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Handling luggage and parcels on the platforms at a big terminus, relying on tips.",
    "themes": [
@@ -3505,6 +3516,7 @@
    "name": "Police constable",
    "sector": "law-enforcement",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Walking a beat for the Metropolitan Police by day or night, with a lantern, a whistle and a notebook.",
    "themes": [
@@ -3522,6 +3534,7 @@
    "name": "Hospital nurse",
    "sector": "healthcare",
    "schedule": "shift-day",
+   "employment": "rota",
    "pay": "$",
    "summary": "A trained nurse on the wards of a voluntary hospital, living in the nurses' home under the matron's rules.",
    "themes": [
@@ -3539,6 +3552,7 @@
    "name": "Physician",
    "sector": "healthcare",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$$$",
    "summary": "A doctor with a consulting room, seeing patients in the morning and making house calls in the afternoon.",
    "themes": [
@@ -3556,6 +3570,7 @@
    "name": "Shop assistant",
    "sector": "retail",
    "schedule": "shift-day",
+   "employment": "rota",
    "pay": "$",
    "summary": "Serving behind the counter of a draper's or department store, often living in over the shop, until eight or later.",
    "themes": [
@@ -3573,6 +3588,7 @@
    "name": "Seamstress",
    "sector": "garment",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Sewing blouses, shirts or mantles in a workroom or at home by the piece.",
    "themes": [
@@ -3589,6 +3605,7 @@
    "name": "Music hall performer",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Singing comic songs or doing a turn on the halls, sometimes at two or three halls a night.",
    "themes": [
@@ -3606,6 +3623,7 @@
    "name": "Actor",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Playing in a West End company or touring the provinces, with rehearsals by day and performances every evening.",
    "themes": [
@@ -3623,6 +3641,7 @@
    "name": "Journalist",
    "sector": "press",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Writing paragraphs, reports and columns for a Fleet Street paper, chasing stories by cab and telegraph.",
    "themes": [
@@ -3640,6 +3659,7 @@
    "name": "Compositor",
    "sector": "press",
    "schedule": "shift-night",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Setting type by hand for a daily paper, working through the night to make the morning edition.",
    "themes": [
@@ -3656,6 +3676,7 @@
    "name": "Docker",
    "sector": "shipping",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Waiting at the dock gates each morning to be taken on for a day's work unloading ships, at sixpence an hour since the strike of 1889.",
    "themes": [
@@ -3673,6 +3694,7 @@
    "name": "Barmaid or barman",
    "sector": "hospitality",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$",
    "summary": "Serving beer, spirits and talk behind the bar of a public house or restaurant bar until half past twelve.",
    "themes": [
@@ -3689,6 +3711,7 @@
    "name": "Restaurant waiter",
    "sector": "hospitality",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$",
    "summary": "Serving tables in a hotel or restaurant, many of the waiters Swiss, German or Italian.",
    "themes": [
@@ -3705,6 +3728,7 @@
    "name": "Student",
    "sector": "education",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$",
    "summary": "Attending lectures, laboratories or studio classes at a London college, often while living in lodgings.",
    "themes": [
@@ -3722,6 +3746,7 @@
    "name": "Detective sergeant",
    "sector": "law-enforcement",
    "schedule": "flexible",
+   "employment": "freelance",
    "pay": "$$",
    "summary": "A plain-clothes officer of the Criminal Investigation Department, working cases from Scotland Yard.",
    "themes": [

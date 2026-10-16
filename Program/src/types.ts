@@ -193,12 +193,16 @@ export interface AdultSideChoices {
 export type SpendingStyle = 'careful' | 'balanced' | 'spender'
 
 /** How the companion's money works; pay, rent and prices come from the world data. */
+/** Their hours: '' follows their work (companion/life/shifts.py). */
+export type Employment = '' | 'staff' | 'rota' | 'freelance'
+
 export interface MoneySetup {
   career: string
   style: SpendingStyle
   saving_for: string
   goal: number
   goal_since: string
+  employment: Employment
 }
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
@@ -465,6 +469,8 @@ export interface LifeSettings {
   media_realism: number
   /** Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   hobbies_realism: number
+  /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
+  together_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -1710,6 +1716,9 @@ export interface TownPaper {
 }
 
 /** Worlds and personas (companion/worlds.py): the user as someone in particular, and the worlds they live in. */
+export interface WorldHome { city_id: string; city: string; region: string; neighbourhood: string; neighbourhood_name: string; set_by: 'app' | 'you' }
+/** The persona form's "Where you live": the cities the persona can live in from this world, and one city's neighbourhoods. */
+export interface HomeChoices { home: WorldHome | null; cities: CitySummary[]; city_id: string; neighbourhoods: { id: string; name: string }[] }
 export interface World {
   id: string; name: string; persona_id: string; folder: string; city_id: string; created_at: string; used_at: string
   active: boolean
@@ -1717,6 +1726,8 @@ export interface World {
   first: boolean
   /** Its companions' names, main character first. */
   companions: string[]
+  /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
+  home: WorldHome | null
 }
 export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
 /** One of the user's own pets on their persona: their words, given a life by companion/life/pets.py. */
@@ -1821,6 +1832,8 @@ export interface WorkLifeView {
   level: number
   /** Only with Hidden values' home-life meters on. */
   meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
+  /** Same days every week, shifts that change weekly, or freelance gigs (companion/life/shifts.py). */
+  hours: 'staff' | 'rota' | 'freelance'
 }
 
 /** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */

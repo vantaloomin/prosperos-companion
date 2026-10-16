@@ -260,11 +260,15 @@ def users_line(connection, companion: dict, now) -> str:
 
 
 def view(connection, companion: dict, now) -> dict:
-    """{text, set_by: 'app'|'you', away: {text, glyph}|None}."""
+    """{text, set_by: 'app'|'you', away: {text, glyph}|None, where: {state, kind, text}}."""
     mine = users_line(connection, companion, now)
     retro = retro_on(connection)
+    from companion.life import together
+    found = together.state(connection, companion, now)
     return {'text': mine or written(connection, companion, now, retro), 'set_by': 'you' if mine else 'app',
-            'away': away(connection, companion, now, retro)}
+            'away': away(connection, companion, now, retro),
+            # Together or apart (companion/life/together.py), in plain words: '' while apart in the same city.
+            'where': {'state': found['state'], 'kind': found['kind'], 'text': found['text']}}
 
 
 def for_all(connection, now) -> dict[str, dict]:

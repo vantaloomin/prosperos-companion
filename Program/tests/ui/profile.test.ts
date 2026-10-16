@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { PROFILE_TABS, circleText, handle, profileClass, profileTab, showsCard } from '../../src/features/profile/profileText.ts'
+import { PROFILE_TABS, circleText, handle, placeFact, profileClass, profileTab, showsCard } from '../../src/features/profile/profileText.ts'
 
 test('the profile holds Messages, Posts, Memories and Character under their old addresses', () => {
   assert.deepEqual(PROFILE_TABS.map((tab) => [tab.id, tab.label]), [['conversation', 'Messages'], ['feed', 'Posts'], ['memories', 'Memories'], ['character', 'Character']])
@@ -37,4 +37,11 @@ test('the profile takes the chat style, and the dark window only in Retro IM', (
 test('the circle count reads naturally', () => {
   assert.equal(circleText(1), '1 person in their circle')
   assert.equal(circleText(12), '12 people in their circle')
+})
+
+test('the card says long distance, the city and the time difference when they live in another city', () => {
+  assert.equal(placeFact('Lisbon, Portugal', { state: 'apart', kind: 'long-distance', text: 'Long distance, Lisbon, 5 hours ahead' }), 'Long distance, Lisbon, 5 hours ahead')
+  assert.equal(placeFact('Baltimore, Maryland', { state: 'apart', kind: 'apart', text: '' }), 'Baltimore, Maryland')
+  assert.equal(placeFact('Lisbon, Portugal', { state: 'together', kind: 'staying', text: 'Staying with you until Sunday' }), 'Lisbon, Portugal')
+  assert.equal(placeFact('Baltimore, Maryland', null), 'Baltimore, Maryland')
 })

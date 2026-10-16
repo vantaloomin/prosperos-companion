@@ -286,7 +286,7 @@ class Day:
         """Dinner with the user that day: out, or at their place."""
         from companion.life import outings
         for outing in outings.in_force(self.connection, self.timeline_id, day.isoformat()):
-            if outing['local_date'] == day.isoformat() and outing['activity'] in ('dinner', 'dinner-in'):
+            if outing['local_date'] == day.isoformat() and outing['activity'] in ('dinner', 'dinner-in', 'dinner-yours'):
                 return outing
         return None
 
@@ -298,14 +298,14 @@ class Day:
     def work_hours(self, day: date) -> float:
         total = 0.0
         for block in self.schedule:
-            if day.weekday() in block.days and block.kind in ('work', 'study'):
+            if block.on(day) and block.kind in ('work', 'study'):
                 start = block.start.hour + block.start.minute / 60
                 end = block.end.hour + block.end.minute / 60
                 total += end - start if end > start else end + 24 - start
         return total
 
     def late(self, day: date) -> bool:
-        return any(day.weekday() in block.days and block.kind == 'work' and
+        return any(block.on(day) and block.kind == 'work' and
                    (block.end.hour >= 18 or block.end < block.start) for block in self.schedule)
 
     def weather(self, day: date) -> dict | None:
@@ -500,6 +500,8 @@ class Day:
         if outing and outing['activity'] == 'dinner-in':
             menu = (outing['place'] or {}).get('menu') or self.hosted(day, outing)
             return {**menu, 'kind': 'hosting', 'with_user': True}
+        if outing and outing['activity'] == 'dinner-yours':  # the user cooking (companion/life/together.py)
+            return {'kind': 'out', 'with_user': True, 'place': "the user's place"}
         if outing:
             return {'kind': 'out', 'with_user': True, 'place': outing['place']['name']}
         out = next((entry for entry in self.entries(day) if entry.get('activity') in OUT_ACTIVITIES and
@@ -926,13 +928,13 @@ def planned_menu(menu: dict, era_modern: bool = True) -> str:
 def invite_due(connection, companion: dict, now: datetime) -> list:
     """Now and then, a first text asking the user over for dinner on a free evening a few days off, with what they
     will make (companion/life/openers.py). Saving the text settles the plan (`settle_invite`)."""
-    from companion.life import outings
+    from companion.life import outings, together
     from companion.life.openers import Trigger
     version = companion['version']
     definition, timeline_id = version['definition'], companion['active_timeline_id']
     local = now.astimezone(zone(version['timezone']))
-    if not INVITES or not 10 <= local.hour < 21:
-        return []
+    if not INVITES or not 10 <= local.hour < 21 or not together.invites(connection, companion):
+        return []  # Getting together off, or long distance (companion/life/together.py): no invitations over.
     state = optional(connection, 'SELECT * FROM kitchen_state WHERE timeline_id=?', (timeline_id,))
     if not state:
         return []

@@ -1,4 +1,4 @@
-import { PanelLeftOpen, UsersRound, X } from 'lucide-react'
+import { Luggage, MapPin, PanelLeftOpen, Phone, UsersRound, X } from 'lucide-react'
 import type { View } from '../../companion'
 import type { Chat } from '../../types'
 import { Stamp } from '../../components/Stamp'
@@ -8,6 +8,7 @@ import { portraitUrl } from '../conversation/portrait'
 import { badge, chatLabel, isOpen, preview, type OpenChat } from './chatText'
 import { useChats, useOpenChat } from './useChats'
 import { useChatListCollapsed } from './layout'
+import { whereGlyph } from '../status/statusText'
 
 /**
  * Every chat, the most recent first, the way a messaging app lists them: who, their latest message, when, and
@@ -47,6 +48,7 @@ export function ChatList({ go, current = null, onOpened }: { go: (view: View) =>
               <span className="chat-row-text">
                 <span className="chat-row-top"><strong>{chat.name}</strong>{chat.last && <Stamp className="chat-row-time" value={chat.last.at} />}</span>
                 <span className="chat-row-preview">{busy === chat.id ? 'Opening…' : preview(chat)}</span>
+                <ChatWhere chat={chat} />
               </span>
               {chat.unread > 0 && <span className="unread-badge" aria-hidden="true">{badge(chat.unread)}</span>}
             </button>
@@ -55,6 +57,13 @@ export function ChatList({ go, current = null, onOpened }: { go: (view: View) =>
       </ul>
     </div>
   )
+}
+
+/** Together or apart in plain words under the preview ("At your place", "Long distance, Lisbon", "On a call", luggage on a weekend visit); nothing while apart nearby. */
+export function ChatWhere({ chat }: { chat: Chat }) {
+  const text = chat.status?.where?.text
+  const Glyph = { phone: Phone, luggage: Luggage, pin: MapPin }[whereGlyph(chat.status?.where)]
+  return text ? <span className="chat-row-where"><Glyph aria-hidden="true" /><span>{text}</span></span> : null
 }
 
 export function ChatAvatar({ chat }: { chat: Chat }) {

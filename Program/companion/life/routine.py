@@ -30,6 +30,17 @@ class Block:
     start: time
     end: time
     themes: tuple[str, ...]
+    # Weeks whose days differ from `days` (a rota's shifts, companion/life/shifts.py): (Monday, days) pairs.
+    weeks: tuple[tuple[str, tuple[int, ...]], ...] = ()
+
+    def on(self, day: date) -> bool:
+        """Whether the block happens on this local date: that week's days when the week has its own, else `days`."""
+        if self.weeks:
+            monday = (day - timedelta(days=day.weekday())).isoformat()
+            for week, days in self.weeks:
+                if week == monday:
+                    return day.weekday() in days
+        return day.weekday() in self.days
 
     def view(self) -> dict:
         return {'key': self.key, 'label': self.label, 'kind': self.kind, 'days': list(self.days),
@@ -63,9 +74,11 @@ def clock_time(value: str) -> time:
 
 
 def blocks(definition: dict) -> tuple[list[Block], bool]:
-    """The character's schedule with stable keys, or the default schedule when none is set."""
+    """The character's schedule with stable keys, or the default schedule when none is set. A rota on the definition
+    (companion/life/shifts.py) gives work, and the free time after it, each week's own days."""
     raw = definition.get('schedule') or []
     default = not raw
+    rota = ((definition.get('rota') or {}).get('weeks') or {}) if not default else {}
     seen, result = set(), []
     for item in (DEFAULT_SCHEDULE if default else raw):
         key = item.get('key') or slug(item['label'])
@@ -74,8 +87,18 @@ def blocks(definition: dict) -> tuple[list[Block], bool]:
             key, index = f'{base}-{index}', index + 1
         seen.add(key)
         result.append(Block(key, item['label'], item.get('kind', 'leisure'), tuple(item.get('days', range(7))),
-                            clock_time(item['start']), clock_time(item['end']), tuple(item.get('themes', ()))))
+                            clock_time(item['start']), clock_time(item['end']), tuple(item.get('themes', ())),
+                            rota_weeks(rota, item, key)))
     return result, default
+
+
+def rota_weeks(rota: dict, item: dict, key: str) -> tuple[tuple[str, tuple[int, ...]], ...]:
+    """A block's own days each rota week: work and the free time after it on the shift days, days off on the rest."""
+    if not rota or not (item.get('kind') == 'work' or key in ('after-work', 'day-off')):
+        return ()
+    if key == 'day-off':
+        return tuple((monday, tuple(day for day in range(7) if day not in days)) for monday, days in rota.items())
+    return tuple((monday, tuple(days)) for monday, days in rota.items())
 
 
 def slots(schedule: list[Block], timezone: str, start: datetime, end: datetime) -> list[Slot]:
@@ -86,7 +109,7 @@ def slots(schedule: list[Block], timezone: str, start: datetime, end: datetime) 
     day = first
     while day <= last:
         for block in schedule:
-            if day.weekday() not in block.days:
+            if not block.on(day):
                 continue
             slot = make_slot(block, day, tz)
             if slot and slot.starts_at < end and slot.ends_at > start:

@@ -905,11 +905,11 @@ CITY = {
     ],
     'careers': [
         {'id': 'citrus-farmer', 'name': 'Tangerine farmer', 'sector': 'agriculture', 'schedule': 'early',
-         'pay': '$', 'summary': 'Tending a family tangerine or hallabong orchard: pruning in spring, spraying and '
+         'employment': 'staff', 'pay': '$', 'summary': 'Tending a family tangerine or hallabong orchard: pruning in spring, spraying and '
                                 'thinning in summer, and the long harvest from late autumn into winter.',
          'themes': ['the harvest', 'the weather', 'co-op prices', 'the greenhouse', 'family help']},
         {'id': 'fishing-crew', 'name': 'Fishing boat crew', 'sector': 'fishing', 'schedule': 'early',
-         'pay': '$$', 'summary': 'Working the hairtail, mackerel or yellowtail boats out of Seongsan, Hallim or '
+         'employment': 'staff', 'pay': '$$', 'summary': 'Working the hairtail, mackerel or yellowtail boats out of Seongsan, Hallim or '
                                  'Moseulpo, then the early auction at the harbour.',
          'themes': ['the catch', 'the weather', 'the auction', 'the crew']},
     ],

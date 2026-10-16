@@ -4,6 +4,7 @@ import { api } from '../../api'
 import { HISTORY_KEY } from '../../companion'
 import type { TextCheck } from '../../types'
 import { CHATS_KEY } from '../chats/useChats'
+import { WHERE_KEY } from './whereText'
 
 const EVERY_MS = 60_000
 
@@ -21,6 +22,12 @@ export function useTexts(enabled: boolean) {
       running = true
       try {
         const result = await api<TextCheck>('/life/texts/check', {})
+        if (result.kind === 'call') {
+          // They are calling (companion/life/calls.py): no message, the strip and chat list show the ring.
+          void client.invalidateQueries({ queryKey: CHATS_KEY })
+          void client.invalidateQueries({ queryKey: WHERE_KEY })
+          return
+        }
         if (!result.message) return
         // Any companion may write first; the open chat reloads only when it was theirs.
         void client.invalidateQueries({ queryKey: CHATS_KEY })

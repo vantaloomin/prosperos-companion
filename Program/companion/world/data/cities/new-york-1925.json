@@ -5578,6 +5578,7 @@
    "name": "Numbers runner",
    "sector": "underworld",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$",
    "summary": "Taking pennies, nickels and dimes on the day's three-digit number from tenement to barbershop and carrying the slips to the bank before the number comes out.",
    "themes": [
@@ -5596,6 +5597,7 @@
    "name": "Song plugger",
    "sector": "entertainment",
    "schedule": "flexible",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Playing and singing a music publisher's new songs for bandleaders, vaudevillians and dime-store customers to get them heard.",
    "themes": [
@@ -5613,6 +5615,7 @@
    "name": "Skyscraper riveter",
    "sector": "construction",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Working in a four-person riveting gang on the steel of the new towers: heating, tossing, catching and driving red-hot rivets hundreds of feet up.",
    "themes": [
@@ -5631,6 +5634,7 @@
    "name": "Shoeshine",
    "sector": "services",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Shining shoes at a stand in a station, a hotel lobby or on a street corner, a nickel or a dime a shine and tips.",
    "themes": [
@@ -5648,6 +5652,7 @@
    "name": "Cigarette seller",
    "sector": "hospitality",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$",
    "summary": "Walking a nightclub with a tray of cigarettes, cigars and candy on a strap, selling to the tables and living on tips.",
    "themes": [
@@ -5665,6 +5670,7 @@
    "name": "Pushcart peddler",
    "sector": "retail",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Renting a pushcart and a license to sell fruit, fish, notions or clothing on a market street, haggling from dawn till dark.",
    "themes": [
@@ -5683,6 +5689,7 @@
    "name": "Taxi dancer",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "rota",
    "pay": "$",
    "summary": "Dancing with paying customers at ten cents a dance in a ballroom, earning a share of every ticket.",
    "themes": [
@@ -5700,6 +5707,7 @@
    "name": "Subway guard",
    "sector": "transit",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Riding the subway or El between cars, opening and closing the gates and calling the stations.",
    "themes": [
@@ -5717,6 +5725,7 @@
    "name": "Elevator operator",
    "sector": "services",
    "schedule": "shift-day",
+   "employment": "rota",
    "pay": "$",
    "summary": "Running an elevator in an office tower, hotel or department store in a uniform and white gloves, calling the floors.",
    "themes": [

@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from companion.identity import CLIENT_HEADER
-from companion.images import memes
+from companion.images import memes, prompts
 from companion.images.photos import asked_kind, asks_for_photo, moment_text, yours
 from companion.main import create_app
 from companion.providers.vault import MemoryVault
@@ -93,7 +93,8 @@ def test_a_photo_of_the_current_moment_becomes_the_feed_image(client, life, cloc
     photo = reply['photo']
     assert photo['status'] == 'queued' and photo['in_feed'] is False
     # The reply knew what it was sending, told as "you" (the feed keeps the summary about them).
-    assert re.sub(r'(^|\. )Mira\b', r'\1You', photo['summary']) in photo_section(provider)  # Every sentence about Mira.
+    told = re.sub(r'(^|\. )Mira\b', r'\1You', photo['summary']).replace(' Mira ', ' you ')  # Every mention of Mira.
+    assert told in photo_section(provider)
     drain(client)
     shown = client.get(f"/api/images/photos/{reply['id']}").json()
     assert shown['status'] == 'completed' and shown['ref']
@@ -385,3 +386,42 @@ def test_the_photo_note_tells_them_their_moment_as_you():
     text = moment_text(moment)
     assert 'You are walking Pepper by the harbor, the way you always do. Your coat is new.' in text
     assert 'Megan' not in text
+
+
+def test_a_photo_at_the_users_place_is_a_friends_apartment_to_the_image_model(client, provider, adapters, clock,
+                                                                              monkeypatch):
+    from tests.test_together import mira
+    mira(client, monkeypatch)
+    local_comfy(client)
+    clock.advance(timedelta(hours=6))  # Monday 18:00, after work.
+    send(client, 'wanna come over now?', 'visit-0001')
+    reply = ask(client, 'send me a pic!', 'ask-0003')
+    drain(client)
+    prompt = adapters['comfyui'].requests[-1].prompt
+    # The chat keeps its own words; the image model gets a home it can place, and no "you" to draw.
+    assert 'came over to your place' in reply['photo']['summary']
+    assert "came over to a friend's apartment in " in prompt
+    assert 'Your place' not in prompt and not re.search(r'\byour?\b', prompt, re.IGNORECASE)
+
+
+def test_a_visit_in_a_picture_is_a_friends_apartment_or_their_home():
+    cases = [('visit-yours', 'Mira came over to your place. Ended up on the couch.', 'Your place',
+              "She came over to a friend's apartment in Hampden. Ended up on the couch."),
+             ('dinner-yours', 'Mira came over to your place for dinner. Spent most of it in the kitchen.', 'Your place',
+              "She came over to a friend's apartment in Hampden for dinner. Spent most of it in the kitchen."),
+             ('visit-yours', 'Mira dropped by your place. Ended up at the kitchen table.', 'Your place',
+              "She dropped by a friend's apartment in Hampden. Ended up at the kitchen table."),
+             ('visit-in', 'Mira had you over at home. Settled down by the window for a while.', "Mira's place",
+              'She had a friend over at home in Hampden. Settled down by the window for a while.')]
+    for activity, summary, place, expected in cases:
+        moment = {'summary': summary, 'place': place, 'activity': activity, 'mood': 'happy'}
+        prompt = prompts.compose('Mira', 'A woman with curly hair.', [prompts.visit_words(moment, 'Hampden')],
+                                 'Candid photograph')
+        assert expected in prompt, prompt
+        assert not re.search(r'\byour?\b|place', prompt, re.IGNORECASE), prompt
+    # Worded some other way (a life model's phrasing), the words stay and only the place is said for a picture.
+    moment = {'summary': 'Mira spent the evening on your couch.', 'place': 'Your place', 'activity': 'visit-yours'}
+    assert prompts.visit_words(moment, 'Hampden') == {**moment, 'place': "a friend's apartment in Hampden"}
+    # Not a visit: unchanged.
+    out = {'summary': 'Mira went out for dinner at Lupa.', 'place': 'Lupa', 'activity': 'dinner'}
+    assert prompts.visit_words(out, 'Hampden') is out

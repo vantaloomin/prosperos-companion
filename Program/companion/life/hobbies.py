@@ -391,7 +391,7 @@ class Life:
 
     def free(self, day: date) -> list[str]:
         """The start times of free blocks in their routine that day."""
-        return [block.view()['start'] for block in self.schedule if day.weekday() in block.days and
+        return [block.view()['start'] for block in self.schedule if block.on(day) and
                 block.kind in OPEN_BLOCKS]
 
     def week_days(self, row: dict, monday: date) -> set[date]:
@@ -833,15 +833,15 @@ def usual_time(item: dict, day: date) -> str:
 def invite_due(connection, companion: dict, now: datetime) -> list:
     """Now and then a first text asking the user along to a pastime (a climbing session, their open mic night) a few
     days off, on a free day. Saving the text settles the plan (`settle_invite`)."""
-    from companion.life import outings
+    from companion.life import outings, together
     from companion.life.openers import Trigger
     version = companion['version']
     definition, timeline_id = version['definition'], companion['active_timeline_id']
     local = now.astimezone(zone(version['timezone']))
     state = optional(connection, 'SELECT * FROM hobby_state WHERE timeline_id=?', (timeline_id,))
     level = realism(connection)
-    if not INVITES or not state or not 10 <= local.hour < 21:
-        return []
+    if not INVITES or not state or not 10 <= local.hour < 21 or not together.invites(connection, companion):
+        return []  # Getting together off, or long distance (companion/life/together.py): no invitations over.
     window = local.date().toordinal() // INVITE_EVERY
     if generators.unit(state['seed'], 'invite?', window) >= INVITE_CHANCE[level]:
         return []

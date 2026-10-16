@@ -12,12 +12,14 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    calls,
     chapters,
     circle,
     citymap,
     deck,
     encounters,
     feed,
+    long_distance,
     money,
     mood,
     network,
@@ -30,6 +32,7 @@ from companion.life import (
     social,
     storylines,
     today,
+    together,
     town_personality,
     trips,
     web,
@@ -283,6 +286,45 @@ def read_outings(request: Request):
     with database.connect() as connection:
         companion, now = require_current(connection), database.clock.now()
         return {'outings': outings.listing(connection, companion, now), 'trips': trips.listing(connection, companion, now)}
+
+
+@router.get('/where')
+def read_where(request: Request):
+    """Where the companion in focus is with the user right now, for the chat strip (companion/life/together.py)."""
+    database = db(request)
+    with database.connect() as connection:
+        return together.view(connection, require_current(connection), database.clock.now())
+
+
+@router.post('/calls')
+def start_call(request: Request):
+    """The user calls the companion in focus (the chat header's Call button, companion/life/calls.py): they pick up
+    when they are free, otherwise it is a missed call they text back about."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        now = database.clock.now()
+        calls.call(connection, companion, now)
+        return together.view(connection, companion, now)
+
+
+@router.post('/calls/{call_id}/{action}')
+def change_call(request: Request, call_id: str, action: Literal['answer', 'decline', 'end']):
+    """Answer or decline their call, or end the one under way."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        return calls.act(connection, require_current(connection), call_id, action, database.clock.now())
+
+
+@router.post('/trips/{trip_id}/{action}')
+def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo']):
+    """Call off a weekend visit with the user that has not started (companion/life/long_distance.py), or undo that."""
+    database = db(request)
+    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo}[action]
+    with database.connect(write=True) as connection:
+        changed = change(connection, require_current(connection), trip_id, database.clock.now())
+    request.app.state.life.extend_agenda('return')
+    return changed
 
 
 @router.post('/outings/{outing_id}/{action}')

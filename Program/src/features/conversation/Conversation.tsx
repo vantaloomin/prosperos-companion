@@ -32,7 +32,9 @@ import { playCue } from './imSounds'
 import { NovelStage } from './NovelStage'
 import { latestPhotoId } from './photoState'
 import { AwayRecap } from './AwayRecap'
-import { OutNow } from './OutNow'
+import { WhereStrip } from './WhereStrip'
+import { useWhere } from './useWhere'
+import { WHERE_KEY, notTexting } from './whereText'
 import { ChatsPanel } from '../chats/ChatsPanel'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { readThrough } from '../chats/chatText'
@@ -66,6 +68,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [branching, setBranching] = useState<Message | null>(null)
   const [found, setFound] = useState<{ id: string; at: number } | null>(null)
   const draft = useDraft()
+  // In person or on the phone, texting habits like bursts stop (companion/life/together.py, calls.py).
+  const together = notTexting(useWhere().data)
   const ooc = useOoc()
   const transcript = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
@@ -96,9 +100,10 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq), reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
     if (held) return
+    void client.invalidateQueries({ queryKey: WHERE_KEY })
     setAnnouncement(replyAnnouncement(name, reply))
     if (sounds.current && reply.status === 'complete') playCue('message')
-  }, [update, name])
+  }, [update, name, client])
   const onLost = useCallback(() => { void client.invalidateQueries({ queryKey: HISTORY_KEY }) }, [client])
 
   // Keep the newest text in view only while the reader is already at the bottom; never pull them away from history.
@@ -133,6 +138,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     try {
       accept(await api<SendResult>('/conversation/messages?wait=false', { text, client_id: clientId, picture_ids: pictures.map((picture) => picture.id), companion_id: companion.id }))
       draft.clear()
+      // A visit asked for, or a goodbye, is settled as the message is sent (companion/life/together.py).
+      void client.invalidateQueries({ queryKey: WHERE_KEY })
     } catch (error) { fail(error) } finally { draft.setSending(false) }
   }
   const retry = async (userId: string) => {
@@ -232,7 +239,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
             {turns.map((turn, index) => (
               <Fragment key={turnKey(turn)}>
-                <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
+                <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts && !together} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
                 {endsOlderHistory(turns, index) && <p className="history-end subtle">Older history from an old chat ends here</p>}
               </Fragment>
             ))}
@@ -242,7 +249,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
         <ActivityLine messages={messages} phases={phases} sending={draft.sending} aside={ooc.note} />
         <AwayRecap name={name} />
-        <OutNow name={name} />
+        <WhereStrip name={name} />
         <ConversationNotice notice={notice} go={go} />
         <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
           onReworded={(id, text) => {

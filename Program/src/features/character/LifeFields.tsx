@@ -31,7 +31,7 @@ export function LifeFields({ definition, set, themes, setThemes, help }: Props) 
       <CitiesUnavailable cities={cities} />
       <ScheduleEditor blocks={definition.schedule} onChange={(schedule) => set({ schedule })} timezone={definition.timezone} />
       {help?.('schedule', 'their week')}
-      <TextInput label="What their life tends to involve" value={themes} onChange={setThemes} hint="Themes for everyday events, separated by commas, such as cycling, the harbour, their sister." />
+      <TextInput label="What their life tends to involve" value={themes} onChange={setThemes} hint="Themes for everyday events, separated by commas, such as cycling, the harbor, their sister." />
       {help?.('life_themes', 'these themes')}
       <TextInput label="Birthday" value={definition.birthday ?? ''} maxLength={5} placeholder="MM-DD" onChange={(value) => set({ birthday: value.trim() })}
         hint="Month and day, such as 07-21. Leave it empty and a date is picked for them. On the day they celebrate, and can tell you." />

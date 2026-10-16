@@ -49,6 +49,21 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.12.0 (2026-10-16)
+
+- **A home of your own:** your persona lives in a city and neighborhood in each world, changeable on the persona
+  form, and Matchlight looks there and moves with you.
+- **Together or apart:** visits both ways, close companions who sometimes knock, suggestions to get together, chats
+  written in person while together, and a where-you-are strip with Head home, Say goodbye and Not now.
+- **Long distance:** the city and time difference on the chat list and Character page, weekend visits both ways
+  (rarer for faraway cities), asked for in chat and called off on Today.
+- **Phone calls:** a Call button and "Can I call you?", companions who call now and then, Answer and Decline on the
+  strip, spoken replies read aloud with a voice set up, and calls that end on a goodbye or when it goes quiet.
+- **Shifts and gigs:** weekly rotas for service and shift jobs and freelance gigs in busy and dry spells, with pay
+  following the work and plans with you kept.
+- **More Realism sliders:** Getting together, set by the presets.
+- **Fixes:** phone-width lookup buttons and the running-joke picker no longer scroll sideways.
+
 ## v0.11.0 (2026-10-14)
 
 - **Work life:** slammed, ordinary and slow weeks with a project deadline, a yearly review with raises by country and

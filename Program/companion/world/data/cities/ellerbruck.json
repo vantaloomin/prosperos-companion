@@ -2699,6 +2699,7 @@
    "name": "Woodcutter",
    "sector": "forest",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Felling and splitting timber at the forest edge and selling firewood to carters from town.",
    "themes": [
@@ -2716,6 +2717,7 @@
    "name": "Charcoal burner",
    "sector": "forest",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$",
    "summary": "Building and tending the smoking kilns in the woods day and night for the smiths' charcoal.",
    "themes": [
@@ -2733,6 +2735,7 @@
    "name": "Miller",
    "sector": "milling",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Grinding grain at the Mühlbach mill and taking a share of every sack as toll.",
    "themes": [
@@ -2750,6 +2753,7 @@
    "name": "Goose girl",
    "sector": "farming",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Driving the town's geese out through the dark gate to the meadow at dawn and home again at dusk.",
    "themes": [
@@ -2767,6 +2771,7 @@
    "name": "Shoemaker",
    "sector": "crafts",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Cutting and stitching shoes and boots in a Schustergasse workshop, from the last to the finished pair.",
    "themes": [
@@ -2784,6 +2789,7 @@
    "name": "Tailor",
    "sector": "crafts",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Cutting cloth, fitting customers and sewing coats and gowns, cross-legged on the workbench.",
    "themes": [
@@ -2801,6 +2807,7 @@
    "name": "Baker",
    "sector": "food",
    "schedule": "early",
+   "employment": "rota",
    "pay": "$",
    "summary": "Firing the oven before dawn for rye loaves, rolls and pretzels, by the town's weight rules.",
    "themes": [
@@ -2818,6 +2825,7 @@
    "name": "Spinner",
    "sector": "cloth",
    "schedule": "flexible",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Spinning flax and wool at home or in the spinning room, paid by the skein.",
    "themes": [
@@ -2835,6 +2843,7 @@
    "name": "Weaver",
    "sector": "cloth",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Weaving linen on a loom in the Weberviertel for merchants and the castle.",
    "themes": [
@@ -2852,6 +2861,7 @@
    "name": "Huntsman",
    "sector": "forest",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Keeping the Count's game, culling deer and boar, and walking the forest road.",
    "themes": [
@@ -2869,6 +2879,7 @@
    "name": "Ferryman",
    "sector": "river",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Pulling the rope ferry across the Eller for carts, cattle and walkers, in all weathers.",
    "themes": [
@@ -2886,6 +2897,7 @@
    "name": "Fisher",
    "sector": "river",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Setting nets and eel traps on the Eller and selling the catch from tubs on the bank.",
    "themes": [
@@ -2903,6 +2915,7 @@
    "name": "Innkeeper's hand",
    "sector": "hospitality",
    "schedule": "evening",
+   "employment": "staff",
    "pay": "$",
    "summary": "Cooking, serving, making beds and stabling horses at one of the town's inns.",
    "themes": [
@@ -2920,6 +2933,7 @@
    "name": "Apothecary",
    "sector": "healing",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Making salves, syrups and powders at the Swan apothecary and advising on coughs and fevers.",
    "themes": [
@@ -2937,6 +2951,7 @@
    "name": "Royal gardener",
    "sector": "court",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Keeping the castle's hedges, fruit walls and kitchen beds, and never cutting the briar hedge.",
    "themes": [
@@ -2954,6 +2969,7 @@
    "name": "Castle servant",
    "sector": "court",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Kitchen, laundry or chamber work in the Count's household, paid in wages, food and a livery coat.",
    "themes": [
@@ -2971,6 +2987,7 @@
    "name": "Tanner",
    "sector": "crafts",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$",
    "summary": "Scraping hides and working the tan pits in the Gerberviertel.",
    "themes": [
@@ -2988,6 +3005,7 @@
    "name": "Ratcatcher",
    "sector": "trades",
    "schedule": "evening",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Trapping rats in cellars, granaries and the mill, and reminding the council what it owes.",
    "themes": [
@@ -3005,6 +3023,7 @@
    "name": "Town musician",
    "sector": "entertainment",
    "schedule": "evening",
+   "employment": "staff",
    "pay": "$",
    "summary": "Playing fiddle, horn or drum at weddings, dances and taverns as one of the town band.",
    "themes": [
@@ -3022,6 +3041,7 @@
    "name": "Carter",
    "sector": "transport",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Driving ox and horse wagons of grain, timber and flour between the forest, the mill and the market.",
    "themes": [
@@ -3039,6 +3059,7 @@
    "name": "Market gardener",
    "sector": "farming",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Growing cabbages, lettuces, onions and herbs in the Gartenvorstadt for the market.",
    "themes": [
@@ -3056,6 +3077,7 @@
    "name": "Convent schoolteacher",
    "sector": "church",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$",
    "summary": "Teaching girls and small boys to read, count and sew at the convent of St. Clare.",
    "themes": [

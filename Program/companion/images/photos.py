@@ -102,6 +102,11 @@ def place_text(place) -> str:
     return place.get('name', '') if isinstance(place, dict) else ''
 
 
+def place_area(place) -> str | None:
+    """The place's neighbourhood, which a picture of a visit names in place of "Your place" (images/prompts.py)."""
+    return place.get('neighborhood') if isinstance(place, dict) else None
+
+
 class ChatPhotos:
     def __init__(self, database, images, life, openers=None):
         self.database = database
@@ -268,6 +273,7 @@ class ChatPhotos:
         until = parse(shown['ends_at']).astimezone(zone(version['timezone'])).strftime('%H:%M')
         return {'event_key': key, 'summary': words['summary'], 'caption': words['post'], 'name': version['definition']['name'],
                 'mood': composed.get('mood', ''), 'place': place_text(composed.get('place')),
+                'neighborhood': place_area(composed.get('place')),
                 'label': shown['block']['label'], 'kind': shown['block']['kind'], 'until': until,
                 'rain': bool((composed.get('weather') or {}).get('rain')), 'timeline_id': timeline_id,
                 'ends_at': shown['ends_at'], 'activity': composed.get('activity'), 'block_kind': shown['block']['kind'],

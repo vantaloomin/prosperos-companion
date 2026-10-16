@@ -23,9 +23,13 @@ def place(id, name, kind, hood, summary, tags, setting, good_for, day_parts, sea
             'seasons': list(seasons), 'cuisine': cuisine, 'source': S}
 
 
+# How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
+EMPLOYMENT = {'baker': 'rota', 'gate-warden': 'rota', 'musician': 'freelance', 'healer': 'rota'}
+
+
 def career(id, name, sector, schedule, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': '$$', 'summary': summary,
-            'themes': themes, 'eras': [ERA]}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
 
 
 def employer(id, name, sector, hood, size, summary, careers):

@@ -67,6 +67,9 @@ class MoneySetup(Input):
     saving_for: str = Field(default='', max_length=120)
     goal: float = Field(default=0, ge=0, le=100_000_000)
     goal_since: str = Field(default='', pattern=r'^(\d{4}-\d{2}-\d{2})?$')
+    # Their hours (companion/life/shifts.py): empty follows their work (shifts that change each week for a bartender,
+    # gigs for a freelancer), or the same days every week ('staff'), shifts ('rota') or gigs ('freelance').
+    employment: Literal['', 'staff', 'rota', 'freelance'] = ''
 
 
 class Looks(Input):
@@ -144,6 +147,9 @@ class CharacterDefinition(Input):
     # Personality sliders (companion/world/personality.py); None, or a trait left out, is read from their words and
     # rolled.
     personality_sliders: dict[PersonalityTrait, PersonalitySlider] | None = None
+    # The weeks of shifts or gigs the app adds when it reads the companion (companion/life/shifts.py). Accepted so a
+    # form can send back what it was given, and never saved.
+    rota: dict | None = Field(default=None, exclude=True)
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
@@ -442,6 +448,8 @@ class LifeSettingsUpdate(Input):
     guests_realism: int | None = Field(default=None, ge=0, le=3)
     # Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic.
     hobbies_realism: int | None = Field(default=None, ge=0, le=3)
+    # Getting together (companion/life/together.py): 0 never on their own, 1 light, 2 true to life, 3 often.
+    together_realism: int | None = Field(default=None, ge=0, le=3)
     on_her_mind: bool | None = None
     # Looks that change (companion/life/grooming.py): never (0), now and then, like real life, often (3).
     looks_realism: int | None = Field(default=None, ge=0, le=3)
@@ -575,6 +583,13 @@ class NewPersona(PersonaInput):
     """A new persona, and the city their world is in: the current one unless the user picks another, or
     `somewhere-new` for the app to pick (companion/worlds.py)."""
     city_id: str | None = Field(None, min_length=1, max_length=120)
+
+
+class HomeChange(Input):
+    """Where the user lives in a world (companion/life/where.py): a city and a neighbourhood there; a blank
+    neighbourhood lets the app pick one."""
+    city_id: str = Field(min_length=1, max_length=120)
+    neighbourhood: str = Field(default='', max_length=120)
 
 
 class WorldChange(Input):

@@ -30,6 +30,7 @@ from companion.life import (
     hobbies,
     home,
     kitchen,
+    long_distance,
     media,
     network,
     occasions,
@@ -128,8 +129,10 @@ def extend(connection, companion, world, now) -> dict:
         companion = by_id(connection, companion['id'])  # A new job or home shapes the days ahead.
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
     trips.plan_ahead(connection, companion, world, now)
+    long_distance.finish_due(connection, companion, now)
     outings.finish_due(connection, companion, now)
-    work.plan_ahead(connection, companion, world, now)
+    if work.plan_ahead(connection, companion, world, now).get('shifts'):
+        companion = by_id(connection, companion['id'])  # This week's shifts or gigs shape the days ahead.
     admin.plan_ahead(connection, companion, world, now)
     found = subjects(connection, companion, world, now)
     active = [subject for subject, _definition, _basis in found]
@@ -215,7 +218,7 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
                 days[local_date]['plans'] = plans[local_date]
                 days[local_date]['pinned'] = own_plans.assign(plans[local_date], [
                     holiday_block(block.view(), days_off.get(local_date)) for block in schedule
-                    if slot.local_date.weekday() in block.days])
+                    if block.on(slot.local_date)])
         written += write_slot(connection, scope, slot, days[local_date], recent)
     connection.execute('INSERT INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?) '
                        'ON CONFLICT (timeline_id, subject) DO UPDATE SET through=excluded.through',
@@ -571,11 +574,20 @@ def upcoming(connection, timeline_id, basis, now, hours=24, limit=4) -> list[dic
     return [entry_view(row) for row in rows]
 
 
+VISITS = {'visit-in': 'having the user over at your place', 'visit-yours': "going over to the user's place",
+          'dinner-yours': "dinner at the user's place"}
+
+
 def intention_text(item) -> str:
     entry = item['entry']
-    text = f"- {item['local_date']}, {item['block']['label'].lower()} ({item['block']['start']}): "
+    label = item['block']['label'] if item['block'].get('trip') else item['block']['label'].lower()  # "With you in London"
+    text = f"- {item['local_date']}, {label} ({item['block']['start']}): "
+    if item['block'].get('trip') and entry['activity'] == 'trip' and entry.get('place'):
+        return text + f"at {entry['place']['name']}"
     if entry['activity'] == 'dinner-in':  # the user coming over (companion/life/outings.py)
         return text + 'having the user over for dinner at your place'
+    if entry['activity'] in VISITS:  # visits (companion/life/together.py)
+        return text + VISITS[entry['activity']]
     if entry.get('hobby'):  # a practice session (companion/life/hobbies.py)
         place = f" at {entry['place']['name']}" if entry.get('place') else ''
         return text + f"{entry['hobby']['label'].lower()}{place}"

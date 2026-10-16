@@ -29,8 +29,10 @@ def by_id(connection, companion_id: str) -> dict | None:
 
 def with_chapters(connection, companion: dict) -> dict:
     """The companion with their life chapters on the active timeline applied to the definition (a new job, a move,
-    a hobby: companion/life/chapters.py), so everything that reads their life sees how it is now. The saved
-    version itself is never rewritten, so a fork without the chapter or an undo brings the old life back."""
+    a hobby: companion/life/chapters.py) and the weeks of shifts or gigs around now (companion/life/shifts.py), so
+    everything that reads their life sees how it is now. The saved version itself is never rewritten, so a fork without
+    the chapter or an undo brings the old life back."""
+    from companion.life import shifts
     rows = many(connection, 'SELECT changes FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL '
                 'ORDER BY started_on, created_at', (companion.get('active_timeline_id') or '',))
     definition = companion['version']['definition']
@@ -38,7 +40,9 @@ def with_chapters(connection, companion: dict) -> dict:
         definition = apply_changes(definition, decode(row['changes']))
     if (definition.get('money') or {}).get('career') != (companion['version']['definition'].get('money') or {}).get('career'):
         definition = {**definition, 'schedule': relabeled(connection, definition)}
-    return {**companion, 'version': {**companion['version'], 'definition': definition}} if rows else companion
+    # Their shifts or gigs week by week (companion/life/shifts.py), on top of the week as written.
+    return shifts.with_rota(connection, {**companion, 'version': {**companion['version'], 'definition': definition}}
+                            if rows else companion)
 
 
 def relabeled(connection, definition: dict) -> list[dict]:
@@ -134,6 +138,8 @@ def revise(database, body) -> dict:
         version_id = insert_version(connection, companion['id'], number, body.definition, body.note,
                                     database.now())
         connection.execute('UPDATE companions SET active_version_id=? WHERE id=?', (version_id, companion['id']))
+        from companion.life import long_distance
+        long_distance.settle_all(connection, database.clock.now())  # A move: visits planned for their old city.
         return current(connection)
 
 

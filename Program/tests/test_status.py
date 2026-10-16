@@ -53,7 +53,7 @@ def test_the_user_can_set_a_line_that_stays_until_something_big_happens(client, 
     at(clock, 8)
     response = client.put(f"/api/companion/{mira['id']}/status", json={'text': '  gone   fishing  '})
     assert response.status_code == 200 and response.json()['text'] == 'gone fishing'
-    assert read(client) | {'away': None} == {'text': 'gone fishing', 'set_by': 'you', 'away': None}
+    assert read(client) | {'away': None, 'where': None} == {'text': 'gone fishing', 'set_by': 'you', 'away': None, 'where': None}
     chats = client.get('/api/chats').json()['chats']
     assert next(chat for chat in chats if chat['id'] == mira['id'])['status']['text'] == 'gone fishing'
     at(clock, 8, day=6)
@@ -63,7 +63,7 @@ def test_the_user_can_set_a_line_that_stays_until_something_big_happens(client, 
         connection.execute("INSERT INTO life_chapters (id, timeline_id, kind, started_on, title, told, share, created_at) "
                            "VALUES ('c1', ?, 'move', '2026-10-06', 'Moved', 'You moved.', 'I did it, I moved!', ?)",
                            (companion['active_timeline_id'], clock.now().isoformat()))
-    assert read(client) | {'away': None} == {'text': 'I did it, I moved!', 'set_by': 'app', 'away': None}
+    assert read(client) | {'away': None, 'where': None} == {'text': 'I did it, I moved!', 'set_by': 'app', 'away': None, 'where': None}
     client.put(f"/api/companion/{mira['id']}/status", json={'text': 'new place who dis'})
     assert read(client)['text'] == 'new place who dis'
     cleared = client.put(f"/api/companion/{mira['id']}/status", json={'text': ''}).json()
@@ -87,7 +87,7 @@ def test_a_big_event_later_the_same_day_replaces_the_users_line(client, clock):
         connection.execute("INSERT INTO life_chapters (id, timeline_id, kind, started_on, title, told, share, created_at) "
                            "VALUES ('c1', ?, 'move', '2026-10-05', 'Moved', 'You moved.', 'I did it, I moved!', ?)",
                            (timeline, clock.now().isoformat()))
-    assert read(client) | {'away': None} == {'text': 'I did it, I moved!', 'set_by': 'app', 'away': None}
+    assert read(client) | {'away': None, 'where': None} == {'text': 'I did it, I moved!', 'set_by': 'app', 'away': None, 'where': None}
 
 
 def test_away_times_read_the_way_people_write_them():
@@ -130,8 +130,9 @@ def test_the_retro_bank_is_big_and_never_says_online():
         assert len(line) <= status.LIMIT, line
 
 
-def test_your_own_lyrics_join_retro_im_from_a_file_in_the_data_folder(client, clock):
+def test_your_own_lyrics_join_retro_im_from_a_file_in_the_data_folder(client, clock, monkeypatch):
     """retro-lyrics.txt next to the database: comments are skipped, and lyrics show as a quoted line."""
+    monkeypatch.setattr(status, 'RETRO_KINDS', ())  # Only lyrics on days without a plan, whatever the random seed.
     make(client, 'Warm and curious.', interests=['birdwatching'])
     assert client.put('/api/settings', json={'chat_style': 'retro'}).status_code == 200
     with client.app.state.database.connect() as connection:

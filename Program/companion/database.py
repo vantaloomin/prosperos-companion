@@ -284,6 +284,19 @@ ADDED_COLUMNS = (
     ('life_settings', 'hobbies_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (hobbies_realism BETWEEN 0 AND 3)'),
     # Matchlight's Undo (companion/dating.py): the person just answered, until it is undone or anything else changes.
     ('dating_profile', 'last_answer', "TEXT NOT NULL DEFAULT ''"),
+    # Where you live in this world (companion/life/where.py): a city id and a neighbourhood id in it.
+    ('persona', 'home_city_id', "TEXT NOT NULL DEFAULT ''"),
+    ('persona', 'home_neighbourhood', "TEXT NOT NULL DEFAULT ''"),
+    # Getting together (companion/life/together.py, Settings > Realism): how often companions suggest meeting up,
+    # invite the user over and drop by, 0 never on their own, 1 light, 2 true to life, 3 often.
+    ('life_settings', 'together_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (together_realism BETWEEN 0 AND 3)'),
+    # Long distance (companion/life/long_distance.py): a trip that is a weekend visit with the user, 'to-you' (they come
+    # to stay with the user) or 'host' (the user comes to stay with them); the message that asked for it, the memory it
+    # left, and when the user called it off.
+    ('trips', 'visit', "TEXT NOT NULL DEFAULT '' CHECK (visit IN ('', 'to-you', 'host'))"),
+    ('trips', 'message_id', 'TEXT'),
+    ('trips', 'memory_id', 'TEXT'),
+    ('trips', 'cancelled_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

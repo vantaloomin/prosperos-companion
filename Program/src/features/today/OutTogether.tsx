@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Home, MapPin, Undo2, X } from 'lucide-react'
 import { api } from '../../api'
 import { Notice } from '../../components/Feedback'
-import { OUTING_STATES, TOGETHER_KEY, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing } from './outingText'
+import { WHERE_KEY } from '../conversation/whereText'
+import { OUTING_STATES, TOGETHER_KEY, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
 import { useTogether } from './useTogether'
 
 /** Plans with the user. The companion picked the places; the user can call them off (with Undo for the rest of the
@@ -59,25 +60,50 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
   )
 }
 
-/** The companion's own trips: their life, so there is nothing to override. */
+/** The companion's own trips: their life, so there is nothing to override. Weekend visits with the user across the
+ * distance (companion/life/long_distance.py) sit among them, and those the user can call off before they start (with
+ * Undo for a while after). */
 export function Trips({ name }: { name: string }) {
+  const client = useQueryClient()
+  const [error, setError] = useState('')
   const trips = shown(useTogether().data?.trips ?? [])
   if (!trips.length) return null
+  const act = async (path: string) => {
+    setError('')
+    try { await api(path, {}) } catch (failure) { setError(failure instanceof Error ? failure.message : 'That did not work.') }
+    void client.invalidateQueries({ queryKey: TOGETHER_KEY })
+    void client.invalidateQueries({ queryKey: ['today'] })
+    void client.invalidateQueries({ queryKey: WHERE_KEY })
+  }
   return (
     <section className="today-section" aria-labelledby="trips-heading">
       <h2 id="trips-heading">Trips</h2>
+      {error && <Notice tone="error">{error}</Notice>}
       <ul className="event-list together-list">
-        {trips.map((trip) => (
-          <li key={trip.id} className="together-item">
-            <div className="together-head">
-              <strong>{tripTitle(trip)}</strong>
-              <span className="badge">{trip.state === 'now' ? 'Away now' : OUTING_STATES[trip.state]}</span>
-            </div>
-            <p className="subtle">{tripDays(trip)}{trip.cost_text ? ` · about ${trip.cost_text}` : ''}</p>
-            {trip.postcard_message_id && <p className="subtle">{name} sent you a postcard{trip.landmark ? ` of ${trip.landmark.name}` : ''}.</p>}
-          </li>
-        ))}
+        {trips.map((trip) => <TripItem key={trip.id} trip={trip} name={name} act={act} />)}
       </ul>
     </section>
+  )
+}
+
+function TripItem({ trip, name, act }: { trip: Trip; name: string; act: (path: string) => Promise<void> }) {
+  if (trip.state === 'cancelled') return (
+    <li className="together-item together-undo">
+      <p><strong>{tripTitle(trip, name)}</strong> <span className="subtle">Called off.</span></p>
+      <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/undo`)}><Undo2 aria-hidden="true" />Undo</button>
+    </li>
+  )
+  return (
+    <li className="together-item">
+      <div className="together-head">
+        <strong>{tripTitle(trip, name)}</strong>
+        <span className="badge">{trip.state === 'now' ? (trip.visit ? 'Together now' : 'Away now') : OUTING_STATES[trip.state]}</span>
+      </div>
+      <p className="subtle">{tripDays(trip)}{trip.cost_text ? ` · ${trip.visit ? `${name} spends about` : 'about'} ${trip.cost_text}` : ''}</p>
+      {trip.postcard_message_id && <p className="subtle">{name} sent you a postcard{trip.landmark ? ` of ${trip.landmark.name}` : ''}.</p>}
+      {trip.visit && trip.state === 'planned' && <div className="together-actions">
+        <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
+      </div>}
+    </li>
   )
 }

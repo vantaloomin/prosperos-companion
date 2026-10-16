@@ -94,6 +94,12 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.hobbies.WEAVE', False)
     monkeypatch.setattr('companion.life.hobbies.NEWS', False)
     monkeypatch.setattr('companion.life.hobbies.INVITES', False)
+    # Getting together (companion/life/together.py): no knocks or suggestions to meet up in unrelated tests.
+    monkeypatch.setattr('companion.life.together.FIRST_TEXTS', False)
+    # Nor calls ringing, or texts after a missed one (companion/life/calls.py).
+    monkeypatch.setattr('companion.life.calls.FIRST_TEXTS', False)
+    # Nor news of a weekend visit planned across the distance (companion/life/long_distance.py).
+    monkeypatch.setattr('companion.life.long_distance.FIRST_TEXTS', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.
@@ -112,6 +118,8 @@ def no_work_life(monkeypatch):
     """Work weeks, late nights and vacation days (companion/life/work.py) would change unrelated tests' days;
     tests/test_work_life.py turns them on."""
     monkeypatch.setattr('companion.life.work.ACTIVE', False)
+    # And shifts and gigs (companion/life/shifts.py); tests/test_shifts.py turns them on.
+    monkeypatch.setattr('companion.life.shifts.ACTIVE', False)
 
 
 @pytest.fixture(autouse=True)

@@ -4169,6 +4169,7 @@
    "name": "Lobster fisher",
    "sector": "fishing",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Hauls traps from a lobster boat, as a sternman or with a boat and a license of their own, out before dawn and back mid-afternoon.",
    "themes": [
@@ -4188,6 +4189,7 @@
    "name": "Boatbuilder",
    "sector": "marine-trades",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Builds and repairs wooden and fibreglass boats at the boatyard: lofting, planking, glassing, painting and launching in spring.",
    "themes": [
@@ -4206,6 +4208,7 @@
    "name": "Innkeeper",
    "sector": "hospitality",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Runs an inn or a bed and breakfast: cooking breakfast, turning rooms, answering guests' questions and surviving August.",
    "themes": [
@@ -4224,6 +4227,7 @@
    "name": "Orchard farmer",
    "sector": "agriculture",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Works an orchard and farm: pruning in winter, spraying and mowing in summer, picking and pressing cider in the fall.",
    "themes": [

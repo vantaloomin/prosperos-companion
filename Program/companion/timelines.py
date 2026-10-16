@@ -28,6 +28,7 @@ from companion.life import (
     kitchen,
     media,
     network,
+    shifts,
     social,
     storylines,
     traditions,
@@ -200,6 +201,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     kitchen.copy(connection, parent_id, new_id, cutoff)
     media.copy(connection, parent_id, new_id, cutoff)
     hobbies.copy(connection, parent_id, new_id, cutoff)
+    shifts.copy(connection, parent_id, new_id, cutoff)
     traditions.copy(connection, parent_id, new_id, ids)
     copy_posts(connection, posts, ids, new_id)
     social.copy(connection, parent_id, new_id, cutoff, ids, remap)
@@ -258,7 +260,8 @@ def copy_recall(connection, parent_id, new_id, ids, cutoff_date):
          'source_message_ids': encode([ids[source] for source in decode(row['source_message_ids'])])}
         for row in many(connection, 'SELECT * FROM memory_summaries WHERE timeline_id=? AND day<=?', (parent_id, cutoff_date))
         if all(source in ids for source in decode(row['source_message_ids']))])
-    insert(connection, 'trips', [{**row, 'id': identifier(), 'timeline_id': new_id, 'company': remap(row['company'], ids)}
+    insert(connection, 'trips', [{**row, 'id': identifier(), 'timeline_id': new_id, 'company': remap(row['company'], ids),
+                                  'message_id': ids.get(row['message_id'])}
                                  for row in many(connection, 'SELECT * FROM trips WHERE timeline_id=? AND start_date<=?',
                                                  (parent_id, cutoff_date))])
     insert(connection, 'history_corrections', [
