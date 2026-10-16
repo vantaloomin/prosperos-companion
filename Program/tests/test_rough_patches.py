@@ -88,9 +88,9 @@ def test_let_it_go_clears_the_air_over_everything_open(client, patches, provider
     show(client, show_moods=True)
     for number, text in enumerate(('go away', 'leave me alone')):
         says(provider)
-        send(client, text, f'client-patch-4{number}')
+        send(client, f'{text}.', f'client-patch-4{number}')
     found = patch(client)
-    assert found['open']
+    assert found['about'] in ('over what you said: "go away"', 'over what you said: "leave me alone"')
     assert not client.post(f"/api/life/rough-patch/{found['id']}/let-go").json()['open']
     assert not patch(client)['open']  # Not the one before it instead.
     client.post(f"/api/life/rough-patch/{found['id']}/undo")

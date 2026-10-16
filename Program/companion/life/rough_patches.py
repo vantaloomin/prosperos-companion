@@ -280,7 +280,8 @@ def note(connection, message: dict, companion: dict, now: datetime):
     text = message['text'] or ''
     lapsed(connection, companion, now)
     if sentence := stings(text):
-        consider(connection, companion, 'words', f"words:{message['id']}", f'the user said to you: "{sentence.rstrip(".")}"',
+        sentence = sentence.rstrip('.')  # Quoted mid-sentence: 'over what you said: "go away".'
+        consider(connection, companion, 'words', f"words:{message['id']}", f'the user said to you: "{sentence}"',
                  now, shown=f'over what you said: "{quoted(sentence)}"')
     promised(connection, companion, message, now)
     lvl = level(connection)
