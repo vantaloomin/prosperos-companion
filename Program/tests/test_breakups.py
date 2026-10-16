@@ -1,6 +1,7 @@
 """Breaks and breakups (companion/life/breakups.py): warnings that grow out of rough patches, a break, exes, and
 getting back together."""
 import json
+import re
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -145,7 +146,8 @@ def test_breaking_up_while_living_together_they_move_out(client, couple, provide
         assert moving_in.latest(connection, current(connection)['active_timeline_id'])['status'] == 'moved_out'
     says(provider)
     send(client, 'hi', 'client-out-2')
-    assert "You moved into the user's place" not in notes(provider)  # Moving in is no longer how their life is now.
+    # Moving in is no longer how their life is now (the history section still says it happened).
+    assert not re.search(r"You moved into the user's place in [^.]*\. This is how your life is now", notes(provider))
 
 
 def test_asking_for_a_break_and_talking_them_round(client, couple, provider):
