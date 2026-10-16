@@ -28,9 +28,9 @@ test('the planned note names the step, with a short date that never breaks', () 
 test('moving in together says whose place, or who moves, and when', () => {
   const moving = { status: 'moving' as const, plan: 'yours' as const, city: 'Baltimore', place: 'Canton', home: '', move_on: '2026-10-28', moved_on: null, consequence_id: null }
   assert.equal(movingText(moving, 'Mira Costa'), `Mira is moving into your place on ${stepDate('2026-10-28')}.`)
-  assert.equal(movingText({ ...moving, plan: 'new' }, 'Mira'), `You're moving into a new place together in Canton on ${stepDate('2026-10-28')}.`)
+  assert.equal(movingText({ ...moving, plan: 'new' }, 'Mira'), `Moving into a new place in Canton on ${stepDate('2026-10-28')}.`)
   assert.equal(movingText({ ...moving, plan: 'them' }, 'Mira'), `Mira is moving to Baltimore to live with you on ${stepDate('2026-10-28')}.`)
-  assert.match(movingText({ ...moving, status: 'waiting', plan: 'you', city: 'Chicago' }, 'Mira'), /^Mira asked you to move to Chicago/)
+  assert.equal(movingText({ ...moving, status: 'waiting', plan: 'you', city: 'Chicago' }, 'Mira'), 'Mira asked you to move to Chicago to live together.')
   assert.equal(movingText({ ...moving, status: 'moved', moved_on: '2026-11-02', home: 'a two-bedroom in Canton' }, 'Mira'),
-    `Living together since ${stepDate('2026-11-02')}, at a two-bedroom in Canton.`)
+    `Since ${stepDate('2026-11-02')}, a two-bedroom in Canton.`)
 })

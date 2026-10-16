@@ -55,13 +55,14 @@ export function plannedText(planned: NonNullable<StepsView['planned']>, name: st
  * you're ready." */
 export function movingText(moving: MovingIn, name: string): string {
   const who = firstName(name)
-  if (moving.status === 'moved') return `Living together since ${stepDate(moving.moved_on ?? '')}${moving.home ? `, at ${moving.home}` : ''}.`
-  if (moving.status === 'waiting') return `${who} asked you to move to ${moving.city} to live together. It's your call: change your home city when you're ready.`
+  if (moving.status === 'moved') return `Since ${stepDate(moving.moved_on ?? '')}${moving.home ? `, ${moving.home}` : ''}.`
+  // The Character page links "Change your home city" after this.
+  if (moving.status === 'waiting') return `${who} asked you to move to ${moving.city} to live together.`
   const on = moving.move_on ? ` on ${stepDate(moving.move_on)}` : ''
   const where = moving.place ? ` in ${moving.place}` : ''
   return {
     yours: `${who} is moving into your place${on}.`, theirs: `You're moving into ${who}'s place${on}.`,
-    new: `You're moving into a new place together${where}${on}.`, them: `${who} is moving to ${moving.city} to live with you${on}.`,
+    new: `Moving into a new place${where}${on}.`, them: `${who} is moving to ${moving.city} to live with you${on}.`,
     you: '',
   }[moving.plan]
 }

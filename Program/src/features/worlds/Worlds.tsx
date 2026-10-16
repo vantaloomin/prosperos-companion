@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Globe, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
 import { api } from '../../api'
@@ -27,6 +27,8 @@ export function Worlds() {
   }
   const switchTo = (path: string, label: string) => { setBusy(label); return run(async () => { await api(path, {}); enter() }) }
   const store = (data: WorldsData) => client.setQueryData(WORLDS_KEY, data)
+  const loaded = !!worlds.data
+  useEffect(() => { if (loaded && window.history.state?.focus === 'persona-home') toHomeCity() }, [loaded])
   if (worlds.isPending) return <Loading label="Loading your worlds" />
   if (worlds.isError) return <ErrorNotice error={worlds.error} />
   const data = worlds.data
@@ -53,6 +55,13 @@ export function Worlds() {
       </div>
     </section>
   )
+}
+
+/** Where you live, on the persona form (opened from "Change your home city" on the Character page). */
+function toHomeCity() {
+  const field = document.querySelector<HTMLSelectElement>('#persona-edit .persona-home select')
+  field?.scrollIntoView({ block: 'center' })
+  field?.focus()
 }
 
 /** The edit form for the persona the user is now, at the end of the page: go there with its name box ready. */

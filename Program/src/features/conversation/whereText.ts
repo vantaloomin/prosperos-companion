@@ -60,7 +60,7 @@ export function visitLine(visit: WhereVisit, name: string): StripLine {
  * when nothing else (a call, a visit, an outing) is on the strip. */
 export function homeLine(where: WhereState | undefined, name: string): { lead: string; action: 'out' | 'home'; label: string } | null {
   if (!where?.home || where.call || where.visit || where.outing) return null
-  if (where.home.status === 'out') return { lead: `You're out. Texting with ${name}`, action: 'home', label: "I'm home" }
+  if (where.home.status === 'out') return { lead: `You're out. ${name}'s at home.`, action: 'home', label: "I'm home" }
   return { lead: `Home together with ${name}`, action: 'out', label: 'Heading out' }
 }
 

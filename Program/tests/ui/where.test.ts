@@ -86,7 +86,7 @@ test('living together, the strip says home together or out, with the way to swit
   const home: WhereState = { state: 'together', kind: 'home', text: 'Home together', outing: null, home: { status: 'home' } }
   assert.deepEqual(homeLine(home, 'Mira'), { lead: 'Home together with Mira', action: 'out', label: 'Heading out' })
   assert.deepEqual(homeLine({ ...home, state: 'apart', kind: 'apart', home: { status: 'out' } }, 'Mira'),
-    { lead: "You're out. Texting with Mira", action: 'home', label: "I'm home" })
+    { lead: "You're out. Mira's at home.", action: 'home', label: "I'm home" })
   assert.equal(homeLine({ ...home, home: null }, 'Mira'), null)
   assert.ok(inPerson(home))
 })
