@@ -144,5 +144,5 @@ function TownSwitch({ person, go }: { person: Townsperson; go: (view: View) => v
 
 /** Where their love life stands, once the companion knows them well enough (companion/world/couples.py). */
 function TownLove({ love }: { love?: string | null }) {
-  return love ? <p className="subtle">Last heard, {love}.</p> : null
+  return love ? <p className="subtle">{love.charAt(0).toUpperCase()}{love.slice(1)}.</p> : null
 }

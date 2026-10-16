@@ -214,7 +214,8 @@ def begin(connection, companion: dict, world, day: date, found: dict, now) -> di
     """The new partner joins their circle and the pair starts dating."""
     timeline_id = companion['active_timeline_id']
     person = found['person']
-    person = {**person, 'role': role_for('dating', person['details'].get('pronouns', ''))}
+    person = {**person, 'role': role_for('dating', person['details'].get('pronouns', '')),
+              'details': {**person['details'], 'closeness': 'close'}}
     rows = circle.people(connection, timeline_id, include_removed=True)
     ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
     circle.insert(connection, timeline_id, [person], ordinal, now)

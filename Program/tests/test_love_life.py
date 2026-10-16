@@ -229,5 +229,5 @@ def test_townsfolk_couples_move_on_week_by_week():
     assert events
     sheet, item = events[0]
     week = (item['day'] - timedelta(days=item['day'].weekday() + 1) + timedelta(days=1), item['day'] + timedelta(days=1))
-    assert any(item['partner']['full'] in entry['headline'] for entry in paper.couples_news(
+    assert any(item['partner']['full'] in entry['text'] for entry in paper.couples_news(
         {**data, 'neighborhoods': [data['neighborhoods'][0]]}, week)) or len(events) > paper.MOST_COUPLES

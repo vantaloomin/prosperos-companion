@@ -104,11 +104,11 @@ def couples_news(data: dict, week: tuple[date, date]) -> list[dict]:
     for sheet, item in found[:MOST_COUPLES]:
         hood = townsfolk.neighborhood_name(data, sheet['home'])
         if item['what'] == 'engaged':
-            headline, text = (f"{sheet['full']} and {item['partner']['full']} are engaged",
+            headline, text = (f"{sheet['name']} and {item['partner']['name']} are engaged.",
                               f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} announced "
                               'their engagement.')
         else:
-            headline, text = (f"{sheet['full']} and {item['partner']['full']} are {wed}",
+            headline, text = (f"{sheet['name']} and {item['partner']['name']} got {wed}.",
                               f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} were {wed} on "
                               f"{WEEKDAYS[item['day'].weekday()]}.")
         result.append({'key': f"{sheet['key']}:{item['what']}", 'headline': headline, 'text': text})
