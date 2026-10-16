@@ -1462,7 +1462,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-facts li { display: inline-flex; align-items: center; gap: 6px; }
 .profile-patch-text { display: inline-flex; align-items: center; gap: 6px; }
 .profile-facts li.profile-patch.has-reason { flex-basis: 100%; flex-wrap: wrap; gap: 4px 12px; }
-.profile-bubbles .profile-facts li.profile-patch.has-reason { justify-content: center; }
+.profile-bubbles .profile-facts li.profile-patch.has-reason { justify-content: center; text-align: center; }
 .profile-patch .text-button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--muted); }
 .profile-interests { gap: 6px; }
 .profile-ties { margin-top: 6px; }
