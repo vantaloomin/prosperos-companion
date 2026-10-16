@@ -20,6 +20,7 @@ from companion.life import (
     encounters,
     feed,
     long_distance,
+    love_life,
     money,
     mood,
     network,
@@ -188,7 +189,9 @@ def read_circle(request: Request, include_removed: bool = False):
         stages = pairs.for_circle(connection, companion, circle.people(connection, companion['active_timeline_id'],
                                                                        include_removed), now)
         people = with_pets(connection, companion, engine.world, people, now)
-        return [{**person, 'stage': stages.get(person['id'])} for person in people]
+        # Someone they are seeing (companion/life/love_life.py): where the two of them stand.
+        love = love_life.circle_extras(connection, companion, now, bool(settings(connection)['show_odds']))
+        return [{**person, 'stage': stages.get(person['id']), **love.get(person['id'], {})} for person in people]
 
 
 def with_pets(connection, companion: dict, world, people: list[dict], now) -> list[dict]:
@@ -442,6 +445,11 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         return storylines.change_outcome(db(request), consequence_id, body.option)
     if subject.startswith('chapter:'):
         return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
+    if subject.startswith('love:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return love_life.change(connection, require_current(connection), request.app.state.life.world,
+                                    consequence_id, body.option, database.clock.now())
     if subject.startswith('steps:'):
         database = db(request)
         with database.connect(write=True) as connection:

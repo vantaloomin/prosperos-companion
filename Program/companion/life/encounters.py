@@ -16,7 +16,7 @@ from companion.characters import for_timeline
 from companion.clock import stamp, zone
 from companion.database import decode, encode, many, optional, settings
 from companion.life import money, network, town_personality
-from companion.world import generators, intimacy, life_details, newcomers, perception, townsfolk
+from companion.world import couples, generators, intimacy, life_details, newcomers, perception, townsfolk
 
 ACTIVE = True
 CHANCE = 0.15
@@ -245,13 +245,14 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
               'first_met': meetings[0]['local_date'], 'first_place': meetings[0]['place'],
               'last_met': last['local_date'], 'last_place': last['place'],
               'goal': None, 'lately': None, 'reached': [], 'routine': None, 'flaw': None, 'desire': None,
-              'cast': sheet.get('cast'), 'comes_across': None, 'says_they_are': None, 'about': sheet.get('about')}
+              'cast': sheet.get('cast'), 'love': None, 'comes_across': None, 'says_they_are': None, 'about': sheet.get('about')}
     person |= perception.revealed(data, sheet, times)
     person |= life_details.revealed(data, sheet, times)
     if times >= KNOWS_GOAL:
         state = townsfolk.story(sheet, data, date.fromisoformat(last['local_date']))
         person |= {'goal': state['goal']['text'], 'lately': state['line'] or None, 'reached': state['reached'],
-                   'routine': townsfolk.routine_text(sheet)}
+                   'routine': townsfolk.routine_text(sheet),
+                   'love': couples.text(couples.couple(sheet, data, date.fromisoformat(last['local_date'])))}
     if times >= KNOWS_HEART:
         person |= {'flaw': sheet.get('flaw_text') or townsfolk.FLAWS[sheet['flaw']][0],
                    'desire': townsfolk.DESIRES[sheet['desire']]}
@@ -298,6 +299,8 @@ def text(person: dict) -> str:
     if person['goal']:
         lately = f" Last you heard: {person['lately']}." if person['lately'] else ''
         parts.append(f"They are trying to {person['goal']}.{lately}")
+    if person.get('love'):
+        parts.append(f"Last you heard, they're {person['love']}.")
     if person['flaw']:
         parts.append(f"You've noticed they're {person['flaw']}; they seem to want {person['desire']}.")
     if person.get('orientation'):

@@ -14,6 +14,7 @@ import { MEDIA_LEVELS } from '../character/mediaText'
 import { HOBBY_LEVELS } from '../character/hobbiesText'
 import { TOGETHER_LEVELS } from '../conversation/whereText'
 import { PACE_LEVELS } from '../character/stepsText'
+import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -81,6 +82,7 @@ export function PaceSettings() {
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.together_realism} label={together.label}
           onChange={(together_realism) => void save({ together_realism })} />}
       </Field>
+      <LoveLifeSlider value={data.love_life} onChange={(love_life) => void save({ love_life })} />
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}
           onChange={(guests_realism) => void save({ guests_realism })} />}
@@ -119,6 +121,16 @@ export function LoveSettings() {
         tip="Keep a friend as just friends on their Character page." />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
+  )
+}
+
+/** Their own love life (companion/life/love_life.py): how much goes on in the love lives of the people around you. */
+function LoveLifeSlider({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const love = LOVE_LIFE_LEVELS[value] ?? LOVE_LIFE_LEVELS[2]
+  return (
+    <Field label={`Their love life: ${love.label}`} hint={love.hint} tip="Anyone they start seeing joins the people in their life. You can remove them there, or undo it on Today.">
+      {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={value} label={love.label} onChange={onChange} />}
+    </Field>
   )
 }
 

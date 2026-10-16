@@ -475,6 +475,8 @@ export interface LifeSettings {
   steps_pace: number
   /** Whether a close friend can fall for you (companion/life/steps.py). */
   friends_fall: boolean
+  /** Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on. */
+  love_life: number
 }
 
 /** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
@@ -651,6 +653,10 @@ export interface CirclePerson {
   recent: DiaryEntry[]
   /** Their pets (companion/life/pets.py), seeded by who they are. */
   pets?: PetView[]
+  /** Someone the companion is seeing (companion/life/love_life.py): "Together 8 months, exclusive". */
+  love?: string
+  /** The latest roll for the two of them, only with Hidden values' odds on. */
+  love_odds?: string | null
 }
 
 /** Someone around the circle, a few layers out (companion/life/network.py); built on request, never stored. */
@@ -1433,6 +1439,8 @@ export interface Townsperson {
   last_place: string
   goal: string | null
   lately: string | null
+  /** Where their love life stands, once the companion knows them (companion/world/couples.py): "married to Dana Ruiz". */
+  love?: string | null
   reached: string[]
   routine: string | null
   flaw: string | null
@@ -1728,6 +1736,8 @@ export interface TownPaper {
   date: string
   news: { id: string; headline: string; text: string }[]
   townsfolk: { key: string; headline: string; text: string }[]
+  /** Townsfolk engagements and weddings that week (companion/world/couples.py). */
+  couples: { key: string; headline: string; text: string }[]
   seen: { companion_id: string; text: string }[]
   gossip: { text: string }[]
   ahead: {
