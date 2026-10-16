@@ -568,10 +568,17 @@ def fresh_steps(connection, companion: dict, found: dict, today: date) -> list[t
             if row['how'] == 'them' and row['reached_on'] >= since]
 
 
+def witnessed(connection, companion: dict, since: date) -> list[dict]:
+    """Secrets this companion saw come out since a day, on the timeline the other companion lives now (a fork's copy
+    and the timeline left behind each keep a row)."""
+    return many(connection, "SELECT p.* FROM love_partners p JOIN companions c ON c.id=p.companion_id AND "
+                "c.active_timeline_id=p.timeline_id WHERE p.witness_id=? AND p.ended_how='came_out' AND p.ended_on>=?",
+                (companion['id'], since.isoformat()))
+
+
 def saw_lines(connection, companion: dict, today: date) -> list[tuple[str, str]]:
     """Small world: this companion saw someone the user is seeing out with their secret partner."""
-    rows = many(connection, "SELECT * FROM love_partners WHERE witness_id=? AND ended_how='came_out' AND ended_on>=?",
-                (companion['id'], (today - timedelta(days=TOLD_DAYS)).isoformat()))
+    rows = witnessed(connection, companion, today - timedelta(days=TOLD_DAYS))
     result = []
     for row in rows:
         other = optional(connection, 'SELECT v.name FROM companions c JOIN character_versions v ON '
@@ -646,8 +653,7 @@ def spotted_due(connection, companion: dict, now) -> list:
     if not ACTIVE or not FIRST_TEXTS:
         return []
     today = steps.local_today(companion, now)
-    rows = many(connection, "SELECT * FROM love_partners WHERE witness_id=? AND ended_how='came_out' AND ended_on>=?",
-                (companion['id'], (today - timedelta(days=FRESH_DAYS)).isoformat()))
+    rows = witnessed(connection, companion, today - timedelta(days=FRESH_DAYS))
     result = []
     for row in rows:
         other = optional(connection, 'SELECT v.name FROM companions c JOIN character_versions v ON '

@@ -260,3 +260,23 @@ def test_a_new_partner_never_shares_a_first_name_with_someone_already_in_their_l
         used = {name.split()[0] for name in people} | {'Sarah'}
         found = [love_life.new_person(connection, companion, world, f'seed:{n}')['name'] for n in range(150)]
     assert not [name for name in found if name.split()[0] in used]
+
+
+def test_what_a_friend_saw_comes_only_from_the_branch_being_lived(client, mira, clock, monkeypatch):  # noqa: F811
+    # A fork copies a secret that came out (love_life.copy); the timeline left behind keeps its own row. The friend
+    # who saw them hears about it once, from the companion's active timeline only.
+    monkeypatch.setattr(love_life, 'FIRST_TEXTS', True)
+    companion = current(client)
+    today = steps.local_today(companion, clock.now()).isoformat()
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES ('left', ?, "
+                           "'frozen', ?)", (companion['id'], clock.now().isoformat()))
+        for timeline_id in ('left', companion['active_timeline_id']):
+            connection.execute(
+                "INSERT INTO love_partners (id, timeline_id, companion_id, name, secret, met_on, ended_on, ended_how, "
+                "out_via, witness_id, place, created_at) VALUES (?, ?, ?, 'Jonathan Hale', 1, ?, ?, 'came_out', "
+                "'small_world', ?, 'the market', ?)",
+                (f'secret-{timeline_id}', timeline_id, companion['id'], today, today, companion['id'],
+                 clock.now().isoformat()))
+        assert len(love_life.saw_lines(connection, companion, steps.local_today(companion, clock.now()))) == 1
+        assert len(love_life.spotted_due(connection, companion, clock.now())) == 1
