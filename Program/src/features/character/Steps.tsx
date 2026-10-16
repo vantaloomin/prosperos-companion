@@ -8,7 +8,7 @@ import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
-import { STEPS_KEY, askText, howText, plannedText, stepDate } from './stepsText'
+import { STEPS_KEY, askText, howText, movingText, plannedText, stepDate } from './stepsText'
 
 /** Where you and them stand (companion/life/steps.py): one plain line, the steps so far, what came up lately and,
  * for a friend, the "just friends" lock. The app moves it on; the user can set it here. Nothing for a mentor or family. */
@@ -38,6 +38,12 @@ export function Steps({ name }: { name: string }) {
           </select>
         )}
       </Field>
+      {view.moving_in && (
+        <div className="steps-planned">
+          <p>{movingText(view.moving_in, name)}</p>
+          {view.moving_in.consequence_id && <WhyItWent id={view.moving_in.consequence_id} />}
+        </div>
+      )}
       <StepsSoFar view={view} name={name} />
       {view.can_fall && (
         <Toggle label="Just friends" checked={view.just_friends} onChange={(just_friends) => void save({ just_friends })}

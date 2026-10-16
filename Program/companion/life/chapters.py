@@ -160,6 +160,9 @@ def plan_job(connection, companion, world, day, seed) -> dict | None:
 
 
 def plan_move(connection, companion, world, day, seed) -> dict | None:
+    from companion.life import moving_in
+    if moving_in.current(connection, companion['active_timeline_id']):
+        return None  # Moving in together, or living together: a move of their own waits.
     definition = companion['version']['definition']
     profile, city = money.profile(definition), money.city_for(definition)
     if not profile or not city:

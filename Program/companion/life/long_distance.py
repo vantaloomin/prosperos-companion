@@ -22,7 +22,7 @@ import re
 from datetime import date, datetime, timedelta
 
 from companion.clock import parse, stamp, zone
-from companion.database import many, optional, settings
+from companion.database import encode, many, optional, settings
 from companion.errors import require
 from companion.life import money, own_plans, together, trips, where
 from companion.world import catalog, generators
@@ -84,10 +84,13 @@ def reachable(between: where.Between) -> bool:
     return bool(yours and theirs) and (trips.fits(yours, theirs) or trips.fits(theirs, yours))
 
 
-def settle_moves(connection, companion: dict, today: date) -> where.Between | None:
+def settle_moves(connection, companion: dict, today: date, now: datetime | None = None) -> where.Between | None:
     """`far` when a visit can bridge it. Visits still to come that no longer fit where the two of them live (one of
-    them moved: the same city now, another city, or one a visit can't reach) are called off."""
+    them moved: the same city now, another city, or one a visit can't reach) are called off, and plans to meet in
+    person that a move made long distance go to the next visit there, or are called off (`far_plans`)."""
     between = far(connection, companion)
+    if between:
+        far_plans(connection, companion, today, now)
     usable = between if between and reachable(between) else None
     rows = many(connection, "SELECT id, visit, city_id FROM trips WHERE timeline_id=? AND visit!='' AND "
                 "status='planned' AND start_date>?", (companion['active_timeline_id'], today.isoformat()))
@@ -98,13 +101,62 @@ def settle_moves(connection, companion: dict, today: date) -> where.Between | No
     return usable
 
 
+def far_plans(connection, companion: dict, today: date, now: datetime | None) -> None:
+    """Plans to meet in person, now that they live in different cities: on the first full day of the user's next stay
+    with them when there is one (their city's places still fit), else called off. The place remembers which ('far'),
+    so the chat context can have them say so."""
+    from companion.life import outings
+    when = now or datetime.combine(today, datetime.min.time().replace(hour=12), zone(companion['version']['timezone']))
+    timezone = companion['version']['timezone']
+    visits = many(connection, "SELECT visit, start_date, end_date FROM trips WHERE timeline_id=? AND visit!='' AND "
+                  "status='planned' AND end_date>=? ORDER BY start_date", (companion['active_timeline_id'],
+                                                                         today.isoformat()))
+    stays = [row for row in visits if row['visit'] == HOST and row['start_date'] >= today.isoformat()]
+    for outing in outings.in_force(connection, companion['active_timeline_id'], today.isoformat()):
+        during = any(row['start_date'] <= outing['local_date'] <= row['end_date'] for row in visits)
+        if during or outings.state(outing, timezone, when) != 'planned' or outing['place'].get('far') or \
+                outing['activity'] in together.AT_YOURS:
+            continue  # Plans made for a visit are the visit's own.
+        stay = stays[0] if stays else None
+        place = {**outing['place'], 'far': 'moved' if stay else 'off', 'far_on': today.isoformat(),
+                 'was': outing['local_date']}
+        if stay:
+            day = min(date.fromisoformat(stay['start_date']) + timedelta(days=1), date.fromisoformat(stay['end_date']))
+            connection.execute('UPDATE outings SET local_date=?, place=? WHERE id=?',
+                               (day.isoformat(), encode(place), outing['id']))
+        else:
+            connection.execute("UPDATE outings SET status='cancelled', cancelled_at=?, place=? WHERE id=?",
+                               (stamp(when), encode(place), outing['id']))
+
+
+def far_lines(connection, companion: dict, today: date) -> list[tuple[str, str]]:
+    """Plans a move made long distance, for a few days: moved to the user's next stay, or off."""
+    from companion.life import outings
+    result = []
+    for outing in outings.in_force(connection, companion['active_timeline_id'], (today - AFTER).isoformat(), True):
+        place = outing['place']
+        if not place.get('far') or (today - date.fromisoformat(place['far_on'])).days > CALLED_OFF.days:
+            continue
+        what = f"{outings.ACTIVITIES.get(outing['activity'], ('', '', '', '', '', 'meeting up'))[5]} at {place['name']}"
+        was = trips.day_text(place['was'])
+        if place['far'] == 'moved':
+            line = (f"- You had planned {what} with the user on {was}. Now that you live in different cities, it has "
+                    f"moved to {trips.day_text(outing['local_date'])}, while they stay with you. Mention it in your own "
+                    'words if it comes up.')
+        else:
+            line = (f"- You had planned {what} with the user on {was}, but now that you live in different cities it "
+                    "can't happen and is called off. Mention it kindly in your own words, without blame.")
+        result.append((f"far-plan:{outing['id']}", line))
+    return result
+
+
 def settle_all(connection, now: datetime):
     """Right after the user or a companion moves: every companion's visits that no longer fit are called off."""
     from companion.characters import by_id
     for row in many(connection, 'SELECT id FROM companions'):
         companion = by_id(connection, row['id'])
         if companion and companion.get('version'):
-            settle_moves(connection, companion, now.astimezone(zone(companion['version']['timezone'])).date())
+            settle_moves(connection, companion, now.astimezone(zone(companion['version']['timezone'])).date(), now)
 
 
 # --- Planning a visit -------------------------------------------------------------------------------------------
@@ -365,6 +417,7 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     between = far(connection, companion)
     result = [('long-distance', distance_line(connection, companion, between, now))] if between else []
     today = now.astimezone(zone(companion['version']['timezone'])).date()
+    result.extend(far_lines(connection, companion, today))
     for trip in visits(connection, companion, today - AFTER, now):
         result.extend(visit_lines(trip, today, now, fresh_ids))
     return result

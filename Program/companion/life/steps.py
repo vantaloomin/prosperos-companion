@@ -23,8 +23,9 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   with more drama, never with the switch off or the companion's "just friends" lock on). It is a confession, never a
   silent change: yes makes them a romance at dating (a new character version), no keeps the friendship after a short
   awkward spell (a mood mark). The user can tell a friend how they feel too (`steps:friend_answer`).
-- Steps whose life changes come with later features (moving in, engagement, the wedding) are never brought up by the
-  app yet; the user can still set any step on the Character page, or move it back.
+- Steps whose life changes come with later features (engagement, the wedding) are never brought up by the app yet; the
+  user can still set any step on the Character page, or move it back. Moving in is (companion/life/moving_in.py
+  settles where and who moves once it is reached).
 
 Each step is an anniversary (companion/life/occasions.py) and a line in the scrapbook (companion/life/scrapbook.py).
 Odds show under Hidden values ("Why it went this way"). No model decides anything: the model only puts it in words.
@@ -94,8 +95,9 @@ ROMANCE = (
     Step('key', 'A key to their place', 'with a key to their place', 'swapped keys', 'a key to your place',
          (120, 60, 30), 4, True,
          'You are in love and the user has a key to your place. You do not live together.'),
-    Step('moving_in', 'Living together', 'living together', 'moved in together', 'moving in together',
-         (240, 120, 60), 4, False, 'You live together. You are not engaged.'),
+    Step('moving_in', 'Living together', 'living together', 'decided to live together', 'moving in together',
+         (240, 120, 60), 4, True, 'You have decided to live together (whether you have moved in yet is said where it '
+         'says where you are with the user). You are not engaged.'),
     Step('engaged', 'Engaged', 'engaged', 'got engaged', 'getting engaged', (365, 240, 90), 5, False,
          'You are engaged to be married.'),
     Step('married', 'Married', 'married', 'got married', 'getting married', (365, 270, 120), 5, False,
@@ -128,6 +130,8 @@ REASONS = {
     'their_people': "You'd like the user to meet your family and friends sometime soon. Ask them in your own words; no "
                     'day or place is set yet.',
     'key': "You'd like to give the user a key to your place. Offer it in your own words.",
+    'moving_in': "You'd like the two of you to live together. Ask the user in your own words, simply, and leave them "
+                 "room to say they aren't ready. Don't settle whose place or who moves yet.",
     'best_friends': 'The user has become your best friend, and you want them to know. Say so in your own words.',
     'trip': "You'd love to take a first trip away with the user sometime, just the two of you. Suggest it in your own "
             'words; nothing is booked and no dates are set.',
@@ -162,6 +166,9 @@ RAISES = {
                                r"people|siblings|brother|sister|crew|circle)\b", re.IGNORECASE),
     'key': re.compile(r"\b(?:(?:a |the |your |my )?(?:spare )?key to (?:your|my|our) (?:place|apartment|flat|house|home|"
                       r"rooms|door)|(?:give|get|have|cut) (?:you|me) a (?:spare )?key|swap keys)\b", re.IGNORECASE),
+    'moving_in': re.compile(r"\b(?:move in (?:together|with (?:me|you))|moving in (?:together|with (?:me|you))|live "
+                            r"together|living together|(?:get|got|getting|find|found) (?:a|our own|an?) (?:place|flat|"
+                            r"apartment|home|house) together|(?:you|we) (?:could|should) move in)\b", re.IGNORECASE),
     'best_friends': re.compile(r"\b(?:you'?re|you are|be) my best friend|best friends? (?:forever|now)|bff\b",
                                re.IGNORECASE),
     'trip': re.compile(r"\b(?:take|go on|plan) a trip (?:together|with me|just us)|(?:go|travel|get) away (?:together|"
@@ -907,7 +914,9 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
                    'topic': topic_of(row)} if row else None
     recent = many(connection, "SELECT * FROM step_asks WHERE timeline_id=? AND status NOT IN ('planned', 'dropped') "
                   'ORDER BY created_at DESC LIMIT 6', (companion['active_timeline_id'],))
+    from companion.life import moving_in
     return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
+            'moving_in': moving_in.view(connection, companion, now, show_odds),
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
                       'topic': 'how you feel' if row['step'] == CONFESSION else topic_of(row),
                       'on': parse(row['created_at']).astimezone(zone(companion['version']['timezone'])).date().isoformat(),

@@ -1,4 +1,4 @@
-import type { StepsView } from '../../types'
+import type { MovingIn, StepsView } from '../../types'
 import { firstName } from './panelText.ts'
 
 export const STEPS_KEY = ['steps']
@@ -48,4 +48,20 @@ export function plannedText(planned: NonNullable<StepsView['planned']>, name: st
   const who = firstName(name)
   const what = planned.step === 'confession' ? 'tell you how they feel' : `bring up ${planned.topic.replace(/\byour\b/, 'their')}`
   return `${who} plans to ${what} around ${stepDate(planned.due_on)}.`
+}
+
+/** Moving in together, in one line: "Mira is moving into your place on Oct 28, 2026.", "Living together since Nov 2,
+ * 2026, at a two-bedroom in Canton.", "Mira asked you to move to Chicago. It's your call: change your home city when
+ * you're ready." */
+export function movingText(moving: MovingIn, name: string): string {
+  const who = firstName(name)
+  if (moving.status === 'moved') return `Living together since ${stepDate(moving.moved_on ?? '')}${moving.home ? `, at ${moving.home}` : ''}.`
+  if (moving.status === 'waiting') return `${who} asked you to move to ${moving.city} to live together. It's your call: change your home city when you're ready.`
+  const on = moving.move_on ? ` on ${stepDate(moving.move_on)}` : ''
+  const where = moving.place ? ` in ${moving.place}` : ''
+  return {
+    yours: `${who} is moving into your place${on}.`, theirs: `You're moving into ${who}'s place${on}.`,
+    new: `You're moving into a new place together${where}${on}.`, them: `${who} is moving to ${moving.city} to live with you${on}.`,
+    you: '',
+  }[moving.plan]
 }
