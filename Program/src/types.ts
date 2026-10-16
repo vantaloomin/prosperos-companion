@@ -662,12 +662,12 @@ export interface CirclePerson {
 }
 
 /** A circle person who has met the user, or is about to (companion/life/their_people.py). `before` is a couple who go
- * back years, so they have always known you; `meeting` is a meet-up still to come. `consequence_id` only with Hidden
+ * back years, so they have always known you; `meeting` is a meet-up still to come ('soon') or under way ('now'). `consequence_id` only with Hidden
  * values' odds on. */
 export interface CircleMet {
   met_on: string | null
   before: boolean
-  meeting: boolean
+  meeting: 'soon' | 'now' | null
   impression: 'warm' | 'smitten' | 'curious' | 'protective' | 'wary'
   warmth: number
   label: string

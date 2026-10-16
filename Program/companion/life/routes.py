@@ -192,7 +192,7 @@ def read_circle(request: Request, include_removed: bool = False):
         people = with_pets(connection, companion, engine.world, people, now)
         # Someone they are seeing (companion/life/love_life.py): where the two of them stand.
         love = love_life.circle_extras(connection, companion, now, bool(settings(connection)['show_odds']))
-        met = their_people.for_circle(connection, companion, bool(settings(connection)['show_odds']))
+        met = their_people.for_circle(connection, companion, bool(settings(connection)['show_odds']), now)
         return [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {})}
                 for person in people]
 

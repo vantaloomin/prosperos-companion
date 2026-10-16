@@ -62,13 +62,13 @@ const JOINED: Record<string, string> = {
 }
 
 // Their place for dinner or a visit, and the user's own (companion/life/together.py).
-const HOMES: Record<string, string> = { home: 'Their place', 'your-home': 'Your place', 'family-home': 'Their family\'s home' }
+const HOMES: Record<string, string> = { home: 'Their place', 'your-home': 'Your place', 'family-home': 'Family home' }
 
 /** "Greek restaurant in Harbor East", "Irish pub in Canton", "Tex-Mex restaurant in Fells Point". */
 export function placeLine(place: OutingPlace): string {
   if (place.kind === 'spot') return place.city ? `Somewhere in ${place.city}` : 'Somewhere nearby'
   const home = HOMES[place.kind]
-  if (home) return place.neighborhood ? `${home} in ${place.neighborhood}` : home
+  if (home) return place.neighborhood ? `${home}${place.kind === 'family-home' ? ',' : ' in'} ${place.neighborhood}` : home
   const cuisine = JOINED[place.cuisine] ?? place.cuisine.replace(/-/g, ' ')
   const kind = !cuisine ? place.kind : PLACE_WORDS.test(cuisine) ? cuisine : `${cuisine} ${place.kind}`
   const text = place.neighborhood ? `${kind} in ${place.neighborhood}` : kind

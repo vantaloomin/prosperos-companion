@@ -629,18 +629,32 @@ def memory_text(outing: dict) -> dict:
 
 # The circle list and Hidden values --------------------------------------------------------------------------------------
 
-def for_circle(connection, companion: dict, show_odds: bool) -> dict[str, dict]:
-    """What each person who has met the user (or is about to) thinks of them, by person id, for the circle list."""
+def for_circle(connection, companion: dict, show_odds: bool, now: datetime) -> dict[str, dict]:
+    """What each person who has met the user (or is about to) thinks of them, by person id, for the circle list.
+    'meeting' is 'soon' before the outing and 'now' while it is under way."""
     if not companion.get('active_timeline_id'):
         return {}
     name = companion['version']['definition']['name']
     result = {}
-    for row in many(connection, 'SELECT * FROM people_impressions WHERE timeline_id=?', (companion['active_timeline_id'],)):
+    rows = many(connection, 'SELECT impression.*, meetup.outing_id FROM people_impressions impression LEFT JOIN '
+                'people_meetups meetup ON meetup.id=impression.meetup_id WHERE impression.timeline_id=?',
+                (companion['active_timeline_id'],))
+    for row in rows:
         result[row['person_id']] = {
             'met_on': None if row['met_on'] in (None, 'before') else row['met_on'], 'before': row['met_on'] == 'before',
-            'meeting': row['met_on'] is None, 'impression': row['impression'], 'warmth': row['warmth'],
-            'label': label(row, name), 'consequence_id': row['consequence_id'] if show_odds else None}
+            'meeting': meeting(connection, companion, row, now), 'impression': row['impression'],
+            'warmth': row['warmth'], 'label': label(row, name),
+            'consequence_id': row['consequence_id'] if show_odds else None}
     return result
+
+
+def meeting(connection, companion: dict, row: dict, now: datetime) -> str | None:
+    """'soon', 'now' (the outing is under way) or None once they have met."""
+    if row['met_on'] is not None:
+        return None
+    outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'],)) if row['outing_id'] else None
+    under_way = outing and outings.state(outings.view(outing), companion['version']['timezone'], now) == 'now'
+    return 'now' if under_way else 'soon'
 
 
 def change(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:

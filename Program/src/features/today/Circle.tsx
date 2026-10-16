@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Pencil, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-react'
+import { BookOpen, HeartHandshake, Pencil, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-react'
 import { api } from '../../api'
 import type { CirclePerson, CircleRoom, DiaryEntry } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -13,7 +13,6 @@ import { WhyItWent } from './WhyItWent'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
-import { WhyItWent } from './WhyItWent'
 
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
@@ -119,7 +118,7 @@ function MetYou({ person }: { person: CirclePerson }) {
   const text = metText(person)
   if (!text) return null
   return <>
-    <p className="subtle met-you">{text}</p>
+    <p className="subtle met-you"><HeartHandshake aria-hidden="true" />{text}</p>
     {person.met?.consequence_id && !person.met.meeting && <WhyItWent id={person.met.consequence_id} />}
   </>
 }

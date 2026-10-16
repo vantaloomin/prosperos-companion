@@ -1,5 +1,4 @@
 import type { CirclePerson } from '../../types'
-import { stepDate } from '../character/stepsText.ts'
 
 /** "close friend · she/her · 40" or "sister · married, born Smith · she/her · 31": how they relate to the companion, then what is known about them. */
 export function personFacts(person: CirclePerson): string {
@@ -11,6 +10,7 @@ export function personFacts(person: CirclePerson): string {
 /** Where they are in their week, without implying the companion is with them. */
 export function personNow(person: CirclePerson): string {
   if (person.local === false) return 'Lives out of town'
+  if (person.met?.meeting === 'now') return 'Right now: meeting you'
   if (!person.now) return 'Free right now'
   return person.now.kind === 'sleep' ? 'Asleep right now' : `Right now: ${person.now.label}`
 }
@@ -40,6 +40,11 @@ export function personTies(person: CirclePerson): string | null {
 export function metText(person: CirclePerson): string | null {
   const met = person.met
   if (!met) return null
-  if (met.meeting) return 'Meeting you soon'
-  return `${met.before ? 'Knows you from way back' : `Met you ${stepDate(met.met_on ?? '')}`} · ${met.label}`
+  if (met.meeting) return met.meeting === 'now' ? 'Meeting you now' : 'Meeting you soon'
+  return `${met.before ? 'Knows you from way back' : `Met you ${shortDate(met.met_on ?? '')}`} · ${met.label}`
+}
+
+/** "Oct 17", kept on one line. */
+function shortDate(day: string): string {
+  return new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).replace(/ /g, '\u00a0')
 }
