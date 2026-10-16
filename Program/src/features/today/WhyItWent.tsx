@@ -49,7 +49,7 @@ function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
           </ul>
           {outcome.data.marks.length > 0 && (
             <>
-              <p className="subtle">What it left, for a while:</p>
+              <p className="subtle marks-lead">What it left, for a while:</p>
               <ul className="plain-list">
                 {outcome.data.marks.map((mark) => (
                   <li key={mark.holder + mark.kind + mark.note} className="subtle">
