@@ -143,6 +143,9 @@ def test_breaking_up_while_living_together_they_move_out(client, couple, provide
     reconcile(client)  # The daily pass leaves them moved out: the step stands, but they moved out since.
     with client.app.state.database.connect() as connection:
         assert moving_in.latest(connection, current(connection)['active_timeline_id'])['status'] == 'moved_out'
+    says(provider)
+    send(client, 'hi', 'client-out-2')
+    assert "You moved into the user's place" not in notes(provider)  # Moving in is no longer how their life is now.
 
 
 def test_asking_for_a_break_and_talking_them_round(client, couple, provider):
