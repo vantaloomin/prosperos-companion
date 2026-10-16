@@ -295,6 +295,8 @@ def test_each_step_is_an_anniversary_and_exclusive_is_known(client, clock, monke
                  if item['kind'] == 'step_anniversary']
     assert [item['text'] for item in found] == [
         f"- Today it has been a year since you and the user became exclusive ({date(2026, 10, 5):%d %B %Y})."]
+    # Today says which step it was (E2E v0.13: it read "a year since you two started talking").
+    assert (found[0]['did'], found[0]['span']) == ('became exclusive', 'a year')
 
 
 def test_odds_show_only_with_hidden_values(client, provider, clock, monkeypatch, always):
