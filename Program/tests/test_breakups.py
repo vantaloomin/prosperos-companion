@@ -263,3 +263,24 @@ def test_switched_off_after_a_breakup_the_ex_still_knows_it(client, couple, prov
     send(client, 'hey', 'client-later-off-2')
     assert 'You and the user broke up on' in notes(provider)
     assert view(client)['stage'] == 'ended'
+
+
+def test_a_roll_that_held_things_back_changed_on_today_moves_them_on_at_once(client, couple, provider, clock,
+                                                                             monkeypatch):
+    show(client, show_moods=True, show_odds=True)
+    set_life(client, rough_patches_realism=3)
+    says(provider)
+    send(client, 'shut up', 'client-held-1')
+    clock.advance(timedelta(days=2, hours=1))
+    tick(client)
+    assert view(client)['stage'] == 'strained'
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # They work through it.
+    clock.advance(timedelta(days=3, hours=1))
+    tick(client)
+    assert view(client)['stage'] == 'strained'
+    [outcome] = [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:thinking']
+    response = client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': breakups.YES})
+    assert response.status_code == 200, response.text
+    assert view(client)['text'] == "They're thinking about a break"
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
+    assert view(client)['stage'] == 'strained'

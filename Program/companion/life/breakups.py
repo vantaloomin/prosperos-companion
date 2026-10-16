@@ -349,18 +349,18 @@ def moving_out(connection, companion: dict, now: datetime) -> None:
 
 
 def change(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:
-    """The user makes a roll go another way on Today ("Why it went this way"). The stage follows at read time; what an
-    ending set going follows here: an ending now moves them out and calls plans off, an ending taken back moves them
-    back in, and a break now calls plans off."""
+    """The user makes a roll go another way on Today ("Why it went this way"). The stage follows at read time; a step
+    the roll held back is taken now; and what an ending set going follows here: an ending now moves them out and calls
+    plans off, an ending taken back moves them back in, and a break now calls plans off."""
     outcome = consequences.by_id(connection, consequence_id)
     require(outcome['timeline_id'] == companion['active_timeline_id'], 'That outcome is not on this timeline.', 404)
-    row = optional(connection, 'SELECT * FROM breakups WHERE ? IN (strained_id, thinking_id, break_id, ended_id, '
-                   'together_id)', (consequence_id,))
+    row = row_of(connection, outcome)
     before = stage(connection, row) if row else None
     changed = consequences.redo(connection, consequence_id, option, now, local_today(companion, now))
     latest_row, _found = latest(connection, companion)
     if row is None or latest_row is None or latest_row['id'] != row['id']:
         return changed
+    row = held_back(connection, row, outcome, option, now)
     after = stage(connection, row)
     if after == 'ended' and before != 'ended':
         after_end(connection, companion, now)
@@ -370,6 +370,30 @@ def change(connection, companion: dict, consequence_id: str, option: int, now: d
     elif after == 'break' and before != 'break':
         call_off_plans(connection, companion, now)
     return changed
+
+
+def row_of(connection, outcome: dict) -> dict | None:
+    """The episode a roll belongs to: one it moved on, or the one named in its subject (breakup:<id>:...)."""
+    found = optional(connection, 'SELECT * FROM breakups WHERE ? IN (strained_id, thinking_id, break_id, ended_id, '
+                     'together_id)', (outcome['id'],))
+    parts = outcome['subject'].split(':')
+    return found or (optional(connection, 'SELECT * FROM breakups WHERE id=? AND timeline_id=?',
+                              (parts[1], outcome['timeline_id'])) if len(parts) > 2 else None)
+
+
+# A roll that held things back, made to move them on: what it would have set (`warn`).
+HELD = {'user:thinking': ('thinking_id', {'thinking_at': None}),
+        'user:break': ('break_id', {'break_by': 'them', 'break_at': None}),
+        'user:falling_out': ('ended_id', {'ended_by': 'them', 'ended_at': None})}
+
+
+def held_back(connection, row: dict, outcome: dict, option: int, now: datetime) -> dict:
+    column, values = HELD.get(outcome['choice'], (None, {}))
+    if column is None or option != YES or row[column] or any(row[key] for key in values) or row['ended_at'] or \
+            row['eased_at']:
+        return row
+    return update(connection, row, **{column: outcome['id']}, **{key: value or stamp(now)
+                                                                  for key, value in values.items()})
 
 
 def call_off_plans(connection, companion: dict, now: datetime) -> None:
