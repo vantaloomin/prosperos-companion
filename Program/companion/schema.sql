@@ -2268,3 +2268,39 @@ CREATE TABLE IF NOT EXISTS love_partners (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS love_partners_timeline ON love_partners(timeline_id, ended_on);
+
+-- Meeting their people (companion/life/their_people.py): a family dinner or a night out with the companion's
+-- people the app planned (why: the "meeting their people" step, or a best friend's night out), invited to in a first
+-- text that books its outing; `people` are the circle person ids who came (JSON).
+CREATE TABLE IF NOT EXISTS people_meetups (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('family', 'friends')),
+  why TEXT NOT NULL CHECK (why IN ('step', 'friends')),
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'booked', 'done', 'dropped')),
+  due_on TEXT NOT NULL,
+  people TEXT NOT NULL DEFAULT '[]',
+  outing_id TEXT,
+  consequence_id TEXT,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS people_meetups_timeline ON people_meetups(timeline_id, status);
+-- What a circle person thinks of the user, from the first time they met (`met_on`: a day, 'before' for a couple who
+-- go back years, NULL while the meet-up is still to come): the first impression and how warm it is now (-2 to 3),
+-- moved by what happened since (`moves`, JSON), checked once a week.
+CREATE TABLE IF NOT EXISTS people_impressions (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  person_id TEXT NOT NULL REFERENCES circle_people(id),
+  meetup_id TEXT,
+  impression TEXT NOT NULL,
+  warmth INTEGER NOT NULL,
+  met_on TEXT,
+  checked_on TEXT,
+  moves TEXT NOT NULL DEFAULT '[]',
+  consequence_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, person_id)
+);

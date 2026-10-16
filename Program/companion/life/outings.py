@@ -51,6 +51,9 @@ ACTIVITIES = {
     'visit-in': (r'(?!x)x', ('home',), '19:00', 3.0, 'visit', 'time together at their place'),
     'visit-yours': (r'(?!x)x', ('your-home',), '19:00', 3.0, 'visit', "time together at the user's place"),
     'dinner-yours': (r'(?!x)x', ('your-home',), '19:00', 3.0, 'visit', "dinner at the user's place"),
+    # Meeting their people (companion/life/their_people.py): planned by the app, never by these words.
+    'meet-family': (r'(?!x)x', ('family-home',), '18:30', 3.0, 'dinner', 'dinner with their family'),
+    'meet-friends': (r'(?!x)x', ('bar', 'nightlife', 'tavern'), '20:00', 3.0, 'drinks', 'drinks with their friends'),
 }
 HOME = '~home'
 FOOD = re.compile(r"\b(?:dinner|supper|eat|a meal|cook\w*|something to eat)\b", re.IGNORECASE)
@@ -94,6 +97,8 @@ RECENT = timedelta(hours=18)
 CHEAP = {'', 'free', '$'}
 UNDO = timedelta(minutes=2)  # How long heading home early can be taken back; nothing is kept until then.
 SPOT = 'outing-spot'
+# Meeting their people (companion/life/their_people.py): dinner with their family, drinks with their friends.
+MEETUPS = ('meet-family', 'meet-friends')
 
 
 def kinds(activity: str) -> tuple[str, ...]:
@@ -552,6 +557,9 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
 def doing(outing: dict) -> str:
     """'went to dinner at Lupa', 'went for a walk in Patterson Park'."""
     place, activity = outing['place']['name'], outing['activity']
+    if activity in MEETUPS:
+        from companion.life import their_people
+        return their_people.doing(outing)
     if activity == 'dinner-in':
         return f"had you over for {menu_text(outing['place'].get('menu') or {})} at home"
     if activity in VISIT_DOING:
@@ -612,8 +620,9 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
     outing = plan['outing']
     place = outing['place']
     area = f" in {place['neighborhood']}" if place['neighborhood'] and place['neighborhood'] not in place['name'] \
-        and place['kind'] not in ('home', 'your-home') else ''
-    alone = outing['activity'] in ('dinner-in', *VISIT_DOING) or (place.get('hobby') or {}).get('event')
+        and place['kind'] not in ('home', 'your-home', 'family-home') else ''
+    alone = outing['activity'] in ('dinner-in', *VISIT_DOING, *MEETUPS) or (place.get('hobby') or {}).get(
+        'event')
     summary = f"{definition['name']} {doing(outing)}{area}" + ('.' if alone else ' with you.')
     seed = f"outing:{outing['id']}:{outing['rolls']}"
     spot = generators.pick(seed, SPOT, place.get('spots') or [])
@@ -645,6 +654,9 @@ def day_text(local_date: str) -> str:
 def what(outing: dict) -> str:
     """'dinner at Lupa, a restaurant in Little Italy'; dinner at their place with what they are making."""
     place = outing['place']
+    if outing['activity'] in MEETUPS:
+        from companion.life import their_people
+        return their_people.what(outing)
     if outing['activity'] == 'dinner-in':
         return f"{menu_text(place.get('menu') or {})} at your place"
     if outing['activity'] in VISIT_DOING:
@@ -692,6 +704,9 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
     conditions = generators.conditions(data, date.fromisoformat(outing['local_date'])) if data else None
     if outing['activity'] in VISIT_DOING:
         return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else ())
+    if outing['activity'] in MEETUPS:
+        from companion.life import their_people
+        return their_people.scene(connection, companion, outing, spot)
     if outing['activity'] == 'dinner-in':
         spot = generators.pick(seed, SPOT, place.get('spots') or [])
         return '- ' + ' '.join(part for part in (
@@ -749,6 +764,8 @@ def planned_line(outing: dict) -> str:
         return line + ' You are cooking.'
     if outing['activity'] in VISIT_DOING:
         return line
+    if outing['activity'] in MEETUPS:
+        return line + ' You arranged it and invited the user.'
     return line + (' They picked the place.' if outing['named'] else ' You picked the place.')
 
 
@@ -841,6 +858,9 @@ def memory_text(outing: dict) -> dict:
     day = date.fromisoformat(outing['local_date'])
     place = outing['place']
     on = f"on {day:%A, %B} {day.day}"
+    if outing['activity'] in MEETUPS:
+        from companion.life import their_people
+        return their_people.memory_text(outing)
     if outing['activity'] in VISIT_DOING:
         subject = {'visit-in': 'The user came over to your place', 'visit-yours': "You went over to the user's place",
                    'dinner-yours': "Dinner at the user's place"}[outing['activity']]
@@ -918,6 +938,7 @@ def elsewhere(connection, companion: dict, outing_id: str, now: datetime) -> dic
     require(state(outing, companion['version']['timezone'], now) == 'planned',
             'Only an outing that has not started can move.', 409)
     require(outing['activity'] != 'dinner-in', 'Dinner at their place stays at their place.', 409)
+    require(outing['activity'] != 'meet-family', 'Dinner with their family stays at their family\'s place.', 409)
     data = city_data(connection, companion['version']['definition'])
     require(data is not None, "Their city isn't known, so there is nowhere else to go.", 409)
     day = date.fromisoformat(outing['local_date'])

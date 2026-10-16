@@ -34,6 +34,7 @@ from companion.life import (
     social,
     steps,
     storylines,
+    their_people,
     today,
     together,
     town_personality,
@@ -192,7 +193,9 @@ def read_circle(request: Request, include_removed: bool = False):
         people = with_pets(connection, companion, engine.world, people, now)
         # Someone they are seeing (companion/life/love_life.py): where the two of them stand.
         love = love_life.circle_extras(connection, companion, now, bool(settings(connection)['show_odds']))
-        return [{**person, 'stage': stages.get(person['id']), **love.get(person['id'], {})} for person in people]
+        met = their_people.for_circle(connection, companion, bool(settings(connection)['show_odds']), now)
+        return [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {})}
+                for person in people]
 
 
 def with_pets(connection, companion: dict, world, people: list[dict], now) -> list[dict]:
@@ -476,6 +479,11 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         database = db(request)
         with database.connect(write=True) as connection:
             return steps.change(connection, require_current(connection), consequence_id, body.option, database.clock.now())
+    if subject.startswith('people:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return their_people.change(connection, require_current(connection), consequence_id, body.option,
+                                       database.clock.now())
     return reactions.change(db(request), consequence_id, body.option)
 
 

@@ -46,6 +46,7 @@ from companion.life import (
     rough_patches,
     steps,
     storylines,
+    their_people,
     together,
     traditions,
     trips,
@@ -174,6 +175,9 @@ HEADINGS = {
             'hobbies': 'Your pastimes (fictional, yours; when one comes up, keep to how far along you are and how '
                        'often you go, and never invent a big achievement that is not listed)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            # Meeting their people (companion/life/their_people.py): changes when someone meets the user, and weekly.
+            'their_people': 'What your people think of the user (decided by the app: pass it on now and then, the way '
+                            'people do, like "my mom keeps asking when you\'re coming back", and never contradict it)',
             # Grows during a chat as memories are saved and the companion's life moves on.
             'boundaries': "The user's boundaries",
             'profile': 'What you know about the user',
@@ -911,6 +915,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     closeness.offer(packet, connection, companion, now)
     steps.offer(packet, connection, companion, now, recent, group)
     love_life.offer(packet, connection, companion, now, group)
+    their_people.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

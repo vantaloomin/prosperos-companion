@@ -51,6 +51,7 @@ from companion.life import (
     routine,
     steps,
     storylines,
+    their_people,
     together,
     trips,
     usual_hours,
@@ -421,15 +422,16 @@ PAST_WAITING = {'occasion', 'postcard'}
 # dream and Life deck news, which otherwise took every day's text first and the invite never went out.
 # A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early; so does a
 # call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
-# (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too.
-FINDERS = [occasion, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+# (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
+# meet their people (companion/life/their_people.py).
+FINDERS = [occasion, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
 # While a rough patch of the user's making is open (companion/life/rough_patches.py) they hold back: no check-ins,
 # invitations, knocks, calls or next steps of their own.
 COOLED = {check_in, usual_time, together.suggest_due, together.knock_due, calls.ring_due, kitchen.invite_due,
-          hobbies.invite_due, media.recommend_due, steps.ask_due}
+          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due}
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
@@ -663,6 +665,8 @@ class Openers:
                 together.settle(connection, latest, row, trigger, timestamp)
             if trigger.kind in steps.SETTLES:
                 steps.settle(connection, latest, row, trigger, timestamp)
+            if trigger.kind in their_people.SETTLES:
+                their_people.settle(connection, latest, row, trigger, timestamp)
             focus = current(connection)
             [view] = voice_notes.decorate(connection, [message_view(row)])
         return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],

@@ -106,6 +106,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.steps.FIRST_TEXTS', False)
     # Nor news from their own love life, or a friend who saw someone out with another (companion/life/love_life.py).
     monkeypatch.setattr('companion.life.love_life.FIRST_TEXTS', False)
+    # Nor an invitation to meet their people (companion/life/their_people.py).
+    monkeypatch.setattr('companion.life.their_people.FIRST_TEXTS', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.
