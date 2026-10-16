@@ -301,3 +301,10 @@ def test_reasons_for_calling_off_fit_the_era(client):
     assert 'the train broke down halfway there' in london and 'the car would not start' not in london
     assert not {'the car would not start', 'the train broke down halfway there', 'the bank froze a card and it took hours to fix'} & camelot
     assert 'the bank froze a card and it took hours to fix' not in new_york and len(camelot) >= 60
+
+
+def test_a_plan_is_named_as_the_user_would():
+    assert rough_patches.plan_name({'activity': 'dinner', 'place': {'name': 'Lupa'}}) == 'dinner at Lupa'
+    assert rough_patches.plan_name({'activity': 'walk', 'place': {'name': 'Patterson Park'}}) == 'a walk at Patterson Park'
+    assert rough_patches.plan_name({'activity': 'visit-yours', 'place': {'name': 'Your place'}}) == 'the visit'
+    assert rough_patches.plan_name({'activity': 'hobby', 'place': {'name': 'The Clay Room'}}) == 'the plan at The Clay Room'

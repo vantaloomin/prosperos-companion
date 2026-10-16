@@ -262,12 +262,19 @@ def quoted(sentence: str, limit: int = 60) -> str:
     return sentence if len(sentence) <= limit else sentence[:limit - 1].rstrip() + '…'
 
 
+# Outings named by what they are ("drinks at The Owl"); others are "the plan at ...".
+PLAIN_PLANS = ('dinner', 'lunch-out', 'coffee', 'drinks', 'show', 'museum', 'walk', 'market')
+
+
 def plan_name(outing: dict) -> str:
     """The plan as the user would name it: 'the visit', 'dinner at Lupa'."""
     if outing['activity'] in ('visit-in', 'visit-yours'):
         return 'the visit'
     if outing['activity'] in ('dinner-in', 'dinner-yours'):
         return 'dinner'
+    if outing['activity'] in PLAIN_PLANS:
+        from companion.life import outings
+        return f"{outings.ACTIVITIES[outing['activity']][5]} at {outing['place']['name']}"
     return f"the plan at {outing['place']['name']}"
 
 
