@@ -557,7 +557,9 @@ def turn(companion: dict, day: date, task: str) -> str:
     they do the dishes; on other days cooking takes turns and the dishes go to whoever didn't cook; laundry and
     tidying take turns week by week."""
     from companion.life import upkeep
-    seed = random.Random(f"{companion['active_timeline_id']}:{task}:turns").randrange(2)
+    # Cooking and the dishes share one seed, so the dishes always go to whoever didn't cook.
+    shared = 'cooking' if task in ('cooking', 'dishes') else task
+    seed = random.Random(f"{companion['active_timeline_id']}:{shared}:turns").randrange(2)
     if task in ('cooking', 'dishes'):
         cooks = 'user' if day.weekday() in upkeep.busy_days(companion['version']['definition']) else \
             ('you', 'user')[(day.toordinal() + seed) % 2]

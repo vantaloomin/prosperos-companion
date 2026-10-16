@@ -287,3 +287,15 @@ def test_a_chore_left_undone_on_your_turn_can_start_a_small_rough_patch(client, 
         moving_in.skipped(connection, companion, living, f"sorry, I totally forgot the {words[mine]}", clock.now())
     assert seen and seen[0][0] == 'chore' and moving_in.CHORES[mine] in seen[0][3]
     assert moving_in.SKIPPED.search("I didn't get round to the washing up") and not moving_in.SKIPPED.search('dinner was great')
+
+
+def test_the_dishes_go_to_whoever_did_not_cook_every_day(client, monkeypatch):
+    mira(client, monkeypatch, relationship='romance')
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+    for timeline in range(8):  # The turns are seeded by the timeline: a few of them.
+        other = {**companion, 'active_timeline_id': f'timeline-{timeline}'}
+        for offset in range(14):
+            day = date(2026, 10, 5) + timedelta(days=offset)
+            assert moving_in.turn(other, day, 'cooking') != moving_in.turn(other, day, 'dishes'), (timeline, day)
+
