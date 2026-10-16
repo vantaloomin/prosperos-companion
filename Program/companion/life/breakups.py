@@ -660,11 +660,11 @@ STANDING = {'break_tell': 'break', 'end_tell': 'ended', 'fell_out_tell': 'fell_o
 def context_lines(connection, companion: dict, now: datetime, turn: set[str],
                   standing: bool = False) -> list[tuple[str, str]]:
     """(identity, line) for the 'breakup' section: at most one line; `standing` for a group chat."""
-    if not applies(connection, companion):
+    if not ACTIVE or not companion or not ladder_of(companion):
         return []
     row, found = latest(connection, companion)
-    if row is None:
-        return []
+    if row is None or (found != 'ended' and not applies(connection, companion)):
+        return []  # With the switch off an ending still stands (`stage`), so an ex still knows it.
     key = line_key(connection, row, found, now, turn)
     friend = row['ladder'] == 'friendship'
     if standing and key:

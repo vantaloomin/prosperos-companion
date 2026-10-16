@@ -251,3 +251,13 @@ def test_an_ex_in_a_group_chat_knows_they_broke_up(client, couple, provider):
     prompts = [request['prompt'] for request in provider.requests if 'You are Mira' in request['prompt']]
     assert prompts and 'You and the user broke up on' in prompts[-1]
     assert 'The user just broke up with you' not in prompts[-1]  # Only where things stand, in a group.
+
+
+def test_switched_off_after_a_breakup_the_ex_still_knows_it(client, couple, provider):
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-later-off-1')
+    set_life(client, breakups=False)
+    says(provider)
+    send(client, 'hey', 'client-later-off-2')
+    assert 'You and the user broke up on' in notes(provider)
+    assert view(client)['stage'] == 'ended'
