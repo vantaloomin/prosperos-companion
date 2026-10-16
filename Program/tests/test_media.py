@@ -105,13 +105,19 @@ def test_chains_move_on_and_finished_things_leave_a_verdict(client, kim):
         assert media.current(later, TODAY + timedelta(days=150)) or True
 
 
-def test_their_days_mention_what_they_are_on_and_the_chat_knows_it(client, kim):
-    reconcile(client)
+def test_their_days_mention_what_they_are_on_and_the_chat_knows_it(client, kim, clock):
     database = client.app.state.database
+    # Their evenings are seeded on the random timeline id, so look over a week rather than one day.
+    for _day in range(7):
+        reconcile(client)
+        with database.connect() as connection:
+            rows = connection.execute("SELECT entry FROM life_agenda WHERE json_extract(entry, '$.media') IS NOT "
+                                      'NULL').fetchall()
+        if rows:
+            break
+        clock.advance(timedelta(days=1))
+    assert rows
     with database.connect() as connection:
-        rows = connection.execute("SELECT entry FROM life_agenda WHERE json_extract(entry, '$.media') IS NOT NULL"
-                                  ).fetchall()
-        assert rows
         per_day = connection.execute("SELECT local_date, COUNT(*) AS n FROM life_agenda WHERE "
                                      "json_extract(entry, '$.media') IS NOT NULL GROUP BY local_date").fetchall()
         assert all(row['n'] == 1 for row in per_day)
