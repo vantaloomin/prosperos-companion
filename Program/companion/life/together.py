@@ -456,6 +456,8 @@ def together_text(outing: dict, companion: dict) -> str:
         return 'At your place'
     if place['kind'] == 'home':
         return f"At {companion['version']['definition']['name']}'s place"
+    if outing['activity'] == 'wedding':
+        return f"Your wedding at {place['name']}"
     return f"Together at {place['name']}"
 
 

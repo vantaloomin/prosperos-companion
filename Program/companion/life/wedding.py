@@ -83,6 +83,8 @@ VENUE_KINDS = {'garden': 1.0, 'park': 0.8, 'landmark': 0.8, 'temple': 1.0, 'inn'
                'restaurant': 0.08, 'venue': 0.08, 'tavern': 0.3}
 VENUE = '~venue'
 SHOWN_GUESTS = 8
+# How long the ceremony takes at the start of the day, in minutes.
+CEREMONY = 40
 MARRIED = 'married'
 
 
@@ -759,11 +761,16 @@ def joined(items: list[str]) -> str:
 
 
 def moment_now(row: dict, outing: dict, timezone: str, now: datetime) -> str:
-    """The part of the day under way: the day's moments in order across its hours."""
+    """The part of the day under way: the ceremony's two moments take its first CEREMONY minutes, and the rest of the
+    day's moments follow in order across the hours left."""
     moments = customs(row['culture'])['moments']
     start, end = outings.window(outing, timezone)
-    share = (now - start) / (end - start) if end > start else 0
-    return moments[min(int(max(share, 0) * len(moments)), len(moments) - 1)]
+    minutes = (now - start).total_seconds() / 60
+    if minutes < CEREMONY:
+        return moments[0 if minutes < CEREMONY / 2 else 1]
+    rest = moments[2:] or moments[-1:]
+    share = (now - start - timedelta(minutes=CEREMONY)) / max(end - start - timedelta(minutes=CEREMONY), timedelta(minutes=1))
+    return rest[min(int(share * len(rest)), len(rest) - 1)]
 
 
 def scene(connection, companion: dict, outing: dict, now: datetime | None) -> str:
@@ -776,9 +783,9 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None) -> st
     others = max(row['guest_count'] - len(names), 0)
     guests = joined([*names, f'about {others} others']) if names and others else joined(names) if names else \
         f"about {row['guest_count']} guests"
-    parts = [f"Right now it is your wedding day, in person: you and the user are getting married at "
-             f"{what(outing).removeprefix('your wedding at ')}, until about {outing['until_time']}.",
-             f"How the day goes: {rules['ceremony']}.",
+    parts = [f"Right now it is your wedding day, in person: you and the user are at your wedding at "
+             f"{what(outing).removeprefix('your wedding at ')}, from {outing['at_time']} until about "
+             f"{outing['until_time']}.", f"How the day goes: {rules['ceremony']}.",
              f"Right now: {moment_now(row, outing, companion['version']['timezone'], now)}." if now else '',
              f'Your guests are here: {guests}.',
              'It is a big, happy, busy day. Talk as if you are there together, face to face, not texting: what you say '
