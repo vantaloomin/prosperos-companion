@@ -508,7 +508,7 @@ def partner_line(connection, companion: dict, found: dict, today: date) -> str:
                 f'not know. Keep it from them: never mention {them}, and if you are asked where you were, keep it '
                 'vague.')
     standing = pair_text(connection, companion, found, today).lower()
-    if definition.get('relationship') == 'romance':
+    if mode(connection, companion) == 'open':  # Not an ex of the user's (their sheet still says romance).
         feeling = ('You still feel a pang of jealousy about the user seeing other people, as your nature is.'
                    if jealous(definition) else 'Neither of you is jealous about it.')
         return (f'- You and the user have an open relationship, and you are also seeing {name}{describe(found)} '

@@ -239,3 +239,11 @@ def test_townsfolk_couples_move_on_week_by_week():
     week = (item['day'] - timedelta(days=item['day'].weekday() + 1) + timedelta(days=1), item['day'] + timedelta(days=1))
     assert any(item['partner']['full'] in entry['text'] for entry in paper.couples_news(
         {**data, 'neighborhoods': [data['neighborhoods'][0]]}, week)) or len(events) > paper.MOST_COUPLES
+
+
+def test_an_ex_seeing_someone_new_is_not_told_it_is_an_open_relationship(client, romance, clock, monkeypatch):
+    # After a breakup (companion/life/breakups.py) the user's ex is free to date, and their sheet still says romance.
+    monkeypatch.setattr(steps, 'apart', lambda *_args: 'ended')
+    found = begin_partner(client, clock)
+    prompt = client.get('/api/context/preview').json()['prompt']
+    assert f"You are seeing {found['name']}" in prompt and 'open relationship' not in prompt
