@@ -205,11 +205,11 @@ def evening(connection, companion: dict, row: dict, local: datetime) -> tuple | 
     data = outings.city_data(connection, definition)
     if not data:
         return None
-    item = favourite(connection, companion, data, row['id'])
+    start = local.date() + timedelta(days=2)
+    item = favourite(connection, companion, data, row['id'], start)
     if item is None:
         return None
     activity = PROPOSE_KINDS[item['kind']]
-    start = local.date() + timedelta(days=2)
     day = min(start + timedelta(days=(weekday - start.weekday()) % 7) for weekday in PROPOSE_DAYS)
     found = outings.when_free(connection, companion, {'activity': activity, 'day': day, 'at': PROPOSE_AT[activity],
                                                       'firm': False}, local)
@@ -218,10 +218,14 @@ def evening(connection, companion: dict, row: dict, local: datetime) -> tuple | 
     return activity, found[0], found[1], outings.place_view(item, data)
 
 
-def favourite(connection, companion: dict, data: dict, seed: str) -> dict | None:
-    """One of their favourite places: where the two of them have been most, else a date spot they like."""
+def favourite(connection, companion: dict, data: dict, seed: str, day: date | None = None) -> dict | None:
+    """One of their favourite places: where the two of them have been most, else a date spot they like; one that is
+    open in the evening and the season, when there is one (a conservatory closes at five)."""
     places = {item['id']: item for item in data['places'] if item['kind'] in PROPOSE_KINDS
               and not NOT_VENUES.search(item['name'])}
+    if day is not None:
+        places = {key: item for key, item in places.items()
+                  if outings.fits(item, day, PROPOSE_AT[PROPOSE_KINDS[item['kind']]])} or places
     counts: dict[str, int] = {}
     for row in many(connection, "SELECT place FROM outings WHERE companion_id=? AND status='done'", (companion['id'],)):
         place_id = (decode(row['place']) or {}).get('id')

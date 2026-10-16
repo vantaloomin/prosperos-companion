@@ -391,3 +391,16 @@ def test_a_branch_from_the_proposal_can_still_be_answered(client, clock, provide
                          (branch['id'],))
         ring = optional(connection, "SELECT * FROM proposals WHERE timeline_id=? AND status='asked'", (branch['id'],))
     assert ask['status'] == 'no' and patch is not None and ring['ring_cost'] > 0
+
+
+def test_they_propose_somewhere_open_in_the_evening(client, clock, provider):
+    """Not a walk at six in a conservatory that closes in the afternoon."""
+    from companion.characters import require_current
+    make(client)
+    with client.app.state.database.connect() as connection:
+        companion = require_current(connection)
+        data = outings.city_data(connection, companion['version']['definition'])
+        for seed in range(40):
+            day = date(2027, 1, 20) + timedelta(days=seed * 9)
+            item = wedding.favourite(connection, companion, data, f"p{seed}", day)
+            assert outings.fits(item, day, wedding.PROPOSE_AT[wedding.PROPOSE_KINDS[item['kind']]]), item['name']
