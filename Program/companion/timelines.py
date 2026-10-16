@@ -217,6 +217,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
     copy_steps(connection, parent_id, new_id, cutoff[:10])
     love_life.copy(connection, parent_id, new_id, ids, cutoff[:10])
+    copy_impressions(connection, parent_id, new_id, ids, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
     network.copy(connection, parent_id, new_id, cutoff)
     encounters.copy(connection, parent_id, new_id, cutoff)
@@ -262,6 +263,16 @@ def copy_steps(connection, parent_id, new_id, cutoff_date):
                                               for row in rows])
     # Moving in together (companion/life/moving_in.py) as it stood.
     insert(connection, 'moving_in', moving_in.copy(connection, parent_id, new_id, cutoff_date))
+
+
+def copy_impressions(connection, parent_id, new_id, ids, cutoff_date):
+    """What their people thought of the user by the fork carries over (companion/life/their_people.py), for people the
+    copy has; meet-ups still to come are the copy's own."""
+    rows = many(connection, "SELECT * FROM people_impressions WHERE timeline_id=? AND met_on IS NOT NULL AND "
+                "(met_on='before' OR met_on<=?)", (parent_id, cutoff_date))
+    insert(connection, 'people_impressions', [{**row, 'id': identifier(), 'timeline_id': new_id, 'meetup_id': None,
+                                               'person_id': ids[row['person_id']], 'consequence_id': None}
+                                              for row in rows if row['person_id'] in ids])
 
 
 def copy_recall(connection, parent_id, new_id, ids, cutoff_date):

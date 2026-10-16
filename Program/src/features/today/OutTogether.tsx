@@ -4,7 +4,7 @@ import { Home, MapPin, Undo2, X } from 'lucide-react'
 import { api } from '../../api'
 import { Notice } from '../../components/Feedback'
 import { WHERE_KEY } from '../conversation/whereText'
-import { OUTING_STATES, TOGETHER_KEY, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
+import { OUTING_STATES, TOGETHER_KEY, outingNote, outingTitle, outingWhen, peopleLine, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
 import { useTogether } from './useTogether'
 
 /** Plans with the user. The companion picked the places; the user can call them off (with Undo for the rest of the
@@ -47,10 +47,11 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
         <strong>{outingTitle(outing)}</strong>
         <span className="badge">{OUTING_STATES[outing.state]}</span>
       </div>
-      <p className="subtle">{outingWhen(outing, name)} · {placeLine(outing.place)} <a className="text-button show-on-map" href={`#map/${encodeURIComponent(outing.place.id)}`}>Show on map</a></p>
+      <p className="subtle">{outingWhen(outing, name)} · {placeLine(outing.place)}{outing.place.kind !== 'family-home' && <> <a className="text-button show-on-map" href={`#map/${encodeURIComponent(outing.place.id)}`}>Show on map</a></>}</p>
+      {peopleLine(outing.place) && <p className="subtle">{peopleLine(outing.place)}</p>}
       {note && <p className="subtle">{note}</p>}
       {outing.state === 'planned' && <div className="together-actions">
-        {outing.activity !== 'dinner-in' && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/elsewhere`)}><MapPin aria-hidden="true" />Somewhere else</button>}
+        {outing.activity !== 'dinner-in' && outing.activity !== 'meet-family' && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/elsewhere`)}><MapPin aria-hidden="true" />Somewhere else</button>}
         <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
       </div>}
       {outing.state === 'now' && <div className="together-actions">

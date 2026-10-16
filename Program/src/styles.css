@@ -2202,3 +2202,11 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .steps-panel .why-it-went .text-button { min-height: 44px; }
 }
 .steps-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; }
+/* Meeting their people: whether they have met you, on the circle list. */
+.met-you { display: flex; align-items: center; gap: 6px; }
+.met-you svg { width: 14px; height: 14px; flex: none; }
+.met-you + .why-it-went { margin-left: 20px; }
+@media (max-width: 720px) {
+  .met-you + .why-it-went summary { padding-block: 12px; }
+  .met-you + .why-it-went .text-button { min-height: 44px; }
+}

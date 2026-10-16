@@ -43,6 +43,8 @@ function sentence(words: string): string {
 
 function liveLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
   const tail = ` until ${timeText(outing.until_time)}`
+  // Dinner at their family's home (companion/life/their_people.py) isn't on the map.
+  if (kind === 'out' && outing.place.kind === 'family-home') return { lead: `Together at ${outing.place.name}`, place: null, tail }
   if (kind === 'out') return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail }
   if (kind === 'theirs') return { lead: `At ${name}'s place`, place: null, tail }
   if (kind === 'knock' && outing.not_now) return { lead: `${name} dropped by and is at your place`, place: null, tail }
