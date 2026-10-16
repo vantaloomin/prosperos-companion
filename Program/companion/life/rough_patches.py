@@ -592,25 +592,30 @@ def view(connection, companion: dict, now: datetime) -> dict:
 
 
 def let_go(database, patch_id: str) -> dict:
-    """The user clears the air: this rough patch ends now."""
+    """The user clears the air: this rough patch ends now, and any other one open with them, so the page doesn't
+    turn to the next one."""
     from companion.characters import require_current
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         row = optional(connection, 'SELECT * FROM rough_patches WHERE id=? AND timeline_id=?',
                        (patch_id, companion['active_timeline_id']))
         require(row is not None, 'That rough patch is not on this timeline.', 404)
-        mend(connection, row, 'you', database.clock.now())
-        return view(connection, companion, database.clock.now())
+        now = database.clock.now()
+        for found in [row, *open_rows(connection, companion, level(connection), now)]:
+            mend(connection, found, 'you', now)
+        return view(connection, companion, now)
 
 
 def undo_let_go(database, patch_id: str) -> dict:
-    """Take back Let it go: the rough patch is open again as it was."""
+    """Take back Let it go: the rough patches it ended are open again as they were."""
     from companion.characters import require_current
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        changed = connection.execute("UPDATE rough_patches SET mended_at=NULL, mended_by=NULL WHERE id=? AND timeline_id=? "
-                                     "AND mended_by='you'", (patch_id, companion['active_timeline_id'])).rowcount
-        require(changed == 1, 'That can no longer be undone.', 409)
+        row = optional(connection, "SELECT mended_at FROM rough_patches WHERE id=? AND timeline_id=? AND mended_by='you'",
+                       (patch_id, companion['active_timeline_id']))
+        require(row is not None, 'That can no longer be undone.', 409)
+        connection.execute("UPDATE rough_patches SET mended_at=NULL, mended_by=NULL WHERE timeline_id=? AND "
+                           "mended_by='you' AND mended_at=?", (companion['active_timeline_id'], row['mended_at']))
         return view(connection, companion, database.clock.now())
 
 

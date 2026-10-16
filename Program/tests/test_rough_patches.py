@@ -84,6 +84,21 @@ def test_it_shows_what_about_with_moods_shown_and_can_be_let_go(client, patches,
     assert rough_patches.quoted('x' * 80) == 'x' * 59 + '…'
 
 
+def test_let_it_go_clears_the_air_over_everything_open(client, patches, provider):
+    show(client, show_moods=True)
+    for number, text in enumerate(('go away', 'leave me alone')):
+        says(provider)
+        send(client, text, f'client-patch-4{number}')
+    found = patch(client)
+    assert found['open']
+    assert not client.post(f"/api/life/rough-patch/{found['id']}/let-go").json()['open']
+    assert not patch(client)['open']  # Not the one before it instead.
+    client.post(f"/api/life/rough-patch/{found['id']}/undo")
+    assert patch(client)['id'] == found['id']
+    with client.app.state.database.connect() as connection:
+        assert len(rough_patches.open_rows(connection, current(connection), 2, client.app.state.database.clock.now())) == 2
+
+
 def test_the_odds_can_be_changed_on_today(client, patches, provider):
     show(client, show_moods=True)
     says(provider)
