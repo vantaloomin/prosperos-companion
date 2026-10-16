@@ -40,9 +40,11 @@ def with_chapters(connection, companion: dict) -> dict:
         definition = apply_changes(definition, decode(row['changes']))
     if (definition.get('money') or {}).get('career') != (companion['version']['definition'].get('money') or {}).get('career'):
         definition = {**definition, 'schedule': relabeled(connection, definition)}
+    # A move to another city (companion/life/moving_in.py) brings that city's clock.
+    version = {**companion['version'], 'definition': definition, 'timezone': definition.get('timezone')
+               or companion['version']['timezone']}
     # Their shifts or gigs week by week (companion/life/shifts.py), on top of the week as written.
-    return shifts.with_rota(connection, {**companion, 'version': {**companion['version'], 'definition': definition}}
-                            if rows else companion)
+    return shifts.with_rota(connection, {**companion, 'version': version} if rows else companion)
 
 
 def relabeled(connection, definition: dict) -> list[dict]:
@@ -67,6 +69,9 @@ def apply_changes(definition: dict, changes: dict) -> dict:
         found['money'] = {**(found.get('money') or {}), 'career': changes['career']}
     if 'location' in changes:
         found['location'], found['near'] = changes['location'], ''
+    for key in ('home_city', 'timezone'):  # Another city altogether (companion/life/moving_in.py).
+        if key in changes:
+            found[key] = changes[key]
     if 'interest' in changes and changes['interest'] not in (found.get('interests') or []):
         found['interests'] = [*(found.get('interests') or []), changes['interest']]
     return found

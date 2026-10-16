@@ -5,7 +5,7 @@ from pydantic import Field
 
 from companion.characters import require_current
 from companion.database import settings
-from companion.life import steps
+from companion.life import moving_in, steps
 from companion.models import Input
 
 router = APIRouter(prefix='/api/life/steps')
@@ -40,6 +40,7 @@ def update_steps(request: Request, body: StepsUpdate):
         companion = require_current(connection)
         if body.step is not None:
             steps.set_step(connection, companion, body.step, now)
+            moving_in.follow_step(connection, companion, now)  # Where they live follows (companion/life/moving_in.py).
         if body.just_friends is not None:
             steps.set_lock(connection, companion, body.just_friends, database.now())
         return read(connection, companion, now)

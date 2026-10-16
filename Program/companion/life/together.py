@@ -92,7 +92,9 @@ def level(connection) -> int:
 def invites(connection, companion: dict) -> bool:
     """Whether they may ask the user over or along on their own (kitchen.py, hobbies.py): the slider is not off, and
     they live in the user's city (long distance gets weekend visits instead)."""
-    return bool(level(connection)) and not where.between(connection, companion['version']['definition']).long_distance
+    from companion.life import moving_in
+    return bool(level(connection)) and not where.between(connection, companion['version']['definition']).long_distance \
+        and not moving_in.living(connection, companion)
 
 
 # --- Places -----------------------------------------------------------------------------------------------------
@@ -208,9 +210,11 @@ def together_now(connection, companion: dict, now: datetime) -> dict | None:
 
 
 def in_person(connection, companion: dict, now: datetime) -> bool:
-    """Together right now: out, at one of their places, or on a weekend visit (companion/life/long_distance.py)."""
-    from companion.life import long_distance
-    return bool(together_now(connection, companion, now) or long_distance.visiting(connection, companion, now))
+    """Together right now: out, at one of their places, on a weekend visit (companion/life/long_distance.py), or home
+    together of an evening when they live together (companion/life/moving_in.py)."""
+    from companion.life import long_distance, moving_in
+    return bool(together_now(connection, companion, now) or long_distance.visiting(connection, companion, now)
+                or moving_in.home_state(connection, companion, now))
 
 
 def outing_today(connection, companion: dict, day: date, now: datetime) -> bool:
@@ -273,6 +277,9 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     if long_distance.note(connection, message, companion, timestamp):
         return True  # A weekend visit across the distance, or anything about visiting while one is under way.
     kind = asked(message['text'])
+    from companion.life import moving_in
+    if kind is not None and moving_in.living(connection, companion):
+        return True  # Living together, nobody comes over: the 'where' section says they share a home.
     if kind is None or optional(connection, 'SELECT id FROM outings WHERE message_id=?', (message['id'],)) or \
             optional(connection, 'SELECT id FROM together_asks WHERE message_id=?', (message['id'],)):
         return kind is not None
@@ -434,6 +441,9 @@ def state(connection, companion: dict, now: datetime) -> dict:
     found = together_now(connection, companion, now)
     if found and not found['ended_at']:
         return {'state': 'together', 'kind': kind_of(found), 'text': together_text(found, companion), 'outing': found}
+    from companion.life import moving_in
+    if at_home := moving_in.home_state(connection, companion, now):
+        return {**at_home, 'outing': None}  # Both home of an evening, living together.
     between = where.between(connection, companion['version']['definition'])
     if between.known and between.long_distance:
         return {'state': 'apart', 'kind': 'long-distance', 'outing': None,
@@ -503,6 +513,8 @@ def view(connection, companion: dict, now: datetime) -> dict:
     from companion.life import calls, long_distance
     found['call'] = calls.view(connection, companion, now)
     found['visit'] = long_distance.view(connection, companion, now)
+    from companion.life import moving_in
+    found['home'] = moving_in.view_strip(connection, companion, now)  # Living together: home, or the user out.
     return found
 
 
@@ -532,7 +544,7 @@ def knock_due(connection, companion: dict, now: datetime) -> list:
         return []
     found = where.your_home(connection)
     if not found or not free_for(connection, companion, now, KNOCK_HOURS_LONG) or not close(connection, companion, now) \
-            or with_someone(connection, now):
+            or with_someone(connection, now) or lives_with_you(connection, companion):
         return []
     city, hood = found
     area = hood['name'] if hood else city['name']
@@ -542,6 +554,12 @@ def knock_due(connection, companion: dict, now: datetime) -> list:
               'a good time.')
     template = rng.choice(KNOCKS)
     return [Trigger(key, 'drop_in', reason, template, ())]
+
+
+def lives_with_you(connection, companion: dict) -> bool:
+    """Living together (companion/life/moving_in.py): nobody knocks at their own door or asks to come over."""
+    from companion.life import moving_in
+    return bool(moving_in.living(connection, companion))
 
 
 def with_someone(connection, now: datetime) -> bool:
@@ -572,7 +590,8 @@ def suggest_due(connection, companion: dict, now: datetime) -> list:
     window = local.date().toordinal() // SUGGEST_EVERY
     key = f'get-together:{window}'
     rng = random.Random(f"{companion['id']}:{key}")
-    if rng.random() >= chance or where.between(connection, version['definition']).long_distance:
+    if rng.random() >= chance or where.between(connection, version['definition']).long_distance or \
+            lives_with_you(connection, companion):
         return []
     if local.hour < 17 and rng.random() < 0.4:
         evening = local.replace(hour=19, minute=30, second=0, microsecond=0)

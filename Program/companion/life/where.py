@@ -7,13 +7,17 @@ it on the persona form: a world's home starts in the world's city, in a neighbou
 trips (companion/life/trips.py fits: a made-up world's persona lives in that world).
 
 `between` is the helper the rest of Where you are builds on (together or apart, calls, long distance): whether a
-companion lives in the user's city or is long distance, and how far apart the two of them are.
+companion lives in the user's city or is long distance, and how far apart the two of them are. A companion whose city
+can't be told but whose time zone differs from the user's city's is long distance too (Vanta's decision "Time zone
+decides", v0.13), placed by their own words for where they live, else by their time zone's city.
 """
 import random
 from dataclasses import dataclass
+from datetime import datetime
 
+from companion.clock import zone
 from companion.database import optional
-from companion.errors import require
+from companion.errors import DomainError, require
 from companion.life import money, trips
 from companion.world import catalog, changes, custom
 
@@ -98,7 +102,9 @@ def your_home(connection) -> tuple[dict, dict | None] | None:
     city = row and row['home_city_id'] and changes.resolve(row['home_city_id'], custom.all_cities(connection))
     if not city:
         return None
-    return city, hood_named(city, row['home_neighbourhood'])
+    # Living with a companion in this city, home is the place they share (companion/life/moving_in.py).
+    from companion.life import moving_in
+    return city, hood_named(city, moving_in.shared_home(connection, city['id']) or row['home_neighbourhood'])
 
 
 def home_text(connection) -> str:
@@ -142,10 +148,35 @@ def same_place(yours: dict, theirs: dict) -> bool:
             and catalog.distance_km(yours, theirs) <= SAME_PLACE_KM)
 
 
+# Two time zones are the same one when they keep the same clock in winter and in summer.
+SEASONS = (datetime(2026, 1, 15, 12), datetime(2026, 7, 15, 12))
+
+
+def other_zone(city: dict, timezone: str | None) -> bool:
+    """Whether a companion's time zone keeps another clock than the user's city: either one unknown counts as the
+    same."""
+    try:
+        mine, theirs = zone(city.get('timezone') or ''), zone(timezone or '')
+    except DomainError:
+        return False
+    return any(day.replace(tzinfo=mine).utcoffset() != day.replace(tzinfo=theirs).utcoffset() for day in SEASONS)
+
+
+def zone_place(definition: dict) -> dict:
+    """Where a companion in another time zone lives, when no city is known: their own words ("a cabin outside
+    Anchorage"), else their time zone's city ("America/Los_Angeles" is Los Angeles). No trip reaches it (no lat)."""
+    timezone = definition.get('timezone') or ''
+    name = (definition.get('home_city') or definition.get('location') or '').strip()
+    return {'id': f'~zone:{timezone}', 'name': name or timezone.rsplit('/', 1)[-1].replace('_', ' '),
+            'timezone': timezone}
+
+
 def between(connection, definition: dict) -> Between:
-    """The user's home against the companion's city (their home_city, else their location)."""
+    """The user's home against the companion's city (their home_city, else their location), else their time zone."""
     yours = your_home(connection)
     theirs = their_city(connection, definition)
+    if yours and not theirs and other_zone(yours[0], definition.get('timezone')):
+        return Between(True, False, yours[0], zone_place(definition), None, False)
     if not yours or not theirs:
         return Between(False, True, yours and yours[0], theirs, None, True)
     city = yours[0]

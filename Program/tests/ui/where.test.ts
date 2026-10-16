@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
+import { homeLine, inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
 import { shown } from '../../src/features/status/statusText.ts'
 
 const outing: WhereOuting = {
@@ -80,4 +80,13 @@ test('a weekend visit across the distance says who is staying with whom, and unt
   assert.ok(notTexting(staying) && !canCall(staying))
   const hosting: WhereState = { ...staying, kind: 'hosting', visit: { ...visit, direction: 'host', city_name: 'Chicago' } }
   assert.equal(stripLine(hosting, 'Mira')?.lead, 'Staying with Mira in Chicago')
+})
+
+test('living together, the strip says home together or out, with the way to switch', () => {
+  const home: WhereState = { state: 'together', kind: 'home', text: 'Home together', outing: null, home: { status: 'home' } }
+  assert.deepEqual(homeLine(home, 'Mira'), { lead: 'Home together with Mira', action: 'out', label: 'Heading out' })
+  assert.deepEqual(homeLine({ ...home, state: 'apart', kind: 'apart', home: { status: 'out' } }, 'Mira'),
+    { lead: "You're out. Mira's at home.", action: 'home', label: "I'm home" })
+  assert.equal(homeLine({ ...home, home: null }, 'Mira'), null)
+  assert.ok(inPerson(home))
 })

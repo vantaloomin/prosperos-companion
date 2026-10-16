@@ -1537,6 +1537,172 @@
           ]
         }
       ]
+    },
+    "moving_in:where": {
+      "label": "Whose place {name} and you live in",
+      "options": [
+        {
+          "label": "{name} moves into your place",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "their_size",
+              "at_most": 1,
+              "times": 2.0,
+              "why": "{name}'s place is small for two"
+            },
+            {
+              "reader": "their_rent_higher",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "{name}'s rent is higher than yours"
+            },
+            {
+              "reader": "yours_nearer",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "your place is nearer {name}'s work"
+            },
+            {
+              "reader": "your_pets",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "your pets are settled at yours"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.2,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        },
+        {
+          "label": "You move into {name}'s place",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "their_size",
+              "at_least": 3,
+              "times": 2.0,
+              "why": "{name}'s place has room for two"
+            },
+            {
+              "reader": "their_rent_lower",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "{name}'s place costs less than yours"
+            },
+            {
+              "reader": "theirs_nearer",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "{name}'s place is nearer where {name} works"
+            },
+            {
+              "reader": "their_pets",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "{name}'s pets are settled at {name}'s place"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        },
+        {
+          "label": "You find a new place together",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "their_size",
+              "at_most": 2,
+              "times": 1.4,
+              "why": "neither place has much room for two"
+            },
+            {
+              "reader": "both_pets",
+              "at_least": 1,
+              "times": 1.6,
+              "why": "you both have pets"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.4,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 0.7,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        }
+      ]
+    },
+    "moving_in:who": {
+      "label": "Who moves so {name} and you can live together",
+      "options": [
+        {
+          "label": "{name} moves to your city",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "rooted",
+              "at_most": 0,
+              "times": 1.8,
+              "why": "{name} has few ties in {name}'s city"
+            },
+            {
+              "reader": "rooted",
+              "at_least": 3,
+              "times": 0.4,
+              "why": "{name} is rooted in {name}'s city"
+            },
+            {
+              "reader": "family",
+              "at_least": 2,
+              "times": 0.6,
+              "why": "{name}'s family lives nearby"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        },
+        {
+          "label": "{name} asks you to move to {name}'s city",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "pay",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "{name}'s job would be hard to leave"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.6,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name}'s description says they're driven"
+            }
+          ]
+        }
+      ]
     }
   }
 }

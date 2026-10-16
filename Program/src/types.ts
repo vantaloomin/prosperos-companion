@@ -496,6 +496,15 @@ export interface StepsView {
   /** Only with Hidden values' odds on. */
   planned?: { step: string; due_on: string; consequence_id: string | null; topic: string } | null
   asks?: { id: string; step: string; side: 'them' | 'you'; status: 'open' | 'yes' | 'not_yet' | 'no' | 'lapsed'; topic: string; on: string; consequence_id: string | null }[]
+  /** Moving in together (companion/life/moving_in.py), from the moving-in step on; `consequence_id` only with odds on. */
+  moving_in?: MovingIn | null
+}
+
+/** Whose place in one city ('yours', 'theirs', 'new'), or who moves across the distance ('them' to your city; 'you',
+ * which waits until you move to theirs). `place` is the neighbourhood, `city` the city, `home` the shared home once moved. */
+export interface MovingIn {
+  status: 'moving' | 'waiting' | 'moved'; plan: 'yours' | 'theirs' | 'new' | 'them' | 'you'
+  city: string; place: string; home: string; move_on: string | null; moved_on: string | null; consequence_id: string | null
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
