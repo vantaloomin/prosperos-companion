@@ -147,6 +147,8 @@ def test_the_user_can_make_it_go_another_way(client, mira, clock, monkeypatch): 
         love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
         outcome = consequences.recorded(connection, f"love:{found['id']}:exclusive:1", love_life.NEXT)
     assert partner_row(client)[0]['ended_how'] == 'split'
+    # Every reason says which way it pushed ("More likely because…").
+    assert all(len(item['moves']) == len(item['reasons']) for item in outcome['options'])
     changed = change(client, outcome['id'], 0)
     assert changed['picked'] == 0
     [after] = partner_row(client)

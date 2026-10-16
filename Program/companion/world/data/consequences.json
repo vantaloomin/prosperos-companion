@@ -837,13 +837,13 @@
               "reader": "love_life",
               "at_most": 1,
               "times": 0.4,
-              "why": "the Their love life slider is set to quiet"
+              "why": "the love life setting is on quiet"
             },
             {
               "reader": "love_life",
               "at_least": 3,
               "times": 2,
-              "why": "the Their love life slider is set to lots going on"
+              "why": "the love life setting is on lots going on"
             },
             {
               "reader": "card",
@@ -1122,13 +1122,13 @@
               "reader": "love_life",
               "at_least": 3,
               "times": 1.5,
-              "why": "the Their love life slider is set to lots going on"
+              "why": "the love life setting is on lots going on"
             },
             {
               "reader": "love_life",
               "at_most": 1,
               "times": 0.6,
-              "why": "the Their love life slider is set to quiet"
+              "why": "the love life setting is on quiet"
             },
             {
               "reader": "sheet",
@@ -1158,7 +1158,7 @@
               "reader": "can_up",
               "at_most": 0,
               "times": 4,
-              "why": "a married couple carries on"
+              "why": "married couples tend to carry on"
             }
           ]
         },
@@ -1194,7 +1194,7 @@
               "reader": "love_life",
               "at_most": 1,
               "times": 0.6,
-              "why": "the Their love life slider is set to quiet"
+              "why": "the love life setting is on quiet"
             },
             {
               "reader": "sheet",
@@ -1241,13 +1241,13 @@
               "reader": "love_life",
               "at_most": 1,
               "times": 0.5,
-              "why": "the Their love life slider is set to quiet"
+              "why": "the love life setting is on quiet"
             },
             {
               "reader": "love_life",
               "at_least": 3,
               "times": 1.5,
-              "why": "the Their love life slider is set to lots going on"
+              "why": "the love life setting is on lots going on"
             },
             {
               "reader": "card",
