@@ -619,8 +619,8 @@ LINES = {
     'reach_yes': ('- You reached out about trying again and the user just said yes. You are back together, carefully, '
                   'starting over: say how glad you are in your own words.'),
     'reach_no': ("- You reached out about trying again and the user just said no. It stings, but you respect it."),
-    'together': ('- You and the user just got back together after {what}. It is tender and new again: be warm, and a '
-                 'little careful.'),
+    'together': ('- You and the user got back together a few hours ago, after {what}. It is tender and new again: let '
+                 'them feel you are glad to be together again, warm and a little careful.'),
 }
 
 
