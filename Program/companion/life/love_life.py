@@ -169,6 +169,7 @@ def new_person(connection, companion: dict, world, seed: str) -> dict:
     age = looks.age_of(definition, companion['id'])
     wanted = drawn_to(connection, companion)
     taken = {row['name'] for row in circle.people(connection, timeline_id, include_removed=True)} | {definition['name']}
+    used = first_names_in_use(connection, companion)
     person = None
     for attempt in range(24):
         here = f'{seed}:{attempt}'
@@ -180,10 +181,22 @@ def new_person(connection, companion: dict, world, seed: str) -> dict:
             person = circle.assemble(here, 0, definition, None, set(taken), 'friend')
             person['details'] |= {'pronouns': generators.pick(here, 'pronouns', sorted(wanted)), 'age': years,
                                   'local': True}
-        if person['details'].get('pronouns') in wanted:
+        if person['details'].get('pronouns') in wanted and first(person['name']) not in used:
             break
     person['details'] = person['details'] | {'love': True}
     return person
+
+
+def first_names_in_use(connection, companion: dict) -> set[str]:
+    """First names a new partner should not share, so 'you and Tyler' is never two people: theirs, the user's other
+    companions', their circle's (past people too) and their partners' (a secret one is not in the circle)."""
+    timeline_id = companion['active_timeline_id']
+    names = [row['name'] for row in circle.people(connection, timeline_id, include_removed=True)]
+    names += [row['name'] for row in many(connection, 'SELECT name FROM love_partners WHERE timeline_id=?',
+                                          (timeline_id,))]
+    names += [decode(row['definition']).get('name') or '' for row in many(
+        connection, 'SELECT v.definition FROM companions c JOIN character_versions v ON v.id=c.active_version_id')]
+    return {first(name) for name in [*names, companion['version']['definition']['name']] if name.strip()}
 
 
 def role_for(step_key: str, pronouns: str) -> str:

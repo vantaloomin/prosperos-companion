@@ -247,3 +247,16 @@ def test_an_ex_seeing_someone_new_is_not_told_it_is_an_open_relationship(client,
     found = begin_partner(client, clock)
     prompt = client.get('/api/context/preview').json()['prompt']
     assert f"You are seeing {found['name']}" in prompt and 'open relationship' not in prompt
+
+
+def test_a_new_partner_never_shares_a_first_name_with_someone_already_in_their_life(client, clock):
+    client.post('/api/companion', json={'name': 'Sarah Wells', 'timezone': 'UTC', 'home_city': 'baltimore'})
+    world = client.app.state.life.world
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        circle.ensure(connection, companion, world, clock.now())
+        people = [row['name'] for row in circle.people(connection, companion['active_timeline_id'])]
+        assert 'Sarah' not in people  # Nor in the circle: someone called Sarah there goes by their full name.
+        used = {name.split()[0] for name in people} | {'Sarah'}
+        found = [love_life.new_person(connection, companion, world, f'seed:{n}')['name'] for n in range(150)]
+    assert not [name for name in found if name.split()[0] in used]
