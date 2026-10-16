@@ -1015,6 +1015,9 @@ def change(connection, companion: dict, consequence_id: str, option: int, now) -
                                 row['id'])
     elif outcome['choice'] == 'steps:falls':
         if option == 1 and not row:
+            for planned in asks(connection, companion['active_timeline_id'], ('planned',)):  # As `falls` does.
+                connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?",
+                                   (timestamp, planned['id']))
             insert_ask(connection, companion['active_timeline_id'], 'friendship', CONFESSION, 'them', 'planned',
                        timestamp, due_on=today + timedelta(days=1), consequence_id=consequence_id)
         elif option == 0 and row and row['status'] == 'planned':

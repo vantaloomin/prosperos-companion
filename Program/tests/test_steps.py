@@ -236,6 +236,24 @@ def test_a_friend_falls_for_you_and_yes_makes_it_a_romance(client, provider, clo
     assert found['ladder'] == 'romance' and found['steps'][0]['how'] == 'confession'
 
 
+def test_making_a_friend_fall_for_you_puts_a_smaller_step_off(client, clock, monkeypatch, always):
+    # E2E v0.13: "Make it go this way" on a month they stayed a friend planned the confession for the same day as the
+    # first trip they were about to bring up.
+    make(client, monkeypatch, relationship='friendship', starting_closeness=5)
+    client.put('/api/settings', json={'show_odds': True})
+    view(client)
+    close(client, 5)
+    clock.advance(timedelta(days=200))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        assert [row['step'] for row in steps.asks(connection, timeline_id, ('planned',))] == ['trip']
+        [falls] = [row['id'] for row in connection.execute("SELECT id FROM consequences WHERE choice='steps:falls'")]
+    assert client.post(f'/api/life/consequences/{falls}/change', json={'option': 1}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert [row['step'] for row in steps.asks(connection, timeline_id, ('planned',))] == ['confession']
+
+
 def test_a_friend_told_no_stays_a_friend_after_an_awkward_spell(client, provider, clock, monkeypatch):
     make(client, monkeypatch, relationship='friendship')
     monkeypatch.setattr(steps, 'FIRST_TEXTS', True)
