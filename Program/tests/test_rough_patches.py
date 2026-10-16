@@ -270,3 +270,14 @@ def test_their_secret_partner_coming_out_is_theirs_to_apologise_for(client, patc
     send(client, "I forgive you", 'client-patch-31')
     assert not patch(client)['open']
     assert 'The user forgave you for seeing someone behind their back' in notes(provider)
+
+
+def test_reasons_for_calling_off_fit_the_era(client):
+    with client.app.state.database.connect() as connection:
+        def drawn(city):
+            return set(rough_patches.reasons(connection, {'version': {'definition': {'home_city': city}}}))
+        camelot, london, new_york, baltimore = drawn('camelot'), drawn('london-1895'), drawn('new-york-1925'), drawn('baltimore')
+    assert 'the car would not start' in baltimore and 'the car would not start' in new_york
+    assert 'the train broke down halfway there' in london and 'the car would not start' not in london
+    assert not {'the car would not start', 'the train broke down halfway there', 'the bank froze a card and it took hours to fix'} & camelot
+    assert 'the bank froze a card and it took hours to fix' not in new_york and len(camelot) >= 60

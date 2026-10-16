@@ -425,10 +425,26 @@ def stand_ups(connection, companion: dict, now: datetime):
         dice = random.Random(f"stand-up:{outing['id']}")
         if dice.random() >= STAND_UP[lvl]:
             continue
-        reason = dice.choice(bank('stand_up_reasons'))
+        reason = dice.choice(reasons(connection, companion))
         connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE id=?", (stamp(now), outing['id']))
         consider(connection, companion, 'stood_up', subject, f'{outings.what(outing)} ({reason})', now,
                  outing_id=outing['id'], shown=f'they called off {plan_name(outing)} at the last minute')
+
+
+# Reasons that only fit some eras (data/rough_patches/stand_up_reasons.json `needs`), by the home city's era.
+ERA_NEEDS = {'jazz-age': {'motor', 'rail'}, 'victorian': {'rail'}, 'frontier': {'rail'}, 'steampunk': {'rail'},
+             'medieval': set(), 'fantasy': set()}
+
+
+def reasons(connection, companion: dict) -> list[str]:
+    """Why they might call off a plan, fitting their city's era: no car trouble in Camelot."""
+    from companion.world import newcomers
+    era = newcomers.city_for(connection, companion['version']['definition']).get('era', 'modern')
+    if era not in ERA_NEEDS:
+        return bank('stand_up_reasons')
+    needs = json.loads((catalog.DATA / 'rough_patches' / 'stand_up_reasons.json').read_text(encoding='utf-8'))['needs']
+    unfit = {reason for tag, found in needs.items() if tag not in ERA_NEEDS[era] for reason in found}
+    return [reason for reason in bank('stand_up_reasons') if reason not in unfit]
 
 
 # What is open --------------------------------------------------------------------------------------------------
