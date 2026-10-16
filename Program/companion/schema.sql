@@ -2304,6 +2304,32 @@ CREATE TABLE IF NOT EXISTS people_impressions (
   updated_at TEXT NOT NULL,
   UNIQUE (timeline_id, person_id)
 );
+-- Moving in together (companion/life/moving_in.py): where a couple lives once they reach the moving-in step. `plan` is
+-- whose place in one city ('yours', 'theirs' or 'new'), or who moves across the distance ('them' to the user's city, or
+-- 'you': they asked the user to move to theirs). `status` is 'moving' until `move_on`, 'waiting' until the user moves to
+-- their city, 'moved' (since `moved_on`), then 'moved_out' (`out_on`, and `out_who` left: 'them' or 'you'). `city_id` and
+-- `neighbourhood` are where the shared home is; `out_until` is the user out for the evening (texting, not home together).
+CREATE TABLE IF NOT EXISTS moving_in (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  plan TEXT NOT NULL CHECK (plan IN ('yours', 'theirs', 'new', 'them', 'you')),
+  status TEXT NOT NULL CHECK (status IN ('moving', 'waiting', 'moved', 'moved_out')),
+  city_id TEXT NOT NULL DEFAULT '',
+  neighbourhood TEXT NOT NULL DEFAULT '',
+  decided_on TEXT NOT NULL,
+  move_on TEXT,
+  moved_on TEXT,
+  out_on TEXT,
+  out_who TEXT,
+  chapter_id TEXT,
+  home_item_id TEXT,
+  ended_item_ids TEXT NOT NULL DEFAULT '[]',
+  consequence_id TEXT,
+  message_id TEXT,
+  out_until TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS moving_in_timeline ON moving_in(timeline_id, status);
 
 -- Engagement and wedding (companion/life/wedding.py): the evening a companion plans to propose, for the "engaged" ask
 -- they planned (step_asks): invited to in a first text that books its outing at one of their favourite places, the

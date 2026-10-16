@@ -14,7 +14,8 @@ ROLES = ['mom', 'dad', 'brother', 'close friend', 'friend']
 
 
 def make(client, relationship='romance', roles=ROLES, **values):
-    response = client.post('/api/companion', json={'name': 'Mira Costa', 'timezone': 'UTC',
+    # In the user's city: a companion in another time zone with no city is long distance (Time zone decides).
+    response = client.post('/api/companion', json={'name': 'Mira Costa', 'timezone': 'UTC', 'home_city': 'Baltimore',
                                                      'relationship': relationship, **values})
     assert response.status_code == 200, response.text
     client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',

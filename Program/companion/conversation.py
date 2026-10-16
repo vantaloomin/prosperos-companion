@@ -31,6 +31,7 @@ from companion.errors import DomainError, require
 from companion.images import photos
 from companion.life import (
     calls,
+    moving_in,
     occasions,
     outings,
     own_plans,
@@ -85,6 +86,8 @@ def record_user(database, body) -> dict:
         calls.note(connection, message, companion, database.now())
         # An answer to a next step they brought up, or one the user brings up (companion/life/steps.py), likewise.
         steps.note(connection, message, companion, database.now())
+        # A move-in step just reached settles where (companion/life/moving_in.py); "I'm out" or "I'm home" at home.
+        moving_in.note(connection, message, companion, database.now())
         self_checks.heed(connection, message, database.now())
         moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
         # Rough patches (companion/life/rough_patches.py): words that sting, a promise, an apology or making up.

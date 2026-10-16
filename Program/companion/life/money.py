@@ -455,7 +455,10 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
     )
 
     found = profile(definition)
-    costs = home.monthly_costs(connection, timeline_id, day) if found else None
+    from companion.life import moving_in
+    # Living together, the rent is split (companion/life/moving_in.py).
+    costs = moving_in.split(connection, timeline_id, home.monthly_costs(connection, timeline_id, day), day) \
+        if found else None
     if not costs:
         return None
     start = cycle_start(found, day)

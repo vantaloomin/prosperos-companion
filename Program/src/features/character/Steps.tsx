@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { COMPANION_KEY } from '../../companion'
@@ -9,7 +9,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { Wedding } from './WeddingPlan'
-import { STEPS_KEY, askText, howText, plannedText, stepDate } from './stepsText'
+import { STEPS_KEY, askText, howText, movingText, plannedText, stepDate } from './stepsText'
 
 /** Where you and them stand (companion/life/steps.py): one plain line, the steps so far, what came up lately and,
  * for a friend, the "just friends" lock. The app moves it on; the user can set it here. Nothing for a mentor or family. */
@@ -50,13 +50,32 @@ export function Steps({ name }: { name: string }) {
   )
 }
 
+/** The Living together step's detail: where you live together, or the move planned. Waiting on the user to move cities,
+ * it links to where they change it: their persona's home on Worlds. */
+function MovingLine({ moving, name }: { moving: NonNullable<StepsView['moving_in']>; name: string }) {
+  const change = (event: MouseEvent) => {
+    event.preventDefault()
+    window.history.pushState({ focus: 'persona-home' }, '', '#worlds')
+    window.dispatchEvent(new PopStateEvent('popstate', { state: { focus: 'persona-home' } }))
+  }
+  return (
+    <div className="steps-detail">
+      <p>{movingText(moving, name)}{moving.status === 'waiting' && <> <a className="text-button inline" href="#worlds" onClick={change}>Change your home city</a> when you're ready.</>}</p>
+      {moving.consequence_id && <WhyItWent id={moving.consequence_id} />}
+    </div>
+  )
+}
+
 /** The steps so far with their dates, what came up lately and (with odds shown) what is planned. */
 function StepsSoFar({ view, name }: { view: StepsView; name: string }) {
   return <>
     {view.steps && view.steps.length > 1 && (
       <ol className="steps-list">
         {view.steps.map((item) => (
-          <li key={item.step}><strong>{item.label}</strong> <span className="subtle">{item.how === 'history' ? howText(item.how, name) : `${stepDate(item.on)} · ${howText(item.how, name)}`}</span></li>
+          <li key={item.step}>
+            <strong>{item.label}</strong> <span className="subtle">{item.how === 'history' ? howText(item.how, name) : `${stepDate(item.on)} · ${howText(item.how, name)}`}</span>
+            {item.step === 'moving_in' && view.moving_in && <MovingLine moving={view.moving_in} name={name} />}
+          </li>
         ))}
       </ol>
     )}
