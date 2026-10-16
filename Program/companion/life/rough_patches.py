@@ -181,7 +181,8 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
     if fault == 'user':
         known, trait = facts(connection, companion, cause, now)
         first = companion['version']['definition']['name'].split()[0]
-        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': about}
+        # The label shows on Today, so it says what happened as the user reads it ("over what you said: ...").
+        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': (shown or about).removeprefix('over ')}
         table = consequences.tables()[CHOICE]
         outcome = consequences.decide(
             connection, timeline_id=companion['active_timeline_id'], choice=CHOICE, subject=f'patch:{subject}',
@@ -381,8 +382,10 @@ def daily(connection, companion: dict, now: datetime):
     seen_with_others(connection, companion, now)
     lvl = level(connection)
     for row in rows(connection, companion):
-        if not still_open(connection, row, lvl, now, companion):
-            mend(connection, row, 'calm', now)
+        if not still_open(connection, row, lvl, now, companion, picked=True):
+            mend(connection, row, 'calm', now)  # Faded by time, so changing it on Today no longer opens it.
+        elif not picked_open(connection, row):
+            continue  # Let go for now, but Today can still make it start.
         elif showed_up(connection, row, now):
             if row['fault'] == 'companion':
                 mend(connection, row, 'gesture', now)
@@ -442,9 +445,9 @@ def picked_open(connection, row: dict) -> bool:
     return bool(found) and found['picked'] == OPENS
 
 
-def still_open(connection, row: dict, lvl: int, now: datetime, companion: dict) -> bool:
-    """Not mended, picked to start, not taken back, and not faded by time."""
-    if row['mended_at'] or not picked_open(connection, row) or lvl == 0:
+def still_open(connection, row: dict, lvl: int, now: datetime, companion: dict, picked: bool = False) -> bool:
+    """Not mended, picked to start (or taken as `picked`), not taken back, and not faded by time."""
+    if row['mended_at'] or lvl == 0 or not (picked or picked_open(connection, row)):
         return False
     if row['cause'] in ('stood_up', 'called_off') and row['outing_id']:
         outing = optional(connection, 'SELECT status FROM outings WHERE id=?', (row['outing_id'],))

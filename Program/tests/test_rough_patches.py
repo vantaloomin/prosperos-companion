@@ -94,6 +94,19 @@ def test_the_odds_can_be_changed_on_today(client, patches, provider):
     assert not patch(client)['open']
 
 
+def test_one_let_go_can_still_be_made_to_start_on_today_after_the_daily_pass(client, patches, provider, monkeypatch):
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])
+    show(client, show_moods=True)
+    says(provider)
+    send(client, 'leave me alone', 'client-patch-30')
+    reconcile(client)  # The daily pass must not close it while it could still be changed.
+    [outcome] = [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:rough_patch']
+    assert outcome['picked'] == 0 and not patch(client)['open']
+    assert outcome['label'] == 'Whether a rough patch starts with Mira over what you said: "leave me alone"'
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 1})
+    assert patch(client)['open']
+
+
 def test_ordinary_chat_does_not_sting_or_count_as_an_apology():
     for text in ('I want to go away for the weekend, somewhere with a beach.', "This headache doesn't go away.",
                  "My kids wouldn't leave me alone all morning.", "Shut up, you got the job?! That's amazing!",
