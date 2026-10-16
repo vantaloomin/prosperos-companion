@@ -679,7 +679,19 @@ def change(connection, companion: dict, now: datetime, *, day: date | None = Non
         connection.execute(f'UPDATE weddings SET {sets}, updated_at=? WHERE id=?', (*fields.values(), timestamp, row['id']))
     updated = current(connection, companion['active_timeline_id'])
     book(connection, companion, updated, now)
+    follow_plan(connection, updated, timestamp)
     return panel(connection, companion, now, False)
+
+
+def follow_plan(connection, row: dict, timestamp: str) -> None:
+    """The planning on the calendar follows a changed plan: booking the venue names the new one, and what would now
+    fall on or after the day is dropped."""
+    venue = row['venue'] if (row['venue'] or {}).get('id') not in (None, VENUE) else None
+    connection.execute("UPDATE life_admin SET place=?, updated_at=? WHERE timeline_id=? AND key=? AND status='planned'",
+                       (encode(venue) if venue else None, timestamp, row['timeline_id'], f"wedding:{row['id']}:venue"))
+    connection.execute("UPDATE life_admin SET status='removed', updated_at=? WHERE timeline_id=? AND key LIKE ? AND "
+                       "status='planned' AND local_date>=?",
+                       (timestamp, row['timeline_id'], f"wedding:{row['id']}:%", row['local_date']))
 
 
 def change_size(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:

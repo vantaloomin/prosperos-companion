@@ -416,3 +416,22 @@ def test_no_wedding_at_a_concert_or_music_hall():
         for seed in range(60):
             found = wedding.venue_for(data, rules, 'proper', f'hall-{seed}', day=day)
             assert not re.search(r'symphony|music hall', found['name'], re.IGNORECASE), found['name']
+
+
+def test_the_planning_follows_a_new_venue_and_day(client, clock, provider):
+    from companion.database import decode
+
+    def venue_task():
+        with client.app.state.database.connect() as connection:
+            return optional(connection, "SELECT * FROM life_admin WHERE key LIKE 'wedding:%:venue'")
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-15')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    assert venue_task()['status'] == 'planned'
+    venue = client.put('/api/life/admin/wedding', json={'venue': True}).json()['wedding']['venue']
+    assert decode(venue_task()['place'])['name'] == venue['name']
+    soon = (date.fromisoformat(venue_task()['local_date']) - timedelta(days=1)).isoformat()
+    assert client.put('/api/life/admin/wedding', json={'day': soon}).status_code == 200
+    assert venue_task()['status'] == 'removed'
