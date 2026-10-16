@@ -291,3 +291,27 @@ def test_family_dinner_cannot_move_elsewhere(client, clock, invites):
     response = client.post(f"/api/life/outings/{outing['id']}/elsewhere", json={})
     assert response.status_code == 409
     assert outings.what(outing).startswith('dinner at ')
+
+
+def test_a_branch_after_the_dinner_does_not_plan_it_again(client, provider, clock, invites):
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    _trigger, outing = invite(client, clock)
+    at(clock, outing, '23:00')
+    advance(client, clock)
+    says(provider)
+    sent = send(client, 'that was a lovely evening', 'client-people-branch')
+    fork = client.post('/api/timelines', json={'message_id': sent['message']['id'], 'text': 'that was a great night'})
+    assert fork.status_code == 200, fork.text
+    assert client.post(f"/api/timelines/{fork.json()['id']}/activate").status_code == 200
+    advance(client, clock)
+    clock.advance(timedelta(days=10))
+    advance(client, clock)
+    # They have met everyone already: no second "first time" dinner, and where they met still reads.
+    found = meetups(client)
+    assert [row['status'] for row in found] == ['done']
+    with client.app.state.database.connect() as connection:
+        lines = their_people.context_lines(connection, current(connection), clock.now())
+    assert lines and all("at dinner at " in text for _identity, text in lines)

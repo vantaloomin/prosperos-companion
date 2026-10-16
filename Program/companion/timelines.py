@@ -270,11 +270,20 @@ def copy_steps(connection, parent_id, new_id, cutoff_date):
 def copy_impressions(connection, parent_id, new_id, ids, cutoff_date):
     """What their people thought of the user by the fork carries over (companion/life/their_people.py), for people the
     copy has; meet-ups still to come are the copy's own."""
-    rows = many(connection, "SELECT * FROM people_impressions WHERE timeline_id=? AND met_on IS NOT NULL AND "
-                "(met_on='before' OR met_on<=?)", (parent_id, cutoff_date))
-    insert(connection, 'people_impressions', [{**row, 'id': identifier(), 'timeline_id': new_id, 'meetup_id': None,
+    rows = [row for row in many(connection, "SELECT * FROM people_impressions WHERE timeline_id=? AND met_on IS NOT NULL "
+                                "AND (met_on='before' OR met_on<=?)", (parent_id, cutoff_date)) if row['person_id'] in ids]
+    # The meet-ups they met at come too, or the copy plans the first meeting all over again.
+    meetups = {row['id']: row for row in many(connection, "SELECT * FROM people_meetups WHERE timeline_id=? AND "
+                                              "status='done'", (parent_id,))}
+    moved = {meetup_id: identifier() for meetup_id in {row['meetup_id'] for row in rows} if meetup_id in meetups}
+    insert(connection, 'people_meetups', [
+        {**meetups[old], 'id': new, 'timeline_id': new_id, 'consequence_id': None,
+         'people': encode([ids[person] for person in decode(meetups[old]['people']) or [] if person in ids])}
+        for old, new in moved.items()])
+    insert(connection, 'people_impressions', [{**row, 'id': identifier(), 'timeline_id': new_id,
+                                               'meetup_id': moved.get(row['meetup_id']),
                                                'person_id': ids[row['person_id']], 'consequence_id': None}
-                                              for row in rows if row['person_id'] in ids])
+                                              for row in rows])
 
 
 def copy_recall(connection, parent_id, new_id, ids, cutoff_date):
