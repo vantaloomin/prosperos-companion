@@ -100,6 +100,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.calls.FIRST_TEXTS', False)
     # Nor news of a weekend visit planned across the distance (companion/life/long_distance.py).
     monkeypatch.setattr('companion.life.long_distance.FIRST_TEXTS', False)
+    # Nor rough patches opening from what the user says or misses (companion/life/rough_patches.py).
+    monkeypatch.setattr('companion.life.rough_patches.ACTIVE', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.

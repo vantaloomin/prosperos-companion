@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Clock, MapPin, MessageCircle, Users } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Clock, CloudRain, MapPin, MessageCircle, Users } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CirclePerson, Companion, PairTie } from '../../types'
@@ -10,6 +10,7 @@ import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
 import { StatusEditor } from '../status/StatusLine'
 import { PROFILE_TABS, circleText, handle, placeFact, profileClass, profileTab, showsCard } from './profileText'
+import { ROUGH_PATCH_KEY, roughPatchLine, type RoughPatch } from './roughPatchText'
 
 /**
  * The companion's profile: Messages, Posts and Character as tabs, then their card. It takes the chat
@@ -101,6 +102,25 @@ function ProfileFacts({ companion }: { companion: Companion }) {
       {place && <li><MapPin aria-hidden="true" />{place}</li>}
       {time && <li><Clock aria-hidden="true" />{time} for {companion.version.name}</li>}
       {people > 0 && <li><Users aria-hidden="true" />{circleText(people)}</li>}
+      <RoughPatchFact />
     </ul>
+  )
+}
+
+/** "Things are a bit tense" while a rough patch is open (companion/life/rough_patches.py). With Hidden values > moods
+ * on it also says what it is over, and Let it go clears the air. */
+function RoughPatchFact() {
+  const client = useQueryClient()
+  const patch = useQuery({ queryKey: ROUGH_PATCH_KEY, queryFn: () => api<RoughPatch>('/life/rough-patch') })
+  const line = roughPatchLine(patch.data)
+  if (!line || !patch.data) return null
+  const letGo = async () => {
+    client.setQueryData(ROUGH_PATCH_KEY, await api<RoughPatch>(`/life/rough-patch/${patch.data.id}/let-go`, {}))
+  }
+  return (
+    <li className="profile-patch">
+      <CloudRain aria-hidden="true" />{line}
+      {patch.data.about && <button type="button" className="text-button" onClick={() => void letGo()}>Let it go</button>}
+    </li>
   )
 }

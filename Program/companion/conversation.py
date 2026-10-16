@@ -29,7 +29,7 @@ from companion.characters import by_id, for_timeline, require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
-from companion.life import calls, occasions, outings, own_plans, pacing, recommendations, together
+from companion.life import calls, occasions, outings, own_plans, pacing, recommendations, rough_patches, together
 from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
@@ -74,6 +74,8 @@ def record_user(database, body) -> dict:
         calls.note(connection, message, companion, database.now())
         self_checks.heed(connection, message, database.now())
         moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
+        # Rough patches (companion/life/rough_patches.py): words that sting, a promise, an apology or making up.
+        rough_patches.note(connection, message, companion, database.clock.now())
         return message
 
 

@@ -45,3 +45,15 @@ test('the card says long distance, the city and the time difference when they li
   assert.equal(placeFact('Lisbon, Portugal', { state: 'together', kind: 'staying', text: 'Staying with you until Sunday' }), 'Lisbon, Portugal')
   assert.equal(placeFact('Baltimore, Maryland', null), 'Baltimore, Maryland')
 })
+
+test('a rough patch says things are tense, and what about only with moods shown', async () => {
+  const { ROUGH_PATCH_LEVELS, roughPatchLine } = await import('../../src/features/profile/roughPatchText.ts')
+  const closed = { open: false, id: null, text: '', since: null, about: null, small: false }
+  assert.equal(roughPatchLine(undefined), '')
+  assert.equal(roughPatchLine(closed), '')
+  const tense = { open: true, id: 'p1', text: 'Things are a bit tense', since: '2026-10-05', about: null, small: false }
+  assert.equal(roughPatchLine(tense), 'Things are a bit tense')
+  assert.equal(roughPatchLine({ ...tense, about: 'Over what you said' }), 'Things are a bit tense · Over what you said')
+  assert.equal(ROUGH_PATCH_LEVELS.length, 4)
+  for (const level of ROUGH_PATCH_LEVELS) assert.doesNotMatch(level.hint, /\b(?:she|he|her|him|his)\b/i)
+})
