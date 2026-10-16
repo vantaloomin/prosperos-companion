@@ -299,3 +299,14 @@ def test_a_break_calls_the_wedding_off(client, clock, provider, monkeypatch):
     monkeypatch.setattr(breakups, 'holds', lambda _connection, _companion: None)
     advance(client, clock)  # Back together and still engaged: the wedding is planned again.
     assert panel(client)['status'] == 'planned'
+
+
+def test_the_yes_does_not_read_as_agreeing_to_an_outing_and_the_day_has_its_year(client, clock, provider, invites):
+    proposed(client, clock, provider)
+    says(provider, 'You said yes!')
+    send(client, 'Yes! Of course yes!', 'client-wed-10')
+    text = prompt(provider)
+    assert 'You agreed to go' not in text and 'Confirm where and when' not in text
+    found = panel(client)
+    day = date.fromisoformat(found['date'])
+    assert f"{day:%A %B} {day.day}, {day.year} at" in text

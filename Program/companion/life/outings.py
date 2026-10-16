@@ -780,8 +780,8 @@ def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
 
 
 def planned_line(outing: dict) -> str:
-    if outing['activity'] == 'wedding':
-        return f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}."
+    if outing['activity'] == 'wedding':  # Months off: with its year, so it never reads as next week.
+        return f"- {day_text(outing['local_date'])}, {outing['local_date'][:4]} at {outing['at_time']}: {what(outing)}."
     line = f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}, with the user."
     if outing['activity'] == 'dinner-in':
         return line + ' You are cooking.'
@@ -831,7 +831,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
             result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing, now)))
         elif found == 'planned':
             result.append((f"outing:{outing['id']}", planned_line(outing)))
-            if outing['message_id'] in fresh_ids:
+            # The wedding is kept on the latest message (companion/life/wedding.py), not one that asked for it.
+            if outing['message_id'] in fresh_ids and outing['activity'] != 'wedding':
                 result.append((f"outing:{outing['id']}:booked",
                                booked_line(outing, holding_for(connection, companion, outing))))
         elif now - window(outing, version['timezone'])[1] < RECENT and outing['activity'] == 'wedding':
