@@ -200,6 +200,21 @@ def seeing_someone(connection, companion: dict, other: str, now: datetime, subje
                     f'you found out the user is seeing {other} too', now, shown=f"over them finding out you're seeing {other} too")
 
 
+def seen_with_others(connection, companion: dict, now: datetime) -> None:
+    """Once this pair is exclusive (companion/life/steps.py), the user's other romances (any other companion on the
+    romance ladder) come to their notice in the next daily pass: each one rolls once (`seeing_someone`)."""
+    from companion.characters import by_id
+    from companion.life import steps
+    if level(connection) < 2 or not steps.exclusive(connection, companion, now):
+        return
+    for row in many(connection, 'SELECT id FROM companions WHERE id<>?', (companion['id'],)):
+        other = by_id(connection, row['id'])
+        found = steps.state(connection, other, now, write=False) if other else None
+        if found and found['ladder'] == 'romance':
+            seeing_someone(connection, companion, other['version']['name'], now,
+                           subject=f"seeing:{companion['id']}:{other['id']}")
+
+
 def friction(connection, companion: dict, cause: str, subject: str, about: str, now: datetime,
              shown: str = '') -> dict | None:
     """Small everyday friction another feature noticed (a chore after moving in): gone in a day."""
@@ -356,6 +371,7 @@ def daily(connection, companion: dict, now: datetime):
         return
     lapsed(connection, companion, now)
     stand_ups(connection, companion, now)
+    seen_with_others(connection, companion, now)
     lvl = level(connection)
     for row in rows(connection, companion):
         if not still_open(connection, row, lvl, now, companion):

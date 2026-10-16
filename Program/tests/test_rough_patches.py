@@ -10,8 +10,10 @@ from test_openers import check, history
 from test_together import mira, notes, says
 
 from companion import consequences
-from companion.characters import current
+from companion.characters import current, insert_version
+from companion.database import identifier
 from companion.life import openers, rough_patches
+from companion.models import CharacterDefinition
 
 BANKS = Path(__file__).resolve().parents[1] / 'companion' / 'world' / 'data' / 'rough_patches'
 
@@ -194,3 +196,30 @@ def test_they_can_stand_you_up_and_apologise_first(client, patches, provider, cl
     send(client, "it's okay, these things happen", 'client-patch-21')
     assert not patch(client)['open']
     assert 'The user forgave you for calling off' in notes(provider)
+
+
+def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[-1]['option'])
+    mira(client, monkeypatch, relationship='romance')
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        other, now = identifier(), database.now()
+        connection.execute('INSERT INTO companions (id, slot, stepped_back_at, created_at) VALUES (?, NULL, ?, ?)',
+                           (other, now, now))
+        version = insert_version(connection, other, 1, CharacterDefinition(
+            name='Theo', personality='Easygoing.', timezone='UTC', relationship='romance'), '', now)
+        connection.execute('UPDATE companions SET active_version_id=? WHERE id=?', (version, other))
+    with database.connect(write=True) as connection:
+        rough_patches.seen_with_others(connection, current(connection), database.clock.now())
+    assert not patch(client)['open']  # Only dating: nobody minds yet.
+    assert client.put('/api/life/steps', json={'step': 'exclusive'}).status_code == 200
+    show(client, show_moods=True)
+    with database.connect(write=True) as connection:
+        rough_patches.seen_with_others(connection, current(connection), database.clock.now())
+    assert patch(client)['about'] == "over them finding out you're seeing Theo too"
+    set_life(client, rough_patches_realism=1)
+    with database.connect(write=True) as connection:
+        connection.execute('DELETE FROM rough_patches')
+        rough_patches.seen_with_others(connection, current(connection), database.clock.now())
+    assert not patch(client)['open']  # Never on an easy life.

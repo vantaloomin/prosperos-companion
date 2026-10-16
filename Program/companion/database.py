@@ -300,6 +300,10 @@ ADDED_COLUMNS = (
     # Rough patches (companion/life/rough_patches.py, Settings > Realism): 0 off, 1 easy (fades overnight), 2 true to
     # life (an apology, a gesture or a few calm days), 3 dramatic (lingers until you make up).
     ('life_settings', 'rough_patches_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (rough_patches_realism BETWEEN 0 AND 3)'),
+    # Next steps (companion/life/steps.py, Settings > Realism): how soon companions bring up the next step, 0 only when
+    # the user does, 1 slow, 2 true to life, 3 fast; and whether a close friend can fall for the user.
+    ('life_settings', 'steps_pace', 'INTEGER NOT NULL DEFAULT 2 CHECK (steps_pace BETWEEN 0 AND 3)'),
+    ('life_settings', 'friends_fall', 'INTEGER NOT NULL DEFAULT 1 CHECK (friends_fall IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

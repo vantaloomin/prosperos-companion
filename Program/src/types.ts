@@ -473,6 +473,27 @@ export interface LifeSettings {
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
   rough_patches_realism: number
+  /** Next steps (companion/life/steps.py): how soon they bring up the next step, 0 only when you do, 1 slow, 2 true to life, 3 fast. */
+  steps_pace: number
+  /** Whether a close friend can fall for you (companion/life/steps.py). */
+  friends_fall: boolean
+}
+
+/** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
+export interface StepsView {
+  ladder: 'romance' | 'friendship' | null
+  just_friends: boolean
+  step?: string
+  label?: string
+  next?: string | null
+  since?: string
+  text?: string
+  can_fall?: boolean
+  steps?: { step: string; label: string; on: string; how: 'start' | 'history' | 'them' | 'you' | 'set' | 'confession' }[]
+  ladder_steps?: { step: string; label: string }[]
+  /** Only with Hidden values' odds on. */
+  planned?: { step: string; due_on: string; consequence_id: string | null; topic: string } | null
+  asks?: { id: string; step: string; side: 'them' | 'you'; status: 'open' | 'yes' | 'not_yet' | 'no' | 'lapsed'; topic: string; on: string; consequence_id: string | null }[]
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }

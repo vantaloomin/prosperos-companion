@@ -915,6 +915,238 @@
           ]
         }
       ]
+    },
+    "steps:when": {
+      "label": "When {name} brings up {step}",
+      "options": [
+        {
+          "label": "{name} brings it up soon",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 2.5,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.4,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name}'s description says they're assertive"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "social",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "{name} is outgoing"
+            },
+            {
+              "reader": "closeness_over",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "{name} already feels closer than this step needs"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.4,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} brings it up in a few weeks",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "{name} waits a couple of months",
+          "weight": 0.7,
+          "rules": [
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 2.5,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 0.3,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.8,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "social",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "{name} is reserved"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.8,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "steps:answer": {
+      "label": "How {name} answers when you bring up {step}",
+      "options": [
+        {
+          "label": "{name} says yes",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "short_days",
+              "at_least": 1,
+              "times": 0.35,
+              "why": "it's sooner than {name} expected"
+            },
+            {
+              "reader": "skips",
+              "at_least": 1,
+              "times": 0.6,
+              "why": "it skips a step for {name}"
+            },
+            {
+              "reader": "closeness_over",
+              "at_most": -1,
+              "times": 0.25,
+              "why": "{name} doesn't feel close enough yet"
+            },
+            {
+              "reader": "closeness_over",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "{name} already feels very close to you"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 0.8,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.5,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} isn't ready yet",
+          "weight": 1,
+          "rules": []
+        }
+      ]
+    },
+    "steps:falls": {
+      "label": "Whether {name} falls for you this month",
+      "options": [
+        {
+          "label": "{name} stays just a friend",
+          "weight": 30,
+          "rules": []
+        },
+        {
+          "label": "{name} falls for you",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 2,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very high"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 5,
+              "times": 1.5,
+              "why": "you two are like old friends"
+            },
+            {
+              "reader": "months",
+              "at_least": 12,
+              "times": 1.3,
+              "why": "you've been friends for over a year"
+            }
+          ]
+        }
+      ]
+    },
+    "steps:friend_answer": {
+      "label": "How {name} answers when you tell them how you feel",
+      "options": [
+        {
+          "label": "{name} feels the same",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 5,
+              "times": 2,
+              "why": "you two are like old friends"
+            },
+            {
+              "reader": "closeness",
+              "at_most": 3,
+              "times": 0.3,
+              "why": "you two aren't that close yet"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level is high"
+            }
+          ]
+        },
+        {
+          "label": "{name} would rather stay friends",
+          "weight": 2,
+          "rules": []
+        }
+      ]
     }
   }
 }

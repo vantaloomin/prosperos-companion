@@ -2189,3 +2189,13 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .history-when { grid-auto-flow: column; justify-content: start; gap: 8px; }
   .history-action { min-height: 44px; }
 }
+/* You and them (companion/life/steps.py): where things stand, then the steps so far. */
+.steps-line { margin: -4px 0 0; font-size: 1rem; font-weight: 400; color: var(--muted); }
+.steps-planned { padding-left: 18px; margin-top: 10px; }
+.steps-panel .why-it-went { margin-top: 8px; }
+.steps-panel .why-it-went .text-button { padding-left: 0; }
+@media (max-width: 720px) {
+  .steps-panel .why-it-went summary, .steps-panel .wardrobe-group summary { padding-block: 12px; }
+  .steps-panel .why-it-went .text-button { min-height: 44px; }
+}
+.steps-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; }

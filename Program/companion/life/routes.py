@@ -31,6 +31,7 @@ from companion.life import (
     routine,
     simulation,
     social,
+    steps,
     storylines,
     today,
     together,
@@ -463,6 +464,10 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         return storylines.change_outcome(db(request), consequence_id, body.option)
     if subject.startswith('chapter:'):
         return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
+    if subject.startswith('steps:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return steps.change(connection, require_current(connection), consequence_id, body.option, database.clock.now())
     return reactions.change(db(request), consequence_id, body.option)
 
 
