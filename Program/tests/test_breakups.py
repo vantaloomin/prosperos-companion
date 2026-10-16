@@ -326,3 +326,42 @@ def test_a_move_not_made_yet_waits_while_they_are_on_a_break(client, couple, pro
     clock.advance(timedelta(days=1, hours=1))
     reconcile(client)
     assert row(client)['status'] == 'moved'
+
+
+def answer_of(client, choice):
+    return [item for item in client.get('/api/life/reactions').json() if item['choice'] == choice][0]
+
+
+def test_asking_to_try_again_changed_on_today_goes_both_ways(client, couple, provider, monkeypatch):
+    show(client, show_moods=True, show_odds=True)
+    says(provider)
+    send(client, 'I think we should take a break.', 'client-round-1')
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # They still need time.
+    says(provider)
+    send(client, 'can we try again?', 'client-round-2')
+    assert view(client)['stage'] == 'break'
+    outcome = answer_of(client, 'user:talk_round')
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': breakups.YES})
+    assert view(client)['stage'] is None
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
+    assert view(client)['stage'] == 'break'
+
+
+def test_getting_back_together_changed_on_today_goes_both_ways(client, couple, provider, clock, monkeypatch):
+    show(client, show_moods=True, show_odds=True)
+    client.put('/api/life/steps', json={'step': 'married'})
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-back-a')
+    clock.advance(timedelta(days=20))
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # No.
+    says(provider)
+    send(client, 'can we try again?', 'client-back-b')
+    assert view(client)['stage'] == 'ended'
+    outcome = answer_of(client, 'user:back_together')
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': breakups.YES})
+    assert view(client)['stage'] is None
+    assert client.get('/api/life/steps').json()['step'] == 'key'  # Starting over.
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
+    assert view(client)['stage'] == 'ended'
+    with client.app.state.database.connect() as connection:
+        assert steps.state(connection, current(connection), clock.now(), write=False)['step'] == 'married'

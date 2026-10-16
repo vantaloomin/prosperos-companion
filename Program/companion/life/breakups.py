@@ -130,7 +130,7 @@ def stage(connection, row: dict, on: bool = True) -> str:
     """Where this one stands, worked out when read, so changing a roll on Today moves it: 'together' (back together),
     'ended', 'break', 'thinking', 'strained', or 'eased' / 'none' (over, or never was). With the switch off a warning or
     a break counts as over; an ending stands."""
-    if row['together_at']:
+    if row['together_at'] and (not row['together_id'] or picked(connection, row['together_id']) == YES):
         return 'together'
     if row['ended_by'] == 'you' or (row['ended_by'] == 'them' and picked(connection, row['ended_id']) == YES):
         return 'ended'
@@ -360,16 +360,26 @@ def change(connection, companion: dict, consequence_id: str, option: int, now: d
     latest_row, _found = latest(connection, companion)
     if row is None or latest_row is None or latest_row['id'] != row['id']:
         return changed
-    row = held_back(connection, row, outcome, option, now)
-    after = stage(connection, row)
+    row = held_back(connection, row, outcome, option, before, now)
+    follow(connection, companion, row, before, stage(connection, row), now)
+    return changed
+
+
+def follow(connection, companion: dict, row: dict, before: str, after: str, now: datetime) -> None:
+    """What a stage reached or left on Today sets going."""
+    if before == 'together' and after != 'together':
+        for step_id in decode(row['steps_back']) or []:  # Back apart: the steps taken back on getting together return.
+            connection.execute('UPDATE relationship_steps SET undone_at=NULL WHERE id=?', (step_id,))
+        row = update(connection, row, steps_back=None)
     if after == 'ended' and before != 'ended':
         after_end(connection, companion, now)
+    elif before == 'ended' and after == 'together' and stage_before_together(connection, row) == 'ended':
+        back_together(connection, companion, row, now)
     elif before == 'ended' and after != 'ended':
         from companion.life import moving_in
         moving_in.move_back(connection, companion, local_day(companion, row['ended_at'] or stamp(now)), now)
     elif after == 'break' and before != 'break':
         call_off_plans(connection, companion, now)
-    return changed
 
 
 def row_of(connection, outcome: dict) -> dict | None:
@@ -381,16 +391,18 @@ def row_of(connection, outcome: dict) -> dict | None:
                               (parts[1], outcome['timeline_id'])) if len(parts) > 2 else None)
 
 
-# A roll that held things back, made to move them on: what it would have set (`warn`).
-HELD = {'user:thinking': ('thinking_id', {'thinking_at': None}),
-        'user:break': ('break_id', {'break_by': 'them', 'break_at': None}),
-        'user:falling_out': ('ended_id', {'ended_by': 'them', 'ended_at': None})}
+# A roll that held things back, made to move them on: what it would have set (`warn`, `talk_round`, `ask_back`), from
+# the stage it was rolled at.
+HELD = {'user:thinking': ('thinking_id', {'thinking_at': None}, ('strained',)),
+        'user:break': ('break_id', {'break_by': 'them', 'break_at': None}, ('thinking',)),
+        'user:falling_out': ('ended_id', {'ended_by': 'them', 'ended_at': None}, ('strained', 'thinking')),
+        'user:talk_round': ('together_id', {'together_by': 'them', 'together_at': None}, ('break',)),
+        'user:back_together': ('together_id', {'together_by': 'you', 'together_at': None}, ('ended',))}
 
 
-def held_back(connection, row: dict, outcome: dict, option: int, now: datetime) -> dict:
-    column, values = HELD.get(outcome['choice'], (None, {}))
-    if column is None or option != YES or row[column] or any(row[key] for key in values) or row['ended_at'] or \
-            row['eased_at']:
+def held_back(connection, row: dict, outcome: dict, option: int, before: str, now: datetime) -> dict:
+    column, values, stages = HELD.get(outcome['choice'], (None, {}, ()))
+    if column is None or option != YES or before not in stages:
         return row
     return update(connection, row, **{column: outcome['id']}, **{key: value or stamp(now)
                                                                   for key, value in values.items()})
