@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings } from '../../companion'
-import type { Consequence } from '../../types'
+import type { Consequence, ReasonMove } from '../../types'
 import { storyDate } from './storyText'
 
 /** "Why it went this way": each way a turning could have gone, its odds and what moved them, and a way to make
@@ -40,7 +40,7 @@ function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
                   <strong>{Math.round(item.odds * 100)}%</strong> {item.label}
                   {item.option === outcome.data.picked && <span className="subtle"> (what happened)</span>}
                 </p>
-                {item.reasons.length > 0 && <p className="subtle">{item.reasons.join('. ')}.</p>}
+                <Reasons reasons={item.reasons} moves={item.moves} />
                 {item.option !== outcome.data.picked && !(possibleOnly && item.odds === 0) && (
                   <button type="button" className="text-button" onClick={() => void change(item.option)}>Make it go this way</button>
                 )}
@@ -49,7 +49,7 @@ function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
           </ul>
           {outcome.data.marks.length > 0 && (
             <>
-              <p className="subtle">What it left, for a while:</p>
+              <p className="subtle marks-lead">What it left, for a while:</p>
               <ul className="plain-list">
                 {outcome.data.marks.map((mark) => (
                   <li key={mark.holder + mark.kind + mark.note} className="subtle">
@@ -65,4 +65,41 @@ function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
       {outcome.isError && <p className="subtle">This outcome could not be loaded. {String(outcome.error.message)}</p>}
     </details>
   )
+}
+
+const LEADS: [ReasonMove, string][] = [
+  ['possible', 'Possible because'], ['more', 'More likely because'], ['less', 'Less likely because'], ['out', 'Ruled out because'],
+]
+const SHOWN = 3
+
+/** An option's reasons under the way each one pushed it ("Less likely because Mira doesn't feel close enough yet"),
+ * so a reason that lowered the odds never reads as one for them. A ruled-out option shows only why it was ruled out.
+ * Outcomes from before v0.13 keep the plain list. */
+export function Reasons({ reasons, moves }: { reasons: string[]; moves?: ReasonMove[] }) {
+  if (reasons.length === 0) return null
+  if (moves?.length !== reasons.length) return <p className="subtle">{reasons.join('. ')}.</p>
+  const leads = moves.includes('out') ? LEADS.filter(([way]) => way === 'out') : LEADS
+  return (
+    <div>
+      {leads.map(([way, lead]) => {
+        const these = reasons.filter((_, index) => moves[index] === way)
+        return these.length > 0 && <ReasonGroup key={way} lead={lead} reasons={these} />
+      })}
+    </div>
+  )
+}
+
+function ReasonGroup({ lead, reasons }: { lead: string; reasons: string[] }) {
+  const [all, setAll] = useState(false)
+  if (all || reasons.length <= SHOWN) return <p className="subtle reason-group">{lead} {listed(reasons)}.</p>
+  return (
+    <p className="subtle reason-group">
+      {lead} {reasons.slice(0, SHOWN).join(', ')} and{' '}
+      <button type="button" className="text-button" onClick={() => setAll(true)}>{reasons.length - SHOWN} more</button>.
+    </p>
+  )
+}
+
+function listed(items: string[]): string {
+  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
 }
