@@ -361,6 +361,8 @@ def change(connection, companion: dict, consequence_id: str, option: int, now: d
     if row is None or latest_row is None or latest_row['id'] != row['id']:
         return changed
     row = held_back(connection, row, outcome, option, before, now)
+    if outcome['choice'] == 'user:reach_out' and option == YES and before == 'ended':
+        plan_reach(connection, companion, row, outcome['id'], local_today(companion, now), now)
     follow(connection, companion, row, before, stage(connection, row), now)
     return changed
 
@@ -456,10 +458,18 @@ def reach_out(connection, companion: dict, row: dict, now: datetime) -> dict | N
     if outcome['picked'] != YES:
         return None
     due = today + timedelta(days=random.Random(f'{subject}:due').randint(1, 10))
+    return plan_reach(connection, companion, row, outcome['id'], due, now)
+
+
+def plan_reach(connection, companion: dict, row: dict, consequence_id: str, due: date, now: datetime) -> dict | None:
+    """Reaching out, due on that day (a roll made to go this way on Today: today)."""
+    if open_reach(connection, row) or optional(connection, 'SELECT id FROM breakup_reaches WHERE consequence_id=?',
+                                               (consequence_id,)):
+        return None
     reach_id = identifier()
     connection.execute("INSERT INTO breakup_reaches (id, breakup_id, timeline_id, status, due_on, consequence_id, "
                        "created_at) VALUES (?, ?, ?, 'planned', ?, ?, ?)",
-                       (reach_id, row['id'], row['timeline_id'], due.isoformat(), outcome['id'], stamp(now)))
+                       (reach_id, row['id'], row['timeline_id'], due.isoformat(), consequence_id, stamp(now)))
     return one(connection, 'SELECT * FROM breakup_reaches WHERE id=?', (reach_id,))
 
 

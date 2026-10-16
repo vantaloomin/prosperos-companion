@@ -365,3 +365,16 @@ def test_getting_back_together_changed_on_today_goes_both_ways(client, couple, p
     assert view(client)['stage'] == 'ended'
     with client.app.state.database.connect() as connection:
         assert steps.state(connection, current(connection), clock.now(), write=False)['step'] == 'married'
+
+
+def test_reaching_out_changed_on_today_is_due_at_once(client, couple, provider, clock, monkeypatch):
+    show(client, show_moods=True, show_odds=True)
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-reach-1')
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # They leave it be.
+    clock.advance(timedelta(days=breakups.REACH_AFTER + 1))
+    tick(client)
+    assert not [trigger for trigger in triggers(client) if trigger.kind == 'reach_out']
+    outcome = answer_of(client, 'user:reach_out')
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': breakups.YES})
+    assert [trigger for trigger in triggers(client) if trigger.kind == 'reach_out']
