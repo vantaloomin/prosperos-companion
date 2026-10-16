@@ -457,3 +457,15 @@ def test_moving_away_keeps_the_wedding_in_their_city(client, clock, provider):
     with client.app.state.database.connect() as connection:
         rows = many(connection, "SELECT status FROM outings WHERE activity='wedding'")
     assert [row['status'] for row in rows] == ['planned']
+
+
+def test_a_church_service_is_held_in_a_church():
+    """Where the customs say the church service (London 1895, New York 1925, Camelot), the venue is a church."""
+    from companion.world import catalog
+    for city in ('london-1895', 'new-york-1925', 'camelot'):
+        data = catalog.city(city, [])
+        rules = wedding.customs(wedding.culture_of(data))
+        assert 'church' in rules['ceremony']
+        for seed in range(40):
+            found = wedding.venue_for(data, rules, wedding.SIZES[seed % 3], f'church-{seed}', day=date(2027, 6, 12))
+            assert found['kind'] == 'temple', (city, found['name'])

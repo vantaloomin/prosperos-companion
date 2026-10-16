@@ -1,5 +1,5 @@
 {
-  "_about": "Engagement and wedding (companion/life/wedding.py). `customs`: how a wedding goes by the city's calendar (companion/world/catalog.calendar_id) or else its era group (companion/life/admin.era_group): the words, the order of the day, venue words and place kinds, the weekday (0 Monday) and hours, months engaged and guests by size, the budget in months of the companion's take-home by size and the share they pay, the ring (months of take-home, and one ring per pay tier), how one asks, what they wear by pronoun, and the planning on the Life admin calendar (`after` days from the engagement, or `before` days before the wedding). `invite`: the first text inviting the user out on the evening they will propose, when no model writes it ({place}, {day}, {time}; it never gives the proposal away). `engaged`: their feed post the day they get engaged. `married`: the caption on the wedding photo. At least 100 each; gender-neutral and era-neutral.",
+  "_about": "Engagement and wedding (companion/life/wedding.py). `customs`: how a wedding goes by the city's calendar (companion/world/catalog.calendar_id) or else its era group (companion/life/admin.era_group): the words, the order of the day, venue words and place kinds (`else`: the kinds when the city has none of those, for a church wedding in a town without a church), the weekday (0 Monday) and hours, months engaged and guests by size, the budget in months of the companion's take-home by size and the share they pay, the ring (months of take-home, and one ring per pay tier), how one asks, what they wear by pronoun, and the planning on the Life admin calendar (`after` days from the engagement, or `before` days before the wedding). `invite`: the first text inviting the user out on the evening they will propose, when no model writes it ({place}, {day}, {time}; it never gives the proposal away). `engaged`: their feed post the day they get engaged. `married`: the caption on the wedding photo. At least 100 each; gender-neutral and era-neutral.",
   "customs": {
     "us": {
       "word": "wedding",
@@ -525,6 +525,9 @@
       "venues": {
         "words": "church|chapel|cathedral|hotel|hall|garden|ballroom|inn",
         "kinds": [
+          "temple"
+        ],
+        "else": [
           "temple",
           "landmark",
           "venue",
@@ -753,6 +756,9 @@
       "venues": {
         "words": "church|chapel|cathedral|abbey|st\\.? |hall",
         "kinds": [
+          "temple"
+        ],
+        "else": [
           "temple",
           "landmark",
           "venue",
@@ -869,6 +875,9 @@
       "venues": {
         "words": "church|chapel|abbey|cathedral|hall|castle|great hall|priory",
         "kinds": [
+          "temple"
+        ],
+        "else": [
           "temple",
           "landmark",
           "guildhall",

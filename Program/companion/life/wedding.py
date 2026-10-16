@@ -443,9 +443,10 @@ def venue_for(data: dict | None, rules: dict, size: str, seed: str, without: tup
         return {'id': VENUE, 'name': 'the wedding venue', 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
                 'cuisine': '', 'city': '', 'city_id': '', 'spots': []}
     words = re.compile(rf"\b(?:{rules['venues']['words']})", re.IGNORECASE)
-    kinds = rules['venues']['kinds']
-    options = [item for item in data['places'] if item['kind'] in kinds and item['id'] not in without
-               and not NOT_VENUES.search(item['name'])]
+    options = []
+    for kinds in (rules['venues']['kinds'], rules['venues'].get('else', ())):  # A church service is in a church.
+        options = options or [item for item in data['places'] if item['kind'] in kinds and item['id'] not in without
+                              and not NOT_VENUES.search(item['name'])]
     if not options:
         options = [item for item in data['places'] if item['id'] not in without] or data['places']
     if cold(data, day):
