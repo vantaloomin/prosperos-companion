@@ -32,6 +32,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
 from companion.life import (
+    breakups,
     calls,
     chapters,
     composer,
@@ -425,14 +426,19 @@ PAST_WAITING = {'occasion', 'postcard'}
 # call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
 # (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
 # meet their people (companion/life/their_people.py), and the evening they plan to propose (companion/life/wedding.py).
-FINDERS = [occasion, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
 # While a rough patch of the user's making is open (companion/life/rough_patches.py) they hold back: no check-ins,
 # invitations, knocks, calls or next steps of their own.
 COOLED = {check_in, usual_time, together.suggest_due, together.knock_due, calls.ring_due, kitchen.invite_due,
-          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due}
+          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due, wedding.propose_due}
+
+
+# While apart (companion/life/breakups.py) texting drops off: on a break only what the break itself brings; exes still
+# say happy birthday, and may reach out about trying again.
+APART = {'break': {breakups.news_due}, 'ended': {breakups.news_due, occasion}}
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
@@ -440,7 +446,10 @@ def candidates(connection, companion, now) -> list[Trigger]:
     fired = {row['trigger_key'] for row in many(connection, 'SELECT trigger_key FROM openers WHERE timeline_id=?',
                                                  (timeline_id,))}
     cool = rough_patches.cool(connection, companion, now)
-    return [trigger for finder in FINDERS if not (cool and finder in COOLED)
+    held_back = breakups.holds(connection, companion)
+    allowed = APART.get(held_back)
+    cool = cool or held_back == 'cool'
+    return [trigger for finder in FINDERS if not (cool and finder in COOLED) and (allowed is None or finder in allowed)
             for trigger in finder(connection, companion, now) if trigger.key not in fired]
 
 
@@ -658,22 +667,22 @@ class Openers:
             row = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
             self_facts.note(connection, row, timestamp)
             own_plans.note(connection, row, latest, timestamp)
-            if trigger.kind == 'dinner_invite':
-                kitchen.settle_invite(connection, latest, row, trigger, timestamp)
-            if trigger.kind == 'hobby_invite':
-                hobbies.settle_invite(connection, latest, row, trigger, timestamp)
-            if trigger.kind in together.SETTLES:
-                together.settle(connection, latest, row, trigger, timestamp)
-            if trigger.kind in steps.SETTLES:
-                steps.settle(connection, latest, row, trigger, timestamp)
-            if trigger.kind in their_people.SETTLES:
-                their_people.settle(connection, latest, row, trigger, timestamp)
-            if trigger.kind in wedding.SETTLES:
-                wedding.settle(connection, latest, row, trigger, timestamp)
+            settle(connection, latest, row, trigger, timestamp)
             focus = current(connection)
             [view] = voice_notes.decorate(connection, [message_view(row)])
         return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],
                 'focus': bool(focus and focus['id'] == latest['id'])}
+
+
+def settle(connection, companion, row, trigger, timestamp):
+    """What a first text sets going once it is sent: an invitation booked, an ask opened, a proposal evening."""
+    if trigger.kind == 'dinner_invite':
+        kitchen.settle_invite(connection, companion, row, trigger, timestamp)
+    if trigger.kind == 'hobby_invite':
+        hobbies.settle_invite(connection, companion, row, trigger, timestamp)
+    for module in (together, steps, their_people, wedding, breakups):
+        if trigger.kind in module.SETTLES:
+            module.settle(connection, companion, row, trigger, timestamp)
 
 
 def plain(text: str) -> str:

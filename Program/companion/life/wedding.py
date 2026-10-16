@@ -501,15 +501,17 @@ def guest_list(connection, companion: dict, size: str) -> list[dict]:
 def advance(connection, companion: dict, now: datetime) -> None:
     """Once a day: proposals follow their asks and evenings; an engagement gets its wedding planned, the planning goes
     on the calendar as it comes up, the outing stays booked, and a wedding that is over makes them married. A step
-    moved back calls the wedding off. Cheap: no model."""
+    moved back, a break or a breakup (companion/life/breakups.py) calls the wedding off. Cheap: no model."""
     if not ACTIVE or not companion.get('active_timeline_id'):
         return
     follow_proposals(connection, companion, now)
     timeline_id = companion['active_timeline_id']
     found = steps.state(connection, companion, now, write=False)
     row = current(connection, timeline_id)
+    from companion.life import breakups
+    apart = breakups.holds(connection, companion) in ('break', 'ended')  # A break or a breakup calls the wedding off.
     if row and row['status'] == 'planned':
-        if engaged_step(found) is None:
+        if engaged_step(found) is None or apart:
             call_off(connection, companion, row, now)
             return
         outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'] or '',))
@@ -520,7 +522,7 @@ def advance(connection, companion: dict, now: datetime) -> None:
         book(connection, companion, row, now)
         prepare(connection, companion, row, now)
         return
-    if row is None and found and found['step'] == STEP:
+    if row is None and found and found['step'] == STEP and not apart:
         plan(connection, companion, now)
 
 

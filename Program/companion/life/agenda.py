@@ -21,6 +21,7 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
     admin,
     body,
+    breakups,
     chapters,
     circle,
     composer,
@@ -153,6 +154,8 @@ def extend(connection, companion, world, now) -> dict:
     started = storylines.advance(connection, companion, now)
     reactions.daily(connection, companion, now)
     rough_patches.daily(connection, companion, now)
+    # Breaks and breakups (companion/life/breakups.py) read the rough patches just settled.
+    breakups.daily(connection, companion, now)
     steps.advance(connection, companion, now)
     moving_in.advance(connection, companion, now)
     love_life.advance(connection, companion, world, now)

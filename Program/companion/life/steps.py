@@ -347,9 +347,18 @@ def state(connection, companion: dict, now, write: bool = True) -> dict | None:
 
 def exclusive(connection, companion: dict, now) -> bool:
     """Whether the user and this companion are exclusive (or further along): from then on, on a real life or more
-    drama, finding out the user is seeing someone else opens a rough patch (Vanta's decision "Exclusive minds")."""
+    drama, finding out the user is seeing someone else opens a rough patch (Vanta's decision "Exclusive minds"). Not
+    once they have broken up (companion/life/breakups.py)."""
+    if apart(connection, companion) == 'ended':
+        return False
     found = state(connection, companion, now, write=False)
     return bool(found and found['ladder'] == 'romance' and index_of('romance', found['step']) >= 1)
+
+
+def apart(connection, companion: dict) -> str | None:
+    """'break' or 'ended' while the pair is apart (companion/life/breakups.py, which reads this module)."""
+    from companion.life import breakups
+    return breakups.apart(connection, companion)
 
 
 # Plain words ------------------------------------------------------------------------------------------------------------
@@ -483,6 +492,8 @@ def plan_next(connection, companion: dict, found: dict, now) -> dict | None:
     step = step_of(found['ladder'], found['next']) if found['next'] else None
     if not step or not step.asks or not pace(connection) or asks(connection, timeline_id, ('planned', 'open')):
         return None
+    if apart(connection, companion):
+        return None  # Not while on a break or broken up (companion/life/breakups.py).
     today = local_today(companion, now)
     found_facts = facts(connection, companion, found, step, now)
     if found_facts['short_days'] or found_facts['closeness_over'] < 0 or waiting(connection, timeline_id, step.key, today):
@@ -662,8 +673,8 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     if optional(connection, 'SELECT id FROM step_asks WHERE message_id=? OR answer_id=?', (message['id'], message['id'])):
         return True
     found = state(connection, companion, now)
-    if found is None:
-        return False
+    if found is None or apart(connection, companion):
+        return False  # On a break or broken up, asking to try again is read by companion/life/breakups.py.
     open_ask = next(iter(asks(connection, timeline_id, ('open',))), None)
     if open_ask and (said := answer(message['text'])):
         settle_answer(connection, companion, open_ask, said, message, now)
@@ -852,8 +863,8 @@ def context_lines(connection, companion: dict, now, turn: set[str]) -> list[tupl
     """(identity, line) for the 'steps' section: where things stand, something they brought up that waits for an
     answer, and an answer just given."""
     found = state(connection, companion, now, write=False)
-    if found is None:
-        return []
+    if found is None or apart(connection, companion) == 'ended':
+        return []  # Exes: the 'breakup' section says where they stand (companion/life/breakups.py).
     result = [(f"steps:{found['ladder']}:{found['step']}", context_line(found))]
     for row in asks(connection, companion['active_timeline_id'], ('open',)):
         if row['message_id'] and row['answer_id'] is None:
@@ -881,7 +892,7 @@ def anniversaries(connection, companion: dict, day: date, ahead: int) -> list[di
     app started them at from how they know each other has no real date, so no anniversary."""
     from companion.life import occasions
     found = state(connection, companion, now_for(day, companion), write=False)
-    if found is None:
+    if found is None or apart(connection, companion) == 'ended':
         return []
     result = []
     for item in found['steps']:

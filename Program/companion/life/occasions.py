@@ -160,7 +160,10 @@ def occasions(connection, companion: dict, now) -> list[dict]:
                               '', span=years, did=item['did'], step=item['step']))
     span = milestone(first, user_today) if first else None
     if span:
-        romance = companion['version']['definition'].get('relationship') == 'romance'
+        from companion.life import breakups  # It reads this module's neighbours; imported when used.
+        # Exes (companion/life/breakups.py) still know the day they met, but it is no longer "your anniversary".
+        romance = companion['version']['definition'].get('relationship') == 'romance' and not breakups.ended(
+            connection, companion)
         what = f"{span} since you and the user first talked ({first.strftime('%d %B %Y')})"
         found.append(occasion('anniversary', user_today, 0, f"your anniversary: {what}" if romance else what, '',
                               span=span))

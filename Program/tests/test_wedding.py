@@ -283,3 +283,19 @@ def test_a_winter_wedding_in_a_cold_city_is_held_indoors():
         for size in wedding.SIZES:
             found = wedding.venue_for(data, rules, size, f'winter-{seed}', day=date(2027, 2, 20))
             assert found['kind'] not in wedding.OUTDOOR and not wedding.OUTDOOR_NAMES.search(found['name']), found['name']
+
+
+def test_a_break_calls_the_wedding_off(client, clock, provider, monkeypatch):
+    from companion.life import breakups
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-9')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    assert panel(client)['status'] == 'planned'
+    monkeypatch.setattr(breakups, 'holds', lambda _connection, _companion: 'break')
+    advance(client, clock)
+    assert panel(client) is None
+    monkeypatch.setattr(breakups, 'holds', lambda _connection, _companion: None)
+    advance(client, clock)  # Back together and still engaged: the wedding is planned again.
+    assert panel(client)['status'] == 'planned'

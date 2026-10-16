@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause and closeness (for user:rough_patch: the Rough patches slider 0 to 3, what happened, and how close the companion feels to the user 1 to 5), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama and pace.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause and closeness (for user:rough_patch: the Rough patches slider 0 to 3, what happened, and how close the companion feels to the user 1 to 5), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The breakup choices (user:strained, user:thinking, user:break, user:falling_out, user:after_break, user:talk_round, user:back_together, user:reach_out; companion/life/breakups.py) read drama, level (the Rough patches slider), closeness, step (how far along the pair is, 0 dating to 7 married), patches (big rough patches of the user's making in the last 45 days), cause (the open rough patch's cause), talked (times the user reached out during a break), ended_by (them, you or break), days_apart and months since it ended. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama and pace.",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -1539,6 +1539,544 @@
               "at_least": 5,
               "times": 1.3,
               "why": "you two are like old friends"
+            }
+          ]
+        }
+      ]
+    },
+    "user:strained": {
+      "label": "Whether things get strained with {name}",
+      "options": [
+        {
+          "label": "{name} lets it pass",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "step",
+              "at_least": 5,
+              "times": 1.5,
+              "why": "you have built a life together"
+            }
+          ]
+        },
+        {
+          "label": "Things get strained with {name}",
+          "weight": 0.3,
+          "rules": [
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.6,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.5,
+              "why": "it's a quiet life"
+            },
+            {
+              "reader": "patches",
+              "at_least": 2,
+              "times": 1.8,
+              "why": "this isn't the first rough patch lately"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "cause",
+              "is": "seeing_someone",
+              "times": 2.5,
+              "why": "you were seeing someone else"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_told",
+              "times": 1.5,
+              "why": "you broke {name}'s trust"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_kept",
+              "times": 1.5,
+              "why": "you kept something from {name}"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:thinking": {
+      "label": "Whether {name} starts thinking about a break",
+      "options": [
+        {
+          "label": "{name} works through it",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "step",
+              "at_least": 5,
+              "times": 1.5,
+              "why": "you have built a life together"
+            }
+          ]
+        },
+        {
+          "label": "{name} starts thinking about a break",
+          "weight": 0.35,
+          "rules": [
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.6,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.5,
+              "why": "it's a quiet life"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "cause",
+              "is": "seeing_someone",
+              "times": 2.5,
+              "why": "you were seeing someone else"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:break": {
+      "label": "Whether {name} asks for a break",
+      "options": [
+        {
+          "label": "{name} holds on",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "step",
+              "at_least": 7,
+              "times": 2,
+              "why": "you're married"
+            }
+          ]
+        },
+        {
+          "label": "{name} asks for a break",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.6,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.5,
+              "why": "it's a quiet life"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "cause",
+              "is": "seeing_someone",
+              "times": 2.5,
+              "why": "you were seeing someone else"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:falling_out": {
+      "label": "Whether you and {name} fall out",
+      "options": [
+        {
+          "label": "{name} works through it",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            }
+          ]
+        },
+        {
+          "label": "A falling out with {name}",
+          "weight": 0.3,
+          "rules": [
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.6,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.5,
+              "why": "it's a quiet life"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_told",
+              "times": 1.5,
+              "why": "you broke {name}'s trust"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_kept",
+              "times": 1.5,
+              "why": "you kept something from {name}"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:after_break": {
+      "label": "How {name} decides at the end of the break",
+      "options": [
+        {
+          "label": "{name} wants to try again",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "talked",
+              "at_least": 1,
+              "times": 2,
+              "why": "you reached out during the break"
+            },
+            {
+              "reader": "talked",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "you kept trying"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "step",
+              "at_least": 7,
+              "times": 1.5,
+              "why": "you're married"
+            }
+          ]
+        },
+        {
+          "label": "{name} ends it",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "talked",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "you didn't reach out during the break"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:talk_round": {
+      "label": "Whether {name} agrees to try again",
+      "options": [
+        {
+          "label": "{name} still needs time",
+          "weight": 1.5,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} holds on to things"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the rough patches kept piling up"
+            }
+          ]
+        },
+        {
+          "label": "{name} agrees to try again",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "talked",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "you've been reaching out"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.6,
+              "why": "{name} is forgiving"
+            }
+          ]
+        }
+      ]
+    },
+    "user:back_together": {
+      "label": "How {name} answers when you ask to get back together",
+      "options": [
+        {
+          "label": "{name} says no",
+          "weight": 1.5,
+          "rules": [
+            {
+              "reader": "days_apart",
+              "at_most": 13,
+              "times": 1.5,
+              "why": "it's still raw for {name}"
+            },
+            {
+              "reader": "ended_by",
+              "is": "them",
+              "times": 1.5,
+              "why": "{name} was the one who ended it"
+            },
+            {
+              "reader": "ended_by",
+              "is": "break",
+              "times": 1.5,
+              "why": "{name} was the one who ended it"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} holds on to things"
+            }
+          ]
+        },
+        {
+          "label": "{name} says yes",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.6,
+              "why": "you two were close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.6,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "ended_by",
+              "is": "you",
+              "times": 1.3,
+              "why": "{name} didn't want it to end"
+            }
+          ]
+        }
+      ]
+    },
+    "user:reach_out": {
+      "label": "Whether {name} reaches out about trying again",
+      "options": [
+        {
+          "label": "{name} leaves it be",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "ended_by",
+              "is": "them",
+              "times": 1.5,
+              "why": "{name} was the one who ended it"
+            },
+            {
+              "reader": "ended_by",
+              "is": "break",
+              "times": 1.5,
+              "why": "{name} was the one who ended it"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} holds on to things"
+            },
+            {
+              "reader": "months",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "it's been months"
+            }
+          ]
+        },
+        {
+          "label": "{name} reaches out",
+          "weight": 0.15,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 2,
+              "why": "you two were close"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} is forgiving"
             }
           ]
         }
