@@ -70,7 +70,7 @@ function MovingLine({ moving, name }: { moving: NonNullable<StepsView['moving_in
   return (
     <div className="steps-detail">
       <p>{movingText(moving, name)}{moving.status === 'waiting' && <> <a className="text-button inline" href="#worlds" onClick={change}>Change your home city</a> when you're ready.</>}</p>
-      {moving.consequence_id && <WhyItWent id={moving.consequence_id} />}
+      {moving.consequence_id && <WhyItWent id={moving.consequence_id} settled={moving.status === 'moved'} />}
     </div>
   )
 }
