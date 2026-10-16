@@ -31,7 +31,14 @@ export function stripLine(where: WhereState | undefined, name: string): StripLin
 
 function endedLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
   if (kind === 'yours' || kind === 'knock') return { lead: `${name} headed home.`, place: null, tail: '' }
+  if (outing.activity === 'wedding') return mapped('Married today at ', outing, '.')
   return { lead: sentence(`Headed home from ${kind === 'theirs' ? `${name}'s place` : outing.place.name}`), place: null, tail: '' }
+}
+
+/** The place linked to the map, unless it isn't on it (a wedding venue in a city the app doesn't know). */
+function mapped(lead: string, outing: WhereOuting, tail: string): StripLine {
+  if (outing.place.id.startsWith('~')) return { lead: `${lead}${outing.place.name}`, place: null, tail }
+  return { lead, place: { id: outing.place.id, name: outing.place.name }, tail }
 }
 
 /** A full stop, unless the words already end in one ("Power Plant Live!", "Pastries & Co."). */
@@ -43,6 +50,8 @@ function liveLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine
   const tail = ` until ${timeText(outing.until_time)}`
   // Dinner at their family's home (companion/life/their_people.py) isn't on the map.
   if (kind === 'out' && outing.place.kind === 'family-home') return { lead: `Together at ${outing.place.name}`, place: null, tail }
+  // Your wedding (companion/life/wedding.py).
+  if (kind === 'out' && outing.activity === 'wedding') return mapped('Your wedding at ', outing, tail)
   if (kind === 'out') return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail }
   if (kind === 'theirs') return { lead: `At ${name}'s place`, place: null, tail }
   if (kind === 'knock' && outing.not_now) return { lead: `${name} dropped by and is at your place`, place: null, tail }

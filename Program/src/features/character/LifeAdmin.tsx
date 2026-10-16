@@ -8,6 +8,7 @@ import { ADMIN_KEY } from '../today/adminText'
 import { dayText } from '../today/outingText'
 import { calendarDay } from '../../when'
 import { panelTitle } from './panelText'
+import { WeddingPlan } from './WeddingPlan'
 
 /** The companion's life admin in plain words: what is on the list, what comes due later and what got done lately. */
 export function LifeAdmin({ name }: { name: string }) {
@@ -21,6 +22,7 @@ export function LifeAdmin({ name }: { name: string }) {
       {admin.isError && <ErrorNotice error={admin.error} />}
       {view && <>
         <ul className="admin-state">{view.state.map((line) => <li key={line}>{line}</li>)}</ul>
+        {view.wedding?.status === 'planned' && <WeddingPlan plan={view.wedding} name={name} />}
         {view.meter !== null && <p className="subtle">On top of things: {view.meter} out of 100</p>}
         {view.upcoming.length > 0 && <><h3>Coming up</h3><AdminList items={view.upcoming} /></>}
         {view.later.length > 0 && <>

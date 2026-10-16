@@ -29,7 +29,7 @@ from companion.characters import by_id, for_timeline, require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
-from companion.life import calls, occasions, outings, own_plans, pacing, recommendations, steps, together
+from companion.life import calls, occasions, outings, own_plans, pacing, recommendations, steps, together, wedding
 from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
@@ -567,6 +567,7 @@ class Conversation:
                 self_facts.note(connection, finished, self.database.now())
                 own_plans.note(connection, finished, companion, self.database.now())
                 outings.note(connection, finished, companion, self.database.now())
+                wedding.after_reply(connection, finished, companion, self.database.clock.now())
             return status == 'complete' and spoken
 
 

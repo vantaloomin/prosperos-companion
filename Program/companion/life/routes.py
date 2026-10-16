@@ -39,6 +39,7 @@ from companion.life import (
     town_personality,
     trips,
     web,
+    wedding,
 )
 from companion.memory import pairs
 from companion.models import Input, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
@@ -461,6 +462,11 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         database = db(request)
         with database.connect(write=True) as connection:
             return their_people.change(connection, require_current(connection), consequence_id, body.option,
+                                       database.clock.now())
+    if subject.startswith('wedding:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return wedding.change_size(connection, require_current(connection), consequence_id, body.option,
                                        database.clock.now())
     return reactions.change(db(request), consequence_id, body.option)
 

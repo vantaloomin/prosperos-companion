@@ -153,6 +153,7 @@ function PageBody({ page, name }: { page: ScrapbookPage; name: string }) {
       {page.photos.map((photo) => <li key={photo.ref}><img src={imageFile(photo.ref)} alt={photo.summary} loading="lazy" />{photo.date && <span>{dayText(photo.date)}</span>}</li>)}
     </ul>
   </>
+  if (page.kind === 'wedding') return <WeddingPage page={page} />
   if (page.kind === 'closing') return <>
     <h2>{page.title}</h2>
     <p className="year-closing">{page.text}</p>
@@ -161,6 +162,18 @@ function PageBody({ page, name }: { page: ScrapbookPage; name: string }) {
     <h2>{page.title}</h2>
     <Items items={page.items} />
     {page.kind === 'jokes' && page.note && <p className="subtle">{page.note}</p>}
+  </>
+}
+
+/** Your wedding (companion/life/wedding.py): the photo, where, the order of the day and who came. */
+function WeddingPage({ page }: { page: Extract<ScrapbookPage, { kind: 'wedding' }> }) {
+  return <>
+    <p className="eyebrow">{dayText(page.date, true)}</p>
+    <h2>{page.title}</h2>
+    {page.photo && <figure className="year-wedding-photo"><img src={imageFile(page.photo)} alt={page.photo_alt} loading="lazy" /></figure>}
+    <p className="year-closing">{page.text}</p>
+    <Items items={page.items} />
+    {page.guests.length > 0 && <p className="subtle">With {page.guests.join(', ')}</p>}
   </>
 }
 

@@ -24,7 +24,8 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   silent change: yes makes them a romance at dating (a new character version), no keeps the friendship after a short
   awkward spell (a mood mark). The user can tell a friend how they feel too (`steps:friend_answer`).
 - Steps whose life changes come with later features (moving in, engagement, the wedding) are never brought up by the
-  app yet; the user can still set any step on the Character page, or move it back.
+  app yet; the user can still set any step on the Character page, or move it back. They propose in person, on an
+  evening out, and the wedding makes them married (companion/life/wedding.py).
 
 Each step is an anniversary (companion/life/occasions.py) and a line in the scrapbook (companion/life/scrapbook.py).
 Odds show under Hidden values ("Why it went this way"). No model decides anything: the model only puts it in words.
@@ -96,7 +97,7 @@ ROMANCE = (
          'You are in love and the user has a key to your place. You do not live together.'),
     Step('moving_in', 'Living together', 'living together', 'moved in together', 'moving in together',
          (240, 120, 60), 4, False, 'You live together. You are not engaged.'),
-    Step('engaged', 'Engaged', 'engaged', 'got engaged', 'getting engaged', (365, 240, 90), 5, False,
+    Step('engaged', 'Engaged', 'engaged', 'got engaged', 'getting engaged', (365, 240, 90), 5, True,
          'You are engaged to be married.'),
     Step('married', 'Married', 'married', 'got married', 'getting married', (365, 270, 120), 5, False,
          'You are married.'),
@@ -162,6 +163,9 @@ RAISES = {
                                r"people|siblings|brother|sister|crew|circle)\b", re.IGNORECASE),
     'key': re.compile(r"\b(?:(?:a |the |your |my )?(?:spare )?key to (?:your|my|our) (?:place|apartment|flat|house|home|"
                       r"rooms|door)|(?:give|get|have|cut) (?:you|me) a (?:spare )?key|swap keys)\b", re.IGNORECASE),
+    'engaged': re.compile(r"\b(?:(?:will|would|wanna|want to|do you want to) (?:you )?marry me|marry me|be my "
+                          r"(?:husband|wife|spouse|fianc[ée]e?)|(?:get|getting) engaged|(?:get|getting) married)\b",
+                          re.IGNORECASE),
     'best_friends': re.compile(r"\b(?:you'?re|you are|be) my best friend|best friends? (?:forever|now)|bff\b",
                                re.IGNORECASE),
     'trip': re.compile(r"\b(?:take|go on|plan) a trip (?:together|with me|just us)|(?:go|travel|get) away (?:together|"
@@ -573,6 +577,8 @@ def ask_due(connection, companion: dict, now) -> list:
     found = state(connection, companion, now, write=False)
     result = []
     for row in asks(connection, timeline_id, ('planned',)):
+        if row['step'] == 'engaged':
+            continue  # They propose in person, on an evening out (companion/life/wedding.py).
         if not row['due_on'] or row['due_on'] > today.isoformat():
             continue
         if not still_next(found, row):
@@ -681,12 +687,18 @@ def settle_answer(connection, companion: dict, row: dict, said: str, message: di
     if said != 'yes':
         if row['step'] == CONFESSION:
             awkward(connection, companion, row, now)
+        elif row['step'] == 'engaged':
+            from companion.life import wedding
+            wedding.answered(connection, companion, row, said, now)
         return
     if row['step'] == CONFESSION:
         become_romance(connection, companion, row['id'], day, timestamp)
         return
     insert_step(connection, companion['active_timeline_id'], row['ladder'], row['step'], day, 'them', timestamp,
                 row['id'])
+    if row['step'] == 'engaged':
+        from companion.life import wedding
+        wedding.answered(connection, companion, row, said, now)
 
 
 def answers(connection, companion: dict, found: dict, key: str, message: dict, now) -> bool:
@@ -707,6 +719,9 @@ def answers(connection, companion: dict, found: dict, key: str, message: dict, n
         day = local_today(companion, now)
         for item in [*skipped, key]:
             insert_step(connection, timeline_id, found['ladder'], item, day, 'you', timestamp, row['id'])
+        if key == 'engaged':
+            from companion.life import wedding
+            wedding.answered(connection, companion, row, status, now)
     return True
 
 

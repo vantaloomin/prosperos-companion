@@ -30,6 +30,8 @@ const WHAT: Record<string, string> = {
   'visit-in': 'Time together', 'visit-yours': 'A visit', 'dinner-yours': 'Dinner',
   // Meeting their people (companion/life/their_people.py).
   'meet-family': 'Family dinner', 'meet-friends': 'Drinks with friends',
+  // Engagement and wedding (companion/life/wedding.py).
+  wedding: 'Your wedding',
 }
 
 /** "Thu, Oct 8" from a local date. */
