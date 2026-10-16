@@ -279,6 +279,10 @@ HISTORY = {
 }
 
 
+LONG_BEFORE = re.compile(r"\b(?:years?|months?|ages|since|ago|grew up|childhood|school|college|university|known each "
+                         r"other|have known|old friends?|long time)\b", re.IGNORECASE)
+
+
 def start(connection, companion: dict, ladder: str, now) -> list[tuple[str, str]]:
     """(step, how) to start an existing pair at, with no question asked: the steps how they know each other says
     ("married for ten years"), else the ones closeness and the days talked so far suggest."""
@@ -306,9 +310,9 @@ def start(connection, companion: dict, ladder: str, now) -> list[tuple[str, str]
             found.append('their_people')
     elif level >= 5 and (days >= 90 or head >= 5):
         found.append('best_friends')
-    # They knew each other before the first talk (the user wrote how they know each other): the day they got together
-    # is not the first talk, so it gets no date of its own ("Best friends", not "Friends for 1 day").
-    return [(key, 'history' if text.strip() else 'start') for key in found]
+    # They knew each other long before the first talk ("close since school"): the day they got together is not the
+    # first talk, so it gets no date of its own ("Best friends", not "Friends for 1 day"). "Matched on Matchlight" is not.
+    return [(key, 'history' if LONG_BEFORE.search(text) else 'start') for key in found]
 
 
 def ensure(connection, companion: dict, now) -> str | None:

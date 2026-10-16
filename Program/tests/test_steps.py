@@ -136,6 +136,12 @@ def test_a_friend_close_from_the_start_is_a_best_friend(client, monkeypatch):
     assert [item['how'] for item in found['steps']] == ['history', 'history']
 
 
+def test_a_match_from_the_dating_app_counts_from_the_first_talk(client, monkeypatch):
+    make(client, monkeypatch, starting_closeness=3, history_together='Matched on Matchlight.')
+    found = view(client)
+    assert found['text'] == 'Together 1 day, exclusive' and found['steps'][0]['how'] == 'start'
+
+
 def test_mentors_and_family_have_no_ladder(client, provider, monkeypatch):
     make(client, monkeypatch, relationship='mentor')
     assert view(client)['ladder'] is None
