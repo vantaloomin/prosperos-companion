@@ -136,7 +136,8 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
     made = generators.circle(data, seed=base, size=min(size, len(order)), home=home, order=order, coworkers=works,
                              family=family, group=group)
     sheet_people = named.people(definition) if sheet else []
-    taken = set(taken or ()) | {definition['name']} | {person['name'].split()[0] for person in sheet_people}
+    taken = set(taken or ()) | {definition['name'], *definition['name'].split()[:1]} | \
+        {person['name'].split()[0] for person in sheet_people}
     result = [city_person(member, data, definition, family, timeline_id, taken) for member in made['people']]
 
     def make(index, person):

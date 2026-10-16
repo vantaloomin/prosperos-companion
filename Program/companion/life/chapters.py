@@ -217,12 +217,22 @@ def plan_friend(connection, companion, world, day, seed) -> dict | None:
     person = random.Random(f'{seed}:friend').choice(choices)
     definition = companion['version']['definition']
     here = circle.city_data(definition, world)
-    cities = sorted(data['name'] for data in catalog.cities().values() if not here or data['id'] != here['id'])
+    cities = sorted(data['name'] for data in catalog.cities().values() if not here or data['id'] != here['id'] and
+                    same_world(here, data))
     away = random.Random(f'{seed}:city').choice(cities) if cities else 'another city'
     name = definition['name'].split()[0]
     return {'title': f"{person['name']}, {name}'s {person['role']}, moved away to {away}", 'person': person['id'],
             'told': f"Your {person['role']} {person['name']} moved away to {away}; you keep in touch by phone.",
             'share': f"{person['name']} is moving to {away}. I'm going to miss having them around."}
+
+
+def same_world(here: dict, there: dict) -> bool:
+    """A friend moves to a city of the same time: any of today's cities, or one of the same era and country (from
+    New York 1925 to Pellmouth, never from Baltimore to Camelot or Oz)."""
+    era, other = here.get('era') or 'modern', there.get('era') or 'modern'
+    if era == 'modern':
+        return other == 'modern'
+    return era == other and here.get('country') == there.get('country')
 
 
 def friends(connection, timeline_id: str) -> list[dict]:

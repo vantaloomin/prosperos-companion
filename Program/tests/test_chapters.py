@@ -178,3 +178,13 @@ def test_a_new_job_renames_a_work_block_named_for_the_old_career(client, mira, c
         offered = catalog.careers_for(outings.city_data(connection, definition))
     [block] = [block for block in definition['schedule'] if block['kind'] == 'work']
     assert block['label'] == offered[definition['money']['career']]['name'] and block['key'] == 'work'
+
+
+def test_a_friend_moves_to_a_city_of_their_own_time():
+    from companion.world import catalog
+    cities = catalog.cities()
+    baltimore, camelot, jazz = cities['baltimore'], cities['camelot'], cities['new-york-1925']
+    assert chapters.same_world(baltimore, cities['osaka']) and chapters.same_world(baltimore, cities['haddon-harbor'])
+    assert not chapters.same_world(baltimore, jazz) and not chapters.same_world(baltimore, camelot)
+    assert chapters.same_world(jazz, cities['pellmouth']) and not chapters.same_world(jazz, cities['whitlock'])
+    assert not chapters.same_world(cities['grandport'], cities['emerald-city'])

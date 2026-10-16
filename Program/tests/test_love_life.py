@@ -239,3 +239,104 @@ def test_townsfolk_couples_move_on_week_by_week():
     week = (item['day'] - timedelta(days=item['day'].weekday() + 1) + timedelta(days=1), item['day'] + timedelta(days=1))
     assert any(item['partner']['full'] in entry['text'] for entry in paper.couples_news(
         {**data, 'neighborhoods': [data['neighborhoods'][0]]}, week)) or len(events) > paper.MOST_COUPLES
+
+
+def test_an_ex_seeing_someone_new_is_not_told_it_is_an_open_relationship(client, romance, clock, monkeypatch):
+    # After a breakup (companion/life/breakups.py) the user's ex is free to date, and their sheet still says romance.
+    monkeypatch.setattr(steps, 'apart', lambda *_args: 'ended')
+    found = begin_partner(client, clock)
+    prompt = client.get('/api/context/preview').json()['prompt']
+    assert f"You are seeing {found['name']}" in prompt and 'open relationship' not in prompt
+
+
+def test_a_new_partner_never_shares_a_first_name_with_someone_already_in_their_life(client, clock):
+    client.post('/api/companion', json={'name': 'Sarah Wells', 'timezone': 'UTC', 'home_city': 'baltimore'})
+    world = client.app.state.life.world
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        circle.ensure(connection, companion, world, clock.now())
+        people = [row['name'] for row in circle.people(connection, companion['active_timeline_id'])]
+        assert 'Sarah' not in people  # Nor in the circle: someone called Sarah there goes by their full name.
+        used = {name.split()[0] for name in people} | {'Sarah'}
+        found = [love_life.new_person(connection, companion, world, f'seed:{n}')['name'] for n in range(150)]
+    assert not [name for name in found if name.split()[0] in used]
+
+
+def test_what_a_friend_saw_comes_only_from_the_branch_being_lived(client, mira, clock, monkeypatch):  # noqa: F811
+    # A fork copies a secret that came out (love_life.copy); the timeline left behind keeps its own row. The friend
+    # who saw them hears about it once, from the companion's active timeline only.
+    monkeypatch.setattr(love_life, 'FIRST_TEXTS', True)
+    companion = current(client)
+    today = steps.local_today(companion, clock.now()).isoformat()
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES ('left', ?, "
+                           "'frozen', ?)", (companion['id'], clock.now().isoformat()))
+        for timeline_id in ('left', companion['active_timeline_id']):
+            connection.execute(
+                "INSERT INTO love_partners (id, timeline_id, companion_id, name, secret, met_on, ended_on, ended_how, "
+                "out_via, witness_id, place, created_at) VALUES (?, ?, ?, 'Jonathan Hale', 1, ?, ?, 'came_out', "
+                "'small_world', ?, 'the market', ?)",
+                (f'secret-{timeline_id}', timeline_id, companion['id'], today, today, companion['id'],
+                 clock.now().isoformat()))
+        assert len(love_life.saw_lines(connection, companion, steps.local_today(companion, clock.now()))) == 1
+        assert len(love_life.spotted_due(connection, companion, clock.now())) == 1
+
+
+def test_a_secret_that_came_out_while_the_user_was_away_still_reaches_them(client, romance, clock, monkeypatch):
+    # The weekly roll that brings it out is in the past when the app catches up after days away; it comes out the
+    # day the app notices (when the rough patch opens too), so the owning-up text is not already stale.
+    monkeypatch.setattr(love_life, 'FIRST_TEXTS', True)
+    set_life(client, drama=3)
+    force(monkeypatch, 1)
+    monkeypatch.setattr(love_life, 'OUT_CHANCE', 0)
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.maybe_secret(connection, current(client), client.app.state.life.world, clock.now())
+    monkeypatch.setattr(love_life, 'OUT_CHANCE', 1)
+    clock.advance(timedelta(days=12))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        love_life.advance(connection, companion, client.app.state.life.world, clock.now())
+        [after] = love_life.partners(connection, companion['active_timeline_id'], active=False)
+        assert after['ended_how'] == 'came_out' and after['ended_on'] == steps.local_today(companion, clock.now()).isoformat()
+        assert len(love_life.came_out_due(connection, companion, clock.now())) == 1
+
+
+def test_a_fork_keeps_how_their_rolls_went_before_it(client, mira, clock, monkeypatch, provider):  # noqa: F811
+    from conftest import send
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    found = begin_partner(client, clock)
+    force(monkeypatch, 1)  # Not yet: exclusive is rolled again some weeks later.
+    clock.advance(timedelta(days=40))
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
+    sent = send(client, 'How are things with them?', 'client-love-01')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'How are you two?'}).json()['id']
+    assert client.post(f'/api/timelines/{fork}/activate').status_code == 200
+    force(monkeypatch, 2)  # Any roll made again on the fork would split them up, in the past.
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        assert companion['active_timeline_id'] == fork
+        love_life.advance(connection, companion, client.app.state.life.world, clock.now())
+        [copied] = love_life.partners(connection, fork, active=False)
+        assert copied['ended_on'] is None
+        assert consequences.recorded(connection, f"love:{copied['id']}:exclusive:1", love_life.NEXT)['picked'] == 1
+    assert found['name'] == copied['name']
+
+
+def test_undoing_the_chapter_on_a_fork_takes_back_only_its_own_partner(client, mira, clock, monkeypatch, provider):  # noqa: F811
+    from conftest import send
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    arrange(client, monkeypatch, clock, 'relationship')
+    reconcile(client)
+    parent = current(client)['active_timeline_id']
+    sent = send(client, 'Tell me about them.', 'client-love-02')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id']}).json()['id']
+    assert client.post(f'/api/timelines/{fork}/activate').status_code == 200
+    [chapter] = client.get('/api/life/chapters').json()
+    assert client.post(f"/api/life/chapters/{chapter['id']}/undo").status_code == 200
+    with client.app.state.database.connect() as connection:
+        [kept] = love_life.partners(connection, parent, active=False)
+        [taken] = love_life.partners(connection, fork, active=False)
+    assert kept['ended_how'] is None and taken['ended_how'] == 'undone'
