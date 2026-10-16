@@ -206,7 +206,12 @@ def seeing_someone(connection, companion: dict, other: str, now: datetime, subje
     """They found out you're seeing someone else once you two are exclusive (Next steps decides that, and calls
     this). Never on an easy life."""
     return consider(connection, companion, 'seeing_someone', subject or f"seeing:{companion['id']}:{other}",
-                    f'you found out the user is seeing {other} too', now, shown=f"over them finding out you're seeing {other} too")
+                    f'you found out the user is seeing {other} too', now,
+                    shown=f"over {first_name(companion)} finding out you're seeing {other} too")
+
+
+def first_name(companion: dict) -> str:
+    return companion['version']['definition']['name'].split()[0]
 
 
 def seen_with_others(connection, companion: dict, now: datetime) -> None:

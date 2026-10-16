@@ -223,7 +223,7 @@ def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
     show(client, show_moods=True)
     with database.connect(write=True) as connection:
         rough_patches.seen_with_others(connection, current(connection), database.clock.now())
-    assert patch(client)['about'] == "over them finding out you're seeing Theo too"
+    assert patch(client)['about'] == "over Mira finding out you're seeing Theo too"
     set_life(client, rough_patches_realism=1)
     with database.connect(write=True) as connection:
         connection.execute('DELETE FROM rough_patches')
