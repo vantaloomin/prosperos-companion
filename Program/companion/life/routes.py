@@ -520,6 +520,11 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         with database.connect(write=True) as connection:
             return their_people.change(connection, require_current(connection), consequence_id, body.option,
                                        database.clock.now())
+    if subject.startswith('breakup:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return breakups.change(connection, require_current(connection), consequence_id, body.option,
+                                   database.clock.now())
     if subject.startswith('wedding:'):
         database = db(request)
         with database.connect(write=True) as connection:

@@ -509,6 +509,28 @@ def move_out(connection, companion: dict, now, who: str | None = None) -> dict |
     return latest(connection, companion['active_timeline_id'])
 
 
+def move_back(connection, companion: dict, since: str, now) -> dict | None:
+    """A breakup taken back on Today (Breaks and breakups): a move out on or after `since` (a local day) is undone, so
+    they live together as before; a plan dropped before moving day goes on."""
+    from companion.life import chapters  # Imported here: chapters reads love_life, which reads the steps ladder.
+    timeline_id = companion.get('active_timeline_id') or ''
+    row = latest(connection, timeline_id)
+    if row is None or row['status'] != 'moved_out' or (row['out_on'] or '') < since:
+        return None
+    if row['out_who'] == 'them':
+        chapter = optional(connection, "SELECT * FROM life_chapters WHERE timeline_id=? AND kind='move_out' AND "
+                           'undone_at IS NULL AND started_on=? ORDER BY created_at DESC LIMIT 1',
+                           (timeline_id, row['out_on']))
+        if chapter:
+            chapters.reverse(connection, decode(chapter['undo']), now)
+            connection.execute('UPDATE life_chapters SET undone_at=? WHERE id=?', (stamp(now), chapter['id']))
+    elif row['out_who'] == 'you':
+        share_theirs(connection, companion, row, local_today(companion, now), True)
+    status = 'moved' if row['moved_on'] else 'waiting' if row['plan'] == 'you' else 'moving'
+    connection.execute('UPDATE moving_in SET status=?, out_on=NULL, out_who=NULL WHERE id=?', (status, row['id']))
+    return latest(connection, timeline_id)
+
+
 def place_of_their_own(connection, companion: dict, row: dict, day: date, now) -> None:
     city = city_of(connection, row)
     if not city:

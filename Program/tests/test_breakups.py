@@ -189,3 +189,34 @@ def test_a_warning_can_be_changed_on_today(client, couple, provider, clock):
     assert all(reason[0].islower() or reason.startswith('Mira') for reason in reasons)
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
     assert view(client)['stage'] is None
+
+
+def test_an_ending_changed_on_today_moves_them_back_in_and_out_again(client, couple, provider, clock, monkeypatch):
+    from test_moving_in import ask_to_move_in, moving_day
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # Yes, at your place.
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    says(provider)
+    send(client, 'I think we should take a break.', 'client-back-1')
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[-1]['option'])  # They end it.
+    clock.advance(timedelta(days=21, hours=1))
+    tick(client)
+    database = client.app.state.database
+    with database.connect() as connection:
+        companion = current(connection)
+        assert view(client)['stage'] == 'ended' and not moving_in.living(connection, companion)
+        ended_id = breakups.rows(connection, companion['active_timeline_id'])[-1]['ended_id']
+    response = client.post(f'/api/life/consequences/{ended_id}/change', json={'option': breakups.TOGETHER})
+    assert response.status_code == 200, response.text
+    assert view(client)['stage'] is None
+    with database.connect() as connection:
+        companion = current(connection)
+        assert moving_in.living(connection, companion)
+        homes = [item for item in moving_in.home.items_on(connection, companion['active_timeline_id'],
+                                                          breakups.local_today(companion, clock.now()))
+                 if item['kind'] == 'home']
+        assert len(homes) == 1 and homes[0]['shared']  # Their own place is gone again: the shared home is back.
+    client.post(f'/api/life/consequences/{ended_id}/change', json={'option': breakups.ENDS})
+    assert view(client)['stage'] == 'ended'
+    with database.connect() as connection:
+        assert not moving_in.living(connection, current(connection))

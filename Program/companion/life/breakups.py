@@ -348,6 +348,30 @@ def moving_out(connection, companion: dict, now: datetime) -> None:
     moving_in.move_out(connection, companion, now)
 
 
+def change(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:
+    """The user makes a roll go another way on Today ("Why it went this way"). The stage follows at read time; what an
+    ending set going follows here: an ending now moves them out and calls plans off, an ending taken back moves them
+    back in, and a break now calls plans off."""
+    outcome = consequences.by_id(connection, consequence_id)
+    require(outcome['timeline_id'] == companion['active_timeline_id'], 'That outcome is not on this timeline.', 404)
+    row = optional(connection, 'SELECT * FROM breakups WHERE ? IN (strained_id, thinking_id, break_id, ended_id, '
+                   'together_id)', (consequence_id,))
+    before = stage(connection, row) if row else None
+    changed = consequences.redo(connection, consequence_id, option, now, local_today(companion, now))
+    latest_row, _found = latest(connection, companion)
+    if row is None or latest_row is None or latest_row['id'] != row['id']:
+        return changed
+    after = stage(connection, row)
+    if after == 'ended' and before != 'ended':
+        after_end(connection, companion, now)
+    elif before == 'ended' and after != 'ended':
+        from companion.life import moving_in
+        moving_in.move_back(connection, companion, local_day(companion, row['ended_at'] or stamp(now)), now)
+    elif after == 'break' and before != 'break':
+        call_off_plans(connection, companion, now)
+    return changed
+
+
 def call_off_plans(connection, companion: dict, now: datetime) -> None:
     """Outings with the user that haven't started yet are off while they are apart."""
     from companion.life import outings
