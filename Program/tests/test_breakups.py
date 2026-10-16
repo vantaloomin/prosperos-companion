@@ -176,6 +176,7 @@ def test_a_friendship_falls_out_and_the_override_makes_up(client, monkeypatch, p
     assert 'they do not want to be friends anymore' in notes(provider)
     found = view(client)
     assert found['stage'] == 'ended' and found['text'] == 'Fell out'
+    assert found['summary'] == 'Fell out'  # Not "after 1 day": the app started them as friends, with no real date.
     response = client.post(f"/api/life/breakup/{found['id']}/mend")
     assert response.status_code == 200 and response.json()['stage'] is None
     assert client.post(f"/api/life/breakup/{found['id']}/undo").json()['stage'] == 'ended'

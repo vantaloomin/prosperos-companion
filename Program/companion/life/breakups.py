@@ -852,7 +852,7 @@ def summary(connection, companion: dict, row: dict, found: str, now: datetime) -
     steps_now = steps.state(connection, companion, now, write=False)
     first = steps_now['steps'][0] if steps_now and steps_now['steps'] else None
     what = 'Fell out' if row['ladder'] == 'friendship' else 'Broke up'
-    if not first or first['how'] == 'history':
+    if not first or first['how'] in ('history', 'start'):  # No real date for where the app started them.
         return what
     days = (date.fromisoformat(local_day(companion, row['ended_at'])) - date.fromisoformat(first['on'])).days
     return f'{what} after {steps.span_text(days)}'
