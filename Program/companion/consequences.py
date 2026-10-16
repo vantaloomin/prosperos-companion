@@ -78,20 +78,28 @@ def matches(rule: dict, facts: dict) -> bool:
     return ('at_least' not in rule or value >= rule['at_least']) and ('at_most' not in rule or value <= rule['at_most'])
 
 
+def move(times: float) -> str:
+    """Which way a reason pushed its option, for "More likely because…" and the like on Today."""
+    return 'out' if times == 0 else 'possible' if times == 1 else 'more' if times > 1 else 'less'
+
+
 def odds(choice: str, facts: dict, names: dict) -> list[dict]:
-    """Each option's odds (0 to 1, summing to 1) with the reasons that moved it: [{option, odds, reasons}]."""
-    weights, reasons = [], []
+    """Each option's odds (0 to 1, summing to 1) with the reasons that moved it and which way each one pushed
+    (`moves`, one per reason: more, less, out or possible): [{option, odds, reasons, moves}]."""
+    weights, reasons, moves = [], [], []
     for option in tables()[choice]['options']:
-        weight, why = option['weight'], []
+        weight, why, ways = option['weight'], [], []
         for rule in option.get('rules', ()):
             if matches(rule, facts):
                 weight *= rule['times']
                 why.append(rule['why'].format(**names))
+                ways.append(move(rule['times']))
         weights.append(weight)
         reasons.append(why)
+        moves.append(ways)
     total = sum(weights) or 1
-    return [{'option': index, 'odds': round(weight / total, 3), 'reasons': why}
-            for index, (weight, why) in enumerate(zip(weights, reasons, strict=True))]
+    return [{'option': index, 'odds': round(weight / total, 3), 'reasons': why, 'moves': ways}
+            for index, (weight, why, ways) in enumerate(zip(weights, reasons, moves, strict=True))]
 
 
 def roll(seed: str, found: list[dict]) -> int:

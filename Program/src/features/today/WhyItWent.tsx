@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings } from '../../companion'
-import type { Consequence } from '../../types'
+import type { Consequence, ReasonMove } from '../../types'
 import { storyDate } from './storyText'
 
 /** "Why it went this way": each way a turning could have gone, its odds and what moved them, and a way to make
@@ -40,7 +40,7 @@ function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
                   <strong>{Math.round(item.odds * 100)}%</strong> {item.label}
                   {item.option === outcome.data.picked && <span className="subtle"> (what happened)</span>}
                 </p>
-                {item.reasons.length > 0 && <p className="subtle">{item.reasons.join('. ')}.</p>}
+                <Reasons reasons={item.reasons} moves={item.moves} />
                 {item.option !== outcome.data.picked && !(possibleOnly && item.odds === 0) && (
                   <button type="button" className="text-button" onClick={() => void change(item.option)}>Make it go this way</button>
                 )}
@@ -65,4 +65,27 @@ function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
       {outcome.isError && <p className="subtle">This outcome could not be loaded. {String(outcome.error.message)}</p>}
     </details>
   )
+}
+
+const LEADS: [ReasonMove, string][] = [
+  ['more', 'More likely because'], ['possible', 'Possible because'], ['less', 'Less likely because'], ['out', 'Ruled out because'],
+]
+
+/** An option's reasons under the way each one pushed it ("Less likely because Mira doesn't feel close enough yet"),
+ * so a reason that lowered the odds never reads as one for them. Outcomes from before v0.13 keep the plain list. */
+export function Reasons({ reasons, moves }: { reasons: string[]; moves?: ReasonMove[] }) {
+  if (reasons.length === 0) return null
+  if (moves?.length !== reasons.length) return <p className="subtle">{reasons.join('. ')}.</p>
+  return (
+    <>
+      {LEADS.map(([way, lead]) => {
+        const these = reasons.filter((_, index) => moves[index] === way)
+        return these.length > 0 && <p key={way} className="subtle">{lead} {listed(these)}.</p>
+      })}
+    </>
+  )
+}
+
+function listed(items: string[]): string {
+  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
 }

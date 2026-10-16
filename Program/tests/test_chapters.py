@@ -29,6 +29,7 @@ def test_state_moves_which_chapter_comes():
     assert tight[0]['odds'] > plain[0]['odds'] and 'money has been tight for Mira' in tight[0]['reasons']
     no_pet = consequences.odds(chapters.CHOICE, {'drama': 1, 'friends': 4, **every, 'can_pet': 0}, names)
     assert no_pet[2]['odds'] == 0 and no_pet[2]['reasons'] == ['Mira already has a pet']
+    assert tight[0]['moves'] == ['more'] and no_pet[2]['moves'] == ['out']
 
 
 @pytest.fixture
