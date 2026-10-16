@@ -331,3 +331,23 @@ def test_asking_what_to_have_for_dinner_at_home_is_not_going_out(client, provide
     says(provider)
     send(client, 'what should we have for dinner?', 'client-move-dinner-1')
     assert client.get('/api/life/outings').json()['outings'] == []
+
+
+def test_a_visit_under_way_on_moving_day_puts_the_move_off(client, provider, clock, monkeypatch, always):
+    apart_from(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    found = row(client)
+    move_on = date.fromisoformat(found['move_on'])
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        connection.execute(
+            "INSERT INTO trips (id, companion_id, timeline_id, start_date, end_date, city_id, city_name, kind, visit, "
+            "status, created_at) VALUES ('stay', ?, ?, ?, ?, 'chicago', 'Chicago', 'getaway', 'host', 'planned', ?)",
+            (companion['id'], companion['active_timeline_id'], (move_on - timedelta(days=1)).isoformat(),
+             (move_on + timedelta(days=2)).isoformat(), clock.now().isoformat()))
+    moving_day(client, clock)
+    found = row(client)
+    assert (found['status'], found['move_on']) == ('moving', (move_on + timedelta(days=3)).isoformat())
+    moving_day(client, clock)
+    found = row(client)
+    assert (found['status'], found['moved_on']) == ('moved', (move_on + timedelta(days=3)).isoformat())

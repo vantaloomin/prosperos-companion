@@ -302,12 +302,25 @@ def advance(connection, companion: dict, now) -> None:
     today = local_today(companion, now)
     if not reached(connection, companion, now) or chapter_undone(connection, row):
         move_out(connection, companion, now)
-    elif row['status'] == 'moving' and row['move_on'] <= today.isoformat():
-        move(connection, companion, row, now)
+    elif row['status'] == 'moving' and row['move_on'] <= today.isoformat() and not after_visit(connection, row, today):
+        move(connection, companion, current(connection, companion['active_timeline_id']), now)
     elif row['status'] == 'waiting':
         settle_waiting(connection, companion, row, now)
     elif row['status'] == 'moved' and moved_away(connection, row):
         move_out(connection, companion, now, 'you')
+
+
+def after_visit(connection, row: dict, today: date) -> bool:
+    """A weekend visit across the distance under way on moving day puts the move off until the day after it ends
+    (nobody moves out of the city the user is staying in with them). True while it is still to come."""
+    found = optional(connection, "SELECT MAX(end_date) AS until FROM trips WHERE timeline_id=? AND visit!='' AND "
+                     "status='planned' AND start_date<=? AND end_date>=?", (row['timeline_id'], today.isoformat(),
+                                                                           row['move_on']))
+    if not found or not found['until']:
+        return False
+    day = date.fromisoformat(found['until']) + timedelta(days=1)
+    connection.execute('UPDATE moving_in SET move_on=? WHERE id=?', (day.isoformat(), row['id']))
+    return day > today
 
 
 def follow_step(connection, companion: dict, now) -> None:
