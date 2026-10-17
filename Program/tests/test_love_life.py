@@ -1,4 +1,5 @@
 """Their own love life (companion/life/love_life.py) and townsfolk couples (companion/world/couples.py)."""
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -20,9 +21,80 @@ def test_the_banks_hold_enough_lines_for_every_step():
     assert sum(len(lines) for lines in bank['milestones'].values()) >= 100
     for line in [*bank['share_new'], *bank['dates'], *bank['splits']]:
         assert line.count('{partner}') == 1, line
-        line.format(partner='Sam')
     for line in bank['spotted']:
         line.format(name='Mira', place='the bakery')
+
+
+
+def test_every_bank_line_says_the_partner_with_their_own_pronouns():
+    # "It's Maud, and I'm seeing her", not "them" (she/her); a they/them partner keeps "they".
+    bank = love_life.bank()
+    lines = [*bank['met'], *bank['share_new'], *bank['dates'], *bank['splits'],
+             *(line for step in bank['milestones'].values() for line in step)]
+    wrong = re.compile(r"\b(?:she|he) (?:are|were|have|do|know|love|need|want|like)\b|\bthey (?:is|was|has|does)\b|"
+                       r"\bthey's\b", re.IGNORECASE)
+    for pronouns in ('she/her', 'he/him', 'they/them'):
+        for template in lines:
+            text = love_life.line(template, 'Maud', pronouns)
+            assert '{' not in text and '}' not in text, text
+            assert not wrong.search(text), text
+    found = {'name': 'Maud Pike', 'details': {'pronouns': 'she/her'}}
+    assert love_life.told("It's {partner}, and I'm seeing {them}. {They're} lovely.", found) == \
+        "It's Maud, and I'm seeing her. She's lovely."
+    assert love_life.line('{They} know{s} the stars; {they} {have} opinions.', 'Tom', 'he/him') == \
+        'He knows the stars; he has opinions.'
+    assert love_life.line('{They} know{s} the stars; {they} {were} kind.', 'Sam', 'they/them') == \
+        'They know the stars; they were kind.'
+    # With no pronouns known, the partner is "they".
+    assert love_life.line('I like {them}.', 'Sam', None) == 'I like them.'
+    # A partner who is she or he is never "they" in their own lines.
+    for template in lines:
+        for pronouns, word in (('she/her', 'she'), ('he/him', 'he')):
+            text = love_life.line(template, 'Maud', pronouns)
+            assert not re.search(r"\b(?:they|them|their|theirs|themselves)\b", text, re.IGNORECASE) or \
+                template in THEY_ABOUT_OTHERS, (word, text)
+
+
+
+def test_their_news_and_how_they_met_use_the_partners_pronouns(client, mira, clock, monkeypatch):  # noqa: F811
+    real = love_life.bank()
+    monkeypatch.setattr(love_life, 'bank', lambda: {
+        **real, 'met': ['when {they} returned the scarf you left on a bench'],
+        'share_new': ["It's {partner}, and I'm seeing {them}."],
+        'milestones': {**real['milestones'], 'exclusive': ['{partner} is mine and I am {theirs}.']}})
+    monkeypatch.setattr(love_life, 'FIRST_TEXTS', True)
+    world = client.app.state.life.world
+    with client.app.state.database.connect() as connection:
+        companion = current(client)
+        day = steps.local_today(companion, clock.now())
+        planned = love_life.plan(connection, companion, world, day, 'test-seed')
+    name, pronouns = planned['person']['name'].split()[0], planned['person']['details']['pronouns']
+    forms = {'she/her': ('she', 'her', 'hers'), 'he/him': ('he', 'him', 'his'), 'they/them': ('they', 'them', 'theirs')}
+    they, them, theirs = forms[pronouns]
+    assert planned['share'] == f"It's {name}, and I'm seeing {them}."
+    assert planned['told'].startswith(f"You started seeing {planned['person']['name']}; you met when {they} returned")
+    found = begin_partner(client, clock)
+    assert found['details']['met'] == f'when {they} returned the scarf you left on a bench'
+    force(monkeypatch, 0)
+    clock.advance(timedelta(days=40))
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), world, clock.now())
+        [step] = [row for row in steps.reached(connection, found['timeline_id'], 'romance', love_life.key_of(found))
+                  if row['step'] == 'exclusive']
+        posts = love_life.feed_posts(connection, current(client), [date.fromisoformat(step['reached_on'])], 'UTC')
+    assert [post['content']['text'] for post in posts] == [f'{name} is mine and I am {theirs}.']
+
+
+# Lines where "they" or "them" is someone else (friends, jars, keys, a saying), not the partner.
+THEY_ABOUT_OTHERS = {
+    "Supper with {partner}'s friends tonight. They're loud and lovely.",
+    "Met {partner}'s friends at the dance. They already knew all about me.",
+    'Off the market, as they say. {partner} and me.',
+    'Introduced {partner} to my friends. They like {them} more than me now.',
+    'when you knocked a row of jars off a shelf and {they} caught two of them',
+    'Picked wildflowers with {partner} and pressed them in a book.',
+    "Two keys on my ring now. One of them opens {partner}'s door.",
+}
 
 
 def test_the_odds_tables_say_what_moved_them():
@@ -215,6 +287,27 @@ def test_on_drama_a_secret_stays_hidden_until_it_comes_out(client, romance, cloc
     assert len(triggers) == 1 and found['name'].split()[0] in triggers[0].reason
     prompt = client.get('/api/context/preview').json()['prompt']
     assert 'behind their back (word got around and reached them)' in prompt
+
+
+def test_on_drama_a_secret_starts_in_about_one_month_in_fifty():
+    # Vanta (2026-10-17): about 2% a month on Drama, not 55 to 80% of years. Below soap opera there is no roll at all
+    # (love_life.mode); the love life slider, the Life deck's card and their description still move it.
+    names = {'name': 'Rae', 'a': 'someone', 'b': ''}
+
+    def starts(**facts):
+        found = consequences.odds(love_life.SECRET, {'love_life': 2, 'drama': 3, 'card': 0, 'closeness': 3,
+                                                     'mood': 0, 'sheet': set()} | facts, names)
+        return found[1]
+
+    plain = starts()
+    assert plain['odds'] == 0.02
+    assert plain['reasons'] == ['the drama level is soap opera, and you two are exclusive']
+    assert plain['moves'] == ['possible']
+    assert starts(love_life=1)['odds'] == 0.01 and starts(love_life=3)['odds'] == 0.03
+    assert 0.05 < starts(card=1)['odds'] < 0.06 and "someone caught Rae's eye lately" in starts(card=1)['reasons']
+    assert starts(closeness=5)['odds'] < plain['odds'] < starts(sheet={'restless'})['odds']
+    # Over a year of monthly rolls, about one in five on true to life (it was over half).
+    assert 0.18 < 1 - (1 - plain['odds']) ** 12 < 0.25
 
 
 def test_townsfolk_couples_move_on_week_by_week():

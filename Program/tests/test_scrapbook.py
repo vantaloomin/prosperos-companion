@@ -67,3 +67,14 @@ def test_a_moment_is_dated_when_it_happened_not_when_it_was_saved():
     assert scrapbook.happened(saved_late, tz) == '2026-03-01'
     told_later = {**saved_late, 'applies_from': '2026-02-14T19:00:00+00:00'}
     assert scrapbook.happened(told_later, tz) == '2026-02-14'
+
+
+def test_moments_keep_pinned_ones_first_and_list_them_in_the_order_they_happened():
+    from zoneinfo import ZoneInfo
+    def moment(day, pinned):
+        return {'stated_at': f'{day}T18:00:00+00:00', 'applies_from': None, 'pinned': pinned, 'day': day}
+    pinned = [moment(f'2026-0{month}-01', 1) for month in range(4, 9)]
+    unpinned = [moment('2026-03-07', 0), moment('2026-03-14', 0)]
+    kept = scrapbook.kept_moments(unpinned + pinned, ZoneInfo('UTC'))
+    assert [item['day'] for item in kept] == ['2026-03-07', '2026-04-01', '2026-05-01', '2026-06-01', '2026-07-01',
+                                              '2026-08-01']

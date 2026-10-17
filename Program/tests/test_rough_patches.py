@@ -350,3 +350,56 @@ def test_a_plan_is_named_as_the_user_would():
     assert rough_patches.plan_name({'activity': 'walk', 'place': {'name': 'Patterson Park'}}) == 'a walk at Patterson Park'
     assert rough_patches.plan_name({'activity': 'visit-yours', 'place': {'name': 'Your place'}}) == 'the visit'
     assert rough_patches.plan_name({'activity': 'hobby', 'place': {'name': 'The Clay Room'}}) == 'the plan at The Clay Room'
+
+
+# Stacking (Vanta 2026-10-17): a rough patch over the same thing as one already open weighs less.
+
+def rolls(client):
+    with client.app.state.database.connect() as connection:
+        return [decode_options(row) for row in connection.execute(
+            "SELECT options FROM consequences WHERE choice='user:rough_patch' ORDER BY created_at")]
+
+
+def decode_options(row):
+    return json.loads(row['options'])[1]
+
+
+def test_more_stinging_words_while_one_is_open_weigh_less(client, patches, provider, clock):
+    set_life(client, rough_patches_realism=3)
+    for index, text in enumerate(('shut up', "you're so annoying", 'go away', "ugh you're useless")):
+        says(provider)
+        send(client, text, f'client-stack-{index}')
+        clock.advance(timedelta(seconds=30))
+    found = rolls(client)
+    weights = [item['odds'] / (1 - item['odds']) for item in found]  # The rough patch's weight against letting it go.
+    assert [weight / weights[0] for weight in weights] == pytest.approx([1, 0.5, 0.25, 0.125], abs=0.01)  # Weighting, not a cap.
+    assert found[0]['reasons'] == ['rough patches are set to dramatic']
+    assert found[1]['reasons'][-1] == "there's already a rough patch over the same thing"
+    assert found[2]['reasons'][-1] == 'it would be the third over the same thing'
+    assert found[1]['moves'][-1] == 'less'  # Today: "Less likely because there's already a rough patch over ..."
+    with client.app.state.database.connect() as connection:
+        assert connection.execute('SELECT COUNT(*) FROM rough_patches').fetchone()[0] == 4  # The dice still decide.
+
+
+def test_one_mended_on_an_earlier_day_or_over_something_else_does_not_stack(client, patches, provider, clock):
+    says(provider)
+    send(client, 'shut up', 'client-stack-5')
+    says(provider)
+    send(client, "I'm really sorry, I shouldn't have said that", 'client-stack-6')
+    clock.advance(timedelta(days=1))
+    with client.app.state.database.connect(write=True) as connection:
+        rough_patches.consider(connection, current(connection), 'forgot_occasion', 'occasion:test', 'your birthday',
+                               clock.now())
+    says(provider)
+    send(client, 'go away', 'client-stack-7')
+    assert all("over the same thing" not in ' '.join(item['reasons']) for item in rolls(client))
+
+
+def test_one_let_go_by_the_dice_does_not_count(client, patches, provider, clock, monkeypatch):
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # They let it go.
+    says(provider)
+    send(client, 'shut up', 'client-stack-8')
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[-1]['option'])
+    says(provider)
+    send(client, 'go away', 'client-stack-9')
+    assert rolls(client)[1]['reasons'] == rolls(client)[0]['reasons']

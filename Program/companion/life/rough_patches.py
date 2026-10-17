@@ -10,14 +10,17 @@ What opens one, all caught by rules from what the app already knows:
 - calling off an outing on its own day (small friction, gone in a day);
 - finding out you're seeing someone else once you two are exclusive (`seeing_someone`, called by Next steps), never
   on an easy life;
-- small everyday friction other features report through `friction` (a chore after moving in);
+- small everyday friction other features report through `friction` (a chore after moving in, or another of your
+  partners wanting to move in when they aren't ready to share their home);
 - saying no when they ask you to marry them (`proposal_no`, from companion/life/wedding.py).
 
 Whether something you did starts a rough patch is a roll in the consequence engine (choice user:rough_patch in
 world/data/consequences.json): odds from the Rough patches slider (life_settings.rough_patches_realism: 0 off,
 1 easy, 2 real life, 3 dramatic), what happened, an emotional trait the user built that speaks to it, their own
 description (forgiving, holds on to things) and how close they are. The odds stay under Hidden values ("Why it went
-this way" on Today, with show_odds), where the user can also make it go the other way.
+this way" on Today, with show_odds), where the user can also make it go the other way. One over the same thing as a
+rough patch already open (or one that started that day) is less likely, a half for the second, a quarter for the third
+(`stacked_on`), and counts for less where Breaks and breakups adds them up (`weighed`).
 
 The companion can be the one at fault: on Real life and Drama they now and then call off an outing with you at the
 last minute (`stand_ups`), and then apologise first, in a first text.
@@ -58,7 +61,7 @@ OPENS = 1  # The option in the odds table that starts one.
 CAUSES = {
     'words': ('big', 'user'), 'missed_plan': ('big', 'user'), 'forgot_occasion': ('big', 'user'),
     'secret_told': ('big', 'user'), 'secret_kept': ('big', 'user'), 'promise': ('big', 'user'),
-    'seeing_someone': ('big', 'user'), 'called_off': ('small', 'user'), 'chore': ('small', 'user'),
+    'seeing_someone': ('big', 'user'), 'called_off': ('small', 'user'), 'chore': ('small', 'user'), 'sharing': ('small', 'user'),
     'stood_up': ('big', 'companion'), 'hidden_partner': ('big', 'companion'), 'proposal_no': ('big', 'user'),
 }
 # What they did, for the lines about their own fault: (in the chat context, after "You let the user down: ", and
@@ -79,6 +82,7 @@ MINDS = {'words': r'sensitive|thin[- ]skinned|insecure|proud|need|lonely|sulk',
          'secret_kept': r'trust|betray|honest|secret|loyal|guarded|parano',
          'seeing_someone': r'jealous|possessive|insecure|loyal|trust|clingy|need',
          'called_off': reactions.MINDS['user:missed_plan'], 'chore': r'tidy|neat|clean|particular|fussy',
+         'sharing': r'jealous|possessive|insecure|territorial|clingy|need',
          'proposal_no': r'insecure|sensitive|need|lonely|reject|abandon|clingy|romantic'}
 
 # Words aimed at them that can start one: a narrower set than the mood nudge, and only said to them.
@@ -103,6 +107,10 @@ KEEP_GAP = timedelta(minutes=45)
 # Standing someone up: the chance, by level, that an outing with the user is called off by them on the day.
 STAND_UP = {2: 0.03, 3: 0.08}
 STAND_UP_BEFORE = timedelta(hours=3)
+# Stacking: a rough patch over the same thing as one already open, or one that started the same day, weighs less (the
+# second counts half, the third a quarter; Vanta 2026-10-17), in the roll that starts it (reader `stacked`) and in what
+# Breaks and breakups counts (`weighed`). Not a cap: four stinging messages in two minutes can still be four.
+STACK_WEIGHT = 0.5
 
 
 def level(connection) -> int:
@@ -180,6 +188,8 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
     consequence_id = None
     if fault == 'user':
         known, trait = facts(connection, companion, cause, now)
+        known['stacked'] = stacked_on(connection, companion, {'cause': cause, 'started_at': stamp(now),
+                                                              'started_on': local_day(companion, now)}, lvl)
         first = companion['version']['definition']['name'].split()[0]
         # The label is the user's to read on Today for weeks ("... over you calling off dinner on the day"), never the
         # companion's words.
@@ -219,18 +229,12 @@ def seen_with_others(connection, companion: dict, now: datetime) -> None:
     """Once this pair is exclusive (companion/life/steps.py), the user's other romances (any other companion on the
     romance ladder that the user hasn't broken up with) come to their notice in the next daily pass: each one rolls
     once (`seeing_someone`)."""
-    from companion.characters import by_id
     from companion.life import steps
     if level(connection) < 2 or not steps.exclusive(connection, companion, now):
         return
-    for row in many(connection, 'SELECT id FROM companions WHERE id<>? AND created_at>=?',
-                    (companion['id'], known_since(connection, companion, now))):
-        other = by_id(connection, row['id'])
-        found = steps.state(connection, other, now, write=False) if other else None
-        # An ex (companion/life/breakups.py) is not someone the user is seeing.
-        if found and found['ladder'] == 'romance' and steps.apart(connection, other) != 'ended':
-            seeing_someone(connection, companion, other['version']['name'], now,
-                           subject=f"seeing:{companion['id']}:{other['id']}")
+    for other in steps.other_romances(connection, companion, now, known_since(connection, companion, now)):
+        seeing_someone(connection, companion, other['version']['name'], now,
+                       subject=f"seeing:{companion['id']}:{other['id']}")
 
 
 def known_since(connection, companion: dict, now: datetime) -> str:
@@ -506,6 +510,42 @@ def still_open(connection, row: dict, lvl: int, now: datetime, companion: dict, 
         return local_day(companion, now) == row['started_on']
     calm = CALM[lvl][0 if row['fault'] == 'user' else 1]
     return now - started < calm
+
+
+def was_open(row: dict, lvl: int, when: datetime, companion: dict) -> bool:
+    """Whether a rough patch picked to start was still open at that moment, going by its own dates: not mended yet and
+    not faded by time (`still_open` asks the same of now, with the outing it may be about)."""
+    started = parse(row['started_at'])
+    if started > when or (row['mended_at'] and parse(row['mended_at']) <= when) or lvl == 0:
+        return False
+    if row['size'] == 'small':
+        return when - started < SMALL_FOR
+    if lvl == 1:
+        return local_day(companion, when) == row['started_on']
+    return when - started < CALM[lvl][0 if row['fault'] == 'user' else 1]
+
+
+def stacks(earlier: dict, row: dict, lvl: int, companion: dict) -> bool:
+    """Whether `row` stacks on `earlier`: the same cause, from before it, and the same day or still open then."""
+    return earlier['cause'] == row['cause'] and earlier['started_at'] < row['started_at'] and (
+        earlier['started_on'] == row['started_on'] or was_open(earlier, lvl, parse(row['started_at']), companion))
+
+
+def stacked_on(connection, companion: dict, row: dict, lvl: int) -> int:
+    """How many rough patches of the user's making over the same thing this one stacks on."""
+    since = stamp(parse(row['started_at']) - max(CALM[3][0], SMALL_FOR) - timedelta(days=1))
+    earlier = [found for found in many(connection, "SELECT * FROM rough_patches WHERE timeline_id=? AND fault='user' "
+                                       'AND cause=? AND started_at>=? AND started_at<?',
+                                       (companion['active_timeline_id'], row['cause'], since, row['started_at']))
+               if picked_open(connection, found)]
+    return sum(stacks(found, row, lvl, companion) for found in earlier)
+
+
+def weighed(connection, companion: dict, found: list[dict]) -> list[tuple[dict, float]]:
+    """Rough patches with what each counts for (1, a half, a quarter...): one over the same thing as an earlier one in
+    the list that was open then, or started the same day, counts less."""
+    lvl = level(connection)
+    return [(row, STACK_WEIGHT ** sum(stacks(earlier, row, lvl, companion) for earlier in found)) for row in found]
 
 
 def open_rows(connection, companion: dict, lvl: int, now: datetime) -> list[dict]:

@@ -15,7 +15,9 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   up the next one (choice `steps:when`: soon, in a few weeks or in a couple of months, from the Relationship pace slider,
   their description, their personality sliders and their mood lately). On that day they bring it up in a first text
   (companion/life/openers.py). The user's answer is read from the chat with fixed phrases: yes moves up, "not yet" waits
-  and they ask again weeks later, no keeps it where it is for a long while. No answer in a few days counts as not yet.
+  and they ask again weeks later, no keeps it where it is for a long while. Only the user's first reply after the ask is
+  read whatever it says; a later message counts when it names the step, or is a clear yes or no right after they
+  brought it up again (`answer_to`). No answer in a few days counts as not yet.
 - The user can raise the next step themselves ("can we be exclusive?", "I love you"), caught from the chat with fixed
   phrases the way recommendations are; the engine decides their answer (`steps:answer`) before the reply is written,
   and the reply says it.
@@ -86,7 +88,8 @@ ROMANCE = (
     Step('dating', 'Dating', 'dating', 'started dating', 'dating', (0, 0, 0), 1, False,
          'You are dating: it is still early. You are not exclusive yet and neither of you has said "I love you".'),
     Step('exclusive', 'Exclusive', 'exclusive', 'became exclusive', 'being exclusive', (75, 35, 14), 2, True,
-         'You are exclusive: you only see each other. Neither of you has said "I love you" yet.'),
+         'You are exclusive: you are a couple and only see each other. If the user asks what you are, say so plainly. '
+         'Neither of you has said "I love you" yet.'),
     Step('love', 'Said I love you', 'in love', 'said "I love you"', 'saying "I love you"', (90, 45, 21), 3, True,
          'You are exclusive and you have both said "I love you". The user has not met your family and friends yet.'),
     Step('their_people', 'Met their people', 'met their people', 'met each other\'s people', 'meeting your people',
@@ -197,6 +200,26 @@ NOT_MEANT = re.compile(r"\b(?:if|what if|imagine|pretend|suppose|said|says|say|t
 # ... except the user saying it themselves: "I just wanted to say I love you", "I have to tell you, I love you".
 SINCERE = re.compile(r"\bi (?:just |really |finally |have |had )?(?:wanted|want|have|had|need|needed|got|gotta|have been "
                      r"meaning) to (?:say|tell you)(?: (?:it|this|something|that))?\b", re.IGNORECASE)
+# Words that name a step, in a later message from the user ("yes to meeting your family") or in the companion's own
+# message bringing it up again ("so... would you want to meet my family?"). Only the user's first reply after an ask
+# is read as an answer to it whatever it says; a later message counts when it names the step, or when it is a clear
+# yes or no right after they brought it up again (Vanta 2026-10-17).
+MENTIONS = {
+    'exclusive': r"exclusive|official|only (?:see|seeing|date|dating) each other|(?:boy|girl)friend|partner|a couple|"
+                 r"going steady|courting|seeing other people",
+    'love': r"love you|in love",
+    'their_people': r"meet(?:ing)?|(?:your|ur|my) (?:family|parents|folks|people|friends|mum|mom|dad|mother|father|"
+                    r"sister|brother)",
+    'key': r"(?:spare )?keys?",
+    'moving_in': r"move in|moving in|(?:live|living) together|(?:a|our) (?:own )?(?:place|home|flat|apartment) together",
+    'engaged': r"marry|married|engaged|propos(?:e|al)|fianc[ée]e?",
+    'best_friends': r"best friends?|bff",
+    'trip': r"trip|getaway|(?:go|get) away|travel|holiday|vacation",
+    CONFESSION: r"feel(?:ings|s|ing)?|crush|fall(?:en|ing)? for|more than friends|(?:as|just) (?:a )?friends?|date|dating|"
+                r"love you",
+}
+# A clear answer: the yes, not yet or no comes first, in a short opening ("yes!", "not yet, sorry", "haha sure").
+CLEAR_WORDS = 4
 
 
 @cache
@@ -415,17 +438,99 @@ def long_date(day: str) -> str:
     return f'{found.day} {found:%B %Y}'
 
 
-def context_line(found: dict) -> str:
-    """Where things stand, for the chat context: the step, how long, and what has not happened yet."""
+def context_line(found: dict, others: tuple[str, str] = ('alone', '')) -> str:
+    """Where things stand, for the chat context: the step, how long, and what has not happened yet. `others` is what
+    they know of the user's other romances (`others_known`)."""
     step = step_of(found['ladder'], found['step'])
+    kind, sentence = others
+    line = SHARED_LINES.get(step.key, {}).get(kind, step.line) + (f' {sentence}' if sentence else '')
     whose = 'Together' if found['ladder'] == 'romance' else 'Friends'
     dated = [item for item in found['steps'] if item['how'] != 'history']
     since = f" {whose} since {long_date(found['since'])}." if dated and dated[0]['step'] == found['steps'][0]['step'] else ''
     latest = found['steps'][-1]
     if len(found['steps']) > 1 and latest['how'] not in ('history', 'start'):
         since += f" You {step.did} on {long_date(latest['on'])}."
-    return (f'- {step.line}{since} Keep to where things stand: do not act further along than this, and do not bring up '
+    return (f'- {line}{since} Keep to where things stand: do not act further along than this, and do not bring up '
             'a next step yourself unless a line here says you do.')
+
+
+# The user's other romances (E2E v0.13 N2, Vanta: "It should be more granular"): the user can date several companions
+# at once, so "you only see each other" is said only when it is true. What each companion knows of the others comes
+# from what the app already decided: they live under one roof, the companion's own open relationship, the others were
+# already there when the app started the pair out exclusive, the "Exclusive minds" roll (rough_patches.seeing_someone)
+# found them out, or an easy life, where nobody minds. Otherwise they don't know yet: "as far as you know".
+SHARED_LINES = {
+    'exclusive': {'unknown': 'You are exclusive: you are a couple, and as far as you know the user sees only you. If '
+                             'the user asks what you are, say so plainly. Neither of you has said "I love you" yet.',
+                  'known': 'You are a couple. If the user asks what you are, say so plainly. Neither of you has said '
+                           '"I love you" yet.'},
+    'love': {'unknown': 'You are exclusive and you have both said "I love you"; as far as you know, the user sees only '
+                        'you. The user has not met your family and friends yet.',
+             'known': 'You are a couple and you have both said "I love you". The user has not met your family and '
+                      'friends yet.'},
+}
+KNOWN = {
+    'home': '{names} also {live} with you and the user: the user is with {names} too, and you all know it.',
+    'open': 'Your relationship with the user is open: the user is also seeing {names}, and you know.',
+    'before': 'The user was already seeing {names} when you two became a couple; you have known all along and are '
+              'fine with it.',
+    'easy': 'The user is also seeing {names}; you know, and it does not bother you.',
+    'hurt': 'You found out on {on} that the user is also seeing {names}, and it hurts.',
+    'settled': 'You found out on {on} that the user is also seeing {names}; you have come to terms with it.',
+}
+
+
+def other_romances(connection, companion: dict, now, since: str = '') -> list[dict]:
+    """The user's other romance companions made at or after `since` (an ex is not someone the user is seeing)."""
+    from companion.characters import by_id
+    result = []
+    for row in many(connection, 'SELECT id FROM companions WHERE id<>? AND created_at>=? ORDER BY created_at',
+                    (companion['id'], since)):
+        other = by_id(connection, row['id'])
+        found = state(connection, other, now, write=False) if other else None
+        if found and found['ladder'] == 'romance' and apart(connection, other) != 'ended':
+            result.append(other)
+    return result
+
+
+def how_known(connection, companion: dict, other: dict, now) -> tuple[str, str]:
+    """(kind, day) for what this companion knows of the user seeing `other`: a KNOWN key, or 'unknown'."""
+    from companion.life import love_life, moving_in, rough_patches
+    home, theirs = moving_in.living(connection, companion), moving_in.living(connection, other)
+    if home and theirs and home['city_id'] == theirs['city_id']:
+        return 'home', ''
+    if love_life.is_open(companion['version']['definition']):
+        return 'open', ''
+    row = optional(connection, 'SELECT * FROM rough_patches WHERE subject=?', (f"seeing:{companion['id']}:{other['id']}",))
+    if row:
+        lvl = rough_patches.level(connection)
+        hurt = rough_patches.still_open(connection, row, lvl, now, companion)
+        return ('hurt' if hurt else 'settled'), row['started_on']
+    if rough_patches.level(connection) < 2:
+        return 'easy', ''
+    since = rough_patches.known_since(connection, companion, now)
+    return ('before', '') if since and other['created_at'] < since else ('unknown', '')
+
+
+def others_known(connection, companion: dict, found: dict, now) -> tuple[str, str]:
+    """('alone' | 'unknown' | 'known', the sentence saying who they know about) for an exclusive pair or further."""
+    if found['ladder'] != 'romance' or index_of('romance', found['step']) < 1:
+        return 'alone', ''
+    others = other_romances(connection, companion, now)
+    if not others:
+        return 'alone', ''
+    groups: dict[tuple[str, str], list[str]] = {}
+    for other in others:
+        groups.setdefault(how_known(connection, companion, other, now), []).append(
+            other['version']['definition']['name'].split()[0])
+    sentences = [KNOWN[kind].format(names=names_text(names), on=long_date(day) if day else '',
+                                    live='live' if len(names) > 1 else 'lives')
+                 for (kind, day), names in groups.items() if kind != 'unknown']
+    return ('known', ' '.join(sentences)) if sentences else ('unknown', '')
+
+
+def names_text(names: list[str]) -> str:
+    return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
 
 
 # The companion brings up the next step ----------------------------------------------------------------------------------
@@ -624,8 +729,18 @@ def ask_due(connection, companion: dict, now) -> list:
             continue
         lines = bank()[row['step']]
         template = random.Random(f"{row['id']}:line").choice(lines)
-        result.append(Trigger(f"step-ask:{row['id']}", 'next_step', REASONS[row['step']], template, (row['id'],)))
+        result.append(Trigger(f"step-ask:{row['id']}", 'next_step', reason_for(connection, companion, row['step']),
+                              template, (row['id'],)))
     return result
+
+
+def reason_for(connection, companion: dict, step: str) -> str:
+    """How they bring the step up; moving in while the user lives with another of their partners names who lives there
+    (companion/life/moving_in.py)."""
+    if step == 'moving_in':
+        from companion.life import moving_in  # Imported here: moving_in reads this module.
+        return moving_in.ask_reason(connection, companion) or REASONS[step]
+    return REASONS[step]
 
 
 def still_next(found: dict | None, row: dict) -> bool:
@@ -656,6 +771,72 @@ def answer(text: str) -> str | None:
     if NO.search(text):
         return 'no'
     return 'yes' if YES.search(text) else None
+
+
+def answer_to(connection, row: dict, message: dict) -> str | None:
+    """The user's answer to something the companion brought up, else None. Their first reply after it (the messages
+    before the companion writes again) is read as an answer, as is bringing the same step up themselves ("can we be
+    exclusive?" to "can we be exclusive?"). A later message counts only when it plainly answers: it names the step, or
+    it is a clear yes or no right after the companion brought it up again. So a "lol ok" about something else days
+    later is not a yes."""
+    text = message['text']
+    said = answer(text) or ('yes' if said_itself(row['step'], text) else None)
+    if said is None:
+        return None
+    asked = ask_seq(connection, row, message)
+    if names_step(row['step'], text) or first_turn(connection, message, asked):
+        return said
+    again = last_word(connection, message)
+    if again and again['seq'] > asked and names_step(row['step'], again['text']) and \
+            first_turn(connection, message, again['seq']):
+        return clear(text)
+    return None
+
+
+def said_itself(step: str, text: str) -> bool:
+    """The user brings up the very step that is waiting for their answer, which says yes to it."""
+    if step == CONFESSION:
+        return confessed(text)
+    return step in RAISES and raised(text, [step]) == step
+
+
+def names_step(step: str, text: str) -> bool:
+    return bool(step in MENTIONS and re.search(rf"\b(?:{MENTIONS[step]})\b", plain(text), re.IGNORECASE))
+
+
+def clear(text: str) -> str | None:
+    """'yes', 'not_yet' or 'no' when the message opens with it ("yes!", "not yet, sorry"), else None."""
+    opening = re.split(r"[.!?,;:\n]|\s[-–—]\s", plain(text).strip(), maxsplit=1)[0]
+    return answer(opening) if len(opening.split()) <= CLEAR_WORDS else None
+
+
+def ask_seq(connection, row: dict, message: dict) -> int:
+    """Where the ask sits in the chat: its first text, or (a copy on a branch without it) the last message before."""
+    found = optional(connection, 'SELECT seq FROM messages WHERE timeline_id=? AND (id=? OR origin_id=?)',
+                     (message['timeline_id'], row['message_id'] or '', row['message_id'] or ''))
+    if found is None:
+        found = optional(connection, 'SELECT MAX(seq) AS seq FROM messages WHERE timeline_id=? AND created_at<=? AND '
+                         'id<>?', (message['timeline_id'], row['created_at'], message['id']))
+    return (found or {}).get('seq') or 0
+
+
+def first_turn(connection, message: dict, after: int) -> bool:
+    """Whether the message is among the user's first after `after`: no message of theirs shown since the user's first
+    one after it (a failed or held reply doesn't count)."""
+    from companion.chats import shown
+    first = optional(connection, "SELECT MIN(seq) AS seq FROM messages WHERE timeline_id=? AND role='user' AND seq>?",
+                     (message['timeline_id'], after))
+    if not first or first['seq'] is None:
+        return True
+    return optional(connection, f'SELECT id FROM messages WHERE timeline_id=? AND seq>? AND seq<? AND {shown()} '
+                    'LIMIT 1', (message['timeline_id'], first['seq'], message['seq'], message['created_at'])) is None
+
+
+def last_word(connection, message: dict) -> dict | None:
+    """The companion's latest message shown before this one."""
+    from companion.chats import shown
+    return optional(connection, f'SELECT seq, text FROM messages WHERE timeline_id=? AND seq<? AND {shown()} '
+                    'ORDER BY seq DESC LIMIT 1', (message['timeline_id'], message['seq'], message['created_at']))
 
 
 def meant(sentence: str, found: re.Match) -> bool:
@@ -696,7 +877,7 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     if found is None or apart(connection, companion):
         return False  # On a break or broken up, asking to try again is read by companion/life/breakups.py.
     open_ask = next(iter(asks(connection, timeline_id, ('open',))), None)
-    if open_ask and (said := answer(message['text'])):
+    if open_ask and (said := answer_to(connection, open_ask, message)):
         settle_answer(connection, companion, open_ask, said, message, now)
         return True
     if found['ladder'] == 'friendship':
@@ -757,6 +938,10 @@ def answers(connection, companion: dict, found: dict, key: str, message: dict, n
         day = local_today(companion, now)
         for item in [*skipped, key]:
             insert_step(connection, timeline_id, found['ladder'], item, day, 'you', timestamp, row['id'])
+        for waiting_ask in asks(connection, timeline_id, ('open',)):  # Something they asked that this went past.
+            if waiting_ask['step'] in (*skipped, key):
+                connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?",
+                                   (timestamp, waiting_ask['id']))
         if key == 'engaged':
             from companion.life import wedding
             wedding.answered(connection, companion, row, status, now)
@@ -885,7 +1070,8 @@ def context_lines(connection, companion: dict, now, turn: set[str]) -> list[tupl
     found = state(connection, companion, now, write=False)
     if found is None or apart(connection, companion) == 'ended':
         return []  # Exes: the 'breakup' section says where they stand (companion/life/breakups.py).
-    result = [(f"steps:{found['ladder']}:{found['step']}", context_line(found))]
+    others = others_known(connection, companion, found, now)
+    result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}", context_line(found, others))]
     for row in asks(connection, companion['active_timeline_id'], ('open',)):
         if row['message_id'] and row['answer_id'] is None:
             result.append((f"step-ask:{row['id']}:open", '- ' + WAITING.format(
@@ -961,12 +1147,27 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     recent = many(connection, "SELECT * FROM step_asks WHERE timeline_id=? AND status NOT IN ('planned', 'dropped') "
                   'ORDER BY created_at DESC LIMIT 6', (companion['active_timeline_id'],))
     from companion.life import moving_in
+    moving = moving_in.view(connection, companion, now, show_odds)
+    if moving and moving['joins'] and moving['status'] != 'moved' and found['step'] == 'moving_in':
+        # Not living together until moving day: the panel stands at the step before (picking Living together moves
+        # them in now, companion/life/moving_in.py `move_in_now`).
+        before = ROMANCE[index_of('romance', 'moving_in') - 1]
+        found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
+                 'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
     return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
-            'moving_in': moving_in.view(connection, companion, now, show_odds),
+            'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
                       'topic': 'how you feel' if row['step'] == CONFESSION else topic_of(row),
                       'on': parse(row['created_at']).astimezone(zone(companion['version']['timezone'])).date().isoformat(),
                       'consequence_id': row['consequence_id'] if show_odds else None} for row in recent]}
+
+
+def not_moved_text(text: str, status: str) -> str:
+    """Moving into a home the user shares with another partner: not living together until moving day."""
+    words = 'moving in soon' if status == 'moving' else 'waiting to move in'
+    if text.endswith(', living together'):
+        return text.removesuffix('living together') + words
+    return words.capitalize()
 
 
 def set_step(connection, companion: dict, key: str, now) -> None:

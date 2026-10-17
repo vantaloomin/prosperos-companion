@@ -487,8 +487,10 @@ def read_consequence(request: Request, consequence_id: str):
     its odds and reasons, and the one it took."""
     with db(request).connect() as connection:
         found = consequences.by_id(connection, consequence_id)
-        require(found['timeline_id'] == require_current(connection)['active_timeline_id'],
-                'That outcome is not on this timeline.', 404)
+        companion = require_current(connection)
+        # Sharing a home: the answer of one living there shows on the newcomer's page too (moving_in.py).
+        require(found['timeline_id'] == companion['active_timeline_id'] or
+                moving_in.shown_with(connection, consequence_id, companion), 'That outcome is not on this timeline.', 404)
         return found
 
 

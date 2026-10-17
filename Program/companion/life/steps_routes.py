@@ -41,6 +41,8 @@ def update_steps(request: Request, body: StepsUpdate):
         if body.step is not None:
             steps.set_step(connection, companion, body.step, now)
             moving_in.follow_step(connection, companion, now)  # Where they live follows (companion/life/moving_in.py).
+            if body.step == moving_in.STEP:
+                moving_in.move_in_now(connection, companion, now)  # A move into a shared home not made yet.
         if body.just_friends is not None:
             steps.set_lock(connection, companion, body.just_friends, database.now())
         return read(connection, companion, now)

@@ -507,6 +507,20 @@ export interface StepsView {
 export interface MovingIn {
   status: 'moving' | 'waiting' | 'moved'; plan: 'yours' | 'theirs' | 'new' | 'them' | 'you'
   city: string; place: string; home: string; move_on: string | null; moved_on: string | null; consequence_id: string | null
+  /** Sharing a home: moving into (or living in) the home you share with another partner (`with`, first names), whether
+   * they are open to sharing it (`ready`), and who living there isn't (`not_ready`). */
+  joins?: boolean; ready?: boolean; with?: string[]; not_ready?: string[]
+  /** On the page of one living with you: another partner who would move in, and whether this one is open to it. */
+  newcomers?: Newcomer[]
+  /** While that move waits or is on its way: each one's answer, the newcomer first. */
+  rolls?: ShareRoll[]
+}
+
+export interface ShareRoll { name: string; open: boolean; consequence_id: string | null }
+
+export interface Newcomer {
+  name: string; status: 'moving' | 'waiting'; move_on: string | null; open: boolean; not_ready: string[]
+  consequence_id: string | null
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }

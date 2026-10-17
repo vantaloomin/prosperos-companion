@@ -635,12 +635,18 @@ def doing(outing: dict) -> str:
     return f"{thing} at {outing['place']['name']} with {company}"
 
 
-def memory_text(outing: dict) -> dict:
+def memory_text(outing: dict, name: str) -> dict:
+    """'You met Mira's mom Ana and dad Rui over dinner at Ana and Rui's place on ...', as the user reads it
+    (outings.memory_text)."""
     day = date.fromisoformat(outing['local_date'])
-    people = people_text(outing['place'].get('people') or [], yours=False)
-    met_word = 'met' if outing['place'].get('first') else 'saw'
-    subject = f"The user {met_word} {people}"
-    return {'subject': subject, 'value': f"{subject} over {what(outing).split(' with ')[0]} on {day:%A, %B} {day.day}."}
+    people = [f"{person['role']} {first(person['name'])}" for person in outing['place'].get('people') or []]
+    people[0] = f"{name}'s {people[0]}" if people else f"{name}'s people"
+    who = people[0] if len(people) == 1 else f"{', '.join(people[:-1])} and {people[-1]}"
+    over = what(outing).split(' with ')[0]
+    if outing['place'].get('first'):
+        return {'subject': f'Meeting {who}', 'value': f'You met {who} over {over} on {day:%A, %B} {day.day}.'}
+    return {'subject': f"{over.split(' at ')[0].capitalize()} with {who}",
+            'value': f'You saw {who} again over {over} on {day:%A, %B} {day.day}.'}
 
 
 # The circle list and Hidden values --------------------------------------------------------------------------------------

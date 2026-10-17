@@ -2425,3 +2425,21 @@ CREATE TABLE IF NOT EXISTS weddings (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS weddings_timeline ON weddings(timeline_id, status);
+-- Sharing a home (companion/life/moving_in.py): when a romance companion's moving-in step is reached while the user
+-- already lives with another (or is about to), each of them says whether they are open to sharing a home, one roll in
+-- the consequence engine each (moving_in:share, `consequence_id`). `moving_in_id` is the newcomer's moving_in row,
+-- `timeline_id` and `companion_id` the one asked, `round` counts the times it was asked again after a not yet, `open`
+-- what the roll said, `told_at` when they texted the user about it.
+CREATE TABLE IF NOT EXISTS moving_in_shares (
+  id TEXT PRIMARY KEY,
+  moving_in_id TEXT NOT NULL,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL,
+  newcomer INTEGER NOT NULL DEFAULT 0 CHECK (newcomer IN (0, 1)),
+  round INTEGER NOT NULL DEFAULT 1,
+  consequence_id TEXT,
+  open INTEGER NOT NULL DEFAULT 0 CHECK (open IN (0, 1)),
+  told_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS moving_in_shares_row ON moving_in_shares(moving_in_id, round);

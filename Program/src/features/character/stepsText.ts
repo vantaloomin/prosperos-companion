@@ -1,5 +1,6 @@
-import type { MovingIn, StepsView } from '../../types'
+import type { MovingIn, Newcomer, ShareRoll, StepsView } from '../../types'
 import { firstName } from './panelText.ts'
+import { namesText } from '../groups/groupText.ts'
 
 export const STEPS_KEY = ['steps']
 
@@ -55,7 +56,9 @@ export function plannedText(planned: NonNullable<StepsView['planned']>, name: st
  * you're ready." */
 export function movingText(moving: MovingIn, name: string): string {
   const who = firstName(name)
-  if (moving.status === 'moved') return `Since ${stepDate(moving.moved_on ?? '')}${moving.home ? `, ${moving.home}` : ''}.`
+  const others = namesText(moving.with ?? [])
+  if (moving.status === 'moved') return `Since ${stepDate(moving.moved_on ?? '')}${moving.home ? `, ${moving.home}` : ''}${others ? `, with ${others}` : ''}.`
+  if (moving.joins) return joiningText(moving, who, others)
   // The Character page links "Change your home city" after this.
   if (moving.status === 'waiting') return `${who} asked you to move to ${moving.city} to live together.`
   const on = moving.move_on ? ` on ${stepDate(moving.move_on)}` : ''
@@ -65,4 +68,37 @@ export function movingText(moving: MovingIn, name: string): string {
     new: `Moving into a new place${where}${on}.`, them: `${who} is moving to ${moving.city} to live with you${on}.`,
     you: '',
   }[moving.plan]
+}
+
+/** Sharing a home: "Theo is moving in with you and Mira on Nov 1, 2026.", or why it waits. */
+function joiningText(moving: MovingIn, who: string, others: string): string {
+  if (moving.status === 'moving') return `${who} is moving in with you and ${others}${moving.move_on ? ` on ${stepDate(moving.move_on)}` : ''}.`
+  if (!moving.ready) return `${who} would like to live with you, but isn't ready to share a home with ${others} yet.`
+  const waiting = moving.not_ready ?? []
+  return `${who} would like to move in with you and ${others}. ${namesText(waiting)} ${waiting.length > 1 ? "aren't" : "isn't"} ready to share your home yet.`
+}
+
+/** Each one's answer about sharing a home, as the label of its odds: "Theo: open to it", "Mira: not ready yet". */
+export function rollLabel(roll: ShareRoll): string {
+  return `${roll.name}: ${roll.open ? 'open to it' : 'not ready yet'}`
+}
+
+/** On the page of one living with you, the label of their own answer: "Why Mira isn't ready yet", "Why Mira said yes". */
+export function ownAnswerLabel(newcomer: Newcomer, name: string): string {
+  return newcomer.open ? `Why ${firstName(name)} said yes` : `Why ${firstName(name)} isn't ready yet`
+}
+
+/** Step 6 while a move into a shared home hasn't happened: muted, and when it is due. */
+export function pendingStepText(moving: MovingIn): string {
+  return moving.status === 'moving' && moving.move_on ? `from ${stepDate(moving.move_on)}` : 'not yet'
+}
+
+/** On the page of one living with you, another partner who would move in: "Theo is moving in too, on Nov 1, 2026."
+ * or "Theo would like to move in too. Mira isn't ready to share your home yet." */
+export function newcomerText(newcomer: Newcomer, name: string): string {
+  const who = firstName(name)
+  if (newcomer.status === 'moving') return `${newcomer.name} is moving in too${newcomer.move_on ? `, on ${stepDate(newcomer.move_on)}` : ''}.`
+  const waiting = newcomer.open ? newcomer.not_ready.filter((item) => item !== who) : [who]
+  const names = namesText(waiting.length ? waiting : [newcomer.name])
+  return `${newcomer.name} would like to move in too. ${names} ${waiting.length > 1 ? "aren't" : "isn't"} ready to share your home yet.`
 }

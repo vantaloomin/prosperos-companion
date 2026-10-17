@@ -884,7 +884,8 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
         if together.turned_away(outing, timezone):
             connection.execute("UPDATE outings SET status='done' WHERE id=?", (outing['id'],))
             continue
-        fields = {**memory_text(outing), 'layer': 'shared_experience',
+        fields = {**memory_text(outing, companion['version']['definition']['name'].split()[0]),
+                  'layer': 'shared_experience',
                   'stated_at': stamp(min(now, window(outing, timezone)[1])), 'applies_from': None, 'applies_until': None}
         memory, _created = records.insert(connection, companion, fields, now=stamp(now), origin='automatic',
                                           sources=(outing['message_id'],))
@@ -893,23 +894,31 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
     return done
 
 
-def memory_text(outing: dict) -> dict:
-    """{subject, value} of the shared memory an outing leaves."""
+def memory_text(outing: dict, name: str) -> dict:
+    """{subject, value} of the shared memory an outing leaves, as the user reads it on Memories and the scrapbook:
+    "you" is the user and the companion goes by `name`, their first name ("Mira came over to your place"), never "the
+    user" (E2E v0.13, Vanta "Agreed"). The companion reads it the other way round (records.as_told)."""
     day = date.fromisoformat(outing['local_date'])
     place = outing['place']
     on = f"on {day:%A, %B} {day.day}"
     if outing['activity'] in MEETUPS:
         from companion.life import their_people
-        return their_people.memory_text(outing)
+        return their_people.memory_text(outing, name)
     if outing['activity'] == 'wedding':
         from companion.life import wedding
-        return wedding.memory_text(outing)
+        return wedding.memory_text(outing, name)
+    if outing['activity'] == 'dinner-in':
+        dinner = menu_text(place.get('menu') or {})
+        return {'subject': f"Dinner at {name}'s place",
+                'value': f"Had {dinner}{',' if ', ' in dinner else ''} at {name}'s place {on}."}
     if outing['activity'] in VISIT_DOING:
-        subject = {'visit-in': 'The user came over to your place', 'visit-yours': "You went over to the user's place",
-                   'dinner-yours': "Dinner at the user's place"}[outing['activity']]
+        subject, said = {'visit-in': (f"Over at {name}'s place", f"You came over to {name}'s place"),
+                         'visit-yours': (f'{name} came over', f'{name} came over to your place'),
+                         'dinner-yours': (f'{name} came over for dinner', f'{name} came over to your place for dinner'),
+                         }[outing['activity']]
         if place_knock(outing):
-            subject = "You dropped by the user's place"
-        return {'subject': subject, 'value': f'{subject} {on}.'}
+            subject, said = f'{name} dropped by', f'{name} dropped by your place'
+        return {'subject': subject, 'value': f'{said} {on}.'}
     pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
     return {'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} together at {place['name']}",
             'value': f"Went out together for {what(outing)} {on}."}

@@ -379,3 +379,42 @@ def test_reaching_out_changed_on_today_is_due_at_once(client, couple, provider, 
     outcome = answer_of(client, 'user:reach_out')
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': breakups.YES})
     assert [trigger for trigger in triggers(client) if trigger.kind == 'reach_out']
+
+
+def strained_odds(client):
+    with client.app.state.database.connect() as connection:
+        row = connection.execute("SELECT options FROM consequences WHERE choice='user:strained'").fetchone()
+    return json.loads(row['options'])[1] if row else None
+
+
+def test_rough_patches_that_stack_push_breakups_less(client, couple, provider, clock):
+    """E2E v0.13: four rude messages in two minutes on Drama rolled "Things get strained" at 75% the same day. Now the
+    stacked ones count a half, a quarter and an eighth, so they don't pile up to an at-once roll."""
+    set_life(client, rough_patches_realism=3, drama=3)
+    for index, text in enumerate(('shut up', "you're so annoying", 'go away', "ugh you're useless")):
+        says(provider)
+        send(client, text, f'client-stack-break-{index}')
+        clock.advance(timedelta(seconds=30))
+    with client.app.state.database.connect() as connection:
+        assert breakups.piled(connection, current(connection), clock.now()) == {'patches': 1.875, 'stacked': 3}
+    tick(client)
+    assert strained_odds(client) is None  # Not piled up: before, four rows made three and more at once.
+    clock.advance(timedelta(days=2, hours=1))
+    tick(client)  # It dragged on, so it rolls.
+    found = strained_odds(client)
+    assert 'some rough patches came close together, over the same thing' in found['reasons']
+    assert "this isn't the first rough patch lately" not in found['reasons']
+
+
+def test_rough_patches_over_different_things_count_in_full(client, couple, provider, clock):
+    set_life(client, rough_patches_realism=3, drama=3)
+    says(provider)
+    send(client, 'shut up', 'client-stack-break-5')
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        rough_patches.consider(connection, companion, 'forgot_occasion', 'occasion:test', 'your birthday', clock.now())
+        rough_patches.consider(connection, companion, 'missed_plan', 'plan:test', 'the plan', clock.now())
+        assert breakups.piled(connection, companion, clock.now()) == {'patches': 3, 'stacked': 0}
+    tick(client)
+    found = strained_odds(client)
+    assert {"this isn't the first rough patch lately", 'the rough patches keep piling up'} <= set(found['reasons'])

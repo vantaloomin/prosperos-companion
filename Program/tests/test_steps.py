@@ -371,3 +371,232 @@ def test_each_reason_sits_under_the_answer_it_moved():
     assert apart[0]['reasons'] == ["Mira doesn't feel close enough yet"] and apart[0]['odds'] < plain[0]['odds']
     assert apart[1]['reasons'] == []
     assert apart[0]['moves'] == ['less'], 'Today says "Less likely because Mira doesn\'t feel close enough yet"'
+
+
+# The user's other romances (E2E v0.13 N2): "you only see each other" only when it is true for that companion ----------
+
+def add_romance(client, name, created_at=None, **values):
+    """Another romance companion, with a timeline of their own."""
+    from companion.characters import insert_version
+    from companion.database import identifier
+    from companion.models import CharacterDefinition
+    database = client.app.state.database
+    created_at = created_at or database.now()
+    with database.connect(write=True) as connection:
+        other, timeline = identifier(), identifier()
+        connection.execute('INSERT INTO companions (id, slot, stepped_back_at, created_at) VALUES (?, NULL, ?, ?)',
+                           (other, created_at, created_at))
+        connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
+                           (timeline, other, created_at))
+        version = insert_version(connection, other, 1, CharacterDefinition(
+            name=name, personality='Easygoing.', timezone='UTC', relationship='romance', **values), '', created_at)
+        connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',
+                           (version, timeline, other))
+    return other, timeline
+
+
+def standing(client, group=None) -> str:
+    from companion.memory import context
+    database = client.app.state.database
+    with database.connect() as connection:
+        companion = current(connection)
+        if group is not None:
+            built = context.build(connection, companion, database.clock.now(), 24000, group=group)
+            return next(line for line in (built['system'] + built['note']).split('\n') if 'Keep to where things' in line)
+        return steps.context_lines(connection, companion, database.clock.now(), set())[0][1]
+
+
+@pytest.fixture
+def minds(monkeypatch):
+    """Rough patches on ("Exclusive minds"), every roll landing on a rough patch."""
+    from companion.life import rough_patches
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+    return rough_patches
+
+
+def test_alone_they_are_a_couple_and_say_so_plainly(client, monkeypatch):
+    make(client, monkeypatch)
+    client.put('/api/life/steps', json={'step': 'exclusive'})
+    line = standing(client)
+    assert 'You are exclusive: you are a couple and only see each other. If the user asks what you are, say so ' \
+           'plainly.' in line
+
+
+def test_other_romances_they_have_not_found_out_about_yet(client, monkeypatch, minds):
+    make(client, monkeypatch)
+    client.put('/api/life/steps', json={'step': 'exclusive'})
+    add_romance(client, 'Theo Park')
+    line = standing(client)
+    assert 'as far as you know the user sees only you' in line and 'only see each other' not in line
+    with client.app.state.database.connect(write=True) as connection:  # The daily pass: they find out, and it hurts.
+        minds.seen_with_others(connection, current(connection), client.app.state.database.clock.now())
+    line = standing(client)
+    assert 'You are a couple. If the user asks what you are, say so plainly.' in line
+    assert 'You found out on 5 October 2026 that the user is also seeing Theo, and it hurts.' in line
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE rough_patches SET mended_at=?, mended_by='apology'", (client.app.state.database.now(),))
+    assert 'You found out on 5 October 2026 that the user is also seeing Theo; you have come to terms with it.' \
+        in standing(client)
+
+
+def test_other_romances_they_knew_of_before_the_app_started_them_out_exclusive(client, monkeypatch, minds):
+    add_romance(client, 'Theo Park', '2026-01-01T00:00:00+00:00')
+    make(client, monkeypatch, history_together='We have been dating for a year.')
+    line = standing(client)
+    assert 'The user was already seeing Theo when you two became a couple; you have known all along' in line
+    assert 'only' not in line.split('Keep to')[0]
+
+
+def test_an_open_relationship_an_easy_life_and_a_shared_home(client, monkeypatch, minds):
+    make(client, monkeypatch, interests=['open relationships'])
+    client.put('/api/life/steps', json={'step': 'love'})
+    other, timeline = add_romance(client, 'Theo Park')
+    line = standing(client)
+    assert 'You are a couple and you have both said "I love you".' in line
+    assert 'Your relationship with the user is open: the user is also seeing Theo, and you know.' in line
+    with client.app.state.database.connect(write=True) as connection:
+        version = current(connection)['active_version_id']
+        connection.execute("UPDATE character_versions SET definition=json_set(definition, '$.interests', json('[]')) "
+                           'WHERE id=?', (version,))
+    set_life(client, rough_patches_realism=1)
+    assert 'The user is also seeing Theo; you know, and it does not bother you.' in standing(client)
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        for timeline_id in (current(connection)['active_timeline_id'], timeline):
+            connection.execute("INSERT INTO moving_in (id, timeline_id, plan, status, city_id, decided_on, moved_on, "
+                               "created_at) VALUES (?, ?, 'yours', 'moved', 'baltimore', '2026-09-01', '2026-09-20', ?)",
+                               (f'home-{timeline_id}', timeline_id, database.now()))
+    assert 'Theo also lives with you and the user: the user is with Theo too, and you all know it.' in standing(client)
+
+
+def test_an_ex_is_not_another_romance_and_a_group_chat_reads_the_same_line(client, monkeypatch, minds):
+    make(client, monkeypatch)
+    client.put('/api/life/steps', json={'step': 'exclusive'})
+    other, _timeline = add_romance(client, 'Theo Park')
+    group = {'older': [], 'query': '', 'lines': [], 'previous': None}
+    assert 'as far as you know the user sees only you' in standing(client, group)
+    monkeypatch.setattr(steps, 'apart', lambda _connection, companion: 'ended' if companion['id'] == other else None)
+    assert 'you are a couple and only see each other' in standing(client)
+
+
+# Which message is the answer (Vanta 2026-10-17): only the user's first reply after an ask is read whatever it says; a
+# later one counts only when it plainly answers.
+
+def asked(client, provider, clock, monkeypatch, relationship='romance'):
+    """Mira brings up the next step (being exclusive; a confession for a friend) in a first text: open now."""
+    make(client, monkeypatch, relationship=relationship)
+    monkeypatch.setattr(steps, 'FIRST_TEXTS', True)
+    view(client)
+    if relationship == 'romance':
+        close(client, 3)
+        clock.advance(timedelta(days=36))
+        reconcile(client)
+        clock.advance(timedelta(days=8))
+    else:
+        monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+        close(client, 4)
+        for days in (95, 28, 13):
+            clock.advance(timedelta(days=days))
+            if days != 13:
+                reconcile(client)
+    assert first_text(client, clock)
+
+
+def open_asks(client):
+    with client.app.state.database.connect() as connection:
+        return [row['step'] for row in steps.asks(connection, current(connection)['active_timeline_id'], ('open',))]
+
+
+def test_an_ok_about_something_else_later_is_not_a_yes(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider)
+    send(client, 'ugh my day was awful, my boss yelled at me', 'client-answer-1')
+    says(provider, 'Oh no, that sounds rough. Want to talk about it?')
+    send(client, 'lol ok so basically he hates my slides', 'client-answer-2')
+    says(provider)
+    send(client, "sure, I'll make pasta tonight", 'client-answer-3')
+    assert view(client)['step'] == 'dating' and open_asks(client) == ['exclusive']
+    assert 'they have not answered yet' in prompt(provider)
+    says(provider)
+    send(client, 'oh and about being exclusive: yes, I want that', 'client-answer-4')  # Names the step.
+    assert 'The user just said yes to being exclusive.' in prompt(provider)
+    assert view(client)['step'] == 'exclusive' and open_asks(client) == []
+
+
+def test_the_whole_first_reply_counts_even_in_two_messages(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    with client.app.state.database.connect(write=True) as connection:  # "omg", sent before Mira wrote back.
+        companion = current(connection)
+        connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, created_at, "
+                           "completed_at) VALUES ('omg', ?, 100, 'user', 'omg', 'complete', 1, ?, ?)",
+                           (companion['active_timeline_id'], clock.now().isoformat(), clock.now().isoformat()))
+    says(provider)
+    send(client, 'yes!!', 'client-answer-5')
+    assert view(client)['step'] == 'exclusive'
+
+
+def test_a_clear_not_yet_right_after_they_bring_it_up_again(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider, 'Sorry, that was a lot. So... how do you feel about being exclusive?')
+    send(client, 'haha wait, what are you having for dinner?', 'client-answer-6')
+    says(provider)
+    send(client, 'not yet, sorry. I need a little more time', 'client-answer-7')
+    assert "The user just said they aren't ready for being exclusive yet." in prompt(provider)
+    assert view(client)['step'] == 'dating' and open_asks(client) == []
+
+
+def test_a_later_no_counts_when_it_names_the_step_and_a_nah_about_lunch_does_not(client, provider, clock, monkeypatch,
+                                                                                 always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider, 'Ha, good morning to you too.')
+    send(client, 'good morning!', 'client-answer-8')
+    says(provider, 'Want to get lunch?')
+    send(client, 'nah, I ate already', 'client-answer-9')  # A clear no, but to lunch.
+    assert open_asks(client) == ['exclusive']
+    says(provider)
+    send(client, "I've thought about it and no, I don't want to be exclusive", 'client-answer-10')
+    assert 'The user just said no to being exclusive.' in prompt(provider)
+    assert view(client)['step'] == 'dating' and open_asks(client) == []
+
+
+def test_bringing_up_the_step_they_asked_about_says_yes_to_it(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider)
+    send(client, 'how was work?', 'client-answer-11')
+    says(provider)
+    send(client, 'can we make it official? be my girlfriend?', 'client-answer-12')
+    found = view(client)
+    assert found['step'] == 'exclusive' and found['steps'][-1]['how'] == 'them' and open_asks(client) == []
+    assert 'The user just said yes to being exclusive.' in prompt(provider)
+
+
+def test_bringing_up_a_further_step_settles_the_one_waiting(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider)
+    send(client, 'how was work?', 'client-answer-13')
+    says(provider)
+    send(client, 'I just wanted to say I love you', 'client-answer-14')
+    found = view(client)
+    assert [item['step'] for item in found['steps']] == ['dating', 'exclusive', 'love'] and open_asks(client) == []
+
+
+def test_a_friends_confession_is_answered_by_the_first_reply_or_a_plain_answer(client, provider, clock, monkeypatch):
+    asked(client, provider, clock, monkeypatch, relationship='friendship')
+    says(provider, 'Haha, sorry, forget I said anything.')
+    send(client, 'wait what time is lunch tomorrow?', 'client-answer-15')
+    says(provider, 'Noon at the usual place?')
+    send(client, 'sure, noon works', 'client-answer-16')  # A yes to lunch, not to them.
+    assert client.get('/api/companion').json()['companion']['version']['definition']['relationship'] == 'friendship'
+    assert open_asks(client) == ['confession']
+    says(provider)
+    send(client, "about what you said the other day... I feel the same", 'client-answer-17')
+    assert client.get('/api/companion').json()['companion']['version']['definition']['relationship'] == 'romance'
+    assert 'they just said they feel the same' in prompt(provider)
+
+
+def test_a_clear_answer_opens_the_message():
+    assert steps.clear('yes!') == 'yes' and steps.clear('not yet, sorry') == 'not_yet'
+    assert steps.clear('haha sure') == 'yes' and steps.clear('no. not ready for that') == 'no'
+    assert steps.clear('lol ok so my day was awful') is None
+    assert steps.clear('my day was long, ok whatever') is None
