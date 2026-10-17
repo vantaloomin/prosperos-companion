@@ -200,12 +200,19 @@ def together(connection, companion, now, period, timezone) -> list[dict]:
     moments = [memory for memory in closeness.shared_moments(connection, companion, companion['active_timeline_id'],
                                                              now, None)
                if (memory['subject'], memory['value']) not in told and low <= happened(memory, timezone) <= high]
-    moments.sort(key=lambda memory: (-memory['pinned'], happened(memory, timezone)))
-    if moments:
+    kept = kept_moments(moments, timezone)
+    if kept:
         pages.append({'kind': 'moments', 'title': 'Moments to remember',
                       'items': [{'date': happened(memory, timezone), 'text': f"{memory['subject']}: {memory['value']}"}
-                                for memory in moments[:MOMENT_LIMIT]]})
+                                for memory in kept]})
     return pages
+
+
+def kept_moments(moments: list[dict], timezone) -> list[dict]:
+    """The moments the page has room for, pinned ones first, listed in the order they happened (Iris, v0.13: a
+    pinned August moment sat above an unpinned March one)."""
+    chosen = sorted(moments, key=lambda memory: (-memory['pinned'], happened(memory, timezone)))[:MOMENT_LIMIT]
+    return sorted(chosen, key=lambda memory: happened(memory, timezone))
 
 
 def happened(memory: dict, timezone) -> str:

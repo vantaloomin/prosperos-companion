@@ -278,14 +278,15 @@ def test_outing_memories_are_worded_for_the_user_and_turned_round_for_the_compan
                                      'Saturday, March 7.'}
     assert found['saw']['value'].startswith("You saw Mira's mom Ana and dad Rui again over dinner")
     assert found['wedding'] == {'subject': 'Your wedding',
-                                'value': "Got married at St Paul's Church on Saturday, March 7, 2026."}
+                                'value': "You and Mira got married at St Paul's Church on Saturday, March 7, 2026."}
     for memory in found.values():
         assert 'the user' not in f"{memory['subject']} {memory['value']}".lower(), memory
     # To Mira, "you" is Mira.
     assert told(found['visit-in']) == "Over at your place: The user came over to your place on Saturday, March 7."
     assert told(found['visit-yours']) == "You came over: You came over to the user's place on Saturday, March 7."
     assert told(found['met']).startswith("Meeting your mom Ana and dad Rui: The user met your mom Ana and dad Rui")
-    assert told(found['wedding']) == "Your wedding: Got married at St Paul's Church on Saturday, March 7, 2026."
+    assert told(found['wedding']) == \
+        "Your wedding: The user and you got married at St Paul's Church on Saturday, March 7, 2026."
     # Older memories were written Mira's way already, and a memory the user wrote is left as they wrote it.
     assert told({'subject': 'Your wedding', 'value': 'You married the user at Lupa.'}) == \
         'Your wedding: You married the user at Lupa.'

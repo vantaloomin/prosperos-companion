@@ -906,7 +906,7 @@ def memory_text(outing: dict, name: str) -> dict:
         return their_people.memory_text(outing, name)
     if outing['activity'] == 'wedding':
         from companion.life import wedding
-        return wedding.memory_text(outing)
+        return wedding.memory_text(outing, name)
     if outing['activity'] == 'dinner-in':
         dinner = menu_text(place.get('menu') or {})
         return {'subject': f"Dinner at {name}'s place",

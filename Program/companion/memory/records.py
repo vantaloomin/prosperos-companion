@@ -381,11 +381,13 @@ def as_told(row: dict, name: str) -> dict:
     """A memory the app wrote about something the two of them did, as the companion reads it. The app writes those for
     the user, who reads them on Memories and the scrapbook: "you" is the user and the companion goes by their first
     name ("Mira came over to your place", companion/life/outings.py). Told to the companion it turns round: "You came
-    over to the user's place". Only memories that name them: older ones were written the companion's way already."""
+    over to the user's place". Only the parts that name them: older memories were written the companion's way already,
+    and "Your wedding" is theirs both ways."""
     if not name or row.get('layer') != 'shared_experience' or row.get('origin') != 'automatic' or \
-            not re.search(rf'\b{re.escape(name)}\b', f"{row['subject']} {row['value']}") or 'the user' in row['value']:
+            'the user' in row['value']:
         return row
-    return {**row, 'subject': turned(row['subject'], name), 'value': turned(row['value'], name)}
+    named = re.compile(rf'\b{re.escape(name)}\b')
+    return {**row, **{key: turned(row[key], name) for key in ('subject', 'value') if named.search(row[key])}}
 
 
 TURNS = ((r"\byour\b", "the user's"), (r'\byou\b', 'the user'))

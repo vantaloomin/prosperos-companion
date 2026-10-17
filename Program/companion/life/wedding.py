@@ -826,9 +826,10 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None) -> st
     return '- ' + ' '.join(part for part in parts if part)
 
 
-def memory_text(outing: dict) -> dict:
+def memory_text(outing: dict, name: str) -> dict:
+    """As the user reads it ("You and Mira got married at ..."); the companion reads it turned round (records.as_told)."""
     day = date.fromisoformat(outing['local_date'])
-    return {'subject': 'Your wedding', 'value': f"Got married at {outing['place']['name']} on "
+    return {'subject': 'Your wedding', 'value': f"You and {name} got married at {outing['place']['name']} on "
                                                 f"{day:%A, %B} {day.day}, {day.year}."}
 
 
