@@ -10,7 +10,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { Wedding } from './WeddingPlan'
-import { STEPS_KEY, askText, howText, movingText, plannedText, stepDate } from './stepsText'
+import { STEPS_KEY, askText, howText, movingText, newcomerText, plannedText, stepDate } from './stepsText'
 import { apartHint, BREAKUP_KEY, breakupLine, isApart, mendLabel, mendedText, type BreakupView } from './breakupText'
 import { UNDO_MS } from '../profile/roughPatchText'
 
@@ -69,8 +69,14 @@ function MovingLine({ moving, name }: { moving: NonNullable<StepsView['moving_in
   }
   return (
     <div className="steps-detail">
-      <p>{movingText(moving, name)}{moving.status === 'waiting' && <> <a className="text-button inline" href="#worlds" onClick={change}>Change your home city</a> when you're ready.</>}</p>
+      <p>{movingText(moving, name)}{moving.status === 'waiting' && moving.plan === 'you' && !moving.joins && <> <a className="text-button inline" href="#worlds" onClick={change}>Change your home city</a> when you're ready.</>}</p>
       {moving.consequence_id && <WhyItWent id={moving.consequence_id} settled={moving.status === 'moved'} />}
+      {moving.newcomers?.map((newcomer) => (
+        <div key={newcomer.name}>
+          <p>{newcomerText(newcomer, name)}</p>
+          {newcomer.consequence_id && <WhyItWent id={newcomer.consequence_id} />}
+        </div>
+      ))}
     </div>
   )
 }

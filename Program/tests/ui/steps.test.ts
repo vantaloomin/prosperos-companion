@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PACE_LEVELS, askText, howText, movingText, plannedText, stepDate } from '../../src/features/character/stepsText.ts'
+import { PACE_LEVELS, askText, howText, movingText, newcomerText, plannedText, stepDate } from '../../src/features/character/stepsText.ts'
 
 test('the Relationship pace slider has four steps', () => {
   assert.deepEqual(PACE_LEVELS.map((level) => level.label), ['Only when you bring it up', 'Slow', 'True to life', 'Fast'])
@@ -33,4 +33,20 @@ test('moving in together says whose place, or who moves, and when', () => {
   assert.equal(movingText({ ...moving, status: 'waiting', plan: 'you', city: 'Chicago' }, 'Mira'), 'Mira asked you to move to Chicago to live together.')
   assert.equal(movingText({ ...moving, status: 'moved', moved_on: '2026-11-02', home: 'a two-bedroom in Canton' }, 'Mira'),
     `Since ${stepDate('2026-11-02')}, a two-bedroom in Canton.`)
+})
+
+test('sharing a home with another partner says who lives there, and why a move waits', () => {
+  const base = { status: 'moving' as const, plan: 'yours' as const, city: 'Baltimore', place: 'Canton', home: '', move_on: '2026-11-01', moved_on: null, consequence_id: null }
+  const joining = { ...base, joins: true, ready: true, with: ['Mira'], not_ready: [] }
+  assert.equal(movingText(joining, 'Theo Park'), `Theo is moving in with you and Mira on ${stepDate('2026-11-01')}.`)
+  assert.equal(movingText({ ...joining, status: 'waiting', move_on: null, not_ready: ['Mira'] }, 'Theo'),
+    "Theo would like to move in with you and Mira. Waiting: Mira isn't ready to share your home yet.")
+  assert.equal(movingText({ ...joining, status: 'waiting', move_on: null, ready: false }, 'Theo'),
+    "Theo would like to live with you, but isn't ready to share a home with Mira yet.")
+  assert.equal(movingText({ ...base, status: 'moved', moved_on: '2026-11-02', home: 'a one-bedroom in Canton', with: ['Theo'] }, 'Mira'),
+    `Since ${stepDate('2026-11-02')}, a one-bedroom in Canton, with Theo.`)
+  const newcomer = { name: 'Theo', status: 'waiting' as const, move_on: null, open: false, not_ready: ['Mira'], consequence_id: null }
+  assert.equal(newcomerText(newcomer, 'Mira Solano'), "Theo would like to move in too. Mira isn't ready to share your home yet.")
+  assert.equal(newcomerText({ ...newcomer, status: 'moving', move_on: '2026-11-01', open: true, not_ready: [] }, 'Mira'),
+    `Theo is moving in too, on ${stepDate('2026-11-01')}.`)
 })

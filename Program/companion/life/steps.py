@@ -624,8 +624,18 @@ def ask_due(connection, companion: dict, now) -> list:
             continue
         lines = bank()[row['step']]
         template = random.Random(f"{row['id']}:line").choice(lines)
-        result.append(Trigger(f"step-ask:{row['id']}", 'next_step', REASONS[row['step']], template, (row['id'],)))
+        result.append(Trigger(f"step-ask:{row['id']}", 'next_step', reason_for(connection, companion, row['step']),
+                              template, (row['id'],)))
     return result
+
+
+def reason_for(connection, companion: dict, step: str) -> str:
+    """How they bring the step up; moving in while the user lives with another of their partners names who lives there
+    (companion/life/moving_in.py)."""
+    if step == 'moving_in':
+        from companion.life import moving_in  # Imported here: moving_in reads this module.
+        return moving_in.ask_reason(connection, companion) or REASONS[step]
+    return REASONS[step]
 
 
 def still_next(found: dict | None, row: dict) -> bool:

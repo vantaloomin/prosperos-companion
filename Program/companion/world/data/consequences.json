@@ -751,6 +751,12 @@
             },
             {
               "reader": "cause",
+              "is": "sharing",
+              "times": 0.8,
+              "why": "it is only a small thing to talk through"
+            },
+            {
+              "reader": "cause",
               "is": "proposal_no",
               "times": 2.5,
               "why": "you turned down {name}'s proposal"
@@ -2249,6 +2255,89 @@
               "has": "driven",
               "times": 1.3,
               "why": "{name}'s description says they're driven"
+            }
+          ]
+        }
+      ]
+    },
+    "moving_in:share": {
+      "label": "Whether {name} is open to sharing a home with {a}",
+      "options": [
+        {
+          "label": "{name} is open to sharing a home with {a}",
+          "weight": 0.4,
+          "rules": [
+            {
+              "reader": "raised",
+              "at_least": 1,
+              "times": 4.0,
+              "why": "{name} brought up moving in, knowing who lives with you"
+            },
+            {
+              "reader": "open",
+              "at_least": 1,
+              "times": 4.0,
+              "why": "{name} is into open relationships"
+            },
+            {
+              "reader": "social",
+              "at_least": 2,
+              "times": 1.4,
+              "why": "{name} loves a full house"
+            },
+            {
+              "reader": "warmth",
+              "at_least": 2,
+              "times": 1.25,
+              "why": "{name} is warm-hearted"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is easygoing"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "label": "{name} isn't ready to share a home with {a}",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 2.5,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "upset",
+              "at_least": 1,
+              "times": 2.0,
+              "why": "{name} is still upset that you're seeing someone else"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "others",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "it would make a full house"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
             }
           ]
         }

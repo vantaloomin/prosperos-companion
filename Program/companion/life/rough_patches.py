@@ -10,7 +10,8 @@ What opens one, all caught by rules from what the app already knows:
 - calling off an outing on its own day (small friction, gone in a day);
 - finding out you're seeing someone else once you two are exclusive (`seeing_someone`, called by Next steps), never
   on an easy life;
-- small everyday friction other features report through `friction` (a chore after moving in);
+- small everyday friction other features report through `friction` (a chore after moving in, or another of your
+  partners wanting to move in when they aren't ready to share their home);
 - saying no when they ask you to marry them (`proposal_no`, from companion/life/wedding.py).
 
 Whether something you did starts a rough patch is a roll in the consequence engine (choice user:rough_patch in
@@ -58,7 +59,7 @@ OPENS = 1  # The option in the odds table that starts one.
 CAUSES = {
     'words': ('big', 'user'), 'missed_plan': ('big', 'user'), 'forgot_occasion': ('big', 'user'),
     'secret_told': ('big', 'user'), 'secret_kept': ('big', 'user'), 'promise': ('big', 'user'),
-    'seeing_someone': ('big', 'user'), 'called_off': ('small', 'user'), 'chore': ('small', 'user'),
+    'seeing_someone': ('big', 'user'), 'called_off': ('small', 'user'), 'chore': ('small', 'user'), 'sharing': ('small', 'user'),
     'stood_up': ('big', 'companion'), 'hidden_partner': ('big', 'companion'), 'proposal_no': ('big', 'user'),
 }
 # What they did, for the lines about their own fault: (in the chat context, after "You let the user down: ", and
@@ -79,6 +80,7 @@ MINDS = {'words': r'sensitive|thin[- ]skinned|insecure|proud|need|lonely|sulk',
          'secret_kept': r'trust|betray|honest|secret|loyal|guarded|parano',
          'seeing_someone': r'jealous|possessive|insecure|loyal|trust|clingy|need',
          'called_off': reactions.MINDS['user:missed_plan'], 'chore': r'tidy|neat|clean|particular|fussy',
+         'sharing': r'jealous|possessive|insecure|territorial|clingy|need',
          'proposal_no': r'insecure|sensitive|need|lonely|reject|abandon|clingy|romantic'}
 
 # Words aimed at them that can start one: a narrower set than the mood nudge, and only said to them.

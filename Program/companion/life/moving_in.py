@@ -20,6 +20,15 @@ the user saying they are out, or Heading out on the chat strip, makes it texting
 
 Moving out (`move_out`) comes after a breakup (Breaks and breakups) or the step taken back on the Character page: the one
 who moved in moves out, picked by rules, and stays in town. No model decides anything: the model only puts it in words.
+
+Sharing a home (Vanta's item 1, v0.13): when another romance companion's moving-in step is reached while the user lives
+with someone (or is about to), the newcomer would move into that home. Everyone involved says whether they are open to
+sharing it, one roll each in the consequence engine (choice `moving_in:share`, from an open-relationship interest, their
+personality sliders, a trait like jealous or possessive, a rough patch over the user seeing someone else, the drama
+level), and the one already living there hears about it (a line in the chat, and a first text). Everyone open: the
+newcomer moves in on their own moving day, into the same home (`household`), the rent split among everyone and the chores
+taking turns among everyone. Anyone not open: the move waits, asked again some weeks later, and a small rough patch can
+open with the one who isn't ready. The user can make any of the rolls go the other way under Hidden values.
 """
 import random
 import re
@@ -47,6 +56,13 @@ JUST_OUT = timedelta(hours=1)
 # How long the chat context keeps moving day, and a move out.
 TOLD_DAYS = 3
 UNITS = ('shared', 'studio', 'one_bedroom', 'two_bedroom')
+# Sharing a home: the choice, how long a "not yet" holds before they are asked again, and traits that speak against it.
+SHARE = 'moving_in:share'
+SHARE_AGAIN = 45
+MINDS_SHARING = re.compile(r'jealous|possessive|insecure|clingy|territorial', re.IGNORECASE)
+FIRST_TEXTS = True
+SETTLES = ('move_share',)
+COUNTS = {2: 'two', 3: 'three', 4: 'four', 5: 'five'}
 TASKS = ('cooking', 'dishes', 'laundry', 'tidying')
 
 # The user saying they are out, or back home.
@@ -114,6 +130,13 @@ def begin(connection, companion: dict, now, message_id: str | None = None) -> di
         return None  # Under way, or moved out since the step was reached: it takes the step reached anew.
     if step and step['how'] in ('history', 'start'):
         return already(connection, companion, step, now)
+    mates = housemates(connection, companion)
+    if mates:
+        return decide_share(connection, companion, mates, now, message_id)
+    return decide_fresh(connection, companion, now, message_id)
+
+
+def decide_fresh(connection, companion: dict, now, message_id: str | None = None) -> dict:
     between = where.between(connection, companion['version']['definition'])
     if between.long_distance and between.your_city:
         return decide_who(connection, companion, between, now, message_id)
@@ -306,6 +329,8 @@ def advance(connection, companion: dict, now) -> None:
         move_out(connection, companion, now)
     elif row['status'] in ('moving', 'waiting') and on_break(connection, companion):
         hold(connection, row, today)
+    elif joins(row) and row['status'] in ('moving', 'waiting'):
+        follow_share(connection, companion, row, now)
     elif row['status'] == 'moving' and row['move_on'] <= today.isoformat() and not after_visit(connection, row, today):
         move(connection, companion, current(connection, companion['active_timeline_id']), now)
     elif row['status'] == 'waiting':
@@ -379,7 +404,9 @@ def move(connection, companion: dict, row: dict, now) -> None:
     day = date.fromisoformat(row['move_on'])
     found = {'ended': [], 'added': [], 'removed': []}
     changes, chapter = {}, None
-    if row['plan'] in ('yours', 'new', 'them'):
+    if joins(row):
+        changes, found = join_home(connection, companion, row, day, now)
+    elif row['plan'] in ('yours', 'new', 'them'):
         changes, found = rehome(connection, companion, row, day, now)
     else:
         share_theirs(connection, companion, row, day, True)
@@ -494,7 +521,14 @@ def insert_chapter(connection, companion: dict, row: dict, day: date, changes: d
     hood = hood_named(city, row['neighbourhood'])
     name = companion['version']['definition']['name'].split()[0]
     there = f"{hood['name']}, {city['name']}" if hood and city else (city or {}).get('name', 'a new place')
-    if row['plan'] == 'them':
+    mates = listed(mate_names(connection, row)) if joins(row) else ''
+    if mates:
+        title = f'{name} moved in with you and {mates}'
+        told = f'You moved in with the user and {mates}, at the place they share in {there}.'
+        if row['plan'] == 'them':
+            told += ' Your family and friends are back where you lived before, and you keep in touch by phone.'
+        share = "Moved in today. It's a full house, and it already feels like home."
+    elif row['plan'] == 'them':
         title = f'{name} moved to {city["name"]} to live with you' if city else f'{name} moved in with you'
         told = (f"You moved to {there} to live with the user. Your family and friends are back where you lived "
                 'before, and you keep in touch by phone.')
@@ -516,8 +550,9 @@ def insert_chapter(connection, companion: dict, row: dict, day: date, changes: d
 # Moving out -----------------------------------------------------------------------------------------------------------
 
 def who_leaves(connection, companion: dict, row: dict) -> str:
-    """The one who moved in moves out; from a new place, whoever can't manage its rent alone (them, when unknown)."""
-    if row['plan'] in ('yours', 'them'):
+    """The one who moved in moves out; from a new place, whoever can't manage its rent alone (them, when unknown). From
+    a home shared with more of the user's partners, they move out and the others stay."""
+    if row['plan'] in ('yours', 'them') or joins(row) or len(members(connection, household(row))) > 1:
         return 'them'
     if row['plan'] in ('theirs', 'you'):
         return 'you'
@@ -569,8 +604,10 @@ def move_back(connection, companion: dict, since: str, now) -> dict | None:
             connection.execute('UPDATE life_chapters SET undone_at=? WHERE id=?', (stamp(now), chapter['id']))
     elif row['out_who'] == 'you':
         share_theirs(connection, companion, row, local_today(companion, now), True)
-    status = 'moved' if row['moved_on'] else 'waiting' if row['plan'] == 'you' else 'moving'
+    status = 'moved' if row['moved_on'] else 'waiting' if row['plan'] == 'you' or joins(row) else 'moving'
     connection.execute('UPDATE moving_in SET status=?, out_on=NULL, out_who=NULL WHERE id=?', (status, row['id']))
+    if joins(row) and status == 'waiting':
+        settle_share(connection, latest(connection, timeline_id), now)
     return latest(connection, timeline_id)
 
 
@@ -605,23 +642,401 @@ def place_of_their_own(connection, companion: dict, row: dict, day: date, now) -
                         stamp(now)))
 
 
+# Sharing a home ---------------------------------------------------------------------------------------------------------
+
+def household(row: dict) -> str:
+    """The shared home a row belongs to, by the row that set it up (the first to live with the user there)."""
+    return row.get('household') or row['id']
+
+
+def joins(row: dict) -> bool:
+    """A newcomer moving into (or living in) a home the user already shares with another of their partners."""
+    return bool(row.get('household'))
+
+
+def first_name(companion: dict) -> str:
+    return companion['version']['definition']['name'].split()[0]
+
+
+def owner_of(connection, timeline_id: str) -> dict | None:
+    """The companion whose active timeline this is."""
+    from companion.characters import by_id
+    found = optional(connection, 'SELECT id FROM companions WHERE active_timeline_id=?', (timeline_id,))
+    return by_id(connection, found['id']) if found else None
+
+
+def first_of(connection, timeline_id: str) -> str:
+    found = owner_of(connection, timeline_id)
+    return first_name(found) if found else 'someone'
+
+
+def members(connection, key: str, day: date | None = None) -> list[dict]:
+    """Everyone living in this shared home (on `day`, else now), moved in and on their active timeline, in the order
+    they moved in; `owner` is the companion's id."""
+    rows = many(connection, "SELECT m.*, c.id AS owner FROM moving_in m JOIN companions c ON c.active_timeline_id="
+                "m.timeline_id WHERE m.status='moved' AND (m.id=? OR m.household=?) ORDER BY m.moved_on, m.created_at",
+                (key, key))
+    return [row for row in rows if day is None or row['moved_on'] <= day.isoformat()]
+
+
+def housemates(connection, companion: dict) -> list[tuple[dict, dict]]:
+    """(companion, row) for the user's other partners who live with the user or are moving in with them, in one shared
+    home (the first one set up): the home a newcomer would move into."""
+    rows = many(connection, "SELECT m.* FROM moving_in m JOIN companions c ON c.active_timeline_id=m.timeline_id "
+                "WHERE c.id<>? AND m.status IN ('moving', 'moved') AND m.plan<>'you' ORDER BY m.created_at",
+                (companion['id'],))
+    found = [(other, row) for row in rows if latest(connection, row['timeline_id'])['id'] == row['id']
+             and (other := owner_of(connection, row['timeline_id']))]
+    first = household(found[0][1]) if found else None
+    return [(other, row) for other, row in found if household(row) == first]
+
+
+def mates_of(connection, row: dict) -> list[dict]:
+    """The others in the home a newcomer would move into, as companions."""
+    owner = owner_of(connection, row['timeline_id'])
+    return [other for other, found in housemates(connection, owner) if household(found) == row['household']] \
+        if owner else []
+
+
+def mate_names(connection, row: dict, statuses: tuple[str, ...] = ('moved',)) -> list[str]:
+    """The first names of the others in the home this row shares, or will share."""
+    key = household(row)
+    rows = many(connection, 'SELECT m.timeline_id FROM moving_in m JOIN companions c ON c.active_timeline_id='
+                f"m.timeline_id WHERE (m.id=? OR m.household=?) AND m.id<>? AND m.status IN ({','.join('?' * len(statuses))}) "
+                'ORDER BY m.created_at', (key, key, row['id'], *statuses))
+    return [first_of(connection, found['timeline_id']) for found in rows]
+
+
+def latest_shares(connection, row_id: str) -> dict[str, dict]:
+    """Each one's latest answer about sharing the home, by companion id."""
+    return {share['companion_id']: share for share in many(
+        connection, 'SELECT * FROM moving_in_shares WHERE moving_in_id=? ORDER BY round, created_at', (row_id,))}
+
+
+def readiness(connection, row: dict) -> tuple[bool, list[str]]:
+    """Whether the newcomer is open to sharing the home, and the first names of those living there who aren't."""
+    shares = latest_shares(connection, row['id'])
+    mine = next((share for share in shares.values() if share['newcomer']), None)
+    return bool(mine and mine['open']), [first_name(other) for other in mates_of(connection, row)
+                                          if not (shares.get(other['id']) or {}).get('open')]
+
+
+def share_facts(connection, companion: dict, now) -> tuple[dict, str]:
+    """What the engine reads for sharing a home: an open-relationship interest, a trait like jealous or possessive,
+    a rough patch over the user seeing someone else, their personality sliders, the drama level, their description."""
+    from companion.life import love_life, rough_patches
+    from companion.world import personality
+    definition = companion['version']['definition']
+    traits = [trait['name'] for trait in definition.get('emotional_traits') or []
+              if MINDS_SHARING.search(trait.get('name') or '')]
+    levels = personality.levels_of(definition.get('personality_sliders') or {})
+    upset = rough_patches.ACTIVE and any(found['cause'] == 'seeing_someone' for found in rough_patches.open_rows(
+        connection, companion, rough_patches.level(connection), now))
+    return ({'open': int(love_life.is_open(definition)), 'minds': int(bool(traits)), 'upset': int(bool(upset)),
+             'social': levels.get('social', 1), 'warmth': levels.get('warmth', 1), 'drama': steps.drama(connection),
+             'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)}},
+            traits[0] if traits else '')
+
+
+def ask(connection, asked: dict, row: dict, others: list[str], turn: int, now, raised: bool = False,
+        newcomer: bool = False) -> None:
+    """One of them says whether they are open to sharing a home with `others`: a roll of their own, kept with the move.
+    One already living there who isn't ready can have a small rough patch with the user over it."""
+    found, trait = share_facts(connection, asked, now)
+    found.update(raised=int(raised), others=len(others) if newcomer else len(mates_of(connection, row)))
+    labels = {'name': first_name(asked), 'a': listed(others), 'b': '', 'trait': trait}
+    table = consequences.tables()[SHARE]
+    outcome = consequences.decide(
+        connection, timeline_id=asked['active_timeline_id'], choice=SHARE,
+        subject=f"moving_in:share:{row['id']}:{asked['id']}:{turn}", facts=found, names=labels,
+        labels=[option['label'].format(**labels) for option in table['options']],
+        day=local_today(asked, now).isoformat(), timestamp=stamp(now))
+    connection.execute('INSERT INTO moving_in_shares (id, moving_in_id, timeline_id, companion_id, newcomer, round, '
+                       'consequence_id, open, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       (identifier(), row['id'], asked['active_timeline_id'], asked['id'], int(newcomer), turn,
+                        outcome['id'], int(outcome['picked'] == 0), stamp(now)))
+    if not newcomer and outcome['picked'] != 0:
+        from companion.life import rough_patches
+        rough_patches.friction(connection, asked, 'sharing', f"sharing:{row['id']}:{asked['id']}:{turn}",
+                               f'the user wanting {listed(others)} to move in too', now,
+                               shown=f'over {listed(others)} moving in')
+
+
+def ask_round(connection, companion: dict, row: dict, mates: list[dict], turn: int, now, only=None) -> None:
+    """The newcomer and everyone living there (or only those in `only`) say whether they are open to sharing."""
+    step = step_row(connection, companion)
+    names = [first_name(other) for other in mates]
+    if only is None or companion['id'] in only:
+        ask(connection, companion, row, names, turn, now, bool(step and step['how'] == 'them'), True)
+    for other in mates:
+        if only is None or other['id'] in only:
+            ask(connection, other, row, [first_name(companion)], turn, now)
+
+
+def decide_share(connection, companion: dict, mates: list[tuple[dict, dict]], now, message_id: str | None) -> dict:
+    """The user lives with another of their partners (or is about to): the newcomer would move into that home, if
+    everyone is open to sharing it. Until they all are, the move waits."""
+    host = mates[0][1]
+    between = where.between(connection, companion['version']['definition'])
+    row_id = identifier()
+    connection.execute("INSERT INTO moving_in (id, timeline_id, plan, status, city_id, neighbourhood, decided_on, "
+                       "message_id, household, created_at) VALUES (?, ?, ?, 'waiting', ?, ?, ?, ?, ?, ?)",
+                       (row_id, companion['active_timeline_id'], 'them' if between.long_distance else 'yours',
+                        host['city_id'], host['neighbourhood'], local_today(companion, now).isoformat(), message_id,
+                        household(host), stamp(now)))
+    row = optional(connection, 'SELECT * FROM moving_in WHERE id=?', (row_id,))
+    ask_round(connection, companion, row, [other for other, _found in mates], 1, now)
+    return settle_share(connection, row, now)
+
+
+def settle_share(connection, row: dict, now) -> dict:
+    """Everyone open: the move is on, with a moving day of its own. Anyone not: it waits."""
+    ready, not_ready = readiness(connection, row)
+    if ready and not not_ready and row['status'] == 'waiting':
+        owner = owner_of(connection, row['timeline_id'])
+        today = local_today(owner, now) if owner else now.date()
+        low, high = OTHER_CITY_DAYS if row['plan'] == 'them' else SAME_CITY_DAYS
+        start = max(date.fromisoformat(row['decided_on']), today)
+        move_on = start + timedelta(days=random.Random(f"{row['id']}:share:move-day").randint(low, high))
+        connection.execute("UPDATE moving_in SET status='moving', move_on=? WHERE id=?", (move_on.isoformat(), row['id']))
+    elif not (ready and not not_ready) and row['status'] == 'moving':
+        connection.execute("UPDATE moving_in SET status='waiting', move_on=NULL WHERE id=?", (row['id'],))
+    return optional(connection, 'SELECT * FROM moving_in WHERE id=?', (row['id'],))
+
+
+def follow_share(connection, companion: dict, row: dict, now) -> None:
+    """Once a day for a move into a shared home: asked again some weeks after a not yet, carried out on moving day once
+    someone lives there, and a move in like any other once nobody else lives with the user any more."""
+    today = local_today(companion, now)
+    mates = mates_of(connection, row)
+    if not mates:
+        connection.execute("UPDATE moving_in SET status='moved_out', out_on=?, out_who=NULL WHERE id=?",
+                           (today.isoformat(), row['id']))
+        decide_fresh(connection, companion, now)
+    elif row['status'] == 'waiting':
+        ask_again(connection, companion, row, mates, now)
+    elif row['move_on'] <= today.isoformat() and not after_visit(connection, row, today):
+        if members(connection, row['household'], today):
+            move(connection, companion, current(connection, companion['active_timeline_id']), now)
+        else:
+            hold(connection, row, today)  # Whoever set up the home hasn't moved in yet.
+
+
+def ask_again(connection, companion: dict, row: dict, mates: list[dict], now) -> None:
+    """Some weeks after a not yet, whoever wasn't ready is asked again; anyone who came to live there since is asked
+    straight away."""
+    shares = latest_shares(connection, row['id'])
+    keys = [companion['id'], *(other['id'] for other in mates)]
+    last = max((parse(share['created_at']) for share in shares.values()), default=None)
+    due = last is None or now - last >= timedelta(days=SHARE_AGAIN)
+    again = {key for key in keys if key not in shares or (due and not shares[key]['open'])}
+    if again:
+        turn = 1 + max((share['round'] for share in shares.values()), default=0)
+        ask_round(connection, companion, row, mates, turn, now, again)
+    settle_share(connection, row, now)
+
+
+def join_home(connection, companion: dict, row: dict, day: date, now) -> tuple[dict, dict]:
+    """Moving into the home the user shares with another: the same place as theirs, and their old home ends."""
+    host = members(connection, row['household'], day)[0]
+    connection.execute('UPDATE moving_in SET city_id=?, neighbourhood=? WHERE id=?',
+                       (host['city_id'], host['neighbourhood'], row['id']))
+    city = city_of(connection, host)
+    hood = hood_named(city, host['neighbourhood'])
+    other = owner_of(connection, host['timeline_id'])
+    shared = their_home(connection, other, day) if other else None
+    timeline_id = companion['active_timeline_id']
+    old = [item for item in home.items_on(connection, timeline_id, day) if item['kind'] == 'home']
+    for item in old:
+        connection.execute('UPDATE home_items SET until=? WHERE id=?', (day.isoformat(), item['id']))
+    location = f"{hood['name']}, {city['name']}" if hood and city else (city or {}).get('name', '')
+    place = same_place(shared) if shared else shared_place(f'home:{timeline_id}:together:{day.isoformat()}', companion,
+                                                          city, hood, 'one_bedroom')
+    added = home.insert_item(connection, timeline_id, place, 'change', day, now)
+    return ({'location': location} if location else {}), {'ended': [item['id'] for item in old], 'added': [added]}
+
+
+ITEM_KEYS = ('id', 'kind', 'name', 'variety', 'origin', 'since', 'until', 'edited', 'revision')
+
+
+def same_place(shared: dict) -> dict:
+    """A copy of the shared home, for the one moving in."""
+    details = {key: value for key, value in shared.items() if key not in ITEM_KEYS}
+    return {'kind': 'home', 'name': shared['name'], 'variety': shared['variety'], 'details': {**details, 'shared': True}}
+
+
+def asked_of(connection, companion: dict) -> list[tuple[dict, dict]]:
+    """(their latest answer, the newcomer's row) for each move into a home they live in that hasn't happened yet."""
+    rows = many(connection, "SELECT m.* FROM moving_in m JOIN companions c ON c.active_timeline_id=m.timeline_id WHERE "
+                "m.status IN ('waiting', 'moving') AND m.household IS NOT NULL AND m.id IN (SELECT moving_in_id FROM "
+                'moving_in_shares WHERE companion_id=? AND newcomer=0) ORDER BY m.created_at', (companion['id'],))
+    return [(latest_shares(connection, row['id'])[companion['id']], row) for row in rows
+            if latest(connection, row['timeline_id'])['id'] == row['id']]
+
+
+def plural(names: list[str]) -> dict:
+    many_ = len(names) > 1
+    return {'is': 'are' if many_ else 'is', 's': 's' if many_ else '', 'lives': 'live' if many_ else 'lives'}
+
+
+# What the newcomer is told: the move on, or waiting (on themselves, or on someone living there).
+JOINER = {
+    'moving': "You're moving in with the user and {mates} on {day}, into the place they share in {place}. {mates} "
+              "{is} also the user's partner{s}, and everyone is open to sharing a home.",
+    'you_wait': "You'd like to live with the user, but they share a home with {mates} (also the user's partner{s}), "
+                "and you aren't ready to share a home with them. So you aren't moving in for now.",
+    'wait': "You'd like to live with the user, who shares a home with {mates} (also the user's partner{s}). You're open "
+            "to sharing it, but {not_ready} {is_n} not ready to share it yet, so your move waits for now.",
+}
+THEM_TOO = " You'll leave your job and look for one in {city}, and your family and friends stay where you live now."
+# What the one living there is told about a newcomer, and while it is new, to say how they feel.
+SHARING = {
+    'moving': '{name}, who the user is also seeing, is moving in with you and the user on {day}. You are open to '
+              'sharing your home with {name}.',
+    'wait': '{name}, who the user is also seeing, would like to move in with you and the user. You are open to it, but '
+            '{not_ready} {is_n} not ready yet, so the move waits.',
+    'no': "{name}, who the user is also seeing, would like to move in with you and the user. You aren't ready to share "
+          "your home with another of the user's partners, so the move waits.",
+}
+JUST_WAITS = ('- You just agreed you want to live together, and this is where it stands. Say so in this reply, in your '
+              'own words.')
+SHARING_NEW = ' This is new: tell the user how you feel about it, honestly, in your own words.'
+
+
+def joiner_line(connection, row: dict) -> str:
+    mates = mate_names(connection, row, ('moved', 'moving'))
+    ready, not_ready = readiness(connection, row)
+    key = 'moving' if row['status'] == 'moving' else 'wait' if ready else 'you_wait'
+    city = city_of(connection, row)
+    text = JOINER[key].format(mates=listed(mates), day=day_text(row['move_on'] or row['decided_on']),
+                              place=place_text(connection, row) or 'town', not_ready=listed(not_ready),
+                              is_n=plural(not_ready)['is'], **plural(mates))
+    return text + (THEM_TOO.format(city=(city or {}).get('name', 'their city')) if row['plan'] == 'them' and
+                   key == 'moving' else '')
+
+
+def share_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
+    """For one who lives with the user (or is moving in): another of the user's partners would move in too."""
+    lines = []
+    for share, row in asked_of(connection, companion):
+        name = first_of(connection, row['timeline_id'])
+        _ready, not_ready = readiness(connection, row)
+        others = [found for found in not_ready if found != first_name(companion)]
+        key = 'no' if not share['open'] else 'moving' if row['status'] == 'moving' else 'wait'
+        new = SHARING_NEW if not share['told_at'] and now - parse(share['created_at']) < timedelta(days=TOLD_DAYS) else ''
+        text = SHARING[key].format(name=name, day=day_text(row['move_on'] or row['decided_on']),
+                                   not_ready=listed(others) or name, is_n=plural(others)['is'])
+        lines.append((f"moving-in:share:{share['id']}", f'- {text}{new}'))
+    return lines
+
+
+def ask_reason(connection, companion: dict) -> str | None:
+    """Bringing up moving in while the user lives with another of their partners: they know who lives there."""
+    mates = [first_name(other) for other, _row in housemates(connection, companion)]
+    if not mates:
+        return None
+    words = plural(mates)
+    return (f"You'd like to live with the user. They share a home with {listed(mates)}, who {words['is']} also their "
+            f"partner{words['s']}, and you know it. Ask the user in your own words, simply, how they'd feel about you "
+            "moving in with them too, and leave them room to say they aren't ready. Don't settle anything yet.")
+
+
+# The one living there texts the user about it (companion/life/openers.py); a line from the bank stands in.
+SHARE_REASONS = {
+    True: '{name}, who the user is also seeing, would like to move in with you and the user, and you are open to '
+          'sharing your home. Text the user about it: how you feel about it, honestly, in your own words.',
+    False: "{name}, who the user is also seeing, would like to move in with you and the user. You aren't ready to share "
+           "your home with another of the user's partners. Text the user about it: tell them how you feel, honestly "
+           'and kindly, in your own words.',
+}
+SHARE_TEXTS = {
+    True: ("So, {name} moving in. I've been thinking about it, and I'm okay with it. Really.",
+           'About {name} moving in: honestly? I think it could work.'),
+    False: ("Can we talk about {name} moving in? I don't think I'm ready for that yet.",
+            "About {name} moving in... I'm not there yet. Can we talk?"),
+}
+
+
+def share_due(connection, companion: dict, now) -> list:
+    """A newcomer would move into the home they live in: they text the user how they feel, within a few days."""
+    from companion.life.openers import Trigger
+    if not ACTIVE or not FIRST_TEXTS or not companion.get('active_timeline_id'):
+        return []
+    result = []
+    for share, row in asked_of(connection, companion):
+        if share['told_at'] or now - parse(share['created_at']) >= timedelta(days=TOLD_DAYS):
+            continue
+        name, said = first_of(connection, row['timeline_id']), bool(share['open'])
+        template = random.Random(f"{share['id']}:line").choice(SHARE_TEXTS[said]).format(name=name)
+        result.append(Trigger(f"move-share:{share['id']}", 'move_share', SHARE_REASONS[said].format(name=name), template,
+                              (share['id'],)))
+    return result[:1]
+
+
+def settle(connection, companion: dict, message: dict, trigger, timestamp: str) -> None:
+    """Their text about it went out: the chat no longer needs to say it is new."""
+    connection.execute('UPDATE moving_in_shares SET told_at=? WHERE id=?', (timestamp, trigger.sources[0]))
+
+
+def newcomers_view(connection, companion: dict, show_odds: bool) -> list[dict]:
+    """For the Character page of one living there: who would move in, and whether they themselves are open to it."""
+    result = []
+    for share, row in asked_of(connection, companion):
+        _ready, not_ready = readiness(connection, row)
+        result.append({'name': first_of(connection, row['timeline_id']), 'status': row['status'],
+                       'move_on': row['move_on'], 'open': bool(share['open']), 'not_ready': not_ready,
+                       'consequence_id': share['consequence_id'] if show_odds else None})
+    return result
+
+
+def change_share(connection, consequence_id: str, option: int, now) -> dict:
+    """Hidden values: one of them is open to sharing after all, or isn't; the move is on, or waits, as it follows."""
+    share = optional(connection, 'SELECT * FROM moving_in_shares WHERE consequence_id=?', (consequence_id,))
+    require(share is not None, 'That outcome is not about sharing a home.', 404)
+    row = optional(connection, 'SELECT * FROM moving_in WHERE id=?', (share['moving_in_id'],))
+    require(row is not None and row['status'] in ('moving', 'waiting'), 'They already moved in.', 409)
+    connection.execute('UPDATE moving_in_shares SET open=? WHERE id=?', (int(option == 0), share['id']))
+    settle_share(connection, row, now)
+    return consequences.by_id(connection, consequence_id)
+
+
+def copy_shares(connection, old_id: str, new_row_id: str, parent_id: str, new_id: str) -> None:
+    """A fork keeps the answers about sharing the home; the newcomer's own (on this timeline) can still be changed."""
+    for share in many(connection, 'SELECT * FROM moving_in_shares WHERE moving_in_id=?', (old_id,)):
+        mine = share['timeline_id'] == parent_id
+        consequence_id = consequences.copy(
+            connection, share['consequence_id'], new_id,
+            f"moving_in:share:{new_row_id}:{share['companion_id']}:{share['round']}") \
+            if mine and share['consequence_id'] else share['consequence_id']
+        connection.execute('INSERT INTO moving_in_shares (id, moving_in_id, timeline_id, companion_id, newcomer, round, '
+                           'consequence_id, open, told_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                           (identifier(), new_row_id, new_id if mine else share['timeline_id'], share['companion_id'],
+                            share['newcomer'], share['round'], consequence_id, share['open'], share['told_at'],
+                            share['created_at']))
+
+
 # Living together ------------------------------------------------------------------------------------------------------
 
 def split(connection, timeline_id: str, costs: dict | None, day: date) -> dict | None:
-    """The home's costs for their budget (money.py): living together, they pay half the rent."""
+    """The home's costs for their budget (money.py): living together, they pay their share of the rent (half, or a
+    third with another of the user's partners living there too)."""
     if not costs or not costs.get('rent'):
         return costs
     row = current(connection, timeline_id)
     if not row or row['status'] != 'moved' or row['moved_on'] > day.isoformat():
         return costs
-    return {**costs, 'rent': round(costs['rent'] / 2, 2), 'shared': True}
+    people = 1 + max(len(members(connection, household(row), day)), 1)
+    return {**costs, 'rent': round(costs['rent'] / people, 2), 'shared': True}
 
 
-def turn(companion: dict, day: date, task: str) -> str:
+def turn(companion: dict, day: date, task: str, house: tuple[str, ...] = ()) -> str:
     """Whose turn a chore is today, 'you' (the companion) or 'user', by rules: on their work days the user cooks and
     they do the dishes; on other days cooking takes turns and the dishes go to whoever didn't cook; laundry and
-    tidying take turns week by week."""
+    tidying take turns week by week. With more of the user's partners at home (`house`, the companions' ids in the
+    order they moved in) everyone takes turns, and another's turn is their id."""
     from companion.life import upkeep
+    if len(house) > 1:
+        return rota(companion, day, task, house)
     # Cooking and the dishes share one seed, so the dishes always go to whoever didn't cook.
     shared = 'cooking' if task in ('cooking', 'dishes') else task
     seed = random.Random(f"{companion['active_timeline_id']}:{shared}:turns").randrange(2)
@@ -630,6 +1045,20 @@ def turn(companion: dict, day: date, task: str) -> str:
             ('you', 'user')[(day.toordinal() + seed) % 2]
         return cooks if task == 'cooking' else ('user' if cooks == 'you' else 'you')
     return ('you', 'user')[(day.isocalendar()[1] + seed) % 2]
+
+
+def rota(companion: dict, day: date, task: str, house: tuple[str, ...]) -> str:
+    """Turns among everyone at home: cooking by the day and the dishes to the next one along, laundry and tidying by
+    the week. Seeded by the household, so each of them reads the same rota."""
+    people = ('user', *house)
+    shared = 'cooking' if task in ('cooking', 'dishes') else task
+    seed = random.Random(f"{':'.join(house)}:{shared}:turns").randrange(len(people))
+    if task in ('cooking', 'dishes'):
+        index = (day.toordinal() + seed + (task == 'dishes')) % len(people)
+    else:
+        index = (day.isocalendar()[1] + seed) % len(people)
+    found = people[index]
+    return 'you' if found == companion['id'] else found
 
 
 def out_now(row: dict, now: datetime) -> bool:
@@ -675,7 +1104,13 @@ def view_strip(connection, companion: dict, now: datetime) -> dict | None:
 def set_out(connection, companion: dict, out: bool, now: datetime) -> None:
     row = living(connection, companion, local_today(companion, now))
     require(row is not None, 'You do not live together.', 409)
-    connection.execute('UPDATE moving_in SET out_until=? WHERE id=?', (stamp(now + OUT_FOR) if out else None, row['id']))
+    mark_out(connection, row, stamp(now + OUT_FOR) if out else None)
+
+
+def mark_out(connection, row: dict, until: str | None) -> None:
+    """The user out, or home: for everyone they live with."""
+    for found in members(connection, household(row)) or [row]:
+        connection.execute('UPDATE moving_in SET out_until=? WHERE id=?', (until, found['id']))
 
 
 def note(connection, message: dict, companion: dict, timestamp: str) -> None:
@@ -689,9 +1124,9 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> None:
     if not row:
         return
     if HOME.search(message['text']):
-        connection.execute('UPDATE moving_in SET out_until=NULL WHERE id=?', (row['id'],))
+        mark_out(connection, row, None)
     elif OUT.search(message['text']):
-        connection.execute('UPDATE moving_in SET out_until=? WHERE id=?', (stamp(now + OUT_FOR), row['id']))
+        mark_out(connection, row, stamp(now + OUT_FOR))
     skipped(connection, companion, row, message['text'], now)
 
 
@@ -748,12 +1183,13 @@ def listed(items: list[str]) -> str:
     return ' and '.join(items) if len(items) < 3 else f"{', '.join(items[:-1])} and {items[-1]}"
 
 
-def chores_text(companion: dict, day: date) -> str:
+def chores_text(companion: dict, day: date, house: tuple[str, ...] = (), names: dict | None = None) -> str:
     """Whose turn the chores are today: "Today cooking is yours; the dishes, the laundry and tidying up are the
-    user's." """
-    who = {task: turn(companion, day, task) for task in TASKS}
+    user's." With more at home, theirs too ("the dishes are Charles's")."""
+    who = {task: turn(companion, day, task, house) if house else turn(companion, day, task) for task in TASKS}
+    others = [(key, f"{name}'s") for key, name in (names or {}).items() if key != companion['id']]
     parts = []
-    for side, owner in (('you', 'yours'), ('user', "the user's")):
+    for side, owner in (('you', 'yours'), *others, ('user', "the user's")):
         tasks = [CHORES[task] for task in TASKS if who[task] == side]
         if tasks:
             parts.append(f"{listed(tasks)} {'is' if tasks in (['cooking'], ['the laundry'], ['tidying up']) else 'are'} {owner}")
@@ -767,14 +1203,24 @@ def living_lines(connection, companion: dict, row: dict, now: datetime) -> list[
     shared = their_home(connection, companion, today)
     what = shared['description'] if shared else f'a place in {place_text(connection, row)}'
     yours = [found['name'] for found in pets.of_persona(connection)]
-    animals = f" The user's pets ({', '.join(yours)}) live there too and are both of yours now." if yours else ''
-    lines = [(f"moving-in:{row['id']}:home",
-              f"- You and the user live together, {since}, at {what}. You split the rent and the bills. "
-              f'{chores_text(companion, today)}{animals}')]
+    house = members(connection, household(row), today)
+    names = {found['owner']: first_of(connection, found['timeline_id']) for found in house}
+    mates = [name for key, name in names.items() if key != companion['id']]
+    ids = tuple(names) if mates else ()
+    both = f"all {COUNTS.get(len(mates) + 2, 'of you')}" if mates else 'both'
+    animals = f" The user's pets ({', '.join(yours)}) live there too and are {both} of yours now." if yours else ''
+    living = (f"- You live with the user and {listed(mates)} (also the user's partner{'s' if len(mates) > 1 else ''}), "
+              f"{since}, at {what}. The {COUNTS.get(len(mates) + 2, 'all')} of you split the rent and the bills. "
+              if mates else f'- You and the user live together, {since}, at {what}. You split the rent and the bills. ')
+    lines = [(f"moving-in:{row['id']}:home", f'{living}{chores_text(companion, today, ids, names)}{animals}')]
     if row['moved_on'] == today.isoformat():
         lines.append((f"moving-in:{row['id']}:today", '- Today was moving day: you just moved in together.'))
     if home_state(connection, companion, now):
-        lines.append((f"moving-in:{row['id']}:evening", '- It is evening and you are both home, together in person. '
+        home_too = [first_of(connection, found['timeline_id']) for found in house if found['owner'] != companion['id']
+                    and (other := owner_of(connection, found['timeline_id'])) and at_home_now(connection, other, now)]
+        too = f" {listed(home_too)} {'is' if len(home_too) == 1 else 'are'} home too." if home_too else ''
+        both = 'you and the user are both home' if mates else 'you are both home'
+        lines.append((f"moving-in:{row['id']}:evening", f'- It is evening and {both}, together in person.{too} '
                       + outings.IN_PERSON))
     elif out_now(row, now):
         here = ' and you are at home' if at_home_now(connection, companion, now) else ''
@@ -792,7 +1238,7 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         return []
     today = local_today(companion, now)
     if row['status'] == 'moved':
-        return living_lines(connection, companion, row, now)
+        return living_lines(connection, companion, row, now) + share_lines(connection, companion, now)
     if row['status'] == 'moved_out':
         if not row['out_who'] or (today - date.fromisoformat(row['out_on'])).days > TOLD_DAYS:
             return []
@@ -801,10 +1247,12 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
                  'no longer live together.')]
     if on_break(connection, companion):
         return []  # The move waits while they are on a break (`hold`); the 'breakup' section says where they stand.
-    lines = [(f"moving-in:{row['id']}:plan", f'- {plan_line(connection, row)}')]
+    lines = [(f"moving-in:{row['id']}:plan", f'- {joiner_line(connection, row) if joins(row) else plan_line(connection, row)}')]
+    lines += share_lines(connection, companion, now)
     if row['message_id'] and row['message_id'] in fresh_ids:
-        lines.append((f"moving-in:{row['id']}:just", '- You just agreed to live together, and this is how it will '
-                      'go. Say so in this reply, in your own words.'))
+        lines.append((f"moving-in:{row['id']}:just", JUST_WAITS if row['status'] == 'waiting' and joins(row) else
+                      '- You just agreed to live together, and this is how it will go. Say so in this reply, in your '
+                      'own words.'))
     return lines
 
 
@@ -815,17 +1263,26 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict | None:
     row = current(connection, companion.get('active_timeline_id') or '')
     if row is None:
         return None
-    shared = their_home(connection, companion, local_today(companion, now)) if row['status'] == 'moved' else None
+    today = local_today(companion, now)
+    shared = their_home(connection, companion, today) if row['status'] == 'moved' else None
+    own = next((item for item in latest_shares(connection, row['id']).values() if item['newcomer']), None)
+    consequence_id = own['consequence_id'] if own else row['consequence_id']
+    ready, not_ready = readiness(connection, row) if joins(row) and row['status'] != 'moved' else (True, [])
     return {'status': row['status'], 'plan': row['plan'], 'city': (city_of(connection, row) or {}).get('name', ''),
             'place': place_text(connection, row), 'home': shared['description'] if shared else '',
-            'move_on': row['move_on'], 'moved_on': row['moved_on'],
-            'consequence_id': row['consequence_id'] if show_odds else None}
+            'move_on': row['move_on'], 'moved_on': row['moved_on'], 'joins': joins(row), 'ready': ready,
+            'with': mate_names(connection, row, ('moved',) if row['status'] == 'moved' else ('moved', 'moving')),
+            'not_ready': not_ready,
+            'newcomers': newcomers_view(connection, companion, show_odds),
+            'consequence_id': consequence_id if show_odds else None}
 
 
 def change(connection, companion: dict, consequence_id: str, option: int, now) -> dict:
     """The user makes it go another way under Hidden values, while the move has not happened yet."""
     outcome = consequences.change(connection, consequence_id, option, stamp(now))
     require(outcome['timeline_id'] == companion['active_timeline_id'], 'That outcome is not on this timeline.', 404)
+    if outcome['choice'] == SHARE:
+        return change_share(connection, consequence_id, option, now)
     row = optional(connection, 'SELECT * FROM moving_in WHERE consequence_id=?', (consequence_id,))
     require(row is not None and row['status'] in ('moving', 'waiting'), 'They already moved in.', 409)
     today = local_today(companion, now)
@@ -857,6 +1314,7 @@ def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> list[dict
         if row['out_on'] and row['out_on'] > cutoff_date:
             found.update(status='moved', out_on=None, out_who=None)
         if found['status'] != 'moved_out' and (not row['moved_on'] or row['moved_on'] > cutoff_date):
-            found.update(status='waiting' if row['plan'] == 'you' and not row['move_on'] else 'moving',
+            found.update(status='waiting' if (row['plan'] == 'you' or joins(row)) and not row['move_on'] else 'moving',
                          moved_on=None, ended_item_ids='[]')
+        copy_shares(connection, row['id'], found['id'], parent_id, new_id)
     return rows
