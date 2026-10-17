@@ -989,6 +989,21 @@ def newcomers_view(connection, companion: dict, show_odds: bool) -> list[dict]:
     return result
 
 
+def move_in_now(connection, companion: dict, now) -> None:
+    """Living together picked on the Character page while a move into a shared home waits or is on its way: the user
+    makes it so. Everyone's answer becomes open (as Make it go this way would), and they move in today."""
+    row = current(connection, companion.get('active_timeline_id') or '')
+    if not row or not joins(row) or row['status'] not in ('moving', 'waiting'):
+        return
+    for share in latest_shares(connection, row['id']).values():
+        if not share['open'] and share['consequence_id']:
+            consequences.change(connection, share['consequence_id'], 0, stamp(now))
+        connection.execute('UPDATE moving_in_shares SET open=1 WHERE id=?', (share['id'],))
+    connection.execute("UPDATE moving_in SET status='moving', move_on=? WHERE id=?",
+                       (local_today(companion, now).isoformat(), row['id']))
+    follow_share(connection, companion, current(connection, companion['active_timeline_id']), now)
+
+
 def change_share(connection, consequence_id: str, option: int, now) -> dict:
     """Hidden values: one of them is open to sharing after all, or isn't; the move is on, or waits, as it follows."""
     share = optional(connection, 'SELECT * FROM moving_in_shares WHERE consequence_id=?', (consequence_id,))
