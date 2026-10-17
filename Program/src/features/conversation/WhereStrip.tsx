@@ -1,20 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { DoorOpen, Home, Luggage, MapPin, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Undo2 } from 'lucide-react'
+import { DoorOpen, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { TOGETHER_KEY } from '../today/outingText'
+import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, callActions, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
-const ACTION_GLYPHS = { 'Head home': Home, Undo: Undo2 } as Record<string, typeof Home>
+const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
 const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Phone } as Record<CallAction['action'], typeof Home>
 
 /**
  * The "where you are" strip above the composer, in every chat style: while they are together (out somewhere, at
  * their place, at yours) where and until when, with Head home, Say goodbye or Not now, and Undo for a minute or two
  * after; on a call, how long with End call, and their call ringing with Answer and Decline; a weekend visit across
- * the distance, who is staying with whom and until when (it ends on its own; Today can call one off before it starts).
- * Nothing while apart.
+ * the distance, who is staying with whom and until when (it ends on its own; Today can call one off before it starts);
+ * living together, home together of an evening, or you out (HomeStrip). Nothing while apart.
  */
 export function WhereStrip({ name }: { name: string }) {
   const client = useQueryClient()
@@ -26,6 +27,7 @@ export function WhereStrip({ name }: { name: string }) {
     void client.invalidateQueries({ queryKey: WHERE_KEY })
     void client.invalidateQueries({ queryKey: ['chats'] })
   }
+  if (where.data?.home && !line) return <HomeStrip where={where.data} name={name} onDone={refresh} />
   if (!line || !where.data) return null
   if (call) return <CallStrip call={call} lead={line.lead} tail={line.tail} name={name} onDone={refresh} />
   if (where.data.visit) return (

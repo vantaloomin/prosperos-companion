@@ -320,6 +320,8 @@ LEADS = {'moment': 'A photo of what you are doing right now', 'selfie': 'A selfi
          'view': 'A photo of what you can see right now'}
 
 
+# In the day's summary "you" is the user ("Mira went to dinner at Lupa with you"): told to the companion, the user.
+THE_USER = {'you': 'the user', 'You': 'The user', 'your': "the user's", 'Your': "The user's"}
 YOU = {'They': 'You', 'they': 'you', 'Their': 'Your', 'their': 'your', 'Themselves': 'Yourself',
        'themselves': 'yourself'}
 
@@ -327,7 +329,7 @@ YOU = {'They': 'You', 'they': 'you', 'Their': 'Your', 'their': 'your', 'Themselv
 def yours(moment: dict) -> str:
     """The moment told to them in the second person ("You had a busy shift"), not as a summary about them
     ("Megan had a busy shift"), which the model would echo back."""
-    summary = moment['summary']
+    summary = re.sub(r'\b(' + '|'.join(THE_USER) + r')\b', lambda m: THE_USER[m.group(1)], moment['summary'])
     if moment.get('name'):
         summary = prompts.unnamed(summary, moment['name'], 'they')
     # "Took Jo out for their birthday" is Jo's birthday, so that "their" stays (composer.py's own birthday lines aside).

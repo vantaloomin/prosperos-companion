@@ -29,7 +29,20 @@ from companion.characters import by_id, for_timeline, require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
-from companion.life import calls, occasions, outings, own_plans, pacing, recommendations, together
+from companion.life import (
+    breakups,
+    calls,
+    moving_in,
+    occasions,
+    outings,
+    own_plans,
+    pacing,
+    recommendations,
+    rough_patches,
+    steps,
+    together,
+    wedding,
+)
 from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
@@ -72,8 +85,16 @@ def record_user(database, body) -> dict:
         outings.note(connection, message, companion, database.now())
         # Answering a ring, hanging up, or asking to call (companion/life/calls.py), likewise before the reply.
         calls.note(connection, message, companion, database.now())
+        # An answer to a next step they brought up, or one the user brings up (companion/life/steps.py), likewise.
+        steps.note(connection, message, companion, database.now())
+        # A move-in step just reached settles where (companion/life/moving_in.py); "I'm out" or "I'm home" at home.
+        moving_in.note(connection, message, companion, database.now())
         self_checks.heed(connection, message, database.now())
         moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
+        # Rough patches (companion/life/rough_patches.py): words that sting, a promise, an apology or making up.
+        rough_patches.note(connection, message, companion, database.clock.now())
+        # Breaks and breakups (companion/life/breakups.py): ending it, a break, asking to try again.
+        breakups.note(connection, message, companion, database.clock.now())
         return message
 
 
@@ -565,6 +586,7 @@ class Conversation:
                 self_facts.note(connection, finished, self.database.now())
                 own_plans.note(connection, finished, companion, self.database.now())
                 outings.note(connection, finished, companion, self.database.now())
+                wedding.after_reply(connection, finished, companion, self.database.clock.now())
             return status == 'complete' and spoken
 
 

@@ -244,3 +244,50 @@ def test_an_invitation_over_two_sentences_is_dinner_at_their_place():
     # Without food it is not dinner, and the user cooking is never the companion having them over.
     assert outings.proposal('Want to come over Saturday? We could watch a movie.', TODAY, {}, data, firm=True) is None
     assert outings.proposal("Want to come over Saturday? I'll cook.", TODAY, {}, data) is None
+
+
+def test_outing_memories_are_worded_for_the_user_and_turned_round_for_the_companion():
+    """The user reads outing memories on Memories and the scrapbook ("Mira came over to your place"), never "the user"
+    (E2E v0.13: "You married the user at ..." on the scrapbook); the companion reads them the other way round."""
+    from companion.memory import records
+
+    def text(activity, **place):
+        return outings.memory_text({'id': 'o1', 'local_date': '2026-03-07', 'activity': activity,
+                                    'place': {'name': 'Home', 'kind': 'home', 'neighborhood': '', **place}}, 'Mira')
+
+    def told(memory, origin='automatic'):
+        row = {**memory, 'layer': 'shared_experience', 'origin': origin}
+        found = records.as_told(row, 'Mira')
+        return f"{found['subject']}: {found['value']}"
+    people = [{'role': 'mom', 'name': 'Ana Moreno'}, {'role': 'dad', 'name': 'Rui Moreno'}]
+    found = {
+        'visit-in': text('visit-in'), 'visit-yours': text('visit-yours'), 'dinner-yours': text('dinner-yours'),
+        'knock': text('visit-yours', knock=True), 'dinner-in': text('dinner-in', menu={'dish': 'risotto'}),
+        'met': text('meet-family', name="Ana and Rui's place", people=people, first=True),
+        'saw': text('meet-family', name="Ana and Rui's place", people=people),
+        'wedding': text('wedding', name="St Paul's Church", kind='church'),
+    }
+    assert found['visit-in'] == {'subject': "Over at Mira's place",
+                                 'value': "You came over to Mira's place on Saturday, March 7."}
+    assert found['visit-yours']['value'] == 'Mira came over to your place on Saturday, March 7.'
+    assert found['dinner-yours']['value'] == 'Mira came over to your place for dinner on Saturday, March 7.'
+    assert found['knock']['value'] == 'Mira dropped by your place on Saturday, March 7.'
+    assert found['dinner-in']['value'] == "Had dinner, risotto, at Mira's place on Saturday, March 7."
+    assert found['met'] == {'subject': "Meeting Mira's mom Ana and dad Rui",
+                            'value': "You met Mira's mom Ana and dad Rui over dinner at Ana and Rui's place on "
+                                     'Saturday, March 7.'}
+    assert found['saw']['value'].startswith("You saw Mira's mom Ana and dad Rui again over dinner")
+    assert found['wedding'] == {'subject': 'Your wedding',
+                                'value': "You and Mira got married at St Paul's Church on Saturday, March 7, 2026."}
+    for memory in found.values():
+        assert 'the user' not in f"{memory['subject']} {memory['value']}".lower(), memory
+    # To Mira, "you" is Mira.
+    assert told(found['visit-in']) == "Over at your place: The user came over to your place on Saturday, March 7."
+    assert told(found['visit-yours']) == "You came over: You came over to the user's place on Saturday, March 7."
+    assert told(found['met']).startswith("Meeting your mom Ana and dad Rui: The user met your mom Ana and dad Rui")
+    assert told(found['wedding']) == \
+        "Your wedding: The user and you got married at St Paul's Church on Saturday, March 7, 2026."
+    # Older memories were written Mira's way already, and a memory the user wrote is left as they wrote it.
+    assert told({'subject': 'Your wedding', 'value': 'You married the user at Lupa.'}) == \
+        'Your wedding: You married the user at Lupa.'
+    assert told(found['visit-yours'], origin='user') == 'Mira came over: Mira came over to your place on Saturday, March 7.'

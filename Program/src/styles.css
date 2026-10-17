@@ -458,6 +458,12 @@ textarea { resize: vertical; line-height: 1.6; }
 .why-it-went { margin: 0 0 6px; }
 .why-it-went summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .why-it-went ul { margin-top: 6px; }
+.why-it-went[open] { margin-bottom: 16px; }
+.why-it-went .reason-group { margin: 0; }
+.why-it-went .marks-lead { margin-top: 16px; }
+.why-it-went li > .text-button { padding-left: 0; }
+.why-it-went .reason-group + .reason-group { margin-top: 4px; }
+.why-it-went .reason-group .text-button { display: inline; padding: 0; font-size: inherit; text-decoration: underline; }
 .deck-card { display: grid; gap: 6px; max-width: 32rem; margin: 6px 0; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 8px; }
 .event-list, .plain-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 10px; }
 .plain-list li { line-height: 1.6; }
@@ -1460,6 +1466,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-facts, .profile-interests { list-style: none; display: flex; flex-wrap: wrap; margin: 12px 40px 0; padding: 0; }
 .profile-facts { gap: 6px 18px; color: var(--muted); font-size: 0.8125rem; }
 .profile-facts li { display: inline-flex; align-items: center; gap: 6px; }
+.profile-patch-text { display: inline-flex; align-items: center; gap: 6px; }
+.profile-facts li.profile-patch.has-reason { flex-basis: 100%; flex-wrap: wrap; gap: 4px 12px; }
+.profile-bubbles .profile-facts li.profile-patch.has-reason { justify-content: center; text-align: center; }
+.profile-patch .text-button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--muted); }
 .profile-interests { gap: 6px; }
 .profile-ties { margin-top: 6px; }
 .profile-interests li { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.75rem; }
@@ -1559,6 +1569,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @media (max-width: 720px) {
   .profile-cover { height: 96px; }
   .profile-who, .profile-bio, .profile-facts, .profile-interests { margin-inline: 16px; }
+  .profile-patch .text-button { min-height: 44px; }
+  .profile-facts li.profile-patch.has-reason .text-button { flex-basis: 100%; justify-content: flex-start; }
+  .profile-bubbles .profile-facts li.profile-patch.has-reason .text-button { justify-content: center; }
   .profile-tabs { padding: 0 8px; }
   .profile-community .profile-card { margin: 12px 12px 0; }
   .profile-retro .profile-card, .profile-retro .profile-tabs { margin-inline: 4px; }
@@ -1729,6 +1742,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .buddy.current { background: var(--accent); color: var(--on-accent); }
 .buddy.unread .buddy-name { font-weight: 700; }
 .buddy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A long status line is cut with an ellipsis instead of widening the list past its window. */
+.side-buddies ul { grid-template-columns: minmax(0, 1fr); }
 .buddy-count { color: inherit; font-weight: 700; }
 @media (max-width: 720px) {
   /* Phones keep the whole width for the chat; the Chats button opens the list. */
@@ -1856,6 +1871,18 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .admin-item .text-button, .admin-more { padding-left: 0; padding-right: 0; }
 .admin-more { color: var(--accent); min-height: 44px; margin-top: -11px; }
 .admin-when { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; width: 100%; }
+.wedding-plan { display: grid; gap: 8px; margin: 12px 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--raised); }
+.wedding-plan h3 { margin: 0; }
+.wedding-plan p { margin: 0; }
+.wedding-line { font-weight: 500; line-height: 1.5; }
+.wedding-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 12px; margin-top: 4px; }
+.wedding-venue { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 0.875rem; }
+.wedding-venue-actions { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.wedding-guests { border: 0; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.wedding-guests legend { font-size: 0.8125rem; font-weight: 600; color: var(--muted); padding: 0; margin-bottom: 4px; }
+.wedding-guests .check-row { display: flex; gap: 8px; align-items: center; font-size: 0.875rem; min-height: 32px; }
+.wedding-tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
+.wedding-tasks li.done > span:first-child { text-decoration: line-through; color: var(--muted); }
 .admin-state { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
 .admin-later { display: grid; max-width: 28rem; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; margin: 0; font-size: 0.875rem; }
 .admin-later > div { display: contents; }
@@ -1873,6 +1900,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* On a call (companion/life/calls.py): how long ticks in even digits; a ring stands out a little more. */
 .where-strip .call-length { font-variant-numeric: tabular-nums; }
 .where-strip.ringing { border-color: var(--accent); }
+.where-strip.quiet { background: transparent; }
+.where-strip.quiet > span, .where-strip.quiet > svg { color: var(--muted); }
 .where-strip.ringing > svg { animation: ring-nudge 1.6s ease-in-out infinite; }
 .where-strip .call-answer { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; }
 .where-strip .call-answer svg { width: 1rem; height: 1rem; }
@@ -2079,10 +2108,14 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .year-photos li { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: var(--canvas); }
 .year-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .year-photos span { position: absolute; left: 6px; bottom: 6px; padding: 2px 6px; border-radius: 6px; background: #000a; color: #fff; font-size: 0.6875rem; }
+.year-wedding-photo { margin: 0 0 12px; border-radius: 8px; overflow: hidden; background: var(--canvas); aspect-ratio: 4 / 3; }
+.year-wedding-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .year-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .year-items li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .year-items li:not(:has(time)) { grid-template-columns: 1fr; }
 .year-items time { color: var(--muted); font-size: 0.8125rem; padding-top: 2px; }
+.year-day-label { margin: 4px 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+.year-day { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 1rem; line-height: 1.4; }
 .year-closing { margin: 0; font-size: 1.375rem; line-height: 1.45; }
 .year-page-sparse { justify-content: center; }
 .year-page-sparse .year-quote blockquote, .year-page-sparse .year-items li { font-size: 1.1875rem; line-height: 1.55; }
@@ -2181,4 +2214,43 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .history-line { grid-template-columns: 1fr; gap: 4px; }
   .history-when { grid-auto-flow: column; justify-content: start; gap: 8px; }
   .history-action { min-height: 44px; }
+}
+/* You and them (companion/life/steps.py): where things stand, then the steps so far. */
+.steps-line { margin: -4px 0 0; font-size: 1rem; font-weight: 400; color: var(--muted); }
+.steps-planned { padding-left: 18px; margin-top: 10px; }
+.steps-detail { color: var(--muted); font-size: 0.875rem; }
+.steps-detail p { margin: 2px 0 0; }
+/* Sharing a home: another partner who would move in, with this one's answer right under it. */
+.steps-list .step-pending { color: var(--muted); }
+.steps-newcomer { margin-top: 10px; }
+.steps-newcomer p { margin: 0 0 4px; }
+.breakup-block { display: grid; gap: 8px; }
+.breakup-block .why-it-went, .steps-panel .breakup-block .why-it-went { margin: 0; padding-left: 22px; }
+.breakup-line { display: flex; align-items: flex-start; gap: 6px 8px; margin: 0; }
+.breakup-line > svg { flex: none; width: 1rem; height: 1rem; margin-top: 0.2em; color: var(--muted); }
+.breakup-text { display: grid; gap: 2px; margin: 0; }
+.breakup-text small { font-size: 0.8125rem; }
+.breakup-line .text-button { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; white-space: nowrap; color: var(--muted); }
+p.breakup-line { align-items: center; }
+.apart-strip { margin-top: -4px; background: none; color: var(--muted); }
+.apart-strip > svg { color: var(--muted); }
+@media (max-width: 720px) {
+  .breakup-line { flex-wrap: wrap; }
+  .breakup-line .text-button { flex-basis: 100%; min-height: 44px; margin-left: 24px; padding-left: 0; }
+  .breakup-block { gap: 0; }
+}
+.steps-panel .why-it-went { margin-top: 8px; }
+.steps-panel .why-it-went .text-button { padding-left: 0; }
+@media (max-width: 720px) {
+  .steps-panel .why-it-went summary, .steps-panel .wardrobe-group summary { padding-block: 12px; }
+  .steps-panel .why-it-went .text-button { min-height: 44px; }
+}
+.steps-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; }
+/* Meeting their people: whether they have met you, on the circle list. */
+.met-you { display: flex; align-items: center; gap: 6px; }
+.met-you svg { width: 14px; height: 14px; flex: none; }
+.met-you + .why-it-went { margin-left: 20px; }
+@media (max-width: 720px) {
+  .met-you + .why-it-went summary { padding-block: 12px; }
+  .met-you + .why-it-went .text-button { min-height: 44px; }
 }

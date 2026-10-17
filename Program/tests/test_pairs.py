@@ -272,3 +272,15 @@ def test_an_untold_backstory_is_worked_out_from_where_they_live(client, cast):
     with client.app.state.database.connect() as connection:
         found = pairs.backstory(connection, key(cast['Billy']), key(cast['Sally']))
     assert (found['start_level'], found['how']) == (None, pair['how'])
+
+
+def test_a_mask_never_leaves_their_own_mom_at_just_met(client, monkeypatch):
+    monkeypatch.setattr(pairs, 'MASK_CHANCE', 1)
+    monkeypatch.setattr(pairs, 'masked', lambda _me, _them: True)
+    # A mom nudged a step down from the usual, then a step further by a mask, used to read "Just met".
+    monkeypatch.setattr(pairs, 'role_default', lambda _role, _seed: {'level': 2, 'default': 3, 'nudge': -1})
+    ok(client.post('/api/companion', json={'name': 'Mira', 'timezone': 'America/New_York',
+                                           'location': 'Fells Point, Baltimore'}))
+    people = ok(client.get('/api/life/circle'))
+    family = [person for person in people if person['role'] in ('mom', 'dad', 'sister', 'brother')]
+    assert family and all(person['stage']['level'] >= 2 for person in family)

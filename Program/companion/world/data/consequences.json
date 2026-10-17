@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause, closeness and stacked (for user:rough_patch: the Rough patches slider 0 to 3, what happened, how close the companion feels to the user 1 to 5, and how many rough patches over the same thing are already open or started that day), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The breakup choices (user:strained, user:thinking, user:break, user:falling_out, user:after_break, user:talk_round, user:back_together, user:reach_out; companion/life/breakups.py) read drama, level (the Rough patches slider), closeness, step (how far along the pair is, 0 dating to 7 married), patches (big rough patches of the user's making in the last 45 days, weighed: one over the same thing as another still open counts half, the next a quarter), stacked (how many of those counted for less), cause (the open rough patch's cause), talked (times the user reached out during a break), ended_by (them, you or break), days_apart and months since it ended. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama and pace.",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -473,7 +473,7 @@
       ]
     },
     "user:told_secret": {
-      "label": "How {name} takes the user telling {a} a secret",
+      "label": "How {name} takes you telling {a} a secret",
       "options": [
         {
           "label": "{name} lets it go",
@@ -499,14 +499,15 @@
             {
               "reader": "minds",
               "at_least": 2,
+              "at_most": 2,
               "times": 2,
-              "why": "strongly so"
+              "why": "\"{trait}\" is strong in {name}"
             },
             {
               "reader": "minds",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very strongly so"
+              "times": 3,
+              "why": "\"{trait}\" is very strong in {name}"
             }
           ],
           "marks": [
@@ -515,7 +516,7 @@
               "on": "me",
               "amount": -1,
               "days": 7,
-              "note": "{name} is hurt the user told {a} a secret {name} was keeping",
+              "note": "{name} is hurt you told {a} a secret {name} was keeping",
               "told": "You're still a little hurt that the user told {a} something you were keeping secret."
             }
           ]
@@ -549,14 +550,15 @@
             {
               "reader": "minds",
               "at_least": 2,
+              "at_most": 2,
               "times": 2,
-              "why": "strongly so"
+              "why": "\"{trait}\" is strong in {name}"
             },
             {
               "reader": "minds",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very strongly so"
+              "times": 3,
+              "why": "\"{trait}\" is very strong in {name}"
             }
           ],
           "marks": [
@@ -565,7 +567,7 @@
               "on": "me",
               "amount": -1,
               "days": 4,
-              "note": "{name} is let down the plan ({plan}) passed without a word",
+              "note": "{name} is let down the plan ({plan_shown}) passed without a word",
               "told": "You're a little let down that the plan ({plan}) came and went without a word from the user."
             }
           ]
@@ -573,7 +575,7 @@
       ]
     },
     "user:forgot_occasion": {
-      "label": "How {name} takes the user not mentioning {occasion}",
+      "label": "How {name} takes you not mentioning {occasion_shown}",
       "options": [
         {
           "label": "{name} doesn't mind",
@@ -599,14 +601,15 @@
             {
               "reader": "minds",
               "at_least": 2,
+              "at_most": 2,
               "times": 2,
-              "why": "strongly so"
+              "why": "\"{trait}\" is strong in {name}"
             },
             {
               "reader": "minds",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very strongly so"
+              "times": 3,
+              "why": "\"{trait}\" is very strong in {name}"
             }
           ],
           "marks": [
@@ -615,7 +618,7 @@
               "on": "me",
               "amount": -1,
               "days": 5,
-              "note": "{name} is hurt the user chatted on {occasion} without mentioning it",
+              "note": "{name} is hurt you didn't mention {occasion_shown}",
               "told": "You're a little hurt that the user chatted with you on {occasion} without mentioning it."
             }
           ]
@@ -649,14 +652,15 @@
             {
               "reader": "minds",
               "at_least": 2,
+              "at_most": 2,
               "times": 2,
-              "why": "strongly so"
+              "why": "\"{trait}\" is strong in {name}"
             },
             {
               "reader": "minds",
               "at_least": 3,
-              "times": 1.5,
-              "why": "very strongly so"
+              "times": 3,
+              "why": "\"{trait}\" is very strong in {name}"
             }
           ],
           "marks": [
@@ -667,6 +671,131 @@
               "days": 5,
               "note": "{name} feels exposed that {a} can read everything said in {group}",
               "told": "You feel a little exposed that the user let {a} read everything said in {group} before they joined."
+            }
+          ]
+        }
+      ]
+    },
+    "user:rough_patch": {
+      "label": "Whether a rough patch starts with {name} over {about}",
+      "options": [
+        {
+          "label": "{name} lets it go",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            }
+          ]
+        },
+        {
+          "label": "A rough patch with {name}",
+          "weight": 0.54,
+          "rules": [
+            {
+              "reader": "level",
+              "at_most": 0,
+              "times": 0,
+              "why": "rough patches are turned off"
+            },
+            {
+              "reader": "level",
+              "is": 1,
+              "times": 0.6,
+              "why": "on an easy life things blow over"
+            },
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 2,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "cause",
+              "is": "missed_plan",
+              "times": 1.25,
+              "why": "a plan with a date meant something"
+            },
+            {
+              "reader": "cause",
+              "is": "forgot_occasion",
+              "times": 1.5,
+              "why": "the day mattered to {name}"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_told",
+              "times": 2.8,
+              "why": "{name} trusted you with it"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_kept",
+              "times": 2.8,
+              "why": "you kept it from {name}"
+            },
+            {
+              "reader": "cause",
+              "is": "seeing_someone",
+              "times": 16,
+              "why": "you two are exclusive"
+            },
+            {
+              "reader": "cause",
+              "is": "called_off",
+              "times": 0.8,
+              "why": "calling off on the day is only a small thing"
+            },
+            {
+              "reader": "cause",
+              "is": "sharing",
+              "times": 0.8,
+              "why": "it is only a small thing to talk through"
+            },
+            {
+              "reader": "cause",
+              "is": "proposal_no",
+              "times": 2.5,
+              "why": "you turned down {name}'s proposal"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 2,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} holds on to things"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "you two are close, so it hurts more"
+            },
+            {
+              "reader": "stacked",
+              "at_least": 1,
+              "times": 0.5,
+              "why": "there's already a rough patch over the same thing"
+            },
+            {
+              "reader": "stacked",
+              "at_least": 2,
+              "times": 0.5,
+              "why": "it would be the third over the same thing"
+            },
+            {
+              "reader": "stacked",
+              "at_least": 3,
+              "times": 0.5,
+              "why": "there are already three or more over the same thing"
             }
           ]
         }
@@ -816,6 +945,1512 @@
               "at_most": 2,
               "times": 0.5,
               "why": "{name} has few friends nearby"
+            }
+          ]
+        },
+        {
+          "label": "{name} meets someone",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "can_relationship",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} is already seeing someone, or has no love life of their own here"
+            },
+            {
+              "reader": "love_life",
+              "at_most": 1,
+              "times": 0.4,
+              "why": "the love life setting is on quiet"
+            },
+            {
+              "reader": "love_life",
+              "at_least": 3,
+              "times": 2,
+              "why": "the love life setting is on lots going on"
+            },
+            {
+              "reader": "card",
+              "at_least": 1,
+              "times": 3,
+              "why": "someone caught {name}'s eye lately"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 0.7,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.8,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "steps:when": {
+      "label": "When {name} brings up {step}",
+      "options": [
+        {
+          "label": "{name} brings it up soon",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 2.5,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.4,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name}'s description says they're assertive"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "social",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "{name} is outgoing"
+            },
+            {
+              "reader": "closeness_over",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "{name} already feels closer than this step needs"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.4,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} brings it up in a few weeks",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "{name} waits a couple of months",
+          "weight": 0.7,
+          "rules": [
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 2.5,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 0.3,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.8,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "social",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "{name} is reserved"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.8,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "steps:answer": {
+      "label": "How {name} answers when you bring up {step}",
+      "options": [
+        {
+          "label": "{name} says yes",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "short_days",
+              "at_least": 1,
+              "times": 0.35,
+              "why": "it's sooner than {name} expected"
+            },
+            {
+              "reader": "skips",
+              "at_least": 1,
+              "times": 0.6,
+              "why": "it skips a step for {name}"
+            },
+            {
+              "reader": "closeness_over",
+              "at_most": -1,
+              "times": 0.25,
+              "why": "{name} doesn't feel close enough yet"
+            },
+            {
+              "reader": "closeness_over",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "{name} already feels very close to you"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 0.8,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.5,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} isn't ready yet",
+          "weight": 1,
+          "rules": []
+        }
+      ]
+    },
+    "steps:falls": {
+      "label": "Whether {name} falls for you this month",
+      "options": [
+        {
+          "label": "{name} stays just a friend",
+          "weight": 30,
+          "rules": []
+        },
+        {
+          "label": "{name} falls for you",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "is": 2,
+              "times": 2,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 3,
+              "why": "the drama level is very high"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 5,
+              "times": 1.5,
+              "why": "you two are like old friends"
+            },
+            {
+              "reader": "months",
+              "at_least": 12,
+              "times": 1.3,
+              "why": "you've been friends for over a year"
+            }
+          ]
+        }
+      ]
+    },
+    "steps:friend_answer": {
+      "label": "How {name} answers when you tell them how you feel",
+      "options": [
+        {
+          "label": "{name} feels the same",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 5,
+              "times": 2,
+              "why": "you two are like old friends"
+            },
+            {
+              "reader": "closeness",
+              "at_most": 3,
+              "times": 0.3,
+              "why": "you two aren't that close yet"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level is high"
+            }
+          ]
+        },
+        {
+          "label": "{name} would rather stay friends",
+          "weight": 2,
+          "rules": []
+        }
+      ]
+    },
+    "love:next": {
+      "label": "How things go for {name} and {partner}",
+      "options": [
+        {
+          "label": "{name} and {partner} move on to {step}",
+          "weight": 1.4,
+          "rules": [
+            {
+              "reader": "can_up",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} is already married"
+            },
+            {
+              "reader": "love_life",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the love life setting is on lots going on"
+            },
+            {
+              "reader": "love_life",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the love life setting is on quiet"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 0.8,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "Things stay as they are for now",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "can_up",
+              "at_most": 0,
+              "times": 4,
+              "why": "married couples tend to carry on"
+            }
+          ]
+        },
+        {
+          "label": "{name} and {partner} break up",
+          "weight": 0.22,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.8,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.3,
+              "why": "the drama level is quiet"
+            },
+            {
+              "reader": "step",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "it's still early days"
+            },
+            {
+              "reader": "step",
+              "at_least": 5,
+              "times": 0.4,
+              "why": "{name} has settled into a shared life"
+            },
+            {
+              "reader": "love_life",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the love life setting is on quiet"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.3,
+              "why": "{name}'s description says they're stubborn"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 0.7,
+              "why": "{name}'s description says they're forgiving"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "love:secret": {
+      "label": "Whether {name} starts seeing someone behind your back this month",
+      "options": [
+        {
+          "label": "{name} stays true to you",
+          "weight": 49,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 5,
+              "times": 1.6,
+              "why": "{name} feels very close to you"
+            }
+          ]
+        },
+        {
+          "label": "{name} starts seeing someone on the side",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1,
+              "why": "the drama level is soap opera, and you two are exclusive"
+            },
+            {
+              "reader": "love_life",
+              "at_most": 1,
+              "times": 0.5,
+              "why": "the love life setting is on quiet"
+            },
+            {
+              "reader": "love_life",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the love life setting is on lots going on"
+            },
+            {
+              "reader": "card",
+              "at_least": 1,
+              "times": 3,
+              "why": "someone caught {name}'s eye lately"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "people:impression": {
+      "label": "What {name} thinks of you when you meet",
+      "options": [
+        {
+          "label": "{name} likes you right away",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "kind",
+              "is": "friend",
+              "times": 1.3,
+              "why": "{name} is {b}'s friend, and friends are easy to win over"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{b} is plainly happy with you"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 0.7,
+              "why": "the drama level is high"
+            }
+          ]
+        },
+        {
+          "label": "{name} thinks you two are lovely together",
+          "weight": 1.5,
+          "rules": [
+            {
+              "reader": "romance",
+              "at_most": 0,
+              "times": 0,
+              "why": "you and {b} aren't a couple"
+            },
+            {
+              "reader": "kind",
+              "is": "sibling",
+              "times": 1.4,
+              "why": "{name} is a sibling, and siblings root for family"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "{b} is plainly happy with you"
+            }
+          ]
+        },
+        {
+          "label": "{name} is friendly but still making up their mind",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "kind",
+              "is": "parent",
+              "times": 1.3,
+              "why": "{name} is a parent, and parents take time to warm up"
+            }
+          ]
+        },
+        {
+          "label": "{name} is protective of {b}",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "kind",
+              "is": "parent",
+              "times": 2,
+              "why": "{name} is a parent"
+            },
+            {
+              "reader": "kind",
+              "is": "sibling",
+              "times": 1.5,
+              "why": "{name} is a sibling"
+            },
+            {
+              "reader": "romance",
+              "at_most": 0,
+              "times": 0.3,
+              "why": "you and {b} aren't a couple"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level is high"
+            }
+          ]
+        },
+        {
+          "label": "{name} isn't sure about you yet",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 2,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is very high"
+            },
+            {
+              "reader": "kind",
+              "is": "parent",
+              "times": 1.4,
+              "why": "{name} is a parent"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 0.6,
+              "why": "{b} is plainly happy with you"
+            }
+          ]
+        }
+      ]
+    },
+    "people:night_out": {
+      "label": "Whether {name} has you out with their friends",
+      "options": [
+        {
+          "label": "{name} doesn't plan anything this time",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 2,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "social",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "{name} is reserved"
+            }
+          ]
+        },
+        {
+          "label": "{name} plans a night out with you and their friends",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 1.8,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "social",
+              "at_least": 2,
+              "times": 1.6,
+              "why": "{name} is outgoing"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 5,
+              "times": 1.3,
+              "why": "you two are like old friends"
+            }
+          ]
+        }
+      ]
+    },
+    "user:strained": {
+      "label": "Whether things get strained with {name}",
+      "options": [
+        {
+          "label": "{name} lets it pass",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "step",
+              "at_least": 5,
+              "times": 1.5,
+              "why": "you have built a life together"
+            }
+          ]
+        },
+        {
+          "label": "Things get strained with {name}",
+          "weight": 0.3,
+          "rules": [
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.6,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.5,
+              "why": "it's a quiet life"
+            },
+            {
+              "reader": "patches",
+              "at_least": 2,
+              "times": 1.8,
+              "why": "this isn't the first rough patch lately"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "stacked",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "some rough patches came close together, over the same thing"
+            },
+            {
+              "reader": "cause",
+              "is": "seeing_someone",
+              "times": 2.5,
+              "why": "you were seeing someone else"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_told",
+              "times": 1.5,
+              "why": "you broke {name}'s trust"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_kept",
+              "times": 1.5,
+              "why": "you kept something from {name}"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:thinking": {
+      "label": "Whether {name} starts thinking about a break",
+      "options": [
+        {
+          "label": "{name} works through it",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "step",
+              "at_least": 5,
+              "times": 1.5,
+              "why": "you have built a life together"
+            }
+          ]
+        },
+        {
+          "label": "{name} starts thinking about a break",
+          "weight": 0.35,
+          "rules": [
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.6,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.5,
+              "why": "it's a quiet life"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "cause",
+              "is": "seeing_someone",
+              "times": 2.5,
+              "why": "you were seeing someone else"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:break": {
+      "label": "Whether {name} asks for a break",
+      "options": [
+        {
+          "label": "{name} holds on",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "step",
+              "at_least": 7,
+              "times": 2,
+              "why": "you're married"
+            }
+          ]
+        },
+        {
+          "label": "{name} asks for a break",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.6,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.5,
+              "why": "it's a quiet life"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "cause",
+              "is": "seeing_someone",
+              "times": 2.5,
+              "why": "you were seeing someone else"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:falling_out": {
+      "label": "Whether you and {name} fall out",
+      "options": [
+        {
+          "label": "{name} works through it",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            }
+          ]
+        },
+        {
+          "label": "A falling out with {name}",
+          "weight": 0.3,
+          "rules": [
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.6,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 0.5,
+              "why": "it's a quiet life"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_told",
+              "times": 1.5,
+              "why": "you broke {name}'s trust"
+            },
+            {
+              "reader": "cause",
+              "is": "secret_kept",
+              "times": 1.5,
+              "why": "you kept something from {name}"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:after_break": {
+      "label": "How {name} decides at the end of the break",
+      "options": [
+        {
+          "label": "{name} wants to try again",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "talked",
+              "at_least": 1,
+              "times": 2,
+              "why": "you reached out during the break"
+            },
+            {
+              "reader": "talked",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "you kept trying"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 2,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "step",
+              "at_least": 7,
+              "times": 1.5,
+              "why": "you're married"
+            }
+          ]
+        },
+        {
+          "label": "{name} ends it",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "talked",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "you didn't reach out during the break"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the rough patches keep piling up"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
+    "user:talk_round": {
+      "label": "Whether {name} agrees to try again",
+      "options": [
+        {
+          "label": "{name} still needs time",
+          "weight": 1.5,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} holds on to things"
+            },
+            {
+              "reader": "patches",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the rough patches kept piling up"
+            }
+          ]
+        },
+        {
+          "label": "{name} agrees to try again",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "talked",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "you've been reaching out"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.6,
+              "why": "{name} is forgiving"
+            }
+          ]
+        }
+      ]
+    },
+    "user:back_together": {
+      "label": "How {name} answers when you ask to get back together",
+      "options": [
+        {
+          "label": "{name} says no",
+          "weight": 1.5,
+          "rules": [
+            {
+              "reader": "days_apart",
+              "at_most": 13,
+              "times": 1.5,
+              "why": "it's still raw for {name}"
+            },
+            {
+              "reader": "ended_by",
+              "is": "them",
+              "times": 1.5,
+              "why": "{name} was the one who ended it"
+            },
+            {
+              "reader": "ended_by",
+              "is": "break",
+              "times": 1.5,
+              "why": "{name} was the one who ended it"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} holds on to things"
+            }
+          ]
+        },
+        {
+          "label": "{name} says yes",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.6,
+              "why": "you two were close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.6,
+              "why": "{name} is forgiving"
+            },
+            {
+              "reader": "ended_by",
+              "is": "you",
+              "times": 1.3,
+              "why": "{name} didn't want it to end"
+            }
+          ]
+        }
+      ]
+    },
+    "user:reach_out": {
+      "label": "Whether {name} reaches out about trying again",
+      "options": [
+        {
+          "label": "{name} leaves it be",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "ended_by",
+              "is": "them",
+              "times": 1.5,
+              "why": "{name} was the one who ended it"
+            },
+            {
+              "reader": "ended_by",
+              "is": "break",
+              "times": 1.5,
+              "why": "{name} was the one who ended it"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} holds on to things"
+            },
+            {
+              "reader": "months",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "it's been months"
+            }
+          ]
+        },
+        {
+          "label": "{name} reaches out",
+          "weight": 0.15,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 2,
+              "why": "you two were close"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "there's a lot of drama"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} is forgiving"
+            }
+          ]
+        }
+      ]
+    },
+    "moving_in:where": {
+      "label": "Whose place {name} and you live in",
+      "options": [
+        {
+          "label": "{name} moves into your place",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "their_size",
+              "at_most": 1,
+              "times": 2.0,
+              "why": "{name}'s place is small for two"
+            },
+            {
+              "reader": "their_rent_higher",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "{name}'s rent is higher than yours"
+            },
+            {
+              "reader": "yours_nearer",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "your place is nearer {name}'s work"
+            },
+            {
+              "reader": "your_pets",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "your pets are settled at yours"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.2,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        },
+        {
+          "label": "You move into {name}'s place",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "their_size",
+              "at_least": 3,
+              "times": 2.0,
+              "why": "{name}'s place has room for two"
+            },
+            {
+              "reader": "their_rent_lower",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "{name}'s place costs less than yours"
+            },
+            {
+              "reader": "theirs_nearer",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "{name}'s place is nearer their work"
+            },
+            {
+              "reader": "their_pets",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "{name}'s pets are settled at their place"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        },
+        {
+          "label": "You find a new place together",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "their_size",
+              "at_most": 2,
+              "times": 1.4,
+              "why": "neither place has much room for two"
+            },
+            {
+              "reader": "both_pets",
+              "at_least": 1,
+              "times": 1.6,
+              "why": "you both have pets"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.4,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 0.7,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        }
+      ]
+    },
+    "moving_in:who": {
+      "label": "Who moves so {name} and you can live together",
+      "options": [
+        {
+          "label": "{name} moves to your city",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "rooted",
+              "at_most": 0,
+              "times": 1.8,
+              "why": "{name} has few ties where they live"
+            },
+            {
+              "reader": "rooted",
+              "at_least": 3,
+              "times": 0.4,
+              "why": "{name} is rooted where they live"
+            },
+            {
+              "reader": "family",
+              "at_least": 2,
+              "times": 0.6,
+              "why": "{name}'s family lives nearby"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        },
+        {
+          "label": "{name} asks you to move to {name}'s city",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "pay",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "{name}'s job would be hard to leave"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.6,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name}'s description says they're driven"
+            }
+          ]
+        }
+      ]
+    },
+    "moving_in:share": {
+      "label": "Whether {name} is open to sharing a home with {a}",
+      "options": [
+        {
+          "label": "{name} is open to sharing a home with {a}",
+          "weight": 0.4,
+          "rules": [
+            {
+              "reader": "raised",
+              "at_least": 1,
+              "times": 4.0,
+              "why": "{name} brought up moving in, knowing who lives with you"
+            },
+            {
+              "reader": "open",
+              "at_least": 1,
+              "times": 4.0,
+              "why": "{name} is into open relationships"
+            },
+            {
+              "reader": "social",
+              "at_least": 2,
+              "times": 1.4,
+              "why": "{name} loves a full house"
+            },
+            {
+              "reader": "warmth",
+              "at_least": 2,
+              "times": 1.25,
+              "why": "{name} is warm-hearted"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is easygoing"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "label": "{name} isn't ready to share a home with {a}",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 2.5,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "upset",
+              "at_least": 1,
+              "times": 2.0,
+              "why": "{name} is still upset that you're seeing someone else"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "others",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "it would make a full house"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ]
+        }
+      ]
+    },
+    "wedding:size": {
+      "label": "How big a wedding {name} plans",
+      "options": [
+        {
+          "label": "{name} plans a small wedding",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 2,
+              "why": "money is tight for {name}"
+            },
+            {
+              "reader": "social",
+              "at_most": 0,
+              "times": 1.6,
+              "why": "{name} is reserved"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.4,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "people",
+              "at_most": 3,
+              "times": 1.5,
+              "why": "only a few people are close to {name}"
+            }
+          ]
+        },
+        {
+          "label": "{name} plans a proper wedding",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "tier",
+              "is": 1,
+              "times": 1.2,
+              "why": "a proper wedding fits {name}'s budget"
+            }
+          ]
+        },
+        {
+          "label": "{name} plans a big wedding",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tier",
+              "at_least": 2,
+              "times": 1.8,
+              "why": "{name} can afford a big day"
+            },
+            {
+              "reader": "tier",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "{name} is well off"
+            },
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 0.3,
+              "why": "money is tight for {name}"
+            },
+            {
+              "reader": "social",
+              "at_least": 2,
+              "times": 1.6,
+              "why": "{name} is outgoing"
+            },
+            {
+              "reader": "people",
+              "at_least": 8,
+              "times": 1.4,
+              "why": "{name} has a big circle of family and friends"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level is high"
             }
           ]
         }

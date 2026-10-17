@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { CHAT_STYLES, chatStyleOf, retroDarkOn, soundsOn } from '../../src/features/conversation/chatStyles.ts'
 
@@ -19,4 +20,9 @@ test('the dark window applies only to Retro IM, and only once turned on', () => 
   assert.equal(retroDarkOn({ chat_style: 'retro' }), false)
   assert.equal(retroDarkOn({ chat_style: 'community', chat_retro_dark: true }), false)
   assert.equal(retroDarkOn({ chat_style: 'retro', chat_retro_dark: true }), true)
+})
+
+test('a long status line in the Retro IM buddy list never widens the list past its window', () => {
+  const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8')
+  assert.match(css, /\.side-buddies ul \{ grid-template-columns: minmax\(0, 1fr\); \}/)
 })

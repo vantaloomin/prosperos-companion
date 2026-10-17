@@ -100,6 +100,20 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.calls.FIRST_TEXTS', False)
     # Nor news of a weekend visit planned across the distance (companion/life/long_distance.py).
     monkeypatch.setattr('companion.life.long_distance.FIRST_TEXTS', False)
+    # Nor rough patches opening from what the user says or misses (companion/life/rough_patches.py).
+    monkeypatch.setattr('companion.life.rough_patches.ACTIVE', False)
+    # Nor warnings, breaks and breakups growing out of them (companion/life/breakups.py).
+    monkeypatch.setattr('companion.life.breakups.ACTIVE', False)
+    # Nor a next step or a confession brought up in a first text (companion/life/steps.py).
+    monkeypatch.setattr('companion.life.steps.FIRST_TEXTS', False)
+    # Nor news from their own love life, or a friend who saw someone out with another (companion/life/love_life.py).
+    monkeypatch.setattr('companion.life.love_life.FIRST_TEXTS', False)
+    # Nor an invitation to meet their people (companion/life/their_people.py).
+    monkeypatch.setattr('companion.life.their_people.FIRST_TEXTS', False)
+    # Nor an invitation to the evening they plan to propose (companion/life/wedding.py).
+    monkeypatch.setattr('companion.life.wedding.FIRST_TEXTS', False)
+    # Nor a text from the one you live with about another of your partners moving in (companion/life/moving_in.py).
+    monkeypatch.setattr('companion.life.moving_in.FIRST_TEXTS', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.

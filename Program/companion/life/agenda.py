@@ -21,6 +21,7 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
     admin,
     body,
+    breakups,
     chapters,
     circle,
     composer,
@@ -31,19 +32,25 @@ from companion.life import (
     home,
     kitchen,
     long_distance,
+    love_life,
     media,
+    moving_in,
     network,
     occasions,
     outings,
     own_plans,
     reactions,
     recommendations,
+    rough_patches,
     routine,
+    steps,
     storylines,
+    their_people,
     traditions,
     trips,
     upkeep,
     wardrobe,
+    wedding,
     work,
 )
 from companion.memory import pairs
@@ -146,6 +153,14 @@ def extend(connection, companion, world, now) -> dict:
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
     reactions.daily(connection, companion, now)
+    rough_patches.daily(connection, companion, now)
+    # Breaks and breakups (companion/life/breakups.py) read the rough patches just settled.
+    breakups.daily(connection, companion, now)
+    steps.advance(connection, companion, now)
+    moving_in.advance(connection, companion, now)
+    love_life.advance(connection, companion, world, now)
+    their_people.advance(connection, companion, now)
+    wedding.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
 
 
@@ -264,9 +279,9 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         if slot.block.key in pinned:
             plan = pinned[slot.block.key]
             block = outings.marked(block, plan)
-            entry = plan and (outings.entry(plan, block, definition) if 'outing' in plan else
-                              admin.entry(plan, block, definition) if 'admin' in plan else
-                              own_plans.entry(plan, block, definition))
+            entry = None if plan and plan.get('continues') else plan and (
+                outings.entry(plan, block, definition) if 'outing' in plan else
+                admin.entry(plan, block, definition) if 'admin' in plan else own_plans.entry(plan, block, definition))
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)
             if subject == COMPANION:
@@ -545,9 +560,11 @@ def forget_person(connection, timeline_id, person_id, now):
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
     result, known = [], circle.ties(circle.people(connection, timeline_id))
+    at_wedding = wedding.guests_there(connection, timeline_id, now)  # Not at work: at the wedding, as its scene says.
     for row in circle.people(connection, timeline_id, include_removed):
         person = circle.view(row)
-        block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' else None
+        block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \
+            row['id'] not in at_wedding else None
         result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),
                        'knows': known.get(row['id'], [])})
     return result

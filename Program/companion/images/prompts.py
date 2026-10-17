@@ -269,6 +269,8 @@ PICTURES = {
     'salon': 'just out of the salon, showing off a fresh new look',
     'hobby': 'absorbed in a favorite pastime',
     'nail-salon': 'holding up freshly done nails to show them off',
+    # Their wedding with the user (companion/life/wedding.py): what they wear is the moment's own.
+    'wedding': 'smiling among the guests on {possessive} wedding day',
 }
 CALLS = ('called', 'phone')
 
@@ -435,7 +437,8 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
                                                                 'weather', 'activity', 'with', 'hobby')},
                              moment.get('neighborhood'))
     appearance = '' if framing == 'view' else definition.get('appearance', '')
-    wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
+    wearing = '' if framing == 'view' else moment.get('wearing') or wardrobe.image_hint(
+        connection, companion['active_timeline_id'], moment)
     sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))
     look = '' if framing == 'view' else in_photos(definition, who, bool(wearing))
     prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),

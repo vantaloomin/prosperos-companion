@@ -57,6 +57,9 @@ You have your own life and opinions; keep to what you'd plausibly know.
 # shared past the user brings up (A/B, companion-v11-guests-ab: 80% held vs 58% with the sheet alone).
 NO_HISTORY = ("You and the user have no history outside this chat: if they bring up something you did together, it "
               "didn't happen as far as you know.")
+# Someone who has met the user in person (companion/life/their_people.py) and likes them may drop in on their own, not
+# only when named: this share of the usual chance.
+DROP_IN_SHARE = 0.25
 
 
 def is_guest(key: str) -> bool:
@@ -290,11 +293,33 @@ def pull_in(connection, group_id: str, row: dict, members: list[dict], now) -> d
         mine = [{**person, 'host': row['author']} for person in candidates(connection, [{'member': row['author']}], now)
                 if person['key'] in {item['key'] for item in named}]
         named = mine or named
+    if not named:
+        named = dropping_in(connection, members, now)
+        chance *= DROP_IN_SHARE
     if not named or random.Random(f"guest-pull:{row['id']}").random() >= chance:
         return None
     person = named[0]
     companion = host_companion(connection, person)
     return None if companion is None or asleep(connection, person, companion, now) else person
+
+
+def dropping_in(connection, members: list[dict], now) -> list[dict]:
+    """People from a member's circle who have met the user and like them, who may drop in unasked."""
+    from companion.life import their_people
+    result = []
+    for person in candidates(connection, members, now):
+        companion = host_companion(connection, person) if person['kind'] == 'circle' else None
+        if companion and person['person_id'] in their_people.met_people(connection, companion):
+            result.append(person)
+    return result
+
+
+def history_line(connection, found: dict) -> str:
+    """What a guest shares with the user outside this chat: nothing, unless they have met in person."""
+    from companion.life import their_people
+    if found.get('kind') == 'circle':
+        return their_people.guest_line(connection, found['person_id'], found['timeline_id']) or NO_HISTORY
+    return NO_HISTORY
 
 
 # Slipping out ---------------------------------------------------------------------------------------

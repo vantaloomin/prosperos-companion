@@ -20,20 +20,25 @@ from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import (
+    breakups,
     encounters,
     feed,
     grooming,
     hobbies,
     home,
     kitchen,
+    love_life,
     media,
+    moving_in,
     network,
     shifts,
     social,
+    steps,
     storylines,
     traditions,
     upkeep,
     wardrobe,
+    wedding,
 )
 from companion.memory import history
 from companion.voice import notes as voice_notes
@@ -213,6 +218,12 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
+    copy_steps(connection, parent_id, new_id, cutoff)
+    wedding.copy_proposals(connection, steps.copy_open(connection, parent_id, new_id, cutoff, ids), new_id)
+    love_life.copy(connection, parent_id, new_id, ids, cutoff[:10])
+    wedding.copy(connection, parent_id, new_id, cutoff[:10])
+    breakups.copy(connection, parent_id, new_id, ids, cutoff)
+    copy_impressions(connection, parent_id, new_id, ids, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
     network.copy(connection, parent_id, new_id, cutoff)
     encounters.copy(connection, parent_id, new_id, cutoff)
@@ -249,6 +260,39 @@ def copy_chapters(connection, parent_id, new_id, ids, cutoff_date):
             connection, row['consequence_id'], new_id, f"chapter:{new_id}:{row['started_on']}")} for row in rows])
     if optional(connection, 'SELECT through FROM chapter_days WHERE timeline_id=?', (parent_id,)):
         connection.execute('INSERT INTO chapter_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
+
+
+def copy_steps(connection, parent_id, new_id, cutoff):
+    """Steps reached by the fork carry over (companion/life/steps.py), as they stood then: one reached later that same
+    day (a yes after the message branched from) is the parent's alone, and one taken back after the fork still holds.
+    What was brought up and not answered stays open (steps.copy_open)."""
+    cutoff_date = cutoff[:10]
+    rows = many(connection, 'SELECT * FROM relationship_steps WHERE timeline_id=? AND reached_on<=? AND created_at<?',
+                (parent_id, cutoff_date, cutoff))
+    insert(connection, 'relationship_steps', [
+        {**row, 'id': identifier(), 'timeline_id': new_id, 'ask_id': None,
+         'undone_at': row['undone_at'] if row['undone_at'] and row['undone_at'] < cutoff else None} for row in rows])
+    # Moving in together (companion/life/moving_in.py) as it stood.
+    insert(connection, 'moving_in', moving_in.copy(connection, parent_id, new_id, cutoff_date))
+
+
+def copy_impressions(connection, parent_id, new_id, ids, cutoff_date):
+    """What their people thought of the user by the fork carries over (companion/life/their_people.py), for people the
+    copy has; meet-ups still to come are the copy's own."""
+    rows = [row for row in many(connection, "SELECT * FROM people_impressions WHERE timeline_id=? AND met_on IS NOT NULL "
+                                "AND (met_on='before' OR met_on<=?)", (parent_id, cutoff_date)) if row['person_id'] in ids]
+    # The meet-ups they met at come too, or the copy plans the first meeting all over again.
+    meetups = {row['id']: row for row in many(connection, "SELECT * FROM people_meetups WHERE timeline_id=? AND "
+                                              "status='done'", (parent_id,))}
+    moved = {meetup_id: identifier() for meetup_id in {row['meetup_id'] for row in rows} if meetup_id in meetups}
+    insert(connection, 'people_meetups', [
+        {**meetups[old], 'id': new, 'timeline_id': new_id, 'consequence_id': None,
+         'people': encode([ids[person] for person in decode(meetups[old]['people']) or [] if person in ids])}
+        for old, new in moved.items()])
+    insert(connection, 'people_impressions', [{**row, 'id': identifier(), 'timeline_id': new_id,
+                                               'meetup_id': moved.get(row['meetup_id']),
+                                               'person_id': ids[row['person_id']], 'consequence_id': None}
+                                              for row in rows])
 
 
 def copy_recall(connection, parent_id, new_id, ids, cutoff_date):

@@ -49,6 +49,29 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.13.0 (2026-10-17)
+
+- **Next steps:** romances move from dating through exclusive, "I love you", meeting their people and a key to their
+  place; friendships through best friends and a first trip. Either of you can ask, your answer in chat counts, and
+  now and then a friend falls for you.
+- **Meeting their people:** dinner with their family or drinks with their friends, with first impressions that change
+  over time and people who remember you.
+- **Moving in together:** the app picks whose place, sets a moving day, splits rent and chores, and asks everyone
+  before a second partner moves in.
+- **Rough patches and making up:** hurtful words, missed plans and broken promises on either side, colder contact while
+  it lasts, and apologies, gestures, good plans or calm days to mend it.
+- **Breaks and breakups:** on Real life and Drama, strain with warnings first, breaks that end in trying again or
+  ending things, friendships that fall out, and exes who may reach out.
+- **Their own love life:** friends date and split, romances see others only when open or in secret on Drama, and the
+  town paper reports townsfolk engagements and weddings.
+- **Engagement and wedding:** proposals on an evening out, wedding planning on the Character page following city
+  customs, and a big day out with guests, a photo and a notice in the paper.
+- **Clearer odds:** Hidden values groups reasons as "More likely because..." and "Less likely because...".
+- **More Realism settings:** Relationship pace, Rough patches and Their love life sliders, and Friends can fall for you
+  and Breaks and breakups switches, set by the presets.
+- **Fixes:** fewer misread hurtful words, era-fitting reasons for called-off plans, friends moving to cities of their
+  own time, and visit memories worded the right way round.
+
 ## v0.12.0 (2026-10-16)
 
 - **A home of your own:** your persona lives in a city and neighborhood in each world, changeable on the persona

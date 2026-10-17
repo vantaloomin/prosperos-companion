@@ -33,6 +33,7 @@ import { NovelStage } from './NovelStage'
 import { latestPhotoId } from './photoState'
 import { AwayRecap } from './AwayRecap'
 import { WhereStrip } from './WhereStrip'
+import { ApartStrip } from './ApartStrip'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, notTexting } from './whereText'
 import { ChatsPanel } from '../chats/ChatsPanel'
@@ -250,6 +251,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         <ActivityLine messages={messages} phases={phases} sending={draft.sending} aside={ooc.note} />
         <AwayRecap name={name} />
         <WhereStrip name={name} />
+        <ApartStrip name={name} />
         <ConversationNotice notice={notice} go={go} />
         <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
           onReworded={(id, text) => {

@@ -18,7 +18,7 @@ from companion.characters import by_id, require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.errors import require
-from companion.memory.records import eligible, from_old_chats
+from companion.memory.records import eligible, from_old_chats, told
 
 SHARED_LAYERS = ('shared_experience', 'relationship')
 # Points to reach each stage: one per day talked, plus one per shared moment up to the days talked.
@@ -181,8 +181,8 @@ def jokes(connection, timeline_id, moments, recurring) -> tuple[list[dict], list
         connection, 'SELECT memory_id, removed FROM closeness_jokes WHERE timeline_id=?', (timeline_id,))}
     running = {memory_id for memory_id, removed in marked.items() if not removed}
     running |= {item['memory_id'] for item in recurring if item['memory_id'] not in marked}
-    return ([{'memory_id': memory['id'], 'subject': memory['subject'], 'value': memory['value']}
-             for memory in moments if memory['id'] in running],
+    return ([{'memory_id': memory['id'], 'subject': memory['subject'], 'value': memory['value'],
+              'layer': memory['layer'], 'origin': memory['origin']} for memory in moments if memory['id'] in running],
             [item for item in recurring if item['memory_id'] not in running])
 
 
@@ -253,7 +253,7 @@ def offer(packet, connection, companion, now):
     """Adds the 'closeness' section: the stage's guidance, then each running joke."""
     current = state(connection, companion, now)
     packet.offer('closeness', f"stage:{current['level']}", context_text(current, companion['version']['definition']))
-    for index, joke in enumerate(current['jokes'][:JOKE_LIMIT]):
+    for index, joke in enumerate(told(current['jokes'][:JOKE_LIMIT], companion)):  # The companion's way round.
         packet.offer('closeness', joke['memory_id'], (JOKES + '\n' if index == 0 else '') + joke_text(joke))
 
 

@@ -12,11 +12,14 @@ spring makes a new job likelier; a promotion makes a move likelier), the compani
 - `pet`: a pet comes home.
 - `hobby`: a pastime they take up for real joins their interests.
 - `friend_moves`: a friend in the circle moves away to another city and leaves the circle.
+- `relationship`: they meet someone, who joins their circle as their partner (companion/life/love_life.py: their own
+  love life, which then moves up the steps ladder or ends by its own rolls).
 
 Changes to who they are (career, location, interests) are an overlay on the character's active version for this
 timeline (applied by companion/characters.py `with_chapters`), so a fork without the chapter keeps the old life and the
 character's own description and personality are never rewritten. A chapter never touches personality, emotional
-traits or a romance companion's love life. Today lists them with "Why it went this way" and an undo; the chat context
+traits or a romance companion's love life (a romance companion meets someone this way only in an open
+relationship; on Drama a secret is love_life.py's own roll). Today lists them with "Why it went this way" and an undo; the chat context
 tells the companion for a while, and the news can open a conversation. No model decides anything.
 """
 import random
@@ -27,7 +30,7 @@ from companion.characters import apply_changes, require_current
 from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, home, money, pets, storylines
+from companion.life import circle, home, love_life, money, pets, storylines
 from companion.memory import pairs
 from companion.world import catalog
 
@@ -38,7 +41,7 @@ SETTLE_IN = timedelta(days=45)
 TOLD_DAYS = 90  # How long the chat context keeps a new chapter.
 FRESH_DAYS = 1  # A chapter from today or yesterday can open a conversation.
 CHOICE = 'chapter:next'
-KINDS = ('new_job', 'move', 'pet', 'hobby', 'friend_moves')
+KINDS = ('new_job', 'move', 'pet', 'hobby', 'friend_moves', 'relationship')
 HOBBIES = {
     True: ('running', 'pottery', 'rock climbing', 'learning guitar', 'baking bread', 'photography', 'yoga',
            'painting', 'cycling', 'learning Spanish', 'chess', 'gardening', 'dancing lessons', 'swimming'),
@@ -93,7 +96,8 @@ def facts(connection, companion: dict, day: date) -> dict:
                                                                           day.isoformat()),
             'money': consequences.total(connection, timeline_id, me, 'money', day.isoformat()),
             'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)},
-            'friends': len(friends(connection, timeline_id))}
+            'friends': len(friends(connection, timeline_id)), 'love_life': love_life.level(connection),
+            'card': int(love_life.card_lately(connection, companion, day))}
 
 
 def begin(connection, companion: dict, world, day: date, now) -> dict | None:
@@ -160,6 +164,9 @@ def plan_job(connection, companion, world, day, seed) -> dict | None:
 
 
 def plan_move(connection, companion, world, day, seed) -> dict | None:
+    from companion.life import moving_in
+    if moving_in.current(connection, companion['active_timeline_id']):
+        return None  # Moving in together, or living together: a move of their own waits.
     definition = companion['version']['definition']
     profile, city = money.profile(definition), money.city_for(definition)
     if not profile or not city:
@@ -210,12 +217,22 @@ def plan_friend(connection, companion, world, day, seed) -> dict | None:
     person = random.Random(f'{seed}:friend').choice(choices)
     definition = companion['version']['definition']
     here = circle.city_data(definition, world)
-    cities = sorted(data['name'] for data in catalog.cities().values() if not here or data['id'] != here['id'])
+    cities = sorted(data['name'] for data in catalog.cities().values() if not here or data['id'] != here['id'] and
+                    same_world(here, data))
     away = random.Random(f'{seed}:city').choice(cities) if cities else 'another city'
     name = definition['name'].split()[0]
     return {'title': f"{person['name']}, {name}'s {person['role']}, moved away to {away}", 'person': person['id'],
             'told': f"Your {person['role']} {person['name']} moved away to {away}; you keep in touch by phone.",
             'share': f"{person['name']} is moving to {away}. I'm going to miss having them around."}
+
+
+def same_world(here: dict, there: dict) -> bool:
+    """A friend moves to a city of the same time: any of today's cities, or one of the same era and country (from
+    New York 1925 to Pellmouth, never from Baltimore to Camelot or Oz)."""
+    era, other = here.get('era') or 'modern', there.get('era') or 'modern'
+    if era == 'modern':
+        return other == 'modern'
+    return era == other and here.get('country') == there.get('country')
 
 
 def friends(connection, timeline_id: str) -> list[dict]:
@@ -226,7 +243,12 @@ def article(text: str) -> str:
     return f"{'an' if text[:1] in 'aeiou' else 'a'} {text}"
 
 
-PLANS = {'new_job': plan_job, 'move': plan_move, 'pet': plan_pet, 'hobby': plan_hobby, 'friend_moves': plan_friend}
+def plan_relationship(connection, companion, world, day, seed) -> dict | None:
+    return love_life.plan(connection, companion, world, day, seed)
+
+
+PLANS = {'new_job': plan_job, 'move': plan_move, 'pet': plan_pet, 'hobby': plan_hobby, 'friend_moves': plan_friend,
+         'relationship': plan_relationship}
 
 
 # Making the change, and undoing it ------------------------------------------------------------------------
@@ -256,7 +278,12 @@ def do_friend(connection, companion, world, day, plan, now) -> dict:
     return {'removed': [plan['person']]}
 
 
-DOERS = {'new_job': do_overlay, 'move': do_move, 'pet': do_pet, 'hobby': do_overlay, 'friend_moves': do_friend}
+def do_relationship(connection, companion, world, day, plan, now) -> dict:
+    return love_life.begin(connection, companion, world, day, plan, now)
+
+
+DOERS = {'new_job': do_overlay, 'move': do_move, 'pet': do_pet, 'hobby': do_overlay, 'friend_moves': do_friend,
+         'relationship': do_relationship}
 
 
 def undo(database, chapter_id: str) -> list[dict]:
@@ -304,6 +331,8 @@ def reverse(connection, found: dict, now):
         connection.execute('UPDATE home_items SET until=NULL WHERE id=?', (item_id,))
     for person_id in found.get('removed', ()):
         circle.set_status(connection, person_id, 'active', now)
+    if found.get('partner'):
+        love_life.undo(connection, found['partner'], now)
 
 
 # Reading -------------------------------------------------------------------------------------------------
@@ -326,7 +355,9 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     today = storylines.local_today(companion, now)
     since = (today - timedelta(days=TOLD_DAYS)).isoformat()
     rows = many(connection, 'SELECT * FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL AND started_on>=? '
-                'AND started_on<=? ORDER BY started_on', (companion['active_timeline_id'], since, today.isoformat()))
+                'AND started_on<=? AND id NOT IN (SELECT chapter_id FROM moving_in WHERE status=? AND chapter_id IS NOT '
+                'NULL) ORDER BY started_on', (companion['active_timeline_id'], since, today.isoformat(), 'moved_out'))
+    # Moving in together stops being "how your life is now" once they moved out again (companion/life/moving_in.py).
     return [(f"chapter:{row['id']}", f"- A new chapter, since {row['started_on']}: {row['told']} This is how your "
              'life is now; it replaces anything older about it.') for row in rows]
 

@@ -605,7 +605,7 @@ def guest_prompt(connection, group: dict, stay: dict, now, config: dict, until_s
     right_now = clock + (f"\nWhat you're doing: {found['doing']}." if found['doing'] else '')
     found_lines = [text for _key, text in group_lines(connection, group, stay, now)]
     at = 2 if stay['sees_from'] > 1 else 1  # Right after who they are here and when they joined.
-    section = '\n'.join([*found_lines[:at], group_guests.NO_HISTORY, *found_lines[at:]])
+    section = '\n'.join([*found_lines[:at], group_guests.history_line(connection, found), *found_lines[at:]])
     note = f"## {context.NOW['time']}\n{right_now}\n\n## {context.NOW['group']}\n{section}"
     turn = turn or TURN.format(name=stay['name'], group=title(connection, group))
     return {'system': f'{shared}\n\n{own}', 'shared': shared, 'note': note, 'turn': turn,

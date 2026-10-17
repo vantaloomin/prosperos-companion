@@ -15,6 +15,24 @@ FORMS = {'she/her': {'they': 'she', 'them': 'her', 'their': 'her', 'theirs': 'he
 # A post the companion or a circle member writes speaks of them as "I" (companion/life/composer.mine).
 FIRST = {'they': 'I', 'them': 'me', 'their': 'my', 'theirs': 'mine', 'themselves': 'myself', 'are': 'am', 'were': 'was',
          'do': 'do', 's': ''}
+# Someone else's pronouns in a bank line ("{They} love{s} roses", "{they're} lovely"): their own partner's in their
+# love life (companion/life/love_life.py). Capitalised keys too; any pronouns not listed read "they".
+PERSON = {'they/them': {'they': 'they', 'them': 'them', 'their': 'their', 'theirs': 'theirs', 'themself': 'themselves',
+                        "they're": "they're", "they've": "they've", 'are': 'are', 'were': 'were', 'have': 'have',
+                        'do': 'do', 's': ''},
+          'she/her': {'they': 'she', 'them': 'her', 'their': 'her', 'theirs': 'hers', 'themself': 'herself',
+                      "they're": "she's", "they've": "she's", 'are': 'is', 'were': 'was', 'have': 'has', 'do': 'does',
+                      's': 's'},
+          'he/him': {'they': 'he', 'them': 'him', 'their': 'his', 'theirs': 'his', 'themself': 'himself',
+                     "they're": "he's", "they've": "he's", 'are': 'is', 'were': 'was', 'have': 'has', 'do': 'does',
+                     's': 's'}}
+CAPITALISED = ('they', 'them', 'their', 'theirs', 'themself', "they're", "they've")
+
+
+def person(pronouns: str | None) -> dict:
+    """The fill-ins for someone with these pronouns ('she/her'), capitalised ones included."""
+    found = PERSON.get(pronouns or '', PERSON['they/them'])
+    return found | {key.capitalize(): found[key].capitalize() for key in CAPITALISED}
 
 
 def forms(definition: dict) -> dict | None:

@@ -12,6 +12,7 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    breakups,
     calls,
     chapters,
     circle,
@@ -20,22 +21,28 @@ from companion.life import (
     encounters,
     feed,
     long_distance,
+    love_life,
     money,
     mood,
+    moving_in,
     network,
     outings,
     pets,
     reactions,
     recommendations,
+    rough_patches,
     routine,
     simulation,
     social,
+    steps,
     storylines,
+    their_people,
     today,
     together,
     town_personality,
     trips,
     web,
+    wedding,
 )
 from companion.memory import pairs
 from companion.models import Input, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
@@ -187,7 +194,11 @@ def read_circle(request: Request, include_removed: bool = False):
         stages = pairs.for_circle(connection, companion, circle.people(connection, companion['active_timeline_id'],
                                                                        include_removed), now)
         people = with_pets(connection, companion, engine.world, people, now)
-        return [{**person, 'stage': stages.get(person['id'])} for person in people]
+        # Someone they are seeing (companion/life/love_life.py): where the two of them stand.
+        love = love_life.circle_extras(connection, companion, now, bool(settings(connection)['show_odds']))
+        met = their_people.for_circle(connection, companion, bool(settings(connection)['show_odds']), now)
+        return [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {})}
+                for person in people]
 
 
 def with_pets(connection, companion: dict, world, people: list[dict], now) -> list[dict]:
@@ -296,6 +307,16 @@ def read_where(request: Request):
         return together.view(connection, require_current(connection), database.clock.now())
 
 
+@router.post('/living/{action}')
+def home_together(request: Request, action: Literal['out', 'home']):
+    """Living together (companion/life/moving_in.py): the user heads out for a while (the chat texts), or is home."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        companion, now = require_current(connection), database.clock.now()
+        moving_in.set_out(connection, companion, action == 'out', now)
+        return together.view(connection, companion, now)
+
+
 @router.post('/calls')
 def start_call(request: Request):
     """The user calls the companion in focus (the chat header's Call button, companion/life/calls.py): they pick up
@@ -337,8 +358,47 @@ def change_outing(request: Request, outing_id: str, action: Literal['cancel', 'e
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         changed = change(connection, companion, outing_id, database.clock.now())
+        if action == 'cancel':
+            # Calling it off on the day can leave a little friction (companion/life/rough_patches.py).
+            rough_patches.called_off(connection, companion, changed, database.clock.now())
     request.app.state.life.extend_agenda('return')
     return changed
+
+
+@router.get('/rough-patch')
+def read_rough_patch(request: Request):
+    """Whether things are tense with the companion in focus (companion/life/rough_patches.py), for the Character page."""
+    return rough_patches.read(db(request))
+
+
+@router.post('/rough-patch/{patch_id}/let-go')
+def let_go_rough_patch(request: Request, patch_id: str):
+    """The user clears the air: that rough patch ends now."""
+    return rough_patches.let_go(db(request), patch_id)
+
+
+@router.post('/rough-patch/{patch_id}/undo')
+def undo_let_go_rough_patch(request: Request, patch_id: str):
+    """Take back Let it go."""
+    return rough_patches.undo_let_go(db(request), patch_id)
+
+
+@router.get('/breakup')
+def read_breakup(request: Request):
+    """Whether things are strained, on a break or over with the companion in focus (companion/life/breakups.py)."""
+    return breakups.read(db(request))
+
+
+@router.post('/breakup/{breakup_id}/mend')
+def mend_breakup(request: Request, breakup_id: str):
+    """The user overrides: things are fine again, or exes are back together."""
+    return breakups.mend(db(request), breakup_id)
+
+
+@router.post('/breakup/{breakup_id}/undo')
+def undo_mend_breakup(request: Request, breakup_id: str):
+    """Take back the override."""
+    return breakups.undo_mend(db(request), breakup_id)
 
 
 @router.get('/web')
@@ -427,8 +487,10 @@ def read_consequence(request: Request, consequence_id: str):
     its odds and reasons, and the one it took."""
     with db(request).connect() as connection:
         found = consequences.by_id(connection, consequence_id)
-        require(found['timeline_id'] == require_current(connection)['active_timeline_id'],
-                'That outcome is not on this timeline.', 404)
+        companion = require_current(connection)
+        # Sharing a home: the answer of one living there shows on the newcomer's page too (moving_in.py).
+        require(found['timeline_id'] == companion['active_timeline_id'] or
+                moving_in.shown_with(connection, consequence_id, companion), 'That outcome is not on this timeline.', 404)
         return found
 
 
@@ -441,6 +503,35 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         return storylines.change_outcome(db(request), consequence_id, body.option)
     if subject.startswith('chapter:'):
         return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
+    if subject.startswith('moving_in:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return moving_in.change(connection, require_current(connection), consequence_id, body.option,
+                                    database.clock.now())
+    if subject.startswith('love:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return love_life.change(connection, require_current(connection), request.app.state.life.world,
+                                    consequence_id, body.option, database.clock.now())
+    if subject.startswith('steps:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return steps.change(connection, require_current(connection), consequence_id, body.option, database.clock.now())
+    if subject.startswith('people:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return their_people.change(connection, require_current(connection), consequence_id, body.option,
+                                       database.clock.now())
+    if subject.startswith('breakup:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return breakups.change(connection, require_current(connection), consequence_id, body.option,
+                                   database.clock.now())
+    if subject.startswith('wedding:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return wedding.change_size(connection, require_current(connection), consequence_id, body.option,
+                                       database.clock.now())
     return reactions.change(db(request), consequence_id, body.option)
 
 

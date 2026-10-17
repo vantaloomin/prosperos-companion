@@ -10,6 +10,7 @@ export function personFacts(person: CirclePerson): string {
 /** Where they are in their week, without implying the companion is with them. */
 export function personNow(person: CirclePerson): string {
   if (person.local === false) return 'Lives out of town'
+  if (person.met?.meeting === 'now') return 'Right now: meeting you'
   if (!person.now) return 'Free right now'
   return person.now.kind === 'sleep' ? 'Asleep right now' : `Right now: ${person.now.label}`
 }
@@ -32,4 +33,18 @@ export function personTies(person: CirclePerson): string | null {
   const others = known.filter((item) => item.how !== 'married' && item.how !== 'divorced').map((item) => `${item.name} (${item.how})`)
   const text = [...partners, ...(others.length ? [`Knows ${others.join(', ')}.`] : [])].join(' ')
   return text || null
+}
+
+/** "Met you Oct 17, 2026 · Liked you right away", "Knows you from way back · Warmed to you", or "Meeting you soon"
+ * (companion/life/their_people.py). What they think stays unsaid until they have met you. */
+export function metText(person: CirclePerson): string | null {
+  const met = person.met
+  if (!met) return null
+  if (met.meeting) return met.meeting === 'now' ? 'Meeting you now' : 'Meeting you soon'
+  return `${met.before ? 'Knows you from way back' : `Met you ${shortDate(met.met_on ?? '')}`} · ${met.label}`
+}
+
+/** "Oct 17", kept on one line. */
+function shortDate(day: string): string {
+  return new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).replace(/ /g, '\u00a0')
 }

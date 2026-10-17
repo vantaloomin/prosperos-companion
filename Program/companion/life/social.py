@@ -25,7 +25,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, composer
+from companion.life import circle, composer, love_life, wedding
 from companion.world.generators import pick, unit
 
 KINDS = ('status', 'friend', 'birthday', 'holiday', 'city', 'question')
@@ -235,7 +235,10 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
             result.append(own('question', f'question:{prefix}', at(day, timezone, f'question:{prefix}', 12, 21),
                               {'text': question, 'options': list(options)}))
         result += celebrations(prefix, day, timezone, facts, people)
-    return result
+    # Date nights and steps with someone they are seeing (companion/life/love_life.py).
+    # The day they got engaged to the user (companion/life/wedding.py).
+    return result + love_life.feed_posts(connection, companion, days, timezone) + \
+        wedding.feed_posts(connection, companion, days, timezone)
 
 
 def own(kind, key, occurs_at, content) -> dict:

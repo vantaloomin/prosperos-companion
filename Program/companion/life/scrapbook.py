@@ -22,7 +22,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.errors import require
 from companion.images import photos
-from companion.life import occasions
+from companion.life import breakups, occasions, steps, wedding
 from companion.memory import closeness
 
 QUOTE_LIMIT = 280
@@ -142,6 +142,7 @@ def build(connection, companion: dict, key: str, now) -> dict:
                    if row['role'] == 'user'})
     pages = [cover(period, name, days, messages, sent), opening(period, first, messages, timezone),
              pictures(name, sent, messages, timezone), *together(connection, companion, now, period, timezone),
+             wedding.scrapbook_page(connection, companion, period['start'].isoformat(), period['end'].isoformat()),
              their_year(connection, companion, period, name), closing(period, days, name)]
     return {**view(period), 'name': name, 'pages': [page for page in pages if page]}
 
@@ -183,6 +184,10 @@ def together(connection, companion, now, period, timezone) -> list[dict]:
     low, high = period['start'].isoformat(), period['end'].isoformat()
     reached = [{'date': step['on'], 'text': state['stages'][step['level'] - 1] + (' (you set it)' if step.get('kind') == 'set' else '')}
                for step in state['history'] if step.get('on') and low <= step['on'] <= high]
+    # The steps you took together (companion/life/steps.py), in with the stages.
+    # ... and breaks, breakups and getting back together (companion/life/breakups.py).
+    reached = sorted(reached + steps.scrapbook_items(connection, companion, low, high)
+                     + breakups.scrapbook_items(connection, companion, low, high), key=lambda item: item['date'])
     nickname = f"They call you “{state['nickname']}”." if state['nickname'] else None
     pages = []
     if reached:
@@ -195,12 +200,19 @@ def together(connection, companion, now, period, timezone) -> list[dict]:
     moments = [memory for memory in closeness.shared_moments(connection, companion, companion['active_timeline_id'],
                                                              now, None)
                if (memory['subject'], memory['value']) not in told and low <= happened(memory, timezone) <= high]
-    moments.sort(key=lambda memory: (-memory['pinned'], happened(memory, timezone)))
-    if moments:
+    kept = kept_moments(moments, timezone)
+    if kept:
         pages.append({'kind': 'moments', 'title': 'Moments to remember',
                       'items': [{'date': happened(memory, timezone), 'text': f"{memory['subject']}: {memory['value']}"}
-                                for memory in moments[:MOMENT_LIMIT]]})
+                                for memory in kept]})
     return pages
+
+
+def kept_moments(moments: list[dict], timezone) -> list[dict]:
+    """The moments the page has room for, pinned ones first, listed in the order they happened (Iris, v0.13: a
+    pinned August moment sat above an unpinned March one)."""
+    chosen = sorted(moments, key=lambda memory: (-memory['pinned'], happened(memory, timezone)))[:MOMENT_LIMIT]
+    return sorted(chosen, key=lambda memory: happened(memory, timezone))
 
 
 def happened(memory: dict, timezone) -> str:

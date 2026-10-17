@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Pencil, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-react'
+import { BookOpen, HeartHandshake, Pencil, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-react'
 import { api } from '../../api'
 import type { CirclePerson, CircleRoom, DiaryEntry } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -8,7 +8,8 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { stageText } from '../memories/pairText'
-import { displayName, personFacts, personNow, personTies, personWork } from './circleText'
+import { displayName, metText, personFacts, personNow, personTies, personWork } from './circleText'
+import { WhyItWent } from './WhyItWent'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
@@ -79,11 +80,7 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
   const restore = () => act(() => api(`/life/circle/${person.id}/restore`, {}), `${person.name} is back in ${companion}'s life.`)
   return (
     <li className={`person-card${gone ? ' removed' : ''}`}>
-      <header>
-        <h3>{displayName(person)}</h3>
-        <p className="subtle">{personFacts(person)}</p>
-        {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
-      </header>
+      <PersonHeader person={person} companion={companion} />
       {gone ? <p className="subtle">Removed. Moments that already happened still mention them.</p> : <PersonDetails person={person} work={work} />}
       {renaming && <RenameForm person={person} act={act} onDone={() => setRenaming(false)} />}
       {!renaming && <PersonActions gone={gone} diary={diary} network={network} onRename={() => setRenaming(true)} onDiary={() => setDiary((open) => !open)}
@@ -100,6 +97,30 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
       )}
     </li>
   )
+}
+
+function PersonHeader({ person, companion }: { person: CirclePerson; companion: string }) {
+  return (
+    <header>
+      <h3>{displayName(person)}</h3>
+      <p className="subtle">{personFacts(person)}</p>
+      {person.love && <p className="subtle pair-stage">{person.love}</p>}
+      {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
+      {person.love_odds && <WhyItWent id={person.love_odds} />}
+      <MetYou person={person} />
+    </header>
+  )
+}
+
+/** Whether they have met you, and what they think of you (companion/life/their_people.py), with the odds under
+ * Hidden values. */
+function MetYou({ person }: { person: CirclePerson }) {
+  const text = metText(person)
+  if (!text) return null
+  return <>
+    <p className="subtle met-you"><HeartHandshake aria-hidden="true" />{text}</p>
+    {person.met?.consequence_id && !person.met.meeting && <WhyItWent id={person.met.consequence_id} />}
+  </>
 }
 
 interface ActionsProps { gone: boolean; diary: boolean; network: boolean; onRename: () => void; onDiary: () => void; onNetwork: () => void; onRemove: () => void; onRestore: () => void }

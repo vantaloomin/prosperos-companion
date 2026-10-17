@@ -19,6 +19,7 @@ from companion.events import committed
 from companion.life import (
     agenda,
     body,
+    breakups,
     calls,
     chapters,
     circle,
@@ -32,8 +33,10 @@ from companion.life import (
     home,
     kitchen,
     long_distance,
+    love_life,
     media,
     money,
+    moving_in,
     network,
     occasions,
     outings,
@@ -42,12 +45,16 @@ from companion.life import (
     pets,
     reactions,
     recommendations,
+    rough_patches,
+    steps,
     storylines,
+    their_people,
     together,
     traditions,
     trips,
     upkeep,
     wardrobe,
+    wedding,
     where,
     work,
 )
@@ -60,7 +67,7 @@ from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
 from companion.memory.hybrid_recall import hybrid_hits
-from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
+from companion.memory.records import OPEN_PLANS, blocked_messages, eligible, told
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
 from companion.world import intimacy, looks, newcomers, perception, personality
@@ -126,6 +133,12 @@ HEADINGS = {
             'newcomers': 'Names for anyone new you mention who is not listed here (a new coworker, a neighbor); '
                          'use one of these that fits their age rather than making a name up',
             'closeness': 'How close you two are (from your shared history; the user can see and change it)',
+            # Next steps (companion/life/steps.py): changes when a step is reached, brought up or answered.
+            'steps': 'Where things stand between you (decided by the app; the user can see and change it)',
+            # Engagement and wedding (companion/life/wedding.py): changes when they propose, plan or hold the wedding.
+            'wedding': 'Your engagement and wedding (planned by the app with you; the user can change the plan)',
+            # Their own love life (companion/life/love_life.py): changes when they meet someone, take a step or split.
+            'love': 'Your own love life (decided by the app; keep to it)',
             # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
             'history': 'Your history together (from the app; the user can see and correct it)',
             # Changes about once a day.
@@ -167,6 +180,9 @@ HEADINGS = {
             'hobbies': 'Your pastimes (fictional, yours; when one comes up, keep to how far along you are and how '
                        'often you go, and never invent a big achievement that is not listed)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            # Meeting their people (companion/life/their_people.py): changes when someone meets the user, and weekly.
+            'their_people': 'What your people think of the user (decided by the app: pass it on now and then, the way '
+                            'people do, like "my mom keeps asking when you\'re coming back", and never contradict it)',
             # Grows during a chat as memories are saved and the companion's life moves on.
             'boundaries': "The user's boundaries",
             'profile': 'What you know about the user',
@@ -224,6 +240,10 @@ NOW = {
        # How they feel right now, from their own day and how the user talks to them (companion/moods.py).
        'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
                   'never explain it unless asked)',
+       # Rough patches and making up (companion/life/rough_patches.py): a falling-out with the user, or making up.
+       'patch': 'How things are between you and the user (decided by the app; keep to it)',
+       # Breaks and breakups (companion/life/breakups.py): strained, a break, exes, getting back together.
+       'breakup': 'Where the two of you stand after a hard time (decided by the app; keep to it)',
        # Go somewhere together and Trips and postcards (companion/life/outings.py, trips.py).
        # Together or apart (companion/life/together.py): a visit turned down, or time together that just ended; and
        # On a call (companion/life/calls.py): the call under way, or one that just ended or was missed.
@@ -764,7 +784,8 @@ def offer_together(packet, connection, companion, now, recent, group=None):
         packet.offer('booked' if identity.endswith(':booked') else 'together', identity, text)
     for identity, text in [*together.context_lines(connection, companion, now, turn),
                            *calls.context_lines(connection, companion, now, turn),
-                           *long_distance.context_lines(connection, companion, now, turn)]:
+                           *long_distance.context_lines(connection, companion, now, turn),
+                           *moving_in.context_lines(connection, companion, now, turn)]:
         packet.offer('where', identity, text)
 
 
@@ -852,6 +873,8 @@ def offer_secrets(packet, connection, companion, group: dict | None, now: dateti
             packet.offer('news', identity, text)
         for identity, text in feelings.chat_lines(connection, companion, now):
             packet.offer('feeling', identity, text)
+        for identity, text in rough_patches.context_lines(connection, companion, now):
+            packet.offer('patch', identity, text)
 
 
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
@@ -869,7 +892,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     latest message (`query`), and its `lines` are the group section.
     """
     timeline_id, version = companion['active_timeline_id'], companion['version']
-    groups = partition(eligible(connection, companion, timeline_id, stamp(now)))
+    groups = partition(told(eligible(connection, companion, timeline_id, stamp(now)), companion))
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     start = window_start(len(messages))
     recent, older = messages[start:], messages[:start]
@@ -898,6 +921,11 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_own(packet, connection, timeline_id, version, now, since)
     offer_secrets(packet, connection, companion, group, now)
     closeness.offer(packet, connection, companion, now)
+    steps.offer(packet, connection, companion, now, recent, group)
+    breakups.offer(packet, connection, companion, now, recent, group)
+    love_life.offer(packet, connection, companion, now, group)
+    their_people.offer(packet, connection, companion, now, group)
+    wedding.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
@@ -969,7 +997,7 @@ def looked_back(connection, companion, now: datetime, query: str, until_seq: int
     """What a second look through memory finds for the words the companion asked about (memory/look_back.py):
     the same eligible pool as the reply's own recall, less what the reply was already given."""
     timeline_id = companion['active_timeline_id']
-    recallable = partition(eligible(connection, companion, timeline_id, stamp(now)))['recallable']
+    recallable = partition(told(eligible(connection, companion, timeline_id, stamp(now)), companion))['recallable']
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     older = messages[:window_start(len(messages))]
     summaries = usable_summaries(connection, timeline_id, excluded_sources(connection, companion['id']))
