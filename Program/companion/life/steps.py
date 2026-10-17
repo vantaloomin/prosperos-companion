@@ -285,16 +285,19 @@ LONG_BEFORE = re.compile(r"\b(?:years?|months?|ages|since|ago|grew up|childhood|
 
 def start(connection, companion: dict, ladder: str, now) -> list[tuple[str, str]]:
     """(step, how) to start an existing pair at, with no question asked: the steps how they know each other says
-    ("married for ten years"), else the ones closeness and the days talked so far suggest."""
+    ("married for ten years"), or the ones closeness and the days talked so far suggest when those go further ("dating
+    for a year" between two who are as close as can be)."""
     from companion.life import occasions
     from companion.memory import closeness
     definition = companion['version']['definition']
     text = f"{definition.get('history_together') or ''}"
     first = LADDERS[ladder][0].key
+    known = []
     for key, pattern in HISTORY[ladder]:
         if re.search(pattern, text, re.IGNORECASE) and not re.search(r'\b(?:not|never|no longer|used to be|ex)\b[^.]*'
                                                                          + pattern[2:], text, re.IGNORECASE):
-            return [(step.key, 'history') for step in LADDERS[ladder][:index_of(ladder, key) + 1]]
+            known = [(step.key, 'history') for step in LADDERS[ladder][:index_of(ladder, key) + 1]]
+            break
     level = closeness.state(connection, companion, now)['level']
     timezone = zone(companion['version']['timezone'])
     talked = occasions.first_talk(connection, companion['active_timeline_id'], timezone)
@@ -310,9 +313,11 @@ def start(connection, companion: dict, ladder: str, now) -> list[tuple[str, str]
             found.append('their_people')
     elif level >= 5 and (days >= 90 or head >= 5):
         found.append('best_friends')
+    if known and len(found) > len(known):  # Still from way back: no date of their own.
+        return [(key, 'history') for key in found]
     # They knew each other long before the first talk ("close since school"): the day they got together is not the
     # first talk, so it gets no date of its own ("Best friends", not "Friends for 1 day"). "Matched on Matchlight" is not.
-    return [(key, 'history' if LONG_BEFORE.search(text) else 'start') for key in found]
+    return known or [(key, 'history' if LONG_BEFORE.search(text) else 'start') for key in found]
 
 
 def ensure(connection, companion: dict, now) -> str | None:

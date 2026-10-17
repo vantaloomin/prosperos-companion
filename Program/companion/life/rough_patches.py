@@ -223,13 +223,26 @@ def seen_with_others(connection, companion: dict, now: datetime) -> None:
     from companion.life import steps
     if level(connection) < 2 or not steps.exclusive(connection, companion, now):
         return
-    for row in many(connection, 'SELECT id FROM companions WHERE id<>?', (companion['id'],)):
+    for row in many(connection, 'SELECT id FROM companions WHERE id<>? AND created_at>=?',
+                    (companion['id'], known_since(connection, companion, now))):
         other = by_id(connection, row['id'])
         found = steps.state(connection, other, now, write=False) if other else None
         # An ex (companion/life/breakups.py) is not someone the user is seeing.
         if found and found['ladder'] == 'romance' and steps.apart(connection, other) != 'ended':
             seeing_someone(connection, companion, other['version']['name'], now,
                            subject=f"seeing:{companion['id']}:{other['id']}")
+
+
+def known_since(connection, companion: dict, now: datetime) -> str:
+    """When this pair became exclusive as far as the others go. A pair the app started out exclusive (an upgrade from
+    before Next steps, or a companion who starts close) already lived alongside the user's other romances then, so only
+    companions who came along afterwards are news; a step reached later minds everyone."""
+    row = optional(connection, "SELECT created_at, how FROM relationship_steps WHERE timeline_id=? AND other='user' AND "
+                   "ladder='romance' AND step='exclusive' AND undone_at IS NULL ORDER BY created_at DESC LIMIT 1",
+                   (companion['active_timeline_id'],))
+    if row is None:  # Not written yet: the app starts them now.
+        return stamp(now)
+    return row['created_at'] if row['how'] in ('start', 'history') else ''
 
 
 def friction(connection, companion: dict, cause: str, subject: str, about: str, now: datetime,

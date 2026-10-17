@@ -127,6 +127,15 @@ def test_how_you_know_each_other_sets_the_start(client, monkeypatch):
     assert [item['how'] for item in found['steps']] == ['history'] * 8
 
 
+def test_closeness_that_goes_further_than_how_they_know_each_other_sets_the_start(client, monkeypatch):
+    """"Dating for a year" between two who are as close as can be (an upgrade from before Next steps) starts them where
+    their closeness says, not at being exclusive with "I love you" still unsaid."""
+    make(client, monkeypatch, history_together='We have been dating for about a year.', starting_closeness=5)
+    found = view(client)
+    assert found['step'] == 'their_people' and found['text'] == 'Met their people'  # No "together 1 day".
+    assert [item['how'] for item in found['steps']] == ['history'] * 4
+
+
 def test_a_friend_close_from_the_start_is_a_best_friend(client, monkeypatch):
     make(client, monkeypatch, relationship='friendship', starting_closeness=5,
          history_together='Close since we met at a reading room three years ago.')
