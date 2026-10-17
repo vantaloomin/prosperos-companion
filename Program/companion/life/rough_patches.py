@@ -524,9 +524,10 @@ def current(connection, companion: dict, now: datetime) -> dict | None:
 
 
 def cool(connection, companion: dict, now: datetime) -> bool:
-    """Whether they hold back on reaching out (check-ins, invitations, knocks, calls): a big one of yours is open."""
+    """Whether they hold back on reaching out (check-ins, invitations, knocks, calls): a big one of yours is open, or
+    you found out they were seeing someone behind your back (they give you room; their apology still goes)."""
     row = current(connection, companion, now)
-    return bool(row) and row['size'] == 'big' and row['fault'] == 'user'
+    return bool(row) and row['size'] == 'big' and (row['fault'] == 'user' or row['cause'] == 'hidden_partner')
 
 
 # The chat notes ------------------------------------------------------------------------------------------------
