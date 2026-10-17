@@ -60,7 +60,7 @@ from companion.life import (
 )
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context, pairs
-from companion.memory.records import OPEN_PLANS, eligible, from_old_chats
+from companion.memory.records import OPEN_PLANS, eligible, from_old_chats, told
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import BackgroundInterrupted, Work
@@ -185,7 +185,8 @@ def words(text: str) -> set[str]:
 
 def reminders(connection, companion, now) -> list[Trigger]:
     """Something the companion did today that touches what the user told them about themselves."""
-    facts = [memory for memory in eligible(connection, companion, companion['active_timeline_id'], stamp(now))
+    facts = [memory for memory in told(eligible(connection, companion, companion['active_timeline_id'], stamp(now)),
+                                       companion)
              if memory['layer'] in {'user_fact', 'shared_experience'} and not memory['boundary']]
     result = []
     for row in recent_events(connection, companion['active_timeline_id'], now, "kind='ordinary'"):

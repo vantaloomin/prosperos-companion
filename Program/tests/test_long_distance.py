@@ -105,8 +105,16 @@ def test_they_come_to_stay_for_a_weekend(client, apart, visits, provider, clock,
     assert where(client)['state'] == 'apart'
     with client.app.state.database.connect() as connection:
         row = connection.execute('SELECT memory_id FROM trips WHERE id=?', (visit['id'],)).fetchone()
-        memory = connection.execute('SELECT subject FROM memories WHERE id=?', (row['memory_id'],)).fetchone()
-    assert memory['subject'] == 'You stayed with the user in Baltimore'
+        memory = connection.execute('SELECT subject, value FROM memories WHERE id=?', (row['memory_id'],)).fetchone()
+    # The user reads it on Memories too: it names the companion, never "the user" (E2E v0.13).
+    assert memory['subject'] == "Mira's visit to Baltimore"
+    assert memory['value'].startswith('Mira came to stay with you in Baltimore, ')
+    with client.app.state.database.connect() as connection:  # Mira reads it her way round.
+        from companion.memory import records
+        companion = current(connection)
+        found = records.eligible(connection, companion, companion['active_timeline_id'], clock.now().isoformat())
+        [told] = [item for item in records.told(found, companion) if item['id'] == row['memory_id']]
+    assert (told['subject'], told['value'][:45]) == ('Your visit to Baltimore', 'You came to stay with the user in Baltimore, ')
     says(provider)
     send(client, 'miss you already', 'client-far-4')
     assert 'You just spent a weekend together: you went to stay with the user in Baltimore' in notes(provider)
