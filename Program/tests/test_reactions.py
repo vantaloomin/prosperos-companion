@@ -76,6 +76,9 @@ def test_chatting_on_a_birthday_without_mentioning_it_can_sting(client, birthday
     listed = client.get('/api/life/reactions').json()
     assert len(listed) == 1 and listed[0]['choice'] == 'user:forgot_occasion' and listed[0]['picked'] == 1
     assert listed[0]['marks'][0]['kind'] == 'mood'
+    # Today says "you" and whose birthday it was (E2E v0.13); the companion is still told it as theirs.
+    assert listed[0]['label'] == 'How Mira takes you not mentioning their birthday'
+    assert listed[0]['marks'][0]['note'] == "Mira is hurt you didn't mention their birthday"
     prompt = client.get('/api/context/preview').json()['prompt']
     assert "You're a little hurt that the user chatted with you on your birthday without mentioning it." in prompt
 
@@ -113,7 +116,8 @@ def test_an_agreed_plan_passing_without_a_word(client, companion, clock, monkeyp
     reconcile(client)
     listed = client.get('/api/life/reactions').json()
     assert [item['choice'] for item in listed] == ['user:missed_plan']
-    assert listed[0]['marks'][0]['note'] == 'Mira is let down the plan (movie night together) passed without a word'
+    # By its name, not its words, which can say "tomorrow" (E2E v0.13).
+    assert listed[0]['marks'][0]['note'] == 'Mira is let down the plan (movie night) passed without a word'
 
 
 def test_telling_someone_a_secret_in_a_group(client, companion, connected, provider, monkeypatch):
@@ -130,7 +134,7 @@ def test_telling_someone_a_secret_in_a_group(client, companion, connected, provi
         billy = by_id(connection, cast['Billy'])
         found = consequences.recent(connection, billy['active_timeline_id'], 'user:', '2000-01-01')
     assert [(item['choice'], item['picked']) for item in found] == [('user:told_secret', 1)]
-    assert found[0]['label'] == 'How Billy takes the user telling Sally a secret'
+    assert found[0]['label'] == 'How Billy takes you telling Sally a secret'
 
 
 def test_out_of_character_what_if_gets_the_odds(client, provider, clock, monkeypatch):
@@ -166,3 +170,14 @@ def test_showing_a_newcomer_everything_said_before(client, companion, connected,
         found = consequences.recent(connection, by_id(connection, billy)['active_timeline_id'], 'user:', '2000-01-01')
     assert [(item['choice'], item['picked']) for item in found] == [('user:showed_everything', 1)]
     assert found[0]['marks'][0]['note'] == 'Billy feels exposed that Sally can read everything said in Book club'
+
+
+def test_an_outcome_recorded_before_the_shown_names_still_changes():
+    """Outcomes kept before v0.13's "you" wording have no `occasion_shown`: their marks use the plain name."""
+    names = consequences.Names({'name': 'Mira', 'occasion': 'your birthday'})
+    assert "{name} is hurt you didn't mention {occasion_shown}".format_map(names) == \
+        "Mira is hurt you didn't mention your birthday"
+    with pytest.raises(KeyError):
+        '{missing}'.format_map(names)
+    assert reactions.occasion_shown('three months since you two first talked') == \
+        'that it had been three months since you two first talked'

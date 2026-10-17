@@ -48,3 +48,11 @@ test('a rewritten list field lands in the text the form edits, and can be put ba
   assert.equal(withField(form, 'identity', 'A nurse who runs.').definition.identity, 'A nurse who runs.')
   assert.equal(withField(form, 'life_themes', ['her brother', 'night shifts']).texts.themes, 'her brother, night shifts')
 })
+
+test('once they moved in, the odds of whose place show without a way to change it (it would only be refused)', async () => {
+  const { readFileSync } = await import('node:fs')
+  const steps = readFileSync(new URL('../../src/features/character/Steps.tsx', import.meta.url), 'utf8')
+  assert.match(steps, /<WhyItWent id=\{moving\.consequence_id\} settled=\{moving\.status === 'moved'\} \/>/)
+  const why = readFileSync(new URL('../../src/features/today/WhyItWent.tsx', import.meta.url), 'utf8')
+  assert.match(why, /item\.option !== outcome\.data\.picked && !settled &&/)
+})

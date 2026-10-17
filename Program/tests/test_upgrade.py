@@ -130,3 +130,29 @@ def test_upgrade_frees_the_companion_slot_and_keeps_everything(tmp_path):
         assert connection.execute('PRAGMA foreign_key_check').fetchall() == []
         # A second companion row can exist now, without a slot.
         connection.execute("INSERT INTO companions (id, slot, created_at) VALUES ('other', NULL, 'x')")
+
+
+@pytest.mark.parametrize(('drama', 'expected'), [
+    (0, (1, 1, 1, 0, 0)),  # An easy life: no breakups, no friends falling for the user.
+    (1, (2, 2, 2, 1, 1)),  # A real life takes the defaults.
+    (3, (3, 3, 3, 1, 1)),  # Bring on the drama.
+])
+def test_an_older_world_gets_the_new_realism_settings_of_its_preset(tmp_path, drama, expected):
+    """A world from before v0.13 keeps the feel it was set to: on an easy life, breakups stay off."""
+    from companion.database import add_columns, initialize
+    connection = sqlite3.connect(tmp_path / 'old.sqlite3')
+    initialize(connection, '2026-10-01T00:00:00Z')
+    new = ('rough_patches_realism', 'steps_pace', 'love_life', 'friends_fall', 'breakups')
+    for column in new:
+        connection.execute(f'ALTER TABLE life_settings DROP COLUMN {column}')
+    connection.execute('UPDATE life_settings SET drama=?', (drama,))
+    add_columns(connection)
+    assert connection.execute(f"SELECT {', '.join(new)} FROM life_settings").fetchone() == expected
+    connection.close()
+
+
+def test_a_new_world_starts_on_a_real_life(tmp_path):
+    with Database(tmp_path / 'new.sqlite3').connect() as connection:
+        row = connection.execute('SELECT drama, rough_patches_realism, steps_pace, love_life, friends_fall, breakups '
+                                 'FROM life_settings').fetchone()
+    assert tuple(row) == (1, 2, 2, 2, 1, 1)

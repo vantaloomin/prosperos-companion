@@ -53,6 +53,7 @@ from companion.life import (
     pets_routes,
     scrapbook_routes,
     status,
+    steps_routes,
     traditions_routes,
     trips,
     upkeep_routes,
@@ -270,6 +271,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(hobbies_routes.router)
     app.include_router(admin_routes.router)
     app.include_router(work_routes.router)
+    app.include_router(steps_routes.router)
     app.include_router(traditions_routes.router)
     app.include_router(scrapbook_routes.router)
     app.include_router(history_routes.router)

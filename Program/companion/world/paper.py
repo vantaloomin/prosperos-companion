@@ -12,10 +12,10 @@ A period or fantasy city gets a gazette instead of a weekly; the wording stays p
 from datetime import date, timedelta
 
 from companion.database import decode, many
-from companion.world import changes, generators, townsfolk
+from companion.world import changes, couples, generators, townsfolk
 
 TOWNSFOLK_PER_HOOD, MOST_TOWNSFOLK = 12, 3
-MOST_NEWS, MOST_SEEN, MOST_GOSSIP = 5, 4, 2
+MOST_NEWS, MOST_SEEN, MOST_GOSSIP, MOST_COUPLES = 5, 4, 2, 3
 # Places where being seen is public: a show, a festival, a game, a museum.
 SEEN_KINDS = {'event', 'venue', 'stadium', 'museum', 'attraction', 'landmark', 'market', 'garden'}
 WEEKDAYS = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
@@ -38,12 +38,15 @@ def title(data: dict) -> str:
 
 
 def issue(connection, data: dict, world, day: date) -> dict:
-    """The issue out on the Sunday `day`, for the city `data`: the week up to it, and the week after."""
+    """The issue out on the Sunday `day`, for the city `data`: the week up to it, and the week after. Engagements and
+    weddings lead with the user's own (companion/life/wedding.py)."""
+    from companion.life import wedding
     week = (day - timedelta(days=6), day)
     talk = gossip(connection, data, week)
     return {'title': title(data), 'city': data['name'], 'date': day.isoformat(),
             'news': city_news(connection, data, week),
             'townsfolk': townsfolk_news(data, day),
+            'couples': [*wedding.paper_items(connection, data, week), *couples_news(data, week)][:MOST_COUPLES + 1],
             'seen': seen_around(connection, data, week, {(item['date'], item['place']) for item in talk}),
             'gossip': [{'text': item['text']} for item in talk],
             'ahead': coming_up(data, world, day)}
@@ -90,6 +93,28 @@ def townsfolk_news(data: dict, day: date) -> list[dict]:
     return [{'key': sheet['key'], 'headline': sentence(state['line']),
              'text': f"{sheet['full']} ({sheet['role']}, {townsfolk.neighborhood_name(data, sheet['home'])}) had been "
                      f"trying to {state['reached'][-1]} for weeks."} for sheet, state in reached[:MOST_TOWNSFOLK]]
+
+
+def couples_news(data: dict, week: tuple[date, date]) -> list[dict]:
+    """Townsfolk who got engaged or married that week (companion/world/couples.py), in a seeded order."""
+    if not data.get('neighborhoods'):
+        return []
+    found = [(sheet, item) for sheet in sample(data) for item in couples.events(sheet, data, week)]
+    found.sort(key=lambda pair: generators.unit(pair[0]['key'], 'paper-couple', week[1].isoformat()))
+    wed = 'married' if townsfolk.modern(data) else 'wed'
+    result = []
+    for sheet, item in found[:MOST_COUPLES]:
+        hood = townsfolk.neighborhood_name(data, sheet['home'])
+        if item['what'] == 'engaged':
+            headline, text = (f"{sheet['name']} and {item['partner']['name']} are engaged.",
+                              f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} announced "
+                              'their engagement.')
+        else:
+            headline, text = (f"{sheet['name']} and {item['partner']['name']} got {wed}.",
+                              f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} {wed} on "
+                              f"{WEEKDAYS[item['day'].weekday()]}.")
+        result.append({'key': f"{sheet['key']}:{item['what']}", 'headline': headline, 'text': text})
+    return result
 
 
 def companions_in(connection, data: dict) -> list[dict]:

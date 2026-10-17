@@ -43,6 +43,7 @@ import { TownSeed } from './TownSeed'
 import { BringCharacter } from './BringCharacter'
 import { BringChat } from './BringChat'
 import { Lore } from './Lore'
+import { Steps } from './Steps'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
 
@@ -125,7 +126,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
           <NameField name={definition.name} creating={!companion} onChange={(name) => set({ name })} />
-          <Field label="Relationship" hint="Romance is only ever your choice; warmth alone never changes it." tip="Sets how they think of you and what they are comfortable with. You can change it later and their memories stay.">
+          <Field label="Relationship" hint="Romance starts only with your yes; warmth alone never changes it." tip="Sets how they think of you and what they are comfortable with. You can change it later and their memories stay.">
             {(id, hint) => (
               <select id={id} aria-describedby={hint} value={definition.relationship} onChange={(event) => set({ relationship: event.target.value as Relationship })}>
                 {RELATIONSHIPS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -185,6 +186,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
 function SavedSections({ companion, details, go }: { companion: Companion; details: boolean; go: (view: View) => void }) {
   const name = companion.version.name
   return (<>
+    <Steps name={name} />
     {details && <>
       <Home name={name} />
       <Pets name={name} />

@@ -51,6 +51,13 @@ ACTIVITIES = {
     'visit-in': (r'(?!x)x', ('home',), '19:00', 3.0, 'visit', 'time together at their place'),
     'visit-yours': (r'(?!x)x', ('your-home',), '19:00', 3.0, 'visit', "time together at the user's place"),
     'dinner-yours': (r'(?!x)x', ('your-home',), '19:00', 3.0, 'visit', "dinner at the user's place"),
+    # Meeting their people (companion/life/their_people.py): planned by the app, never by these words.
+    'meet-family': (r'(?!x)x', ('family-home',), '18:30', 3.0, 'dinner', 'dinner with their family'),
+    'meet-friends': (r'(?!x)x', ('bar', 'nightlife', 'tavern'), '20:00', 3.0, 'drinks', 'drinks with their friends'),
+    # Their wedding with the user (companion/life/wedding.py): planned by the app, never by these words. Its cost is
+    # their share of the wedding, paid from savings.
+    'wedding': (r'(?!x)x', ('venue', 'landmark', 'garden', 'park', 'restaurant', 'inn'), '15:00', 8.0, 'wedding',
+                'your wedding'),
 }
 HOME = '~home'
 FOOD = re.compile(r"\b(?:dinner|supper|eat|a meal|cook\w*|something to eat)\b", re.IGNORECASE)
@@ -76,8 +83,9 @@ TOGETHER = re.compile(r"\b(?:we|us|together|with me|you and me|you and i)\b", re
 # hear about my coffee disaster?", "walk me through it".
 STAY = re.compile(r"\b(?:my place|your place|my apartment|your apartment|at home|at mine|at yours|to mine|come over|stay in|"
                   r"i'?ll cook|cook(?:ing)? (?:for|dinner|together)|order in|takeout|take-out|facetime|video call|"
-                  r"on (?:a )?call|stream (?:it|one|a)|netflix|walk (?:me|you|us) through|hear about|tell you about)\b",
-                  re.IGNORECASE)
+                  r"on (?:a )?call|stream (?:it|one|a)|netflix|walk (?:me|you|us) through|hear about|tell you about|"
+                  r"what(?:'s| is) for (?:dinner|supper|lunch)|what (?:should|shall|do|can) we (?:have|eat|make|cook) "
+                  r"for (?:dinner|supper|lunch|tonight))\b", re.IGNORECASE)
 # "Sometime", "next time": a wish, not a plan for a day.
 VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one of these days|when you'?re back|"
                    r"at some point|again sometime)\b", re.IGNORECASE)
@@ -94,6 +102,8 @@ RECENT = timedelta(hours=18)
 CHEAP = {'', 'free', '$'}
 UNDO = timedelta(minutes=2)  # How long heading home early can be taken back; nothing is kept until then.
 SPOT = 'outing-spot'
+# Meeting their people (companion/life/their_people.py): dinner with their family, drinks with their friends.
+MEETUPS = ('meet-family', 'meet-friends')
 
 
 def kinds(activity: str) -> tuple[str, ...]:
@@ -546,12 +556,28 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
     for outing in in_force(connection, timeline_id, since):
         result.setdefault(outing['local_date'], []).append(
             {'id': f"outing:{outing['id']}:{outing['rolls']}", 'at_time': outing['at_time'], 'outing': outing})
+        # A wedding runs on past its first block: the later ones are quiet, still time with the user, not free time.
+        result[outing['local_date']] += [{'id': f"outing:{outing['id']}:{outing['rolls']}:{at}", 'at_time': at,
+                                          'outing': outing, 'continues': True} for at in later_hours(outing)]
     return result
+
+
+def later_hours(outing: dict) -> list[str]:
+    """The whole hours after a wedding's start, up to its end ('16:00' ... '22:00'): blocks it also takes."""
+    if outing['activity'] != 'wedding' or outing['until_time'] <= outing['at_time']:
+        return []
+    return [f'{hour:02d}:00' for hour in range(int(outing['at_time'][:2]) + 1, int(outing['until_time'][:2]))]
 
 
 def doing(outing: dict) -> str:
     """'went to dinner at Lupa', 'went for a walk in Patterson Park'."""
     place, activity = outing['place']['name'], outing['activity']
+    if activity in MEETUPS:
+        from companion.life import their_people
+        return their_people.doing(outing)
+    if activity == 'wedding':
+        from companion.life import wedding
+        return wedding.doing(outing)
     if activity == 'dinner-in':
         return f"had you over for {menu_text(outing['place'].get('menu') or {})} at home"
     if activity in VISIT_DOING:
@@ -612,14 +638,20 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
     outing = plan['outing']
     place = outing['place']
     area = f" in {place['neighborhood']}" if place['neighborhood'] and place['neighborhood'] not in place['name'] \
-        and place['kind'] not in ('home', 'your-home') else ''
-    alone = outing['activity'] in ('dinner-in', *VISIT_DOING) or (place.get('hobby') or {}).get('event')
+        and place['kind'] not in ('home', 'your-home', 'family-home') else ''
+    alone = outing['activity'] in ('dinner-in', 'wedding', *VISIT_DOING, *MEETUPS) or (place.get('hobby') or {}).get(
+        'event')
     summary = f"{definition['name']} {doing(outing)}{area}" + ('.' if alone else ' with you.')
     seed = f"outing:{outing['id']}:{outing['rolls']}"
     spot = generators.pick(seed, SPOT, place.get('spots') or [])
     if spot:
         summary += f' {generators.pick(seed, "outing-line", list(inside.SENTENCES)).format(where=spot)}'
-    return {'summary': summary, 'post': generators.pick(seed, 'outing-post', list(CAPTIONS)), 'mood': 'happy',
+    if outing['activity'] == 'wedding':
+        from companion.life import wedding
+        post = wedding.caption(outing)
+    else:
+        post = generators.pick(seed, 'outing-post', list(CAPTIONS))
+    return {'summary': summary, 'post': post, 'mood': 'happy',
             'activity': outing['activity'], 'place': {key: place[key] for key in ('id', 'name', 'kind', 'city',
                                                                                 'neighborhood')},
             'with': None, 'weather': block.get('weather'), 'inside': spot or None,
@@ -645,6 +677,12 @@ def day_text(local_date: str) -> str:
 def what(outing: dict) -> str:
     """'dinner at Lupa, a restaurant in Little Italy'; dinner at their place with what they are making."""
     place = outing['place']
+    if outing['activity'] in MEETUPS:
+        from companion.life import their_people
+        return their_people.what(outing)
+    if outing['activity'] == 'wedding':
+        from companion.life import wedding
+        return wedding.what(outing)
     if outing['activity'] == 'dinner-in':
         return f"{menu_text(place.get('menu') or {})} at your place"
     if outing['activity'] in VISIT_DOING:
@@ -692,6 +730,12 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
     conditions = generators.conditions(data, date.fromisoformat(outing['local_date'])) if data else None
     if outing['activity'] in VISIT_DOING:
         return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else ())
+    if outing['activity'] in MEETUPS:
+        from companion.life import their_people
+        return their_people.scene(connection, companion, outing, spot)
+    if outing['activity'] == 'wedding':
+        from companion.life import wedding
+        return wedding.scene(connection, companion, outing, now)
     if outing['activity'] == 'dinner-in':
         spot = generators.pick(seed, SPOT, place.get('spots') or [])
         return '- ' + ' '.join(part for part in (
@@ -703,6 +747,9 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
              f'You are {spot}.' if spot else '', place.get('summary', ''), menu(data, outing),
              f'Weather: {agenda.weather_text(conditions)}' if conditions else '',
              'Talk as if you are there together, face to face, not texting.']
+    if place.get('proposal'):
+        from companion.life import wedding
+        parts.append(wedding.proposal_lines(connection, outing))
     return '- ' + ' '.join(part.strip() for part in parts if part.strip())
 
 
@@ -744,11 +791,15 @@ def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
 
 
 def planned_line(outing: dict) -> str:
+    if outing['activity'] == 'wedding':  # Months off: with its year, so it never reads as next week.
+        return f"- {day_text(outing['local_date'])}, {outing['local_date'][:4]} at {outing['at_time']}: {what(outing)}."
     line = f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}, with the user."
     if outing['activity'] == 'dinner-in':
         return line + ' You are cooking.'
     if outing['activity'] in VISIT_DOING:
         return line
+    if outing['activity'] in MEETUPS:
+        return line + ' You arranged it and invited the user.'
     return line + (' They picked the place.' if outing['named'] else ' You picked the place.')
 
 
@@ -791,9 +842,15 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
             result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing, now)))
         elif found == 'planned':
             result.append((f"outing:{outing['id']}", planned_line(outing)))
-            if outing['message_id'] in fresh_ids:
+            # The wedding is kept on the latest message (companion/life/wedding.py), not one that asked for it.
+            if outing['message_id'] in fresh_ids and outing['activity'] != 'wedding':
                 result.append((f"outing:{outing['id']}:booked",
                                booked_line(outing, holding_for(connection, companion, outing))))
+        elif now - window(outing, version['timezone'])[1] < RECENT and outing['activity'] == 'wedding':
+            when = 'Earlier today' if outing['local_date'] == today.isoformat() else 'Yesterday'  # Past midnight.
+            result.append((f"outing:{outing['id']}:done",
+                           f"- {when} you and the user got married at {outing['place']['name']}; the wedding "
+                           'is over now.'))
         elif now - window(outing, version['timezone'])[1] < RECENT:
             paid = money_text(companion, outing)
             result.append((f"outing:{outing['id']}:done",
@@ -827,7 +884,8 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
         if together.turned_away(outing, timezone):
             connection.execute("UPDATE outings SET status='done' WHERE id=?", (outing['id'],))
             continue
-        fields = {**memory_text(outing), 'layer': 'shared_experience',
+        fields = {**memory_text(outing, companion['version']['definition']['name'].split()[0]),
+                  'layer': 'shared_experience',
                   'stated_at': stamp(min(now, window(outing, timezone)[1])), 'applies_from': None, 'applies_until': None}
         memory, _created = records.insert(connection, companion, fields, now=stamp(now), origin='automatic',
                                           sources=(outing['message_id'],))
@@ -836,17 +894,31 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
     return done
 
 
-def memory_text(outing: dict) -> dict:
-    """{subject, value} of the shared memory an outing leaves."""
+def memory_text(outing: dict, name: str) -> dict:
+    """{subject, value} of the shared memory an outing leaves, as the user reads it on Memories and the scrapbook:
+    "you" is the user and the companion goes by `name`, their first name ("Mira came over to your place"), never "the
+    user" (E2E v0.13, Vanta "Agreed"). The companion reads it the other way round (records.as_told)."""
     day = date.fromisoformat(outing['local_date'])
     place = outing['place']
     on = f"on {day:%A, %B} {day.day}"
+    if outing['activity'] in MEETUPS:
+        from companion.life import their_people
+        return their_people.memory_text(outing, name)
+    if outing['activity'] == 'wedding':
+        from companion.life import wedding
+        return wedding.memory_text(outing, name)
+    if outing['activity'] == 'dinner-in':
+        dinner = menu_text(place.get('menu') or {})
+        return {'subject': f"Dinner at {name}'s place",
+                'value': f"Had {dinner}{',' if ', ' in dinner else ''} at {name}'s place {on}."}
     if outing['activity'] in VISIT_DOING:
-        subject = {'visit-in': 'The user came over to your place', 'visit-yours': "You went over to the user's place",
-                   'dinner-yours': "Dinner at the user's place"}[outing['activity']]
+        subject, said = {'visit-in': (f"Over at {name}'s place", f"You came over to {name}'s place"),
+                         'visit-yours': (f'{name} came over', f'{name} came over to your place'),
+                         'dinner-yours': (f'{name} came over for dinner', f'{name} came over to your place for dinner'),
+                         }[outing['activity']]
         if place_knock(outing):
-            subject = "You dropped by the user's place"
-        return {'subject': subject, 'value': f'{subject} {on}.'}
+            subject, said = f'{name} dropped by', f'{name} dropped by your place'
+        return {'subject': subject, 'value': f'{said} {on}.'}
     pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
     return {'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} together at {place['name']}",
             'value': f"Went out together for {what(outing)} {on}."}
@@ -857,7 +929,8 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
     return [{'text': f"paid for {ACTIVITIES[outing['activity']][5]} at {outing['place']['name']}",
              'date': outing['local_date'], 'spend': '', 'cost': outing['cost'], 'for': 'outing'}
             for outing in in_force(connection, timeline_id, start.isoformat())
-            if outing['status'] == 'done' and outing['local_date'] <= day.isoformat() and outing['cost']]
+            if outing['status'] == 'done' and outing['local_date'] <= day.isoformat() and outing['cost']
+            and outing['activity'] != 'wedding']
 
 
 # --- What the user can change ---
@@ -870,6 +943,7 @@ def owned(connection, companion: dict, outing_id: str) -> dict:
 
 def cancel(connection, companion: dict, outing_id: str, now: datetime) -> dict:
     outing = owned(connection, companion, outing_id)
+    require(outing['activity'] != 'wedding', 'The wedding is planned in Life admin, on their Character page.', 409)
     require(state(outing, companion['version']['timezone'], now) == 'planned',
             'Only an outing that has not started can be called off.', 409)
     connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE id=?", (stamp(now), outing_id))
@@ -918,6 +992,8 @@ def elsewhere(connection, companion: dict, outing_id: str, now: datetime) -> dic
     require(state(outing, companion['version']['timezone'], now) == 'planned',
             'Only an outing that has not started can move.', 409)
     require(outing['activity'] != 'dinner-in', 'Dinner at their place stays at their place.', 409)
+    require(outing['activity'] != 'wedding', 'The wedding is planned in Life admin, on their Character page.', 409)
+    require(outing['activity'] != 'meet-family', 'Dinner with their family stays at their family\'s place.', 409)
     data = city_data(connection, companion['version']['definition'])
     require(data is not None, "Their city isn't known, so there is nowhere else to go.", 409)
     day = date.fromisoformat(outing['local_date'])
@@ -973,8 +1049,12 @@ def photograph(database) -> None:
                         'event.idempotency_key=?', (key,))
         post_id = told['id'] if told else feed.create(connection, companion['active_timeline_id'], 'event',
                                                        feed.PHOTO_KEY + key, [], slot['ends_at'], stamp(now))
-        inputs = prompts.build_moment(connection, moment(companion, outing, decode(slot['entry']), key),
-                                      jobs.image_settings(connection), 'moment')
+        found = moment(companion, outing, decode(slot['entry']), key)
+        if outing['activity'] == 'wedding':
+            from companion.life import wedding
+            found = {**found, 'wearing': wedding.photo_wearing(connection, companion, outing),
+                     'label': 'Your wedding day'}
+        inputs = prompts.build_moment(connection, found, jobs.image_settings(connection), 'moment')
         connection.execute('UPDATE outings SET photo_post_id=? WHERE id=?', (post_id, outing['id']))
     if jobs.routable(database, inputs):
         jobs.enqueue(database, post_id, 'manual', inputs=inputs)

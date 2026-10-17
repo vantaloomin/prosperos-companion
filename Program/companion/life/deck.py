@@ -26,7 +26,7 @@ from companion import secrets
 from companion.clock import stamp
 from companion.database import many, optional
 from companion.errors import require
-from companion.life import chance, circle, pronouns, storylines
+from companion.life import chance, circle, love_life, pronouns, storylines
 from companion.memory import pairs
 from companion.world import catalog
 
@@ -118,6 +118,8 @@ def needs_met(connection, companion) -> set[str]:
         has.add('friend')
     if circle.work_blocks(companion['version']['definition']):
         has.add('work')
+    if love_life.may_catch_eye(connection, companion):
+        has.add('love')
     return has
 
 

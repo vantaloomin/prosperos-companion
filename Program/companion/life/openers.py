@@ -32,6 +32,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
 from companion.life import (
+    breakups,
     calls,
     chapters,
     composer,
@@ -41,20 +42,26 @@ from companion.life import (
     hobbies,
     kitchen,
     long_distance,
+    love_life,
     media,
+    moving_in,
     occasions,
     own_plans,
     pacing,
     recommendations,
+    rough_patches,
     routine,
+    steps,
     storylines,
+    their_people,
     together,
     trips,
     usual_hours,
+    wedding,
 )
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context, pairs
-from companion.memory.records import OPEN_PLANS, eligible, from_old_chats
+from companion.memory.records import OPEN_PLANS, eligible, from_old_chats, told
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import BackgroundInterrupted, Work
@@ -179,7 +186,8 @@ def words(text: str) -> set[str]:
 
 def reminders(connection, companion, now) -> list[Trigger]:
     """Something the companion did today that touches what the user told them about themselves."""
-    facts = [memory for memory in eligible(connection, companion, companion['active_timeline_id'], stamp(now))
+    facts = [memory for memory in told(eligible(connection, companion, companion['active_timeline_id'], stamp(now)),
+                                       companion)
              if memory['layer'] in {'user_fact', 'shared_experience'} and not memory['boundary']]
     result = []
     for row in recent_events(connection, companion['active_timeline_id'], now, "kind='ordinary'"):
@@ -417,16 +425,42 @@ PAST_WAITING = {'occasion', 'postcard'}
 # A dinner invite comes up about one fortnight in two and waits a day or two at most, so it goes ahead of the daily
 # dream and Life deck news, which otherwise took every day's text first and the invite never went out.
 # A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early; so does a
-# call (companion/life/calls.py), and the text after a missed one.
-FINDERS = [occasion, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+# call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
+# (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
+# meet their people (companion/life/their_people.py), and the evening they plan to propose (companion/life/wedding.py).
+FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, moving_in.share_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
+
+
+# While a rough patch of the user's making is open (companion/life/rough_patches.py) they hold back: no check-ins,
+# invitations, knocks, calls or next steps of their own.
+COOLED = {check_in, usual_time, together.suggest_due, together.knock_due, calls.ring_due, kitchen.invite_due,
+          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due, wedding.propose_due}
+
+
+# While apart (companion/life/breakups.py) texting drops off: on a break only what the break itself brings; exes still
+# say happy birthday, and may reach out about trying again.
+APART = {'break': {breakups.news_due}, 'ended': {breakups.news_due, occasion}}
+# The one occasion an ex still writes about: the user's birthday (not the day they first talked, a step's anniversary,
+# their own birthday or a family holiday).
+EX_OCCASION = 'occasion:user_birthday:'
+
+
+def apart_allows(held_back: str | None, trigger: Trigger) -> bool:
+    return held_back != 'ended' or trigger.kind != 'occasion' or trigger.key.startswith(EX_OCCASION)
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
     timeline_id = companion['active_timeline_id']
     fired = {row['trigger_key'] for row in many(connection, 'SELECT trigger_key FROM openers WHERE timeline_id=?',
                                                  (timeline_id,))}
-    return [trigger for finder in FINDERS for trigger in finder(connection, companion, now) if trigger.key not in fired]
+    cool = rough_patches.cool(connection, companion, now)
+    held_back = breakups.holds(connection, companion)
+    allowed = APART.get(held_back)
+    cool = cool or held_back == 'cool'
+    return [trigger for finder in FINDERS if not (cool and finder in COOLED) and (allowed is None or finder in allowed)
+            for trigger in finder(connection, companion, now) if trigger.key not in fired
+            and apart_allows(held_back, trigger)]
 
 
 def held(connection, companion, life, now, occasion: bool = False) -> str | None:
@@ -643,16 +677,22 @@ class Openers:
             row = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
             self_facts.note(connection, row, timestamp)
             own_plans.note(connection, row, latest, timestamp)
-            if trigger.kind == 'dinner_invite':
-                kitchen.settle_invite(connection, latest, row, trigger, timestamp)
-            if trigger.kind == 'hobby_invite':
-                hobbies.settle_invite(connection, latest, row, trigger, timestamp)
-            if trigger.kind in together.SETTLES:
-                together.settle(connection, latest, row, trigger, timestamp)
+            settle(connection, latest, row, trigger, timestamp)
             focus = current(connection)
             [view] = voice_notes.decorate(connection, [message_view(row)])
         return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],
                 'focus': bool(focus and focus['id'] == latest['id'])}
+
+
+def settle(connection, companion, row, trigger, timestamp):
+    """What a first text sets going once it is sent: an invitation booked, an ask opened, a proposal evening."""
+    if trigger.kind == 'dinner_invite':
+        kitchen.settle_invite(connection, companion, row, trigger, timestamp)
+    if trigger.kind == 'hobby_invite':
+        hobbies.settle_invite(connection, companion, row, trigger, timestamp)
+    for module in (together, steps, their_people, wedding, breakups, moving_in):
+        if trigger.kind in module.SETTLES:
+            module.settle(connection, companion, row, trigger, timestamp)
 
 
 def plain(text: str) -> str:

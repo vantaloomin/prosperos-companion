@@ -193,6 +193,8 @@ def found_out(connection, secret: dict, member: str, now):
         return
     feeling, intensity = ('angry', 3) if temper(connection, member) else ('hurt', 2)
     save(connection, member, feeling, intensity, target, f"found out {secret['statement'].rstrip('.')}", now)
+    from companion.life import rough_patches  # A secret about the user coming out can start a rough patch.
+    rough_patches.found_out(connection, secret, member, now)
 
 
 def feeling_in(sentence: str) -> str | None:
@@ -329,8 +331,52 @@ KIND = re.compile(r"\b(?:sorry|that sucks|that'?s rough|that'?s awful|(?:big )?h
                   r"love you|miss(?:ed)? you|you'?ve got this|you got this|are you ok(?:ay)?|what'?s wrong|"
                   r"want to talk|how was your day|how are you(?: doing| feeling)?|thinking (?:of|about) you|"
                   r"cheer up|you deserve)\b", re.IGNORECASE)
-HURTFUL = re.compile(r"\b(?:shut up|stupid|idiot|dumb|pathetic|loser|you'?re (?:so )?(?:annoying|boring|useless)|"
-                     r"(?:i )?(?:don'?t|do not) care|leave me alone|go away|hate you|whatever)\b", re.IGNORECASE)
+HURTFUL = re.compile(r"\b(?:shut up|leave me alone|go away|whatever|(?:i )?(?:don'?t|do not) care|hate you|"
+                     r"you(?:'?re| are)? (?:so |such an? |an? |really )?(?:stupid|dumb|pathetic|annoying|boring|useless|"
+                     r"idiot|loser)|(?:stupid|dumb|useless|pathetic) (?:bot|robot|ai|machine|app))\b", re.IGNORECASE)
+# Said to them, not about something else: "go away", "leave me alone" and "shut up" only as an order, with nothing but a
+# word like "ugh" or "just" before it ("my kids wouldn't leave me alone", "we should go away for the weekend").
+ORDERS = ('shut up', 'go away', 'leave me alone', 'whatever')
+ORDER_LEAD = re.compile(r"^\W*(?:(?:oh|ugh|god|omg|seriously|honestly|just|please|pls|so|well|fine|ok|okay|no|now|and|"
+                        r"then|can you|could you|would you|will you|i said|i told you to)\W+)*$", re.IGNORECASE)
+NOT_AIMED = {
+    'go away': re.compile(r"\s+(?:for (?:the|a|an|\d)|to\b|together|somewhere|on (?:a|the|holiday|vacation)|this|next|"
+                          r"with\b)", re.IGNORECASE),
+    'whatever': re.compile(r"\W*\w", re.IGNORECASE),  # "whatever you want": only "whatever." on its own stings.
+    "don't care": re.compile(r"\s+(?:what|which|where|when|how|who|if|whether|as long|either|for|much)\b", re.IGNORECASE),
+    'hate you': re.compile(r"\s+(?:have|had|got|guys|to|can'?t|couldn'?t|need|missing|being|'re|are|were)\b", re.IGNORECASE),
+}
+# Excited, not hurtful: "shut up, you got the job?!"
+SURPRISED = re.compile(r"\?|\bno way\b|\bcongrat|\bamazing\b|\bomg\b", re.IGNORECASE)
+
+
+def aimed(sentence: str, found: re.Match, text: str) -> bool:
+    """Whether words that can sting are aimed at them in this sentence of the message `text`."""
+    words = found.group(0).casefold().replace('do not', "don't").replace('dont', "don't")
+    key = next((key for key in (*ORDERS, "don't care", 'hate you') if key in words), '')
+    if key in ORDERS and not ORDER_LEAD.search(sentence[:found.start()]):
+        return False
+    if key == 'shut up' and SURPRISED.search(text):
+        return False
+    after = NOT_AIMED.get(key)
+    return not (after and after.match(sentence, found.end()))
+
+
+def hurtful(text: str, pattern: re.Pattern = HURTFUL, negation: re.Pattern | None = None,
+            skip: re.Pattern | None = None) -> str | None:
+    """The sentence of the message whose words sting, aimed at them, if any; negations (and sentences `skip` finds,
+    such as jokes) don't count."""
+    for sentence in SENTENCE.split(text or ''):
+        if skip and skip.search(sentence):
+            continue
+        for found in pattern.finditer(sentence):
+            before = sentence[:found.start()]
+            negated = negation.search(before.casefold()) if negation else NEGATION.search(before[-20:])
+            if not negated and aimed(sentence, found, text):
+                return sentence.strip()
+    return None
+
+
 LOW = ('sad', 'hurt', 'annoyed', 'angry', 'anxious')
 # Without a temper, what the user says hurts at most this much: a bit cooler, never sulking or ignoring.
 USER_LIMIT = 1
@@ -352,8 +398,7 @@ def from_user(connection, key: str, text: str, now) -> bool:
     Returns whether it moved."""
     if not text or JOKING.search(text):
         return False
-    stung = HURTFUL.search(text)
-    if stung and not NEGATION.search(text[:stung.start()][-20:]):
+    if hurtful(text):
         has_temper = temper(connection, key) > 0
         feeling, limit = ('angry', NUDGE_LIMIT) if has_temper else ('hurt', USER_LIMIT)
         mood = stored(connection, key, now)

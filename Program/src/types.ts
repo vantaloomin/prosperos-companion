@@ -471,6 +471,56 @@ export interface LifeSettings {
   hobbies_realism: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
+  /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
+  rough_patches_realism: number
+  /** Next steps (companion/life/steps.py): how soon they bring up the next step, 0 only when you do, 1 slow, 2 true to life, 3 fast. */
+  steps_pace: number
+  /** Whether a close friend can fall for you (companion/life/steps.py). */
+  friends_fall: boolean
+  /** Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life. */
+  breakups: boolean
+  /** Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on. */
+  love_life: number
+}
+
+/** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
+export interface StepsView {
+  ladder: 'romance' | 'friendship' | null
+  just_friends: boolean
+  step?: string
+  label?: string
+  next?: string | null
+  since?: string
+  text?: string
+  can_fall?: boolean
+  steps?: { step: string; label: string; on: string; how: 'start' | 'history' | 'them' | 'you' | 'set' | 'confession' }[]
+  ladder_steps?: { step: string; label: string }[]
+  /** Only with Hidden values' odds on. */
+  planned?: { step: string; due_on: string; consequence_id: string | null; topic: string } | null
+  asks?: { id: string; step: string; side: 'them' | 'you'; status: 'open' | 'yes' | 'not_yet' | 'no' | 'lapsed'; topic: string; on: string; consequence_id: string | null }[]
+  /** Moving in together (companion/life/moving_in.py), from the moving-in step on; `consequence_id` only with odds on. */
+  moving_in?: MovingIn | null
+}
+
+/** Whose place in one city ('yours', 'theirs', 'new'), or who moves across the distance ('them' to your city; 'you',
+ * which waits until you move to theirs). `place` is the neighbourhood, `city` the city, `home` the shared home once moved. */
+export interface MovingIn {
+  status: 'moving' | 'waiting' | 'moved'; plan: 'yours' | 'theirs' | 'new' | 'them' | 'you'
+  city: string; place: string; home: string; move_on: string | null; moved_on: string | null; consequence_id: string | null
+  /** Sharing a home: moving into (or living in) the home you share with another partner (`with`, first names), whether
+   * they are open to sharing it (`ready`), and who living there isn't (`not_ready`). */
+  joins?: boolean; ready?: boolean; with?: string[]; not_ready?: string[]
+  /** On the page of one living with you: another partner who would move in, and whether this one is open to it. */
+  newcomers?: Newcomer[]
+  /** While that move waits or is on its way: each one's answer, the newcomer first. */
+  rolls?: ShareRoll[]
+}
+
+export interface ShareRoll { name: string; open: boolean; consequence_id: string | null }
+
+export interface Newcomer {
+  name: string; status: 'moving' | 'waiting'; move_on: string | null; open: boolean; not_ready: string[]
+  consequence_id: string | null
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -626,10 +676,29 @@ export interface CirclePerson {
   knows?: CircleTie[]
   /** How close they and the companion feel, both ways (companion/memory/pairs.py); read-only. */
   stage?: PairStage | null
+  /** What they think of you, once they have met you (companion/life/their_people.py). */
+  met?: CircleMet | null
   now: RoutineBlock | null
   recent: DiaryEntry[]
   /** Their pets (companion/life/pets.py), seeded by who they are. */
   pets?: PetView[]
+  /** Someone the companion is seeing (companion/life/love_life.py): "Together 8 months, exclusive". */
+  love?: string
+  /** The latest roll for the two of them, only with Hidden values' odds on. */
+  love_odds?: string | null
+}
+
+/** A circle person who has met the user, or is about to (companion/life/their_people.py). `before` is a couple who go
+ * back years, so they have always known you; `meeting` is a meet-up still to come ('soon') or under way ('now'). `consequence_id` only with Hidden
+ * values' odds on. */
+export interface CircleMet {
+  met_on: string | null
+  before: boolean
+  meeting: 'soon' | 'now' | null
+  impression: 'warm' | 'smitten' | 'curious' | 'protective' | 'wary'
+  warmth: number
+  label: string
+  consequence_id: string | null
 }
 
 /** Someone around the circle, a few layers out (companion/life/network.py); built on request, never stored. */
@@ -1151,12 +1220,15 @@ export interface LifeChapter {
   undone: boolean
 }
 
+/** Which way a reason pushed the odds of the option it sits under. */
+export type ReasonMove = 'more' | 'less' | 'out' | 'possible'
 /** How a turning in the world went and why (companion/consequences.py). */
 export interface Consequence {
   id: string
   label: string
   decided_on: string
-  options: { option: number; label: string; odds: number; reasons: string[] }[]
+  /** `moves` says which way each reason pushed its option (missing on outcomes recorded before v0.13). */
+  options: { option: number; label: string; odds: number; reasons: string[]; moves?: ReasonMove[] }[]
   picked: number
   picked_by: 'dice' | 'user'
   /** What it left behind for a while, tilting later odds; a ripple reached a companion close to them. */
@@ -1174,7 +1246,7 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string }
 
 /** A holiday the companion's family keeps (companion/life/traditions.py). */
 export interface Tradition { id: string; holiday: string; name: string; text: string; origin: 'seeded' | 'user'; edited: boolean; next: string | null }
@@ -1191,6 +1263,7 @@ export type ScrapbookPage =
   | { kind: 'jokes'; title: string; items: ScrapbookItem[]; note: string | null }
   | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
   | { kind: 'closing'; title: string; text: string }
+  | { kind: 'wedding'; title: string; date: string; text: string; items: ScrapbookItem[]; guests: string[]; more?: number; photo: string | null; photo_alt: string }
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
 /** Our history at a glance: one line a week lately, a month, then a year further back (companion/memory/history.py).
  * `corrected` is the user's own words, an empty string when they left the line out, or null for the app's line. */
@@ -1409,6 +1482,8 @@ export interface Townsperson {
   last_place: string
   goal: string | null
   lately: string | null
+  /** Where their love life stands, once the companion knows them (companion/world/couples.py): "married to Dana Ruiz". */
+  love?: string | null
   reached: string[]
   routine: string | null
   flaw: string | null
@@ -1704,6 +1779,8 @@ export interface TownPaper {
   date: string
   news: { id: string; headline: string; text: string }[]
   townsfolk: { key: string; headline: string; text: string }[]
+  /** Townsfolk engagements and weddings that week (companion/world/couples.py). */
+  couples: { key: string; headline: string; text: string }[]
   seen: { companion_id: string; text: string }[]
   gossip: { text: string }[]
   ahead: {
@@ -1795,6 +1872,18 @@ export interface AdminItem {
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
 
+/** A guest on the wedding list: `side` is 'theirs' (their family and friends) or 'yours' (people you told them about,
+ * your other companions). `who` is how they know the couple ("Mira's mom", "your sister"). */
+export interface WeddingGuest { key: string; name: string; who: string; side: 'theirs' | 'yours'; invited: boolean }
+/** The wedding an engagement plans (companion/life/wedding.py): picked by the app, changed by the user. */
+export interface WeddingPlan {
+  id: string; status: 'planned' | 'done'; engaged_on: string; date: string; at: string; until: string
+  size: 'small' | 'proper' | 'big'; size_label: string; sizes: { key: string; label: string }[]
+  venue: { id: string; name: string; kind: string; neighborhood: string; mapped: boolean }
+  budget_text: string; share_text: string; guest_count: number; guests: WeddingGuest[]; moved_by_user: boolean
+  customs: string; tasks: { title: string; date: string; done: boolean; done_text?: string }[]; consequence_id: string | null
+}
+
 /** The Character page's Life admin panel (/api/life/admin). */
 export interface AdminView {
   state: string[]
@@ -1805,6 +1894,8 @@ export interface AdminView {
   level: number
   /** 0 to 100, only with Hidden values' home-life meters on. */
   meter: number | null
+  /** The wedding being planned (companion/life/wedding.py), null when there is none. */
+  wedding: WeddingPlan | null
 }
 
 /** Something that changed at work (companion/life/work.py): a raise, a promotion, a project wrapped up, a new job. */

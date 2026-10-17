@@ -262,7 +262,8 @@ def test_the_panel_shows_numbers_as_of_today_not_the_days_walked_ahead(client, k
                                    'GROUP BY hobby_id', (TODAY.isoformat(),)).fetchall()
     assert later
     for row in later:
-        assert today[row['hobby_id']] <= ahead[row['hobby_id']] - row['n']
+        # A pastime first taken up later in the days walked ahead isn't on today's panel at all.
+        assert today.get(row['hobby_id'], 0) <= ahead[row['hobby_id']] - row['n']
 
 
 def test_a_stall_reads_after_because():

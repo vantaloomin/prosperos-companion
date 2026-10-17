@@ -1,6 +1,6 @@
 /** Status messages (companion/life/status.py): what shows, kept apart from the components for tests. */
 
-export type AwayGlyph = 'moon' | 'briefcase' | 'pin' | 'phone' | 'luggage'
+export type AwayGlyph = 'moon' | 'briefcase' | 'pin' | 'phone' | 'luggage' | 'home'
 /** Together or apart (companion/life/together.py), or on a call (companion/life/calls.py), in plain words; the text is empty while apart in the same city. */
 export interface StatusWhere { state: 'together' | 'apart' | 'call'; kind: string; text: string }
 export interface CompanionStatus { text: string; set_by: 'app' | 'you'; away: { text: string; glyph: AwayGlyph } | null; where?: StatusWhere | null }
@@ -13,15 +13,18 @@ export function shown(status: CompanionStatus | null | undefined): { text: strin
   return status.away ? { text: status.away.text, away: status.away.glyph } : status.text ? { text: status.text, away: null } : null
 }
 
-/** A weekend visit across the distance (companion/life/long_distance.py) shows luggage, like the chat strip. */
+/** A weekend visit across the distance (companion/life/long_distance.py) shows luggage, like the chat strip; home
+ * together (companion/life/moving_in.py) the house, and together somewhere out the pin. */
 function togetherGlyph(where: StatusWhere): AwayGlyph {
+  if (where.kind === 'home') return 'home'
   return where.kind === 'staying' || where.kind === 'hosting' ? 'luggage' : 'pin'
 }
 
-/** The glyph beside where they are on the chat list: a phone on a call, luggage on a weekend visit, else a pin. */
-export function whereGlyph(where: StatusWhere | null | undefined): 'phone' | 'luggage' | 'pin' {
+/** The glyph beside where they are on the chat list: a phone on a call, luggage on a weekend visit, the house at home
+ * together, else a pin. */
+export function whereGlyph(where: StatusWhere | null | undefined): 'phone' | 'luggage' | 'pin' | 'home' {
   if (onThePhone(where)) return 'phone'
-  return where ? togetherGlyph(where) as 'luggage' | 'pin' : 'pin'
+  return where ? togetherGlyph(where) as 'luggage' | 'pin' | 'home' : 'pin'
 }
 
 /** On a call, or ringing you (companion/life/calls.py). */

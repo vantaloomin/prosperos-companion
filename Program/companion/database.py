@@ -297,6 +297,22 @@ ADDED_COLUMNS = (
     ('trips', 'message_id', 'TEXT'),
     ('trips', 'memory_id', 'TEXT'),
     ('trips', 'cancelled_at', 'TEXT'),
+    # Rough patches (companion/life/rough_patches.py, Settings > Realism): 0 off, 1 easy (fades overnight), 2 true to
+    # life (an apology, a gesture or a few calm days), 3 dramatic (lingers until you make up).
+    ('life_settings', 'rough_patches_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (rough_patches_realism BETWEEN 0 AND 3)'),
+    # Next steps (companion/life/steps.py, Settings > Realism): how soon companions bring up the next step, 0 only when
+    # the user does, 1 slow, 2 true to life, 3 fast; and whether a close friend can fall for the user.
+    ('life_settings', 'steps_pace', 'INTEGER NOT NULL DEFAULT 2 CHECK (steps_pace BETWEEN 0 AND 3)'),
+    ('life_settings', 'friends_fall', 'INTEGER NOT NULL DEFAULT 1 CHECK (friends_fall IN (0, 1))'),
+    # Their own love life (companion/life/love_life.py, Settings > Realism): 0 nothing new, 1 quiet, 2 true to life,
+    # 3 lots going on.
+    ('life_settings', 'love_life', 'INTEGER NOT NULL DEFAULT 2 CHECK (love_life BETWEEN 0 AND 3)'),
+    # Breaks and breakups (companion/life/breakups.py, Settings > Realism): whether strained rough patches can lead to a
+    # break and a breakup (or a falling out with a friend). On for real life and drama, off for an easy life.
+    ('life_settings', 'breakups', 'INTEGER NOT NULL DEFAULT 1 CHECK (breakups IN (0, 1))'),
+    # Sharing a home (companion/life/moving_in.py): the shared home a moving-in row belongs to, by the id of the row
+    # that set it up. A second romance moving into it has the first one's household; NULL is a household of its own.
+    ('moving_in', 'household', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -360,11 +376,26 @@ def upgrade_needed(path: Path) -> bool:
         return False  # An empty database without an identity yet.
 
 
+# Settings > Realism's sliders and switches from v0.13 on a world from before them, as its preset sets them
+# (src/features/settings/presetChoices.ts), told apart by its drama: an easy life keeps breakups and friends falling for
+# the user off, and a dramatic one stays dramatic. Any other world takes the columns' defaults (a real life).
+UPGRADE_REALISM = {0: {'rough_patches_realism': 1, 'steps_pace': 1, 'love_life': 1, 'friends_fall': 0, 'breakups': 0},
+                   3: {'rough_patches_realism': 3, 'steps_pace': 3, 'love_life': 3}}
+
+
 def add_columns(connection):
+    added = set()
     for table, column, definition in ADDED_COLUMNS:
         existing = {row[1] for row in connection.execute(f'PRAGMA table_info({table})')}
         if column not in existing:
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+            added.add((table, column))
+    if ('life_settings', 'breakups') in added:
+        row = connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()
+        picked = UPGRADE_REALISM.get(row[0]) if row else None
+        if picked:
+            connection.execute(f"UPDATE life_settings SET {', '.join(f'{key}=?' for key in picked)} WHERE id=1",  # noqa: S608
+                               tuple(picked.values()))
 
 
 def widen_context_categories(connection):

@@ -285,6 +285,8 @@ def test_changing_the_pets_settings_relives_only_the_days_ahead(client, mira, cl
     ahead, past = NOW + timedelta(days=3), NOW - timedelta(days=1)
     with connect(client) as connection:
         found = pets.of_home(connection, tid)[0]
+        # Only the days written below: what the seeded dice gave this pet already could land on the same days.
+        connection.execute('DELETE FROM pet_log WHERE pet_key=?', (found['key'],))
         # Their agenda is planned a few days ahead, and their pet's life with it.
         connection.execute("INSERT INTO pet_log (id, pet_key, local_date, kind, until, text, created_at) VALUES "
                            "('s1', ?, ?, 'sick', ?, 'an upset stomach', '2026-10-04')",

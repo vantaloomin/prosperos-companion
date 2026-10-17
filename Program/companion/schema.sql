@@ -2167,3 +2167,279 @@ CREATE TABLE IF NOT EXISTS calls (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS calls_timeline ON calls(timeline_id, created_at);
+-- Rough patches and making up (companion/life/rough_patches.py): something that could start a falling-out with a
+-- companion, rolled once (consequence_id, choice user:rough_patch) or started by them (fault 'companion'), and how it
+-- was mended. Open while not mended, picked to start and not faded by time; worked out when read.
+CREATE TABLE IF NOT EXISTS rough_patches (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  cause TEXT NOT NULL,
+  subject TEXT NOT NULL UNIQUE,
+  about TEXT NOT NULL DEFAULT '',
+  shown TEXT NOT NULL DEFAULT '',
+  fault TEXT NOT NULL CHECK (fault IN ('user', 'companion')),
+  size TEXT NOT NULL CHECK (size IN ('small', 'big')),
+  consequence_id TEXT,
+  outing_id TEXT,
+  needs INTEGER NOT NULL DEFAULT 1,
+  apologised_at TEXT,
+  gesture_at TEXT,
+  started_at TEXT NOT NULL,
+  started_on TEXT NOT NULL,
+  mended_at TEXT,
+  mended_by TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS rough_patches_timeline ON rough_patches(timeline_id, mended_at);
+-- A promise the user made in the chat that the app can check ("I'll call you tonight"): kept by a word from them
+-- after a gap, or a call, by `due_at`; broken ones can start a rough patch.
+CREATE TABLE IF NOT EXISTS rough_patch_promises (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL UNIQUE REFERENCES messages(id),
+  what TEXT NOT NULL,
+  due_at TEXT NOT NULL,
+  settled_at TEXT,
+  kept INTEGER,
+  created_at TEXT NOT NULL
+);
+-- Next steps (companion/life/steps.py): each step a pair has reached on its ladder, with the day. `other` is who the
+-- companion is paired with ('user' for the user); `how` says who moved it there: the app's pick at the start ('start',
+-- or 'history' from how they know each other), the companion bringing it up ('them'), the user ('you'), the Character
+-- page ('set') or a friend's confession ('confession'). A step taken back keeps its row with `undone_at`.
+CREATE TABLE IF NOT EXISTS relationship_steps (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  other TEXT NOT NULL DEFAULT 'user',
+  ladder TEXT NOT NULL CHECK (ladder IN ('romance', 'friendship')),
+  step TEXT NOT NULL,
+  reached_on TEXT NOT NULL,
+  how TEXT NOT NULL CHECK (how IN ('start', 'history', 'them', 'you', 'set', 'confession')),
+  ask_id TEXT,
+  undone_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS relationship_steps_pair ON relationship_steps(timeline_id, other, ladder);
+-- A next step brought up by either side, or a confession: planned for a day (`due_on`), open once said, then answered.
+CREATE TABLE IF NOT EXISTS step_asks (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  other TEXT NOT NULL DEFAULT 'user',
+  ladder TEXT NOT NULL,
+  step TEXT NOT NULL,
+  side TEXT NOT NULL CHECK (side IN ('them', 'you')),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'open', 'yes', 'not_yet', 'no', 'lapsed', 'dropped')),
+  due_on TEXT,
+  message_id TEXT,
+  answer_id TEXT,
+  consequence_id TEXT,
+  round INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS step_asks_timeline ON step_asks(timeline_id, status);
+-- The per-companion "just friends" lock: a friend who never falls for the user.
+CREATE TABLE IF NOT EXISTS step_settings (
+  companion_id TEXT PRIMARY KEY REFERENCES companions(id),
+  just_friends INTEGER NOT NULL DEFAULT 0 CHECK (just_friends IN (0, 1)),
+  updated_at TEXT NOT NULL
+);
+-- Their own love life (companion/life/love_life.py): someone a companion is seeing. Their steps are in
+-- relationship_steps with other 'love:<id>'. `person_id` is their place in the circle (none for a secret, which never
+-- joins the circle the user sees); `ended_how` is split, removed (the user took them out of the circle), faded,
+-- came_out (a secret found out, `out_via` small_world or news, seen by `witness_id` at `place`) or undone.
+CREATE TABLE IF NOT EXISTS love_partners (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  person_id TEXT,
+  name TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '{}',
+  secret INTEGER NOT NULL DEFAULT 0 CHECK (secret IN (0, 1)),
+  met_on TEXT NOT NULL,
+  ended_on TEXT,
+  ended_how TEXT CHECK (ended_how IN ('split', 'removed', 'faded', 'came_out', 'undone')),
+  out_via TEXT CHECK (out_via IN ('small_world', 'news')),
+  witness_id TEXT,
+  place TEXT,
+  consequence_id TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS love_partners_timeline ON love_partners(timeline_id, ended_on);
+
+-- Meeting their people (companion/life/their_people.py): a family dinner or a night out with the companion's
+-- people the app planned (why: the "meeting their people" step, or a best friend's night out), invited to in a first
+-- text that books its outing; `people` are the circle person ids who came (JSON).
+CREATE TABLE IF NOT EXISTS people_meetups (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('family', 'friends')),
+  why TEXT NOT NULL CHECK (why IN ('step', 'friends')),
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'booked', 'done', 'dropped')),
+  due_on TEXT NOT NULL,
+  people TEXT NOT NULL DEFAULT '[]',
+  outing_id TEXT,
+  consequence_id TEXT,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS people_meetups_timeline ON people_meetups(timeline_id, status);
+-- What a circle person thinks of the user, from the first time they met (`met_on`: a day, 'before' for a couple who
+-- go back years, NULL while the meet-up is still to come): the first impression and how warm it is now (-2 to 3),
+-- moved by what happened since (`moves`, JSON), checked once a week.
+CREATE TABLE IF NOT EXISTS people_impressions (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  person_id TEXT NOT NULL REFERENCES circle_people(id),
+  meetup_id TEXT,
+  impression TEXT NOT NULL,
+  warmth INTEGER NOT NULL,
+  met_on TEXT,
+  checked_on TEXT,
+  moves TEXT NOT NULL DEFAULT '[]',
+  consequence_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, person_id)
+);
+-- Moving in together (companion/life/moving_in.py): where a couple lives once they reach the moving-in step. `plan` is
+-- whose place in one city ('yours', 'theirs' or 'new'), or who moves across the distance ('them' to the user's city, or
+-- 'you': they asked the user to move to theirs). `status` is 'moving' until `move_on`, 'waiting' until the user moves to
+-- their city, 'moved' (since `moved_on`), then 'moved_out' (`out_on`, and `out_who` left: 'them' or 'you'). `city_id` and
+-- `neighbourhood` are where the shared home is; `out_until` is the user out for the evening (texting, not home together).
+CREATE TABLE IF NOT EXISTS moving_in (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  plan TEXT NOT NULL CHECK (plan IN ('yours', 'theirs', 'new', 'them', 'you')),
+  status TEXT NOT NULL CHECK (status IN ('moving', 'waiting', 'moved', 'moved_out')),
+  city_id TEXT NOT NULL DEFAULT '',
+  neighbourhood TEXT NOT NULL DEFAULT '',
+  decided_on TEXT NOT NULL,
+  move_on TEXT,
+  moved_on TEXT,
+  out_on TEXT,
+  out_who TEXT,
+  chapter_id TEXT,
+  home_item_id TEXT,
+  ended_item_ids TEXT NOT NULL DEFAULT '[]',
+  consequence_id TEXT,
+  message_id TEXT,
+  out_until TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS moving_in_timeline ON moving_in(timeline_id, status);
+-- Breaks and breakups (companion/life/breakups.py): a relationship with a companion coming apart, one row from the
+-- first warning on. Each stage is a roll in the consequence engine (`*_id`, read when shown, so changing it on Today
+-- moves it) or the user's own doing (`*_by` 'you'). `ended_by` 'break' means the roll at the end of a break decides
+-- (`ended_id`: try again or end it). `message_id` is the user's message that ended it or asked for a break; `answer_id`
+-- and `answer_said` the user's latest ask to try again and the answer. `steps_back` (JSON) lists the steps taken back
+-- on getting back together, which the scrapbook keeps.
+CREATE TABLE IF NOT EXISTS breakups (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  ladder TEXT NOT NULL CHECK (ladder IN ('romance', 'friendship')),
+  patch_id TEXT,
+  strained_id TEXT,
+  strained_by TEXT,
+  strained_at TEXT,
+  thinking_id TEXT,
+  thinking_at TEXT,
+  break_id TEXT,
+  break_by TEXT CHECK (break_by IN ('them', 'you')),
+  break_at TEXT,
+  ended_id TEXT,
+  ended_by TEXT CHECK (ended_by IN ('them', 'you', 'break')),
+  ended_at TEXT,
+  eased_at TEXT,
+  together_id TEXT,
+  together_by TEXT,
+  together_at TEXT,
+  talked INTEGER NOT NULL DEFAULT 0,
+  message_id TEXT,
+  answer_id TEXT,
+  answer_said TEXT,
+  steps_back TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS breakups_timeline ON breakups(timeline_id, created_at);
+-- An ex reaching out about trying again (companion/life/breakups.py): planned by a roll, sent as a first text, then
+-- answered, lapsed or dropped.
+CREATE TABLE IF NOT EXISTS breakup_reaches (
+  id TEXT PRIMARY KEY,
+  breakup_id TEXT NOT NULL REFERENCES breakups(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'open', 'yes', 'no', 'lapsed', 'dropped')),
+  due_on TEXT NOT NULL,
+  consequence_id TEXT,
+  message_id TEXT,
+  answer_id TEXT,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);
+
+-- Engagement and wedding (companion/life/wedding.py): the evening a companion plans to propose, for the "engaged" ask
+-- they planned (step_asks): invited to in a first text that books its outing at one of their favourite places, the
+-- question asked over that evening, and the ring (`ring` in words, `ring_cost` in the city's money, paid that day).
+CREATE TABLE IF NOT EXISTS proposals (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  ask_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'booked', 'asked', 'dropped')),
+  due_on TEXT NOT NULL,
+  outing_id TEXT,
+  ring TEXT NOT NULL DEFAULT '',
+  ring_cost REAL NOT NULL DEFAULT 0,
+  asked_on TEXT,
+  asked_message_id TEXT,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS proposals_timeline ON proposals(timeline_id, status);
+-- The wedding an engagement plans, decided by the app and changed by the user on the Life admin panel: the size
+-- (wedding:size), the day and hours, the venue (JSON, a city place), the budget and the companion's share of it in the
+-- city's money, the culture its customs follow, the guests (JSON: [{key, name, who, side, invited}]) and how many come
+-- in all. Its outing is booked on the timeline; done, it is the "married" step.
+CREATE TABLE IF NOT EXISTS weddings (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'done', 'called_off')),
+  engaged_on TEXT NOT NULL,
+  size TEXT NOT NULL CHECK (size IN ('small', 'proper', 'big')),
+  consequence_id TEXT,
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  until_time TEXT NOT NULL,
+  venue TEXT,
+  venue_rolls INTEGER NOT NULL DEFAULT 0,
+  culture TEXT NOT NULL,
+  budget REAL NOT NULL DEFAULT 0,
+  share REAL NOT NULL DEFAULT 0,
+  guests TEXT NOT NULL DEFAULT '[]',
+  guest_count INTEGER NOT NULL DEFAULT 0,
+  outing_id TEXT,
+  moved_by_user INTEGER NOT NULL DEFAULT 0 CHECK (moved_by_user IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS weddings_timeline ON weddings(timeline_id, status);
+-- Sharing a home (companion/life/moving_in.py): when a romance companion's moving-in step is reached while the user
+-- already lives with another (or is about to), each of them says whether they are open to sharing a home, one roll in
+-- the consequence engine each (moving_in:share, `consequence_id`). `moving_in_id` is the newcomer's moving_in row,
+-- `timeline_id` and `companion_id` the one asked, `round` counts the times it was asked again after a not yet, `open`
+-- what the roll said, `told_at` when they texted the user about it.
+CREATE TABLE IF NOT EXISTS moving_in_shares (
+  id TEXT PRIMARY KEY,
+  moving_in_id TEXT NOT NULL,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL,
+  newcomer INTEGER NOT NULL DEFAULT 0 CHECK (newcomer IN (0, 1)),
+  round INTEGER NOT NULL DEFAULT 1,
+  consequence_id TEXT,
+  open INTEGER NOT NULL DEFAULT 0 CHECK (open IN (0, 1)),
+  told_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS moving_in_shares_row ON moving_in_shares(moving_in_id, round);
