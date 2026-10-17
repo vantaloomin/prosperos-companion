@@ -10,7 +10,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { Wedding } from './WeddingPlan'
-import { STEPS_KEY, askText, howText, movingText, newcomerText, plannedText, stepDate } from './stepsText'
+import { STEPS_KEY, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from './stepsText'
 import { apartHint, BREAKUP_KEY, breakupLine, isApart, mendLabel, mendedText, type BreakupView } from './breakupText'
 import { UNDO_MS } from '../profile/roughPatchText'
 
@@ -71,14 +71,25 @@ function MovingLine({ moving, name }: { moving: NonNullable<StepsView['moving_in
     <div className="steps-detail">
       <p>{movingText(moving, name)}{moving.status === 'waiting' && moving.plan === 'you' && !moving.joins && <> <a className="text-button inline" href="#worlds" onClick={change}>Change your home city</a> when you're ready.</>}</p>
       {moving.consequence_id && <WhyItWent id={moving.consequence_id} settled={moving.status === 'moved'} />}
+      {moving.rolls?.map((roll) => roll.consequence_id && <WhyItWent key={roll.name} id={roll.consequence_id} summary={rollLabel(roll)} />)}
       {moving.newcomers?.map((newcomer) => (
-        <div key={newcomer.name}>
+        <div key={newcomer.name} className="steps-newcomer">
           <p>{newcomerText(newcomer, name)}</p>
-          {newcomer.consequence_id && <WhyItWent id={newcomer.consequence_id} />}
+          {newcomer.consequence_id && <WhyItWent id={newcomer.consequence_id} summary={ownAnswerLabel(newcomer, name)} />}
         </div>
       ))}
     </div>
   )
+}
+
+/** Moving into a home you share with another partner, not yet moved: Living together isn't so yet. */
+function pending(view: StepsView): boolean {
+  return Boolean(view.moving_in?.joins && view.moving_in.status !== 'moved')
+}
+
+/** A step's date; Living together, once moved into a shared home, dates from the move. */
+function stepDay(item: NonNullable<StepsView['steps']>[number], view: StepsView): string {
+  return item.step === 'moving_in' && view.moving_in?.joins && view.moving_in.moved_on ? view.moving_in.moved_on : item.on
 }
 
 /** The steps so far with their dates, what came up lately and (with odds shown) what is planned. */
@@ -88,7 +99,11 @@ function StepsSoFar({ view, name }: { view: StepsView; name: string }) {
       <ol className="steps-list">
         {view.steps.map((item) => (
           <li key={item.step}>
-            <strong>{item.label}</strong> <span className="subtle">{item.how === 'history' ? howText(item.how, name) : `${stepDate(item.on)} · ${howText(item.how, name)}`}</span>
+            {item.step === 'moving_in' && pending(view) ? (
+              <><strong className="step-pending">{item.label}</strong> <span className="subtle">· {pendingStepText(view.moving_in!)}</span></>
+            ) : (
+              <><strong>{item.label}</strong> <span className="subtle">{item.how === 'history' ? howText(item.how, name) : `${stepDate(stepDay(item, view))} · ${howText(item.how, name)}`}</span></>
+            )}
             {item.step === 'moving_in' && view.moving_in && <MovingLine moving={view.moving_in} name={name} />}
           </li>
         ))}

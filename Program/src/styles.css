@@ -2220,6 +2220,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .steps-planned { padding-left: 18px; margin-top: 10px; }
 .steps-detail { color: var(--muted); font-size: 0.875rem; }
 .steps-detail p { margin: 2px 0 0; }
+/* Sharing a home: another partner who would move in, with this one's answer right under it. */
+.steps-list .step-pending { color: var(--muted); }
+.steps-newcomer { margin-top: 10px; }
+.steps-newcomer p { margin: 0 0 4px; }
 .breakup-block { display: grid; gap: 8px; }
 .breakup-block .why-it-went, .steps-panel .breakup-block .why-it-went { margin: 0; padding-left: 22px; }
 .breakup-line { display: flex; align-items: flex-start; gap: 6px 8px; margin: 0; }

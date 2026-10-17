@@ -1055,12 +1055,23 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     recent = many(connection, "SELECT * FROM step_asks WHERE timeline_id=? AND status NOT IN ('planned', 'dropped') "
                   'ORDER BY created_at DESC LIMIT 6', (companion['active_timeline_id'],))
     from companion.life import moving_in
+    moving = moving_in.view(connection, companion, now, show_odds)
+    if moving and moving['joins'] and moving['status'] != 'moved' and found['step'] == 'moving_in':
+        found = {**found, 'text': not_moved_text(found['text'], moving['status'])}
     return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
-            'moving_in': moving_in.view(connection, companion, now, show_odds),
+            'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
                       'topic': 'how you feel' if row['step'] == CONFESSION else topic_of(row),
                       'on': parse(row['created_at']).astimezone(zone(companion['version']['timezone'])).date().isoformat(),
                       'consequence_id': row['consequence_id'] if show_odds else None} for row in recent]}
+
+
+def not_moved_text(text: str, status: str) -> str:
+    """Moving into a home the user shares with another partner: not living together until moving day."""
+    words = 'moving in soon' if status == 'moving' else 'waiting to move in'
+    if text.endswith(', living together'):
+        return text.removesuffix('living together') + words
+    return words.capitalize()
 
 
 def set_step(connection, companion: dict, key: str, now) -> None:
