@@ -46,7 +46,7 @@ YES = 1  # In every app-rolled choice here, option 1 is the one that moves thing
 TOGETHER, ENDS = 0, 1  # user:after_break
 
 # Days a big rough patch of the user's making is open before it can leave things strained; or the number of big ones
-# in the last weeks that does it at once.
+# in the last weeks that does it at once (weighed: one stacked on another over the same thing counts for less).
 STRAIN_AFTER = 2
 PILED_UP = 3
 LATELY = timedelta(days=45)
@@ -216,9 +216,17 @@ def facts(connection, companion: dict, now: datetime, row: dict | None = None) -
     patch = open_patch(connection, companion, now)
     return {'drama': steps.drama(connection), 'level': level(connection), 'closeness': near,
             'step': steps.index_of(found['ladder'], found['step']) if found else 0,
-            'patches': len(big_patches(connection, companion, now - LATELY)),
+            **piled(connection, companion, now),
             'cause': patch['cause'] if patch else '', 'talked': row['talked'] if row else 0,
             'sheet': [group for group in ('forgiving', 'stubborn') if consequences.sheet_has(definition, group)]}
+
+
+def piled(connection, companion: dict, now: datetime) -> dict:
+    """`patches`: the big rough patches of the user's making lately, each weighed (one over the same thing as another
+    still open counts half, the next a quarter: rough_patches.weighed); `stacked`: how many of them counted for less."""
+    found = rough_patches.weighed(connection, companion, big_patches(connection, companion, now - LATELY))
+    return {'patches': round(sum(weight for _row, weight in found), 3),
+            'stacked': sum(weight < 1 for _row, weight in found)}
 
 
 def decide(connection, companion: dict, choice: str, subject: str, found_facts: dict, now: datetime) -> dict:
@@ -288,7 +296,7 @@ def strain(connection, companion: dict, now: datetime) -> dict | None:
     if not patch:
         return None
     dragged = now - parse(patch['started_at']) >= timedelta(days=STRAIN_AFTER)
-    if not dragged and len(big_patches(connection, companion, now - LATELY)) < PILED_UP:
+    if not dragged and piled(connection, companion, now)['patches'] < PILED_UP:
         return None
     subject = f"breakup:{patch['id']}:strained"
     if consequences.recorded(connection, subject, 'user:strained'):

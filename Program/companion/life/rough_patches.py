@@ -18,7 +18,9 @@ Whether something you did starts a rough patch is a roll in the consequence engi
 world/data/consequences.json): odds from the Rough patches slider (life_settings.rough_patches_realism: 0 off,
 1 easy, 2 real life, 3 dramatic), what happened, an emotional trait the user built that speaks to it, their own
 description (forgiving, holds on to things) and how close they are. The odds stay under Hidden values ("Why it went
-this way" on Today, with show_odds), where the user can also make it go the other way.
+this way" on Today, with show_odds), where the user can also make it go the other way. One over the same thing as a
+rough patch already open (or one that started that day) is less likely, a half for the second, a quarter for the third
+(`stacked_on`), and counts for less where Breaks and breakups adds them up (`weighed`).
 
 The companion can be the one at fault: on Real life and Drama they now and then call off an outing with you at the
 last minute (`stand_ups`), and then apologise first, in a first text.
@@ -105,6 +107,10 @@ KEEP_GAP = timedelta(minutes=45)
 # Standing someone up: the chance, by level, that an outing with the user is called off by them on the day.
 STAND_UP = {2: 0.03, 3: 0.08}
 STAND_UP_BEFORE = timedelta(hours=3)
+# Stacking: a rough patch over the same thing as one already open, or one that started the same day, weighs less (the
+# second counts half, the third a quarter; Vanta 2026-10-17), in the roll that starts it (reader `stacked`) and in what
+# Breaks and breakups counts (`weighed`). Not a cap: four stinging messages in two minutes can still be four.
+STACK_WEIGHT = 0.5
 
 
 def level(connection) -> int:
@@ -182,6 +188,8 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
     consequence_id = None
     if fault == 'user':
         known, trait = facts(connection, companion, cause, now)
+        known['stacked'] = stacked_on(connection, companion, {'cause': cause, 'started_at': stamp(now),
+                                                              'started_on': local_day(companion, now)}, lvl)
         first = companion['version']['definition']['name'].split()[0]
         # The label is the user's to read on Today for weeks ("... over you calling off dinner on the day"), never the
         # companion's words.
@@ -502,6 +510,42 @@ def still_open(connection, row: dict, lvl: int, now: datetime, companion: dict, 
         return local_day(companion, now) == row['started_on']
     calm = CALM[lvl][0 if row['fault'] == 'user' else 1]
     return now - started < calm
+
+
+def was_open(row: dict, lvl: int, when: datetime, companion: dict) -> bool:
+    """Whether a rough patch picked to start was still open at that moment, going by its own dates: not mended yet and
+    not faded by time (`still_open` asks the same of now, with the outing it may be about)."""
+    started = parse(row['started_at'])
+    if started > when or (row['mended_at'] and parse(row['mended_at']) <= when) or lvl == 0:
+        return False
+    if row['size'] == 'small':
+        return when - started < SMALL_FOR
+    if lvl == 1:
+        return local_day(companion, when) == row['started_on']
+    return when - started < CALM[lvl][0 if row['fault'] == 'user' else 1]
+
+
+def stacks(earlier: dict, row: dict, lvl: int, companion: dict) -> bool:
+    """Whether `row` stacks on `earlier`: the same cause, from before it, and the same day or still open then."""
+    return earlier['cause'] == row['cause'] and earlier['started_at'] < row['started_at'] and (
+        earlier['started_on'] == row['started_on'] or was_open(earlier, lvl, parse(row['started_at']), companion))
+
+
+def stacked_on(connection, companion: dict, row: dict, lvl: int) -> int:
+    """How many rough patches of the user's making over the same thing this one stacks on."""
+    since = stamp(parse(row['started_at']) - max(CALM[3][0], SMALL_FOR) - timedelta(days=1))
+    earlier = [found for found in many(connection, "SELECT * FROM rough_patches WHERE timeline_id=? AND fault='user' "
+                                       'AND cause=? AND started_at>=? AND started_at<?',
+                                       (companion['active_timeline_id'], row['cause'], since, row['started_at']))
+               if picked_open(connection, found)]
+    return sum(stacks(found, row, lvl, companion) for found in earlier)
+
+
+def weighed(connection, companion: dict, found: list[dict]) -> list[tuple[dict, float]]:
+    """Rough patches with what each counts for (1, a half, a quarter...): one over the same thing as an earlier one in
+    the list that was open then, or started the same day, counts less."""
+    lvl = level(connection)
+    return [(row, STACK_WEIGHT ** sum(stacks(earlier, row, lvl, companion) for earlier in found)) for row in found]
 
 
 def open_rows(connection, companion: dict, lvl: int, now: datetime) -> list[dict]:

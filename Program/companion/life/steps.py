@@ -15,7 +15,9 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   up the next one (choice `steps:when`: soon, in a few weeks or in a couple of months, from the Relationship pace slider,
   their description, their personality sliders and their mood lately). On that day they bring it up in a first text
   (companion/life/openers.py). The user's answer is read from the chat with fixed phrases: yes moves up, "not yet" waits
-  and they ask again weeks later, no keeps it where it is for a long while. No answer in a few days counts as not yet.
+  and they ask again weeks later, no keeps it where it is for a long while. Only the user's first reply after the ask is
+  read whatever it says; a later message counts when it names the step, or is a clear yes or no right after they
+  brought it up again (`answer_to`). No answer in a few days counts as not yet.
 - The user can raise the next step themselves ("can we be exclusive?", "I love you"), caught from the chat with fixed
   phrases the way recommendations are; the engine decides their answer (`steps:answer`) before the reply is written,
   and the reply says it.
@@ -198,6 +200,26 @@ NOT_MEANT = re.compile(r"\b(?:if|what if|imagine|pretend|suppose|said|says|say|t
 # ... except the user saying it themselves: "I just wanted to say I love you", "I have to tell you, I love you".
 SINCERE = re.compile(r"\bi (?:just |really |finally |have |had )?(?:wanted|want|have|had|need|needed|got|gotta|have been "
                      r"meaning) to (?:say|tell you)(?: (?:it|this|something|that))?\b", re.IGNORECASE)
+# Words that name a step, in a later message from the user ("yes to meeting your family") or in the companion's own
+# message bringing it up again ("so... would you want to meet my family?"). Only the user's first reply after an ask
+# is read as an answer to it whatever it says; a later message counts when it names the step, or when it is a clear
+# yes or no right after they brought it up again (Vanta 2026-10-17).
+MENTIONS = {
+    'exclusive': r"exclusive|official|only (?:see|seeing|date|dating) each other|(?:boy|girl)friend|partner|a couple|"
+                 r"going steady|courting|seeing other people",
+    'love': r"love you|in love",
+    'their_people': r"meet(?:ing)?|(?:your|ur|my) (?:family|parents|folks|people|friends|mum|mom|dad|mother|father|"
+                    r"sister|brother)",
+    'key': r"(?:spare )?keys?",
+    'moving_in': r"move in|moving in|(?:live|living) together|(?:a|our) (?:own )?(?:place|home|flat|apartment) together",
+    'engaged': r"marry|married|engaged|propos(?:e|al)|fianc[ée]e?",
+    'best_friends': r"best friends?|bff",
+    'trip': r"trip|getaway|(?:go|get) away|travel|holiday|vacation",
+    CONFESSION: r"feel(?:ings|s|ing)?|crush|fall(?:en|ing)? for|more than friends|(?:as|just) (?:a )?friends?|date|dating|"
+                r"love you",
+}
+# A clear answer: the yes, not yet or no comes first, in a short opening ("yes!", "not yet, sorry", "haha sure").
+CLEAR_WORDS = 4
 
 
 @cache
@@ -751,6 +773,72 @@ def answer(text: str) -> str | None:
     return 'yes' if YES.search(text) else None
 
 
+def answer_to(connection, row: dict, message: dict) -> str | None:
+    """The user's answer to something the companion brought up, else None. Their first reply after it (the messages
+    before the companion writes again) is read as an answer, as is bringing the same step up themselves ("can we be
+    exclusive?" to "can we be exclusive?"). A later message counts only when it plainly answers: it names the step, or
+    it is a clear yes or no right after the companion brought it up again. So a "lol ok" about something else days
+    later is not a yes."""
+    text = message['text']
+    said = answer(text) or ('yes' if said_itself(row['step'], text) else None)
+    if said is None:
+        return None
+    asked = ask_seq(connection, row, message)
+    if names_step(row['step'], text) or first_turn(connection, message, asked):
+        return said
+    again = last_word(connection, message)
+    if again and again['seq'] > asked and names_step(row['step'], again['text']) and \
+            first_turn(connection, message, again['seq']):
+        return clear(text)
+    return None
+
+
+def said_itself(step: str, text: str) -> bool:
+    """The user brings up the very step that is waiting for their answer, which says yes to it."""
+    if step == CONFESSION:
+        return confessed(text)
+    return step in RAISES and raised(text, [step]) == step
+
+
+def names_step(step: str, text: str) -> bool:
+    return bool(step in MENTIONS and re.search(rf"\b(?:{MENTIONS[step]})\b", plain(text), re.IGNORECASE))
+
+
+def clear(text: str) -> str | None:
+    """'yes', 'not_yet' or 'no' when the message opens with it ("yes!", "not yet, sorry"), else None."""
+    opening = re.split(r"[.!?,;:\n]|\s[-–—]\s", plain(text).strip(), maxsplit=1)[0]
+    return answer(opening) if len(opening.split()) <= CLEAR_WORDS else None
+
+
+def ask_seq(connection, row: dict, message: dict) -> int:
+    """Where the ask sits in the chat: its first text, or (a copy on a branch without it) the last message before."""
+    found = optional(connection, 'SELECT seq FROM messages WHERE timeline_id=? AND (id=? OR origin_id=?)',
+                     (message['timeline_id'], row['message_id'] or '', row['message_id'] or ''))
+    if found is None:
+        found = optional(connection, 'SELECT MAX(seq) AS seq FROM messages WHERE timeline_id=? AND created_at<=? AND '
+                         'id<>?', (message['timeline_id'], row['created_at'], message['id']))
+    return (found or {}).get('seq') or 0
+
+
+def first_turn(connection, message: dict, after: int) -> bool:
+    """Whether the message is among the user's first after `after`: no message of theirs shown since the user's first
+    one after it (a failed or held reply doesn't count)."""
+    from companion.chats import shown
+    first = optional(connection, "SELECT MIN(seq) AS seq FROM messages WHERE timeline_id=? AND role='user' AND seq>?",
+                     (message['timeline_id'], after))
+    if not first or first['seq'] is None:
+        return True
+    return optional(connection, f'SELECT id FROM messages WHERE timeline_id=? AND seq>? AND seq<? AND {shown()} '
+                    'LIMIT 1', (message['timeline_id'], first['seq'], message['seq'], message['created_at'])) is None
+
+
+def last_word(connection, message: dict) -> dict | None:
+    """The companion's latest message shown before this one."""
+    from companion.chats import shown
+    return optional(connection, f'SELECT seq, text FROM messages WHERE timeline_id=? AND seq<? AND {shown()} '
+                    'ORDER BY seq DESC LIMIT 1', (message['timeline_id'], message['seq'], message['created_at']))
+
+
 def meant(sentence: str, found: re.Match) -> bool:
     before = SINCERE.sub(' ', sentence[:found.start()])
     return not NOT_MEANT.search(before) and not own_plans.PAST.search(before)
@@ -789,7 +877,7 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     if found is None or apart(connection, companion):
         return False  # On a break or broken up, asking to try again is read by companion/life/breakups.py.
     open_ask = next(iter(asks(connection, timeline_id, ('open',))), None)
-    if open_ask and (said := answer(message['text'])):
+    if open_ask and (said := answer_to(connection, open_ask, message)):
         settle_answer(connection, companion, open_ask, said, message, now)
         return True
     if found['ladder'] == 'friendship':
@@ -850,6 +938,10 @@ def answers(connection, companion: dict, found: dict, key: str, message: dict, n
         day = local_today(companion, now)
         for item in [*skipped, key]:
             insert_step(connection, timeline_id, found['ladder'], item, day, 'you', timestamp, row['id'])
+        for waiting_ask in asks(connection, timeline_id, ('open',)):  # Something they asked that this went past.
+            if waiting_ask['step'] in (*skipped, key):
+                connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?",
+                                   (timestamp, waiting_ask['id']))
         if key == 'engaged':
             from companion.life import wedding
             wedding.answered(connection, companion, row, status, now)
