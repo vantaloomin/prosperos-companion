@@ -310,6 +310,9 @@ ADDED_COLUMNS = (
     # Breaks and breakups (companion/life/breakups.py, Settings > Realism): whether strained rough patches can lead to a
     # break and a breakup (or a falling out with a friend). On for real life and drama, off for an easy life.
     ('life_settings', 'breakups', 'INTEGER NOT NULL DEFAULT 1 CHECK (breakups IN (0, 1))'),
+    # Sharing a home (companion/life/moving_in.py): the shared home a moving-in row belongs to, by the id of the row
+    # that set it up. A second romance moving into it has the first one's household; NULL is a household of its own.
+    ('moving_in', 'household', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

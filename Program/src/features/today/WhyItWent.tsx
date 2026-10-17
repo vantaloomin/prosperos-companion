@@ -26,7 +26,7 @@ function Odds({ id, possibleOnly, settled }: { id: string; possibleOnly: boolean
       setFailed(error instanceof Error ? error.message : String(error))
       return
     }
-    await Promise.all([['storylines'], ['reactions'], ['chapters'], ['circle'], ['breakup'], COMPANION_KEY].map((queryKey) => client.invalidateQueries({ queryKey })))
+    await Promise.all([['storylines'], ['reactions'], ['chapters'], ['circle'], ['breakup'], ['steps'], COMPANION_KEY].map((queryKey) => client.invalidateQueries({ queryKey })))
   }
   return (
     <details className="why-it-went" onToggle={(event) => setOpen(event.currentTarget.open)}>

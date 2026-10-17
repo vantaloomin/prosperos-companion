@@ -44,6 +44,7 @@ from companion.life import (
     long_distance,
     love_life,
     media,
+    moving_in,
     occasions,
     own_plans,
     pacing,
@@ -426,7 +427,7 @@ PAST_WAITING = {'occasion', 'postcard'}
 # call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
 # (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
 # meet their people (companion/life/their_people.py), and the evening they plan to propose (companion/life/wedding.py).
-FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, moving_in.share_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
@@ -688,7 +689,7 @@ def settle(connection, companion, row, trigger, timestamp):
         kitchen.settle_invite(connection, companion, row, trigger, timestamp)
     if trigger.kind == 'hobby_invite':
         hobbies.settle_invite(connection, companion, row, trigger, timestamp)
-    for module in (together, steps, their_people, wedding, breakups):
+    for module in (together, steps, their_people, wedding, breakups, moving_in):
         if trigger.kind in module.SETTLES:
             module.settle(connection, companion, row, trigger, timestamp)
 
