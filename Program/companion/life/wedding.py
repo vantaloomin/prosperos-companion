@@ -853,6 +853,22 @@ def dressed(connection, timeline_id: str, local_date: str, now: datetime | None 
     return attire(companion['version']['definition'], row['culture'])
 
 
+def guests_there(connection, timeline_id: str, now: datetime) -> set[str]:
+    """The ids of their circle's people invited to the wedding while it is under way: at the wedding, not at work
+    (companion/life/agenda.py circle_view)."""
+    from companion.characters import by_id
+    timeline = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    companion = by_id(connection, timeline['companion_id']) if timeline else None
+    row = current(connection, timeline_id) if companion else None
+    if not row or row['status'] != 'planned':
+        return set()
+    outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'] or '',))
+    if not outing or outings.state(outings.view(outing), companion['version']['timezone'], now) != 'now':
+        return set()
+    return {guest['key'].split(':', 1)[1] for guest in row['guests']
+            if guest['invited'] and guest['key'].startswith('circle:')}
+
+
 def photo_wearing(connection, companion: dict, outing: dict) -> str:
     row = of_outing(connection, outing)
     culture = row['culture'] if row else 'modern'
