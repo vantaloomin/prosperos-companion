@@ -371,3 +371,125 @@ def test_each_reason_sits_under_the_answer_it_moved():
     assert apart[0]['reasons'] == ["Mira doesn't feel close enough yet"] and apart[0]['odds'] < plain[0]['odds']
     assert apart[1]['reasons'] == []
     assert apart[0]['moves'] == ['less'], 'Today says "Less likely because Mira doesn\'t feel close enough yet"'
+
+
+# Which message is the answer (Vanta 2026-10-17): only the user's first reply after an ask is read whatever it says; a
+# later one counts only when it plainly answers.
+
+def asked(client, provider, clock, monkeypatch, relationship='romance'):
+    """Mira brings up the next step (being exclusive; a confession for a friend) in a first text: open now."""
+    make(client, monkeypatch, relationship=relationship)
+    monkeypatch.setattr(steps, 'FIRST_TEXTS', True)
+    view(client)
+    if relationship == 'romance':
+        close(client, 3)
+        clock.advance(timedelta(days=36))
+        reconcile(client)
+        clock.advance(timedelta(days=8))
+    else:
+        monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+        close(client, 4)
+        for days in (95, 28, 13):
+            clock.advance(timedelta(days=days))
+            if days != 13:
+                reconcile(client)
+    assert first_text(client, clock)
+
+
+def open_asks(client):
+    with client.app.state.database.connect() as connection:
+        return [row['step'] for row in steps.asks(connection, current(connection)['active_timeline_id'], ('open',))]
+
+
+def test_an_ok_about_something_else_later_is_not_a_yes(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider)
+    send(client, 'ugh my day was awful, my boss yelled at me', 'client-answer-1')
+    says(provider, 'Oh no, that sounds rough. Want to talk about it?')
+    send(client, 'lol ok so basically he hates my slides', 'client-answer-2')
+    says(provider)
+    send(client, "sure, I'll make pasta tonight", 'client-answer-3')
+    assert view(client)['step'] == 'dating' and open_asks(client) == ['exclusive']
+    assert 'they have not answered yet' in prompt(provider)
+    says(provider)
+    send(client, 'oh and about being exclusive: yes, I want that', 'client-answer-4')  # Names the step.
+    assert 'The user just said yes to being exclusive.' in prompt(provider)
+    assert view(client)['step'] == 'exclusive' and open_asks(client) == []
+
+
+def test_the_whole_first_reply_counts_even_in_two_messages(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    with client.app.state.database.connect(write=True) as connection:  # "omg", sent before Mira wrote back.
+        companion = current(connection)
+        connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, created_at, "
+                           "completed_at) VALUES ('omg', ?, 100, 'user', 'omg', 'complete', 1, ?, ?)",
+                           (companion['active_timeline_id'], clock.now().isoformat(), clock.now().isoformat()))
+    says(provider)
+    send(client, 'yes!!', 'client-answer-5')
+    assert view(client)['step'] == 'exclusive'
+
+
+def test_a_clear_not_yet_right_after_they_bring_it_up_again(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider, 'Sorry, that was a lot. So... how do you feel about being exclusive?')
+    send(client, 'haha wait, what are you having for dinner?', 'client-answer-6')
+    says(provider)
+    send(client, 'not yet, sorry. I need a little more time', 'client-answer-7')
+    assert "The user just said they aren't ready for being exclusive yet." in prompt(provider)
+    assert view(client)['step'] == 'dating' and open_asks(client) == []
+
+
+def test_a_later_no_counts_when_it_names_the_step_and_a_nah_about_lunch_does_not(client, provider, clock, monkeypatch,
+                                                                                 always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider, 'Ha, good morning to you too.')
+    send(client, 'good morning!', 'client-answer-8')
+    says(provider, 'Want to get lunch?')
+    send(client, 'nah, I ate already', 'client-answer-9')  # A clear no, but to lunch.
+    assert open_asks(client) == ['exclusive']
+    says(provider)
+    send(client, "I've thought about it and no, I don't want to be exclusive", 'client-answer-10')
+    assert 'The user just said no to being exclusive.' in prompt(provider)
+    assert view(client)['step'] == 'dating' and open_asks(client) == []
+
+
+def test_bringing_up_the_step_they_asked_about_says_yes_to_it(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider)
+    send(client, 'how was work?', 'client-answer-11')
+    says(provider)
+    send(client, 'can we make it official? be my girlfriend?', 'client-answer-12')
+    found = view(client)
+    assert found['step'] == 'exclusive' and found['steps'][-1]['how'] == 'them' and open_asks(client) == []
+    assert 'The user just said yes to being exclusive.' in prompt(provider)
+
+
+def test_bringing_up_a_further_step_settles_the_one_waiting(client, provider, clock, monkeypatch, always):
+    asked(client, provider, clock, monkeypatch)
+    says(provider)
+    send(client, 'how was work?', 'client-answer-13')
+    says(provider)
+    send(client, 'I just wanted to say I love you', 'client-answer-14')
+    found = view(client)
+    assert [item['step'] for item in found['steps']] == ['dating', 'exclusive', 'love'] and open_asks(client) == []
+
+
+def test_a_friends_confession_is_answered_by_the_first_reply_or_a_plain_answer(client, provider, clock, monkeypatch):
+    asked(client, provider, clock, monkeypatch, relationship='friendship')
+    says(provider, 'Haha, sorry, forget I said anything.')
+    send(client, 'wait what time is lunch tomorrow?', 'client-answer-15')
+    says(provider, 'Noon at the usual place?')
+    send(client, 'sure, noon works', 'client-answer-16')  # A yes to lunch, not to them.
+    assert client.get('/api/companion').json()['companion']['version']['definition']['relationship'] == 'friendship'
+    assert open_asks(client) == ['confession']
+    says(provider)
+    send(client, "about what you said the other day... I feel the same", 'client-answer-17')
+    assert client.get('/api/companion').json()['companion']['version']['definition']['relationship'] == 'romance'
+    assert 'they just said they feel the same' in prompt(provider)
+
+
+def test_a_clear_answer_opens_the_message():
+    assert steps.clear('yes!') == 'yes' and steps.clear('not yet, sorry') == 'not_yet'
+    assert steps.clear('haha sure') == 'yes' and steps.clear('no. not ready for that') == 'no'
+    assert steps.clear('lol ok so my day was awful') is None
+    assert steps.clear('my day was long, ok whatever') is None
