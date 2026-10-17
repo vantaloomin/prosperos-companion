@@ -51,6 +51,8 @@ ROLE_DEFAULTS = {
     'spouse': (5, 0.0, 0.2), 'ex': (2, 0.0, 0.3),
 }
 UNKNOWN_ROLE = (1, 0.0, 0.0)
+# The lowest a parent or sibling ever stands with the companion (the role defaults never start them lower).
+FAMILY_FLOOR = 2
 # Meetings around town -> the stage they start at, highest first (the same as companion/cast.py for the user).
 MEETINGS = ((6, 3), (3, 2), (0, 1))
 # Storyline beats with a circle person that move the stage: {story: {beat index: steps, or steps by tone}}.
@@ -317,12 +319,15 @@ def both_companions(connection, a: str, b: str, first: dict, second: dict, now, 
 
 def with_circle(connection, a: str, b: str, me: dict, person: dict, now) -> dict:
     """A companion and someone in their own circle; both directions start at the role's default."""
+    from companion.life import circle
     found = role_default(person['role'], person['seed'])
     today = now.astimezone(zone(me['version']['timezone'])).date().isoformat()
     moved = story_moves(connection, me, person['id'], today)
     base = clamp(level_from(found['level'], moved['points']) + moved['steps'])
     mine = clamp(base - masked(me, b) - min(secrets_found(connection, a, b), MOST_SECRET_STEPS)
                  * reacts_to_secrets(me['version']['definition']))
+    # Their own parents and siblings are never someone they have "just met", whatever a mask or a secret does.
+    mine = max(mine, min(base, FAMILY_FLOOR)) if circle.role_kind(person['role']) in ('parent', 'sibling') else mine
     return {'start': found['level'], 'role': person['role'], 'nudge': found['nudge'], 'how': '', 'told': False,
             'storylines': moved['reasons'], 'ab': {'level': mine, 'cooled': False},
             'ba': {'level': base, 'cooled': False}}

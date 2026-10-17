@@ -388,9 +388,20 @@ def move(connection, companion: dict, row: dict, now) -> None:
         found['removed'] = leave_behind(connection, companion, now)
     if changes:
         chapter = insert_chapter(connection, companion, row, day, changes, found, now)
+    if changes.get('timezone') and changes['timezone'] != companion['version']['timezone']:
+        replan(connection, companion['active_timeline_id'], now)
     connection.execute("UPDATE moving_in SET status='moved', moved_on=?, chapter_id=?, home_item_id=?, "
                        'ended_item_ids=? WHERE id=?', (day.isoformat(), chapter, (found['added'] or [None])[0],
                                                        encode(found['ended']), row['id']))
+
+
+def replan(connection, timeline_id: str, now) -> None:
+    """A move to another clock: the days already planned ahead (life_agenda) were laid out on the old one, so their
+    still-to-come part is planned again on the new one (as self_facts.stamp_change does for new tastes)."""
+    connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject='companion' AND status='upcoming' "
+                       'AND starts_at>?', (timeline_id, stamp(now)))
+    connection.execute("UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=? AND subject='companion'",
+                       (stamp(now), timeline_id))
 
 
 def share_theirs(connection, companion: dict, row: dict, day: date, shared: bool) -> None:
@@ -530,6 +541,8 @@ def move_out(connection, companion: dict, now, who: str | None = None) -> dict |
         return latest(connection, companion['active_timeline_id'])
     leaving = who or who_leaves(connection, companion, row)
     undone = chapter_undone(connection, row)  # The move undone on the Character page: it never happened.
+    if undone and row['plan'] == 'them':
+        replan(connection, row['timeline_id'], now)  # Back on their old city's clock.
     if leaving == 'them' and not undone:
         place_of_their_own(connection, companion, row, today, now)
     elif leaving == 'you':

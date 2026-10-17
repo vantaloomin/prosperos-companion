@@ -340,3 +340,20 @@ def test_undoing_the_chapter_on_a_fork_takes_back_only_its_own_partner(client, m
         [kept] = love_life.partners(connection, parent, active=False)
         [taken] = love_life.partners(connection, fork, active=False)
     assert kept['ended_how'] is None and taken['ended_how'] == 'undone'
+
+
+def test_after_a_secret_comes_out_they_hold_back_casual_texts(client, romance, clock, monkeypatch):
+    # Hours after owning up to seeing someone behind the user's back, a breezy "how's your afternoon going?" check-in
+    # went out (seen with the real model). While that rough patch is open they give the user room.
+    set_life(client, drama=3)
+    force(monkeypatch, 1)
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(love_life, 'OUT_CHANCE', 0)
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.maybe_secret(connection, current(client), client.app.state.life.world, clock.now())
+    monkeypatch.setattr(love_life, 'OUT_CHANCE', 1)
+    clock.advance(timedelta(days=8))
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
+        assert rough_patches.current(connection, current(client), clock.now())['cause'] == 'hidden_partner'
+        assert rough_patches.cool(connection, current(client), clock.now())

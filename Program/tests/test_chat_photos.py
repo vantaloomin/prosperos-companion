@@ -74,6 +74,14 @@ def test_a_friends_birthday_stays_theirs_when_told_as_you():
         'You went out with Caleb for your birthday.'
 
 
+def test_the_user_in_the_day_stays_the_user_when_told_as_you():
+    """"Mira married you" is the user: told to Mira it is "You married the user", never "You married you"."""
+    assert yours({'summary': 'Mira Costa married you at St Paul\'s Cathedral.', 'name': 'Mira Costa'}) == \
+        "You married the user at St Paul's Cathedral."
+    assert yours({'summary': 'Mira went to dinner at Lupa with you.', 'name': 'Mira'}) == \
+        'You went to dinner at Lupa with the user.'
+
+
 def test_the_pictured_moment_is_the_one_the_agenda_holds(client, life, app):
     """A photo composes the slot from the agenda, so the event written later (a birthday outing
     with a friend, say) is the same moment the picture shows."""

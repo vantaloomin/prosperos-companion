@@ -469,3 +469,59 @@ def test_a_church_service_is_held_in_a_church():
         for seed in range(40):
             found = wedding.venue_for(data, rules, wedding.SIZES[seed % 3], f'church-{seed}', day=date(2027, 6, 12))
             assert found['kind'] == 'temple', (city, found['name'])
+
+
+def test_guests_at_the_wedding_are_not_shown_at_work(client, clock, provider):
+    """While the wedding is under way the circle's invited guests are there, not at their jobs."""
+    from companion.characters import require_current
+    from companion.clock import stamp
+    from companion.database import encode, identifier
+    from companion.life import agenda
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-guests')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    found = panel(client)
+    at(clock, found['date'], found['at'])
+    clock.advance(timedelta(hours=1))
+    now = clock.now()
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        agenda.extend(connection, companion, client.app.state.life.world, now)
+        timeline_id = companion['active_timeline_id']
+        invited = sorted(guest['key'].split(':', 1)[1] for guest in wedding.current(connection, timeline_id)['guests']
+                         if guest['invited'] and guest['key'].startswith('circle:'))
+        if not agenda.current(connection, timeline_id, invited[0], now):
+            connection.execute(  # A shift their day would have put them on.
+                'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, '
+                'entry, basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (identifier(), timeline_id, invited[0], 'shift', stamp(now - timedelta(minutes=30)),
+                 stamp(now + timedelta(hours=2)), found['date'], encode({'label': 'bartender', 'kind': 'work'}), None,
+                 'test', stamp(now)))
+        during = {person['id']: person['now'] for person in agenda.circle_view(connection, timeline_id, now)}
+        there = wedding.guests_there(connection, timeline_id, now)
+        block = agenda.current(connection, timeline_id, invited[0], now)
+    assert block  # Their own day still holds where they would have been.
+    assert there == set(invited) and all(during[key] is None for key in invited)
+
+
+def test_the_morning_after_the_wedding_was_yesterday(client, clock, provider):
+    """The note on the wedding just over says it was yesterday once the day has turned, not "earlier today"."""
+    from companion.characters import require_current
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-after')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    found = panel(client)
+    at(clock, found['date'], found['until'])
+    clock.advance(timedelta(minutes=20))
+    with client.app.state.database.connect() as connection:
+        late = dict(outings.context_lines(connection, require_current(connection), clock.now(), set()))
+    at(clock, (date.fromisoformat(found['date']) + timedelta(days=1)).isoformat(), '09:00')
+    with client.app.state.database.connect() as connection:
+        morning = dict(outings.context_lines(connection, require_current(connection), clock.now(), set()))
+    done = [line for key, line in morning.items() if key.endswith(':done')]
+    assert done and done[0].startswith('- Yesterday you and the user got married at ')
+    assert [line for key, line in late.items() if key.endswith(':done')][0].startswith('- Earlier today ')

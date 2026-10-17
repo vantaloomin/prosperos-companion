@@ -10,7 +10,7 @@ from test_together import mira, notes, says, where
 from companion import consequences
 from companion.characters import current
 from companion.database import optional
-from companion.life import home, money, moving_in, steps
+from companion.life import home, money, moving_in, pacing, steps
 from companion.life import where as where_module
 
 
@@ -408,3 +408,20 @@ def test_the_chores_line_reads_right_with_the_dishes_alone(monkeypatch):
         "Today the dishes are yours; cooking, the laundry and tidying up are the user's."
     owners.update(dishes='user', laundry='you')
     assert moving_in.chores_text({}, date(2026, 11, 5)).startswith('Today the laundry is yours;')
+
+
+def test_moving_across_time_zones_plans_the_days_ahead_on_the_new_clock(client, provider, clock, monkeypatch, always):
+    apart_from(client, monkeypatch, city='Osaka', timezone='Asia/Tokyo', relationship='romance')
+    reconcile(client)  # Their week is planned on Osaka's clock.
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    assert row(client)['status'] == 'moved'
+    local = clock.now().astimezone(where_module.zone('America/New_York'))
+    clock.advance(timedelta(days=1, hours=20 - local.hour, minutes=-local.minute))  # 20:00 the next evening.
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        assert companion['version']['timezone'] == 'America/New_York'
+        block, _ends = pacing.block_now(connection, companion, clock.now())
+    assert block['kind'] != 'work'  # Not their Osaka work hours, which fall on a Baltimore evening.
+    assert where(client)['kind'] == 'home'
