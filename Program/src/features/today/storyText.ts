@@ -13,6 +13,18 @@ export function occasionText(item: Occasion, name: string): string {
   return `It's been ${item.span} since you two started talking.`
 }
 
+/** Today's header lines: every occasion, but only the nearest step anniversary, which says how many more are due
+ * ("and 3 more milestones this week"), so the header can't grow a line per step. */
+export function headerOccasions(items: Occasion[], name: string): Array<{ key: string; text: string }> {
+  const steps = items.filter((item) => item.kind === 'step_anniversary').sort((a, b) => a.days - b.days)
+  const more = steps.length - 1
+  return items.filter((item) => item.kind !== 'step_anniversary' || item === steps[0]).map((item) => {
+    const text = occasionText(item, name)
+    if (item !== steps[0] || more < 1) return { key: item.key, text }
+    return { key: item.key, text: `${text.slice(0, -1)}, and ${more} more ${more === 1 ? 'milestone' : 'milestones'} this week.` }
+  })
+}
+
 /** A step's anniversary (companion/life/steps.py): "It's been a year since you two became exclusive." */
 function stepAnniversaryText(item: Occasion, when: string): string {
   if (item.days === 0) return `It's been ${item.span} since you two ${item.did}.`

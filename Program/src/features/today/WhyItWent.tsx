@@ -48,6 +48,7 @@ function Odds({ id, possibleOnly, settled }: { id: string; possibleOnly: boolean
               </li>
             ))}
           </ul>
+          {settled && <p className="subtle">Already happened, so this one can't be changed.</p>}
           {outcome.data.marks.length > 0 && (
             <>
               <p className="subtle marks-lead">What it left, for a while:</p>

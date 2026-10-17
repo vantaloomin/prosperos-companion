@@ -67,6 +67,6 @@ export const BREAKUPS_HINT = 'When rough patches drag on, things can get straine
  * again from a key to each other's place (companion/life/breakups.py `back_together`). */
 export function apartHint(view: BreakupView | undefined): string {
   if (!view || !isApart(view)) return ''
-  if (view.stage === 'ended' && view.ladder === 'romance') return "Getting back together starts again from a key to each other's place."
+  if (view.stage === 'ended' && view.ladder === 'romance') return 'Get back together to start again from “A key to their place”.'
   return view.stage === 'ended' ? 'Make up to pick up where you left off.' : 'Patch things up to pick up where you left off.'
 }

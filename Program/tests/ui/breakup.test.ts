@@ -24,7 +24,7 @@ test('a break and a breakup say when and who', () => {
 })
 
 test('the steps hint says what getting back together means', () => {
-  assert.equal(apartHint({ ...base, stage: 'ended' }), "Getting back together starts again from a key to each other's place.")
+  assert.equal(apartHint({ ...base, stage: 'ended' }), 'Get back together to start again from “A key to their place”.')
   assert.equal(apartHint({ ...base, stage: 'break' }), 'Patch things up to pick up where you left off.')
   assert.equal(apartHint({ ...base, stage: 'ended', ladder: 'friendship' }), 'Make up to pick up where you left off.')
 })

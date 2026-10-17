@@ -51,7 +51,7 @@ export function Steps({ name }: { name: string }) {
       <StepsSoFar view={view} name={name} />
       <Wedding name={name} />
       {view.can_fall && (
-        <Toggle label="Just friends" checked={view.just_friends} onChange={(just_friends) => void save({ just_friends })}
+        <Toggle label="Just friends" checked={view.just_friends} disabled={apart} onChange={(just_friends) => void save({ just_friends })}
           hint={`On: ${who} stays a friend. Off: a close friend can fall for you now and then, if Friends can fall for you is on in Settings > Realism.`} />
       )}
       {error && <Notice tone="error">{error}</Notice>}
