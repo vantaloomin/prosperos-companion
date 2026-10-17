@@ -973,7 +973,11 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     from companion.life import moving_in
     moving = moving_in.view(connection, companion, now, show_odds)
     if moving and moving['joins'] and moving['status'] != 'moved' and found['step'] == 'moving_in':
-        found = {**found, 'text': not_moved_text(found['text'], moving['status'])}
+        # Not living together until moving day: the panel stands at the step before (picking Living together moves
+        # them in now, companion/life/moving_in.py `move_in_now`).
+        before = ROMANCE[index_of('romance', 'moving_in') - 1]
+        found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
+                 'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
     return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
             'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],

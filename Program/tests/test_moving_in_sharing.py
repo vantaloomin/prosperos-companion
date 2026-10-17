@@ -286,3 +286,23 @@ def test_the_newcomers_page_waits_for_moving_day_and_shows_who_holds_it_up(clien
         other = optional(connection, "SELECT id FROM consequences WHERE timeline_id=(SELECT active_timeline_id FROM "
                          "companions WHERE id=?) AND choice='moving_in:where'", (mira_id,))
     assert client.get(f"/api/life/consequences/{other['id']}").status_code == 404
+
+
+def test_until_moving_day_the_panel_stands_at_the_key_and_living_together_moves_them_in(client, provider, clock,
+                                                                                         monkeypatch):
+    """Iris's review: "Where things stand" shows A key to their place while the move waits; picking Living together
+    there is the user's override, and they move in today."""
+    rolls(monkeypatch, set())
+    living_with_mira(client, provider, clock, monkeypatch)
+    mira_id, theo_id = current_id(client), theo(client)
+    rolls(monkeypatch, {mira_id})
+    theo_moves_in(client, theo_id)
+    assert client.post('/api/companion/cast/focus', json={'companion_id': theo_id}).status_code == 200
+    view = client.get('/api/life/steps').json()
+    assert (view['step'], view['next']) == ('key', 'moving_in')
+    assert [item['step'] for item in view['steps']][-1] == 'moving_in'  # Still listed, muted on the page.
+    view = client.put('/api/life/steps', json={'step': 'moving_in'}).json()
+    assert view['step'] == 'moving_in' and view['moving_in']['status'] == 'moved'
+    assert view['moving_in']['with'] == ['Mira'] and view['text'].endswith(', living together')
+    with client.app.state.database.connect() as connection:
+        assert all(share['open'] for share in many(connection, 'SELECT open FROM moving_in_shares'))
