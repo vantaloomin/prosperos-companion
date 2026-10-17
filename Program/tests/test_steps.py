@@ -371,3 +371,110 @@ def test_each_reason_sits_under_the_answer_it_moved():
     assert apart[0]['reasons'] == ["Mira doesn't feel close enough yet"] and apart[0]['odds'] < plain[0]['odds']
     assert apart[1]['reasons'] == []
     assert apart[0]['moves'] == ['less'], 'Today says "Less likely because Mira doesn\'t feel close enough yet"'
+
+
+# The user's other romances (E2E v0.13 N2): "you only see each other" only when it is true for that companion ----------
+
+def add_romance(client, name, created_at=None, **values):
+    """Another romance companion, with a timeline of their own."""
+    from companion.characters import insert_version
+    from companion.database import identifier
+    from companion.models import CharacterDefinition
+    database = client.app.state.database
+    created_at = created_at or database.now()
+    with database.connect(write=True) as connection:
+        other, timeline = identifier(), identifier()
+        connection.execute('INSERT INTO companions (id, slot, stepped_back_at, created_at) VALUES (?, NULL, ?, ?)',
+                           (other, created_at, created_at))
+        connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
+                           (timeline, other, created_at))
+        version = insert_version(connection, other, 1, CharacterDefinition(
+            name=name, personality='Easygoing.', timezone='UTC', relationship='romance', **values), '', created_at)
+        connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',
+                           (version, timeline, other))
+    return other, timeline
+
+
+def standing(client, group=None) -> str:
+    from companion.memory import context
+    database = client.app.state.database
+    with database.connect() as connection:
+        companion = current(connection)
+        if group is not None:
+            built = context.build(connection, companion, database.clock.now(), 24000, group=group)
+            return next(line for line in (built['system'] + built['note']).split('\n') if 'Keep to where things' in line)
+        return steps.context_lines(connection, companion, database.clock.now(), set())[0][1]
+
+
+@pytest.fixture
+def minds(monkeypatch):
+    """Rough patches on ("Exclusive minds"), every roll landing on a rough patch."""
+    from companion.life import rough_patches
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+    return rough_patches
+
+
+def test_alone_they_are_a_couple_and_say_so_plainly(client, monkeypatch):
+    make(client, monkeypatch)
+    client.put('/api/life/steps', json={'step': 'exclusive'})
+    line = standing(client)
+    assert 'You are exclusive: you are a couple and only see each other. If the user asks what you are, say so ' \
+           'plainly.' in line
+
+
+def test_other_romances_they_have_not_found_out_about_yet(client, monkeypatch, minds):
+    make(client, monkeypatch)
+    client.put('/api/life/steps', json={'step': 'exclusive'})
+    add_romance(client, 'Theo Park')
+    line = standing(client)
+    assert 'as far as you know the user sees only you' in line and 'only see each other' not in line
+    with client.app.state.database.connect(write=True) as connection:  # The daily pass: they find out, and it hurts.
+        minds.seen_with_others(connection, current(connection), client.app.state.database.clock.now())
+    line = standing(client)
+    assert 'You are a couple. If the user asks what you are, say so plainly.' in line
+    assert 'You found out on 5 October 2026 that the user is also seeing Theo, and it hurts.' in line
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE rough_patches SET mended_at=?, mended_by='apology'", (client.app.state.database.now(),))
+    assert 'You found out on 5 October 2026 that the user is also seeing Theo; you have come to terms with it.' \
+        in standing(client)
+
+
+def test_other_romances_they_knew_of_before_the_app_started_them_out_exclusive(client, monkeypatch, minds):
+    add_romance(client, 'Theo Park', '2026-01-01T00:00:00+00:00')
+    make(client, monkeypatch, history_together='We have been dating for a year.')
+    line = standing(client)
+    assert 'The user was already seeing Theo when you two became a couple; you have known all along' in line
+    assert 'only' not in line.split('Keep to')[0]
+
+
+def test_an_open_relationship_an_easy_life_and_a_shared_home(client, monkeypatch, minds):
+    make(client, monkeypatch, interests=['open relationships'])
+    client.put('/api/life/steps', json={'step': 'love'})
+    other, timeline = add_romance(client, 'Theo Park')
+    line = standing(client)
+    assert 'You are a couple and you have both said "I love you".' in line
+    assert 'Your relationship with the user is open: the user is also seeing Theo, and you know.' in line
+    with client.app.state.database.connect(write=True) as connection:
+        version = current(connection)['active_version_id']
+        connection.execute("UPDATE character_versions SET definition=json_set(definition, '$.interests', json('[]')) "
+                           'WHERE id=?', (version,))
+    set_life(client, rough_patches_realism=1)
+    assert 'The user is also seeing Theo; you know, and it does not bother you.' in standing(client)
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        for timeline_id in (current(connection)['active_timeline_id'], timeline):
+            connection.execute("INSERT INTO moving_in (id, timeline_id, plan, status, city_id, decided_on, moved_on, "
+                               "created_at) VALUES (?, ?, 'yours', 'moved', 'baltimore', '2026-09-01', '2026-09-20', ?)",
+                               (f'home-{timeline_id}', timeline_id, database.now()))
+    assert 'Theo also lives with you and the user: the user is with Theo too, and you all know it.' in standing(client)
+
+
+def test_an_ex_is_not_another_romance_and_a_group_chat_reads_the_same_line(client, monkeypatch, minds):
+    make(client, monkeypatch)
+    client.put('/api/life/steps', json={'step': 'exclusive'})
+    other, _timeline = add_romance(client, 'Theo Park')
+    group = {'older': [], 'query': '', 'lines': [], 'previous': None}
+    assert 'as far as you know the user sees only you' in standing(client, group)
+    monkeypatch.setattr(steps, 'apart', lambda _connection, companion: 'ended' if companion['id'] == other else None)
+    assert 'you are a couple and only see each other' in standing(client)

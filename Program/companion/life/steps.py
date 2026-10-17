@@ -86,7 +86,8 @@ ROMANCE = (
     Step('dating', 'Dating', 'dating', 'started dating', 'dating', (0, 0, 0), 1, False,
          'You are dating: it is still early. You are not exclusive yet and neither of you has said "I love you".'),
     Step('exclusive', 'Exclusive', 'exclusive', 'became exclusive', 'being exclusive', (75, 35, 14), 2, True,
-         'You are exclusive: you only see each other. Neither of you has said "I love you" yet.'),
+         'You are exclusive: you are a couple and only see each other. If the user asks what you are, say so plainly. '
+         'Neither of you has said "I love you" yet.'),
     Step('love', 'Said I love you', 'in love', 'said "I love you"', 'saying "I love you"', (90, 45, 21), 3, True,
          'You are exclusive and you have both said "I love you". The user has not met your family and friends yet.'),
     Step('their_people', 'Met their people', 'met their people', 'met each other\'s people', 'meeting your people',
@@ -415,17 +416,99 @@ def long_date(day: str) -> str:
     return f'{found.day} {found:%B %Y}'
 
 
-def context_line(found: dict) -> str:
-    """Where things stand, for the chat context: the step, how long, and what has not happened yet."""
+def context_line(found: dict, others: tuple[str, str] = ('alone', '')) -> str:
+    """Where things stand, for the chat context: the step, how long, and what has not happened yet. `others` is what
+    they know of the user's other romances (`others_known`)."""
     step = step_of(found['ladder'], found['step'])
+    kind, sentence = others
+    line = SHARED_LINES.get(step.key, {}).get(kind, step.line) + (f' {sentence}' if sentence else '')
     whose = 'Together' if found['ladder'] == 'romance' else 'Friends'
     dated = [item for item in found['steps'] if item['how'] != 'history']
     since = f" {whose} since {long_date(found['since'])}." if dated and dated[0]['step'] == found['steps'][0]['step'] else ''
     latest = found['steps'][-1]
     if len(found['steps']) > 1 and latest['how'] not in ('history', 'start'):
         since += f" You {step.did} on {long_date(latest['on'])}."
-    return (f'- {step.line}{since} Keep to where things stand: do not act further along than this, and do not bring up '
+    return (f'- {line}{since} Keep to where things stand: do not act further along than this, and do not bring up '
             'a next step yourself unless a line here says you do.')
+
+
+# The user's other romances (E2E v0.13 N2, Vanta: "It should be more granular"): the user can date several companions
+# at once, so "you only see each other" is said only when it is true. What each companion knows of the others comes
+# from what the app already decided: they live under one roof, the companion's own open relationship, the others were
+# already there when the app started the pair out exclusive, the "Exclusive minds" roll (rough_patches.seeing_someone)
+# found them out, or an easy life, where nobody minds. Otherwise they don't know yet: "as far as you know".
+SHARED_LINES = {
+    'exclusive': {'unknown': 'You are exclusive: you are a couple, and as far as you know the user sees only you. If '
+                             'the user asks what you are, say so plainly. Neither of you has said "I love you" yet.',
+                  'known': 'You are a couple. If the user asks what you are, say so plainly. Neither of you has said '
+                           '"I love you" yet.'},
+    'love': {'unknown': 'You are exclusive and you have both said "I love you"; as far as you know, the user sees only '
+                        'you. The user has not met your family and friends yet.',
+             'known': 'You are a couple and you have both said "I love you". The user has not met your family and '
+                      'friends yet.'},
+}
+KNOWN = {
+    'home': '{names} also {live} with you and the user: the user is with {names} too, and you all know it.',
+    'open': 'Your relationship with the user is open: the user is also seeing {names}, and you know.',
+    'before': 'The user was already seeing {names} when you two became a couple; you have known all along and are '
+              'fine with it.',
+    'easy': 'The user is also seeing {names}; you know, and it does not bother you.',
+    'hurt': 'You found out on {on} that the user is also seeing {names}, and it hurts.',
+    'settled': 'You found out on {on} that the user is also seeing {names}; you have come to terms with it.',
+}
+
+
+def other_romances(connection, companion: dict, now, since: str = '') -> list[dict]:
+    """The user's other romance companions made at or after `since` (an ex is not someone the user is seeing)."""
+    from companion.characters import by_id
+    result = []
+    for row in many(connection, 'SELECT id FROM companions WHERE id<>? AND created_at>=? ORDER BY created_at',
+                    (companion['id'], since)):
+        other = by_id(connection, row['id'])
+        found = state(connection, other, now, write=False) if other else None
+        if found and found['ladder'] == 'romance' and apart(connection, other) != 'ended':
+            result.append(other)
+    return result
+
+
+def how_known(connection, companion: dict, other: dict, now) -> tuple[str, str]:
+    """(kind, day) for what this companion knows of the user seeing `other`: a KNOWN key, or 'unknown'."""
+    from companion.life import love_life, moving_in, rough_patches
+    home, theirs = moving_in.living(connection, companion), moving_in.living(connection, other)
+    if home and theirs and home['city_id'] == theirs['city_id']:
+        return 'home', ''
+    if love_life.is_open(companion['version']['definition']):
+        return 'open', ''
+    row = optional(connection, 'SELECT * FROM rough_patches WHERE subject=?', (f"seeing:{companion['id']}:{other['id']}",))
+    if row:
+        lvl = rough_patches.level(connection)
+        hurt = rough_patches.still_open(connection, row, lvl, now, companion)
+        return ('hurt' if hurt else 'settled'), row['started_on']
+    if rough_patches.level(connection) < 2:
+        return 'easy', ''
+    since = rough_patches.known_since(connection, companion, now)
+    return ('before', '') if since and other['created_at'] < since else ('unknown', '')
+
+
+def others_known(connection, companion: dict, found: dict, now) -> tuple[str, str]:
+    """('alone' | 'unknown' | 'known', the sentence saying who they know about) for an exclusive pair or further."""
+    if found['ladder'] != 'romance' or index_of('romance', found['step']) < 1:
+        return 'alone', ''
+    others = other_romances(connection, companion, now)
+    if not others:
+        return 'alone', ''
+    groups: dict[tuple[str, str], list[str]] = {}
+    for other in others:
+        groups.setdefault(how_known(connection, companion, other, now), []).append(
+            other['version']['definition']['name'].split()[0])
+    sentences = [KNOWN[kind].format(names=names_text(names), on=long_date(day) if day else '',
+                                    live='live' if len(names) > 1 else 'lives')
+                 for (kind, day), names in groups.items() if kind != 'unknown']
+    return ('known', ' '.join(sentences)) if sentences else ('unknown', '')
+
+
+def names_text(names: list[str]) -> str:
+    return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
 
 
 # The companion brings up the next step ----------------------------------------------------------------------------------
@@ -895,7 +978,8 @@ def context_lines(connection, companion: dict, now, turn: set[str]) -> list[tupl
     found = state(connection, companion, now, write=False)
     if found is None or apart(connection, companion) == 'ended':
         return []  # Exes: the 'breakup' section says where they stand (companion/life/breakups.py).
-    result = [(f"steps:{found['ladder']}:{found['step']}", context_line(found))]
+    others = others_known(connection, companion, found, now)
+    result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}", context_line(found, others))]
     for row in asks(connection, companion['active_timeline_id'], ('open',)):
         if row['message_id'] and row['answer_id'] is None:
             result.append((f"step-ask:{row['id']}:open", '- ' + WAITING.format(

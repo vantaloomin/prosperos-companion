@@ -67,7 +67,7 @@ from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
 from companion.memory.hybrid_recall import hybrid_hits
-from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
+from companion.memory.records import OPEN_PLANS, blocked_messages, eligible, told
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
 from companion.world import intimacy, looks, newcomers, perception, personality
@@ -892,7 +892,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     latest message (`query`), and its `lines` are the group section.
     """
     timeline_id, version = companion['active_timeline_id'], companion['version']
-    groups = partition(eligible(connection, companion, timeline_id, stamp(now)))
+    groups = partition(told(eligible(connection, companion, timeline_id, stamp(now)), companion))
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     start = window_start(len(messages))
     recent, older = messages[start:], messages[:start]
@@ -997,7 +997,7 @@ def looked_back(connection, companion, now: datetime, query: str, until_seq: int
     """What a second look through memory finds for the words the companion asked about (memory/look_back.py):
     the same eligible pool as the reply's own recall, less what the reply was already given."""
     timeline_id = companion['active_timeline_id']
-    recallable = partition(eligible(connection, companion, timeline_id, stamp(now)))['recallable']
+    recallable = partition(told(eligible(connection, companion, timeline_id, stamp(now)), companion))['recallable']
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     older = messages[:window_start(len(messages))]
     summaries = usable_summaries(connection, timeline_id, excluded_sources(connection, companion['id']))

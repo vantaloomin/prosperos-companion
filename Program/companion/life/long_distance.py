@@ -521,6 +521,17 @@ def news_due(connection, companion: dict, now: datetime) -> list:
 
 # --- Afterwards ---------------------------------------------------------------------------------------------------
 
+def stay_text(trip: dict, companion: dict) -> dict:
+    """{subject, value} of the memory a visit leaves, as the user reads it on Memories and the scrapbook ("Mira came to
+    stay with you in Baltimore"); the companion reads it the other way round (records.as_told)."""
+    name, city = companion['version']['definition']['name'].split()[0], trip['city_name']
+    start, end = date.fromisoformat(trip['start_date']), date.fromisoformat(trip['end_date'])
+    span = f'{start:%A %B} {start.day} to {end:%A %B} {end.day}'
+    if trip['visit'] == TO_YOU:
+        return {'subject': f"{name}'s visit to {city}", 'value': f'{name} came to stay with you in {city}, {span}.'}
+    return {'subject': f'Staying with {name} in {city}', 'value': f'You came to stay with {name} in {city}, {span}.'}
+
+
 def finish_due(connection, companion: dict, now: datetime) -> int:
     """Visits that are over, kept as a shared memory. Cheap: no model."""
     from companion.memory import records
@@ -528,11 +539,7 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
     rows = many(connection, "SELECT * FROM trips WHERE timeline_id=? AND visit!='' AND status='planned' AND "
                 'memory_id IS NULL AND end_date<?', (companion['active_timeline_id'], today))
     for trip in rows:
-        subject = f"You stayed with the user in {trip['city_name']}" if trip['visit'] == TO_YOU else \
-            f"The user came to stay with you in {trip['city_name']}"
-        start, end = date.fromisoformat(trip['start_date']), date.fromisoformat(trip['end_date'])
-        fields = {'subject': subject, 'value': f'{subject}, {start:%A %B} {start.day} to {end:%A %B} {end.day}.',
-                  'layer': 'shared_experience', 'stated_at': stamp(now), 'applies_from': None, 'applies_until': None}
+        fields = {**stay_text(trip, companion), 'layer': 'shared_experience', 'stated_at': stamp(now), 'applies_from': None, 'applies_until': None}
         memory, _created = records.insert(connection, companion, fields, now=stamp(now), origin='automatic')
         connection.execute('UPDATE trips SET memory_id=? WHERE id=?', (memory['id'], trip['id']))
     return len(rows)

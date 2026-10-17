@@ -3,6 +3,8 @@
 Every change advances the workspace memory revision so in-flight replies built from an older
 revision are withheld instead of reaching the active conversation (M9).
 """
+import re
+
 from companion import pictures
 from companion.characters import by_id, for_timeline, require_current
 from companion.clock import parse, stamp
@@ -367,6 +369,35 @@ def eligible(connection, companion, timeline_id, now) -> list[dict]:
         elif row['layer'] != 'temporary' and ended(row, now):
             found.append(with_sources(connection, row) | {'historical': True})
     return found
+
+
+def told(memories: list[dict], companion: dict) -> list[dict]:
+    """Memories as the companion reads them in the chat context and first texts (`as_told`)."""
+    name = ((companion.get('version') or {}).get('definition') or {}).get('name', '').split(' ')[0]
+    return [as_told(memory, name) for memory in memories]
+
+
+def as_told(row: dict, name: str) -> dict:
+    """A memory the app wrote about something the two of them did, as the companion reads it. The app writes those for
+    the user, who reads them on Memories and the scrapbook: "you" is the user and the companion goes by their first
+    name ("Mira came over to your place", companion/life/outings.py). Told to the companion it turns round: "You came
+    over to the user's place". Only memories that name them: older ones were written the companion's way already."""
+    if not name or row.get('layer') != 'shared_experience' or row.get('origin') != 'automatic' or \
+            not re.search(rf'\b{re.escape(name)}\b', f"{row['subject']} {row['value']}") or 'the user' in row['value']:
+        return row
+    return {**row, 'subject': turned(row['subject'], name), 'value': turned(row['value'], name)}
+
+
+TURNS = ((r"\byour\b", "the user's"), (r'\byou\b', 'the user'))
+
+
+def turned(text: str, name: str) -> str:
+    """'Mira came over to your place' to Mira: 'You came over to the user's place'."""
+    for said, told in TURNS:
+        text = re.sub(said, told, text, flags=re.IGNORECASE)
+    text = re.sub(rf"\b{re.escape(name)}'s\b", 'your', text)
+    text = re.sub(rf'\b{re.escape(name)}\b', 'you', text)
+    return text[:1].upper() + text[1:]
 
 
 def blocked_messages(connection, companion_id) -> set[str]:

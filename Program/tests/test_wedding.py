@@ -249,7 +249,7 @@ def test_the_wedding_day_makes_them_married(client, clock, provider):
         memory = optional(connection, "SELECT * FROM memories WHERE subject='Your wedding'")
     assert page['kind'] == 'wedding' and page['items']
     assert any(item['key'].endswith(':married') for item in items)
-    assert memory is not None
+    assert memory is not None and memory['value'].startswith('Got married at ')  # Not "You married the user".
     assert paper.title(data)
 
 

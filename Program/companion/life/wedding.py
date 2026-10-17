@@ -828,7 +828,7 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None) -> st
 
 def memory_text(outing: dict) -> dict:
     day = date.fromisoformat(outing['local_date'])
-    return {'subject': 'Your wedding', 'value': f"You married the user at {outing['place']['name']} on "
+    return {'subject': 'Your wedding', 'value': f"Got married at {outing['place']['name']} on "
                                                 f"{day:%A, %B} {day.day}, {day.year}."}
 
 
