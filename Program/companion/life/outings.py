@@ -847,8 +847,9 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
                 result.append((f"outing:{outing['id']}:booked",
                                booked_line(outing, holding_for(connection, companion, outing))))
         elif now - window(outing, version['timezone'])[1] < RECENT and outing['activity'] == 'wedding':
+            when = 'Earlier today' if outing['local_date'] == today.isoformat() else 'Yesterday'  # Past midnight.
             result.append((f"outing:{outing['id']}:done",
-                           f"- Earlier today you and the user got married at {outing['place']['name']}; the wedding "
+                           f"- {when} you and the user got married at {outing['place']['name']}; the wedding "
                            'is over now.'))
         elif now - window(outing, version['timezone'])[1] < RECENT:
             paid = money_text(companion, outing)
