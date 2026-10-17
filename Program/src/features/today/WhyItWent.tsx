@@ -6,12 +6,13 @@ import type { Consequence, ReasonMove } from '../../types'
 import { storyDate } from './storyText'
 
 /** "Why it went this way": each way a turning could have gone, its odds and what moved them, and a way to make
- * it go another way. Loads only when opened, and shows only with Hidden values > odds turned on. */
-export function WhyItWent({ id, possibleOnly = false }: { id: string; possibleOnly?: boolean }) {
-  return useWorkspaceSettings().data?.show_odds === true ? <Odds id={id} possibleOnly={possibleOnly} /> : null
+ * it go another way. Loads only when opened, and shows only with Hidden values > odds turned on. `settled` when it can't
+ * be changed any more (they already moved in): the odds without the buttons. */
+export function WhyItWent({ id, possibleOnly = false, settled = false }: { id: string; possibleOnly?: boolean; settled?: boolean }) {
+  return useWorkspaceSettings().data?.show_odds === true ? <Odds id={id} possibleOnly={possibleOnly} settled={settled} /> : null
 }
 
-function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
+function Odds({ id, possibleOnly, settled }: { id: string; possibleOnly: boolean; settled: boolean }) {
   const [open, setOpen] = useState(false)
   const [failed, setFailed] = useState('')
   const client = useQueryClient()
@@ -41,12 +42,13 @@ function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
                   {item.option === outcome.data.picked && <span className="subtle"> (what happened)</span>}
                 </p>
                 <Reasons reasons={item.reasons} moves={item.moves} />
-                {item.option !== outcome.data.picked && !(possibleOnly && item.odds === 0) && (
+                {item.option !== outcome.data.picked && !settled && !(possibleOnly && item.odds === 0) && (
                   <button type="button" className="text-button" onClick={() => void change(item.option)}>Make it go this way</button>
                 )}
               </li>
             ))}
           </ul>
+          {settled && <p className="subtle">Already happened, so this one can't be changed.</p>}
           {outcome.data.marks.length > 0 && (
             <>
               <p className="subtle marks-lead">What it left, for a while:</p>

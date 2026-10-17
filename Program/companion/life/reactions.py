@@ -97,20 +97,21 @@ def daily(connection, companion: dict, now) -> int:
         said = user_messages(connection, companion['active_timeline_id'], day, timezone)
         for plan in agreed_plans(connection, companion, day):
             if not said:
-                react(connection, companion, 'user:missed_plan', f"plan:{plan['id']}", {'plan': plan['value']},
-                      day.isoformat(), now)
+                # Today shows the plan by its name ("Visit from Jo"): its words can say "tomorrow" (E2E v0.13).
+                react(connection, companion, 'user:missed_plan', f"plan:{plan['id']}",
+                      {'plan': plan['value'], 'plan_shown': plan['subject']}, day.isoformat(), now)
                 rough_patches().consider(connection, companion, 'missed_plan', f"plan:{plan['id']}",
                                          f"the plan ({plan['value']}) came and went without a word from the user", now,
-                                         shown=f"over the plan ({plan['value']}) passing without a word")
+                                         shown=f"over the plan ({plan['subject']}) passing without a word")
                 found += 1
         what = occasion_on(connection, companion, day, timezone)
         if what and said and not any(MENTIONS.search(text) for text in said):
-            react(connection, companion, 'user:forgot_occasion', f"occasion:{companion['active_timeline_id']}:{day.isoformat()}", {'occasion': what},
-                  day.isoformat(), now)
+            react(connection, companion, 'user:forgot_occasion', f"occasion:{companion['active_timeline_id']}:{day.isoformat()}",
+                  {'occasion': what, 'occasion_shown': occasion_shown(what)}, day.isoformat(), now)
             rough_patches().consider(connection, companion, 'forgot_occasion',
                                      f"occasion:{companion['active_timeline_id']}:{day.isoformat()}",
                                      f'the user chatted with you on {what} without mentioning it', now,
-                                     shown=f"over you not mentioning {what.replace('your birthday', 'their birthday')}")
+                                     shown=f'over you not mentioning {occasion_shown(what)}')
             found += 1
     return found
 
@@ -133,7 +134,7 @@ def agreed_plans(connection, companion: dict, day: date) -> list[dict]:
     """Agreed plans with the user set for that day, with a sure date; not one only an old chat mentioned."""
     history = from_old_chats(connection, companion['active_timeline_id'])
     return [row for row in many(
-        connection, "SELECT id, value FROM memories WHERE timeline_id=? AND status='active' AND layer='plan' "
+        connection, "SELECT id, subject, value FROM memories WHERE timeline_id=? AND status='active' AND layer='plan' "
         "AND plan_status='agreed' AND dates_uncertain=0 AND substr(applies_from, 1, 10)=?",
         (companion['active_timeline_id'], day.isoformat())) if row['id'] not in history]
 
@@ -146,6 +147,12 @@ def occasion_on(connection, companion: dict, day: date, timezone) -> str | None:
     first = occasions.first_talk(connection, companion['active_timeline_id'], timezone)
     span = occasions.milestone(first, day) if first and day > first else None
     return f'{span} since you two first talked' if span else None
+
+
+def occasion_shown(what: str) -> str:
+    """The occasion as the user reads it on Today: 'their birthday', 'that it had been three months since you two
+    first talked'."""
+    return 'their birthday' if what == 'your birthday' else f'that it had been {what}'
 
 
 def rough_patches():
@@ -237,8 +244,9 @@ def user_what_ifs(connection, companion: dict, now) -> list[tuple[str, list[dict
     for day in (today + timedelta(days=offset) for offset in range(AHEAD + 1)):
         for plan in agreed_plans(connection, companion, day):
             found.append((f"If the plan ({plan['value']}) on {day.isoformat()} passed without a word from the user",
-                          what_if(companion, 'user:missed_plan', {'plan': plan['value']})))
+                          what_if(companion, 'user:missed_plan', {'plan': plan['value'], 'plan_shown': plan['subject']})))
         if what := occasion_on(connection, companion, day, timezone):
             found.append((f"If the user chatted on {day.isoformat()} ({what}) without mentioning it",
-                          what_if(companion, 'user:forgot_occasion', {'occasion': what})))
+                          what_if(companion, 'user:forgot_occasion', {'occasion': what,
+                                                                      'occasion_shown': occasion_shown(what)})))
     return found

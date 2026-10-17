@@ -85,9 +85,12 @@ MINDS = {'words': r'sensitive|thin[- ]skinned|insecure|proud|need|lonely|sulk',
 STINGS = re.compile(r"\b(?:shut up|go away|leave me alone|you'?re (?:so )?(?:annoying|useless|boring|pathetic|"
                     r"stupid|dumb|an idiot)|you (?:idiot|loser)|i hate you|(?:you|you'?re) (?:are )?(?:so )?"
                     r"(?:selfish|clingy|exhausting))\b", re.IGNORECASE)
-NEGATED = re.compile(r"\b(?:not|never|no|don'?t|didn'?t|isn'?t|wasn'?t|won'?t|n't)\b[\w' ]{0,12}$", re.IGNORECASE)
+NEGATED = re.compile(r"\b(?:not|never|no way|don'?t|didn'?t|isn'?t|wasn'?t|won'?t|n't)\b[\w' ]{0,12}$", re.IGNORECASE)
 NOT_AN_APOLOGY = re.compile(r"\bsorry (?:if |that )?you (?:feel|think|took|see)|\bsorry not sorry|\bsorry,? but you\b",
                             re.IGNORECASE)
+# "I'm sorry to hear that": sympathy, not an apology.
+SYMPATHY = re.compile(r" (?:to hear|for your loss|(?:that|this) happened to you|you(?:'re| are) (?:going through|dealing "
+                      r"with)|you have to)\b")
 # "I'll call you tonight", "I promise I'll text you after work": a promise the app can check.
 PROMISE = re.compile(r"\b(?:i'?ll|i will|i promise(?: i'?ll| to| i will)?|i'?m (?:going to|gonna))\s+(?:call|text|"
                      r"message|ring|phone|facetime|write to|get back to)\s+(?:you|u)(?:\s+back)?\b(?P<when>[^.!?\n]{0,40})",
@@ -128,17 +131,15 @@ def says(name: str, text: str) -> bool:
     words = plain(text)
     if name == 'apologies' and NOT_AN_APOLOGY.search(words):
         return False
-    return any(not NEGATED.search(words[:found.start()]) for found in pattern(name).finditer(words))
+    return any(not NEGATED.search(words[:found.start()]) and not (name == 'apologies' and SYMPATHY.match(words, found.end()))
+               for found in pattern(name).finditer(words))
 
 
 def stings(text: str) -> str | None:
     """The sentence of the message that stings, aimed at them, if any; jokes and negations don't count."""
-    from companion.moods import JOKING
-    for sentence in re.split(r'(?<=[.!?])\s+|\n+', text or ''):
-        found = STINGS.search(sentence)
-        if found and not JOKING.search(sentence) and not NEGATED.search(sentence[:found.start()].casefold()):
-            return sentence.strip()[:80]
-    return None
+    from companion.moods import JOKING, hurtful
+    sentence = hurtful(text, STINGS, NEGATED, skip=JOKING)
+    return sentence[:80] if sentence else None
 
 
 # Opening ------------------------------------------------------------------------------------------------------
@@ -180,7 +181,10 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
     if fault == 'user':
         known, trait = facts(connection, companion, cause, now)
         first = companion['version']['definition']['name'].split()[0]
-        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': about}
+        # The label is the user's to read on Today for weeks ("... over you calling off dinner on the day"), never the
+        # companion's words.
+        shown_about = re.sub(r' today$', ' on the day', shown.removeprefix('over '))
+        names = {'name': first, 'a': 'someone', 'b': '', 'trait': trait, 'about': shown_about or about}
         table = consequences.tables()[CHOICE]
         outcome = consequences.decide(
             connection, timeline_id=companion['active_timeline_id'], choice=CHOICE, subject=f'patch:{subject}',
@@ -203,22 +207,42 @@ def seeing_someone(connection, companion: dict, other: str, now: datetime, subje
     """They found out you're seeing someone else once you two are exclusive (Next steps decides that, and calls
     this). Never on an easy life."""
     return consider(connection, companion, 'seeing_someone', subject or f"seeing:{companion['id']}:{other}",
-                    f'you found out the user is seeing {other} too', now, shown=f"over them finding out you're seeing {other} too")
+                    f'you found out the user is seeing {other} too', now,
+                    shown=f"over {first_name(companion)} finding out you're seeing {other} too")
+
+
+def first_name(companion: dict) -> str:
+    return companion['version']['definition']['name'].split()[0]
 
 
 def seen_with_others(connection, companion: dict, now: datetime) -> None:
     """Once this pair is exclusive (companion/life/steps.py), the user's other romances (any other companion on the
-    romance ladder) come to their notice in the next daily pass: each one rolls once (`seeing_someone`)."""
+    romance ladder that the user hasn't broken up with) come to their notice in the next daily pass: each one rolls
+    once (`seeing_someone`)."""
     from companion.characters import by_id
     from companion.life import steps
     if level(connection) < 2 or not steps.exclusive(connection, companion, now):
         return
-    for row in many(connection, 'SELECT id FROM companions WHERE id<>?', (companion['id'],)):
+    for row in many(connection, 'SELECT id FROM companions WHERE id<>? AND created_at>=?',
+                    (companion['id'], known_since(connection, companion, now))):
         other = by_id(connection, row['id'])
         found = steps.state(connection, other, now, write=False) if other else None
-        if found and found['ladder'] == 'romance':
+        # An ex (companion/life/breakups.py) is not someone the user is seeing.
+        if found and found['ladder'] == 'romance' and steps.apart(connection, other) != 'ended':
             seeing_someone(connection, companion, other['version']['name'], now,
                            subject=f"seeing:{companion['id']}:{other['id']}")
+
+
+def known_since(connection, companion: dict, now: datetime) -> str:
+    """When this pair became exclusive as far as the others go. A pair the app started out exclusive (an upgrade from
+    before Next steps, or a companion who starts close) already lived alongside the user's other romances then, so only
+    companions who came along afterwards are news; a step reached later minds everyone."""
+    row = optional(connection, "SELECT created_at, how FROM relationship_steps WHERE timeline_id=? AND other='user' AND "
+                   "ladder='romance' AND step='exclusive' AND undone_at IS NULL ORDER BY created_at DESC LIMIT 1",
+                   (companion['active_timeline_id'],))
+    if row is None:  # Not written yet: the app starts them now.
+        return stamp(now)
+    return row['created_at'] if row['how'] in ('start', 'history') else ''
 
 
 def friction(connection, companion: dict, cause: str, subject: str, about: str, now: datetime,
@@ -259,12 +283,19 @@ def quoted(sentence: str, limit: int = 60) -> str:
     return sentence if len(sentence) <= limit else sentence[:limit - 1].rstrip() + '…'
 
 
+# Outings named by what they are ("drinks at The Owl"); others are "the plan at ...".
+PLAIN_PLANS = ('dinner', 'lunch-out', 'coffee', 'drinks', 'show', 'museum', 'walk', 'market')
+
+
 def plan_name(outing: dict) -> str:
     """The plan as the user would name it: 'the visit', 'dinner at Lupa'."""
     if outing['activity'] in ('visit-in', 'visit-yours'):
         return 'the visit'
     if outing['activity'] in ('dinner-in', 'dinner-yours'):
         return 'dinner'
+    if outing['activity'] in PLAIN_PLANS:
+        from companion.life import outings
+        return f"{outings.ACTIVITIES[outing['activity']][5]} at {outing['place']['name']}"
     return f"the plan at {outing['place']['name']}"
 
 
@@ -278,6 +309,7 @@ def note(connection, message: dict, companion: dict, now: datetime):
     text = message['text'] or ''
     lapsed(connection, companion, now)
     if sentence := stings(text):
+        sentence = sentence.rstrip('.')  # Quoted mid-sentence: 'over what you said: "go away".'
         consider(connection, companion, 'words', f"words:{message['id']}", f'the user said to you: "{sentence}"',
                  now, shown=f'over what you said: "{quoted(sentence)}"')
     promised(connection, companion, message, now)
@@ -380,8 +412,10 @@ def daily(connection, companion: dict, now: datetime):
     seen_with_others(connection, companion, now)
     lvl = level(connection)
     for row in rows(connection, companion):
-        if not still_open(connection, row, lvl, now, companion):
-            mend(connection, row, 'calm', now)
+        if not still_open(connection, row, lvl, now, companion, picked=True):
+            mend(connection, row, 'calm', now)  # Faded by time, so changing it on Today no longer opens it.
+        elif not picked_open(connection, row):
+            continue  # Let go for now, but Today can still make it start.
         elif showed_up(connection, row, now):
             if row['fault'] == 'companion':
                 mend(connection, row, 'gesture', now)
@@ -421,10 +455,26 @@ def stand_ups(connection, companion: dict, now: datetime):
         dice = random.Random(f"stand-up:{outing['id']}")
         if dice.random() >= STAND_UP[lvl]:
             continue
-        reason = dice.choice(bank('stand_up_reasons'))
+        reason = dice.choice(reasons(connection, companion))
         connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE id=?", (stamp(now), outing['id']))
         consider(connection, companion, 'stood_up', subject, f'{outings.what(outing)} ({reason})', now,
                  outing_id=outing['id'], shown=f'they called off {plan_name(outing)} at the last minute')
+
+
+# Reasons that only fit some eras (data/rough_patches/stand_up_reasons.json `needs`), by the home city's era.
+ERA_NEEDS = {'jazz-age': {'motor', 'rail'}, 'victorian': {'rail'}, 'frontier': {'rail'}, 'steampunk': {'rail'},
+             'medieval': set(), 'fantasy': set()}
+
+
+def reasons(connection, companion: dict) -> list[str]:
+    """Why they might call off a plan, fitting their city's era: no car trouble in Camelot."""
+    from companion.world import newcomers
+    era = newcomers.city_for(connection, companion['version']['definition']).get('era', 'modern')
+    if era not in ERA_NEEDS:
+        return bank('stand_up_reasons')
+    needs = json.loads((catalog.DATA / 'rough_patches' / 'stand_up_reasons.json').read_text(encoding='utf-8'))['needs']
+    unfit = {reason for tag, found in needs.items() if tag not in ERA_NEEDS[era] for reason in found}
+    return [reason for reason in bank('stand_up_reasons') if reason not in unfit]
 
 
 # What is open --------------------------------------------------------------------------------------------------
@@ -441,9 +491,9 @@ def picked_open(connection, row: dict) -> bool:
     return bool(found) and found['picked'] == OPENS
 
 
-def still_open(connection, row: dict, lvl: int, now: datetime, companion: dict) -> bool:
-    """Not mended, picked to start, not taken back, and not faded by time."""
-    if row['mended_at'] or not picked_open(connection, row) or lvl == 0:
+def still_open(connection, row: dict, lvl: int, now: datetime, companion: dict, picked: bool = False) -> bool:
+    """Not mended, picked to start (or taken as `picked`), not taken back, and not faded by time."""
+    if row['mended_at'] or lvl == 0 or not (picked or picked_open(connection, row)):
         return False
     if row['cause'] in ('stood_up', 'called_off') and row['outing_id']:
         outing = optional(connection, 'SELECT status FROM outings WHERE id=?', (row['outing_id'],))
@@ -550,12 +600,17 @@ def apology_due(connection, companion: dict, now: datetime) -> list:
                         f"You let the user down: {row['about']}. You have ended it, and you feel terrible. Apologise "
                         'to the user in your own words and mean it, without excuses; give them room.',
                         seed.choice(bank('companion_confessions')))]
-    plan, _, reason = row['about'].partition(' (')
+    # The written-out text, used when the model's can't be: the plan as the user names it ("the visit", not "a visit
+    # to the user's place"), and the reason in the last brackets (a place can have its own: "Tengu (kushikatsu ...)").
+    from companion.life import outings
+    found = optional(connection, 'SELECT id FROM outings WHERE id=?', (row['outing_id'] or '',))
+    plan = plan_name(outings.get(connection, found['id'])) if found else 'our plans'
+    reason = row['about'].rpartition(' (')[2].removesuffix(')')
     template = seed.choice(bank('companion_apologies'))
     return [Trigger(f"patch:{row['id']}", 'apology',
                     f'You called off {row["about"]} at the last minute, and you feel bad. Apologise to the user in your '
                     'own words, say briefly what happened, and offer to make it up to them if it fits.',
-                    template.format(plan=plan, reason=reason.rstrip(')')))]
+                    template.format(plan=plan, reason=reason))]
 
 
 # Showing it -----------------------------------------------------------------------------------------------------
@@ -572,25 +627,30 @@ def view(connection, companion: dict, now: datetime) -> dict:
 
 
 def let_go(database, patch_id: str) -> dict:
-    """The user clears the air: this rough patch ends now."""
+    """The user clears the air: this rough patch ends now, and any other one open with them, so the page doesn't
+    turn to the next one."""
     from companion.characters import require_current
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         row = optional(connection, 'SELECT * FROM rough_patches WHERE id=? AND timeline_id=?',
                        (patch_id, companion['active_timeline_id']))
         require(row is not None, 'That rough patch is not on this timeline.', 404)
-        mend(connection, row, 'you', database.clock.now())
-        return view(connection, companion, database.clock.now())
+        now = database.clock.now()
+        for found in [row, *open_rows(connection, companion, level(connection), now)]:
+            mend(connection, found, 'you', now)
+        return view(connection, companion, now)
 
 
 def undo_let_go(database, patch_id: str) -> dict:
-    """Take back Let it go: the rough patch is open again as it was."""
+    """Take back Let it go: the rough patches it ended are open again as they were."""
     from companion.characters import require_current
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        changed = connection.execute("UPDATE rough_patches SET mended_at=NULL, mended_by=NULL WHERE id=? AND timeline_id=? "
-                                     "AND mended_by='you'", (patch_id, companion['active_timeline_id'])).rowcount
-        require(changed == 1, 'That can no longer be undone.', 409)
+        row = optional(connection, "SELECT mended_at FROM rough_patches WHERE id=? AND timeline_id=? AND mended_by='you'",
+                       (patch_id, companion['active_timeline_id']))
+        require(row is not None, 'That can no longer be undone.', 409)
+        connection.execute("UPDATE rough_patches SET mended_at=NULL, mended_by=NULL WHERE timeline_id=? AND "
+                           "mended_by='you' AND mended_at=?", (companion['active_timeline_id'], row['mended_at']))
         return view(connection, companion, database.clock.now())
 
 

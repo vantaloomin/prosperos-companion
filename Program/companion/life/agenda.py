@@ -279,9 +279,9 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         if slot.block.key in pinned:
             plan = pinned[slot.block.key]
             block = outings.marked(block, plan)
-            entry = plan and (outings.entry(plan, block, definition) if 'outing' in plan else
-                              admin.entry(plan, block, definition) if 'admin' in plan else
-                              own_plans.entry(plan, block, definition))
+            entry = None if plan and plan.get('continues') else plan and (
+                outings.entry(plan, block, definition) if 'outing' in plan else
+                admin.entry(plan, block, definition) if 'admin' in plan else own_plans.entry(plan, block, definition))
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)
             if subject == COMPANION:

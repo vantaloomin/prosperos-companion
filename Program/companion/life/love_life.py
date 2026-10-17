@@ -169,6 +169,7 @@ def new_person(connection, companion: dict, world, seed: str) -> dict:
     age = looks.age_of(definition, companion['id'])
     wanted = drawn_to(connection, companion)
     taken = {row['name'] for row in circle.people(connection, timeline_id, include_removed=True)} | {definition['name']}
+    used = first_names_in_use(connection, companion)
     person = None
     for attempt in range(24):
         here = f'{seed}:{attempt}'
@@ -180,10 +181,22 @@ def new_person(connection, companion: dict, world, seed: str) -> dict:
             person = circle.assemble(here, 0, definition, None, set(taken), 'friend')
             person['details'] |= {'pronouns': generators.pick(here, 'pronouns', sorted(wanted)), 'age': years,
                                   'local': True}
-        if person['details'].get('pronouns') in wanted:
+        if person['details'].get('pronouns') in wanted and first(person['name']) not in used:
             break
     person['details'] = person['details'] | {'love': True}
     return person
+
+
+def first_names_in_use(connection, companion: dict) -> set[str]:
+    """First names a new partner should not share, so 'you and Tyler' is never two people: theirs, the user's other
+    companions', their circle's (past people too) and their partners' (a secret one is not in the circle)."""
+    timeline_id = companion['active_timeline_id']
+    names = [row['name'] for row in circle.people(connection, timeline_id, include_removed=True)]
+    names += [row['name'] for row in many(connection, 'SELECT name FROM love_partners WHERE timeline_id=?',
+                                          (timeline_id,))]
+    names += [decode(row['definition']).get('name') or '' for row in many(
+        connection, 'SELECT v.definition FROM companions c JOIN character_versions v ON v.id=c.active_version_id')]
+    return {first(name) for name in [*names, companion['version']['definition']['name']] if name.strip()}
 
 
 def role_for(step_key: str, pronouns: str) -> str:
@@ -409,7 +422,8 @@ def secret_weeks(connection, companion: dict, found: dict, today: date, now) -> 
     week = 1
     while (day := met + timedelta(days=7 * week)) <= today:
         if random.Random(f"{found['id']}:out:{week}").random() < OUT_CHANCE:
-            comes_out(connection, companion, found, day, now)
+            # On the day the app notices (after days away, the week's roll is in the past), as the rough patch is.
+            comes_out(connection, companion, found, today, now)
             return
         if random.Random(f"{found['id']}:fizzle:{week}").random() < FIZZLE_CHANCE:
             end(connection, found, 'faded', day)
@@ -508,7 +522,7 @@ def partner_line(connection, companion: dict, found: dict, today: date) -> str:
                 f'not know. Keep it from them: never mention {them}, and if you are asked where you were, keep it '
                 'vague.')
     standing = pair_text(connection, companion, found, today).lower()
-    if definition.get('relationship') == 'romance':
+    if mode(connection, companion) == 'open':  # Not an ex of the user's (their sheet still says romance).
         feeling = ('You still feel a pang of jealousy about the user seeing other people, as your nature is.'
                    if jealous(definition) else 'Neither of you is jealous about it.')
         return (f'- You and the user have an open relationship, and you are also seeing {name}{describe(found)} '
@@ -555,10 +569,17 @@ def fresh_steps(connection, companion: dict, found: dict, today: date) -> list[t
             if row['how'] == 'them' and row['reached_on'] >= since]
 
 
+def witnessed(connection, companion: dict, since: date) -> list[dict]:
+    """Secrets this companion saw come out since a day, on the timeline the other companion lives now (a fork's copy
+    and the timeline left behind each keep a row)."""
+    return many(connection, "SELECT p.* FROM love_partners p JOIN companions c ON c.id=p.companion_id AND "
+                "c.active_timeline_id=p.timeline_id WHERE p.witness_id=? AND p.ended_how='came_out' AND p.ended_on>=?",
+                (companion['id'], since.isoformat()))
+
+
 def saw_lines(connection, companion: dict, today: date) -> list[tuple[str, str]]:
     """Small world: this companion saw someone the user is seeing out with their secret partner."""
-    rows = many(connection, "SELECT * FROM love_partners WHERE witness_id=? AND ended_how='came_out' AND ended_on>=?",
-                (companion['id'], (today - timedelta(days=TOLD_DAYS)).isoformat()))
+    rows = witnessed(connection, companion, today - timedelta(days=TOLD_DAYS))
     result = []
     for row in rows:
         other = optional(connection, 'SELECT v.name FROM companions c JOIN character_versions v ON '
@@ -633,8 +654,7 @@ def spotted_due(connection, companion: dict, now) -> list:
     if not ACTIVE or not FIRST_TEXTS:
         return []
     today = steps.local_today(companion, now)
-    rows = many(connection, "SELECT * FROM love_partners WHERE witness_id=? AND ended_how='came_out' AND ended_on>=?",
-                (companion['id'], (today - timedelta(days=FRESH_DAYS)).isoformat()))
+    rows = witnessed(connection, companion, today - timedelta(days=FRESH_DAYS))
     result = []
     for row in rows:
         other = optional(connection, 'SELECT v.name FROM companions c JOIN character_versions v ON '
@@ -760,7 +780,9 @@ def take_back(connection, found: dict, day: date, now) -> None:
 
 def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -> None:
     """A fork keeps the partners met by then, with their steps (copied by companion/timelines.py) moved to the copy's
-    own partner rows; what happened after stays with the parent."""
+    own partner rows, and the rolls made by then (so they are not rolled again, another way, in the past); what
+    happened after stays with the parent."""
+    rolled = copy_rolls(connection, f'love:{parent_id}:secret:', f'love:{new_id}:secret:', new_id, cutoff_date)
     for row in many(connection, 'SELECT * FROM love_partners WHERE timeline_id=? AND met_on<=?', (parent_id, cutoff_date)):
         new = identifier()
         ended = row['ended_on'] if row['ended_on'] and row['ended_on'] <= cutoff_date else None
@@ -770,7 +792,19 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (new, new_id, row['companion_id'], ids.get(row['person_id']), row['name'], row['details'], row['secret'],
              row['met_on'], ended, row['ended_how'] if ended else None, row['out_via'] if ended else None,
-             row['witness_id'] if ended else None, row['place'] if ended else None, row['consequence_id'],
-             row['created_at']))
+             row['witness_id'] if ended else None, row['place'] if ended else None,
+             rolled.get(row['consequence_id'], row['consequence_id']), row['created_at']))
         connection.execute('UPDATE relationship_steps SET other=? WHERE timeline_id=? AND other=?',
                            (f'love:{new}', new_id, f"love:{row['id']}"))
+        # The chapter they met in (copied before this) undoes the copy's partner, not the parent's.
+        connection.execute('UPDATE life_chapters SET undo=REPLACE(undo, ?, ?) WHERE timeline_id=?',
+                           (row['id'], new, new_id))
+        copy_rolls(connection, f"love:{row['id']}:", f'love:{new}:', new_id, cutoff_date)
+
+
+def copy_rolls(connection, prefix: str, new_prefix: str, new_id: str, cutoff_date: str) -> dict[str, str]:
+    """The love:* outcomes decided by the fork, onto the copy under its own subjects: {old id: copy's id}."""
+    rows = many(connection, 'SELECT id, subject FROM consequences WHERE subject LIKE ? AND decided_on<=?',
+                (f'{prefix}%', cutoff_date))
+    return {row['id']: consequences.copy(connection, row['id'], new_id, new_prefix + row['subject'][len(prefix):])
+            for row in rows}

@@ -62,3 +62,11 @@ export function mendedText(view: BreakupView): string {
 
 /** The Breakups switch's hint, Settings > Realism > Love and friendship. */
 export const BREAKUPS_HINT = 'When rough patches drag on, things can get strained, then they may think about a break, ask for one, and after it end things. A friendship can fall out. You see the warnings first, and you can talk them around at every step. Always off on Easy.'
+
+/** The "Where things stand" hint while apart: a break picks up where it left off; after a breakup a couple starts
+ * again from a key to each other's place (companion/life/breakups.py `back_together`). */
+export function apartHint(view: BreakupView | undefined): string {
+  if (!view || !isApart(view)) return ''
+  if (view.stage === 'ended' && view.ladder === 'romance') return 'Get back together to start again from “A key to their place.”'
+  return view.stage === 'ended' ? 'Make up to pick up where you left off.' : 'Patch things up to pick up where you left off.'
+}

@@ -562,7 +562,7 @@ def touch(connection, timeline_id: str, subject: str, entry: dict | None, block:
 
 
 def swappable(entry: dict | None, block: dict) -> bool:
-    if block.get('kind') not in OPEN_BLOCKS:
+    if block.get('kind') not in OPEN_BLOCKS or block.get('with_user'):
         return False
     if entry is None:
         return True

@@ -171,8 +171,8 @@ def advance(connection, companion: dict, now: datetime) -> None:
     follow(connection, companion, now)
     drift(connection, companion, now)
     found = steps.state(connection, companion, now, write=False)
-    if found is None:
-        return
+    if found is None or steps.apart(connection, companion):
+        return  # Nothing new on a break or once it has ended (companion/life/breakups.py).
     if found['ladder'] == 'romance':
         plan_for_step(connection, companion, found, now)
     elif steps.index_of('friendship', found['step']) >= steps.index_of('friendship', 'best_friends'):
@@ -299,17 +299,27 @@ def meet_due(connection, companion: dict, now: datetime) -> list:
         return []
     activity, day, at, place, people = found
     words = their_words_for_place(place, people)
-    names = people_text(people, yours=False)
     who = people_text(people)
     thing = 'dinner' if activity == AT_FAMILY else 'drinks'
     first_time = row['why'] == 'step'
     reason = (f"You've arranged for the user to {'meet' if first_time else 'come out with'} {who}: {thing} at "
-              f"{words} on {day:%A} at {at}. Tell them in your own words, naming who will be there, the place, the day "
-              f"and the time{', a little nervous and happy about it' if first_time else ''}.")
-    template = agree(random.Random(f"{row['id']}:line").choice(bank()[row['kind']]), len(people) == 1).format(
-        people=names, day=f'{day:%A}', time=clock_text(at), place=words)
+              f"{words} on {day:%A} {day.day} {day:%B} at {at}. Tell them in your own words, naming who will be there, "
+              f"the place, the day and the time{', a little nervous and happy about it' if first_time else ''}.")
+    template = invitation(row, people, day, local.date(), clock_text(at), words)
     return [Trigger(f"meet:{row['id']}", 'meet_people', reason, template,
                     (row['id'], activity, day.isoformat(), at, place['id'], ','.join(person['id'] for person in people)))]
+
+
+def invitation(row: dict, people: list[dict], day: date, today: date, time: str, words: str) -> str:
+    """The invitation from the bank. A week or more away it is "next Saturday", or a Saturday invitation for the
+    Saturday after reads as today."""
+    lines = bank()[row['kind']]
+    far = (day - today).days >= 7
+    if far:
+        lines = [line for line in lines if 'this {day}' not in line.lower()]
+    text = agree(random.Random(f"{row['id']}:line").choice(lines), len(people) == 1).format(
+        people=people_text(people, yours=False), day=f"{'next ' if far else ''}{day:%A}", time=time, place=words)
+    return text[:1].upper() + text[1:]
 
 
 # A verb right after {people} in a line from the bank, said for one person.
@@ -424,12 +434,18 @@ def impress(connection, companion: dict, person: dict, meetup_id: str | None, no
 def follow(connection, companion: dict, now: datetime) -> None:
     """Meet-ups follow their outings: over (everyone at it has now met the user), called off (planned once more,
     a few weeks on), or a planned one that could not go out in all this time (dropped)."""
+    from companion.life import long_distance
     timeline_id = companion['active_timeline_id']
     today = local_today(companion, now)
     timestamp = stamp(now)
+    far = None
     for row in meetups(connection, timeline_id, ('planned', 'booked')):
         if row['status'] == 'planned':
-            if (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
+            far = far if far is not None else bool(long_distance.far(connection, companion))
+            if far and row['due_on'] < today.isoformat():
+                # Living apart it waits until they live in one city (meet_due), so it never lapses meanwhile.
+                connection.execute('UPDATE people_meetups SET due_on=? WHERE id=?', (today.isoformat(), row['id']))
+            elif (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
                 connection.execute("UPDATE people_meetups SET status='dropped', settled_at=? WHERE id=?",
                                    (timestamp, row['id']))
             continue

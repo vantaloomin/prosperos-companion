@@ -87,6 +87,8 @@ test('living together, the strip says home together or out, with the way to swit
   assert.deepEqual(homeLine(home, 'Mira'), { lead: 'Home together with Mira', action: 'out', label: 'Heading out' })
   assert.deepEqual(homeLine({ ...home, state: 'apart', kind: 'apart', home: { status: 'out' } }, 'Mira'),
     { lead: "You're out. Mira's at home.", action: 'home', label: "I'm home" })
+  assert.equal(homeLine({ ...home, state: 'apart', kind: 'apart', home: { status: 'out', they_home: false } }, 'Mira')?.lead,
+    "You're out.")  // They are at work or out themselves: the strip doesn't say they're home.
   assert.equal(homeLine({ ...home, home: null }, 'Mira'), null)
   assert.ok(inPerson(home))
 })

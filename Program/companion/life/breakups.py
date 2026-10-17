@@ -130,7 +130,7 @@ def stage(connection, row: dict, on: bool = True) -> str:
     """Where this one stands, worked out when read, so changing a roll on Today moves it: 'together' (back together),
     'ended', 'break', 'thinking', 'strained', or 'eased' / 'none' (over, or never was). With the switch off a warning or
     a break counts as over; an ending stands."""
-    if row['together_at']:
+    if row['together_at'] and (not row['together_id'] or picked(connection, row['together_id']) == YES):
         return 'together'
     if row['ended_by'] == 'you' or (row['ended_by'] == 'them' and picked(connection, row['ended_id']) == YES):
         return 'ended'
@@ -348,6 +348,68 @@ def moving_out(connection, companion: dict, now: datetime) -> None:
     moving_in.move_out(connection, companion, now)
 
 
+def change(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:
+    """The user makes a roll go another way on Today ("Why it went this way"). The stage follows at read time; a step
+    the roll held back is taken now; and what an ending set going follows here: an ending now moves them out and calls
+    plans off, an ending taken back moves them back in, and a break now calls plans off."""
+    outcome = consequences.by_id(connection, consequence_id)
+    require(outcome['timeline_id'] == companion['active_timeline_id'], 'That outcome is not on this timeline.', 404)
+    row = row_of(connection, outcome)
+    before = stage(connection, row) if row else None
+    changed = consequences.redo(connection, consequence_id, option, now, local_today(companion, now))
+    latest_row, _found = latest(connection, companion)
+    if row is None or latest_row is None or latest_row['id'] != row['id']:
+        return changed
+    row = held_back(connection, row, outcome, option, before, now)
+    if outcome['choice'] == 'user:reach_out' and option == YES and before == 'ended':
+        plan_reach(connection, companion, row, outcome['id'], local_today(companion, now), now)
+    follow(connection, companion, row, before, stage(connection, row), now)
+    return changed
+
+
+def follow(connection, companion: dict, row: dict, before: str, after: str, now: datetime) -> None:
+    """What a stage reached or left on Today sets going."""
+    if before == 'together' and after != 'together':
+        for step_id in decode(row['steps_back']) or []:  # Back apart: the steps taken back on getting together return.
+            connection.execute('UPDATE relationship_steps SET undone_at=NULL WHERE id=?', (step_id,))
+        row = update(connection, row, steps_back=None)
+    if after == 'ended' and before != 'ended':
+        after_end(connection, companion, now)
+    elif before == 'ended' and after == 'together' and stage_before_together(connection, row) == 'ended':
+        back_together(connection, companion, row, now)
+    elif before == 'ended' and after != 'ended':
+        from companion.life import moving_in
+        moving_in.move_back(connection, companion, local_day(companion, row['ended_at'] or stamp(now)), now)
+    elif after == 'break' and before != 'break':
+        call_off_plans(connection, companion, now)
+
+
+def row_of(connection, outcome: dict) -> dict | None:
+    """The episode a roll belongs to: one it moved on, or the one named in its subject (breakup:<id>:...)."""
+    found = optional(connection, 'SELECT * FROM breakups WHERE ? IN (strained_id, thinking_id, break_id, ended_id, '
+                     'together_id)', (outcome['id'],))
+    parts = outcome['subject'].split(':')
+    return found or (optional(connection, 'SELECT * FROM breakups WHERE id=? AND timeline_id=?',
+                              (parts[1], outcome['timeline_id'])) if len(parts) > 2 else None)
+
+
+# A roll that held things back, made to move them on: what it would have set (`warn`, `talk_round`, `ask_back`), from
+# the stage it was rolled at.
+HELD = {'user:thinking': ('thinking_id', {'thinking_at': None}, ('strained',)),
+        'user:break': ('break_id', {'break_by': 'them', 'break_at': None}, ('thinking',)),
+        'user:falling_out': ('ended_id', {'ended_by': 'them', 'ended_at': None}, ('strained', 'thinking')),
+        'user:talk_round': ('together_id', {'together_by': 'them', 'together_at': None}, ('break',)),
+        'user:back_together': ('together_id', {'together_by': 'you', 'together_at': None}, ('ended',))}
+
+
+def held_back(connection, row: dict, outcome: dict, option: int, before: str, now: datetime) -> dict:
+    column, values, stages = HELD.get(outcome['choice'], (None, {}, ()))
+    if column is None or option != YES or before not in stages:
+        return row
+    return update(connection, row, **{column: outcome['id']}, **{key: value or stamp(now)
+                                                                  for key, value in values.items()})
+
+
 def call_off_plans(connection, companion: dict, now: datetime) -> None:
     """Outings with the user that haven't started yet are off while they are apart."""
     from companion.life import outings
@@ -396,10 +458,18 @@ def reach_out(connection, companion: dict, row: dict, now: datetime) -> dict | N
     if outcome['picked'] != YES:
         return None
     due = today + timedelta(days=random.Random(f'{subject}:due').randint(1, 10))
+    return plan_reach(connection, companion, row, outcome['id'], due, now)
+
+
+def plan_reach(connection, companion: dict, row: dict, consequence_id: str, due: date, now: datetime) -> dict | None:
+    """Reaching out, due on that day (a roll made to go this way on Today: today)."""
+    if open_reach(connection, row) or optional(connection, 'SELECT id FROM breakup_reaches WHERE consequence_id=?',
+                                               (consequence_id,)):
+        return None
     reach_id = identifier()
     connection.execute("INSERT INTO breakup_reaches (id, breakup_id, timeline_id, status, due_on, consequence_id, "
                        "created_at) VALUES (?, ?, ?, 'planned', ?, ?, ?)",
-                       (reach_id, row['id'], row['timeline_id'], due.isoformat(), outcome['id'], stamp(now)))
+                       (reach_id, row['id'], row['timeline_id'], due.isoformat(), consequence_id, stamp(now)))
     return one(connection, 'SELECT * FROM breakup_reaches WHERE id=?', (reach_id,))
 
 
@@ -629,17 +699,25 @@ def who_said(row: dict, by: str) -> str:
     return 'the user' if row[by] == 'you' else 'you'
 
 
-def context_lines(connection, companion: dict, now: datetime, turn: set[str]) -> list[tuple[str, str]]:
-    """(identity, line) for the 'breakup' section: at most one line."""
-    if not applies(connection, companion):
+# In a group chat only where things stand: telling the user, or waiting for their answer, belongs to the 1:1 chat.
+STANDING = {'break_tell': 'break', 'end_tell': 'ended', 'fell_out_tell': 'fell_out', 'reach_waiting': 'ended'}
+
+
+def context_lines(connection, companion: dict, now: datetime, turn: set[str],
+                  standing: bool = False) -> list[tuple[str, str]]:
+    """(identity, line) for the 'breakup' section: at most one line; `standing` for a group chat."""
+    if not ACTIVE or not companion or not ladder_of(companion):
         return []
     row, found = latest(connection, companion)
-    if row is None:
-        return []
+    if row is None or (found != 'ended' and not applies(connection, companion)):
+        return []  # With the switch off an ending still stands (`stage`), so an ex still knows it.
     key = line_key(connection, row, found, now, turn)
+    friend = row['ladder'] == 'friendship'
+    if standing and key:
+        key = STANDING.get(key, key)
+        key = 'fell_out' if friend and key == 'ended' else key
     if key is None:
         return []
-    friend = row['ladder'] == 'friendship'
     if key == 'together':
         what = 'a falling out' if friend else 'breaking up' if stage_before_together(connection, row) == 'ended' \
             else 'a break'
@@ -690,15 +768,13 @@ def line_key(connection, row: dict, found: str, now: datetime, turn: set[str]) -
 
 
 def offer(packet, connection, companion: dict, now: datetime, recent: list[dict], group=None) -> None:
-    """Adds the 'breakup' section, in a 1:1 chat only."""
-    if group is not None:
-        return
+    """Adds the 'breakup' section; in a group chat only where things stand (so an ex in a group knows it)."""
     turn = set()
-    for message in reversed(recent):
+    for message in reversed(recent if group is None else []):
         if message['role'] != 'user':
             break
         turn.add(message['id'])
-    for identity, text in context_lines(connection, companion, now, turn):
+    for identity, text in context_lines(connection, companion, now, turn, standing=group is not None):
         packet.offer('breakup', identity, text)
 
 
@@ -776,7 +852,7 @@ def summary(connection, companion: dict, row: dict, found: str, now: datetime) -
     steps_now = steps.state(connection, companion, now, write=False)
     first = steps_now['steps'][0] if steps_now and steps_now['steps'] else None
     what = 'Fell out' if row['ladder'] == 'friendship' else 'Broke up'
-    if not first or first['how'] == 'history':
+    if not first or first['how'] in ('history', 'start'):  # No real date for where the app started them.
         return what
     days = (date.fromisoformat(local_day(companion, row['ended_at'])) - date.fromisoformat(first['on'])).days
     return f'{what} after {steps.span_text(days)}'
@@ -817,3 +893,32 @@ def read(database) -> dict:
     from companion.characters import require_current
     with database.connect() as connection:
         return view(connection, require_current(connection), database.clock.now())
+
+
+# Branching (companion/timelines.py) ---------------------------------------------------------------------------------
+
+# What a later moment set, and the columns it set: a fork from before it never had it.
+LATER = (('thinking_at', ('thinking_id', 'thinking_at')), ('break_at', ('break_id', 'break_by', 'break_at')),
+         ('ended_at', ('ended_id', 'ended_by', 'ended_at')), ('eased_at', ('eased_at',)),
+         ('together_at', ('together_id', 'together_by', 'together_at', 'steps_back')))
+
+
+def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str) -> None:
+    """Warnings, breaks and breakups begun by the fork carry over as they stood then, with their rolls; reaching out
+    is the copy's own."""
+    for row in rows(connection, parent_id):
+        if row['created_at'] > cutoff:
+            continue
+        found = {**row, 'id': identifier(), 'timeline_id': new_id, 'message_id': ids.get(row['message_id']),
+                 'answer_id': ids.get(row['answer_id'])}
+        for at, columns in LATER:
+            if row[at] and row[at] > cutoff:
+                found.update(dict.fromkeys(columns))
+        for column in ('strained_id', 'thinking_id', 'break_id', 'ended_id', 'together_id'):
+            if found[column]:
+                subject = optional(connection, 'SELECT subject FROM consequences WHERE id=?', (found[column],))
+                found[column] = consequences.copy(connection, found[column], new_id, (subject or {}).get(
+                    'subject', '').replace(row['id'], found['id']) or f"breakup:{found['id']}:{column}")
+        marks = ', '.join('?' * len(found))
+        connection.execute(f"INSERT INTO breakups ({', '.join(found)}) VALUES ({marks})",  # noqa: S608
+                           tuple(found.values()))

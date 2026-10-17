@@ -21,7 +21,7 @@ import { OutTogether, Trips } from './OutTogether'
 import { AdminList, FOLD } from './AdminList'
 import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
-import { occasionText } from './storyText'
+import { headerOccasions } from './storyText'
 import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
 import { SCRAPBOOKS_KEY, featuredCard } from '../year/yearText'
 
@@ -134,7 +134,7 @@ function Feeling({ data, name }: { data: TodayData; name: string }) {
   return <>
     {text && <p className="subtle">{text}</p>}
     {data.feeling && data.feeling.feeling !== 'calm' && <p className="subtle">{data.feeling.text}{data.feeling.reason ? `: ${data.feeling.reason}` : ''}.</p>}
-    {occasions.map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
+    {headerOccasions(occasions, name).map((item) => <p key={item.key} className="subtle">{item.text}</p>)}
   </>
 }
 

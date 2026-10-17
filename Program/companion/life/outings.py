@@ -83,8 +83,9 @@ TOGETHER = re.compile(r"\b(?:we|us|together|with me|you and me|you and i)\b", re
 # hear about my coffee disaster?", "walk me through it".
 STAY = re.compile(r"\b(?:my place|your place|my apartment|your apartment|at home|at mine|at yours|to mine|come over|stay in|"
                   r"i'?ll cook|cook(?:ing)? (?:for|dinner|together)|order in|takeout|take-out|facetime|video call|"
-                  r"on (?:a )?call|stream (?:it|one|a)|netflix|walk (?:me|you|us) through|hear about|tell you about)\b",
-                  re.IGNORECASE)
+                  r"on (?:a )?call|stream (?:it|one|a)|netflix|walk (?:me|you|us) through|hear about|tell you about|"
+                  r"what(?:'s| is) for (?:dinner|supper|lunch)|what (?:should|shall|do|can) we (?:have|eat|make|cook) "
+                  r"for (?:dinner|supper|lunch|tonight))\b", re.IGNORECASE)
 # "Sometime", "next time": a wish, not a plan for a day.
 VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one of these days|when you'?re back|"
                    r"at some point|again sometime)\b", re.IGNORECASE)
@@ -555,7 +556,17 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
     for outing in in_force(connection, timeline_id, since):
         result.setdefault(outing['local_date'], []).append(
             {'id': f"outing:{outing['id']}:{outing['rolls']}", 'at_time': outing['at_time'], 'outing': outing})
+        # A wedding runs on past its first block: the later ones are quiet, still time with the user, not free time.
+        result[outing['local_date']] += [{'id': f"outing:{outing['id']}:{outing['rolls']}:{at}", 'at_time': at,
+                                          'outing': outing, 'continues': True} for at in later_hours(outing)]
     return result
+
+
+def later_hours(outing: dict) -> list[str]:
+    """The whole hours after a wedding's start, up to its end ('16:00' ... '22:00'): blocks it also takes."""
+    if outing['activity'] != 'wedding' or outing['until_time'] <= outing['at_time']:
+        return []
+    return [f'{hour:02d}:00' for hour in range(int(outing['at_time'][:2]) + 1, int(outing['until_time'][:2]))]
 
 
 def doing(outing: dict) -> str:
@@ -780,8 +791,8 @@ def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
 
 
 def planned_line(outing: dict) -> str:
-    if outing['activity'] == 'wedding':
-        return f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}."
+    if outing['activity'] == 'wedding':  # Months off: with its year, so it never reads as next week.
+        return f"- {day_text(outing['local_date'])}, {outing['local_date'][:4]} at {outing['at_time']}: {what(outing)}."
     line = f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}, with the user."
     if outing['activity'] == 'dinner-in':
         return line + ' You are cooking.'
@@ -831,7 +842,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
             result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing, now)))
         elif found == 'planned':
             result.append((f"outing:{outing['id']}", planned_line(outing)))
-            if outing['message_id'] in fresh_ids:
+            # The wedding is kept on the latest message (companion/life/wedding.py), not one that asked for it.
+            if outing['message_id'] in fresh_ids and outing['activity'] != 'wedding':
                 result.append((f"outing:{outing['id']}:booked",
                                booked_line(outing, holding_for(connection, companion, outing))))
         elif now - window(outing, version['timezone'])[1] < RECENT and outing['activity'] == 'wedding':

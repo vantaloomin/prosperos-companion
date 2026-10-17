@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { metText, personNow } from '../../src/features/today/circleText.ts'
+import { mapPlace } from '../../src/features/today/todayText.ts'
 import { outingTitle, peopleLine, placeLine } from '../../src/features/today/outingText.ts'
 import { stripLine, type WhereState } from '../../src/features/conversation/whereText.ts'
 import type { CirclePerson } from '../../src/types.ts'
@@ -26,6 +27,9 @@ test('a family dinner says who comes and where', () => {
   assert.equal(outingTitle({ activity: 'meet-family', place }), "Family dinner at Ana and Rui's place")
   assert.equal(placeLine(place), 'Family home, Canton')
   assert.equal(peopleLine(place), 'With Ana (mom), Rui (dad) and Leo (brother), meeting you for the first time')
+  assert.equal(peopleLine(place, 'planned'), 'With Ana (mom), Rui (dad) and Leo (brother), meeting you for the first time')
+  // Once it is over it reads as past.
+  assert.equal(peopleLine(place, 'done'), 'With Ana (mom), Rui (dad) and Leo (brother), the first time you met')
   assert.equal(peopleLine({ ...place, people: [place.people[0]], first: false }), 'With Ana (mom)')
   assert.equal(peopleLine({ ...place, people: undefined }), '')
 })
@@ -37,4 +41,11 @@ test('the strip names the family home without a map link', () => {
   const line = stripLine(where, 'Mira')
   assert.equal(line?.place, null)
   assert.match(line?.lead ?? '', /^Together at Ana and Rui's place$/)
+})
+
+test('a dinner at their family home has no map link in the day list', () => {
+  assert.equal(mapPlace({ id: '~family' }), null)
+  assert.equal(mapPlace({ id: '~home' }), null)
+  assert.equal(mapPlace({ id: 'berthas' }), 'berthas')
+  assert.equal(mapPlace(undefined), null)
 })

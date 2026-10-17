@@ -280,6 +280,15 @@ def test_far_apart_nothing_is_sent_and_it_stays_planned(client, clock, invites, 
     monkeypatch.setattr(long_distance, 'far', lambda _connection, _companion: object())
     assert invite(client, clock) == (None, None)
     assert meetups(client)[0]['status'] == 'planned'
+    # It waits as long as they live apart, never lapsing, and is sent once they live in one city.
+    for _week in range(20):
+        clock.advance(timedelta(days=7))
+        advance(client, clock)
+    assert [row['status'] for row in meetups(client)] == ['planned']
+    monkeypatch.setattr(long_distance, 'far', lambda _connection, _companion: None)
+    advance(client, clock)
+    trigger, _outing = invite(client, clock)
+    assert trigger is not None
 
 
 def test_family_dinner_cannot_move_elsewhere(client, clock, invites):
@@ -291,3 +300,67 @@ def test_family_dinner_cannot_move_elsewhere(client, clock, invites):
     response = client.post(f"/api/life/outings/{outing['id']}/elsewhere", json={})
     assert response.status_code == 409
     assert outings.what(outing).startswith('dinner at ')
+
+
+def test_a_branch_after_the_dinner_does_not_plan_it_again(client, provider, clock, invites):
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    _trigger, outing = invite(client, clock)
+    at(clock, outing, '23:00')
+    advance(client, clock)
+    says(provider)
+    sent = send(client, 'that was a lovely evening', 'client-people-branch')
+    fork = client.post('/api/timelines', json={'message_id': sent['message']['id'], 'text': 'that was a great night'})
+    assert fork.status_code == 200, fork.text
+    assert client.post(f"/api/timelines/{fork.json()['id']}/activate").status_code == 200
+    advance(client, clock)
+    clock.advance(timedelta(days=10))
+    advance(client, clock)
+    # They have met everyone already: no second "first time" dinner, and where they met still reads.
+    found = meetups(client)
+    assert [row['status'] for row in found] == ['done']
+    with client.app.state.database.connect() as connection:
+        lines = their_people.context_lines(connection, current(connection), clock.now())
+    assert lines and all("at dinner at " in text for _identity, text in lines)
+
+
+def test_nothing_is_planned_or_sent_while_apart(client, provider, clock, invites, monkeypatch):
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    make(client)
+    set_step(client, 'their_people')
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-people-end')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    advance(client, clock)
+    # No family dinner for an ex: nothing planned, and no invitation.
+    assert meetups(client) == []
+    assert invite(client, clock) == (None, None)
+
+
+def test_a_planned_dinner_is_not_sent_once_they_break_up(client, provider, clock, invites, monkeypatch):
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    assert len(meetups(client)) == 1
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-people-end-2')
+    clock.advance(timedelta(days=7))
+    assert invite(client, clock) == (None, None)
+
+
+def test_an_invitation_a_week_ahead_says_next_saturday():
+    from datetime import date
+    saturday, next_saturday = date(2026, 10, 31), date(2026, 11, 7)
+    people = [{'name': 'Muriel', 'role': 'sister'}]
+    for index in range(40):
+        row = {'id': f'meetup-{index}', 'kind': 'family'}
+        text = their_people.invitation(row, people, next_saturday, saturday, '6:30', "my sister's place")
+        assert 'next saturday' in text.lower() and 'this next' not in text.lower() and text[0].isupper(), text
+        near = their_people.invitation(row, people, next_saturday, date(2026, 11, 3), '6:30', "my sister's place")
+        assert 'Saturday' in near and 'next Saturday' not in near

@@ -187,4 +187,6 @@ def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', 
     if tradition:
         found |= {'holiday': tradition['name'], 'tradition': tradition['shown'],
                   'teaser': tradition['short']}
+    if did:
+        found |= {'did': did, 'step': step}  # Today says which step it is (src/features/today/storyText.ts).
     return found

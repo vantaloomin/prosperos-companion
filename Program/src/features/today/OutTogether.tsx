@@ -50,7 +50,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
         <span className="badge">{OUTING_STATES[outing.state]}</span>
       </div>
       <p className="subtle">{outingWhen(outing, name)} · {placeLine(outing.place)}{outing.place.kind !== 'family-home' && !outing.place.id.startsWith('~') && <> <a className="text-button show-on-map" href={`#map/${encodeURIComponent(outing.place.id)}`}>Show on map</a></>}</p>
-      {peopleLine(outing.place) && <p className="subtle">{peopleLine(outing.place)}</p>}
+      {peopleLine(outing.place, outing.state) && <p className="subtle">{peopleLine(outing.place, outing.state)}</p>}
       {note && <p className="subtle">{note}</p>}
       {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <div className="together-actions">

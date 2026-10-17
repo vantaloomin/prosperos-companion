@@ -1,4 +1,5 @@
 """Engagement and wedding (companion/life/wedding.py): the proposal, planning the wedding, the day and after."""
+import re
 from datetime import date, datetime, timedelta
 
 import pytest
@@ -299,3 +300,172 @@ def test_a_break_calls_the_wedding_off(client, clock, provider, monkeypatch):
     monkeypatch.setattr(breakups, 'holds', lambda _connection, _companion: None)
     advance(client, clock)  # Back together and still engaged: the wedding is planned again.
     assert panel(client)['status'] == 'planned'
+
+
+def test_the_yes_does_not_read_as_agreeing_to_an_outing_and_the_day_has_its_year(client, clock, provider, invites):
+    proposed(client, clock, provider)
+    says(provider, 'You said yes!')
+    send(client, 'Yes! Of course yes!', 'client-wed-10')
+    text = prompt(provider)
+    assert 'You agreed to go' not in text and 'Confirm where and when' not in text
+    found = panel(client)
+    day = date.fromisoformat(found['date'])
+    assert f"{day:%A %B} {day.day}, {day.year} at" in text
+
+
+def test_the_wedding_takes_every_block_it_runs_through(client, clock, provider):
+    """Its later blocks are quiet time with the user: no errand or evening of their own during the reception."""
+    from companion.characters import require_current
+    from companion.database import decode
+    from companion.life import admin, agenda, routine
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-11')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    found = panel(client)
+    at(clock, (date.fromisoformat(found['date']) - timedelta(days=2)).isoformat(), '10:00')
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        agenda.extend(connection, companion, client.app.state.life.world, clock.now())
+        rows = many(connection, "SELECT * FROM life_agenda WHERE subject='companion' AND local_date=? ORDER BY starts_at",
+                    (found['date'],))
+        day = date.fromisoformat(found['date'])
+        taken = admin.Taken(connection, companion, day, 2)
+        evening = [block for block in admin.free_blocks(routine.blocks(companion['version']['definition'])[0], day)
+                   if found['at'] < block['start'] < found['until']]
+    blocks = [(decode(row['block']), decode(row['entry']) if row['entry'] else None) for row in rows]
+    during = [(block, entry) for block, entry in blocks if block['kind'] not in routine.RESTING
+              and found['at'] < block['start'] < found['until']]
+    assert any((entry or {}).get('activity') == 'wedding' for _block, entry in blocks)
+    assert during and all(entry is None and block.get('with_user') for block, entry in during)
+    assert evening and all(taken.held(day, block, by_user_only=True) for block in evening)
+
+
+def test_at_the_wedding_they_wear_their_wedding_clothes(client, clock, provider):
+    """In the chat's "Wearing right now" and in a picture of the wedding, not the day's everyday outfit."""
+    from companion.characters import require_current
+    from companion.life import agenda, wardrobe
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-12')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    found = panel(client)
+    at(clock, found['date'], found['at'])
+    clock.advance(timedelta(hours=4))  # The reception, past the block the ceremony started in.
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        agenda.extend(connection, companion, client.app.state.life.world, clock.now())
+        timeline_id = companion['active_timeline_id']
+        row = wedding.current(connection, timeline_id)
+        lines = dict(wardrobe.context_lines(connection, timeline_id, date.fromisoformat(found['date']), clock.now()))
+        hint = wardrobe.image_hint(connection, timeline_id, {'local_date': found['date'], 'activity': 'wedding'})
+    worn = wedding.attire(companion['version']['definition'], row['culture'])
+    assert any(f'(at your wedding): {worn}.' in line for line in lines.values())
+    assert not any('Wearing right now (' in line and 'at your wedding' not in line for line in lines.values())
+    assert hint == f'Wearing {worn}.'
+
+
+def test_a_branch_from_the_proposal_can_still_be_answered(client, clock, provider, invites, monkeypatch):
+    """Branch from here on the reply that asked: the question is still open on the branch, and no keeps things where they
+    were with a rough patch."""
+    from companion.life import rough_patches
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+    proposed(client, clock, provider)
+    asked = client.get('/api/conversation').json()['messages'][-1]
+    assert asked['role'] == 'companion'
+    clock.advance(timedelta(minutes=2))
+    says(provider, 'You said yes!')
+    send(client, 'Yes! Of course yes!', 'client-wed-13')
+    assert step_now(client, clock) == 'engaged'
+    branch = client.post('/api/timelines', json={'message_id': asked['id'], 'label': 'Say no'}).json()
+    assert client.post(f"/api/timelines/{branch['id']}/activate").status_code == 200
+    assert step_now(client, clock) == 'moving_in'
+    says(provider, 'Oh.')
+    send(client, "No, I'm sorry, I can't.", 'client-wed-14')
+    assert step_now(client, clock) == 'moving_in'
+    with client.app.state.database.connect() as connection:
+        ask = optional(connection, "SELECT * FROM step_asks WHERE timeline_id=? AND step='engaged'", (branch['id'],))
+        patch = optional(connection, "SELECT * FROM rough_patches WHERE timeline_id=? AND cause='proposal_no'",
+                         (branch['id'],))
+        ring = optional(connection, "SELECT * FROM proposals WHERE timeline_id=? AND status='asked'", (branch['id'],))
+    assert ask['status'] == 'no' and patch is not None and ring['ring_cost'] > 0
+
+
+def test_they_propose_somewhere_open_in_the_evening(client, clock, provider):
+    """Not a walk at six in a conservatory that closes in the afternoon."""
+    from companion.characters import require_current
+    make(client)
+    with client.app.state.database.connect() as connection:
+        companion = require_current(connection)
+        data = outings.city_data(connection, companion['version']['definition'])
+        for seed in range(40):
+            day = date(2027, 1, 20) + timedelta(days=seed * 9)
+            item = wedding.favourite(connection, companion, data, f"p{seed}", day)
+            assert outings.fits(item, day, wedding.PROPOSE_AT[wedding.PROPOSE_KINDS[item['kind']]]), item['name']
+
+
+def test_no_wedding_at_a_concert_or_music_hall():
+    """'Hall' is a wedding word, but not in Symphony Hall or a Victorian music hall."""
+    from companion.world import catalog
+    for city, day in (('baltimore', date(2027, 1, 16)), ('london-1895', date(2027, 6, 12))):
+        data = catalog.city(city, [])
+        rules = wedding.customs(wedding.culture_of(data))
+        for seed in range(60):
+            found = wedding.venue_for(data, rules, 'proper', f'hall-{seed}', day=day)
+            assert not re.search(r'symphony|music hall', found['name'], re.IGNORECASE), found['name']
+
+
+def test_the_planning_follows_a_new_venue_and_day(client, clock, provider):
+    from companion.database import decode
+
+    def venue_task():
+        with client.app.state.database.connect() as connection:
+            return optional(connection, "SELECT * FROM life_admin WHERE key LIKE 'wedding:%:venue'")
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-15')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    assert venue_task()['status'] == 'planned'
+    venue = client.put('/api/life/admin/wedding', json={'venue': True}).json()['wedding']['venue']
+    assert decode(venue_task()['place'])['name'] == venue['name']
+    soon = (date.fromisoformat(venue_task()['local_date']) - timedelta(days=1)).isoformat()
+    assert client.put('/api/life/admin/wedding', json={'day': soon}).status_code == 200
+    assert venue_task()['status'] == 'removed'
+
+
+def test_moving_away_keeps_the_wedding_in_their_city(client, clock, provider):
+    """Long distance calls plans in person off, but not the wedding: it is in their city, and the user travels to it."""
+    from companion.characters import require_current
+    from companion.life import long_distance
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-16')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    for _day in range(3):
+        clock.advance(timedelta(days=1))
+        with client.app.state.database.connect(write=True) as connection:
+            companion = require_current(connection)
+            long_distance.settle_moves(connection, companion, clock.now().date(), clock.now())
+        advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        rows = many(connection, "SELECT status FROM outings WHERE activity='wedding'")
+    assert [row['status'] for row in rows] == ['planned']
+
+
+def test_a_church_service_is_held_in_a_church():
+    """Where the customs say the church service (London 1895, New York 1925, Camelot), the venue is a church."""
+    from companion.world import catalog
+    for city in ('london-1895', 'new-york-1925', 'camelot'):
+        data = catalog.city(city, [])
+        rules = wedding.customs(wedding.culture_of(data))
+        assert 'church' in rules['ceremony']
+        for seed in range(40):
+            found = wedding.venue_for(data, rules, wedding.SIZES[seed % 3], f'church-{seed}', day=date(2027, 6, 12))
+            assert found['kind'] == 'temple', (city, found['name'])
