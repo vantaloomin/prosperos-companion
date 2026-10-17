@@ -65,10 +65,11 @@ PACE_STRETCH = (1.25, 1.25, 1.0, 0.75)
 # Who in their circle comes: family always, friends by the size of it.
 PARTNERS = {'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée', 'fiancé', 'ex', 'spouse'}
 SMALL_FRIENDS = 3
-# Places nobody marries at, whatever their kind.
+# Places nobody marries at, whatever their kind (a concert or music hall is a "hall" by name only).
 NOT_VENUES = re.compile(r'\b(?:station|hospital|clinic|campus|transit|airport|stadium|arena|gym|fitness|library|'
                         r'prison|jail|court|police|school|office|parking|mall|outlet|pizza|burger|pancake|sandwich|'
-                        r'taco|hot dog|diner|deli|food hall|murals?|street|avenue|paseo|surgical)\b', re.IGNORECASE)
+                        r'taco|hot dog|diner|deli|food hall|murals?|street|avenue|paseo|surgical|music hall|symphony|concert|'
+                        r'festival hall)\b', re.IGNORECASE)
 # Words in a place's description that mark it as somewhere people marry ("Victorian glass houses", "a 1926 ballroom").
 WEDDING_WORDS = re.compile(r'\b(?:chapel|church|cathedral|garden|conservatory|ballroom|mansion|manor|estate|winery|'
                            r'pavilion|terrace|lighthouse|temple|shrine|great hall|opera hall|castle|palace|glass ?houses?)',
@@ -205,11 +206,11 @@ def evening(connection, companion: dict, row: dict, local: datetime) -> tuple | 
     data = outings.city_data(connection, definition)
     if not data:
         return None
-    item = favourite(connection, companion, data, row['id'])
+    start = local.date() + timedelta(days=2)
+    item = favourite(connection, companion, data, row['id'], start)
     if item is None:
         return None
     activity = PROPOSE_KINDS[item['kind']]
-    start = local.date() + timedelta(days=2)
     day = min(start + timedelta(days=(weekday - start.weekday()) % 7) for weekday in PROPOSE_DAYS)
     found = outings.when_free(connection, companion, {'activity': activity, 'day': day, 'at': PROPOSE_AT[activity],
                                                       'firm': False}, local)
@@ -218,10 +219,14 @@ def evening(connection, companion: dict, row: dict, local: datetime) -> tuple | 
     return activity, found[0], found[1], outings.place_view(item, data)
 
 
-def favourite(connection, companion: dict, data: dict, seed: str) -> dict | None:
-    """One of their favourite places: where the two of them have been most, else a date spot they like."""
+def favourite(connection, companion: dict, data: dict, seed: str, day: date | None = None) -> dict | None:
+    """One of their favourite places: where the two of them have been most, else a date spot they like; one that is
+    open in the evening and the season, when there is one (a conservatory closes at five)."""
     places = {item['id']: item for item in data['places'] if item['kind'] in PROPOSE_KINDS
               and not NOT_VENUES.search(item['name'])}
+    if day is not None:
+        places = {key: item for key, item in places.items()
+                  if outings.fits(item, day, PROPOSE_AT[PROPOSE_KINDS[item['kind']]])} or places
     counts: dict[str, int] = {}
     for row in many(connection, "SELECT place FROM outings WHERE companion_id=? AND status='done'", (companion['id'],)):
         place_id = (decode(row['place']) or {}).get('id')
@@ -438,9 +443,10 @@ def venue_for(data: dict | None, rules: dict, size: str, seed: str, without: tup
         return {'id': VENUE, 'name': 'the wedding venue', 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
                 'cuisine': '', 'city': '', 'city_id': '', 'spots': []}
     words = re.compile(rf"\b(?:{rules['venues']['words']})", re.IGNORECASE)
-    kinds = rules['venues']['kinds']
-    options = [item for item in data['places'] if item['kind'] in kinds and item['id'] not in without
-               and not NOT_VENUES.search(item['name'])]
+    options = []
+    for kinds in (rules['venues']['kinds'], rules['venues'].get('else', ())):  # A church service is in a church.
+        options = options or [item for item in data['places'] if item['kind'] in kinds and item['id'] not in without
+                              and not NOT_VENUES.search(item['name'])]
     if not options:
         options = [item for item in data['places'] if item['id'] not in without] or data['places']
     if cold(data, day):
@@ -674,7 +680,19 @@ def change(connection, companion: dict, now: datetime, *, day: date | None = Non
         connection.execute(f'UPDATE weddings SET {sets}, updated_at=? WHERE id=?', (*fields.values(), timestamp, row['id']))
     updated = current(connection, companion['active_timeline_id'])
     book(connection, companion, updated, now)
+    follow_plan(connection, updated, timestamp)
     return panel(connection, companion, now, False)
+
+
+def follow_plan(connection, row: dict, timestamp: str) -> None:
+    """The planning on the calendar follows a changed plan: booking the venue names the new one, and what would now
+    fall on or after the day is dropped."""
+    venue = row['venue'] if (row['venue'] or {}).get('id') not in (None, VENUE) else None
+    connection.execute("UPDATE life_admin SET place=?, updated_at=? WHERE timeline_id=? AND key=? AND status='planned'",
+                       (encode(venue) if venue else None, timestamp, row['timeline_id'], f"wedding:{row['id']}:venue"))
+    connection.execute("UPDATE life_admin SET status='removed', updated_at=? WHERE timeline_id=? AND key LIKE ? AND "
+                       "status='planned' AND local_date>=?",
+                       (timestamp, row['timeline_id'], f"wedding:{row['id']}:%", row['local_date']))
 
 
 def change_size(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:
@@ -816,6 +834,23 @@ def memory_text(outing: dict) -> dict:
 
 def caption(outing: dict) -> str:
     return generators.pick(f"wedding:{outing['id']}", 'married', bank()['married'])
+
+
+def dressed(connection, timeline_id: str, local_date: str, now: datetime | None = None) -> str:
+    """What they wear at their wedding on this local date ('a white wedding dress'), else ''. With `now`, only while
+    it is under way (companion/life/wardrobe.py: the chat's "Wearing right now" and the pictures)."""
+    from companion.characters import by_id
+    row = optional(connection, "SELECT * FROM weddings WHERE timeline_id=? AND local_date=? AND status IN ('planned', "
+                   "'done') ORDER BY created_at DESC LIMIT 1", (timeline_id, local_date))
+    timeline = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,)) if row else None
+    companion = by_id(connection, timeline['companion_id']) if timeline else None
+    if companion is None:
+        return ''
+    if now is not None:
+        outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'] or '',))
+        if not outing or outings.state(outings.view(outing), companion['version']['timezone'], now) != 'now':
+            return ''
+    return attire(companion['version']['definition'], row['culture'])
 
 
 def photo_wearing(connection, companion: dict, outing: dict) -> str:
@@ -975,6 +1010,17 @@ def paper_items(connection, data: dict, week: tuple[date, date]) -> list[dict]:
                                'text': f"{full} {wed if you else 'got ' + wed} at {venue} on "
                                        f"{paper.WEEKDAYS[date.fromisoformat(row['local_date']).weekday()]}."})
     return result
+
+
+def copy_proposals(connection, asks: dict[str, str], new_id: str) -> None:
+    """Their proposal behind an ask a branch keeps open (steps.copy_open): asked, the ring bought."""
+    for ask_id, copied in asks.items():
+        row = optional(connection, "SELECT * FROM proposals WHERE ask_id=? AND status='asked'", (ask_id,))
+        if row:
+            connection.execute('INSERT INTO proposals (id, timeline_id, ask_id, status, due_on, outing_id, ring, ring_cost, '
+                               "asked_on, created_at, settled_at) VALUES (?, ?, ?, 'asked', ?, ?, ?, ?, ?, ?, ?)",
+                               (identifier(), new_id, copied, row['due_on'], row['outing_id'], row['ring'],
+                                row['ring_cost'], row['asked_on'], row['created_at'], row['settled_at']))
 
 
 def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> None:

@@ -983,6 +983,20 @@ def set_step(connection, companion: dict, key: str, now) -> None:
         connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?", (timestamp, row['id']))
 
 
+def copy_open(connection, parent_id: str, new_id: str, cutoff: str, ids: dict) -> dict[str, str]:
+    """A branch (companion/timelines.py) keeps what was brought up and not yet answered at its fork: still open there,
+    so the answer on the branch counts. The copies' ids by original id."""
+    copied = {}
+    for row in many(connection, "SELECT * FROM step_asks WHERE timeline_id=? AND status NOT IN ('planned', 'dropped') "
+                    'AND created_at<? AND (settled_at IS NULL OR settled_at>=?)', (parent_id, cutoff, cutoff)):
+        copied[row['id']] = identifier()
+        connection.execute('INSERT INTO step_asks (id, timeline_id, other, ladder, step, side, status, due_on, message_id, '
+                           "consequence_id, round, created_at) VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, NULL, ?, ?)",
+                           (copied[row['id']], new_id, row['other'], row['ladder'], row['step'], row['side'],
+                            row['due_on'], ids.get(row['message_id']), row['round'], row['created_at']))
+    return copied
+
+
 def set_lock(connection, companion: dict, locked: bool, timestamp: str) -> None:
     connection.execute('INSERT INTO step_settings (companion_id, just_friends, updated_at) VALUES (?, ?, ?) '
                        'ON CONFLICT(companion_id) DO UPDATE SET just_friends=excluded.just_friends, '

@@ -33,6 +33,7 @@ from companion.life import (
     network,
     shifts,
     social,
+    steps,
     storylines,
     traditions,
     upkeep,
@@ -217,7 +218,8 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
-    copy_steps(connection, parent_id, new_id, cutoff[:10])
+    copy_steps(connection, parent_id, new_id, cutoff)
+    wedding.copy_proposals(connection, steps.copy_open(connection, parent_id, new_id, cutoff, ids), new_id)
     love_life.copy(connection, parent_id, new_id, ids, cutoff[:10])
     wedding.copy(connection, parent_id, new_id, cutoff[:10])
     breakups.copy(connection, parent_id, new_id, ids, cutoff)
@@ -260,11 +262,16 @@ def copy_chapters(connection, parent_id, new_id, ids, cutoff_date):
         connection.execute('INSERT INTO chapter_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
 
 
-def copy_steps(connection, parent_id, new_id, cutoff_date):
-    """Steps reached by the fork carry over (companion/life/steps.py); what was brought up and not answered stays."""
-    rows = many(connection, 'SELECT * FROM relationship_steps WHERE timeline_id=? AND reached_on<=?', (parent_id, cutoff_date))
-    insert(connection, 'relationship_steps', [{**row, 'id': identifier(), 'timeline_id': new_id, 'ask_id': None}
-                                              for row in rows])
+def copy_steps(connection, parent_id, new_id, cutoff):
+    """Steps reached by the fork carry over (companion/life/steps.py), as they stood then: one reached later that same
+    day (a yes after the message branched from) is the parent's alone, and one taken back after the fork still holds.
+    What was brought up and not answered stays open (steps.copy_open)."""
+    cutoff_date = cutoff[:10]
+    rows = many(connection, 'SELECT * FROM relationship_steps WHERE timeline_id=? AND reached_on<=? AND created_at<?',
+                (parent_id, cutoff_date, cutoff))
+    insert(connection, 'relationship_steps', [
+        {**row, 'id': identifier(), 'timeline_id': new_id, 'ask_id': None,
+         'undone_at': row['undone_at'] if row['undone_at'] and row['undone_at'] < cutoff else None} for row in rows])
     # Moving in together (companion/life/moving_in.py) as it stood.
     insert(connection, 'moving_in', moving_in.copy(connection, parent_id, new_id, cutoff_date))
 
