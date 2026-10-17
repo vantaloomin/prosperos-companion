@@ -1742,6 +1742,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .buddy.current { background: var(--accent); color: var(--on-accent); }
 .buddy.unread .buddy-name { font-weight: 700; }
 .buddy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A long status line is cut with an ellipsis instead of widening the list past its window. */
+.side-buddies ul { grid-template-columns: minmax(0, 1fr); }
 .buddy-count { color: inherit; font-weight: 700; }
 @media (max-width: 720px) {
   /* Phones keep the whole width for the chat; the Chats button opens the list. */
