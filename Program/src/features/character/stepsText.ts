@@ -1,4 +1,4 @@
-import type { MovingIn, Newcomer, StepsView } from '../../types'
+import type { MovingIn, Newcomer, ShareRoll, StepsView } from '../../types'
 import { firstName } from './panelText.ts'
 import { namesText } from '../groups/groupText.ts'
 
@@ -75,7 +75,22 @@ function joiningText(moving: MovingIn, who: string, others: string): string {
   if (moving.status === 'moving') return `${who} is moving in with you and ${others}${moving.move_on ? ` on ${stepDate(moving.move_on)}` : ''}.`
   if (!moving.ready) return `${who} would like to live with you, but isn't ready to share a home with ${others} yet.`
   const waiting = moving.not_ready ?? []
-  return `${who} would like to move in with you and ${others}. Waiting: ${namesText(waiting)} ${waiting.length > 1 ? "aren't" : "isn't"} ready to share your home yet.`
+  return `${who} would like to move in with you and ${others}. ${namesText(waiting)} ${waiting.length > 1 ? "aren't" : "isn't"} ready to share your home yet.`
+}
+
+/** Each one's answer about sharing a home, as the label of its odds: "Theo: open to it", "Mira: not ready yet". */
+export function rollLabel(roll: ShareRoll): string {
+  return `${roll.name}: ${roll.open ? 'open to it' : 'not ready yet'}`
+}
+
+/** On the page of one living with you, the label of their own answer: "Why Mira isn't ready yet", "Why Mira said yes". */
+export function ownAnswerLabel(newcomer: Newcomer, name: string): string {
+  return newcomer.open ? `Why ${firstName(name)} said yes` : `Why ${firstName(name)} isn't ready yet`
+}
+
+/** Step 6 while a move into a shared home hasn't happened: muted, and when it is due. */
+export function pendingStepText(moving: MovingIn): string {
+  return moving.status === 'moving' && moving.move_on ? `from ${stepDate(moving.move_on)}` : 'not yet'
 }
 
 /** On the page of one living with you, another partner who would move in: "Theo is moving in too, on Nov 1, 2026."

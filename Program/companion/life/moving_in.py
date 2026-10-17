@@ -1267,20 +1267,41 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict | None:
     shared = their_home(connection, companion, today) if row['status'] == 'moved' else None
     own = next((item for item in latest_shares(connection, row['id']).values() if item['newcomer']), None)
     consequence_id = own['consequence_id'] if own else row['consequence_id']
-    ready, not_ready = readiness(connection, row) if joins(row) and row['status'] != 'moved' else (True, [])
+    pending = joins(row) and row['status'] != 'moved'
+    ready, not_ready = readiness(connection, row) if pending else (True, [])
     return {'status': row['status'], 'plan': row['plan'], 'city': (city_of(connection, row) or {}).get('name', ''),
             'place': place_text(connection, row), 'home': shared['description'] if shared else '',
             'move_on': row['move_on'], 'moved_on': row['moved_on'], 'joins': joins(row), 'ready': ready,
             'with': mate_names(connection, row, ('moved',) if row['status'] == 'moved' else ('moved', 'moving')),
             'not_ready': not_ready,
             'newcomers': newcomers_view(connection, companion, show_odds),
-            'consequence_id': consequence_id if show_odds else None}
+            'rolls': rolls_view(connection, companion, row, show_odds) if pending else [],
+            'consequence_id': consequence_id if show_odds and not pending else None}
+
+
+def rolls_view(connection, companion: dict, row: dict, show_odds: bool) -> list[dict]:
+    """While a move into a shared home waits or is on its way, each one's answer, the newcomer first, by name."""
+    shares = latest_shares(connection, row['id'])
+    people = [companion, *mates_of(connection, row)]
+    return [{'name': first_name(person), 'open': bool(share['open']),
+             'consequence_id': share['consequence_id'] if show_odds else None}
+            for person in people if (share := shares.get(person['id']))]
+
+
+def shown_with(connection, consequence_id: str, companion: dict) -> bool:
+    """An answer about sharing a home that shows on this companion's page though it is another's: theirs, about this
+    companion moving in."""
+    found = optional(connection, 'SELECT m.timeline_id FROM moving_in_shares s JOIN moving_in m ON m.id=s.moving_in_id '
+                     'WHERE s.consequence_id=?', (consequence_id,))
+    return bool(found and found['timeline_id'] == companion.get('active_timeline_id'))
 
 
 def change(connection, companion: dict, consequence_id: str, option: int, now) -> dict:
     """The user makes it go another way under Hidden values, while the move has not happened yet."""
+    found = consequences.by_id(connection, consequence_id)
+    require(found['timeline_id'] == companion['active_timeline_id'] or shown_with(connection, consequence_id, companion),
+            'That outcome is not on this timeline.', 404)
     outcome = consequences.change(connection, consequence_id, option, stamp(now))
-    require(outcome['timeline_id'] == companion['active_timeline_id'], 'That outcome is not on this timeline.', 404)
     if outcome['choice'] == SHARE:
         return change_share(connection, consequence_id, option, now)
     row = optional(connection, 'SELECT * FROM moving_in WHERE consequence_id=?', (consequence_id,))

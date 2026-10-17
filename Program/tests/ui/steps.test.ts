@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PACE_LEVELS, askText, howText, movingText, newcomerText, plannedText, stepDate } from '../../src/features/character/stepsText.ts'
+import { PACE_LEVELS, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from '../../src/features/character/stepsText.ts'
 
 test('the Relationship pace slider has four steps', () => {
   assert.deepEqual(PACE_LEVELS.map((level) => level.label), ['Only when you bring it up', 'Slow', 'True to life', 'Fast'])
@@ -40,7 +40,7 @@ test('sharing a home with another partner says who lives there, and why a move w
   const joining = { ...base, joins: true, ready: true, with: ['Mira'], not_ready: [] }
   assert.equal(movingText(joining, 'Theo Park'), `Theo is moving in with you and Mira on ${stepDate('2026-11-01')}.`)
   assert.equal(movingText({ ...joining, status: 'waiting', move_on: null, not_ready: ['Mira'] }, 'Theo'),
-    "Theo would like to move in with you and Mira. Waiting: Mira isn't ready to share your home yet.")
+    "Theo would like to move in with you and Mira. Mira isn't ready to share your home yet.")
   assert.equal(movingText({ ...joining, status: 'waiting', move_on: null, ready: false }, 'Theo'),
     "Theo would like to live with you, but isn't ready to share a home with Mira yet.")
   assert.equal(movingText({ ...base, status: 'moved', moved_on: '2026-11-02', home: 'a one-bedroom in Canton', with: ['Theo'] }, 'Mira'),
@@ -49,4 +49,15 @@ test('sharing a home with another partner says who lives there, and why a move w
   assert.equal(newcomerText(newcomer, 'Mira Solano'), "Theo would like to move in too. Mira isn't ready to share your home yet.")
   assert.equal(newcomerText({ ...newcomer, status: 'moving', move_on: '2026-11-01', open: true, not_ready: [] }, 'Mira'),
     `Theo is moving in too, on ${stepDate('2026-11-01')}.`)
+})
+
+test('sharing a home labels each answer by name, and Living together waits for moving day', () => {
+  assert.equal(rollLabel({ name: 'Theo', open: true, consequence_id: null }), 'Theo: open to it')
+  assert.equal(rollLabel({ name: 'Mira', open: false, consequence_id: null }), 'Mira: not ready yet')
+  const newcomer = { name: 'Theo', status: 'waiting' as const, move_on: null, open: false, not_ready: ['Mira'], consequence_id: null }
+  assert.equal(ownAnswerLabel(newcomer, 'Mira Solano'), "Why Mira isn't ready yet")
+  assert.equal(ownAnswerLabel({ ...newcomer, open: true }, 'Mira'), 'Why Mira said yes')
+  const moving = { status: 'moving' as const, plan: 'yours' as const, city: 'Baltimore', place: 'Canton', home: '', move_on: '2026-11-01', moved_on: null, consequence_id: null, joins: true }
+  assert.equal(pendingStepText(moving), `from ${stepDate('2026-11-01')}`)
+  assert.equal(pendingStepText({ ...moving, status: 'waiting', move_on: null }), 'not yet')
 })

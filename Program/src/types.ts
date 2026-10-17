@@ -512,7 +512,11 @@ export interface MovingIn {
   joins?: boolean; ready?: boolean; with?: string[]; not_ready?: string[]
   /** On the page of one living with you: another partner who would move in, and whether this one is open to it. */
   newcomers?: Newcomer[]
+  /** While that move waits or is on its way: each one's answer, the newcomer first. */
+  rolls?: ShareRoll[]
 }
+
+export interface ShareRoll { name: string; open: boolean; consequence_id: string | null }
 
 export interface Newcomer {
   name: string; status: 'moving' | 'waiting'; move_on: string | null; open: boolean; not_ready: string[]

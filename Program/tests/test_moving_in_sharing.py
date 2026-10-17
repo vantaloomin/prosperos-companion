@@ -256,3 +256,33 @@ def test_the_context_packet_tells_the_one_at_home(client, provider, clock, monke
     with client.app.state.database.connect() as connection:
         built = context.build(connection, current(connection), clock.now(), 24000)
     assert 'Theo, who the user is also seeing, is moving in with you and the user' in built['note']
+
+
+def test_the_newcomers_page_waits_for_moving_day_and_shows_who_holds_it_up(client, provider, clock, monkeypatch):
+    """Iris's review: not "living together" before moving day, and the answer holding it up shows (and changes) on the
+    newcomer's own page, each labelled by name."""
+    rolls(monkeypatch, set())
+    living_with_mira(client, provider, clock, monkeypatch)
+    mira_id, theo_id = current_id(client), theo(client)
+    rolls(monkeypatch, {mira_id})
+    theo_moves_in(client, theo_id)
+    client.put('/api/settings', json={'show_odds': True})
+    assert client.post('/api/companion/cast/focus', json={'companion_id': theo_id}).status_code == 200
+    view = client.get('/api/life/steps').json()
+    assert view['text'].endswith(', waiting to move in') and 'living together' not in view['text']
+    assert view['moving_in']['consequence_id'] is None
+    assert [(item['name'], item['open']) for item in view['moving_in']['rolls']] == [('Theo', True), ('Mira', False)]
+    blocking = view['moving_in']['rolls'][1]['consequence_id']
+    assert client.get(f'/api/life/consequences/{blocking}').status_code == 200  # Mira's, shown on Theo's page.
+    response = client.post(f'/api/life/consequences/{blocking}/change', json={'option': 0})
+    assert response.status_code == 200, response.text
+    view = client.get('/api/life/steps').json()
+    assert view['text'].endswith(', moving in soon') and view['moving_in']['status'] == 'moving'
+    advance(client, theo_id, (date.fromisoformat(view['moving_in']['move_on']) - clock.now().date()).days, clock)
+    view = client.get('/api/life/steps').json()
+    assert view['text'].endswith(', living together') and view['moving_in']['rolls'] == []
+    # Someone else's outcome stays out of reach.
+    with client.app.state.database.connect() as connection:
+        other = optional(connection, "SELECT id FROM consequences WHERE timeline_id=(SELECT active_timeline_id FROM "
+                         "companions WHERE id=?) AND choice='moving_in:where'", (mira_id,))
+    assert client.get(f"/api/life/consequences/{other['id']}").status_code == 404

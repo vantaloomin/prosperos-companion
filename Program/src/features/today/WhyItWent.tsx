@@ -8,11 +8,11 @@ import { storyDate } from './storyText'
 /** "Why it went this way": each way a turning could have gone, its odds and what moved them, and a way to make
  * it go another way. Loads only when opened, and shows only with Hidden values > odds turned on. `settled` when it can't
  * be changed any more (they already moved in): the odds without the buttons. */
-export function WhyItWent({ id, possibleOnly = false, settled = false }: { id: string; possibleOnly?: boolean; settled?: boolean }) {
-  return useWorkspaceSettings().data?.show_odds === true ? <Odds id={id} possibleOnly={possibleOnly} settled={settled} /> : null
+export function WhyItWent({ id, possibleOnly = false, settled = false, summary = 'Why it went this way' }: { id: string; possibleOnly?: boolean; settled?: boolean; summary?: string }) {
+  return useWorkspaceSettings().data?.show_odds === true ? <Odds id={id} possibleOnly={possibleOnly} settled={settled} summary={summary} /> : null
 }
 
-function Odds({ id, possibleOnly, settled }: { id: string; possibleOnly: boolean; settled: boolean }) {
+function Odds({ id, possibleOnly, settled, summary }: { id: string; possibleOnly: boolean; settled: boolean; summary: string }) {
   const [open, setOpen] = useState(false)
   const [failed, setFailed] = useState('')
   const client = useQueryClient()
@@ -30,7 +30,7 @@ function Odds({ id, possibleOnly, settled }: { id: string; possibleOnly: boolean
   }
   return (
     <details className="why-it-went" onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary>Why it went this way</summary>
+      <summary>{summary}</summary>
       {outcome.data && (
         <>
           <p className="subtle">{outcome.data.label}{outcome.data.picked_by === 'user' ? ': you picked how it went.' : '.'}</p>
