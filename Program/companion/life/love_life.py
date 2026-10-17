@@ -16,10 +16,13 @@ A romance companion (the user's own) only has a love life of their own as decide
 Drama"):
 - an open relationship from their interests or description: they date like anyone else and always tell the user;
 - on Drama (the drama level at soap opera), once the two of you are exclusive, the engine may decide they start
-  seeing someone on the side (choice `love:secret`, once a month), more likely after the Life deck's "caught their
-  eye" card. It stays hidden (the partner never joins the visible circle) until it comes out: one of the user's other
+  seeing someone on the side (choice `love:secret`, once a month, about 1 in 50 with nothing else moving it: roughly
+  one year in five; Vanta 2026-10-17), more likely on Lots going on, after the Life deck's "caught their eye" card or
+  when they're restless, less on Quiet or when very close. Below soap opera there is no roll at all. It stays hidden (the partner never joins the visible circle) until it comes out: one of the user's other
   companions in the same city sees them together (Small world), or word gets around (news travelling). Then it ends,
   they know they hurt the user, and a rough patch opens (companion/life/rough_patches.py, cause `hidden_partner`).
+
+The banks (world/data/love_life.json) say the partner with their own pronouns: {they}, {their}, "love{s}" (`line`).
 
 Jealousy is never assumed: only an emotional trait the user built that speaks to it adds it to the chat line.
 No model decides anything; the chat context's 'love' section tells the companion where things stand.
@@ -34,7 +37,7 @@ from companion import consequences
 from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, steps
+from companion.life import circle, pronouns, steps
 from companion.world import catalog
 
 # Off in tests unless a test turns it on (tests/conftest.py): a seeded partner adds circle people and first texts.
@@ -203,8 +206,17 @@ def role_for(step_key: str, pronouns: str) -> str:
     return ROLES[BY_STEP.get(step_key, 'dating')].get(pronouns, 'partner')
 
 
-def how_met(seed: str) -> str:
-    return random.Random(f'{seed}:met').choice(bank()['met'])
+def how_met(seed: str, their_pronouns: str | None) -> str:
+    return line(random.Random(f'{seed}:met').choice(bank()['met']), '', their_pronouns)
+
+
+def line(template: str, name: str, their_pronouns: str | None) -> str:
+    """A bank line about the partner: their first name in {partner}, their pronouns in {they}, {their}, "love{s}"."""
+    return template.format_map({'partner': name, **pronouns.person(their_pronouns)})
+
+
+def told(template: str, found: dict) -> str:
+    return line(template, first(found['name']), found['details'].get('pronouns'))
 
 
 # Meeting someone: the life chapter (companion/life/chapters.py) -------------------------------------------------------
@@ -218,8 +230,8 @@ def plan(connection, companion: dict, world, day: date, seed: str) -> dict | Non
         return None
     person = new_person(connection, companion, world, f'{seed}:love')
     name, them = person['name'], first(person['name'])
-    how = how_met(seed)
-    share = random.Random(f'{seed}:share').choice(bank()['share_new']).format(partner=them)
+    how = how_met(seed, person['details'].get('pronouns'))
+    share = line(random.Random(f'{seed}:share').choice(bank()['share_new']), them, person['details'].get('pronouns'))
     told = f'You started seeing {name}; you met {how}. It is early days: you are dating, nothing more yet.'
     return {'title': f"{first(companion['version']['definition']['name'])} started seeing {name}", 'told': told,
             'share': share, 'person': person, 'met': how}
@@ -388,7 +400,8 @@ def maybe_secret(connection, companion: dict, world, now) -> dict | None:
 def decide_secret(connection, companion: dict, subject: str, today: date, now) -> dict:
     from companion.memory import closeness, pairs
     definition = companion['version']['definition']
-    facts = {'love_life': level(connection), 'card': int(card_lately(connection, companion, today)),
+    facts = {'love_life': level(connection), 'drama': steps.drama(connection),
+             'card': int(card_lately(connection, companion, today)),
              'closeness': closeness.state(connection, companion, now)['level'],
              'mood': consequences.total(connection, companion['active_timeline_id'],
                                         pairs.companion_key(companion['id']), 'mood', today.isoformat()),
@@ -405,8 +418,9 @@ def start_secret(connection, companion: dict, world, outcome: dict, day: date, n
     """A secret partner: a seeded person who never joins the circle the user sees."""
     person = new_person(connection, companion, world, outcome['subject'])
     details = {key: person['details'].get(key) for key in ('pronouns', 'age', 'career', 'employer', 'neighborhood')}
-    partner_id = insert(connection, companion, person['name'], {**details, 'met': how_met(outcome['subject'])}, day,
-                        now, secret=True, consequence_id=outcome['id'])
+    met = how_met(outcome['subject'], details.get('pronouns'))
+    partner_id = insert(connection, companion, person['name'], {**details, 'met': met}, day, now, secret=True,
+                        consequence_id=outcome['id'])
     return partner(connection, partner_id)
 
 
@@ -642,7 +656,7 @@ def news_due(connection, companion: dict, now) -> list:
             reason = f'Something big just happened in your love life: you and {them} {did}. Tell the user, the way ' \
                      'you would text a friend.'
             lines = bank()['milestones'].get(item['step']) or bank()['dates']
-        template = random.Random(f"{item['key']}:line").choice(lines).format(partner=them)
+        template = told(random.Random(f"{item['key']}:line").choice(lines), item['partner'])
         result.append(Trigger(item['key'], 'storyline', reason, template))
     return result
 
@@ -699,14 +713,13 @@ def feed_posts(connection, companion: dict, days: list[date], timezone: str) -> 
     for found in partners(connection, timeline_id, active=False):
         if found['secret'] or found['ended_how'] == 'undone':
             continue
-        them = first(found['name'])
         for day in days:
             on, seed = day.isoformat(), f"love:{found['id']}:{day.isoformat()}"
             if on < found['met_on'] or (found['ended_on'] and on >= found['ended_on']):
                 continue
             text = step_post(connection, companion, found, on, seed)
             if text is None and random.Random(f'{seed}:date').random() < DATE_POST:
-                text = random.Random(f'{seed}:line').choice(bank()['dates']).format(partner=them)
+                text = told(random.Random(f'{seed}:line').choice(bank()['dates']), found)
             if text:
                 result.append(social.own('status', f'love:{seed}', social.at(day, timezone, seed, 18, 23),
                                          {'text': text, 'tone': 'good'}))
@@ -716,8 +729,7 @@ def feed_posts(connection, companion: dict, days: list[date], timezone: str) -> 
 def step_post(connection, companion: dict, found: dict, on: str, seed: str) -> str | None:
     for row in steps.reached(connection, companion['active_timeline_id'], LADDER, key_of(found)):
         if row['reached_on'] == on and row['how'] == 'them' and row['step'] in bank()['milestones']:
-            return random.Random(f'{seed}:step').choice(bank()['milestones'][row['step']]).format(
-                partner=first(found['name']))
+            return told(random.Random(f'{seed}:step').choice(bank()['milestones'][row['step']]), found)
     return None
 
 

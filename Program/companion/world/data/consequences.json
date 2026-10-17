@@ -1324,7 +1324,7 @@
       "options": [
         {
           "label": "{name} stays true to you",
-          "weight": 14,
+          "weight": 49,
           "rules": [
             {
               "reader": "closeness",
@@ -1338,6 +1338,12 @@
           "label": "{name} starts seeing someone on the side",
           "weight": 1,
           "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1,
+              "why": "the drama level is soap opera, and you two are exclusive"
+            },
             {
               "reader": "love_life",
               "at_most": 1,
