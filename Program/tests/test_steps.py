@@ -50,6 +50,11 @@ def test_steps_brought_up_are_read_from_the_message():
     assert steps.raised('I think we should be exclusive', ['exclusive', 'love']) == 'exclusive'
     assert steps.raised('We should move in together', ['moving_in']) == 'moving_in'
     assert steps.raised('I told my mom I love you', ['exclusive', 'love']) is None
+    # Real model run (E2E v0.13): asked this way, the companion agreed but the app stayed at dating.
+    for text in ('So does this mean we are courting properly now? Only each other?', 'are we exclusive now?',
+                 'Should we be a couple?'):
+        assert steps.raised(text, ['exclusive', 'love']) == 'exclusive', text
+    assert steps.raised('we were only each other for years, back then', ['exclusive']) is None
     assert steps.confessed('I think I have feelings for you')
     assert not steps.confessed("I don't have feelings for you")
 

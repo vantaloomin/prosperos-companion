@@ -163,7 +163,9 @@ ASKS = re.compile(r"\?|\b(?:wanna|want to|do you want|would you|will you|can we|
 RAISES = {
     'exclusive': re.compile(r"\b(?:be (?:exclusive|official)|make (?:it|this|us|things) official|only (?:see|date) each "
                             r"other|be my (?:boyfriend|girlfriend|partner|significant other|sweetheart)|go steady|be "
-                            r"(?:mine|together) properly|stop seeing other people)\b", re.IGNORECASE),
+                            r"(?:mine|together) properly|stop seeing other people|(?:are|r) we (?:exclusive|official|a "
+                            r"couple)|(?:only|just) each other|(?:courting|going steady|together) (?:now|properly)|be "
+                            r"a couple)\b", re.IGNORECASE),
     'love': re.compile(r"\b(?:i love you|i'?m in love with you|i am in love with you|i'?ve fallen (?:in love )?(?:for|with) "
                        r"you|love you so much|i love u)\b", re.IGNORECASE),
     'their_people': re.compile(r"\bmeet(?:ing)? (?:your|ur) (?:family|parents|folks|mom|mum|dad|mother|father|friends|"
