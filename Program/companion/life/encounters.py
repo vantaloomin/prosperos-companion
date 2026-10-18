@@ -16,7 +16,7 @@ from companion.characters import for_timeline
 from companion.clock import stamp, zone
 from companion.database import decode, encode, many, optional, settings
 from companion.life import money, network, town_personality
-from companion.world import couples, generators, intimacy, life_details, newcomers, perception, townsfolk
+from companion.world import couples, generators, intimacy, life_details, newcomers, perception, townsfolk, turnover
 
 ACTIVE = True
 CHANCE = 0.15
@@ -135,9 +135,11 @@ def present(data: dict, place_id: str, times_of_day: list[datetime], history: di
     companions in the town, where their own day puts them (`plans`, from cast_plans) or else by the town's rules.
     Never the companion themself."""
     cast, plans = cast or NO_CAST, plans or {}
-    seeded = [] if place_id.startswith('~') else townsfolk.at_place(data, place_id)
-    locals_ = townsfolk.reaching(data, place_id)
-    met = [sheet for key in history if (sheet := resolve(data, key, cast))]
+    day = times_of_day[0].date() if times_of_day else None
+    seeded = [] if place_id.startswith('~') else townsfolk.at_place(data, place_id, day)
+    locals_ = townsfolk.reaching(data, place_id, day)
+    # Someone met before who has since moved away isn't around any more (companion/world/turnover.py).
+    met = [sheet for key in history if (sheet := resolve(data, key, cast)) and not (day and townsfolk.gone(sheet, data, day))]
     people = [sheet for sheet in [*seeded, *locals_, *met, *cast['sheets'].values()]
               if sheet['key'] not in cast['own'] and sheet['key'] not in cast['aliases']]
     for moment in times_of_day:
@@ -248,6 +250,7 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
               'cast': sheet.get('cast'), 'love': None, 'comes_across': None, 'says_they_are': None, 'about': sheet.get('about')}
     person |= perception.revealed(data, sheet, times)
     person |= life_details.revealed(data, sheet, times)
+    person['left'] = left(sheet, data, times, now, companion)
     if times >= KNOWS_GOAL:
         state = townsfolk.story(sheet, data, date.fromisoformat(last['local_date']))
         person |= {'goal': state['goal']['text'], 'lately': state['line'] or None, 'reached': state['reached'],
@@ -257,6 +260,15 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
         person |= {'flaw': sheet.get('flaw_text') or townsfolk.FLAWS[sheet['flaw']][0],
                    'desire': townsfolk.DESIRES[sheet['desire']]}
     return person
+
+
+def left(sheet: dict, data: dict, times: int, now, companion: dict) -> dict | None:
+    """Whether they have moved away, left their job or retired by now (companion/world/turnover.py): the staff at a
+    place the companion goes to are missed at once; anyone else once the companion knows them a little."""
+    if not sheet['staff'] and times < KNOWS_GOAL:
+        return None
+    day = now.astimezone(zone(companion['version']['timezone'])).date() if now else turnover.today(data)
+    return townsfolk.gone(sheet, data, day)
 
 
 def pets_of(connection, companion: dict, key: str, times: int, now) -> list[dict]:
@@ -299,8 +311,7 @@ def text(person: dict) -> str:
     if person['goal']:
         lately = f" Last you heard: {person['lately']}." if person['lately'] else ''
         parts.append(f"They are trying to {person['goal']}.{lately}")
-    if person.get('love'):
-        parts.append(f"Last you heard, they're {person['love']}.")
+    parts += news_of(person)
     if person['flaw']:
         parts.append(f"You've noticed they're {person['flaw']}; they seem to want {person['desire']}.")
     if person.get('orientation'):
@@ -314,6 +325,15 @@ def text(person: dict) -> str:
     if person.get('cast'):
         parts.append('They know the user well.')
     return ' '.join(parts)
+
+
+def news_of(person: dict) -> list[str]:
+    """Their love life, and whether they have since left, as far as the companion knows."""
+    found = [f"Last you heard, they're {person['love']}."] if person.get('love') else []
+    if person.get('left'):
+        when = date.fromisoformat(person['left']['day']).strftime('%B %Y')
+        found.append(f"They have since {person['left']['text']} ({when}).")
+    return found
 
 
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
