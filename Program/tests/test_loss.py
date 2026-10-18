@@ -333,3 +333,27 @@ def test_someone_who_died_leaves_the_living_and_their_plans_with_the_companion(c
     living = prompt.split('People in your life')[1].split('\n## ')[0]
     name = row['name'].split()[0]
     assert f'- {name} (' not in living and f'Your dad {name} died on' in prompt
+
+
+def test_a_branch_after_a_death_keeps_one_funeral(client, clock, monkeypatch, provider):
+    make(client)
+    switch(client)
+    dies(monkeypatch)
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['role'] == 'dad')
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
+    advance(client, clock)
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    sent = client.post('/api/conversation/messages', json={'text': 'I am so sorry.', 'client_id': 'loss-fork-1'})
+    response = client.post('/api/timelines', json={'message_id': sent.json()['message']['id']})
+    assert response.status_code == 200, response.text
+    assert client.post(f"/api/timelines/{response.json()['id']}/activate").status_code == 200
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        copied = optional(connection, "SELECT id FROM losses WHERE timeline_id=? AND role='dad'",
+                          (companion['active_timeline_id'],))
+        funerals = [item for item in big_days.rows(connection, companion['active_timeline_id'])
+                    if item['kind'] == 'funeral' and item['status'] != 'called_off' and item['details']['role'] == 'dad']
+    assert len(funerals) == 1 and funerals[0]['source'] == f"loss:{copied['id']}", funerals

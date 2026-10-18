@@ -578,11 +578,13 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -
         if row['happened'] and row['died_on'] <= cutoff_date:
             consequence = consequences.copy(connection, row['consequence_id'], new_id, row['consequence_id']) \
                 if row['consequence_id'] else None
+            copied = identifier()
             connection.execute(
                 'INSERT INTO losses (id, timeline_id, kind, person_id, town_key, name, role, details, died_on, happened, '
                 'consequence_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)',
-                (identifier(), new_id, row['kind'], person_id, row['town_key'], row['name'], row['role'],
+                (copied, new_id, row['kind'], person_id, row['town_key'], row['name'], row['role'],
                  row['details'], row['died_on'], consequence, row['created_at'], row['updated_at']))
+            follow_funeral(connection, new_id, row['id'], copied)
         elif person_id:
             person = optional(connection, 'SELECT details FROM circle_people WHERE id=?', (person_id,))
             details = decode(person['details']) if person else {}
@@ -590,3 +592,10 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -
                 details.pop('late')
                 connection.execute("UPDATE circle_people SET status='active', details=? WHERE id=?",
                                    (encode(details), person_id))
+
+
+def follow_funeral(connection, timeline_id: str, old_id: str, new_id: str) -> None:
+    """The funeral the copy carried over (companion/life/big_days.py `copy`) is for the copy's own loss, so it is not
+    planned a second time."""
+    connection.execute("UPDATE big_days SET source=?, details=json_set(details, '$.loss_id', ?) WHERE timeline_id=? AND "
+                       'source=?', (f'loss:{new_id}', new_id, timeline_id, f'loss:{old_id}'))
