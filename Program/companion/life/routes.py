@@ -530,6 +530,11 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         with database.connect(write=True) as connection:
             return breakups.change(connection, require_current(connection), consequence_id, body.option,
                                    database.clock.now())
+    if subject.startswith('tense-ask:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return rough_patches.change_ask(connection, require_current(connection), consequence_id, body.option,
+                                            database.clock.now())
     if subject.startswith('wedding:'):
         database = db(request)
         with database.connect(write=True) as connection:

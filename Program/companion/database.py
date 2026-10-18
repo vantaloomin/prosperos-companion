@@ -315,6 +315,9 @@ ADDED_COLUMNS = (
     # Sharing a home (companion/life/moving_in.py): the shared home a moving-in row belongs to, by the id of the row
     # that set it up. A second romance moving into it has the first one's household; NULL is a household of its own.
     ('moving_in', 'household', 'TEXT'),
+    # A fork's copy of a moving-in row (companion/life/moving_in.py `copy`): the row it was first copied from, so a home
+    # set up before the fork stays one household with those who moved in on other timelines; NULL for the original.
+    ('moving_in', 'origin', 'TEXT'),
     # Births and growing families (companion/life/families.py, Settings > Realism): how often babies arrive in the
     # circle and the town, 0 none, 1 now and then, 2 true to life, 3 lots.
     ('life_settings', 'growing_families', 'INTEGER NOT NULL DEFAULT 2 CHECK (growing_families BETWEEN 0 AND 3)'),
@@ -358,6 +361,8 @@ def initialize(connection, timestamp: str):
     connection.execute('UPDATE life_settings SET automatic_events=1, events_on_by_default=1 WHERE events_on_by_default=0')
     connection.execute('UPDATE workspace_settings SET automatic_memory=1, sensitive_memory=1, '
                        'model_memory_suggestions=1, memory_on_by_default=1 WHERE memory_on_by_default=0')
+    from companion.life.outings import reword_memories
+    reword_memories(connection, timestamp)
     connection.executemany('INSERT OR REPLACE INTO app_identity (key, value) VALUES (?, ?)',
                            (('schema_version', str(SCHEMA_VERSION)), ('schema_digest', schema_digest()),
                             ('app_version', VERSION)))

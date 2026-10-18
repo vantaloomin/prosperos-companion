@@ -20,8 +20,9 @@ a break.
 Afterwards they are exes: nothing is deleted (the steps stay in the scrapbook), they keep their own life in town and
 are free to date, the one who moved in moves out (companion/life/moving_in.py), and texting drops off by rules (only a
 birthday, or reaching out). Getting back together is possible: now and then an ex reaches out (`user:reach_out`), or
-the user asks (`user:back_together`). Back together, they start again from a key to each other's place: living
-together, an engagement or a marriage are taken back (the scrapbook keeps them).
+the user asks (`user:back_together`). Back together, they start again as a couple (exclusive), or living together when
+they still do: the steps further on, an engagement or a marriage are taken back (the scrapbook keeps them). A marriage
+ends with the breakup: it reads as a divorce, and the wedding is no longer theirs to talk about as a marriage.
 
 No model decides anything; the model only puts it in words.
 """
@@ -84,8 +85,8 @@ NOT_NOW = re.compile(r"\b(?:if|what if|imagine|pretend|suppose|said|says|told|te
 
 
 @cache
-def bank(name: str) -> list[str]:
-    return json.loads((catalog.DATA / 'breakups' / f'{name}.json').read_text(encoding='utf-8'))['templates']
+def bank(name: str, key: str = 'templates') -> list[str]:
+    return json.loads((catalog.DATA / 'breakups' / f'{name}.json').read_text(encoding='utf-8'))[key]
 
 
 # Settings and whether it applies ------------------------------------------------------------------------------------
@@ -429,17 +430,32 @@ def call_off_plans(connection, companion: dict, now: datetime) -> None:
 
 
 def back_together(connection, companion: dict, row: dict, now: datetime) -> None:
-    """Back together after it ended: they start again from a key to each other's place. Living together, an engagement
-    or a marriage are taken back (they live apart now); the scrapbook keeps them (`scrapbook_items`)."""
+    """Back together after it ended: they start again as a couple (exclusive), or living together when they still live
+    together. The steps further on ("I love you" to married) are taken back; the scrapbook keeps them
+    (`scrapbook_items`)."""
     if row['ladder'] != 'romance' or stage_before_together(connection, row) != 'ended':
         return
-    cut = steps.index_of('romance', 'moving_in')
+    from companion.life import moving_in  # Imported here: moving_in reads the steps ladder, which reads breakups.
+    cut = steps.index_of('romance', 'moving_in' if moving_in.living(connection, companion) else 'exclusive') + 1
     taken = [found for found in steps.reached(connection, companion['active_timeline_id'], 'romance')
              if steps.index_of('romance', found['step']) >= cut]
     for found in taken:
         connection.execute('UPDATE relationship_steps SET undone_at=? WHERE id=?', (stamp(now), found['id']))
     if taken:
         update(connection, row, steps_back=encode([found['id'] for found in taken]))
+
+
+def divorced(connection, row: dict) -> bool:
+    """Whether they were married when it ended: the marriage ended with it (a divorce)."""
+    return row['ladder'] == 'romance' and bool(row['ended_at']) and had_step(connection, row, 'married')
+
+
+def ended_since(connection, timeline_id: str, day: str) -> bool:
+    """Whether it ended on or after that day (and stands, or they got back together after it): a wedding before then is
+    a marriage that ended (companion/life/wedding.py)."""
+    return any(row['ended_at'] and row['ended_at'][:10] >= day and (
+        stage(connection, row) == 'ended' or stage_before_together(connection, row) == 'ended' and stage(
+            connection, row) == 'together') for row in rows(connection, timeline_id))
 
 
 def stage_before_together(connection, row: dict) -> str:
@@ -511,20 +527,34 @@ REASONS = {
                    'distance from the friendship for now. Tell them honestly and without cruelty, in your own words.',
     'reach_out': 'You and the user broke up a while ago, and you keep thinking about them. Reach out, tentatively, in '
                  'your own words, to see whether they would want to talk about trying again. Leave them room to say no.',
+    'try_again': 'You and the user have been on a break, and you have decided you want to try again. Tell them, warmly '
+                 'and a little carefully, in your own words.',
 }
+# How long after the end of a break the first text saying they want to try again can still go.
+TRY_AGAIN_FOR = timedelta(days=3)
+# A companion message that names the break: until one does, they are still to tell the user (`break_tell`).
+NAMES_BREAK = re.compile(r"\b(?:break|time apart|space|step back)\b", re.IGNORECASE)
 
 
-def told(connection, row: dict, at: str) -> bool:
-    """Whether they have written to the user since `at` (the line told them to say it, or a first text did)."""
-    return bool(optional(connection, "SELECT id FROM messages WHERE timeline_id=? AND role='companion' "
-                         "AND status='complete' AND created_at>=? LIMIT 1", (row['timeline_id'], row[at])))
+def told(connection, row: dict, at: str, naming: re.Pattern | None = None) -> bool:
+    """Whether they have written to the user since `at` (the line told them to say it, or a first text did); with
+    `naming`, in a message that says it ("we should probably give it a minute" never named the break)."""
+    query = ("SELECT text FROM messages WHERE timeline_id=? AND role='companion' AND status='complete' AND created_at>=?"
+             + ('' if naming else ' LIMIT 1'))
+    return any(naming is None or naming.search(item['text'] or '') for item in many(connection, query,
+                                                                                     (row['timeline_id'], row[at])))
 
 
 def news_due(connection, companion: dict, now: datetime) -> list:
-    """They asked for a break, ended it, or fell out, and haven't said so yet; or reaching out is due."""
+    """They asked for a break, ended it, or fell out, and haven't said so yet; they decided at the end of a break to
+    try again; or reaching out is due."""
     from companion.life.openers import Trigger
     if not ACTIVE or not FIRST_TEXTS or not applies(connection, companion):
         return []
+    last, last_found = latest(connection, companion)
+    if last and last_found == 'together' and try_again_due(connection, last, now):
+        return [Trigger(f"breakup:{last['id']}:try_again", 'breakup', REASONS['try_again'],
+                        random.Random(f"{last['id']}:try_again").choice(bank('try_again')))]
     row, found = current(connection, companion)
     if row is None:
         return []
@@ -537,9 +567,16 @@ def news_due(connection, companion: dict, now: datetime) -> list:
     reach = open_reach(connection, row) if found == 'ended' else None
     if reach and reach['status'] == 'planned' and reach['due_on'] <= local_today(companion, now).isoformat() and \
             picked(connection, reach['consequence_id']) == YES:
+        lines = bank('reaching_out') + (bank('reaching_out', 'when_they_ended') if row['ended_by'] != 'you' else [])
         return [Trigger(f"breakup-reach:{reach['id']}", 'reach_out', REASONS['reach_out'],
-                        random.Random(reach['id']).choice(bank('reaching_out')), (reach['id'],))]
+                        random.Random(reach['id']).choice(lines), (reach['id'],))]
     return []
+
+
+def try_again_due(connection, row: dict, now: datetime) -> bool:
+    """At the end of a break they decided to try again (`user:after_break`), and haven't said so yet."""
+    return row['ended_by'] == 'break' and picked(connection, row['ended_id']) == TOGETHER and \
+        now - parse(row['ended_at']) < TRY_AGAIN_FOR and not told(connection, row, 'ended_at')
 
 
 def settle(connection, companion: dict, message: dict, trigger, timestamp: str) -> None:
@@ -667,6 +704,9 @@ LINES = {
     'ended': ('- You and the user broke up on {date} ({who} ended it). You are exes now and you have your own life. Be '
               'polite and a little distant; do not flirt or act like a couple, and do not suggest getting back '
               'together.'),
+    'divorced': ('- You and the user divorced on {date} ({who} ended it): your marriage is over. You are exes now and you '
+                 'have your own life. Be polite and a little distant; do not flirt or act like a couple, and do not '
+                 'suggest getting back together.'),
     'fell_out_tell': ('- Things between you and the user, your friend, have been strained for too long: you need some '
                       'distance from the friendship for now. Tell them now, honestly and without cruelty, in your own '
                       'words.'),
@@ -699,8 +739,19 @@ LINES = {
 }
 
 
+# After the ending, when they had keys to each other's places (the history still says they swapped keys).
+KEYS_BACK = "You gave each other's keys back."
+
+
 def long_date(when: str) -> str:
     return steps.long_date(when)
+
+
+def had_step(connection, row: dict, step: str) -> bool:
+    """Whether the pair had reached that step when it ended."""
+    return bool(optional(connection, "SELECT id FROM relationship_steps WHERE timeline_id=? AND other='user' AND "
+                         'ladder=? AND step=? AND created_at<=? AND (undone_at IS NULL OR undone_at>?) LIMIT 1',
+                         (row['timeline_id'], row['ladder'], step, row['ended_at'], row['ended_at'])))
 
 
 def who_said(row: dict, by: str) -> str:
@@ -732,8 +783,11 @@ def context_lines(connection, companion: dict, now: datetime, turn: set[str],
         return [(f"breakup:{row['id']}:together", LINES['together'].format(what=what))]
     when = row['ended_at'] if found == 'ended' else row['break_at']
     by = 'ended_by' if found == 'ended' else 'break_by'
+    key = 'divorced' if key == 'ended' and divorced(connection, row) else key
     text = LINES[key].format(date=long_date(local_day(companion, when)) if when else '',
                              who=who_said(row, by) if row[by] in ('you', 'them') else 'you')
+    if key in ('ended', 'divorced') and had_step(connection, row, 'key'):
+        text += f' {KEYS_BACK}'
     return [(f"breakup:{row['id']}:{key}", text)]
 
 
@@ -771,7 +825,8 @@ def line_key(connection, row: dict, found: str, now: datetime, turn: set[str]) -
             return 'fell_out_tell' if friend else 'end_tell'
         return 'fell_out' if friend else 'ended'
     if found == 'break':
-        return 'break_tell' if row['break_by'] == 'them' and not told(connection, row, 'break_at') else 'break'
+        return 'break_tell' if row['break_by'] == 'them' and not told(connection, row, 'break_at', NAMES_BREAK) else \
+            'break'
     return found if found in ('strained', 'thinking') else None
 
 
@@ -801,7 +856,8 @@ def scrapbook_items(connection, companion: dict, low: str, high: str) -> list[di
                 row['break_by'] == 'you' or picked(connection, row['break_id']) == YES):
             items.append((row['break_at'], 'You took a break'))
         if row['ended_at'] and (found == 'ended' or found == 'together' and stage_before_together(connection, row) == 'ended'):
-            items.append((row['ended_at'], 'You had a falling out' if friend else 'You broke up'))
+            items.append((row['ended_at'], 'You had a falling out' if friend else 'You got divorced' if divorced(
+                connection, row) else 'You broke up'))
         if found == 'together' and (row['together_at'] or row['ended_at']):
             items.append((row['together_at'] or row['ended_at'], 'You made up' if friend else 'You got back together'))
         for when, text in items:
@@ -819,7 +875,7 @@ def scrapbook_items(connection, companion: dict, low: str, high: str) -> list[di
 # Showing it -------------------------------------------------------------------------------------------------------
 
 TEXT = {'strained': 'Things are strained', 'thinking': "They're thinking about a break", 'break': 'On a break',
-        'ended': 'Broke up', 'fell_out': 'Fell out'}
+        'ended': 'Broke up', 'fell_out': 'Fell out', 'divorced': 'Divorced'}
 
 
 def view(connection, companion: dict, now: datetime) -> dict:
@@ -828,7 +884,7 @@ def view(connection, companion: dict, now: datetime) -> dict:
     (getting back together always, a warning or a break with Hidden values > moods); `strip` is false a week after it
     ended."""
     empty = {'stage': None, 'text': '', 'since': None, 'by': None, 'id': None, 'odds': [], 'strip': False,
-             'mendable': False, 'summary': '',
+             'mendable': False, 'summary': '', 'divorced': False,
              'ladder': ladder_of(companion) if companion else None, 'on': bool(companion) and switched_on(connection)}
     if not ACTIVE or not companion:
         return empty
@@ -842,9 +898,10 @@ def view(connection, companion: dict, now: datetime) -> dict:
     # The roll that brought it here (the earlier ones are on Today).
     odds = [row[column] for column in ('ended_id', 'break_id', 'thinking_id', 'strained_id') if row[column]][:1]
     recent = found != 'ended' or now - parse(row['ended_at']) < STRIP_ENDED
+    split = found == 'ended' and divorced(connection, row)
     return {**empty, 'stage': found, 'id': row['id'], 'since': local_day(companion, row[when]),
-            'summary': summary(connection, companion, row, found, now),
-            'text': TEXT['fell_out' if friend and found == 'ended' else found],
+            'summary': summary(connection, companion, row, found, now), 'divorced': split,
+            'text': TEXT['fell_out' if friend and found == 'ended' else 'divorced' if split else found],
             'by': 'you' if by == 'you' else 'them' if by else None, 'strip': recent,
             'mendable': found == 'ended' or bool(shown.get('show_moods')),
             'odds': odds if shown.get('show_odds') else []}
@@ -859,7 +916,7 @@ def summary(connection, companion: dict, row: dict, found: str, now: datetime) -
         return ''
     steps_now = steps.state(connection, companion, now, write=False)
     first = steps_now['steps'][0] if steps_now and steps_now['steps'] else None
-    what = 'Fell out' if row['ladder'] == 'friendship' else 'Broke up'
+    what = 'Fell out' if row['ladder'] == 'friendship' else 'Divorced' if divorced(connection, row) else 'Broke up'
     if not first or first['how'] in ('history', 'start'):  # No real date for where the app started them.
         return what
     days = (date.fromisoformat(local_day(companion, row['ended_at'])) - date.fromisoformat(first['on'])).days

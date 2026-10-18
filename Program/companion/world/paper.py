@@ -102,7 +102,8 @@ def couples_news(data: dict, week: tuple[date, date]) -> list[dict]:
         return []
     found = [(sheet, item) for sheet in sample(data, week[1]) for item in couples.events(sheet, data, week)]
     found.sort(key=lambda pair: generators.unit(pair[0]['key'], 'paper-couple', week[1].isoformat()))
-    wed = 'married' if townsfolk.modern(data) else 'wed'
+    # "got married" today; "were wed" in older eras ("got wed" reads wrong).
+    wed, were = ('married', 'got married') if townsfolk.modern(data) else ('wed', 'were wed')
     result = []
     for sheet, item in found[:MOST_COUPLES]:
         hood = townsfolk.neighborhood_name(data, sheet['home'])
@@ -111,7 +112,7 @@ def couples_news(data: dict, week: tuple[date, date]) -> list[dict]:
                               f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} announced "
                               'their engagement.')
         else:
-            headline, text = (f"{sheet['name']} and {item['partner']['name']} got {wed}.",
+            headline, text = (f"{sheet['name']} and {item['partner']['name']} {were}.",
                               f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} {wed} on "
                               f"{WEEKDAYS[item['day'].weekday()]}.")
         result.append({'key': f"{sheet['key']}:{item['what']}", 'headline': headline, 'text': text})

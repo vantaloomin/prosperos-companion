@@ -47,7 +47,7 @@ def triggers(client):
 
 
 def test_every_bank_has_a_hundred_entries_and_no_gendered_words():
-    for name in ('break_asks', 'ending', 'reaching_out', 'falling_out'):
+    for name in ('break_asks', 'ending', 'reaching_out', 'falling_out', 'try_again'):
         entries = json.loads((BANKS / f'{name}.json').read_text(encoding='utf-8'))['templates']
         assert len(entries) >= 100 and len(set(entries)) == len(entries), name
         for entry in entries:
@@ -90,9 +90,12 @@ def test_a_rough_patch_that_drags_on_strains_things_then_a_break_then_it_ends(cl
     asks = [trigger for trigger in triggers(client) if trigger.kind == 'breakup']
     assert asks and asks[0].template in breakups.bank('break_asks')
     assert not any(trigger.kind == 'check_in' for trigger in triggers(client))
-    says(provider)
+    says(provider, 'We should probably give it a minute.')
     send(client, 'are you there?', 'client-break-3')
     assert 'You have decided you need a break from the user' in notes(provider)
+    says(provider, 'I need a break from us.')
+    send(client, 'give what a minute?', 'client-break-3b')
+    assert 'You have decided you need a break from the user' in notes(provider)  # The reply never said "break".
     says(provider)
     send(client, 'ok', 'client-break-4')
     assert 'You and the user have been on a break since' in notes(provider)
@@ -114,6 +117,11 @@ def test_the_user_ends_it_and_asks_to_get_back_together(client, couple, provider
     assert 'The user just broke up with you' in notes(provider)
     found = view(client)
     assert found['stage'] == 'ended' and found['by'] == 'you'
+    # Married when it ended: a divorce, and the keys went back.
+    assert found['text'] == 'Divorced' and found['divorced'] and found['summary'] == 'Divorced'
+    says(provider)
+    send(client, 'hi', 'client-end-1b')
+    assert 'You and the user divorced on' in notes(provider) and "You gave each other's keys back." in notes(provider)
     with client.app.state.database.connect() as connection:
         companion = current(connection)
         assert steps.apart(connection, companion) == 'ended' and not steps.exclusive(connection, companion, clock.now())
@@ -123,10 +131,10 @@ def test_the_user_ends_it_and_asks_to_get_back_together(client, couple, provider
     assert 'The user asked to get back together, and you want that too' in notes(provider)
     assert view(client)['stage'] is None
     stepped = client.get('/api/life/steps').json()
-    assert stepped['step'] == 'key'  # Starting over: living together and the marriage are taken back.
+    assert stepped['step'] == 'exclusive'  # Starting over as a couple: the steps further on are taken back.
     with client.app.state.database.connect() as connection:
         items = breakups.scrapbook_items(connection, current(connection), '2000-01-01', '2100-01-01')
-    assert {'You broke up', 'You got back together', 'You got married'} <= {item['text'] for item in items}
+    assert {'You got divorced', 'You got back together', 'You got married'} <= {item['text'] for item in items}
 
 
 def test_breaking_up_while_living_together_they_move_out(client, couple, provider, clock, monkeypatch):
@@ -361,7 +369,7 @@ def test_getting_back_together_changed_on_today_goes_both_ways(client, couple, p
     outcome = answer_of(client, 'user:back_together')
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': breakups.YES})
     assert view(client)['stage'] is None
-    assert client.get('/api/life/steps').json()['step'] == 'key'  # Starting over.
+    assert client.get('/api/life/steps').json()['step'] == 'exclusive'  # Starting over.
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
     assert view(client)['stage'] == 'ended'
     with client.app.state.database.connect() as connection:
@@ -378,7 +386,10 @@ def test_reaching_out_changed_on_today_is_due_at_once(client, couple, provider, 
     assert not [trigger for trigger in triggers(client) if trigger.kind == 'reach_out']
     outcome = answer_of(client, 'user:reach_out')
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': breakups.YES})
-    assert [trigger for trigger in triggers(client) if trigger.kind == 'reach_out']
+    [reach] = [trigger for trigger in triggers(client) if trigger.kind == 'reach_out']
+    # The user ended it: no line says the companion let them go.
+    assert reach.reason == breakups.REASONS['reach_out'] and reach.template in breakups.bank('reaching_out')
+    assert reach.template not in breakups.bank('reaching_out', 'when_they_ended')
 
 
 def strained_odds(client):
@@ -418,3 +429,56 @@ def test_rough_patches_over_different_things_count_in_full(client, couple, provi
     tick(client)
     found = strained_odds(client)
     assert {"this isn't the first rough patch lately", 'the rough patches keep piling up'} <= set(found['reasons'])
+
+
+def test_a_marriage_ends_with_the_breakup(client, couple, provider, clock):
+    from companion.database import identifier
+    from companion.life import wedding
+    client.put('/api/life/steps', json={'step': 'married'})
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        day = (clock.now().date() - timedelta(days=30)).isoformat()
+        connection.execute("INSERT INTO weddings (id, timeline_id, status, engaged_on, size, local_date, at_time, "
+                           "until_time, venue, culture, created_at, updated_at) VALUES (?, ?, 'done', ?, 'small', ?, "
+                           "'15:00', '23:00', ?, 'modern', ?, ?)", (identifier(), companion['active_timeline_id'], day,
+                                                                      day, json.dumps({'name': 'Grace Church'}),
+                                                                      clock.now().isoformat(), clock.now().isoformat()))
+    says(provider)
+    send(client, 'hey', 'client-divorce-1')
+    assert 'You married the user on' in notes(provider)
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-divorce-2')
+    says(provider)
+    send(client, 'hi', 'client-divorce-3')
+    assert 'You married the user on' not in notes(provider) and 'You and the user divorced on' in notes(provider)
+    clock.advance(timedelta(days=20))
+    says(provider)
+    send(client, 'can we try again?', 'client-divorce-4')
+    assert client.get('/api/life/steps').json()['step'] == 'exclusive'
+    with client.app.state.database.connect() as connection:
+        assert wedding.current(connection, current(connection)['active_timeline_id']) is None  # Free to plan another.
+
+
+def test_back_together_while_still_living_together_keeps_the_home(client, couple, provider, clock, monkeypatch):
+    client.put('/api/life/steps', json={'step': 'engaged'})
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-home-1')
+    monkeypatch.setattr(moving_in, 'living', lambda *_args, **_kw: {'status': 'moved'})
+    clock.advance(timedelta(days=20))
+    says(provider)
+    send(client, 'can we try again?', 'client-home-2')
+    assert client.get('/api/life/steps').json()['step'] == 'moving_in'
+
+
+def test_at_the_end_of_a_break_they_text_that_they_want_to_try_again(client, couple, provider, clock, monkeypatch):
+    says(provider)
+    send(client, 'can we take a break from us?', 'client-again-1')
+    assert view(client)['stage'] == 'break'
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[breakups.TOGETHER]['option'])
+    clock.advance(timedelta(days=breakups.BREAK_DAYS[2] + 1))
+    tick(client)
+    assert view(client)['stage'] is None
+    [trigger] = [trigger for trigger in triggers(client) if trigger.kind == 'breakup']
+    assert trigger.reason == breakups.REASONS['try_again'] and trigger.template in breakups.bank('try_again')
+    clock.advance(breakups.TRY_AGAIN_FOR)
+    assert not [trigger for trigger in triggers(client) if trigger.kind == 'breakup']  # Too late to say it first.

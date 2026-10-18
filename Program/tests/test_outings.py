@@ -27,6 +27,9 @@ def test_asking_out_is_read_from_the_message():
     assert asked('Dinner next Friday?') == ('dinner', '2026-10-16', None, None)
     assert asked('Want to see a movie next Thursday?')[:2] == ('show', '2026-10-15')
     assert asked("Let's go for a walk this weekend!") == ('walk', '2026-10-10', None, None)
+    # Asked on the Saturday itself, this weekend is the Sunday still ahead, not that evening; on the Sunday, that day.
+    for day, meant in ((date(2026, 10, 10), date(2026, 10, 11)), (date(2026, 10, 11), date(2026, 10, 11))):
+        assert outings.day_in('wanna do something this weekend?', day, {}) == meant
     assert asked('Drinks with me Thursday at 8?') == ('drinks', '2026-10-08', '20:00', None)
     assert asked('How about a date sometime?') == ('dinner', None, None, None)
     # The map's "Suggest going together" line names the place.
@@ -291,3 +294,74 @@ def test_outing_memories_are_worded_for_the_user_and_turned_round_for_the_compan
     assert told({'subject': 'Your wedding', 'value': 'You married the user at Lupa.'}) == \
         'Your wedding: You married the user at Lupa.'
     assert told(found['visit-yours'], origin='user') == 'Mira came over: Mira came over to your place on Saturday, March 7.'
+
+
+def test_memories_saved_in_the_old_wording_read_the_new_way_after_an_upgrade(client, companion):
+    """Memories outings and stays saved before v0.14 said "You married the user at ..." (E2E v0.13 left them as they
+    were): opening the workspace rewords them, but never one the user corrected or one already in today's wording."""
+    from companion.characters import current
+    from companion.conversation import next_seq
+    from companion.database import encode, identifier, settings
+    from companion.memory import records
+    database = client.app.state.database
+    stamp = '2026-08-01T12:00:00+00:00'
+
+    def outing(connection, mira, activity, place, subject, value, day='2026-06-12'):
+        message_id = identifier()
+        connection.execute(
+            'INSERT INTO messages (id, timeline_id, seq, role, text, status, active, character_version_id, '
+            "memory_revision, created_at, completed_at) VALUES (?, ?, ?, 'user', 'see you then', 'complete', 1, ?, ?, "
+            '?, ?)', (message_id, mira['active_timeline_id'], next_seq(connection, mira['active_timeline_id']),
+                      mira['active_version_id'], settings(connection)['memory_revision'], stamp, stamp))
+        memory = saved(connection, mira, subject, value)
+        connection.execute(
+            'INSERT INTO outings (id, companion_id, message_id, local_date, at_time, until_time, activity, place, '
+            "status, memory_id, created_at) VALUES (?, ?, ?, ?, '18:30', '21:00', ?, ?, 'done', ?, ?)",
+            (identifier(), mira['id'], message_id, day, activity, encode({'neighborhood': '', **place}), memory,
+             stamp))
+        return memory
+
+    def saved(connection, mira, subject, value):
+        memory, _created = records.insert(connection, mira, {'subject': subject, 'value': value,
+                                                              'layer': 'shared_experience', 'stated_at': stamp},
+                                          now=stamp, origin='automatic')
+        return memory['id']
+
+    with database.connect(write=True) as connection:
+        mira = current(connection)
+        wedding = outing(connection, mira, 'wedding', {'name': "St Paul's Church", 'kind': 'church'}, 'Your wedding',
+                         "You married the user at St Paul's Church on Friday, June 12, 2026.")
+        dinner = outing(connection, mira, 'dinner-in', {'name': 'Your place', 'kind': 'home', 'menu': {'dish': 'risotto'}},
+                        'Dinner at their place together at Your place',
+                        'Went out together for dinner (they cooked risotto) at your place on Saturday, April 4.',
+                        day='2026-04-04')
+        corrected = outing(connection, mira, 'visit-yours', {'name': "The user's place", 'kind': 'your-home'},
+                           "You went over to the user's place", "You went over to the user's place on Friday, June 12.")
+        records.revise(connection, records.get(connection, corrected), stamp, value='Mira came round for tea.')
+        stay = saved(connection, mira, 'You stayed with the user in Baltimore',
+                     'You stayed with the user in Baltimore, Friday July 10 to Sunday July 12.')
+        connection.execute(
+            'INSERT INTO trips (id, companion_id, timeline_id, start_date, end_date, city_id, city_name, kind, visit, '
+            "memory_id, created_at) VALUES (?, ?, ?, '2026-07-10', '2026-07-12', 'baltimore', 'Baltimore', 'getaway', "
+            "'to-you', ?, ?)", (identifier(), mira['id'], mira['active_timeline_id'], stay, stamp))
+        revision = settings(connection)['memory_revision']
+    from companion import upgrade
+    upgrade.migrate(database.path, stamp)  # The upgrade's own connection, without a row factory.
+    with database.connect() as connection:
+        def text(memory_id):
+            row = records.get(connection, memory_id)
+            return row['subject'], row['value']
+        assert text(wedding) == ('Your wedding', "You and Mira got married at St Paul's Church on Friday, June 12, 2026.")
+        assert text(dinner) == ("Dinner at Mira's place", "Had dinner, risotto, at Mira's place on Saturday, April 4.")
+        assert text(stay) == ("Mira's visit to Baltimore",
+                              'Mira came to stay with you in Baltimore, Friday July 10 to Sunday July 12.')
+        # The correction made a new revision; the outing's own one stays as history, as it was.
+        assert text(corrected)[1] == "You went over to the user's place on Friday, June 12."
+        assert settings(connection)['memory_revision'] > revision
+        # Once reworded, nothing changes on the next start.
+        assert outings.reword_memories(connection, stamp) == 0
+
+
+def test_a_cuisine_named_after_a_place_is_capitalized():
+    assert [outings.proper(cuisine) for cuisine in ('spanish', 'tex-mex', 'modern-british', 'soul-food', 'southern')] \
+        == ['Spanish', 'Tex-Mex', 'modern-British', 'soul-food', 'southern']

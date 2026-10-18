@@ -734,7 +734,8 @@ def offer_people(packet, connection, companion, now, today):
     """The circle, and the storylines going on in their lives and the companion's."""
     timeline_id = companion['active_timeline_id']
     for person in agenda.circle_view(connection, timeline_id, now):
-        packet.offer('circle', person['id'], person_text(person))
+        said = circle.said(person['role'], companion['version']['definition'])  # 'mother' in 1895
+        packet.offer('circle', person['id'], person_text({**person, 'role': said}))
         if moment := person_now_text({**person, 'birthday_today': person['birthday'] == today[5:]}):
             packet.offer('circle_now', person['id'], moment)
     for identity, text in families.context_lines(connection, companion, now):

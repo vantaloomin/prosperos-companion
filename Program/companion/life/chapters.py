@@ -42,6 +42,8 @@ TOLD_DAYS = 90  # How long the chat context keeps a new chapter.
 FRESH_DAYS = 1  # A chapter from today or yesterday can open a conversation.
 CHOICE = 'chapter:next'
 KINDS = ('new_job', 'move', 'pet', 'hobby', 'friend_moves', 'relationship')
+# Eras with a telephone at home (a friend who moved away keeps in touch by phone; before that, by letter).
+PHONES = {'modern', 'future', 'other', 'jazz-age'}
 HOBBIES = {
     True: ('running', 'pottery', 'rock climbing', 'learning guitar', 'baking bread', 'photography', 'yoga',
            'painting', 'cycling', 'learning Spanish', 'chess', 'gardening', 'dancing lessons', 'swimming'),
@@ -222,8 +224,13 @@ def plan_friend(connection, companion, world, day, seed) -> dict | None:
     away = random.Random(f'{seed}:city').choice(cities) if cities else 'another city'
     name = definition['name'].split()[0]
     return {'title': f"{person['name']}, {name}'s {person['role']}, moved away to {away}", 'person': person['id'],
-            'told': f"Your {person['role']} {person['name']} moved away to {away}; you keep in touch by phone.",
+            'told': f"Your {person['role']} {person['name']} moved away to {away}; you keep in touch {by(here)}.",
             'share': f"{person['name']} is moving to {away}. I'm going to miss having them around."}
+
+
+def by(here: dict | None) -> str:
+    """How friends far apart keep in touch: by phone in today's world and from the 1920s, by letter before."""
+    return 'by phone' if (here or {}).get('era', 'modern') in PHONES else 'by letter'
 
 
 def same_world(here: dict, there: dict) -> bool:
