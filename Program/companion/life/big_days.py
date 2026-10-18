@@ -728,7 +728,9 @@ def invitation(row: dict, day: str, time: str) -> str:
         event = said(row).replace('your ', 'my ', 1)
         lines = fitting(bank()['invite_funeral' if row['kind'] == 'funeral' else 'invite'], row['place'])
         line = seed.choice(lines).format(event=event, day=day, time=time, place=row['place']['name'])
-    return line[:1].upper() + line[1:]
+        if row['kind'] == 'funeral':  # Those lines are written all in lower case.
+            return line
+    return re.sub(r'(^|[.?!] )next ', r'\1Next ', line[:1].upper() + line[1:])
 
 
 SETTLES = ('big_day',)

@@ -576,6 +576,15 @@ def test_the_invitation_names_a_day_weeks_off_by_its_date():
     assert big_days.when_text(date(2026, 11, 14), tuesday) == 'Saturday, November 14'
 
 
+def test_next_saturday_starting_a_sentence_has_a_capital():
+    for kind in ('birthday', 'own_wedding'):
+        for number in range(100):
+            row = {'id': f'row-{number}', 'kind': kind, 'place': {'name': 'Ouzo Bay', 'modern': True},
+                   'details': {'name': 'James Hill', 'role': 'dad', 'age': 60}, 'title': "James's 60th birthday party"}
+            line = big_days.invitation(row, 'next Saturday', '7')
+            assert not re.search(r'(^|[.?!] )next Saturday', line), line
+
+
 def test_the_day_with_you_reads_with_you_last(client, clock):
     make(client)
     guests(client, 3)
