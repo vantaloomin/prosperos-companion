@@ -78,7 +78,7 @@ FEATURES = {
 SIZES = {'studio': 'a studio', 'one_bedroom': 'a one-bedroom', 'two_bedroom': 'a two-bedroom'}
 HOUSING = {'single-family': 'single-family house', 'master-planned': 'house in a master-planned community',
            'two-family-house': 'two-family house', 'new-build': 'new building'}
-PLURAL = {'rooms', 'lodgings', 'chambers', 'barracks', 'hotel', 'warehouse'}
+PLURAL = {'rooms', 'lodgings', 'chambers', 'barracks'}
 # Favourite things that only suit some moments at home (the rest suit any).
 FITS = {'a cast-iron pan': {'home-cooking'}, 'an overflowing bookshelf': {'reading', 'slow'},
         'a sketchbook': {'slow', 'reading'}, 'a game console': {'slow'}, 'a battered chess set': {'slow'},
@@ -109,8 +109,10 @@ def housing_text(housing: str) -> str:
 
 
 def article(text: str) -> str:
-    """"a" or "an" before a thing; none before plurals such as "rooms over a store" or "lodgings"."""
-    if text.split(' ')[0] in PLURAL or text.endswith('quarters'):
+    """"a" or "an" before a thing ("a warehouse conversion"); none before plurals such as "rooms over a store",
+    "warehouse lodgings" or "inn rooms"."""
+    words = text.split(' ')
+    if words[0] in PLURAL or words[-1] in PLURAL or text.endswith('quarters'):
         return text
     return f"{'an' if text[:1] in 'aeiou' else 'a'} {text}"
 

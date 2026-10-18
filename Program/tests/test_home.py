@@ -200,3 +200,15 @@ def test_a_home_made_on_a_us_evening_is_there_that_evening(client, companion):
         connection.execute("UPDATE timelines SET created_at='2026-10-10T01:30:00+00:00' WHERE id=?", (timeline_id,))
         for module in (home, wardrobe):
             assert module.started_on(connection, timeline_id, 'America/New_York').isoformat() == '2026-10-09'
+
+
+def test_the_kind_of_building_reads_with_the_right_article():
+    from companion.life.home import article, housing_text
+    said = {kind: article(housing_text(kind)) for kind in (
+        'warehouse-conversion', 'warehouse-loft', 'warehouse-lodgings', 'hotel', 'hotel-room', 'hotel-rooms',
+        'inn-rooms', 'rented-rooms', 'rooms-over-store', 'servants-quarters', 'apartment')}
+    assert said == {
+        'warehouse-conversion': 'a warehouse conversion', 'warehouse-loft': 'a warehouse loft',
+        'warehouse-lodgings': 'warehouse lodgings', 'hotel': 'a hotel', 'hotel-room': 'a hotel room',
+        'hotel-rooms': 'hotel rooms', 'inn-rooms': 'inn rooms', 'rented-rooms': 'rented rooms',
+        'rooms-over-store': 'rooms over a store', 'servants-quarters': 'servants quarters', 'apartment': 'an apartment'}
