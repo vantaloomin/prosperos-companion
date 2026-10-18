@@ -230,3 +230,13 @@ def test_a_saturday_at_a_parents_out_of_town_is_a_day_not_an_evening():
     evening = health_turns.care_begins(None, companion, {}, {**details, 'caring': {**slot, 'start': '18:00'}},
                                        date(2027, 1, 2), None)
     assert evening['share'].startswith("First evening at my mom's")
+
+
+def test_a_condition_they_live_with_stays_in_the_chat_context(client, older, clock, monkeypatch):
+    chapter = begun(client, monkeypatch, clock, 'health')
+    next_stage(client, clock, chapter['id'])  # Diagnosed.
+    next_stage(client, clock, chapter['id'])  # Living with it.
+    condition = details(client, chapter['id'])['condition']['condition']
+    clock.advance(timedelta(days=chapters.TOLD_DAYS + 30))
+    reconcile(client)
+    assert f'living with {condition}' in client.get('/api/context/preview').json()['prompt']

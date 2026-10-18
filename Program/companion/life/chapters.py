@@ -389,8 +389,10 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     """New chapters for the chat context's storylines section, told as "you", for `TOLD_DAYS`."""
     today = storylines.local_today(companion, now)
     since = (today - timedelta(days=TOLD_DAYS)).isoformat()
-    # A big turn still running (big_turns.py) stays in, however long ago its latest stage came.
-    running = "json_extract(details, '$.next_on') IS NOT NULL"
+    # A big turn still running (big_turns.py) stays in, however long ago its latest stage came, and so do a long-term
+    # condition they live with and a parent's care that became part of their weeks (health_turns.py).
+    running = ("(json_extract(details, '$.next_on') IS NOT NULL OR kind='health' OR (kind='caring' AND "
+               "json_extract(details, '$.stage')='settled'))")
     rows = many(connection, f'SELECT *, {SINCE} AS since FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL '
                 f'AND ({SINCE}>=? OR {running}) AND {SINCE}<=? AND id NOT IN (SELECT chapter_id FROM moving_in WHERE '
                 'status=? AND chapter_id IS NOT NULL) ORDER BY since', (companion['active_timeline_id'], since,
