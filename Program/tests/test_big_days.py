@@ -353,6 +353,8 @@ def test_a_friends_own_wedding_has_you_standing_up_and_makes_them_married(client
         assert big_days.waiting(connection, partner)
         [row] = big_days.rows(connection, companion['active_timeline_id'])
     assert row['kind'] == 'own_wedding' and row['invite'] == 1 and row['gift'] == ''
+    from companion.life import wedding
+    assert row['outfit'] == wedding.attire(companion['version']['definition'], 'us')  # Their own wedding's attire.
     assert date.fromisoformat(row['local_date']) >= today + timedelta(days=30)
     at(clock, row['invite_on'], '12:00')
     trigger, outing = invite(client, clock)

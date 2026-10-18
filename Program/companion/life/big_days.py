@@ -407,12 +407,15 @@ def gift_for(connection, companion: dict, kind: Kind, seed: str, details: dict |
     return gift, round(money.monthly_share(found) * kind.share, 2) if found else 0.0
 
 
-def outfit_for(connection, companion: dict, row_id: str, day: date, wear: str = '') -> str:
-    """What they wear on the day: what the customs ask for (a funeral's dark clothes), else something to go out in
-    from their wardrobe."""
-    from companion.life import wardrobe
+def outfit_for(connection, companion: dict, row_id: str, day: date, wear: str = '', kind: str = '') -> str:
+    """What they wear on the day: what the customs ask for (a funeral's dark clothes, their own wedding's attire),
+    else something to go out in from their wardrobe."""
+    from companion.life import wardrobe, wedding
     if wear:
         return wear
+    if kind == 'own_wedding':  # Their own wedding: what the city's customs have them marry in.
+        data = outings.city_data(connection, companion['version']['definition'])
+        return wedding.attire(companion['version']['definition'], wedding.culture_of(data))
     timeline_id = companion['active_timeline_id']
     state = optional(connection, 'SELECT * FROM wardrobe_state WHERE timeline_id=?', (timeline_id,))
     if not state:
@@ -455,7 +458,8 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
          found['details'].get('at', kind.at), found['details'].get('until', kind.until), encode(place),
          encode(found['details']), max(today, day - timedelta(days=lead)).isoformat(), gift, cost,
          max(today, day - timedelta(days=GIFT_BEFORE)).isoformat(),
-         outfit_for(connection, companion, row_id, day, found['details'].get('wear', '')), timestamp, timestamp))
+         outfit_for(connection, companion, row_id, day, found['details'].get('wear', ''), kind.key), timestamp,
+         timestamp))
     row = get(connection, row_id)
     decide_invite(connection, companion, row, now)
     return get(connection, row_id)
