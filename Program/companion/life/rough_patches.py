@@ -543,8 +543,7 @@ def change_ask(connection, companion: dict, consequence_id: str, option: int, no
     require(outcome['timeline_id'] == companion['active_timeline_id'], 'That outcome is not on this timeline.', 404)
     message_id = outcome['subject'].split(':', 1)[1]
     if option == NOT_NOW:
-        connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE message_id=? AND "
-                           "status='planned'", (stamp(now), message_id))
+        turn_down(connection, companion, message_id, now)
     else:
         connection.execute('DELETE FROM together_asks WHERE message_id=?', (message_id,))
         message = optional(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
@@ -552,6 +551,19 @@ def change_ask(connection, companion: dict, consequence_id: str, option: int, no
             from companion.life import outings
             outings.note(connection, message, companion, stamp(now))
     return consequences.by_id(connection, consequence_id)
+
+
+def turn_down(connection, companion: dict, message_id: str, now: datetime) -> None:
+    """Made to go "would rather not" on Today: what it booked is called off, and another reply to that message is told
+    so (the together_asks row a roll that came out that way leaves)."""
+    from companion.life import together
+    booked = optional(connection, "SELECT activity FROM outings WHERE message_id=? AND status='planned'", (message_id,))
+    connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE message_id=? AND "
+                       "status='planned'", (stamp(now), message_id))
+    message = optional(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
+    if message and not optional(connection, 'SELECT id FROM together_asks WHERE message_id=?', (message_id,)):
+        kind = booked['activity'] if booked and booked['activity'] in together.TENSE_ASKED else 'out'
+        together.record(connection, companion, message, kind, {'why': 'tense'}, stamp(now))
 
 
 # What is open --------------------------------------------------------------------------------------------------

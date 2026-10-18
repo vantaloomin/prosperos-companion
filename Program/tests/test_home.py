@@ -200,3 +200,9 @@ def test_a_home_made_on_a_us_evening_is_there_that_evening(client, companion):
         connection.execute("UPDATE timelines SET created_at='2026-10-10T01:30:00+00:00' WHERE id=?", (timeline_id,))
         for module in (home, wardrobe):
             assert module.started_on(connection, timeline_id, 'America/New_York').isoformat() == '2026-10-09'
+
+
+def test_housing_over_more_than_one_shop_takes_no_article():
+    assert home.housing_text('rooms-over-shops') == 'rooms over shops'
+    assert home.housing_text('rooms-over-store') == 'rooms over a store'
+    assert home.housing_text('rooms-around-courtyard') == 'rooms around a courtyard'

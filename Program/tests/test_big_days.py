@@ -414,3 +414,17 @@ def test_their_own_graduation_and_retirement_party_come_from_their_life_chapters
     assert not any('buzz' in line for line in lines(client, clock))
     graduation['invite'] = 1
     assert 'there with you' in big_days.reason_for(graduation, date.fromisoformat(graduation['local_date']))
+
+
+def test_after_a_breakup_they_no_longer_mean_to_ask_the_user_along(client, clock, monkeypatch):
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    make(client)
+    guests(client, 3)
+    row = add(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE big_days SET invite=1 WHERE id=?', (row['id'],))
+    assert "You mean to ask the user to come with you as your plus-one" in lines(client, clock)[0]
+    send(client, "I'm sorry, I think we should break up.", 'client-bigday-breakup')
+    [line] = lines(client, clock)
+    assert 'mean to ask the user' not in line and "You're going on your own." in line

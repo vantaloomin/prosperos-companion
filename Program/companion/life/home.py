@@ -105,7 +105,7 @@ def stems_match(definition: dict, stems) -> bool:
 def housing_text(housing: str) -> str:
     """Readable housing: "rooms-over-store" is "rooms over a store"."""
     text = HOUSING.get(housing, housing.replace('-', ' '))
-    return re.sub(r' (over|behind|around|above) (?!a )', r' \1 a ', text)
+    return re.sub(r' (over|behind|around|above) (?!a )(?![a-z]+s$)', r' \1 a ', text)  # "rooms over shops"
 
 
 def article(text: str) -> str:
