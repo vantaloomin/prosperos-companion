@@ -17,6 +17,7 @@ test('a break and a breakup say when and who', () => {
   assert.equal(onBreak.detail, 'Mira asked for it.')
   assert.equal(breakupLine({ ...base, stage: 'ended', text: 'Broke up', by: 'you' }, 'Mira').detail, 'You ended it.')
   assert.equal(breakupStrip({ ...base, stage: 'ended', ladder: 'friendship' }, 'Mira'), 'You and Mira fell out.')
+  assert.equal(breakupStrip({ ...base, stage: 'ended', divorced: true }, 'Mira'), 'You and Mira got divorced.')
   assert.equal(breakupStrip({ ...base, stage: 'ended', strip: false }, 'Mira'), '')
   assert.equal(mendLabel({ ...base, stage: 'ended' }), 'Get back together')
   assert.equal(mendLabel(base), 'Patch things up')
@@ -24,7 +25,7 @@ test('a break and a breakup say when and who', () => {
 })
 
 test('the steps hint says what getting back together means', () => {
-  assert.equal(apartHint({ ...base, stage: 'ended' }), 'Get back together to start again from “A key to their place.”')
+  assert.equal(apartHint({ ...base, stage: 'ended' }), 'Get back together to start again from “Exclusive.”')
   assert.equal(apartHint({ ...base, stage: 'break' }), 'Patch things up to pick up where you left off.')
   assert.equal(apartHint({ ...base, stage: 'ended', ladder: 'friendship' }), 'Make up to pick up where you left off.')
 })

@@ -236,6 +236,12 @@ def pace(connection) -> int:
     return row['steps_pace'] if row and row['steps_pace'] in range(4) else DEFAULT_PACE
 
 
+def timing(connection) -> int:
+    """The pace steps are timed and answered at. Pace 0 ("Only when you bring it up") only keeps them from bringing a
+    step up themselves (`plan_next`, `falls`); asked, they answer the way things go true to life, not slowly."""
+    return pace(connection) or DEFAULT_PACE
+
+
 def friends_fall(connection) -> bool:
     row = optional(connection, 'SELECT friends_fall FROM life_settings WHERE id=1')
     return bool(row['friends_fall']) if row else True
@@ -304,6 +310,8 @@ HISTORY = {
 }
 
 
+# Days talked before a pair the app starts out (no history) can start at exclusive on closeness alone.
+EXCLUSIVE_AFTER = 14
 LONG_BEFORE = re.compile(r"\b(?:years?|months?|ages|since|ago|grew up|childhood|school|college|university|known each "
                          r"other|have known|old friends?|long time)\b", re.IGNORECASE)
 
@@ -330,7 +338,9 @@ def start(connection, companion: dict, ladder: str, now) -> list[tuple[str, str]
     head = int(definition.get('starting_closeness') or 1)
     found = [first]
     if ladder == 'romance':
-        if level >= 3:
+        # A brand-new romance seeded at "Comfortable" is still dating: exclusive takes a couple of weeks, or more
+        # closeness to start with.
+        if level >= 3 and (days >= EXCLUSIVE_AFTER or head >= 4):
             found.append('exclusive')
         if level >= 4 and (days >= 30 or head >= 4):
             found.append('love')
@@ -545,9 +555,9 @@ def facts(connection, companion: dict, found: dict, step: Step, now) -> dict:
     today = local_today(companion, now)
     current = next(item for item in found['steps'] if item['step'] == found['step'])
     held = (today - date.fromisoformat(current['on'])).days
-    wanted = step.after[max(pace(connection), 1) - 1]
+    wanted = step.after[timing(connection) - 1]
     levels = personality.levels_of(definition.get('personality_sliders') or {})
-    return {'pace': pace(connection), 'closeness': level, 'closeness_over': level - step.closeness,
+    return {'pace': timing(connection), 'closeness': level, 'closeness_over': level - step.closeness,
             'short_days': max(wanted - held, 0), 'days': held, 'drama': drama(connection),
             'social': levels.get('social', 1), 'warmth': levels.get('warmth', 1),
             'mood': consequences.total(connection, companion['active_timeline_id'],
@@ -583,7 +593,7 @@ def waiting(connection, timeline_id: str, step: str, today: date) -> bool:
                     (timeline_id, USER, step))
     if not last or not last['settled_at']:
         return False
-    days = NO_HOLD if last['status'] == 'no' else WAIT_AFTER[max(pace(connection), 1) - 1]
+    days = NO_HOLD if last['status'] == 'no' else WAIT_AFTER[timing(connection) - 1]
     return (today - parse(last['settled_at']).date()).days < days
 
 
@@ -648,8 +658,8 @@ def insert_ask(connection, timeline_id: str, ladder: str, step: str, side: str, 
 
 def falls(connection, companion: dict, found: dict, now) -> dict | None:
     """Once a month the engine decides whether a close friend falls for the user."""
-    if found['ladder'] != 'friendship' or not may_fall(connection, companion, now):
-        return None
+    if found['ladder'] != 'friendship' or not pace(connection) or not may_fall(connection, companion, now):
+        return None  # At pace 0 they never bring anything up themselves, a confession included.
     timeline_id = companion['active_timeline_id']
     today = local_today(companion, now)
     # A month is a 30-day window starting on a day seeded by the timeline, so a month the app is opened at all counts.

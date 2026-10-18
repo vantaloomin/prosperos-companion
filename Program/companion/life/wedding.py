@@ -343,10 +343,16 @@ def answered(connection, companion: dict, ask: dict, said: str, now: datetime) -
 # Planning the wedding -------------------------------------------------------------------------------------------------
 
 def current(connection, timeline_id: str) -> dict | None:
-    """The wedding planned or held on this timeline (the latest one)."""
+    """The wedding planned or held on this timeline (the latest one); not a marriage that has since ended in a breakup
+    (companion/life/breakups.py), which the scrapbook keeps."""
     row = optional(connection, "SELECT * FROM weddings WHERE timeline_id=? AND status IN ('planned', 'done') "
                    'ORDER BY created_at DESC LIMIT 1', (timeline_id,))
-    return view(row) if row else None
+    return view(row) if row and not ended(connection, row) else None
+
+
+def ended(connection, row: dict) -> bool:
+    from companion.life import breakups  # Imported here: breakups reads the steps ladder this module writes.
+    return row['status'] == 'done' and breakups.ended_since(connection, row['timeline_id'], row['local_date'])
 
 
 def view(row: dict) -> dict:
@@ -939,7 +945,7 @@ def invited_lines(connection, companion: dict, today: date) -> list[tuple[str, s
     key = f"companion:{companion['id']}"
     for row in many(connection, "SELECT * FROM weddings WHERE status IN ('planned', 'done') ORDER BY created_at"):
         found = view(row)
-        if not any(guest['key'] == key and guest['invited'] for guest in found['guests']):
+        if not any(guest['key'] == key and guest['invited'] for guest in found['guests']) or ended(connection, row):
             continue
         timeline = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (found['timeline_id'],))
         other = by_id(connection, timeline['companion_id']) if timeline else None

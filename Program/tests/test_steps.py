@@ -153,7 +153,17 @@ def test_a_friend_close_from_the_start_is_a_best_friend(client, monkeypatch):
 def test_a_match_from_the_dating_app_counts_from_the_first_talk(client, monkeypatch):
     make(client, monkeypatch, starting_closeness=3, history_together='Matched on Matchlight.')
     found = view(client)
-    assert found['text'] == 'Together 1 day, exclusive' and found['steps'][0]['how'] == 'start'
+    # A new romance at "Comfortable" is still dating, not "Together 1 day, exclusive" (E2E v0.13 N4).
+    assert found['text'] == 'Dating for 1 day' and found['steps'][0]['how'] == 'start'
+
+
+def test_a_romance_talking_a_few_weeks_at_comfortable_starts_exclusive(client, clock, monkeypatch):
+    make(client, monkeypatch, starting_closeness=3)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        connection.execute('DELETE FROM relationship_steps WHERE timeline_id=?', (companion['active_timeline_id'],))
+        monkeypatch.setattr(occasions, 'first_talk', lambda *_args: clock.now().date() - timedelta(days=20))
+        assert [key for key, _how in steps.start(connection, companion, 'romance', clock.now())] == ['dating', 'exclusive']
 
 
 def test_mentors_and_family_have_no_ladder(client, provider, monkeypatch):
@@ -328,7 +338,12 @@ def test_pace_off_means_only_when_you_bring_it_up(client, clock, monkeypatch, al
     clock.advance(timedelta(days=60))
     reconcile(client)
     with client.app.state.database.connect() as connection:
-        assert steps.asks(connection, current(connection)['active_timeline_id'], ('planned',)) == []
+        companion = current(connection)
+        assert steps.asks(connection, companion['active_timeline_id'], ('planned',)) == []
+        # Asked, they answer true to life, not slowly ("the relationship pace is slow" never shows).
+        found = steps.state(connection, companion, clock.now(), write=False)
+        facts = steps.facts(connection, companion, found, steps.step_of('romance', 'exclusive'), clock.now())
+        assert facts['pace'] == 2 and facts['short_days'] == max(35 - facts['days'], 0)
 
 
 def test_each_step_is_an_anniversary_and_exclusive_is_known(client, clock, monkeypatch):

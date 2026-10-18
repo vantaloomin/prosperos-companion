@@ -10,8 +10,10 @@ export type BreakupStage = 'strained' | 'thinking' | 'break' | 'ended'
 export interface BreakupView {
   stage: BreakupStage | null
   text: string
-  /** Stands in for the steps line while apart: "On a break", "Broke up after 8 months". */
+  /** Stands in for the steps line while apart: "On a break", "Broke up after 8 months", "Divorced after 2 years". */
   summary: string
+  /** Married when it ended: the marriage ended with it. */
+  divorced?: boolean
   since: string | null
   by: 'you' | 'them' | null
   id: string | null
@@ -45,7 +47,7 @@ export function breakupStrip(view: BreakupView | undefined, name: string): strin
     strained: `Things are strained with ${who}.`,
     thinking: `${who} is thinking about a break.`,
     break: `You and ${who} are on a break.`,
-    ended: view.ladder === 'friendship' ? `You and ${who} fell out.` : `You and ${who} broke up.`,
+    ended: view.ladder === 'friendship' ? `You and ${who} fell out.` : view.divorced ? `You and ${who} got divorced.` : `You and ${who} broke up.`,
   }[view.stage]
 }
 
@@ -64,9 +66,9 @@ export function mendedText(view: BreakupView): string {
 export const BREAKUPS_HINT = 'When rough patches drag on, things can get strained, then they may think about a break, ask for one, and after it end things. A friendship can fall out. You see the warnings first, and you can talk them around at every step. Always off on Easy.'
 
 /** The "Where things stand" hint while apart: a break picks up where it left off; after a breakup a couple starts
- * again from a key to each other's place (companion/life/breakups.py `back_together`). */
+ * again as a couple, exclusive (companion/life/breakups.py `back_together`). */
 export function apartHint(view: BreakupView | undefined): string {
   if (!view || !isApart(view)) return ''
-  if (view.stage === 'ended' && view.ladder === 'romance') return 'Get back together to start again from “A key to their place.”'
+  if (view.stage === 'ended' && view.ladder === 'romance') return 'Get back together to start again from “Exclusive.”'
   return view.stage === 'ended' ? 'Make up to pick up where you left off.' : 'Patch things up to pick up where you left off.'
 }

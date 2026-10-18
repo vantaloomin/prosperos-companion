@@ -514,8 +514,13 @@ def since_then(connection, companion: dict, since: str, today: str) -> dict:
     called_off = sum(1 for row in rows if row['status'] == 'cancelled')
     patches = 0
     if optional(connection, "SELECT name FROM sqlite_master WHERE type='table' AND name='rough_patches'"):
-        patches = len(many(connection, "SELECT id FROM rough_patches WHERE timeline_id=? AND size='big' AND fault='user' "
-                           'AND started_on>? AND started_on<=?', (companion['active_timeline_id'], since, today)))
+        from companion.life import rough_patches
+        # Weighed as Breaks and breakups weighs them: one over the same thing as another counts half, the next a quarter.
+        started = [row for row in many(connection, "SELECT * FROM rough_patches WHERE timeline_id=? AND size='big' AND "
+                                       "fault='user' AND started_on>? AND started_on<=? ORDER BY started_at",
+                                       (companion['active_timeline_id'], since, today))
+                   if rough_patches.picked_open(connection, row)]
+        patches = round(sum(weight for _row, weight in rough_patches.weighed(connection, companion, started)), 3)
     return {'kept': kept, 'called_off': called_off, 'patches': patches}
 
 

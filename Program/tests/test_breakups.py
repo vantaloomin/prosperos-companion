@@ -114,6 +114,11 @@ def test_the_user_ends_it_and_asks_to_get_back_together(client, couple, provider
     assert 'The user just broke up with you' in notes(provider)
     found = view(client)
     assert found['stage'] == 'ended' and found['by'] == 'you'
+    # Married when it ended: a divorce, and the keys went back.
+    assert found['text'] == 'Divorced' and found['divorced'] and found['summary'] == 'Divorced'
+    says(provider)
+    send(client, 'hi', 'client-end-1b')
+    assert 'You and the user divorced on' in notes(provider) and "You gave each other's keys back." in notes(provider)
     with client.app.state.database.connect() as connection:
         companion = current(connection)
         assert steps.apart(connection, companion) == 'ended' and not steps.exclusive(connection, companion, clock.now())
@@ -123,10 +128,10 @@ def test_the_user_ends_it_and_asks_to_get_back_together(client, couple, provider
     assert 'The user asked to get back together, and you want that too' in notes(provider)
     assert view(client)['stage'] is None
     stepped = client.get('/api/life/steps').json()
-    assert stepped['step'] == 'key'  # Starting over: living together and the marriage are taken back.
+    assert stepped['step'] == 'exclusive'  # Starting over as a couple: the steps further on are taken back.
     with client.app.state.database.connect() as connection:
         items = breakups.scrapbook_items(connection, current(connection), '2000-01-01', '2100-01-01')
-    assert {'You broke up', 'You got back together', 'You got married'} <= {item['text'] for item in items}
+    assert {'You got divorced', 'You got back together', 'You got married'} <= {item['text'] for item in items}
 
 
 def test_breaking_up_while_living_together_they_move_out(client, couple, provider, clock, monkeypatch):
@@ -361,7 +366,7 @@ def test_getting_back_together_changed_on_today_goes_both_ways(client, couple, p
     outcome = answer_of(client, 'user:back_together')
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': breakups.YES})
     assert view(client)['stage'] is None
-    assert client.get('/api/life/steps').json()['step'] == 'key'  # Starting over.
+    assert client.get('/api/life/steps').json()['step'] == 'exclusive'  # Starting over.
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})
     assert view(client)['stage'] == 'ended'
     with client.app.state.database.connect() as connection:
@@ -418,3 +423,42 @@ def test_rough_patches_over_different_things_count_in_full(client, couple, provi
     tick(client)
     found = strained_odds(client)
     assert {"this isn't the first rough patch lately", 'the rough patches keep piling up'} <= set(found['reasons'])
+
+
+def test_a_marriage_ends_with_the_breakup(client, couple, provider, clock):
+    from companion.database import identifier
+    from companion.life import wedding
+    client.put('/api/life/steps', json={'step': 'married'})
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        day = (clock.now().date() - timedelta(days=30)).isoformat()
+        connection.execute("INSERT INTO weddings (id, timeline_id, status, engaged_on, size, local_date, at_time, "
+                           "until_time, venue, culture, created_at, updated_at) VALUES (?, ?, 'done', ?, 'small', ?, "
+                           "'15:00', '23:00', ?, 'modern', ?, ?)", (identifier(), companion['active_timeline_id'], day,
+                                                                      day, json.dumps({'name': 'Grace Church'}),
+                                                                      clock.now().isoformat(), clock.now().isoformat()))
+    says(provider)
+    send(client, 'hey', 'client-divorce-1')
+    assert 'You married the user on' in notes(provider)
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-divorce-2')
+    says(provider)
+    send(client, 'hi', 'client-divorce-3')
+    assert 'You married the user on' not in notes(provider) and 'You and the user divorced on' in notes(provider)
+    clock.advance(timedelta(days=20))
+    says(provider)
+    send(client, 'can we try again?', 'client-divorce-4')
+    assert client.get('/api/life/steps').json()['step'] == 'exclusive'
+    with client.app.state.database.connect() as connection:
+        assert wedding.current(connection, current(connection)['active_timeline_id']) is None  # Free to plan another.
+
+
+def test_back_together_while_still_living_together_keeps_the_home(client, couple, provider, clock, monkeypatch):
+    client.put('/api/life/steps', json={'step': 'engaged'})
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-home-1')
+    monkeypatch.setattr(moving_in, 'living', lambda *_args, **_kw: {'status': 'moved'})
+    clock.advance(timedelta(days=20))
+    says(provider)
+    send(client, 'can we try again?', 'client-home-2')
+    assert client.get('/api/life/steps').json()['step'] == 'moving_in'

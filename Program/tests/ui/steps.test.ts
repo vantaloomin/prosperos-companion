@@ -14,6 +14,8 @@ test('each step says who moved it there', () => {
 test('what came up lately says the answer', () => {
   const ask = { id: 'a', step: 'exclusive', side: 'them' as const, status: 'yes' as const, topic: 'being exclusive', on: '2026-10-05', consequence_id: null }
   assert.equal(askText(ask, 'Mira'), 'Mira brought up being exclusive. You said yes.')
+  assert.equal(askText({ ...ask, step: 'love', topic: 'saying "I love you"' }, 'Mira'), 'Mira said “I love you.” You said it back.')
+  assert.equal(askText({ ...ask, step: 'love', side: 'you', status: 'not_yet' }, 'Mira'), 'You said “I love you.” Mira wasn\'t ready to say it yet.')
   assert.equal(askText({ ...ask, side: 'you', status: 'not_yet', topic: 'a key to your place' }, 'Mira'), 'You brought up a key to their place. Mira said not yet.')
   assert.equal(askText({ ...ask, step: 'confession', status: 'no' }, 'Mira'), 'Mira told you how they feel. You said you would rather stay friends.')
 })

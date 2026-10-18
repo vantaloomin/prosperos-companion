@@ -364,3 +364,23 @@ def test_an_invitation_a_week_ahead_says_next_saturday():
         assert 'next saturday' in text.lower() and 'this next' not in text.lower() and text[0].isupper(), text
         near = their_people.invitation(row, people, next_saturday, date(2026, 11, 3), '6:30', "my sister's place")
         assert 'Saturday' in near and 'next Saturday' not in near
+
+
+def test_rough_patches_over_the_same_thing_weigh_less_for_their_people(client, clock, monkeypatch):
+    """Two stinging messages in a row count as one and a half, as Breaks and breakups weighs them; one the dice let go
+    doesn't count."""
+    from companion.life import rough_patches
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    make(client)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        since = (clock.now().date() - timedelta(days=1)).isoformat()
+        today = clock.now().date().isoformat()
+        monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+        for index in range(2):
+            rough_patches.consider(connection, companion, 'words', f'words:a{index}', 'the user said: "go away"',
+                                   clock.now() + timedelta(minutes=index))
+        assert their_people.since_then(connection, companion, since, today)['patches'] == 1.5
+        monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[0]['option'])
+        rough_patches.consider(connection, companion, 'missed_plan', 'plan:b', 'the plan came and went', clock.now())
+        assert their_people.since_then(connection, companion, since, today)['patches'] == 1.5
