@@ -398,3 +398,12 @@ def test_a_companion_living_in_town_never_has_a_town_baby(monkeypatch):
     if sheet in paper.sample(data, week[1]):
         assert key in {item['key'] for item in paper.comings_and_goings(data, week)}
     assert key not in {item['key'] for item in paper.comings_and_goings({**data, 'companions': (sheet['key'],)}, week)}
+
+
+def test_a_baby_is_never_named_after_a_word_in_one_of_the_citys_places():
+    from companion.world import catalog
+    data = catalog.city('baltimore')
+    assert 'Emma' in families.place_words(data)  # Red Emma's
+    world = type('World', (), {'find': staticmethod(lambda _text: data)})()
+    names = {families.baby_name({'home_city': 'Baltimore'}, world, f'seed-{n}', 'she/her', set()) for n in range(300)}
+    assert len(names) > 20 and not names & families.place_words(data)

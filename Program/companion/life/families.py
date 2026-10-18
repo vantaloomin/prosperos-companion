@@ -207,8 +207,10 @@ def relation(title_: str, pronouns_: str) -> str | None:
 
 
 def baby_name(definition: dict, world, seed: str, pronouns_: str, taken: set[str]) -> str:
-    """A first name from their city's names for babies born now, else from the bank."""
+    """A first name from their city's names for babies born now, else from the bank; never a word in the name of one
+    of its places or neighborhoods ("Emma" and Red Emma's), which `pictured` would then never picture."""
     data = circle.city_data(definition, world) if world is not None else None
+    taken = taken | place_words(data)
     for attempt in range(6):
         if data:
             given = generators.name(data, seed=f'{seed}:{attempt}', pronouns=pronouns_.split('/')[0], age=0)['given']
@@ -217,6 +219,11 @@ def baby_name(definition: dict, world, seed: str, pronouns_: str, taken: set[str
         if given not in taken:
             return given
     return given
+
+
+def place_words(data: dict | None) -> set[str]:
+    named = [item.get('name', '') for key in ('places', 'neighborhoods') for item in (data or {}).get(key) or []]
+    return {word for name in named for word in re.findall(r"[A-Z][a-z]+", name)}
 
 
 def taken_names(connection, companion: dict) -> set[str]:
