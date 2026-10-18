@@ -226,3 +226,15 @@ def test_template_lines_use_the_companions_own_pronouns_when_known():
                            {'p': {'name': 'Jo', 'role': 'friend'}}, she) == 'Jo told Mira they are quitting.'
     assert storylines.fill(kiss, {'cast_ids': '["p"]'}, {'p': {'name': 'Jo', 'role': 'friend'}}, she, you=True) == \
         'You got drunk and kissed Jo, your best friend.'
+
+
+
+def test_a_drunk_kiss_never_comes_to_someone_seeing_someone():
+    # The drunk kiss ignored a partner of six months (v0.13 run). With a partner in their circle it never rolls.
+    people = [{'id': 'bf', 'role': 'close friend', 'details': '{}'}, {'id': 'gf', 'role': 'girlfriend', 'details': '{}'},
+              {'id': 'co', 'role': 'coworker', 'details': '{}'}]
+    single = storylines.find_story('drunk_kiss')
+    assert storylines.casts(single, people, {}) == []
+    assert storylines.casts(single, [people[0], people[2]], {}) == [('bf',)]
+    for role in ('wife', 'fiancé', 'partner'):
+        assert storylines.casts(single, [people[0], {**people[1], 'role': role}], {}) == []

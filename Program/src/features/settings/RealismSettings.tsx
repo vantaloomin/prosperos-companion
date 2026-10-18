@@ -61,7 +61,6 @@ export function PaceSettings() {
   const media = step(MEDIA_LEVELS, data.media_realism, 2)
   const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
-  const rough = step(ROUGH_PATCH_LEVELS, data.rough_patches_realism, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
@@ -85,10 +84,6 @@ export function PaceSettings() {
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.together_realism} label={together.label}
           onChange={(together_realism) => void save({ together_realism })} />}
       </Field>
-      <Field label={`Rough patches: ${rough.label}`} hint={rough.hint} tip="You can always clear the air yourself. Companions can be the ones at fault too, and then they apologise first.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.rough_patches_realism} label={rough.label}
-          onChange={(rough_patches_realism) => void save({ rough_patches_realism })} />}
-      </Field>
       <LoveLifeSlider value={data.love_life} onChange={(love_life) => void save({ love_life })} />
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}
@@ -107,12 +102,13 @@ export function PaceSettings() {
   )
 }
 
-/** Love and friendship (companion/life/steps.py): how soon companions bring up the next step, and whether a close
- * friend can fall for you. */
+/** Love and friendship (companion/life/steps.py): how soon companions bring up the next step, whether a close
+ * friend can fall for you, rough patches and breakups. */
 export function LoveSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="love-heading" title="Love and friendship" />
   const pace = PACE_LEVELS[data.steps_pace] ?? PACE_LEVELS[2]
+  const rough = step(ROUGH_PATCH_LEVELS, data.rough_patches_realism, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="love-heading">
       <div>
@@ -126,6 +122,11 @@ export function LoveSettings() {
       <Toggle label="Friends can fall for you" checked={data.friends_fall} onChange={(value) => void save({ friends_fall: value })}
         hint={'Now and then a close friend falls for you and tells you. Say yes and you start dating; say no and the friendship carries on after a few awkward days. Rare on a real life, likelier with more drama.'}
         tip="Keep a friend as just friends on their Character page." />
+      {/* Next to Breaks and breakups, which needs rough patches at true to life or more (Iris). */}
+      <Field label={`Rough patches: ${rough.label}`} hint={rough.hint} tip="You can always clear the air yourself. Companions can be the ones at fault too, and then they apologise first.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.rough_patches_realism} label={rough.label}
+          onChange={(rough_patches_realism) => void save({ rough_patches_realism })} />}
+      </Field>
       <Toggle label="Breaks and breakups" checked={data.breakups} onChange={(value) => void save({ breakups: value })}
         hint={BREAKUPS_HINT} tip="Either of you can end it, and getting back together is possible later. Nothing is deleted." />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}

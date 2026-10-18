@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { apartHint, breakupLine, breakupStrip, mendLabel, type BreakupView } from '../../src/features/character/breakupText.ts'
+import { apartHint, breakupLine, breakupStrip, endedStep, mendLabel, standsLabel, type BreakupView } from '../../src/features/character/breakupText.ts'
 
 const base: BreakupView = { stage: 'strained', text: 'Things are strained', summary: '', since: '2026-10-12', by: null, id: 'b', odds: [], strip: true, mendable: false, ladder: 'romance', on: true }
 
@@ -17,6 +17,7 @@ test('a break and a breakup say when and who', () => {
   assert.equal(onBreak.detail, 'Mira asked for it.')
   assert.equal(breakupLine({ ...base, stage: 'ended', text: 'Broke up', by: 'you' }, 'Mira').detail, 'You ended it.')
   assert.equal(breakupStrip({ ...base, stage: 'ended', ladder: 'friendship' }, 'Mira'), 'You and Mira fell out.')
+  assert.equal(breakupStrip({ ...base, stage: 'ended', divorced: true }, 'Mira'), 'You and Mira got divorced.')
   assert.equal(breakupStrip({ ...base, stage: 'ended', strip: false }, 'Mira'), '')
   assert.equal(mendLabel({ ...base, stage: 'ended' }), 'Get back together')
   assert.equal(mendLabel(base), 'Patch things up')
@@ -24,7 +25,16 @@ test('a break and a breakup say when and who', () => {
 })
 
 test('the steps hint says what getting back together means', () => {
-  assert.equal(apartHint({ ...base, stage: 'ended' }), 'Get back together to start again from “A key to their place.”')
+  assert.equal(apartHint({ ...base, stage: 'ended' }), 'Get back together to start again from “Exclusive.”')
   assert.equal(apartHint({ ...base, stage: 'break' }), 'Patch things up to pick up where you left off.')
   assert.equal(apartHint({ ...base, stage: 'ended', ladder: 'friendship' }), 'Make up to pick up where you left off.')
+})
+
+test('apart after a marriage, the picker shows where things stood and the steps end with the divorce', () => {
+  const ended: BreakupView = { ...base, stage: 'ended', text: 'Divorced', since: '2026-10-18', by: 'you' }
+  assert.equal(standsLabel(ended), 'Where things stood')
+  assert.equal(standsLabel(base), 'Where things stand')
+  assert.match(endedStep(ended, 'Mira Costa'), /^Divorced .*2026 · you ended it$/)
+  assert.match(endedStep({ ...ended, by: 'them' }, 'Mira Costa'), / · Mira ended it$/)
+  assert.equal(endedStep(base, 'Mira Costa'), '')
 })

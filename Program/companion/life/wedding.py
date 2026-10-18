@@ -55,6 +55,8 @@ PROPOSE_AT = {'dinner': '19:30', 'walk': '18:00'}
 # The preferred evening: a Friday or a Saturday at least two days on.
 PROPOSE_DAYS = (4, 5)
 SIZES = ('small', 'proper', 'big')
+# A ring they can't afford from their savings: a plainer one, this share of the price for each step down.
+RING_STEP = 0.5
 SIZE_WORDS = {'small': 'a small wedding', 'proper': 'a proper wedding', 'big': 'a big wedding'}
 SIZE_LABELS = {'small': 'Small', 'proper': 'A proper wedding', 'big': 'Big'}
 # The engagement is at least this long, whatever the customs say, and the wedding moves at most this far for a clash.
@@ -69,7 +71,7 @@ SMALL_FRIENDS = 3
 NOT_VENUES = re.compile(r'\b(?:station|hospital|clinic|campus|transit|airport|stadium|arena|gym|fitness|library|'
                         r'prison|jail|court|police|school|office|parking|mall|outlet|pizza|burger|pancake|sandwich|'
                         r'taco|hot dog|diner|deli|food hall|murals?|street|avenue|paseo|surgical|music hall|symphony|concert|'
-                        r'festival hall)\b', re.IGNORECASE)
+                        r'festival hall|cemetery|graveyard|churchyard|necropolis|crematorium)\b', re.IGNORECASE)
 # Words in a place's description that mark it as somewhere people marry ("Victorian glass houses", "a 1926 ballroom").
 WEDDING_WORDS = re.compile(r'\b(?:chapel|church|cathedral|garden|conservatory|ballroom|mansion|manor|estate|winery|'
                            r'pavilion|terrace|lighthouse|temple|shrine|great hall|opera hall|castle|palace|glass ?houses?)',
@@ -142,14 +144,21 @@ def proposals(connection, timeline_id: str, statuses: tuple[str, ...]) -> list[d
                 (timeline_id, *statuses))
 
 
-def ring_for(companion: dict, culture: str) -> tuple[str, float]:
+def ring_for(companion: dict, culture: str, saved: float | None = None) -> tuple[str, float]:
     """(the ring in words, what it costs in the city's money): the customs' ring for their pay tier, priced in months
-    of their take-home. Nothing where money does not apply."""
+    of their take-home. With `saved` (their savings on hand) too little for it, a plainer ring at half the price for
+    each step down, the plainest when nothing fits. Nothing where money does not apply."""
     found = money.profile(companion['version']['definition'])
     ring = customs(culture)['ring']
-    tier = found.tier if found else 1
-    words = ring['rings'][min(tier, len(ring['rings']) - 1)]
-    return words, round(money.monthly_share(found) * ring['months'], 2) if found else 0.0
+    tier = min(found.tier if found else 1, len(ring['rings']) - 1)
+    if not found:
+        return ring['rings'][tier], 0.0
+    full = money.monthly_share(found) * ring['months']
+    for step in range(tier + 1):
+        cost = round(full * RING_STEP ** step, 2)
+        if saved is None or cost <= saved or step == tier:
+            return ring['rings'][tier - step], cost
+    return ring['rings'][0], round(full * RING_STEP ** tier, 2)
 
 
 def follow_proposals(connection, companion: dict, now: datetime) -> None:
@@ -160,8 +169,9 @@ def follow_proposals(connection, companion: dict, now: datetime) -> None:
     taken = {row['ask_id'] for row in many(connection, 'SELECT ask_id FROM proposals WHERE timeline_id=?', (timeline_id,))}
     for ask in steps.asks(connection, timeline_id, ('planned',)):
         if ask['step'] == STEP and ask['side'] == 'them' and ask['id'] not in taken:
-            data = outings.city_data(connection, companion['version']['definition'])
-            ring, cost = ring_for(companion, culture_of(data))
+            definition = companion['version']['definition']
+            data = outings.city_data(connection, definition)
+            ring, cost = ring_for(companion, culture_of(data), money.on_hand(connection, timeline_id, definition, today))
             connection.execute('INSERT INTO proposals (id, timeline_id, ask_id, due_on, ring, ring_cost, created_at) '
                                'VALUES (?, ?, ?, ?, ?, ?, ?)',
                                (identifier(), timeline_id, ask['id'], ask['due_on'] or today.isoformat(), ring, cost,
@@ -172,7 +182,10 @@ def follow_proposals(connection, companion: dict, now: datetime) -> None:
             drop(connection, row, None, timestamp)
             continue
         if row['status'] == 'planned':
-            if (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
+            if far(connection, companion) and row['due_on'] < today.isoformat():
+                # Living apart it waits for the user's next stay with them (propose_due), so it never lapses meanwhile.
+                connection.execute('UPDATE proposals SET due_on=? WHERE id=?', (today.isoformat(), row['id']))
+            elif (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
                 drop(connection, row, ask, timestamp)
             continue
         outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'],))
@@ -182,6 +195,11 @@ def follow_proposals(connection, companion: dict, now: datetime) -> None:
         elif state == 'done':
             asked(connection, companion, row, None, outings.window(outings.view(outing),
                                                                   companion['version']['timezone'])[1])
+
+
+def far(connection, companion: dict) -> bool:
+    from companion.life import long_distance
+    return bool(long_distance.far(connection, companion))
 
 
 def drop(connection, row: dict, ask: dict | None, timestamp: str) -> None:
@@ -199,18 +217,22 @@ def asked(connection, companion: dict, row: dict, message_id: str | None, when: 
                        (local_today(companion, when).isoformat(), message_id, stamp(when), row['id']))
 
 
-def evening(connection, companion: dict, row: dict, local: datetime) -> tuple | None:
+def evening(connection, companion: dict, row: dict, local: datetime, stay: date | None = None) -> tuple | None:
     """(activity, day, at, place) for the evening they propose: a favourite place, a free evening near a Friday or a
-    Saturday."""
+    Saturday, or that evening of the user's stay with them (`stay`, long distance)."""
+    from companion.life import long_distance
     definition = companion['version']['definition']
     data = outings.city_data(connection, definition)
     if not data:
         return None
-    start = local.date() + timedelta(days=2)
+    start = stay or local.date() + timedelta(days=2)
     item = favourite(connection, companion, data, row['id'], start)
     if item is None:
         return None
     activity = PROPOSE_KINDS[item['kind']]
+    if stay is not None:
+        found = (stay, PROPOSE_AT[activity]) if long_distance.free_during_stay(connection, companion, stay) else None
+        return (activity, *found, outings.place_view(item, data)) if found else None
     day = min(start + timedelta(days=(weekday - start.weekday()) % 7) for weekday in PROPOSE_DAYS)
     found = outings.when_free(connection, companion, {'activity': activity, 'day': day, 'at': PROPOSE_AT[activity],
                                                       'firm': False}, local)
@@ -253,9 +275,14 @@ def propose_due(connection, companion: dict, now: datetime) -> list:
         return []
     row = next((item for item in proposals(connection, companion['active_timeline_id'], ('planned',))
                 if item['due_on'] <= local.date().isoformat()), None)
-    if row is None or long_distance.far(connection, companion):
+    if row is None:
         return []
-    found = evening(connection, companion, row, local)
+    # Living apart, they propose on the user's next stay with them in their city.
+    far = long_distance.far(connection, companion)
+    stay = long_distance.next_stay(connection, companion, local.date()) if far else None
+    if far and stay is None:
+        return []
+    found = evening(connection, companion, row, local, stay)
     if found is None:
         return []
     activity, day, at, place = found
@@ -278,7 +305,8 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     proposal_id, activity, day_text, at, place_id = trigger.sources
     row = optional(connection, "SELECT * FROM proposals WHERE id=? AND status='planned'", (proposal_id,))
     day = date.fromisoformat(day_text)
-    if row is None or outings.taken(connection, companion, day):
+    from companion.life.their_people import free_on
+    if row is None or not free_on(connection, companion, day):
         return None
     definition = companion['version']['definition']
     data = outings.city_data(connection, definition)
@@ -343,10 +371,16 @@ def answered(connection, companion: dict, ask: dict, said: str, now: datetime) -
 # Planning the wedding -------------------------------------------------------------------------------------------------
 
 def current(connection, timeline_id: str) -> dict | None:
-    """The wedding planned or held on this timeline (the latest one)."""
+    """The wedding planned or held on this timeline (the latest one); not a marriage that has since ended in a breakup
+    (companion/life/breakups.py), which the scrapbook keeps."""
     row = optional(connection, "SELECT * FROM weddings WHERE timeline_id=? AND status IN ('planned', 'done') "
                    'ORDER BY created_at DESC LIMIT 1', (timeline_id,))
-    return view(row) if row else None
+    return view(row) if row and not ended(connection, row) else None
+
+
+def ended(connection, row: dict) -> bool:
+    from companion.life import breakups  # Imported here: breakups reads the steps ladder this module writes.
+    return row['status'] == 'done' and breakups.ended_since(connection, row['timeline_id'], row['local_date'])
 
 
 def view(row: dict) -> dict:
@@ -371,36 +405,46 @@ def plan(connection, companion: dict, now: datetime) -> dict | None:
     culture = culture_of(data)
     rules = customs(culture)
     seed = f"wedding:{timeline_id}:{reached['on']}"
-    size = SIZES[decide_size(connection, companion, seed, now)['picked']]
+    size = SIZES[decide_size(connection, companion, seed, now, rules)['picked']]
     outcome = consequences.recorded(connection, seed, 'wedding:size')
-    day = wedding_day(rules, date.fromisoformat(reached['on']), local_today(companion, now), size, steps.pace(connection),
-                      seed)
+    today = local_today(companion, now)
+    day = wedding_day(rules, date.fromisoformat(reached['on']), today, size, steps.pace(connection), seed)
+    # Planned again (after a break was mended): the user's changes to the plan called off stand.
+    before = optional(connection, "SELECT * FROM weddings WHERE timeline_id=? AND status='called_off' AND engaged_on=? "
+                      'ORDER BY created_at DESC LIMIT 1', (timeline_id, reached['on']))
+    before = view(before) if before else None
+    size = before['size'] if before else size
+    moved = bool(before and before['moved_by_user'] and before['local_date'] > today.isoformat())
+    day = date.fromisoformat(before['local_date']) if moved else day
+    venue = before['venue'] if before and before['venue'] else venue_for(data, rules, size, seed, day=day)
     budget, share = budget_for(definition, rules, size)
-    guests = guest_list(connection, companion, size)
+    left_off = {guest['key'] for guest in before['guests'] if not guest['invited']} if before else set()
+    guests = [{**guest, 'invited': guest['key'] not in left_off} for guest in guest_list(connection, companion, size)]
     low, high = rules['guests'][size]
     count = max(low + int(generators.unit(seed, 'guests') * (high - low)), sum(guest['invited'] for guest in guests) + 2)
     row_id, timestamp = identifier(), stamp(now)
     connection.execute(
         'INSERT INTO weddings (id, timeline_id, engaged_on, size, consequence_id, local_date, at_time, until_time, venue, '
-        'culture, budget, share, guests, guest_count, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'venue_rolls, culture, budget, share, guests, guest_count, moved_by_user, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (row_id, timeline_id, reached['on'], size, outcome['id'] if outcome else None, day.isoformat(), rules['at'],
-         rules['until'], encode(venue_for(data, rules, size, seed, day=day)), culture, budget, share, encode(guests), count,
-         timestamp, timestamp))
+         rules['until'], encode(venue), before['venue_rolls'] if before else 0, culture, budget, share, encode(guests),
+         count, int(moved), timestamp, timestamp))
     row = view(one(connection, 'SELECT * FROM weddings WHERE id=?', (row_id,)))
     book(connection, companion, row, now)
     prepare(connection, companion, row, now)
     return current(connection, timeline_id)
 
 
-def decide_size(connection, companion: dict, seed: str, now: datetime) -> dict:
+def decide_size(connection, companion: dict, seed: str, now: datetime, rules: dict) -> dict:
     from companion.world import personality
     definition = companion['version']['definition']
     found = money.profile(definition)
     levels = personality.levels_of(definition.get('personality_sliders') or {})
     facts = {'tier': found.tier if found else 1, 'social': levels.get('social', 1), 'drama': steps.drama(connection),
              'pace': steps.pace(connection), 'people': len(circle.people(connection, companion['active_timeline_id'])),
-             'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)}}
+             'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)},
+             'affords': affords(connection, companion, rules, local_today(companion, now))}
     names = {'name': first(definition['name']), 'a': 'you', 'b': ''}
     table = consequences.tables()['wedding:size']
     return consequences.decide(connection, timeline_id=companion['active_timeline_id'], choice='wedding:size',
@@ -409,16 +453,66 @@ def decide_size(connection, companion: dict, seed: str, now: datetime) -> dict:
                                day=local_today(companion, now).isoformat(), timestamp=stamp(now))
 
 
+def affords(connection, companion: dict, rules: dict, today: date) -> int | None:
+    """The biggest wedding whose share their savings cover (0 small, 1 proper, 2 big); None where money does not
+    apply. A small one is always possible, whatever it takes."""
+    definition = companion['version']['definition']
+    saved = money.on_hand(connection, companion['active_timeline_id'], definition, today)
+    if saved is None:
+        return None
+    return max((index for index, size in enumerate(SIZES) if budget_for(definition, rules, size)[1] <= saved), default=0)
+
+
 def on_weekday(day: date, weekday: int) -> date:
     return day + timedelta(days=(weekday - day.weekday()) % 7)
 
 
 def wedding_day(rules: dict, engaged: date, today: date, size: str, pace: int, seed: str) -> date:
-    """Months after the engagement by the customs and the size, shorter at a fast pace, on the customs' weekday."""
+    """Months after the engagement by the customs and the size, shorter at a fast pace, on the customs' weekday, and
+    out of the church's closed seasons where the customs keep them."""
     low, high = rules['months'][size]
     months = (low + generators.unit(seed, 'months') * (high - low)) * PACE_STRETCH[pace]
     day = max(engaged + timedelta(days=round(months * 30.44)), today + timedelta(days=SOONEST))
-    return on_weekday(day, rules['day'])
+    return open_day(rules, on_weekday(day, rules['day']))
+
+
+def easter(year: int) -> date:
+    """Easter Sunday (the Gregorian computus)."""
+    golden, century = year % 19, year // 100
+    epact = (19 * golden + century - century // 4 - (8 * century + 13) // 25 + 15) % 30
+    weekday = (32 + 2 * (century % 4) + 2 * ((year % 100) // 4) - epact - (year % 100) % 4) % 7
+    shift = (golden + 11 * epact + 22 * weekday) // 451
+    month, day = divmod(epact + weekday - 7 * shift + 114, 31)
+    return date(year, month, day + 1)
+
+
+def advent(year: int) -> date:
+    """Advent Sunday: the fourth Sunday before Christmas."""
+    christmas = date(year, 12, 25)
+    return christmas - timedelta(days=christmas.weekday() + 1 + 21)
+
+
+# The church's closed seasons, when it married nobody, as (first day, last day) for a year: Advent to Christmas Eve
+# (in the middle ages on to the octave of Epiphany), Lent to Easter (in the middle ages Septuagesima to Low Sunday).
+SEASONS = {'advent': lambda year: (advent(year), date(year, 12, 24)),
+           'advent-epiphany': lambda year: (advent(year), date(year + 1, 1, 13)),
+           'lent': lambda year: (easter(year) - timedelta(days=46), easter(year)),
+           'septuagesima': lambda year: (easter(year) - timedelta(days=63), easter(year) + timedelta(days=7))}
+
+
+def closed(rules: dict, day: date) -> bool:
+    """Whether the day falls in one of the closed seasons the customs keep (`closed` in wedding.json)."""
+    return any(low <= day <= high for name in rules.get('closed', ()) for year in (day.year - 1, day.year)
+               for low, high in (SEASONS[name](year),))
+
+
+def open_day(rules: dict, day: date) -> date:
+    """The day, else the first one a week or more on that is out of a closed season."""
+    for _week in range(20):
+        if not closed(rules, day):
+            break
+        day += timedelta(days=7)
+    return day
 
 
 def budget_for(definition: dict, rules: dict, size: str) -> tuple[float, float]:
@@ -483,7 +577,8 @@ def guest_list(connection, companion: dict, size: str) -> list[dict]:
             friends += 1
             if size == 'small' and friends > SMALL_FRIENDS:
                 continue
-        guests.append({'key': f"circle:{person['id']}", 'name': person['name'], 'who': f"{name}'s {person['role']}",
+        role = circle.said(person['role'], companion['version']['definition'])
+        guests.append({'key': f"circle:{person['id']}", 'name': person['name'], 'who': f"{name}'s {role}",
                        'side': 'theirs', 'invited': True})
     for person in many(connection, 'SELECT * FROM user_people WHERE companion_id=? ORDER BY created_at',
                        (companion['id'],)):
@@ -568,7 +663,7 @@ def book(connection, companion: dict, row: dict, now: datetime) -> dict | None:
     for _week in range(CLASH_WEEKS):
         if not outings.taken(connection, companion, day):
             break
-        day += timedelta(days=7)
+        day = open_day(customs(row['culture']), day + timedelta(days=7))
     if day.isoformat() != row['local_date']:
         connection.execute('UPDATE weddings SET local_date=?, updated_at=? WHERE id=?', (day.isoformat(), timestamp,
                                                                                        row['id']))
@@ -744,7 +839,7 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
               for row in many(connection, "SELECT * FROM proposals WHERE timeline_id=? AND status='asked' AND "
                               'asked_on>=? AND asked_on<=? AND ring_cost>0', (timeline_id, low, high))]
     result += [{'text': 'paid your share of the wedding', 'date': row['local_date'], 'spend': '', 'cost': row['share'],
-                'for': 'wedding', 'savings': True}
+                'for': 'wedding', 'savings': True, 'shown': 'paid their share of the wedding'}
                for row in many(connection, "SELECT * FROM weddings WHERE timeline_id=? AND status='done' AND "
                                'local_date>=? AND local_date<=? AND share>0', (timeline_id, low, high))]
     return result
@@ -765,7 +860,7 @@ def what(outing: dict) -> str:
     """'your wedding at The Belvedere (a hotel in Mount Vernon)'."""
     place = outing['place']
     area = f" in {place['neighborhood']}" if place.get('neighborhood') else ''
-    kind = f" ({place['kind']}{area})" if place.get('kind') and place.get('id') != VENUE else ''
+    kind = f" ({kind_word(place)}{area})" if place.get('kind') and place.get('id') != VENUE else ''
     return f"your wedding at {place['name']}{kind}"
 
 
@@ -878,18 +973,39 @@ def photo_wearing(connection, companion: dict, outing: dict) -> str:
 
 # What the chat context says -----------------------------------------------------------------------------------------
 
+def ago(then: str, today: date) -> str:
+    """'141 days ago', 'yesterday', 'today': after a date that already names its weekday."""
+    return days_ago(date.fromisoformat(then), today).split(', ', 1)[-1]
+
+
+# Words in a venue's name that make a 'temple' a church ("St Andrew's", "Christ Church").
+CHURCH_NAMES = re.compile(r"\b(?:church|chapel|cathedral|abbey|minster|kirk|st\.?|saint)\b", re.IGNORECASE)
+
+
+def kind_word(place: dict) -> str:
+    """The venue's kind as prose says it: 'a church' for a church that the city lists as a temple, 'a garden'."""
+    kind = place.get('kind') or ''
+    word = 'church' if kind == 'temple' and CHURCH_NAMES.search(place.get('name', '')) else kind
+    return f"{'an' if word[:1] in 'aeiou' else 'a'} {word}" if word else ''
+
+
 def plan_line(row: dict, today: date) -> str:
     venue = row['venue'] or {}
-    area = f", {venue['kind']} in {venue['neighborhood']}" if venue.get('neighborhood') and venue.get('kind') else ''
+    area = f", {kind_word(venue)} in {venue['neighborhood']}" if venue.get('neighborhood') and venue.get('kind') else ''
     names = named_guests(row, 6)
     who = f", including {joined(names)}" if names else ''
     rules = customs(row['culture'])
     when = 'today' if row['local_date'] == today.isoformat() else long_date(row['local_date'])
-    return (f"- You and the user got engaged on {long_date(row['engaged_on'])} "
-            f"({days_ago(date.fromisoformat(row['engaged_on']), today)}). Your wedding is planned for {when} at "
-            f"{row['at_time']}, at {venue.get('name', 'the venue')}{area}: {SIZE_WORDS[row['size']]} with about "
-            f"{row['guest_count']} guests{who}. {rules['ceremony'].capitalize()}. The app planned it with you: talk "
-            'about it as your own plans, the way a couple planning a wedding does, and never contradict it.')
+    if row['engaged_on'] == today.isoformat():
+        how = ('You have only just got engaged: these are your first ideas, so offer them as such and ask what the user '
+               'thinks; nothing is booked yet.')
+    else:
+        how = ('The app planned it with you: talk about it as your own plans, the way a couple planning a wedding '
+               'does, and never contradict it.')
+    return (f"- You and the user got engaged on {long_date(row['engaged_on'])} ({ago(row['engaged_on'], today)}). "
+            f"Your wedding is planned for {when} at {row['at_time']}, at {venue.get('name', 'the venue')}{area}: "
+            f"{SIZE_WORDS[row['size']]} with about {row['guest_count']} guests{who}. "
+            f"{rules['ceremony'].capitalize()}. {how}")
 
 
 def money_words(companion: dict, row: dict) -> str:
@@ -916,7 +1032,7 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
             where = f" at {place}" if place else ''
             ring = f" and showed them the ring ({row['ring']})" if row['ring'] else ''
             result.append((f"proposal:{row['id']}:open",
-                           f"- On {long_date(row['asked_on'], False)} ({days_ago(date.fromisoformat(row['asked_on']), today)})"
+                           f"- On {long_date(row['asked_on'], False)} ({ago(row['asked_on'], today)})"
                            f"{where} you asked the user to marry you{ring}. They have not answered yet: if they answer "
                            'now, take it as they mean it, and do not ask again.'))
     row = current(connection, timeline_id)
@@ -927,7 +1043,7 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         names = named_guests(row, 6)
         result.append((f"wedding:{row['id']}:done",
                        f"- You married the user on {long_date(row['local_date'])} "
-                       f"({days_ago(date.fromisoformat(row['local_date']), today)}) at {venue}, with about "
+                       f"({ago(row['local_date'], today)}) at {venue}, with about "
                        f"{row['guest_count']} guests" + (f", among them {joined(names)}" if names else '') + '.'))
     return result + invited_lines(connection, companion, today)
 
@@ -939,7 +1055,7 @@ def invited_lines(connection, companion: dict, today: date) -> list[tuple[str, s
     key = f"companion:{companion['id']}"
     for row in many(connection, "SELECT * FROM weddings WHERE status IN ('planned', 'done') ORDER BY created_at"):
         found = view(row)
-        if not any(guest['key'] == key and guest['invited'] for guest in found['guests']):
+        if not any(guest['key'] == key and guest['invited'] for guest in found['guests']) or ended(connection, row):
             continue
         timeline = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (found['timeline_id'],))
         other = by_id(connection, timeline['companion_id']) if timeline else None
