@@ -35,6 +35,7 @@ export function stripLine(where: WhereState | undefined, name: string): StripLin
 function endedLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
   if (kind === 'yours' || kind === 'knock') return { lead: `${name} headed home.`, place: null, tail: '' }
   if (outing.activity === 'wedding') return mapped('Married today at ', outing, '.')
+  if (outing.activity === 'big-day' && outing.place.title) return { lead: sentence(`Headed home from ${outing.place.title}`), place: null, tail: '' }
   return { lead: sentence(`Headed home from ${kind === 'theirs' ? `${name}'s place` : outing.place.name}`), place: null, tail: '' }
 }
 
@@ -51,14 +52,21 @@ function sentence(words: string): string {
 
 function liveLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
   const tail = ` until ${timeText(outing.until_time)}`
-  // Dinner at their family's home (companion/life/their_people.py) isn't on the map.
-  if (kind === 'out' && outing.place.kind === 'family-home') return { lead: `Together at ${outing.place.name}`, place: null, tail }
-  // Your wedding (companion/life/wedding.py).
-  if (kind === 'out' && outing.activity === 'wedding') return mapped('Your wedding at ', outing, tail)
-  if (kind === 'out') return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail }
+  if (kind === 'out') return outLine(outing, tail)
   if (kind === 'theirs') return { lead: `At ${name}'s place`, place: null, tail }
   if (kind === 'knock' && outing.not_now) return { lead: `${name} dropped by and is at your place`, place: null, tail }
   return { lead: `${name} is at your place`, place: null, tail }
+}
+
+/** Out together somewhere in town. */
+function outLine(outing: WhereOuting, tail: string): StripLine {
+  // Dinner at their family's home (companion/life/their_people.py) isn't on the map.
+  if (outing.place.kind === 'family-home') return { lead: `Together at ${outing.place.name}`, place: null, tail }
+  // Your wedding (companion/life/wedding.py).
+  if (outing.activity === 'wedding') return mapped('Your wedding at ', outing, tail)
+  // A big day in their circle (companion/life/big_days.py): "At Leo's wedding at Druid Hill Park".
+  if (outing.activity === 'big-day' && outing.place.title) return mapped(`At ${outing.place.title} at `, outing, tail)
+  return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail }
 }
 
 /** A weekend visit: who is staying with whom, and until when ("until Sun, Oct 18"). */
@@ -123,9 +131,9 @@ export function stripAction(where: WhereState | undefined): StripAction | null {
   return { action: 'home', label: leaveLabel(outing) }
 }
 
-/** Heading home from your own wedding reads oddly, so the long day ends with Call it a night. */
+/** Heading home from your own wedding reads oddly, so the long day ends with Call it a night, as does a big day. */
 function leaveLabel(outing: WhereOuting): string {
-  return outing.activity === 'wedding' ? 'Call it a night' : 'Head home'
+  return outing.activity === 'wedding' || outing.activity === 'big-day' ? 'Call it a night' : 'Head home'
 }
 
 /** Whether the chat writes in person now: texting habits like bursts stop while they are together. */

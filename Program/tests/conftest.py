@@ -128,6 +128,14 @@ def no_turnover(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_big_days(monkeypatch):
+    """Big days in the circle (companion/life/big_days.py) would plan weddings and parties, and their invitations,
+    as unrelated tests' clocks move on; tests/test_big_days.py turns them on."""
+    monkeypatch.setattr('companion.life.big_days.ACTIVE', False)
+    monkeypatch.setattr('companion.life.big_days.FIRST_TEXTS', False)
+
+
+@pytest.fixture(autouse=True)
 def no_trips(monkeypatch):
     """Weekends away (companion/life/trips.py) are seeded dice; their own tests turn them on."""
     from companion.life import trips

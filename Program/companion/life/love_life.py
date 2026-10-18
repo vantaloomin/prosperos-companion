@@ -315,9 +315,10 @@ def where(connection, companion: dict, found: dict) -> tuple[int, steps.Step, st
 
 def progress(connection, companion: dict, found: dict, today: date, now) -> None:
     """Every roll that has come due since the last step, in order: up a step, not yet, or a breakup."""
+    from companion.life import big_days
     lvl = level(connection)
-    if not lvl:
-        return
+    if not lvl or big_days.waiting(connection, found):
+        return  # Their wedding is planned (companion/life/big_days.py): nothing moves until it is held.
     for _ in range(24):
         top, _current, following, since = where(connection, companion, found)
         wanted = following.after[lvl - 1] if following else SETTLED
@@ -333,6 +334,9 @@ def progress(connection, companion: dict, found: dict, today: date, now) -> None
         if outcome['picked'] == 2:
             end(connection, found, 'split', day)
             return
+        if outcome['picked'] == 0 and following and following.key == 'married' and \
+                big_days.own_wedding(connection, companion, found, day, now):
+            return  # Married on the day itself (companion/life/big_days.py).
         if outcome['picked'] == 0 and following:
             step_up(connection, found, following.key, day, stamp(now))
 

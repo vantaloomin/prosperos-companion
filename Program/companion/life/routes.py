@@ -12,6 +12,7 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    big_days,
     breakups,
     calls,
     chapters,
@@ -526,6 +527,11 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         database = db(request)
         with database.connect(write=True) as connection:
             return breakups.change(connection, require_current(connection), consequence_id, body.option,
+                                   database.clock.now())
+    if subject.startswith('bigday:'):
+        database = db(request)
+        with database.connect(write=True) as connection:
+            return big_days.change(connection, require_current(connection), consequence_id, body.option,
                                    database.clock.now())
     if subject.startswith('wedding:'):
         database = db(request)

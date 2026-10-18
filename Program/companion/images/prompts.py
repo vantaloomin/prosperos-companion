@@ -271,6 +271,8 @@ PICTURES = {
     'nail-salon': 'holding up freshly done nails to show them off',
     # Their wedding with the user (companion/life/wedding.py): what they wear is the moment's own.
     'wedding': 'smiling among the guests on {possessive} wedding day',
+    # A big day in their circle (companion/life/big_days.py) with the user: dressed up, a guest among guests.
+    'big-day': 'dressed up and smiling among the guests at a celebration',
 }
 CALLS = ('called', 'phone')
 
