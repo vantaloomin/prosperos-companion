@@ -196,3 +196,13 @@ def test_adult_work_sets_pay_for_an_adult_and_never_for_someone_younger():
     assert money.snapshot(dancer, '2026-10-05')['career']['id'] == 'exotic-dancer'
     young = {**dancer, 'identity': 'A 17-year-old who wants to be an exotic dancer.', 'money': {'career': 'exotic-dancer'}}
     assert (money.snapshot(young, '2026-10-05')['career'] or {}).get('id') != 'exotic-dancer'
+
+
+def test_pay_in_a_modern_city_with_a_wage_spreads_like_real_pay():
+    """E2E v0.13: a London pharmacist took home GBP 7,546 a month, 2.8 times a low-paid job's take-home."""
+    london = money.city_for({'home_city': 'London'})
+    low, pharmacist = money.take_home(london, 0), money.take_home(london, money.PAY_TIERS['$$$'])
+    assert 1.4 <= pharmacist / low <= 1.6 and 3500 < pharmacist < 4500
+    # Historic cities keep the wider spread over a labourer's day wage.
+    camelot = money.city_for({'home_city': 'Camelot'})
+    assert money.take_home(camelot, 2) / money.take_home(camelot, 0) == money.WAGE_MULTIPLE[2]
