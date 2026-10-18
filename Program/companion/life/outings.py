@@ -655,8 +655,9 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
     """The agenda entry for the slot an outing takes: it happening, with the user."""
     outing = plan['outing']
     place = outing['place']
+    # A big day says who it was with (companion/life/big_days.py doing): the area would land after "with you".
     area = f" in {place['neighborhood']}" if place['neighborhood'] and place['neighborhood'] not in place['name'] \
-        and place['kind'] not in ('home', 'your-home', 'family-home') else ''
+        and place['kind'] not in ('home', 'your-home', 'family-home') and outing['activity'] != 'big-day' else ''
     alone = outing['activity'] in ('dinner-in', *LONG_DAYS, *VISIT_DOING, *MEETUPS) or (place.get('hobby') or {}).get(
         'event')
     summary = f"{definition['name']} {doing(outing)}{area}" + ('.' if alone else ' with you.')

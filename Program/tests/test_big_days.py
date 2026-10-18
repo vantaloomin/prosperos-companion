@@ -568,3 +568,15 @@ def test_the_invitation_names_a_day_weeks_off_by_its_date():
     assert big_days.when_text(date(2026, 10, 24), tuesday) == 'Saturday'
     assert big_days.when_text(date(2026, 10, 31), tuesday) == 'next Saturday'
     assert big_days.when_text(date(2026, 11, 14), tuesday) == 'Saturday, November 14'
+
+
+def test_the_day_with_you_reads_with_you_last(client, clock):
+    make(client)
+    guests(client, 3)
+    row = add(client, clock, kind='retirement', role='mom')
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    outing = {**outing, 'place': {**outing['place'], 'neighborhood': 'Fells Point'}}
+    found = outings.entry({'outing': outing}, {}, {'name': 'Mira'})
+    assert found['summary'].startswith(f"Mira went to {outing['place']['title']} at {outing['place']['name']} with you")
+    assert 'Fells Point' not in found['summary']
