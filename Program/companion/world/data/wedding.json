@@ -1,5 +1,5 @@
 {
-  "_about": "Engagement and wedding (companion/life/wedding.py). `customs`: how a wedding goes by the city's calendar (companion/world/catalog.calendar_id) or else its era group (companion/life/admin.era_group): the words, the order of the day, venue words and place kinds (`else`: the kinds when the city has none of those, for a church wedding in a town without a church), the weekday (0 Monday) and hours, months engaged and guests by size, the budget in months of the companion's take-home by size and the share they pay, the ring (months of take-home, and one ring per pay tier), how one asks, what they wear by pronoun, and the planning on the Life admin calendar (`after` days from the engagement, or `before` days before the wedding). `invite`: the first text inviting the user out on the evening they will propose, when no model writes it ({place}, {day}, {time}; it never gives the proposal away). `engaged`: their feed post the day they get engaged. `married`: the caption on the wedding photo. At least 100 each; gender-neutral and era-neutral.",
+  "_about": "Engagement and wedding (companion/life/wedding.py). `customs`: how a wedding goes by the city's calendar (companion/world/catalog.calendar_id) or else its era group (companion/life/admin.era_group): the words, the order of the day, venue words and place kinds (`else`: the kinds when the city has none of those, for a church wedding in a town without a church), the church's closed seasons the old eras keep (`closed`: advent, advent-epiphany, lent or septuagesima, companion/life/wedding.SEASONS), the weekday (0 Monday) and hours, months engaged and guests by size, the budget in months of the companion's take-home by size and the share they pay, the ring (months of take-home, and one ring per pay tier), how one asks, what they wear by pronoun, and the planning on the Life admin calendar (`after` days from the engagement, or `before` days before the wedding). `invite`: the first text inviting the user out on the evening they will propose, when no model writes it ({place}, {day}, {time}; it never gives the proposal away). `engaged`: their feed post the day they get engaged. `married`: the caption on the wedding photo. At least 100 each; gender-neutral and era-neutral.",
   "customs": {
     "us": {
       "word": "wedding",
@@ -514,6 +514,10 @@
       "word": "wedding",
       "wed": "married",
       "ceremony": "the church service first, then the wedding breakfast and the dancing",
+      "closed": [
+        "advent",
+        "lent"
+      ],
       "moments": [
         "the vows",
         "rice thrown on the church steps",
@@ -635,6 +639,10 @@
       "word": "wedding",
       "wed": "wed",
       "ceremony": "the service first, then a supper and a dance",
+      "closed": [
+        "advent",
+        "lent"
+      ],
       "moments": [
         "the vows",
         "the ring",
@@ -745,6 +753,10 @@
       "word": "wedding",
       "wed": "wed",
       "ceremony": "the church service in the morning, then the wedding breakfast",
+      "closed": [
+        "advent",
+        "lent"
+      ],
       "moments": [
         "the vows",
         "signing the register",
@@ -865,6 +877,10 @@
       "word": "wedding",
       "wed": "wed",
       "ceremony": "the vows at the church door first, then the mass and the wedding feast",
+      "closed": [
+        "advent-epiphany",
+        "septuagesima"
+      ],
       "moments": [
         "the vows at the church door",
         "the ring",

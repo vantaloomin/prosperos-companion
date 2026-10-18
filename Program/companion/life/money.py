@@ -349,23 +349,30 @@ def affordable(definition: dict, activity_key: str, local_date: str) -> bool:
     return cost(found, activity_key) <= left_on(found, date.fromisoformat(local_date))
 
 
-def goal(found: Profile, setup: dict, day: date) -> dict:
-    """What they are saving for and how far along they are. Without a goal of their own, one is
-    seeded for each half of the year, sized so steady saving just about reaches it."""
+def goal_since(setup: dict, day: date) -> date:
+    """When saving for the goal began: their own goal's start, else the start of this half of the year."""
     half = date(day.year, 1 if day.month <= 6 else 7, 1)
-    custom = bool(setup.get('saving_for'))
     try:
-        since = date.fromisoformat(setup.get('goal_since') or '') if custom else half
+        since = date.fromisoformat(setup.get('goal_since') or '') if setup.get('saving_for') else half
     except ValueError:
         since = date(day.year, day.month, 1)
-    since = min(since, day)
+    return min(since, day)
+
+
+def goal(found: Profile, setup: dict, day: date, drawn: float = 0.0) -> dict:
+    """What they are saving for and how far along they are, less what big buys took from savings meanwhile
+    (`drawn`: an engagement ring, their share of a wedding). Without a goal of their own, one is seeded for each half
+    of the year, sized so steady saving just about reaches it."""
+    half = date(day.year, 1 if day.month <= 6 else 7, 1)
+    custom = bool(setup.get('saving_for'))
+    since = goal_since(setup, day)
     rng = random.Random(f'{found.seed}:goal:{half.isoformat()}')
     options = GOALS[found.era][min(found.tier, len(GOALS[found.era]) - 1)]
     label = setup['saving_for'] if custom else rng.choice(options)
     cycles = 26 if found.cycle_days == 14 else 52
     amount = float(setup.get('goal') or 0) if custom else 0
     amount = amount or found.saving * found.per_cycle * cycles / 2 * rng.uniform(0.8, 1.3)
-    saved = saved_since(found, since, day)
+    saved = max(saved_since(found, since, day) - drawn, 0)
     return {'label': label, 'amount': round(amount, 2), 'saved': round(min(saved, amount), 2),
             'share': round(min(saved / amount, 1), 2) if amount else 0, 'custom': custom,
             'since': since.isoformat(), 'stalled': found.saving <= 0}
@@ -392,12 +399,18 @@ WHOLE = {'JPY', 'KRW'}
 COINS = {'penny', 'groschen', 'sw'}
 # Shillings, said in shillings and pence (twelve pence to the shilling): 4s. 1d., 2d.
 SHILLINGS = {'shilling', 's'}
+# Shillings of the pound sterling (London 1895), twenty to the pound.
+STERLING = {'shilling'}
 PREFIXES = ('$', '£', '€', '¥', '₩', '₹')
 
 
-def shillings(value: float, symbol: str) -> str:
-    """'4s. 1d.', '2d.' or '15s.': whole shillings and pence, never a decimal."""
+def shillings(value: float, symbol: str, pounds: bool = False) -> str:
+    """'4s. 1d.', '2d.' or '15s.': whole shillings and pence, never a decimal. With `pounds` (sterling), a pound or
+    more reads as pounds and shillings: '£36 16s.' for 736 shillings."""
     dot = '.' if symbol.endswith('.') else ''
+    if pounds and value >= 20:
+        whole, rest = divmod(round(value), 20)
+        return f'£{whole:,}' + (f' {rest}s{dot}' if rest else '')
     if value >= 20:
         return f'{round(value):,}s{dot}'
     whole, pence = divmod(max(1, round(value * 12)), 12)
@@ -408,7 +421,7 @@ def amount(value: float, currency: dict) -> str:
     """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d."""
     code = currency.get('code')
     if code in SHILLINGS and value > 0:
-        return shillings(value, currency['symbol'])
+        return shillings(value, currency['symbol'], code in STERLING)
     if code in COINS and 0 < value < 1:
         value = 1
     if value >= 100_000:
@@ -474,9 +487,31 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *admin.purchases(connection, timeline_id, start, day),
               *hobbies.purchases(connection, timeline_id, start, day),
               *wedding.purchases(connection, timeline_id, start, day)]
-    # Raises, promotions and time between jobs (companion/life/work.py).
+    # Raises, promotions and time between jobs (companion/life/work.py); what big buys took from savings since the
+    # goal began.
+    since = goal_since(definition.get('money') or {}, day)
+    drawn = sum(item['cost'] for item in wedding.purchases(connection, timeline_id, since, day))
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
-            'pay': work.pay(connection, timeline_id, day, start)}
+            'pay': work.pay(connection, timeline_id, day, start), 'drawn': drawn}
+
+
+# How far back savings on hand reach: what they put by in this long, less what came out of it.
+SAVED_DAYS = 365
+
+
+def on_hand(connection, timeline_id: str, definition: dict, day: date) -> float | None:
+    """The savings they have to draw on for a big buy (a ring, their share of a wedding): what they put by in the
+    last year at their pay and rent now, less what big buys took from it. None where money does not apply."""
+    from companion.life import wedding
+    found = profile(definition)
+    if not found:
+        return None
+    home = household(connection, timeline_id, definition, day)
+    if home:
+        found = with_home(found, home['costs'], home.get('pay'))
+    since = day - timedelta(days=SAVED_DAYS)
+    drawn = sum(item['cost'] for item in wedding.purchases(connection, timeline_id, since, day))
+    return max(saved_since(found, since, day) - drawn, 0.0)
 
 
 def monthly_share(found: Profile) -> float:
@@ -553,7 +588,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'tight': left < found.fun_cycle * TIGHT, 'flush': left > found.fun_cycle * 0.75,
         'splurge': happened(current.splurge, day), 'surprise': happened(current.surprise, day),
         'cant_afford': [OUTING_NAMES[key] for key in COSTS if cost(found, key) > left and key != 'birthday'],
-        'goal': goal(found, setup, day),
+        'goal': goal(found, setup, day, home.get('drawn', 0.0) if home else 0.0),
         'text': {'income': amount(found.income, currency), 'rent': amount(found.rent, currency),
                  'essentials': amount(found.essentials, currency), 'fun': amount(found.fun, currency),
                  'upkeep': amount(found.upkeep, currency),

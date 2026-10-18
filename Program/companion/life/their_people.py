@@ -7,17 +7,17 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   later with no question asked: dinner at their family's place when a parent or a sibling lives in town, else drinks
   with their friends. For a best friend, now and then (the engine's `people:night_out`, by the Relationship pace
   slider and how outgoing they are) a night out with their friends comes up too. A pair that has been together for
-  years by how they know each other ("married for ten years") met everyone long ago: those first impressions are
-  seeded straight away and nothing is planned.
+  years by how they know each other ("married for ten years"), or an existing pair that starts at the step, met
+  everyone already: those first impressions are seeded straight away and nothing is planned.
 - The companion invites the user in a first text (companion/life/openers.py) naming who, where and when; sending it
   books the outing (companion/life/outings.py), in person by v0.12's rules: never across a long distance, where it
-  waits until they live in one city. Today's "Out together" lets the user call it off; called off, it is planned
-  once more a few weeks later.
+  is on the first full day of the user's next stay with them in their city (companion/life/long_distance.py).
+  Today's "Out together" lets the user call it off; called off, it is planned once more a few weeks later.
 - Each person at the meet-up gets a seeded first impression of the user (the engine's `people:impression`: warm,
   lovely together, still making up their mind, protective or wary, by who they are to the companion and the drama
   level). It shows how they are at the table, and once the evening is over it is a circle-to-user pair that moves
-  with what happens: plans kept warm it up, rough patches (companion/life/rough_patches.py) and called-off plans cool
-  it. The companion passes it on now and then ("my mom keeps asking when you're coming back"), and it shows on the
+  with what happens: plans kept warm it up, rough patches (companion/life/rough_patches.py), called-off plans and a
+  breakup (companion/life/breakups.py) cool it. The companion passes it on now and then ("my mom keeps asking when you're coming back"), and it shows on the
   circle list.
 - Afterwards someone they met may drop into a group chat with the companion as a v0.11 guest, by the Guests slider
   (companion/group_guests.py), knowing the user from that evening.
@@ -73,6 +73,8 @@ LOW, HIGH = -2, 3
 CHECK_EVERY = 7
 KEPT_TO_WARM = 2
 CALLED_OFF_TO_COOL = 2
+# How far a breakup cools them: (others, family and the protective or wary).
+BREAKUP_COOLS = (1, 2)
 # The circle list's short words, and the chat context's.
 LABELS = {'warm': 'Liked you right away', 'smitten': 'Loves you two together', 'curious': 'Still making up their mind',
           'protective': 'Protective of {companion}', 'wary': 'Not sure about you yet'}
@@ -81,7 +83,8 @@ MOVED_LABELS = {'up': 'Warmed to you', 'high': 'Thinks the world of you', 'down'
 THINKS = {'warm': '{name} liked the user right away',
           'smitten': '{name} thinks you two are lovely together and keeps asking after the user',
           'curious': '{name} was friendly but is still making up their mind about the user',
-          'protective': '{name} is protective of you and is watching how the user treats you',
+          'protective': '{name} was polite but protective of you, and is still watching how the user treats you; '
+                        "pass that on honestly, even if it isn't all glowing",
           'wary': "{name} isn't sure about the user yet"}
 MOVED_THINKS = {'up': '{name} has warmed to the user since', 'high': '{name} thinks the world of the user now',
                 'down': '{name} has cooled on the user lately', 'low': '{name} has real doubts about the user now'}
@@ -113,13 +116,15 @@ def group_of(role: str) -> str | None:
 
 
 def local_people(connection, companion: dict) -> list[dict]:
-    """Their circle who live in town, closest first, as {id, name, role, kind, group, pronouns, neighborhood, city}."""
+    """Their circle who live in town, closest first, as {id, name, role, kind, group, pronouns, neighborhood, city};
+    the role as they say it in their era ('mother' in 1895)."""
     result = []
+    definition = companion['version']['definition']
     for row in circle.people(connection, companion['active_timeline_id']):
         details = decode(row['details']) or {}
         group = group_of(row['role'])
         if group and details.get('local', True):
-            result.append({'id': row['id'], 'name': row['name'], 'role': row['role'],
+            result.append({'id': row['id'], 'name': row['name'], 'role': circle.said(row['role'], definition),
                            'kind': circle.role_kind(row['role']), 'group': group,
                            'neighborhood': details.get('neighborhood') or '', 'city': details.get('city') or ''})
     return result
@@ -171,7 +176,10 @@ def advance(connection, companion: dict, now: datetime) -> None:
     follow(connection, companion, now)
     drift(connection, companion, now)
     found = steps.state(connection, companion, now, write=False)
-    if found is None or steps.apart(connection, companion):
+    apart = steps.apart(connection, companion)
+    if apart == 'ended':
+        cool_after_breakup(connection, companion, now)
+    if found is None or apart:
         return  # Nothing new on a break or once it has ended (companion/life/breakups.py).
     if found['ladder'] == 'romance':
         plan_for_step(connection, companion, found, now)
@@ -192,7 +200,9 @@ def plan_for_step(connection, companion: dict, found: dict, now: datetime) -> di
     timeline_id = companion['active_timeline_id']
     if reached is None or meetups(connection, timeline_id, ('planned', 'booked', 'done'), 'step'):
         return None
-    if reached['how'] == 'history':
+    if reached['how'] in ('history', 'start'):
+        # A pair that starts at the step (from way back, or an upgraded pair the Character page shows as having met
+        # their people) has met everyone already.
         known_already(connection, companion, now)
         return None
     if len(meetups(connection, timeline_id, why='step')) >= STEP_TRIES:
@@ -292,9 +302,14 @@ def meet_due(connection, companion: dict, now: datetime) -> list:
     from companion.life import long_distance
     row = next((item for item in meetups(connection, companion['active_timeline_id'], ('planned',))
                 if item['due_on'] <= local.date().isoformat()), None)
-    if row is None or long_distance.far(connection, companion):
+    if row is None:
         return []
-    found = proposal(connection, companion, row, local)
+    # Living apart, it is on the user's next stay with them in their city, asked as soon as the stay is agreed.
+    far = long_distance.far(connection, companion)
+    stay = long_distance.next_stay(connection, companion, local.date()) if far else None
+    if far and stay is None:
+        return []
+    found = proposal(connection, companion, row, local, stay)
     if found is None:
         return []
     activity, day, at, place, people = found
@@ -339,14 +354,20 @@ def clock_text(at: str) -> str:
     return f"{hour % 12 or 12}{'' if minute == '00' else ':' + minute}"
 
 
-def proposal(connection, companion: dict, row: dict, local: datetime) -> tuple | None:
-    """(activity, day, at, place, people) for the meet-up: a free evening near the preferred day."""
+def proposal(connection, companion: dict, row: dict, local: datetime, stay: date | None = None) -> tuple | None:
+    """(activity, day, at, place, people) for the meet-up: a free evening near the preferred day, or that evening of
+    the user's stay with them (`stay`, long distance)."""
+    from companion.life import long_distance
     kind, people = guests_for(connection, companion, row['kind'])
     if not people:
         return None
     activity = AT_FAMILY if kind == 'family' else OUT_WITH_FRIENDS
-    wanted = {'activity': activity, 'day': preferred_day(kind, local.date()), 'at': None, 'firm': False}
-    found = outings.when_free(connection, companion, wanted, local)
+    if stay is not None:
+        found = (stay, outings.ACTIVITIES[activity][2]) if long_distance.free_during_stay(connection, companion, stay) \
+            else None
+    else:
+        wanted = {'activity': activity, 'day': preferred_day(kind, local.date()), 'at': None, 'firm': False}
+        found = outings.when_free(connection, companion, wanted, local)
     if not found:
         return None
     day, at = found
@@ -373,7 +394,7 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     day, now = date.fromisoformat(day_text), parse(timestamp)
     everyone = {person['id']: person for person in local_people(connection, companion)}
     people = [everyone[person_id] for person_id in person_ids.split(',') if person_id in everyone]
-    if not people or outings.taken(connection, companion, day):
+    if not people or not free_on(connection, companion, day):
         return None
     if activity == AT_FAMILY:
         place, cost = family_place(people, meetup_id), 0.0
@@ -399,6 +420,14 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
 
 
 SETTLES = ('meet_people',)
+
+
+def free_on(connection, companion: dict, day: date) -> bool:
+    """Nothing else has the day; on the user's stay with them (long distance), nothing else planned with them."""
+    from companion.life import long_distance
+    if long_distance.staying_on(connection, companion, day):
+        return long_distance.free_during_stay(connection, companion, day)
+    return not outings.taken(connection, companion, day)
 
 
 # First impressions -------------------------------------------------------------------------------------------------
@@ -443,7 +472,7 @@ def follow(connection, companion: dict, now: datetime) -> None:
         if row['status'] == 'planned':
             far = far if far is not None else bool(long_distance.far(connection, companion))
             if far and row['due_on'] < today.isoformat():
-                # Living apart it waits until they live in one city (meet_due), so it never lapses meanwhile.
+                # Living apart it waits for the user's next stay with them (meet_due), so it never lapses meanwhile.
                 connection.execute('UPDATE people_meetups SET due_on=? WHERE id=?', (today.isoformat(), row['id']))
             elif (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
                 connection.execute("UPDATE people_meetups SET status='dropped', settled_at=? WHERE id=?",
@@ -474,14 +503,16 @@ def met_again(connection, timeline_id: str, row: dict, day: str, now: datetime) 
             move(connection, found, 1, 'saw you again', day, now)
 
 
-def move(connection, row: dict, by: int, why: str, day: str, now: datetime) -> None:
+def move(connection, row: dict, by: int, why: str, day: str, now: datetime) -> bool:
+    """Warmer or cooler by `by`, within LOW and HIGH; False when it can't move that way."""
     warmth = max(LOW, min(HIGH, row['warmth'] + by))
     if warmth == row['warmth']:
-        return
+        return False
     moves = [*(decode(row['moves']) or []), {'on': day, 'by': by, 'why': why}][-12:]
     connection.execute('UPDATE people_impressions SET warmth=?, moves=?, updated_at=? WHERE id=?',
                        (warmth, encode(moves), stamp(now), row['id']))
     row.update({'warmth': warmth, 'moves': encode(moves)})
+    return True
 
 
 def drift(connection, companion: dict, now: datetime) -> None:
@@ -504,6 +535,26 @@ def drift(connection, companion: dict, now: datetime) -> None:
         elif happened['called_off'] >= CALLED_OFF_TO_COOL and touchy:
             move(connection, row, -1, 'plans called off', today.isoformat(), now)
         connection.execute('UPDATE people_impressions SET checked_on=? WHERE id=?', (today.isoformat(), row['id']))
+
+
+def cool_after_breakup(connection, companion: dict, now: datetime) -> None:
+    """Once the two of them have broken up, everyone who met the user cools on them, once for each breakup: family and
+    the protective or wary more."""
+    from companion.life import breakups
+    row, _stage = breakups.current(connection, companion)
+    if row is None:
+        return
+    mark, today = f"broke up:{row['id']}", local_today(companion, now).isoformat()
+    for found in many(connection, 'SELECT * FROM people_impressions WHERE timeline_id=? AND met_on IS NOT NULL',
+                      (companion['active_timeline_id'],)):
+        if any(item.get('why') == mark for item in decode(found['moves']) or []):
+            continue
+        person = optional(connection, 'SELECT role FROM circle_people WHERE id=?', (found['person_id'],))
+        touchy = found['impression'] in ('protective', 'wary') or (person and group_of(person['role']) == 'family')
+        if not move(connection, found, -BREAKUP_COOLS[bool(touchy)], mark, today, now):
+            # Already as cool as it goes: marked all the same, so it is cooled only once.
+            moves = [*(decode(found['moves']) or []), {'on': today, 'by': 0, 'why': mark}][-12:]
+            connection.execute('UPDATE people_impressions SET moves=? WHERE id=?', (encode(moves), found['id']))
 
 
 def since_then(connection, companion: dict, since: str, today: str) -> dict:
@@ -576,7 +627,7 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         return []
     today, result = local_today(companion, now), []
     for row in met(connection, companion['active_timeline_id']):
-        who = f"{row['name']} (your {row['role']})"
+        who = f"{row['name']} (your {circle.said(row['role'], companion['version']['definition'])})"
         if row['met_on'] == 'before':
             text = f'- {who} has known the user for a long time: {thinks(row, row["name"])}.'
         else:
@@ -600,8 +651,9 @@ def is_meetup(outing: dict) -> bool:
     return outing['activity'] in MEETUPS
 
 
-def what(outing: dict) -> str:
-    """'dinner at Ana and Rui's place with your mom Ana and your dad Rui, so the user can meet them'."""
+def what(outing: dict, past: bool = False) -> str:
+    """'dinner at Ana and Rui's place with your mom Ana and your dad Rui, so the user can meet them' (once it is over,
+    `past`: 'so the user could meet them')."""
     place = outing['place']
     people = people_text(place.get('people') or [])
     thing = 'dinner' if outing['activity'] == AT_FAMILY else 'drinks'
@@ -610,7 +662,8 @@ def what(outing: dict) -> str:
         where = f"{place['name']} ({place['kind']}{area})"
     else:
         where = place['name']
-    return f"{thing} at {where} with {people}" + (', so the user can meet them' if place.get('first') else '')
+    meet = f", so the user {'could' if past else 'can'} meet them" if place.get('first') else ''
+    return f"{thing} at {where} with {people}{meet}"
 
 
 def scene(connection, companion: dict, outing: dict, spot: str | None) -> str:
@@ -711,8 +764,8 @@ def change(connection, companion: dict, consequence_id: str, option: int, now: d
 
 def met_people(connection, companion: dict) -> dict[str, dict]:
     """Circle people who have met the user and like them well enough to drop into a chat, by person id."""
-    if not companion.get('active_timeline_id'):
-        return {}
+    if not companion.get('active_timeline_id') or steps.apart(connection, companion) == 'ended':
+        return {}  # Broken up, their people keep out of the user's chats.
     return {row['person_id']: row for row in met(connection, companion['active_timeline_id']) if row['warmth'] >= 1}
 
 
@@ -728,6 +781,30 @@ def guest_line(connection, person_id: str, timeline_id: str) -> str | None:
         when = f"You have met the user in person, on {long_date(row['met_on'])}{' at ' + at if at else ''}."
     return (f"{when} {GUEST_FEELS[moved(row) or row['impression']]} Anything else you did together beyond that and "
             "this chat didn't happen as far as you know.")
+
+
+def away_lines(connection, members: list[dict]) -> list[tuple[str, str]]:
+    """For a group chat (companion/groups.py): another companion in it who took the user to meet their people, and
+    that the speaker wasn't there."""
+    from companion.characters import by_id
+    result = []
+    for item in members:
+        if not item['member'].startswith('companion:'):
+            continue
+        other = by_id(connection, item['member'].split(':', 1)[1])
+        if not other or not other.get('active_timeline_id'):
+            continue
+        row = next(iter(reversed(meetups(connection, other['active_timeline_id'], ('done',)))), None)
+        outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'] or '',)) if row else None
+        if outing is None:
+            continue
+        found = outings.view(outing)
+        people = people_text([{**person, 'name': f"their {person['role']} {first(person['name'])}"}
+                              for person in found['place'].get('people') or []], yours=False)
+        result.append((f"their-people-away:{item['member']}:{row['id']}",
+                       f"{item['name']} took the user to {what(found).split(' with ')[0]} with {people} on "
+                       f"{long_date(found['local_date'])}; you weren't there."))
+    return result
 
 
 GUEST_FEELS = {'warm': 'You liked them right away.', 'smitten': 'You think they and your person are lovely together.',

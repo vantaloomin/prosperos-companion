@@ -468,3 +468,23 @@ def test_in_a_group_chat_the_steps_line_says_whether_they_live_together(client, 
         in line(True) and steps.WHERE_SAID not in line(True)
     moving_day(client, clock)
     assert line(True).startswith('- You live together. You are not engaged.') and steps.WHERE_SAID in line(False)
+
+
+def test_a_plan_changed_under_hidden_values_is_told_until_the_next_reply(client, provider, clock, monkeypatch):
+    apart_from(client, monkeypatch, relationship='romance')
+    pick(monkeypatch, 'moving_in:who', 1)
+    ask_to_move_in(client, provider)
+    found = row(client)
+    assert found['plan'] == 'you'
+    clock.advance(timedelta(minutes=5))
+    response = client.post(f"/api/life/consequences/{found['consequence_id']}/change", json={'option': 0})
+    assert response.status_code == 200, response.text
+    clock.advance(timedelta(minutes=5))
+    says(provider)
+    send(client, "wait, what's the plan now?", 'client-move-changed-1')
+    assert "- The plan changed: You're moving to Baltimore to live with the user" in notes(provider)
+    assert 'Go along with it as if you had talked it over.' in notes(provider)
+    clock.advance(timedelta(minutes=5))
+    says(provider)
+    send(client, 'ok got it', 'client-move-changed-2')
+    assert 'The plan changed' not in notes(provider)
