@@ -681,6 +681,27 @@ def day_text(local_date: str) -> str:
     return date.fromisoformat(local_date).strftime('%A %B %d').replace(' 0', ' ')
 
 
+# Nationalities and regions in a place's cuisine, capitalized wherever it is written ("Spanish restaurant").
+PROPER = {'american', 'english', 'italian', 'japanese', 'korean', 'mexican', 'german', 'creole', 'jewish',
+          'vietnamese', 'cuban', 'new', 'england', 'chinese', 'chicago', 'tex', 'mex', 'spanish', 'french', 'thai',
+          'punjabi', 'portuguese', 'greek', 'californian', 'cajun', 'ukrainian', 'sonoran', 'puerto', 'rican',
+          'okinawan', 'irish', 'indian', 'caribbean', 'cantonese', 'venezuelan', 'turkish', 'swedish', 'south',
+          'african', 'sichuan', 'shanghainese', 'polish', 'asian', 'pakistani', 'british', 'middle', 'eastern',
+          'mediterranean', 'scottish', 'welsh', 'russian', 'lebanese', 'ethiopian', 'peruvian', 'brazilian',
+          'filipino', 'indonesian', 'malaysian', 'persian', 'moroccan', 'hungarian', 'czech', 'austrian', 'belgian',
+          'dutch', 'danish', 'norwegian', 'nepalese', 'tibetan', 'taiwanese', 'hawaiian', 'jamaican', 'haitian',
+          'salvadoran', 'colombian', 'argentinian', 'texan', 'southern', 'western', 'northern'}
+
+
+def proper(cuisine: str) -> str:
+    """'spanish' -> 'Spanish', 'tex-mex' -> 'Tex-Mex', 'south-indian' -> 'South-Indian'; other words stay as they are
+    ('soul-food', 'pizza'). 'southern' alone is a cooking style, so it is only capitalized beside another place word."""
+    words = re.split(r'([- ])', cuisine)
+    if cuisine.lower() in ('southern', 'south', 'new', 'western', 'northern'):
+        return cuisine
+    return ''.join(word.capitalize() if word.lower() in PROPER else word for word in words)
+
+
 def what(outing: dict) -> str:
     """'dinner at Lupa, a restaurant in Little Italy'; dinner at their place with what they are making."""
     place = outing['place']
@@ -699,7 +720,7 @@ def what(outing: dict) -> str:
     if outing['activity'] == 'hobby':
         hobby = place['hobby']
         return f"{hobby.get('event') or hobby['together']} at {place['name']}"
-    kind = f"{place['cuisine']} {place['kind']}".strip() if place.get('cuisine') else place['kind']
+    kind = f"{proper(place['cuisine'])} {place['kind']}".strip() if place.get('cuisine') else place['kind']
     area = f" in {place['neighborhood']}" if place['neighborhood'] else ''
     return f"{ACTIVITIES[outing['activity']][5]} at {place['name']} ({kind}{area})"
 

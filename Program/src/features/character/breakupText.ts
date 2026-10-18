@@ -65,6 +65,17 @@ export function mendedText(view: BreakupView): string {
 /** The Breakups switch's hint, Settings > Realism > Love and friendship. */
 export const BREAKUPS_HINT = 'When rough patches drag on, things can get strained, then they may think about a break, ask for one, and after it end things. A friendship can fall out. You see the warnings first, and you can talk them around at every step. Always off on Easy.'
 
+/** The picker's label: apart, it shows where things stood before. */
+export function standsLabel(view: BreakupView | undefined): string {
+  return isApart(view) ? 'Where things stood' : 'Where things stand'
+}
+
+/** After a breakup, the steps list ends with it: "Divorced Oct 18, 2026 · you ended it". */
+export function endedStep(view: BreakupView | undefined, name: string): string {
+  if (view?.stage !== 'ended' || !view.since) return ''
+  return `${view.text} ${stepDate(view.since)} · ${view.by === 'you' ? 'you' : firstName(name)} ended it`
+}
+
 /** The "Where things stand" hint while apart: a break picks up where it left off; after a breakup a couple starts
  * again as a couple, exclusive (companion/life/breakups.py `back_together`). */
 export function apartHint(view: BreakupView | undefined): string {

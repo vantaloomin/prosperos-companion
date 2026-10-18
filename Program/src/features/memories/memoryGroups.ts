@@ -77,6 +77,13 @@ export function addedLine(memory: Memory): string | null {
   return memory.source_message_ids.length || memory.origin === 'automatic' ? null : 'Added by you directly.'
 }
 
+/** When a memory holds: "Applies from Oct 6, 2026" with no end, "Applies until …" with no start, else both ends. */
+export function appliesText(from: string | null, until: string | null, show: (value: string) => string): string {
+  if (!until) return `Applies from ${show(from!)}`
+  if (!from) return `Applies until ${show(until)}`
+  return `Applies ${show(from)} to ${show(until)}`
+}
+
 /** Why a correction is waiting: it drops a never-true value, ends one as history, or rewords one. */
 function correctionReason(replaces: string[], ends: boolean, retracts: boolean): string {
   const earlier = replaces.length ? `“${replaces.join('”, “')}”` : 'what was remembered'

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { addedLine, correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
+import { addedLine, appliesText, correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory, Person } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
@@ -116,4 +116,11 @@ test('a person is described by relation, or by what is still unknown', () => {
 test('a memory saved without a title is named by its first words', () => {
   assert.equal(titleFrom('  QonCat  '), 'QonCat')
   assert.equal(titleFrom('Likes to be called Q by close friends only'), 'Likes to be called Q by…')
+})
+
+test('a memory with no end date applies from its start, not "to …"', () => {
+  const show = (value: string) => value
+  assert.equal(appliesText('Oct 6', null, show), 'Applies from Oct 6')
+  assert.equal(appliesText(null, 'Oct 9', show), 'Applies until Oct 9')
+  assert.equal(appliesText('Oct 6', 'Oct 9', show), 'Applies Oct 6 to Oct 9')
 })

@@ -360,3 +360,8 @@ def test_memories_saved_in_the_old_wording_read_the_new_way_after_an_upgrade(cli
         assert settings(connection)['memory_revision'] > revision
         # Once reworded, nothing changes on the next start.
         assert outings.reword_memories(connection, stamp) == 0
+
+
+def test_a_cuisine_named_after_a_place_is_capitalized():
+    assert [outings.proper(cuisine) for cuisine in ('spanish', 'tex-mex', 'modern-british', 'soul-food', 'southern')] \
+        == ['Spanish', 'Tex-Mex', 'modern-British', 'soul-food', 'southern']

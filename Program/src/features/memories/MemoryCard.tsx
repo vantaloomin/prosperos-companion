@@ -7,7 +7,7 @@ import type { DeletePreview, Memory, Message, PlanStatus } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Toggle } from '../../components/Fields'
 import { useReturnFocus } from '../../components/returnFocus'
-import { addedLine, correction, dayInput, deletePreviewText, earlierVersions, followUp, statusLabels, type Correction } from './memoryGroups'
+import { addedLine, appliesText, correction, dayInput, deletePreviewText, earlierVersions, followUp, statusLabels, type Correction } from './memoryGroups'
 
 export interface MemoryActions {
   correct: (memory: Memory, body: Correction) => Promise<boolean>
@@ -47,7 +47,7 @@ function Meta({ memory }: { memory: Memory }) {
     <p className="memory-meta">
       {statusLabels(memory).map((label) => <span key={label} className="badge">{label}</span>)}
       <span>Said {date(memory.stated_at)}</span>
-      {(memory.applies_from || memory.applies_until) && <span>Applies {date(memory.applies_from)} to {date(memory.applies_until)}</span>}
+      {(memory.applies_from || memory.applies_until) && <span>{appliesText(memory.applies_from, memory.applies_until, date)}</span>}
     </p>
   )
 }
