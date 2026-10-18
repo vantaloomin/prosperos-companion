@@ -31,6 +31,7 @@ from companion import (
     worlds,
 )
 from companion.almanac.context import city_for
+from companion.clock import zone
 from companion.errors import DomainError
 from companion.identity import APP_ID, VERSION
 from companion.images.prompts import in_photos
@@ -219,7 +220,9 @@ def looks_suggestions(request: Request, body: PerceptionRequest):
     with request.app.state.database.connect() as connection:
         companion = characters.current(connection)
         # How old they are now, birthdays and all (companion/life/ages.py), for "Keeps their age".
-        age_now = grooming.sheet(connection, companion['id'], body.definition).get('age') if companion else None
+        today = request.app.state.database.clock.now().astimezone(zone(companion['version']['timezone'])).date() \
+            if companion else None
+        age_now = grooming.sheet(connection, companion['id'], body.definition, today).get('age') if companion else None
     automatic = looks.for_companion(companion['id'], body.definition) if companion else None
     line = in_photos({'name': '', **body.definition, 'in_photos': ''})
     return {'automatic': automatic, 'covered': sorted(looks.covered(body.definition.get('appearance', ''))),
