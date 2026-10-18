@@ -561,12 +561,14 @@ def pet_hint(connection, timeline_id: str, event: dict, named_ids: list[str], at
 
 
 def money_text(home: dict) -> str:
-    """Rent, unless the budget section already states it."""
+    """Rent (the mortgage, on a place they own), unless the budget section already states it."""
     if not home.get('rent') or home.get('rent_from') == 'budget':
         return ''
     currency = home.get('currency') or {}
     symbol = currency.get('symbol', '$') if isinstance(currency, dict) else '$'
     shared = ', split with the user' if home.get('shared') else ''  # Living together (companion/life/moving_in.py).
+    if home.get('owned'):  # A place they bought (companion/life/big_turns.py).
+        return f" The mortgage is about {symbol}{home['rent']:,} a {home.get('rent_period', 'month')}{shared} (an estimate)."
     return f" Rent is about {symbol}{home['rent']:,} a {home.get('rent_period', 'month')}{shared} (an estimate)."
 
 

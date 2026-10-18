@@ -134,6 +134,17 @@ def test_an_exam_on_a_class_day_keeps_its_day_and_the_class_hour(client, mira, c
         client.get('/api/life/chapters/lately').json()['now'][0]['line']
 
 
+def test_a_course_stays_in_the_chat_context_while_it_runs(client, mira, clock, monkeypatch):
+    chapter = begun(client, monkeypatch, clock, 'school')
+    next_stage(client, clock, chapter['id'])  # Classes start.
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE life_chapters SET details=json_set(details, '$.next_on', '2099-01-01') WHERE id=?",
+                           (chapter['id'],))
+    clock.advance(timedelta(days=chapters.TOLD_DAYS + 30))
+    reconcile(client)
+    assert 'You started ' in client.get('/api/context/preview').json()['prompt']
+
+
 def test_a_career_change_retrains_then_starts_the_new_job(client, mira, clock, monkeypatch):
     chapter = begun(client, monkeypatch, clock, 'career_change')
     found = details(client, chapter['id'])
@@ -171,7 +182,9 @@ def test_buying_a_place_brings_a_mortgage_until_undone(client, mira, clock, monk
         budget = money.snapshot(definition, today.isoformat(),
                                 money.household(connection, companion['active_timeline_id'], definition, today))
     assert budget['owned'] and any(item['for'] == 'deposit' and item['savings'] for item in budget['bought'])
-    assert 'the mortgage on your home is about' in client.get('/api/context/preview').json()['prompt']
+    prompt = client.get('/api/context/preview').json()['prompt']
+    assert 'the mortgage on your home is about' in prompt and 'as an accountant' in prompt
+    assert ' Rent is about' not in prompt  # The Home line says mortgage too.
     with client.app.state.database.connect() as connection:
         has = admin.owns(definition, connection, companion['active_timeline_id'], today)
         assert connection.execute("SELECT status FROM life_admin WHERE key='admin:lease:2099-01-01'").fetchone()[0] \
