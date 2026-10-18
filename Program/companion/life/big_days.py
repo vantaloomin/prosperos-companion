@@ -387,6 +387,8 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
                    ] or options
     if wedding.cold(data, day):
         options = [item for item in options if item['kind'] not in wedding.OUTDOOR] or options
+    part = 'morning' if kind.at < '12:00' else 'afternoon' if kind.at < '17:00' else 'evening'
+    options = [item for item in options if part in item.get('day_parts', (part,))] or options  # Open then.
     item = generators.pick(seed, 'venue', options or data['places'])
     return outings.place_view(item, data)
 

@@ -548,3 +548,16 @@ def test_in_an_old_city_the_invitation_and_caption_have_no_cars_texts_or_photos(
     modern = {**row['place'], 'modern': True}
     assert any(big_days.MODERN_ONLY.search(big_days.caption({'id': f'o-{number}', 'place': modern}))
                for number in range(400))
+
+
+def test_a_party_is_somewhere_open_at_its_hour(client, clock):
+    make(client)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        data = outings.city_data(connection, companion['version']['definition'])
+        day = clock.now().date() + timedelta(days=30)
+        for key, part in (('birthday', 'evening'), ('retirement', 'evening'), ('graduation', 'morning')):
+            for number in range(60):
+                found = big_days.place_for(connection, companion, big_days.KINDS[key], day, f'seed-{number}', {})
+                place = next(item for item in data['places'] if item['id'] == found['id'])
+                assert part in place['day_parts'], (key, place['name'], place['day_parts'])
