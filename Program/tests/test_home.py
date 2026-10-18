@@ -219,3 +219,11 @@ def test_a_home_item_says_its_rent_in_the_citys_money():
                             'since': '2027-01-01', 'until': None, 'edited': 0, 'revision': 1,
                             'details': '{"rent": 12, "currency": {"code": "penny", "symbol": "d.", "name": "pennies"}}'})
     assert found['rent_text'] == '12 d.'
+
+
+def test_the_home_line_says_rent_in_the_citys_money():
+    pennies = {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'}
+    assert home.money_text({'rent': 5, 'rent_period': 'week', 'currency': pennies, 'owned': True}) == \
+        ' The mortgage is about 5 d. a week (an estimate).'
+    dollars = {'code': 'USD', 'symbol': '$', 'name': 'US dollars'}
+    assert home.money_text({'rent': 1410, 'currency': dollars}) == ' Rent is about $1,410 a month (an estimate).'

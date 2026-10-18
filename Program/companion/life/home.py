@@ -569,11 +569,13 @@ def money_text(home: dict) -> str:
     if not home.get('rent') or home.get('rent_from') == 'budget':
         return ''
     currency = home.get('currency') or {}
-    symbol = currency.get('symbol', '$') if isinstance(currency, dict) else '$'
+    # In the city's own money, as money.py says it ('$1,410', '5 d.').
+    said = money.amount(home['rent'], currency) if isinstance(currency, dict) and currency.get('symbol') else \
+        f"${home['rent']:,}"
     shared = ', split with the user' if home.get('shared') else ''  # Living together (companion/life/moving_in.py).
     if home.get('owned'):  # A place they bought (companion/life/big_turns.py).
-        return f" The mortgage is about {symbol}{home['rent']:,} a {home.get('rent_period', 'month')}{shared} (an estimate)."
-    return f" Rent is about {symbol}{home['rent']:,} a {home.get('rent_period', 'month')}{shared} (an estimate)."
+        return f" The mortgage is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
+    return f" Rent is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
 
 
 def context_lines(connection, timeline_id: str, day: date) -> list[tuple[str, str]]:
