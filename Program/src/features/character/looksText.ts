@@ -40,3 +40,9 @@ export function keepsAgeHint(definition: Pick<CharacterDefinition, 'name' | 'kee
   const lead = now ? `${who} ${they ? 'are' : 'is'} ${now} now and ${they ? 'turn' : 'turns'}` : `${who} ${they ? 'turn' : 'turns'}`
   return `${lead} a year older on each birthday. Turn this on for a character who shouldn't age.`
 }
+
+/** The "left empty" choice, short enough for a phone field (Iris, v0.14): what is drawn, or that Appearance says it; a field drawn as nothing (no facial hair) is none. */
+export function emptyText(saved: boolean, covered: boolean, shown: string | null) {
+  if (!saved) return 'Picked for them if left empty'
+  return shown ? `Left empty: ${shown}` : covered ? 'Left empty: as Appearance says' : 'Left empty: none'
+}

@@ -3,7 +3,7 @@ import { api } from '../../api'
 import type { CharacterDefinition, Looks } from '../../types'
 import { Field, Toggle } from '../../components/Fields'
 import { useSettled } from './useSettled'
-import { emptyLooks, heightLabel, keepsAgeHint, looksWords, numberChoices, weightLabel, type LooksWord } from './looksText'
+import { emptyLooks, emptyText, heightLabel, keepsAgeHint, looksWords, numberChoices, weightLabel, type LooksWord } from './looksText'
 
 /** What each empty field uses once saved (companion/world/looks.py), and suggestions for the word fields. */
 interface LooksSuggestions { automatic: Looks | null; covered?: string[]; options: Partial<Record<LooksWord, string[]>>; age_now?: number | null }
@@ -64,12 +64,6 @@ function WordField({ field, label, value, options, empty, onChange }: WordProps)
       placeholder={empty} onChange={(event) => onChange(event.target.value)} />
     {options.length > 0 && <datalist id={`looks-${field}`}>{options.map((option) => <option key={option} value={option} />)}</datalist>}
   </>}</Field>
-}
-
-/** The "left empty" choice: what is drawn, or that Appearance says it; a field drawn as nothing (no facial hair) is none. */
-function emptyText(saved: boolean, covered: boolean, shown: string | null) {
-  if (!saved) return 'Left empty, picked for them when you save'
-  return shown ? `Left empty: ${shown}` : covered ? 'Left empty: as Appearance says' : 'Left empty: none'
 }
 
 function coveredBy(found: LooksSuggestions | undefined) {

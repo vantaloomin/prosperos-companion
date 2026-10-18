@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { emptyLooks, heightLabel, keepsAgeHint, numberChoices, weightLabel } from '../../src/features/character/looksText.ts'
+import { emptyLooks, emptyText, heightLabel, keepsAgeHint, numberChoices, weightLabel } from '../../src/features/character/looksText.ts'
 
 test('heights and weights read in both units', () => {
   assert.equal(heightLabel(170), `5'7" (170 cm)`)
@@ -27,4 +27,9 @@ test('the Keeps their age hint reads right for a named companion and one not nam
   assert.equal(keepsAgeHint({ ...unnamed, keeps_age: true }, null, null), 'They stay the age they are now, however many birthdays pass.')
   assert.equal(keepsAgeHint({ ...unnamed, keeps_age: true }, 30, null), 'They stay 30, however many birthdays pass.')
   assert.equal(keepsAgeHint(unnamed, 30, null), "They turn a year older on each birthday. Turn this on for a character who shouldn't age.")
+})
+
+test('an empty field before the first save says it is picked, short enough for a phone', () => {
+  assert.equal(emptyText(false, false, null), 'Picked for them if left empty')
+  assert.equal(emptyText(true, false, 'brown'), 'Left empty: brown')
 })
