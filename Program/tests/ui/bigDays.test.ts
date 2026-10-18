@@ -18,6 +18,8 @@ test('a big day is named by its own title, with your part in it and the gift', (
   assert.equal(bigDayLine({ ...outing, state: 'done' }, 'Mira'), "You went as Mira's plus-one. They brought a carved jewelry box.")
   const own = { ...outing, place: { ...place, title: "Mira's wedding", event: 'own_wedding', gift: null, standing_up: true } }
   assert.equal(bigDayLine(own, 'Mira'), "You're in Mira's wedding party.")
+  const graduation = { ...outing, place: { ...place, title: "Mira's graduation", event: 'own_graduation', gift: null, own: true } }
+  assert.equal(bigDayLine(graduation, 'Mira'), "You're there for Mira.")
   assert.equal(outingPlace(outing), 'Druid Hill Park, Druid Hill')
   assert.equal(outingPlace({ ...outing, place: { ...place, id: '~big-day', name: 'a venue in Chicago', neighborhood: '' } }), 'A venue in Chicago')
   assert.equal(outingPlace({ ...outing, activity: 'dinner' }), 'Park in Druid Hill')

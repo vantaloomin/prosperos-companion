@@ -385,3 +385,29 @@ def test_buzz_comes_the_week_before_and_the_section_is_offered(client, clock):
     with client.app.state.database.connect() as connection:
         assert 'big_days' in context.HEADINGS
         assert big_days.dressed(connection, row['timeline_id'], row['local_date']) == row['outfit']
+
+
+def test_their_own_graduation_and_retirement_party_come_from_their_life_chapters(client, clock):
+    make(client)
+    guests(client, 3)
+    today = clock.now().date()
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        for chapter_id, kind, details in (('ch-school', 'school', {'ends_on': (today + timedelta(days=20)).isoformat()}),
+                                          ('ch-retire', 'retire', {'last_day': (today + timedelta(days=30)).isoformat()})):
+            connection.execute("INSERT INTO life_chapters (id, timeline_id, kind, started_on, title, told, share, details, "
+                               "created_at) VALUES (?, ?, ?, ?, 'A chapter', '', '', ?, ?)",
+                               (chapter_id, companion['active_timeline_id'], kind, today.isoformat(), encode(details),
+                                clock.now().isoformat()))
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        found = {row['kind']: row for row in big_days.rows(connection, current(connection)['active_timeline_id'],
+                                                           ('planned',))}
+    assert set(found) == {'own_graduation', 'own_retirement'}
+    graduation = found['own_graduation']
+    assert graduation['source'] == 'chapter:ch-school' and graduation['gift'] == '' and graduation['at_time'] == '10:00'
+    assert big_days.title(graduation, 'Mira Costa') == "Mira's graduation"
+    assert big_days.said(found['own_retirement']) == 'your retirement party'
+    assert not any('buzz' in line for line in lines(client, clock))
+    graduation['invite'] = 1
+    assert 'there with you' in big_days.reason_for(graduation, date.fromisoformat(graduation['local_date']))

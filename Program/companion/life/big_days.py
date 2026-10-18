@@ -96,6 +96,11 @@ KINDS = {
     'graduation': Kind('graduation', "{name}'s graduation", "{who}'s graduation", '10:00', '14:00',
                        ('landmark', 'museum', 'park', 'garden'), 'graduation', 0.025, True),
     # A friend's own wedding to their partner (companion/life/love_life.py): the user stands up at it.
+    # Their own graduation and send-off from work, from their life chapters (companion/life/big_turns.py).
+    'own_graduation': Kind('own_graduation', "{companion}'s graduation", 'your graduation', '10:00', '14:00',
+                           ('landmark', 'museum', 'park', 'garden'), None, 0.0, True),
+    'own_retirement': Kind('own_retirement', "{companion}'s retirement party", 'your retirement party', '18:30',
+                           '22:00', ('restaurant', 'tavern', 'inn', 'bar'), None, 0.0, True),
     'own_wedding': Kind('own_wedding', "{companion}'s wedding", 'your wedding to {name}', '15:00', '22:00',
                         ('garden', 'landmark', 'inn', 'park', 'museum', 'temple'), None),
 }
@@ -253,8 +258,19 @@ def town_weddings(connection, companion: dict, today: date, people: dict, now) -
     return result
 
 
+def chapters(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
+    """Their own graduation or last day at work, from their life chapters (companion/life/big_turns.py)."""
+    from companion.life import big_turns
+    high = (today + timedelta(days=AHEAD)).isoformat()
+    return [candidate(f"own_{item['kind']}", f"chapter:{item['chapter_id']}", None, date.fromisoformat(item['on']),
+                      name=companion['version']['definition']['name'], chapter=item['title'])
+            for item in big_turns.big_days(connection, companion['active_timeline_id'], today.isoformat(), high)]
+
+
 # In order; later features add their own.
-SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, graduations, town_weddings]
+SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, graduations, town_weddings, chapters]
+# The companion's own days: the user is there for them, and there is no gift or buzz about someone else.
+OWN = ('own_wedding', 'own_graduation', 'own_retirement')
 
 
 # Planning a big day ----------------------------------------------------------------------------------------------
@@ -310,7 +326,7 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
         return wedding.venue_for(data, wedding.customs(wedding.culture_of(data)), 'proper', seed, day=day)
     options = [item for item in data['places'] if item['kind'] in kind.places
                and not any(word in item['name'].lower() for word in NOT_PARTY)]
-    if kind.key == 'graduation':
+    if kind.key in ('graduation', 'own_graduation'):
         options = [item for item in data['places'] if any(word in item['name'].lower() for word in GRADUATION_PLACES)
                    ] or options
     if wedding.cold(data, day):
@@ -592,6 +608,9 @@ def reason_for(row: dict, day: date) -> str:
         return (f"You and {first(row['details']['name'])} are getting married on {when}, and you want the user, your "
                 'close friend, to stand up with you at the wedding. Ask them in your own words, naming the day and the '
                 'place, warmly; it means a lot to you.')
+    if row['kind'] in OWN:
+        return (f"It's {said(row)} on {when}, and you'd love the user to be there with you. Ask them in your own "
+                "words, naming the day, the time and the place. If they can't come, that's fine.")
     gift = f" You're bringing {row['gift']} as a gift." if row['gift'] else ''
     return (f"You're going to {said(row)} on {when}, and you'd love the user to come with you as your plus-one. Ask "
             f'them in your own words, naming whose it is, the day, the time and the place.{gift} If they can\'t come, '
@@ -622,6 +641,7 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     day = date.fromisoformat(row['local_date'])
     place = {**row['place'], 'big_day': row['id'], 'title': title(row, companion['version']['definition']['name']),
              'event': row['kind'], 'gift': row['gift'], 'standing_up': row['kind'] == 'own_wedding',
+             'own': row['kind'] in OWN,
              'people': [{'id': row['person_id'] or '', 'name': row['details'].get('name', ''),
                          'role': row['details'].get('role', '')}] if row['person_id'] else []}
     outing = together.insert(connection, companion, message['id'], ACTIVITY, place, day, row['at_time'],
@@ -678,6 +698,9 @@ def doing(outing: dict) -> str:
     place = outing['place']
     if place.get('standing_up'):
         return f"got married at {place['name']}, with you standing up with them"
+    if place.get('own'):
+        did = 'graduated' if place.get('event') == 'own_graduation' else 'had their retirement party'
+        return f"{did} at {place['name']}, with you there"
     return f"went to {place.get('title') or 'a celebration'} at {place['name']} with you"
 
 
@@ -686,7 +709,8 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None) -> st
     row = of_outing(connection, outing)
     if row is None:
         return f"- Right now you and the user are at {what(outing)}, in person, until about {outing['until_time']}."
-    role = 'standing up with you as your closest friend' if row['kind'] == 'own_wedding' else 'your plus-one'
+    role = ('standing up with you as your closest friend' if row['kind'] == 'own_wedding' else
+            'there for you' if row['kind'] in OWN else 'your plus-one')
     parts = [f"Right now you are at {said(row)}, in person, at {row['place']['name']}, from {row['at_time']} until "
              f"about {row['until_time']}. The user is here with you, {role}.",
              f"You brought {row['gift']} as your gift." if row['gift'] else '',
@@ -704,6 +728,9 @@ def memory_text(outing: dict, name: str) -> dict:
     if place.get('standing_up'):
         return {'subject': event, 'value': f"You stood up at {name}'s wedding at {place['name']} on {day:%A, %B} "
                                            f'{day.day}, {day.year}.'}
+    if place.get('own'):
+        return {'subject': event, 'value': f"You were there for {event} at {place['name']} on {day:%A, %B} {day.day}, "
+                                           f'{day.year}.'}
     return {'subject': event, 'value': f"You went to {event} at {place['name']} with {name} on {day:%A, %B} "
                                        f'{day.day}, {day.year}.'}
 
@@ -751,6 +778,7 @@ def coming_line(row: dict, today: date) -> str:
     wear = f" You plan to wear {row['outfit']}." if row['outfit'] else ''
     if row['status'] == 'invited':
         company = (' The user is standing up with you.' if row['kind'] == 'own_wedding' else
+                   ' The user is coming, there for you.' if row['kind'] in OWN else
                    ' The user is coming with you as your plus-one.')
     elif row['status'] == 'declined':
         company = (" The user can't make it, and that's completely fine with you: you're going on your own. Don't "
@@ -758,7 +786,7 @@ def coming_line(row: dict, today: date) -> str:
     elif row['invite']:
         company = " You mean to ask the user to come with you as your plus-one; you haven't asked yet."
     else:
-        company = " You're going." if row['kind'] == 'own_wedding' else " You're going on your own."
+        company = " You're going." if row['kind'] in OWN else " You're going on your own."
     return head + company + gift + wear
 
 
@@ -774,7 +802,7 @@ def buzz_line(row: dict, today: date) -> str:
     """Group chat buzz about it, the days before and after (a modern city only), for them to pass on."""
     gap = (date.fromisoformat(row['local_date']) - today).days
     key = 'buzz_before' if 0 < gap <= BUZZ_BEFORE else 'buzz_after' if -BUZZ_AFTER <= gap < 0 else None
-    if key is None or row['kind'] == 'own_wedding':
+    if key is None or row['kind'] in OWN:
         return ''
     line = random.Random(f"{row['id']}:{key}").choice(bank()[key]).format(
         event=title(row), host=first(row['details'].get('name', '')))

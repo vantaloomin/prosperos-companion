@@ -239,8 +239,9 @@ def storyline_news(connection, companion, now) -> list[Trigger]:
 
 def chapter_news(connection, companion, now) -> list[Trigger]:
     """A new chapter of their life that began today or yesterday (companion/life/chapters.py)."""
-    return [Trigger(f"chapter:{row['id']}", 'storyline', f"Something big just changed in your life: {row['told']} Tell "
-                    'the user, the way you would text a friend.', row['share'])
+    # A big turn's later stages (companion/life/big_turns.py) are news of their own.
+    return [Trigger(f"chapter:{row['id']}{chapters.stage_key(row)}", 'storyline', 'Something big just changed in '
+                    f"your life: {row['told']} Tell the user, the way you would text a friend.", row['share'])
             for row in chapters.fresh(connection, companion, now)]
 
 

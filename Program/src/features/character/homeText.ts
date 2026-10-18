@@ -1,4 +1,5 @@
 import type { HomeItem, HomeKind } from '../../types'
+import { calendarDay } from '../../when.ts'
 
 export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet', plant: 'Plant', vehicle: 'Getting around', favorite: 'Favourite thing' }
 
@@ -11,6 +12,7 @@ export function homeTitle(item: HomeItem): string {
 /** "About $1,450 a month (an estimate)", or null where the setting has no rent. */
 export function rentText(item: HomeItem): string | null {
   if (item.rent === null || item.rent === undefined) return null
+  if (item.owned) return `Theirs, with a mortgage of about ${item.currency?.symbol ?? '$'}${item.rent.toLocaleString('en-US')} a ${item.rent_period ?? 'month'} (an estimate)`
   return `Rent about ${item.currency?.symbol ?? '$'}${item.rent.toLocaleString('en-US')} a ${item.rent_period ?? 'month'} (an estimate)`
 }
 
@@ -23,7 +25,8 @@ export function itemDetail(item: HomeItem): string {
 /** "Since 2026-10-12" for things that arrived later, nothing for what they always had. */
 export function sinceText(item: HomeItem): string | null {
   if (item.origin === 'generated') return null
-  return item.origin === 'user' ? `Added by you on ${item.since}` : `New since ${item.since}`
+  const day = calendarDay(item.since, { year: true })
+  return item.origin === 'user' ? `Added by you on ${day}` : `New since ${day}`
 }
 
 export function sentence(text: string): string {

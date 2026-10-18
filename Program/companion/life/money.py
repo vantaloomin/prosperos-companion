@@ -460,6 +460,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
     from companion.life import (  # all build from this budget, so import late
         admin,
         big_days,
+        big_turns,
         grooming,
         hobbies,
         home,
@@ -488,13 +489,22 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *admin.purchases(connection, timeline_id, start, day),
               *hobbies.purchases(connection, timeline_id, start, day),
               *wedding.purchases(connection, timeline_id, start, day),
-              *big_days.purchases(connection, timeline_id, start, day)]
-    # Raises, promotions and time between jobs (companion/life/work.py); what big buys took from savings since the
-    # goal began.
+              *big_days.purchases(connection, timeline_id, start, day),
+              *big_turns.purchases(connection, timeline_id, start, day)]
+    # Raises, promotions and time between jobs (companion/life/work.py), or a pension once retired (big_turns.py);
+    # what big buys took from savings since the goal began.
     since = goal_since(definition.get('money') or {}, day)
-    drawn = sum(item['cost'] for item in wedding.purchases(connection, timeline_id, since, day))
+    drawn = drawn_since(connection, timeline_id, since, day)
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
-            'pay': work.pay(connection, timeline_id, day, start), 'drawn': drawn}
+            'pay': big_turns.pay(connection, timeline_id, day, work.pay(connection, timeline_id, day, start)),
+            'drawn': drawn}
+
+
+def drawn_since(connection, timeline_id: str, since: date, day: date) -> float:
+    """What big buys took from savings between two dates: a ring or a wedding, or a deposit on a place."""
+    from companion.life import big_turns, wedding
+    deposits = [item for item in big_turns.purchases(connection, timeline_id, since, day) if item.get('savings')]
+    return sum(item['cost'] for item in [*wedding.purchases(connection, timeline_id, since, day), *deposits])
 
 
 # How far back savings on hand reach: what they put by in this long, less what came out of it.
@@ -504,7 +514,6 @@ SAVED_DAYS = 365
 def on_hand(connection, timeline_id: str, definition: dict, day: date) -> float | None:
     """The savings they have to draw on for a big buy (a ring, their share of a wedding): what they put by in the
     last year at their pay and rent now, less what big buys took from it. None where money does not apply."""
-    from companion.life import wedding
     found = profile(definition)
     if not found:
         return None
@@ -512,7 +521,7 @@ def on_hand(connection, timeline_id: str, definition: dict, day: date) -> float 
     if home:
         found = with_home(found, home['costs'], home.get('pay'))
     since = day - timedelta(days=SAVED_DAYS)
-    drawn = sum(item['cost'] for item in wedding.purchases(connection, timeline_id, since, day))
+    drawn = drawn_since(connection, timeline_id, since, day)
     return max(saved_since(found, since, day) - drawn, 0.0)
 
 
@@ -581,6 +590,8 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'career': {'id': found.career['id'], 'name': found.career['name'], 'pay': found.career['pay'],
                    'guessed': found.guessed} if found.career else None,
         'between_jobs': bool(home and (home.get('pay') or {}).get('between_jobs')),
+        'retired': bool(home and (home.get('pay') or {}).get('retired')),
+        'owned': bool(home and home['costs'].get('owned')),
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
         'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
                                                                   'saving')},
@@ -608,10 +619,14 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     work = f" as a {view['career']['name'].lower()}" if view['career'] else ''
     place = 'your home' if view['rent_from'] == 'home' else \
         f"{view['housing']['label']} in {view['housing']['neighborhood']}"
-    lines = [('budget', f"- You take home about {text['income']} {per}{work}; rent is about {text['rent']} for {place}.")]
+    # A place they bought has a mortgage instead of rent (companion/life/big_turns.py).
+    housing = f"the mortgage on {place} is about {text['rent']}" if view.get('owned') else \
+        f"rent is about {text['rent']} for {place}"
+    lines = [('budget', f"- You take home about {text['income']} {per}{work}; {housing}.")]
     if view.get('between_jobs'):
-        lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; rent is about "
-                            f"{text['rent']} for {place}.")]
+        lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; {housing}.")]
+    if view.get('retired'):
+        lines = [('budget', f"- Retired, you live on a pension of about {text['income']} {per}; {housing}.")]
     if view['budget']['upkeep']:
         lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
     for item in view['bought']:
@@ -632,7 +647,7 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
 
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
             'hobby': 'on your pastimes', 'ring': 'from your savings', 'wedding': 'from your savings',
-            'gift': 'on gifts'}
+            'gift': 'on gifts', 'school': 'on your course', 'deposit': 'from your savings'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

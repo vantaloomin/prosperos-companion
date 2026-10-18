@@ -8,8 +8,8 @@ export type OutingState = 'planned' | 'now' | 'done' | 'cancelled'
 export interface OutingHobby { id: string; label: string; session: string; together: string; event: string | null; picture: string }
 /** Meeting their people (companion/life/their_people.py): who comes, and whether it is the first time you meet them. */
 export interface OutingPerson { id: string; name: string; role: string }
-/** A big day in their circle (companion/life/big_days.py): `title` names it ("Leo's wedding"), `gift` is what they bring, and `standing_up` marks their own wedding, where the user stands up with them. */
-export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; first?: boolean; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean }
+/** A big day in their circle (companion/life/big_days.py): `title` names it ("Leo's wedding"), `gift` is what they bring, `own` marks their own day (their wedding, graduation or retirement party), and `standing_up` their own wedding, where the user stands up with them. */
+export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; first?: boolean; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean }
 export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
@@ -106,7 +106,9 @@ export function bigDayLine(outing: Pick<Outing, 'activity' | 'place' | 'state'>,
   const done = outing.state === 'done'
   const part = outing.place.standing_up
     ? (done ? `You were in ${name}'s wedding party.` : `You're in ${name}'s wedding party.`)
-    : (done ? `You went as ${name}'s plus-one.` : `You're ${name}'s plus-one.`)
+    : outing.place.own
+      ? (done ? `You were there for ${name}.` : `You're there for ${name}.`)
+      : (done ? `You went as ${name}'s plus-one.` : `You're ${name}'s plus-one.`)
   const gift = outing.place.gift ? ` ${done ? 'They brought' : "They're bringing"} ${outing.place.gift}.` : ''
   return `${part}${gift}`
 }
