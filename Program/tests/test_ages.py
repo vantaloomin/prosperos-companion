@@ -223,7 +223,9 @@ def test_looks_drift_with_age_only_after_their_date_and_never_over_what_the_user
         written = {**definition, 'appearance': 'Long black hair and laugh lines she earned.'}
         own = grooming.sheet(connection, companion['id'], written, clock.now().date() + timedelta(days=400))
     assert at_35['age'] == 35 and not at_35.get('age_signs')
-    assert at_36['age'] == 36 and at_36['age_signs'].count(', ') == 2
+    # Reading glasses never come to someone whose seeded looks already have glasses.
+    signs = 2 if 'glasses' in (at_35.get('feature') or '') else 3
+    assert at_36['age'] == 36 and len(at_36['age_signs'].split(', ')) == signs
     assert at_36['age_signs'] in looks.text(at_36) and at_36['age_signs'].split(', ')[0] in looks.picture(at_36, 'she')
     lines = {entry['text'] for entry in grooming.ageing_bank()['lines']}
     grey = {entry['text'] for entry in grooming.ageing_bank()['grey']}
