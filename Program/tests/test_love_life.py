@@ -450,3 +450,35 @@ def test_after_a_secret_comes_out_they_hold_back_casual_texts(client, romance, c
         love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
         assert rough_patches.current(connection, current(client), clock.now())['cause'] == 'hidden_partner'
         assert rough_patches.cool(connection, current(client), clock.now())
+
+
+def test_news_from_days_away_is_still_texted_once_and_says_when(client, mira, clock, monkeypatch):  # noqa: F811
+    """E2E v0.13: a step reached in a catch-up after days away was never texted (only yesterday and today were
+    looked at). Now the news since the user's last visit goes out, up to two weeks back, newest per partner."""
+    from companion.life import mood
+    monkeypatch.setattr(love_life, 'FIRST_TEXTS', True)
+    found = begin_partner(client, clock)
+    them = found['name'].split()[0]
+    force(monkeypatch, 0)
+    start = clock.now()
+    clock.advance(timedelta(days=40))  # Exclusive on day 35 and nothing since: five days ago.
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
+
+    def due(last_seen):
+        monkeypatch.setattr(mood, 'last_presence', lambda *_args: last_seen.isoformat())
+        with client.app.state.database.connect() as connection:
+            return love_life.news_due(connection, current(client), clock.now())
+    [trigger] = due(start)
+    assert trigger.reason.startswith(f'Since you last talked with the user, you and {them} became exclusive on ')
+    assert '5 days ago' in trigger.reason and 'catching them up' in trigger.reason
+    assert trigger.template == f'So much to catch you up on: {them} and I became exclusive!'
+    # The user was here three days ago: they were told then, or it waited for them; nothing from before.
+    assert due(clock.now() - timedelta(days=3)) == []
+    # Nothing from further back than two weeks.
+    clock.advance(timedelta(days=10))
+    assert due(start) == []
+    # Several things in one jump: only the newest about each partner goes out.
+    sam, ali = {'id': 'sam'}, {'id': 'ali'}
+    items = [{'key': 'a', 'partner': sam}, {'key': 'b', 'partner': ali}, {'key': 'c', 'partner': sam}]
+    assert [item['key'] for item in love_life.latest_each(items)] == ['b', 'c']
