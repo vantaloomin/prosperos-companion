@@ -71,7 +71,7 @@ SMALL_FRIENDS = 3
 NOT_VENUES = re.compile(r'\b(?:station|hospital|clinic|campus|transit|airport|stadium|arena|gym|fitness|library|'
                         r'prison|jail|court|police|school|office|parking|mall|outlet|pizza|burger|pancake|sandwich|'
                         r'taco|hot dog|diner|deli|food hall|murals?|street|avenue|paseo|surgical|music hall|symphony|concert|'
-                        r'festival hall)\b', re.IGNORECASE)
+                        r'festival hall|cemetery|graveyard|churchyard|necropolis|crematorium)\b', re.IGNORECASE)
 # Words in a place's description that mark it as somewhere people marry ("Victorian glass houses", "a 1926 ballroom").
 WEDDING_WORDS = re.compile(r'\b(?:chapel|church|cathedral|garden|conservatory|ballroom|mansion|manor|estate|winery|'
                            r'pavilion|terrace|lighthouse|temple|shrine|great hall|opera hall|castle|palace|glass ?houses?)',
@@ -571,7 +571,8 @@ def guest_list(connection, companion: dict, size: str) -> list[dict]:
             friends += 1
             if size == 'small' and friends > SMALL_FRIENDS:
                 continue
-        guests.append({'key': f"circle:{person['id']}", 'name': person['name'], 'who': f"{name}'s {person['role']}",
+        role = circle.said(person['role'], companion['version']['definition'])
+        guests.append({'key': f"circle:{person['id']}", 'name': person['name'], 'who': f"{name}'s {role}",
                        'side': 'theirs', 'invited': True})
     for person in many(connection, 'SELECT * FROM user_people WHERE companion_id=? ORDER BY created_at',
                        (companion['id'],)):
@@ -853,7 +854,7 @@ def what(outing: dict) -> str:
     """'your wedding at The Belvedere (a hotel in Mount Vernon)'."""
     place = outing['place']
     area = f" in {place['neighborhood']}" if place.get('neighborhood') else ''
-    kind = f" ({place['kind']}{area})" if place.get('kind') and place.get('id') != VENUE else ''
+    kind = f" ({kind_word(place)}{area})" if place.get('kind') and place.get('id') != VENUE else ''
     return f"your wedding at {place['name']}{kind}"
 
 
@@ -966,18 +967,39 @@ def photo_wearing(connection, companion: dict, outing: dict) -> str:
 
 # What the chat context says -----------------------------------------------------------------------------------------
 
+def ago(then: str, today: date) -> str:
+    """'141 days ago', 'yesterday', 'today': after a date that already names its weekday."""
+    return days_ago(date.fromisoformat(then), today).split(', ', 1)[-1]
+
+
+# Words in a venue's name that make a 'temple' a church ("St Andrew's", "Christ Church").
+CHURCH_NAMES = re.compile(r"\b(?:church|chapel|cathedral|abbey|minster|kirk|st\.?|saint)\b", re.IGNORECASE)
+
+
+def kind_word(place: dict) -> str:
+    """The venue's kind as prose says it: 'a church' for a church that the city lists as a temple, 'a garden'."""
+    kind = place.get('kind') or ''
+    word = 'church' if kind == 'temple' and CHURCH_NAMES.search(place.get('name', '')) else kind
+    return f"{'an' if word[:1] in 'aeiou' else 'a'} {word}" if word else ''
+
+
 def plan_line(row: dict, today: date) -> str:
     venue = row['venue'] or {}
-    area = f", {venue['kind']} in {venue['neighborhood']}" if venue.get('neighborhood') and venue.get('kind') else ''
+    area = f", {kind_word(venue)} in {venue['neighborhood']}" if venue.get('neighborhood') and venue.get('kind') else ''
     names = named_guests(row, 6)
     who = f", including {joined(names)}" if names else ''
     rules = customs(row['culture'])
     when = 'today' if row['local_date'] == today.isoformat() else long_date(row['local_date'])
-    return (f"- You and the user got engaged on {long_date(row['engaged_on'])} "
-            f"({days_ago(date.fromisoformat(row['engaged_on']), today)}). Your wedding is planned for {when} at "
-            f"{row['at_time']}, at {venue.get('name', 'the venue')}{area}: {SIZE_WORDS[row['size']]} with about "
-            f"{row['guest_count']} guests{who}. {rules['ceremony'].capitalize()}. The app planned it with you: talk "
-            'about it as your own plans, the way a couple planning a wedding does, and never contradict it.')
+    if row['engaged_on'] == today.isoformat():
+        how = ('You have only just got engaged: these are your first ideas, so offer them as such and ask what the user '
+               'thinks; nothing is booked yet.')
+    else:
+        how = ('The app planned it with you: talk about it as your own plans, the way a couple planning a wedding '
+               'does, and never contradict it.')
+    return (f"- You and the user got engaged on {long_date(row['engaged_on'])} ({ago(row['engaged_on'], today)}). "
+            f"Your wedding is planned for {when} at {row['at_time']}, at {venue.get('name', 'the venue')}{area}: "
+            f"{SIZE_WORDS[row['size']]} with about {row['guest_count']} guests{who}. "
+            f"{rules['ceremony'].capitalize()}. {how}")
 
 
 def money_words(companion: dict, row: dict) -> str:
@@ -1004,7 +1026,7 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
             where = f" at {place}" if place else ''
             ring = f" and showed them the ring ({row['ring']})" if row['ring'] else ''
             result.append((f"proposal:{row['id']}:open",
-                           f"- On {long_date(row['asked_on'], False)} ({days_ago(date.fromisoformat(row['asked_on']), today)})"
+                           f"- On {long_date(row['asked_on'], False)} ({ago(row['asked_on'], today)})"
                            f"{where} you asked the user to marry you{ring}. They have not answered yet: if they answer "
                            'now, take it as they mean it, and do not ask again.'))
     row = current(connection, timeline_id)
@@ -1015,7 +1037,7 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         names = named_guests(row, 6)
         result.append((f"wedding:{row['id']}:done",
                        f"- You married the user on {long_date(row['local_date'])} "
-                       f"({days_ago(date.fromisoformat(row['local_date']), today)}) at {venue}, with about "
+                       f"({ago(row['local_date'], today)}) at {venue}, with about "
                        f"{row['guest_count']} guests" + (f", among them {joined(names)}" if names else '') + '.'))
     return result + invited_lines(connection, companion, today)
 

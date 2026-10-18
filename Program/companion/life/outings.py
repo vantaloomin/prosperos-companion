@@ -852,9 +852,10 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
                            f"- {when} you and the user got married at {outing['place']['name']}; the wedding "
                            'is over now.'))
         elif now - window(outing, version['timezone'])[1] < RECENT:
+            from companion.life import their_people
             paid = money_text(companion, outing)
-            result.append((f"outing:{outing['id']}:done",
-                           f"- Earlier you and the user had {what(outing)}; it is over now.{paid}"))
+            had = their_people.what(outing, past=True) if outing['activity'] in MEETUPS else what(outing)
+            result.append((f"outing:{outing['id']}:done", f"- Earlier you and the user had {had}; it is over now.{paid}"))
     return result
 
 

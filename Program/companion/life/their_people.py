@@ -83,7 +83,8 @@ MOVED_LABELS = {'up': 'Warmed to you', 'high': 'Thinks the world of you', 'down'
 THINKS = {'warm': '{name} liked the user right away',
           'smitten': '{name} thinks you two are lovely together and keeps asking after the user',
           'curious': '{name} was friendly but is still making up their mind about the user',
-          'protective': '{name} is protective of you and is watching how the user treats you',
+          'protective': '{name} was polite but protective of you, and is still watching how the user treats you; '
+                        "pass that on honestly, even if it isn't all glowing",
           'wary': "{name} isn't sure about the user yet"}
 MOVED_THINKS = {'up': '{name} has warmed to the user since', 'high': '{name} thinks the world of the user now',
                 'down': '{name} has cooled on the user lately', 'low': '{name} has real doubts about the user now'}
@@ -115,13 +116,15 @@ def group_of(role: str) -> str | None:
 
 
 def local_people(connection, companion: dict) -> list[dict]:
-    """Their circle who live in town, closest first, as {id, name, role, kind, group, pronouns, neighborhood, city}."""
+    """Their circle who live in town, closest first, as {id, name, role, kind, group, pronouns, neighborhood, city};
+    the role as they say it in their era ('mother' in 1895)."""
     result = []
+    definition = companion['version']['definition']
     for row in circle.people(connection, companion['active_timeline_id']):
         details = decode(row['details']) or {}
         group = group_of(row['role'])
         if group and details.get('local', True):
-            result.append({'id': row['id'], 'name': row['name'], 'role': row['role'],
+            result.append({'id': row['id'], 'name': row['name'], 'role': circle.said(row['role'], definition),
                            'kind': circle.role_kind(row['role']), 'group': group,
                            'neighborhood': details.get('neighborhood') or '', 'city': details.get('city') or ''})
     return result
@@ -619,7 +622,7 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         return []
     today, result = local_today(companion, now), []
     for row in met(connection, companion['active_timeline_id']):
-        who = f"{row['name']} (your {row['role']})"
+        who = f"{row['name']} (your {circle.said(row['role'], companion['version']['definition'])})"
         if row['met_on'] == 'before':
             text = f'- {who} has known the user for a long time: {thinks(row, row["name"])}.'
         else:
@@ -643,8 +646,9 @@ def is_meetup(outing: dict) -> bool:
     return outing['activity'] in MEETUPS
 
 
-def what(outing: dict) -> str:
-    """'dinner at Ana and Rui's place with your mom Ana and your dad Rui, so the user can meet them'."""
+def what(outing: dict, past: bool = False) -> str:
+    """'dinner at Ana and Rui's place with your mom Ana and your dad Rui, so the user can meet them' (once it is over,
+    `past`: 'so the user could meet them')."""
     place = outing['place']
     people = people_text(place.get('people') or [])
     thing = 'dinner' if outing['activity'] == AT_FAMILY else 'drinks'
@@ -653,7 +657,8 @@ def what(outing: dict) -> str:
         where = f"{place['name']} ({place['kind']}{area})"
     else:
         where = place['name']
-    return f"{thing} at {where} with {people}" + (', so the user can meet them' if place.get('first') else '')
+    meet = f", so the user {'could' if past else 'can'} meet them" if place.get('first') else ''
+    return f"{thing} at {where} with {people}{meet}"
 
 
 def scene(connection, companion: dict, outing: dict, spot: str | None) -> str:
@@ -771,6 +776,30 @@ def guest_line(connection, person_id: str, timeline_id: str) -> str | None:
         when = f"You have met the user in person, on {long_date(row['met_on'])}{' at ' + at if at else ''}."
     return (f"{when} {GUEST_FEELS[moved(row) or row['impression']]} Anything else you did together beyond that and "
             "this chat didn't happen as far as you know.")
+
+
+def away_lines(connection, members: list[dict]) -> list[tuple[str, str]]:
+    """For a group chat (companion/groups.py): another companion in it who took the user to meet their people, and
+    that the speaker wasn't there."""
+    from companion.characters import by_id
+    result = []
+    for item in members:
+        if not item['member'].startswith('companion:'):
+            continue
+        other = by_id(connection, item['member'].split(':', 1)[1])
+        if not other or not other.get('active_timeline_id'):
+            continue
+        row = next(iter(reversed(meetups(connection, other['active_timeline_id'], ('done',)))), None)
+        outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'] or '',)) if row else None
+        if outing is None:
+            continue
+        found = outings.view(outing)
+        people = people_text([{**person, 'name': f"their {person['role']} {first(person['name'])}"}
+                              for person in found['place'].get('people') or []], yours=False)
+        result.append((f"their-people-away:{item['member']}:{row['id']}",
+                       f"{item['name']} took the user to {what(found).split(' with ')[0]} with {people} on "
+                       f"{long_date(found['local_date'])}; you weren't there."))
+    return result
 
 
 GUEST_FEELS = {'warm': 'You liked them right away.', 'smitten': 'You think they and your person are lovely together.',

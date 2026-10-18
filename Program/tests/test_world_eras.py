@@ -149,7 +149,10 @@ def test_won_and_yen_read_as_people_write_them():
     assert money.amount(0.73, pennies) == '1 d.' and money.amount(2.6, pennies) == '3 d.'
     victorian = {'code': 'shilling', 'symbol': 's.', 'name': 'shillings'}
     assert money.amount(4.08, victorian) == '4s. 1d.' and money.amount(0.17, victorian) == '2d.'
-    assert money.amount(15, victorian) == '15s.' and money.amount(42.4, victorian) == '42s.'
+    assert money.amount(15, victorian) == '15s.' and money.amount(42.4, victorian) == '£2 2s.'
+    # A pound or more of sterling reads in pounds and shillings, as people said it in 1895.
+    assert money.amount(736, victorian) == '£36 16s.' and money.amount(40, victorian) == '£2'
+    assert money.amount(42.4, {'code': 's', 'symbol': 's', 'name': 'shillings'}) == '42s'
     assert money.amount(4.08, {'code': 's', 'symbol': 's', 'name': 'shillings'}) == '4s 1d'
     assert generators.figure(1_200_000) == '1,200,000' and generators.figure(4.5) == '4.5'
     assert generators.rent_step(650_000) == 1000 and generators.rent_step(1900) == 25

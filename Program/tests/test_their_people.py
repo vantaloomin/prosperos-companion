@@ -438,3 +438,47 @@ def test_a_pair_that_starts_at_the_step_has_met_everyone(client, clock):
     people = client.get('/api/life/circle').json()
     assert [person for person in people if person['met']] and \
         all(person['met']['before'] for person in people if person['met'])
+
+
+def test_after_the_evening_it_is_told_as_over_and_a_protective_mom_keeps_her_edge(client, provider, clock, invites):
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    _trigger, outing = invite(client, clock)
+    at(clock, outing, '22:30')
+    advance(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE people_impressions SET impression='protective', warmth=0")
+    says(provider)
+    send(client, 'what did your mom think of me?', 'client-people-after-1')
+    text = prompt(provider)
+    assert 'so the user could meet them; it is over now' in text and 'so the user can meet them' not in text
+    assert 'was polite but protective of you, and is still watching how the user treats you; pass that on ' \
+        "honestly, even if it isn't all glowing" in text
+
+
+def test_in_a_group_another_companion_knows_they_were_not_at_the_dinner(client, provider, clock, invites):
+    from test_groups import companion_named
+
+    from companion import groups
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    _trigger, outing = invite(client, clock)
+    at(clock, outing, '23:00')
+    advance(client, clock)
+    elaine = companion_named(client, 'Elaine Brooks')
+    with client.app.state.database.connect() as connection:
+        mira = current(connection)
+    group = client.post('/api/groups', json={'companion_ids': [mira['id'], elaine]}).json()
+    with client.app.state.database.connect() as connection:
+        members = groups.current_members(connection, group['id'])
+        stay = next(item for item in members if item['member'] == groups.member_key(elaine))
+        lines = [text for _key, text in groups.group_lines(connection, group, stay, clock.now())]
+        mira_stay = next(item for item in members if item['member'] == groups.member_key(mira['id']))
+        own = [text for _key, text in groups.group_lines(connection, group, mira_stay, clock.now())]
+    [line] = [text for text in lines if "you weren't there" in text]
+    assert line.startswith("Mira took the user to dinner at ") and 'their mom' in line
+    assert not any("you weren't there" in text for text in own)

@@ -1263,12 +1263,26 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     if on_break(connection, companion):
         return []  # The move waits while they are on a break (`hold`); the 'breakup' section says where they stand.
     lines = [(f"moving-in:{row['id']}:plan", f'- {joiner_line(connection, row) if joins(row) else plan_line(connection, row)}')]
+    lines += changed_line(connection, row)
     lines += share_lines(connection, companion, now)
     if row['message_id'] and row['message_id'] in fresh_ids:
         lines.append((f"moving-in:{row['id']}:just", JUST_WAITS if row['status'] == 'waiting' and joins(row) else
                       '- You just agreed to live together, and this is how it will go. Say so in this reply, in your '
                       'own words.'))
     return lines
+
+
+def changed_line(connection, row: dict) -> list[tuple[str, str]]:
+    """Until their next reply after the user changed the plan under Hidden values: that it changed, so the reply goes
+    along with it rather than with what they said before (A/B, companion-v14 followups ab-d)."""
+    found = optional(connection, "SELECT changed_at FROM consequences WHERE id=? AND picked_by='user' AND "
+                     'changed_at IS NOT NULL', (row['consequence_id'] or '',))
+    if found is None or joins(row) or optional(
+            connection, "SELECT id FROM messages WHERE timeline_id=? AND role='companion' AND status='complete' AND "
+            'active=1 AND created_at>? LIMIT 1', (row['timeline_id'], found['changed_at'])):
+        return []
+    return [(f"moving-in:{row['id']}:changed:{found['changed_at']}",
+             f'- The plan changed: {plan_line(connection, row)} Go along with it as if you had talked it over.')]
 
 
 # The Character page and Hidden values -------------------------------------------------------------------------------------

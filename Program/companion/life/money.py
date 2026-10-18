@@ -395,12 +395,18 @@ WHOLE = {'JPY', 'KRW'}
 COINS = {'penny', 'groschen', 'sw'}
 # Shillings, said in shillings and pence (twelve pence to the shilling): 4s. 1d., 2d.
 SHILLINGS = {'shilling', 's'}
+# Shillings of the pound sterling (London 1895), twenty to the pound.
+STERLING = {'shilling'}
 PREFIXES = ('$', '£', '€', '¥', '₩', '₹')
 
 
-def shillings(value: float, symbol: str) -> str:
-    """'4s. 1d.', '2d.' or '15s.': whole shillings and pence, never a decimal."""
+def shillings(value: float, symbol: str, pounds: bool = False) -> str:
+    """'4s. 1d.', '2d.' or '15s.': whole shillings and pence, never a decimal. With `pounds` (sterling), a pound or
+    more reads as pounds and shillings: '£36 16s.' for 736 shillings."""
     dot = '.' if symbol.endswith('.') else ''
+    if pounds and value >= 20:
+        whole, rest = divmod(round(value), 20)
+        return f'£{whole:,}' + (f' {rest}s{dot}' if rest else '')
     if value >= 20:
         return f'{round(value):,}s{dot}'
     whole, pence = divmod(max(1, round(value * 12)), 12)
@@ -411,7 +417,7 @@ def amount(value: float, currency: dict) -> str:
     """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d."""
     code = currency.get('code')
     if code in SHILLINGS and value > 0:
-        return shillings(value, currency['symbol'])
+        return shillings(value, currency['symbol'], code in STERLING)
     if code in COINS and 0 < value < 1:
         value = 1
     if value >= 100_000:

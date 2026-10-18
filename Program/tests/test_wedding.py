@@ -632,3 +632,31 @@ def test_old_era_church_weddings_keep_out_of_advent_and_lent():
         for size in wedding.SIZES:
             day = wedding.wedding_day(medieval, start, start, size, 2, f'seed:{engaged}:{size}')
             assert not wedding.closed(medieval, day) and day.weekday() == medieval['day'], day
+
+
+def test_the_plan_line_on_the_engagement_day_and_after():
+    row = {'engaged_on': '2027-01-22', 'local_date': '2027-07-13', 'at_time': '10:00', 'size': 'small',
+           'guest_count': 12, 'culture': 'uk-victorian', 'guests': [],
+           'venue': {'id': 'st-saviours', 'name': "St Saviour's Church", 'kind': 'temple', 'neighborhood': 'Southwark'}}
+    first = wedding.plan_line(row, date(2027, 1, 22))
+    assert '(today)' in first and 'these are your first ideas' in first and 'nothing is booked yet' in first
+    assert 'The app planned it with you' not in first
+    later = wedding.plan_line(row, date(2027, 6, 12))
+    assert 'Friday, 22 January 2027 (141 days ago)' in later and 'The app planned it with you' in later
+    assert "St Saviour's Church, a church in Southwark" in later and 'temple' not in later
+    assert wedding.kind_word({'kind': 'temple', 'name': 'Shitennoji'}) == 'a temple'
+    assert wedding.kind_word({'kind': 'inn', 'name': 'The Swan'}) == 'an inn'
+
+
+def test_in_the_old_eras_they_say_mother_and_father():
+    from companion.life import circle
+    london = {'name': 'Eleanor Ashby', 'home_city': 'london-1895', 'timezone': 'Europe/London'}
+    assert circle.said('mom', london) == 'mother' and circle.said('dad', london) == 'father'
+    assert circle.said('sister', london) == 'sister'
+    assert circle.said('mom', {'name': 'Mira', 'home_city': 'Baltimore'}) == 'mom'
+    assert circle.role_kind('mother') == 'parent'
+
+
+def test_nobody_marries_in_a_cemetery():
+    assert wedding.NOT_VENUES.search('Green Mount Cemetery') and wedding.NOT_VENUES.search('Highgate Cemetery')
+    assert not wedding.NOT_VENUES.search("St Mary's Church")
