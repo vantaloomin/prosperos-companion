@@ -403,6 +403,8 @@ def test_the_news_of_a_death_goes_out_before_the_funeral_invitation(client, cloc
     with client.app.state.database.connect(write=True) as connection:
         connection.execute("UPDATE big_days SET invite=1, invite_on=? WHERE kind='funeral'",
                            (clock.now().date().isoformat(),))
+        # The circle's own big days are random; one asked to near the funeral would hold its invitation back.
+        connection.execute("UPDATE big_days SET invite=0 WHERE kind!='funeral'")
         kinds = [trigger.key.split(':')[0] for trigger in openers.candidates(connection, current(connection),
                                                                             clock.now())]
     assert 'bigday' in kinds and kinds.index('loss') < kinds.index('bigday'), kinds
