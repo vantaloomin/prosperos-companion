@@ -395,3 +395,32 @@ def test_an_invitation_a_week_ahead_says_next_saturday():
         assert 'next saturday' in text.lower() and 'this next' not in text.lower() and text[0].isupper(), text
         near = their_people.invitation(row, people, next_saturday, date(2026, 11, 3), '6:30', "my sister's place")
         assert 'Saturday' in near and 'next Saturday' not in near
+
+
+def test_after_a_breakup_their_people_cool_on_you_once(client, provider, clock, invites, monkeypatch):
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    _trigger, outing = invite(client, clock)
+    at(clock, outing, '23:00')
+    advance(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE people_impressions SET impression=?, warmth=2', ('warm',))
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-people-cool-1')
+
+    def warmth():
+        with client.app.state.database.connect() as connection:
+            return {row['person_id']: row['warmth'] for row in many(connection, 'SELECT * FROM people_impressions')}
+    for _day in range(3):
+        clock.advance(timedelta(days=1))
+        advance(client, clock)
+    # Family cools more, and only once for the breakup.
+    assert set(warmth().values()) == {0}
+    labels = {person['met']['label'] for person in client.get('/api/life/circle').json() if person['met']}
+    assert labels == {'Cooled on you'}
+    with client.app.state.database.connect() as connection:
+        assert their_people.met_people(connection, current(connection)) == {}

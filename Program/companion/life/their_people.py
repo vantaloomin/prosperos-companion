@@ -16,8 +16,8 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
 - Each person at the meet-up gets a seeded first impression of the user (the engine's `people:impression`: warm,
   lovely together, still making up their mind, protective or wary, by who they are to the companion and the drama
   level). It shows how they are at the table, and once the evening is over it is a circle-to-user pair that moves
-  with what happens: plans kept warm it up, rough patches (companion/life/rough_patches.py) and called-off plans cool
-  it. The companion passes it on now and then ("my mom keeps asking when you're coming back"), and it shows on the
+  with what happens: plans kept warm it up, rough patches (companion/life/rough_patches.py), called-off plans and a
+  breakup (companion/life/breakups.py) cool it. The companion passes it on now and then ("my mom keeps asking when you're coming back"), and it shows on the
   circle list.
 - Afterwards someone they met may drop into a group chat with the companion as a v0.11 guest, by the Guests slider
   (companion/group_guests.py), knowing the user from that evening.
@@ -73,6 +73,8 @@ LOW, HIGH = -2, 3
 CHECK_EVERY = 7
 KEPT_TO_WARM = 2
 CALLED_OFF_TO_COOL = 2
+# How far a breakup cools them: (others, family and the protective or wary).
+BREAKUP_COOLS = (1, 2)
 # The circle list's short words, and the chat context's.
 LABELS = {'warm': 'Liked you right away', 'smitten': 'Loves you two together', 'curious': 'Still making up their mind',
           'protective': 'Protective of {companion}', 'wary': 'Not sure about you yet'}
@@ -171,7 +173,10 @@ def advance(connection, companion: dict, now: datetime) -> None:
     follow(connection, companion, now)
     drift(connection, companion, now)
     found = steps.state(connection, companion, now, write=False)
-    if found is None or steps.apart(connection, companion):
+    apart = steps.apart(connection, companion)
+    if apart == 'ended':
+        cool_after_breakup(connection, companion, now)
+    if found is None or apart:
         return  # Nothing new on a break or once it has ended (companion/life/breakups.py).
     if found['ladder'] == 'romance':
         plan_for_step(connection, companion, found, now)
@@ -493,14 +498,16 @@ def met_again(connection, timeline_id: str, row: dict, day: str, now: datetime) 
             move(connection, found, 1, 'saw you again', day, now)
 
 
-def move(connection, row: dict, by: int, why: str, day: str, now: datetime) -> None:
+def move(connection, row: dict, by: int, why: str, day: str, now: datetime) -> bool:
+    """Warmer or cooler by `by`, within LOW and HIGH; False when it can't move that way."""
     warmth = max(LOW, min(HIGH, row['warmth'] + by))
     if warmth == row['warmth']:
-        return
+        return False
     moves = [*(decode(row['moves']) or []), {'on': day, 'by': by, 'why': why}][-12:]
     connection.execute('UPDATE people_impressions SET warmth=?, moves=?, updated_at=? WHERE id=?',
                        (warmth, encode(moves), stamp(now), row['id']))
     row.update({'warmth': warmth, 'moves': encode(moves)})
+    return True
 
 
 def drift(connection, companion: dict, now: datetime) -> None:
@@ -523,6 +530,26 @@ def drift(connection, companion: dict, now: datetime) -> None:
         elif happened['called_off'] >= CALLED_OFF_TO_COOL and touchy:
             move(connection, row, -1, 'plans called off', today.isoformat(), now)
         connection.execute('UPDATE people_impressions SET checked_on=? WHERE id=?', (today.isoformat(), row['id']))
+
+
+def cool_after_breakup(connection, companion: dict, now: datetime) -> None:
+    """Once the two of them have broken up, everyone who met the user cools on them, once for each breakup: family and
+    the protective or wary more."""
+    from companion.life import breakups
+    row, _stage = breakups.current(connection, companion)
+    if row is None:
+        return
+    mark, today = f"broke up:{row['id']}", local_today(companion, now).isoformat()
+    for found in many(connection, 'SELECT * FROM people_impressions WHERE timeline_id=? AND met_on IS NOT NULL',
+                      (companion['active_timeline_id'],)):
+        if any(item.get('why') == mark for item in decode(found['moves']) or []):
+            continue
+        person = optional(connection, 'SELECT role FROM circle_people WHERE id=?', (found['person_id'],))
+        touchy = found['impression'] in ('protective', 'wary') or (person and group_of(person['role']) == 'family')
+        if not move(connection, found, -BREAKUP_COOLS[bool(touchy)], mark, today, now):
+            # Already as cool as it goes: marked all the same, so it is cooled only once.
+            moves = [*(decode(found['moves']) or []), {'on': today, 'by': 0, 'why': mark}][-12:]
+            connection.execute('UPDATE people_impressions SET moves=? WHERE id=?', (encode(moves), found['id']))
 
 
 def since_then(connection, companion: dict, since: str, today: str) -> dict:
@@ -725,8 +752,8 @@ def change(connection, companion: dict, consequence_id: str, option: int, now: d
 
 def met_people(connection, companion: dict) -> dict[str, dict]:
     """Circle people who have met the user and like them well enough to drop into a chat, by person id."""
-    if not companion.get('active_timeline_id'):
-        return {}
+    if not companion.get('active_timeline_id') or steps.apart(connection, companion) == 'ended':
+        return {}  # Broken up, their people keep out of the user's chats.
     return {row['person_id']: row for row in met(connection, companion['active_timeline_id']) if row['warmth'] >= 1}
 
 
