@@ -76,6 +76,8 @@ PICTURE_ACTIVITY = {'nails': 'nail-salon'}
 AGE_SIGNS = {'grey': (32, 50), 'lines': (35, 52), 'reading': (40, 50)}
 SIGN_STAGES = (6, 14, 200)
 AGE_SHIFT = {0: 0, 1: 5, 2: 0, 3: -3}
+HAIRLESS = re.compile(r'\b(?:shaved head|bald)\b', re.IGNORECASE)
+GREYED = re.compile(r'\b(?:gr[ae]y(?:ing)?|silver|salt-and-pepper|white)\b', re.IGNORECASE)
 LINES_WORDS = re.compile(r"\b(?:wrinkle[sd]?|lines|lined|crow'?s feet|creases?|weathered)\b", re.IGNORECASE)
 # Tests turn weaving into the day off.
 WEAVE = True
@@ -538,8 +540,12 @@ def age_signs(connection, timeline_id: str, definition: dict, state: dict, so_fa
     since = row['from_age']  # The age their words give, where their date started: what came after it shows.
     shift = AGE_SHIFT[level(connection)]
     wears = so_far.get('glasses') or 'glasses' in (sheet.get('feature') or '')
-    allowed = {'grey': 'hair' in fields and not so_far.get('colour'), 'reading': 'feature' in fields and not wears,
-               'lines': not LINES_WORDS.search(user_text(definition) + ' ' + str(definition.get('identity') or ''))}
+    bare = bool(HAIRLESS.search(sheet.get('hair') or ''))
+    allowed = {'grey': 'hair' in fields and not so_far.get('colour') and not bare
+               and not GREYED.search(sheet.get('hair') or ''),
+               'reading': 'feature' in fields and not wears,
+               'lines': not LINES_WORDS.search(user_text(definition) + ' ' + str(definition.get('identity') or '') + ' '
+                                               + str(sheet.get('feature') or ''))}
     modern = decode(state['profile'])['era'] in MODERN
     found = []
     for kind, (low, high) in AGE_SIGNS.items():
@@ -547,14 +553,15 @@ def age_signs(connection, timeline_id: str, definition: dict, state: dict, so_fa
         if not allowed[kind] or not since < onset <= age:
             continue
         stage = next(number for number, years in enumerate(SIGN_STAGES, 1) if age - onset < years)
-        found.append(sign_text(state['seed'], kind, stage, modern))
+        found.append(sign_text(state['seed'], kind, stage, modern, bare))
     return ', '.join(found)
 
 
-def sign_text(seed: str, kind: str, stage: int, modern: bool) -> str:
+def sign_text(seed: str, kind: str, stage: int, modern: bool, bare: bool = False) -> str:
     """A sign's words at a stage, or at the latest stage the bank has for it (reading glasses have one stage: once
-    they come, they stay as they are)."""
-    entries = [entry for entry in ageing_bank()[kind] if modern or not entry.get('modern')]
+    they come, they stay as they are). Without hair to speak of, nothing is pushed up into it."""
+    entries = [entry for entry in ageing_bank()[kind] if (modern or not entry.get('modern'))
+               and not (bare and 'hair' in entry['text'])]
     stage = max(entry['stage'] for entry in entries if entry['stage'] <= stage)
     return generators.pick(seed, f'age-sign-{kind}-{stage}', [entry['text'] for entry in entries if entry['stage'] == stage])
 

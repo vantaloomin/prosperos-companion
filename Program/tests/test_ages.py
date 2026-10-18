@@ -270,3 +270,25 @@ def test_signs_settled_in_for_years_keep_their_latest_stage(client, clock, monke
     assert [sheet['age'] for sheet in later] == [36, 43, 54]
     assert all(sheet['age_signs'] in readers for sheet in later) and len({sheet['age_signs'] for sheet in later}) == 1
 
+
+def test_no_grey_coming_in_on_a_shaved_head_or_hair_already_grey(client, clock, monkeypatch):
+    monkeypatch.setattr(grooming, 'AGE_SIGNS', {'grey': (36, 36), 'reading': (36, 36), 'lines': (36, 36)})
+    monkeypatch.setattr(grooming.Draw, 'bold', lambda *args: None)
+    make(client, birthday=(clock.now() + timedelta(days=1)).strftime('%m-%d'))
+    sync(client, clock)
+    companion = client.get('/api/companion').json()['companion']
+    definition = companion['version']['definition']
+    drawn = looks.for_companion
+    grey = {entry['text'] for entry in grooming.ageing_bank()['grey']}
+    lines = {entry['text'] for entry in grooming.ageing_bank()['lines']}
+    found = {}
+    for hair, feature in (('a shaved head', 'dimples'), ('greying brown hair, short', 'laugh lines')):
+        monkeypatch.setattr(looks, 'for_companion', lambda *args, hair=hair, feature=feature: {
+            **drawn(*args), 'hair': hair, 'feature': feature})
+        with connect(client) as connection:
+            grooming.ensure(connection, companion['active_timeline_id'], definition, None, clock.now())
+            found[hair] = grooming.sheet(connection, companion['id'], definition,
+                                         clock.now().date() + timedelta(days=400))['age_signs'].split(', ')
+    assert not set(found['a shaved head']) & grey and not any('hair' in sign for sign in found['a shaved head'])
+    assert set(found['a shaved head']) & lines  # Lines and readers still come.
+    assert not set(found['greying brown hair, short']) & (grey | lines)  # Laugh lines drawn already: not twice.
