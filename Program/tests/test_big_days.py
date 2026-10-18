@@ -9,7 +9,7 @@ from conftest import send
 
 from companion.characters import current
 from companion.database import decode, encode, one, optional
-from companion.life import ages, big_days, circle, love_life, money, outings, steps
+from companion.life import ages, big_days, circle, long_distance, love_life, money, outings, steps, trips
 from companion.memory import context
 from companion.providers.chat import Chunk
 
@@ -353,6 +353,8 @@ def test_a_friends_own_wedding_has_you_standing_up_and_makes_them_married(client
         assert big_days.waiting(connection, partner)
         [row] = big_days.rows(connection, companion['active_timeline_id'])
     assert row['kind'] == 'own_wedding' and row['invite'] == 1 and row['gift'] == ''
+    from companion.life import wedding
+    assert row['outfit'] == wedding.attire(companion['version']['definition'], 'us')  # Their own wedding's attire.
     assert date.fromisoformat(row['local_date']) >= today + timedelta(days=30)
     at(clock, row['invite_on'], '12:00')
     trigger, outing = invite(client, clock)
@@ -406,12 +408,12 @@ def test_their_own_graduation_and_retirement_party_come_from_their_life_chapters
     with client.app.state.database.connect() as connection:
         found = {row['kind']: row for row in big_days.rows(connection, current(connection)['active_timeline_id'],
                                                            ('planned',))}
-    assert set(found) == {'own_graduation', 'own_retirement'}
+    assert {'own_graduation', 'own_retirement'} <= set(found)  # The circle's own big days may be found too.
     graduation = found['own_graduation']
     assert graduation['source'] == 'chapter:ch-school' and graduation['gift'] == '' and graduation['at_time'] == '10:00'
     assert big_days.title(graduation, 'Mira Costa') == "Mira's graduation"
     assert big_days.said(found['own_retirement']) == 'your retirement party'
-    assert not any('buzz' in line for line in lines(client, clock))
+    assert not any('buzz' in line and 'graduation' in line for line in lines(client, clock))
     graduation['invite'] = 1
     assert 'there with you' in big_days.reason_for(graduation, date.fromisoformat(graduation['local_date']))
 
@@ -428,3 +430,248 @@ def test_after_a_breakup_they_no_longer_mean_to_ask_the_user_along(client, clock
     send(client, "I'm sorry, I think we should break up.", 'client-bigday-breakup')
     [line] = lines(client, clock)
     assert 'mean to ask the user' not in line and "You're going on your own." in line
+
+
+def test_taking_back_cant_make_it_on_today_means_you_are_coming_after_all(client, clock):
+    make(client)
+    guests(client, 3)
+    row = add(client, clock)
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    assert client.post(f"/api/life/outings/{outing['id']}/cancel", json={}).status_code == 200
+    assert row_of(client, row['id'])['status'] == 'declined'
+    assert client.post(f"/api/life/outings/{outing['id']}/undo", json={}).status_code == 200
+    advance(client, clock)
+    found = row_of(client, row['id'])
+    assert found['status'] == 'invited' and found['answered_at'] is None
+    # The circle's own big days may come first: find this one's line.
+    assert any(found['place']['name'] in line and 'The user is coming with you as your plus-one.' in line
+               for line in lines(client, clock))
+
+
+def test_long_distance_the_day_is_a_stay_and_undoing_the_no_brings_it_back(client, clock, monkeypatch):
+    monkeypatch.setattr(trips, 'ACTIVE', True)
+    for name in ('CHANCE', 'LONG_CHANCE'):
+        monkeypatch.setattr(trips, name, 0.0)
+    monkeypatch.setattr(long_distance, 'CHANCE', {1: 0.0, 2: 0.0, 3: 0.0})
+    make(client, home_city='Chicago', timezone='America/Chicago')
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'baltimore'}).status_code == 200
+    guests(client, 3)
+    row = add(client, clock)
+    at(clock, row['invite_on'], '18:00')
+    _trigger, outing = invite(client, clock)
+
+    def stays():
+        return [trip['status'] for trip in client.get('/api/life/outings').json()['trips'] if trip['visit'] == 'host']
+    assert stays() == ['planned']
+    assert client.post(f"/api/life/outings/{outing['id']}/cancel", json={}).status_code == 200
+    assert stays() == ['cancelled'] and row_of(client, row['id'])['status'] == 'declined'
+    assert client.post(f"/api/life/outings/{outing['id']}/undo", json={}).status_code == 200
+    advance(client, clock)
+    assert stays() == ['planned'] and row_of(client, row['id'])['status'] == 'invited'
+
+
+def test_moving_apart_after_saying_yes_plans_a_stay_and_keeps_the_day(client, clock, monkeypatch):
+    monkeypatch.setattr(trips, 'ACTIVE', True)
+    for name in ('CHANCE', 'LONG_CHANCE'):
+        monkeypatch.setattr(trips, name, 0.0)
+    monkeypatch.setattr(long_distance, 'CHANCE', {1: 1.0, 2: 1.0, 3: 1.0})
+    make(client, home_city='Chicago', timezone='America/Chicago')
+    guests(client, 3)
+    row = add(client, clock)
+    at(clock, row['invite_on'], '18:00')
+    _trigger, outing = invite(client, clock)
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'baltimore'}).status_code == 200
+    with client.app.state.database.connect(write=True) as connection:
+        long_distance.settle_moves(connection, current(connection), clock.now().date(), clock.now())
+    advance(client, clock)
+    found = row_of(client, row['id'])
+    with client.app.state.database.connect() as connection:
+        kept = outings.get(connection, outing['id'])
+        stay = one(connection, 'SELECT * FROM trips WHERE id=?', (found['trip_id'],))
+    assert found['status'] == 'invited' and kept['status'] == 'planned' and kept['local_date'] == row['local_date']
+    assert stay['status'] == 'planned' and stay['start_date'] <= row['local_date'] <= stay['end_date']
+
+
+def branch_at(client, message_id, **body):
+    branch = client.post('/api/timelines', json={'message_id': message_id, **body}).json()
+    assert client.post(f"/api/timelines/{branch['id']}/activate").status_code == 200
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        return companion, big_days.rows(connection, branch['id'])
+
+
+def test_a_branch_keeps_whose_day_it_is_and_what_you_said_and_never_plans_it_twice(client, clock, provider):
+    from companion.life import openers
+    make(client)
+    guests(client, 3)
+    mom = person(client, 'mom')
+    row = add(client, clock, kind='birthday', role='mom', source=f"birthday:{mom['id']}:2099", age=60)
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    says(provider)
+    yes = send(client, 'Yes! I would love to come', 'client-bigday-branch-yes')
+    companion, copies = branch_at(client, yes['message']['id'] if 'message' in yes else yes['id'])
+    [copied] = [item for item in copies if item['local_date'] == row['local_date'] and item['kind'] == 'birthday']
+    with client.app.state.database.connect(write=True) as connection:
+        mine = optional(connection, "SELECT * FROM circle_people WHERE timeline_id=? AND role='mom'",
+                        (companion['active_timeline_id'],))
+        assert copied['person_id'] == mine['id'] and copied['source'] == f"birthday:{mine['id']}:2099"
+        assert copied['status'] == 'invited' and copied['outing_id'] == outing['id']
+        assert not [item for item in openers.candidates(connection, companion, clock.now()) if item.kind == 'big_day']
+        again = big_days.candidate('birthday', f"birthday:{mine['id']}:2099", mine, date.fromisoformat(row['local_date']))
+        assert big_days.add(connection, companion, again, clock.now()) is None
+
+
+def test_a_branch_from_before_your_no_has_you_coming(client, clock, provider):
+    make(client)
+    guests(client, 3)
+    row = add(client, clock)
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    says(provider)
+    no = send(client, "No, sorry, I can't make it that day.", 'client-bigday-branch-no')
+    assert row_of(client, row['id'])['status'] == 'declined'
+    companion, copies = branch_at(client, no['message']['id'] if 'message' in no else no['id'],
+                                  text='Yes! I would love to come')
+    [copied] = [item for item in copies if item['source'] == row['source']]
+    assert copied['status'] == 'invited' and copied['outing_id'] != outing['id']
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        mine = outings.get(connection, big_days.get(connection, copied['id'])['outing_id'])
+        assert big_days.get(connection, copied['id'])['status'] == 'invited' and mine['status'] == 'planned'
+        assert mine['place']['big_day'] == copied['id']
+        assert outings.get(connection, outing['id'])['status'] == 'cancelled'  # The parent keeps its no.
+
+
+def test_a_big_day_held_after_the_fork_is_still_to_come_on_the_copy():
+    row = {'status': 'done', 'local_date': '2027-05-01', 'message_id': None, 'answered_at': None}
+    assert big_days.copied_status(row, {}, '2027-04-20T10:00:00+00:00') == ('planned', None)
+    assert big_days.copied_status(row, {}, '2027-05-02T10:00:00+00:00') == ('done', None)
+    asked = {**row, 'message_id': 'm', 'answered_at': '2027-04-25T10:00:00+00:00'}
+    assert big_days.copied_status(asked, {'m': 'm2'}, '2027-04-20T10:00:00+00:00') == ('invited', 'm2')
+    assert big_days.copied_status(asked, {'m': 'm2'}, '2027-04-26T10:00:00+00:00') == ('declined', 'm2')
+
+
+def agenda_at(client, clock):
+    from companion.life import agenda
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        agenda.extend(connection, companion, client.app.state.life.world, clock.now())
+        found = optional(connection, "SELECT block, entry FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                         'AND starts_at<=? AND ends_at>?', (companion['active_timeline_id'], clock.now().isoformat(),
+                                                           clock.now().isoformat()))
+    return decode(found['block']), decode(found['entry']) if found['entry'] else None
+
+
+def test_going_on_their_own_is_in_their_day(client, clock):
+    make(client)
+    guests(client, 0)
+    row = add(client, clock)
+    at(clock, row['local_date'], '16:00')
+    _block, entry = agenda_at(client, clock)
+    assert entry['activity'] == big_days.ACTIVITY and entry['big_day']['id'] == row['id']
+    assert f"went to {big_days.title(row)} at {row['place']['name']}" in entry['summary']
+
+
+WORK = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'start': '09:00', 'end': '17:00', 'days': [0, 1, 2, 3, 4, 5, 6]},
+        {'key': 'evening', 'label': 'Evening', 'kind': 'leisure', 'start': '17:00', 'end': '23:00'},
+        {'key': 'night', 'label': 'Asleep', 'kind': 'sleep', 'start': '23:00', 'end': '07:00'},
+        {'key': 'morning', 'label': 'Morning', 'kind': 'leisure', 'start': '07:00', 'end': '09:00'}]
+
+
+def test_a_big_day_in_working_hours_is_a_day_off_for_it(client, clock):
+    make(client, schedule=WORK)
+    guests(client, 3)
+    row = add(client, clock)  # 15:00 to 22:00, in the middle of their shift.
+    party = add(client, clock, kind='birthday', role='mom', source='test:2', days=60, age=60)  # 19:00: after work.
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        off = big_days.days_off(connection, companion, clock.now().date(), clock.now().date() + timedelta(days=90))
+    assert off == {row['local_date']: big_days.title(row)}
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    at(clock, row['local_date'], '15:30')
+    block, entry = agenda_at(client, clock)
+    assert block['kind'] == 'leisure' and block['label'] == f"{big_days.title(row)} (day off)"
+    assert entry['outing']['id'] == outing['id']
+    assert party['local_date'] not in off
+
+
+def test_in_an_old_city_the_invitation_and_caption_have_no_cars_texts_or_photos(client, clock):
+    client.post('/api/companion', json={'name': 'Elayne', 'timezone': 'Europe/London', 'home_city': 'Camelot'})
+    client.get('/api/life/circle')
+    row = add(client, clock, role=None, source='test:camelot', name='Cynan Ap Rhys')
+    assert row['place']['modern'] is False
+    for number in range(200):
+        found = {**row, 'id': f'seed-{number}'}
+        for kind in ('wedding', 'own_wedding', 'funeral'):
+            text = big_days.invitation({**found, 'kind': kind}, 'Saturday', '3')
+            assert not big_days.MODERN_ONLY.search(text), text
+        assert not big_days.MODERN_ONLY.search(big_days.caption({'id': f'o-{number}', 'place': row['place']}))
+    modern = {**row['place'], 'modern': True}
+    assert any(big_days.MODERN_ONLY.search(big_days.caption({'id': f'o-{number}', 'place': modern}))
+               for number in range(400))
+
+
+def test_a_party_is_somewhere_open_at_its_hour(client, clock):
+    make(client)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        data = outings.city_data(connection, companion['version']['definition'])
+        day = clock.now().date() + timedelta(days=30)
+        for key, part in (('birthday', 'evening'), ('retirement', 'evening'), ('graduation', 'morning')):
+            for number in range(60):
+                found = big_days.place_for(connection, companion, big_days.KINDS[key], day, f'seed-{number}', {})
+                place = next(item for item in data['places'] if item['id'] == found['id'])
+                assert part in place['day_parts'], (key, place['name'], place['day_parts'])
+
+
+def test_the_invitation_names_a_day_weeks_off_by_its_date():
+    tuesday = date(2026, 10, 20)
+    assert big_days.when_text(date(2026, 10, 24), tuesday) == 'Saturday'
+    assert big_days.when_text(date(2026, 10, 31), tuesday) == 'next Saturday'
+    assert big_days.when_text(date(2026, 11, 14), tuesday) == 'Saturday, November 14'
+
+
+def test_next_saturday_starting_a_sentence_has_a_capital():
+    for kind in ('birthday', 'own_wedding'):
+        for number in range(100):
+            row = {'id': f'row-{number}', 'kind': kind, 'place': {'name': 'Ouzo Bay', 'modern': True},
+                   'details': {'name': 'James Hill', 'role': 'dad', 'age': 60}, 'title': "James's 60th birthday party"}
+            line = big_days.invitation(row, 'next Saturday', '7')
+            assert not re.search(r'(^|[.?!] )next Saturday', line), line
+
+
+def test_the_day_with_you_reads_with_you_last(client, clock):
+    make(client)
+    guests(client, 3)
+    row = add(client, clock, kind='retirement', role='mom')
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    outing = {**outing, 'place': {**outing['place'], 'neighborhood': 'Fells Point'}}
+    found = outings.entry({'outing': outing}, {}, {'name': 'Mira'})
+    assert found['summary'].startswith(f"Mira went to {outing['place']['title']} at {outing['place']['name']} with you")
+    assert 'Fells Point' not in found['summary']
+
+
+def test_in_1895_a_parent_is_mother_or_father(client, clock):
+    client.post('/api/companion', json={'name': 'Ada Lowe', 'timezone': 'Europe/London', 'home_city': 'london-1895'})
+    client.get('/api/life/circle')
+    with client.app.state.database.connect(write=True) as connection:
+        row = circle.people(connection, current(connection)['active_timeline_id'])[0]
+        connection.execute("UPDATE circle_people SET role='mom' WHERE id=?", (row['id'],))
+    found = add(client, clock, kind='birthday', role='mom', age=60)
+    assert found['details']['role'] == 'mother' and 'your mother' in big_days.said(found)
+
+
+def test_before_asking_their_own_day_is_never_a_plus_one():
+    row = {'kind': 'own_wedding', 'status': 'planned', 'invite': 1, 'local_date': '2027-02-20', 'at_time': '15:00',
+           'place': {'name': 'Royal Observatory'}, 'details': {'name': 'Sam Okafor'}, 'gift': '', 'outfit': ''}
+    assert 'to stand up with you at your wedding' in big_days.coming_line(row, date(2027, 2, 1))
+    for kind in ('own_graduation', 'own_retirement', 'funeral'):
+        assert 'plus-one' not in big_days.coming_line({**row, 'kind': kind}, date(2027, 2, 1))
+    assert 'as your plus-one' in big_days.coming_line({**row, 'kind': 'wedding', 'details': {'name': 'Leo'}},
+                                                       date(2027, 2, 1))

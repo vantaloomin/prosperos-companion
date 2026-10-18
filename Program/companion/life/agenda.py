@@ -266,10 +266,11 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
 
 def pinned_plans(connection, timeline_id, since: str) -> dict[str, list[dict]]:
     """The companion's own plans by local date, with outings with the user, which take their slots the same way
-    (companion/life/outings.py), and appointments, errands and chores (companion/life/admin.py), placed where
-    nothing else is."""
+    (companion/life/outings.py), appointments, errands and chores (companion/life/admin.py), placed where
+    nothing else is, and big days they go to on their own (companion/life/big_days.py)."""
     plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
-    for extra in (outings.as_plans(connection, timeline_id, since), admin.as_plans(connection, timeline_id, since)):
+    for extra in (outings.as_plans(connection, timeline_id, since), admin.as_plans(connection, timeline_id, since),
+                  big_days.as_plans(connection, timeline_id, since)):
         for local_date, found in extra.items():
             plans[local_date] = plans.get(local_date, []) + found
     return plans
@@ -302,9 +303,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         if slot.block.key in pinned:
             plan = pinned[slot.block.key]
             block = outings.marked(block, plan)
-            entry = None if plan and plan.get('continues') else plan and (
-                outings.entry(plan, block, definition) if 'outing' in plan else
-                admin.entry(plan, block, definition) if 'admin' in plan else own_plans.entry(plan, block, definition))
+            entry = None if plan and plan.get('continues') else plan and plan_entry(plan, block, definition)
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)
             if subject == COMPANION:
@@ -333,6 +332,16 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         (identifier(), timeline_id, subject, slot.key, stamp(starts_at), stamp(ends_at), slot.local_date.isoformat(),
          encode(block), encode(entry) if entry else None, scope['basis'], stamp(scope['now'])))
     return 1
+
+
+def plan_entry(plan: dict, block: dict, definition: dict) -> dict:
+    """The entry for a slot a plan takes: an outing with the user, an appointment or errand, a big day they go to on
+    their own (companion/life/big_days.py), or a plan they made in chat."""
+    if 'outing' in plan:
+        return outings.entry(plan, block, definition)
+    if 'admin' in plan:
+        return admin.entry(plan, block, definition)
+    return big_days.entry(plan, block, definition) if 'big_day' in plan else own_plans.entry(plan, block, definition)
 
 
 def write_trip_slot(connection, scope: dict, slot, facts: dict) -> int:
