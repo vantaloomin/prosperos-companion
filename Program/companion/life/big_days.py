@@ -545,6 +545,8 @@ def follow(connection, companion: dict, now: datetime) -> None:
             continue
         outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'] or '',))
         state = outings.state(outings.view(outing), timezone, now) if outing else None
+        if row['status'] == 'declined' and state == 'planned':
+            row = taken_back(connection, row, stamp(now))
         if row['status'] == 'invited' and state in (None, 'cancelled'):
             decline(connection, row, stamp(now))
         elif row['status'] == 'invited' and state == 'done':
@@ -586,6 +588,13 @@ def cancel_plans(connection, row: dict, timestamp: str) -> None:
                        (timestamp, row['outing_id'] or ''))
     connection.execute("UPDATE trips SET status='cancelled', cancelled_at=? WHERE id=? AND status='planned'",
                        (timestamp, row['trip_id'] or ''))
+
+
+def taken_back(connection, row: dict, timestamp: str) -> dict:
+    """"Can't make it" undone on Today (outings.undo): the user is coming after all."""
+    connection.execute("UPDATE big_days SET status='invited', answered_at=NULL, updated_at=? WHERE id=?",
+                       (timestamp, row['id']))
+    return {**row, 'status': 'invited', 'answered_at': None}
 
 
 def decline(connection, row: dict, timestamp: str) -> None:

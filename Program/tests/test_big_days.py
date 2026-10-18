@@ -414,3 +414,19 @@ def test_their_own_graduation_and_retirement_party_come_from_their_life_chapters
     assert not any('buzz' in line for line in lines(client, clock))
     graduation['invite'] = 1
     assert 'there with you' in big_days.reason_for(graduation, date.fromisoformat(graduation['local_date']))
+
+
+def test_taking_back_cant_make_it_on_today_means_you_are_coming_after_all(client, clock):
+    make(client)
+    guests(client, 3)
+    row = add(client, clock)
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    assert client.post(f"/api/life/outings/{outing['id']}/cancel", json={}).status_code == 200
+    assert row_of(client, row['id'])['status'] == 'declined'
+    assert client.post(f"/api/life/outings/{outing['id']}/undo", json={}).status_code == 200
+    advance(client, clock)
+    found = row_of(client, row['id'])
+    assert found['status'] == 'invited' and found['answered_at'] is None
+    assert 'The user is coming with you as your plus-one.' in lines(client, clock)[0]
+
