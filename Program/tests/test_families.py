@@ -380,3 +380,21 @@ def test_a_baby_is_never_given_the_companions_own_name(client, mira):
         taken = families.taken_names(connection, current(connection))
     assert 'Mira' in taken
     assert families.baby_name({}, None, 'seed', 'she/her', taken) != 'Mira'
+
+
+def test_a_companion_living_in_town_never_has_a_town_baby(monkeypatch):
+    from companion.life import encounters
+    from companion.world import catalog, paper, townsfolk, turnover
+    monkeypatch.setattr(turnover, 'ACTIVE', True)
+    data, span = catalog.city('baltimore'), (date(2026, 10, 19), date(2029, 10, 19))
+    sheet, found = next((sheet, found) for hood in data['neighborhoods'] for slot in range(8)
+                        if (found := couples.babies(sheet := townsfolk.resident(data, hood['id'], slot), data, span)))
+    day = found[0]['day']
+    assert couples.family_news(sheet, data, day - timedelta(days=30)).startswith('expecting a baby')
+    stand_in = encounters.stand_in(data, 'c1', sheet['key'], {'name': 'Alex Moore', 'identity': '30.'})
+    assert couples.babies(stand_in, data, span) == [] and couples.family_news(stand_in, data, day) is None
+    week = (day - timedelta(days=day.weekday()), day + timedelta(days=6 - day.weekday()))
+    key = f"{sheet['key']}:baby:{day.isoformat()}"
+    if sheet in paper.sample(data, week[1]):
+        assert key in {item['key'] for item in paper.comings_and_goings(data, week)}
+    assert key not in {item['key'] for item in paper.comings_and_goings({**data, 'companions': (sheet['key'],)}, week)}
