@@ -167,6 +167,7 @@ def purchases(connection, timeline_id: str, start: date, end: date) -> list[dict
         startup = details.get('startup')
         if startup and details['stage'] != 'planning' and start.isoformat() <= startup['on'] <= end.isoformat():
             found.append({'text': f"put your savings into opening {details['business']['business']}",
+                          'shown': f"put their savings into opening {details['business']['business']}",
                           'date': startup['on'], 'cost': startup['cost'], 'spend': '', 'for': 'business',
                           'savings': True})
     return found

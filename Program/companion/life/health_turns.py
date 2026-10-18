@@ -334,6 +334,7 @@ def purchases(connection, timeline_id: str, start: date, end: date) -> list[dict
         while month <= last:
             if month >= start and month.isoformat() >= details['starts_on'][:8] + '01':
                 found.append({'text': f"helped with your {details['role']}'s care", 'date': month.isoformat(),
+                              'shown': f"helped with their {details['role']}'s care",
                               'cost': details['cost'], 'spend': '', 'for': 'care'})
             month = big_turns.later(month, 1)
     return found
