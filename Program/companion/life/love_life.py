@@ -22,7 +22,12 @@ Drama"):
   companions in the same city sees them together (Small world), or word gets around (news travelling). Then it ends,
   they know they hurt the user, and a rough patch opens (companion/life/rough_patches.py, cause `hidden_partner`).
 
-The banks (world/data/love_life.json) say the partner with their own pronouns: {they}, {their}, "love{s}" (`line`).
+The banks (world/data/love_life.json) say the partner with their own pronouns: {they}, {their}, "love{s}" (`line`), and
+keep to the city's time and the season (`fitting`: no cloaks in modern Baltimore, no snow in June).
+
+After a split they take about two months before anyone new (REBOUND). A partner in an open relationship with the user
+never becomes "exclusive" (that step is skipped). When a friend with a partner becomes the user's romance (or an ex
+gets back together with the user), the partner relationship ends first (`make_way`), unless it is an open one.
 
 Jealousy is never assumed: only an emotional trait the user built that speaks to it adds it to the chat line.
 No model decides anything; the chat context's 'love' section tells the companion where things stand.
@@ -60,6 +65,8 @@ OUT_CHANCE = 0.07
 FIZZLE_CHANCE = 0.02
 # No new secret within half a year of the last one ending.
 SECRET_HOLD = 180
+# No one new within about two months of a split, theirs or the user's breakup with them.
+REBOUND = 60
 # How long the chat still hears about a breakup, or a secret that came out; and about a step just reached.
 TOLD_DAYS = 30
 FRESH_DAYS = 2
@@ -206,8 +213,45 @@ def role_for(step_key: str, pronouns: str) -> str:
     return ROLES[BY_STEP.get(step_key, 'dating')].get(pronouns, 'partner')
 
 
-def how_met(seed: str, their_pronouns: str | None) -> str:
-    return line(random.Random(f'{seed}:met').choice(bank()['met']), '', their_pronouns)
+def how_met(seed: str, their_pronouns: str | None, data: dict | None = None, day: date | None = None) -> str:
+    return line(random.Random(f'{seed}:met').choice(fitting(bank()['met'], data, day)), '', their_pronouns)
+
+
+@cache
+def tags() -> dict[str, set[str]]:
+    """{bank line: its tags}: 'older' (not for today's cities), 'modern' (only today's), 'cold' (freezing months
+    only), 'warm' (warm months only). An untagged line fits anywhere, any time."""
+    found = {}
+    for tag, lines in bank()['tags'].items():
+        for text in lines:
+            found.setdefault(text, set()).add(tag)
+    return found
+
+
+def fitting(lines: list[str], data: dict | None, day: date | None) -> list[str]:
+    """The lines that fit the city's time (data: the city's world data, None for today's world) and the season."""
+    from companion.world import townsfolk
+    wrong = {'older'} if data is None or townsfolk.modern(data) else {'modern'}
+    if day is not None:
+        low, high = temperatures(data, day)
+        wrong |= ({'cold'} if low > 32 else set()) | ({'warm'} if high < 65 else set())
+    found = [text for text in lines if not tags().get(text, set()) & wrong]
+    return found or lines
+
+
+def temperatures(data: dict | None, day: date) -> tuple[int, int]:
+    """(low, high) in °F for the month in that city, from its climate; a northern temperate year when unknown."""
+    months = ((data or {}).get('climate') or {}).get('months') or []
+    if len(months) == 12:
+        month = months[day.month - 1]
+        return month.get('low_f', 40), month.get('high_f', 60)
+    return ((28, 40), (28, 42), (35, 52), (44, 63), (53, 73), (62, 82), (66, 86), (65, 84), (58, 77), (47, 66),
+            (38, 54), (30, 44))[day.month - 1]
+
+
+def city_of(connection, companion: dict) -> dict:
+    from companion.world import newcomers
+    return newcomers.city_for(connection, companion['version']['definition'])
 
 
 def line(template: str, name: str, their_pronouns: str | None) -> str:
@@ -226,15 +270,30 @@ def plan(connection, companion: dict, world, day: date, seed: str) -> dict | Non
     now and the slider is above nothing new."""
     timeline_id = companion['active_timeline_id']
     if not level(connection) or mode(connection, companion) not in ('free', 'open') or \
-            partners(connection, timeline_id):
+            partners(connection, timeline_id) or resting(connection, companion, day):
         return None
     person = new_person(connection, companion, world, f'{seed}:love')
     name, them = person['name'], first(person['name'])
-    how = how_met(seed, person['details'].get('pronouns'))
-    share = line(random.Random(f'{seed}:share').choice(bank()['share_new']), them, person['details'].get('pronouns'))
+    data = circle.city_data(companion['version']['definition'], world)
+    how = how_met(seed, person['details'].get('pronouns'), data, day)
+    share = line(random.Random(f'{seed}:share').choice(fitting(bank()['share_new'], data, day)), them,
+                 person['details'].get('pronouns'))
     told = f'You started seeing {name}; you met {how}. It is early days: you are dating, nothing more yet.'
     return {'title': f"{first(companion['version']['definition']['name'])} started seeing {name}", 'told': told,
             'share': share, 'person': person, 'met': how}
+
+
+def resting(connection, companion: dict, day: date) -> bool:
+    """Within REBOUND days of a split: a partner of theirs (however it ended, but undone), or the user's breakup
+    with them (companion/life/breakups.py)."""
+    from companion.life import breakups
+    row = optional(connection, "SELECT MAX(ended_on) AS on_ FROM love_partners WHERE timeline_id=? AND "
+                   "ended_how IS NOT NULL AND ended_how != 'undone'", (companion['active_timeline_id'],))
+    ends = [row['on_']] if row and row['on_'] else []
+    if steps.apart(connection, companion) == 'ended':
+        found, _stage = breakups.current(connection, companion)
+        ends += [found['ended_at'][:10]] if found and found['ended_at'] else []
+    return any((day - date.fromisoformat(end)).days < REBOUND for end in ends)
 
 
 def begin(connection, companion: dict, world, day: date, found: dict, now) -> dict:
@@ -290,9 +349,24 @@ def advance(connection, companion: dict, world, now) -> None:
             secret_weeks(connection, companion, found, today, now)
         elif left_circle(connection, found):
             end(connection, found, 'removed', today)
+        elif for_user(connection, companion):
+            make_way(connection, found, today)
         else:
             progress(connection, companion, found, today, now)
     maybe_secret(connection, companion, world, now)
+
+
+def for_user(connection, companion: dict) -> bool:
+    """They are the user's romance now (a friend who fell for the user, a sheet changed to romance, an ex back
+    together), and not in an open relationship: a partner they had is over."""
+    definition = companion['version']['definition']
+    return definition.get('relationship') == 'romance' and steps.apart(connection, companion) != 'ended' and \
+        not is_open(definition)
+
+
+def make_way(connection, found: dict, day: date) -> None:
+    """They broke up with their partner to be with the user: a split, marked so it is not news to the user."""
+    end(connection, found, 'split', day, details=encode({**found['details'], 'for_user': True}))
 
 
 def left_circle(connection, found: dict) -> bool:
@@ -316,9 +390,13 @@ def progress(connection, companion: dict, found: dict, today: date, now) -> None
     lvl = level(connection)
     if not lvl:
         return
+    skip = mode(connection, companion) == 'open'
     for _ in range(24):
         top, _current, following, since = where(connection, companion, found)
         wanted = following.after[lvl - 1] if following else SETTLED
+        if skip and following and following.key == 'exclusive':  # An open relationship is never exclusive.
+            following = steps.ROMANCE[top + 2]
+            wanted += following.after[lvl - 1]
         gap = WAIT[lvl - 1] if following else SETTLED
         topic = following.key if following else 'settled'
         turn = 1
@@ -418,7 +496,7 @@ def start_secret(connection, companion: dict, world, outcome: dict, day: date, n
     """A secret partner: a seeded person who never joins the circle the user sees."""
     person = new_person(connection, companion, world, outcome['subject'])
     details = {key: person['details'].get(key) for key in ('pronouns', 'age', 'career', 'employer', 'neighborhood')}
-    met = how_met(outcome['subject'], details.get('pronouns'))
+    met = how_met(outcome['subject'], details.get('pronouns'), city_of(connection, companion), day)
     partner_id = insert(connection, companion, person['name'], {**details, 'met': met}, day, now, secret=True,
                         consequence_id=outcome['id'])
     return partner(connection, partner_id)
@@ -537,10 +615,13 @@ def partner_line(connection, companion: dict, found: dict, today: date) -> str:
                 'vague.')
     standing = pair_text(connection, companion, found, today).lower()
     if mode(connection, companion) == 'open':  # Not an ex of the user's (their sheet still says romance).
-        feeling = ('You still feel a pang of jealousy about the user seeing other people, as your nature is.'
+        feeling = ('You agreed to an open relationship and you mean it, but you still feel a pang when the user '
+                   'mentions seeing someone else, as your nature is: own it in a word or two, stay warm, and be glad '
+                   'for them.'
                    if jealous(definition) else 'Neither of you is jealous about it.')
-        return (f'- You and the user have an open relationship, and you are also seeing {name}{describe(found)} '
-                f'({standing}). The user knows about {them}. {feeling}')
+        return (f'- You and the user have an open relationship: you both see other people. You are also seeing '
+                f'{name}{describe(found)}, {standing}. The user knows about {them}; when your love life comes up, '
+                f'say plainly that it is an open relationship. {feeling}')
     return (f'- You are seeing {name}{describe(found)}: {standing}. It is your own relationship, apart from the user; '
             f'mention {them} naturally when it fits, the way anyone talks about the person they are seeing.')
 
@@ -548,6 +629,8 @@ def partner_line(connection, companion: dict, found: dict, today: date) -> str:
 ENDED = {
     'split': ('- You and {name} broke up {date}. It still stings a little. You need not bring it up yourself, but '
               'if the user asks about {first}, tell them you two broke up.'),
+    'for_user': ('- You and {name} broke up {date}, because you wanted to be with the user. It is over between you '
+                 'and {first}; if it comes up, say so plainly.'),
     'came_out': ('- The user found out {date} that you had been seeing {name} behind their back ({via}). You ended '
                  'it with {first} that same day, and it is over: tell the user so. You know you hurt them: own it, do '
                  'not make excuses, and do not push them to forgive you.'),
@@ -563,12 +646,17 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     today = steps.local_today(companion, now)
     timeline_id = companion['active_timeline_id']
     result = []
+    yours = for_user(connection, companion)
     for found in partners(connection, timeline_id, active=False):
+        if found['ended_on'] is None and yours and not found['secret']:  # Until the day's catch-up ends it.
+            found = {**found, 'ended_on': today.isoformat(), 'ended_how': 'split',
+                     'details': {**found['details'], 'for_user': True}}
         if found['ended_on'] is None:
             result.append((f"love:{found['id']}", partner_line(connection, companion, found, today)))
             result += fresh_steps(connection, companion, found, today)
         elif found['ended_how'] in ENDED and (today - date.fromisoformat(found['ended_on'])).days <= TOLD_DAYS:
-            result.append((f"love:{found['id']}:{found['ended_how']}", ENDED[found['ended_how']].format(
+            how = 'for_user' if found['details'].get('for_user') else found['ended_how']
+            result.append((f"love:{found['id']}:{found['ended_how']}", ENDED[how].format(
                 name=found['name'], first=first(found['name']), date=on(found['ended_on'], today),
                 via=VIA.get(found['out_via'] or '', ''))))
     return result + saw_lines(connection, companion, today)
@@ -624,7 +712,8 @@ def events(connection, companion: dict, since: str, today: str) -> list[dict]:
             if row['how'] == 'them' and since <= row['reached_on'] <= today:
                 result.append({'key': f"love:{row['id']}", 'kind': 'step', 'step': row['step'], 'partner': found,
                                'on': row['reached_on']})
-        if found['ended_how'] == 'split' and since <= found['ended_on'] <= today:
+        if found['ended_how'] == 'split' and since <= found['ended_on'] <= today and \
+                not found['details'].get('for_user'):  # The user is why: no news to them.
             result.append({'key': f"love:{found['id']}:split", 'kind': 'split', 'step': None, 'partner': found,
                            'on': found['ended_on']})
     return sorted(result, key=lambda item: item['on'])
@@ -645,7 +734,7 @@ def news_due(connection, companion: dict, now) -> list:
     if not ACTIVE or not FIRST_TEXTS or not companion.get('active_timeline_id'):
         return []
     today = steps.local_today(companion, now)
-    result = []
+    data, result = city_of(connection, companion), []
     for item in events(connection, companion, (today - timedelta(days=1)).isoformat(), today.isoformat()):
         them = first(item['partner']['name'])
         if item['kind'] == 'split':
@@ -656,6 +745,7 @@ def news_due(connection, companion: dict, now) -> list:
             reason = f'Something big just happened in your love life: you and {them} {did}. Tell the user, the way ' \
                      'you would text a friend.'
             lines = bank()['milestones'].get(item['step']) or bank()['dates']
+        lines = fitting(lines, data, date.fromisoformat(item['on']))
         template = told(random.Random(f"{item['key']}:line").choice(lines), item['partner'])
         result.append(Trigger(item['key'], 'storyline', reason, template))
     return result
@@ -709,7 +799,7 @@ def feed_posts(connection, companion: dict, days: list[date], timezone: str) -> 
     secret's."""
     from companion.life import social
     timeline_id = companion['active_timeline_id']
-    result = []
+    data, result = city_of(connection, companion), []
     for found in partners(connection, timeline_id, active=False):
         if found['secret'] or found['ended_how'] == 'undone':
             continue
@@ -717,19 +807,20 @@ def feed_posts(connection, companion: dict, days: list[date], timezone: str) -> 
             on, seed = day.isoformat(), f"love:{found['id']}:{day.isoformat()}"
             if on < found['met_on'] or (found['ended_on'] and on >= found['ended_on']):
                 continue
-            text = step_post(connection, companion, found, on, seed)
+            text = step_post(connection, companion, found, on, seed, data)
             if text is None and random.Random(f'{seed}:date').random() < DATE_POST:
-                text = told(random.Random(f'{seed}:line').choice(bank()['dates']), found)
+                text = told(random.Random(f'{seed}:line').choice(fitting(bank()['dates'], data, day)), found)
             if text:
                 result.append(social.own('status', f'love:{seed}', social.at(day, timezone, seed, 18, 23),
                                          {'text': text, 'tone': 'good'}))
     return result
 
 
-def step_post(connection, companion: dict, found: dict, on: str, seed: str) -> str | None:
+def step_post(connection, companion: dict, found: dict, on: str, seed: str, data: dict | None) -> str | None:
     for row in steps.reached(connection, companion['active_timeline_id'], LADDER, key_of(found)):
         if row['reached_on'] == on and row['how'] == 'them' and row['step'] in bank()['milestones']:
-            return told(random.Random(f'{seed}:step').choice(bank()['milestones'][row['step']]), found)
+            lines = fitting(bank()['milestones'][row['step']], data, date.fromisoformat(on))
+            return told(random.Random(f'{seed}:step').choice(lines), found)
     return None
 
 
@@ -738,13 +829,14 @@ def step_post(connection, companion: dict, found: dict, on: str, seed: str) -> s
 def circle_extras(connection, companion: dict, now, show_odds: bool) -> dict[str, dict]:
     """{circle person id: {love, consequence_id}} for partners in the circle: where the pair stands."""
     today = steps.local_today(companion, now)
+    suffix = ', open' if mode(connection, companion) == 'open' else ''
     result = {}
     for found in partners(connection, companion['active_timeline_id']):
         if found['person_id'] and not found['secret']:
             last = optional(connection, 'SELECT id FROM consequences WHERE timeline_id=? AND subject LIKE ? '
                             'ORDER BY decided_on DESC, created_at DESC LIMIT 1',
                             (companion['active_timeline_id'], f"love:{found['id']}:%"))
-            result[found['person_id']] = {'love': pair_text(connection, companion, found, today),
+            result[found['person_id']] = {'love': pair_text(connection, companion, found, today) + suffix,
                                           'love_odds': last['id'] if last and show_odds else None}
     return result
 

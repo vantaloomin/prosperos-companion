@@ -480,6 +480,15 @@ KNOWN = {
 }
 
 
+# Their own open relationship with no other romance of the user's here: never "you only see each other".
+OPEN_ALONE = 'Your relationship with the user is open: you both may see other people.'
+
+
+def open_alone(companion: dict) -> bool:
+    from companion.life import love_life
+    return love_life.is_open(companion['version']['definition'])
+
+
 def other_romances(connection, companion: dict, now, since: str = '') -> list[dict]:
     """The user's other romance companions made at or after `since` (an ex is not someone the user is seeing)."""
     from companion.characters import by_id
@@ -518,7 +527,7 @@ def others_known(connection, companion: dict, found: dict, now) -> tuple[str, st
         return 'alone', ''
     others = other_romances(connection, companion, now)
     if not others:
-        return 'alone', ''
+        return ('known', OPEN_ALONE) if open_alone(companion) else ('alone', '')
     groups: dict[tuple[str, str], list[str]] = {}
     for other in others:
         groups.setdefault(how_known(connection, companion, other, now), []).append(

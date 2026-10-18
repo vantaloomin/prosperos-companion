@@ -450,3 +450,141 @@ def test_after_a_secret_comes_out_they_hold_back_casual_texts(client, romance, c
         love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
         assert rough_patches.current(connection, current(client), clock.now())['cause'] == 'hidden_partner'
         assert rough_patches.cool(connection, current(client), clock.now())
+
+
+def test_after_a_split_they_wait_about_two_months_before_someone_new(client, mira, clock, monkeypatch):  # noqa: F811
+    # A friend had a new partner 15 days after splitting up (v0.13 run). No one new for REBOUND days.
+    found = begin_partner(client, clock)
+    world = client.app.state.life.world
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.end(connection, found, 'split', steps.local_today(current(client), clock.now()))
+    for days, planned in ((15, False), (love_life.REBOUND - 1, False), (love_life.REBOUND, True)):
+        with client.app.state.database.connect() as connection:
+            companion = current(client)
+            day = steps.local_today(companion, clock.now()) + timedelta(days=days)
+            assert bool(love_life.plan(connection, companion, world, day, f'seed:{days}')) is planned, days
+    # The chapter's odds say why it could not happen.
+    labels = [rule['why'] for option in consequences.tables()[chapters.CHOICE]['options'] for rule in option['rules']
+              if rule['reader'] == 'can_relationship']
+    assert labels == ['{name} is already seeing someone, split up lately, or has no love life of their own here']
+
+
+def test_the_users_breakup_with_them_counts_as_a_split_too(client, romance, clock, monkeypatch):
+    from companion.life import breakups
+    monkeypatch.setattr(steps, 'apart', lambda *_args: 'ended')
+    ended = (clock.now() - timedelta(days=20)).isoformat()
+    monkeypatch.setattr(breakups, 'current', lambda *_args: ({'ended_at': ended}, 'ended'))
+    with client.app.state.database.connect() as connection:
+        companion = current(client)
+        today = steps.local_today(companion, clock.now())
+        assert love_life.resting(connection, companion, today)
+        assert not love_life.resting(connection, companion, today + timedelta(days=love_life.REBOUND))
+
+
+def open_romance(client):
+    response = client.post('/api/companion', json={'name': 'Haru Sato', 'timezone': 'UTC', 'relationship': 'romance',
+                                                     'location': 'Fells Point, Baltimore',
+                                                     'interests': ['an open relationship', 'jazz'],
+                                                     'emotional_traits': [{'name': 'Jealous', 'intensity': 'moderate'}]})
+    assert response.status_code == 200, response.text
+    client.put('/api/life/steps', json={'step': 'exclusive'})
+
+
+def test_an_open_relationship_partner_never_becomes_exclusive(client, clock, monkeypatch):
+    from companion.life import body
+    monkeypatch.setattr(body, 'state_on', lambda *_args: None)
+    open_romance(client)
+    found = begin_partner(client, clock)
+    force(monkeypatch, 0)
+    clock.advance(timedelta(days=200))
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
+        reached = [row['step'] for row in steps.reached(connection, found['timeline_id'], 'romance',
+                                                        love_life.key_of(found))]
+        lines = dict(love_life.context_lines(connection, current(client), clock.now()))
+    assert reached[:2] == ['dating', 'love'] and 'exclusive' not in reached
+    people = {person['id']: person for person in client.get('/api/life/circle').json()}
+    assert people[found['person_id']]['love'].endswith(', open')
+    # The partner line says it is open, once, with no doubled brackets, and the jealousy points the right way.
+    text = lines[f"love:{found['id']}"]
+    assert 'open relationship: you both see other people' in text and ')' + ' (' not in text
+    assert re.search(r'\(\d+, [^()]*\), together', text), text
+    assert 'say plainly that it is an open relationship' in text
+    assert 'a pang when the user mentions seeing someone else' in text and 'jealousy about the user' not in text
+    # Where things stand with the user never says "you only see each other" (no other romance of the user's here).
+    prompt = client.get('/api/context/preview').json()['prompt']
+    assert steps.OPEN_ALONE in prompt and 'only see each other' not in prompt
+
+
+def test_a_friend_who_becomes_the_users_romance_breaks_up_with_their_partner_first(client, mira, clock,  # noqa: F811
+                                                                                    monkeypatch):
+    monkeypatch.setattr(love_life, 'FIRST_TEXTS', True)
+    found = begin_partner(client, clock)
+    clock.advance(timedelta(days=3))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        steps.become_romance(connection, companion, None, steps.local_today(companion, clock.now()),
+                             clock.now().isoformat())
+    # Before the day's catch-up, the chat already hears it is over.
+    prompt = client.get('/api/context/preview').json()['prompt']
+    assert f"You are seeing {found['name']}" not in prompt
+    assert f"You and {found['name']} broke up today" in prompt and 'because you wanted to be with the user' in prompt
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
+        person = circle.person(connection, found['person_id'])
+        [after] = love_life.partners(connection, found['timeline_id'], active=False)
+        # Not news to the user: they are the reason.
+        assert love_life.news_items(connection, current(client), '2000-01-01', '2100-01-01') == []
+        assert love_life.news_due(connection, current(client), clock.now()) == []
+    assert after['ended_how'] == 'split' and after['details']['for_user']
+    assert person['role'] == 'ex' and person['status'] == 'removed'
+    assert 'because you wanted to be with the user' in client.get('/api/context/preview').json()['prompt']
+
+
+def test_an_open_romance_keeps_their_partner(client, clock, monkeypatch):
+    from companion.life import body
+    monkeypatch.setattr(body, 'state_on', lambda *_args: None)
+    open_romance(client)
+    begin_partner(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
+    [after] = partner_row(client)
+    assert after['ended_on'] is None
+
+
+def test_the_banks_keep_to_the_citys_time_and_the_season():
+    bank, cities = love_life.bank(), catalog.cities()
+    every = {*bank['met'], *bank['share_new'], *bank['dates'], *bank['splits'],
+             *(line for lines in bank['milestones'].values() for line in lines)}
+    assert set(bank['tags']) == {'older', 'modern', 'cold', 'warm'}
+    assert set(love_life.tags()) <= every
+    june, january = date(2027, 6, 12), date(2027, 1, 12)
+    baltimore, london = cities['baltimore'], cities['london-1895']
+    modern_june = love_life.fitting(bank['met'] + bank['dates'], baltimore, june)
+    assert 'outside the theatre in the rain, sharing a cloak' not in modern_june
+    assert 'Played in the snow with {partner}. Lost the snowball fight badly.' not in modern_june
+    assert 'Played in the snow with {partner}. Lost the snowball fight badly.' in love_life.fitting(
+        bank['dates'], baltimore, january)
+    assert 'Picnic in the park with {partner}. The ants came too.' not in love_life.fitting(
+        bank['dates'], baltimore, january)
+    older = love_life.fitting(bank['splits'], london, june)
+    assert '{partner} ended it in a letter. A letter! After all that time.' not in older
+    assert 'outside the theatre in the rain, sharing a cloak' in love_life.fitting(bank['met'], london, june)
+    # Miami never freezes; a city the app doesn't know reads as today's, in a northern year.
+    assert not set(bank['tags']['cold']) & set(love_life.fitting(bank['dates'], cities['miami'], january))
+    assert love_life.fitting(bank['met'], None, june) == love_life.fitting(bank['met'], baltimore, june)
+    # No "met" line puts the partner behind a counter (a data analyst became "the guy from the tailor's shop").
+    assert not [line for line in bank['met'] if re.search(r'came out with an invitation|of \{their\} honey', line)]
+
+
+def test_the_paper_says_were_wed_in_older_eras(monkeypatch):
+    from companion.world import couples as couples_module
+    data = catalog.cities()['london-1895']
+    sheet = townsfolk.residents(data, data['neighborhoods'][0]['id'])[0]
+    item = {'what': 'married', 'day': date(1895, 6, 12), 'partner': {'name': 'George', 'full': 'George Hale'}}
+    monkeypatch.setattr(paper, 'sample', lambda _data: [sheet])
+    monkeypatch.setattr(couples_module, 'events', lambda *_args: [item])
+    [found] = paper.couples_news(data, (date(1895, 6, 10), date(1895, 6, 16)))
+    assert found['headline'] == f"{sheet['name']} and George were wed." and ' wed on ' in found['text']
+    [modern] = paper.couples_news(catalog.cities()['baltimore'], (date(2027, 6, 10), date(2027, 6, 16)))
+    assert modern['headline'].endswith('got married.')

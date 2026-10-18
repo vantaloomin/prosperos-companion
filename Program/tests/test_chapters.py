@@ -188,3 +188,10 @@ def test_a_friend_moves_to_a_city_of_their_own_time():
     assert not chapters.same_world(baltimore, jazz) and not chapters.same_world(baltimore, camelot)
     assert chapters.same_world(jazz, cities['pellmouth']) and not chapters.same_world(jazz, cities['whitlock'])
     assert not chapters.same_world(cities['grandport'], cities['emerald-city'])
+
+
+def test_a_friend_far_away_keeps_in_touch_by_letter_before_phones():
+    from companion.world import catalog
+    cities = catalog.cities()
+    assert chapters.by(cities['baltimore']) == chapters.by(cities['new-york-1925']) == chapters.by(None) == 'by phone'
+    assert chapters.by(cities['london-1895']) == chapters.by(cities['camelot']) == 'by letter'
