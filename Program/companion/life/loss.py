@@ -30,6 +30,7 @@ No model decides anything; the model only puts it into words.
 """
 import json
 import random
+import re
 from datetime import date, datetime, timedelta
 from functools import cache
 
@@ -70,11 +71,30 @@ FEELS = {
     'lifting': "it's lifting slowly: you're mostly yourself again, with the odd quiet moment",
 }
 CAUSES = {'illness': 'after an illness', 'old age': 'peacefully, of old age', 'sudden': 'suddenly'}
+# The banks' lines that need a later era (texting, a phone, a radio, a photograph): the city's era as a rank, and the
+# rank each needs. Other lines fit any era.
+ERA_RANKS = {'modern': 3, 'future': 3, 'other': 3, 'jazz-age': 2, 'victorian': 1, 'steampunk': 1, 'frontier': 1}
+ERA_NEEDS = ((re.compile(r'\btext', re.IGNORECASE), 3),
+             (re.compile(r'\bcall|\bphone|\bradio\b|\bcrossword', re.IGNORECASE), 2),
+             (re.compile(r'\bphotograph|\bcoffee\b|\bcocoa\b|\bpostcard|\bpocket watch', re.IGNORECASE), 1))
 
 
 @cache
 def bank() -> dict:
     return json.loads((catalog.DATA / 'loss.json').read_text(encoding='utf-8'))
+
+
+def era_of(connection, companion: dict) -> str:
+    """The era of the companion's city ('modern' without one)."""
+    from companion.life import outings
+    data = outings.city_data(connection, companion['version']['definition'])
+    return (data or {}).get('era') or 'modern'
+
+
+def fitting(lines: list[str], era: str) -> list[str]:
+    """The lines that fit the era: no texting before phones, no radio in 1895, no photograph in Camelot."""
+    rank = ERA_RANKS.get(era, 0)
+    return [line for line in lines if all(rank >= need for pattern, need in ERA_NEEDS if pattern.search(line))] or lines
 
 
 def first(name: str) -> str:
@@ -240,7 +260,7 @@ def advance(connection, companion: dict, now: datetime) -> None:
 def happen(connection, companion: dict, row: dict, now) -> None:
     """They pass away: late in the circle (out of every upcoming day), their unfinished storylines end and a caring
     turn for them closes."""
-    from companion.life import storylines
+    from companion.life import agenda, storylines
     person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['person_id'],))
     if person is None or person['status'] != 'active':
         connection.execute('DELETE FROM losses WHERE id=?', (row['id'],))
@@ -249,6 +269,7 @@ def happen(connection, companion: dict, row: dict, now) -> None:
     connection.execute("UPDATE circle_people SET status='removed', details=?, revision=revision+1, updated_at=? "
                        'WHERE id=?', (encode({**details, 'late': row['died_on']}), stamp(now), person['id']))
     connection.execute('UPDATE losses SET happened=1, updated_at=? WHERE id=?', (stamp(now), row['id']))
+    agenda.forget_person(connection, row['timeline_id'], person['id'], now)  # No more plans or drop-ins with them.
     storylines.end_removed(connection, row['timeline_id'], local_today(companion, now))
     end_care(connection, companion, row)
 
@@ -377,22 +398,22 @@ def long_date(day: str) -> str:
     return f'{found:%A}, {found.day} {found:%B}'
 
 
-def memory(row: dict, today: date) -> str:
+def memory(row: dict, today: date, era: str = 'modern') -> str:
     """Now and then, something small brings them back (one day in MEMORY_ONE_IN, seeded)."""
     if generators.unit(row['id'], 'memory', today.isoformat()) * MEMORY_ONE_IN >= 1:
         return ''
-    line = generators.pick(row['id'], f'memory:{today.isoformat()}', bank()['memories'])
+    line = generators.pick(row['id'], f'memory:{today.isoformat()}', fitting(bank()['memories'], era))
     found = pronouns.person(row['details'].get('pronouns'))
     return f" Today something brought {found['them']} back: {line.format(**found)}."
 
 
-def grief_line(row: dict, name: str, today: date, definition: dict) -> str:
+def grief_line(row: dict, name: str, today: date, definition: dict, era: str = 'modern') -> str:
     gap = (today - date.fromisoformat(row['died_on'])).days
     ago = 'today' if gap == 0 else 'yesterday' if gap == 1 else f'{gap} days ago'
     cause = f", {CAUSES[row['details']['cause']]}" if row['details'].get('cause') in CAUSES else ''
     text = (f"- {who(row, definition)[:1].upper()}{who(row, definition)[1:]} died on {long_date(row['died_on'])} "
             f"({ago}){cause}. You're grieving, and {FEELS[name]}.")
-    return (text + memory(row, today) + " You don't need to bring it up every time, and you can still laugh and enjoy "
+    return (text + memory(row, today, era) + " You don't need to bring it up every time, and you can still laugh and enjoy "
             'things.')
 
 
@@ -411,11 +432,12 @@ def remembered_line(row: dict, today: date, definition: dict) -> str:
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     """(identity, line) for the 'loss' section: the grief while it lasts, then anniversaries and the plain fact."""
     today, definition = local_today(companion, now), companion['version']['definition']
-    result = []
+    result, era = [], era_of(connection, companion)
     for row in rows(connection, companion['active_timeline_id']):
         name = stage(row, today)
         if name:
-            result.append((f"loss:{row['id']}:{name}:{today.isoformat()}", grief_line(row, name, today, definition)))
+            result.append((f"loss:{row['id']}:{name}:{today.isoformat()}",
+                           grief_line(row, name, today, definition, era)))
         elif date.fromisoformat(row['died_on']) <= today and row['kind'] == 'circle':
             result.append((f"loss:{row['id']}:after:{today.isoformat()}", remembered_line(row, today, definition)))
     return result
@@ -436,7 +458,8 @@ def moods(connection, companion: dict, now) -> list[tuple[tuple[str, int], str]]
         return []
     row = found[0]
     feeling = ('sad', 2 if found[1] == 'raw' and row['details'].get('depth', 1) >= 2 else 1)
-    return [(feeling, f"{first(companion['version']['name'])}'s {circle.role_kind(row['role'])} "
+    said = circle.said(row['role'], companion['version']['definition'])  # 'dad', as the A/B'd note had it
+    return [(feeling, f"{first(companion['version']['name'])}'s {said} "
                       f"{first(row['name'])} died" if row['kind'] == 'circle' else
              f"{first(row['name'])} from town died")]
 
@@ -457,14 +480,14 @@ def news_due(connection, companion: dict, now) -> list:
     if not ACTIVE or not FIRST_TEXTS or not companion.get('active_timeline_id'):
         return []
     today, definition = local_today(companion, now), companion['version']['definition']
-    result = []
+    result, lines = [], fitting(bank()['news'], era_of(connection, companion))
     for row in rows(connection, companion['active_timeline_id']):
         gap = (today - date.fromisoformat(row['died_on'])).days
         if row['kind'] != 'circle' or not 0 <= gap < TOLD_DAYS:
             continue
         when = 'today' if gap == 0 else 'yesterday'
         cause = f", {CAUSES[row['details']['cause']]}" if row['details'].get('cause') in CAUSES else ''
-        line = random.Random(f"{row['id']}:news").choice(bank()['news']).format(
+        line = random.Random(f"{row['id']}:news").choice(lines).format(
             who=who(row, definition).replace('your ', 'my ', 1), when=when)
         result.append(Trigger(f"loss:{row['id']}", 'storyline',
                               f"Something sad just happened: {who(row, definition)} died {when}{cause}. Tell the user, "
@@ -485,7 +508,7 @@ def customs(connection, companion: dict) -> dict:
 def funerals(connection, companion: dict, today: date, now) -> list[dict]:
     """A funeral for each loss of theirs, some days on by the city's customs."""
     from companion.life import big_days
-    rules = customs(connection, companion)
+    rules, definition = customs(connection, companion), companion['version']['definition']
     result = []
     for row in rows(connection, companion['active_timeline_id']):
         died = date.fromisoformat(row['died_on'])
@@ -495,7 +518,7 @@ def funerals(connection, companion: dict, today: date, now) -> list[dict]:
         day = died + timedelta(days=low + int(generators.unit(row['id'], 'funeral') * (high - low + 1)))
         day = max(day, today + timedelta(days=big_days.SOONEST))
         result.append(big_days.candidate('funeral', f"loss:{row['id']}", None, day, name=row['name'],
-                                         role=row['role'] if row['kind'] == 'circle' else '',
+                                         role=circle.said(row['role'], definition) if row['kind'] == 'circle' else '',
                                          town=row['town_key'] or '', local=row['details'].get('local', True),
                                          city=row['details'].get('city', ''), loss_id=row['id'], word=rules['word'],
                                          at=rules['at'], until=rules['until'], wear=rules['wear'],
@@ -519,12 +542,21 @@ def venue_for(connection, companion: dict, data: dict, seed: str, day: date) -> 
     words = re.compile(rf"\b(?:{rules['words']})", re.IGNORECASE)
     places = [item for item in data['places'] if not any(word in item['name'].lower() for word in big_days.NOT_PARTY)
               and item['kind'] not in wedding.OUTDOOR and not wedding.OUTDOOR_NAMES.search(item['name'])]
-    options = [item for item in places if words.search(item['name'])] or [
-        item for item in places if item['kind'] == 'temple']
+    options = held_in(places, words) or [item for item in places if item['kind'] == 'temple']
     if options:
         return outings.place_view(generators.pick(seed, 'venue', options), data)
     return {'id': '~funeral', 'name': rules['venue'], 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
             'cuisine': '', 'city': data['name'], 'city_id': data['id'], 'spots': []}
+
+
+def held_in(places: list[dict], words) -> list[dict]:
+    """Places named for a funeral by the customs' words that are a place of worship, or a landmark named for more
+    than being a hall: never a food hall, an arena, a bar (The Churchill Arms) or the abbey's library."""
+    import re
+    named = [item for item in places if words.search(item['name'])]
+    return [item for item in named if item['kind'] == 'temple'] or [
+        item for item in named if item['kind'] == 'landmark' and words.search(re.sub(r'\bhall\b', '', item['name'],
+                                                                                     flags=re.IGNORECASE))]
 
 
 def gone(connection, row: dict) -> bool:
@@ -576,11 +608,13 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -
         if row['happened'] and row['died_on'] <= cutoff_date:
             consequence = consequences.copy(connection, row['consequence_id'], new_id, row['consequence_id']) \
                 if row['consequence_id'] else None
+            copied = identifier()
             connection.execute(
                 'INSERT INTO losses (id, timeline_id, kind, person_id, town_key, name, role, details, died_on, happened, '
                 'consequence_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)',
-                (identifier(), new_id, row['kind'], person_id, row['town_key'], row['name'], row['role'],
+                (copied, new_id, row['kind'], person_id, row['town_key'], row['name'], row['role'],
                  row['details'], row['died_on'], consequence, row['created_at'], row['updated_at']))
+            follow_funeral(connection, new_id, row['id'], copied)
         elif person_id:
             person = optional(connection, 'SELECT details FROM circle_people WHERE id=?', (person_id,))
             details = decode(person['details']) if person else {}
@@ -588,3 +622,10 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -
                 details.pop('late')
                 connection.execute("UPDATE circle_people SET status='active', details=? WHERE id=?",
                                    (encode(details), person_id))
+
+
+def follow_funeral(connection, timeline_id: str, old_id: str, new_id: str) -> None:
+    """The funeral the copy carried over (companion/life/big_days.py `copy`) is for the copy's own loss, so it is not
+    planned a second time."""
+    connection.execute("UPDATE big_days SET source=?, details=json_set(details, '$.loss_id', ?) WHERE timeline_id=? AND "
+                       'source=?', (f'loss:{new_id}', new_id, timeline_id, f'loss:{old_id}'))
