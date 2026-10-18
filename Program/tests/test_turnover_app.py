@@ -11,7 +11,7 @@ from test_drafting import connect
 from companion import dating as matchlight
 from companion.characters import require_current
 from companion.life import citymap, encounters, network, web
-from companion.world import townsfolk, turnover
+from companion.world import paper, townsfolk, turnover
 
 
 @pytest.fixture(autouse=True)
@@ -83,3 +83,35 @@ def test_a_match_who_left_town_cant_be_met_on_a_date(client, clock):
     refused = client.post('/api/dating/dates', json={'key': key, 'place_id': match['places'][0]['id']})
     assert refused.status_code == 409 and 'has ' in refused.json()['detail']
     assert client.get('/api/companion/cast/draft', params={'key': key}).status_code == 409
+
+
+def test_the_paper_reads_the_companions_own_town(client, clock, chatty, monkeypatch):  # noqa: F811
+    mira, person = met_someone(client, clock)
+    ok(client.post('/api/companion/town', json={'fresh': True}))
+    seen = {}
+
+    def issue(_connection, data, _world, day):
+        seen.update(data)
+        return {'townsfolk': []}
+    monkeypatch.setattr(paper, 'issue', issue)
+    ok(client.get('/api/life/paper'))
+    assert seen['town'] and 'kept' in seen and seen['town'] == town(client)['town']
+
+
+def test_a_companion_hears_of_a_loss_in_their_own_town(client, clock, chatty, monkeypatch):  # noqa: F811
+    from companion.life import loss
+    met_someone(client, clock)
+    ok(client.post('/api/companion/town', json={'fresh': True}))
+    towns = []
+    monkeypatch.setattr(encounters, 'history_for', lambda _c, _companion, _cast, _now: towns.append(_cast) or {})
+    resolved = []
+    real = encounters.town_cast
+
+    def cast(connection, companion, data):
+        resolved.append(data.get('town'))
+        return real(connection, companion, data)
+    monkeypatch.setattr(encounters, 'town_cast', cast)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        loss.town(connection, companion, clock.now().date(), clock.now())
+    assert resolved == [companion['town_seed']] and resolved[0]

@@ -273,11 +273,11 @@ def caring(connection, row: dict) -> list[dict]:
 
 def town(connection, companion: dict, today: date, now) -> None:
     """A townsperson the companion knew well passed away (companion/world/turnover.py): a loss of theirs too."""
-    from companion.life import encounters, outings
+    from companion.life import encounters, network, outings
     from companion.world import townsfolk
-    data = outings.city_data(connection, companion['version']['definition'])
-    if not data:
+    if not outings.city_data(connection, companion['version']['definition']):
         return
+    data = network.city(connection, companion)  # Their own town, seeded townsfolk included.
     cast = encounters.town_cast(connection, companion, data)
     for key, meetings in encounters.history_for(connection, companion, cast, now).items():
         sheet = encounters.resolve(data, key, cast) if len(meetings) >= KNOWS_TOWNSPERSON else None
