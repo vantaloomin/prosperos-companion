@@ -1,5 +1,5 @@
 """Next steps (companion/life/steps.py): the ladder, asks either way, a friend falling for you, and the Character page."""
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 from conftest import reconcile, send, set_life
@@ -357,7 +357,7 @@ def test_each_step_is_an_anniversary_and_exclusive_is_known(client, clock, monke
         found = [item for item in occasions.occasions(connection, current(connection), clock.now())
                  if item['kind'] == 'step_anniversary']
     assert [item['text'] for item in found] == [
-        f"- Today it has been a year since you and the user became exclusive ({date(2026, 10, 5):%d %B %Y})."]
+        "- Today it has been a year since you and the user became exclusive (5 October 2026)."]
     # Today says which step it was (E2E v0.13: it read "a year since you two started talking").
     assert (found[0]['did'], found[0]['span']) == ('became exclusive', 'a year')
 

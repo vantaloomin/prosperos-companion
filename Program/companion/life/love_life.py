@@ -523,6 +523,32 @@ def pair_text(connection, companion: dict, found: dict, today: date) -> str:
     return steps.plain_text(LADDER, steps.ROMANCE[top], rows, today)
 
 
+# The steps that change a life, named next to the top one so the model doesn't forget them ("together 3 months:
+# living together, engaged", not only "engaged"; E2E v0.13 W10).
+LIFE_STEPS = ('moving_in', 'engaged', 'married')
+
+
+def lived(connection, companion: dict, found: dict) -> list[str]:
+    """The life-changing steps the pair reached, as states, lowest first; engaged gives way to married."""
+    have = {row['step'] for row in steps.reached(connection, companion['active_timeline_id'], LADDER, key_of(found))}
+    states = [steps.step_of(LADDER, key).state for key in LIFE_STEPS if key in have]
+    return [state for state in states if not (state == 'engaged' and 'married' in states)]
+
+
+def history_text(connection, companion: dict, found: dict, today: date) -> str:
+    """'together 3 months: living together, engaged', or the plain standing when nothing went before the top step."""
+    standing = pair_text(connection, companion, found, today).lower()
+    head, sep, top = standing.rpartition(', ')
+    before = [state for state in lived(connection, companion, found) if state != top]
+    return f"{head}: {', '.join([*before, top])}" if sep and before else standing
+
+
+def had_text(connection, companion: dict, found: dict) -> str:
+    """'; you had been living together and engaged', after a split."""
+    states = lived(connection, companion, found)  # At most two: living together, and engaged or married.
+    return f"; you had been {' and '.join(states)}" if states else ''
+
+
 def jealous(definition: dict) -> bool:
     return any(JEALOUS.search(trait.get('name') or '') for trait in definition.get('emotional_traits') or [])
 
@@ -535,7 +561,7 @@ def partner_line(connection, companion: dict, found: dict, today: date) -> str:
         return (f'- You have been secretly seeing {name}{describe(found)} on the side since {since}. The user does '
                 f'not know. Keep it from them: never mention {them}, and if you are asked where you were, keep it '
                 'vague.')
-    standing = pair_text(connection, companion, found, today).lower()
+    standing = history_text(connection, companion, found, today)
     if mode(connection, companion) == 'open':  # Not an ex of the user's (their sheet still says romance).
         feeling = ('You still feel a pang of jealousy about the user seeing other people, as your nature is.'
                    if jealous(definition) else 'Neither of you is jealous about it.')
@@ -546,7 +572,7 @@ def partner_line(connection, companion: dict, found: dict, today: date) -> str:
 
 
 ENDED = {
-    'split': ('- You and {name} broke up {date}. It still stings a little. You need not bring it up yourself, but '
+    'split': ('- You and {name} broke up {date}{had}. It still stings a little. You need not bring it up yourself, but '
               'if the user asks about {first}, tell them you two broke up.'),
     'came_out': ('- The user found out {date} that you had been seeing {name} behind their back ({via}). You ended '
                  'it with {first} that same day, and it is over: tell the user so. You know you hurt them: own it, do '
@@ -570,7 +596,7 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         elif found['ended_how'] in ENDED and (today - date.fromisoformat(found['ended_on'])).days <= TOLD_DAYS:
             result.append((f"love:{found['id']}:{found['ended_how']}", ENDED[found['ended_how']].format(
                 name=found['name'], first=first(found['name']), date=on(found['ended_on'], today),
-                via=VIA.get(found['out_via'] or '', ''))))
+                via=VIA.get(found['out_via'] or '', ''), had=had_text(connection, companion, found))))
     return result + saw_lines(connection, companion, today)
 
 

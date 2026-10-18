@@ -198,6 +198,9 @@ def test_they_move_up_the_steps_and_can_split_up(client, mira, clock, monkeypatc
         reached = [row['step'] for row in steps.reached(connection, found['timeline_id'], 'romance',
                                                         love_life.key_of(found))]
     assert reached[-1] == 'married' and person['role'] in ('wife', 'husband', 'spouse')
+    with client.app.state.database.connect() as connection:  # The line names the life they share, not only the top.
+        line = dict(love_life.context_lines(connection, current(client), clock.now()))[f"love:{found['id']}"]
+    assert ': living together, married.' in line
 
     force(monkeypatch, 2)
     clock.advance(timedelta(days=400))
@@ -209,6 +212,9 @@ def test_they_move_up_the_steps_and_can_split_up(client, mira, clock, monkeypatc
     with client.app.state.database.connect() as connection:
         items = love_life.news_items(connection, current(client), '2000-01-01', '2100-01-01')
     assert any(item['text'].startswith(f"Mira and {found['name'].split()[0]} broke up") for item in items)
+    with client.app.state.database.connect() as connection:
+        had = love_life.had_text(connection, current(client), after)
+    assert had == '; you had been living together and married'  # Said in the split line: "broke up on ...; you had been"
 
 
 def test_the_user_can_make_it_go_another_way(client, mira, clock, monkeypatch):  # noqa: F811

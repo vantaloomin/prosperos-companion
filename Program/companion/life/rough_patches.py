@@ -658,14 +658,29 @@ LINES = {
                'words, before anything else, and mean it; say what happened without piling on excuses.'),
     'theirs_said': ('- You let the user down recently ({what}) and you have apologised. Do not bring it '
                     'up again unless they do; be a little extra warm.'),
+    # Owning up to seeing someone behind their back is not a cancelled plan: no "extra warm" (E2E v0.13 W12).
+    'theirs_owned': ('- You let the user down recently ({what}), and you have owned up and apologised. Do not bring it '
+                     'up again unless they do; give them room, and do not act as if nothing happened.'),
     'mended': ('- Things were tense between you and the user (what happened: {about}). They just {how}, and that is '
                'enough for you: accept it in your own words and let things be warm between you again.'),
     'forgiven': '- The user forgave you for {deed}. Things are good between you again.',
+    # After calling off a plan: what kept them still happened today, so the free evening is no nice surprise (E2E R1).
+    'forgiven_reason': ('- The user forgave you for calling off {plan} at the last minute. Things are good between you '
+                        'again. What kept you ({reason}) is still part of your day, so do not talk about the evening as '
+                        'if it opened up or was a nice surprise.'),
 }
 def deed(row: dict) -> tuple[str, str]:
     """What they did, said two ways (THEIR_DEED), for a rough patch of their making."""
     what, doing = THEIR_DEED.get(row['cause'], THEIR_DEED['stood_up'])
     return what.format(about=row['about']), doing.format(about=row['about'])
+
+
+def forgiven_line(row: dict) -> str:
+    """The user forgave them; for calling off a plan, with the reason they gave, which still stands."""
+    plan, _sep, reason = row['about'].rpartition(' (')
+    if row['cause'] != 'stood_up' or not plan:
+        return LINES['forgiven'].format(deed=deed(row)[1])
+    return LINES['forgiven_reason'].format(plan=plan, reason=reason.removesuffix(')'))
 
 
 MENDED_HOW = {'apology': 'apologised', 'gesture': 'made it up to you', 'you': 'cleared the air'}
@@ -682,11 +697,12 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         if made is None or made['size'] == 'small' or not picked_open(connection, made):
             return []
         if made['fault'] == 'companion':
-            return [(f"patch:{made['id']}:forgiven", LINES['forgiven'].format(deed=deed(made)[1]))]
+            return [(f"patch:{made['id']}:forgiven", forgiven_line(made))]
         return [(f"patch:{made['id']}:mended", LINES['mended'].format(
             how=MENDED_HOW.get(made['mended_by'], 'made up with you'), about=made['about']))]
     if row['fault'] == 'companion':
-        key = 'theirs_said' if apologised(connection, row) else 'theirs'
+        key = ('theirs_owned' if row['cause'] == 'hidden_partner' else 'theirs_said') if apologised(connection, row) \
+            else 'theirs'
         return [(f"patch:{row['id']}:{key}", LINES[key].format(what=deed(row)[0]))]
     if row['size'] == 'small':
         return [(f"patch:{row['id']}:small", LINES['small'].format(about=row['about']))]

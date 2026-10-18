@@ -253,7 +253,8 @@ def test_they_can_stand_you_up_and_apologise_first(client, patches, provider, cl
     says(provider)
     send(client, "it's okay, these things happen", 'client-patch-21')
     assert not patch(client)['open']
-    assert 'The user forgave you for calling off' in notes(provider)
+    assert 'The user forgave you for calling off a visit to the user' in notes(provider)
+    assert 'What kept you (' in notes(provider) and 'nice surprise' in notes(provider)
 
 
 def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
@@ -333,6 +334,10 @@ def test_their_secret_partner_coming_out_is_theirs_to_apologise_for(client, patc
     says(provider)
     send(client, 'hey', 'client-patch-30')
     assert 'You let the user down: the user found out you had been seeing Jordan behind their back.' in notes(provider)
+    says(provider)
+    send(client, 'I need some time to think.', 'client-patch-30b')
+    # Owned up: room, not "be a little extra warm".
+    assert 'you have owned up and apologised' in notes(provider) and 'extra warm' not in notes(provider)
     says(provider)
     send(client, "I forgive you", 'client-patch-31')
     assert not patch(client)['open']

@@ -85,8 +85,8 @@ NOT_NOW = re.compile(r"\b(?:if|what if|imagine|pretend|suppose|said|says|told|te
 
 
 @cache
-def bank(name: str) -> list[str]:
-    return json.loads((catalog.DATA / 'breakups' / f'{name}.json').read_text(encoding='utf-8'))['templates']
+def bank(name: str, key: str = 'templates') -> list[str]:
+    return json.loads((catalog.DATA / 'breakups' / f'{name}.json').read_text(encoding='utf-8'))[key]
 
 
 # Settings and whether it applies ------------------------------------------------------------------------------------
@@ -527,20 +527,34 @@ REASONS = {
                    'distance from the friendship for now. Tell them honestly and without cruelty, in your own words.',
     'reach_out': 'You and the user broke up a while ago, and you keep thinking about them. Reach out, tentatively, in '
                  'your own words, to see whether they would want to talk about trying again. Leave them room to say no.',
+    'try_again': 'You and the user have been on a break, and you have decided you want to try again. Tell them, warmly '
+                 'and a little carefully, in your own words.',
 }
+# How long after the end of a break the first text saying they want to try again can still go.
+TRY_AGAIN_FOR = timedelta(days=3)
+# A companion message that names the break: until one does, they are still to tell the user (`break_tell`).
+NAMES_BREAK = re.compile(r"\b(?:break|time apart|space|step back)\b", re.IGNORECASE)
 
 
-def told(connection, row: dict, at: str) -> bool:
-    """Whether they have written to the user since `at` (the line told them to say it, or a first text did)."""
-    return bool(optional(connection, "SELECT id FROM messages WHERE timeline_id=? AND role='companion' "
-                         "AND status='complete' AND created_at>=? LIMIT 1", (row['timeline_id'], row[at])))
+def told(connection, row: dict, at: str, naming: re.Pattern | None = None) -> bool:
+    """Whether they have written to the user since `at` (the line told them to say it, or a first text did); with
+    `naming`, in a message that says it ("we should probably give it a minute" never named the break)."""
+    query = ("SELECT text FROM messages WHERE timeline_id=? AND role='companion' AND status='complete' AND created_at>=?"
+             + ('' if naming else ' LIMIT 1'))
+    return any(naming is None or naming.search(item['text'] or '') for item in many(connection, query,
+                                                                                     (row['timeline_id'], row[at])))
 
 
 def news_due(connection, companion: dict, now: datetime) -> list:
-    """They asked for a break, ended it, or fell out, and haven't said so yet; or reaching out is due."""
+    """They asked for a break, ended it, or fell out, and haven't said so yet; they decided at the end of a break to
+    try again; or reaching out is due."""
     from companion.life.openers import Trigger
     if not ACTIVE or not FIRST_TEXTS or not applies(connection, companion):
         return []
+    last, last_found = latest(connection, companion)
+    if last and last_found == 'together' and try_again_due(connection, last, now):
+        return [Trigger(f"breakup:{last['id']}:try_again", 'breakup', REASONS['try_again'],
+                        random.Random(f"{last['id']}:try_again").choice(bank('try_again')))]
     row, found = current(connection, companion)
     if row is None:
         return []
@@ -553,9 +567,16 @@ def news_due(connection, companion: dict, now: datetime) -> list:
     reach = open_reach(connection, row) if found == 'ended' else None
     if reach and reach['status'] == 'planned' and reach['due_on'] <= local_today(companion, now).isoformat() and \
             picked(connection, reach['consequence_id']) == YES:
+        lines = bank('reaching_out') + (bank('reaching_out', 'when_they_ended') if row['ended_by'] != 'you' else [])
         return [Trigger(f"breakup-reach:{reach['id']}", 'reach_out', REASONS['reach_out'],
-                        random.Random(reach['id']).choice(bank('reaching_out')), (reach['id'],))]
+                        random.Random(reach['id']).choice(lines), (reach['id'],))]
     return []
+
+
+def try_again_due(connection, row: dict, now: datetime) -> bool:
+    """At the end of a break they decided to try again (`user:after_break`), and haven't said so yet."""
+    return row['ended_by'] == 'break' and picked(connection, row['ended_id']) == TOGETHER and \
+        now - parse(row['ended_at']) < TRY_AGAIN_FOR and not told(connection, row, 'ended_at')
 
 
 def settle(connection, companion: dict, message: dict, trigger, timestamp: str) -> None:
@@ -804,7 +825,8 @@ def line_key(connection, row: dict, found: str, now: datetime, turn: set[str]) -
             return 'fell_out_tell' if friend else 'end_tell'
         return 'fell_out' if friend else 'ended'
     if found == 'break':
-        return 'break_tell' if row['break_by'] == 'them' and not told(connection, row, 'break_at') else 'break'
+        return 'break_tell' if row['break_by'] == 'them' and not told(connection, row, 'break_at', NAMES_BREAK) else \
+            'break'
     return found if found in ('strained', 'thinking') else None
 
 
