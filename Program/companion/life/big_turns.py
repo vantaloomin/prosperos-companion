@@ -370,7 +370,13 @@ def progress(connection, companion: dict, world, day: date, now) -> int:
 
 
 def save_stage(connection, row: dict, update: dict, day: date):
-    details = {**decode(row['details']), **update['details'], 'stage_on': day.isoformat()}
+    """The stage's words, changes and details on the row, keeping the row as it stood before (`before`), so a fork from
+    an earlier day can take the turn back to how it was then (`fork_row`)."""
+    earlier = decode(row['details'])
+    snapshot = {'title': row['title'], 'told': row['told'], 'share': row['share'], 'changes': decode(row['changes']),
+                'undo': decode(row['undo']), 'details': {key: value for key, value in earlier.items() if key != 'before'}}
+    details = {**earlier, **update['details'], 'stage_on': day.isoformat(),
+               'before': [*earlier.get('before', []), snapshot]}
     undo = decode(row['undo'])
     for key, value in update.get('undo', {}).items():
         undo[key] = [*undo.get(key, []), *value] if isinstance(value, list) else value
@@ -449,6 +455,37 @@ STAGES = {('school', 'enrolled'): classes_start, ('school', 'studying'): graduat
           ('buy_place', 'hunting'): keys_day, ('retire', 'leaving'): retire}  # + part 2, below
 
 
+def fork_row(connection, row: dict, copy_id: str, timeline_id: str, cutoff: str) -> dict:
+    """A big turn copied onto a fork (timelines.py) as it stood on the fork's day: stages that came later are taken back
+    (the fork's own days bring them again), and the outcomes its stages rolled by then are copied to the fork, so an
+    undo there never touches the timeline it came from."""
+    found, details = dict(row), decode(row['details'])
+    while details.get('before') and details.get('stage_on', '') > cutoff:
+        snapshot = details['before'][-1]
+        details = {**snapshot['details'], 'before': details['before'][:-1]}
+        found.update(title=snapshot['title'], told=snapshot['told'], share=snapshot['share'],
+                     changes=encode(snapshot['changes']), undo=encode(snapshot['undo']))
+    undo = decode(found['undo'])
+    if undo.get('decided'):
+        undo['decided'] = [forked_outcome(connection, consequence_id, row['id'], copy_id, timeline_id)
+                           for consequence_id in undo['decided'] if decided_by(connection, consequence_id, cutoff)]
+    if undo.get('moving_in'):  # The fork's own shared home, the copy of this one (moving_in.copy keeps `origin`).
+        home = optional(connection, 'SELECT id, origin FROM moving_in WHERE id=?', (undo['moving_in']['id'],))
+        undo['moving_in'] = {**undo['moving_in'], 'timeline_id': timeline_id,
+                             'origin': (home['origin'] or home['id']) if home else undo['moving_in']['id']}
+    return {**found, 'id': copy_id, 'timeline_id': timeline_id, 'undo': encode(undo), 'details': encode(details)}
+
+
+def decided_by(connection, consequence_id: str, cutoff: str) -> bool:
+    found = optional(connection, 'SELECT decided_on FROM consequences WHERE id=?', (consequence_id,))
+    return bool(found and found['decided_on'] <= cutoff)
+
+
+def forked_outcome(connection, consequence_id: str, row_id: str, copy_id: str, timeline_id: str) -> str:
+    subject = optional(connection, 'SELECT subject FROM consequences WHERE id=?', (consequence_id,))['subject']
+    return consequences.copy(connection, consequence_id, timeline_id, subject.replace(row_id, copy_id))
+
+
 def reverse(connection, found: dict):
     """What an undone big turn changed beyond home items: the shared home goes back where it was, and the marks its
     stages' outcomes left (a business's months, how caring goes) come off."""
@@ -456,6 +493,11 @@ def reverse(connection, found: dict):
         consequences.clear_marks(connection, consequence_id)
     if found.get('moving_in'):
         back = found['moving_in']
+        if back.get('timeline_id'):  # Undone on a fork: the fork's copy of the shared home (fork_row).
+            connection.execute('UPDATE moving_in SET neighbourhood=?, home_item_id=? WHERE timeline_id=? AND '
+                               '(origin=? OR id=?)', (back['neighbourhood'], back['home_item_id'], back['timeline_id'],
+                                                      back['origin'], back['origin']))
+            return
         connection.execute('UPDATE moving_in SET neighbourhood=?, home_item_id=? WHERE id=?',
                            (back['neighbourhood'], back['home_item_id'], back['id']))
 
