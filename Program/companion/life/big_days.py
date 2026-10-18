@@ -439,6 +439,9 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
             or day < today + timedelta(days=SOONEST) or kind.modern and not modern_city(connection, companion):
         return None
     row_id, timestamp = identifier(), stamp(now)
+    if found['details'].get('role'):  # As they say it in their era: 'mother' in 1895 (circle.said).
+        found = {**found, 'details': {**found['details'],
+                                      'role': circle.said(found['details']['role'], companion['version']['definition'])}}
     seed = f"bigday:{timeline_id}:{found['source']}"
     place = {**place_for(connection, companion, kind, day, seed, found['details']),
              'modern': modern_city(connection, companion)}

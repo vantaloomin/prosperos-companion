@@ -580,3 +580,13 @@ def test_the_day_with_you_reads_with_you_last(client, clock):
     found = outings.entry({'outing': outing}, {}, {'name': 'Mira'})
     assert found['summary'].startswith(f"Mira went to {outing['place']['title']} at {outing['place']['name']} with you")
     assert 'Fells Point' not in found['summary']
+
+
+def test_in_1895_a_parent_is_mother_or_father(client, clock):
+    client.post('/api/companion', json={'name': 'Ada Lowe', 'timezone': 'Europe/London', 'home_city': 'london-1895'})
+    client.get('/api/life/circle')
+    with client.app.state.database.connect(write=True) as connection:
+        row = circle.people(connection, current(connection)['active_timeline_id'])[0]
+        connection.execute("UPDATE circle_people SET role='mom' WHERE id=?", (row['id'],))
+    found = add(client, clock, kind='birthday', role='mom', age=60)
+    assert found['details']['role'] == 'mother' and 'your mother' in big_days.said(found)
