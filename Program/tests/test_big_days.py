@@ -532,3 +532,19 @@ def test_a_big_day_in_working_hours_is_a_day_off_for_it(client, clock):
     assert block['kind'] == 'leisure' and block['label'] == f"{big_days.title(row)} (day off)"
     assert entry['outing']['id'] == outing['id']
     assert party['local_date'] not in off
+
+
+def test_in_an_old_city_the_invitation_and_caption_have_no_cars_texts_or_photos(client, clock):
+    client.post('/api/companion', json={'name': 'Elayne', 'timezone': 'Europe/London', 'home_city': 'Camelot'})
+    client.get('/api/life/circle')
+    row = add(client, clock, role=None, source='test:camelot', name='Cynan Ap Rhys')
+    assert row['place']['modern'] is False
+    for number in range(200):
+        found = {**row, 'id': f'seed-{number}'}
+        for kind in ('wedding', 'own_wedding', 'funeral'):
+            text = big_days.invitation({**found, 'kind': kind}, 'Saturday', '3')
+            assert not big_days.MODERN_ONLY.search(text), text
+        assert not big_days.MODERN_ONLY.search(big_days.caption({'id': f'o-{number}', 'place': row['place']}))
+    modern = {**row['place'], 'modern': True}
+    assert any(big_days.MODERN_ONLY.search(big_days.caption({'id': f'o-{number}', 'place': modern}))
+               for number in range(400))

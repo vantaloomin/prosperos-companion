@@ -118,6 +118,9 @@ KINDS = {
 CHILDS = ('first_birthday',)
 GRADUATION_PLACES = ('university', 'college', 'campus', 'school', 'academy', 'institute')
 NOT_PARTY = ('station', 'hospital', 'clinic', 'airport', 'prison', 'jail', 'court', 'police', 'parking', 'office')
+# Bank lines that only fit a modern city (texts, cars, photos): left out in an old one, by the place's `modern`.
+MODERN_ONLY = re.compile(r"\b(?:cars?|drive|driving|RSVP\w*|calendar|texts?|texting|phones?|photos?|selfies?|cameras?|"
+                         r'coffee|open bar|hii+|vinyl|playlists?|DJ|emojis?|online)\b', re.IGNORECASE)
 
 
 @cache
@@ -127,6 +130,11 @@ def bank() -> dict:
 
 def local_today(companion: dict, now: datetime) -> date:
     return now.astimezone(zone(companion['version']['timezone'])).date()
+
+
+def fitting(lines: list[str], place: dict) -> list[str]:
+    """The bank's lines that fit the city's era (all of them in a modern city)."""
+    return lines if place.get('modern', True) else [line for line in lines if not MODERN_ONLY.search(line)] or lines
 
 
 def first(name: str) -> str:
@@ -430,7 +438,8 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
         return None
     row_id, timestamp = identifier(), stamp(now)
     seed = f"bigday:{timeline_id}:{found['source']}"
-    place = place_for(connection, companion, kind, day, seed, found['details'])
+    place = {**place_for(connection, companion, kind, day, seed, found['details']),
+             'modern': modern_city(connection, companion)}
     gift, cost = gift_for(connection, companion, kind, seed, found['details'])
     lead = random.Random(f'{seed}:invite').randint(*INVITE_BEFORE)
     connection.execute(
@@ -696,11 +705,11 @@ def reason_for(row: dict, day: date) -> str:
 def invitation(row: dict, day: str, time: str) -> str:
     seed = random.Random(f"{row['id']}:line")
     if row['kind'] == 'own_wedding':
-        line = seed.choice(bank()['stand_up']).format(partner=first(row['details']['name']), day=day,
-                                                     place=row['place']['name'])
+        line = seed.choice(fitting(bank()['stand_up'], row['place'])).format(
+            partner=first(row['details']['name']), day=day, place=row['place']['name'])
     else:
         event = said(row).replace('your ', 'my ', 1)
-        lines = bank()['invite_funeral' if row['kind'] == 'funeral' else 'invite']
+        lines = fitting(bank()['invite_funeral' if row['kind'] == 'funeral' else 'invite'], row['place'])
         line = seed.choice(lines).format(event=event, day=day, time=time, place=row['place']['name'])
     return line[:1].upper() + line[1:]
 
@@ -832,7 +841,7 @@ def memory_text(outing: dict, name: str) -> dict:
 
 
 def caption(outing: dict) -> str:
-    return generators.pick(f"bigday:{outing['id']}", 'caption', bank()['captions'])
+    return generators.pick(f"bigday:{outing['id']}", 'caption', fitting(bank()['captions'], outing['place']))
 
 
 def photo_wearing(connection, outing: dict) -> str:
@@ -898,7 +907,7 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
     quiet = row['kind'] in QUIET
     return {'summary': f"{definition['name']} {alone_doing(row)}.",
             'post': 'Said goodbye today.' if quiet else generators.pick(f"bigday:{row['id']}", 'caption',
-                                                                        bank()['captions']),
+                                                                        fitting(bank()['captions'], row['place'])),
             'mood': 'sad' if quiet else 'happy', 'activity': ACTIVITY,
             'place': {key: row['place'].get(key, '') for key in ('id', 'name', 'kind', 'city', 'neighborhood')},
             'with': None, 'weather': block.get('weather'),
