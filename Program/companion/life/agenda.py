@@ -21,6 +21,7 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
     admin,
     ages,
+    big_days,
     body,
     breakups,
     chapters,
@@ -178,6 +179,7 @@ def extend(connection, companion, world, now) -> dict:
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)
     wedding.advance(connection, companion, now)
+    big_days.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
 
 
@@ -577,7 +579,8 @@ def forget_person(connection, timeline_id, person_id, now):
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
     result, known = [], circle.ties(circle.people(connection, timeline_id))
-    at_wedding = wedding.guests_there(connection, timeline_id, now)  # Not at work: at the wedding, as its scene says.
+    # Not at work: at the wedding, or at their own big day (companion/life/big_days.py), as its scene says.
+    at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
     for row in circle.people(connection, timeline_id, include_removed):
         person = circle.view(row)
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \
