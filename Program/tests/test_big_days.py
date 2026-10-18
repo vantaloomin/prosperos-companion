@@ -408,12 +408,12 @@ def test_their_own_graduation_and_retirement_party_come_from_their_life_chapters
     with client.app.state.database.connect() as connection:
         found = {row['kind']: row for row in big_days.rows(connection, current(connection)['active_timeline_id'],
                                                            ('planned',))}
-    assert set(found) == {'own_graduation', 'own_retirement'}
+    assert {'own_graduation', 'own_retirement'} <= set(found)  # The circle's own big days may be found too.
     graduation = found['own_graduation']
     assert graduation['source'] == 'chapter:ch-school' and graduation['gift'] == '' and graduation['at_time'] == '10:00'
     assert big_days.title(graduation, 'Mira Costa') == "Mira's graduation"
     assert big_days.said(found['own_retirement']) == 'your retirement party'
-    assert not any('buzz' in line for line in lines(client, clock))
+    assert not any('buzz' in line and 'graduation' in line for line in lines(client, clock))
     graduation['invite'] = 1
     assert 'there with you' in big_days.reason_for(graduation, date.fromisoformat(graduation['local_date']))
 
@@ -430,7 +430,9 @@ def test_taking_back_cant_make_it_on_today_means_you_are_coming_after_all(client
     advance(client, clock)
     found = row_of(client, row['id'])
     assert found['status'] == 'invited' and found['answered_at'] is None
-    assert 'The user is coming with you as your plus-one.' in lines(client, clock)[0]
+    # The circle's own big days may come first: find this one's line.
+    assert any(found['place']['name'] in line and 'The user is coming with you as your plus-one.' in line
+               for line in lines(client, clock))
 
 
 def branch_at(client, message_id, **body):
@@ -451,7 +453,8 @@ def test_a_branch_keeps_whose_day_it_is_and_what_you_said_and_never_plans_it_twi
     _trigger, outing = invite(client, clock)
     says(provider)
     yes = send(client, 'Yes! I would love to come', 'client-bigday-branch-yes')
-    companion, [copied] = branch_at(client, yes['message']['id'] if 'message' in yes else yes['id'])
+    companion, copies = branch_at(client, yes['message']['id'] if 'message' in yes else yes['id'])
+    [copied] = [item for item in copies if item['local_date'] == row['local_date'] and item['kind'] == 'birthday']
     with client.app.state.database.connect(write=True) as connection:
         mine = optional(connection, "SELECT * FROM circle_people WHERE timeline_id=? AND role='mom'",
                         (companion['active_timeline_id'],))
@@ -471,8 +474,9 @@ def test_a_branch_from_before_your_no_has_you_coming(client, clock, provider):
     says(provider)
     no = send(client, "No, sorry, I can't make it that day.", 'client-bigday-branch-no')
     assert row_of(client, row['id'])['status'] == 'declined'
-    companion, [copied] = branch_at(client, no['message']['id'] if 'message' in no else no['id'],
-                                    text='Yes! I would love to come')
+    companion, copies = branch_at(client, no['message']['id'] if 'message' in no else no['id'],
+                                  text='Yes! I would love to come')
+    [copied] = [item for item in copies if item['source'] == row['source']]
     assert copied['status'] == 'invited' and copied['outing_id'] != outing['id']
     advance(client, clock)
     with client.app.state.database.connect() as connection:
