@@ -98,6 +98,11 @@ def test_historic_cities_use_their_own_currency_and_weekly_pay():
     assert date.fromisoformat(view['payday']['next']).weekday() == 5
     assert view['text']['income'].endswith(view['currency']['symbol'])
     assert view['housing']['label'] == 'a rented room'
+    ada = {'name': 'Ada', 'home_city': 'camelot'}
+    costs = {'rent': 2, 'rent_period': 'week', 'currency': money.profile(ada).city['currency'], 'owned': True,
+             'pets': [], 'vehicles': []}
+    lines = dict(money.context_lines(ada, '2026-10-05', {'costs': costs, 'purchases': []}))
+    assert lines['money:2026-10-05:budget'].endswith('is about 2 d.')  # Never '2 d..'.
 
 
 def test_no_money_or_no_city_leaves_everything_affordable():

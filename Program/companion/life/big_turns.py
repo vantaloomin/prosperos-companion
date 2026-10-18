@@ -315,8 +315,10 @@ def place_to_buy(companion: dict, city: dict, found, together: dict | None, seed
     unit = 'two_bedroom' if together or found.tier >= 2 else 'one_bedroom'
     place = moving_in.shared_place(f'{seed}:place', companion, city, hood, unit)
     payment = place['details'].get('rent') or 0
-    # To the ten, as money.amount says it, so the Home card and the budget show the same number.
-    payment = int(round(payment * random.Random(f'{seed}:mortgage').uniform(*MORTGAGE), -1))
+    # To the ten from 200, as money.amount says it, so the Home card and the budget show the same number; a few
+    # shillings or pennies stay whole (never 0).
+    payment *= random.Random(f'{seed}:mortgage').uniform(*MORTGAGE)
+    payment = int(round(payment, -1)) if payment >= 200 else max(1, round(payment))
     return {**place, 'details': {**place['details'], 'owned': True, 'shared': bool(together), 'rent': payment,
                                  'rent_from': 'mortgage', 'estimate': True, 'city': city['name']}}
 

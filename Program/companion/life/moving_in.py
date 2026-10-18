@@ -39,6 +39,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import home, money, steps, where
+from companion.world import generators
 
 ACTIVE = True
 STEP = 'moving_in'
@@ -481,7 +482,8 @@ def shared_place(seed: str, companion: dict, city: dict | None, hood: dict | Non
         low, high = rents[unit]
         rent = low + (high - low) * random.Random(f'{seed}:rent').random()
         name = home.home_name(place['variety'], unit, city)
-        details.update({'bedrooms': unit, 'rent': int(round(rent / 25) * 25), 'rent_from': 'shared',
+        step = generators.rent_step(rent)  # By 25 in dollars, by 1 in Camelot's pennies (never down to 0).
+        details.update({'bedrooms': unit, 'rent': max(step, int(round(rent / step) * step)), 'rent_from': 'shared',
                         'description': f"{name} in {hood['name']}", 'neighborhood': hood['name']})
         place = {**place, 'name': name}
     return {**place, 'details': {**details, 'shared': True}}

@@ -320,3 +320,17 @@ def test_living_together_they_buy_a_place_for_both(client, provider, clock, monk
     client.post(f"/api/life/chapters/{chapter['id']}/undo")
     with client.app.state.database.connect() as connection:
         assert moving_in.current(connection, companion['active_timeline_id'])['home_item_id'] != place['id']
+
+
+@pytest.mark.parametrize(('city_id', 'location', 'career'), [('camelot', 'Woolston, Camelot', 'baker'),
+                                                             ('london-1895', 'Lambeth, London', 'clerk')])
+def test_a_place_bought_for_pennies_or_shillings_has_a_mortgage_above_nothing(city_id, location, career):
+    from companion.world import catalog
+    city = catalog.cities()[city_id]
+    definition = {'name': 'Elowen Ashby', 'home_city': city_id, 'location': location, 'money': {'career': career},
+                  'identity': 'Elowen is 40.'}
+    companion = {'id': 'c', 'version': {'definition': definition}}
+    found = money.profile(definition)
+    for seed in range(12):
+        place = big_turns.place_to_buy(companion, city, found, None, f'seed-{seed}')
+        assert place and place['details']['rent'] >= 1, place

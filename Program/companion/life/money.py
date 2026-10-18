@@ -646,7 +646,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     found = view['goal']
     progress = 'saving has stalled for now' if found['stalled'] else f"about {round(found['share'] * 100)}% there"
     lines.append(('goal', f"- Saving for {found['label']}: {progress}."))
-    return [(f'money:{local_date}:{key}', line) for key, line in lines]
+    # An amount in pennies or shillings ends in its own stop ('2 d.'): one stop at the end of the line, not two.
+    return [(f'money:{local_date}:{key}', re.sub(r'(?<=[a-z])\.\.$', '.', line)) for key, line in lines]
 
 
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
