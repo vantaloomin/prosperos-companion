@@ -903,12 +903,14 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
     modern = modern_city(connection, companion)
     result = []
     hidden = CHILDS if withheld(connection) else ()
+    ended = steps.apart(connection, companion) == 'ended'  # Broken up: no longer asking the user along.
     for row in rows(connection, companion['active_timeline_id'], ('planned', 'invited', 'declined', 'done')):
         if row['kind'] in hidden:
             continue
         gap = (date.fromisoformat(row['local_date']) - today).days
         if row['status'] != 'done' and gap >= 0:
-            result.append((f"bigday:{row['id']}:{row['status']}", coming_line(row, today)))
+            shown = {**row, 'invite': 0} if ended and row['status'] == 'planned' else row
+            result.append((f"bigday:{row['id']}:{row['status']}", coming_line(shown, today)))
         elif row['status'] == 'done' and -TOLD_DAYS <= gap <= 0:
             result.append((f"bigday:{row['id']}:done", past_line(row, today)))
         buzz = buzz_line(row, today) if modern and row['status'] != 'called_off' else ''
