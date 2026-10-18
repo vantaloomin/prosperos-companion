@@ -389,3 +389,20 @@ def test_the_news_the_memories_and_the_invitation_fit_the_era():
     for index in range(40):
         line = big_days.invitation({**row, 'id': f'x{index}'}, 'Saturday', '11', 'victorian')
         assert not re.search(r'\bcall\b|coffee', line), line
+
+
+def test_the_news_of_a_death_goes_out_before_the_funeral_invitation(client, clock, monkeypatch):
+    make(client)
+    switch(client)
+    dies(monkeypatch, person(client, 'cousin')['id'])
+    monkeypatch.setattr(loss, 'FIRST_TEXTS', True)
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['role'] == 'cousin')
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
+    advance(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE big_days SET invite=1, invite_on=? WHERE kind='funeral'",
+                           (clock.now().date().isoformat(),))
+        kinds = [trigger.key.split(':')[0] for trigger in openers.candidates(connection, current(connection),
+                                                                            clock.now())]
+    assert 'bigday' in kinds and kinds.index('loss') < kinds.index('bigday'), kinds
