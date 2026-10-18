@@ -761,7 +761,7 @@ age goes up on each birthday. Rules only, no model.
 - A companion starts from their looks sheet's age (the Looks age set on the form, else the age their identity
   gives, else seeded). When the user writes another age or birthday, the date is worked out again, so the form
   always wins. The definition's `keeps_age` ("Keeps their age" under Looks on the Character page, off by default)
-  holds them at the age written. A sheet that reads as under 18 never gets a date.
+  holds them at the age they are when it goes on (`held_age`); turned off, they carry on from there. A sheet that reads as under 18 never gets a date.
 - Their Looks line and pictures use the age on that day. Once a birthday takes them past the age their words
   give, their own prompt adds one line after Looks: "You are 35 now; you turned 35 on 3 March." (A/B
   2026-10-18: without it most models answered with the age written.) Their written words stay as they are.

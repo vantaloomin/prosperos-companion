@@ -533,9 +533,9 @@ def age_signs(connection, timeline_id: str, definition: dict, state: dict, so_fa
     companion_id = companion_of(connection, timeline_id)
     row = ages.stored(connection, 'companion', companion_id)
     age = sheet.get('age')
-    if not row or not age or definition.get('keeps_age'):
+    if not row or not age:
         return ''
-    since = ages.age_on(date.fromisoformat(row['born_on']), row['birthday'], date.fromisoformat(row['anchored_on']))
+    since = row['from_age']  # The age their words give, where their date started: what came after it shows.
     shift = AGE_SHIFT[level(connection)]
     wears = so_far.get('glasses') or 'glasses' in (sheet.get('feature') or '')
     allowed = {'grey': 'hair' in fields and not so_far.get('colour'), 'reading': 'feature' in fields and not wears,

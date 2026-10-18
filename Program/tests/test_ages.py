@@ -79,7 +79,7 @@ def test_a_companion_gets_older_on_their_birthday_and_their_prompt_says_so(clien
     assert f"You are 35 now; you turned 35 on {turned.day} {turned.strftime('%B')}." in system
 
 
-def test_the_form_always_wins_and_keeping_their_age_holds_it(client, clock):
+def test_the_form_always_wins_and_keeping_their_age_holds_the_age_they_are(client, clock):
     make(client, birthday=(clock.now() + timedelta(days=1)).strftime('%m-%d'))
     sync(client, clock)
     later = clock.now().date() + timedelta(days=200)
@@ -87,16 +87,25 @@ def test_the_form_always_wins_and_keeping_their_age_holds_it(client, clock):
     revise(client, identity='40. Works as an ER nurse at Mercy. She/her.')
     sync(client, clock)
     assert age_of(client, clock.now().date()) == 40 and age_of(client, later) == 41
+    clock.advance(timedelta(days=30))  # They turned 41.
     revise(client, keeps_age=True)
     sync(client, clock)
-    assert age_of(client, later) == 40
-    clock.advance(timedelta(days=30))
-    sync(client, clock)
-    revise(client, keeps_age=False)  # Turned off again, they carry on from the age written, with no jump.
-    assert age_of(client, clock.now().date()) == 40 and age_of(client, later) == 40
+    # Held at the age they are, not sent back to the 40 written (Iris, v0.14).
+    assert age_of(client, clock.now().date()) == 41 and age_of(client, later + timedelta(days=400)) == 41
     with connect(client, False) as connection:
         companion = client.get('/api/companion').json()['companion']
-        assert ages.turns_on(connection, companion['id'], companion['version']['definition'], later + timedelta(days=200)) == 41
+        assert ages.turns_on(connection, companion['id'], companion['version']['definition'], later) is None
+        line = ages.age_line(connection, companion['id'], companion['version']['definition'],
+                             clock.now().date() + timedelta(days=400))
+    turned = clock.now().date() - timedelta(days=29)
+    assert line == f"You are 41 now; you turned 41 on {turned.day} {turned.strftime('%B')}."
+    clock.advance(timedelta(days=500))
+    sync(client, clock)
+    revise(client, keeps_age=False)  # Let go, they carry on from 41 with no jump.
+    assert age_of(client, clock.now().date()) == 41
+    sync(client, clock)
+    today = clock.now().date()
+    assert age_of(client, today) == 41 and age_of(client, today + timedelta(days=366)) == 42
 
 
 def test_only_the_birthday_changing_keeps_the_age_they_are(client, clock):

@@ -8,8 +8,8 @@ nobody's age jumps on the upgrade, and from then on their age goes up on each bi
 - A companion: from their looks sheet's age (companion/world/looks.py: the Looks age the user set, else their
   identity's words, else seeded) and their birthday (the form's, else seeded by their id). When the user writes
   another age or birthday, their date is worked out again from the new words, so the form always wins. "Keeps their
-  age" (the definition's `keeps_age`, on the Character page) holds them at the age written, for characters who
-  shouldn't age; turned off again, they go on from there. A sheet that reads as under 18 has no age drawn and never
+  age" (the definition's `keeps_age`, on the Character page) holds them at the age they are when it goes on, for
+  characters who shouldn't age; turned off again, they go on from there. A sheet that reads as under 18 has no age drawn and never
   gets a date: ages are only ever read upward from a stored adult date, and the adult side keeps reading their own
   words (companion/world/intimacy.py), so getting older never changes what it allows.
 - A circle member or a love-life partner: from the age their row stores, and `sync` keeps that stored age current,
@@ -80,15 +80,17 @@ def stored(connection, kind: str, key: str) -> dict | None:
     return optional(connection, 'SELECT * FROM birth_dates WHERE kind=? AND person_key=?', (kind, key))
 
 
-def keep(connection, kind: str, key: str, age: int, birthday: str, today: date, now) -> dict:
-    """Store (or work out again) someone's birth date from the age they are today."""
+def keep(connection, kind: str, key: str, age: int, birthday: str, today: date, now, written: int | None = None) -> dict:
+    """Store (or work out again) someone's birth date from the age they are today; `written` is the age their words
+    give when that differs (a companion whose birthday changed or who was held at an age), else `age`."""
     born = born_from(age, birthday, today)
     connection.execute(
-        'INSERT INTO birth_dates (kind, person_key, born_on, birthday, from_age, anchored_on, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(kind, person_key) DO UPDATE SET born_on=excluded.born_on, '
-        'birthday=excluded.birthday, from_age=excluded.from_age, anchored_on=excluded.anchored_on, '
-        'updated_at=excluded.updated_at',
-        (kind, key, born.isoformat(), birthday, age, today.isoformat(), stamp(now), stamp(now)))
+        'INSERT INTO birth_dates (kind, person_key, born_on, birthday, from_age, anchored_on, held_age, created_at, '
+        'updated_at) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?) ON CONFLICT(kind, person_key) DO UPDATE SET '
+        'born_on=excluded.born_on, birthday=excluded.birthday, from_age=excluded.from_age, '
+        'anchored_on=excluded.anchored_on, held_age=NULL, updated_at=excluded.updated_at',
+        (kind, key, born.isoformat(), birthday, age if written is None else written, today.isoformat(), stamp(now),
+         stamp(now)))
     return stored(connection, kind, key)
 
 
@@ -118,13 +120,17 @@ def current(row: dict | None, age: int, birthday: str) -> bool:
 
 
 def companion_age(connection, companion_id: str, definition: dict, day: date | None) -> int | None:
-    """How old a companion is on a day. Kept at their age, before `sync` has stored their date, or right after the
-    user wrote another age or birthday, it is the age written."""
+    """How old a companion is on a day. Before `sync` has stored their date, or right after the user wrote another
+    age or birthday, it is the age written. Keeping their age, it is the age they were when the switch went on."""
     age = written_age(companion_id, definition)
-    if age is None or definition.get('keeps_age') or connection is None or day is None:
+    if age is None or connection is None or day is None:
         return age
     row = stored(connection, 'companion', companion_id)
-    return age_from(row, day) if current(row, age, own_birthday(companion_id, definition)) else age
+    if not current(row, age, own_birthday(companion_id, definition)):
+        return age
+    if row['held_age']:  # Kept, or let go since the last `sync`, which carries on from here.
+        return row['held_age']
+    return age_from(row, day)
 
 
 def turns_on(connection, companion_id: str, definition: dict, day: date) -> int | None:
@@ -140,34 +146,39 @@ def turns_on(connection, companion_id: str, definition: dict, day: date) -> int 
 
 
 def sync_companion(connection, companion: dict, now) -> None:
-    """Store a companion's date the first time, and again when their form changed. While they keep their age it moves
-    along with them, so turning the lock off later carries on from the age written, with no jump."""
+    """Store a companion's date the first time, and again when their form changed. "Keeps their age" holds them at
+    the age they are when it goes on (Iris, v0.14: a lock that made a 40-year-old 39 again read as a bug); turned off
+    again, they carry on from that age with no jump."""
     definition = companion['version']['definition']
     age = written_age(companion['id'], definition)
     if age is None:
         return
     today = now.astimezone(zone(companion['version']['timezone'])).date()
     birthday, row = own_birthday(companion['id'], definition), stored(connection, 'companion', companion['id'])
-    if definition.get('keeps_age'):
-        if not row or row['anchored_on'] != today.isoformat() or not current(row, age, birthday):
-            keep(connection, 'companion', companion['id'], age, birthday, today, now)
-    elif row and row['from_age'] == age and row['birthday'] != birthday:
+    if row and row['from_age'] == age and row['birthday'] != birthday:
         # Only the birthday changed: they stay the age they are now.
-        keep(connection, 'companion', companion['id'], age_from(row, today), birthday, today, now)
-        connection.execute('UPDATE birth_dates SET from_age=? WHERE kind=? AND person_key=?',
-                           (age, 'companion', companion['id']))
+        row = keep(connection, 'companion', companion['id'], row['held_age'] or age_from(row, today), birthday, today,
+                   now, written=age)
     elif not current(row, age, birthday):
-        keep(connection, 'companion', companion['id'], age, birthday, today, now)
+        row = keep(connection, 'companion', companion['id'], age, birthday, today, now)
+    if definition.get('keeps_age') and not row['held_age']:
+        connection.execute("UPDATE birth_dates SET held_age=? WHERE kind='companion' AND person_key=?",
+                           (age_from(row, today), companion['id']))
+    elif not definition.get('keeps_age') and row['held_age']:
+        keep(connection, 'companion', companion['id'], row['held_age'], birthday, today, now, written=age)
 
 
 def age_line(connection, companion_id: str, definition: dict, day: date | None) -> str | None:
     """"You are 35 now; you turned 35 on 3 March.", for their own prompt once a birthday has taken them past the age
     their words give, so the model doesn't answer with the age written (A/B: /mnt/project-files/companion-ages-ab).
-    None until then, and never while they keep their age."""
+    None until then."""
     age, written = companion_age(connection, companion_id, definition, day), written_age(companion_id, definition)
     if age is None or day is None or age == written:
         return None
-    turned = last_birthday(own_birthday(companion_id, definition), day)
+    birthday, row = own_birthday(companion_id, definition), stored(connection, 'companion', companion_id)
+    # Held at an age, the birthday that made them that age; otherwise their latest one.
+    turned = birthday_in(date.fromisoformat(row['born_on']).year + age, birthday) \
+        if row['held_age'] else last_birthday(birthday, day)
     return f"You are {age} now; you turned {age} on {turned.day} {turned.strftime('%B')}."
 
 

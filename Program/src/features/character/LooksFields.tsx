@@ -84,10 +84,12 @@ function KeepsAge({ definition, written, found, set }: KeepsAgeProps) {
     hint={keepsAgeHint(definition, written ?? found?.automatic?.age ?? null, found?.age_now ?? null)} />
 }
 
-/** Everyone gets older (companion/life/ages.py): a year older on each birthday, unless they keep the age written. */
+/** Everyone gets older (companion/life/ages.py): a year older on each birthday, unless they keep the age they are
+ * now. On or off, the hint names the same age (Iris, v0.14). */
 function keepsAgeHint(definition: CharacterDefinition, written: number | null, now: number | null) {
   const who = definition.name.trim().split(/\s+/)[0] || 'They'
-  if (definition.keeps_age) return written ? `${who} stays ${written}, however many birthdays pass.` : `${who} stays the age written, however many birthdays pass.`
-  const age = now ? `${who} is ${now} now and turns` : `${who} ${who === 'They' ? 'turn' : 'turns'}`
-  return `${age} a year older on each birthday. Turn this on for a character who shouldn't age.`
+  const age = now ?? written
+  if (definition.keeps_age) return age ? `${who} stays ${age}, however many birthdays pass.` : `${who} stays the age they are now, however many birthdays pass.`
+  const lead = now ? `${who} is ${now} now and turns` : `${who} ${who === 'They' ? 'turn' : 'turns'}`
+  return `${lead} a year older on each birthday. Turn this on for a character who shouldn't age.`
 }
