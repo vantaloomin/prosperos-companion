@@ -487,3 +487,48 @@ def test_a_big_day_held_after_the_fork_is_still_to_come_on_the_copy():
     asked = {**row, 'message_id': 'm', 'answered_at': '2027-04-25T10:00:00+00:00'}
     assert big_days.copied_status(asked, {'m': 'm2'}, '2027-04-20T10:00:00+00:00') == ('invited', 'm2')
     assert big_days.copied_status(asked, {'m': 'm2'}, '2027-04-26T10:00:00+00:00') == ('declined', 'm2')
+
+
+def agenda_at(client, clock):
+    from companion.life import agenda
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        agenda.extend(connection, companion, client.app.state.life.world, clock.now())
+        found = optional(connection, "SELECT block, entry FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                         'AND starts_at<=? AND ends_at>?', (companion['active_timeline_id'], clock.now().isoformat(),
+                                                           clock.now().isoformat()))
+    return decode(found['block']), decode(found['entry']) if found['entry'] else None
+
+
+def test_going_on_their_own_is_in_their_day(client, clock):
+    make(client)
+    guests(client, 0)
+    row = add(client, clock)
+    at(clock, row['local_date'], '16:00')
+    _block, entry = agenda_at(client, clock)
+    assert entry['activity'] == big_days.ACTIVITY and entry['big_day']['id'] == row['id']
+    assert f"went to {big_days.title(row)} at {row['place']['name']}" in entry['summary']
+
+
+WORK = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'start': '09:00', 'end': '17:00', 'days': [0, 1, 2, 3, 4, 5, 6]},
+        {'key': 'evening', 'label': 'Evening', 'kind': 'leisure', 'start': '17:00', 'end': '23:00'},
+        {'key': 'night', 'label': 'Asleep', 'kind': 'sleep', 'start': '23:00', 'end': '07:00'},
+        {'key': 'morning', 'label': 'Morning', 'kind': 'leisure', 'start': '07:00', 'end': '09:00'}]
+
+
+def test_a_big_day_in_working_hours_is_a_day_off_for_it(client, clock):
+    make(client, schedule=WORK)
+    guests(client, 3)
+    row = add(client, clock)  # 15:00 to 22:00, in the middle of their shift.
+    party = add(client, clock, kind='birthday', role='mom', source='test:2', days=60, age=60)  # 19:00: after work.
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        off = big_days.days_off(connection, companion, clock.now().date(), clock.now().date() + timedelta(days=90))
+    assert off == {row['local_date']: big_days.title(row)}
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    at(clock, row['local_date'], '15:30')
+    block, entry = agenda_at(client, clock)
+    assert block['kind'] == 'leisure' and block['label'] == f"{big_days.title(row)} (day off)"
+    assert entry['outing']['id'] == outing['id']
+    assert party['local_date'] not in off

@@ -865,6 +865,63 @@ def people_there(connection, timeline_id: str, now: datetime) -> set[str]:
             if row['person_id'] and under_way(connection, row, now)}
 
 
+# Their day (companion/life/agenda.py, work.py) -----------------------------------------------------------------
+
+def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
+    """The big days they go to without the user, by local date in the shape own_plans.assign takes, with the hours
+    the day runs on (one the user comes to is an outing, companion/life/outings.py). The id changes with its status,
+    so the agenda composes the slot again."""
+    result = {}
+    for row in rows(connection, timeline_id, ('planned', 'declined', 'done')):
+        if row['local_date'] < since or row['with_user']:
+            continue
+        key = f"bigday:{row['id']}:{row['status']}"
+        hours = [f'{hour:02d}:00' for hour in range(int(row['at_time'][:2]) + 1, int(row['until_time'][:2]))]
+        result.setdefault(row['local_date'], []).extend(
+            [{'id': key, 'at_time': row['at_time'], 'big_day': row},
+             *({'id': f'{key}:{at}', 'at_time': at, 'big_day': row, 'continues': True} for at in hours)])
+    return result
+
+
+def alone_doing(row: dict) -> str:
+    """'went to Leo's wedding at The Belvedere', 'graduated at Johns Hopkins University'."""
+    place = row['place']['name']
+    if row['kind'] in OWN:
+        return {'own_graduation': 'graduated', 'own_retirement': 'had their retirement party',
+                'own_wedding': 'got married'}[row['kind']] + f' at {place}'
+    return f'went to {title(row)} at {place}'
+
+
+def entry(plan: dict, block: dict, definition: dict) -> dict:
+    """The agenda entry for the slot a big day they go to on their own takes: them there."""
+    row = plan['big_day']
+    quiet = row['kind'] in QUIET
+    return {'summary': f"{definition['name']} {alone_doing(row)}.",
+            'post': 'Said goodbye today.' if quiet else generators.pick(f"bigday:{row['id']}", 'caption',
+                                                                        bank()['captions']),
+            'mood': 'sad' if quiet else 'happy', 'activity': ACTIVITY,
+            'place': {key: row['place'].get(key, '') for key in ('id', 'name', 'kind', 'city', 'neighborhood')},
+            'with': None, 'weather': block.get('weather'),
+            'big_day': {'id': row['id'], 'at': row['at_time'], 'until': row['until_time']},
+            'composer_version': 'big-day-1'}
+
+
+def days_off(connection, companion: dict, start: date, end: date) -> dict[str, str]:
+    """{local date: "Leo's wedding"} for the workdays a big day they go to falls in their working hours: they take
+    the day off for it (companion/life/work.py days_off)."""
+    from companion.life import work
+    definition, result = companion['version']['definition'], {}
+    if not ACTIVE or not companion.get('active_timeline_id'):
+        return result
+    for row in rows(connection, companion['active_timeline_id'], ('planned', 'invited', 'declined', 'done')):
+        day = date.fromisoformat(row['local_date'])
+        block = work.work_block(definition, day) if start <= day <= end else None
+        if block and row['at_time'] < (block['end'] if block['end'] > block['start'] else '24:00') and \
+                block['start'] < row['until_time']:
+            result[row['local_date']] = title(row, definition['name'])
+    return result
+
+
 # What the chat context says ----------------------------------------------------------------------------------------
 
 def coming_line(row: dict, today: date) -> str:
