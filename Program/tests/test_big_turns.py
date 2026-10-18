@@ -195,6 +195,22 @@ def test_buying_a_place_brings_a_mortgage_until_undone(client, mira, clock, monk
     assert [item['id'] for item in items(client, 'home')] == [old[0]['id']]
 
 
+def test_each_stage_is_told_in_its_own_week_of_the_history(client, mira, clock, monkeypatch):
+    from companion.memory import history
+    chapter = begun(client, monkeypatch, clock, 'buy_place')
+    hunting = details(client, chapter['id'])
+    next_stage(client, clock, chapter['id'])
+    with client.app.state.database.connect() as connection:
+        timeline = current(client)['active_timeline_id']
+        start = date.fromisoformat(chapter['started_on'])
+        first = history.chapter_stages(connection, timeline, start, start)
+        later = history.chapter_stages(connection, timeline, start + timedelta(days=1), clock.now().date())
+    assert [told for _day, told, _title in first] == [f"You decided to buy a place of your own and found "
+                                                      f"{hunting['place']['details']['description']}; you get the "
+                                                      f"keys on {big_turns.day_text(hunting['keys_on'])}."]
+    assert [told for _day, told, _title in later][0].startswith('You got the keys')
+
+
 def test_retirement_turns_work_into_their_own_time_and_pay_into_a_pension(client, older, clock, monkeypatch):
     chapter = begun(client, monkeypatch, clock, 'retire')
     found = details(client, chapter['id'])
@@ -294,7 +310,12 @@ def test_living_together_they_buy_a_place_for_both(client, provider, clock, monk
         shared = moving_in.current(connection, companion['active_timeline_id'])
         costs = money.household(connection, companion['active_timeline_id'], companion['version']['definition'],
                                 clock.now().date())['costs']
-    assert shared['home_item_id'] == place['id'] and shared['neighbourhood'] == place['neighborhood']
+    hood = moving_in.hood_named(money.city_for(companion['version']['definition']), place['neighborhood'])
+    assert shared['home_item_id'] == place['id'] and shared['neighbourhood'] == hood['id']
+    with client.app.state.database.connect() as connection:
+        from companion.life import where
+        assert where.home_text(connection) == f"{place['neighborhood']}, Baltimore"  # The user's home too.
+    assert 'You split the mortgage and the bills' in client.get('/api/context/preview').json()['prompt']
     assert costs['owned'] and costs['shared'] and costs['rent'] == round(place['rent'] / 2, 2)
     client.post(f"/api/life/chapters/{chapter['id']}/undo")
     with client.app.state.database.connect() as connection:

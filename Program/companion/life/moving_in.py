@@ -1272,6 +1272,7 @@ def living_lines(connection, companion: dict, row: dict, now: datetime) -> list[
     since = 'today' if row['moved_on'] == today.isoformat() else f"since {day_text(row['moved_on'])}"
     shared = their_home(connection, companion, today)
     what = shared['description'] if shared else f'a place in {place_text(connection, row)}'
+    costs = 'mortgage' if shared and shared.get('owned') else 'rent'  # A place bought together (big_turns.py).
     yours = [found['name'] for found in pets.of_persona(connection)]
     house = members(connection, household(row), today)
     names = {found['owner']: first_of(connection, found['timeline_id']) for found in house}
@@ -1280,8 +1281,8 @@ def living_lines(connection, companion: dict, row: dict, now: datetime) -> list[
     both = f"all {COUNTS.get(len(mates) + 2, 'of you')}" if mates else 'both'
     animals = f" The user's pets ({', '.join(yours)}) live there too and are {both} of yours now." if yours else ''
     living = (f"- You live with the user and {listed(mates)} (also the user's partner{'s' if len(mates) > 1 else ''}), "
-              f"{since}, at {what}. The {COUNTS.get(len(mates) + 2, 'all')} of you split the rent and the bills. "
-              if mates else f'- You and the user live together, {since}, at {what}. You split the rent and the bills. ')
+              f"{since}, at {what}. The {COUNTS.get(len(mates) + 2, 'all')} of you split the {costs} and the bills. "
+              if mates else f'- You and the user live together, {since}, at {what}. You split the {costs} and the bills. ')
     lines = [(f"moving-in:{row['id']}:home", f'{living}{chores_text(companion, today, ids, names)}{animals}')]
     if row['moved_on'] == today.isoformat():
         lines.append((f"moving-in:{row['id']}:today", '- Today was moving day: you just moved in together.'))

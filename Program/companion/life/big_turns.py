@@ -440,8 +440,11 @@ def keys_day(connection, companion, row, details, day, now) -> dict:
     if together:
         undo['moving_in'] = {'id': together['id'], 'neighbourhood': together['neighbourhood'],
                              'home_item_id': together['home_item_id']}
+        # Stored as the neighbourhood's id, as moving_in.py does (where.py finds the user's home by it).
+        hood = moving_in.hood_named(money.city_for(companion['version']['definition']),
+                                    details['place']['details']['neighborhood'])
         connection.execute('UPDATE moving_in SET neighbourhood=?, home_item_id=? WHERE id=?',
-                           (details['place']['details']['neighborhood'], added, together['id']))
+                           (hood['id'] if hood else details['place']['details']['neighborhood'], added, together['id']))
     place = details['place']['details']
     name = first(companion['version']['definition'])
     ours = 'you and the user own' if together else 'you own'
@@ -603,6 +606,15 @@ def pay(connection, timeline_id: str, day: date, found: dict | None) -> dict | N
 
 
 # Reading -------------------------------------------------------------------------------------------------------
+
+def told_by_day(row: dict) -> list[tuple[str, str, str]]:
+    """(day, told, title) for each stage a chapter reached, oldest first, from the rows kept before each stage
+    (`save_stage`); a chapter without stages is its own one line."""
+    details = decode(row.get('details') or '{}')
+    found = [(snapshot['details'].get('stage_on') or row['started_on'], snapshot['told'], snapshot['title'])
+             for snapshot in details.get('before', ())]
+    return [*found, (details.get('stage_on') or row['started_on'], row['told'], row['title'])]
+
 
 def big_days(connection, timeline_id: str, since: str, until: str) -> list[dict]:
     """Graduations and last days at work between two local dates, for Big days in the circle:
