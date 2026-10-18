@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { emptyLooks, heightLabel, numberChoices, weightLabel } from '../../src/features/character/looksText.ts'
+import { emptyLooks, heightLabel, keepsAgeHint, numberChoices, weightLabel } from '../../src/features/character/looksText.ts'
 
 test('heights and weights read in both units', () => {
   assert.equal(heightLabel(170), `5'7" (170 cm)`)
@@ -17,4 +17,14 @@ test('every choice is one the server accepts (companion/models.py Looks)', () =>
 
 test('an empty sheet leaves every field for the app to draw', () => {
   assert.ok(Object.values(emptyLooks()).every((value) => value === null || value === ''))
+})
+
+test('the Keeps their age hint reads right for a named companion and one not named yet', () => {
+  const named = { name: 'Dana Reyes' }
+  assert.equal(keepsAgeHint({ ...named, keeps_age: true }, 34, 36), 'Dana stays 36, however many birthdays pass.')
+  assert.equal(keepsAgeHint(named, 34, 36), "Dana is 36 now and turns a year older on each birthday. Turn this on for a character who shouldn't age.")
+  const unnamed = { name: '' }
+  assert.equal(keepsAgeHint({ ...unnamed, keeps_age: true }, null, null), 'They stay the age they are now, however many birthdays pass.')
+  assert.equal(keepsAgeHint({ ...unnamed, keeps_age: true }, 30, null), 'They stay 30, however many birthdays pass.')
+  assert.equal(keepsAgeHint(unnamed, 30, null), "They turn a year older on each birthday. Turn this on for a character who shouldn't age.")
 })

@@ -149,7 +149,9 @@ def test_the_realism_setting_scales_changes_and_never_stops_them(client, rosa):
     rosa_id, _ = ids(client)
     with connect(client, False) as connection:
         drawn = looks.for_companion(rosa_id, ROSA)
-        assert grooming.sheet(connection, rosa_id, ROSA, '2027-09-30') == drawn
+        sheet = grooming.sheet(connection, rosa_id, ROSA, '2027-09-30')
+        # Looks set never to change still get older a year a birthday (companion/life/ages.py).
+        assert {**sheet, 'age': drawn['age']} == drawn and sheet['age'] >= drawn['age']
 
 
 def test_easy_life_keeps_bold_colours_out(client, rosa):

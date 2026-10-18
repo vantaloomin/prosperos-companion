@@ -3,7 +3,7 @@ import { api } from '../../api'
 import type { CharacterDefinition, Looks } from '../../types'
 import { Field, Toggle } from '../../components/Fields'
 import { useSettled } from './useSettled'
-import { emptyLooks, heightLabel, looksWords, numberChoices, weightLabel, type LooksWord } from './looksText'
+import { emptyLooks, heightLabel, keepsAgeHint, looksWords, numberChoices, weightLabel, type LooksWord } from './looksText'
 
 /** What each empty field uses once saved (companion/world/looks.py), and suggestions for the word fields. */
 interface LooksSuggestions { automatic: Looks | null; covered?: string[]; options: Partial<Record<LooksWord, string[]>>; age_now?: number | null }
@@ -82,14 +82,4 @@ interface KeepsAgeProps { definition: CharacterDefinition; written: number | nul
 function KeepsAge({ definition, written, found, set }: KeepsAgeProps) {
   return <Toggle label="Keeps their age" checked={Boolean(definition.keeps_age)} onChange={(keeps_age) => set({ keeps_age })}
     hint={keepsAgeHint(definition, written ?? found?.automatic?.age ?? null, found?.age_now ?? null)} />
-}
-
-/** Everyone gets older (companion/life/ages.py): a year older on each birthday, unless they keep the age they are
- * now. On or off, the hint names the same age (Iris, v0.14). */
-function keepsAgeHint(definition: CharacterDefinition, written: number | null, now: number | null) {
-  const who = definition.name.trim().split(/\s+/)[0] || 'They'
-  const age = now ?? written
-  if (definition.keeps_age) return age ? `${who} stays ${age}, however many birthdays pass.` : `${who} stays the age they are now, however many birthdays pass.`
-  const lead = now ? `${who} is ${now} now and turns` : `${who} ${who === 'They' ? 'turn' : 'turns'}`
-  return `${lead} a year older on each birthday. Turn this on for a character who shouldn't age.`
 }

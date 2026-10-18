@@ -532,7 +532,8 @@ def undone(connection, row: dict):
 def reshaped(definition: dict, changes: dict) -> list[dict]:
     """Their schedule with work turned into time of their own (retired) or their own business's hours, a class carved
     out of free time, and evenings at a parent's they care for (companion/life/health_turns.py)."""
-    schedule = [{**item, 'key': item.get('key') or routine.slug(item['label'])}
+    # The gentle default day has no days (every day) or themes of its own; the Character page needs them said.
+    schedule = [{'days': list(range(7)), 'themes': [], **item, 'key': item.get('key') or routine.slug(item['label'])}
                 for item in definition.get('schedule') or routine.DEFAULT_SCHEDULE]
     if changes.get('retired'):
         schedule = [{**item, 'kind': 'leisure', 'label': changes['retired']['label'], 'themes': []}

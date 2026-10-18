@@ -18,7 +18,7 @@ from companion.characters import by_id, current, insert_version, require_current
 from companion.clock import zone
 from companion.database import identifier, many, optional
 from companion.errors import DomainError, require
-from companion.life import encounters, network, town_personality
+from companion.life import ages, encounters, network, town_personality
 from companion.memory import pairs
 from companion.models import CharacterDefinition, CharacterDraftRequest
 from companion.world import catalog, generators, life_details, looks, perception, profile_bank, townsfolk
@@ -210,9 +210,11 @@ def starting_closeness(found: dict) -> int:
     return next(stage for stage, least in ((3, 6), (2, 3), (1, 0)) if met >= least)
 
 
-def profile(data: dict, sheet: dict, found: dict, today: date, changed: dict | None = None) -> dict:
+def profile(data: dict, sheet: dict, found: dict, today: date, changed: dict | None = None, age: int | None = None) -> dict:
     """A full character definition from a townsperson's sheet, with no model involved; `changed`: the personality
-    sliders the user set on their profile (companion/life/town_personality.py)."""
+    sliders the user set on their profile (companion/life/town_personality.py); `age`: how old they are now, birthdays
+    since the town started getting older and all (companion/life/ages.py), else their sheet's."""
+    age_now = age or sheet['age']
     name, career = sheet['name'], career_for(data, sheet)
     state = townsfolk.story(sheet, data, today)
     home = townsfolk.neighborhood_name(data, sheet['home'])
@@ -222,7 +224,7 @@ def profile(data: dict, sheet: dict, found: dict, today: date, changed: dict | N
     reached = f" Already managed to {'; '.join(state['reached'])}." if state['reached'] else ''
     goal_interest = state['goal']['interest']
     who, noun = SPOKEN.get(sheet.get('pronouns', ''), ('They', ''))
-    age = f"{sheet['age']}-year-old {noun}." if noun else f"{sheet['age']} years old."
+    age = f"{age_now}-year-old {noun}." if noun else f"{age_now} years old."
     laughs, snaps = profile_bank.laughs_and_snaps(sheet)
     verb = 's' if noun else ''
     voice = VOICES.get(temperament) or perception.entry('temperament', temperament).get('town', {}).get('voice', '')
@@ -253,6 +255,7 @@ def profile(data: dict, sheet: dict, found: dict, today: date, changed: dict | N
     }
     # They keep their face and build, so their pictures show the person met in town (companion/world/looks.py).
     found = {field: value for field, value in looks.for_sheet(sheet, data).items() if field in looks.FIELDS}
+    found['age'] = max(found.get('age') or 0, age_now)  # Their face as met, their age as it is now.
     definition['looks'] = {**found, 'drawn': found}
     # They keep how they came across in town, and how they see themselves.
     lines = perception.for_sheet(data, sheet)
@@ -271,7 +274,9 @@ def draft(database, key: str) -> dict:
         today = now.astimezone(zone(data['timezone'])).date()
         town = found['match']['town'] if found['match'] else town_personality.town_of(focus)
         changed = town_personality.edited(connection, town, key)
-        return {'definition': profile(data, sheet, found, today, changed), 'person': person_view(data, sheet),
+        age = ages.town_age(connection, sheet, today)
+        return {'definition': profile(data, sheet, found, today, changed, age),
+                'person': person_view(data, {**sheet, 'age': age}),
                 'stepping_back': focus['version']['name'] if focus else None, 'matched': found['match'] is not None,
                 'ties': pairs.defaults_for_new(connection, others(connection), key, now)}
 
