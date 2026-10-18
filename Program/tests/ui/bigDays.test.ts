@@ -20,6 +20,10 @@ test('a big day is named by its own title, with your part in it and the gift', (
   assert.equal(bigDayLine(own, 'Mira'), "You're in Mira's wedding party.")
   const graduation = { ...outing, place: { ...place, title: "Mira's graduation", event: 'own_graduation', gift: null, own: true } }
   assert.equal(bigDayLine(graduation, 'Mira'), "You're there for Mira.")
+  const funeral = { ...outing, place: { ...place, title: "Ray's funeral", event: 'funeral', gift: 'flowers', quiet: true } }
+  assert.equal(bigDayLine(funeral, 'Mira'), "You're going with Mira. They're sending flowers.")
+  assert.equal(bigDayLine({ ...funeral, state: 'done' }, 'Mira'), 'You went with Mira. They sent flowers.')
+  assert.equal(bigDayLine({ ...funeral, place: { ...funeral.place, gift: null } }, 'Mira'), "You're going with Mira.")
   assert.equal(outingPlace(outing), 'Druid Hill Park, Druid Hill')
   assert.equal(outingPlace({ ...outing, place: { ...place, id: '~big-day', name: 'a venue in Chicago', neighborhood: '' } }), 'A venue in Chicago')
   assert.equal(outingPlace({ ...outing, activity: 'dinner' }), 'Park in Druid Hill')
@@ -35,4 +39,6 @@ test('the strip says where the big day is, and it ends with Call it a night', ()
   const away = stripLine({ ...where, outing: { ...outing, state: 'now', place: { ...place, id: '~big-day', name: 'a venue in Chicago' } } }, 'Mira')
   assert.equal(away?.lead, "At Leo's wedding at a venue in Chicago")
   assert.equal(stripLine({ ...where, outing: { ...outing, state: 'done' } }, 'Mira')?.lead, "Headed home from Leo's wedding.")
+  const funeral = { ...outing, state: 'now' as const, place: { ...place, title: "Ray's funeral", event: 'funeral', quiet: true } }
+  assert.deepEqual(stripAction({ ...where, outing: funeral }), { action: 'home', label: 'Head home' })
 })

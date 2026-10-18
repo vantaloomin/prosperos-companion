@@ -327,6 +327,11 @@ ADDED_COLUMNS = (
     # Births and growing families (companion/life/families.py, Settings > Realism): how often babies arrive in the
     # circle and the town, 0 none, 1 now and then, 2 true to life, 3 lots.
     ('life_settings', 'growing_families', 'INTEGER NOT NULL DEFAULT 2 CHECK (growing_families BETWEEN 0 AND 3)'),
+    # Loss and grief (companion/life/loss.py, Settings > Realism > Their days): whether people can pass away (off on
+    # every preset) and how often, 0 rare, 1 now and then, 2 true to life, 3 often. The town follows both
+    # (companion/world/turnover.py).
+    ('life_settings', 'people_pass_away', 'INTEGER NOT NULL DEFAULT 0 CHECK (people_pass_away IN (0, 1))'),
+    ('life_settings', 'loss', 'INTEGER NOT NULL DEFAULT 2 CHECK (loss BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

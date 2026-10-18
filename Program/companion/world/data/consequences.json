@@ -3143,6 +3143,92 @@
           ]
         }
       ]
+    },
+    "loss:passes": {
+      "label": "Whether {a} passes away this year",
+      "options": [
+        {
+          "label": "{a} lives on",
+          "weight": 1
+        },
+        {
+          "label": "{a} passes away",
+          "weight": 0.0004,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 45,
+              "times": 3,
+              "why": "{a} is over 45",
+              "at_most": 54
+            },
+            {
+              "reader": "age",
+              "at_least": 55,
+              "times": 7.5,
+              "why": "{a} is over 55",
+              "at_most": 64
+            },
+            {
+              "reader": "age",
+              "at_least": 65,
+              "times": 19,
+              "why": "{a} is over 65",
+              "at_most": 74
+            },
+            {
+              "reader": "age",
+              "at_least": 75,
+              "times": 47,
+              "why": "{a} is over 75",
+              "at_most": 84
+            },
+            {
+              "reader": "age",
+              "at_least": 85,
+              "times": 117,
+              "why": "{a} is over 85",
+              "at_most": 91
+            },
+            {
+              "reader": "age",
+              "at_least": 92,
+              "times": 234,
+              "why": "{a} is over 90"
+            },
+            {
+              "reader": "frail",
+              "is": 1,
+              "times": 25,
+              "why": "caring for {a} has been getting harder"
+            },
+            {
+              "reader": "treatment",
+              "is": 1,
+              "times": 8,
+              "why": "{a} has been in treatment"
+            },
+            {
+              "reader": "loss",
+              "is": 0,
+              "times": 0.25,
+              "why": "Loss is set to rare"
+            },
+            {
+              "reader": "loss",
+              "is": 1,
+              "times": 0.5,
+              "why": "Loss is set to now and then"
+            },
+            {
+              "reader": "loss",
+              "is": 3,
+              "times": 2,
+              "why": "Loss is set to often"
+            }
+          ]
+        }
+      ]
     }
   }
 }

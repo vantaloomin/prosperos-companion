@@ -433,9 +433,11 @@ def said(role: str, definition: dict) -> str:
 
 
 def room(connection, companion: dict) -> dict:
-    """How many people the circle has and could have, for the "add people" offer."""
+    """How many people the circle has and could have, for the "add people" offer. Someone who passed away still
+    holds their place: a death is not a removal (companion/life/loss.py)."""
     definition = companion['version']['definition']
-    active = len(people(connection, companion['active_timeline_id']))
+    active = len([row for row in people(connection, companion['active_timeline_id'], include_removed=True)
+                  if row['status'] == 'active' or (decode(row['details']) or {}).get('late')])
     return {'people': active, 'target': target_size(definition, setting(connection)),
             'sociability': sociability(definition)}
 
@@ -445,7 +447,7 @@ def grow(connection, companion: dict, world, now) -> list[dict]:
     one lacks (coworkers, old and new friends, family) before anyone else. Nobody already there changes."""
     ensure(connection, companion, world, now)
     rows = people(connection, companion['active_timeline_id'], include_removed=True)
-    active = [row for row in rows if row['status'] == 'active']
+    active = [row for row in rows if row['status'] == 'active' or (decode(row['details']) or {}).get('late')]
     missing = target_size(companion['version']['definition'], setting(connection)) - len(active)
     require(missing > 0, 'Their circle already has everyone it should. Raise the circle size in Settings to add more '
             'people.', 409)

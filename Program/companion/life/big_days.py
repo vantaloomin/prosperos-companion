@@ -108,6 +108,10 @@ KINDS = {
     # A baby in their circle turning one (companion/life/families.py): at their parent's place.
     'first_birthday': Kind('first_birthday', "{name}'s first birthday", "{who}'s first birthday party", '14:00',
                            '17:00', (), 'first_birthday', 0.01),
+    # Someone in their circle or town who passed away (companion/life/loss.py): its word, times and place follow the
+    # city's customs; a quiet day with no photo and no buzz.
+    'funeral': Kind('funeral', "{name}'s {word}", "{who}'s {word}", '11:00', '15:00', ('temple', 'landmark', 'garden'),
+                    None, 0.005),
 }
 # A child's day: the parent hosts, and it is never pictured or passed on as group chat buzz.
 CHILDS = ('first_birthday',)
@@ -293,11 +297,19 @@ def first_birthdays(connection, companion: dict, today: date, people: dict, now)
     return result
 
 
+def funerals(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
+    """A funeral for someone in their circle or town who passed away (companion/life/loss.py)."""
+    from companion.life import loss
+    return loss.funerals(connection, companion, today, now)
+
+
 # In order; later features add their own.
 SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, graduations, town_weddings, chapters,
-           first_birthdays]
+           first_birthdays, funerals]
 # The companion's own days: the user is there for them, and there is no gift or buzz about someone else.
 OWN = ('own_wedding', 'own_graduation', 'own_retirement')
+# Days with no group chat buzz and no photo.
+QUIET = ('funeral',)
 
 
 # Planning a big day ----------------------------------------------------------------------------------------------
@@ -322,7 +334,8 @@ def title(row: dict, companion_name: str = '') -> str:
     """"Leo's wedding", "Ana's 60th birthday", "Mira's wedding"."""
     details = row['details']
     return KINDS[row['kind']].title.format(name=first(details.get('name', '')), companion=first(companion_name),
-                                           age=ages.ordinal(details['age']) if details.get('age') else '')
+                                           age=ages.ordinal(details['age']) if details.get('age') else '',
+                                           word=details.get('word', 'funeral'))
 
 
 def who(details: dict) -> str:
@@ -336,7 +349,8 @@ def said(row: dict) -> str:
     """The big day as the companion says it: "your brother Leo's wedding", "your wedding to Sam"."""
     details = row['details']
     return KINDS[row['kind']].said.format(who=who(details), name=first(details.get('name', '')),
-                                          age=ages.ordinal(details['age']) if details.get('age') else '')
+                                          age=ages.ordinal(details['age']) if details.get('age') else '',
+                                          word=details.get('word', 'funeral'))
 
 
 def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, details: dict) -> dict:
@@ -354,6 +368,9 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
                 'neighborhood': '', 'summary': '', 'cost': '', 'cuisine': '', 'city': '', 'city_id': '', 'spots': []}
     if kind.key in ('wedding', 'own_wedding'):
         return wedding.venue_for(data, wedding.customs(wedding.culture_of(data)), 'proper', seed, day=day)
+    if kind.key == 'funeral':
+        from companion.life import loss
+        return loss.venue_for(connection, companion, data, seed, day)
     options = [item for item in data['places'] if item['kind'] in kind.places
                and not any(word in item['name'].lower() for word in NOT_PARTY)]
     if kind.key in ('graduation', 'own_graduation'):
@@ -365,11 +382,13 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
     return outings.place_view(item, data)
 
 
-def gift_for(connection, companion: dict, kind: Kind, seed: str) -> tuple[str, float]:
+def gift_for(connection, companion: dict, kind: Kind, seed: str, details: dict | None = None) -> tuple[str, float]:
     """(the gift in words, what it costs in the city's money): from the bank for the kind (its modern one in a modern
-    city), priced by their pay."""
+    city), priced by their pay. A funeral has none, only the flowers its details name (someone outside the family)."""
     if not kind.gift:
-        return '', 0.0
+        found = money.profile(companion['version']['definition'])
+        flowers = (details or {}).get('flowers', '')
+        return flowers, round(money.monthly_share(found) * kind.share, 2) if flowers and found else 0.0
     gifts = bank()['gifts']
     key = f'{kind.gift}_modern' if f'{kind.gift}_modern' in gifts and modern_city(connection, companion) else kind.gift
     gift = generators.pick(seed, 'gift', gifts[key])
@@ -377,9 +396,12 @@ def gift_for(connection, companion: dict, kind: Kind, seed: str) -> tuple[str, f
     return gift, round(money.monthly_share(found) * kind.share, 2) if found else 0.0
 
 
-def outfit_for(connection, companion: dict, row_id: str, day: date) -> str:
-    """What they wear on the day: their own wedding's attire, else something to go out in from their wardrobe."""
+def outfit_for(connection, companion: dict, row_id: str, day: date, wear: str = '') -> str:
+    """What they wear on the day: what the customs ask for (a funeral's dark clothes), else something to go out in
+    from their wardrobe."""
     from companion.life import wardrobe
+    if wear:
+        return wear
     timeline_id = companion['active_timeline_id']
     state = optional(connection, 'SELECT * FROM wardrobe_state WHERE timeline_id=?', (timeline_id,))
     if not state:
@@ -408,16 +430,17 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
     row_id, timestamp = identifier(), stamp(now)
     seed = f"bigday:{timeline_id}:{found['source']}"
     place = place_for(connection, companion, kind, day, seed, found['details'])
-    gift, cost = gift_for(connection, companion, kind, seed)
+    gift, cost = gift_for(connection, companion, kind, seed, found['details'])
     lead = random.Random(f'{seed}:invite').randint(*INVITE_BEFORE)
     connection.execute(
         'INSERT INTO big_days (id, timeline_id, kind, source, person_id, local_date, at_time, until_time, place, '
         'details, invite_on, gift, gift_cost, gift_on, outfit, created_at, updated_at) '
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        (row_id, timeline_id, kind.key, found['source'], found['person_id'], day.isoformat(), kind.at, kind.until,
-         encode(place), encode(found['details']), max(today, day - timedelta(days=lead)).isoformat(), gift, cost,
-         max(today, day - timedelta(days=GIFT_BEFORE)).isoformat(), outfit_for(connection, companion, row_id, day),
-         timestamp, timestamp))
+        (row_id, timeline_id, kind.key, found['source'], found['person_id'], day.isoformat(),
+         found['details'].get('at', kind.at), found['details'].get('until', kind.until), encode(place),
+         encode(found['details']), max(today, day - timedelta(days=lead)).isoformat(), gift, cost,
+         max(today, day - timedelta(days=GIFT_BEFORE)).isoformat(),
+         outfit_for(connection, companion, row_id, day, found['details'].get('wear', '')), timestamp, timestamp))
     row = get(connection, row_id)
     decide_invite(connection, companion, row, now)
     return get(connection, row_id)
@@ -533,6 +556,9 @@ def follow(connection, companion: dict, now: datetime) -> None:
 def gone(connection, row: dict) -> bool:
     if row['kind'] in CHILDS and withheld(connection):
         return True
+    if row['kind'] == 'funeral':
+        from companion.life import loss
+        return loss.gone(connection, row)
     if row['person_id']:
         person = optional(connection, 'SELECT status FROM circle_people WHERE id=?', (row['person_id'],))
         if person is None or person['status'] == 'removed':
@@ -648,6 +674,9 @@ def reason_for(row: dict, day: date) -> str:
     if row['kind'] in OWN:
         return (f"It's {said(row)} on {when}, and you'd love the user to be there with you. Ask them in your own "
                 "words, naming the day, the time and the place. If they can't come, that's fine.")
+    if row['kind'] == 'funeral':
+        return (f"You're going to {said(row)} on {when}, and you'd like the user there with you. Ask them gently, in "
+                "your own words, naming the day, the time and the place. If they can't come, that's fine.")
     gift = f" You're bringing {row['gift']} as a gift." if row['gift'] else ''
     return (f"You're going to {said(row)} on {when}, and you'd love the user to come with you as your plus-one. Ask "
             f'them in your own words, naming whose it is, the day, the time and the place.{gift} If they can\'t come, '
@@ -661,7 +690,8 @@ def invitation(row: dict, day: str, time: str) -> str:
                                                      place=row['place']['name'])
     else:
         event = said(row).replace('your ', 'my ', 1)
-        line = seed.choice(bank()['invite']).format(event=event, day=day, time=time, place=row['place']['name'])
+        lines = bank()['invite_funeral' if row['kind'] == 'funeral' else 'invite']
+        line = seed.choice(lines).format(event=event, day=day, time=time, place=row['place']['name'])
     return line[:1].upper() + line[1:]
 
 
@@ -678,7 +708,7 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     day = date.fromisoformat(row['local_date'])
     place = {**row['place'], 'big_day': row['id'], 'title': title(row, companion['version']['definition']['name']),
              'event': row['kind'], 'gift': row['gift'], 'standing_up': row['kind'] == 'own_wedding',
-             'own': row['kind'] in OWN, 'no_photo': row['kind'] in CHILDS,
+             'own': row['kind'] in OWN, 'no_photo': row['kind'] in CHILDS, 'quiet': row['kind'] in QUIET,
              'people': [host(row)] if row['person_id'] else []}
     outing = together.insert(connection, companion, message['id'], ACTIVITY, place, day, row['at_time'],
                              row['until_time'], None, timestamp)
@@ -754,15 +784,27 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None) -> st
     if row is None:
         return f"- Right now you and the user are at {what(outing)}, in person, until about {outing['until_time']}."
     role = ('standing up with you as your closest friend' if row['kind'] == 'own_wedding' else
-            'there for you' if row['kind'] in OWN else 'your plus-one')
+            'there for you' if row['kind'] in OWN + QUIET else 'your plus-one')
     parts = [f"Right now you are at {said(row)}, in person, at {row['place']['name']}, from {row['at_time']} until "
              f"about {row['until_time']}. The user is here with you, {role}.",
+             f"You brought {row['gift']}." if row['gift'] and row['kind'] in QUIET else
              f"You brought {row['gift']} as your gift." if row['gift'] else '',
-             f"You're wearing {row['outfit']}." if row['outfit'] else '',
-             'It is a happy, busy day with lots of people around. Talk as if you are there together, face to face, not '
-             'texting: what you say and do. Others are around too: you can say briefly what they say or do, but you '
-             'speak only as yourself.']
+             f"You're wearing {row['outfit']}." if row['outfit'] else '', day_text(row)]
     return '- ' + ' '.join(part for part in parts if part)
+
+
+def day_text(row: dict) -> str:
+    """How the day feels: a funeral's order by its customs, else a happy, busy day."""
+    if row['kind'] == 'funeral':
+        details = row['details']
+        return (f"It is a sad, quiet day: {details.get('service', 'a service')}, and "
+                f"{details.get('after', 'time with the family afterward')}. "
+                'Talk as if you are there together, face to face, not texting: what you say and do. You may be '
+                'quiet, and you can still smile at a good story about them. Others are around too: you can say '
+                'briefly what they say or do, but you speak only as yourself.')
+    return ('It is a happy, busy day with lots of people around. Talk as if you are there together, face to face, not '
+            'texting: what you say and do. Others are around too: you can say briefly what they say or do, but you '
+            'speak only as yourself.')
 
 
 def memory_text(outing: dict, name: str) -> dict:
@@ -818,17 +860,19 @@ def people_there(connection, timeline_id: str, now: datetime) -> set[str]:
 def coming_line(row: dict, today: date) -> str:
     when = 'today' if row['local_date'] == today.isoformat() else f"on {long_date(row['local_date'])}"
     head = f"- {said(row)[:1].upper()}{said(row)[1:]} is {when} at {row['at_time']}, at {row['place']['name']}."
-    gift = f" You're bringing {row['gift']}." if row['gift'] else ''
+    gift = (f" You're sending {row['gift']}." if row['kind'] in QUIET else f" You're bringing {row['gift']}.") \
+        if row['gift'] else ''
     wear = f" You plan to wear {row['outfit']}." if row['outfit'] else ''
     if row['status'] == 'invited':
         company = (' The user is standing up with you.' if row['kind'] == 'own_wedding' else
-                   ' The user is coming, there for you.' if row['kind'] in OWN else
+                   ' The user is coming, there for you.' if row['kind'] in OWN + QUIET else
                    ' The user is coming with you as your plus-one.')
     elif row['status'] == 'declined':
         company = (" The user can't make it, and that's completely fine with you: you're going on your own. Don't "
                    'hold it against them.')
     elif row['invite']:
-        company = " You mean to ask the user to come with you as your plus-one; you haven't asked yet."
+        company = " You mean to ask the user to come with you" + ('' if row['kind'] in QUIET else ' as your plus-one') + \
+            "; you haven't asked yet."
     else:
         company = " You're going." if row['kind'] in OWN else " You're going on your own."
     return head + company + gift + wear
@@ -846,7 +890,7 @@ def buzz_line(row: dict, today: date) -> str:
     """Group chat buzz about it, the days before and after (a modern city only), for them to pass on."""
     gap = (date.fromisoformat(row['local_date']) - today).days
     key = 'buzz_before' if 0 < gap <= BUZZ_BEFORE else 'buzz_after' if -BUZZ_AFTER <= gap < 0 else None
-    if key is None or row['kind'] in OWN or row['kind'] in CHILDS:
+    if key is None or row['kind'] in OWN + QUIET or row['kind'] in CHILDS:
         return ''
     line = random.Random(f"{row['id']}:{key}").choice(bank()[key]).format(
         event=title(row), host=first(row['details'].get('name', '')))
@@ -885,8 +929,8 @@ def offer(packet, connection, companion: dict, now: datetime, group=None) -> Non
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
     """Gifts bought this pay period (a week before each big day they go to)."""
-    return [{'text': f"bought {row['gift']} as a gift", 'date': row['gift_on'], 'spend': '', 'cost': row['gift_cost'],
-             'for': 'gift'}
+    return [{'text': f"sent {row['gift']}" if row['kind'] in QUIET else f"bought {row['gift']} as a gift",
+             'date': row['gift_on'], 'spend': '', 'cost': row['gift_cost'], 'for': 'funeral' if row['kind'] in QUIET else 'gift'}
             for row in many(connection, "SELECT * FROM big_days WHERE timeline_id=? AND status!='called_off' AND "
                             'gift_cost>0 AND gift_on>=? AND gift_on<=?', (timeline_id, start.isoformat(),
                                                                          day.isoformat()))]

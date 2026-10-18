@@ -672,7 +672,8 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
         post = big_days.caption(outing)
     else:
         post = generators.pick(seed, 'outing-post', list(CAPTIONS))
-    return {'summary': summary, 'post': post, 'mood': 'happy',
+    quiet = bool(place.get('quiet'))  # A funeral (companion/life/loss.py): a sad day, said quietly.
+    return {'summary': summary, 'post': 'Said goodbye today.' if quiet else post, 'mood': 'sad' if quiet else 'happy',
             'activity': outing['activity'], 'place': {key: place[key] for key in ('id', 'name', 'kind', 'city',
                                                                                 'neighborhood')},
             'with': None, 'weather': block.get('weather'), 'inside': spot or None,
@@ -1146,8 +1147,8 @@ def photograph(database) -> None:
             return
         outing = view(ready[0])
         connection.execute('UPDATE outings SET photo_tried=1 WHERE id=?', (outing['id'],))
-        if outing['place'].get('no_photo'):
-            return  # A child's big day (companion/life/big_days.py): told in words only.
+        if outing['place'].get('no_photo') or outing['place'].get('quiet'):
+            return  # A child's big day is told in words only; no photo of a funeral (companion/life/loss.py).
         slot = optional(connection, "SELECT slot_key, ends_at, entry FROM life_agenda WHERE timeline_id=? AND "
                         "subject='companion' AND json_extract(entry, '$.outing.id')=?",
                         (companion['active_timeline_id'], outing['id']))

@@ -209,7 +209,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care'; shown?: string }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral'; shown?: string }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -492,6 +492,9 @@ export interface LifeSettings {
   life_turns: number
   /** Births and growing families (companion/life/families.py): 0 none, 1 now and then, 2 true to life, 3 lots. */
   growing_families: number
+  /** Loss and grief (companion/life/loss.py): whether people can pass away (off on every preset), and how often: 0 rare, 1 now and then, 2 true to life, 3 often. */
+  people_pass_away: boolean
+  loss: number
 }
 
 /** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
@@ -701,6 +704,13 @@ export interface CirclePerson {
   children?: CircleChild[]
   /** The month their baby is due while they are expecting: "March". */
   expecting?: string | null
+  /** Written into the character's description (companion/life/named.py): spared from passing away unless `spared` is false. */
+  sheet?: string
+  /** People can pass away (companion/life/loss.py): whether the user spared them, or let them pass away. */
+  spared?: boolean
+  /** The day they passed away, when they have. */
+  late?: string
+  loss?: { id: string; died_on: string; consequence_id: string | null } | null
 }
 
 /** A child in the circle (companion/life/families.py): born in the app, listed under their parent. `relation` is what

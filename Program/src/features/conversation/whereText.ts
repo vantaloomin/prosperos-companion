@@ -131,9 +131,10 @@ export function stripAction(where: WhereState | undefined): StripAction | null {
   return { action: 'home', label: leaveLabel(outing) }
 }
 
-/** Heading home from your own wedding reads oddly, so the long day ends with Call it a night, as does a big day. */
+/** Heading home from your own wedding reads oddly, so the long day ends with Call it a night, as does a big day; a
+ * funeral ends plainly with Head home. */
 function leaveLabel(outing: WhereOuting): string {
-  return outing.activity === 'wedding' || outing.activity === 'big-day' ? 'Call it a night' : 'Head home'
+  return outing.activity === 'wedding' || (outing.activity === 'big-day' && !outing.place.quiet) ? 'Call it a night' : 'Head home'
 }
 
 /** Whether the chat writes in person now: texting habits like bursts stop while they are together. */

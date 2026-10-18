@@ -5,8 +5,10 @@ reads of the same issue say the same thing: changes to the city (companion/world
 reached a goal that week (companion/world/townsfolk.py), who left town, retired or took over a place's work and
 which couples had a baby (companion/world/turnover.py, companion/world/couples.py), companions seen out at the city's venues, a gossip
 column about companions who crossed paths with no names given (companion/life/encounters.py), and what's coming
-up: annual events, holidays and the typical weather. Nothing private goes in: no storylines, no circle, no chat,
-nothing from the secrets ledger, and companions only by where anyone could have seen them.
+up: annual events, holidays and the typical weather. Someone in a companion's circle who lived in the city and passed
+away gets an obituary, as anyone in town would (companion/life/loss.py). Nothing else private goes in: no storylines,
+no other circle news, no chat, nothing from the secrets ledger, and companions only by where anyone could have seen
+them.
 
 A period or fantasy city gets a gazette instead of a weekly; the wording stays plain either way.
 """
@@ -41,12 +43,13 @@ def title(data: dict) -> str:
 def issue(connection, data: dict, world, day: date) -> dict:
     """The issue out on the Sunday `day`, for the city `data`: the week up to it, and the week after. Engagements and
     weddings lead with the user's own (companion/life/wedding.py)."""
-    from companion.life import wedding
+    from companion.life import loss, wedding
     week = (day - timedelta(days=6), day)
     talk = gossip(connection, data, week)
     return {'title': title(data), 'city': data['name'], 'date': day.isoformat(),
             'news': city_news(connection, data, week),
-            'townsfolk': [*townsfolk_news(data, day), *comings_and_goings(data, week)],
+            'townsfolk': [*loss.paper_items(connection, data, week), *townsfolk_news(data, day),
+                          *comings_and_goings(data, week)],
             'couples': [*wedding.paper_items(connection, data, week), *couples_news(data, week)][:MOST_COUPLES + 1],
             'seen': seen_around(connection, data, week, {(item['date'], item['place']) for item in talk}),
             'gossip': [{'text': item['text']} for item in talk],
@@ -145,7 +148,8 @@ def moves(data: dict, terms: list, weeks: range, sheet_of) -> list[dict]:
     result = []
     for term in terms:
         if term.left in weeks and (sheet := sheet_of(term.generation))['key'] != data.get('you'):
-            result.append(departure(data, sheet, term.why))
+            years = (term.left - (term.arrived if term.arrived is not None else turnover.START_WEEK)) // turnover.YEAR
+            result.append(departure(data, sheet, term.why, sheet['age'] + years))
         if term.arrived in weeks and (sheet := sheet_of(term.generation))['key'] != data.get('you'):
             result.append(arrival(data, sheet))
     return result
@@ -158,9 +162,14 @@ def where(data: dict, sheet: dict) -> str:
     return f"the {sheet['role']} at {sheet['place']['name']}"
 
 
-def departure(data: dict, sheet: dict, why: str) -> dict:
+def departure(data: dict, sheet: dict, why: str, age: int | None = None) -> dict:
+    """A townsperson who left this week; one who passed away gets an obituary (companion/life/loss.py)."""
+    from companion.life import loss
     headline = {'retired': f"{sheet['name']} retires.", 'passed': f"{sheet['full']} has died.",
                 'new job': f"{sheet['name']} moves on.", 'moved': f"Farewell to {sheet['name']}."}[why]
+    if why == 'passed':
+        return {'key': f"{sheet['key']}:left", 'headline': headline, 'obituary': True,
+                'text': loss.obituary(sheet['full'], where(data, sheet), age, sheet['key'], sheet.get('pronouns', ''))}
     return {'key': f"{sheet['key']}:left", 'headline': headline,
             'text': sentence(f"{sheet['full']}, {where(data, sheet)}, {turnover.gone_text(why, '')} this week")}
 

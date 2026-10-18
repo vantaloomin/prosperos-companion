@@ -29,6 +29,7 @@ from companion.life import (
     hobbies,
     home,
     kitchen,
+    loss,
     love_life,
     media,
     moving_in,
@@ -226,6 +227,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     love_life.copy(connection, parent_id, new_id, ids, cutoff[:10])
     wedding.copy(connection, parent_id, new_id, cutoff[:10])
     big_days.copy(connection, parent_id, new_id, cutoff[:10])
+    loss.copy(connection, parent_id, new_id, ids, cutoff[:10])
     breakups.copy(connection, parent_id, new_id, ids, cutoff)
     copy_impressions(connection, parent_id, new_id, ids, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])

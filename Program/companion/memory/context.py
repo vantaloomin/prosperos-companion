@@ -36,6 +36,7 @@ from companion.life import (
     home,
     kitchen,
     long_distance,
+    loss,
     love_life,
     media,
     money,
@@ -163,6 +164,8 @@ HEADINGS = {
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
+            # Loss and grief (companion/life/loss.py): changes daily while they grieve (how long ago, the odd memory).
+            'loss': 'Loss in your life (decided by the app; keep to it)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
             # The housework (companion/life/upkeep.py) changes every day, so it sits with the daily sections, not with
             # the home and belongings above: the start of the prompt stays the same from one day to the next.
@@ -946,6 +949,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     their_people.offer(packet, connection, companion, now, group)
     wedding.offer(packet, connection, companion, now, group)
     big_days.offer(packet, connection, companion, now, group)
+    loss.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
