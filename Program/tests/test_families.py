@@ -421,3 +421,12 @@ def test_a_first_birthday_gift_fits_an_older_city(monkeypatch):
         monkeypatch.setattr(big_days, 'modern_city', lambda _connection, _companion, modern=modern: modern)
         found = {big_days.gift_for(None, companion, big_days.KINDS['first_birthday'], f'seed-{n}')[0] for n in range(60)}
         assert found <= set(gifts[key])
+
+
+def test_every_pregnancy_line_reads_right_told_to_the_companion():
+    row, names = {'cast_ids': '["p1"]'}, {'p1': {'name': 'Ana', 'role': 'sister'}}
+    stages = [families.stage(date(2027, 1, 1), *families.announced('sibling', date(2027, 5, 1), 'family', {'name': 'Mira'})),
+              families.stage(date(2027, 4, 1), "{a}'s baby is due any day now, and {name} keeps checking for news.", ''),
+              families.stage(date(2027, 5, 1), *families.arrived({'name': 'Ivy', 'pronouns': 'she/her'}, 'godchild', {}))]
+    told = ' '.join(storylines.fill(stage['text'], row, names, {'name': 'Mira'}, True) for stage in stages)
+    assert 'you keep checking' in told and 'you keeps' not in told and 'Mira' not in told
