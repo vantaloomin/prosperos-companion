@@ -240,7 +240,7 @@ def advance(connection, companion: dict, now: datetime) -> None:
 def happen(connection, companion: dict, row: dict, now) -> None:
     """They pass away: late in the circle (out of every upcoming day), their unfinished storylines end and a caring
     turn for them closes."""
-    from companion.life import storylines
+    from companion.life import agenda, storylines
     person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['person_id'],))
     if person is None or person['status'] != 'active':
         connection.execute('DELETE FROM losses WHERE id=?', (row['id'],))
@@ -249,6 +249,7 @@ def happen(connection, companion: dict, row: dict, now) -> None:
     connection.execute("UPDATE circle_people SET status='removed', details=?, revision=revision+1, updated_at=? "
                        'WHERE id=?', (encode({**details, 'late': row['died_on']}), stamp(now), person['id']))
     connection.execute('UPDATE losses SET happened=1, updated_at=? WHERE id=?', (stamp(now), row['id']))
+    agenda.forget_person(connection, row['timeline_id'], person['id'], now)  # No more plans or drop-ins with them.
     storylines.end_removed(connection, row['timeline_id'], local_today(companion, now))
     end_care(connection, companion, row)
 

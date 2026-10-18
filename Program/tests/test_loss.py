@@ -299,3 +299,36 @@ def test_a_parent_whose_care_went_harder_is_likelier_to_pass_and_their_care_ends
     advance(client, clock)
     found = details(client, chapter['id'])
     assert found['stage'] == 'ended' and found['why'] == 'passed'
+
+
+def test_someone_who_died_leaves_the_living_and_their_plans_with_the_companion(client, clock, monkeypatch, provider):
+    from companion.database import identifier
+    make(client)
+    switch(client)
+    dies(monkeypatch)
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['role'] == 'dad')
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
+    later = clock.now() + timedelta(days=2)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        # A drop-in from them planned for after the day they die.
+        connection.execute(
+            "INSERT INTO life_agenda (id, timeline_id, subject, slot_key, local_date, starts_at, ends_at, block, entry, "
+            "status, basis, created_at) VALUES (?, ?, 'companion', 'evening@later', ?, ?, ?, '{}', ?, 'upcoming', "
+            "'seed', ?)", (identifier(), companion['active_timeline_id'], later.date().isoformat(), later.isoformat(),
+                           (later + timedelta(hours=3)).isoformat(),
+                           encode({'summary': 'Dinner with them.', 'with': {'id': row['person_id']}}),
+                           clock.now().isoformat()))
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        left = connection.execute("SELECT id FROM life_agenda WHERE status='upcoming' AND json_extract(entry, "
+                                  "'$.with.id')=?", (row['person_id'],)).fetchall()
+    assert left == []
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    client.post('/api/conversation/messages', json={'text': 'How is everyone?', 'client_id': 'loss-0001'})
+    prompt = provider.requests[-1]['prompt']
+    living = prompt.split('People in your life')[1].split('\n## ')[0]
+    name = row['name'].split()[0]
+    assert f'- {name} (' not in living and f'Your dad {name} died on' in prompt
