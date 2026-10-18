@@ -304,12 +304,14 @@ def pull_in(connection, group_id: str, row: dict, members: list[dict], now) -> d
 
 
 def dropping_in(connection, members: list[dict], now) -> list[dict]:
-    """People from a member's circle who have met the user and like them, who may drop in unasked."""
-    from companion.life import their_people
+    """People from a member's circle who have met the user and like them, who may drop in unasked; not once the user
+    and that member have broken up (companion/life/breakups.py)."""
+    from companion.life import breakups, their_people
     result = []
     for person in candidates(connection, members, now):
         companion = host_companion(connection, person) if person['kind'] == 'circle' else None
-        if companion and person['person_id'] in their_people.met_people(connection, companion):
+        if companion and not breakups.ended(connection, companion) and \
+                person['person_id'] in their_people.met_people(connection, companion):
             result.append(person)
     return result
 

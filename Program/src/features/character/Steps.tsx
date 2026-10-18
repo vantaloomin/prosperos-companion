@@ -11,7 +11,7 @@ import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { Wedding } from './WeddingPlan'
 import { STEPS_KEY, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from './stepsText'
-import { apartHint, BREAKUP_KEY, breakupLine, isApart, mendLabel, mendedText, type BreakupView } from './breakupText'
+import { apartHint, BREAKUP_KEY, breakupLine, endedStep, isApart, mendLabel, mendedText, standsLabel, type BreakupView } from './breakupText'
 import { UNDO_MS } from '../profile/roughPatchText'
 
 /** Where you and them stand (companion/life/steps.py): one plain line, the steps so far, what came up lately and,
@@ -41,14 +41,14 @@ export function Steps({ name }: { name: string }) {
       <h2 id="steps-heading">You and {who}</h2>
       <p className="steps-line">{apart && breakup.data?.summary ? breakup.data.summary : view.text}</p>
       <BreakupLine name={name} view={breakup.data} />
-      <Field label="Where things stand" hint={hint}>
+      <Field label={standsLabel(breakup.data)} hint={hint}>
         {(id, describedBy) => (
           <select id={id} aria-describedby={describedBy} value={view.step} disabled={apart} onChange={(event) => void save({ step: event.target.value })}>
             {view.ladder_steps?.map((item) => <option key={item.step} value={item.step}>{item.label}</option>)}
           </select>
         )}
       </Field>
-      <StepsSoFar view={view} name={name} />
+      <StepsSoFar view={view} name={name} ended={endedStep(breakup.data, name)} />
       <Wedding name={name} />
       {view.can_fall && (
         <Toggle label="Just friends" checked={view.just_friends} disabled={apart} onChange={(just_friends) => void save({ just_friends })}
@@ -93,9 +93,9 @@ function stepDay(item: NonNullable<StepsView['steps']>[number], view: StepsView)
 }
 
 /** The steps so far with their dates, what came up lately and (with odds shown) what is planned. */
-function StepsSoFar({ view, name }: { view: StepsView; name: string }) {
+function StepsSoFar({ view, name, ended }: { view: StepsView; name: string; ended: string }) {
   return <>
-    {view.steps && view.steps.length > 1 && (
+    {view.steps && (view.steps.length > 1 || ended) && (
       <ol className="steps-list">
         {view.steps.map((item) => (
           <li key={item.step}>
@@ -107,6 +107,7 @@ function StepsSoFar({ view, name }: { view: StepsView; name: string }) {
             {item.step === 'moving_in' && view.moving_in && <MovingLine moving={view.moving_in} name={name} />}
           </li>
         ))}
+        {ended && <li className="step-ended subtle">{ended}</li>}
       </ol>
     )}
     {view.asks && view.asks.length > 0 && (

@@ -2223,6 +2223,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .steps-detail p { margin: 2px 0 0; }
 /* Sharing a home: another partner who would move in, with this one's answer right under it. */
 .steps-list .step-pending { color: var(--muted); }
+.steps-list .step-ended { list-style: none; color: var(--muted); }
 .steps-newcomer { margin-top: 10px; }
 .steps-newcomer p { margin: 0 0 4px; }
 .breakup-block { display: grid; gap: 8px; }

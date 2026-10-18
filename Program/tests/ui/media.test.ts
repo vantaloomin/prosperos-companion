@@ -11,6 +11,7 @@ test('each kind has its own label and the slider four steps', () => {
   assert.equal(kindNoun('music'), 'song')
   assert.equal(MEDIA_LEVELS.length, 4)
   assert.equal(boughtFor('media'), 'For their downtime')
+  assert.equal(boughtFor('wedding'), 'From their savings')
 })
 
 test('hidden values read as words, and only when shown', () => {

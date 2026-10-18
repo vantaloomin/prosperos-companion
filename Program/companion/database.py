@@ -321,6 +321,9 @@ ADDED_COLUMNS = (
     ('life_settings', 'life_turns', 'INTEGER NOT NULL DEFAULT 2 CHECK (life_turns BETWEEN 0 AND 3)'),
     # A big turn's stages (companion/life/big_turns.py): what stage it is at, when the next one comes, and its plan.
     ('life_chapters', 'details', "TEXT NOT NULL DEFAULT '{}'"),
+    # A fork's copy of a moving-in row (companion/life/moving_in.py `copy`): the row it was first copied from, so a home
+    # set up before the fork stays one household with those who moved in on other timelines; NULL for the original.
+    ('moving_in', 'origin', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -363,6 +366,8 @@ def initialize(connection, timestamp: str):
     connection.execute('UPDATE life_settings SET automatic_events=1, events_on_by_default=1 WHERE events_on_by_default=0')
     connection.execute('UPDATE workspace_settings SET automatic_memory=1, sensitive_memory=1, '
                        'model_memory_suggestions=1, memory_on_by_default=1 WHERE memory_on_by_default=0')
+    from companion.life.outings import reword_memories
+    reword_memories(connection, timestamp)
     connection.executemany('INSERT OR REPLACE INTO app_identity (key, value) VALUES (?, ?)',
                            (('schema_version', str(SCHEMA_VERSION)), ('schema_digest', schema_digest()),
                             ('app_version', VERSION)))

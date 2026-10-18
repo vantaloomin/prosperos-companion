@@ -26,6 +26,9 @@ test('search finds sections by title, tab name or keyword, needing every word', 
   assert.deepEqual(found('anthropic key'), ['models-heading'])
   assert.deepEqual(found('weather', false), [])
   assert.deepEqual(found('   '), [])
+  // Rough patches sit beside Breaks and breakups, which need them (Iris).
+  assert.deepEqual(found('rough patches'), ['love-heading'])
+  assert.deepEqual(found('breakups'), ['love-heading'])
 })
 
 test('every section heading is listed once', () => {

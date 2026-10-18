@@ -1,5 +1,5 @@
 {
-  "about": "Breaks and breakups (companion/life/breakups.py): weeks or months after a breakup, the former partner's first message reaching out and tentatively wondering about trying again, leaving the user room to say no. Used only when no model writes the first text; picked by seeded dice. Era-neutral, no gendered words.",
+  "about": "Breaks and breakups (companion/life/breakups.py): weeks or months after a breakup, the former partner's first message reaching out and tentatively wondering about trying again, leaving the user room to say no. Used only when no model writes the first text; picked by seeded dice. `templates` fit whoever ended it; `when_they_ended` only when the companion was the one who ended it. Era-neutral, no gendered words.",
   "templates": [
     "I keep thinking about us. Would you want to talk sometime?",
     "I know it's been a while. I've missed you more than I expected to.",
@@ -23,7 +23,6 @@
     "I've been doing a lot of reflecting. I wonder if we could try again, slower this time.",
     "I keep wanting to tell you little things about my day. I guess that means something.",
     "Hi. I hope this isn't unwelcome. Would you want to catch up sometime?",
-    "I let you go because I thought it was right. I'm not so sure anymore.",
     "I've missed our talks. Could we have one, even if it's only one?",
     "If the answer is no, I'll understand completely. Would you consider seeing me again?",
     "It's been long enough that I can say this calmly: I still have feelings for you.",
@@ -46,7 +45,6 @@
     "I think about how we ended a lot. I wonder if it had to end at all.",
     "I'm not trying to undo anything. I'd just like to start a conversation.",
     "I hope this finds you well. I've been wondering if you ever think of us.",
-    "I know I'm the one who ended it. That's why it's hard to say I miss you.",
     "Can I be honest? I haven't stopped caring about you.",
     "If you're open to it, I'd like to see you. If not, I'll respect that completely.",
     "I've been thinking about second chances. I wanted to ask if you believe in them.",
@@ -63,7 +61,6 @@
     "I miss the way you made ordinary days feel like something.",
     "If this isn't welcome, tell me, and I won't bring it up again. I'd love to see you.",
     "I hope you're happy. Part of me hopes there's still a little room for me in that.",
-    "I think I let go too quickly. I'm wondering if you feel that too.",
     "Hi. I don't really know how to start this, so I'll just say it: I miss us.",
     "Would you want to try being friends first and see where it goes?",
     "I've thought about reaching out a dozen times. This is the first time I didn't stop myself.",
@@ -109,5 +106,20 @@
     "Whenever you think of me, I hope it's kindly. I think of you that way often.",
     "I'd love to see your face again. Would that be alright?",
     "It's been quiet without you. Would you want to talk sometime soon?"
+  ],
+  "when_they_ended": [
+    "I let you go because I thought it was right. I'm not so sure anymore.",
+    "I think I let go too quickly. I'm wondering if you feel that too.",
+    "I know I'm the one who ended it. That's why it's hard to say I miss you.",
+    "I ended things because I thought I had to. I've been doubting that for a while now.",
+    "I was the one who walked away, so I don't expect much. I just miss you.",
+    "Ending it felt right at the time. Lately it feels like the biggest mistake I've made.",
+    "I gave up on us too fast. I'm sorry for that, and I'd like to talk if you would.",
+    "I keep going back over why I ended it, and the reasons don't hold up anymore.",
+    "I know I'm the last person who should ask, but would you be open to trying again?",
+    "I made the call to end things, and I've regretted it more than I expected.",
+    "You didn't deserve the way I ended it. I'd like to say that properly, if you'll let me.",
+    "I thought I needed to be on my own. Turns out I mostly needed you.",
+    "I let us go without fighting for it. I'd like the chance to do better, if you want that."
   ]
 }

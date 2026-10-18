@@ -251,3 +251,15 @@ def test_a_townsperson_guest_acts_on_their_sliders_with_the_users_edits(client, 
     system = next(request for request in provider.requests if speaker(request['messages']) == label)['system']
     acts = system[system.index('How you tend to act'):]
     assert next(trait for trait in personality.traits() if trait['key'] == 'social')['model'][edited] in acts
+
+
+def test_their_people_stop_dropping_in_once_you_have_split(monkeypatch):
+    from companion.life import breakups, their_people
+    person = {'key': 'circle:t:1', 'kind': 'circle', 'person_id': 'p1', 'host': 'companion:c1'}
+    monkeypatch.setattr(group_guests, 'candidates', lambda *_args: [person])
+    monkeypatch.setattr(group_guests, 'host_companion', lambda *_args: {'id': 'c1'})
+    monkeypatch.setattr(their_people, 'met_people', lambda *_args: {'p1'})
+    monkeypatch.setattr(breakups, 'ended', lambda *_args: False)
+    assert group_guests.dropping_in(None, [], None) == [person]
+    monkeypatch.setattr(breakups, 'ended', lambda *_args: True)
+    assert group_guests.dropping_in(None, [], None) == []
