@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
-import { api } from '../../api'
+import { ApiError, api } from '../../api'
 import type { View } from '../../companion'
 import type { CastDraft, CharacterDefinition, Companion, Connection, NewTie } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -22,9 +22,12 @@ export function SwitchTo({ townKey, go }: Props) {
   const [ties, setTies] = useState<Record<string, Told>>({})
   if (draft.isPending) return <Loading label="Drafting their profile" />
   if (draft.isError) {
+    const back = <button type="button" className="text-button" onClick={() => window.history.back()}>Go back</button>
     return (
       <section className="page">
-        <ErrorNotice error={draft.error} action={<button type="button" className="text-button" onClick={() => window.history.back()}>Go back</button>} />
+        {draft.error instanceof ApiError && draft.error.code === 'left_town'
+          ? <Notice action={back}>{draft.error.message}</Notice>  // News about the world, not a failure.
+          : <ErrorNotice error={draft.error} action={back} />}
       </section>
     )
   }
