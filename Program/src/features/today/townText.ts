@@ -2,11 +2,13 @@ import { calendarDay } from '../../when.ts'
 import type { TownLeft, Townsperson, TownspersonNow } from '../../types'
 
 /** "Bartender at The Claddagh Pub, Canton", "A regular at Patterson Park" or "Electrician, lives in Canton". */
-export function townRole(person: Pick<Townsperson, 'role' | 'staff' | 'place' | 'neighborhood'> & { kind?: Townsperson['kind'] }): string {
-  if (person.kind === 'resident') return `${person.role.charAt(0).toUpperCase()}${person.role.slice(1)}, lives in ${person.neighborhood}`
+export function townRole(person: Pick<Townsperson, 'role' | 'staff' | 'place' | 'neighborhood'> & { kind?: Townsperson['kind']; left?: TownLeft | null }): string {
+  const gone = !!person.left
+  if (person.kind === 'resident') return `${person.role.charAt(0).toUpperCase()}${person.role.slice(1)}, ${gone ? 'used to live' : 'lives'} in ${person.neighborhood}`
   const where = person.neighborhood ? `${person.place.name}, ${person.neighborhood}` : person.place.name
   const role = person.staff ? person.role : 'a regular'
-  return `${role.charAt(0).toUpperCase()}${role.slice(1)} at ${where}`
+  // Someone who left (companion/world/turnover.py) is spoken of in the past: "Formerly docent at Walters Art Museum".
+  return gone ? `Formerly ${role} at ${where}` : `${role.charAt(0).toUpperCase()}${role.slice(1)} at ${where}`
 }
 
 /** "Met once, on October 5" or "Crossed paths 3 times, last on October 12". */
@@ -21,9 +23,17 @@ export function townNow(now: TownspersonNow): string {
   return `Right now: probably ${now.doing}${where} (${now.mood}).`
 }
 
-/** "Has since moved away (June 2027)." or "Passed away in June 2027." */
+/** "Moved away for a new job (June 2027).", "Moved away (December 2027).", "Retired (February 2040)." or
+ * "Passed away (January 2040)." for someone who has left town (companion/world/turnover.py). */
 export function townLeft(left: TownLeft): string {
   const [year, month] = left.day.split('-').map(Number)
   const when = new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })
-  return left.why === 'passed' ? `Passed away in ${when}.` : `Has since ${left.text} (${when}).`
+  const what = { moved: 'Moved away', 'new job': 'Moved away for a new job', retired: 'Retired', passed: 'Passed away' }[left.why]
+  return `${what} (${when}).`
+}
+
+/** A job in the past tense for someone who left: "Formerly a librarian" from "Librarian at Enoch Pratt". */
+export function formerly(job: string): string {
+  const role = job.split(' at ')[0].trim().toLowerCase()
+  return role ? `Formerly ${/^[aeiou]/.test(role) ? 'an' : 'a'} ${role}` : 'Formerly in town'
 }
