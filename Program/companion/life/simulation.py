@@ -59,7 +59,7 @@ BACKGROUND_LOOKUP_DEADLINE = 20.0
 # Columns that record a one-time switch to a new default, not settings.
 MARKERS = ('texts_first_on_by_default', 'events_on_by_default')
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts',
-         'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups')
+         'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups', 'people_pass_away')
 NEWS_EVERY = timedelta(minutes=10)
 UNFINISHED = ('planned', 'running', 'interrupted')
 
@@ -101,11 +101,12 @@ def update_settings(database, body) -> dict:
                 upkeep.settings_changed(connection, database.clock.now())
             if 'hobbies_realism' in changed:
                 hobbies.settings_changed(connection, database.clock.now(), row['hobbies_realism'])
+            if {'people_pass_away', 'loss'} & set(changed):
+                from companion.life import loss
+                loss.settings_changed(connection)
         found = settings_view(life_settings(connection))
-    if 'life_turns' in changed:
-        turnover.load(database)  # The town's pace follows Life's big turns too, once saved.
-    if 'growing_families' in changed:
-        turnover.load(database)  # Town couples' babies follow it too (companion/world/couples.py).
+    if {'life_turns', 'growing_families', 'people_pass_away', 'loss'} & set(changed):
+        turnover.load(database)  # The town follows Life's big turns, babies (companion/world/couples.py) and Loss.
     return found
 
 

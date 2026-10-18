@@ -35,6 +35,7 @@ from companion.life import (
     home,
     kitchen,
     long_distance,
+    loss,
     love_life,
     media,
     moving_in,
@@ -181,6 +182,7 @@ def extend(connection, companion, world, now) -> dict:
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)
     wedding.advance(connection, companion, now)
+    loss.advance(connection, companion, now)  # Before the big days: a death brings a funeral.
     big_days.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
 
@@ -583,8 +585,11 @@ def circle_view(connection, timeline_id, now, include_removed=False) -> list[dic
     result, known = [], circle.ties(circle.people(connection, timeline_id))
     # Not at work: at the wedding, or at their own big day (companion/life/big_days.py), as its scene says.
     at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
-    for row in circle.people(connection, timeline_id, include_removed):
-        person = circle.view(row)
+    for row in circle.people(connection, timeline_id, True):
+        late = (decode(row['details']) or {}).get('late')
+        if row['status'] != 'active' and not include_removed and not late:
+            continue  # Someone late stays on the list (companion/life/loss.py); someone removed only when asked.
+        person = circle.view(row) | ({'loss': loss.of_person(connection, row['id'])} if late else {})
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \
             row['id'] not in at_wedding else None
         result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),

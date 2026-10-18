@@ -2517,3 +2517,26 @@ CREATE TABLE IF NOT EXISTS circle_children (
 );
 CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on);
 CREATE INDEX IF NOT EXISTS circle_children_parent ON circle_children(parent_id);
+
+-- Loss and grief (companion/life/loss.py): someone in a companion's circle (`person_id`) or a townsperson they knew
+-- (`town_key`) who passed away, or will on `died_on` (`happened` 0 until then), as the engine's loss:passes decided
+-- (`consequence_id`). `details` holds their pronouns, where they lived, the cause, how deep the grief goes and the
+-- period it was decided for. Undoing a death deletes its row.
+CREATE TABLE IF NOT EXISTS losses (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('circle', 'town')),
+  person_id TEXT,
+  town_key TEXT,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '{}',
+  died_on TEXT NOT NULL,
+  happened INTEGER NOT NULL DEFAULT 0 CHECK (happened IN (0, 1)),
+  consequence_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, person_id),
+  UNIQUE (timeline_id, town_key)
+);
+CREATE INDEX IF NOT EXISTS losses_timeline ON losses(timeline_id, happened, died_on);

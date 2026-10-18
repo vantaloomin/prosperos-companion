@@ -19,6 +19,7 @@ import { BREAKUPS_HINT } from '../character/breakupText'
 import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
 import { FAMILY_LEVELS } from '../character/familiesText'
 import { TURN_LEVELS } from '../character/turnsText'
+import { LOSS_LEVELS, PASS_AWAY_HINT, PASS_AWAY_TIP } from '../character/lossText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -65,6 +66,7 @@ export function PaceSettings() {
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
   const families = step(FAMILY_LEVELS, data.growing_families, 2)
   const turns = step(TURN_LEVELS, data.life_turns, 2)
+  const loss = step(LOSS_LEVELS, data.loss, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
@@ -84,6 +86,14 @@ export function PaceSettings() {
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.life_turns} label={turns.label}
           onChange={(life_turns) => void save({ life_turns })} />}
       </Field>
+      <Toggle label="People can pass away" checked={data.people_pass_away} onChange={(value) => void save({ people_pass_away: value })}
+        hint={PASS_AWAY_HINT} tip={PASS_AWAY_TIP} />
+      {data.people_pass_away && (
+        <Field label={`Loss: ${loss.label}`} hint={loss.hint}>
+          {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.loss} label={loss.label}
+            onChange={(value) => void save({ loss: value })} />}
+        </Field>
+      )}
       <Field label={`Their pastimes: ${pastimes.label}`} hint={pastimes.hint} tip="Pastimes from their interests, and ones you add, are never given up on their own.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.hobbies_realism} label={pastimes.label}
           onChange={(hobbies_realism) => void save({ hobbies_realism })} />}

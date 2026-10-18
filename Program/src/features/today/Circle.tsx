@@ -14,6 +14,8 @@ import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
 import { childLabel, childLine, expectingLine } from '../character/familiesText'
+import { lateText } from '../character/lossText'
+import { useLifeSettings } from '../settings/useLifeSettings'
 
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
@@ -48,13 +50,24 @@ export function Circle({ name }: { name: string }) {
       {circle.isPending && <Loading label="Loading the people in their life" />}
       {circle.isError && <ErrorNotice error={circle.error} />}
       {circle.isSuccess && circle.data.length === 0 && <p className="subtle">No one yet. People join {name}'s life as their days begin.</p>}
-      {circle.isSuccess && circle.data.length > 0 && (
-        <ul className="person-list">{circle.data.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>
-      )}
+      {circle.isSuccess && circle.data.length > 0 && <People people={circle.data} name={name} act={act} />}
       {circle.isSuccess && <MorePeople name={name} act={act} />}
       {circle.isSuccess && <Acquaintances name={name} />}
     </section>
   )
+}
+
+/** The living first; people who passed away in a small Remembered group at the end. */
+function People({ people, name, act }: { people: CirclePerson[]; name: string; act: Act }) {
+  const living = people.filter((person) => !person.late)
+  const late = people.filter((person) => person.late)
+  return <>
+    {living.length > 0 && <ul className="person-list">{living.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>}
+    {late.length > 0 && <>
+      <h3>Remembered</h3>
+      <ul className="person-list">{late.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>
+    </>}
+  </>
 }
 
 /** The circle fills itself to its size; after people were removed, new ones can take their places. */
@@ -70,22 +83,27 @@ function MorePeople({ name, act }: { name: string; act: Act }) {
   )
 }
 
+const cardClass = (person: CirclePerson) => `person-card${person.late ? ' late' : person.status === 'removed' ? ' removed' : ''}`
+
 function PersonCard({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
   const [renaming, setRenaming] = useState(false)
   const [removing, setRemoving] = useState(false)
+  const [bringing, setBringing] = useState(false)
   const [diary, setDiary] = useState(false)
   const [network, setNetwork] = useState(false)
+  const late = person.late ? person.late : null
   const gone = person.status === 'removed'
-  const work = personWork(person)
   const remove = async () => { setRemoving(false); await act(() => api(`/life/circle/${person.id}/remove`, {}), `${person.name} is no longer part of ${companion}'s upcoming days.`) }
   const restore = () => act(() => api(`/life/circle/${person.id}/restore`, {}), `${person.name} is back in ${companion}'s life.`)
+  const bringBack = async () => { setBringing(false); await act(() => api(`/life/circle/${person.id}/bring-back`, {}), `${person.name} is alive again, back in ${companion}'s life.`) }
   return (
-    <li className={`person-card${gone ? ' removed' : ''}`}>
+    <li className={cardClass(person)}>
       <PersonHeader person={person} companion={companion} />
-      {gone ? <p className="subtle">Removed. Moments that already happened still mention them.</p> : <PersonDetails person={person} work={work} companion={companion} />}
+      <PersonState person={person} companion={companion} act={act} />
       {renaming && <RenameForm person={person} act={act} onDone={() => setRenaming(false)} />}
-      {!renaming && <PersonActions gone={gone} diary={diary} network={network} onRename={() => setRenaming(true)} onDiary={() => setDiary((open) => !open)}
-        onNetwork={() => setNetwork((open) => !open)} onRemove={() => setRemoving(true)} onRestore={() => void restore()} />}
+      {!renaming && <PersonActions gone={gone} late={!!late} diary={diary} network={network} onRename={() => setRenaming(true)} onDiary={() => setDiary((open) => !open)}
+        onNetwork={() => setNetwork((open) => !open)} onRemove={() => setRemoving(true)} onRestore={() => void (late ? setBringing(true) : restore())} />}
+      {bringing && <BringBack person={person} companion={companion} onClose={() => setBringing(false)} onConfirm={() => void bringBack()} />}
       {diary && <Diary person={person} />}
       {network && !gone && <TheirPeople personKey={person.key} name={person.name} />}
       {removing && (
@@ -124,16 +142,56 @@ function MetYou({ person }: { person: CirclePerson }) {
   </>
 }
 
-interface ActionsProps { gone: boolean; diary: boolean; network: boolean; onRename: () => void; onDiary: () => void; onNetwork: () => void; onRemove: () => void; onRestore: () => void }
+/** What the card says about them: their days, or that they were removed or passed away. */
+function PersonState({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
+  if (person.late) return <Late person={person} died={person.late} />
+  if (person.status === 'removed') return <p className="subtle">Removed. Moments that already happened still mention them.</p>
+  return <>
+    <PersonDetails person={person} work={personWork(person)} companion={companion} />
+    <CanPassAway person={person} act={act} />
+  </>
+}
 
-function PersonActions({ gone, diary, network, onRename, onDiary, onNetwork, onRemove, onRestore }: ActionsProps) {
+function BringBack({ person, companion, onClose, onConfirm }: { person: CirclePerson; companion: string; onClose: () => void; onConfirm: () => void }) {
+  return (
+    <ConfirmDialog title={`Undo ${person.name}'s passing?`} onClose={onClose} actions={<>
+      <button type="button" className="button" onClick={onClose}>Keep</button>
+      <button type="button" className="button primary" onClick={onConfirm}>Undo</button>
+    </>}>
+      <p>{person.name} is alive again from today, back in {companion}'s life. The funeral is called off and {companion} stops grieving. Moments that already happened stay as they were.</p>
+    </ConfirmDialog>
+  )
+}
+
+/** Someone who passed away (companion/life/loss.py): when, and how it went under Hidden values. */
+function Late({ person, died }: { person: CirclePerson; died: string }) {
+  return <>
+    <p className="subtle">{lateText(died)} Moments that already happened still mention them.</p>
+    {person.loss?.consequence_id && <WhyItWent id={person.loss.consequence_id} />}
+  </>
+}
+
+/** With People can pass away on: whether this adult can. Someone written into the character starts spared. */
+function CanPassAway({ person, act }: { person: CirclePerson; act: Act }) {
+  const { data } = useLifeSettings()
+  if (!data?.people_pass_away || (person.age ?? 0) < 18 || person.love) return null
+  const spared = person.spared ?? Boolean(person.sheet)
+  const save = (value: boolean) => act(() => api(`/life/circle/${person.id}/spared`, { spared: !value }),
+    value ? `${person.name} can pass away, like anyone else.` : `${person.name} won't pass away.`)
+  return <Toggle label="Can pass away" checked={!spared} onChange={(value) => void save(value)}
+    hint={person.sheet ? 'You wrote them into the character, so they are spared unless you turn this on.' : undefined} />
+}
+
+interface ActionsProps { gone: boolean; late: boolean; diary: boolean; network: boolean; onRename: () => void; onDiary: () => void; onNetwork: () => void; onRemove: () => void; onRestore: () => void }
+
+function PersonActions({ gone, late, diary, network, onRename, onDiary, onNetwork, onRemove, onRestore }: ActionsProps) {
   return (
     <div className="person-actions">
       {!gone && <button type="button" className="text-button" onClick={onRename}><Pencil aria-hidden="true" />Rename</button>}
       <button type="button" className="text-button" aria-expanded={diary} onClick={onDiary}><BookOpen aria-hidden="true" />{diary ? 'Hide diary' : 'Diary'}</button>
       {!gone && <button type="button" className="text-button" aria-expanded={network} onClick={onNetwork}><Users aria-hidden="true" />{network ? 'Hide their people' : 'Their people'}</button>}
       {gone
-        ? <button type="button" className="text-button" onClick={onRestore}><RotateCcw aria-hidden="true" />Restore</button>
+        ? <button type="button" className="text-button" onClick={onRestore}><RotateCcw aria-hidden="true" />{late ? 'Undo' : 'Restore'}</button>
         : <button type="button" className="text-button" onClick={onRemove}><UserMinus aria-hidden="true" />Remove</button>}
     </div>
   )

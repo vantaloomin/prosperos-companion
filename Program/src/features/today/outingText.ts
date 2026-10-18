@@ -9,7 +9,7 @@ export interface OutingHobby { id: string; label: string; session: string; toget
 /** Meeting their people (companion/life/their_people.py): who comes, and whether it is the first time you meet them. */
 export interface OutingPerson { id: string; name: string; role: string }
 /** A big day in their circle (companion/life/big_days.py): `title` names it ("Leo's wedding"), `gift` is what they bring, `own` marks their own day (their wedding, graduation or retirement party), and `standing_up` their own wedding, where the user stands up with them. */
-export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; first?: boolean; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean }
+export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; first?: boolean; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean; quiet?: boolean }
 export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
@@ -100,17 +100,23 @@ export function peopleLine(place: OutingPlace, state?: OutingState): string {
 }
 
 /** A big day: the user's part in it and the gift. "You're Mira's plus-one. They're bringing a teapot." or, at their
- * own wedding, "You're in Mira's wedding party."; told as past once it is over. '' for any other outing. */
+ * own wedding, "You're in Mira's wedding party.", or at a funeral "You're going with Mira."; told as past once it is
+ * over. '' for any other outing. */
 export function bigDayLine(outing: Pick<Outing, 'activity' | 'place' | 'state'>, name: string): string {
   if (outing.activity !== 'big-day') return ''
   const done = outing.state === 'done'
-  const part = outing.place.standing_up
-    ? (done ? `You were in ${name}'s wedding party.` : `You're in ${name}'s wedding party.`)
-    : outing.place.own
-      ? (done ? `You were there for ${name}.` : `You're there for ${name}.`)
-      : (done ? `You went as ${name}'s plus-one.` : `You're ${name}'s plus-one.`)
-  const gift = outing.place.gift ? ` ${done ? 'They brought' : "They're bringing"} ${outing.place.gift}.` : ''
+  const part = bigDayPart(outing.place, done, name)
+  const verb = outing.place.quiet ? (done ? 'They sent' : "They're sending") : (done ? 'They brought' : "They're bringing")
+  const gift = outing.place.gift ? ` ${verb} ${outing.place.gift}.` : ''
   return `${part}${gift}`
+}
+
+/** The user's part in a big day, now or once it is over. */
+function bigDayPart(place: OutingPlace, done: boolean, name: string): string {
+  if (place.standing_up) return done ? `You were in ${name}'s wedding party.` : `You're in ${name}'s wedding party.`
+  if (place.own) return done ? `You were there for ${name}.` : `You're there for ${name}.`
+  if (place.quiet) return done ? `You went with ${name}.` : `You're going with ${name}.`
+  return done ? `You went as ${name}'s plus-one.` : `You're ${name}'s plus-one.`
 }
 
 /** When it is, and who picked the place. */

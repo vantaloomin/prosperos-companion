@@ -46,9 +46,10 @@ RETIRE = ((62, 0.18), (66, 0.4), (70, 0.75))
 RETIRED_BY = 75
 # Passing away: a small chance at 30 that rises steeply with age.
 DEATH_AT_30, DEATH_RISE = 0.0004, 0.09
-# Life's big turns (0..3) and Loss (0..3) as multipliers.
+# Life's big turns (0..3) as multipliers, and passing away: 0 off, then the Loss slider's 0..3 (rare, now and then,
+# true to life, often) as 1..4.
 PACE = (0.0, 0.5, 1.0, 1.6)
-LOSS = (0.0, 0.5, 1.0, 2.0)
+LOSS = (0.0, 0.25, 0.5, 1.0, 2.0)
 USUAL_PACE = 2
 
 
@@ -56,7 +57,7 @@ USUAL_PACE = 2
 class Levels:
     clock: Clock
     pace: int = USUAL_PACE
-    loss: int = 0  # 0: nobody passes away.
+    loss: int = 0  # 0: nobody passes away; else the Loss slider plus one.
     families: int = USUAL_PACE  # Growing families (0..3): how often town couples have a baby.
 
 
@@ -70,7 +71,7 @@ def load(database):
     with database.connect() as connection:
         row = optional(connection, 'SELECT * FROM life_settings WHERE id=1') or {}
     STATE.pace = int(row.get('life_turns', USUAL_PACE))
-    STATE.loss = int(row.get('loss', 1)) if row.get('people_pass_away') else 0
+    STATE.loss = int(row.get('loss', 2)) + 1 if row.get('people_pass_away') else 0
     STATE.families = int(row.get('growing_families', USUAL_PACE))
 
 

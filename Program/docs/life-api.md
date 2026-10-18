@@ -189,8 +189,18 @@ GET   /api/life/circle                     # ?include_removed=true also lists re
 PATCH /api/life/circle/{id}                {"name": "Rowan"}
 POST  /api/life/circle/{id}/remove
 POST  /api/life/circle/{id}/restore
+POST  /api/life/circle/{id}/spared         {"spared": false}   # People can pass away: whether they can
+POST  /api/life/circle/{id}/bring-back     # someone who passed away comes back, as if it never happened
 GET   /api/life/circle/{id}/diary          # ?before=<starts_at>&limit=20, newest first
 ```
+
+Loss and grief (companion/life/loss.py): with `people_pass_away` on in the life settings (off on every preset),
+the consequence engine's `loss:passes` decides once a year whether an adult in the circle passes away, by age and the
+`loss` slider (0 rare to 3 often), with a decision of its own for a parent in treatment or whose care went harder.
+Never a companion, a child, the companion's partner, or someone the character's description names unless `spared` is
+false. Someone who passed away stays on the list with `late` (the date) and `loss` (`{id, died_on, consequence_id}`),
+whatever `include_removed` says; restore or bring-back undoes the death, calls off the funeral (a big day of kind
+`funeral`) and changes the outcome to living on.
 
 A person is `{id, name, role, status, revision, career, employer, neighborhood, city, refs, sources,
 data_version, birthday, schedule, now, recent}`, plus `full_name`, `pronouns`, `age`, `local`, `closeness` and

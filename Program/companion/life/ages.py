@@ -209,8 +209,8 @@ def sync_circle(connection, timeline_id: str, today: date, now) -> dict[str, int
     moved = {}
     for person in circle.people(connection, timeline_id, include_removed=True):
         details = decode(person['details'])
-        if (age := stored_age(details)) is None:
-            continue
+        if (age := stored_age(details)) is None or details.get('late'):
+            continue  # Someone who passed away (companion/life/loss.py) stays the age they were.
         row = stored(connection, 'circle', person['id']) or keep(connection, 'circle', person['id'], age,
                                                                 circle.birthday(person['id']), today, now)
         now_age = age_from(row, today)

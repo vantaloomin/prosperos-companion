@@ -651,7 +651,7 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
             'hobby': 'on your pastimes', 'ring': 'from your savings', 'wedding': 'from your savings',
             'gift': 'on gifts', 'school': 'on your course', 'deposit': 'from your savings',
-            'business': 'from your savings', 'care': "on a parent's care"}
+            'business': 'from your savings', 'care': "on a parent's care", 'funeral': 'for a funeral'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

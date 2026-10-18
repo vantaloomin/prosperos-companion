@@ -59,9 +59,9 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
   )
 }
 
-/** Head home, or Call it a night after a long day: your wedding, or a big day in their circle. */
+/** Head home, or Call it a night after a long day: your wedding, or a big day in their circle (not a funeral). */
 function Now({ outing, act }: { outing: Outing; act: (path: string) => Promise<void> }) {
-  const long = outing.activity === 'wedding' || outing.activity === 'big-day'
+  const long = outing.activity === 'wedding' || (outing.activity === 'big-day' && !outing.place.quiet)
   return (
     <div className="together-actions">
       <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}>{long ? <><Moon aria-hidden="true" />Call it a night</> : <><Home aria-hidden="true" />Head home</>}</button>

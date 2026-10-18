@@ -550,6 +550,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .person-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; }
 .person-card { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
 .person-card.removed { opacity: .75; }
+.person-card.late { background: var(--canvas); border-style: dashed; }
 .person-card h3 { font-size: 1.05rem; margin: 0; color: var(--text); }
 .person-card header p { margin: 2px 0 0; }
 .person-actions { display: flex; flex-wrap: wrap; gap: 4px 16px; }

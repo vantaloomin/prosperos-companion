@@ -23,6 +23,7 @@ from companion.life import (
     families,
     feed,
     long_distance,
+    loss,
     love_life,
     money,
     mood,
@@ -61,6 +62,10 @@ class Reconcile(Input):
 
 class PersonUpdate(Input):
     name: str = Field(min_length=1, max_length=60, pattern=r'\S')
+
+
+class PersonSpared(Input):
+    spared: bool
 
 
 class ReadPosts(Input):
@@ -250,8 +255,29 @@ def remove_person(request: Request, person_id: str):
 
 @router.post('/circle/{person_id}/restore')
 def restore_person(request: Request, person_id: str):
+    def change(connection, now):
+        if found := loss.of_person(connection, person_id):  # Someone late comes back as if they never passed away.
+            return loss.undo(connection, require_current(connection), found['id'], now)
+        return circle.set_status(connection, person_id, 'active', now)
+    return circle_change(request, person_id, change)
+
+
+@router.post('/circle/{person_id}/spared')
+def spare_person(request: Request, person_id: str, body: PersonSpared):
+    """People can pass away: whether this person can (companion/life/loss.py). Someone the user wrote into the
+    character's description is spared until this says otherwise."""
     return circle_change(request, person_id,
-                         lambda connection, now: circle.set_status(connection, person_id, 'active', now))
+                         lambda connection, now: loss.set_spared(connection, person_id, body.spared, now))
+
+
+@router.post('/circle/{person_id}/bring-back')
+def bring_back(request: Request, person_id: str):
+    """Someone who passed away comes back as if it never happened (companion/life/loss.py)."""
+    def change(connection, now):
+        found = loss.of_person(connection, person_id)
+        require(found is not None, 'They have not passed away.', 409)
+        loss.undo(connection, require_current(connection), found['id'], now)
+    return circle_change(request, person_id, change)
 
 
 @router.get('/circle/{person_id}/diary')
@@ -502,7 +528,7 @@ def read_consequence(request: Request, consequence_id: str):
 CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.change,
            'people:': lambda: their_people.change, 'breakup:': lambda: breakups.change,
            'bigday:': lambda: big_days.change, 'tense-ask:': lambda: rough_patches.change_ask,
-           'wedding:': lambda: wedding.change_size}
+           'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change}
 
 
 @router.post('/consequences/{consequence_id}/change')
