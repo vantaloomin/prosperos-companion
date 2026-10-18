@@ -17,6 +17,7 @@ import { ROUGH_PATCH_LEVELS } from '../profile/roughPatchText'
 import { PACE_LEVELS } from '../character/stepsText'
 import { BREAKUPS_HINT } from '../character/breakupText'
 import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
+import { TURN_LEVELS } from '../character/turnsText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -62,6 +63,7 @@ export function PaceSettings() {
   const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
   const rough = step(ROUGH_PATCH_LEVELS, data.rough_patches_realism, 2)
+  const turns = step(TURN_LEVELS, data.life_turns, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
@@ -76,6 +78,10 @@ export function PaceSettings() {
       <Field label={`Work life: ${work.label}`} hint={work.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.work_realism} label={work.label}
           onChange={(work_realism) => void save({ work_realism })} />}
+      </Field>
+      <Field label={`Life's big turns: ${turns.label}`} hint={turns.hint} tip="Undo any big turn on Today, or make it go another way under Hidden values.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.life_turns} label={turns.label}
+          onChange={(life_turns) => void save({ life_turns })} />}
       </Field>
       <Field label={`Their pastimes: ${pastimes.label}`} hint={pastimes.hint} tip="Pastimes from their interests, and ones you add, are never given up on their own.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.hobbies_realism} label={pastimes.label}

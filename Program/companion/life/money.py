@@ -442,6 +442,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
     `purchases`. None before the home exists or where money does not apply."""
     from companion.life import (  # all build from this budget, so import late
         admin,
+        big_turns,
         grooming,
         hobbies,
         home,
@@ -469,10 +470,11 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *media.purchases(connection, timeline_id, start, day, definition),
               *admin.purchases(connection, timeline_id, start, day),
               *hobbies.purchases(connection, timeline_id, start, day),
-              *wedding.purchases(connection, timeline_id, start, day)]
-    # Raises, promotions and time between jobs (companion/life/work.py).
+              *wedding.purchases(connection, timeline_id, start, day),
+              *big_turns.purchases(connection, timeline_id, start, day)]
+    # Raises, promotions and time between jobs (companion/life/work.py), or a pension once retired (big_turns.py).
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
-            'pay': work.pay(connection, timeline_id, day, start)}
+            'pay': big_turns.pay(connection, timeline_id, day, work.pay(connection, timeline_id, day, start))}
 
 
 def monthly_share(found: Profile) -> float:
@@ -539,6 +541,8 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'career': {'id': found.career['id'], 'name': found.career['name'], 'pay': found.career['pay'],
                    'guessed': found.guessed} if found.career else None,
         'between_jobs': bool(home and (home.get('pay') or {}).get('between_jobs')),
+        'retired': bool(home and (home.get('pay') or {}).get('retired')),
+        'owned': bool(home and home['costs'].get('owned')),
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
         'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
                                                                   'saving')},
@@ -566,10 +570,14 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     work = f" as a {view['career']['name'].lower()}" if view['career'] else ''
     place = 'your home' if view['rent_from'] == 'home' else \
         f"{view['housing']['label']} in {view['housing']['neighborhood']}"
-    lines = [('budget', f"- You take home about {text['income']} {per}{work}; rent is about {text['rent']} for {place}.")]
+    # A place they bought has a mortgage instead of rent (companion/life/big_turns.py).
+    housing = f"the mortgage on {place} is about {text['rent']}" if view.get('owned') else \
+        f"rent is about {text['rent']} for {place}"
+    lines = [('budget', f"- You take home about {text['income']} {per}{work}; {housing}.")]
     if view.get('between_jobs'):
-        lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; rent is about "
-                            f"{text['rent']} for {place}.")]
+        lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; {housing}.")]
+    if view.get('retired'):
+        lines = [('budget', f"- Retired, you live on a pension of about {text['income']} {per}; {housing}.")]
     if view['budget']['upkeep']:
         lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
     for item in view['bought']:
@@ -589,7 +597,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
 
 
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
-            'hobby': 'on your pastimes', 'ring': 'from your savings', 'wedding': 'from your savings'}
+            'hobby': 'on your pastimes', 'ring': 'from your savings', 'wedding': 'from your savings',
+            'school': 'on your course', 'deposit': 'from your savings'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

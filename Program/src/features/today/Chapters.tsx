@@ -4,6 +4,7 @@ import { COMPANION_KEY } from '../../companion'
 import type { LifeChapter } from '../../types'
 import { storyDate } from './storyText'
 import { WhyItWent } from './WhyItWent'
+import { LATELY_KEY } from '../character/turnsText'
 
 /** Life chapters (companion/life/chapters.py): lasting changes to the companion's life, each with why it went this
  * way and an undo. Shown only when there is one. */
@@ -15,6 +16,7 @@ export function Chapters({ name }: { name: string }) {
     onSuccess: async (found) => {
       client.setQueryData(['chapters'], found)
       await client.invalidateQueries({ queryKey: COMPANION_KEY })
+      await client.invalidateQueries({ queryKey: LATELY_KEY })
     },
   })
   if (!list.data?.length) return null

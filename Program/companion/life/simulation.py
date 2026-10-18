@@ -100,7 +100,11 @@ def update_settings(database, body) -> dict:
                 upkeep.settings_changed(connection, database.clock.now())
             if 'hobbies_realism' in changed:
                 hobbies.settings_changed(connection, database.clock.now(), row['hobbies_realism'])
-        return settings_view(life_settings(connection))
+        found = settings_view(life_settings(connection))
+    if 'life_turns' in changed:
+        from companion.world import turnover
+        turnover.load(database)  # The town's pace follows Life's big turns too, once saved.
+    return found
 
 
 # Cursor and runs --------------------------------------------------------------------------------

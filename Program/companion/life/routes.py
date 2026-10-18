@@ -553,6 +553,12 @@ def read_chapters(request: Request):
     return chapters.listing(db(request))
 
 
+@router.get('/chapters/lately')
+def read_chapters_lately(request: Request):
+    """Big turns on their way and the latest chapters, for the Character page (companion/life/big_turns.py)."""
+    return chapters.lately(db(request))
+
+
 @router.post('/chapters/{chapter_id}/undo')
 def undo_chapter(request: Request, chapter_id: str):
     """Take a chapter back; returns the chapters still in place."""
