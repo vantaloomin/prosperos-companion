@@ -161,7 +161,7 @@ def test_caring_for_a_parent_takes_evenings_and_money_until_they_are_better(clie
     assert care['kind'] == 'errand' and care['days'] == found['caring']['days']
     with client.app.state.database.connect() as connection:
         timeline = current(client)['active_timeline_id']
-        costs = health_turns.purchases(connection, timeline, clock.now().date().replace(day=1),
+        costs = health_turns.purchases(connection, timeline, clock.now().date() - timedelta(days=2),
                                        clock.now().date() + timedelta(days=40))
         assert costs and costs[0]['for'] == 'care'
         assert consequences.total(connection, timeline, f"companion:{current(client)['id']}", 'money',

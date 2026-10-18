@@ -34,7 +34,7 @@ TEST_DAYS = (7, 21)  # From the first worry until the results (on the calendar f
 SETTLE_DAYS = (120, 180)  # From the diagnosis until it is part of their routine.
 CHECKUPS_AHEAD = 21  # Check-ups and a parent's appointments go on the calendar this many days ahead.
 # A check-up's cost as a share of a month's take-home, by era (a co-pay today, the doctor's fee in the past).
-CHECKUP_COST = {'modern': 0.03, 'jazz-age': 0.05, 'other': 0.02}
+CHECKUP_COST = {'modern': 0.01, 'jazz-age': 0.02, 'other': 0.01}
 CARE_FROM = 25  # The youngest who takes on a parent's care.
 OLD_PARENT = 60  # A parent this old (or one in treatment) may need care.
 ILL_DAYS = 180  # How long after a parent starts treatment it counts.
@@ -323,20 +323,22 @@ def entry(kind: str, details: dict) -> dict:
 
 
 def purchases(connection, timeline_id: str, start: date, end: date) -> list[dict]:
-    """A share of their pay toward a parent's care on the first of each month they care for them."""
+    """A share of their pay toward a parent's care each month they care for them, from the day it began."""
     found = []
     for row in rows(connection, timeline_id):
         details = decode(row['details'])
         if row['kind'] != 'caring' or details['stage'] not in ('caring', 'settled') or not details.get('cost'):
             continue
-        month = date.fromisoformat(details['starts_on']).replace(day=1)
+        first = date.fromisoformat(details['starts_on'])
         last = min(end, date.fromisoformat(details['ended_on'])) if details.get('ended_on') else end
-        while month <= last:
-            if month >= start and month.isoformat() >= details['starts_on'][:8] + '01':
-                found.append({'text': f"helped with your {details['role']}'s care", 'date': month.isoformat(),
-                              'shown': f"helped with their {details['role']}'s care",
+        month, paid = 0, first
+        while paid <= last:
+            if paid >= start:
+                found.append({'text': f"helped with your {details['role']}'s care", 'date': paid.isoformat(),
+                              'shown': f"paid toward their {details['role']} {details['name']}'s care",
                               'cost': details['cost'], 'spend': '', 'for': 'care'})
-            month = big_turns.later(month, 1)
+            month += 1
+            paid = big_turns.later(first, month)
     return found
 
 

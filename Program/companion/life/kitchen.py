@@ -737,11 +737,13 @@ def skill_text(found: dict) -> str:
 
 
 def diet_text(found: dict, person: str = 'they') -> str:
-    """'eat everything', 'are vegetarian and allergic to nuts'."""
+    """'eat everything', 'eat everything except nuts', 'are vegetarian and avoid nuts'."""
     verb, be = ('eat', 'are') if person in ('they', 'you') else ('eats', 'is')
     parts = [f'{verb} everything' if found['diet'] == 'omnivore' else f"{be} {found['diet']}"]
     allergies = [name for name in found['avoids'] if name in ('nuts', 'shellfish', 'dairy', 'gluten')]
-    if allergies:
+    if allergies and found['diet'] == 'omnivore':  # Never "eat everything and avoid nuts" (Iris, 2026-10-18).
+        parts = [f'{verb} everything except {listing(allergies)}']
+    elif allergies:
         parts.append(f"{'avoid' if person in ('they', 'you') else 'avoids'} {listing(allergies)}")
     if 'pork' in found['avoids']:
         parts.append(f"{'don’t' if person in ('they', 'you') else 'doesn’t'} eat pork")
