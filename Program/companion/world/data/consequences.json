@@ -801,6 +801,59 @@
         }
       ]
     },
+    "user:ask_while_tense": {
+      "label": "How {name} answers you asking to get together while things are tense",
+      "options": [
+        {
+          "label": "{name} says yes",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} is forgiving"
+            }
+          ]
+        },
+        {
+          "label": "{name} would rather not, for now",
+          "weight": 0.6,
+          "rules": [
+            {
+              "reader": "patch",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "there's a rough patch open between you"
+            },
+            {
+              "reader": "warning",
+              "is": 1,
+              "times": 1.5,
+              "why": "things are strained between you"
+            },
+            {
+              "reader": "warning",
+              "at_least": 2,
+              "times": 3,
+              "why": "{name} is thinking about a break"
+            },
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.5,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
     "chapter:next": {
       "label": "What changes next in {name}'s life",
       "options": [

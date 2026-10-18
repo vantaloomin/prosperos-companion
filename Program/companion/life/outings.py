@@ -182,7 +182,9 @@ def described(item: dict) -> str:
 
 def day_in(text: str, today: date, holidays: dict) -> date | None:
     if WEEKEND.search(text):
-        return today if today.weekday() >= 5 else today + timedelta(days=5 - today.weekday())
+        # Asked on the Saturday itself, "this weekend" is the day still ahead (Sunday), not tonight.
+        return today + timedelta(days=1) if today.weekday() == 5 else today if today.weekday() == 6 else \
+            today + timedelta(days=5 - today.weekday())
     found = own_plans.when(text, today, holidays)
     return found[0] if found and found[0] >= today else None
 
@@ -425,6 +427,10 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
         return None
     if not data or across_distance(connection, message, companion, wanted, timestamp):
         return None
+    from companion.life import rough_patches
+    if not firm and rough_patches.turned_down(connection, companion, message, 'dinner-in' if wanted['activity'] ==
+                                              'dinner-in' else 'out', parse(message['created_at'])):
+        return None  # Things are tense: they would rather not, for now (the reply says so).
     if wanted['activity'] == 'hobby' and not wanted['at']:
         wanted = {**wanted, 'at': hobbies.usual_at(connection, wanted['hobby'], wanted['day'] or local_now.date())}
     found = when_free(connection, companion, {**wanted, 'firm': firm}, local_now)

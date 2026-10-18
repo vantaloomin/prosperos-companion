@@ -95,6 +95,10 @@ NOT_AN_APOLOGY = re.compile(r"\bsorry (?:if |that )?you (?:feel|think|took|see)|
 # "I'm sorry to hear that": sympathy, not an apology.
 SYMPATHY = re.compile(r" (?:to hear|for your loss|(?:that|this) happened to you|you(?:'re| are) (?:going through|dealing "
                       r"with)|you have to)\b")
+# A plain "sorry" opening the message counts too ("hey sorry, crazy day"; Vanta 2026-10-18), after at most a greeting or
+# filler word; not "sorry?" or "sorry, what?" (not catching what was said), nor sympathy.
+BARE_SORRY = re.compile(r"^(?:(?:hey|hi|ok|okay|oh|ugh|um|look|listen|so|babe|love|honestly|god|omg|argh|ah)[,.!]*\s+){0,2}"
+                        r"(?:so |really |very )?sorry\b(?!\s*\?)(?!,? (?:what|who|where|wrong|come again|didn'?t catch))")
 # "I'll call you tonight", "I promise I'll text you after work": a promise the app can check.
 PROMISE = re.compile(r"\b(?:i'?ll|i will|i promise(?: i'?ll| to| i will)?|i'?m (?:going to|gonna))\s+(?:call|text|"
                      r"message|ring|phone|facetime|write to|get back to)\s+(?:you|u)(?:\s+back)?\b(?P<when>[^.!?\n]{0,40})",
@@ -139,6 +143,8 @@ def says(name: str, text: str) -> bool:
     words = plain(text)
     if name == 'apologies' and NOT_AN_APOLOGY.search(words):
         return False
+    if name == 'apologies' and (bare := BARE_SORRY.match(words)) and not SYMPATHY.match(words, bare.end()):
+        return True
     return any(not NEGATED.search(words[:found.start()]) and not (name == 'apologies' and SYMPATHY.match(words, found.end()))
                for found in pattern(name).finditer(words))
 
@@ -420,11 +426,18 @@ def daily(connection, companion: dict, now: datetime):
             mend(connection, row, 'calm', now)  # Faded by time, so changing it on Today no longer opens it.
         elif not picked_open(connection, row):
             continue  # Let go for now, but Today can still make it start.
-        elif showed_up(connection, row, now):
+        elif showed_up(connection, row, now) and not warned(connection, companion):
             if row['fault'] == 'companion':
                 mend(connection, row, 'gesture', now)
             elif not row['gesture_at']:
                 progress(connection, row, 'gesture_at', 'gesture', now)
+
+
+def warned(connection, companion: dict) -> bool:
+    """Strained or thinking about a break (companion/life/breakups.py): an outing together no longer mends it by itself
+    then; an apology or a gesture still does."""
+    from companion.life import breakups  # Imported here: breakups reads this module.
+    return breakups.holds(connection, companion) == 'cool'
 
 
 def showed_up(connection, row: dict, now: datetime) -> bool:
@@ -479,6 +492,66 @@ def reasons(connection, companion: dict) -> list[str]:
     needs = json.loads((catalog.DATA / 'rough_patches' / 'stand_up_reasons.json').read_text(encoding='utf-8'))['needs']
     unfit = {reason for tag, found in needs.items() if tag not in ERA_NEEDS[era] for reason in found}
     return [reason for reason in bank('stand_up_reasons') if reason not in unfit]
+
+
+# Asked to get together while things are tense ---------------------------------------------------------------------
+
+ASK_CHOICE = 'user:ask_while_tense'
+NOT_NOW = 1  # The option in the odds table where they would rather not, for now.
+
+
+def tension(connection, companion: dict, now: datetime) -> dict | None:
+    """What makes things tense now, for the engine: `patch` (a big rough patch of the user's making is open) and
+    `warning` (Breaks and breakups: 1 strained, 2 thinking about a break). None when nothing does."""
+    row = current(connection, companion, now)
+    patch = int(bool(row) and row['size'] == 'big' and row['fault'] == 'user')
+    from companion.life import breakups  # Imported here: breakups reads this module.
+    warning = {'strained': 1, 'thinking': 2}.get(breakups.current(connection, companion)[1], 0)
+    return {'patch': patch, 'warning': warning} if patch or warning else None
+
+
+def turned_down(connection, companion: dict, message: dict, kind: str, now: datetime) -> bool:
+    """The user asks to get together (going out, or a visit) while things are tense: the engine decides whether they
+    would rather not, for now. Then nothing is booked, and the reply says so (a visit turned down,
+    companion/life/together.py). True when they turned it down."""
+    if not ACTIVE or message['role'] != 'user' or not companion.get('active_timeline_id'):
+        return False
+    if optional(connection, 'SELECT id FROM together_asks WHERE message_id=?', (message['id'],)):
+        return True
+    found = tension(connection, companion, now)
+    if found is None:
+        return False
+    definition = companion['version']['definition']
+    names = {'name': first_name(companion), 'a': 'someone', 'b': ''}
+    table = consequences.tables()[ASK_CHOICE]
+    outcome = consequences.decide(
+        connection, timeline_id=companion['active_timeline_id'], choice=ASK_CHOICE, subject=f"tense-ask:{message['id']}",
+        facts={**found, 'level': level(connection),
+               'sheet': [group for group in ('forgiving', 'stubborn') if consequences.sheet_has(definition, group)]},
+        names=names, labels=[option['label'].format(**names) for option in table['options']],
+        day=local_day(companion, now), timestamp=stamp(now), now=now)
+    if outcome['picked'] != NOT_NOW:
+        return False
+    from companion.life import together
+    return together.record(connection, companion, message, kind, {'why': 'tense'}, stamp(now))
+
+
+def change_ask(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:
+    """The user makes their answer go another way on Today: a yes books what was asked, as if they had said yes then;
+    turned down calls off what it booked."""
+    outcome = consequences.change(connection, consequence_id, option, stamp(now))
+    require(outcome['timeline_id'] == companion['active_timeline_id'], 'That outcome is not on this timeline.', 404)
+    message_id = outcome['subject'].split(':', 1)[1]
+    if option == NOT_NOW:
+        connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE message_id=? AND "
+                           "status='planned'", (stamp(now), message_id))
+    else:
+        connection.execute('DELETE FROM together_asks WHERE message_id=?', (message_id,))
+        message = optional(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
+        if message:
+            from companion.life import outings
+            outings.note(connection, message, companion, stamp(now))
+    return consequences.by_id(connection, consequence_id)
 
 
 # What is open --------------------------------------------------------------------------------------------------

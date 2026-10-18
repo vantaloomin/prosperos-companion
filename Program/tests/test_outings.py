@@ -27,6 +27,9 @@ def test_asking_out_is_read_from_the_message():
     assert asked('Dinner next Friday?') == ('dinner', '2026-10-16', None, None)
     assert asked('Want to see a movie next Thursday?')[:2] == ('show', '2026-10-15')
     assert asked("Let's go for a walk this weekend!") == ('walk', '2026-10-10', None, None)
+    # Asked on the Saturday itself, this weekend is the Sunday still ahead, not that evening; on the Sunday, that day.
+    for day, meant in ((date(2026, 10, 10), date(2026, 10, 11)), (date(2026, 10, 11), date(2026, 10, 11))):
+        assert outings.day_in('wanna do something this weekend?', day, {}) == meant
     assert asked('Drinks with me Thursday at 8?') == ('drinks', '2026-10-08', '20:00', None)
     assert asked('How about a date sometime?') == ('dinner', None, None, None)
     # The map's "Suggest going together" line names the place.
