@@ -319,6 +319,9 @@ SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, 
 OWN = ('own_wedding', 'own_graduation', 'own_retirement')
 # Days with no group chat buzz and no photo.
 QUIET = ('funeral',)
+# What they mean to ask the user, before they have: a plus-one, unless it is their own day or a funeral.
+ASKING = {'own_wedding': 'to stand up with you at your wedding', 'own_graduation': 'to be there with you',
+          'own_retirement': 'to be there with you', 'funeral': 'to come with you'}
 
 
 # Planning a big day ----------------------------------------------------------------------------------------------
@@ -961,8 +964,8 @@ def coming_line(row: dict, today: date) -> str:
         company = (" The user can't make it, and that's completely fine with you: you're going on your own. Don't "
                    'hold it against them.')
     elif row['invite']:
-        company = " You mean to ask the user to come with you" + ('' if row['kind'] in QUIET else ' as your plus-one') + \
-            "; you haven't asked yet."
+        company = f" You mean to ask the user {ASKING.get(row['kind'], 'to come with you as your plus-one')}; you " \
+            "haven't asked yet."
     else:
         company = " You're going." if row['kind'] in OWN else " You're going on your own."
     return head + company + gift + wear
