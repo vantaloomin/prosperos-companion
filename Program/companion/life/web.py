@@ -109,11 +109,13 @@ def add_townsfolk(web: Web, key: str, people: list[dict]):
             web.link(key, pairs.normal(person['key']), f"met at {person['place']['name']}", 'met')
             continue
         role = f"{person['role']} at {person['place']['name']}" if person['staff'] else person['role']
+        if person.get('left'):  # As far as the companion knows (companion/world/turnover.py).
+            role = f"{role}; has since {person['left']['text']}"
         web.add(person['key'], person['full'], 'townsperson', role, person['neighborhood'])
         web.link(key, person['key'], f"met at {person['first_place']}" if person.get('first_place') else 'met', 'met')
     staff = {}
     for person in people:
-        if person['staff'] and not person['key'].startswith('cast:'):
+        if person['staff'] and not person['key'].startswith('cast:') and not person.get('left'):
             staff.setdefault(person['place']['id'], []).append(person)
     for together in staff.values():
         for index, first in enumerate(together):

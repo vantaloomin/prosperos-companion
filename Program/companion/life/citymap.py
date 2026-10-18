@@ -83,7 +83,8 @@ def regulars(connection, companion: dict, now) -> dict[str, list[str]]:
     """Names of townsfolk the companion knows, by the place they frequent (not the staff who work there)."""
     found = {}
     for person in encounters.known(connection, companion, now):
-        if person['kind'] != 'resident' and not person['staff'] and not person['key'].startswith('cast:'):
+        if person['kind'] != 'resident' and not person['staff'] and not person['key'].startswith('cast:') and \
+                not person.get('left'):  # Not someone they know has since moved away (companion/world/turnover.py).
             found.setdefault(person['place']['id'], []).append(person['name'])
     return found
 

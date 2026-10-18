@@ -257,8 +257,14 @@ def matches(connection, database) -> list[dict]:
         companion = optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (row['person_key'],))
         found.append(card(sheet, data, database) | {'city': {'id': data['id'], 'name': data['name']},
                                                      'companion_id': companion and companion['id'],
-                                                     'places': date_places(data, sheet)})
+                                                     'places': date_places(data, sheet),
+                                                     'left': None if companion else left(sheet, data)})
     return found
+
+
+def left(sheet: dict, data: dict) -> dict | None:
+    """Whether a match has since moved away or passed away (companion/world/turnover.py): {why, day, text}."""
+    return townsfolk.gone(sheet, data, turnover.today(data))
 
 
 def date_places(data: dict, sheet: dict) -> list[dict]:
@@ -311,6 +317,8 @@ def go_on_date(database, key: str, place_id: str) -> dict:
         require(row is not None, 'You can only ask out someone you matched with.', 409)
         require(story_on(connection), 'Turn on Story mode in Settings to meet them in a story.', 409)
         sheet, data = person(connection, key, row['town'])
+        gone = left(sheet, data)
+        require(gone is None, f"{sheet['name']} has {gone and gone['text']}.", 409)
         place = catalog.find(data, place_id)
         require(place is not None and place['kind'] in DATE_KINDS and place in data['places'],
                 'Pick somewhere in their city to meet.', 404)

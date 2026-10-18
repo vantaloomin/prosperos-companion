@@ -1512,6 +1512,9 @@ export interface PetsView {
   numbers: boolean
 }
 
+/** How and when a townsperson left their place or town (companion/world/turnover.py). */
+export interface TownLeft { why: 'moved' | 'new job' | 'retired' | 'passed'; day: string; text: string }
+
 export interface Townsperson {
   key: string
   name: string
@@ -1555,6 +1558,8 @@ export interface Townsperson {
   stories?: string[]
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
+  /** Once the companion would know: they have since moved away, left their place or passed away. */
+  left?: TownLeft | null
   /** How close they and the companion feel, both ways; read-only. */
   stage?: PairStage | null
 }
@@ -1652,6 +1657,8 @@ export interface DatingMatch extends DatingCard {
   /** Set once the match became a companion. */
   companion_id: string | null
   places: DatingPlace[]
+  /** They have since moved away or passed away (companion/world/turnover.py). */
+  left?: TownLeft | null
 }
 /** A townsperson's one portrait (companion/dating_photos.py). */
 export interface DatingPhoto { status: 'none' | 'queued' | 'running' | 'completed' | 'failed'; error?: string | null; url?: string | null }

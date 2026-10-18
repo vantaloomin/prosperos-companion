@@ -511,6 +511,7 @@ def become(state, key: str) -> dict:
         name = already and characters.by_id(connection, already['id'])['version']['name']
         require(not name, f"{name} is already one of your companions, so you can't become them.", 409)
         place_data, sheet, _meetings, _story = cast.townsperson(connection, focus, key, now)
+        cast.still_here(place_data, sheet, now, "you can't become them")
     town = place_data.get('town', '')
     persona = persona_for(place_data, sheet, now.astimezone(zone(place_data['timezone'])).date(), database.now())
     data = registry(database)

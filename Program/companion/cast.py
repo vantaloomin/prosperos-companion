@@ -102,11 +102,20 @@ def candidate(connection, key: str, now) -> dict:
         require(optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (key,)) is None,
                 ALREADY, 409)
         in_story = optional(connection, 'SELECT * FROM story_people WHERE key=?', (key,))
+        still_here(matched['data'], matched['sheet'], now)
         return {'data': matched['data'], 'sheet': matched['sheet'], 'meetings': [], 'focus': current(connection),
                 'match': matched, 'in_story': in_story}
     focus = require_current(connection)
     data, sheet, meetings, in_story = townsperson(connection, focus, key, now)
+    still_here(data, sheet, now)
     return {'data': data, 'sheet': sheet, 'meetings': meetings, 'focus': focus, 'match': None, 'in_story': in_story}
+
+
+def still_here(data: dict, sheet: dict, now, then: str = "they can't take over") -> None:
+    """Refuses someone who has moved away, left their place or passed away (companion/world/turnover.py): keeping
+    them in town for good would take back the newcomers who came after them."""
+    gone = townsfolk.gone(sheet, data, now.astimezone(zone(data.get('timezone') or 'UTC')).date())
+    require(gone is None, f"{sheet['name']} has {gone and gone['text']}, so {then}.", 409)
 
 
 # Their profile --------------------------------------------------------------------------------------

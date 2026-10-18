@@ -10,6 +10,7 @@ import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
 import { Deck } from './Deck'
+import { townLeft } from '../today/townText'
 import { CityOptions } from '../world/CityOptions'
 import { AboutYou, IntoWho, Setup, WhatYouWant } from './Setup'
 
@@ -142,13 +143,16 @@ function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
       <ul>
         {data.matches.map((match) => <li key={match.key}>
           <p><strong>{cardHeading(match)}</strong>{match.job ? ` · ${match.job}` : ''} · {match.city.name}</p>
-          <div className="form-actions">
+          {match.left ? <div className="form-actions">
+            <p className="subtle">{townLeft(match.left)}</p>
+            <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>
+          </div> : <div className="form-actions">
             {match.companion_id
               ? <button type="button" className="button primary" disabled={busy !== null} onClick={() => void switchTo(match.companion_id!)}>Talk to {match.name}</button>
               : <StartTalking name={match.name} matchKey={match.key} go={go} primary />}
             {data.story && <MeetInStory match={match} onDate={onDate} />}
             {!match.companion_id && <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>}
-          </div>
+          </div>}
         </li>)}
       </ul>
     </section>
