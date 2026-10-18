@@ -248,14 +248,18 @@ def step(connection, timeline_id: str, before: dict, day: date, context: dict) -
     mess = {area: min(100.0, value) for area, value in mess.items()}
     free = not busy and key not in context['planned']
     weekly = kind == 'neat' and since_big >= 7 and sum(mess.values()) >= 40
-    if free and (sum(mess.values()) >= BIG[kind] * context['patience'] or weekly):
-        return {'date': key, 'mess': {area: float(FRESH) for area in AREAS}, 'done': ['big-clean'], 'away': False,
-                'busy': busy, 'since_big': 0}
     turns = shared_turns(connection, context, day) or {}
+
+    def theirs(area):  # Living together: someone else's turn at it today, done or left undone.
+        return float(CLEANED[area]) if turns[area] == 'done' else max(mess[area], LEFT_UNDONE[area])
+    if free and (sum(mess.values()) >= BIG[kind] * context['patience'] or weekly):
+        return {'date': key, 'mess': {area: float(FRESH) if turns.get(area, 'you') == 'you' else theirs(area)
+                                      for area in AREAS}, 'done': ['big-clean'], 'away': False, 'busy': busy,
+                'since_big': 0}
     done = []
     for area in AREAS:
-        if turns.get(area, 'you') != 'you':  # Living together: someone else's turn at it today.
-            mess[area] = float(CLEANED[area]) if turns[area] == 'done' else max(mess[area], LEFT_UNDONE[area])
+        if turns.get(area, 'you') != 'you':
+            mess[area] = theirs(area)
             continue
         chance = 1.0 if mess[area] >= 100 and not busy else min(0.97, CHANCE[kind][busy] * context['keen'])
         if mess[area] >= LIMITS[kind][area] * context['patience'] and generators.unit(seed, 'deal', key, area) < chance:
