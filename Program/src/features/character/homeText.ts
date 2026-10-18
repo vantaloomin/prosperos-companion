@@ -1,4 +1,5 @@
 import type { HomeItem, HomeKind } from '../../types'
+import { calendarDay } from '../../when.ts'
 
 export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet', plant: 'Plant', vehicle: 'Getting around', favorite: 'Favourite thing' }
 
@@ -24,7 +25,8 @@ export function itemDetail(item: HomeItem): string {
 /** "Since 2026-10-12" for things that arrived later, nothing for what they always had. */
 export function sinceText(item: HomeItem): string | null {
   if (item.origin === 'generated') return null
-  return item.origin === 'user' ? `Added by you on ${item.since}` : `New since ${item.since}`
+  const day = calendarDay(item.since, { year: true })
+  return item.origin === 'user' ? `Added by you on ${day}` : `New since ${day}`
 }
 
 export function sentence(text: string): string {

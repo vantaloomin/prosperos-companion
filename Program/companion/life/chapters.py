@@ -352,7 +352,8 @@ def reverse(connection, found: dict, now):
 
 def view(row: dict) -> dict:
     return {'id': row['id'], 'kind': row['kind'], 'started_on': row['started_on'], 'title': row['title'],
-            'stage': decode(row.get('details') or '{}').get('stage'), 'consequence': row['consequence_id'],
+            'stage': decode(row.get('details') or '{}').get('stage'), 'on': since(row),
+            'consequence': row['consequence_id'],
             'undone': row['undone_at'] is not None}
 
 
@@ -366,7 +367,7 @@ def listing(database) -> list[dict]:
     with database.connect() as connection:
         companion = require_current(connection)
         rows = many(connection, 'SELECT * FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL '
-                    'ORDER BY started_on DESC, created_at DESC', (companion['active_timeline_id'],))
+                    f'ORDER BY {SINCE} DESC, created_at DESC', (companion['active_timeline_id'],))
         return [view(row) for row in rows]
 
 

@@ -27,7 +27,7 @@ export function Chapters({ name }: { name: string }) {
         {list.data.map((item) => (
           <li key={item.id}>
             <p>
-              <time dateTime={item.started_on}>{storyDate(item.started_on)}</time> {item.title}.{' '}
+              <time dateTime={item.on}>{storyDate(item.on)}</time> {item.title}.{' '}
               <button type="button" className="text-button" disabled={undo.isPending}
                 onClick={() => undo.mutate(item.id)}>Undo</button>
             </p>

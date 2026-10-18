@@ -89,6 +89,11 @@ def day_text(day: str | date) -> str:
     return found.strftime('%B %d, %Y').replace(' 0', ' ')
 
 
+def short_day(day: str) -> str:
+    """'Feb 11, 2027', for the Character page."""
+    return date.fromisoformat(day).strftime('%b %d, %Y').replace(' 0', ' ')
+
+
 def days_text(days: list[int]) -> str:
     """'Mondays and Thursdays'."""
     return ' and '.join(f'{WEEKDAYS[day]}s' for day in days)
@@ -293,7 +298,8 @@ def place_to_buy(companion: dict, city: dict, found, together: dict | None, seed
     unit = 'two_bedroom' if together or found.tier >= 2 else 'one_bedroom'
     place = moving_in.shared_place(f'{seed}:place', companion, city, hood, unit)
     payment = place['details'].get('rent') or 0
-    payment = int(round(payment * random.Random(f'{seed}:mortgage').uniform(*MORTGAGE) / 25) * 25)
+    # To the ten, as money.amount says it, so the Home card and the budget show the same number.
+    payment = int(round(payment * random.Random(f'{seed}:mortgage').uniform(*MORTGAGE), -1))
     return {**place, 'details': {**place['details'], 'owned': True, 'shared': bool(together), 'rent': payment,
                                  'rent_from': 'mortgage', 'estimate': True, 'city': city['name']}}
 
@@ -539,22 +545,22 @@ def line(row: dict) -> str:
     details = decode(row['details'])
     stage = details.get('stage')
     if stage == 'enrolled':
-        return f"Signed up for {details['course']}; classes start {day_text(details['starts_on'])}."
+        return f"Signed up for {details['course']}; classes start {short_day(details['starts_on'])}."
     if stage in ('studying', 'retraining'):
         upcoming = [day for day in details.get('exams', ()) if day >= details.get('stage_on', '')]
-        exam = f" Next exam {day_text(upcoming[0])}." if upcoming else ''
+        exam = f" Next exam {short_day(upcoming[0])}." if upcoming else ''
         what = f"Retraining as {article(details['job'])}" if stage == 'retraining' else f"Taking {details['course']}"
-        return (f"{what} on {days_text(details['study']['days'])}.{exam} Finishes {day_text(details['ends_on'])}" +
+        return (f"{what} on {days_text(details['study']['days'])}.{exam} Finishes {short_day(details['ends_on'])}" +
                 (', then starts the new job.' if stage == 'retraining' else '.'))
     if stage == 'hunting':
         place = details['place']['details']
         currency = place.get('currency') or {}
         mortgage = money.amount(place['rent'], currency) if currency and place.get('rent') else ''
         return (f"Buying {place['description']}" + (' with you' if details.get('shared') else '') +
-                f"; keys on {day_text(details['keys_on'])}." +
+                f"; keys on {short_day(details['keys_on'])}." +
                 (f' The mortgage will be about {mortgage} a month.' if mortgage else ''))
     if stage == 'leaving':
-        return f"Retiring; their last day at work is {day_text(details['last_day'])}."
+        return f"Retiring; their last day at work is {short_day(details['last_day'])}."
     return row['title'] + '.'
 
 

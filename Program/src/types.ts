@@ -1225,6 +1225,8 @@ export interface LifeChapter {
   title: string
   /** Where a big turn stands (companion/life/big_turns.py); null for other chapters. */
   stage: string | null
+  /** The day its latest stage came (the day it began for other chapters), as Today shows it. */
+  on: string
   consequence: string | null
   undone: boolean
 }

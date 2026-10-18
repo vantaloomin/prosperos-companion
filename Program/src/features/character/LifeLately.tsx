@@ -17,7 +17,7 @@ export function LifeLately({ name }: { name: string }) {
     <section id="life-lately" className="home-panel lately-panel" aria-labelledby="lately-heading">
       <h2 id="lately-heading">{panelTitle(name, 'life lately')}</h2>
       <p className="subtle">Big turns come on their own, as often as Life's big turns in Settings &gt; Realism says. Undo any of them on Today.</p>
-      {view.now.length > 0 && <ul className="admin-state">{view.now.map((item) => <li key={item.id}>{item.line}</li>)}</ul>}
+      {view.now.length > 0 && <ul className="admin-state">{view.now.map((item) => <li key={item.id}><span className="subtle">Now · </span>{item.line}</li>)}</ul>}
       {view.lately.length > 0 && <>
         <h3>Lately</h3>
         <ul className="admin-state">{view.lately.map((item) => (
