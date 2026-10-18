@@ -320,10 +320,13 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
 
 
 def gift_for(connection, companion: dict, kind: Kind, seed: str) -> tuple[str, float]:
-    """(the gift in words, what it costs in the city's money): from the bank for the kind, priced by their pay."""
+    """(the gift in words, what it costs in the city's money): from the bank for the kind (its modern one in a modern
+    city), priced by their pay."""
     if not kind.gift:
         return '', 0.0
-    gift = generators.pick(seed, 'gift', bank()['gifts'][kind.gift])
+    gifts = bank()['gifts']
+    key = f'{kind.gift}_modern' if f'{kind.gift}_modern' in gifts and modern_city(connection, companion) else kind.gift
+    gift = generators.pick(seed, 'gift', gifts[key])
     found = money.profile(companion['version']['definition'])
     return gift, round(money.monthly_share(found) * kind.share, 2) if found else 0.0
 

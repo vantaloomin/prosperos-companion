@@ -121,7 +121,7 @@ def says(provider, text='Okay!'):
 
 def test_the_banks_have_enough_lines_with_their_places():
     bank = big_days.bank()
-    for kind in ('wedding', 'birthday', 'retirement', 'graduation'):
+    for kind in ('wedding', 'birthday', 'retirement', 'graduation', 'wedding_modern', 'birthday_modern'):
         gifts = bank['gifts'][kind]
         assert len(gifts) >= 100 and len(set(gifts)) == len(gifts)
         assert all(gift[:1].islower() and not gift.endswith('.') for gift in gifts), kind
@@ -142,7 +142,7 @@ def test_a_big_day_gets_a_place_a_gift_an_outfit_and_the_engine_decides_whether_
     row = add(client, clock)
     assert row['kind'] == 'wedding' and row['status'] == 'planned' and row['details']['role'] == 'brother'
     assert row['place']['name'] and not row['place']['id'].startswith('~')
-    assert row['gift'] in big_days.bank()['gifts']['wedding'] and row['gift_cost'] > 0
+    assert row['gift'] in big_days.bank()['gifts']['wedding_modern'] and row['gift_cost'] > 0
     assert row['gift_on'] == (date.fromisoformat(row['local_date']) - timedelta(days=7)).isoformat()
     assert row['invite'] == 1 and row['consequence_id']
     assert date.fromisoformat(row['invite_on']) <= date.fromisoformat(row['local_date']) - timedelta(days=14)

@@ -81,6 +81,14 @@ export function placeLine(place: OutingPlace): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+/** Where an outing is, for Today: a big day names its own venue ("Unity Temple, Oak Park"), like the chat strip does;
+ * anything else reads as the kind of place (placeLine). */
+export function outingPlace(outing: Pick<Outing, 'activity' | 'place'>): string {
+  if (outing.activity !== 'big-day') return placeLine(outing.place)
+  const name = outing.place.name.charAt(0).toUpperCase() + outing.place.name.slice(1)
+  return outing.place.neighborhood ? `${name}, ${outing.place.neighborhood}` : name
+}
+
 /** "With Ana (mom), Rui (dad) and Leo (brother)", for meeting their people; '' for any other outing. Once the evening
  * is over, the first meeting is told as past. */
 export function peopleLine(place: OutingPlace, state?: OutingState): string {
@@ -92,12 +100,12 @@ export function peopleLine(place: OutingPlace, state?: OutingState): string {
 }
 
 /** A big day: the user's part in it and the gift. "You're Mira's plus-one. They're bringing a teapot." or, at their
- * own wedding, "You're standing up with Mira."; told as past once it is over. '' for any other outing. */
+ * own wedding, "You're in Mira's wedding party."; told as past once it is over. '' for any other outing. */
 export function bigDayLine(outing: Pick<Outing, 'activity' | 'place' | 'state'>, name: string): string {
   if (outing.activity !== 'big-day') return ''
   const done = outing.state === 'done'
   const part = outing.place.standing_up
-    ? (done ? `You stood up with ${name}.` : `You're standing up with ${name}.`)
+    ? (done ? `You were in ${name}'s wedding party.` : `You're in ${name}'s wedding party.`)
     : (done ? `You went as ${name}'s plus-one.` : `You're ${name}'s plus-one.`)
   const gift = outing.place.gift ? ` ${done ? 'They brought' : "They're bringing"} ${outing.place.gift}.` : ''
   return `${part}${gift}`

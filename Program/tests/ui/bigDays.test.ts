@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { bigDayLine, outingTitle } from '../../src/features/today/outingText.ts'
+import { bigDayLine, outingPlace, outingTitle } from '../../src/features/today/outingText.ts'
 import { stripAction, stripLine, type WhereState } from '../../src/features/conversation/whereText.ts'
 
 const place = {
@@ -17,7 +17,10 @@ test('a big day is named by its own title, with your part in it and the gift', (
   assert.equal(bigDayLine(outing, 'Mira'), "You're Mira's plus-one. They're bringing a carved jewelry box.")
   assert.equal(bigDayLine({ ...outing, state: 'done' }, 'Mira'), "You went as Mira's plus-one. They brought a carved jewelry box.")
   const own = { ...outing, place: { ...place, title: "Mira's wedding", event: 'own_wedding', gift: null, standing_up: true } }
-  assert.equal(bigDayLine(own, 'Mira'), "You're standing up with Mira.")
+  assert.equal(bigDayLine(own, 'Mira'), "You're in Mira's wedding party.")
+  assert.equal(outingPlace(outing), 'Druid Hill Park, Druid Hill')
+  assert.equal(outingPlace({ ...outing, place: { ...place, id: '~big-day', name: 'a venue in Chicago', neighborhood: '' } }), 'A venue in Chicago')
+  assert.equal(outingPlace({ ...outing, activity: 'dinner' }), 'Park in Druid Hill')
   assert.equal(bigDayLine({ ...outing, activity: 'dinner' }, 'Mira'), '')
 })
 
