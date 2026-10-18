@@ -249,6 +249,9 @@ def town_age(connection, sheet: dict, day: date) -> int:
     if row := stored(connection, 'town', sheet['key']):
         return age_from(row, day)
     began = town_began(connection)
+    # A newcomer (companion/world/turnover.py) was their seeded age the day they arrived in town.
+    if began is not None and sheet.get('arrived'):
+        began = max(began, date.fromisoformat(sheet['arrived']))
     if began is None or day <= began:
         return sheet['age']
     born = born_from(sheet['age'], seeded_birthday(sheet['seed']), began)

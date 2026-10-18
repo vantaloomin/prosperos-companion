@@ -10,7 +10,7 @@ from test_drafting import connect
 
 from companion import dating as matchlight
 from companion.characters import require_current
-from companion.life import citymap, encounters, network, web
+from companion.life import ages, citymap, encounters, network, web
 from companion.world import paper, townsfolk, turnover
 
 
@@ -115,3 +115,12 @@ def test_a_companion_hears_of_a_loss_in_their_own_town(client, clock, chatty, mo
         companion = require_current(connection)
         loss.town(connection, companion, clock.now().date(), clock.now())
     assert resolved == [companion['town_seed']] and resolved[0]
+
+
+def test_a_newcomer_is_their_age_from_the_day_they_arrived(monkeypatch):
+    monkeypatch.setattr(ages, 'stored', lambda *_args: None)
+    monkeypatch.setattr(ages, 'town_began', lambda _connection: date(2026, 10, 19))
+    sheet = {'key': 'town:x:bar:1001', 'seed': 'x', 'age': 30, 'arrived': '2034-03-06'}
+    assert ages.town_age(None, sheet, date(2034, 3, 6)) == 30
+    assert ages.town_age(None, sheet, date(2036, 3, 6)) in (31, 32)
+    assert ages.town_age(None, sheet | {'arrived': None}, date(2034, 3, 6)) >= 37
