@@ -19,6 +19,7 @@ from companion.events import committed
 from companion.life import (
     agenda,
     ages,
+    big_days,
     body,
     breakups,
     calls,
@@ -139,6 +140,9 @@ HEADINGS = {
             'steps': 'Where things stand between you (decided by the app; the user can see and change it)',
             # Engagement and wedding (companion/life/wedding.py): changes when they propose, plan or hold the wedding.
             'wedding': 'Your engagement and wedding (planned by the app with you; the user can change the plan)',
+            # Big days in the circle (companion/life/big_days.py): changes when one is found, the user is asked or it
+            # is held.
+            'big_days': 'Big days in your circle (weddings, birthdays and the like; decided by the app, keep to them)',
             # Their own love life (companion/life/love_life.py): changes when they meet someone, take a step or split.
             'love': 'Your own love life (decided by the app; keep to it)',
             # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
@@ -941,6 +945,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     love_life.offer(packet, connection, companion, now, group)
     their_people.offer(packet, connection, companion, now, group)
     wedding.offer(packet, connection, companion, now, group)
+    big_days.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

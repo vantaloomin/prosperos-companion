@@ -30,6 +30,7 @@ from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
 from companion.life import (
+    big_days,
     breakups,
     calls,
     moving_in,
@@ -87,6 +88,8 @@ def record_user(database, body) -> dict:
         calls.note(connection, message, companion, database.now())
         # An answer to a next step they brought up, or one the user brings up (companion/life/steps.py), likewise.
         steps.note(connection, message, companion, database.now())
+        # A no to a big day they asked the user along to (companion/life/big_days.py): fine, and remembered.
+        big_days.note(connection, message, companion, database.now())
         # A move-in step just reached settles where (companion/life/moving_in.py); "I'm out" or "I'm home" at home.
         moving_in.note(connection, message, companion, database.now())
         self_checks.heed(connection, message, database.now())

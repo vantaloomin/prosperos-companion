@@ -722,6 +722,10 @@ def image_hint(connection, timeline_id: str, moment: dict) -> str:
         from companion.life import wedding
         if found := wedding.dressed(connection, timeline_id, local_date):
             return f'Wearing {found}.'
+    if moment.get('activity') == 'big-day':
+        from companion.life import big_days
+        if found := big_days.dressed(connection, timeline_id, local_date):
+            return f'Wearing {found}.'
     outdoors = moment.get('activity') in OUTDOOR_ACTIVITIES
     worn = worn_on(connection, timeline_id, local_date, moment.get('activity'), moment.get('block_kind'),
                    moment.get('weather'), outdoors)
@@ -765,10 +769,13 @@ def context_lines(connection, timeline_id: str, day: date, now) -> list[tuple[st
     if favourites:
         lines.append((f'wardrobe:{timeline_id}:favorites', f"- Favourites you wear a lot: {listing(favourites)}."))
     moment = current_moment(connection, timeline_id, now)
-    from companion.life import wedding
+    from companion.life import big_days, wedding
     if moment and (found_attire := wedding.dressed(connection, timeline_id, moment['local_date'], now)):
         lines.append((f"wardrobe:{timeline_id}:now:{moment['local_date']}:wedding",
                       f"- Wearing right now (at your wedding): {found_attire}."))
+    elif moment and (found_attire := big_days.dressed(connection, timeline_id, moment['local_date'], now)):
+        lines.append((f"wardrobe:{timeline_id}:now:{moment['local_date']}:big-day",
+                      f"- Wearing right now (dressed up for a big day): {found_attire}."))
     elif moment:
         occasion = occasion_for(moment['activity'], moment['block_kind'])
         worn = outfit(items, occasion, f"{state['seed']}:{moment['local_date']}:{occasion}", moment['weather'],

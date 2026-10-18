@@ -12,6 +12,7 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    big_days,
     breakups,
     calls,
     chapters,
@@ -497,6 +498,13 @@ def read_consequence(request: Request, consequence_id: str):
         return found
 
 
+# "Change how it went" by subject prefix, for those that take (connection, companion, consequence_id, option, now).
+CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.change,
+           'people:': lambda: their_people.change, 'breakup:': lambda: breakups.change,
+           'bigday:': lambda: big_days.change, 'tense-ask:': lambda: rough_patches.change_ask,
+           'wedding:': lambda: wedding.change_size}
+
+
 @router.post('/consequences/{consequence_id}/change')
 def change_consequence(request: Request, consequence_id: str, body: OutcomeChange):
     """The user makes it go another way instead."""
@@ -506,40 +514,16 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         return storylines.change_outcome(db(request), consequence_id, body.option)
     if subject.startswith('chapter:'):
         return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
-    if subject.startswith('moving_in:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return moving_in.change(connection, require_current(connection), consequence_id, body.option,
-                                    database.clock.now())
     if subject.startswith('love:'):
         database = db(request)
         with database.connect(write=True) as connection:
             return love_life.change(connection, require_current(connection), request.app.state.life.world,
                                     consequence_id, body.option, database.clock.now())
-    if subject.startswith('steps:'):
+    change = next((found for prefix, found in CHANGES.items() if subject.startswith(prefix)), None)
+    if change:
         database = db(request)
         with database.connect(write=True) as connection:
-            return steps.change(connection, require_current(connection), consequence_id, body.option, database.clock.now())
-    if subject.startswith('people:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return their_people.change(connection, require_current(connection), consequence_id, body.option,
-                                       database.clock.now())
-    if subject.startswith('breakup:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return breakups.change(connection, require_current(connection), consequence_id, body.option,
-                                   database.clock.now())
-    if subject.startswith('tense-ask:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return rough_patches.change_ask(connection, require_current(connection), consequence_id, body.option,
-                                            database.clock.now())
-    if subject.startswith('wedding:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return wedding.change_size(connection, require_current(connection), consequence_id, body.option,
-                                       database.clock.now())
+            return change()(connection, require_current(connection), consequence_id, body.option, database.clock.now())
     return reactions.change(db(request), consequence_id, body.option)
 
 

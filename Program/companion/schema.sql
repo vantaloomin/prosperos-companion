@@ -2461,6 +2461,43 @@ CREATE TABLE IF NOT EXISTS birth_dates (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (kind, person_key)
 );
+-- Big days in the circle (companion/life/big_days.py): a wedding, a milestone birthday, a retirement party or a
+-- graduation in the companion's circle or town, or a friend's own wedding (`kind`), found once by `source` (the
+-- storyline, the person and year, the love-life partner). `details` holds whose day it is (name, role, age ...),
+-- `place` where. `invite` is whether they ask the user along (the engine's bigday:invite, `consequence_id`), going out
+-- as a first text on `invite_on`: 'invited' once it has (`message_id`, booked as `outing_id`, and long distance the
+-- user's stay as `trip_id`), 'declined' when the user can't come, 'done' once held (`with_user` when they went).
+-- The gift is bought on `gift_on` for `gift_cost` in the city's money; `outfit` is what they wear.
+CREATE TABLE IF NOT EXISTS big_days (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL,
+  person_id TEXT,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'invited', 'declined', 'done', 'called_off')),
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  until_time TEXT NOT NULL,
+  place TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '{}',
+  invite INTEGER NOT NULL DEFAULT 0 CHECK (invite IN (0, 1)),
+  invite_on TEXT,
+  consequence_id TEXT,
+  gift TEXT NOT NULL DEFAULT '',
+  gift_cost REAL NOT NULL DEFAULT 0,
+  gift_on TEXT,
+  outfit TEXT NOT NULL DEFAULT '',
+  message_id TEXT,
+  outing_id TEXT,
+  trip_id TEXT,
+  with_user INTEGER NOT NULL DEFAULT 0 CHECK (with_user IN (0, 1)),
+  answered_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, source)
+);
+CREATE INDEX IF NOT EXISTS big_days_timeline ON big_days(timeline_id, status, local_date);
+
 -- Births and growing families (companion/life/families.py): a baby in the companion's circle, from the day their
 -- parent's pregnancy storyline (`storyline_id`, story 'expecting') began. `status` is 'expected' until `born_on`,
 -- then 'born'; 'ended' when the storyline was ended first. `title` is what they are to the companion: 'family' (a

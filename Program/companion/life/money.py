@@ -459,6 +459,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
     `purchases`. None before the home exists or where money does not apply."""
     from companion.life import (  # all build from this budget, so import late
         admin,
+        big_days,
         big_turns,
         grooming,
         hobbies,
@@ -488,6 +489,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *admin.purchases(connection, timeline_id, start, day),
               *hobbies.purchases(connection, timeline_id, start, day),
               *wedding.purchases(connection, timeline_id, start, day),
+              *big_days.purchases(connection, timeline_id, start, day),
               *big_turns.purchases(connection, timeline_id, start, day)]
     # Raises, promotions and time between jobs (companion/life/work.py), or a pension once retired (big_turns.py);
     # what big buys took from savings since the goal began.
@@ -645,7 +647,7 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
 
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
             'hobby': 'on your pastimes', 'ring': 'from your savings', 'wedding': 'from your savings',
-            'school': 'on your course', 'deposit': 'from your savings'}
+            'gift': 'on gifts', 'school': 'on your course', 'deposit': 'from your savings'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

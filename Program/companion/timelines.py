@@ -20,6 +20,7 @@ from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import (
+    big_days,
     breakups,
     encounters,
     families,
@@ -224,6 +225,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     wedding.copy_proposals(connection, steps.copy_open(connection, parent_id, new_id, cutoff, ids), new_id)
     love_life.copy(connection, parent_id, new_id, ids, cutoff[:10])
     wedding.copy(connection, parent_id, new_id, cutoff[:10])
+    big_days.copy(connection, parent_id, new_id, cutoff[:10])
     breakups.copy(connection, parent_id, new_id, ids, cutoff)
     copy_impressions(connection, parent_id, new_id, ids, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
