@@ -401,6 +401,15 @@ def terms_of(data: dict, sheet: dict, until: int) -> list:
     return place_terms(data, catalog.find(data, sheet['place']['id']), slot, until, generation)
 
 
+def gone_line(sheet: dict, data: dict, found: dict) -> str:
+    """'Casey moved away from Baltimore', '... for a new job', 'Todd retired from Towson Farmers Market', 'Kola
+    passed away': how someone who left (`gone`) is spoken of in the world's terms."""
+    name, city = sheet['name'], data.get('name') or 'town'
+    place = '' if sheet.get('kind') == 'resident' else f" from {sheet['place']['name']}"
+    return {'moved': f'{name} moved away from {city}', 'new job': f'{name} moved away from {city} for a new job',
+            'retired': f'{name} retired{place}', 'passed': f'{name} passed away'}[found['why']]
+
+
 def gone(sheet: dict, data: dict, day: date) -> dict | None:
     """How and when this townsperson left town or their place, if they had by `day`: {why, day, text}."""
     if not sheet['key'].startswith('town:') or sheet['key'] == data.get('you'):

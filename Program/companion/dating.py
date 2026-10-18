@@ -324,7 +324,9 @@ def go_on_date(database, key: str, place_id: str) -> dict:
         require(story_on(connection), 'Turn on Story mode in Settings to meet them in a story.', 409)
         sheet, data = person(connection, key, row['town'])
         gone = left(sheet, data)
-        require(gone is None, f"{sheet['name']} has {gone and gone['text']}.", 409)
+        if gone:
+            raise DomainError(f"{townsfolk.gone_line(sheet, data, gone)}, so you can't meet them on a date.", 409,
+                              'left_town')
         place = catalog.find(data, place_id)
         require(place is not None and place['kind'] in DATE_KINDS and place in data['places'],
                 'Pick somewhere in their city to meet.', 404)

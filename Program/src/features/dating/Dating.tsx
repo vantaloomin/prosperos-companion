@@ -10,7 +10,7 @@ import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
 import { Deck } from './Deck'
-import { townLeft } from '../today/townText'
+import { formerly, townLeft } from '../today/townText'
 import { CityOptions } from '../world/CityOptions'
 import { AboutYou, IntoWho, Setup, WhatYouWant } from './Setup'
 
@@ -142,7 +142,7 @@ function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
       {error && <Notice tone="error">{error}</Notice>}
       <ul>
         {data.matches.map((match) => <li key={match.key}>
-          <p><strong>{cardHeading(match)}</strong>{match.job ? ` · ${match.job}` : ''} · {match.city.name}</p>
+          <p><strong>{cardHeading(match)}</strong>{matchJob(match)} · {match.city.name}</p>
           {match.left ? <div className="form-actions">
             <p className="subtle">{townLeft(match.left)}</p>
             <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>
@@ -157,6 +157,12 @@ function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
       </ul>
     </section>
   )
+}
+
+/** " · Librarian at Enoch Pratt", or " · Formerly a librarian" once they have left town. */
+function matchJob(match: DatingMatch): string {
+  if (match.left) return ` · ${formerly(match.job)}`
+  return match.job ? ` · ${match.job}` : ''
 }
 
 function MeetInStory({ match, onDate }: { match: DatingMatch; onDate: (key: string, placeId: string) => Promise<void> }) {

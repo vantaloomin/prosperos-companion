@@ -41,7 +41,8 @@ def test_someone_who_left_is_nowhere_in_town_and_cant_take_over(client, clock, c
     assert known['left'] is None or known['left']['day'] == found['day']
     for response in (client.get('/api/companion/cast/draft', params={'key': person['key']}),
                      client.post('/api/worlds/become', json={'key': person['key']})):
-        assert response.status_code == 409 and 'has ' in response.json()['detail'], response.text
+        assert response.status_code == 409 and response.json()['code'] == 'left_town', response.text
+        assert response.json()['detail'].startswith(f"{person['name']} ") and ", so you can't " in response.json()['detail']
 
 
 def test_the_map_and_who_knows_who_leave_out_where_someone_used_to_be(monkeypatch):
@@ -81,7 +82,8 @@ def test_a_match_who_left_town_cant_be_met_on_a_date(client, clock):
     match = next(item for item in ok(client.get('/api/dating'))['matches'] if item['key'] == key)
     assert match['left']['day'] == found['day']
     refused = client.post('/api/dating/dates', json={'key': key, 'place_id': match['places'][0]['id']})
-    assert refused.status_code == 409 and 'has ' in refused.json()['detail']
+    assert refused.status_code == 409 and refused.json()['code'] == 'left_town'
+    assert refused.json()['detail'].endswith("so you can't meet them on a date.")
     assert client.get('/api/companion/cast/draft', params={'key': key}).status_code == 409
 
 
@@ -161,3 +163,11 @@ def test_a_group_never_hears_from_a_townsperson_who_passed_away(monkeypatch):
     found = group_guests.known_by(None, {'id': 'c1', 'version': {'name': 'Mira Hale'}}, None)
     assert [person['key'] for person in found] == ['town:x:bar:0', 'town:x:bar:1']
     assert [person['tie'] for person in found] == ['the barkeep at The Bar', 'formerly the barkeep at The Bar']
+
+
+def test_someone_who_left_is_spoken_of_in_the_worlds_terms():
+    sheet = {'name': 'Casey', 'kind': 'staff', 'place': {'name': 'Walters Art Museum'}}
+    data = {'name': 'Baltimore'}
+    lines = [townsfolk.gone_line(sheet, data, {'why': why}) for why in ('moved', 'new job', 'retired', 'passed')]
+    assert lines == ['Casey moved away from Baltimore', 'Casey moved away from Baltimore for a new job',
+                     'Casey retired from Walters Art Museum', 'Casey passed away']

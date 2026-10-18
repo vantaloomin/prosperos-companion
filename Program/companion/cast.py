@@ -111,11 +111,12 @@ def candidate(connection, key: str, now) -> dict:
     return {'data': data, 'sheet': sheet, 'meetings': meetings, 'focus': focus, 'match': None, 'in_story': in_story}
 
 
-def still_here(data: dict, sheet: dict, now, then: str = "they can't take over") -> None:
+def still_here(data: dict, sheet: dict, now, then: str = "you can't take over as them") -> None:
     """Refuses someone who has moved away, left their place or passed away (companion/world/turnover.py): keeping
-    them in town for good would take back the newcomers who came after them."""
+    them in town for good would take back the newcomers who came after them. Code `left_town`, told as news."""
     gone = townsfolk.gone(sheet, data, now.astimezone(zone(data.get('timezone') or 'UTC')).date())
-    require(gone is None, f"{sheet['name']} has {gone and gone['text']}, so {then}.", 409)
+    if gone:
+        raise DomainError(f'{townsfolk.gone_line(sheet, data, gone)}, so {then}.', 409, 'left_town')
 
 
 # Their profile --------------------------------------------------------------------------------------
