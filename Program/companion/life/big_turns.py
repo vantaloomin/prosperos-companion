@@ -1,5 +1,5 @@
-"""Life's big turns (Hit List #68, v0.14 Years Go By), part 1: back to school, a career change, buying a place and
-retirement.
+"""Life's big turns (Hit List #68, v0.14 Years Go By): back to school, a career change, buying a place, retirement,
+and (part 2) starting a business, a health turn and caring for a parent.
 
 They are life chapters like the others (companion/life/chapters.py picks them with the consequence engine, choice
 `chapter:next`, from age, money, mood and the companion's own description), but each one takes months, so it runs in
@@ -20,10 +20,14 @@ chapter's `told` and `share` lines, which change with each stage.
 - `retire`: older characters only (their age from companion/life/ages.py). They hand in their notice; after their
   last day at work their working hours become time for a pursuit from the bank, and their pay a pension (`pay`).
 
+- `business`, `health` and `caring`: part 2, in companion/life/business.py and companion/life/health_turns.py, which
+  plug their plans, stages, costs and calendar entries in here.
+
 Graduations and last days at work are the circle's big days to come (`big_days`, for Big days in the circle).
 Life's big turns (Settings > Realism > Their days, life_settings.life_turns) sets how often any chapter begins; on
-Gentle only good turns happen (Vanta 2026-10-18: "Good turns only" on an easy life), so the hard turns part 2 adds
-(`HARD`) never come on it. Undo on Today takes a turn back at any stage.
+Gentle only good turns happen (Vanta 2026-10-18: "Good turns only" on an easy life), so the hard turns (`HARD`: a
+health turn and caring for a parent) never come on it, and a business never folds. Undo on Today takes a turn back at
+any stage, with the marks its outcomes left.
 """
 import json
 import random
@@ -31,14 +35,15 @@ from calendar import monthrange
 from datetime import date, time, timedelta
 from functools import cache
 
+from companion import consequences
 from companion.database import decode, encode, many, optional
 from companion.life import ages, home, money, moving_in, routine
 from companion.world import catalog, intimacy
 
-KINDS = ('school', 'career_change', 'buy_place', 'retire')
-# Hard turns never happen on Gentle (good turns only). Part 2 adds a business folding, a health turn and caring for a
-# parent here.
-HARD = frozenset()
+KINDS = ('school', 'career_change', 'buy_place', 'retire', 'business', 'health', 'caring')
+# Hard turns never happen on Gentle (good turns only); a business folding is ruled out there by its own odds
+# (business:how in world/data/consequences.json).
+HARD = frozenset({'health', 'caring'})
 GENTLE = 1
 # Life's big turns (0..3): how often a chapter begins, as a multiplier on the drama level's monthly chance.
 TURNS = (0.0, 0.5, 1.0, 1.5)
@@ -131,7 +136,8 @@ def free(connection, companion: dict, day: date) -> int | None:
 def facts(connection, companion: dict, day: date) -> dict:
     """What the engine reads for big turns."""
     return {'age': age_of(connection, companion, day), 'turns': level(connection),
-            'together': int(bool(moving_in.living(connection, companion, day)))}
+            'together': int(bool(moving_in.living(connection, companion, day))),
+            **health_turns.facts(connection, companion, day)}
 
 
 def level(connection) -> int:
@@ -147,13 +153,14 @@ def allowed(connection, kind: str) -> bool:
 
 # Planning each turn -------------------------------------------------------------------------------------------
 
-def class_slot(definition: dict, seed: str) -> dict | None:
-    """Two weekday evenings of their own time (else a Saturday) for classes: the block they come out of and the days."""
+def class_slot(definition: dict, seed: str, evenings: bool = True) -> dict | None:
+    """Two weekday evenings of their own time (else, or without `evenings`, a Saturday) for classes: the block they come
+    out of and the days."""
     rota = bool(definition.get('rota'))
     blocks = [block for block in routine.blocks(definition)[0] if block.kind not in BUSY
-              and not (rota and block.key in ('after-work', 'day-off'))]
+              and not (rota and block.key in ('after-work', 'day-off')) and 'caring' not in block.themes]
     rng = random.Random(f'{seed}:class')
-    for block in blocks:
+    for block in blocks if evenings else ():
         weekdays = [day for day in block.days if day < 5]
         if block.start >= time(17) and len(weekdays) >= 2:
             return slot(block, sorted(rng.sample(weekdays, 2)))
@@ -340,7 +347,7 @@ def job_of(definition: dict) -> str:
     return f" from your job as {article(career['name'].lower())}" if career else ''
 
 
-PLANS = {'school': plan_school, 'career_change': plan_career, 'buy_place': plan_buy, 'retire': plan_retire}
+PLANS = {'school': plan_school, 'career_change': plan_career, 'buy_place': plan_buy, 'retire': plan_retire}  # + part 2
 
 
 def do_plan(connection, companion, world, day, plan, now) -> dict:
@@ -439,11 +446,14 @@ def retire(connection, companion, row, details, day, now) -> dict:
 
 STAGES = {('school', 'enrolled'): classes_start, ('school', 'studying'): graduate,
           ('career_change', 'enrolled'): classes_start, ('career_change', 'retraining'): switch,
-          ('buy_place', 'hunting'): keys_day, ('retire', 'leaving'): retire}
+          ('buy_place', 'hunting'): keys_day, ('retire', 'leaving'): retire}  # + part 2, below
 
 
 def reverse(connection, found: dict):
-    """What an undone big turn changed beyond home items: the shared home goes back where it was."""
+    """What an undone big turn changed beyond home items: the shared home goes back where it was, and the marks its
+    stages' outcomes left (a business's months, how caring goes) come off."""
+    for consequence_id in found.get('decided', ()):
+        consequences.clear_marks(connection, consequence_id)
     if found.get('moving_in'):
         back = found['moving_in']
         connection.execute('UPDATE moving_in SET neighbourhood=?, home_item_id=? WHERE id=?',
@@ -451,32 +461,43 @@ def reverse(connection, found: dict):
 
 
 def undone(connection, row: dict):
-    """Exams still to come leave the calendar."""
-    connection.execute("UPDATE life_admin SET status='removed' WHERE timeline_id=? AND source='school' AND key LIKE ? "
-                       "AND status='planned'", (row['timeline_id'], f"school:{row['id']}:%"))
+    """Exams, check-ups and a parent's appointments still to come leave the calendar."""
+    for source in ('school', 'health'):
+        connection.execute("UPDATE life_admin SET status='removed' WHERE timeline_id=? AND source=? AND key LIKE ? "
+                           "AND status='planned'", (row['timeline_id'], source, f"{source}:{row['id']}:%"))
 
 
 # The week, the calendar and money ---------------------------------------------------------------------------------
 
 def reshaped(definition: dict, changes: dict) -> list[dict]:
-    """Their schedule with work turned into time of their own (retired) and a class carved out of free time."""
+    """Their schedule with work turned into time of their own (retired) or their own business's hours, a class carved
+    out of free time, and evenings at a parent's they care for (companion/life/health_turns.py)."""
     schedule = [{**item, 'key': item.get('key') or routine.slug(item['label'])}
                 for item in definition.get('schedule') or routine.DEFAULT_SCHEDULE]
     if changes.get('retired'):
         schedule = [{**item, 'kind': 'leisure', 'label': changes['retired']['label'], 'themes': []}
                     if item.get('kind') == 'work' else item for item in schedule]
-    study = changes.get('study')
-    if not study:
-        return schedule
+    if changes.get('business'):
+        schedule = [{**item, 'label': changes['business']['label']} if item.get('kind') == 'work' else item
+                    for item in schedule]
+    if changes.get('study'):
+        schedule = carved(schedule, changes['study'], {'key': 'class', 'kind': 'study', 'themes': CLASS_THEMES})
+    if changes.get('caring'):
+        schedule = carved(schedule, changes['caring'], {'key': 'caring', 'kind': 'errand', 'themes': ['caring']})
+    return schedule
+
+
+def carved(schedule: list[dict], taken: dict, block: dict) -> list[dict]:
+    """The schedule with some days of one block (`taken['from']`) given to another."""
     result = []
     for item in schedule:
-        if item['key'] != study['from']:
+        if item['key'] != taken['from']:
             result.append(item)
             continue
-        rest = [day for day in item.get('days', range(7)) if day not in study['days']]
+        rest = [day for day in item.get('days', range(7)) if day not in taken['days']]
         result += [{**item, 'days': rest}] if rest else []
-        result.append({'key': 'class', 'label': study['label'], 'kind': 'study', 'days': study['days'],
-                       'start': item['start'], 'end': item['end'], 'themes': CLASS_THEMES})
+        result.append({**block, 'label': taken['label'], 'days': taken['days'], 'start': item['start'],
+                       'end': item['end']})
     return result
 
 
@@ -495,13 +516,14 @@ def calendar(connection, companion: dict, today: date, now) -> int:
                                         kind='exam', title='Exam', done=f"sat an exam for {details['course']}",
                                         day=when, at=details['study']['start'], minutes=120, fixed=True, out=True,
                                         now=now))
-    return added
+    return added + health_turns.calendar(connection, companion, today, now)
 
 
 def purchases(connection, timeline_id: str, start: date, end: date) -> list[dict]:
-    """Course fees and a deposit on a place between two local dates, as money.household purchases. A deposit comes
-    from savings."""
-    found = []
+    """Course fees, a deposit on a place, what opening a business took and a parent's care between two local dates, as
+    money.household purchases. A deposit and a business's start-up come from savings."""
+    found = [*business.purchases(connection, timeline_id, start, end),
+             *health_turns.purchases(connection, timeline_id, start, end)]
     for row in many(connection, "SELECT kind, details FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL AND "
                     'kind IN (?, ?, ?)', (timeline_id, 'school', 'career_change', 'buy_place')):
         details = decode(row['details'])
@@ -517,10 +539,11 @@ def purchases(connection, timeline_id: str, start: date, end: date) -> list[dict
 
 
 def pay(connection, timeline_id: str, day: date, found: dict | None) -> dict | None:
-    """Retired, they live on a pension (a share of their pay); otherwise their pay as Work life has it."""
+    """Retired, they live on a pension (a share of their pay); running a business, on what it makes
+    (companion/life/business.py); otherwise their pay as Work life has it."""
     row = finished(connection, timeline_id, 'retire', 'retired')
     if not row or decode(row['details'])['stage_on'] > day.isoformat():
-        return found
+        return business.pay(connection, timeline_id, day, found)
     return {'factor': decode(row['details'])['pension'], 'between_jobs': False, 'retired': True}
 
 
@@ -561,6 +584,8 @@ def line(row: dict) -> str:
                 (f' The mortgage will be about {mortgage} a month.' if mortgage else ''))
     if stage == 'leaving':
         return f"Retiring; their last day at work is {short_day(details['last_day'])}."
+    if row['kind'] in LINES:
+        return LINES[row['kind']](row, details)
     return row['title'] + '.'
 
 
@@ -575,3 +600,16 @@ def lately(connection, companion: dict) -> dict:
     return {'now': now, 'lately': [{'id': row['id'], 'kind': row['kind'],
                                     'on': decode(row['details']).get('stage_on') or row['started_on'],
                                     'title': row['title']} for row in done]}
+
+
+# Part 2 ---------------------------------------------------------------------------------------------------------
+# Starting a business, a health turn and caring for a parent live in their own modules, which build on the helpers
+# above; they join the plans, stages and Character page lines here.
+
+from companion.life import business, health_turns  # noqa: E402
+
+PLANS.update(business.PLANS)
+PLANS.update(health_turns.PLANS)
+STAGES.update(business.STAGES)
+STAGES.update(health_turns.STAGES)
+LINES = {**business.LINES, **health_turns.LINES}

@@ -209,7 +209,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit'; shown?: string }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care'; shown?: string }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -222,6 +222,8 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   rent_from: 'home' | 'budget'
   /** Living on a pension, and paying a mortgage on a place they bought (companion/life/big_turns.py). */
   retired?: boolean
+  /** Their own business's short name ('bakery') while they run one (companion/life/business.py). */
+  business?: string | null
   owned?: boolean
   bought: MoneyHappening[]
   payday: { last: string; next: string; cycle_days: number; today: boolean }
@@ -1220,7 +1222,7 @@ export interface NewsItem {
 
 export interface LifeChapter {
   id: string
-  kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves' | 'relationship' | 'move_in' | 'move_out' | 'school' | 'career_change' | 'buy_place' | 'retire'
+  kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves' | 'relationship' | 'move_in' | 'move_out' | 'school' | 'career_change' | 'buy_place' | 'retire' | 'business' | 'health' | 'caring'
   started_on: string
   title: string
   /** Where a big turn stands (companion/life/big_turns.py); null for other chapters. */

@@ -1216,6 +1216,152 @@
               "why": "{name}'s description says they're driven"
             }
           ]
+        },
+        {
+          "label": "{name} starts a business",
+          "weight": 0.4,
+          "rules": [
+            {
+              "reader": "can_business",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} has no job to leave, can't afford to start one, or already runs one"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 2,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 0.7,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "{name} has more money coming in"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 0.5,
+              "why": "money has been tight for {name}"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has been unhappy at work lately"
+            },
+            {
+              "reader": "age",
+              "at_least": 50,
+              "times": 0.5,
+              "why": "{name} is past fifty"
+            }
+          ]
+        },
+        {
+          "label": "{name}'s health takes a turn",
+          "weight": 0.25,
+          "rules": [
+            {
+              "reader": "can_health",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} already lives with a long-term condition, or is in the middle of a big change"
+            },
+            {
+              "reader": "age",
+              "at_most": 30,
+              "times": 0.4,
+              "why": "{name} is still young"
+            },
+            {
+              "reader": "age",
+              "at_least": 50,
+              "times": 2,
+              "why": "{name} is past fifty"
+            },
+            {
+              "reader": "age",
+              "at_least": 65,
+              "times": 1.5,
+              "why": "{name} is past sixty-five"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 30,
+              "note": "{name} is worried about their health",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "label": "{name} starts caring for a parent",
+          "weight": 0.3,
+          "rules": [
+            {
+              "reader": "can_caring",
+              "at_most": 0,
+              "times": 0,
+              "why": "no parent of {name} needs looking after yet, or {name} has no evenings to give"
+            },
+            {
+              "reader": "parent_ill",
+              "at_least": 1,
+              "times": 4,
+              "why": "{name}'s parent just started treatment"
+            },
+            {
+              "reader": "parent_age",
+              "at_least": 75,
+              "times": 2,
+              "why": "{name}'s parent is past seventy-five"
+            },
+            {
+              "reader": "parent_age",
+              "at_least": 85,
+              "times": 1.5,
+              "why": "{name}'s parent is past eighty-five"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 120,
+              "note": "{name} is helping pay for a parent's care",
+              "amount": -1
+            },
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 45,
+              "note": "{name} is worried about a parent",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
         }
       ]
     },
@@ -2684,6 +2830,262 @@
               "at_most": 1,
               "times": 0,
               "why": "{name} hasn't saved enough for a big wedding"
+            }
+          ]
+        }
+      ]
+    },
+    "business:how": {
+      "label": "How {a} is going",
+      "options": [
+        {
+          "label": "{a} grows",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has more money coming in"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 90,
+              "note": "{a} is growing",
+              "amount": 1
+            },
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 30,
+              "note": "{a} is doing well",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "label": "{a} ticks along",
+          "weight": 4,
+          "rules": []
+        },
+        {
+          "label": "{a} stalls",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "turns",
+              "at_most": 1,
+              "times": 0.5,
+              "why": "the big turns setting is on gentle"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.5,
+              "why": "{name}'s description says they're easily distracted"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 90,
+              "note": "business is slow at {a}",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "label": "{a} folds",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "turns",
+              "at_most": 1,
+              "times": 0,
+              "why": "the big turns setting is on gentle, so nothing goes under"
+            },
+            {
+              "reader": "factor",
+              "at_most": 5,
+              "times": 3,
+              "why": "{a} has been making less than a wage for a while"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 2,
+              "why": "money has been tight for {name}"
+            },
+            {
+              "reader": "checks",
+              "at_most": 2,
+              "times": 1.3,
+              "why": "{a} is still new"
+            },
+            {
+              "reader": "checks",
+              "at_least": 4,
+              "times": 0.3,
+              "why": "{a} has found its feet"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 60,
+              "note": "{name} had to close {a}",
+              "amount": -1,
+              "ripple": true
+            },
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 90,
+              "note": "{name} is back to looking for work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "health:outlook": {
+      "label": "How {name}'s {a} looks",
+      "options": [
+        {
+          "label": "{name} can manage {a} well",
+          "weight": 4,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 1,
+              "times": 1.5,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "label": "{a} is a harder road for {name}",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 60,
+              "times": 1.5,
+              "why": "{name} is past sixty"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 60,
+              "note": "{name} is finding {a} hard",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
+        }
+      ]
+    },
+    "caring:how": {
+      "label": "How caring for {a} is going",
+      "options": [
+        {
+          "label": "{a} is doing better",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 80,
+              "times": 0.5,
+              "why": "{a} is past eighty"
+            },
+            {
+              "reader": "checks",
+              "at_least": 2,
+              "times": 0.6,
+              "why": "{name} has been caring for {a} for a while"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 30,
+              "note": "{a} is doing better",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "label": "Caring for {a} goes on as before",
+          "weight": 3,
+          "rules": [],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 95,
+              "note": "{name} is helping pay for {a}'s care",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "label": "{a} needs more help",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 80,
+              "times": 1.5,
+              "why": "{a} is past eighty"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            },
+            {
+              "reader": "turns",
+              "at_most": 1,
+              "times": 0.3,
+              "why": "the big turns setting is on gentle"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 95,
+              "note": "{name} is helping pay for {a}'s care",
+              "amount": -1
+            },
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 60,
+              "note": "{name} is worn out from caring for {a}",
+              "amount": -1,
+              "ripple": true
             }
           ]
         }

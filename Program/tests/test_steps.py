@@ -6,7 +6,7 @@ from conftest import reconcile, send, set_life
 
 from companion import consequences
 from companion.characters import current
-from companion.life import occasions, steps
+from companion.life import chapters, occasions, steps
 from companion.providers.chat import Chunk
 
 
@@ -60,6 +60,8 @@ def test_steps_brought_up_are_read_from_the_message():
 
 
 def make(client, monkeypatch, relationship='romance', **values):
+    # The dice some tests force would also start a life chapter (caring for a parent), whose news takes the first text.
+    monkeypatch.setattr(chapters, 'CHANCE', (0, 0, 0, 0))
     response = client.post('/api/companion', json={'name': 'Mira', 'timezone': 'UTC', 'relationship': relationship,
                                                      **values})
     assert response.status_code == 200, response.text

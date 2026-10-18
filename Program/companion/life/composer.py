@@ -126,6 +126,22 @@ CATALOG = {
         activity('slow', (), ['{name} had a slow, lazy {label} at home.'],
                  ['Doing nothing, beautifully.', 'Slow day.'], ['relaxed']),
     ),
+    # Time at a parent's they care for (companion/life/health_turns.py): an errand block themed 'caring', whose label
+    # names the place ("Evening at Mom's").
+    'care': (
+        activity('care-dinner', (), ['{name} spent the {label}, cooking dinner and keeping them company.',
+                                     '{name} spent the {label}, cooking enough for the next few days too.'],
+                 ['Fed, fussed over, home.', 'Tupperware tower: complete.'], ['tired', 'warm']),
+        activity('care-chores', (), ['{name} spent the {label} on laundry, the dishes and sorting the week\'s pills.',
+                                     '{name} spent the {label} doing the jobs around the house that had piled up.'],
+                 ['Everything sorted for the week.', 'Small jobs, big help.'], ['tired', 'useful']),
+        activity('care-company', (), ['{name} spent the {label} watching an old film together and talking.',
+                                      '{name} spent the {label}, going through old photos together.'],
+                 ['Good one tonight.', 'Old photos, new stories.'], ['warm', 'thoughtful']),
+        activity('care-errands', ('grocery', 'pharmacy'), ['{name} picked up groceries and a prescription{at} '
+                                                          'before the {label}.'],
+                 ['Fridge stocked, pills collected.', 'Running the errands for two.'], ['practical'], ' on the way'),
+    ),
 }
 
 
@@ -474,7 +490,7 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     members whose birthday it is."""
     rng = random.Random(seed)
     block = slot['block']
-    options = CATALOG.get(block['kind'])
+    options = CATALOG['care'] if 'caring' in (block.get('themes') or ()) else CATALOG.get(block['kind'])
     if not options or rng.random() < QUIET_SHARE:
         return None
     state = (block.get('body') or {}).get('state')

@@ -190,6 +190,9 @@ def rules(city: dict | None) -> dict:
 
 
 def works(definition: dict) -> bool:
+    """Whether they have a job; running their own business (companion/life/business.py), Work life steps aside."""
+    if definition.get('business'):
+        return False
     return any(block.kind == 'work' for block in routine.blocks(definition)[0])
 
 

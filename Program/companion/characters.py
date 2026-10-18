@@ -74,7 +74,11 @@ def apply_changes(definition: dict, changes: dict) -> dict:
             found[key] = changes[key]
     if 'interest' in changes and changes['interest'] not in (found.get('interests') or []):
         found['interests'] = [*(found.get('interests') or []), changes['interest']]
-    if 'study' in changes or 'retired' in changes:  # A class in their week, or work gone from it (life/big_turns.py).
+    for key in ('business', 'health'):  # Their own business, or a long-term condition (life/business.py, health_turns.py).
+        if key in changes:
+            found[key] = changes[key]
+    # A class in their week, work gone from it or their own business's, evenings at a parent's (life/big_turns.py).
+    if {'study', 'retired', 'business', 'caring'} & set(changes):
         from companion.life import big_turns
         found['schedule'] = big_turns.reshaped(found, changes)
     return found
