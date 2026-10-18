@@ -278,3 +278,53 @@ def test_a_first_birthday_is_a_big_day_at_their_parents_told_in_words_only(clien
         assert not any('Ivy' in text for _key, text in big_days.context_lines(connection, companion, clock.now()))
         big_days.advance(connection, companion, clock.now())
         assert big_days.get(connection, row['id'])['status'] == 'called_off'
+
+
+def a_childs_big_day(client, clock, monkeypatch, provider, invite=False):
+    """A sister's baby Ivy turning one in 20 days: the party planned as a big day, and (unless `invite`, which
+    leaves the invitation still to go out) booked as an outing with the user. Returns (big day row, outing)."""
+    from conftest import send
+
+    from companion.characters import current
+    from companion.life import big_days
+    from companion.life.openers import Trigger
+    monkeypatch.setattr(big_days, 'ACTIVE', True)
+    monkeypatch.setattr(big_days, 'FIRST_TEXTS', True)
+    person = sister(client)
+    birthday = clock.now().date() + timedelta(days=20)
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    message = send(client, 'Hi!', 'client-family-02')['message']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        timeline_id, now = companion['active_timeline_id'], clock.now().isoformat()
+        connection.execute("INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, "
+                           "born_on, status, created_at, updated_at) VALUES ('ivy', ?, ?, 'story', 'Ivy', 'she/her', "
+                           "'family', ?, 'born', ?, ?)", (timeline_id, person['id'],
+                                                          birthday.replace(year=birthday.year - 1).isoformat(), now, now))
+        big_days.advance(connection, companion, clock.now())
+        [row] = [row for row in big_days.rows(connection, timeline_id) if row['kind'] == 'first_birthday']
+        connection.execute("UPDATE big_days SET invite=(id=?), invite_on=?", (row['id'], clock.now().date().isoformat()))
+        if invite:
+            return big_days.get(connection, row['id']), None
+        outing = big_days.settle(connection, companion, message, Trigger('bigday', 'big_day', '', None, (row['id'],)),
+                                 now)
+        return big_days.get(connection, row['id']), outing
+
+
+def test_a_childs_big_day_is_never_pictured_however_it_is_worded(client, mira, clock, monkeypatch, provider):
+    from companion.characters import current
+    from companion.database import encode
+    from companion.images import content, prompts
+    _row, outing = a_childs_big_day(client, clock, monkeypatch, provider)
+    with client.app.state.database.connect() as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        # A model's phrasing of the afternoon that names neither the child nor the birthday.
+        words = ["Mira went to my niece's big day at Ana's place with you.", 'cake everywhere, so cute']
+        assert not families.pictured(connection, timeline_id, words)
+        assert families.childs_day(connection, [outing['id']]) and not families.childs_day(connection, [None, 'x'])
+        refused = content.classify(prompts.children(connection, timeline_id, words, [outing['id']]))
+        assert refused.tier == content.PROHIBITED
+        assert prompts.children(connection, timeline_id, words, [None]) == {}
+    assert prompts.when({'details': encode({'outing': {'id': outing['id']}})})['outing']['id'] == outing['id']
+    assert families.pictured(None, '', ["Ivy's 1st bday!"]) and families.pictured(None, '', ['her first bday'])

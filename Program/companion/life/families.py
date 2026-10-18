@@ -55,7 +55,7 @@ PARTNERS = {'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée',
 FRIENDS = {'friend', 'new friend', 'roommate from years ago', 'neighbor'}
 # A first birthday is a big day of its own (companion/life/big_days.py), so it is no longer a storyline beat.
 FIRST_BIRTHDAY_BEAT = False
-FIRST_BIRTHDAY = re.compile(r'\bfirst birthday\b', re.IGNORECASE)
+FIRST_BIRTHDAY = re.compile(r'\b(?:first|1st) (?:birthday|bday)\b', re.IGNORECASE)
 STORIES = ('expecting', 'baby_update', 'babysat', 'first_birthday')
 FIELDS = ('they', 'them', 'their', "they're", 'are', 'were', 'They', 'Their')
 
@@ -82,9 +82,23 @@ def pictured(connection, timeline_id: str, texts) -> bool:
         return False
     if FIRST_BIRTHDAY.search(text):
         return True
-    names = {row['name'] for row in many(connection, "SELECT name FROM circle_children WHERE timeline_id=? AND "
-                                         "status!='ended'", (timeline_id,))}
-    return any(re.search(rf'\b{re.escape(name)}\b', text) for name in names)
+    return any(re.search(rf'\b{re.escape(name)}\b', text) for name in names(connection, timeline_id))
+
+
+def names(connection, timeline_id: str) -> set[str]:
+    return {row['name'] for row in many(connection, "SELECT name FROM circle_children WHERE timeline_id=? AND "
+                                        "status!='ended'", (timeline_id,))}
+
+
+def childs_day(connection, outing_ids) -> bool:
+    """Whether any of these outings is a child's big day (companion/life/big_days.py marks it `no_photo`), however
+    the words about it were phrased."""
+    ids = [item for item in outing_ids if item]
+    if not ids:
+        return False
+    marks = ','.join('?' * len(ids))
+    return any(decode(row['place']).get('no_photo') for row in many(
+        connection, f'SELECT place FROM outings WHERE id IN ({marks})', tuple(ids)))
 
 
 # Who may be expecting ------------------------------------------------------------------------------

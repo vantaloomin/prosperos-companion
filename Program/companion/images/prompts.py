@@ -29,7 +29,7 @@ def when(event) -> dict:
     """What the wardrobe and the picture line need: its activity, block kind, local date, weather and company."""
     details = decode(event['details'])
     return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with', 'pet_photo',
-                                                 'hobby')}
+                                                 'hobby', 'outing')}
 
 
 def scene(connection, post_id) -> list[dict]:
@@ -377,7 +377,8 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
                        for event in events],
             'marked_nsfw': bool(marked_nsfw), **likeness,
             **children(connection, post['timeline_id'], [event[key] for event in events
-                                                          for key in ('summary', 'caption', 'label', 'place')])}
+                                                          for key in ('summary', 'caption', 'label', 'place')],
+                       [(event['moment'].get('outing') or {}).get('id') for event in events])}
 
 
 def pet_prompt(connection, timeline_id, events, image_settings) -> str:
@@ -482,9 +483,11 @@ def build_meme(connection, meme, image_settings) -> dict:
             'meme': meme, **likeness}
 
 
-def children(connection, timeline_id: str, texts) -> dict:
-    """Marks a request whose words name a child in the circle (companion/life/families.py), which nothing pictures."""
-    return {'withheld': True} if families.pictured(connection, timeline_id, texts) else {}
+def children(connection, timeline_id: str, texts, outing_ids=()) -> dict:
+    """Marks a request whose words name a child in the circle, or that shows a child's big day however it was worded
+    (companion/life/families.py), which nothing pictures."""
+    found = families.pictured(connection, timeline_id, texts) or families.childs_day(connection, outing_ids)
+    return {'withheld': True} if found else {}
 
 
 def base_inputs(companion, definition, image_settings) -> dict:
