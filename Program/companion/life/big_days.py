@@ -681,9 +681,14 @@ def invite_due(connection, companion: dict, now: datetime) -> list:
     if row is None:
         return []
     day = date.fromisoformat(row['local_date'])
-    when = f"{'next ' if (day - local.date()).days >= 7 else ''}{day:%A}"
-    template = invitation(row, when, clock_text(row['at_time']))
+    template = invitation(row, when_text(day, local.date()), clock_text(row['at_time']))
     return [Trigger(f"bigday:{row['id']}", 'big_day', reason_for(row, day), template, (row['id'],))]
+
+
+def when_text(day: date, today: date) -> str:
+    """'Saturday' this week, 'next Saturday' the week after, else 'Saturday, November 14'."""
+    ahead = (day - today).days
+    return f'{day:%A}' if ahead < 7 else f'next {day:%A}' if ahead < 14 else f'{day:%A}, {day:%B} {day.day}'
 
 
 def reason_for(row: dict, day: date) -> str:

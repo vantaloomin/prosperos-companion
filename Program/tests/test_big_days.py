@@ -561,3 +561,10 @@ def test_a_party_is_somewhere_open_at_its_hour(client, clock):
                 found = big_days.place_for(connection, companion, big_days.KINDS[key], day, f'seed-{number}', {})
                 place = next(item for item in data['places'] if item['id'] == found['id'])
                 assert part in place['day_parts'], (key, place['name'], place['day_parts'])
+
+
+def test_the_invitation_names_a_day_weeks_off_by_its_date():
+    tuesday = date(2026, 10, 20)
+    assert big_days.when_text(date(2026, 10, 24), tuesday) == 'Saturday'
+    assert big_days.when_text(date(2026, 10, 31), tuesday) == 'next Saturday'
+    assert big_days.when_text(date(2026, 11, 14), tuesday) == 'Saturday, November 14'
