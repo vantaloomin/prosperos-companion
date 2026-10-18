@@ -312,9 +312,12 @@ def test_milestone_birthdays_retirements_and_graduations_come_from_the_circle(cl
     by_person = {found['person_id']: found for found in birthdays}
     assert by_person[mom['id']]['details']['age'] == 70 and by_person[cousin['id']]['details']['age'] == 40
     assert by_person[cousin['id']]['day'].weekday() >= 4
-    assert [found['person_id'] for found in retiring] == [mom['id']] and retiring[0]['day'].weekday() == 4
-    assert [found['person_id'] for found in graduating] == [friend['id']]
-    assert graduating[0]['day'].month in (5, 6) and graduating[0]['day'].weekday() == 5
+    # The rest of the circle is seeded at random, so only the people set up here are checked.
+    retired = {found['person_id']: found for found in retiring}
+    assert mom['id'] in retired and retired[mom['id']]['day'].weekday() == 4
+    graduate = {found['person_id']: found for found in graduating}
+    assert friend['id'] in graduate and mom['id'] not in graduate
+    assert graduate[friend['id']]['day'].month in (5, 6) and graduate[friend['id']]['day'].weekday() == 5
 
 
 def test_friends_marry_by_their_love_life(client, clock, monkeypatch):
