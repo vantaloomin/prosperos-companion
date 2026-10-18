@@ -2461,3 +2461,22 @@ CREATE TABLE IF NOT EXISTS birth_dates (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (kind, person_key)
 );
+-- Births and growing families (companion/life/families.py): a baby in the companion's circle, from the day their
+-- parent's pregnancy storyline (`storyline_id`, story 'expecting') began. `status` is 'expected' until `born_on`,
+-- then 'born'; 'ended' when the storyline was ended first. `title` is what they are to the companion: 'family' (a
+-- niece or nephew), 'godchild' or 'friend' (someone's baby). Children are kept apart from circle_people on purpose.
+CREATE TABLE IF NOT EXISTS circle_children (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  parent_id TEXT NOT NULL,
+  storyline_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  pronouns TEXT NOT NULL CHECK (pronouns IN ('she/her', 'he/him', 'they/them')),
+  title TEXT NOT NULL CHECK (title IN ('family', 'godchild', 'friend')),
+  born_on TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('expected', 'born', 'ended')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on);
+CREATE INDEX IF NOT EXISTS circle_children_parent ON circle_children(parent_id);

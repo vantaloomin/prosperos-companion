@@ -459,6 +459,8 @@ class LifeSettingsUpdate(Input):
     friends_fall: bool | None = None
     # Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on.
     love_life: int | None = Field(default=None, ge=0, le=3)
+    # Births and growing families (companion/life/families.py): 0 none, 1 now and then, 2 true to life, 3 lots.
+    growing_families: int | None = Field(default=None, ge=0, le=3)
     # Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life.
     breakups: bool | None = None
     on_her_mind: bool | None = None

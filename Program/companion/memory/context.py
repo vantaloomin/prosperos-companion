@@ -29,6 +29,7 @@ from companion.life import (
     disruptions,
     dreams,
     encounters,
+    families,
     grooming,
     hobbies,
     home,
@@ -736,6 +737,8 @@ def offer_people(packet, connection, companion, now, today):
         packet.offer('circle', person['id'], person_text(person))
         if moment := person_now_text({**person, 'birthday_today': person['birthday'] == today[5:]}):
             packet.offer('circle_now', person['id'], moment)
+    for identity, text in families.context_lines(connection, companion, now):
+        packet.offer('circle', identity, text)
     for identity, text in network.context_lines(connection, timeline_id, now):
         packet.offer('acquaintances', identity, text)
     for identity, text in encounters.context_lines(connection, companion, now):

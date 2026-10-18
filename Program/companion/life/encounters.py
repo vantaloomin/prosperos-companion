@@ -233,8 +233,8 @@ def known(connection, companion: dict, now) -> list[dict]:
                 person['age'] = ages.town_age(connection, sheet, today)
             # A companion living in town has their own sliders on their character sheet.
             person['personality'] = None if sheet.get('cast') else town_personality.view(sheet, changed.get(key))
-            if found['adult_side']:
-                person |= adult_side(sheet, len(meetings), bool(found['show_adult_side']))
+            if found['adult_side']:  # Never beside a baby (companion/life/families.py withheld).
+                person |= adult_side(sheet, len(meetings), bool(found['show_adult_side'])) | {'family': None}
             result.append(person)
     return sorted(result, key=lambda person: person['last_met'], reverse=True)
 
@@ -250,7 +250,7 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
               'first_met': meetings[0]['local_date'], 'first_place': meetings[0]['place'],
               'last_met': last['local_date'], 'last_place': last['place'],
               'goal': None, 'lately': None, 'reached': [], 'routine': None, 'flaw': None, 'desire': None,
-              'cast': sheet.get('cast'), 'love': None, 'comes_across': None, 'says_they_are': None, 'about': sheet.get('about')}
+              'cast': sheet.get('cast'), 'love': None, 'family': None, 'comes_across': None, 'says_they_are': None, 'about': sheet.get('about')}
     person |= perception.revealed(data, sheet, times)
     person |= life_details.revealed(data, sheet, times)
     person['left'] = left(sheet, data, times, now, companion)
@@ -258,7 +258,8 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
         state = townsfolk.story(sheet, data, date.fromisoformat(last['local_date']))
         person |= {'goal': state['goal']['text'], 'lately': state['line'] or None, 'reached': state['reached'],
                    'routine': townsfolk.routine_text(sheet),
-                   'love': couples.text(couples.couple(sheet, data, date.fromisoformat(last['local_date'])))}
+                   'love': couples.text(couples.couple(sheet, data, date.fromisoformat(last['local_date']))),
+                   'family': couples.family_news(sheet, data, date.fromisoformat(last['local_date']))}
     if times >= KNOWS_HEART:
         person |= {'flaw': sheet.get('flaw_text') or townsfolk.FLAWS[sheet['flaw']][0],
                    'desire': townsfolk.DESIRES[sheet['desire']]}
@@ -333,6 +334,8 @@ def text(person: dict) -> str:
 def news_of(person: dict) -> list[str]:
     """Their love life, and whether they have since left, as far as the companion knows."""
     found = [f"Last you heard, they're {person['love']}."] if person.get('love') else []
+    if person.get('family'):
+        found.append(f"Family news: they're {person['family']}.")
     if person.get('left'):
         when = date.fromisoformat(person['left']['day']).strftime('%B %Y')
         found.append(f"They have since {person['left']['text']} ({when}).")

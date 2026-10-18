@@ -47,6 +47,7 @@ from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
 from companion.text_models import config_for, key_for
 from companion.workspace import overlapping_pause
+from companion.world import turnover
 
 LOG = logging.getLogger(__name__)
 
@@ -100,7 +101,10 @@ def update_settings(database, body) -> dict:
                 upkeep.settings_changed(connection, database.clock.now())
             if 'hobbies_realism' in changed:
                 hobbies.settings_changed(connection, database.clock.now(), row['hobbies_realism'])
-        return settings_view(life_settings(connection))
+        found = settings_view(life_settings(connection))
+    if 'growing_families' in changed:
+        turnover.load(database)  # Town couples' babies follow it too (companion/world/couples.py).
+    return found
 
 
 # Cursor and runs --------------------------------------------------------------------------------

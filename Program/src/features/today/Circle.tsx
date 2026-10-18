@@ -13,6 +13,7 @@ import { WhyItWent } from './WhyItWent'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
+import { childLabel, childLine, expectingLine } from '../character/familiesText'
 
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
@@ -81,7 +82,7 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
   return (
     <li className={`person-card${gone ? ' removed' : ''}`}>
       <PersonHeader person={person} companion={companion} />
-      {gone ? <p className="subtle">Removed. Moments that already happened still mention them.</p> : <PersonDetails person={person} work={work} />}
+      {gone ? <p className="subtle">Removed. Moments that already happened still mention them.</p> : <PersonDetails person={person} work={work} companion={companion} />}
       {renaming && <RenameForm person={person} act={act} onDone={() => setRenaming(false)} />}
       {!renaming && <PersonActions gone={gone} diary={diary} network={network} onRename={() => setRenaming(true)} onDiary={() => setDiary((open) => !open)}
         onNetwork={() => setNetwork((open) => !open)} onRemove={() => setRemoving(true)} onRestore={() => void restore()} />}
@@ -138,14 +139,26 @@ function PersonActions({ gone, diary, network, onRename, onDiary, onNetwork, onR
   )
 }
 
-function PersonDetails({ person, work }: { person: CirclePerson; work: string | null }) {
+function PersonDetails({ person, work, companion }: { person: CirclePerson; work: string | null; companion: string }) {
   return <>
     <p>{personNow(person)}</p>
     {work && <p className="subtle">{work}</p>}
     {personTies(person) && <p className="subtle">{personTies(person)}</p>}
     {person.haunts && person.haunts.length > 0 && <p className="subtle">Often at {person.haunts.join(', ')}</p>}
+    <ChildLines person={person} companion={companion} />
     <PetLines pets={person.pets} />
     {person.recent.length > 0 && <ul className="diary-list">{person.recent.map((entry) => <DiaryLine key={entry.slot} entry={entry} />)}</ul>}
+  </>
+}
+
+/** Their children and a baby on the way (companion/life/families.py), in words only. */
+function ChildLines({ person, companion }: { person: CirclePerson; companion: string }) {
+  const expecting = expectingLine(person)
+  return <>
+    {expecting && <p className="subtle pet-line"><span className="pet-line-label">Expecting ·</span> {expecting}.</p>}
+    {(person.children ?? []).map((child) => (
+      <p key={child.id} className="subtle pet-line"><span className="pet-line-label">{childLabel(child)} ·</span> {childLine(child, person.name, companion)}.</p>
+    ))}
   </>
 }
 

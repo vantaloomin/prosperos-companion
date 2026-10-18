@@ -22,6 +22,7 @@ from companion.errors import require
 from companion.life import (
     breakups,
     encounters,
+    families,
     feed,
     grooming,
     hobbies,
@@ -217,6 +218,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     insert(connection, 'recommendations', [{**row, 'id': ids[row['id']], 'timeline_id': new_id,
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
+    families.copy(connection, parent_id, new_id, ids, cutoff[:10])
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
     copy_steps(connection, parent_id, new_id, cutoff)
     wedding.copy_proposals(connection, steps.copy_open(connection, parent_id, new_id, cutoff, ids), new_id)

@@ -30,6 +30,7 @@ PARTNERED = ('seeing someone', 'married')
 GENDER_PRONOUNS = {'woman': 'she', 'man': 'he', 'nonbinary': 'they'}
 BABY = 0.1  # An engaged or married couple's chance of a baby each year, at the usual pace.
 BABY_AGES = (24, 42)
+EXPECTING_WEEKS = 30  # How long before a town baby arrives that the people who know the couple hear about it.
 
 
 @lru_cache(maxsize=4096)
@@ -119,6 +120,19 @@ def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
         if state and state['status'] in ('engaged', 'married') and week_range[0] <= day <= week_range[1]:
             result.append({'partner': state['partner'], 'day': day})
     return result
+
+
+def family_news(sheet: dict, data: dict, day: date) -> str | None:
+    """'expecting a baby with Dana around March' for a baby on the way (the news is out about seven months before),
+    'had a baby with Dana in June' for one in the last half year; None otherwise (Births and growing families)."""
+    found = babies(sheet, data, (day - timedelta(weeks=26), day + timedelta(weeks=EXPECTING_WEEKS)))
+    if not found:
+        return None
+    item = found[-1]
+    with_whom = f" with {item['partner']['name']}" if item['partner'] else ''
+    if item['day'] > day:
+        return f"expecting a baby{with_whom} around {item['day'].strftime('%B')}"
+    return f"had a baby{with_whom} in {item['day'].strftime('%B')}"
 
 
 def text(state: dict | None) -> str | None:

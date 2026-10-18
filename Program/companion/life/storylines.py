@@ -52,6 +52,7 @@ class Story:
     cast: str
     stages: tuple[tuple[Beat, ...], ...]
     gap: tuple[int, int] = (2, 6)
+    own: bool = False  # Started by its own module, never by the drama roll, and outside its caps.
 
 
 def beat(text, share, tone='mixed'):
@@ -70,9 +71,10 @@ STORIES = (
         beat('{name}\'s {a_rel} {a} got engaged.', 'BIG news: {a} just got engaged!!', 'good'),
         beat('{a} set a wedding date for next year.', "{a} set a date! I'm already stressing about what to wear lol",
              'good')), (5, 14)),
+    # Grown into `expecting` (companion/life/families.py); kept so storylines told before v0.14 still read.
     Story('cousin_baby', 0, 'cousin', (
         beat('{name}\'s cousin {a} announced they are expecting a baby.',
-             "My cousin {a} is having a baby!! What does that make me, a second cousin? idk", 'good'),)),
+             "My cousin {a} is having a baby!! What does that make me, a second cousin? idk", 'good'),), own=True),
     Story('friend_new_job', 0, 'friend', (
         beat('{a} got a job offer and keeps asking {name} whether to take it.',
              "{a} got a job offer and won't stop asking me what to do"),
@@ -163,6 +165,15 @@ STORIES = (
 )
 
 
+# Births and growing families (companion/life/families.py) writes these beats out in full, with the baby's name, the
+# day each storyline starts; the stages here only stand for them.
+STORIES += tuple(Story(key, 0, 'family', (beat('{name} heard some family news from {a}.', 'family news from {a}!', 'good'),),
+                       own=True)
+                 for key in ('expecting', 'baby_update', 'babysat', 'first_birthday'))
+FAMILY = frozenset(('expecting', 'baby_update', 'babysat', 'first_birthday'))
+OWN = frozenset(story.key for story in STORIES if story.own)
+
+
 def find_story(key) -> Story:
     return next(story for story in STORIES if story.key == key)
 
@@ -227,7 +238,8 @@ def start(connection, companion, people, day: date, level: int) -> dict | None:
     """The storyline that starts on this day, if one does: seeded by the timeline and the date."""
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     rng = random.Random(f'storyline:{timeline_id}:{day.isoformat()}')
-    if rng.random() >= START[level] or len(running(connection, timeline_id, day.isoformat())) >= RUNNING[level]:
+    drawn = [row for row in running(connection, timeline_id, day.isoformat()) if row['story'] not in OWN]
+    if rng.random() >= START[level] or len(drawn) >= RUNNING[level]:
         return None
     since = (day - REPEAT_AFTER).isoformat()
     recent = many(connection, 'SELECT story, cast_ids FROM storylines WHERE timeline_id=? AND started_on>=?',
@@ -236,7 +248,7 @@ def start(connection, companion, people, day: date, level: int) -> dict | None:
     busy = {person for row in running(connection, timeline_id, day.isoformat()) for person in decode(row['cast_ids'])}
     options = []
     for story in STORIES:
-        if story.level > level or story.key in used:
+        if story.own or story.level > level or story.key in used:
             continue
         free = [cast for cast in casts(story, people, definition) if not set(cast) & busy]
         if free:
@@ -439,8 +451,11 @@ def view(row: dict, names: dict, definition: dict, today: str, you=False) -> dic
                                                                           bool(stages[-1].get('pending')))}
 
 
-def visible(connection, companion, now, include_ended=False, you=False) -> list[dict]:
-    """Storylines with at least one beat that has happened, newest first; `you` tells them to the companion."""
+def visible(connection, companion, now, include_ended=False, you=False, shown=False) -> list[dict]:
+    """Storylines with at least one beat that has happened, newest first; `you` tells them to the companion. Babies
+    and children (companion/life/families.py) only reach a prompt while the adult side is off; `shown` is for the
+    screens, which always list them."""
+    from companion.life import families
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     today = local_today(companion, now).isoformat()
     names = {row['id']: {'name': row['name'], 'role': row['role']}
@@ -448,6 +463,8 @@ def visible(connection, companion, now, include_ended=False, you=False) -> list[
     status = '' if include_ended else "AND status='running' "
     rows = many(connection, f'SELECT * FROM storylines WHERE timeline_id=? {status}AND started_on<=? '
                 'ORDER BY started_on DESC', (timeline_id, today))
+    if not shown and families.withheld(connection):
+        rows = [row for row in rows if row['story'] not in FAMILY]
     return [view(row, names, definition, today, you) for row in rows]
 
 
@@ -491,7 +508,7 @@ def fresh_beats(connection, companion, now) -> list[tuple[str, dict]]:
 def listing(database, include_ended=False) -> list[dict]:
     from companion.characters import require_current
     with database.connect() as connection:
-        return visible(connection, require_current(connection), database.clock.now(), include_ended)
+        return visible(connection, require_current(connection), database.clock.now(), include_ended, shown=True)
 
 
 def end(database, storyline_id) -> list[dict]:
@@ -503,7 +520,7 @@ def end(database, storyline_id) -> list[dict]:
         require(row['timeline_id'] == companion['active_timeline_id'], 'That storyline is not on this timeline.', 404)
         require(row['status'] == 'running', 'This storyline has already ended.', 409)
         connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (storyline_id,))
-        return visible(connection, companion, database.clock.now())
+        return visible(connection, companion, database.clock.now(), shown=True)
 
 
 

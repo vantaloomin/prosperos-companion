@@ -315,6 +315,9 @@ ADDED_COLUMNS = (
     # Sharing a home (companion/life/moving_in.py): the shared home a moving-in row belongs to, by the id of the row
     # that set it up. A second romance moving into it has the first one's household; NULL is a household of its own.
     ('moving_in', 'household', 'TEXT'),
+    # Births and growing families (companion/life/families.py, Settings > Realism): how often babies arrive in the
+    # circle and the town, 0 none, 1 now and then, 2 true to life, 3 lots.
+    ('life_settings', 'growing_families', 'INTEGER NOT NULL DEFAULT 2 CHECK (growing_families BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -383,6 +386,8 @@ def upgrade_needed(path: Path) -> bool:
 # the user off, and a dramatic one stays dramatic. Any other world takes the columns' defaults (a real life).
 UPGRADE_REALISM = {0: {'rough_patches_realism': 1, 'steps_pace': 1, 'love_life': 1, 'friends_fall': 0, 'breakups': 0},
                    3: {'rough_patches_realism': 3, 'steps_pace': 3, 'love_life': 3}}
+# Growing families (v0.14) the same way: an easy life has babies now and then, a dramatic one lots.
+UPGRADE_FAMILIES = {0: 1, 3: 3}
 
 
 def add_columns(connection):
@@ -398,6 +403,10 @@ def add_columns(connection):
         if picked:
             connection.execute(f"UPDATE life_settings SET {', '.join(f'{key}=?' for key in picked)} WHERE id=1",  # noqa: S608
                                tuple(picked.values()))
+    if ('life_settings', 'growing_families') in added:
+        row = connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()
+        if row and row[0] in UPGRADE_FAMILIES:
+            connection.execute('UPDATE life_settings SET growing_families=? WHERE id=1', (UPGRADE_FAMILIES[row[0]],))
 
 
 def widen_context_categories(connection):
