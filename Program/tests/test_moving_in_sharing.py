@@ -5,6 +5,7 @@ anyone not, the move waits; Hidden values can change it; moving out keeps workin
 from datetime import date, timedelta
 
 import pytest
+from conftest import send
 from test_moving_in import ask_to_move_in, moving_day, row
 from test_together import EVENINGS, mira, says
 
@@ -306,3 +307,70 @@ def test_until_moving_day_the_panel_stands_at_the_key_and_living_together_moves_
     assert view['moving_in']['with'] == ['Mira'] and view['text'].endswith(', living together')
     with client.app.state.database.connect() as connection:
         assert all(share['open'] for share in many(connection, 'SELECT open FROM moving_in_shares'))
+
+
+def three_at_home(client, provider, clock, monkeypatch):
+    """Mira set the home up; Theo moved in with the two of them."""
+    living_with_mira(client, provider, clock, monkeypatch)
+    mira_id, theo_id = current_id(client), theo(client)
+    found = theo_moves_in(client, theo_id)
+    advance(client, theo_id, (date.fromisoformat(found['move_on']) - clock.now().date()).days, clock)
+    return mira_id, theo_id
+
+
+def homes(client, *companion_ids):
+    with client.app.state.database.connect() as connection:
+        return [moving_in.their_home(connection, by_id(connection, key), moving_in.local_today(
+            by_id(connection, key), client.app.state.database.clock.now())) for key in companion_ids]
+
+
+def rent_paid(client, companion_id):
+    with client.app.state.database.connect() as connection:
+        found = by_id(connection, companion_id)
+        return money.household(connection, found['active_timeline_id'], found['version']['definition'],
+                               client.app.state.database.clock.now().date())['costs']['rent']
+
+
+def test_the_shared_home_grows_with_the_household(client, provider, clock, monkeypatch, open_to_it):
+    living_with_mira(client, provider, clock, monkeypatch)
+    [before] = homes(client, current_id(client))
+    assert before['bedrooms'] == 'one_bedroom'
+    mira_id, theo_id = current_id(client), theo(client)
+    found = theo_moves_in(client, theo_id)
+    advance(client, theo_id, (date.fromisoformat(found['move_on']) - clock.now().date()).days, clock)
+    hers, his = homes(client, mira_id, theo_id)
+    assert hers['bedrooms'] == his['bedrooms'] == 'two_bedroom'  # Room for three, on both copies of it.
+    assert hers['description'] == his['description'] and hers['description'].startswith('a two-bedroom')
+    assert hers['rent'] == his['rent'] and hers['id'] == before['id']  # The same place, at a two-bedroom's rent.
+    assert rent_paid(client, mira_id) == rent_paid(client, theo_id) == round(hers['rent'] / 3, 2)
+    assert moving_in.size_for(2) == 'one_bedroom' and moving_in.size_for(4) == 'two_bedroom'
+
+
+def test_a_fork_of_the_one_who_set_the_home_up_still_shares_it(client, provider, clock, monkeypatch, open_to_it):
+    mira_id, theo_id = three_at_home(client, provider, clock, monkeypatch)
+    says(provider)
+    send(client, 'so glad we are all under one roof', 'client-share-fork-1')
+    sent = client.get('/api/conversation').json()['messages'][-1]
+    fork = client.post('/api/timelines', json={'message_id': sent['id']}).json()
+    assert client.post(f"/api/timelines/{fork['id']}/activate").status_code == 200
+    with client.app.state.database.connect() as connection:
+        copied = moving_in.living(connection, by_id(connection, mira_id))
+        assert copied['timeline_id'] == fork['id'] and copied['origin']
+        assert [found['owner'] for found in moving_in.members(connection, moving_in.household(copied))] == \
+            [mira_id, theo_id]
+    [shared] = homes(client, mira_id)
+    assert rent_paid(client, mira_id) == round(shared['rent'] / 3, 2)  # Still split three ways, not halved.
+    assert "You live with the user and Theo (also the user's partner)" in where_lines(client, mira_id, clock)
+
+
+def test_the_user_moving_city_leaves_one_home_not_a_copy_each(client, provider, clock, monkeypatch, open_to_it):
+    mira_id, theo_id = three_at_home(client, provider, clock, monkeypatch)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE persona SET home_city_id='chicago' WHERE id=1")
+    mira_now, theo_now = advance(client, mira_id, 1, clock), advance(client, theo_id, 0, clock)
+    assert (mira_now, theo_now) == (None, None)
+    with client.app.state.database.connect() as connection:
+        rows = [moving_in.latest(connection, by_id(connection, key)['active_timeline_id']) for key in (mira_id, theo_id)]
+    assert [found['out_who'] for found in rows] == ['you', 'them']  # Mira keeps the home; Theo takes a place.
+    hers, his = homes(client, mira_id, theo_id)
+    assert not hers['shared'] and his['description'] != hers['description']

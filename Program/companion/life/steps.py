@@ -448,12 +448,20 @@ def long_date(day: str) -> str:
     return f'{found.day} {found:%B %Y}'
 
 
-def context_line(found: dict, others: tuple[str, str] = ('alone', '')) -> str:
+# A group chat has no 'where' section for the moving-in line to point at (E2E v0.13 N2): there it says how things are.
+WHERE_SAID = ('You have decided to live together (whether you have moved in yet is said where it says where you are '
+              'with the user).')
+
+
+def context_line(found: dict, others: tuple[str, str] = ('alone', ''), home: str = '') -> str:
     """Where things stand, for the chat context: the step, how long, and what has not happened yet. `others` is what
-    they know of the user's other romances (`others_known`)."""
+    they know of the user's other romances (`others_known`); `home`, in a group chat, whether they live together yet
+    (`group_home`)."""
     step = step_of(found['ladder'], found['step'])
     kind, sentence = others
     line = SHARED_LINES.get(step.key, {}).get(kind, step.line) + (f' {sentence}' if sentence else '')
+    if home:
+        line = line.replace(WHERE_SAID, home)
     whose = 'Together' if found['ladder'] == 'romance' else 'Friends'
     dated = [item for item in found['steps'] if item['how'] != 'history']
     since = f" {whose} since {long_date(found['since'])}." if dated and dated[0]['step'] == found['steps'][0]['step'] else ''
@@ -1074,14 +1082,16 @@ REASON_WORDS = {'sooner': 'it feels too soon', 'close enough': "you don't feel c
                 'skips': "it's a big jump from where you are"}
 
 
-def context_lines(connection, companion: dict, now, turn: set[str]) -> list[tuple[str, str]]:
+def context_lines(connection, companion: dict, now, turn: set[str], group: bool = False) -> list[tuple[str, str]]:
     """(identity, line) for the 'steps' section: where things stand, something they brought up that waits for an
     answer, and an answer just given."""
     found = state(connection, companion, now, write=False)
     if found is None or apart(connection, companion) == 'ended':
         return []  # Exes: the 'breakup' section says where they stand (companion/life/breakups.py).
     others = others_known(connection, companion, found, now)
-    result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}", context_line(found, others))]
+    home = group_home(connection, companion) if group and found['step'] == 'moving_in' else ''
+    result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}{':group' if home else ''}",
+               context_line(found, others, home))]
     for row in asks(connection, companion['active_timeline_id'], ('open',)):
         if row['message_id'] and row['answer_id'] is None:
             result.append((f"step-ask:{row['id']}:open", '- ' + WAITING.format(
@@ -1097,8 +1107,20 @@ def offer(packet, connection, companion: dict, now, recent: list[dict], group=No
             if message['role'] != 'user':
                 break
             turn.add(message['id'])
-    for identity, text in context_lines(connection, companion, now, turn):
+    for identity, text in context_lines(connection, companion, now, turn, group is not None):
         packet.offer('steps', identity, text)
+
+
+def group_home(connection, companion: dict) -> str:
+    """Whether they live together yet, and the plan when not, for the moving-in line in a group chat."""
+    from companion.life import moving_in  # Imported here: moving_in reads the steps ladder.
+    if moving_in.living(connection, companion):
+        return 'You live together.'
+    row = moving_in.current(connection, companion['active_timeline_id'])
+    if row is None:
+        return "You have decided to live together, but you don't live together right now."
+    plan = moving_in.joiner_line(connection, row) if moving_in.joins(row) else moving_in.plan_line(connection, row)
+    return f"You have decided to live together and haven't moved in yet: {plan[:1].lower()}{plan[1:]}"
 
 
 # Anniversaries and the scrapbook ---------------------------------------------------------------------------------------------
