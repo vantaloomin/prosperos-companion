@@ -667,6 +667,18 @@ def test_in_1895_a_parent_is_mother_or_father(client, clock):
     assert found['details']['role'] == 'mother' and 'your mother' in big_days.said(found)
 
 
+def test_a_parent_is_mom_or_dad_on_the_day_like_everyone_else(client, clock):
+    make(client)
+    with client.app.state.database.connect(write=True) as connection:
+        row = circle.people(connection, current(connection)['active_timeline_id'])[0]
+        details = decode(row['details']) or {}
+        connection.execute("UPDATE circle_people SET role='parent', details=? WHERE id=?",
+                           (encode({**details, 'pronouns': 'she/her'}), row['id']))
+    found = add(client, clock, kind='birthday', role='parent', age=60)
+    assert found['details']['role'] == 'mom' and 'your mom' in big_days.said(found)
+    assert big_days.host(found)['role'] == 'mom'  # Today's "With Tracy (mom)".
+
+
 def test_before_asking_their_own_day_is_never_a_plus_one():
     row = {'kind': 'own_wedding', 'status': 'planned', 'invite': 1, 'local_date': '2027-02-20', 'at_time': '15:00',
            'place': {'name': 'Royal Observatory'}, 'details': {'name': 'Sam Okafor'}, 'gift': '', 'outfit': ''}
