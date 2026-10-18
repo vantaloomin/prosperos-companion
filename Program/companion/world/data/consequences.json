@@ -1009,7 +1009,7 @@
               "reader": "can_relationship",
               "at_most": 0,
               "times": 0,
-              "why": "{name} is already seeing someone, or has no love life of their own here"
+              "why": "{name} is already seeing someone, split up lately, or has no love life of their own here"
             },
             {
               "reader": "love_life",
