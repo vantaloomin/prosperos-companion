@@ -304,3 +304,16 @@ def test_a_birthday_soon_after_they_were_made_is_not_lost_before_a_tick(client, 
     clock.advance(timedelta(days=3))
     reconcile(client)
     assert 'You are 35 now' in client.get('/api/context/preview').json()['system']
+
+
+def test_someone_who_keeps_their_age_is_not_a_year_older_on_their_birthday(client, clock):
+    make(client, birthday=clock.now().strftime('%m-%d'), keeps_age=True)
+    companion = client.get('/api/companion').json()['companion']
+    with connect(client, False) as connection:
+        own = next(item for item in occasions.occasions(connection, companion, clock.now()) if item['kind'] == 'own_birthday')
+    assert own['days'] == 0 and own['template'] == occasions.KEPT_TEMPLATE and 'older' not in own['template']
+    revise(client, keeps_age=False)
+    companion = client.get('/api/companion').json()['companion']
+    with connect(client, False) as connection:
+        own = next(item for item in occasions.occasions(connection, companion, clock.now()) if item['kind'] == 'own_birthday')
+    assert own['template'] == "Guess who's a year older today."
