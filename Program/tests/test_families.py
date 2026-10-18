@@ -328,3 +328,30 @@ def test_a_childs_big_day_is_never_pictured_however_it_is_worded(client, mira, c
         assert prompts.children(connection, timeline_id, words, [None]) == {}
     assert prompts.when({'details': encode({'outing': {'id': outing['id']}})})['outing']['id'] == outing['id']
     assert families.pictured(None, '', ["Ivy's 1st bday!"]) and families.pictured(None, '', ['her first bday'])
+
+
+@pytest.mark.parametrize('when', ['planned', 'under way'])
+def test_with_the_adult_side_on_no_context_line_names_a_child_even_before_the_next_pass(client, mira, clock,
+                                                                                       monkeypatch, provider, when):
+    row, outing = a_childs_big_day(client, clock, monkeypatch, provider)
+    if when == 'under way':
+        day = date.fromisoformat(row['local_date'])
+        clock.advance(day - clock.now().date() + timedelta(hours=15))
+    text = prompt(client)
+    assert 'Ivy' in text and 'first birthday' in text
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    text = prompt(client)  # Before any reconcile has called the party off.
+    assert 'Ivy' not in text and 'first birthday' not in text.lower()
+
+
+def test_with_the_adult_side_on_a_childs_big_day_is_never_asked_to(client, mira, clock, monkeypatch, provider):
+    from companion.characters import current
+    from companion.life import big_days
+    row, _outing = a_childs_big_day(client, clock, monkeypatch, provider, invite=True)
+    clock.advance(timedelta(hours=12 - clock.now().hour + 24))
+    with client.app.state.database.connect() as connection:
+        assert [trigger.sources for trigger in big_days.invite_due(connection, current(connection), clock.now())] == \
+            [(row['id'],)]
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert big_days.invite_due(connection, current(connection), clock.now()) == []

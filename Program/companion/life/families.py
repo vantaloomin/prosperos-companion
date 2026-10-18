@@ -90,6 +90,15 @@ def names(connection, timeline_id: str) -> set[str]:
                                         "status!='ended'", (timeline_id,))}
 
 
+def hidden(connection, timeline_id: str) -> re.Pattern | None:
+    """With the adult side on, what no chat context line may hold: a child's name or a first birthday (the context
+    packet drops any line that does, companion/memory/context.py). None with it off."""
+    if not withheld(connection):
+        return None
+    found = sorted(names(connection, timeline_id))
+    return re.compile('|'.join([f'(?i:{FIRST_BIRTHDAY.pattern})', *(rf'\b{re.escape(name)}\b' for name in found)]))
+
+
 def childs_day(connection, outing_ids) -> bool:
     """Whether any of these outings is a child's big day (companion/life/big_days.py marks it `no_photo`), however
     the words about it were phrased."""
