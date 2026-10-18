@@ -14,7 +14,7 @@ from companion.characters import current
 from companion.database import decode, encode, identifier, many, optional, settings
 from companion.errors import DomainError, require
 from companion.images import backends
-from companion.life import encounters, where
+from companion.life import ages, encounters, where
 from companion.world import catalog, dating, mix, townsfolk, turnover
 
 # The app's name in modern and future cities: made up, so it is nobody's real app.
@@ -160,7 +160,13 @@ def people(connection, data: dict) -> list[tuple[dict, dict]]:
     companion = current(connection)
     cast = encounters.town_cast(connection, companion, data) if companion else encounters.NO_CAST
     skip = set(cast['aliases']) | set(cast['own'])
-    return [item for item in pool(data) if item[0]['key'] not in skip]
+    return [(aged(connection, sheet, data), found) for sheet, found in pool(data) if sheet['key'] not in skip]
+
+
+def aged(connection, sheet: dict, data: dict) -> dict:
+    """Their sheet at the age they are now, as Around town shows it (companion/life/ages.py). Who they are drawn to
+    and the rest of their dating details stay as their seeded sheet gives them."""
+    return {**sheet, 'age': ages.town_age(connection, sheet, turnover.today(data))}
 
 
 def deck(connection, data: dict, mine: dict) -> tuple[list[dict], int]:
@@ -187,7 +193,7 @@ def person(connection, key: str, town: str) -> tuple[dict, dict]:
     data = city_for(connection, parts[1], town)
     sheet = townsfolk.find(data, key)
     require(sheet is not None, 'No such person.', 404)
-    return sheet, data
+    return aged(connection, sheet, data), data
 
 
 # Swipes and matches --------------------------------------------------------------------------------------
