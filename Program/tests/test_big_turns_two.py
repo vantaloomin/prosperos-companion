@@ -1,6 +1,6 @@
 """Life's big turns, part 2: starting a business, a health turn and caring for a parent."""
 import json
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from conftest import reconcile
@@ -219,3 +219,14 @@ def test_make_it_go_this_way_reaches_the_part_two_turns(client, older, clock, mo
         assert client.get('/api/life/chapters').json()[0]['kind'] == kind
     assert client.post(f"/api/life/consequences/{chapter['consequence']}/change",
                        json={'option': len(chapters.KINDS)}).status_code == 422
+
+
+def test_a_saturday_at_a_parents_out_of_town_is_a_day_not_an_evening():
+    companion = {'version': {'definition': {'name': 'Mira Lane'}}}
+    slot = {'from': 'saturday', 'days': [5], 'start': '10:00', 'end': '17:00', 'label': "Day at Mom's"}
+    details = {'role': 'mom', 'name': 'Ana', 'caring': slot}
+    found = health_turns.care_begins(None, companion, {}, details, date(2027, 1, 2), None)
+    assert found['share'].startswith("First day at my mom's")
+    evening = health_turns.care_begins(None, companion, {}, {**details, 'caring': {**slot, 'start': '18:00'}},
+                                       date(2027, 1, 2), None)
+    assert evening['share'].startswith("First evening at my mom's")
