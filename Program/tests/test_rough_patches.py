@@ -421,7 +421,7 @@ def test_asked_out_while_a_rough_patch_is_open_they_can_rather_not(client, patch
     send(client, 'go away', 'client-patch-40')
     assert patch(client)['open']
     says(provider)
-    send(client, 'want to get dinner friday?', 'client-patch-41')
+    asked = send(client, 'want to get dinner friday?', 'client-patch-41')
     assert client.get('/api/life/outings').json()['outings'] == []  # Nothing booked.
     assert 'Things are still tense between you, and you would rather not, for now' in notes(provider)
     [outcome] = [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:ask_while_tense']
@@ -432,6 +432,26 @@ def test_asked_out_while_a_rough_patch_is_open_they_can_rather_not(client, patch
     assert dinner['activity'] == 'dinner'
     client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 1})  # And back: called off.
     assert client.get('/api/life/outings').json()['outings'][0]['state'] == 'cancelled'
+    says(provider)  # Another reply to the ask is told they would rather not.
+    response = client.post(f"/api/conversation/messages/{asked['message']['id']}/alternatives")
+    assert response.status_code == 200, response.text
+    assert 'Things are still tense between you, and you would rather not, for now' in notes(provider)
+
+
+def test_made_to_go_rather_not_on_today_another_reply_is_told_so(client, patches, provider, monkeypatch):
+    show(client, show_moods=True, show_odds=True)
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: 0 if 'tense-ask' in seed else found[-1]['option'])
+    says(provider)
+    send(client, 'go away', 'client-patch-43')
+    says(provider)
+    asked = send(client, 'want to get dinner friday?', 'client-patch-44')
+    [outcome] = [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:ask_while_tense']
+    assert outcome['picked'] == 0 and client.get('/api/life/outings').json()['outings']  # A yes: booked.
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 1})
+    says(provider)
+    response = client.post(f"/api/conversation/messages/{asked['message']['id']}/alternatives")
+    assert response.status_code == 200, response.text
+    assert 'Things are still tense between you, and you would rather not, for now' in notes(provider)
 
 
 def test_with_nothing_tense_an_ask_is_not_rolled(client, patches, provider):
