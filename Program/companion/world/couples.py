@@ -6,14 +6,17 @@ week from the world's epoch (the same weeks townsfolk goals move in, companion/w
 each other may get engaged and, some months later, married, or split up; a married couple rarely splits; someone
 single again may meet someone new. Nothing is stored: the same person on the same day is the same couple, every time.
 
-The town paper reports engagements and weddings (companion/world/paper.py), and a companion who knows a townsperson
+Now and then a couple has a baby (`babies`), a week seeded the same way, from when the town started changing hands
+(companion/world/turnover.py); the baby is only ever words in the paper.
+
+The town paper reports engagements, weddings and babies (companion/world/paper.py), and a companion who knows a townsperson
 well enough knows where their love life stands (companion/life/encounters.py). The dating app keeps reading the
 seeded status (who is single and looking stays the same pool).
 """
 from datetime import date, timedelta
 from functools import lru_cache
 
-from companion.world import dating, generators, townsfolk
+from companion.world import dating, generators, townsfolk, turnover
 
 # Each week's chance, from the epoch.
 ENGAGE = 1 / 90  # Seeing someone, after `ENGAGE_AFTER` weeks together: they get engaged.
@@ -25,6 +28,8 @@ MEET_AFTER = 12
 WEDDING = (20, 56)  # Weeks from an engagement to the wedding.
 PARTNERED = ('seeing someone', 'married')
 GENDER_PRONOUNS = {'woman': 'she', 'man': 'he', 'nonbinary': 'they'}
+BABY = 0.1  # An engaged or married couple's chance of a baby each year, at the usual pace.
+BABY_AGES = (24, 42)
 
 
 @lru_cache(maxsize=4096)
@@ -95,6 +100,24 @@ def events(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
         when = townsfolk.EPOCH + timedelta(weeks=week, days=5)  # A Saturday.
         if what in ('engaged', 'married') and week_range[0] <= when <= week_range[1]:
             result.append({'what': what, 'partner': partner(sheet, data, which, found), 'day': when})
+    return result
+
+
+def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]:
+    """Babies born to them and their partner in a span of days: {partner, day}. Follows Growing families."""
+    if not turnover.ACTIVE:
+        return []
+    chance = BABY * turnover.PACE[turnover.STATE.families] / turnover.YEAR
+    arrived = townsfolk.week_of(date.fromisoformat(sheet['arrived'])) if sheet.get('arrived') else turnover.START_WEEK
+    result = []
+    for week in range(max(townsfolk.week_of(week_range[0]), turnover.START_WEEK), townsfolk.week_of(week_range[1]) + 1):
+        age = sheet['age'] + max(week - arrived, 0) // turnover.YEAR
+        if generators.unit(townsfolk.drawn(sheet), 'baby', week) >= chance or not BABY_AGES[0] <= age <= BABY_AGES[1]:
+            continue
+        day = turnover.week_day(week, 3)
+        state = couple(sheet, data, day)
+        if state and state['status'] in ('engaged', 'married') and week_range[0] <= day <= week_range[1]:
+            result.append({'partner': state['partner'], 'day': day})
     return result
 
 

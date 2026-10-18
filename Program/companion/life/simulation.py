@@ -26,7 +26,21 @@ from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import agenda, circle, composer, deck, dreams, feed, hobbies, mood, pets, routine, thoughts, upkeep
+from companion.life import (
+    agenda,
+    ages,
+    circle,
+    composer,
+    deck,
+    dreams,
+    feed,
+    hobbies,
+    mood,
+    pets,
+    routine,
+    thoughts,
+    upkeep,
+)
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
@@ -839,6 +853,7 @@ class LifeEngine:
             paused = settings(connection)['paused_at'] is not None
             if not paused:
                 news.sync(connection, self.now())
+                ages.sync(connection, self.now())  # Birthdays move everyone's age on (companion/life/ages.py).
                 deck.sync(connection, self.now())
                 dreams.sync(connection, self.now())
         if self.groups is not None and not paused:

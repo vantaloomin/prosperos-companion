@@ -18,6 +18,7 @@ from companion.errors import DomainError
 from companion.events import committed
 from companion.life import (
     agenda,
+    ages,
     body,
     breakups,
     calls,
@@ -366,7 +367,7 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
             lines.append(f'{key.capitalize()}: {definition[key]}')
     if version.get('companion_id') and (sheet := looks.text(grooming.sheet(connection, version['companion_id'],
                                                                           definition, day))):
-        lines.append(f'Looks: {sheet}')
+        lines += [f'Looks: {sheet}', *age_lines(connection, version['companion_id'], definition, day)]
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
     lines += list_lines(definition)
@@ -380,6 +381,16 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     if texts and (style := texting.instruction(definition)):
         lines.append(style)  # Not together in person or on a call (`texts` False): nobody texts while talking.
     return '\n'.join(lines)
+
+
+def age_lines(connection, companion_id: str, definition: dict, day: str | None) -> list[str]:
+    """"You are 35 now; you turned 35 on 3 March." once a birthday has taken them past the age their words give
+    (companion/life/ages.py; A/B 2026-10-18: without it most models answered with the age written)."""
+    if connection is None:
+        return []
+    looked_on = grooming.day_of(connection, grooming.timeline_of(connection, companion_id), day)
+    line = ages.age_line(connection, companion_id, definition, looked_on)
+    return [line] if line else []
 
 
 def personality_text(connection, definition: dict, seed: str) -> str | None:
