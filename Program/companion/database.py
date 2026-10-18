@@ -313,6 +313,9 @@ ADDED_COLUMNS = (
     # Sharing a home (companion/life/moving_in.py): the shared home a moving-in row belongs to, by the id of the row
     # that set it up. A second romance moving into it has the first one's household; NULL is a household of its own.
     ('moving_in', 'household', 'TEXT'),
+    # A fork's copy of a moving-in row (companion/life/moving_in.py `copy`): the row it was first copied from, so a home
+    # set up before the fork stays one household with those who moved in on other timelines; NULL for the original.
+    ('moving_in', 'origin', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
