@@ -654,9 +654,10 @@ def invite_due(connection, companion: dict, now: datetime) -> list:
         return []
     today = local.date().isoformat()
     soonest = (local.date() + timedelta(days=2)).isoformat()
+    hidden = CHILDS if withheld(connection) else ()  # Called off at the next pass; never asked to meanwhile.
     row = next((item for item in rows(connection, companion['active_timeline_id'], ('planned',))
                 if item['invite'] and item['invite_on'] <= today and item['local_date'] >= soonest
-                and invitable(connection, companion, item)), None)
+                and item['kind'] not in hidden and invitable(connection, companion, item)), None)
     if row is None:
         return []
     day = date.fromisoformat(row['local_date'])

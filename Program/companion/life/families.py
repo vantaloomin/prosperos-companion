@@ -55,14 +55,41 @@ PARTNERS = {'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée',
 FRIENDS = {'friend', 'new friend', 'roommate from years ago', 'neighbor'}
 # A first birthday is a big day of its own (companion/life/big_days.py), so it is no longer a storyline beat.
 FIRST_BIRTHDAY_BEAT = False
-FIRST_BIRTHDAY = re.compile(r'\bfirst birthday\b', re.IGNORECASE)
+FIRST_BIRTHDAY = re.compile(r'\b(?:first|1st) (?:birthday|bday)\b', re.IGNORECASE)
 STORIES = ('expecting', 'baby_update', 'babysat', 'first_birthday')
+# Bank lines naming things an older city doesn't have (no scans or daycare in 1925, no phones or cars in 1895, no
+# trains, prams or bananas in Camelot) are left out there, by its era (companion/world/schema.py `Era`).
+_JAZZ = (r'scans?|ultrasound|sonogram|television|tv|videos?|playlists?|baby monitors?|daycare|robots?|superheroe?s?|'
+         r'rockets?|remote|avocados?')
+_VICTORIAN = _JAZZ + r'|cars?|car seat|drive|drove|driving|taxi|phones?|fridge|vacuums?|doorbell|pizza|calls?|called'
+_MEDIEVAL = _VICTORIAN + (r'|trains?|bus|buses|strollers?|prams?|photos?|zoo|museums?|chocolate|coffee|tea|bananas?|'
+                          r'pasta|peanut butter|cereal|ice cream|crayons?|playground|puzzles?|dinosaurs?|library|'
+                          r'libraries|yoghurt|yogurt|noodles')
+UNFIT = {era: re.compile(rf'\b(?:{words})\b', re.IGNORECASE) for era, words in (
+    ('jazz-age', _JAZZ), ('victorian', _VICTORIAN), ('steampunk', _VICTORIAN), ('frontier', _VICTORIAN),
+    ('medieval', _MEDIEVAL), ('fantasy', _MEDIEVAL))}
+# Lines about carrying the baby, for a parent-to-be who is (as far as anyone knows) the one expecting.
+CARRYING = re.compile(r'\bcrav\w*', re.IGNORECASE)
 FIELDS = ('they', 'them', 'their', "they're", 'are', 'were', 'They', 'Their')
 
 
 @cache
 def bank() -> dict:
     return json.loads((catalog.DATA / 'families.json').read_text(encoding='utf-8'))
+
+
+def era_of(connection, definition: dict) -> str:
+    from companion.world import newcomers
+    return newcomers.city_for(connection, definition).get('era') or 'modern'
+
+
+def fitting(lines: list[dict], era: str, carrying: bool = True) -> list[dict]:
+    """The bank lines that fit their city's era and, for `carrying` False, a parent-to-be who isn't the one carrying
+    the baby; all of them if none would."""
+    unfit = UNFIT.get(era)
+    found = [line for line in lines if not (unfit and unfit.search(f"{line['text']} {line['share']}"))
+             and (carrying or not CARRYING.search(f"{line['text']} {line['share']}"))]
+    return found or lines
 
 
 def level(connection) -> int:
@@ -82,9 +109,32 @@ def pictured(connection, timeline_id: str, texts) -> bool:
         return False
     if FIRST_BIRTHDAY.search(text):
         return True
-    names = {row['name'] for row in many(connection, "SELECT name FROM circle_children WHERE timeline_id=? AND "
-                                         "status!='ended'", (timeline_id,))}
-    return any(re.search(rf'\b{re.escape(name)}\b', text) for name in names)
+    return any(re.search(rf'\b{re.escape(name)}\b', text) for name in names(connection, timeline_id))
+
+
+def names(connection, timeline_id: str) -> set[str]:
+    return {row['name'] for row in many(connection, "SELECT name FROM circle_children WHERE timeline_id=? AND "
+                                        "status!='ended'", (timeline_id,))}
+
+
+def hidden(connection, timeline_id: str) -> re.Pattern | None:
+    """With the adult side on, what no chat context line may hold: a child's name or a first birthday (the context
+    packet drops any line that does, companion/memory/context.py). None with it off."""
+    if not withheld(connection):
+        return None
+    found = sorted(names(connection, timeline_id))
+    return re.compile('|'.join([f'(?i:{FIRST_BIRTHDAY.pattern})', *(rf'\b{re.escape(name)}\b' for name in found)]))
+
+
+def childs_day(connection, outing_ids) -> bool:
+    """Whether any of these outings is a child's big day (companion/life/big_days.py marks it `no_photo`), however
+    the words about it were phrased."""
+    ids = [item for item in outing_ids if item]
+    if not ids:
+        return False
+    marks = ','.join('?' * len(ids))
+    return any(decode(row['place']).get('no_photo') for row in many(
+        connection, f'SELECT place FROM outings WHERE id IN ({marks})', tuple(ids)))
 
 
 # Who may be expecting ------------------------------------------------------------------------------
@@ -157,8 +207,10 @@ def relation(title_: str, pronouns_: str) -> str | None:
 
 
 def baby_name(definition: dict, world, seed: str, pronouns_: str, taken: set[str]) -> str:
-    """A first name from their city's names for babies born now, else from the bank."""
+    """A first name from their city's names for babies born now, else from the bank; never a word in the name of one
+    of its places or neighborhoods ("Emma" and Red Emma's), which `pictured` would then never picture."""
     data = circle.city_data(definition, world) if world is not None else None
+    taken = taken | place_words(data)
     for attempt in range(6):
         if data:
             given = generators.name(data, seed=f'{seed}:{attempt}', pronouns=pronouns_.split('/')[0], age=0)['given']
@@ -169,22 +221,35 @@ def baby_name(definition: dict, world, seed: str, pronouns_: str, taken: set[str
     return given
 
 
+def place_words(data: dict | None) -> set[str]:
+    named = [item.get('name', '') for key in ('places', 'neighborhoods') for item in (data or {}).get(key) or []]
+    return {word for name in named for word in re.findall(r"[A-Z][a-z]+", name)}
+
+
+def taken_names(connection, companion: dict) -> set[str]:
+    """First names a baby can't have: the circle's, other children's and the companion's own (any picture naming
+    a child is refused, `pictured`, so a baby sharing their name would stop every picture of them)."""
+    timeline_id = companion['active_timeline_id']
+    taken = {row['name'].split()[0] for row in circle.people(connection, timeline_id, True)}
+    taken |= {row['name'] for row in many(connection, 'SELECT name FROM circle_children WHERE timeline_id=?',
+                                          (timeline_id,))}
+    return taken | set(companion['version']['definition']['name'].split()[:1])
+
+
 def plan(connection, companion: dict, world, person: dict, how: str, day: date) -> dict:
     """Everything about one pregnancy, decided now: the beats with their days, the baby and what they are to the
     companion."""
-    seed = f"family:{companion['active_timeline_id']}:{person['id']}:{day.isoformat()}"
+    seed, definition = f"family:{companion['active_timeline_id']}:{person['id']}:{day.isoformat()}", companion['version']['definition']
     rng = generators.unit
     born = day + timedelta(weeks=24 + int(rng(seed, 'due') * 7))
     due = born + timedelta(days=int(rng(seed, 'early') * 15) - 7)  # Babies keep their own time.
     halfway = day + timedelta(weeks=7 + int(rng(seed, 'halfway') * 6))
     soon = min(due, born) - timedelta(days=3 + int(rng(seed, 'soon') * 6))
     sex = 'she/her' if rng(seed, 'sex') < 0.49 else 'he/him'
-    taken = {row['name'].split()[0] for row in circle.people(connection, companion['active_timeline_id'], True)}
-    taken |= {row['name'] for row in many(connection, 'SELECT name FROM circle_children WHERE timeline_id=?',
-                                          (companion['active_timeline_id'],))}
-    name = baby_name(companion['version']['definition'], world, seed, sex, taken)
+    name = baby_name(definition, world, seed, sex, taken_names(connection, companion))
     kind = title(how, seed)
-    middle = generators.pick(seed, 'middle', bank()['pregnancy'])
+    carrying, era = decode(person['details']).get('pronouns', 'she/her') == 'she/her', era_of(connection, definition)
+    middle = generators.pick(seed, 'middle', fitting(bank()['pregnancy'], era, carrying))
     child = {'name': name, 'pronouns': sex, 'title': kind}
     stages = [
         stage(day, *announced(how, due, kind, companion['version']['definition'])),
@@ -271,12 +336,12 @@ def advance(connection, companion: dict, world, now) -> int:
         return 0
     pace = PACE[level(connection)]
     people = circle.people(connection, timeline_id)
-    begun = 0
+    begun, era = 0, era_of(connection, companion['version']['definition'])
     for offset in range(CATCH_UP_DAYS, -1, -1):
         day = today - timedelta(days=offset)
         if pace and day.weekday() == 0:
             begun += expect(connection, companion, world, people, day, pace, now)
-        begun += child_news(connection, companion, people, day, pace, now)
+        begun += child_news(connection, companion, people, (day, era), pace, now)
     return begun
 
 
@@ -362,14 +427,15 @@ def fill_child(text: str, child: dict) -> str:
     return ''.join(parts)
 
 
-def child_news(connection, companion: dict, people: list[dict], day: date, pace: float, now) -> int:
-    """An update, a babysitting evening or a first birthday on this day, at most one a day across the circle."""
-    timeline_id = companion['active_timeline_id']
+def child_news(connection, companion: dict, people: list[dict], when: tuple[date, str], pace: float, now) -> int:
+    """An update, a babysitting evening or a first birthday on this day (`when` is the day and their city's era), at
+    most one a day across the circle."""
+    timeline_id, (day, era) = companion['active_timeline_id'], when
     local = {person['id']: decode(person['details']).get('local', True) for person in people}
     for child in born(connection, timeline_id, day):
         if child['parent_id'] not in local or child['born_on'] == day.isoformat():
             continue
-        news = news_on(child, day, pace, bool(local[child['parent_id']]))
+        news = news_on(child, day, pace, bool(local[child['parent_id']]), era)
         if not news:
             continue
         if told(connection, timeline_id, news[0], child['parent_id'], day):
@@ -380,7 +446,7 @@ def child_news(connection, companion: dict, people: list[dict], day: date, pace:
     return 0
 
 
-def news_on(child: dict, day: date, pace: float, local: bool) -> tuple[str, str, str] | None:
+def news_on(child: dict, day: date, pace: float, local: bool, era: str = 'modern') -> tuple[str, str, str] | None:
     """(story, text, share) for what comes up about this child on this day, if anything."""
     seed, first = f"child:{child['id']}", date.fromisoformat(child['born_on'])
     if FIRST_BIRTHDAY_BEAT and day == ages.birthday_in(first.year + 1, first.strftime('%m-%d')):
@@ -395,11 +461,11 @@ def news_on(child: dict, day: date, pace: float, local: bool) -> tuple[str, str,
         return None
     sits = child['title'] != 'friend' and local and (day - first).days >= BABYSIT_FROM
     if sits and generators.unit(seed, 'babysit', week) < BABYSIT * pace:
-        line = generators.pick(seed, f'babysit-line-{week}', bank()[f'babysit_{group}'])
+        line = generators.pick(seed, f'babysit-line-{week}', fitting(bank()[f'babysit_{group}'], era))
         return 'babysat', line['text'], line['share']
     chance = UPDATE['friend' if child['title'] == 'friend' else 'family'] * pace
     if generators.unit(seed, 'update', week) < chance:
-        line = generators.pick(seed, f'update-line-{week}', bank()[f'{group}_update'])
+        line = generators.pick(seed, f'update-line-{week}', fitting(bank()[f'{group}_update'], era))
         return 'baby_update', line['text'], line['share']
     return None
 

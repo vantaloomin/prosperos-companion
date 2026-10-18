@@ -105,8 +105,10 @@ def events(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
 
 
 def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]:
-    """Babies born to them and their partner in a span of days: {partner, day}. Follows Growing families."""
-    if not turnover.ACTIVE:
+    """Babies born to them and their partner in a span of days: {partner, day}. Follows Growing families. Never for a
+    companion living in town (`cast`, or one of `data['companions']`, the townsfolk keys companions were made from):
+    a companion's own baby waits for v0.15."""
+    if not turnover.ACTIVE or sheet.get('cast') or sheet.get('key') in data.get('companions', ()):
         return []
     arrived = townsfolk.week_of(date.fromisoformat(sheet['arrived'])) if sheet.get('arrived') else turnover.START_WEEK
     result = []

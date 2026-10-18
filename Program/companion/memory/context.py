@@ -5,6 +5,7 @@ the user's boundaries are required: if they cannot fit, the builder reports the 
 dropping them. Everything else is added in priority order until the budget is spent, and the
 receipt records what was included and what was left out, by identity only.
 """
+import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
@@ -284,6 +285,8 @@ class Packet:
     used: int = 0
     semantic: bool = False
     widened: bool = False
+    # With the adult side on, lines naming a child in their circle (companion/life/families.py `hidden`).
+    hidden: re.Pattern | None = None
 
     def require(self, section, identity, text):
         self.used += token_estimate(text)
@@ -293,6 +296,8 @@ class Packet:
         self.place(section, identity, text)
 
     def offer(self, section, identity, text) -> bool:
+        if self.hidden is not None and text and self.hidden.search(text):
+            return False
         cost = token_estimate(text)
         if self.used + cost > self.budget:
             self.omitted.setdefault(section.rstrip('+'), []).append(identity)
@@ -920,7 +925,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     recent, older = messages[start:], messages[:start]
     if group is not None:
         recent, older = [], messages + group['older']
-    packet = Packet(budget)
+    packet = Packet(budget, hidden=families.hidden(connection, timeline_id))
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     texts = group is not None or not (together.in_person(connection, companion, now)
                                        or calls.on_call(connection, companion, now))
