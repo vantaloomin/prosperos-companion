@@ -508,7 +508,7 @@ def customs(connection, companion: dict) -> dict:
 def funerals(connection, companion: dict, today: date, now) -> list[dict]:
     """A funeral for each loss of theirs, some days on by the city's customs."""
     from companion.life import big_days
-    rules = customs(connection, companion)
+    rules, definition = customs(connection, companion), companion['version']['definition']
     result = []
     for row in rows(connection, companion['active_timeline_id']):
         died = date.fromisoformat(row['died_on'])
@@ -518,7 +518,7 @@ def funerals(connection, companion: dict, today: date, now) -> list[dict]:
         day = died + timedelta(days=low + int(generators.unit(row['id'], 'funeral') * (high - low + 1)))
         day = max(day, today + timedelta(days=big_days.SOONEST))
         result.append(big_days.candidate('funeral', f"loss:{row['id']}", None, day, name=row['name'],
-                                         role=row['role'] if row['kind'] == 'circle' else '',
+                                         role=circle.said(row['role'], definition) if row['kind'] == 'circle' else '',
                                          town=row['town_key'] or '', local=row['details'].get('local', True),
                                          city=row['details'].get('city', ''), loss_id=row['id'], word=rules['word'],
                                          at=rules['at'], until=rules['until'], wear=rules['wear'],
