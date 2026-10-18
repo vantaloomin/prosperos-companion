@@ -158,8 +158,8 @@ def make(connection, companion: dict, world, chapter_id: str, kind: str, plan: d
 def plan_job(connection, companion, world, day, seed) -> dict | None:
     definition = companion['version']['definition']
     city = money.city_for(definition)
-    if not city or not money.has_money(city):
-        return None
+    if not city or not money.has_money(city) or not big_turns.job_free(connection, companion['active_timeline_id']):
+        return None  # Retired, or retraining or running a business of their own (big_turns.py).
     current, _guessed = money.career_for(definition, city)
     tier = money.PAY_TIERS.get(current['pay'], money.DEFAULT_TIER) if current else money.DEFAULT_TIER
     tight = consequences.total(connection, companion['active_timeline_id'], pairs.companion_key(companion['id']),
@@ -181,6 +181,9 @@ def plan_move(connection, companion, world, day, seed) -> dict | None:
     from companion.life import moving_in
     if moving_in.current(connection, companion['active_timeline_id']):
         return None  # Moving in together, or living together: a move of their own waits.
+    if big_turns.owns(connection, companion['active_timeline_id'], day) or any(
+            row['kind'] == 'buy_place' for row in big_turns.running(connection, companion['active_timeline_id'])):
+        return None  # A place of their own (big_turns.py), or one they are buying: they stay put.
     definition = companion['version']['definition']
     profile, city = money.profile(definition), money.city_for(definition)
     if not profile or not city:
@@ -386,10 +389,14 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     """New chapters for the chat context's storylines section, told as "you", for `TOLD_DAYS`."""
     today = storylines.local_today(companion, now)
     since = (today - timedelta(days=TOLD_DAYS)).isoformat()
+    # A big turn still running (big_turns.py) stays in, however long ago its latest stage came, and so do a long-term
+    # condition they live with and a parent's care that became part of their weeks (health_turns.py).
+    running = ("(json_extract(details, '$.next_on') IS NOT NULL OR kind='health' OR (kind='caring' AND "
+               "json_extract(details, '$.stage')='settled'))")
     rows = many(connection, f'SELECT *, {SINCE} AS since FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL '
-                f'AND {SINCE}>=? AND {SINCE}<=? AND id NOT IN (SELECT chapter_id FROM moving_in WHERE status=? AND '
-                'chapter_id IS NOT NULL) ORDER BY since', (companion['active_timeline_id'], since, today.isoformat(),
-                                                           'moved_out'))
+                f'AND ({SINCE}>=? OR {running}) AND {SINCE}<=? AND id NOT IN (SELECT chapter_id FROM moving_in WHERE '
+                'status=? AND chapter_id IS NOT NULL) ORDER BY since', (companion['active_timeline_id'], since,
+                                                                       today.isoformat(), 'moved_out'))
     # Moving in together stops being "how your life is now" once they moved out again (companion/life/moving_in.py).
     # A big turn's latest stage (big_turns.py) counts from the day it came.
     return [(f"chapter:{row['id']}", f"- A new chapter, since {row['since']}: {row['told']} This is how your "

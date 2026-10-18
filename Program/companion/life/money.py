@@ -617,7 +617,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     if not view['available']:
         return []
     text, per = view['text'], 'a month' if view['period'] == 'month' else 'a week'
-    work = f" as a {view['career']['name'].lower()}" if view['career'] else ''
+    job = view['career']['name'].lower() if view['career'] else ''
+    work = f" as {'an' if job[:1] in 'aeiou' else 'a'} {job}" if job else ''
     place = 'your home' if view['rent_from'] == 'home' else \
         f"{view['housing']['label']} in {view['housing']['neighborhood']}"
     # A place they bought has a mortgage instead of rent (companion/life/big_turns.py).
@@ -645,7 +646,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     found = view['goal']
     progress = 'saving has stalled for now' if found['stalled'] else f"about {round(found['share'] * 100)}% there"
     lines.append(('goal', f"- Saving for {found['label']}: {progress}."))
-    return [(f'money:{local_date}:{key}', line) for key, line in lines]
+    # An amount in pennies or shillings ends in its own stop ('2 d.'): one stop at the end of the line, not two.
+    return [(f'money:{local_date}:{key}', re.sub(r'(?<=[a-z])\.\.$', '.', line)) for key, line in lines]
 
 
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',

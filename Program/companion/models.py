@@ -152,6 +152,12 @@ class CharacterDefinition(Input):
     # The weeks of shifts or gigs the app adds when it reads the companion (companion/life/shifts.py). Accepted so a
     # form can send back what it was given, and never saved.
     rota: dict | None = Field(default=None, exclude=True)
+    # What their life chapters add to the definition the app reads (companion/characters.py `apply_changes`): the
+    # neighbourhood a move cleared, their own business and a long-term condition. Accepted back from the form the
+    # same way, and never saved: the chapters keep them.
+    near: str | None = Field(default=None, exclude=True)
+    business: dict | None = Field(default=None, exclude=True)
+    health: dict | None = Field(default=None, exclude=True)
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',

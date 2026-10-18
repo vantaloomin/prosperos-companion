@@ -270,7 +270,8 @@ class ChatPhotos:
         if composed is None:
             return None
         words = wording(connection, composed, prepared)
-        if families.pictured(connection, timeline_id, [words['summary'], words['post'], place_text(composed.get('place'))]):
+        if families.pictured(connection, timeline_id, [words['summary'], words['post'], place_text(composed.get('place'))]) \
+                or families.childs_day(connection, [(composed.get('outing') or {}).get('id')]):
             return None  # Children in their circle (companion/life/families.py) are told in words only.
         until = parse(shown['ends_at']).astimezone(zone(version['timezone'])).strftime('%H:%M')
         return {'event_key': key, 'summary': words['summary'], 'caption': words['post'], 'name': version['definition']['name'],

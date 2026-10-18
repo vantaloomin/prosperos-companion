@@ -155,8 +155,8 @@ def test_who_is_spared_the_young_partners_and_people_the_sheet_names(client, clo
 def test_a_death_on_its_day_grief_the_news_and_fewer_plans(client, clock, monkeypatch):
     make(client)
     switch(client)
-    dies(monkeypatch)
     dad = person(client, 'dad')
+    dies(monkeypatch, dad['id'])  # Only the dad, so no one else's news falls on the same day.
     advance(client, clock)
     row = next(row for row in losses(client) if row['person_id'] == dad['id'])
     assert row['happened'] == 0 and row['details']['depth'] == 3
@@ -174,6 +174,7 @@ def test_a_death_on_its_day_grief_the_news_and_fewer_plans(client, clock, monkey
         companion = current(connection)
         mood = moods.current(connection, f"companion:{companion['id']}", clock.now())
         assert mood['feeling'] == 'sad' and mood['intensity'] == 2
+        assert mood['reason'].endswith(f"'s dad {dad['name'].split()[0]} died"), mood['reason']
         news = loss.news_due(connection, companion, clock.now())
         assert len(news) == 1 and 'died today' in news[0].reason
         assert loss.holds_back(connection, companion, clock.now())
@@ -299,3 +300,153 @@ def test_a_parent_whose_care_went_harder_is_likelier_to_pass_and_their_care_ends
     advance(client, clock)
     found = details(client, chapter['id'])
     assert found['stage'] == 'ended' and found['why'] == 'passed'
+
+
+def test_someone_who_died_leaves_the_living_and_their_plans_with_the_companion(client, clock, monkeypatch, provider):
+    from companion.database import identifier
+    make(client)
+    switch(client)
+    dies(monkeypatch, person(client, 'dad')['id'])
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['role'] == 'dad')
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
+    later = clock.now() + timedelta(days=2)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        # A drop-in from them planned for after the day they die.
+        connection.execute(
+            "INSERT INTO life_agenda (id, timeline_id, subject, slot_key, local_date, starts_at, ends_at, block, entry, "
+            "status, basis, created_at) VALUES (?, ?, 'companion', 'evening@later', ?, ?, ?, '{}', ?, 'upcoming', "
+            "'seed', ?)", (identifier(), companion['active_timeline_id'], later.date().isoformat(), later.isoformat(),
+                           (later + timedelta(hours=3)).isoformat(),
+                           encode({'summary': 'Dinner with them.', 'with': {'id': row['person_id']}}),
+                           clock.now().isoformat()))
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        left = connection.execute("SELECT id FROM life_agenda WHERE status='upcoming' AND json_extract(entry, "
+                                  "'$.with.id')=?", (row['person_id'],)).fetchall()
+    assert left == []
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    client.post('/api/conversation/messages', json={'text': 'How is everyone?', 'client_id': 'loss-0001'})
+    prompt = provider.requests[-1]['prompt']
+    living = prompt.split('People in your life')[1].split('\n## ')[0]
+    name = row['name'].split()[0]
+    assert f'- {name} (' not in living and f'Your dad {name} died on' in prompt
+
+
+def test_a_branch_after_a_death_keeps_one_funeral(client, clock, monkeypatch, provider):
+    make(client)
+    switch(client)
+    dies(monkeypatch)
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['role'] == 'dad')
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
+    advance(client, clock)
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    sent = client.post('/api/conversation/messages', json={'text': 'I am so sorry.', 'client_id': 'loss-fork-1'})
+    response = client.post('/api/timelines', json={'message_id': sent.json()['message']['id']})
+    assert response.status_code == 200, response.text
+    assert client.post(f"/api/timelines/{response.json()['id']}/activate").status_code == 200
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        copied = optional(connection, "SELECT id FROM losses WHERE timeline_id=? AND role='dad'",
+                          (companion['active_timeline_id'],))
+        funerals = [item for item in big_days.rows(connection, companion['active_timeline_id'])
+                    if item['kind'] == 'funeral' and item['status'] != 'called_off' and item['details']['role'] == 'dad']
+    assert len(funerals) == 1 and funerals[0]['source'] == f"loss:{copied['id']}", funerals
+
+
+def test_the_funeral_is_never_at_a_food_hall_a_bar_or_a_library(monkeypatch):
+    place = {'neighborhood': 'n', 'summary': '', 'cost': '', 'cuisine': ''}
+    data = {'id': 'c', 'name': 'Town', 'era': None, 'neighborhoods': [{'id': 'n', 'name': 'North'}],
+            'places': [{**place, 'id': 'f', 'name': 'Umeda food hall', 'kind': 'market'},
+                       {**place, 'id': 'a', 'name': 'Osaka-jo Hall', 'kind': 'venue'},
+                       {**place, 'id': 'p', 'name': 'Central Public Hall', 'kind': 'landmark'},
+                       {**place, 'id': 'b', 'name': 'The Churchill Arms', 'kind': 'bar'},
+                       {**place, 'id': 'l', 'name': 'the abbey library', 'kind': 'library'}]}
+    day = date(2026, 10, 20)
+    for culture in ('japan', 'uk', 'medieval-england'):
+        monkeypatch.setattr(loss, 'customs', lambda connection, companion, key=culture: loss.bank()['customs'][key])
+        assert loss.venue_for(None, {}, data, 's', day)['id'] == '~funeral', culture
+    data['places'].append({**place, 'id': 't', 'name': 'Shitennoji', 'kind': 'temple'})
+    assert loss.venue_for(None, {}, data, 's', day)['id'] == 't'
+
+
+def test_the_news_the_memories_and_the_invitation_fit_the_era():
+    bank, invites = loss.bank(), big_days.bank()['invite_funeral']
+    for era in ('victorian', 'medieval', 'fantasy'):
+        for line in [*loss.fitting(bank['news'], era), *loss.fitting(invites, era)]:
+            assert not re.search(r'\btext|\bcall|\bphone', line, re.I), (era, line)
+        assert not [line for line in loss.fitting(bank['memories'], era) if re.search(r'\bradio\b', line)]
+    assert not [line for line in loss.fitting(bank['memories'], 'medieval') if re.search(r'photograph|coffee', line)]
+    assert loss.fitting(bank['news'], 'modern') == bank['news']
+    assert loss.fitting(bank['news'], 'jazz-age') != bank['news']  # No texting in 1925 either.
+    row = {'id': 'x', 'kind': 'funeral', 'details': {'name': 'Ray', 'role': 'dad', 'word': 'funeral'},
+           'place': {'name': 'the parish church'}}
+    for index in range(40):
+        line = big_days.invitation({**row, 'id': f'x{index}'}, 'Saturday', '11', 'victorian')
+        assert not re.search(r'\bcall\b|coffee', line), line
+
+
+def test_the_news_of_a_death_goes_out_before_the_funeral_invitation(client, clock, monkeypatch):
+    make(client)
+    switch(client)
+    dies(monkeypatch, person(client, 'cousin')['id'])
+    monkeypatch.setattr(loss, 'FIRST_TEXTS', True)
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['role'] == 'cousin')
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
+    advance(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE big_days SET invite=1, invite_on=? WHERE kind='funeral'",
+                           (clock.now().date().isoformat(),))
+        # The circle's own big days are random; one asked to near the funeral would hold its invitation back.
+        connection.execute("UPDATE big_days SET invite=0 WHERE kind!='funeral'")
+        kinds = [trigger.key.split(':')[0] for trigger in openers.candidates(connection, current(connection),
+                                                                            clock.now())]
+    assert 'bigday' in kinds and kinds.index('loss') < kinds.index('bigday'), kinds
+
+
+def test_a_funeral_in_1895_is_for_their_mother_not_their_mom(client, clock, monkeypatch):
+    response = client.post('/api/companion', json={'name': 'Eliza Thorne', 'timezone': 'Europe/London',
+                                                     'home_city': 'london-1895', 'relationship': 'romance'})
+    assert response.status_code == 200, response.text
+    client.get('/api/life/circle')
+    with client.app.state.database.connect(write=True) as connection:
+        row = circle.people(connection, current(connection)['active_timeline_id'])[0]
+        details = {key: value for key, value in decode(row['details']).items() if key != 'sheet'}
+        connection.execute("UPDATE circle_people SET role='mom', details=? WHERE id=?",
+                           (encode({**details, 'local': True, 'age': 70}), row['id']))
+    switch(client)
+    dies(monkeypatch, row['id'])
+    advance(client, clock)
+    died = next(item for item in losses(client) if item['person_id'] == row['id'])['died_on']
+    clock.advance(date.fromisoformat(died) - clock.now().date() + timedelta(hours=2))
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        funeral = next(item for item in big_days.rows(connection, current(connection)['active_timeline_id'])
+                       if item['kind'] == 'funeral')
+    assert big_days.said(funeral).startswith('your mother ') and 'mom' not in big_days.invitation(funeral, 'Monday', '11')
+
+
+def test_retro_im_keeps_the_plain_mood_line_while_they_grieve(client, clock, monkeypatch):
+    from companion.life import status
+    make(client)
+    switch(client)
+    dies(monkeypatch, person(client, 'dad')['id'])
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['role'] == 'dad')
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        assert status.grieving(connection, companion, clock.now())
+        for index in range(20):
+            line = status.mood_line(connection, companion, clock.now(), f'seed-{index}', retro=True)
+            assert line in status.MOODS['sad'], line
+    clock.advance(timedelta(days=60))  # Lifting: they are mostly themselves again.
+    with client.app.state.database.connect() as connection:
+        assert not status.grieving(connection, current(connection), clock.now())

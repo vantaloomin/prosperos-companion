@@ -49,7 +49,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.models import Input, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
-from companion.world import newcomers, paper
+from companion.world import paper
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -493,7 +493,8 @@ def read_paper(request: Request, day: str | None = None):
         current = paper.issue_date(storylines.local_today(companion, database.clock.now()))
         asked = paper.issue_date(require_date(day)) if day else current
         shown = min(asked, current)
-        data = newcomers.city_for(connection, companion['version']['definition'])
+        # Their own town: seeded townsfolk, and the townsfolk who became companions staying put (world/turnover.py).
+        data = network.city(connection, companion)
         require(bool(data.get('neighborhoods')), 'Pick a home city for the companion to get its paper.', 404)
         return {**paper.issue(connection, data, request.app.state.life.world, shown),
                 'previous': (shown - timedelta(days=7)).isoformat(),
@@ -508,7 +509,7 @@ def require_date(value: str) -> date:
 
 
 class OutcomeChange(Input):
-    option: int = Field(ge=0, le=9)
+    option: int = Field(ge=0, le=31)  # chapter:next has 13 ways it can go.
 
 
 @router.get('/consequences/{consequence_id}')

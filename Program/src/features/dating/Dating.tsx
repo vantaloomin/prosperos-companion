@@ -10,6 +10,7 @@ import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
 import { Deck } from './Deck'
+import { formerly, townLeft } from '../today/townText'
 import { CityOptions } from '../world/CityOptions'
 import { AboutYou, IntoWho, Setup, WhatYouWant } from './Setup'
 
@@ -141,18 +142,27 @@ function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
       {error && <Notice tone="error">{error}</Notice>}
       <ul>
         {data.matches.map((match) => <li key={match.key}>
-          <p><strong>{cardHeading(match)}</strong>{match.job ? ` · ${match.job}` : ''} · {match.city.name}</p>
-          <div className="form-actions">
+          <p><strong>{cardHeading(match)}</strong>{matchJob(match)} · {match.city.name}</p>
+          {match.left ? <div className="form-actions">
+            <p className="subtle">{townLeft(match.left)}</p>
+            <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>
+          </div> : <div className="form-actions">
             {match.companion_id
               ? <button type="button" className="button primary" disabled={busy !== null} onClick={() => void switchTo(match.companion_id!)}>Talk to {match.name}</button>
               : <StartTalking name={match.name} matchKey={match.key} go={go} primary />}
             {data.story && <MeetInStory match={match} onDate={onDate} />}
             {!match.companion_id && <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>}
-          </div>
+          </div>}
         </li>)}
       </ul>
     </section>
   )
+}
+
+/** " · Librarian at Enoch Pratt", or " · Formerly a librarian" once they have left town. */
+function matchJob(match: DatingMatch): string {
+  if (match.left) return ` · ${formerly(match.job)}`
+  return match.job ? ` · ${match.job}` : ''
 }
 
 function MeetInStory({ match, onDate }: { match: DatingMatch; onDate: (key: string, placeId: string) => Promise<void> }) {

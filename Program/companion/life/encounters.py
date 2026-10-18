@@ -230,13 +230,19 @@ def known(connection, companion: dict, now) -> list[dict]:
         if sheet:
             person = revealed(sheet, data, meetings, now, companion)
             if not sheet.get('cast'):  # A year older on each birthday since the town started ageing (life/ages.py).
-                person['age'] = ages.town_age(connection, sheet, today)
+                person['age'] = ages.town_age(connection, sheet, last_day(sheet, data, today))
             # A companion living in town has their own sliders on their character sheet.
             person['personality'] = None if sheet.get('cast') else town_personality.view(sheet, changed.get(key))
             if found['adult_side']:  # Never beside a baby (companion/life/families.py withheld).
                 person |= adult_side(sheet, len(meetings), bool(found['show_adult_side'])) | {'family': None}
             result.append(person)
     return sorted(result, key=lambda person: person['last_met'], reverse=True)
+
+
+def last_day(sheet: dict, data: dict, today: date) -> date:
+    """Today, or the day they passed away (companion/world/turnover.py): someone who died stays the age they were."""
+    gone = townsfolk.gone(sheet, data, today)
+    return date.fromisoformat(gone['day']) if gone and gone['why'] == 'passed' else today
 
 
 def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict) -> dict:
@@ -352,9 +358,9 @@ def whereabouts_now(connection, companion: dict, key: str, now) -> dict | None:
     """Where a townsperson the companion has met probably is right now, by their rules."""
     data = network.city(connection, companion)
     sheet = resolve(data, key, town_cast(connection, companion, data))
-    if not sheet:
-        return None
     local = now.astimezone(zone(companion['version']['timezone'])).replace(tzinfo=None)
+    if not sheet or townsfolk.gone(sheet, data, local.date()):
+        return None  # Nowhere in town once they have moved away, left their place or passed away (world/turnover.py).
     found = townsfolk.whereabouts(sheet, data, local)
     return {'doing': found['doing'], 'place': found['place'], 'mood': found['mood']}
 

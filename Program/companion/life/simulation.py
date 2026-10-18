@@ -89,6 +89,8 @@ def update_settings(database, body) -> dict:
                    for key, value in changes.items() if row[key] != value}
         if changed:
             timestamp = database.now()
+            if {'life_turns', 'growing_families', 'people_pass_away', 'loss'} & set(changed):
+                turnover.record(connection, row, database.clock.now().date(), timestamp)
             columns = ', '.join(f'{key}=?' for key in changed)
             connection.execute(f'UPDATE life_settings SET {columns}, updated_at=? WHERE id=1',
                                (*changed.values(), timestamp))
@@ -478,6 +480,11 @@ class LifeEngine:
     def decide(self, mode, companion_id=None) -> dict:
         with self.database.connect() as connection:
             stepped = may_extend(settings(connection), mode)
+            paused = settings(connection)['paused_at'] is not None
+        if mode == 'return' and not companion_id and not paused:
+            # Birthdays since the last tick move ages on before the agenda is written (companion/life/ages.py).
+            with self.database.connect(write=True) as connection:
+                ages.sync(connection, self.now())
         if stepped:
             agenda.catch_up_in_steps(self.database, companion_id, self.world, self.now())
         with self.database.connect(write=True) as connection:

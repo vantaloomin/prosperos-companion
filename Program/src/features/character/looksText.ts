@@ -1,4 +1,4 @@
-import type { Looks } from '../../types'
+import type { CharacterDefinition, Looks } from '../../types'
 
 export type LooksWord = 'build' | 'skin' | 'face' | 'jaw' | 'nose' | 'eyes' | 'eye_shape' | 'hair' | 'facial_hair' | 'feature'
 
@@ -28,4 +28,21 @@ export function numberChoices(kind: 'age' | 'height' | 'weight'): number[] {
   if (kind === 'age') return Array.from({ length: 73 }, (_, index) => 18 + index)
   if (kind === 'height') return Array.from({ length: 33 }, (_, index) => Math.round((54 + index) * 2.54))
   return Array.from({ length: 65 }, (_, index) => Math.round((80 + index * 5) / 2.20462))
+}
+
+/** Everyone gets older (companion/life/ages.py): a year older on each birthday, unless they keep the age they are
+ * now. On or off, the hint names the same age (Iris, v0.14). */
+export function keepsAgeHint(definition: Pick<CharacterDefinition, 'name' | 'keeps_age'>, written: number | null, now: number | null) {
+  const who = definition.name.trim().split(/\s+/)[0] || 'They'
+  const they = who === 'They'
+  const age = now ?? written
+  if (definition.keeps_age) return `${who} ${they ? 'stay' : 'stays'} ${age ?? 'the age they are now'}, however many birthdays pass.`
+  const lead = now ? `${who} ${they ? 'are' : 'is'} ${now} now and ${they ? 'turn' : 'turns'}` : `${who} ${they ? 'turn' : 'turns'}`
+  return `${lead} a year older on each birthday. Turn this on for a character who shouldn't age.`
+}
+
+/** The "left empty" choice, short enough for a phone field (Iris, v0.14): what is drawn, or that Appearance says it; a field drawn as nothing (no facial hair) is none. */
+export function emptyText(saved: boolean, covered: boolean, shown: string | null) {
+  if (!saved) return 'Picked for them if left empty'
+  return shown ? `Left empty: ${shown}` : covered ? 'Left empty: as Appearance says' : 'Left empty: none'
 }

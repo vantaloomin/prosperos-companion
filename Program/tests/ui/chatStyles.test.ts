@@ -26,3 +26,8 @@ test('a long status line in the Retro IM buddy list never widens the list past i
   const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8')
   assert.match(css, /\.side-buddies ul \{ grid-template-columns: minmax\(0, 1fr\); \}/)
 })
+
+test('the chat list beside a chat (feed, bubbles, novel) never grows wider than its own column', () => {
+  const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8')
+  assert.match(css, /\.side-list ul \{ grid-template-columns: minmax\(0, 1fr\); \}/)
+})

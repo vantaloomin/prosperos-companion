@@ -409,7 +409,7 @@ def end_removed(connection, timeline_id, today: date):
 
 
 # The chat context speaks to the companion: a template's third person becomes "you" before it is filled.
-SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} has ', 'you have '),
+SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} has ', 'you have '), ('{name} keeps ', 'you keep '),
                  ('but has not', 'but have not'), ('{name} heard they are', 'you heard you are'),
                  ('hitting on them', 'hitting on you'), ('to their manager', 'to your manager'),
                  ('their best friend', 'your best friend'), ('they never knew', 'you never knew'), ('{name}', 'you'))

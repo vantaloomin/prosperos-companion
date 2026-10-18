@@ -255,7 +255,7 @@ def plan_career(connection, companion, world, day, seed) -> dict | None:
         return None
     title = career['name'].lower()
     months = random.Random(f'{seed}:months').randint(*RETRAIN_MONTHS)
-    course = {'course': f'retraining as {article(title)}', 'short': career['name'].split()[0], 'months': months}
+    course = {'course': f'retraining as {article(title)}', 'short': career['name'], 'months': months}
     details = course_plan(definition, city_of(definition, world), day, seed, course)
     if not details:
         return None
@@ -265,6 +265,16 @@ def plan_career(connection, companion, world, day, seed) -> dict | None:
                     f"{days_text(details['study']['days'])}, and you keep your job until it ends.",
             'share': f"Big decision: I'm retraining as {article(title)}. Course starts {start}!",
             'details': {**details, 'stage': 'enrolled', 'career': career['id'], 'job': title}}
+
+
+def job_free(connection, timeline_id: str) -> bool:
+    """Whether a new job of the ordinary kind (chapters.py `new_job`) can come: not once retired, and not while they
+    hand in their notice, retrain for another line or run a business of their own (planning, open or established)."""
+    if finished(connection, timeline_id, 'retire', 'retired'):
+        return False
+    if any(row['kind'] in ('retire', 'career_change', 'business') for row in running(connection, timeline_id)):
+        return False
+    return not finished(connection, timeline_id, 'business', 'established')
 
 
 def works(definition: dict) -> bool:
@@ -305,8 +315,10 @@ def place_to_buy(companion: dict, city: dict, found, together: dict | None, seed
     unit = 'two_bedroom' if together or found.tier >= 2 else 'one_bedroom'
     place = moving_in.shared_place(f'{seed}:place', companion, city, hood, unit)
     payment = place['details'].get('rent') or 0
-    # To the ten, as money.amount says it, so the Home card and the budget show the same number.
-    payment = int(round(payment * random.Random(f'{seed}:mortgage').uniform(*MORTGAGE), -1))
+    # To the ten from 200, as money.amount says it, so the Home card and the budget show the same number; a few
+    # shillings or pennies stay whole (never 0).
+    payment *= random.Random(f'{seed}:mortgage').uniform(*MORTGAGE)
+    payment = int(round(payment, -1)) if payment >= 200 else max(1, round(payment))
     return {**place, 'details': {**place['details'], 'owned': True, 'shared': bool(together), 'rent': payment,
                                  'rent_from': 'mortgage', 'estimate': True, 'city': city['name']}}
 
@@ -370,7 +382,13 @@ def progress(connection, companion: dict, world, day: date, now) -> int:
 
 
 def save_stage(connection, row: dict, update: dict, day: date):
-    details = {**decode(row['details']), **update['details'], 'stage_on': day.isoformat()}
+    """The stage's words, changes and details on the row, keeping the row as it stood before (`before`), so a fork from
+    an earlier day can take the turn back to how it was then (`fork_row`)."""
+    earlier = decode(row['details'])
+    snapshot = {'title': row['title'], 'told': row['told'], 'share': row['share'], 'changes': decode(row['changes']),
+                'undo': decode(row['undo']), 'details': {key: value for key, value in earlier.items() if key != 'before'}}
+    details = {**earlier, **update['details'], 'stage_on': day.isoformat(),
+               'before': [*earlier.get('before', []), snapshot]}
     undo = decode(row['undo'])
     for key, value in update.get('undo', {}).items():
         undo[key] = [*undo.get(key, []), *value] if isinstance(value, list) else value
@@ -416,13 +434,19 @@ def keys_day(connection, companion, row, details, day, now) -> dict:
     for item in old:
         connection.execute('UPDATE home_items SET until=? WHERE id=?', (max(day.isoformat(), item['since']), item['id']))
     added = home.insert_item(connection, timeline_id, details['place'], 'change', day, now)
+    # No lease to renew on a place they own (companion/life/admin.py).
+    connection.execute("UPDATE life_admin SET status='removed' WHERE timeline_id=? AND key LIKE 'admin:lease:%' AND "
+                       "status='planned'", (timeline_id,))
     undo = {'ended': [item['id'] for item in old], 'added': [added]}
     together = moving_in.living(connection, companion, day) if details.get('shared') else None
     if together:
         undo['moving_in'] = {'id': together['id'], 'neighbourhood': together['neighbourhood'],
                              'home_item_id': together['home_item_id']}
+        # Stored as the neighbourhood's id, as moving_in.py does (where.py finds the user's home by it).
+        hood = moving_in.hood_named(money.city_for(companion['version']['definition']),
+                                    details['place']['details']['neighborhood'])
         connection.execute('UPDATE moving_in SET neighbourhood=?, home_item_id=? WHERE id=?',
-                           (details['place']['details']['neighborhood'], added, together['id']))
+                           (hood['id'] if hood else details['place']['details']['neighborhood'], added, together['id']))
     place = details['place']['details']
     name = first(companion['version']['definition'])
     ours = 'you and the user own' if together else 'you own'
@@ -449,6 +473,37 @@ STAGES = {('school', 'enrolled'): classes_start, ('school', 'studying'): graduat
           ('buy_place', 'hunting'): keys_day, ('retire', 'leaving'): retire}  # + part 2, below
 
 
+def fork_row(connection, row: dict, copy_id: str, timeline_id: str, cutoff: str) -> dict:
+    """A big turn copied onto a fork (timelines.py) as it stood on the fork's day: stages that came later are taken back
+    (the fork's own days bring them again), and the outcomes its stages rolled by then are copied to the fork, so an
+    undo there never touches the timeline it came from."""
+    found, details = dict(row), decode(row['details'])
+    while details.get('before') and details.get('stage_on', '') > cutoff:
+        snapshot = details['before'][-1]
+        details = {**snapshot['details'], 'before': details['before'][:-1]}
+        found.update(title=snapshot['title'], told=snapshot['told'], share=snapshot['share'],
+                     changes=encode(snapshot['changes']), undo=encode(snapshot['undo']))
+    undo = decode(found['undo'])
+    if undo.get('decided'):
+        undo['decided'] = [forked_outcome(connection, consequence_id, row['id'], copy_id, timeline_id)
+                           for consequence_id in undo['decided'] if decided_by(connection, consequence_id, cutoff)]
+    if undo.get('moving_in'):  # The fork's own shared home, the copy of this one (moving_in.copy keeps `origin`).
+        home = optional(connection, 'SELECT id, origin FROM moving_in WHERE id=?', (undo['moving_in']['id'],))
+        undo['moving_in'] = {**undo['moving_in'], 'timeline_id': timeline_id,
+                             'origin': (home['origin'] or home['id']) if home else undo['moving_in']['id']}
+    return {**found, 'id': copy_id, 'timeline_id': timeline_id, 'undo': encode(undo), 'details': encode(details)}
+
+
+def decided_by(connection, consequence_id: str, cutoff: str) -> bool:
+    found = optional(connection, 'SELECT decided_on FROM consequences WHERE id=?', (consequence_id,))
+    return bool(found and found['decided_on'] <= cutoff)
+
+
+def forked_outcome(connection, consequence_id: str, row_id: str, copy_id: str, timeline_id: str) -> str:
+    subject = optional(connection, 'SELECT subject FROM consequences WHERE id=?', (consequence_id,))['subject']
+    return consequences.copy(connection, consequence_id, timeline_id, subject.replace(row_id, copy_id))
+
+
 def reverse(connection, found: dict):
     """What an undone big turn changed beyond home items: the shared home goes back where it was, and the marks its
     stages' outcomes left (a business's months, how caring goes) come off."""
@@ -456,6 +511,11 @@ def reverse(connection, found: dict):
         consequences.clear_marks(connection, consequence_id)
     if found.get('moving_in'):
         back = found['moving_in']
+        if back.get('timeline_id'):  # Undone on a fork: the fork's copy of the shared home (fork_row).
+            connection.execute('UPDATE moving_in SET neighbourhood=?, home_item_id=? WHERE timeline_id=? AND '
+                               '(origin=? OR id=?)', (back['neighbourhood'], back['home_item_id'], back['timeline_id'],
+                                                      back['origin'], back['origin']))
+            return
         connection.execute('UPDATE moving_in SET neighbourhood=?, home_item_id=? WHERE id=?',
                            (back['neighbourhood'], back['home_item_id'], back['id']))
 
@@ -472,7 +532,8 @@ def undone(connection, row: dict):
 def reshaped(definition: dict, changes: dict) -> list[dict]:
     """Their schedule with work turned into time of their own (retired) or their own business's hours, a class carved
     out of free time, and evenings at a parent's they care for (companion/life/health_turns.py)."""
-    schedule = [{**item, 'key': item.get('key') or routine.slug(item['label'])}
+    # The gentle default day has no days (every day) or themes of its own; the Character page needs them said.
+    schedule = [{'days': list(range(7)), 'themes': [], **item, 'key': item.get('key') or routine.slug(item['label'])}
                 for item in definition.get('schedule') or routine.DEFAULT_SCHEDULE]
     if changes.get('retired'):
         schedule = [{**item, 'kind': 'leisure', 'label': changes['retired']['label'], 'themes': []}
@@ -515,7 +576,7 @@ def calendar(connection, companion: dict, today: date, now) -> int:
                 added += bool(admin.add(connection, companion, key=f"school:{row['id']}:exam:{day}", source='school',
                                         kind='exam', title='Exam', done=f"sat an exam for {details['course']}",
                                         day=when, at=details['study']['start'], minutes=120, fixed=True, out=True,
-                                        now=now))
+                                        now=now, study=True))  # In the class's own time, on the day it says.
     return added + health_turns.calendar(connection, companion, today, now)
 
 
@@ -548,6 +609,15 @@ def pay(connection, timeline_id: str, day: date, found: dict | None) -> dict | N
 
 
 # Reading -------------------------------------------------------------------------------------------------------
+
+def told_by_day(row: dict) -> list[tuple[str, str, str]]:
+    """(day, told, title) for each stage a chapter reached, oldest first, from the rows kept before each stage
+    (`save_stage`); a chapter without stages is its own one line."""
+    details = decode(row.get('details') or '{}')
+    found = [(snapshot['details'].get('stage_on') or row['started_on'], snapshot['told'], snapshot['title'])
+             for snapshot in details.get('before', ())]
+    return [*found, (details.get('stage_on') or row['started_on'], row['told'], row['title'])]
+
 
 def big_days(connection, timeline_id: str, since: str, until: str) -> list[dict]:
     """Graduations and last days at work between two local dates, for Big days in the circle:

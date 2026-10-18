@@ -1,4 +1,5 @@
 """Birthdays and anniversaries: from the calendar and what the user said, never guessed."""
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -61,7 +62,8 @@ def test_the_companions_birthday_is_a_celebration(client, monkeypatch, clock):
     assert response.status_code == 200, response.text
     set_life(client, automatic_events=True)
     system = client.get('/api/context/preview').json()['system']
-    assert '- Tomorrow is your birthday.' in system
+    # Their seeded age can make it a milestone ("your 30th birthday, a big one").
+    assert re.search(r'- Tomorrow is your (\d+\w\w )?birthday', system), system
     reconcile(client)
     with client.app.state.database.connect() as connection:
         entries = [decode(row['entry']) for row in connection.execute(

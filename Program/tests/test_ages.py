@@ -191,6 +191,7 @@ def test_a_milestone_birthday_is_a_party_in_the_occasions_the_day_and_the_scrapb
 def test_townsfolk_turn_a_year_older_on_their_seeded_birthdays(client, companion, clock):
     sheet = {'key': 'town:testtown:cafe:0', 'seed': 'seed-a', 'age': 40}
     with connect(client) as connection:
+        connection.execute("DELETE FROM birth_dates WHERE kind='town'")  # Making a companion started it.
         assert ages.town_age(connection, sheet, clock.now().date() + timedelta(days=800)) == 40  # Not started yet.
         ages.sync(connection, clock.now())
         start = ages.town_began(connection)
@@ -250,3 +251,98 @@ def test_starting_over_forgets_their_dates(client, companion, clock):
 @pytest.mark.parametrize('identity, expected', [('34. A nurse.', 34), ('In her thirties, a nurse.', 35)])
 def test_the_age_written_is_where_their_date_starts(identity, expected):
     assert ages.written_age('c1', {'name': 'Dana', 'identity': identity}) == expected
+
+
+def test_signs_settled_in_for_years_keep_their_latest_stage(client, clock, monkeypatch):
+    # Reading glasses have one stage in the bank; years after they came, the sheet still builds and keeps them.
+    monkeypatch.setattr(grooming, 'AGE_SIGNS', {'reading': (36, 36)})
+    monkeypatch.setattr(grooming.Draw, 'bold', lambda *args: None)
+    make(client, birthday=(clock.now() + timedelta(days=1)).strftime('%m-%d'))
+    sync(client, clock)
+    companion = client.get('/api/companion').json()['companion']
+    definition = companion['version']['definition']
+    readers = {entry['text'] for entry in grooming.ageing_bank()['reading']}
+    drawn = looks.for_companion
+    monkeypatch.setattr(looks, 'for_companion', lambda *args: {**drawn(*args), 'feature': 'dimples'})
+    with connect(client) as connection:
+        grooming.ensure(connection, companion['active_timeline_id'], definition, None, clock.now())
+        later = [grooming.sheet(connection, companion['id'], definition, clock.now().date() + timedelta(days=365 * years))
+                 for years in (2, 9, 20)]
+    assert [sheet['age'] for sheet in later] == [36, 43, 54]
+    assert all(sheet['age_signs'] in readers for sheet in later) and len({sheet['age_signs'] for sheet in later}) == 1
+
+
+def test_no_grey_coming_in_on_a_shaved_head_or_hair_already_grey(client, clock, monkeypatch):
+    monkeypatch.setattr(grooming, 'AGE_SIGNS', {'grey': (36, 36), 'reading': (36, 36), 'lines': (36, 36)})
+    monkeypatch.setattr(grooming.Draw, 'bold', lambda *args: None)
+    make(client, birthday=(clock.now() + timedelta(days=1)).strftime('%m-%d'))
+    sync(client, clock)
+    companion = client.get('/api/companion').json()['companion']
+    definition = companion['version']['definition']
+    drawn = looks.for_companion
+    grey = {entry['text'] for entry in grooming.ageing_bank()['grey']}
+    lines = {entry['text'] for entry in grooming.ageing_bank()['lines']}
+    found = {}
+    for hair, feature in (('a shaved head', 'dimples'), ('greying brown hair, short', 'laugh lines')):
+        monkeypatch.setattr(looks, 'for_companion', lambda *args, hair=hair, feature=feature: {
+            **drawn(*args), 'hair': hair, 'feature': feature})
+        with connect(client) as connection:
+            grooming.ensure(connection, companion['active_timeline_id'], definition, None, clock.now())
+            found[hair] = grooming.sheet(connection, companion['id'], definition,
+                                         clock.now().date() + timedelta(days=400))['age_signs'].split(', ')
+    assert not set(found['a shaved head']) & grey and not any('hair' in sign for sign in found['a shaved head'])
+    assert set(found['a shaved head']) & lines  # Lines and readers still come.
+    assert not set(found['greying brown hair, short']) & (grey | lines)  # Laugh lines drawn already: not twice.
+
+
+def test_a_birthday_soon_after_they_were_made_is_not_lost_before_a_tick(client, clock):
+    # No background tick here (life_tasks off): making them and the user coming back are enough to age them.
+    make(client, birthday=(clock.now() + timedelta(days=2)).strftime('%m-%d'))
+    link(client)
+    with connect(client, False) as connection:
+        assert connection.execute("SELECT from_age FROM birth_dates WHERE kind='companion'").fetchone()[0] == 34
+    clock.advance(timedelta(days=3))
+    reconcile(client)
+    assert 'You are 35 now' in client.get('/api/context/preview').json()['system']
+
+
+def test_someone_who_keeps_their_age_is_not_a_year_older_on_their_birthday(client, clock):
+    make(client, birthday=clock.now().strftime('%m-%d'), keeps_age=True)
+    companion = client.get('/api/companion').json()['companion']
+    with connect(client, False) as connection:
+        own = next(item for item in occasions.occasions(connection, companion, clock.now()) if item['kind'] == 'own_birthday')
+    assert own['days'] == 0 and own['template'] == occasions.KEPT_TEMPLATE and 'older' not in own['template']
+    revise(client, keeps_age=False)
+    companion = client.get('/api/companion').json()['companion']
+    with connect(client, False) as connection:
+        own = next(item for item in occasions.occasions(connection, companion, clock.now()) if item['kind'] == 'own_birthday')
+    assert own['template'] == "Guess who's a year older today."
+
+
+def test_a_townsperson_is_their_age_now_on_matchlight_and_when_they_become_a_companion(client, clock, monkeypatch):
+    from test_cast import met_someone
+
+    from companion import dating as app
+    from companion.life import encounters
+    from companion.world import townsfolk
+    monkeypatch.setattr(encounters, 'ACTIVE', True)
+    monkeypatch.setattr(encounters, 'CHANCE', 1)
+    monkeypatch.setattr(encounters, 'FAMILIAR_CHANCE', 1)
+    _mira, person = met_someone(client, clock)
+    seeded = person['age']
+    sync(client, clock)
+    clock.instant = clock.now() + timedelta(days=365 * 3 + 2)
+    known = next(found for found in client.get('/api/life/townsfolk').json() if found['key'] == person['key'])
+    assert known['age'] == seeded + 3
+    drafted = client.get('/api/companion/cast/draft', params={'key': person['key']}).json()
+    assert drafted['person']['age'] == seeded + 3 and drafted['definition']['identity'].startswith(str(seeded + 3))
+    assert drafted['definition']['looks']['age'] == seeded + 3
+    client.put('/api/dating/profile', json={'name': 'Sam', 'age': 30, 'gender': 'man', 'interested_in': ['woman', 'man'],
+                                            'looking_for': 'serious', 'age_min': 18, 'age_max': 90, 'bio': ''})
+    deck = client.get('/api/dating').json()['deck']
+    with connect(client, False) as connection:
+        data = app.looking_in(connection, app.profile(connection))
+        for card in deck:
+            sheet = townsfolk.find(data, card['key'])
+            assert card['age'] == ages.town_age(connection, sheet, clock.now().date()) > sheet['age'] - 1
+    assert any(card['age'] > townsfolk.find(data, card['key'])['age'] for card in deck)

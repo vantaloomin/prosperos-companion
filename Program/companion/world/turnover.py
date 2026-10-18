@@ -20,7 +20,9 @@ removed: the user's own townsperson and every companion made from a townsperson 
 The pace follows Realism > Their days > Life's big turns and passing away follows People can pass away and the
 Loss slider, and town babies (companion/world/couples.py) follow Growing families: `load` reads them from life
 settings (columns `life_turns`, `people_pass_away`, `loss` and `growing_families`, read with defaults until those
-settings exist) when a world opens. Call `load` again when they change.
+settings exist) when a world opens. Call `load` again when they change. A change only moves the town on from the
+week after it (`record`, table town_levels): each year of someone's stay rolls at the levels that held when that year
+began, so who left before the change, and when, stays as it was.
 """
 import math
 from dataclasses import dataclass
@@ -59,20 +61,46 @@ class Levels:
     pace: int = USUAL_PACE
     loss: int = 0  # 0: nobody passes away; else the Loss slider plus one.
     families: int = USUAL_PACE  # Growing families (0..3): how often town couples have a baby.
+    # Earlier levels and the week each stopped holding, oldest first: ((until, pace, loss, families), ...).
+    before: tuple = ()
 
 
 STATE = Levels(Clock())
 
 
 def load(database):
-    """Follow this world's clock (debug time included) and its life settings."""
-    from companion.database import optional
+    """Follow this world's clock (debug time included), its life settings and the levels they held before."""
+    from companion.database import many, optional
     STATE.clock = database.clock
     with database.connect() as connection:
         row = optional(connection, 'SELECT * FROM life_settings WHERE id=1') or {}
-    STATE.pace = int(row.get('life_turns', USUAL_PACE))
-    STATE.loss = int(row.get('loss', 2)) + 1 if row.get('people_pass_away') else 0
-    STATE.families = int(row.get('growing_families', USUAL_PACE))
+        earlier = many(connection, 'SELECT * FROM town_levels ORDER BY until_week')
+    STATE.pace, STATE.loss, STATE.families = levels_of(row)
+    STATE.before = tuple((item['until_week'], item['pace'], item['loss'], item['families']) for item in earlier)
+
+
+def levels_of(row: dict) -> tuple[int, int, int]:
+    """(pace, loss, families) from a life_settings row."""
+    loss = int(row.get('loss', 2)) + 1 if row.get('people_pass_away') else 0
+    return int(row.get('life_turns', USUAL_PACE)), loss, int(row.get('growing_families', USUAL_PACE))
+
+
+def record(connection, row: dict, day: date, timestamp: str):
+    """Before the settings in `row` change: they keep holding through this week, so the town's past stays put."""
+    until = week_of(day) + 1
+    if until > START_WEEK:
+        connection.execute('INSERT OR IGNORE INTO town_levels (until_week, pace, loss, families, created_at) '
+                           'VALUES (?, ?, ?, ?, ?)', (until, *levels_of(row), timestamp))
+
+
+def history() -> tuple:
+    return STATE.before, STATE.pace, STATE.loss, STATE.families
+
+
+def levels_at(week: int, found: tuple | None = None) -> tuple[int, int, int]:
+    """(pace, loss, families) in a week."""
+    before, *now = found or history()
+    return next((tuple(item[1:]) for item in before if week < item[0]), tuple(now))
 
 
 def today(data: dict) -> date:
@@ -104,9 +132,11 @@ def chances(kind: str, age: int, pace: int, loss: int) -> dict[str, float]:
 
 
 @lru_cache(maxsize=65536)
-def tenure(seed: str, kind: str, age: int, start: int, pace: int, loss: int) -> tuple[int, str] | None:
-    """(the week they leave, why) for someone who arrived at week `start` aged `age`, or None if they never do."""
+def tenure(seed: str, kind: str, age: int, start: int, levels: tuple) -> tuple[int, str] | None:
+    """(the week they leave, why) for someone who arrived at week `start` aged `age`, or None if they never do. Each
+    year rolls at the levels (`history`) that held when it began."""
     for year in range(120):
+        pace, loss, _families = levels_at(start + year * YEAR, levels)
         found = chances(kind, age + year, pace, loss)
         total = sum(found.values())
         roll = generators.unit(seed, 'turnover', year)
@@ -135,7 +165,7 @@ def terms(seed_of, kind: str, age_of, kept, until: int, last: int = MOST_GENERAT
     result, arrived, start = [], None, START_WEEK
     for generation in range(last + 1):
         seed = seed_of(generation)
-        found = None if kept(generation) else tenure(seed, kind, age_of(seed, generation), start, STATE.pace, STATE.loss)
+        found = None if kept(generation) else tenure(seed, kind, age_of(seed, generation), start, history())
         result.append(Term(generation, arrived, *(found or (None, None))))
         if found is None or found[0] > until:
             break

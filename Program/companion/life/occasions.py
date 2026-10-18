@@ -51,6 +51,7 @@ TEMPLATES = {'user_birthday': 'Happy birthday!! I hope today is a really good on
              'anniversary': "Okay, random, but it's been {span} since we started talking. Just saying.",
              'step_anniversary': "Can you believe it's been {span} since we {did}?"}
 MILESTONE_TEMPLATE = "Guess who's {age} today."
+KEPT_TEMPLATE = "Guess whose birthday it is today."  # Keeps their age (companion/life/ages.py): no year older.
 
 
 def month_day(month: str, day: str) -> str | None:
@@ -146,10 +147,7 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     mine = own_birthday(companion)
     ahead = days_until(own_today, mine) if mine else SOON + 1
     if ahead <= SOON:
-        day = own_today + timedelta(days=ahead)
-        turns = turning(ages.turns_on(connection, companion['id'], companion['version']['definition'], day))
-        found.append(occasion('own_birthday', day, ahead, f'your {ages.ordinal(turns)} birthday, a big one'
-                              if turns else 'your birthday', '', turns=turns))
+        found.append(own_occasion(connection, companion, own_today + timedelta(days=ahead), ahead))
     for person in circle.people(connection, companion['active_timeline_id']) if SEEDED else ():
         ahead = days_until(own_today, circle.birthday(person['id']))
         if ahead <= SOON:
@@ -175,6 +173,17 @@ def occasions(connection, companion: dict, now) -> list[dict]:
         what = f"{span} since you and the user first talked ({steps.long_date(first.isoformat())})"
         found.append(occasion('anniversary', user_today, 0, f"your anniversary: {what}" if romance else what, '',
                               span=span))
+    return found
+
+
+def own_occasion(connection, companion: dict, day: date, ahead: int) -> dict:
+    """Their own birthday; a milestone says which, and someone who keeps their age is not a year older."""
+    definition = companion['version']['definition']
+    turns = turning(ages.turns_on(connection, companion['id'], definition, day))
+    found = occasion('own_birthday', day, ahead, f'your {ages.ordinal(turns)} birthday, a big one' if turns
+                     else 'your birthday', '', turns=turns)
+    if found['template'] and definition.get('keeps_age'):
+        found['template'] = KEPT_TEMPLATE
     return found
 
 

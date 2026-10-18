@@ -14,7 +14,7 @@ from companion.characters import current
 from companion.database import decode, encode, identifier, many, optional, settings
 from companion.errors import DomainError, require
 from companion.images import backends
-from companion.life import encounters, where
+from companion.life import ages, encounters, where
 from companion.world import catalog, dating, mix, townsfolk, turnover
 
 # The app's name in modern and future cities: made up, so it is nobody's real app.
@@ -160,7 +160,13 @@ def people(connection, data: dict) -> list[tuple[dict, dict]]:
     companion = current(connection)
     cast = encounters.town_cast(connection, companion, data) if companion else encounters.NO_CAST
     skip = set(cast['aliases']) | set(cast['own'])
-    return [item for item in pool(data) if item[0]['key'] not in skip]
+    return [(aged(connection, sheet, data), found) for sheet, found in pool(data) if sheet['key'] not in skip]
+
+
+def aged(connection, sheet: dict, data: dict) -> dict:
+    """Their sheet at the age they are now, as Around town shows it (companion/life/ages.py). Who they are drawn to
+    and the rest of their dating details stay as their seeded sheet gives them."""
+    return {**sheet, 'age': ages.town_age(connection, sheet, turnover.today(data))}
 
 
 def deck(connection, data: dict, mine: dict) -> tuple[list[dict], int]:
@@ -187,7 +193,7 @@ def person(connection, key: str, town: str) -> tuple[dict, dict]:
     data = city_for(connection, parts[1], town)
     sheet = townsfolk.find(data, key)
     require(sheet is not None, 'No such person.', 404)
-    return sheet, data
+    return aged(connection, sheet, data), data
 
 
 # Swipes and matches --------------------------------------------------------------------------------------
@@ -257,8 +263,14 @@ def matches(connection, database) -> list[dict]:
         companion = optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (row['person_key'],))
         found.append(card(sheet, data, database) | {'city': {'id': data['id'], 'name': data['name']},
                                                      'companion_id': companion and companion['id'],
-                                                     'places': date_places(data, sheet)})
+                                                     'places': date_places(data, sheet),
+                                                     'left': None if companion else left(sheet, data)})
     return found
+
+
+def left(sheet: dict, data: dict) -> dict | None:
+    """Whether a match has since moved away or passed away (companion/world/turnover.py): {why, day, text}."""
+    return townsfolk.gone(sheet, data, turnover.today(data))
 
 
 def date_places(data: dict, sheet: dict) -> list[dict]:
@@ -311,6 +323,10 @@ def go_on_date(database, key: str, place_id: str) -> dict:
         require(row is not None, 'You can only ask out someone you matched with.', 409)
         require(story_on(connection), 'Turn on Story mode in Settings to meet them in a story.', 409)
         sheet, data = person(connection, key, row['town'])
+        gone = left(sheet, data)
+        if gone:
+            raise DomainError(f"{townsfolk.gone_line(sheet, data, gone)}, so you can't meet them on a date.", 409,
+                              'left_town')
         place = catalog.find(data, place_id)
         require(place is not None and place['kind'] in DATE_KINDS and place in data['places'],
                 'Pick somewhere in their city to meet.', 404)

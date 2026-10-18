@@ -8,7 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { stageText } from '../memories/pairText'
-import { townMet, townNow, townRole } from './townText'
+import { townLeft, townMet, townNow, townRole } from './townText'
 import { BecomeThem } from './BecomeThem'
 import { PetLines } from '../pets/PetLines'
 import { PersonalitySliderList, PersonalitySummary } from '../character/PersonalityFields'
@@ -32,7 +32,7 @@ function TownItem({ person, go }: { person: Townsperson; go: (view: View) => voi
   const [open, setOpen] = useState(false)
   return (
     <li>
-      <strong>{person.full}</strong> <span className="subtle">{townRole(person)}. {townMet(person)}{person.stage ? ` ${stageText(person.stage, person.name)}.` : ''}</span>
+      <strong>{person.full}</strong> <span className="subtle">{townRole(person)}. {townMet(person)}{person.stage ? ` ${stageText(person.stage, person.name)}.` : ''}{person.left ? ` ${townLeft(person.left)}` : ''}</span>
       <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen((value) => !value)}><MapPin aria-hidden="true" />{open ? 'Less' : 'More'}</button>
       {open && <TownDetail person={person} go={go} />}
     </li>
@@ -126,6 +126,7 @@ function TownSwitch({ person, go }: { person: Townsperson; go: (view: View) => v
   const { switchTo, busy, error } = useSwitchBack(go)
   const starting = useStartWith(go)
   const companionId = person.cast
+  if (person.left) return null  // Someone who has left town can't take over (companion/cast.py still_here).
   if (!companionId) {
     return (<>
       <p>

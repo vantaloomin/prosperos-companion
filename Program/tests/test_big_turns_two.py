@@ -1,6 +1,6 @@
 """Life's big turns, part 2: starting a business, a health turn and caring for a parent."""
 import json
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from conftest import reconcile
@@ -85,6 +85,8 @@ def test_a_business_opens_runs_their_week_and_pays_what_it_makes(client, mira, c
     assert pay['factor'] == business.START
     assert f"- Your {view['business']} brings in about" in client.get('/api/context/preview').json()['prompt']
 
+    from test_big_turns import plannable
+    assert not plannable(client, 'new_job')  # Running a business of their own.
     land(monkeypatch, business.CHOICE, 0)
     next_stage(client, clock, chapter['id'])
     found = details(client, chapter['id'])
@@ -204,3 +206,37 @@ def test_gentle_keeps_health_turns_and_caring_away(client, mira):
     with client.app.state.database.connect() as connection:
         assert not big_turns.allowed(connection, 'health') and not big_turns.allowed(connection, 'caring')
         assert big_turns.allowed(connection, 'business')
+
+
+def test_make_it_go_this_way_reaches_the_part_two_turns(client, older, clock, monkeypatch):
+    reconcile(client)
+    parent(client, 78)
+    chapter = begun(client, monkeypatch, clock, 'hobby')
+    for kind in ('business', 'health', 'caring'):
+        response = client.post(f"/api/life/consequences/{chapter['consequence']}/change",
+                               json={'option': chapters.KINDS.index(kind)})
+        assert response.status_code == 200, response.text
+        assert client.get('/api/life/chapters').json()[0]['kind'] == kind
+    assert client.post(f"/api/life/consequences/{chapter['consequence']}/change",
+                       json={'option': len(chapters.KINDS)}).status_code == 422
+
+
+def test_a_saturday_at_a_parents_out_of_town_is_a_day_not_an_evening():
+    companion = {'version': {'definition': {'name': 'Mira Lane'}}}
+    slot = {'from': 'saturday', 'days': [5], 'start': '10:00', 'end': '17:00', 'label': "Day at Mom's"}
+    details = {'role': 'mom', 'name': 'Ana', 'caring': slot}
+    found = health_turns.care_begins(None, companion, {}, details, date(2027, 1, 2), None)
+    assert found['share'].startswith("First day at my mom's")
+    evening = health_turns.care_begins(None, companion, {}, {**details, 'caring': {**slot, 'start': '18:00'}},
+                                       date(2027, 1, 2), None)
+    assert evening['share'].startswith("First evening at my mom's")
+
+
+def test_a_condition_they_live_with_stays_in_the_chat_context(client, older, clock, monkeypatch):
+    chapter = begun(client, monkeypatch, clock, 'health')
+    next_stage(client, clock, chapter['id'])  # Diagnosed.
+    next_stage(client, clock, chapter['id'])  # Living with it.
+    condition = details(client, chapter['id'])['condition']['condition']
+    clock.advance(timedelta(days=chapters.TOLD_DAYS + 30))
+    reconcile(client)
+    assert f'living with {condition}' in client.get('/api/context/preview').json()['prompt']

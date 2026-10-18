@@ -103,8 +103,10 @@ def town_tie(person: dict) -> str:
     """Who a townsperson is, as the host would introduce them: "the barista at Blue Moon", "a neighbor from Canton"."""
     if person['kind'] == 'resident':
         return f"a neighbor from {person['neighborhood']}" if person['neighborhood'] else 'someone from around town'
-    return f"the {person['role']} at {person['place']['name']}" if person['staff'] else \
-        f"a regular at {person['place']['name']}"
+    # Once they've left their place (companion/world/turnover.py), it's who they used to be.
+    once = 'formerly ' if person.get('left') else ''
+    return f"{once}the {person['role']} at {person['place']['name']}" if person['staff'] else \
+        f"{once}a regular at {person['place']['name']}"
 
 
 def town_relation(person: dict, host_name: str) -> str:
@@ -128,7 +130,8 @@ def known_by(connection, companion: dict, now) -> list[dict]:
     except Exception:  # noqa: BLE001 - no city to know anyone in: their circle is still there.
         town = []
     found += [from_town(person, host, host_name) for person in town
-              if person['times'] >= KNOWS_TOWNSPERSON and not person.get('cast')]
+              if person['times'] >= KNOWS_TOWNSPERSON and not person.get('cast') and
+              (person.get('left') or {}).get('why') != 'passed']  # Never someone who passed away.
     return found
 
 

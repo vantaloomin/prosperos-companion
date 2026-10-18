@@ -278,3 +278,155 @@ def test_a_first_birthday_is_a_big_day_at_their_parents_told_in_words_only(clien
         assert not any('Ivy' in text for _key, text in big_days.context_lines(connection, companion, clock.now()))
         big_days.advance(connection, companion, clock.now())
         assert big_days.get(connection, row['id'])['status'] == 'called_off'
+
+
+def a_childs_big_day(client, clock, monkeypatch, provider, invite=False):
+    """A sister's baby Ivy turning one in 20 days: the party planned as a big day, and (unless `invite`, which
+    leaves the invitation still to go out) booked as an outing with the user. Returns (big day row, outing)."""
+    from conftest import send
+
+    from companion.characters import current
+    from companion.life import big_days
+    from companion.life.openers import Trigger
+    monkeypatch.setattr(big_days, 'ACTIVE', True)
+    monkeypatch.setattr(big_days, 'FIRST_TEXTS', True)
+    person = sister(client)
+    birthday = clock.now().date() + timedelta(days=20)
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    message = send(client, 'Hi!', 'client-family-02')['message']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        timeline_id, now = companion['active_timeline_id'], clock.now().isoformat()
+        connection.execute("INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, "
+                           "born_on, status, created_at, updated_at) VALUES ('ivy', ?, ?, 'story', 'Ivy', 'she/her', "
+                           "'family', ?, 'born', ?, ?)", (timeline_id, person['id'],
+                                                          birthday.replace(year=birthday.year - 1).isoformat(), now, now))
+        big_days.advance(connection, companion, clock.now())
+        [row] = [row for row in big_days.rows(connection, timeline_id) if row['kind'] == 'first_birthday']
+        connection.execute("UPDATE big_days SET invite=(id=?), invite_on=?", (row['id'], clock.now().date().isoformat()))
+        if invite:
+            return big_days.get(connection, row['id']), None
+        outing = big_days.settle(connection, companion, message, Trigger('bigday', 'big_day', '', None, (row['id'],)),
+                                 now)
+        return big_days.get(connection, row['id']), outing
+
+
+def test_a_childs_big_day_is_never_pictured_however_it_is_worded(client, mira, clock, monkeypatch, provider):
+    from companion.characters import current
+    from companion.database import encode
+    from companion.images import content, prompts
+    _row, outing = a_childs_big_day(client, clock, monkeypatch, provider)
+    with client.app.state.database.connect() as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        # A model's phrasing of the afternoon that names neither the child nor the birthday.
+        words = ["Mira went to my niece's big day at Ana's place with you.", 'cake everywhere, so cute']
+        assert not families.pictured(connection, timeline_id, words)
+        assert families.childs_day(connection, [outing['id']]) and not families.childs_day(connection, [None, 'x'])
+        refused = content.classify(prompts.children(connection, timeline_id, words, [outing['id']]))
+        assert refused.tier == content.PROHIBITED
+        assert prompts.children(connection, timeline_id, words, [None]) == {}
+    assert prompts.when({'details': encode({'outing': {'id': outing['id']}})})['outing']['id'] == outing['id']
+    assert families.pictured(None, '', ["Ivy's 1st bday!"]) and families.pictured(None, '', ['her first bday'])
+
+
+@pytest.mark.parametrize('when', ['planned', 'under way'])
+def test_with_the_adult_side_on_no_context_line_names_a_child_even_before_the_next_pass(client, mira, clock,
+                                                                                       monkeypatch, provider, when):
+    row, outing = a_childs_big_day(client, clock, monkeypatch, provider)
+    if when == 'under way':
+        day = date.fromisoformat(row['local_date'])
+        clock.advance(day - clock.now().date() + timedelta(hours=15))
+    text = prompt(client)
+    assert 'Ivy' in text and 'first birthday' in text
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    text = prompt(client)  # Before any reconcile has called the party off.
+    assert 'Ivy' not in text and 'first birthday' not in text.lower()
+
+
+def test_with_the_adult_side_on_a_childs_big_day_is_never_asked_to(client, mira, clock, monkeypatch, provider):
+    from companion.characters import current
+    from companion.life import big_days
+    row, _outing = a_childs_big_day(client, clock, monkeypatch, provider, invite=True)
+    clock.advance(timedelta(hours=12 - clock.now().hour + 24))
+    with client.app.state.database.connect() as connection:
+        assert [trigger.sources for trigger in big_days.invite_due(connection, current(connection), clock.now())] == \
+            [(row['id'],)]
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert big_days.invite_due(connection, current(connection), clock.now()) == []
+
+
+def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
+    import re
+    bank = families.bank()
+    assert families.fitting(bank['babysit_toddler'], 'modern') == bank['babysit_toddler']
+    for era, words in (('jazz-age', r'\b(scan|daycare|television)\b'), ('victorian', r'\b(phones?|cars?|daycare)\b'),
+                       ('medieval', r'\b(phones?|cars?|trains?|strollers?|bananas?)\b')):
+        for key in ('pregnancy', 'baby_update', 'toddler_update', 'babysit_toddler', 'babysit_child'):
+            found = families.fitting(bank[key], era)
+            assert len(found) >= 80 and not any(re.search(words, f"{line['text']} {line['share']}", re.I)
+                                                for line in found), (era, key)
+    assert not any('crav' in line['text'] for line in families.fitting(bank['pregnancy'], 'modern', carrying=False))
+    child = {'id': 'c1', 'born_on': '2026-01-10', 'title': 'family', 'name': 'Leo', 'pronouns': 'he/him'}
+    days = [date(2027, 1, 1) + timedelta(days=offset) for offset in range(730)]
+    told = ' '.join(news[2] for day in days if (news := families.news_on(child, day, 1.7, True, 'medieval')))
+    assert told and not re.search(r'\b(cars?|trains?|phones?|strollers?)\b', told, re.I)
+
+
+def test_a_baby_is_never_given_the_companions_own_name(client, mira):
+    from companion.characters import current
+    with client.app.state.database.connect() as connection:
+        taken = families.taken_names(connection, current(connection))
+    assert 'Mira' in taken
+    assert families.baby_name({}, None, 'seed', 'she/her', taken) != 'Mira'
+
+
+def test_a_companion_living_in_town_never_has_a_town_baby(monkeypatch):
+    from companion.life import encounters
+    from companion.world import catalog, paper, townsfolk, turnover
+    monkeypatch.setattr(turnover, 'ACTIVE', True)
+    data, span = catalog.city('baltimore'), (date(2026, 10, 19), date(2029, 10, 19))
+    sheet, found = next((sheet, found) for hood in data['neighborhoods'] for slot in range(8)
+                        if (found := couples.babies(sheet := townsfolk.resident(data, hood['id'], slot), data, span)))
+    day = found[0]['day']
+    assert couples.family_news(sheet, data, day - timedelta(days=30)).startswith('expecting a baby')
+    stand_in = encounters.stand_in(data, 'c1', sheet['key'], {'name': 'Alex Moore', 'identity': '30.'})
+    assert couples.babies(stand_in, data, span) == [] and couples.family_news(stand_in, data, day) is None
+    week = (day - timedelta(days=day.weekday()), day + timedelta(days=6 - day.weekday()))
+    key = f"{sheet['key']}:baby:{day.isoformat()}"
+    if sheet in paper.sample(data, week[1]):
+        assert key in {item['key'] for item in paper.comings_and_goings(data, week)}
+    assert key not in {item['key'] for item in paper.comings_and_goings({**data, 'companions': (sheet['key'],)}, week)}
+
+
+def test_a_baby_is_never_named_after_a_word_in_one_of_the_citys_places():
+    from companion.world import catalog
+    data = catalog.city('baltimore')
+    assert 'Emma' in families.place_words(data)  # Red Emma's
+    world = type('World', (), {'find': staticmethod(lambda _text: data)})()
+    names = {families.baby_name({'home_city': 'Baltimore'}, world, f'seed-{n}', 'she/her', set()) for n in range(300)}
+    assert len(names) > 20 and not names & families.place_words(data)
+
+
+def test_a_first_birthday_gift_fits_an_older_city(monkeypatch):
+    import re
+
+    from companion.life import big_days
+    gifts = big_days.bank()['gifts']
+    assert set(gifts['first_birthday']) < set(gifts['first_birthday_modern'])
+    assert not any(re.search(r'\b(telephone|crayons?|cars?)\b', gift) for gift in gifts['first_birthday'])
+    companion = {'version': {'definition': {'name': 'Mira'}}}
+    for modern, key in ((True, 'first_birthday_modern'), (False, 'first_birthday')):
+        monkeypatch.setattr(big_days, 'modern_city', lambda _connection, _companion, modern=modern: modern)
+        found = {big_days.gift_for(None, companion, big_days.KINDS['first_birthday'], f'seed-{n}')[0] for n in range(60)}
+        assert found <= set(gifts[key])
+
+
+def test_every_pregnancy_line_reads_right_told_to_the_companion():
+    row, names = {'cast_ids': '["p1"]'}, {'p1': {'name': 'Ana', 'role': 'sister'}}
+    stages = [families.stage(date(2027, 1, 1), *families.announced('sibling', date(2027, 5, 1), 'family', {'name': 'Mira'})),
+              families.stage(date(2027, 4, 1), "{a}'s baby is due any day now, and {name} keeps checking for news.", ''),
+              families.stage(date(2027, 5, 1), *families.arrived({'name': 'Ivy', 'pronouns': 'she/her'}, 'godchild', {}))]
+    told = ' '.join(storylines.fill(stage['text'], row, names, {'name': 'Mira'}, True) for stage in stages)
+    assert 'you keep checking' in told and 'you keeps' not in told and 'Mira' not in told

@@ -36,7 +36,7 @@ from companion.errors import DomainError
 from companion.identity import APP_ID, VERSION
 from companion.images.prompts import in_photos
 from companion.imports import cards
-from companion.life import grooming, status
+from companion.life import ages, grooming, status
 from companion.memory import consolidation, formation, pairs, records
 from companion.models import (
     CastDraftRequest,
@@ -149,6 +149,8 @@ def set_status(request: Request, companion_id: str, body: StatusUpdate):
 def create_companion(request: Request, body: CharacterDefinition):
     made = characters.create(db(request), body)
     worlds.follow_first_companion(db(request))
+    with db(request).connect(write=True) as connection:  # Their birth date from the age written today.
+        ages.sync(connection, db(request).clock.now())
     return made
 
 

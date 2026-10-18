@@ -200,13 +200,22 @@ def beat_since(connection, companion: dict, beat: dict):
 
 
 def mood_line(connection, companion: dict, now, seed: str, retro: bool = False) -> str:
-    """How they feel. In Retro IM a low mood is a sparkly emo line, and a good one leaves it to the everyday line."""
+    """How they feel. In Retro IM a low mood is a sparkly emo line, and a good one leaves it to the everyday line;
+    grief keeps the plain line."""
     from companion import moods
     mood = moods.current(connection, f"companion:{companion['id']}", now)
     feeling = mood and mood['feeling']
-    if retro:
+    if retro and not grieving(connection, companion, now):
         return retro_line(seed, 'emo') if feeling in LOW else ''
     return generators.pick(seed, 'mood', list(MOODS[feeling])) if feeling in MOODS else ''
+
+
+def grieving(connection, companion: dict, now) -> bool:
+    """Someone close died and it still weighs on them (companion/life/loss.py): no playful Retro IM emo line, just
+    the plain one ("could use a hug")."""
+    from companion.life import loss
+    found = loss.grieving(connection, companion, now)
+    return bool(found) and found[1] != 'lifting'
 
 
 def plan_line(connection, companion: dict, now, seed: str) -> str:
