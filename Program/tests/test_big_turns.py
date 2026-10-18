@@ -115,6 +115,25 @@ def test_exams_go_on_the_calendar_and_fees_into_the_budget(client, mira, clock, 
     assert not any(block['kind'] == 'study' for block in current(client)['version']['definition']['schedule'])
 
 
+def test_an_exam_on_a_class_day_keeps_its_day_and_the_class_hour(client, mira, clock, monkeypatch):
+    chapter = begun(client, monkeypatch, clock, 'school')
+    found = details(client, chapter['id'])
+    next_stage(client, clock, chapter['id'])  # Classes start.
+    day = clock.now().date() + timedelta(days=5)
+    while day.weekday() not in found['study']['days']:
+        day += timedelta(days=1)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE life_chapters SET details=json_set(details, '$.exams', json_array(?)) WHERE id=?",
+                           (day.isoformat(), chapter['id']))
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        exam = connection.execute("SELECT * FROM life_admin WHERE source='school'").fetchone()
+    assert (exam['local_date'], exam['at_time']) == (day.isoformat(), found['study']['start'])
+    assert f"Next exam {big_turns.short_day(day.isoformat())}" in \
+        client.get('/api/life/chapters/lately').json()['now'][0]['line']
+
+
 def test_a_career_change_retrains_then_starts_the_new_job(client, mira, clock, monkeypatch):
     chapter = begun(client, monkeypatch, clock, 'career_change')
     found = details(client, chapter['id'])

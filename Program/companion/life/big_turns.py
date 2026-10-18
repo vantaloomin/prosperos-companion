@@ -567,7 +567,7 @@ def calendar(connection, companion: dict, today: date, now) -> int:
                 added += bool(admin.add(connection, companion, key=f"school:{row['id']}:exam:{day}", source='school',
                                         kind='exam', title='Exam', done=f"sat an exam for {details['course']}",
                                         day=when, at=details['study']['start'], minutes=120, fixed=True, out=True,
-                                        now=now))
+                                        now=now, study=True))  # In the class's own time, on the day it says.
     return added + health_turns.calendar(connection, companion, today, now)
 
 
