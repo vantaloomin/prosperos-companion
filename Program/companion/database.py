@@ -353,6 +353,8 @@ def initialize(connection, timestamp: str):
     connection.execute('UPDATE life_settings SET automatic_events=1, events_on_by_default=1 WHERE events_on_by_default=0')
     connection.execute('UPDATE workspace_settings SET automatic_memory=1, sensitive_memory=1, '
                        'model_memory_suggestions=1, memory_on_by_default=1 WHERE memory_on_by_default=0')
+    from companion.life.outings import reword_memories
+    reword_memories(connection, timestamp)
     connection.executemany('INSERT OR REPLACE INTO app_identity (key, value) VALUES (?, ?)',
                            (('schema_version', str(SCHEMA_VERSION)), ('schema_digest', schema_digest()),
                             ('app_version', VERSION)))
