@@ -117,7 +117,7 @@ def city(connection, companion: dict) -> dict:
     """The companion's city, carrying the family names strangers there never have (generators.name)."""
     town = companion.get('town_seed') or ''
     return newcomers.city_for(connection, companion['version']['definition']) | {
-        'kin': kin(connection, companion), 'town': town, 'you': you(connection, town)}
+        'kin': kin(connection, companion), 'town': town, 'you': you(connection, town), 'kept': kept(connection, town)}
 
 
 def you(connection, town: str) -> str:
@@ -125,6 +125,14 @@ def you(connection, town: str) -> str:
     theirs: they are the user here, so they are no longer one of the town's people."""
     row = optional(connection, 'SELECT townsfolk_key, town_seed FROM persona WHERE id=1')
     return row['townsfolk_key'] if row and row['townsfolk_key'] and row['town_seed'] == town else ''
+
+
+def kept(connection, town: str) -> tuple[str, ...]:
+    """The townsfolk in this town who became companions: they keep their spot in town for good, whoever else moves
+    away (companion/world/turnover.py)."""
+    return tuple(row['townsfolk_key'] for row in many(
+        connection, "SELECT townsfolk_key FROM companions WHERE townsfolk_key IS NOT NULL AND townsfolk_key!='' "
+        "AND COALESCE(town_seed, '')=? ORDER BY townsfolk_key", (town,)))
 
 
 def kin(connection, companion: dict) -> list[str]:

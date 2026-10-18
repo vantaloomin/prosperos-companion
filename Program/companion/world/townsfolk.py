@@ -12,17 +12,21 @@ What they do is decided like an old video game's townsperson: a short list of if
 says where they are and what they are doing. Their goal moves week by week (`story`): a roll each week,
 nudged by their temperament and dragged by their flaw, makes progress, stalls or suffers a setback, and
 once enough progress is made they reach it and move on to their next goal. No model is involved.
+
+People don't stay forever (companion/world/turnover.py): each spot is held by one person after another as they
+move away, change jobs or retire and newcomers take their place, so who is at a place or on a street depends on
+the day (by default today, by the app clock). Someone who left is still found by their key.
 """
 import functools
 import json
 import re
 from datetime import date, datetime
 
-from companion.world import catalog, generators
+from companion.world import catalog, generators, turnover
 from companion.world.wording import regional
 
 MODERN = {'modern', 'future', 'other'}
-EPOCH = date(2026, 1, 5)  # A Monday: goals start moving from here.
+EPOCH = turnover.EPOCH  # A Monday: goals start moving from here.
 MAX_WEEKS = 520
 PEOPLE = (2, 3)
 
@@ -199,12 +203,15 @@ def modern(data: dict) -> bool:
     return data.get('era', 'modern') in MODERN
 
 
-def at_place(data: dict, place_id: str) -> list[dict]:
-    """Everyone seeded at this place, the same every time for the same city, but for the user (`not_you`)."""
+def at_place(data: dict, place_id: str, day: date | None = None) -> list[dict]:
+    """Everyone at this place on `day` (today when None), the same every time for the same city and day, but for the
+    user (`not_you`)."""
     place = catalog.find(data, place_id)
     if not place or place not in data['places']:
         return []
-    return not_you(data, [person(data, place, index) for index in range(everyone(data, place))])
+    day = day or turnover.today(data)
+    held = [holder(place_terms(data, place, slot, week_of(day)), slot, day) for slot in range(everyone(data, place))]
+    return not_you(data, [person(data, place, index) for index in held if index is not None])
 
 
 def not_you(data: dict, sheets: list[dict]) -> list[dict]:
@@ -245,15 +252,18 @@ def find(data: dict, key: str) -> dict | None:
     parts = key.split(':')
     if len(parts) != 4 or parts[0] != 'town' or parts[1] != data['id'] or not parts[3].isdigit():
         return None
+    index = int(parts[3])
+    slot, generation = slot_of(index)
     if parts[2].startswith('~'):
-        hood_id, index = parts[2][1:], int(parts[3])
+        hood_id = parts[2][1:]
         if not any(hood['id'] == hood_id for hood in data['neighborhoods']) or \
-                index >= resident_count(data, hood_id) + APP_MEMBERS:
+                slot >= resident_count(data, hood_id) + APP_MEMBERS or \
+                generation and (slot >= resident_count(data, hood_id) or not arrival(data, parts[2], slot, generation)):
             return None
         return resident(data, hood_id, index)
     place = catalog.find(data, parts[2])
-    index = int(parts[3])
-    if not place or place not in data['places'] or index >= everyone(data, place):
+    if not place or place not in data['places'] or slot >= everyone(data, place) or \
+            generation and not arrival(data, place['id'], slot, generation):
         return None
     return person(data, place, index)
 
@@ -267,13 +277,13 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     place = catalog.find(data, place_id)
     key = f"town:{data['id']}:{place['id']}:{index}"
     seed = seed_for(data, key)
-    # Past the seeded people come the place's notables; anyone further along is drawn like the seeded ones.
-    named = notables_at(data, place['id'])[max(index - count(data, place), 0):]
-    notable = named[0] if index >= count(data, place) and named else None
-    role = (notable['role'], notable['role'], notable['staff']) if notable else _role(place, index, seed)
-    title = notable['role'] if notable else role_title(data, role, place)
-    age = notable['age'] if notable else \
-        19 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 52)
+    slot, generation = slot_of(index)
+    # Whoever holds a notable's spot after them (a pack that lets them go) takes over their role.
+    held = _notable(data, place, slot)
+    notable = None if generation else held
+    role = (held['role'], held['role'], held['staff']) if held else _slot_role(data, place, slot)
+    title = held['role'] if held else role_title(data, role, place)
+    age = notable['age'] if notable else seeded_age(seed, False)
     name = _named(notable) if notable else generators.name(data, seed=seed, age=age)
     hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
     order = goal_order(data, seed)
@@ -291,6 +301,8 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         'goals': order,
         'night_owl': generators.unit(seed, 'owl') < 0.25,
     }
+    if generation:
+        sheet['arrived'] = arrival(data, place['id'], slot, generation)
     if notable:
         sheet |= {'notable': notable['id'], 'about': notable['about'], 'occupation': notable['role']}
         if notable.get('temperament') in TEMPERAMENTS:
@@ -306,6 +318,103 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         part = generators.pick(seed, 'visit', parts)
         sheet['visits'] = {'days': days, 'part': part, 'window': list(VISITS[part])}
     return sheet
+
+
+def _notable(data: dict, place: dict, slot: int) -> dict | None:
+    """Past the seeded people come the place's notables; anyone further along is drawn like the seeded ones."""
+    named = notables_at(data, place['id'])[max(slot - count(data, place), 0):]
+    return named[0] if slot >= count(data, place) and named else None
+
+
+def _slot_role(data: dict, place: dict, slot: int) -> tuple:
+    """The role a spot at a place has, drawn for its first holder: a newcomer takes the same one."""
+    return _role(place, slot, seed_for(data, f"town:{data['id']}:{place['id']}:{slot}"))
+
+
+def seeded_age(seed: str, resident: bool) -> int:
+    """How old someone is when they turn up in town."""
+    middle = (generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2
+    return 18 + round(middle * 66) if resident else 19 + round(middle * 52)
+
+
+# Who holds each spot (companion/world/turnover.py) -------------------------------------------------
+
+def slot_of(index: int) -> tuple[int, int]:
+    """(the spot, which holder of it) for a person's number in their key."""
+    return index % turnover.STRIDE, index // turnover.STRIDE
+
+
+def staffed(data: dict, place: dict, slot: int) -> bool:
+    """Whether whoever holds this spot at the place works there."""
+    notable = _notable(data, place, slot)
+    return notable['staff'] if notable else _slot_role(data, place, slot)[2]
+
+
+def place_terms(data: dict, place: dict, slot: int, until: int, last: int = turnover.MOST_GENERATIONS - 1) -> list:
+    """Everyone who held this spot at the place up to week `until` (or generation `last`)."""
+    notable, staff = _notable(data, place, slot), staffed(data, place, slot)
+
+    def age_of(seed, generation):
+        return notable['age'] if notable and not generation else seeded_age(seed, False)
+    return _terms(data, f"town:{data['id']}:{place['id']}", slot, 'staff' if staff else 'regular', age_of, until, last,
+                  bool(notable) and not notable.get('can_leave'))
+
+
+def hood_terms(data: dict, hood_id: str, slot: int, until: int, last: int = turnover.MOST_GENERATIONS - 1) -> list:
+    """Everyone who lived in this spot on a street up to week `until` (or generation `last`)."""
+    return _terms(data, f"town:{data['id']}:~{hood_id}", slot, 'resident',
+                  lambda seed, _generation: seeded_age(seed, True), until, last)
+
+
+def _terms(data: dict, prefix: str, slot: int, kind: str, age_of, until: int, last: int, fixed: bool = False) -> list:
+    # The user's own townsperson and companions made from townsfolk keep their spot; so does a pack's notable.
+    kept = {data.get('you'), *data.get('kept', ())}
+
+    def key(generation):
+        return f'{prefix}:{slot + turnover.STRIDE * generation}'
+    return turnover.terms(lambda generation: seed_for(data, key(generation)), kind, age_of,
+                          lambda generation: (fixed and not generation) or key(generation) in kept, until, last)
+
+
+def holder(found: list, slot: int, day: date) -> int | None:
+    """The number of whoever holds the spot on `day`, or None while it waits for a newcomer."""
+    term = turnover.holding(found, week_of(day))
+    return None if term is None else slot + turnover.STRIDE * term.generation
+
+
+def arrival(data: dict, where: str, slot: int, generation: int) -> str | None:
+    """The day a newcomer arrived (`where` is a place id, or '~' and a neighborhood id), or None if nobody that far
+    down the line ever holds the spot."""
+    if where.startswith('~'):
+        found = hood_terms(data, where[1:], slot, 10 ** 9, generation)
+    else:
+        found = place_terms(data, catalog.find(data, where), slot, 10 ** 9, generation)
+    term = found[-1] if len(found) > generation else None
+    return turnover.week_day(term.arrived).isoformat() if term and term.arrived is not None else None
+
+
+def terms_of(data: dict, sheet: dict, until: int) -> list:
+    """Everyone who held this person's spot up to week `until`, them included."""
+    slot, generation = slot_of(int(sheet['key'].rsplit(':', 1)[1]))
+    if sheet.get('kind') == 'resident':
+        return hood_terms(data, sheet['home'], slot, until, generation)
+    return place_terms(data, catalog.find(data, sheet['place']['id']), slot, until, generation)
+
+
+def gone(sheet: dict, data: dict, day: date) -> dict | None:
+    """How and when this townsperson left town or their place, if they had by `day`: {why, day, text}."""
+    if not sheet['key'].startswith('town:') or sheet['key'] == data.get('you'):
+        return None
+    if sheet.get('kind') == 'resident' and slot_of(int(sheet['key'].rsplit(':', 1)[1]))[0] >= \
+            resident_count(data, sheet['home']):
+        return None  # Only on the dating app: they never lived on a street the town runs.
+    generation = slot_of(int(sheet['key'].rsplit(':', 1)[1]))[1]
+    found = terms_of(data, sheet, week_of(day))
+    term = found[generation] if len(found) > generation else None
+    if term is None or term.left is None or term.left > week_of(day):
+        return None
+    place = '' if sheet.get('kind') == 'resident' else sheet['place']['name']
+    return {'why': term.why, 'day': turnover.week_day(term.left).isoformat(), 'text': turnover.gone_text(term.why, place)}
 
 
 def _role(place: dict, index: int, seed: str) -> tuple:
@@ -449,12 +558,14 @@ def _weeks(key: str, temperament: str, flaw: str, weeks: int, steps_key: tuple) 
 
 
 def story(sheet: dict, data: dict, day: date) -> dict:
-    """Where their goals stand on `day`: the current goal, progress, this week's beat and goals reached."""
-    weeks = min(max(week_of(day), 0), MAX_WEEKS)
+    """Where their goals stand on `day`: the current goal, progress, this week's beat and goals reached. A newcomer's
+    goals move from the week they arrived, so a town keeps moving long after its first people's ten years."""
+    start = week_of(date.fromisoformat(sheet['arrived'])) if sheet.get('arrived') else 0
+    weeks = min(max(week_of(day) - start, 0), MAX_WEEKS)
     bank = goal_bank(data)
     steps = tuple(bank[goal_id][2] for goal_id in sheet['goals'])
     history = _weeks(drawn(sheet), sheet['temperament'], sheet['flaw'], weeks, steps)
-    number, progress, beat = history[-1] if week_of(day) >= 0 else (0, 0, 'stall')
+    number, progress, beat = history[-1] if week_of(day) >= start else (0, 0, 'stall')
     reached = [goal(sheet, data, n)['text'] for n in range(number)][-3:]
     if beat == 'achieved':
         finished = goal(sheet, data, number)
@@ -547,7 +658,7 @@ def mood_for(sheet: dict, state: dict) -> str:
 
 def present(data: dict, place_id: str, moment: datetime) -> list[dict]:
     """The people seeded at a place who are there at this local moment."""
-    return [sheet for sheet in at_place(data, place_id) if whereabouts(sheet, data, moment)['at_place']]
+    return [sheet for sheet in at_place(data, place_id, moment.date()) if whereabouts(sheet, data, moment)['at_place']]
 
 
 def first_impression(sheet: dict) -> str:
@@ -626,10 +737,19 @@ def area(data: dict, hood_id: str) -> dict:
     return {'near': near, 'haunts': haunts or local[:3], 'spots': spots, 'stops': stops}
 
 
-def residents(data: dict, hood_id: str, named: bool = True) -> list[dict]:
-    """A neighborhood's residents; `named=False` skips their names, for quickly checking where they are."""
+def residents(data: dict, hood_id: str, named: bool = True, day: date | None = None) -> list[dict]:
+    """A neighborhood's residents on `day` (today when None); `named=False` skips their names, for quickly checking
+    where they are."""
     where = area(data, hood_id)
-    return not_you(data, [resident(data, hood_id, index, where, named) for index in range(resident_count(data, hood_id))])
+    return not_you(data, [resident(data, hood_id, index, where, named) for index in living(data, hood_id, day)])
+
+
+def living(data: dict, hood_id: str, day: date | None = None) -> list[int]:
+    """The numbers of everyone living on the neighborhood's streets on `day` (today when None), in order."""
+    week = week_of(day or turnover.today(data))
+    found = [(slot, turnover.holding(hood_terms(data, hood_id, slot, week), week))
+             for slot in range(resident_count(data, hood_id))]
+    return [slot + turnover.STRIDE * term.generation for slot, term in found if term]
 
 
 def resident(data: dict, hood_id: str, index: int, where: dict | None = None, named: bool = True,
@@ -639,7 +759,7 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
     where = where or area(data, hood_id)
     key = key or f"town:{data['id']}:~{hood_id}:{index}"
     seed = seed_for(data, key)
-    age = 18 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 66)
+    age = seeded_age(seed, True)
     occupation = _occupation(data, seed, age)
     haunt = generators.pick(seed, 'haunt', where['haunts']) if where['haunts'] else None
     place = view(haunt) if haunt else street(data, hood_id)
@@ -674,22 +794,24 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
                             'stop': stop}
     sheet['reach'] = sorted({place['id'], sheet['street']['id'],
                              *(spot['id'] for spot in sheet['spots'].values() if spot)})
+    if key.startswith('town:') and slot_of(index)[1]:
+        sheet['arrived'] = arrival(data, f'~{hood_id}', slot_of(index)[0], slot_of(index)[1])
     if named:
         name = generators.name(data, seed=seed, age=age)
         sheet |= {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'heritage': name['culture'] or name['group']}
     return sheet
 
 
-def reaching(data: dict, place_id: str) -> list[dict]:
-    """Unnamed residents who might be at this place (or, for '~<neighborhood>', on its streets)."""
+def reaching(data: dict, place_id: str, day: date | None = None) -> list[dict]:
+    """Unnamed residents who might be at this place (or, for '~<neighborhood>', on its streets) on `day`."""
     if place_id.startswith('~'):
         hood_id = place_id[1:]
-        return residents(data, hood_id, named=False) if any(h['id'] == hood_id for h in data['neighborhoods']) else []
+        return residents(data, hood_id, False, day) if any(h['id'] == hood_id for h in data['neighborhoods']) else []
     place = catalog.find(data, place_id)
     if not place or place not in data['places']:
         return []
     hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
-    return [sheet for hood_id in hoods for sheet in residents(data, hood_id, named=False) if place_id in sheet['reach']]
+    return [sheet for hood_id in hoods for sheet in residents(data, hood_id, False, day) if place_id in sheet['reach']]
 
 
 def working(sheet: dict, minute: int, weekday: int) -> str | None:

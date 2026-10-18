@@ -69,7 +69,7 @@ def city_data(connection, city_id: str) -> dict:
     if data is None:
         raise DomainError(f'No world data for city {city_id!r}.', 404, 'unknown_city')
     town = companion.get('town_seed') or '' if companion else ''
-    return data | {'kin': [], 'town': town, 'you': network.you(connection, town)}
+    return data | {'kin': [], 'town': town, 'you': network.you(connection, town), 'kept': network.kept(connection, town)}
 
 
 def opening_place(data: dict) -> dict:

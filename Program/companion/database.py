@@ -86,7 +86,9 @@ class Database:
         with self.connect(write=True) as connection:
             initialize(connection, self.now())
         from companion import debug_time
+        from companion.world import turnover
         debug_time.load(self)
+        turnover.load(self)
 
     def now(self) -> str:
         return stamp(self.clock.now())

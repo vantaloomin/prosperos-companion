@@ -2,7 +2,8 @@
 
 It reports only what already happened or is already planned in the world, so it costs no model calls and two
 reads of the same issue say the same thing: changes to the city (companion/world/changes.py), townsfolk who
-reached a goal that week (companion/world/townsfolk.py), companions seen out at the city's venues, a gossip
+reached a goal that week (companion/world/townsfolk.py), who left town, retired or took over a place's work and
+which couples had a baby (companion/world/turnover.py, companion/world/couples.py), companions seen out at the city's venues, a gossip
 column about companions who crossed paths with no names given (companion/life/encounters.py), and what's coming
 up: annual events, holidays and the typical weather. Nothing private goes in: no storylines, no circle, no chat,
 nothing from the secrets ledger, and companions only by where anyone could have seen them.
@@ -12,9 +13,9 @@ A period or fantasy city gets a gazette instead of a weekly; the wording stays p
 from datetime import date, timedelta
 
 from companion.database import decode, many
-from companion.world import changes, couples, generators, townsfolk
+from companion.world import changes, couples, generators, townsfolk, turnover
 
-TOWNSFOLK_PER_HOOD, MOST_TOWNSFOLK = 12, 3
+TOWNSFOLK_PER_HOOD, MOST_TOWNSFOLK, MOST_COMINGS = 12, 3, 3
 MOST_NEWS, MOST_SEEN, MOST_GOSSIP, MOST_COUPLES = 5, 4, 2, 3
 # Places where being seen is public: a show, a festival, a game, a museum.
 SEEN_KINDS = {'event', 'venue', 'stadium', 'museum', 'attraction', 'landmark', 'market', 'garden'}
@@ -45,7 +46,7 @@ def issue(connection, data: dict, world, day: date) -> dict:
     talk = gossip(connection, data, week)
     return {'title': title(data), 'city': data['name'], 'date': day.isoformat(),
             'news': city_news(connection, data, week),
-            'townsfolk': townsfolk_news(data, day),
+            'townsfolk': [*townsfolk_news(data, day), *comings_and_goings(data, week)],
             'couples': [*wedding.paper_items(connection, data, week), *couples_news(data, week)][:MOST_COUPLES + 1],
             'seen': seen_around(connection, data, week, {(item['date'], item['place']) for item in talk}),
             'gossip': [{'text': item['text']} for item in talk],
@@ -72,11 +73,11 @@ def city_news(connection, data: dict, week: tuple[date, date]) -> list[dict]:
     return result
 
 
-def sample(data: dict) -> list[dict]:
+def sample(data: dict, day: date | None = None) -> list[dict]:
     """The townsfolk the paper keeps an eye on: the first residents of every neighborhood."""
     people = []
     for hood in data['neighborhoods']:
-        people += townsfolk.residents(data, hood['id'])[:TOWNSFOLK_PER_HOOD]
+        people += townsfolk.residents(data, hood['id'], day=day)[:TOWNSFOLK_PER_HOOD]
     return people
 
 
@@ -85,7 +86,7 @@ def townsfolk_news(data: dict, day: date) -> list[dict]:
     if not data.get('neighborhoods'):
         return []
     reached = []
-    for sheet in sample(data):
+    for sheet in sample(data, day):
         state = townsfolk.story(sheet, data, day)
         if state['beat'] == 'achieved':
             reached.append((sheet, state))
@@ -99,7 +100,7 @@ def couples_news(data: dict, week: tuple[date, date]) -> list[dict]:
     """Townsfolk who got engaged or married that week (companion/world/couples.py), in a seeded order."""
     if not data.get('neighborhoods'):
         return []
-    found = [(sheet, item) for sheet in sample(data) for item in couples.events(sheet, data, week)]
+    found = [(sheet, item) for sheet in sample(data, week[1]) for item in couples.events(sheet, data, week)]
     found.sort(key=lambda pair: generators.unit(pair[0]['key'], 'paper-couple', week[1].isoformat()))
     wed = 'married' if townsfolk.modern(data) else 'wed'
     result = []
@@ -115,6 +116,69 @@ def couples_news(data: dict, week: tuple[date, date]) -> list[dict]:
                               f"{WEEKDAYS[item['day'].weekday()]}.")
         result.append({'key': f"{sheet['key']}:{item['what']}", 'headline': headline, 'text': text})
     return result
+
+
+def comings_and_goings(data: dict, week: tuple[date, date]) -> list[dict]:
+    """Who left their place or their street that week, who took over, and the couples who had a baby, in a seeded
+    order: the staff at every place and the residents the paper keeps an eye on."""
+    if not data.get('neighborhoods'):
+        return []
+    weeks = range(townsfolk.week_of(week[0]), townsfolk.week_of(week[1]) + 1)
+    found = [item for place in data['places'] for slot in range(townsfolk.everyone(data, place))
+             if townsfolk.staffed(data, place, slot)
+             for item in moves(data, townsfolk.place_terms(data, place, slot, weeks[-1]), weeks,
+                               lambda generation, slot=slot, place=place:
+                               townsfolk.person(data, place, slot + turnover.STRIDE * generation))]
+    for hood in data['neighborhoods']:
+        for slot in range(min(TOWNSFOLK_PER_HOOD, townsfolk.resident_count(data, hood['id']))):
+            found += moves(data, townsfolk.hood_terms(data, hood['id'], slot, weeks[-1]), weeks,
+                           lambda generation, slot=slot, hood=hood:
+                           townsfolk.resident(data, hood['id'], slot + turnover.STRIDE * generation))
+    found += [baby_item(data, sheet, item) for sheet in sample(data, week[1]) for item in couples.babies(sheet, data, week)]
+    found.sort(key=lambda item: generators.unit(item['key'], 'paper-comings', week[1].isoformat()))
+    return found[:MOST_COMINGS]
+
+
+def moves(data: dict, terms: list, weeks: range, sheet_of) -> list[dict]:
+    """Each departure and arrival in a spot during these weeks, as paper items. Never the user's own townsperson."""
+    result = []
+    for term in terms:
+        if term.left in weeks and (sheet := sheet_of(term.generation))['key'] != data.get('you'):
+            result.append(departure(data, sheet, term.why))
+        if term.arrived in weeks and (sheet := sheet_of(term.generation))['key'] != data.get('you'):
+            result.append(arrival(data, sheet))
+    return result
+
+
+def where(data: dict, sheet: dict) -> str:
+    """'the baker at Crumb & Co' or 'of Canton'."""
+    if sheet['kind'] == 'resident':
+        return f"of {townsfolk.neighborhood_name(data, sheet['home'])}"
+    return f"the {sheet['role']} at {sheet['place']['name']}"
+
+
+def departure(data: dict, sheet: dict, why: str) -> dict:
+    headline = {'retired': f"{sheet['name']} retires.", 'passed': f"{sheet['full']} has died.",
+                'new job': f"{sheet['name']} moves on.", 'moved': f"Farewell to {sheet['name']}."}[why]
+    return {'key': f"{sheet['key']}:left", 'headline': headline,
+            'text': sentence(f"{sheet['full']}, {where(data, sheet)}, {turnover.gone_text(why, '')} this week")}
+
+
+def arrival(data: dict, sheet: dict) -> dict:
+    if sheet['kind'] == 'resident':
+        hood = townsfolk.neighborhood_name(data, sheet['home'])
+        job = f" ({sheet['occupation']})" if sheet['occupation'] else ''
+        return {'key': f"{sheet['key']}:arrived", 'headline': f'A new neighbor in {hood}.',
+                'text': f"{sheet['full']}{job} has moved to {hood}."}
+    return {'key': f"{sheet['key']}:arrived", 'headline': f"New {sheet['role']} at {sheet['place']['name']}.",
+            'text': f"{sheet['full']} has taken over as the {sheet['role']} there."}
+
+
+def baby_item(data: dict, sheet: dict, item: dict) -> dict:
+    hood = townsfolk.neighborhood_name(data, sheet['home'])
+    return {'key': f"{sheet['key']}:baby:{item['day'].isoformat()}",
+            'headline': f"A baby for {sheet['name']} and {item['partner']['name']}.",
+            'text': f"{sheet['full']} ({sheet['role']}, {hood}) and {item['partner']['full']} welcomed a baby."}
 
 
 def companions_in(connection, data: dict) -> list[dict]:
