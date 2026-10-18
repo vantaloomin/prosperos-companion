@@ -255,6 +255,11 @@ PICTURES = {
     'market': 'browsing the stalls of a busy market',
     'workout': 'mid-workout, slightly out of breath',
     'home-cooking': 'cooking at the stove at home, stirring a pan, ingredients on the counter',
+    # Time at a parent's they care for (companion/life/health_turns.py).
+    'care-dinner': "cooking at the stove in a parent's homey kitchen, filling containers to leave in the fridge",
+    'care-chores': "in a parent's tidy living room, folding laundry and sorting a weekly pill organizer",
+    'care-company': "sitting on a parent's old sofa with a cup of tea, family photos on the wall behind",
+    'care-errands': 'carrying a bag of groceries and a pharmacy bag down a quiet street',
     'dinner-in': 'at a dinner table set for two at home, a home-cooked meal on the plates, candles lit',
     'reading': 'curled up at home reading a book under a blanket',
     'nap': 'lying on a sofa at home under a blanket, just waking from a nap',

@@ -39,7 +39,7 @@ from companion.world import catalog, generators
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'life_admin.json'
 # Seeded appointments, errands and surprises; their tests turn them on (tests/conftest.py turns them off).
 ACTIVE = True
-SOURCES = ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work', 'school')
+SOURCES = ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work', 'school', 'health')
 AHEAD = 21  # Days planned ahead, so Today shows what is coming.
 MOVE_DAYS = 14  # How far an entry may move to find a free time.
 LATER = 365  # How far the Character page looks for what comes due later.

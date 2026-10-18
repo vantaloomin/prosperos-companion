@@ -591,6 +591,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
                    'guessed': found.guessed} if found.career else None,
         'between_jobs': bool(home and (home.get('pay') or {}).get('between_jobs')),
         'retired': bool(home and (home.get('pay') or {}).get('retired')),
+        'business': (home.get('pay') or {}).get('business') if home else None,
         'owned': bool(home and home['costs'].get('owned')),
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
         'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
@@ -627,6 +628,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
         lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; {housing}.")]
     if view.get('retired'):
         lines = [('budget', f"- Retired, you live on a pension of about {text['income']} {per}; {housing}.")]
+    if view.get('business'):  # Their own business (companion/life/business.py).
+        lines = [('budget', f"- Your {view['business']} brings in about {text['income']} {per}; {housing}.")]
     if view['budget']['upkeep']:
         lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
     for item in view['bought']:
@@ -647,7 +650,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
 
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
             'hobby': 'on your pastimes', 'ring': 'from your savings', 'wedding': 'from your savings',
-            'gift': 'on gifts', 'school': 'on your course', 'deposit': 'from your savings'}
+            'gift': 'on gifts', 'school': 'on your course', 'deposit': 'from your savings',
+            'business': 'from your savings', 'care': "on a parent's care"}
 
 
 def payday_text(view: dict, local_date: str) -> str:

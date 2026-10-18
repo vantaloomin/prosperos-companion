@@ -123,8 +123,10 @@ def begin(connection, companion: dict, world, day: date, now) -> dict | None:
     names = {'name': definition['name'].split()[0], 'a': 'someone', 'b': ''}
     labels = [plans[kind]['title'] if kind in plans else option['label'].format(**names)
               for kind, option in zip(KINDS, consequences.tables()[CHOICE]['options'], strict=True)]
+    # Caring for a parent and a health turn leave marks (money and worry) on the companion.
     outcome = consequences.decide(connection, timeline_id=timeline_id, choice=CHOICE, subject=seed,
-                                  facts=found, names=names, labels=labels, day=day.isoformat(), timestamp=stamp(now))
+                                  facts=found, names=names, labels=labels, day=day.isoformat(), timestamp=stamp(now),
+                                  holders={'me': pairs.companion_key(companion['id'])}, now=now)
     kind = KINDS[outcome['picked']]
     if kind not in plans:
         return None
@@ -310,6 +312,8 @@ def undo(database, chapter_id: str) -> list[dict]:
         row = mine(connection, chapter_id)
         reverse(connection, decode(row['undo']), database.clock.now())
         big_turns.undone(connection, row)
+        if row['consequence_id']:
+            consequences.clear_marks(connection, row['consequence_id'])
         connection.execute('UPDATE life_chapters SET undone_at=? WHERE id=?', (database.now(), chapter_id))
     return listing(database)
 

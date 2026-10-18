@@ -436,7 +436,10 @@ def test_housework_follows_whose_turn_it_is_once_they_live_together(client, prov
     moving_day(client, clock)
     assert client.get('/api/life/upkeep').status_code == 200
     monkeypatch.setattr(rough_patches, 'ACTIVE', True)
-    owners = {'cooking': 'you', 'dishes': 'user', 'laundry': 'you', 'tidying': 'user'}
+    # No big clean today, which would reset every area and hide the turns (a seeded habit sometimes lands one there).
+    monkeypatch.setattr(upkeep, 'BIG', {kind: 10 ** 6 for kind in upkeep.BIG})
+    monkeypatch.setattr(upkeep, 'habit', lambda _state: 'average')
+    owners ={'cooking': 'you', 'dishes': 'user', 'laundry': 'you', 'tidying': 'user'}
     monkeypatch.setattr(moving_in, 'turn', lambda _companion, _day, task, _house=(): owners[task])
     with client.app.state.database.connect(write=True) as connection:
         companion = current(connection)

@@ -7,7 +7,7 @@ import { panelTitle } from './panelText'
 import { LATELY_KEY } from './turnsText'
 
 /** Their life lately (companion/life/big_turns.py): a big turn on its way (a course, a place they are buying,
- * retiring) and the latest chapters that already happened. Nothing until there is one. */
+ * retiring, a business, a health turn, caring for a parent) and the latest chapters that already happened. Nothing until there is one. */
 export function LifeLately({ name }: { name: string }) {
   const query = useQuery({ queryKey: LATELY_KEY, queryFn: () => api<LatelyView>('/life/chapters/lately') })
   if (query.isError) return <ErrorNotice error={query.error} />

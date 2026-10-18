@@ -1956,7 +1956,7 @@ CREATE TABLE IF NOT EXISTS life_admin (
   id TEXT PRIMARY KEY,
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   key TEXT NOT NULL,
-  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work', 'school')),
+  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work', 'school', 'health')),
   kind TEXT NOT NULL,
   title TEXT NOT NULL,
   done_text TEXT NOT NULL,

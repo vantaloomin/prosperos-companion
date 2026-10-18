@@ -337,7 +337,9 @@ WIDENED_CHECKS = (
     # Work life's late nights on the shared calendar (companion/life/work.py).
     ('life_admin', "'looks', 'work'"),
     # Exams for a course they went back to school for (companion/life/big_turns.py).
-    ('life_admin', "'work', 'school')"),
+    ('life_admin', "'work', 'school'"),
+    # Check-ups for a long-term condition and a parent's appointments (companion/life/health_turns.py).
+    ('life_admin', "'school', 'health')"),
 )
 
 
