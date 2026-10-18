@@ -302,7 +302,8 @@ def calendar(connection, companion: dict, today: date, now) -> int:
     for row in rows(connection, companion['active_timeline_id']):
         details = decode(row['details'])
         for day in dates(details, row['kind'], today, today + timedelta(days=CHECKUPS_AHEAD)):
-            key, what = f"health:{row['id']}:{day.isoformat()}", entry(row['kind'], details)
+            what = entry(row['kind'], details)
+            key = f"health:{row['id']}:{day.isoformat()}:{what['kind']}"  # A first check-up can fall on results day.
             # Booked in office hours; someone who works them all week gets an evening clinic that can move.
             added += bool(admin.add(connection, companion, key=key, source='health', day=day, at='10:00', minutes=90,
                                     fixed=True, out=True, now=now, **what)
