@@ -148,3 +148,16 @@ def test_changing_the_sliders_moves_the_town_on_from_then_and_keeps_its_past(cli
     assert departures(today + timedelta(days=30 * 365)) != future
     assert all(day <= (today + timedelta(days=372)).isoformat()
                for day in departures(today + timedelta(days=30 * 365)).values())
+
+
+def test_a_group_never_hears_from_a_townsperson_who_passed_away(monkeypatch):
+    from companion import group_guests
+    base = {'key': 'town:x:bar:0', 'name': 'Sam', 'full': 'Sam Lee', 'kind': 'staff', 'staff': True, 'role': 'barkeep',
+            'place': {'id': 'bar', 'name': 'The Bar'}, 'neighborhood': 'Canton', 'times': 4, 'cast': None}
+    people = [base, base | {'key': 'town:x:bar:1', 'left': {'why': 'moved', 'day': '2030-01-07', 'text': 'moved away'}},
+              base | {'key': 'town:x:bar:2', 'left': {'why': 'passed', 'day': '2030-01-07', 'text': 'passed away'}}]
+    monkeypatch.setattr(group_guests, 'circle_people', lambda *_args: [])
+    monkeypatch.setattr(encounters, 'known', lambda *_args: people)
+    found = group_guests.known_by(None, {'id': 'c1', 'version': {'name': 'Mira Hale'}}, None)
+    assert [person['key'] for person in found] == ['town:x:bar:0', 'town:x:bar:1']
+    assert [person['tie'] for person in found] == ['the barkeep at The Bar', 'formerly the barkeep at The Bar']
