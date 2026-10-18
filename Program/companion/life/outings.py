@@ -1092,6 +1092,9 @@ def undo(connection, companion: dict, outing_id: str, now: datetime) -> dict:
         require(not taken(connection, companion, date.fromisoformat(outing['local_date'])),
                 'Another plan has that day now.', 409)
         connection.execute("UPDATE outings SET status='planned', cancelled_at=NULL WHERE id=?", (outing_id,))
+        if outing['activity'] == 'big-day':
+            from companion.life import big_days
+            big_days.undone(connection, outing_id, stamp(now))
     return get(connection, outing_id)
 
 

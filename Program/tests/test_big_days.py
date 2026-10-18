@@ -9,7 +9,7 @@ from conftest import send
 
 from companion.characters import current
 from companion.database import decode, encode, one, optional
-from companion.life import ages, big_days, circle, love_life, money, outings, steps
+from companion.life import ages, big_days, circle, long_distance, love_life, money, outings, steps, trips
 from companion.memory import context
 from companion.providers.chat import Chunk
 
@@ -433,6 +433,29 @@ def test_taking_back_cant_make_it_on_today_means_you_are_coming_after_all(client
     # The circle's own big days may come first: find this one's line.
     assert any(found['place']['name'] in line and 'The user is coming with you as your plus-one.' in line
                for line in lines(client, clock))
+
+
+def test_long_distance_the_day_is_a_stay_and_undoing_the_no_brings_it_back(client, clock, monkeypatch):
+    monkeypatch.setattr(trips, 'ACTIVE', True)
+    for name in ('CHANCE', 'LONG_CHANCE'):
+        monkeypatch.setattr(trips, name, 0.0)
+    monkeypatch.setattr(long_distance, 'CHANCE', {1: 0.0, 2: 0.0, 3: 0.0})
+    make(client, home_city='Chicago', timezone='America/Chicago')
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'baltimore'}).status_code == 200
+    guests(client, 3)
+    row = add(client, clock)
+    at(clock, row['invite_on'], '18:00')
+    _trigger, outing = invite(client, clock)
+
+    def stays():
+        return [trip['status'] for trip in client.get('/api/life/outings').json()['trips'] if trip['visit'] == 'host']
+    assert stays() == ['planned']
+    assert client.post(f"/api/life/outings/{outing['id']}/cancel", json={}).status_code == 200
+    assert stays() == ['cancelled'] and row_of(client, row['id'])['status'] == 'declined'
+    assert client.post(f"/api/life/outings/{outing['id']}/undo", json={}).status_code == 200
+    advance(client, clock)
+    assert stays() == ['planned'] and row_of(client, row['id'])['status'] == 'invited'
 
 
 def branch_at(client, message_id, **body):

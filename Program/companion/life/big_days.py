@@ -612,10 +612,21 @@ def cancel_plans(connection, row: dict, timestamp: str) -> None:
                        (timestamp, row['trip_id'] or ''))
 
 
+def undone(connection, outing_id: str, timestamp: str) -> None:
+    """outings.undo of the day's outing: taken back at once, before a long distance day plans around a stay that
+    was called off with the no (long_distance.far_plans)."""
+    row = optional(connection, "SELECT * FROM big_days WHERE outing_id=? AND status='declined'", (outing_id,))
+    if row:
+        taken_back(connection, row, timestamp)
+
+
 def taken_back(connection, row: dict, timestamp: str) -> dict:
-    """"Can't make it" undone on Today (outings.undo): the user is coming after all."""
+    """"Can't make it" undone on Today (outings.undo): the user is coming after all, and long distance their stay
+    for it (called off with the no) is back on."""
     connection.execute("UPDATE big_days SET status='invited', answered_at=NULL, updated_at=? WHERE id=?",
                        (timestamp, row['id']))
+    connection.execute("UPDATE trips SET status='planned', cancelled_at=NULL WHERE id=? AND status='cancelled' AND "
+                       'cancelled_at=?', (row['trip_id'] or '', row['answered_at'] or ''))
     return {**row, 'status': 'invited', 'answered_at': None}
 
 
