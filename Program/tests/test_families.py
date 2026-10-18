@@ -372,3 +372,11 @@ def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
     days = [date(2027, 1, 1) + timedelta(days=offset) for offset in range(730)]
     told = ' '.join(news[2] for day in days if (news := families.news_on(child, day, 1.7, True, 'medieval')))
     assert told and not re.search(r'\b(cars?|trains?|phones?|strollers?)\b', told, re.I)
+
+
+def test_a_baby_is_never_given_the_companions_own_name(client, mira):
+    from companion.characters import current
+    with client.app.state.database.connect() as connection:
+        taken = families.taken_names(connection, current(connection))
+    assert 'Mira' in taken
+    assert families.baby_name({}, None, 'seed', 'she/her', taken) != 'Mira'

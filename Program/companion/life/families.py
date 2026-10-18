@@ -219,6 +219,16 @@ def baby_name(definition: dict, world, seed: str, pronouns_: str, taken: set[str
     return given
 
 
+def taken_names(connection, companion: dict) -> set[str]:
+    """First names a baby can't have: the circle's, other children's and the companion's own (any picture naming
+    a child is refused, `pictured`, so a baby sharing their name would stop every picture of them)."""
+    timeline_id = companion['active_timeline_id']
+    taken = {row['name'].split()[0] for row in circle.people(connection, timeline_id, True)}
+    taken |= {row['name'] for row in many(connection, 'SELECT name FROM circle_children WHERE timeline_id=?',
+                                          (timeline_id,))}
+    return taken | set(companion['version']['definition']['name'].split()[:1])
+
+
 def plan(connection, companion: dict, world, person: dict, how: str, day: date) -> dict:
     """Everything about one pregnancy, decided now: the beats with their days, the baby and what they are to the
     companion."""
@@ -229,10 +239,7 @@ def plan(connection, companion: dict, world, person: dict, how: str, day: date) 
     halfway = day + timedelta(weeks=7 + int(rng(seed, 'halfway') * 6))
     soon = min(due, born) - timedelta(days=3 + int(rng(seed, 'soon') * 6))
     sex = 'she/her' if rng(seed, 'sex') < 0.49 else 'he/him'
-    taken = {row['name'].split()[0] for row in circle.people(connection, companion['active_timeline_id'], True)}
-    taken |= {row['name'] for row in many(connection, 'SELECT name FROM circle_children WHERE timeline_id=?',
-                                          (companion['active_timeline_id'],))}
-    name = baby_name(companion['version']['definition'], world, seed, sex, taken)
+    name = baby_name(definition, world, seed, sex, taken_names(connection, companion))
     kind = title(how, seed)
     carrying, era = decode(person['details']).get('pronouns', 'she/her') == 'she/her', era_of(connection, definition)
     middle = generators.pick(seed, 'middle', fitting(bank()['pregnancy'], era, carrying))
