@@ -931,8 +931,6 @@ REWORD = ('SELECT {table}.*, m.subject AS memory_subject, m.value AS memory_valu
           'JOIN memories m ON m.id={table}.memory_id JOIN companions c ON c.id={table}.companion_id '
           "JOIN character_versions v ON v.id=c.active_version_id WHERE m.status!='superseded' AND "
           "m.merged_into_id IS NULL AND m.origin='automatic' AND m.layer='shared_experience'")
-# A stay's dates before they took commas: "Friday July 10 to Sunday July 12".
-OLD_SPAN = re.compile(r'\b(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day [A-Z]')
 
 
 def old_outing(row: dict) -> bool:
@@ -943,7 +941,7 @@ def old_outing(row: dict) -> bool:
 
 
 def old_stay(row: dict) -> bool:
-    return 'the user' in f"{row['memory_subject']} {row['memory_value']}" or bool(OLD_SPAN.search(row['memory_value']))
+    return 'the user' in f"{row['memory_subject']} {row['memory_value']}"
 
 
 def reworded(connection) -> list[tuple[dict, dict]]:
@@ -964,7 +962,7 @@ def reworded(connection) -> list[tuple[dict, dict]]:
 
 def reword_memories(connection, timestamp: str) -> int:
     """Memories that outings and long-distance stays saved before this version read the way new ones are written
-    ("You and Mira got married at ...", "Mira came to stay with you in Baltimore, Friday, July 10 to ..."). Runs at
+    ("You and Mira got married at ...", "Mira came to stay with you in Baltimore, Friday July 10 to ..."). Runs at
     every start (companion/database.py initialize) and changes only memories still in the old wording that were never
     corrected: a correction is a new revision, which leaves the outing's own one superseded."""
     from companion.memory.extraction import subject_key

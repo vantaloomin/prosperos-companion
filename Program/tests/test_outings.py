@@ -351,7 +351,7 @@ def test_memories_saved_in_the_old_wording_read_the_new_way_after_an_upgrade(cli
         assert text(wedding) == ('Your wedding', "You and Mira got married at St Paul's Church on Friday, June 12, 2026.")
         assert text(dinner) == ("Dinner at Mira's place", "Had dinner, risotto, at Mira's place on Saturday, April 4.")
         assert text(stay) == ("Mira's visit to Baltimore",
-                              'Mira came to stay with you in Baltimore, Friday, July 10 to Sunday, July 12.')
+                              'Mira came to stay with you in Baltimore, Friday July 10 to Sunday July 12.')
         # The correction made a new revision; the outing's own one stays as history, as it was.
         assert text(corrected)[1] == "You went over to the user's place on Friday, June 12."
         assert settings(connection)['memory_revision'] > revision

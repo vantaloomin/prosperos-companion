@@ -108,8 +108,7 @@ def test_they_come_to_stay_for_a_weekend(client, apart, visits, provider, clock,
         memory = connection.execute('SELECT subject, value FROM memories WHERE id=?', (row['memory_id'],)).fetchone()
     # The user reads it on Memories too: it names the companion, never "the user" (E2E v0.13).
     assert memory['subject'] == "Mira's visit to Baltimore"
-    # With commas in the dates, the way the other memories write them (Iris).
-    assert memory['value'] == 'Mira came to stay with you in Baltimore, Saturday, October 17 to Sunday, October 18.'
+    assert memory['value'] == 'Mira came to stay with you in Baltimore, Saturday October 17 to Sunday October 18.'
     with client.app.state.database.connect() as connection:  # Mira reads it her way round.
         from companion.memory import records
         companion = current(connection)

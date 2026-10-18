@@ -526,7 +526,7 @@ def stay_text(trip: dict, companion: dict) -> dict:
     stay with you in Baltimore"); the companion reads it the other way round (records.as_told)."""
     name, city = companion['version']['definition']['name'].split()[0], trip['city_name']
     start, end = date.fromisoformat(trip['start_date']), date.fromisoformat(trip['end_date'])
-    span = f'{start:%A, %B} {start.day} to {end:%A, %B} {end.day}'
+    span = f'{start:%A %B} {start.day} to {end:%A %B} {end.day}'
     if trip['visit'] == TO_YOU:
         return {'subject': f"{name}'s visit to {city}", 'value': f'{name} came to stay with you in {city}, {span}.'}
     return {'subject': f'Staying with {name} in {city}', 'value': f'You came to stay with {name} in {city}, {span}.'}
