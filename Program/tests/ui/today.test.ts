@@ -42,6 +42,9 @@ test('occasions read as a friend would say them', async () => {
   assert.equal(occasionText({ ...base, kind: 'user_birthday', days: 2 }, 'Mira'), 'Your birthday is in 2 days.')
   assert.equal(occasionText({ ...base, kind: 'own_birthday', days: 0 }, 'Mira'), "It is Mira's birthday today.")
   assert.equal(occasionText({ ...base, kind: 'circle_birthday', days: 1, person: 'Cathy', relation: 'mom' }, 'Mira'), "It is Mira's mom Cathy's birthday tomorrow.")
+  // Milestone birthdays (Everyone gets older) say which.
+  assert.equal(occasionText({ ...base, kind: 'own_birthday', days: 0, turns: 40 }, 'Mira'), "It is Mira's 40th birthday today.")
+  assert.equal(occasionText({ ...base, kind: 'circle_birthday', days: 3, person: 'Cathy', relation: 'mom', turns: 60 }, 'Mira'), "It is Mira's mom Cathy's 60th birthday in 3 days.")
   assert.equal(occasionText({ ...base, kind: 'anniversary', days: 0, span: 'three months' }, 'Mira'), "It's been three months since you two started talking.")
   // A step's anniversary names the step, not the first talk (E2E v0.13).
   assert.equal(occasionText({ ...base, kind: 'step_anniversary', days: 0, span: 'a year', did: 'became exclusive' }, 'Mira'), "It's been a year since you two became exclusive.")

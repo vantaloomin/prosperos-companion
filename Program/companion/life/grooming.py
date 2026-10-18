@@ -28,7 +28,7 @@ from datetime import date, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, composer, money
+from companion.life import ages, circle, composer, money
 from companion.world import catalog, generators, looks
 
 COMPANION = 'companion'
@@ -70,6 +70,13 @@ KEPT_ACTIVITIES = {'birthday', 'own-birthday', 'festival', 'tradition', 'gatheri
 OPEN_BLOCKS = {'errand', 'leisure', 'rest'}
 WORKING = {'steady-shift', 'busy-shift', 'library', 'study-cafe', 'lunch-out'}
 PICTURE_ACTIVITY = {'nails': 'nail-salon'}
+# Getting older (companion/life/ages.py, `age_signs`): the ages each sign may first show, seeded between the two, the
+# years after that it moves from its first stage to the second and third, and how the Looks setting shifts the age
+# (later now and then, earlier often). Words a user wrote about their lines keep the drawn ones out.
+AGE_SIGNS = {'grey': (32, 50), 'lines': (35, 52), 'reading': (40, 50)}
+SIGN_STAGES = (6, 14, 200)
+AGE_SHIFT = {0: 0, 1: 5, 2: 0, 3: -3}
+LINES_WORDS = re.compile(r"\b(?:wrinkle[sd]?|lines|lined|crow'?s feet|creases?|weathered)\b", re.IGNORECASE)
 # Tests turn weaving into the day off.
 WEAVE = True
 
@@ -507,7 +514,43 @@ def changes_on(connection, timeline_id: str, definition: dict, sheet: dict, day:
         result['nails'] = so_far['nails']
     if not bold_only and 'skin' in fields and (tan := tan_level(so_far, day)):
         result['tan'] = TAN_WORDS[tan]
+    if not bold_only and (signs := age_signs(connection, timeline_id, definition, state, so_far, fields, sheet, day)):
+        result['age_signs'] = signs
     return result
+
+
+@functools.lru_cache(maxsize=1)
+def ageing_bank() -> dict:
+    return json.loads((catalog.DATA / 'ageing.json').read_text(encoding='utf-8'))
+
+
+def age_signs(connection, timeline_id: str, definition: dict, state: dict, so_far: dict, fields: set[str],
+              sheet: dict, day: date) -> str:
+    """What getting older has added to their looks by this day (Everyone gets older): the first grey hairs, laugh
+    lines, reading glasses, each at a seeded age and settling in over the years after. Only ages they reached in the
+    app count, so nobody's pictures change on the upgrade, and only looks the app drew: hair the user wrote, glasses
+    they already wear and lines their own words mention stay as they are. Follows the Looks setting like the rest."""
+    companion_id = companion_of(connection, timeline_id)
+    row = ages.stored(connection, 'companion', companion_id)
+    age = sheet.get('age')
+    if not row or not age or definition.get('keeps_age'):
+        return ''
+    since = ages.age_on(date.fromisoformat(row['born_on']), row['birthday'], date.fromisoformat(row['anchored_on']))
+    shift = AGE_SHIFT[level(connection)]
+    wears = so_far.get('glasses') or 'glasses' in (sheet.get('feature') or '')
+    allowed = {'grey': 'hair' in fields and not so_far.get('colour'), 'reading': 'feature' in fields and not wears,
+               'lines': not LINES_WORDS.search(user_text(definition) + ' ' + str(definition.get('identity') or ''))}
+    modern = decode(state['profile'])['era'] in MODERN
+    found = []
+    for kind, (low, high) in AGE_SIGNS.items():
+        onset = low + round(generators.unit(state['seed'], f'age-sign-{kind}') * (high - low)) + shift
+        if not allowed[kind] or not since < onset <= age:
+            continue
+        stage = next(number for number, years in enumerate(SIGN_STAGES, 1) if age - onset < years)
+        options = [entry['text'] for entry in ageing_bank()[kind]
+                   if entry['stage'] == stage and (modern or not entry.get('modern'))]
+        found.append(generators.pick(state['seed'], f'age-sign-{kind}-{stage}', options))
+    return ', '.join(found)
 
 
 def timeline_of(connection, companion_id: str) -> str | None:
@@ -528,12 +571,20 @@ def sheet(connection, companion_id: str, definition: dict, day: date | str | Non
     (the Codex reference sheet). Without a connection or a day it is the sheet as drawn."""
     base = looks.for_companion(companion_id, definition)
     timeline_id = timeline_of(connection, companion_id) if connection is not None else None
-    if not timeline_id:
-        return base
-    day = date.fromisoformat(day) if isinstance(day, str) else day or today_of(connection, timeline_id)
+    day = day_of(connection, timeline_id, day)
     if day is None:
         return base
-    return {**base, **changes_on(connection, timeline_id, definition, base, day, bold_only)}
+    # Their age on the day (companion/life/ages.py): a year older after each birthday, unless they keep their age.
+    aged = {'age': ages.companion_age(connection, companion_id, definition, day)} if base.get('age') else {}
+    return {**base, **aged, **changes_on(connection, timeline_id, definition, {**base, **aged}, day, bold_only)}
+
+
+def day_of(connection, timeline_id: str | None, day: date | str | None) -> date | None:
+    """The local day a sheet or prompt is for: the one asked for, else the latest day of their life; None without a
+    timeline or before their life has a day."""
+    if not timeline_id:
+        return None
+    return date.fromisoformat(day) if isinstance(day, str) else day or today_of(connection, timeline_id)
 
 
 # --- Their day ---

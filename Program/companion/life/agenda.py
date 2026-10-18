@@ -20,6 +20,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
     admin,
+    ages,
     body,
     breakups,
     chapters,
@@ -84,8 +85,24 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
     # What the companion has said they like or dislike leans their plans too (companion/self_facts.py).
     result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id']),
                                'own_birthday': occasions.own_birthday(companion),
+                               'milestones': milestones(connection, companion, now),
                                'traditions': kept_traditions(connection, companion, now)}, version['id']))
     return result
+
+
+def milestones(connection, companion, now) -> dict[str, int]:
+    """Their milestone birthdays (30, 40, 50 ...) on the dates an extension can write: {date: the age they turn}, so
+    the evening is a party (companion/life/composer.py)."""
+    birthday = occasions.own_birthday(companion)
+    if not birthday:
+        return {}
+    found = {}
+    for year in range((now - BACKFILL).year, (now + HORIZON).year + 1):
+        day = ages.birthday_in(year, birthday)
+        age = ages.turns_on(connection, companion['id'], companion['version']['definition'], day)
+        if ages.milestone(age) and (now - BACKFILL - timedelta(days=1)).date() <= day <= (now + HORIZON).date():
+            found[day.isoformat()] = age
+    return found
 
 
 def kept_traditions(connection, companion, now) -> dict[str, dict]:

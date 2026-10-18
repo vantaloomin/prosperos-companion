@@ -55,7 +55,7 @@ HISTORY = (
     'away_recaps', 'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
-    'closeness_jokes', 'closeness_settings', 'people_impressions', 'people_meetups', 'step_settings', 'proposals', 'weddings', 'step_asks', 'relationship_steps', 'love_partners', 'moving_in_shares', 'moving_in', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'breakup_reaches', 'breakups', 'rough_patch_promises', 'rough_patches', 'calls', 'together_asks', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
+    'birth_dates', 'closeness_jokes', 'closeness_settings', 'people_impressions', 'people_meetups', 'step_settings', 'proposals', 'weddings', 'step_asks', 'relationship_steps', 'love_partners', 'moving_in_shares', 'moving_in', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'breakup_reaches', 'breakups', 'rough_patch_promises', 'rough_patches', 'calls', 'together_asks', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
     'storyline_days', 'family_traditions', 'scrapbook_seen', 'history_corrections', 'pet_log', 'pet_state', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'grooming_log', 'grooming_state', 'upkeep_days', 'upkeep_state', 'kitchen_state', 'media_items', 'media_state', 'hobby_log', 'hobbies', 'hobby_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_admin', 'work_weeks', 'work_events', 'work_life', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
     'user_people', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'chat_imports', 'timelines',
@@ -105,6 +105,10 @@ OWN = {
     'news_holders': "news_id IN (SELECT id FROM news WHERE timeline_id IN gone_timelines) "
                     "OR holder='companion:' || :companion",
     'companions': 'id=:companion',
+    # Birth dates (companion/life/ages.py): theirs, their circle's and their partners'; the town's stay.
+    'birth_dates': "(kind='companion' AND person_key=:companion) OR (kind='circle' AND person_key IN "
+                   "(SELECT id FROM circle_people WHERE timeline_id IN gone_timelines)) OR (kind='partner' AND "
+                   "person_key IN (SELECT id FROM love_partners WHERE timeline_id IN gone_timelines))",
     # A pet's life (companion/life/pets.py) by its key: the companion's own pets and their circle's; townsfolk and
     # the persona's pets belong to the world and stay.
     'pet_log': PET_KEYS,

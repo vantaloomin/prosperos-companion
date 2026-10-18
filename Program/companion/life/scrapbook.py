@@ -9,7 +9,8 @@ happened on the active timeline and written by templates, never by a model:
 - pictures the companion sent;
 - how they got closer (the closeness stages reached, companion/memory/closeness.py);
 - running jokes and the nickname, then the other shared moments remembered;
-- the companion's own year: life chapters, the family holidays they kept and new things at home;
+- the companion's own year: life chapters, the family holidays they kept, new things at home and milestone
+  birthdays;
 - a closing line.
 
 A page with nothing to show is left out. In the week of an anniversary and the first week of January, Today points to
@@ -22,7 +23,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.errors import require
 from companion.images import photos
-from companion.life import breakups, occasions, steps, wedding
+from companion.life import ages, breakups, occasions, steps, wedding
 from companion.memory import closeness
 
 QUOTE_LIMIT = 280
@@ -233,6 +234,8 @@ def their_year(connection, companion, period, name) -> dict | None:
     items += [{'date': row['local_date'], 'text': f"{name} {row['text']}"} for row in many(
         connection, 'SELECT local_date, kind, text FROM home_log WHERE timeline_id=? AND local_date>=? AND '
         'local_date<=?', (timeline_id, low, high)) if row['kind'] in HOME_KINDS]
+    # Milestone birthdays that have come round (companion/life/ages.py): theirs and their circle's.
+    items += ages.milestones_between(connection, companion, period['start'], period['end'])
     if not items:
         return None
     return {'kind': 'their-year', 'title': f"{name}'s year", 'items': sorted(items, key=lambda item: item['date'])}
