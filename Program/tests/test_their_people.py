@@ -424,3 +424,17 @@ def test_after_a_breakup_their_people_cool_on_you_once(client, provider, clock, 
     assert labels == {'Cooled on you'}
     with client.app.state.database.connect() as connection:
         assert their_people.met_people(connection, current(connection)) == {}
+
+
+def test_a_pair_that_starts_at_the_step_has_met_everyone(client, clock):
+    make(client)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        from companion.life import steps
+        steps.insert_step(connection, companion['active_timeline_id'], 'romance', 'their_people',
+                          clock.now().date(), 'start', clock.now().isoformat())
+    advance(client, clock)
+    assert meetups(client) == []
+    people = client.get('/api/life/circle').json()
+    assert [person for person in people if person['met']] and \
+        all(person['met']['before'] for person in people if person['met'])

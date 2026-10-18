@@ -7,12 +7,12 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   later with no question asked: dinner at their family's place when a parent or a sibling lives in town, else drinks
   with their friends. For a best friend, now and then (the engine's `people:night_out`, by the Relationship pace
   slider and how outgoing they are) a night out with their friends comes up too. A pair that has been together for
-  years by how they know each other ("married for ten years") met everyone long ago: those first impressions are
-  seeded straight away and nothing is planned.
+  years by how they know each other ("married for ten years"), or an existing pair that starts at the step, met
+  everyone already: those first impressions are seeded straight away and nothing is planned.
 - The companion invites the user in a first text (companion/life/openers.py) naming who, where and when; sending it
   books the outing (companion/life/outings.py), in person by v0.12's rules: never across a long distance, where it
-  is on the first full day of the user's next stay with them in their city (companion/life/long_distance.py). Today's "Out together" lets the user call it off; called off, it is planned
-  once more a few weeks later.
+  is on the first full day of the user's next stay with them in their city (companion/life/long_distance.py).
+  Today's "Out together" lets the user call it off; called off, it is planned once more a few weeks later.
 - Each person at the meet-up gets a seeded first impression of the user (the engine's `people:impression`: warm,
   lovely together, still making up their mind, protective or wary, by who they are to the companion and the drama
   level). It shows how they are at the table, and once the evening is over it is a circle-to-user pair that moves
@@ -197,7 +197,9 @@ def plan_for_step(connection, companion: dict, found: dict, now: datetime) -> di
     timeline_id = companion['active_timeline_id']
     if reached is None or meetups(connection, timeline_id, ('planned', 'booked', 'done'), 'step'):
         return None
-    if reached['how'] == 'history':
+    if reached['how'] in ('history', 'start'):
+        # A pair that starts at the step (from way back, or an upgraded pair the Character page shows as having met
+        # their people) has met everyone already.
         known_already(connection, companion, now)
         return None
     if len(meetups(connection, timeline_id, why='step')) >= STEP_TRIES:
