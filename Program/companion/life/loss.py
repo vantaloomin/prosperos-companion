@@ -437,7 +437,8 @@ def moods(connection, companion: dict, now) -> list[tuple[tuple[str, int], str]]
         return []
     row = found[0]
     feeling = ('sad', 2 if found[1] == 'raw' and row['details'].get('depth', 1) >= 2 else 1)
-    return [(feeling, f"{first(companion['version']['name'])}'s {circle.role_kind(row['role'])} "
+    said = circle.said(row['role'], companion['version']['definition'])  # 'dad', as the A/B'd note had it
+    return [(feeling, f"{first(companion['version']['name'])}'s {said} "
                       f"{first(row['name'])} died" if row['kind'] == 'circle' else
              f"{first(row['name'])} from town died")]
 

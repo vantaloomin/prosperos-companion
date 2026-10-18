@@ -174,6 +174,7 @@ def test_a_death_on_its_day_grief_the_news_and_fewer_plans(client, clock, monkey
         companion = current(connection)
         mood = moods.current(connection, f"companion:{companion['id']}", clock.now())
         assert mood['feeling'] == 'sad' and mood['intensity'] == 2
+        assert mood['reason'].endswith(f"'s dad {dad['name'].split()[0]} died"), mood['reason']
         news = loss.news_due(connection, companion, clock.now())
         assert len(news) == 1 and 'died today' in news[0].reason
         assert loss.holds_back(connection, companion, clock.now())
