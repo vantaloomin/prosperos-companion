@@ -1716,6 +1716,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .side-list { width: 280px; padding: 14px 8px; border-right: 1px solid var(--border); background: var(--surface); }
 .side-title { margin: 0 10px 10px; font-size: 1rem; }
 .side-list .chat-row { min-height: 60px; }
+/* A row's name, time and preview shrink with an ellipsis instead of widening the list past its edge. */
+.side-list ul { grid-template-columns: minmax(0, 1fr); }
 .side-bubbles .side-title { font-family: var(--ui-font); font-weight: 600; }
 .side-bubbles .chat-row.current { background: var(--accent); color: var(--on-accent); }
 .side-bubbles .chat-row.current :is(.chat-row-preview, .chat-row-time) { color: var(--on-accent); opacity: .85; }
