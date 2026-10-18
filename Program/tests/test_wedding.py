@@ -547,3 +547,88 @@ def test_far_apart_they_propose_on_the_users_stay_with_them(client, clock, provi
     trigger, outing = invite(client, clock)
     assert trigger is not None and outing is not None
     assert outing['local_date'] == (start + timedelta(days=1)).isoformat() and outing['place']['proposal']
+
+
+def test_a_wedding_planned_again_after_a_break_keeps_the_users_changes(client, clock, provider, monkeypatch):
+    from companion.life import breakups
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-again')
+    set_step(client, 'engaged')
+    advance(client, clock)
+    day = (clock.now().date() + timedelta(days=200)).isoformat()
+    assert client.put('/api/life/admin/wedding', json={'day': day}).status_code == 200
+    venue = client.put('/api/life/admin/wedding', json={'venue': True}).json()['wedding']['venue']['id']
+    found = client.put('/api/life/admin/wedding', json={'size': 'small'}).json()['wedding']
+    guest = found['guests'][0]['key']
+    assert client.put('/api/life/admin/wedding', json={'guest': guest, 'invited': False}).status_code == 200
+    monkeypatch.setattr(breakups, 'holds', lambda _connection, _companion: 'break')
+    advance(client, clock)
+    assert panel(client) is None
+    monkeypatch.setattr(breakups, 'holds', lambda _connection, _companion: None)
+    advance(client, clock)
+    again = panel(client)
+    assert (again['date'], again['venue']['id'], again['size']) == (day, venue, 'small') and again['moved_by_user']
+    assert not next(item for item in again['guests'] if item['key'] == guest)['invited']
+
+
+def test_a_ring_they_cannot_afford_is_a_plainer_one():
+    definition = {'name': 'Mira Costa', 'home_city': 'Baltimore', 'occupation': 'surgeon', 'timezone': 'UTC'}
+    companion = {'version': {'definition': definition}}
+    found = money.profile(definition)
+    rings = wedding.customs('us')['ring']['rings']
+    full_ring, full = wedding.ring_for(companion, 'us')
+    assert full_ring == rings[min(found.tier, len(rings) - 1)] and full > 0
+    assert wedding.ring_for(companion, 'us', full * 2) == (full_ring, full)
+    plainer, cost = wedding.ring_for(companion, 'us', full * 0.6)
+    assert cost == pytest.approx(full * wedding.RING_STEP, abs=0.02) and plainer != full_ring
+    plainest, cost = wedding.ring_for(companion, 'us', 0)
+    assert plainest == rings[0] and 0 < cost < full
+
+
+def test_with_little_saved_they_plan_a_small_wedding(client, clock, provider, monkeypatch):
+    make(client)
+    says(provider)
+    send(client, 'hey you', 'client-wed-saved')
+    show(client, show_odds=True)
+    monkeypatch.setattr(money, 'on_hand', lambda *_args: 10.0)
+    set_step(client, 'engaged')
+    advance(client, clock)
+    assert panel(client)['size'] == 'small'
+    with client.app.state.database.connect() as connection:
+        outcome = optional(connection, "SELECT * FROM consequences WHERE choice='wedding:size'")
+    assert "hasn't saved enough for a big wedding" in outcome['options']
+
+
+def test_the_ring_and_the_wedding_share_draw_down_their_savings(client, clock, provider, invites):
+    proposed(client, clock, provider)
+    assert client.get('/api/life/home').status_code == 200  # Their home, for the budget.
+    [row] = proposals(client)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
+        day = date.fromisoformat(row['asked_on'])
+        home = money.household(connection, timeline_id, definition, day)
+        on_hand = money.on_hand(connection, timeline_id, definition, day)
+    assert home['drawn'] == row['ring_cost']
+    drawn = money.snapshot(definition, day.isoformat(), home)['goal']
+    before = money.snapshot(definition, day.isoformat(), {**home, 'drawn': 0.0})['goal']
+    assert drawn['saved'] == max(round(before['saved'] - row['ring_cost'], 2), 0)
+    found = money.with_home(money.profile(definition), home['costs'], home.get('pay'))
+    assert on_hand == max(money.saved_since(found, day - timedelta(days=money.SAVED_DAYS), day) - row['ring_cost'], 0)
+
+
+def test_old_era_church_weddings_keep_out_of_advent_and_lent():
+    assert wedding.easter(2027) == date(2027, 3, 28) and wedding.easter(2026) == date(2026, 4, 5)
+    victorian, medieval = wedding.customs('uk-victorian'), wedding.customs('medieval-england')
+    assert wedding.closed(victorian, date(2027, 3, 16)) and not wedding.closed(victorian, date(2027, 3, 30))
+    assert wedding.closed(victorian, date(2027, 12, 14)) and not wedding.closed(victorian, date(2027, 12, 28))
+    assert wedding.closed(medieval, date(2027, 12, 27)) and wedding.closed(medieval, date(2028, 1, 4))
+    assert not wedding.closed(wedding.customs('us'), date(2027, 12, 14))
+    moved = wedding.open_day(victorian, date(2027, 3, 16))
+    assert moved == date(2027, 3, 30) and moved.weekday() == 1
+    for engaged in range(0, 365, 9):
+        start = date(2026, 1, 1) + timedelta(days=engaged)
+        for size in wedding.SIZES:
+            day = wedding.wedding_day(medieval, start, start, size, 2, f'seed:{engaged}:{size}')
+            assert not wedding.closed(medieval, day) and day.weekday() == medieval['day'], day

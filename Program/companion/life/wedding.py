@@ -55,6 +55,8 @@ PROPOSE_AT = {'dinner': '19:30', 'walk': '18:00'}
 # The preferred evening: a Friday or a Saturday at least two days on.
 PROPOSE_DAYS = (4, 5)
 SIZES = ('small', 'proper', 'big')
+# A ring they can't afford from their savings: a plainer one, this share of the price for each step down.
+RING_STEP = 0.5
 SIZE_WORDS = {'small': 'a small wedding', 'proper': 'a proper wedding', 'big': 'a big wedding'}
 SIZE_LABELS = {'small': 'Small', 'proper': 'A proper wedding', 'big': 'Big'}
 # The engagement is at least this long, whatever the customs say, and the wedding moves at most this far for a clash.
@@ -142,14 +144,21 @@ def proposals(connection, timeline_id: str, statuses: tuple[str, ...]) -> list[d
                 (timeline_id, *statuses))
 
 
-def ring_for(companion: dict, culture: str) -> tuple[str, float]:
+def ring_for(companion: dict, culture: str, saved: float | None = None) -> tuple[str, float]:
     """(the ring in words, what it costs in the city's money): the customs' ring for their pay tier, priced in months
-    of their take-home. Nothing where money does not apply."""
+    of their take-home. With `saved` (their savings on hand) too little for it, a plainer ring at half the price for
+    each step down, the plainest when nothing fits. Nothing where money does not apply."""
     found = money.profile(companion['version']['definition'])
     ring = customs(culture)['ring']
-    tier = found.tier if found else 1
-    words = ring['rings'][min(tier, len(ring['rings']) - 1)]
-    return words, round(money.monthly_share(found) * ring['months'], 2) if found else 0.0
+    tier = min(found.tier if found else 1, len(ring['rings']) - 1)
+    if not found:
+        return ring['rings'][tier], 0.0
+    full = money.monthly_share(found) * ring['months']
+    for step in range(tier + 1):
+        cost = round(full * RING_STEP ** step, 2)
+        if saved is None or cost <= saved or step == tier:
+            return ring['rings'][tier - step], cost
+    return ring['rings'][0], round(full * RING_STEP ** tier, 2)
 
 
 def follow_proposals(connection, companion: dict, now: datetime) -> None:
@@ -160,8 +169,9 @@ def follow_proposals(connection, companion: dict, now: datetime) -> None:
     taken = {row['ask_id'] for row in many(connection, 'SELECT ask_id FROM proposals WHERE timeline_id=?', (timeline_id,))}
     for ask in steps.asks(connection, timeline_id, ('planned',)):
         if ask['step'] == STEP and ask['side'] == 'them' and ask['id'] not in taken:
-            data = outings.city_data(connection, companion['version']['definition'])
-            ring, cost = ring_for(companion, culture_of(data))
+            definition = companion['version']['definition']
+            data = outings.city_data(connection, definition)
+            ring, cost = ring_for(companion, culture_of(data), money.on_hand(connection, timeline_id, definition, today))
             connection.execute('INSERT INTO proposals (id, timeline_id, ask_id, due_on, ring, ring_cost, created_at) '
                                'VALUES (?, ?, ?, ?, ?, ?, ?)',
                                (identifier(), timeline_id, ask['id'], ask['due_on'] or today.isoformat(), ring, cost,
@@ -389,36 +399,46 @@ def plan(connection, companion: dict, now: datetime) -> dict | None:
     culture = culture_of(data)
     rules = customs(culture)
     seed = f"wedding:{timeline_id}:{reached['on']}"
-    size = SIZES[decide_size(connection, companion, seed, now)['picked']]
+    size = SIZES[decide_size(connection, companion, seed, now, rules)['picked']]
     outcome = consequences.recorded(connection, seed, 'wedding:size')
-    day = wedding_day(rules, date.fromisoformat(reached['on']), local_today(companion, now), size, steps.pace(connection),
-                      seed)
+    today = local_today(companion, now)
+    day = wedding_day(rules, date.fromisoformat(reached['on']), today, size, steps.pace(connection), seed)
+    # Planned again (after a break was mended): the user's changes to the plan called off stand.
+    before = optional(connection, "SELECT * FROM weddings WHERE timeline_id=? AND status='called_off' AND engaged_on=? "
+                      'ORDER BY created_at DESC LIMIT 1', (timeline_id, reached['on']))
+    before = view(before) if before else None
+    size = before['size'] if before else size
+    moved = bool(before and before['moved_by_user'] and before['local_date'] > today.isoformat())
+    day = date.fromisoformat(before['local_date']) if moved else day
+    venue = before['venue'] if before and before['venue'] else venue_for(data, rules, size, seed, day=day)
     budget, share = budget_for(definition, rules, size)
-    guests = guest_list(connection, companion, size)
+    left_off = {guest['key'] for guest in before['guests'] if not guest['invited']} if before else set()
+    guests = [{**guest, 'invited': guest['key'] not in left_off} for guest in guest_list(connection, companion, size)]
     low, high = rules['guests'][size]
     count = max(low + int(generators.unit(seed, 'guests') * (high - low)), sum(guest['invited'] for guest in guests) + 2)
     row_id, timestamp = identifier(), stamp(now)
     connection.execute(
         'INSERT INTO weddings (id, timeline_id, engaged_on, size, consequence_id, local_date, at_time, until_time, venue, '
-        'culture, budget, share, guests, guest_count, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'venue_rolls, culture, budget, share, guests, guest_count, moved_by_user, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (row_id, timeline_id, reached['on'], size, outcome['id'] if outcome else None, day.isoformat(), rules['at'],
-         rules['until'], encode(venue_for(data, rules, size, seed, day=day)), culture, budget, share, encode(guests), count,
-         timestamp, timestamp))
+         rules['until'], encode(venue), before['venue_rolls'] if before else 0, culture, budget, share, encode(guests),
+         count, int(moved), timestamp, timestamp))
     row = view(one(connection, 'SELECT * FROM weddings WHERE id=?', (row_id,)))
     book(connection, companion, row, now)
     prepare(connection, companion, row, now)
     return current(connection, timeline_id)
 
 
-def decide_size(connection, companion: dict, seed: str, now: datetime) -> dict:
+def decide_size(connection, companion: dict, seed: str, now: datetime, rules: dict) -> dict:
     from companion.world import personality
     definition = companion['version']['definition']
     found = money.profile(definition)
     levels = personality.levels_of(definition.get('personality_sliders') or {})
     facts = {'tier': found.tier if found else 1, 'social': levels.get('social', 1), 'drama': steps.drama(connection),
              'pace': steps.pace(connection), 'people': len(circle.people(connection, companion['active_timeline_id'])),
-             'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)}}
+             'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)},
+             'affords': affords(connection, companion, rules, local_today(companion, now))}
     names = {'name': first(definition['name']), 'a': 'you', 'b': ''}
     table = consequences.tables()['wedding:size']
     return consequences.decide(connection, timeline_id=companion['active_timeline_id'], choice='wedding:size',
@@ -427,16 +447,66 @@ def decide_size(connection, companion: dict, seed: str, now: datetime) -> dict:
                                day=local_today(companion, now).isoformat(), timestamp=stamp(now))
 
 
+def affords(connection, companion: dict, rules: dict, today: date) -> int | None:
+    """The biggest wedding whose share their savings cover (0 small, 1 proper, 2 big); None where money does not
+    apply. A small one is always possible, whatever it takes."""
+    definition = companion['version']['definition']
+    saved = money.on_hand(connection, companion['active_timeline_id'], definition, today)
+    if saved is None:
+        return None
+    return max((index for index, size in enumerate(SIZES) if budget_for(definition, rules, size)[1] <= saved), default=0)
+
+
 def on_weekday(day: date, weekday: int) -> date:
     return day + timedelta(days=(weekday - day.weekday()) % 7)
 
 
 def wedding_day(rules: dict, engaged: date, today: date, size: str, pace: int, seed: str) -> date:
-    """Months after the engagement by the customs and the size, shorter at a fast pace, on the customs' weekday."""
+    """Months after the engagement by the customs and the size, shorter at a fast pace, on the customs' weekday, and
+    out of the church's closed seasons where the customs keep them."""
     low, high = rules['months'][size]
     months = (low + generators.unit(seed, 'months') * (high - low)) * PACE_STRETCH[pace]
     day = max(engaged + timedelta(days=round(months * 30.44)), today + timedelta(days=SOONEST))
-    return on_weekday(day, rules['day'])
+    return open_day(rules, on_weekday(day, rules['day']))
+
+
+def easter(year: int) -> date:
+    """Easter Sunday (the Gregorian computus)."""
+    golden, century = year % 19, year // 100
+    epact = (19 * golden + century - century // 4 - (8 * century + 13) // 25 + 15) % 30
+    weekday = (32 + 2 * (century % 4) + 2 * ((year % 100) // 4) - epact - (year % 100) % 4) % 7
+    shift = (golden + 11 * epact + 22 * weekday) // 451
+    month, day = divmod(epact + weekday - 7 * shift + 114, 31)
+    return date(year, month, day + 1)
+
+
+def advent(year: int) -> date:
+    """Advent Sunday: the fourth Sunday before Christmas."""
+    christmas = date(year, 12, 25)
+    return christmas - timedelta(days=christmas.weekday() + 1 + 21)
+
+
+# The church's closed seasons, when it married nobody, as (first day, last day) for a year: Advent to Christmas Eve
+# (in the middle ages on to the octave of Epiphany), Lent to Easter (in the middle ages Septuagesima to Low Sunday).
+SEASONS = {'advent': lambda year: (advent(year), date(year, 12, 24)),
+           'advent-epiphany': lambda year: (advent(year), date(year + 1, 1, 13)),
+           'lent': lambda year: (easter(year) - timedelta(days=46), easter(year)),
+           'septuagesima': lambda year: (easter(year) - timedelta(days=63), easter(year) + timedelta(days=7))}
+
+
+def closed(rules: dict, day: date) -> bool:
+    """Whether the day falls in one of the closed seasons the customs keep (`closed` in wedding.json)."""
+    return any(low <= day <= high for name in rules.get('closed', ()) for year in (day.year - 1, day.year)
+               for low, high in (SEASONS[name](year),))
+
+
+def open_day(rules: dict, day: date) -> date:
+    """The day, else the first one a week or more on that is out of a closed season."""
+    for _week in range(20):
+        if not closed(rules, day):
+            break
+        day += timedelta(days=7)
+    return day
 
 
 def budget_for(definition: dict, rules: dict, size: str) -> tuple[float, float]:
@@ -586,7 +656,7 @@ def book(connection, companion: dict, row: dict, now: datetime) -> dict | None:
     for _week in range(CLASH_WEEKS):
         if not outings.taken(connection, companion, day):
             break
-        day += timedelta(days=7)
+        day = open_day(customs(row['culture']), day + timedelta(days=7))
     if day.isoformat() != row['local_date']:
         connection.execute('UPDATE weddings SET local_date=?, updated_at=? WHERE id=?', (day.isoformat(), timestamp,
                                                                                        row['id']))
