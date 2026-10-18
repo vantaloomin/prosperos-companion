@@ -168,8 +168,9 @@ def age_of(connection, row: dict, day: date) -> int | None:
 
 def candidate(kind: str, source: str, row: dict | None, day: date, **details) -> dict:
     """A big day found by a source: whose (a circle row, when it is someone in the circle), what and when."""
-    person = {'name': row['name'], 'role': row['role'], 'local': (decode(row['details']) or {}).get('local', True),
-              'city': (decode(row['details']) or {}).get('city') or ''} if row else {}
+    known = (decode(row['details']) or {}) if row else {}
+    person = {'name': row['name'], 'role': row['role'], 'local': known.get('local', True),
+              'city': known.get('city') or '', 'pronouns': known.get('pronouns') or ''} if row else {}
     return {'kind': kind, 'source': source, 'person_id': row['id'] if row else None, 'day': day,
             'details': {**person, **details}}
 
@@ -435,6 +436,14 @@ def modern_city(connection, companion: dict) -> bool:
     return admin.era_group(outings.city_data(connection, companion['version']['definition'])) == 'modern'
 
 
+def spoken(details: dict, companion: dict) -> str:
+    """The role as the companion says it: 'mom' or 'brother' (by pronouns) for a parent or sibling, in their era."""
+    role = details['role']
+    if role in ('parent', 'sibling'):
+        role = circle.relation(role, details.get('pronouns') or '')
+    return circle.said(role, companion['version']['definition'])
+
+
 def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
     """A big day in their life, once per source: where, when, the gift and whether they ask the user along. Later
     features call this with their own (a graduation from a life chapter, a funeral)."""
@@ -445,9 +454,8 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
             or day < today + timedelta(days=SOONEST) or kind.modern and not modern_city(connection, companion):
         return None
     row_id, timestamp = identifier(), stamp(now)
-    if found['details'].get('role'):  # As they say it in their era: 'mother' in 1895 (circle.said).
-        found = {**found, 'details': {**found['details'],
-                                      'role': circle.said(found['details']['role'], companion['version']['definition'])}}
+    if found['details'].get('role'):  # As they say it: 'mom' for a parent, 'mother' in 1895 (circle.said).
+        found = {**found, 'details': {**found['details'], 'role': spoken(found['details'], companion)}}
     seed = f"bigday:{timeline_id}:{found['source']}"
     place = {**place_for(connection, companion, kind, day, seed, found['details']),
              'modern': modern_city(connection, companion)}
