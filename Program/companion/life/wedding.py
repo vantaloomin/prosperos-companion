@@ -839,7 +839,7 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
               for row in many(connection, "SELECT * FROM proposals WHERE timeline_id=? AND status='asked' AND "
                               'asked_on>=? AND asked_on<=? AND ring_cost>0', (timeline_id, low, high))]
     result += [{'text': 'paid your share of the wedding', 'date': row['local_date'], 'spend': '', 'cost': row['share'],
-                'for': 'wedding', 'savings': True}
+                'for': 'wedding', 'savings': True, 'shown': 'paid their share of the wedding'}
                for row in many(connection, "SELECT * FROM weddings WHERE timeline_id=? AND status='done' AND "
                                'local_date>=? AND local_date<=? AND share>0', (timeline_id, low, high))]
     return result

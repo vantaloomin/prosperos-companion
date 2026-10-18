@@ -183,6 +183,15 @@ def test_home_purchases_count_as_spending_this_pay_period():
     assert lines['money:2026-10-05:bought:2026-10-03'].endswith('you adopted Biscuit, a beagle mix.')
 
 
+def test_the_wedding_share_reads_as_theirs_on_screen_and_yours_to_the_model():
+    share = [{'date': '2026-10-03', 'text': 'paid your share of the wedding', 'spend': '', 'cost': 900.0,
+              'for': 'wedding', 'savings': True, 'shown': 'paid their share of the wedding'}]
+    view = money.snapshot(NURSE, '2026-10-05', {'costs': home_costs(), 'purchases': share})
+    assert view['bought'][0]['shown'] == 'paid their share of the wedding'
+    lines = dict(money.context_lines(NURSE, '2026-10-05', {'costs': home_costs(), 'purchases': share}))
+    assert lines['money:2026-10-05:bought:2026-10-03:wedding'].endswith('you paid your share of the wedding.')
+
+
 def test_the_money_endpoint_reads_the_home(client):
     client.post('/api/companion', json={**NURSE, 'timezone': 'America/New_York'})
     assert client.get('/api/today/money').json()['rent_from'] == 'budget'

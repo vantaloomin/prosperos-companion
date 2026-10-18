@@ -538,12 +538,13 @@ def with_home(found: Profile, costs: dict, pay: dict | None = None) -> Profile:
 
 def spent_at_home(found: Profile, purchases: list[dict]) -> list[dict]:
     """Home changes, clothes, outings and trips this cycle with what they cost ({label, on, cost, for}). Outings and
-    trips carry their own cost. An engagement ring and their share of the wedding come from savings
+    trips carry their own cost; `shown` is the screen's wording when it differs from the model's. An engagement ring and their share of the wedding come from savings
     (`savings`), so they leave this cycle's money alone."""
     month = monthly_share(found)
     return [{'label': item['text'], 'on': item['date'],
              'cost': round(item.get('cost') or PURCHASES.get(item['spend'], 0) * month, 2),
-             'for': item.get('for', 'home'), **({'savings': True} if item.get('savings') else {})}
+             'for': item.get('for', 'home'), **({'savings': True} if item.get('savings') else {}),
+             **({'shown': item['shown']} if item.get('shown') else {})}
             for item in purchases if item.get('cost') or PURCHASES.get(item['spend'])]
 
 
