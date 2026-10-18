@@ -1884,6 +1884,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .wedding-tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
 .wedding-tasks li.done > span:first-child { text-decoration: line-through; color: var(--muted); }
 .admin-state { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
+.lately-panel .admin-state li { line-height: 1.6; }
 .admin-later { display: grid; max-width: 28rem; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; margin: 0; font-size: 0.875rem; }
 .admin-later > div { display: contents; }
 .admin-later dd { margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }

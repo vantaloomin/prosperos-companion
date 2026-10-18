@@ -185,7 +185,7 @@ def retro_away(definition: dict, kind: str) -> list[str]:
 def big_events(connection, companion: dict, now) -> list[tuple[str, str, object]]:
     """(local date, line, when it came to be) for chapters and storyline beats they would share, from the last two
     days, newest first. A beat came to be at the start of its day, or when its outcome was decided."""
-    found = [(row['started_on'], row['share'], parse(row['created_at']))
+    found = [(chapters.since(row), row['share'], parse(row['created_at']))
              for row in chapters.fresh(connection, companion, now) if row['share']]
     found += [(beat['on'], beat['share'], beat_since(connection, companion, beat))
               for _key, beat in storylines.fresh_beats(connection, companion, now) if beat.get('share')]
