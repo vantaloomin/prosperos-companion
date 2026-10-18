@@ -23,12 +23,12 @@ export function townNow(now: TownspersonNow): string {
   return `Right now: probably ${now.doing}${where} (${now.mood}).`
 }
 
-/** "Moved away for a new job (June 2027).", "Moved away (December 2027).", "Retired (February 2040)." or
+/** "Left for a job elsewhere (June 2027).", "Moved away (December 2027).", "Retired (February 2040)." or
  * "Passed away (January 2040)." for someone who has left town (companion/world/turnover.py). */
 export function townLeft(left: TownLeft): string {
   const [year, month] = left.day.split('-').map(Number)
   const when = new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })
-  const what = { moved: 'Moved away', 'new job': 'Moved away for a new job', retired: 'Retired', passed: 'Passed away' }[left.why]
+  const what = { moved: 'Moved away', 'new job': 'Left for a job elsewhere', retired: 'Retired', passed: 'Passed away' }[left.why]
   return `${what} (${when}).`
 }
 

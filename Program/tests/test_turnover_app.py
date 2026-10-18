@@ -169,5 +169,5 @@ def test_someone_who_left_is_spoken_of_in_the_worlds_terms():
     sheet = {'name': 'Casey', 'kind': 'staff', 'place': {'name': 'Walters Art Museum'}}
     data = {'name': 'Baltimore'}
     lines = [townsfolk.gone_line(sheet, data, {'why': why}) for why in ('moved', 'new job', 'retired', 'passed')]
-    assert lines == ['Casey moved away from Baltimore', 'Casey moved away from Baltimore for a new job',
+    assert lines == ['Casey moved away from Baltimore', 'Casey left for a job elsewhere',
                      'Casey retired from Walters Art Museum', 'Casey passed away']

@@ -402,11 +402,11 @@ def terms_of(data: dict, sheet: dict, until: int) -> list:
 
 
 def gone_line(sheet: dict, data: dict, found: dict) -> str:
-    """'Casey moved away from Baltimore', '... for a new job', 'Todd retired from Towson Farmers Market', 'Kola
+    """'Casey moved away from Baltimore', 'Casey left for a job elsewhere', 'Todd retired from Towson Farmers Market', 'Kola
     passed away': how someone who left (`gone`) is spoken of in the world's terms."""
     name, city = sheet['name'], data.get('name') or 'town'
     place = '' if sheet.get('kind') == 'resident' else f" from {sheet['place']['name']}"
-    return {'moved': f'{name} moved away from {city}', 'new job': f'{name} moved away from {city} for a new job',
+    return {'moved': f'{name} moved away from {city}', 'new job': f'{name} left for a job elsewhere',
             'retired': f'{name} retired{place}', 'passed': f'{name} passed away'}[found['why']]
 
 
