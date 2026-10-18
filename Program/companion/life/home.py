@@ -612,7 +612,7 @@ def monthly_costs(connection, timeline_id: str, day: date) -> dict | None:
     if home is None:
         return None
     return {'rent': home.get('rent'), 'rent_period': home.get('rent_period', 'month'),
-            'currency': home.get('currency'), 'estimate': True,
+            'currency': home.get('currency'), 'estimate': True, 'owned': bool(home.get('owned')),
             'pets': [item['variety'] for item in items if item['kind'] == 'pet'],
             'vehicles': [item['variety'] for item in items if item['kind'] == 'vehicle']}
 

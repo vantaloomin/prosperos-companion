@@ -315,6 +315,12 @@ ADDED_COLUMNS = (
     # Sharing a home (companion/life/moving_in.py): the shared home a moving-in row belongs to, by the id of the row
     # that set it up. A second romance moving into it has the first one's household; NULL is a household of its own.
     ('moving_in', 'household', 'TEXT'),
+    # Life's big turns (companion/life/big_turns.py, Settings > Realism > Their days): how often life chapters come,
+    # 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful. The town's turnover follows it too
+    # (companion/world/turnover.py).
+    ('life_settings', 'life_turns', 'INTEGER NOT NULL DEFAULT 2 CHECK (life_turns BETWEEN 0 AND 3)'),
+    # A big turn's stages (companion/life/big_turns.py): what stage it is at, when the next one comes, and its plan.
+    ('life_chapters', 'details', "TEXT NOT NULL DEFAULT '{}'"),
     # A fork's copy of a moving-in row (companion/life/moving_in.py `copy`): the row it was first copied from, so a home
     # set up before the fork stays one household with those who moved in on other timelines; NULL for the original.
     ('moving_in', 'origin', 'TEXT'),
@@ -329,7 +335,9 @@ WIDENED_CHECKS = (
     ('notification_deliveries', "'message')"),
     ('memory_vectors', "'storyline'))"),
     # Work life's late nights on the shared calendar (companion/life/work.py).
-    ('life_admin', "'looks', 'work')"),
+    ('life_admin', "'looks', 'work'"),
+    # Exams for a course they went back to school for (companion/life/big_turns.py).
+    ('life_admin', "'work', 'school')"),
 )
 
 
@@ -391,8 +399,10 @@ def upgrade_needed(path: Path) -> bool:
 # the user off, and a dramatic one stays dramatic. Any other world takes the columns' defaults (a real life).
 UPGRADE_REALISM = {0: {'rough_patches_realism': 1, 'steps_pace': 1, 'love_life': 1, 'friends_fall': 0, 'breakups': 0},
                    3: {'rough_patches_realism': 3, 'steps_pace': 3, 'love_life': 3}}
+# Life's big turns from v0.14 the same way: an easy life gets the gentle level (good turns only), a dramatic one eventful.
+UPGRADE_TURNS = {0: {'life_turns': 1}, 3: {'life_turns': 3}}
 # Growing families (v0.14) the same way: an easy life has babies now and then, a dramatic one lots.
-UPGRADE_FAMILIES = {0: 1, 3: 3}
+UPGRADE_FAMILIES = {0: {'growing_families': 1}, 3: {'growing_families': 3}}
 
 
 def add_columns(connection):
@@ -402,16 +412,18 @@ def add_columns(connection):
         if column not in existing:
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
             added.add((table, column))
-    if ('life_settings', 'breakups') in added:
-        row = connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()
-        picked = UPGRADE_REALISM.get(row[0]) if row else None
-        if picked:
-            connection.execute(f"UPDATE life_settings SET {', '.join(f'{key}=?' for key in picked)} WHERE id=1",  # noqa: S608
-                               tuple(picked.values()))
-    if ('life_settings', 'growing_families') in added:
-        row = connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()
-        if row and row[0] in UPGRADE_FAMILIES:
-            connection.execute('UPDATE life_settings SET growing_families=? WHERE id=1', (UPGRADE_FAMILIES[row[0]],))
+    for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
+                           ('growing_families', UPGRADE_FAMILIES)):
+        if ('life_settings', column) in added:
+            preset_upgrade(connection, upgrade)
+
+
+def preset_upgrade(connection, upgrade: dict):
+    row = connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()
+    picked = upgrade.get(row[0]) if row else None
+    if picked:
+        connection.execute(f"UPDATE life_settings SET {', '.join(f'{key}=?' for key in picked)} WHERE id=1",  # noqa: S608
+                           tuple(picked.values()))
 
 
 def widen_context_categories(connection):

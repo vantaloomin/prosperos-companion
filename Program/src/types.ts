@@ -209,7 +209,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding'; shown?: string }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit'; shown?: string }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -220,6 +220,9 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   housing: { unit: string; label: string; neighborhood: string }
   budget: { income: number; rent: number; upkeep: number; essentials: number; fun: number; saving: number }
   rent_from: 'home' | 'budget'
+  /** Living on a pension, and paying a mortgage on a place they bought (companion/life/big_turns.py). */
+  retired?: boolean
+  owned?: boolean
   bought: MoneyHappening[]
   payday: { last: string; next: string; cycle_days: number; today: boolean }
   left: number
@@ -483,6 +486,8 @@ export interface LifeSettings {
   breakups: boolean
   /** Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on. */
   love_life: number
+  /** Life's big turns (companion/life/big_turns.py): how often life chapters come, 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful. */
+  life_turns: number
   /** Births and growing families (companion/life/families.py): 0 none, 1 now and then, 2 true to life, 3 lots. */
   growing_families: number
 }
@@ -1235,11 +1240,21 @@ export interface NewsItem {
 
 export interface LifeChapter {
   id: string
-  kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves'
+  kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves' | 'relationship' | 'move_in' | 'move_out' | 'school' | 'career_change' | 'buy_place' | 'retire'
   started_on: string
   title: string
+  /** Where a big turn stands (companion/life/big_turns.py); null for other chapters. */
+  stage: string | null
+  /** The day its latest stage came (the day it began for other chapters), as Today shows it. */
+  on: string
   consequence: string | null
   undone: boolean
+}
+
+/** The Character page's life lately (GET /api/life/chapters/lately): big turns on their way, and the latest chapters. */
+export interface LifeLately {
+  now: { id: string; kind: LifeChapter['kind']; started_on: string; line: string }[]
+  lately: { id: string; kind: LifeChapter['kind']; on: string; title: string }[]
 }
 
 /** Which way a reason pushed the odds of the option it sits under. */
@@ -1309,6 +1324,8 @@ export interface HomeItem {
   features?: string[]
   rent?: number | null
   rent_period?: 'month' | 'week'
+  /** A place they bought: `rent` is then the mortgage (companion/life/big_turns.py). */
+  owned?: boolean
   currency?: { code: string; symbol: string; name: string }
   out_of_action?: string | null
 }

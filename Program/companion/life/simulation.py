@@ -102,6 +102,8 @@ def update_settings(database, body) -> dict:
             if 'hobbies_realism' in changed:
                 hobbies.settings_changed(connection, database.clock.now(), row['hobbies_realism'])
         found = settings_view(life_settings(connection))
+    if 'life_turns' in changed:
+        turnover.load(database)  # The town's pace follows Life's big turns too, once saved.
     if 'growing_families' in changed:
         turnover.load(database)  # Town couples' babies follow it too (companion/world/couples.py).
     return found

@@ -25,8 +25,8 @@ test('details skip a description that repeats the name and add a repair', () => 
 
 test('since says who added a thing', () => {
   assert.equal(sinceText(item()), null)
-  assert.equal(sinceText(item({ origin: 'user', since: '2026-10-06' })), 'Added by you on 2026-10-06')
-  assert.equal(sinceText(item({ origin: 'change', since: '2026-10-20' })), 'New since 2026-10-20')
+  assert.equal(sinceText(item({ origin: 'user', since: '2026-10-06' })), 'Added by you on Oct 6, 2026')
+  assert.equal(sinceText(item({ origin: 'change', since: '2026-10-20' })), 'New since Oct 20, 2026')
   assert.equal(sentence('took the car into the shop'), 'Took the car into the shop.')
 })
 
