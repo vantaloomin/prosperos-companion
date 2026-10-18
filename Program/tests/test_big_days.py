@@ -430,3 +430,60 @@ def test_taking_back_cant_make_it_on_today_means_you_are_coming_after_all(client
     assert found['status'] == 'invited' and found['answered_at'] is None
     assert 'The user is coming with you as your plus-one.' in lines(client, clock)[0]
 
+
+def branch_at(client, message_id, **body):
+    branch = client.post('/api/timelines', json={'message_id': message_id, **body}).json()
+    assert client.post(f"/api/timelines/{branch['id']}/activate").status_code == 200
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        return companion, big_days.rows(connection, branch['id'])
+
+
+def test_a_branch_keeps_whose_day_it_is_and_what_you_said_and_never_plans_it_twice(client, clock, provider):
+    from companion.life import openers
+    make(client)
+    guests(client, 3)
+    mom = person(client, 'mom')
+    row = add(client, clock, kind='birthday', role='mom', source=f"birthday:{mom['id']}:2099", age=60)
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    says(provider)
+    yes = send(client, 'Yes! I would love to come', 'client-bigday-branch-yes')
+    companion, [copied] = branch_at(client, yes['message']['id'] if 'message' in yes else yes['id'])
+    with client.app.state.database.connect(write=True) as connection:
+        mine = optional(connection, "SELECT * FROM circle_people WHERE timeline_id=? AND role='mom'",
+                        (companion['active_timeline_id'],))
+        assert copied['person_id'] == mine['id'] and copied['source'] == f"birthday:{mine['id']}:2099"
+        assert copied['status'] == 'invited' and copied['outing_id'] == outing['id']
+        assert not [item for item in openers.candidates(connection, companion, clock.now()) if item.kind == 'big_day']
+        again = big_days.candidate('birthday', f"birthday:{mine['id']}:2099", mine, date.fromisoformat(row['local_date']))
+        assert big_days.add(connection, companion, again, clock.now()) is None
+
+
+def test_a_branch_from_before_your_no_has_you_coming(client, clock, provider):
+    make(client)
+    guests(client, 3)
+    row = add(client, clock)
+    at(clock, row['invite_on'], '12:00')
+    _trigger, outing = invite(client, clock)
+    says(provider)
+    no = send(client, "No, sorry, I can't make it that day.", 'client-bigday-branch-no')
+    assert row_of(client, row['id'])['status'] == 'declined'
+    companion, [copied] = branch_at(client, no['message']['id'] if 'message' in no else no['id'],
+                                    text='Yes! I would love to come')
+    assert copied['status'] == 'invited' and copied['outing_id'] != outing['id']
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        mine = outings.get(connection, big_days.get(connection, copied['id'])['outing_id'])
+        assert big_days.get(connection, copied['id'])['status'] == 'invited' and mine['status'] == 'planned'
+        assert mine['place']['big_day'] == copied['id']
+        assert outings.get(connection, outing['id'])['status'] == 'cancelled'  # The parent keeps its no.
+
+
+def test_a_big_day_held_after_the_fork_is_still_to_come_on_the_copy():
+    row = {'status': 'done', 'local_date': '2027-05-01', 'message_id': None, 'answered_at': None}
+    assert big_days.copied_status(row, {}, '2027-04-20T10:00:00+00:00') == ('planned', None)
+    assert big_days.copied_status(row, {}, '2027-05-02T10:00:00+00:00') == ('done', None)
+    asked = {**row, 'message_id': 'm', 'answered_at': '2027-04-25T10:00:00+00:00'}
+    assert big_days.copied_status(asked, {'m': 'm2'}, '2027-04-20T10:00:00+00:00') == ('invited', 'm2')
+    assert big_days.copied_status(asked, {'m': 'm2'}, '2027-04-26T10:00:00+00:00') == ('declined', 'm2')

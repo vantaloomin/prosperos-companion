@@ -33,6 +33,7 @@ No new slider: Guests and Their love life decide. No model decides anything: the
 """
 import json
 import random
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from functools import cache
@@ -947,16 +948,73 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
 
 # Branches (companion/timelines.py) ---------------------------------------------------------------------------------
 
-def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> None:
-    """Big days known by the fork carry over; anything the user was asked to after it is the copy's own."""
+# What a big day's source and details name, by table, matched to the fork's copies by what the copy keeps.
+SUCCESSORS = {'storylines': ('story', 'started_on'), 'love_partners': ('name', 'met_on'),
+              'life_chapters': ('kind', 'started_on'), 'circle_children': ('name', 'born_on'),
+              'losses': ('name', 'died_on')}
+ID = re.compile(r'\b[0-9a-f]{32}\b')
+
+
+def successors(connection, parent_id: str, new_id: str, ids: dict) -> dict:
+    """{parent's id: the copy's} for the circle people, storylines, partners, chapters, children and losses a big
+    day's source names, so the copy finds it as its own and never plans it again."""
+    found = dict(ids)
+    for table, names in SUCCESSORS.items():
+        columns = ', '.join(('created_at', *names))
+        copies = {tuple(row.values())[1:]: row['id'] for row in many(
+            connection, f'SELECT id, {columns} FROM {table} WHERE timeline_id=?', (new_id,))}
+        for row in many(connection, f'SELECT id, {columns} FROM {table} WHERE timeline_id=?', (parent_id,)):
+            if tuple(row.values())[1:] in copies:
+                found[row['id']] = copies[tuple(row.values())[1:]]
+    return found
+
+
+def copied_status(row: dict, ids: dict, cutoff: str) -> tuple[str, str | None]:
+    """(its status on the copy, the copy of the invitation): held by the fork, asked by then (and answered no by
+    then), else still to come; anything after the fork is the copy's own."""
+    message = ids.get(row['message_id'] or '')
+    if row['status'] == 'called_off' or row['status'] == 'done' and row['local_date'] <= cutoff[:10]:
+        return row['status'], message
+    if not message:
+        return 'planned', None
+    return ('declined' if row['answered_at'] and row['answered_at'] < cutoff else 'invited'), message
+
+
+def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str) -> None:
+    """Big days known by the fork carry over, whose they are and how far they had got by then (`copied_status`);
+    anything the user was asked to after it is the copy's own."""
+    found = successors(connection, parent_id, new_id, ids)
     for row in many(connection, 'SELECT * FROM big_days WHERE timeline_id=? AND created_at<=?',
-                    (parent_id, f'{cutoff_date}T23:59:59')):
-        status = row['status'] if row['status'] in ('planned', 'done', 'called_off') else 'planned'
+                    (parent_id, f'{cutoff[:10]}T23:59:59')):
+        status, message = copied_status(row, ids, cutoff)
+        row_id = identifier()
+        outing = copied_outing(connection, row, row_id, message, cutoff) if status == 'invited' else None
         connection.execute(
             'INSERT INTO big_days (id, timeline_id, kind, source, person_id, status, local_date, at_time, until_time, '
-            'place, details, invite, invite_on, consequence_id, gift, gift_cost, gift_on, outfit, with_user, '
-            'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)',
-            (identifier(), new_id, row['kind'], row['source'], row['person_id'], status, row['local_date'],
-             row['at_time'], row['until_time'], row['place'], row['details'], row['invite'], row['invite_on'],
-             row['gift'], row['gift_cost'], row['gift_on'], row['outfit'], row['with_user'], row['created_at'],
-             row['updated_at']))
+            'place, details, invite, invite_on, consequence_id, gift, gift_cost, gift_on, outfit, message_id, '
+            'outing_id, with_user, answered_at, created_at, updated_at) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (row_id, new_id, row['kind'], ID.sub(lambda match: found.get(match.group(), match.group()), row['source']),
+             found.get(row['person_id']) if row['person_id'] else None, status, row['local_date'], row['at_time'],
+             row['until_time'], row['place'], ID.sub(lambda match: found.get(match.group(), match.group()),
+                                                     row['details']), row['invite'], row['invite_on'], row['gift'],
+             row['gift_cost'], row['gift_on'], row['outfit'], message, outing,
+             row['with_user'] if status == 'done' else 0, row['answered_at'] if status == 'declined' else None,
+             row['created_at'], row['updated_at']))
+
+
+def copied_outing(connection, row: dict, row_id: str, message: str, cutoff: str) -> str | None:
+    """The day as booked on the copy: the parent's outing (shown on the copy through its invitation), or, when it was
+    called off after the fork, one of the copy's own."""
+    outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'] or '',))
+    if outing is None or outing['status'] != 'cancelled' or (outing['cancelled_at'] or '') < cutoff:
+        return row['outing_id']
+    copied = identifier()
+    place = {**(decode(outing['place']) or {}), 'big_day': row_id}
+    connection.execute(
+        'INSERT INTO outings (id, companion_id, message_id, local_date, at_time, until_time, activity, asked_date, '
+        'place, named, cost, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (copied, outing['companion_id'], message, outing['local_date'], outing['at_time'], outing['until_time'],
+         outing['activity'], outing['asked_date'], encode(place), outing['named'], outing['cost'],
+         outing['created_at']))
+    return copied
