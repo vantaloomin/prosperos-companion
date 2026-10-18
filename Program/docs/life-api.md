@@ -795,8 +795,10 @@ are seeing: a companion's own baby comes with v0.15.
   person.
 - Until a child is 13 the companion babysits now and then (their own family and godchildren, when the parent
   lives in town) and hears how they are getting on, as single-beat storylines (`babysat`, `baby_update`) from
-  the bank in `world/data/families.json`, at most one a day. A first birthday is a party (`first_birthday`);
-  `families.first_birthdays` lists them for Big days in the circle.
+  the bank in `world/data/families.json`, at most one a day.
+- A first birthday is a big day (companion/life/big_days.py `first_birthday`): a party at the parent's place the
+  Saturday on or after it, with a gift from the bank and the user asked along by the usual rules. The parent is
+  the one there; there is no group chat buzz about it.
 - The chat context lists each child under "People in your life" ("- Mia (your niece, a child, 2 years old):
   your sister Ana's daughter.").
 - Town couples' babies (companion/world/couples.py `babies`) follow the same setting; a companion who knows a

@@ -9,7 +9,9 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   seeded years, more often with the Their love life slider up; a parent, sibling, cousin or old friend turning 30, 40,
   50 ... has a party (companion/life/ages.py); a working relative reaching their seeded retirement age has a send-off;
   a circle member studying graduates in late spring; a townsperson the companion knows well marries
-  (companion/world/couples.py); and a friend's own engagement (companion/life/love_life.py) plans their wedding.
+  (companion/world/couples.py); a friend's own engagement (companion/life/love_life.py) plans their wedding; and a
+  baby in their circle turning one has a party at their parent's (companion/life/families.py). Children are words
+  only: the parent is the one there, there is no photo, no buzz, and with the adult side of life on there is no party.
   Later features add their own kinds (`KINDS`) and big days (`add`): graduations from life chapters, funerals.
 - Whether they ask the user along is the consequence engine's `bigday:invite` (the Guests slider, how close they are,
   family or not, a romance), under Hidden values ("Why it went this way"). Asked or not, they go: a gift bought from
@@ -103,7 +105,12 @@ KINDS = {
                            '22:00', ('restaurant', 'tavern', 'inn', 'bar'), None, 0.0, True),
     'own_wedding': Kind('own_wedding', "{companion}'s wedding", 'your wedding to {name}', '15:00', '22:00',
                         ('garden', 'landmark', 'inn', 'park', 'museum', 'temple'), None),
+    # A baby in their circle turning one (companion/life/families.py): at their parent's place.
+    'first_birthday': Kind('first_birthday', "{name}'s first birthday", "{who}'s first birthday party", '14:00',
+                           '17:00', (), 'first_birthday', 0.01),
 }
+# A child's day: the parent hosts, and it is never pictured or passed on as group chat buzz.
+CHILDS = ('first_birthday',)
 GRADUATION_PLACES = ('university', 'college', 'campus', 'school', 'academy', 'institute')
 NOT_PARTY = ('station', 'hospital', 'clinic', 'airport', 'prison', 'jail', 'court', 'police', 'parking', 'office')
 
@@ -267,8 +274,28 @@ def chapters(connection, companion: dict, today: date, people: dict, now) -> lis
             for item in big_turns.big_days(connection, companion['active_timeline_id'], today.isoformat(), high)]
 
 
+def first_birthdays(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
+    """A baby in their circle turning one (companion/life/families.py): a party at their parent's, the Saturday on or
+    after it. None while the adult side of life is on."""
+    from companion.life import families
+    if families.withheld(connection):
+        return []
+    result = []
+    for item in families.first_birthdays(connection, companion, today, today + timedelta(days=AHEAD)):
+        row = people.get(item['parent_id'])
+        if row is None:
+            continue
+        birthday = date.fromisoformat(item['date'])
+        child = {'she/her': 'daughter', 'he/him': 'son'}.get(item['pronouns'], 'child')
+        result.append(candidate('first_birthday', item['key'], row, birthday + timedelta(days=(5 - birthday.weekday()) % 7),
+                                name=item['child'], role=item['relation'] or f"{row['role']} {first(row['name'])}'s {child}",
+                                host=row['name'], host_role=row['role']))
+    return result
+
+
 # In order; later features add their own.
-SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, graduations, town_weddings, chapters]
+SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, graduations, town_weddings, chapters,
+           first_birthdays]
 # The companion's own days: the user is there for them, and there is no gift or buzz about someone else.
 OWN = ('own_wedding', 'own_graduation', 'own_retirement')
 
@@ -322,6 +349,9 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
         name = f"a venue in {away}" if away else 'the venue'
         return {'id': '~big-day', 'name': name, 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
                 'cuisine': '', 'city': away, 'city_id': '', 'spots': []}
+    if kind.key in CHILDS:
+        return {'id': '~big-day', 'name': f"{first(details.get('host') or '')}'s place", 'kind': 'venue',
+                'neighborhood': '', 'summary': '', 'cost': '', 'cuisine': '', 'city': '', 'city_id': '', 'spots': []}
     if kind.key in ('wedding', 'own_wedding'):
         return wedding.venue_for(data, wedding.customs(wedding.culture_of(data)), 'proper', seed, day=day)
     options = [item for item in data['places'] if item['kind'] in kind.places
@@ -501,6 +531,8 @@ def follow(connection, companion: dict, now: datetime) -> None:
 
 
 def gone(connection, row: dict) -> bool:
+    if row['kind'] in CHILDS and withheld(connection):
+        return True
     if row['person_id']:
         person = optional(connection, 'SELECT status FROM circle_people WHERE id=?', (row['person_id'],))
         if person is None or person['status'] == 'removed':
@@ -510,6 +542,11 @@ def gone(connection, row: dict) -> bool:
         partner = optional(connection, 'SELECT ended_on FROM love_partners WHERE id=?', (partner_id,))
         return partner is None or partner['ended_on'] is not None
     return False
+
+
+def withheld(connection) -> bool:
+    from companion.life import families
+    return families.withheld(connection)
 
 
 def call_off(connection, row: dict, timestamp: str) -> None:
@@ -641,15 +678,22 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     day = date.fromisoformat(row['local_date'])
     place = {**row['place'], 'big_day': row['id'], 'title': title(row, companion['version']['definition']['name']),
              'event': row['kind'], 'gift': row['gift'], 'standing_up': row['kind'] == 'own_wedding',
-             'own': row['kind'] in OWN,
-             'people': [{'id': row['person_id'] or '', 'name': row['details'].get('name', ''),
-                         'role': row['details'].get('role', '')}] if row['person_id'] else []}
+             'own': row['kind'] in OWN, 'no_photo': row['kind'] in CHILDS,
+             'people': [host(row)] if row['person_id'] else []}
     outing = together.insert(connection, companion, message['id'], ACTIVITY, place, day, row['at_time'],
                              row['until_time'], None, timestamp)
     trip_id = stay(connection, companion, day, message['id'], parse(timestamp))
     connection.execute("UPDATE big_days SET status='invited', message_id=?, outing_id=?, trip_id=?, updated_at=? "
                        'WHERE id=?', (message['id'], outing['id'], trip_id, timestamp, row['id']))
     return outings.get(connection, outing['id'])
+
+
+def host(row: dict) -> dict:
+    """The circle person whose day it is, or at a child's day their parent."""
+    details = row['details']
+    if details.get('host'):
+        return {'id': row['person_id'], 'name': details['host'], 'role': details.get('host_role', '')}
+    return {'id': row['person_id'], 'name': details.get('name', ''), 'role': details.get('role', '')}
 
 
 def stay(connection, companion: dict, day: date, message_id: str, now: datetime) -> str | None:
@@ -802,7 +846,7 @@ def buzz_line(row: dict, today: date) -> str:
     """Group chat buzz about it, the days before and after (a modern city only), for them to pass on."""
     gap = (date.fromisoformat(row['local_date']) - today).days
     key = 'buzz_before' if 0 < gap <= BUZZ_BEFORE else 'buzz_after' if -BUZZ_AFTER <= gap < 0 else None
-    if key is None or row['kind'] in OWN:
+    if key is None or row['kind'] in OWN or row['kind'] in CHILDS:
         return ''
     line = random.Random(f"{row['id']}:{key}").choice(bank()[key]).format(
         event=title(row), host=first(row['details'].get('name', '')))
@@ -814,7 +858,10 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
     today = local_today(companion, now)
     modern = modern_city(connection, companion)
     result = []
+    hidden = CHILDS if withheld(connection) else ()
     for row in rows(connection, companion['active_timeline_id'], ('planned', 'invited', 'declined', 'done')):
+        if row['kind'] in hidden:
+            continue
         gap = (date.fromisoformat(row['local_date']) - today).days
         if row['status'] != 'done' and gap >= 0:
             result.append((f"bigday:{row['id']}:{row['status']}", coming_line(row, today)))

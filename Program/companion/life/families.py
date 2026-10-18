@@ -11,16 +11,19 @@ The baby joins the circle as a child (`circle_children`) the day they are born, 
 with it (companion/life/ages.py). A sibling's baby is the companion's niece or nephew, a close friend often asks the
 companion to be the godparent, a cousin's or a coworker's baby is theirs. The companion babysits now and then and
 hears how they are getting on (bank lines in world/data/families.json by age, storylines again), until they turn
-13. A child's first birthday is a party; Big days in the circle turns it into an event (`first_birthdays`).
+13. A child's first birthday is a party at their parent's, a big day the companion goes to (companion/life/big_days.py
+`first_birthdays`).
 
 Children are words only. They are never circle_people, so nothing that reads the circle (the agenda, pictures, group
 chats, Matchlight, love lives, the web of who knows whom) ever sees them; they are listed under their parent. With the
-adult side of life on, nothing about them goes in a chat prompt (`withheld`).
+adult side of life on, nothing about them goes in a chat prompt (`withheld`), and no picture is made of words that
+name one or their first birthday (`pictured`).
 
 A companion's own baby with their partner, and children for the user and a companion, come with v0.15 (#73): the
 companion's partner is never cast here.
 """
 import json
+import re
 import string
 from datetime import date, timedelta
 from functools import cache
@@ -50,8 +53,9 @@ BABYSIT_FROM = 90  # Days old.
 # The companion's own partner: their baby waits for v0.15.
 PARTNERS = {'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée', 'fiancé', 'spouse'}
 FRIENDS = {'friend', 'new friend', 'roommate from years ago', 'neighbor'}
-# Set by Big days in the circle once a first birthday is an event of its own; until then it is a storyline beat.
-FIRST_BIRTHDAY_BEAT = True
+# A first birthday is a big day of its own (companion/life/big_days.py), so it is no longer a storyline beat.
+FIRST_BIRTHDAY_BEAT = False
+FIRST_BIRTHDAY = re.compile(r'\bfirst birthday\b', re.IGNORECASE)
 STORIES = ('expecting', 'baby_update', 'babysat', 'first_birthday')
 FIELDS = ('they', 'them', 'their', "they're", 'are', 'were', 'They', 'Their')
 
@@ -69,6 +73,18 @@ def level(connection) -> int:
 def withheld(connection) -> bool:
     """With the adult side of life on, children stay out of chat prompts altogether (they stay on the screens)."""
     return intimacy.turned_on(connection)
+
+
+def pictured(connection, timeline_id: str, texts) -> bool:
+    """Whether a picture's words name a child in the circle or a first birthday: none is ever made of them."""
+    text = ' '.join(str(item) for item in texts if item)
+    if not text:
+        return False
+    if FIRST_BIRTHDAY.search(text):
+        return True
+    names = {row['name'] for row in many(connection, "SELECT name FROM circle_children WHERE timeline_id=? AND "
+                                         "status!='ended'", (timeline_id,))}
+    return any(re.search(rf'\b{re.escape(name)}\b', text) for name in names)
 
 
 # Who may be expecting ------------------------------------------------------------------------------
@@ -390,7 +406,7 @@ def news_on(child: dict, day: date, pace: float, local: bool) -> tuple[str, str,
 
 def first_birthdays(connection, companion: dict, low: date, high: date) -> list[dict]:
     """Children's first birthdays in a stretch of days, for Big days in the circle: {key, date, child, parent_id,
-    parent, relation}."""
+    parent, pronouns, relation}."""
     result = []
     for child in born(connection, companion['active_timeline_id'], high):
         first = date.fromisoformat(child['born_on'])
@@ -398,7 +414,7 @@ def first_birthdays(connection, companion: dict, low: date, high: date) -> list[
         if low <= day <= high:
             result.append({'key': f"first-birthday:{child['id']}", 'date': day.isoformat(), 'child': child['name'],
                            'parent_id': child['parent_id'], 'parent': child['parent_name'],
-                           'relation': relation(child['title'], child['pronouns'])})
+                           'pronouns': child['pronouns'], 'relation': relation(child['title'], child['pronouns'])})
     return result
 
 

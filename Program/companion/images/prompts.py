@@ -10,7 +10,7 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import composer, feed, grooming, home, pets, pronouns, traditions, upkeep, wardrobe
+from companion.life import composer, families, feed, grooming, home, pets, pronouns, traditions, upkeep, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks
@@ -370,7 +370,9 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), **likeness}
+            'marked_nsfw': bool(marked_nsfw), **likeness,
+            **children(connection, post['timeline_id'], [event[key] for event in events
+                                                          for key in ('summary', 'caption', 'label', 'place')])}
 
 
 def pet_prompt(connection, timeline_id, events, image_settings) -> str:
@@ -450,7 +452,9 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
         likeness = {**likeness, 'lora': None}
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
             'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
-            'moment': moment, **likeness}
+            'moment': moment, **likeness,
+            **children(connection, companion['active_timeline_id'],
+                       [moment.get(key) for key in ('summary', 'caption', 'label', 'place')])}
 
 
 def build_meme(connection, meme, image_settings) -> dict:
@@ -471,6 +475,11 @@ def build_meme(connection, meme, image_settings) -> dict:
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': 'meme',
             'aspect': 'square', 'captions': [meme['top'], meme['bottom'], meme['subject'] or ''],
             'meme': meme, **likeness}
+
+
+def children(connection, timeline_id: str, texts) -> dict:
+    """Marks a request whose words name a child in the circle (companion/life/families.py), which nothing pictures."""
+    return {'withheld': True} if families.pictured(connection, timeline_id, texts) else {}
 
 
 def base_inputs(companion, definition, image_settings) -> dict:

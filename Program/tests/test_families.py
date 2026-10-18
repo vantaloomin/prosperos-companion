@@ -194,10 +194,10 @@ def test_babysitting_and_updates_follow_their_age_and_stop_at_thirteen():
     days = [date(2026, 4, 1) + timedelta(days=offset) for offset in range(365)]
     found = [news for day in days if (news := families.news_on(child, day, 1.0, True))]
     kinds = {news[0] for news in found}
-    assert {'babysat', 'baby_update', 'first_birthday'} <= kinds
+    assert {'babysat', 'baby_update'} <= kinds and 'first_birthday' not in kinds  # A big day of its own now.
     assert 6 < len(found) < 80
     grown = [families.news_on(child, day + timedelta(days=365 * 13), 1.0, True) for day in days]
-    assert {news[0] for news in grown if news} <= {'first_birthday'} and not any(grown)
+    assert not any(grown)
     friend = {**child, 'title': 'friend'}
     assert not any(families.news_on(friend, day, 1.0, True) and families.news_on(friend, day, 1.0, True)[0] == 'babysat'
                    for day in days)
@@ -242,3 +242,39 @@ def test_an_older_world_gets_growing_families_by_its_preset(tmp_path, drama, exp
     add_columns(connection)
     assert connection.execute('SELECT growing_families FROM life_settings').fetchone() == (expected,)
     connection.close()
+
+
+def test_a_first_birthday_is_a_big_day_at_their_parents_told_in_words_only(client, mira, clock, monkeypatch):
+    from companion.characters import current
+    from companion.images import content, prompts
+    from companion.life import big_days
+    monkeypatch.setattr(big_days, 'ACTIVE', True)
+    person = sister(client)
+    birthday = clock.now().date() + timedelta(days=20)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        timeline_id, now = companion['active_timeline_id'], clock.now().isoformat()
+        connection.execute("INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, "
+                           "born_on, status, created_at, updated_at) VALUES ('ivy', ?, ?, 'story', 'Ivy', 'she/her', "
+                           "'family', ?, 'born', ?, ?)", (timeline_id, person['id'],
+                                                          birthday.replace(year=birthday.year - 1).isoformat(), now, now))
+        big_days.advance(connection, companion, clock.now())
+        [row] = [row for row in big_days.rows(connection, timeline_id) if row['kind'] == 'first_birthday']
+        assert big_days.title(row) == "Ivy's first birthday" and big_days.said(row) == "your niece Ivy's first birthday party"
+        assert row['place']['name'] == f"{person['name'].split()[0]}'s place" and row['gift']
+        assert date.fromisoformat(row['local_date']).weekday() == 5 and date.fromisoformat(row['local_date']) >= birthday
+        assert big_days.host(row) == {'id': person['id'], 'name': person['name'], 'role': 'sister'}  # Their parent.
+        assert big_days.buzz_line(row, date.fromisoformat(row['local_date']) - timedelta(days=2)) == ''
+        assert any('first birthday' in text for _key, text in big_days.context_lines(connection, companion, clock.now()))
+        # Nothing pictures them: words naming the child or a first birthday are refused.
+        assert families.pictured(connection, timeline_id, ['Out at the park with Ivy'])
+        assert families.pictured(connection, timeline_id, ["At Sam's first birthday"])
+        assert not families.pictured(connection, timeline_id, ['Out at the park'])
+        refused = content.classify(prompts.children(connection, timeline_id, ["Ivy's first birthday at Ana's place"]))
+        assert refused.tier == content.PROHIBITED
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        assert not any('Ivy' in text for _key, text in big_days.context_lines(connection, companion, clock.now()))
+        big_days.advance(connection, companion, clock.now())
+        assert big_days.get(connection, row['id'])['status'] == 'called_off'
