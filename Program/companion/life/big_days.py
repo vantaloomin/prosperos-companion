@@ -661,7 +661,8 @@ def invite_due(connection, companion: dict, now: datetime) -> list:
         return []
     day = date.fromisoformat(row['local_date'])
     when = f"{'next ' if (day - local.date()).days >= 7 else ''}{day:%A}"
-    template = invitation(row, when, clock_text(row['at_time']))
+    from companion.life import loss
+    template = invitation(row, when, clock_text(row['at_time']), loss.era_of(connection, companion))
     return [Trigger(f"bigday:{row['id']}", 'big_day', reason_for(row, day), template, (row['id'],))]
 
 
@@ -683,14 +684,15 @@ def reason_for(row: dict, day: date) -> str:
             "that's fine.")
 
 
-def invitation(row: dict, day: str, time: str) -> str:
+def invitation(row: dict, day: str, time: str, era: str = 'modern') -> str:
     seed = random.Random(f"{row['id']}:line")
     if row['kind'] == 'own_wedding':
         line = seed.choice(bank()['stand_up']).format(partner=first(row['details']['name']), day=day,
                                                      place=row['place']['name'])
     else:
         event = said(row).replace('your ', 'my ', 1)
-        lines = bank()['invite_funeral' if row['kind'] == 'funeral' else 'invite']
+        from companion.life import loss
+        lines = loss.fitting(bank()['invite_funeral'], era) if row['kind'] == 'funeral' else bank()['invite']
         line = seed.choice(lines).format(event=event, day=day, time=time, place=row['place']['name'])
     return line[:1].upper() + line[1:]
 

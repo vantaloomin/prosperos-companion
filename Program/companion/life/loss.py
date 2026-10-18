@@ -30,6 +30,7 @@ No model decides anything; the model only puts it into words.
 """
 import json
 import random
+import re
 from datetime import date, datetime, timedelta
 from functools import cache
 
@@ -70,11 +71,30 @@ FEELS = {
     'lifting': "it's lifting slowly: you're mostly yourself again, with the odd quiet moment",
 }
 CAUSES = {'illness': 'after an illness', 'old age': 'peacefully, of old age', 'sudden': 'suddenly'}
+# The banks' lines that need a later era (texting, a phone, a radio, a photograph): the city's era as a rank, and the
+# rank each needs. Other lines fit any era.
+ERA_RANKS = {'modern': 3, 'future': 3, 'other': 3, 'jazz-age': 2, 'victorian': 1, 'steampunk': 1, 'frontier': 1}
+ERA_NEEDS = ((re.compile(r'\btext', re.IGNORECASE), 3),
+             (re.compile(r'\bcall|\bphone|\bradio\b|\bcrossword', re.IGNORECASE), 2),
+             (re.compile(r'\bphotograph|\bcoffee\b|\bcocoa\b|\bpostcard|\bpocket watch', re.IGNORECASE), 1))
 
 
 @cache
 def bank() -> dict:
     return json.loads((catalog.DATA / 'loss.json').read_text(encoding='utf-8'))
+
+
+def era_of(connection, companion: dict) -> str:
+    """The era of the companion's city ('modern' without one)."""
+    from companion.life import outings
+    data = outings.city_data(connection, companion['version']['definition'])
+    return (data or {}).get('era') or 'modern'
+
+
+def fitting(lines: list[str], era: str) -> list[str]:
+    """The lines that fit the era: no texting before phones, no radio in 1895, no photograph in Camelot."""
+    rank = ERA_RANKS.get(era, 0)
+    return [line for line in lines if all(rank >= need for pattern, need in ERA_NEEDS if pattern.search(line))] or lines
 
 
 def first(name: str) -> str:
@@ -378,22 +398,22 @@ def long_date(day: str) -> str:
     return f'{found:%A}, {found.day} {found:%B}'
 
 
-def memory(row: dict, today: date) -> str:
+def memory(row: dict, today: date, era: str = 'modern') -> str:
     """Now and then, something small brings them back (one day in MEMORY_ONE_IN, seeded)."""
     if generators.unit(row['id'], 'memory', today.isoformat()) * MEMORY_ONE_IN >= 1:
         return ''
-    line = generators.pick(row['id'], f'memory:{today.isoformat()}', bank()['memories'])
+    line = generators.pick(row['id'], f'memory:{today.isoformat()}', fitting(bank()['memories'], era))
     found = pronouns.person(row['details'].get('pronouns'))
     return f" Today something brought {found['them']} back: {line.format(**found)}."
 
 
-def grief_line(row: dict, name: str, today: date, definition: dict) -> str:
+def grief_line(row: dict, name: str, today: date, definition: dict, era: str = 'modern') -> str:
     gap = (today - date.fromisoformat(row['died_on'])).days
     ago = 'today' if gap == 0 else 'yesterday' if gap == 1 else f'{gap} days ago'
     cause = f", {CAUSES[row['details']['cause']]}" if row['details'].get('cause') in CAUSES else ''
     text = (f"- {who(row, definition)[:1].upper()}{who(row, definition)[1:]} died on {long_date(row['died_on'])} "
             f"({ago}){cause}. You're grieving, and {FEELS[name]}.")
-    return (text + memory(row, today) + " You don't need to bring it up every time, and you can still laugh and enjoy "
+    return (text + memory(row, today, era) + " You don't need to bring it up every time, and you can still laugh and enjoy "
             'things.')
 
 
@@ -412,11 +432,12 @@ def remembered_line(row: dict, today: date, definition: dict) -> str:
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     """(identity, line) for the 'loss' section: the grief while it lasts, then anniversaries and the plain fact."""
     today, definition = local_today(companion, now), companion['version']['definition']
-    result = []
+    result, era = [], era_of(connection, companion)
     for row in rows(connection, companion['active_timeline_id']):
         name = stage(row, today)
         if name:
-            result.append((f"loss:{row['id']}:{name}:{today.isoformat()}", grief_line(row, name, today, definition)))
+            result.append((f"loss:{row['id']}:{name}:{today.isoformat()}",
+                           grief_line(row, name, today, definition, era)))
         elif date.fromisoformat(row['died_on']) <= today and row['kind'] == 'circle':
             result.append((f"loss:{row['id']}:after:{today.isoformat()}", remembered_line(row, today, definition)))
     return result
@@ -459,14 +480,14 @@ def news_due(connection, companion: dict, now) -> list:
     if not ACTIVE or not FIRST_TEXTS or not companion.get('active_timeline_id'):
         return []
     today, definition = local_today(companion, now), companion['version']['definition']
-    result = []
+    result, lines = [], fitting(bank()['news'], era_of(connection, companion))
     for row in rows(connection, companion['active_timeline_id']):
         gap = (today - date.fromisoformat(row['died_on'])).days
         if row['kind'] != 'circle' or not 0 <= gap < TOLD_DAYS:
             continue
         when = 'today' if gap == 0 else 'yesterday'
         cause = f", {CAUSES[row['details']['cause']]}" if row['details'].get('cause') in CAUSES else ''
-        line = random.Random(f"{row['id']}:news").choice(bank()['news']).format(
+        line = random.Random(f"{row['id']}:news").choice(lines).format(
             who=who(row, definition).replace('your ', 'my ', 1), when=when)
         result.append(Trigger(f"loss:{row['id']}", 'storyline',
                               f"Something sad just happened: {who(row, definition)} died {when}{cause}. Tell the user, "

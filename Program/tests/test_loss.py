@@ -306,7 +306,7 @@ def test_someone_who_died_leaves_the_living_and_their_plans_with_the_companion(c
     from companion.database import identifier
     make(client)
     switch(client)
-    dies(monkeypatch)
+    dies(monkeypatch, person(client, 'dad')['id'])
     advance(client, clock)
     row = next(row for row in losses(client) if row['role'] == 'dad')
     clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
@@ -373,3 +373,19 @@ def test_the_funeral_is_never_at_a_food_hall_a_bar_or_a_library(monkeypatch):
         assert loss.venue_for(None, {}, data, 's', day)['id'] == '~funeral', culture
     data['places'].append({**place, 'id': 't', 'name': 'Shitennoji', 'kind': 'temple'})
     assert loss.venue_for(None, {}, data, 's', day)['id'] == 't'
+
+
+def test_the_news_the_memories_and_the_invitation_fit_the_era():
+    bank, invites = loss.bank(), big_days.bank()['invite_funeral']
+    for era in ('victorian', 'medieval', 'fantasy'):
+        for line in [*loss.fitting(bank['news'], era), *loss.fitting(invites, era)]:
+            assert not re.search(r'\btext|\bcall|\bphone', line, re.I), (era, line)
+        assert not [line for line in loss.fitting(bank['memories'], era) if re.search(r'\bradio\b', line)]
+    assert not [line for line in loss.fitting(bank['memories'], 'medieval') if re.search(r'photograph|coffee', line)]
+    assert loss.fitting(bank['news'], 'modern') == bank['news']
+    assert loss.fitting(bank['news'], 'jazz-age') != bank['news']  # No texting in 1925 either.
+    row = {'id': 'x', 'kind': 'funeral', 'details': {'name': 'Ray', 'role': 'dad', 'word': 'funeral'},
+           'place': {'name': 'the parish church'}}
+    for index in range(40):
+        line = big_days.invitation({**row, 'id': f'x{index}'}, 'Saturday', '11', 'victorian')
+        assert not re.search(r'\bcall\b|coffee', line), line
