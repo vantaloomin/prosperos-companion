@@ -358,13 +358,14 @@ def user_move(connection, companion: dict, entry_id: str, now: datetime) -> dict
 # --- Seeded appointments, deadlines, errands and surprises ---
 
 def owns(definition: dict, connection, timeline_id: str, day: date) -> set[str]:
-    """What the companion has that some admin needs: a car, a horse, a rented home, glasses, a job."""
+    """What the companion has that some admin needs: a car, a horse, a rented home (not one they own), glasses, a
+    job."""
     found = set()
     for item in home.items_on(connection, timeline_id, day):
         if item['kind'] == 'vehicle' and item['variety'] in ('car', 'motorcar', 'horse'):
             found.add('horse' if item['variety'] == 'horse' else 'car')
-        if item['kind'] == 'home' and (item.get('rent') or money.profile(definition)):
-            found.add('rent')
+        if item['kind'] == 'home' and not item.get('owned') and (item.get('rent') or money.profile(definition)):
+            found.add('rent')  # A place they bought (big_turns.py) has no lease to renew.
     looks_text = ' '.join([definition.get('appearance', ''), definition.get('in_photos', ''),
                            json.dumps(definition.get('looks') or {})]).lower()
     if any(word in looks_text for word in ('glasses', 'spectacles', 'contact lens')):

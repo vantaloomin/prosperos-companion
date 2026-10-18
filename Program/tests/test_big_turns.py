@@ -8,7 +8,7 @@ from test_chapters import arrange, current, items
 from test_storylines import WORKDAY
 
 from companion import consequences
-from companion.life import big_turns, chapters, money, storylines
+from companion.life import admin, big_turns, chapters, money, storylines
 from companion.world import turnover
 
 
@@ -154,6 +154,11 @@ def test_buying_a_place_brings_a_mortgage_until_undone(client, mira, clock, monk
     found = details(client, chapter['id'])
     old = items(client, 'home')
     assert chapter['stage'] == 'hunting' and found['place']['details']['owned']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        admin.add(connection, companion, key='admin:lease:2099-01-01', source='admin', kind='lease',
+                  title='Lease renewal', done='signed the lease', day=clock.now().date() + timedelta(days=20),
+                  now=clock.now())
     assert 'keys on' in client.get('/api/life/chapters/lately').json()['now'][0]['line']
     next_stage(client, clock, chapter['id'])
     [place] = items(client, 'home')
@@ -167,6 +172,11 @@ def test_buying_a_place_brings_a_mortgage_until_undone(client, mira, clock, monk
                                 money.household(connection, companion['active_timeline_id'], definition, today))
     assert budget['owned'] and any(item['for'] == 'deposit' and item['savings'] for item in budget['bought'])
     assert 'the mortgage on your home is about' in client.get('/api/context/preview').json()['prompt']
+    with client.app.state.database.connect() as connection:
+        has = admin.owns(definition, connection, companion['active_timeline_id'], today)
+        assert connection.execute("SELECT status FROM life_admin WHERE key='admin:lease:2099-01-01'").fetchone()[0] \
+            == 'removed'
+    assert 'rent' not in has  # No lease to renew on a place they own.
     client.post(f"/api/life/chapters/{chapter['id']}/undo")
     assert [item['id'] for item in items(client, 'home')] == [old[0]['id']]
 

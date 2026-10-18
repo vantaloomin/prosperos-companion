@@ -432,6 +432,9 @@ def keys_day(connection, companion, row, details, day, now) -> dict:
     for item in old:
         connection.execute('UPDATE home_items SET until=? WHERE id=?', (max(day.isoformat(), item['since']), item['id']))
     added = home.insert_item(connection, timeline_id, details['place'], 'change', day, now)
+    # No lease to renew on a place they own (companion/life/admin.py).
+    connection.execute("UPDATE life_admin SET status='removed' WHERE timeline_id=? AND key LIKE 'admin:lease:%' AND "
+                       "status='planned'", (timeline_id,))
     undo = {'ended': [item['id'] for item in old], 'added': [added]}
     together = moving_in.living(connection, companion, day) if details.get('shared') else None
     if together:
