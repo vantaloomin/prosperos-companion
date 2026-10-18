@@ -128,6 +128,13 @@ def no_turnover(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_new_babies(monkeypatch):
+    """Pregnancies, updates and babysitting in the circle (companion/life/families.py) are seeded dice that would add
+    storylines to unrelated tests; tests/test_families.py turns them on."""
+    monkeypatch.setattr('companion.life.families.ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
 def no_big_days(monkeypatch):
     """Big days in the circle (companion/life/big_days.py) would plan weddings and parties, and their invitations,
     as unrelated tests' clocks move on; tests/test_big_days.py turns them on."""

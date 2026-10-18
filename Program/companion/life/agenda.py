@@ -29,6 +29,7 @@ from companion.life import (
     composer,
     disruptions,
     encounters,
+    families,
     grooming,
     hobbies,
     home,
@@ -170,6 +171,7 @@ def extend(connection, companion, world, now) -> dict:
         written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion)
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
+    started += families.advance(connection, companion, world, now)
     reactions.daily(connection, companion, now)
     rough_patches.daily(connection, companion, now)
     # Breaks and breakups (companion/life/breakups.py) read the rough patches just settled.

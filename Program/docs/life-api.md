@@ -777,6 +777,34 @@ age goes up on each birthday. Rules only, no model.
   grey hairs, laugh lines and reading glasses at seeded ages, settling in over the years after. Only ages they
   reach in the app count, only looks the app drew change, and the Looks setting shifts how soon.
 
+### Births and growing families
+
+`companion/life/families.py` brings babies into the circle, rules only. Each Monday a sibling, cousin, friend or
+coworker in the circle aged 24 to 42 may start expecting (a married sibling likeliest), at the pace of Realism >
+Their days > Growing families (life setting `growing_families`: 0 none, 1 now and then, 2 true to life, 3 lots;
+an easy life starts at 1, a dramatic one at 3). Never the companion's parents, their own partner or someone they
+are seeing: a companion's own baby comes with v0.15.
+
+- A pregnancy is a storyline (`expecting`) with four beats over about seven months: the news with a due month,
+  something halfway through, "any day now" and the birth with the baby's name. The old one-line `cousin_baby`
+  storyline no longer starts. Ending it on Today means the baby never arrives.
+- The baby joins the circle the day they are born (`circle_children`, kept apart from `circle_people`), with that
+  birthday, and gets older with it. A sibling's baby is the companion's niece or nephew, a close friend often
+  asks them to be the godparent, anyone else's is theirs. `GET /life/circle` adds `children`
+  (`[{id, name, pronouns, born_on, age, age_text, relation, title}]`) and `expecting` (the due month) to each
+  person.
+- Until a child is 13 the companion babysits now and then (their own family and godchildren, when the parent
+  lives in town) and hears how they are getting on, as single-beat storylines (`babysat`, `baby_update`) from
+  the bank in `world/data/families.json`, at most one a day.
+- A first birthday is a big day (companion/life/big_days.py `first_birthday`): a party at the parent's place the
+  Saturday on or after it, with a gift from the bank and the user asked along by the usual rules. The parent is
+  the one there; there is no group chat buzz about it.
+- The chat context lists each child under "People in your life" ("- Mia (your niece, a child, 2 years old):
+  your sister Ana's daughter.").
+- Town couples' babies (companion/world/couples.py `babies`) follow the same setting; a companion who knows a
+  townsperson well hears they are expecting ("Family news: they're expecting a baby with Dana around March.").
+- Children are only ever words: never in pictures, the feed or group chats.
+
 ## Limits and permissions
 
 ```http

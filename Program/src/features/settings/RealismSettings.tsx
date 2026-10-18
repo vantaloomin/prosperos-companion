@@ -17,6 +17,7 @@ import { ROUGH_PATCH_LEVELS } from '../profile/roughPatchText'
 import { PACE_LEVELS } from '../character/stepsText'
 import { BREAKUPS_HINT } from '../character/breakupText'
 import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
+import { FAMILY_LEVELS } from '../character/familiesText'
 import { TURN_LEVELS } from '../character/turnsText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
@@ -62,6 +63,7 @@ export function PaceSettings() {
   const media = step(MEDIA_LEVELS, data.media_realism, 2)
   const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
+  const families = step(FAMILY_LEVELS, data.growing_families, 2)
   const turns = step(TURN_LEVELS, data.life_turns, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
@@ -91,6 +93,10 @@ export function PaceSettings() {
           onChange={(together_realism) => void save({ together_realism })} />}
       </Field>
       <LoveLifeSlider value={data.love_life} onChange={(love_life) => void save({ love_life })} />
+      <Field label={`Growing families: ${families.label}`} hint={families.hint} tip="Babies and children are only ever mentioned in words, never pictured. Town babies show up in the paper.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.growing_families} label={families.label}
+          onChange={(growing_families) => void save({ growing_families })} />}
+      </Field>
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}
           onChange={(guests_realism) => void save({ guests_realism })} />}

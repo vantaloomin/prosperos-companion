@@ -47,6 +47,7 @@ from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
 from companion.text_models import config_for, key_for
 from companion.workspace import overlapping_pause
+from companion.world import turnover
 
 LOG = logging.getLogger(__name__)
 
@@ -102,8 +103,9 @@ def update_settings(database, body) -> dict:
                 hobbies.settings_changed(connection, database.clock.now(), row['hobbies_realism'])
         found = settings_view(life_settings(connection))
     if 'life_turns' in changed:
-        from companion.world import turnover
         turnover.load(database)  # The town's pace follows Life's big turns too, once saved.
+    if 'growing_families' in changed:
+        turnover.load(database)  # Town couples' babies follow it too (companion/world/couples.py).
     return found
 
 

@@ -488,6 +488,8 @@ export interface LifeSettings {
   love_life: number
   /** Life's big turns (companion/life/big_turns.py): how often life chapters come, 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful. */
   life_turns: number
+  /** Births and growing families (companion/life/families.py): 0 none, 1 now and then, 2 true to life, 3 lots. */
+  growing_families: number
 }
 
 /** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
@@ -693,6 +695,24 @@ export interface CirclePerson {
   love?: string
   /** The latest roll for the two of them, only with Hidden values' odds on. */
   love_odds?: string | null
+  /** Their children (companion/life/families.py), in words only. */
+  children?: CircleChild[]
+  /** The month their baby is due while they are expecting: "March". */
+  expecting?: string | null
+}
+
+/** A child in the circle (companion/life/families.py): born in the app, listed under their parent. `relation` is what
+ * they are to the companion ('niece', 'godson'), null for a friend's or coworker's baby. */
+export interface CircleChild {
+  id: string
+  name: string
+  pronouns: string
+  born_on: string
+  age: number
+  /** 'a newborn', '3 weeks old', '7 months old', '2'. */
+  age_text: string
+  relation: string | null
+  title: 'family' | 'godchild' | 'friend'
 }
 
 /** A circle person who has met the user, or is about to (companion/life/their_people.py). `before` is a couple who go

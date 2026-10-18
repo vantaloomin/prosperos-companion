@@ -324,6 +324,9 @@ ADDED_COLUMNS = (
     # A fork's copy of a moving-in row (companion/life/moving_in.py `copy`): the row it was first copied from, so a home
     # set up before the fork stays one household with those who moved in on other timelines; NULL for the original.
     ('moving_in', 'origin', 'TEXT'),
+    # Births and growing families (companion/life/families.py, Settings > Realism): how often babies arrive in the
+    # circle and the town, 0 none, 1 now and then, 2 true to life, 3 lots.
+    ('life_settings', 'growing_families', 'INTEGER NOT NULL DEFAULT 2 CHECK (growing_families BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -398,6 +401,8 @@ UPGRADE_REALISM = {0: {'rough_patches_realism': 1, 'steps_pace': 1, 'love_life':
                    3: {'rough_patches_realism': 3, 'steps_pace': 3, 'love_life': 3}}
 # Life's big turns from v0.14 the same way: an easy life gets the gentle level (good turns only), a dramatic one eventful.
 UPGRADE_TURNS = {0: {'life_turns': 1}, 3: {'life_turns': 3}}
+# Growing families (v0.14) the same way: an easy life has babies now and then, a dramatic one lots.
+UPGRADE_FAMILIES = {0: {'growing_families': 1}, 3: {'growing_families': 3}}
 
 
 def add_columns(connection):
@@ -407,7 +412,8 @@ def add_columns(connection):
         if column not in existing:
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
             added.add((table, column))
-    for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS)):
+    for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
+                           ('growing_families', UPGRADE_FAMILIES)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
 

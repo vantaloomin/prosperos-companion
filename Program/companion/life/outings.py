@@ -1146,6 +1146,8 @@ def photograph(database) -> None:
             return
         outing = view(ready[0])
         connection.execute('UPDATE outings SET photo_tried=1 WHERE id=?', (outing['id'],))
+        if outing['place'].get('no_photo'):
+            return  # A child's big day (companion/life/big_days.py): told in words only.
         slot = optional(connection, "SELECT slot_key, ends_at, entry FROM life_agenda WHERE timeline_id=? AND "
                         "subject='companion' AND json_extract(entry, '$.outing.id')=?",
                         (companion['active_timeline_id'], outing['id']))
