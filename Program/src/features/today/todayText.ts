@@ -22,13 +22,17 @@ export function changesEmpty(name: string, waiting: number): string {
   return `${things} waiting for you above. What you keep shows up here.`
 }
 
+/** "18:30" (a clock time of their own day) as the locale writes it: 6:30 PM. */
+const clockTime = (at: string) => time(`2000-01-01T${at}:00Z`, 'UTC')
+
 /** When it happens. With `timeZone` (the companion's, beside a label from their day such as "Afternoon") the day
- *  and time are theirs, so the time and the label agree. */
-export function eventWhen(startsAt: string, now = appDate(), timeZone?: string): string {
+ *  and time are theirs, so the time and the label agree. An outing with the user (`at`, their local "18:30") shows
+ *  its own time, not the start of the block it fills (6:00 PM · Evening). */
+export function eventWhen(startsAt: string, now = appDate(), timeZone?: string, at?: string): string {
   const date = new Date(startsAt)
   const dayOf = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(value)
   const day = dayOf(date) === dayOf(now) ? 'Today' : new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone }).format(date)
-  return `${day}, ${time(startsAt, timeZone)}`
+  return `${day}, ${timeZone && at && /^\d{2}:\d{2}$/.test(at) ? clockTime(at) : time(startsAt, timeZone)}`
 }
 
 /** A few words for the conversation header. */

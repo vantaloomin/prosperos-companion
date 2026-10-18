@@ -27,8 +27,11 @@ DEFAULT_TIER = 1
 US_TAKE_HOME = (2600, 4300, 6900, 11500)
 US_BASE_RENT = 1900
 COST_EXPONENT = 0.3
-# Elsewhere: take-home as a multiple of a labourer's wage, or of a typical one-bedroom rent.
+# Elsewhere: take-home as a multiple of a labourer's wage, or of a typical one-bedroom rent. A modern city's wage is
+# already an ordinary job's take-home, and pay spreads less there: a London pharmacist takes home about 1.5 times a
+# low-paid job, not 2.8 times (E2E v0.13 found GBP 7,546 a month).
 WAGE_MULTIPLE = (1.0, 1.7, 2.8, 5.0)
+MODERN_WAGE_MULTIPLE = (1.0, 1.25, 1.5, 2.4)
 RENT_MULTIPLE = (2.4, 3.4, 5.0, 8.0)
 WORK_DAYS = {'month': 22, 'week': 6}
 ESSENTIALS = {'modern': 0.3, 'jazz-age': 0.35, 'other': 0.4}
@@ -205,7 +208,8 @@ def take_home(city: dict, tier: int) -> float:
         return US_TAKE_HOME[tier] * (typical_rent(city) / US_BASE_RENT) ** COST_EXPONENT
     wage = price(city, ('wage',))
     if wage:
-        return wage * WORK_DAYS[city['rent_period']] * WAGE_MULTIPLE[tier]
+        multiple = MODERN_WAGE_MULTIPLE if era_of(city) == 'modern' else WAGE_MULTIPLE
+        return wage * WORK_DAYS[city['rent_period']] * multiple[tier]
     return typical_rent(city) * RENT_MULTIPLE[tier]
 
 

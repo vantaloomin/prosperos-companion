@@ -7,7 +7,7 @@ import type { DeletePreview, Memory, Message, PlanStatus } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Toggle } from '../../components/Fields'
 import { useReturnFocus } from '../../components/returnFocus'
-import { correction, dayInput, deletePreviewText, earlierVersions, followUp, statusLabels, type Correction } from './memoryGroups'
+import { addedLine, correction, dayInput, deletePreviewText, earlierVersions, followUp, statusLabels, type Correction } from './memoryGroups'
 
 export interface MemoryActions {
   correct: (memory: Memory, body: Correction) => Promise<boolean>
@@ -33,7 +33,7 @@ export function MemoryCard({ memory, all, sources, actions, focusOnMount }: { me
         {editing ? <CorrectForm memory={memory} onDone={() => setEditing(false)} correct={actions.correct} /> : <p className="memory-value">{memory.value}</p>}
         <Meta memory={memory} />
         {!editing && <FollowUp memory={memory} correct={actions.correct} onEdit={() => setEditing(true)} />}
-        <Sources ids={memory.source_message_ids} sources={sources} />
+        <Sources memory={memory} sources={sources} />
         <EarlierValues history={history} />
       </div>
       <ActionBar memory={memory} editing={editing} actions={actions} correctButton={correctButton} onEdit={() => setEditing(true)} onDelete={() => setDeleting(true)} />
@@ -82,8 +82,10 @@ function PinButton({ memory, actions }: { memory: Memory; actions: MemoryActions
   return <button type="button" className="text-button" onClick={() => actions.pin(memory, !memory.pinned)}><Icon aria-hidden="true" />{memory.pinned ? 'Unpin' : 'Pin'}</button>
 }
 
-function Sources({ ids, sources }: { ids: string[]; sources: Map<string, Message> }) {
-  if (!ids.length) return <p className="memory-source subtle">Added by you directly.</p>
+function Sources({ memory, sources }: { memory: Memory; sources: Map<string, Message> }) {
+  const ids = memory.source_message_ids
+  const added = addedLine(memory)
+  if (!ids.length) return added && <p className="memory-source subtle">{added}</p>
   return (
     <ul className="memory-source" aria-label="Where this came from">
       {ids.map((id) => {

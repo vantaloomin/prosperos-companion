@@ -18,6 +18,7 @@ An outing belongs to the message it came from, like a plan the companion made (c
 holds on every timeline showing that message or a copy, and goes when the message does.
 """
 import re
+import sqlite3
 from datetime import date, datetime, timedelta
 
 from companion import in_character
@@ -928,6 +929,59 @@ def memory_text(outing: dict, name: str) -> dict:
     pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
     return {'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} together at {place['name']}",
             'value': f"Went out together for {what(outing)} {on}."}
+
+
+# Memories saved in the old wording ----------------------------------------------------------------------------------
+
+REWORD = ('SELECT {table}.*, m.subject AS memory_subject, m.value AS memory_value, v.name AS memory_name FROM {table} '
+          'JOIN memories m ON m.id={table}.memory_id JOIN companions c ON c.id={table}.companion_id '
+          "JOIN character_versions v ON v.id=c.active_version_id WHERE m.status!='superseded' AND "
+          "m.merged_into_id IS NULL AND m.origin='automatic' AND m.layer='shared_experience'")
+
+
+def old_outing(row: dict) -> bool:
+    """Written before v0.13's last wording: "You married the user at ...", "The user came over to your place", or
+    a dinner at theirs as "Went out together for dinner ... at your place"."""
+    return 'the user' in f"{row['memory_subject']} {row['memory_value']}" or (
+        row['activity'] == 'dinner-in' and row['memory_value'].startswith('Went out together for'))
+
+
+def old_stay(row: dict) -> bool:
+    return 'the user' in f"{row['memory_subject']} {row['memory_value']}"
+
+
+def reworded(connection) -> list[tuple[dict, dict]]:
+    """(row, {subject, value}) for each memory an outing or a long-distance stay left in the old wording."""
+    from companion.life.long_distance import stay_text
+    cursor = connection.cursor()
+    cursor.row_factory = sqlite3.Row  # The upgrade's own connection has no row factory.
+    found = []
+    for row in map(dict, cursor.execute(REWORD.format(table='outings')).fetchall()):
+        if old_outing(row):
+            found.append((row, memory_text(view(row), row['memory_name'].split()[0])))
+    for row in map(dict, cursor.execute(REWORD.format(table='trips')).fetchall()):
+        if row['visit'] and old_stay(row):
+            found.append((row, stay_text(row, {'version': {'definition': {'name': row['memory_name']}}})))
+    return [(row, text) for row, text in found
+            if (text['subject'], text['value']) != (row['memory_subject'], row['memory_value'])]
+
+
+def reword_memories(connection, timestamp: str) -> int:
+    """Memories that outings and long-distance stays saved before this version read the way new ones are written
+    ("You and Mira got married at ...", "Mira came to stay with you in Baltimore, Friday July 10 to ..."). Runs at
+    every start (companion/database.py initialize) and changes only memories still in the old wording that were never
+    corrected: a correction is a new revision, which leaves the outing's own one superseded."""
+    from companion.memory.extraction import subject_key
+    from companion.memory.vectors import forget
+    found = reworded(connection)
+    for row, text in found:
+        connection.execute('UPDATE memories SET subject=?, subject_key=?, value=?, updated_at=? WHERE id=?',
+                           (text['subject'], subject_key(text['subject']), text['value'], timestamp, row['memory_id']))
+    if found:
+        forget(connection, 'memory', [row['memory_id'] for row, _text in found])
+        connection.execute('UPDATE workspace_settings SET memory_revision=memory_revision+1, updated_at=? WHERE id=1',
+                           (timestamp,))
+    return len(found)
 
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:

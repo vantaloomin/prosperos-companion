@@ -15,12 +15,21 @@ export function layerTitle(layer: Layer, name: string) {
 
 export interface MemoryGroup { layer: Layer; current: Memory[]; history: Memory[] }
 
-/** Group by layer in display order; pinned first, then by subject. Superseded versions stay as history.
+/** When a memory happened: its start, else when it was said. */
+const happened = (memory: Memory) => memory.applies_from ?? memory.stated_at
+
+/** Shared moments newest first, by when they happened (Iris); the other layers pinned first, then by subject. */
+function orderFor(layer: Layer) {
+  if (layer === 'shared_experience') return (a: Memory, b: Memory) => happened(b).localeCompare(happened(a)) || a.subject.localeCompare(b.subject)
+  return (a: Memory, b: Memory) => Number(b.pinned) - Number(a.pinned) || Number(b.boundary) - Number(a.boundary) || a.subject.localeCompare(b.subject)
+}
+
+/** Group by layer in display order (see orderFor). Superseded versions stay as history.
  * What you said about people in your life is grouped by person instead (see groupPeople). */
 export function groupMemories(memories: Memory[]): MemoryGroup[] {
   return LAYERS.map(({ id }) => {
     const inLayer = memories.filter((memory) => memory.layer === id && !memory.person_id)
-    const order = (a: Memory, b: Memory) => Number(b.pinned) - Number(a.pinned) || Number(b.boundary) - Number(a.boundary) || a.subject.localeCompare(b.subject)
+    const order = orderFor(id)
     return {
       layer: id,
       current: inLayer.filter((memory) => memory.status !== 'superseded').sort(order),
@@ -60,6 +69,12 @@ export function statusLabels(memory: Memory): string[] {
   if (memory.origin === 'automatic') labels.push('Saved automatically')
   if (memory.in_timeline === false) labels.push('Another timeline')
   return labels
+}
+
+/** The line for a memory with no messages behind it: one you added. One the app saved from something that happened
+ * gets none, since its "Saved automatically" badge already says where it came from (Iris). */
+export function addedLine(memory: Memory): string | null {
+  return memory.source_message_ids.length || memory.origin === 'automatic' ? null : 'Added by you directly.'
 }
 
 /** Why a correction is waiting: it drops a never-true value, ends one as history, or rewords one. */

@@ -552,7 +552,7 @@ export interface LifeEvent {
   kind: 'routine' | 'plan' | 'ordinary' | 'thread'
   status: 'proposed' | 'committed' | 'rejected' | 'superseded'
   summary: string
-  details: { label?: string; activity?: string; post?: string; mood?: string; local_date?: string; timezone?: string; place?: { id: string; name: string } | null; trip?: unknown }
+  details: { label?: string; activity?: string; post?: string; mood?: string; local_date?: string; timezone?: string; place?: { id: string; name: string } | null; trip?: unknown; outing?: { at: string } | null }
   starts_at: string
   ends_at: string
   revision: number
