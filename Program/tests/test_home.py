@@ -212,3 +212,10 @@ def test_the_kind_of_building_reads_with_the_right_article():
         'warehouse-lodgings': 'warehouse lodgings', 'hotel': 'a hotel', 'hotel-room': 'a hotel room',
         'hotel-rooms': 'hotel rooms', 'inn-rooms': 'inn rooms', 'rented-rooms': 'rented rooms',
         'rooms-over-store': 'rooms over a store', 'servants-quarters': 'servants quarters', 'apartment': 'an apartment'}
+
+
+def test_a_home_item_says_its_rent_in_the_citys_money():
+    found = home.item_view({'id': 'i', 'kind': 'home', 'name': 'a cottage', 'variety': 'cottage', 'origin': 'change',
+                            'since': '2027-01-01', 'until': None, 'edited': 0, 'revision': 1,
+                            'details': '{"rent": 12, "currency": {"code": "penny", "symbol": "d.", "name": "pennies"}}'})
+    assert found['rent_text'] == '12 d.'

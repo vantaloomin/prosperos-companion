@@ -296,9 +296,13 @@ def items_on(connection, timeline_id, day: date) -> list[dict]:
 
 
 def item_view(row: dict) -> dict:
-    return {'id': row['id'], 'kind': row['kind'], 'name': row['name'], 'variety': row['variety'],
-            **decode(row['details']), 'origin': row['origin'], 'since': row['since'], 'until': row['until'],
-            'edited': bool(row['edited']), 'revision': row['revision']}
+    details = decode(row['details'])
+    found = {'id': row['id'], 'kind': row['kind'], 'name': row['name'], 'variety': row['variety'],
+             **details, 'origin': row['origin'], 'since': row['since'], 'until': row['until'],
+             'edited': bool(row['edited']), 'revision': row['revision']}
+    if details.get('rent') and isinstance(details.get('currency'), dict):  # As money.py says it: '$1,410', '8 d.'.
+        found['rent_text'] = money.amount(details['rent'], details['currency'])
+    return found
 
 
 def repairs_on(connection, timeline_id, day: date) -> dict[str, dict]:

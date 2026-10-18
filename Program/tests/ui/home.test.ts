@@ -18,6 +18,12 @@ test('rent reads as an estimate and is left out without one', () => {
   assert.equal(rentText(item({ rent: null })), null)
 })
 
+test('rent and a mortgage read in the money of their city, as the server says it', () => {
+  const pennies = { code: 'penny', symbol: 'd.', name: 'silver pennies' }
+  assert.equal(rentText(item({ rent: 8, rent_period: 'week', currency: pennies, rent_text: '8 d.' })), 'Rent about 8 d. a week (an estimate)')
+  assert.equal(rentText(item({ rent: 12, rent_period: 'week', owned: true, currency: pennies, rent_text: '12 d.' })), 'Theirs, with a mortgage of about 12 d. a week (an estimate)')
+})
+
 test('details skip a description that repeats the name and add a repair', () => {
   assert.equal(itemDetail(item({ kind: 'vehicle', name: 'the car', description: 'an old silver hatchback', out_of_action: 'in the shop until 2026-10-09' })), 'an old silver hatchback; right now in the shop until 2026-10-09')
   assert.equal(itemDetail(item({ kind: 'favorite', name: 'a record player', description: 'a record player' })), '')

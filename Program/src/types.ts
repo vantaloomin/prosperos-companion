@@ -1339,6 +1339,8 @@ export interface HomeItem {
   /** A place they bought: `rent` is then the mortgage (companion/life/big_turns.py). */
   owned?: boolean
   currency?: { code: string; symbol: string; name: string }
+  /** The rent (or mortgage) as money.py says it, in the city's money: "$1,410", "8 d.", "15s.". */
+  rent_text?: string
   out_of_action?: string | null
 }
 
