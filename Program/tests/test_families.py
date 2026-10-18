@@ -355,3 +355,20 @@ def test_with_the_adult_side_on_a_childs_big_day_is_never_asked_to(client, mira,
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     with client.app.state.database.connect() as connection:
         assert big_days.invite_due(connection, current(connection), clock.now()) == []
+
+
+def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
+    import re
+    bank = families.bank()
+    assert families.fitting(bank['babysit_toddler'], 'modern') == bank['babysit_toddler']
+    for era, words in (('jazz-age', r'\b(scan|daycare|television)\b'), ('victorian', r'\b(phones?|cars?|daycare)\b'),
+                       ('medieval', r'\b(phones?|cars?|trains?|strollers?|bananas?)\b')):
+        for key in ('pregnancy', 'baby_update', 'toddler_update', 'babysit_toddler', 'babysit_child'):
+            found = families.fitting(bank[key], era)
+            assert len(found) >= 80 and not any(re.search(words, f"{line['text']} {line['share']}", re.I)
+                                                for line in found), (era, key)
+    assert not any('crav' in line['text'] for line in families.fitting(bank['pregnancy'], 'modern', carrying=False))
+    child = {'id': 'c1', 'born_on': '2026-01-10', 'title': 'family', 'name': 'Leo', 'pronouns': 'he/him'}
+    days = [date(2027, 1, 1) + timedelta(days=offset) for offset in range(730)]
+    told = ' '.join(news[2] for day in days if (news := families.news_on(child, day, 1.7, True, 'medieval')))
+    assert told and not re.search(r'\b(cars?|trains?|phones?|strollers?)\b', told, re.I)
