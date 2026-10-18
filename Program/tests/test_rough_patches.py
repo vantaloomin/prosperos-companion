@@ -47,6 +47,11 @@ def test_apologies_gestures_and_words_are_read_from_the_message():
     assert not rough_patches.says('apologies', "I'm not sorry")
     assert not rough_patches.says('apologies', "I'm sorry you feel that way")
     assert not rough_patches.says('apologies', "I don't think I was wrong")
+    # A bare "sorry" opening the message is an apology; not catching what was said, or sympathy, is not.
+    for text in ('hey sorry, crazy day', 'sorry', 'ugh sorry.', 'oh so sorry, I was swamped'):
+        assert rough_patches.says('apologies', text), text
+    for text in ('sorry?', 'sorry, what?', 'sorry to hear that', 'I said sorry to my boss', 'sorry but you started it'):
+        assert not rough_patches.says('apologies', text), text
     assert rough_patches.says('gestures', '*hands you a coffee* peace offering?')
     assert rough_patches.says('gestures', "let me make it up to you, dinner's on me")
     assert rough_patches.says('accepting', "it's okay, these things happen")
@@ -218,7 +223,7 @@ def test_calling_off_on_the_day_is_small_friction(client, patches, provider, clo
             "SELECT label FROM consequences WHERE choice='user:rough_patch'")]
     assert label == 'Whether a rough patch starts with Mira over you calling off the visit on the day'  # Read later.
     says(provider)
-    send(client, 'sorry!', 'client-patch-18')
+    send(client, 'anyway, how was work?', 'client-patch-18')
     assert 'A small thing is bugging you a little today: the user called off' in notes(provider)
     clock.advance(timedelta(days=1, minutes=1))
     says(provider)
@@ -248,7 +253,8 @@ def test_they_can_stand_you_up_and_apologise_first(client, patches, provider, cl
     says(provider)
     send(client, "it's okay, these things happen", 'client-patch-21')
     assert not patch(client)['open']
-    assert 'The user forgave you for calling off' in notes(provider)
+    assert 'The user forgave you for calling off a visit to the user' in notes(provider)
+    assert 'What kept you (' in notes(provider) and 'nice surprise' in notes(provider)
 
 
 def test_once_exclusive_they_mind_another_romance(client, monkeypatch):
@@ -329,6 +335,10 @@ def test_their_secret_partner_coming_out_is_theirs_to_apologise_for(client, patc
     send(client, 'hey', 'client-patch-30')
     assert 'You let the user down: the user found out you had been seeing Jordan behind their back.' in notes(provider)
     says(provider)
+    send(client, 'I need some time to think.', 'client-patch-30b')
+    # Owned up: room, not "be a little extra warm".
+    assert 'you have owned up and apologised' in notes(provider) and 'extra warm' not in notes(provider)
+    says(provider)
     send(client, "I forgive you", 'client-patch-31')
     assert not patch(client)['open']
     assert 'The user forgave you for seeing someone behind their back' in notes(provider)
@@ -403,3 +413,46 @@ def test_one_let_go_by_the_dice_does_not_count(client, patches, provider, clock,
     says(provider)
     send(client, 'go away', 'client-stack-9')
     assert rolls(client)[1]['reasons'] == rolls(client)[0]['reasons']
+
+
+def test_asked_out_while_a_rough_patch_is_open_they_can_rather_not(client, patches, provider):
+    show(client, show_moods=True, show_odds=True)
+    says(provider)
+    send(client, 'go away', 'client-patch-40')
+    assert patch(client)['open']
+    says(provider)
+    send(client, 'want to get dinner friday?', 'client-patch-41')
+    assert client.get('/api/life/outings').json()['outings'] == []  # Nothing booked.
+    assert 'Things are still tense between you, and you would rather not, for now' in notes(provider)
+    [outcome] = [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:ask_while_tense']
+    assert outcome['picked'] == rough_patches.NOT_NOW
+    assert "there's a rough patch open between you" in outcome['options'][1]['reasons']
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 0})  # Made a yes on Today: booked.
+    [dinner] = client.get('/api/life/outings').json()['outings']
+    assert dinner['activity'] == 'dinner'
+    client.post(f"/api/life/consequences/{outcome['id']}/change", json={'option': 1})  # And back: called off.
+    assert client.get('/api/life/outings').json()['outings'][0]['state'] == 'cancelled'
+
+
+def test_with_nothing_tense_an_ask_is_not_rolled(client, patches, provider):
+    show(client, show_moods=True)
+    says(provider)
+    send(client, 'want to get dinner friday?', 'client-patch-42')
+    assert [item['activity'] for item in client.get('/api/life/outings').json()['outings']] == ['dinner']
+    assert not [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:ask_while_tense']
+
+
+def test_while_strained_an_outing_together_no_longer_mends_it_by_itself(client, patches, provider, clock, monkeypatch):
+    says(provider)
+    send(client, 'go away', 'client-patch-43')
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        [row] = rough_patches.rows(connection, companion)
+        monkeypatch.setattr(rough_patches, 'showed_up', lambda *_args: True)
+        monkeypatch.setattr(breakups, 'holds', lambda *_args: 'cool')
+        rough_patches.daily(connection, companion, clock.now())
+        assert not rough_patches.one(connection, 'SELECT gesture_at FROM rough_patches WHERE id=?', (row['id'],))['gesture_at']
+        monkeypatch.setattr(breakups, 'holds', lambda *_args: None)
+        rough_patches.daily(connection, companion, clock.now())
+        assert rough_patches.one(connection, 'SELECT mended_by FROM rough_patches WHERE id=?', (row['id'],))['mended_by'] \
+            == 'gesture'

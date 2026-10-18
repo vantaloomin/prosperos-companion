@@ -164,7 +164,7 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     for item in steps.anniversaries(connection, companion, own_today, SOON):
         years = 'a year' if item['years'] == 1 else f"{item['years']} years"
         found.append(occasion('step_anniversary', item['date'], item['days'],
-                              f"{years} since you and the user {item['did']} ({date.fromisoformat(item['on']).strftime('%d %B %Y')})",
+                              f"{years} since you and the user {item['did']} ({steps.long_date(item['on'])})",
                               '', span=years, did=item['did'], step=item['step']))
     span = milestone(first, user_today) if first else None
     if span:
@@ -172,7 +172,7 @@ def occasions(connection, companion: dict, now) -> list[dict]:
         # Exes (companion/life/breakups.py) still know the day they met, but it is no longer "your anniversary".
         romance = companion['version']['definition'].get('relationship') == 'romance' and not breakups.ended(
             connection, companion)
-        what = f"{span} since you and the user first talked ({first.strftime('%d %B %Y')})"
+        what = f"{span} since you and the user first talked ({steps.long_date(first.isoformat())})"
         found.append(occasion('anniversary', user_today, 0, f"your anniversary: {what}" if romance else what, '',
                               span=span))
     return found
@@ -185,7 +185,7 @@ def turning(age: int | None) -> int | None:
 
 def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', person: dict | None = None,
              tradition: dict | None = None, did: str = '', step: str = '', turns: int | None = None) -> dict:
-    when = 'Today' if ahead == 0 else 'Tomorrow' if ahead == 1 else f"In {ahead} days ({day.strftime('%A %d %B')})"
+    when = 'Today' if ahead == 0 else 'Tomorrow' if ahead == 1 else f"In {ahead} days ({day:%A} {day.day} {day:%B})"
     text = f"- {when} is {what}." if kind != 'anniversary' else f'- Today it has been {what}.'
     if kind == 'step_anniversary':
         text = f"- {when} it will be {what}." if ahead else f'- Today it has been {what}.'

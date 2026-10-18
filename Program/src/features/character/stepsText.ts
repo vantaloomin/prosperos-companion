@@ -24,18 +24,27 @@ export function howText(how: Reached['how'], name: string): string {
   }[how]
 }
 
-/** "Mira brought up being exclusive. You said yes." / "You brought up a key to their place. Mira said not yet." */
+/** "Mira brought up being exclusive. You said yes." / "You brought up a key to their place. Mira said not yet." /
+ * "Mira said “I love you.” You said it back." */
 export function askText(ask: Ask, name: string): string {
   const who = firstName(name)
   if (ask.step === 'confession') {
     if (ask.side === 'them') return `${who} told you how they feel. ${ask.status === 'yes' ? 'You said you feel the same.' : ask.status === 'no' ? 'You said you would rather stay friends.' : ask.status === 'open' ? 'Waiting on your answer.' : 'You let it pass.'}`
     return `You told ${who} how you feel. ${ask.status === 'yes' ? `${who} feels the same.` : `${who} would rather stay friends.`}`
   }
+  if (ask.step === 'love') return loveText(ask, who)
   if (ask.side === 'them') {
     const answer = { open: 'Waiting on your answer.', yes: 'You said yes.', not_yet: 'You said not yet.', no: 'You said no.', lapsed: 'You let it pass for now.' }[ask.status]
     return `${who} brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${answer}`
   }
   return `You brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${ask.status === 'yes' ? `${who} said yes.` : `${who} said not yet.`}`
+}
+
+/** "I love you" is said, not brought up: "Mira said “I love you.” You said it back." */
+function loveText(ask: Ask, who: string): string {
+  if (ask.side === 'you') return `You said “I love you.” ${ask.status === 'yes' ? `${who} said it back.` : `${who} wasn't ready to say it yet.`}`
+  const back = { open: 'Waiting on your answer.', yes: 'You said it back.', not_yet: "You weren't ready to say it yet.", no: "You didn't say it back.", lapsed: 'You let it pass for now.' }[ask.status]
+  return `${who} said “I love you.” ${back}`
 }
 
 /** "Oct 11, 2026", from a date, as dates read elsewhere in the app; it never breaks across lines. */

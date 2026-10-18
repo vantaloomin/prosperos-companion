@@ -312,6 +312,9 @@ def settle_ask(connection, companion: dict, message: dict, kind: str, now: datet
     far = long_distance.far(connection, companion)
     if when == 'someday' and not far:
         return True  # "Come over sometime next week?": the reply is free to say when; nothing is settled yet.
+    from companion.life import rough_patches
+    if kind != 'door' and rough_patches.turned_down(connection, companion, message, kind, now):
+        return True  # Things are tense: they would rather not, for now.
     if when == 'later' and far and (day or at):
         # "Come over Saturday?" from another city: a weekend visit, when one works.
         return long_distance.request(connection, companion, message, long_distance.HOST if activity == 'visit-in'
@@ -367,6 +370,15 @@ ASKED = {'visit-yours': 'you to come over to their place now', 'dinner-yours': '
          'weekend-host': 'to come and stay with you for a weekend', 'out': 'to meet up and go out together'}
 
 
+# Asked while things are tense, and they would rather not, for now (companion/life/rough_patches.py `turned_down`).
+TENSE_ASKED = {'out': 'to get together and go out', 'dinner-in': 'to come over to your place for dinner',
+               'visit-in': 'to come over to your place', 'visit-yours': 'you to come over to their place',
+               'dinner-yours': 'you to come over to theirs for dinner'}
+TENSE_LINE = ('- The user asked {asked}. Things are still tense between you, and you would rather not, for now: say so '
+              'in your own words, a little cool and brief. Do not make another plan or suggest another time yet, and do '
+              'not lecture. You are apart, texting.')
+
+
 def reason_text(reason: dict) -> str:
     why = reason['why']
     if why == 'far':
@@ -396,6 +408,9 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         for row in many(connection, f'SELECT * FROM together_asks WHERE message_id IN ({marks})', tuple(fresh_ids)):
             from companion.database import decode
             reason = decode(row['reason'])
+            if reason['why'] == 'tense':
+                result.append((f"together-ask:{row['id']}", TENSE_LINE.format(asked=TENSE_ASKED[row['kind']])))
+                continue
             result.append((f"together-ask:{row['id']}",
                            f"- The user asked {ASKED[row['kind']]}. You can't: {reason_text(reason)}. Say so kindly in "
                            f"your own words, and suggest {'a weekend visit instead' if reason['why'] == 'far' else 'another time'}"

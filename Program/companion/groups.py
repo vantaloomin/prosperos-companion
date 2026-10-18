@@ -541,6 +541,9 @@ def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str
     lines += news.group_lines(connection, stay['member'], [item['member'] for item in members],
                               {item['member']: item['name'] for item in members}, now)
     lines += moods.lines(connection, stay['member'], members, now)
+    if stay['member'].startswith('companion:'):  # A guest at it knows it from their own notes.
+        from companion.life import their_people
+        lines += their_people.away_lines(connection, members)
     return lines
 
 

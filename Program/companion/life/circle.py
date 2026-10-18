@@ -418,8 +418,18 @@ def match_family(connection, companion: dict, world, rows: list[dict], now) -> b
 
 
 def role_kind(role: str) -> str:
-    return {'mom': 'parent', 'dad': 'parent', 'sister': 'sibling', 'brother': 'sibling',
-            'old classmate': 'old friend from school'}.get(role, role)
+    return {'mom': 'parent', 'dad': 'parent', 'mother': 'parent', 'father': 'parent', 'sister': 'sibling',
+            'brother': 'sibling', 'old classmate': 'old friend from school'}.get(role, role)
+
+
+# In the old eras (London 1895, Camelot) people say mother and father, not mom and dad.
+OLD_WORDS = {'mom': 'mother', 'dad': 'father'}
+
+
+def said(role: str, definition: dict) -> str:
+    """The role as the companion says it in their era: 'mom', or 'mother' in 1895."""
+    from companion.world import perception
+    return role if role not in OLD_WORDS or perception.era_modern(definition) else OLD_WORDS[role]
 
 
 def room(connection, companion: dict) -> dict:

@@ -144,7 +144,7 @@ def test_a_big_day_gets_a_place_a_gift_an_outfit_and_the_engine_decides_whether_
     assert row['place']['name'] and not row['place']['id'].startswith('~')
     assert row['gift'] in big_days.bank()['gifts']['wedding_modern'] and row['gift_cost'] > 0
     assert row['gift_on'] == (date.fromisoformat(row['local_date']) - timedelta(days=7)).isoformat()
-    assert row['invite'] == 1 and row['consequence_id']
+    assert row['invite'] in (0, 1) and row['consequence_id']  # The engine's roll.
     assert date.fromisoformat(row['invite_on']) <= date.fromisoformat(row['local_date']) - timedelta(days=14)
     assert add(client, clock) is None  # Once per source.
     with client.app.state.database.connect() as connection:

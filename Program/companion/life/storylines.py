@@ -10,7 +10,8 @@ The Life setting `drama` is the slider from quiet to soap opera: it sets how oft
 starts, how many can run at once and how far they can go. Quiet keeps to good news; realistic adds
 everyday trouble; dramatic adds health scares, feuds and secret romances; soap opera adds drunk
 kisses, separations and family secrets. A companion in a romance with the user never gets a
-storyline about their own love life.
+storyline about their own love life, and one seeing someone (a partner in their circle) never gets the drunk kiss
+(a partner-aware version was tried and did not read better with the real model: v0.14 follow-ups, ab-b.md).
 
 Beats reach the chat context told to the companion as "you" (decided, never contradicted, the ending
 never guessed); a settled one stays pinned for two months by its outcome, then goes to memory search.
@@ -184,6 +185,8 @@ def working(person: dict) -> bool:
 
 
 FRIENDLY = {'friends', 'old friends', 'coworkers'}
+# Someone the companion is seeing, in their circle (companion/life/love_life.py, or named on their sheet).
+PARTNERS = {'partner', 'spouse', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée', 'fiancé'}
 SINGLE_CASTS = {
     'working parent': lambda person: kind(person) == 'parent' and working(person),
     'parent': lambda person: kind(person) == 'parent',
@@ -203,7 +206,8 @@ def casts(story: Story, people: list[dict], definition: dict) -> list[tuple[str,
     works = bool(circle.work_blocks(definition))
     if story.cast == 'work':
         return [()] if works else []
-    if story.cast == 'best friend, single' and definition.get('relationship') == 'romance':
+    if story.cast == 'best friend, single' and (definition.get('relationship') == 'romance' or
+                                                 any(person['role'] in PARTNERS for person in people)):
         return []
     if story.cast in SINGLE_CASTS:
         return [(person['id'],) for person in people if SINGLE_CASTS[story.cast](person)]

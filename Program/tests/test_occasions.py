@@ -37,7 +37,7 @@ def test_the_users_birthday_is_noticed_kept_and_wished(client, connected, clock,
     send(client, 'Actually my birthday is May 1', 'client-bday-02')
     assert client.get('/api/life/settings').json()['user_birthday'] == '10-07'
     system = client.get('/api/context/preview').json()['system']
-    assert 'Birthdays and anniversaries' in system and "In 2 days (Wednesday 07 October) is the user's birthday." in system
+    assert 'Birthdays and anniversaries' in system and "In 2 days (Wednesday 7 October) is the user's birthday." in system
     assert client.get('/api/today').json()['occasions'][0]['kind'] == 'user_birthday'
     clock.advance(timedelta(days=2))
     clock.instant = clock.now().replace(hour=13)
@@ -96,7 +96,8 @@ def test_circle_birthdays_reach_the_context_but_open_no_conversation(client, con
         person_id, today + timedelta(days=30)).strftime('%m-%d'))
     system = client.get('/api/context/preview').json()['system']
     assert f"- Today is your {first['role']} {first['name']}'s birthday." in system
-    later = (today + timedelta(days=3)).strftime('%A %d %B')
+    later = today + timedelta(days=3)
+    later = f'{later:%A} {later.day} {later:%B}'  # "Monday 5 October", not "Monday 05 October".
     assert f"- In 3 days ({later}) is your {second['role']} {second['name']}'s birthday." in system
     assert 'Wish them' not in system
     found = [item for item in client.get('/api/today').json()['occasions'] if item['kind'] == 'circle_birthday']

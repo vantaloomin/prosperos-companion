@@ -425,3 +425,66 @@ def test_moving_across_time_zones_plans_the_days_ahead_on_the_new_clock(client, 
         block, _ends = pacing.block_now(connection, companion, clock.now())
     assert block['kind'] != 'work'  # Not their Osaka work hours, which fall on a Baltimore evening.
     assert where(client)['kind'] == 'home'
+
+
+def test_housework_follows_whose_turn_it_is_once_they_live_together(client, provider, clock, monkeypatch, always):
+    """The 'Housework today' lines (upkeep) read the chore turns: someone else's turn gets done by them, and a chore the
+    user says they left undone on their turn stays undone, instead of "The dishes are done." beside it."""
+    from companion.life import rough_patches, upkeep
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+    moving_day(client, clock)
+    assert client.get('/api/life/upkeep').status_code == 200
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    owners = {'cooking': 'you', 'dishes': 'user', 'laundry': 'you', 'tidying': 'user'}
+    monkeypatch.setattr(moving_in, 'turn', lambda _companion, _day, task, _house=(): owners[task])
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        timeline, definition = companion['active_timeline_id'], companion['version']['definition']
+        today = moving_in.local_today(companion, clock.now())
+        assert moving_in.chore_turns(connection, companion, today) == {'laundry': 'you', 'dishes': 'done',
+                                                                        'clutter': 'done'}
+        day = upkeep.walk(connection, timeline, definition, today)[-1]
+        assert day['mess']['dishes'] == upkeep.CLEANED['dishes'] and 'dishes' not in day['done']
+        assert day['mess']['clutter'] == upkeep.CLEANED['clutter'] and 'clutter' not in day['done']
+        moving_in.skipped(connection, companion, moving_in.living(connection, companion), 'sorry, I forgot the dishes',
+                          clock.now())
+        assert moving_in.chore_turns(connection, companion, today)['dishes'] == 'undone'
+        told = ' '.join(text for _key, text in upkeep.context_lines(connection, timeline, definition, today))
+        assert moving_in.chore_turns(connection, {**companion, 'active_timeline_id': 'elsewhere'}, today) is None
+    assert 'The dishes are done.' not in told and 'dishes' in told
+
+
+def test_in_a_group_chat_the_steps_line_says_whether_they_live_together(client, provider, clock, monkeypatch, always):
+    """A group chat has no 'where' section, so the moving-in line says it outright instead of pointing there."""
+    mira(client, monkeypatch, relationship='romance')
+    ask_to_move_in(client, provider)
+
+    def line(group):
+        with client.app.state.database.connect() as connection:
+            return steps.context_lines(connection, current(connection), clock.now(), set(), group)[0][1]
+    assert steps.WHERE_SAID in line(False)
+    assert "- You have decided to live together and haven't moved in yet: you're moving into the user's place in " \
+        in line(True) and steps.WHERE_SAID not in line(True)
+    moving_day(client, clock)
+    assert line(True).startswith('- You live together. You are not engaged.') and steps.WHERE_SAID in line(False)
+
+
+def test_a_plan_changed_under_hidden_values_is_told_until_the_next_reply(client, provider, clock, monkeypatch):
+    apart_from(client, monkeypatch, relationship='romance')
+    pick(monkeypatch, 'moving_in:who', 1)
+    ask_to_move_in(client, provider)
+    found = row(client)
+    assert found['plan'] == 'you'
+    clock.advance(timedelta(minutes=5))
+    response = client.post(f"/api/life/consequences/{found['consequence_id']}/change", json={'option': 0})
+    assert response.status_code == 200, response.text
+    clock.advance(timedelta(minutes=5))
+    says(provider)
+    send(client, "wait, what's the plan now?", 'client-move-changed-1')
+    assert "- The plan changed: You're moving to Baltimore to live with the user" in notes(provider)
+    assert 'Go along with it as if you had talked it over.' in notes(provider)
+    clock.advance(timedelta(minutes=5))
+    says(provider)
+    send(client, 'ok got it', 'client-move-changed-2')
+    assert 'The plan changed' not in notes(provider)

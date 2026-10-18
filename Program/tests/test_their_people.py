@@ -291,6 +291,37 @@ def test_far_apart_nothing_is_sent_and_it_stays_planned(client, clock, invites, 
     assert trigger is not None
 
 
+def host_visit(client, clock, days_ahead=10, length=2):
+    """The user's stay with them in their city, `days_ahead` days on."""
+    from companion.life import long_distance, trips
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        today = their_people.local_today(companion, clock.now())
+        start = today + timedelta(days=days_ahead)
+        trips.insert(connection, companion, {
+            'start_date': start.isoformat(), 'end_date': (start + timedelta(days=length)).isoformat(),
+            'city_id': 'baltimore', 'city_name': 'Baltimore', 'kind': 'getaway', 'company': dict(long_distance.YOU),
+            'landmark': None, 'sunny': False, 'cost': 0.0, 'visit': long_distance.HOST}, clock.now())
+    return start
+
+
+def test_far_apart_the_dinner_is_on_the_users_stay_with_them(client, clock, invites, monkeypatch):
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    from companion.life import long_distance
+    monkeypatch.setattr(long_distance, 'far', lambda _connection, _companion: object())
+    assert invite(client, clock) == (None, None)
+    start = host_visit(client, clock)
+    # Asked as soon as the stay is agreed, for its first full day.
+    trigger, outing = invite(client, clock)
+    assert trigger is not None and outing is not None
+    assert outing['local_date'] == (start + timedelta(days=1)).isoformat()
+    assert outing['activity'] == their_people.AT_FAMILY
+    assert meetups(client)[0]['status'] == 'booked'
+
+
 def test_family_dinner_cannot_move_elsewhere(client, clock, invites):
     make(client)
     set_step(client, 'their_people')
@@ -364,3 +395,110 @@ def test_an_invitation_a_week_ahead_says_next_saturday():
         assert 'next saturday' in text.lower() and 'this next' not in text.lower() and text[0].isupper(), text
         near = their_people.invitation(row, people, next_saturday, date(2026, 11, 3), '6:30', "my sister's place")
         assert 'Saturday' in near and 'next Saturday' not in near
+
+
+def test_rough_patches_over_the_same_thing_weigh_less_for_their_people(client, clock, monkeypatch):
+    """Two stinging messages in a row count as one and a half, as Breaks and breakups weighs them; one the dice let go
+    doesn't count."""
+    from companion.life import rough_patches
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    make(client)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        since = (clock.now().date() - timedelta(days=1)).isoformat()
+        today = clock.now().date().isoformat()
+        monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+        for index in range(2):
+            rough_patches.consider(connection, companion, 'words', f'words:a{index}', 'the user said: "go away"',
+                                   clock.now() + timedelta(minutes=index))
+        assert their_people.since_then(connection, companion, since, today)['patches'] == 1.5
+        monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[0]['option'])
+        rough_patches.consider(connection, companion, 'missed_plan', 'plan:b', 'the plan came and went', clock.now())
+        assert their_people.since_then(connection, companion, since, today)['patches'] == 1.5
+
+
+def test_after_a_breakup_their_people_cool_on_you_once(client, provider, clock, invites, monkeypatch):
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    _trigger, outing = invite(client, clock)
+    at(clock, outing, '23:00')
+    advance(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE people_impressions SET impression=?, warmth=2', ('warm',))
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-people-cool-1')
+
+    def warmth():
+        with client.app.state.database.connect() as connection:
+            return {row['person_id']: row['warmth'] for row in many(connection, 'SELECT * FROM people_impressions')}
+    for _day in range(3):
+        clock.advance(timedelta(days=1))
+        advance(client, clock)
+    # Family cools more, and only once for the breakup.
+    assert set(warmth().values()) == {0}
+    labels = {person['met']['label'] for person in client.get('/api/life/circle').json() if person['met']}
+    assert labels == {'Cooled on you'}
+    with client.app.state.database.connect() as connection:
+        assert their_people.met_people(connection, current(connection)) == {}
+
+
+def test_a_pair_that_starts_at_the_step_has_met_everyone(client, clock):
+    make(client)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        from companion.life import steps
+        steps.insert_step(connection, companion['active_timeline_id'], 'romance', 'their_people',
+                          clock.now().date(), 'start', clock.now().isoformat())
+    advance(client, clock)
+    assert meetups(client) == []
+    people = client.get('/api/life/circle').json()
+    assert [person for person in people if person['met']] and \
+        all(person['met']['before'] for person in people if person['met'])
+
+
+def test_after_the_evening_it_is_told_as_over_and_a_protective_mom_keeps_her_edge(client, provider, clock, invites):
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    _trigger, outing = invite(client, clock)
+    at(clock, outing, '22:30')
+    advance(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE people_impressions SET impression='protective', warmth=0")
+    says(provider)
+    send(client, 'what did your mom think of me?', 'client-people-after-1')
+    text = prompt(provider)
+    assert 'so the user could meet them; it is over now' in text and 'so the user can meet them' not in text
+    assert 'was polite but protective of you, and is still watching how the user treats you; pass that on ' \
+        "honestly, even if it isn't all glowing" in text
+
+
+def test_in_a_group_another_companion_knows_they_were_not_at_the_dinner(client, provider, clock, invites):
+    from test_groups import companion_named
+
+    from companion import groups
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    _trigger, outing = invite(client, clock)
+    at(clock, outing, '23:00')
+    advance(client, clock)
+    elaine = companion_named(client, 'Elaine Brooks')
+    with client.app.state.database.connect() as connection:
+        mira = current(connection)
+    group = client.post('/api/groups', json={'companion_ids': [mira['id'], elaine]}).json()
+    with client.app.state.database.connect() as connection:
+        members = groups.current_members(connection, group['id'])
+        stay = next(item for item in members if item['member'] == groups.member_key(elaine))
+        lines = [text for _key, text in groups.group_lines(connection, group, stay, clock.now())]
+        mira_stay = next(item for item in members if item['member'] == groups.member_key(mira['id']))
+        own = [text for _key, text in groups.group_lines(connection, group, mira_stay, clock.now())]
+    [line] = [text for text in lines if "you weren't there" in text]
+    assert line.startswith("Mira took the user to dinner at ") and 'their mom' in line
+    assert not any("you weren't there" in text for text in own)
