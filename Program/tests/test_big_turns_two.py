@@ -206,3 +206,16 @@ def test_gentle_keeps_health_turns_and_caring_away(client, mira):
     with client.app.state.database.connect() as connection:
         assert not big_turns.allowed(connection, 'health') and not big_turns.allowed(connection, 'caring')
         assert big_turns.allowed(connection, 'business')
+
+
+def test_make_it_go_this_way_reaches_the_part_two_turns(client, older, clock, monkeypatch):
+    reconcile(client)
+    parent(client, 78)
+    chapter = begun(client, monkeypatch, clock, 'hobby')
+    for kind in ('business', 'health', 'caring'):
+        response = client.post(f"/api/life/consequences/{chapter['consequence']}/change",
+                               json={'option': chapters.KINDS.index(kind)})
+        assert response.status_code == 200, response.text
+        assert client.get('/api/life/chapters').json()[0]['kind'] == kind
+    assert client.post(f"/api/life/consequences/{chapter['consequence']}/change",
+                       json={'option': len(chapters.KINDS)}).status_code == 422
