@@ -547,10 +547,16 @@ def age_signs(connection, timeline_id: str, definition: dict, state: dict, so_fa
         if not allowed[kind] or not since < onset <= age:
             continue
         stage = next(number for number, years in enumerate(SIGN_STAGES, 1) if age - onset < years)
-        options = [entry['text'] for entry in ageing_bank()[kind]
-                   if entry['stage'] == stage and (modern or not entry.get('modern'))]
-        found.append(generators.pick(state['seed'], f'age-sign-{kind}-{stage}', options))
+        found.append(sign_text(state['seed'], kind, stage, modern))
     return ', '.join(found)
+
+
+def sign_text(seed: str, kind: str, stage: int, modern: bool) -> str:
+    """A sign's words at a stage, or at the latest stage the bank has for it (reading glasses have one stage: once
+    they come, they stay as they are)."""
+    entries = [entry for entry in ageing_bank()[kind] if modern or not entry.get('modern')]
+    stage = max(entry['stage'] for entry in entries if entry['stage'] <= stage)
+    return generators.pick(seed, f'age-sign-{kind}-{stage}', [entry['text'] for entry in entries if entry['stage'] == stage])
 
 
 def timeline_of(connection, companion_id: str) -> str | None:

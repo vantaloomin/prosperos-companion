@@ -250,3 +250,23 @@ def test_starting_over_forgets_their_dates(client, companion, clock):
 @pytest.mark.parametrize('identity, expected', [('34. A nurse.', 34), ('In her thirties, a nurse.', 35)])
 def test_the_age_written_is_where_their_date_starts(identity, expected):
     assert ages.written_age('c1', {'name': 'Dana', 'identity': identity}) == expected
+
+
+def test_signs_settled_in_for_years_keep_their_latest_stage(client, clock, monkeypatch):
+    # Reading glasses have one stage in the bank; years after they came, the sheet still builds and keeps them.
+    monkeypatch.setattr(grooming, 'AGE_SIGNS', {'reading': (36, 36)})
+    monkeypatch.setattr(grooming.Draw, 'bold', lambda *args: None)
+    make(client, birthday=(clock.now() + timedelta(days=1)).strftime('%m-%d'))
+    sync(client, clock)
+    companion = client.get('/api/companion').json()['companion']
+    definition = companion['version']['definition']
+    readers = {entry['text'] for entry in grooming.ageing_bank()['reading']}
+    drawn = looks.for_companion
+    monkeypatch.setattr(looks, 'for_companion', lambda *args: {**drawn(*args), 'feature': 'dimples'})
+    with connect(client) as connection:
+        grooming.ensure(connection, companion['active_timeline_id'], definition, None, clock.now())
+        later = [grooming.sheet(connection, companion['id'], definition, clock.now().date() + timedelta(days=365 * years))
+                 for years in (2, 9, 20)]
+    assert [sheet['age'] for sheet in later] == [36, 43, 54]
+    assert all(sheet['age_signs'] in readers for sheet in later) and len({sheet['age_signs'] for sheet in later}) == 1
+
