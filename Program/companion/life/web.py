@@ -14,6 +14,7 @@ from companion.database import many
 from companion.errors import DomainError
 from companion.life import circle, encounters, network
 from companion.memory import pairs
+from companion.world import turnover
 
 YOU = 'you'
 # How a relation word reads as a kind of tie, for the web's line styles and filters.
@@ -110,7 +111,7 @@ def add_townsfolk(web: Web, key: str, people: list[dict]):
             continue
         role = f"{person['role']} at {person['place']['name']}" if person['staff'] else person['role']
         if person.get('left'):  # As far as the companion knows (companion/world/turnover.py).
-            role = f"{role}; has since {person['left']['text']}"
+            role = f"{'formerly ' if person['staff'] else ''}{role}; {turnover.gone_text(person['left']['why'], '')}"
         web.add(person['key'], person['full'], 'townsperson', role, person['neighborhood'])
         web.link(key, person['key'], f"met at {person['first_place']}" if person.get('first_place') else 'met', 'met')
     staff = {}

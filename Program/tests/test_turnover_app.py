@@ -54,7 +54,7 @@ def test_the_map_and_who_knows_who_leave_out_where_someone_used_to_be(monkeypatc
     graph.add('companion:1', 'Mira', 'companion')
     web.add_townsfolk(graph, 'companion:1', [staff[0] | {'left': left}, staff[1]])
     assert not [link for link in graph.links.values() if link['kind'] == 'work']
-    assert graph.nodes[staff[0]['key']]['detail'] == 'barkeep at The Bar; has since moved away'
+    assert graph.nodes[staff[0]['key']]['detail'] == 'formerly barkeep at The Bar; moved away'
     monkeypatch.setattr(encounters, 'known', lambda *_args: [regular, regular | {'key': 'town:x:bar:3', 'name': 'Lee',
                                                                                   'left': left}])
     assert citymap.regulars(None, {}, None) == {'bar': ['Dana']}
