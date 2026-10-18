@@ -478,6 +478,11 @@ class LifeEngine:
     def decide(self, mode, companion_id=None) -> dict:
         with self.database.connect() as connection:
             stepped = may_extend(settings(connection), mode)
+            paused = settings(connection)['paused_at'] is not None
+        if mode == 'return' and not companion_id and not paused:
+            # Birthdays since the last tick move ages on before the agenda is written (companion/life/ages.py).
+            with self.database.connect(write=True) as connection:
+                ages.sync(connection, self.now())
         if stepped:
             agenda.catch_up_in_steps(self.database, companion_id, self.world, self.now())
         with self.database.connect(write=True) as connection:

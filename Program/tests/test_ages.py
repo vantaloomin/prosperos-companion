@@ -191,6 +191,7 @@ def test_a_milestone_birthday_is_a_party_in_the_occasions_the_day_and_the_scrapb
 def test_townsfolk_turn_a_year_older_on_their_seeded_birthdays(client, companion, clock):
     sheet = {'key': 'town:testtown:cafe:0', 'seed': 'seed-a', 'age': 40}
     with connect(client) as connection:
+        connection.execute("DELETE FROM birth_dates WHERE kind='town'")  # Making a companion started it.
         assert ages.town_age(connection, sheet, clock.now().date() + timedelta(days=800)) == 40  # Not started yet.
         ages.sync(connection, clock.now())
         start = ages.town_began(connection)
@@ -292,3 +293,14 @@ def test_no_grey_coming_in_on_a_shaved_head_or_hair_already_grey(client, clock, 
     assert not set(found['a shaved head']) & grey and not any('hair' in sign for sign in found['a shaved head'])
     assert set(found['a shaved head']) & lines  # Lines and readers still come.
     assert not set(found['greying brown hair, short']) & (grey | lines)  # Laugh lines drawn already: not twice.
+
+
+def test_a_birthday_soon_after_they_were_made_is_not_lost_before_a_tick(client, clock):
+    # No background tick here (life_tasks off): making them and the user coming back are enough to age them.
+    make(client, birthday=(clock.now() + timedelta(days=2)).strftime('%m-%d'))
+    link(client)
+    with connect(client, False) as connection:
+        assert connection.execute("SELECT from_age FROM birth_dates WHERE kind='companion'").fetchone()[0] == 34
+    clock.advance(timedelta(days=3))
+    reconcile(client)
+    assert 'You are 35 now' in client.get('/api/context/preview').json()['system']
