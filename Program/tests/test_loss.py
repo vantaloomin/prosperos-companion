@@ -357,3 +357,19 @@ def test_a_branch_after_a_death_keeps_one_funeral(client, clock, monkeypatch, pr
         funerals = [item for item in big_days.rows(connection, companion['active_timeline_id'])
                     if item['kind'] == 'funeral' and item['status'] != 'called_off' and item['details']['role'] == 'dad']
     assert len(funerals) == 1 and funerals[0]['source'] == f"loss:{copied['id']}", funerals
+
+
+def test_the_funeral_is_never_at_a_food_hall_a_bar_or_a_library(monkeypatch):
+    place = {'neighborhood': 'n', 'summary': '', 'cost': '', 'cuisine': ''}
+    data = {'id': 'c', 'name': 'Town', 'era': None, 'neighborhoods': [{'id': 'n', 'name': 'North'}],
+            'places': [{**place, 'id': 'f', 'name': 'Umeda food hall', 'kind': 'market'},
+                       {**place, 'id': 'a', 'name': 'Osaka-jo Hall', 'kind': 'venue'},
+                       {**place, 'id': 'p', 'name': 'Central Public Hall', 'kind': 'landmark'},
+                       {**place, 'id': 'b', 'name': 'The Churchill Arms', 'kind': 'bar'},
+                       {**place, 'id': 'l', 'name': 'the abbey library', 'kind': 'library'}]}
+    day = date(2026, 10, 20)
+    for culture in ('japan', 'uk', 'medieval-england'):
+        monkeypatch.setattr(loss, 'customs', lambda connection, companion, key=culture: loss.bank()['customs'][key])
+        assert loss.venue_for(None, {}, data, 's', day)['id'] == '~funeral', culture
+    data['places'].append({**place, 'id': 't', 'name': 'Shitennoji', 'kind': 'temple'})
+    assert loss.venue_for(None, {}, data, 's', day)['id'] == 't'

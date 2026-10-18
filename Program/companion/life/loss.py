@@ -521,12 +521,21 @@ def venue_for(connection, companion: dict, data: dict, seed: str, day: date) -> 
     words = re.compile(rf"\b(?:{rules['words']})", re.IGNORECASE)
     places = [item for item in data['places'] if not any(word in item['name'].lower() for word in big_days.NOT_PARTY)
               and item['kind'] not in wedding.OUTDOOR and not wedding.OUTDOOR_NAMES.search(item['name'])]
-    options = [item for item in places if words.search(item['name'])] or [
-        item for item in places if item['kind'] == 'temple']
+    options = held_in(places, words) or [item for item in places if item['kind'] == 'temple']
     if options:
         return outings.place_view(generators.pick(seed, 'venue', options), data)
     return {'id': '~funeral', 'name': rules['venue'], 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
             'cuisine': '', 'city': data['name'], 'city_id': data['id'], 'spots': []}
+
+
+def held_in(places: list[dict], words) -> list[dict]:
+    """Places named for a funeral by the customs' words that are a place of worship, or a landmark named for more
+    than being a hall: never a food hall, an arena, a bar (The Churchill Arms) or the abbey's library."""
+    import re
+    named = [item for item in places if words.search(item['name'])]
+    return [item for item in named if item['kind'] == 'temple'] or [
+        item for item in named if item['kind'] == 'landmark' and words.search(re.sub(r'\bhall\b', '', item['name'],
+                                                                                     flags=re.IGNORECASE))]
 
 
 def gone(connection, row: dict) -> bool:
