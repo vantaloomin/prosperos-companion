@@ -620,7 +620,7 @@ def test_the_paper_says_were_wed_in_older_eras(monkeypatch):
     data = catalog.cities()['london-1895']
     sheet = townsfolk.residents(data, data['neighborhoods'][0]['id'])[0]
     item = {'what': 'married', 'day': date(1895, 6, 12), 'partner': {'name': 'George', 'full': 'George Hale'}}
-    monkeypatch.setattr(paper, 'sample', lambda _data: [sheet])
+    monkeypatch.setattr(paper, 'sample', lambda *_args: [sheet])
     monkeypatch.setattr(couples_module, 'events', lambda *_args: [item])
     [found] = paper.couples_news(data, (date(1895, 6, 10), date(1895, 6, 16)))
     assert found['headline'] == f"{sheet['name']} and George were wed." and ' wed on ' in found['text']
