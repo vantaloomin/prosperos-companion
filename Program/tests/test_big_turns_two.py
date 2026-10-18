@@ -85,6 +85,8 @@ def test_a_business_opens_runs_their_week_and_pays_what_it_makes(client, mira, c
     assert pay['factor'] == business.START
     assert f"- Your {view['business']} brings in about" in client.get('/api/context/preview').json()['prompt']
 
+    from test_big_turns import plannable
+    assert not plannable(client, 'new_job')  # Running a business of their own.
     land(monkeypatch, business.CHOICE, 0)
     next_stage(client, clock, chapter['id'])
     found = details(client, chapter['id'])

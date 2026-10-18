@@ -167,6 +167,30 @@ def test_retirement_turns_work_into_their_own_time_and_pay_into_a_pension(client
     assert 'Retired, you live on a pension of about' in client.get('/api/context/preview').json()['prompt']
 
 
+def plannable(client, kind: str) -> bool:
+    """Whether the chapter could happen today."""
+    with client.app.state.database.connect() as connection:
+        companion = current(client)
+        today = storylines.local_today(companion, client.app.state.database.clock.now())
+        return chapters.PLANS[kind](connection, companion, client.app.state.life.world, today, 'seed') is not None
+
+
+def test_once_retired_no_ordinary_new_job_comes(client, older, clock, monkeypatch):
+    assert plannable(client, 'new_job')
+    chapter = begun(client, monkeypatch, clock, 'retire')
+    assert not plannable(client, 'new_job')  # They handed in their notice.
+    next_stage(client, clock, chapter['id'])
+    assert not plannable(client, 'new_job')
+
+
+def test_an_owner_stays_put(client, mira, clock, monkeypatch):
+    assert plannable(client, 'move')
+    chapter = begun(client, monkeypatch, clock, 'buy_place')
+    assert not plannable(client, 'move')  # House hunting.
+    next_stage(client, clock, chapter['id'])
+    assert not plannable(client, 'move')
+
+
 def test_retirement_is_for_older_characters_only(client, mira, clock, monkeypatch):
     arrange(client, monkeypatch, clock, 'retire')
     reconcile(client)

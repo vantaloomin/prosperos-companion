@@ -158,8 +158,8 @@ def make(connection, companion: dict, world, chapter_id: str, kind: str, plan: d
 def plan_job(connection, companion, world, day, seed) -> dict | None:
     definition = companion['version']['definition']
     city = money.city_for(definition)
-    if not city or not money.has_money(city):
-        return None
+    if not city or not money.has_money(city) or not big_turns.job_free(connection, companion['active_timeline_id']):
+        return None  # Retired, or retraining or running a business of their own (big_turns.py).
     current, _guessed = money.career_for(definition, city)
     tier = money.PAY_TIERS.get(current['pay'], money.DEFAULT_TIER) if current else money.DEFAULT_TIER
     tight = consequences.total(connection, companion['active_timeline_id'], pairs.companion_key(companion['id']),
@@ -181,6 +181,9 @@ def plan_move(connection, companion, world, day, seed) -> dict | None:
     from companion.life import moving_in
     if moving_in.current(connection, companion['active_timeline_id']):
         return None  # Moving in together, or living together: a move of their own waits.
+    if big_turns.owns(connection, companion['active_timeline_id'], day) or any(
+            row['kind'] == 'buy_place' for row in big_turns.running(connection, companion['active_timeline_id'])):
+        return None  # A place of their own (big_turns.py), or one they are buying: they stay put.
     definition = companion['version']['definition']
     profile, city = money.profile(definition), money.city_for(definition)
     if not profile or not city:

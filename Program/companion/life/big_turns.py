@@ -267,6 +267,16 @@ def plan_career(connection, companion, world, day, seed) -> dict | None:
             'details': {**details, 'stage': 'enrolled', 'career': career['id'], 'job': title}}
 
 
+def job_free(connection, timeline_id: str) -> bool:
+    """Whether a new job of the ordinary kind (chapters.py `new_job`) can come: not once retired, and not while they
+    hand in their notice, retrain for another line or run a business of their own (planning, open or established)."""
+    if finished(connection, timeline_id, 'retire', 'retired'):
+        return False
+    if any(row['kind'] in ('retire', 'career_change', 'business') for row in running(connection, timeline_id)):
+        return False
+    return not finished(connection, timeline_id, 'business', 'established')
+
+
 def works(definition: dict) -> bool:
     return any(block.kind == 'work' for block in routine.blocks(definition)[0])
 
