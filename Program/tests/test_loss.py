@@ -430,3 +430,23 @@ def test_a_funeral_in_1895_is_for_their_mother_not_their_mom(client, clock, monk
         funeral = next(item for item in big_days.rows(connection, current(connection)['active_timeline_id'])
                        if item['kind'] == 'funeral')
     assert big_days.said(funeral).startswith('your mother ') and 'mom' not in big_days.invitation(funeral, 'Monday', '11')
+
+
+def test_retro_im_keeps_the_plain_mood_line_while_they_grieve(client, clock, monkeypatch):
+    from companion.life import status
+    make(client)
+    switch(client)
+    dies(monkeypatch, person(client, 'dad')['id'])
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['role'] == 'dad')
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        assert status.grieving(connection, companion, clock.now())
+        for index in range(20):
+            line = status.mood_line(connection, companion, clock.now(), f'seed-{index}', retro=True)
+            assert line in status.MOODS['sad'], line
+    clock.advance(timedelta(days=60))  # Lifting: they are mostly themselves again.
+    with client.app.state.database.connect() as connection:
+        assert not status.grieving(connection, current(connection), clock.now())
