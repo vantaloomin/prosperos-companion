@@ -89,6 +89,8 @@ def update_settings(database, body) -> dict:
                    for key, value in changes.items() if row[key] != value}
         if changed:
             timestamp = database.now()
+            if {'life_turns', 'growing_families', 'people_pass_away', 'loss'} & set(changed):
+                turnover.record(connection, row, database.clock.now().date(), timestamp)
             columns = ', '.join(f'{key}=?' for key in changed)
             connection.execute(f'UPDATE life_settings SET {columns}, updated_at=? WHERE id=1',
                                (*changed.values(), timestamp))

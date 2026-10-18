@@ -108,11 +108,11 @@ def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
     """Babies born to them and their partner in a span of days: {partner, day}. Follows Growing families."""
     if not turnover.ACTIVE:
         return []
-    chance = BABY * turnover.PACE[turnover.STATE.families] / turnover.YEAR
     arrived = townsfolk.week_of(date.fromisoformat(sheet['arrived'])) if sheet.get('arrived') else turnover.START_WEEK
     result = []
     for week in range(max(townsfolk.week_of(week_range[0]), turnover.START_WEEK), townsfolk.week_of(week_range[1]) + 1):
         age = sheet['age'] + max(week - arrived, 0) // turnover.YEAR
+        chance = BABY * turnover.PACE[turnover.levels_at(week)[2]] / turnover.YEAR
         if generators.unit(townsfolk.drawn(sheet), 'baby', week) >= chance or not BABY_AGES[0] <= age <= BABY_AGES[1]:
             continue
         day = turnover.week_day(week, 3)

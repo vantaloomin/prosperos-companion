@@ -2540,3 +2540,14 @@ CREATE TABLE IF NOT EXISTS losses (
   UNIQUE (timeline_id, town_key)
 );
 CREATE INDEX IF NOT EXISTS losses_timeline ON losses(timeline_id, happened, died_on);
+
+-- The town changes hands (companion/world/turnover.py): the levels Life's big turns, People can pass away with Loss,
+-- and Growing families held before a change, until the week they stopped holding, so a change only moves the town on
+-- from then. `loss` is 0 when nobody passes away, else the Loss slider plus one.
+CREATE TABLE IF NOT EXISTS town_levels (
+  until_week INTEGER PRIMARY KEY,
+  pace INTEGER NOT NULL,
+  loss INTEGER NOT NULL,
+  families INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);

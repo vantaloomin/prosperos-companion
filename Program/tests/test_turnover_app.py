@@ -124,3 +124,27 @@ def test_a_newcomer_is_their_age_from_the_day_they_arrived(monkeypatch):
     assert ages.town_age(None, sheet, date(2034, 3, 6)) == 30
     assert ages.town_age(None, sheet, date(2036, 3, 6)) in (31, 32)
     assert ages.town_age(None, sheet | {'arrived': None}, date(2034, 3, 6)) >= 37
+
+
+def test_changing_the_sliders_moves_the_town_on_from_then_and_keeps_its_past(client, clock, chatty):  # noqa: F811
+    met_someone(client, clock)
+    data = town(client)
+    first = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'], turnover.START)]
+    clock.instant = datetime.combine(turnover.START + timedelta(days=3 * 365), time(12), UTC)
+    today = clock.now().date()
+
+    def departures(until):
+        return {sheet['key']: found['day'] for sheet in first
+                if (found := townsfolk.gone(sheet, data, until))}
+    past, future = departures(today), departures(today + timedelta(days=30 * 365))
+    staff_now = {place['id']: [sheet['key'] for sheet in townsfolk.at_place(data, place['id'], today)]
+                 for place in data['places']}
+    for body in ({'life_turns': 3}, {'people_pass_away': True, 'loss': 3}, {'life_turns': 0, 'people_pass_away': False}):
+        ok(client.put('/api/life/settings', json=body))
+        assert departures(today) == past
+        assert {place['id']: [sheet['key'] for sheet in townsfolk.at_place(data, place['id'], today)]
+                for place in data['places']} == staff_now
+    # With Life's big turns at none nobody else leaves, once the year of their stay under way has run out.
+    assert departures(today + timedelta(days=30 * 365)) != future
+    assert all(day <= (today + timedelta(days=372)).isoformat()
+               for day in departures(today + timedelta(days=30 * 365)).values())
