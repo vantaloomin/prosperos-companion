@@ -152,8 +152,8 @@ def town(request: Request, data: dict) -> dict:
     with request.app.state.database.connect() as connection:
         companion = current(connection)
         town_seed = companion.get('town_seed') or '' if companion else ''
-        you = network.you(connection, town_seed)
-    return data | {'town': town_seed, 'you': you} if companion else data
+        you, kept = network.you(connection, town_seed), network.kept(connection, town_seed)
+    return data | {'town': town_seed, 'you': you, 'kept': kept} if companion else data
 
 
 @router.get('/cities/{city_id}/places/{place_id}/people')
@@ -166,7 +166,7 @@ def place_people(request: Request, city_id: str, place_id: str, on: date | None 
     day = on or request.app.state.database.clock.now().date()
     moment = datetime.combine(day, time.fromisoformat(at))
     result = []
-    for sheet in townsfolk.at_place(data, place_id):
+    for sheet in townsfolk.at_place(data, place_id, day):
         result.append({**sheet, 'flaw_text': townsfolk.FLAWS[sheet['flaw']][0],
                        'desire_text': townsfolk.DESIRES[sheet['desire']], 'routine': townsfolk.routine_text(sheet),
                        'story': townsfolk.story(sheet, data, day), 'now': townsfolk.whereabouts(sheet, data, moment)})
@@ -185,7 +185,7 @@ def neighborhood_people(request: Request, city_id: str, hood_id: str, on: date |
     moment = datetime.combine(day, time.fromisoformat(at))
     return [{**sheet, 'flaw_text': townsfolk.FLAWS[sheet['flaw']][0], 'desire_text': townsfolk.DESIRES[sheet['desire']],
              'routine': townsfolk.routine_text(sheet), 'story': townsfolk.story(sheet, data, day),
-             'now': townsfolk.whereabouts(sheet, data, moment)} for sheet in townsfolk.residents(data, hood_id)]
+             'now': townsfolk.whereabouts(sheet, data, moment)} for sheet in townsfolk.residents(data, hood_id, day=day)]
 
 
 @router.get('/cities/{city_id}/conditions')

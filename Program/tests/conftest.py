@@ -121,6 +121,13 @@ def no_storylines(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_turnover(monkeypatch):
+    """Townsfolk moving away and newcomers (companion/world/turnover.py) would change who unrelated tests meet as
+    their clocks move on; tests/test_turnover.py turns it on."""
+    monkeypatch.setattr('companion.world.turnover.ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
 def no_trips(monkeypatch):
     """Weekends away (companion/life/trips.py) are seeded dice; their own tests turn them on."""
     from companion.life import trips
