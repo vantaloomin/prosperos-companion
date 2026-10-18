@@ -255,7 +255,7 @@ def plan_career(connection, companion, world, day, seed) -> dict | None:
         return None
     title = career['name'].lower()
     months = random.Random(f'{seed}:months').randint(*RETRAIN_MONTHS)
-    course = {'course': f'retraining as {article(title)}', 'short': career['name'].split()[0], 'months': months}
+    course = {'course': f'retraining as {article(title)}', 'short': career['name'], 'months': months}
     details = course_plan(definition, city_of(definition, world), day, seed, course)
     if not details:
         return None

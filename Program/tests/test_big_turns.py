@@ -152,7 +152,8 @@ def test_a_career_change_retrains_then_starts_the_new_job(client, mira, clock, m
     next_stage(client, clock, chapter['id'])
     definition = current(client)['version']['definition']
     assert definition['money']['career'] == 'accountant'
-    assert any(block['kind'] == 'study' for block in definition['schedule'])
+    [study] = [block for block in definition['schedule'] if block['kind'] == 'study']
+    assert study['label'].lower() == f"{found['job']} class"  # 'Financial analyst class', not 'Financial class'.
     next_stage(client, clock, chapter['id'])
     definition = current(client)['version']['definition']
     assert definition['money']['career'] == found['career']
