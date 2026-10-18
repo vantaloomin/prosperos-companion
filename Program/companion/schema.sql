@@ -2443,3 +2443,21 @@ CREATE TABLE IF NOT EXISTS moving_in_shares (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS moving_in_shares_row ON moving_in_shares(moving_in_id, round);
+-- Everyone gets older (companion/life/ages.py): one birth date per person, worked out once from the age they had
+-- when it was first needed (`from_age`, on `anchored_on`) and their birthday ("MM-DD"), so nobody's age jumps on an
+-- upgrade; from then on their age goes up on each birthday. `kind` is whose: a companion (key: companion id), a circle
+-- member (circle_people id), a love-life partner outside the circle (love_partners id) or the town ('town'; the row
+-- with an empty key holds the day the town's people started getting older, a townsperson's own row their key).
+-- `held_age` is the age a companion who "Keeps their age" is held at: the age they were when it was turned on.
+CREATE TABLE IF NOT EXISTS birth_dates (
+  kind TEXT NOT NULL CHECK (kind IN ('companion', 'circle', 'partner', 'town')),
+  person_key TEXT NOT NULL,
+  born_on TEXT NOT NULL,
+  birthday TEXT NOT NULL,
+  from_age INTEGER NOT NULL,
+  anchored_on TEXT NOT NULL,
+  held_age INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (kind, person_key)
+);

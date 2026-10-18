@@ -166,10 +166,12 @@ def drawn_to(connection, companion: dict) -> set[str]:
 def new_person(connection, companion: dict, world, seed: str) -> dict:
     """A seeded new person who could be their partner: an adult near their age they could be drawn to, from the
     city's own people when the world knows the city."""
+    from companion.life import grooming
     from companion.world import generators, looks
     definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
     data = circle.city_data(definition, world)
-    age = looks.age_of(definition, companion['id'])
+    # Near the age they are now, birthdays and all (companion/life/ages.py).
+    age = grooming.sheet(connection, companion['id'], definition).get('age') or looks.age_of(definition, companion['id'])
     wanted = drawn_to(connection, companion)
     taken = {row['name'] for row in circle.people(connection, timeline_id, include_removed=True)} | {definition['name']}
     used = first_names_in_use(connection, companion)

@@ -253,7 +253,8 @@ def picture(sheet: dict, who: str) -> str:
     parts = [skin_text(sheet),
              article(f"{sheet['face']} face") if sheet.get('face') else '', sheet.get('jaw') or '', sheet.get('nose') or '',
              f'{eyes} eyes' if eyes else '', (sheet.get('hair') or '').replace(', ', ' '), sheet.get('facial_hair') or '',
-             sheet.get('feature') or '', sheet.get('glasses') or '', sheet.get('nails') or '']
+             sheet.get('feature') or '', sheet.get('glasses') or '', sheet.get('nails') or '',
+             sheet.get('age_signs') or '']
     parts = [seen(part) for part in parts]
     if 'nose' in parts[7] and parts[3]:
         parts[3] = ''  # the feature says how their nose looks
@@ -282,7 +283,7 @@ def text(sheet: dict) -> str:
              ' '.join(part for part in (sheet.get('eye_shape'), sheet.get('eyes'), 'eyes') if part)
              if sheet.get('eyes') or sheet.get('eye_shape') else '',
              sheet.get('hair') or '', sheet.get('facial_hair') or '', sheet.get('feature') or '',
-             sheet.get('glasses') or '', sheet.get('nails') or '']
+             sheet.get('glasses') or '', sheet.get('nails') or '', sheet.get('age_signs') or '']
     return ', '.join(part for part in parts if part)
 
 

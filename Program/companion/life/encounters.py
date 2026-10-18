@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 from companion.characters import for_timeline
 from companion.clock import stamp, zone
 from companion.database import decode, encode, many, optional, settings
-from companion.life import money, network, town_personality
+from companion.life import ages, money, network, town_personality
 from companion.world import couples, generators, intimacy, life_details, newcomers, perception, townsfolk, turnover
 
 ACTIVE = True
@@ -223,11 +223,14 @@ def known(connection, companion: dict, now) -> list[dict]:
     cast = town_cast(connection, companion, data)
     found = settings(connection)
     changed = town_personality.all_edited(connection, town_personality.town_of(companion))
+    today = now.astimezone(zone(companion['version']['timezone'])).date()
     result = []
     for key, meetings in history_for(connection, companion, cast, now).items():
         sheet = resolve(data, key, cast)
         if sheet:
             person = revealed(sheet, data, meetings, now, companion)
+            if not sheet.get('cast'):  # A year older on each birthday since the town started ageing (life/ages.py).
+                person['age'] = ages.town_age(connection, sheet, today)
             # A companion living in town has their own sliders on their character sheet.
             person['personality'] = None if sheet.get('cast') else town_personality.view(sheet, changed.get(key))
             if found['adult_side']:

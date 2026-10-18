@@ -752,6 +752,31 @@ The chat context lists the day itself and birthdays within a week. Today's respo
 `circle_birthday`, `anniversary`; a `circle_birthday` adds `person` and `relation`). On the day, an occasion
 other than a circle birthday is the first reason the companion may message first.
 
+### Everyone gets older
+
+`companion/life/ages.py` gives each person one stored birth date (`birth_dates`), worked out once from the age
+they had when it was first needed and their birthday, so nobody's age jumps on an upgrade; from then on their
+age goes up on each birthday. Rules only, no model.
+
+- A companion starts from their looks sheet's age (the Looks age set on the form, else the age their identity
+  gives, else seeded). When the user writes another age or birthday, the date is worked out again, so the form
+  always wins. The definition's `keeps_age` ("Keeps their age" under Looks on the Character page, off by default)
+  holds them at the age they are when it goes on (`held_age`); turned off, they carry on from there. A sheet that reads as under 18 never gets a date.
+- Their Looks line and pictures use the age on that day. Once a birthday takes them past the age their words
+  give, their own prompt adds one line after Looks: "You are 35 now; you turned 35 on 3 March." (A/B
+  2026-10-18: without it most models answered with the age written.) Their written words stay as they are.
+- Circle members and love-life partners age in their stored rows (`details.age`), which `ages.sync` keeps
+  current a few times an hour alongside the news, so everything that reads them sees the age now.
+- Townsfolk stay stateless: their seeded age is their age on the day the town started getting older, plus a
+  year on each seeded birthday since (`ages.town_age`). Around town shows it.
+- Milestone birthdays (30, 40, 50 ...) are bigger: the occasion reads "your 40th birthday, a big one" and
+  carries `turns`, Today says "It is Dana's 40th birthday today.", the first text is "Guess who's 40 today.",
+  the evening is a party, and the scrapbook's year page lists it ("Dana turned 40", "Dana's mom Ruth turned
+  60").
+- Looks drift with age through Looks that change (`grooming.age_signs`, bank `world/data/ageing.json`): first
+  grey hairs, laugh lines and reading glasses at seeded ages, settling in over the years after. Only ages they
+  reach in the app count, only looks the app drew change, and the Looks setting shifts how soon.
+
 ## Limits and permissions
 
 ```http

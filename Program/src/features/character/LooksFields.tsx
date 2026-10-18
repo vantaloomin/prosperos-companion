@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { CharacterDefinition, Looks } from '../../types'
-import { Field } from '../../components/Fields'
+import { Field, Toggle } from '../../components/Fields'
 import { useSettled } from './useSettled'
 import { emptyLooks, heightLabel, looksWords, numberChoices, weightLabel, type LooksWord } from './looksText'
 
 /** What each empty field uses once saved (companion/world/looks.py), and suggestions for the word fields. */
-interface LooksSuggestions { automatic: Looks | null; covered?: string[]; options: Partial<Record<LooksWord, string[]>> }
+interface LooksSuggestions { automatic: Looks | null; covered?: string[]; options: Partial<Record<LooksWord, string[]>>; age_now?: number | null }
 
 interface Props { definition: () => CharacterDefinition; looks: Looks | undefined; set: (change: Partial<CharacterDefinition>) => void }
 
@@ -37,6 +37,7 @@ export function LooksFields({ definition, looks, set }: Props) {
             empty={left(automatic?.[field] || null, field)} onChange={(value) => change(field, value)} />
         ))}
       </div>
+      <KeepsAge definition={definition()} written={current.age} found={found.data} set={set} />
     </fieldset>
   )
 }
@@ -73,4 +74,22 @@ function emptyText(saved: boolean, covered: boolean, shown: string | null) {
 
 function coveredBy(found: LooksSuggestions | undefined) {
   return new Set(found?.covered ?? [])
+}
+
+interface KeepsAgeProps { definition: CharacterDefinition; written: number | null; found: LooksSuggestions | undefined; set: Props['set'] }
+
+/** The "Keeps their age" lock, off by default: they turn a year older on each birthday unless it is on. */
+function KeepsAge({ definition, written, found, set }: KeepsAgeProps) {
+  return <Toggle label="Keeps their age" checked={Boolean(definition.keeps_age)} onChange={(keeps_age) => set({ keeps_age })}
+    hint={keepsAgeHint(definition, written ?? found?.automatic?.age ?? null, found?.age_now ?? null)} />
+}
+
+/** Everyone gets older (companion/life/ages.py): a year older on each birthday, unless they keep the age they are
+ * now. On or off, the hint names the same age (Iris, v0.14). */
+function keepsAgeHint(definition: CharacterDefinition, written: number | null, now: number | null) {
+  const who = definition.name.trim().split(/\s+/)[0] || 'They'
+  const age = now ?? written
+  if (definition.keeps_age) return age ? `${who} stays ${age}, however many birthdays pass.` : `${who} stays the age they are now, however many birthdays pass.`
+  const lead = now ? `${who} is ${now} now and turns` : `${who} ${who === 'They' ? 'turn' : 'turns'}`
+  return `${lead} a year older on each birthday. Turn this on for a character who shouldn't age.`
 }

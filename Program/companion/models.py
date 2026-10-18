@@ -141,6 +141,8 @@ class CharacterDefinition(Input):
     # "MM-DD"; empty picks a date from the companion's id (companion/life/occasions.py).
     texting: TextingStyle = Field(default_factory=TextingStyle)
     birthday: str = Field(default='', pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
+    # Everyone gets older (companion/life/ages.py): on, they stay the age written, for characters who shouldn't age.
+    keeps_age: bool = False
     money: MoneySetup = Field(default_factory=MoneySetup)
     # Their adult side, only used with Settings > Realism > Adult side of life on; None uses the roll.
     intimacy: IntimacySetup | None = None

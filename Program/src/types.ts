@@ -129,6 +129,8 @@ export interface CharacterDefinition {
   name: string
   /** "MM-DD"; empty picks a date for them. */
   birthday?: string
+  /** On: they stay the age written instead of turning a year older on each birthday (companion/life/ages.py). */
+  keeps_age?: boolean
   identity: string
   personality: string
   voice: string
@@ -1246,7 +1248,7 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
 
 /** A holiday the companion's family keeps (companion/life/traditions.py). */
 export interface Tradition { id: string; holiday: string; name: string; text: string; origin: 'seeded' | 'user'; edited: boolean; next: string | null }

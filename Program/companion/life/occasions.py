@@ -4,7 +4,8 @@ Three kinds of day, all from saved state and the calendar, never from a model:
 
 - the companion's own birthday: the definition's `birthday` ("MM-DD") or, when it is empty, a date
   seeded by the companion's id. On the day a free evening goes to celebrating, with a friend from
-  the circle when one is free (companion/life/composer.py).
+  the circle when one is free (companion/life/composer.py). A milestone (30, 40, 50 ...: companion/life/ages.py)
+  is a bigger one: the line names it, Today says it and the evening is a party.
 - the user's birthday: the Life setting `user_birthday`, filled in the first time the user says it
   in their own words ("my birthday is March 3rd", "it's my birthday today") and editable or
   clearable in Settings. It is never guessed.
@@ -25,7 +26,7 @@ from datetime import date, timedelta
 
 from companion.clock import parse, zone
 from companion.database import optional, settings
-from companion.life import circle, steps, traditions
+from companion.life import ages, circle, steps, traditions
 from companion.world import generators
 
 SOON = 7
@@ -49,6 +50,7 @@ TEMPLATES = {'user_birthday': 'Happy birthday!! I hope today is a really good on
              'own_birthday': "Guess who's a year older today.",
              'anniversary': "Okay, random, but it's been {span} since we started talking. Just saying.",
              'step_anniversary': "Can you believe it's been {span} since we {did}?"}
+MILESTONE_TEMPLATE = "Guess who's {age} today."
 
 
 def month_day(month: str, day: str) -> str | None:
@@ -144,12 +146,18 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     mine = own_birthday(companion)
     ahead = days_until(own_today, mine) if mine else SOON + 1
     if ahead <= SOON:
-        found.append(occasion('own_birthday', own_today + timedelta(days=ahead), ahead, 'your birthday', ''))
+        day = own_today + timedelta(days=ahead)
+        turns = turning(ages.turns_on(connection, companion['id'], companion['version']['definition'], day))
+        found.append(occasion('own_birthday', day, ahead, f'your {ages.ordinal(turns)} birthday, a big one'
+                              if turns else 'your birthday', '', turns=turns))
     for person in circle.people(connection, companion['active_timeline_id']) if SEEDED else ():
         ahead = days_until(own_today, circle.birthday(person['id']))
         if ahead <= SOON:
-            found.append(occasion('circle_birthday', own_today + timedelta(days=ahead), ahead,
-                                  f"your {person['role']} {person['name']}'s birthday", '', person=person))
+            day = own_today + timedelta(days=ahead)
+            turns = turning(ages.person_age(connection, 'circle', person['id'], day))
+            found.append(occasion('circle_birthday', day, ahead, f"your {person['role']} {person['name']}'s "
+                                  f"{ages.ordinal(turns) + ' ' if turns else ''}birthday", '', person=person,
+                                  turns=turns))
     for item in traditions.upcoming(connection, companion, own_today, SOON):
         found.append(occasion('tradition', item['date'], item['days'], item['name'], '', tradition=item))
     first = first_talk(connection, companion['active_timeline_id'], user_tz)
@@ -170,8 +178,13 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     return found
 
 
+def turning(age: int | None) -> int | None:
+    """The age a birthday turns them, when it is a milestone (30, 40, 50 ...: companion/life/ages.py)."""
+    return age if ages.milestone(age) else None
+
+
 def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', person: dict | None = None,
-             tradition: dict | None = None, did: str = '', step: str = '') -> dict:
+             tradition: dict | None = None, did: str = '', step: str = '', turns: int | None = None) -> dict:
     when = 'Today' if ahead == 0 else 'Tomorrow' if ahead == 1 else f"In {ahead} days ({day.strftime('%A %d %B')})"
     text = f"- {when} is {what}." if kind != 'anniversary' else f'- Today it has been {what}.'
     if kind == 'step_anniversary':
@@ -189,4 +202,8 @@ def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', 
                   'teaser': tradition['short']}
     if did:
         found |= {'did': did, 'step': step}  # Today says which step it is (src/features/today/storyText.ts).
+    if turns:  # A milestone birthday: Today and the first text say which.
+        found['turns'] = turns
+        if found['template'] and kind == 'own_birthday':
+            found['template'] = MILESTONE_TEMPLATE.format(age=turns)
     return found

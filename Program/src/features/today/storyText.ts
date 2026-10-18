@@ -6,11 +6,18 @@ import type { Occasion } from '../../types'
 export function occasionText(item: Occasion, name: string): string {
   const when = item.days === 0 ? 'today' : item.days === 1 ? 'tomorrow' : `in ${item.days} days`
   if (item.kind === 'user_birthday') return item.days === 0 ? 'Happy birthday! It is your birthday today.' : `Your birthday is ${when}.`
-  if (item.kind === 'own_birthday') return `It is ${name}'s birthday ${when}.`
-  if (item.kind === 'circle_birthday') return `It is ${name}'s ${item.relation} ${item.person}'s birthday ${when}.`
+  if (item.kind === 'own_birthday' || item.kind === 'circle_birthday') return birthdayText(item, name, when)
   if (item.kind === 'tradition') return `${when.charAt(0).toUpperCase()}${when.slice(1)}: ${item.teaser ? `${item.teaser}.` : item.tradition}`
   if (item.kind === 'step_anniversary') return stepAnniversaryText(item, when)
   return `It's been ${item.span} since you two started talking.`
+}
+
+/** Their birthday or a circle member's; a milestone (30, 40, 50 ...: companion/life/ages.py) says which: "It is
+ * Dana's 40th birthday today." */
+function birthdayText(item: Occasion, name: string, when: string): string {
+  const big = item.turns ? `${ordinal(item.turns)} ` : ''
+  const whose = item.kind === 'own_birthday' ? `${name}'s` : `${name}'s ${item.relation} ${item.person}'s`
+  return `It is ${whose} ${big}birthday ${when}.`
 }
 
 /** Today's header lines: every occasion, but only the nearest step anniversary, which says how many more are due
@@ -42,3 +49,10 @@ export const DRAMA_LEVELS = [
   { value: 2, label: 'Dramatic', hint: 'More often, and bigger: health scares, feuds, secret romances.' },
   { value: 3, label: 'Soap opera', hint: 'Drunk kisses, separations, family secrets.' },
 ] as const
+
+/** 40th, 21st, 52nd. */
+export function ordinal(value: number): string {
+  const tens = value % 100
+  const end = tens >= 10 && tens <= 20 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[value % 10] ?? 'th'
+  return `${value}${end}`
+}

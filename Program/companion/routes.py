@@ -31,11 +31,12 @@ from companion import (
     worlds,
 )
 from companion.almanac.context import city_for
+from companion.clock import zone
 from companion.errors import DomainError
 from companion.identity import APP_ID, VERSION
 from companion.images.prompts import in_photos
 from companion.imports import cards
-from companion.life import status
+from companion.life import grooming, status
 from companion.memory import consolidation, formation, pairs, records
 from companion.models import (
     CastDraftRequest,
@@ -218,10 +219,14 @@ def looks_suggestions(request: Request, body: PerceptionRequest):
     involved."""
     with request.app.state.database.connect() as connection:
         companion = characters.current(connection)
+        # How old they are now, birthdays and all (companion/life/ages.py), for "Keeps their age".
+        today = request.app.state.database.clock.now().astimezone(zone(companion['version']['timezone'])).date() \
+            if companion else None
+        age_now = grooming.sheet(connection, companion['id'], body.definition, today).get('age') if companion else None
     automatic = looks.for_companion(companion['id'], body.definition) if companion else None
     line = in_photos({'name': '', **body.definition, 'in_photos': ''})
     return {'automatic': automatic, 'covered': sorted(looks.covered(body.definition.get('appearance', ''))),
-            'options': looks.options(), 'in_photos': line}
+            'options': looks.options(), 'in_photos': line, 'age_now': age_now}
 
 
 @router.post('/companion/draft/card')
