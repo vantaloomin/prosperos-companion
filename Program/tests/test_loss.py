@@ -155,8 +155,8 @@ def test_who_is_spared_the_young_partners_and_people_the_sheet_names(client, clo
 def test_a_death_on_its_day_grief_the_news_and_fewer_plans(client, clock, monkeypatch):
     make(client)
     switch(client)
-    dies(monkeypatch)
     dad = person(client, 'dad')
+    dies(monkeypatch, dad['id'])  # Only the dad, so no one else's news falls on the same day.
     advance(client, clock)
     row = next(row for row in losses(client) if row['person_id'] == dad['id'])
     assert row['happened'] == 0 and row['details']['depth'] == 3
