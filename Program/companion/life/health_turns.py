@@ -196,7 +196,8 @@ def care_begins(connection, companion, row, details, day, now) -> dict:
             'told': f"You are caring for your {details['role']} {details['name']}: you spend "
                     f"{big_turns.days_text(details['caring']['days'])} at their place, take them to their appointments "
                     'and help with their bills.',
-            'share': f"First evening at my {details['role']}'s as their helper. We made it work.",
+            'share': f"First {'evening' if details['caring']['start'] >= '17:00' else 'day'} at my {details['role']}'s "
+                     'as their helper. We made it work.',
             'details': {'stage': 'caring', 'starts_on': day.isoformat(),
                         'next_on': (day + timedelta(days=CARE_CHECK)).isoformat()}}
 

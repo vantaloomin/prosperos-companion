@@ -21,6 +21,7 @@ from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import (
     big_days,
+    big_turns,
     breakups,
     encounters,
     families,
@@ -260,10 +261,12 @@ def copy_storylines(connection, parent_id, new_id, ids, cutoff_date):
 def copy_chapters(connection, parent_id, new_id, ids, cutoff_date):
     """Life chapters begun by the fork carry over with how they went; later ones are the copy's own."""
     rows = many(connection, 'SELECT * FROM life_chapters WHERE timeline_id=? AND started_on<=?', (parent_id, cutoff_date))
+    # A big turn as it stood on the fork's day (big_turns.fork_row), with the copies of its people and home items.
+    copies = [big_turns.fork_row(connection, row, identifier(), new_id, cutoff_date) for row in rows]
     insert(connection, 'life_chapters', [{
-        **row, 'id': identifier(), 'timeline_id': new_id, 'undo': remap(row['undo'], ids),
+        **row, 'undo': remap(row['undo'], ids), 'details': remap(row['details'], ids),
         'consequence_id': row['consequence_id'] and consequences.copy(
-            connection, row['consequence_id'], new_id, f"chapter:{new_id}:{row['started_on']}")} for row in rows])
+            connection, row['consequence_id'], new_id, f"chapter:{new_id}:{row['started_on']}")} for row in copies])
     if optional(connection, 'SELECT through FROM chapter_days WHERE timeline_id=?', (parent_id,)):
         connection.execute('INSERT INTO chapter_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
 

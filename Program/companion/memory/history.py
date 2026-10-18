@@ -146,16 +146,24 @@ def gather(connection, companion: dict, now, found: list[Stretch], timezone, ski
     for memory in closeness.shared_moments(connection, companion, timeline_id, now, None):
         if item := holding(found, happened(memory, timezone), skip):
             item.moments.append(memory['subject'])
-    for row in many(connection, 'SELECT started_on, title, told FROM life_chapters WHERE timeline_id=? AND '
-                    'undone_at IS NULL AND started_on>=? AND started_on<=? ORDER BY started_on',
-                    (timeline_id, low.isoformat(), high.isoformat())):
-        if item := holding(found, row['started_on'], skip):
-            item.life.append((row['told'].rstrip('.'), row['title']))
+    for day, told, title in chapter_stages(connection, timeline_id, low, high):
+        if item := holding(found, day, skip):
+            item.life.append((told.rstrip('.'), title))
     for row in many(connection, "SELECT start_date, city_name FROM trips WHERE timeline_id=? AND status='planned' "
                     'AND start_date>=? AND end_date<=? ORDER BY start_date',
                     (timeline_id, low.isoformat(), high.isoformat())):
         if item := holding(found, row['start_date'], skip):
             item.life.append((f"You went away to {row['city_name']}", f"{name} went away to {row['city_name']}"))
+
+
+def chapter_stages(connection, timeline_id: str, low, high) -> list[tuple[str, str, str]]:
+    """(day, told, title) for life chapters between two dates: a big turn's stages each in their own period
+    (big_turns.told_by_day), as they stood then."""
+    from companion.life import big_turns
+    rows = many(connection, 'SELECT started_on, title, told, details FROM life_chapters WHERE timeline_id=? AND '
+                'undone_at IS NULL AND started_on<=? ORDER BY started_on', (timeline_id, high.isoformat()))
+    return [found for row in rows for found in big_turns.told_by_day(row)
+            if low.isoformat() <= found[0] <= high.isoformat()]
 
 
 def talked_days(connection, timeline_id, found, low, high, timezone):

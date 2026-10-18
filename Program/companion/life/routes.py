@@ -509,7 +509,7 @@ def require_date(value: str) -> date:
 
 
 class OutcomeChange(Input):
-    option: int = Field(ge=0, le=9)
+    option: int = Field(ge=0, le=31)  # chapter:next has 13 ways it can go.
 
 
 @router.get('/consequences/{consequence_id}')

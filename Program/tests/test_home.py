@@ -206,3 +206,30 @@ def test_housing_over_more_than_one_shop_takes_no_article():
     assert home.housing_text('rooms-over-shops') == 'rooms over shops'
     assert home.housing_text('rooms-over-store') == 'rooms over a store'
     assert home.housing_text('rooms-around-courtyard') == 'rooms around a courtyard'
+
+
+def test_the_kind_of_building_reads_with_the_right_article():
+    from companion.life.home import article, housing_text
+    said = {kind: article(housing_text(kind)) for kind in (
+        'warehouse-conversion', 'warehouse-loft', 'warehouse-lodgings', 'hotel', 'hotel-room', 'hotel-rooms',
+        'inn-rooms', 'rented-rooms', 'rooms-over-store', 'servants-quarters', 'apartment')}
+    assert said == {
+        'warehouse-conversion': 'a warehouse conversion', 'warehouse-loft': 'a warehouse loft',
+        'warehouse-lodgings': 'warehouse lodgings', 'hotel': 'a hotel', 'hotel-room': 'a hotel room',
+        'hotel-rooms': 'hotel rooms', 'inn-rooms': 'inn rooms', 'rented-rooms': 'rented rooms',
+        'rooms-over-store': 'rooms over a store', 'servants-quarters': 'servants quarters', 'apartment': 'an apartment'}
+
+
+def test_a_home_item_says_its_rent_in_the_citys_money():
+    found = home.item_view({'id': 'i', 'kind': 'home', 'name': 'a cottage', 'variety': 'cottage', 'origin': 'change',
+                            'since': '2027-01-01', 'until': None, 'edited': 0, 'revision': 1,
+                            'details': '{"rent": 12, "currency": {"code": "penny", "symbol": "d.", "name": "pennies"}}'})
+    assert found['rent_text'] == '12 d.'
+
+
+def test_the_home_line_says_rent_in_the_citys_money():
+    pennies = {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'}
+    assert home.money_text({'rent': 5, 'rent_period': 'week', 'currency': pennies, 'owned': True}) == \
+        ' The mortgage is about 5 d. a week (an estimate).'
+    dollars = {'code': 'USD', 'symbol': '$', 'name': 'US dollars'}
+    assert home.money_text({'rent': 1410, 'currency': dollars}) == ' Rent is about $1,410 a month (an estimate).'

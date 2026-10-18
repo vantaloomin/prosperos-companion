@@ -12,8 +12,9 @@ export function homeTitle(item: HomeItem): string {
 /** "About $1,450 a month (an estimate)", or null where the setting has no rent. */
 export function rentText(item: HomeItem): string | null {
   if (item.rent === null || item.rent === undefined) return null
-  if (item.owned) return `Theirs, with a mortgage of about ${item.currency?.symbol ?? '$'}${item.rent.toLocaleString('en-US')} a ${item.rent_period ?? 'month'} (an estimate)`
-  return `Rent about ${item.currency?.symbol ?? '$'}${item.rent.toLocaleString('en-US')} a ${item.rent_period ?? 'month'} (an estimate)`
+  const amount = item.rent_text ?? `${item.currency?.symbol ?? '$'}${item.rent.toLocaleString('en-US')}`
+  if (item.owned) return `Theirs, with a mortgage of about ${amount} a ${item.rent_period ?? 'month'} (an estimate)`
+  return `Rent about ${amount} a ${item.rent_period ?? 'month'} (an estimate)`
 }
 
 /** The description when it says more than the name, with what is wrong right now. */

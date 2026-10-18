@@ -8,7 +8,7 @@ from test_chapters import arrange, current, items
 from test_storylines import WORKDAY
 
 from companion import consequences
-from companion.life import big_turns, chapters, money, storylines
+from companion.life import admin, big_turns, chapters, money, storylines
 from companion.world import turnover
 
 
@@ -115,6 +115,36 @@ def test_exams_go_on_the_calendar_and_fees_into_the_budget(client, mira, clock, 
     assert not any(block['kind'] == 'study' for block in current(client)['version']['definition']['schedule'])
 
 
+def test_an_exam_on_a_class_day_keeps_its_day_and_the_class_hour(client, mira, clock, monkeypatch):
+    chapter = begun(client, monkeypatch, clock, 'school')
+    found = details(client, chapter['id'])
+    next_stage(client, clock, chapter['id'])  # Classes start.
+    day = clock.now().date() + timedelta(days=5)
+    while day.weekday() not in found['study']['days']:
+        day += timedelta(days=1)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE life_chapters SET details=json_set(details, '$.exams', json_array(?)) WHERE id=?",
+                           (day.isoformat(), chapter['id']))
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        exam = connection.execute("SELECT * FROM life_admin WHERE source='school'").fetchone()
+    assert (exam['local_date'], exam['at_time']) == (day.isoformat(), found['study']['start'])
+    assert f"Next exam {big_turns.short_day(day.isoformat())}" in \
+        client.get('/api/life/chapters/lately').json()['now'][0]['line']
+
+
+def test_a_course_stays_in_the_chat_context_while_it_runs(client, mira, clock, monkeypatch):
+    chapter = begun(client, monkeypatch, clock, 'school')
+    next_stage(client, clock, chapter['id'])  # Classes start.
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE life_chapters SET details=json_set(details, '$.next_on', '2099-01-01') WHERE id=?",
+                           (chapter['id'],))
+    clock.advance(timedelta(days=chapters.TOLD_DAYS + 30))
+    reconcile(client)
+    assert 'You started ' in client.get('/api/context/preview').json()['prompt']
+
+
 def test_a_career_change_retrains_then_starts_the_new_job(client, mira, clock, monkeypatch):
     chapter = begun(client, monkeypatch, clock, 'career_change')
     found = details(client, chapter['id'])
@@ -122,7 +152,8 @@ def test_a_career_change_retrains_then_starts_the_new_job(client, mira, clock, m
     next_stage(client, clock, chapter['id'])
     definition = current(client)['version']['definition']
     assert definition['money']['career'] == 'accountant'
-    assert any(block['kind'] == 'study' for block in definition['schedule'])
+    [study] = [block for block in definition['schedule'] if block['kind'] == 'study']
+    assert study['label'].lower() == f"{found['job']} class"  # 'Financial analyst class', not 'Financial class'.
     next_stage(client, clock, chapter['id'])
     definition = current(client)['version']['definition']
     assert definition['money']['career'] == found['career']
@@ -135,6 +166,11 @@ def test_buying_a_place_brings_a_mortgage_until_undone(client, mira, clock, monk
     found = details(client, chapter['id'])
     old = items(client, 'home')
     assert chapter['stage'] == 'hunting' and found['place']['details']['owned']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(client)
+        admin.add(connection, companion, key='admin:lease:2099-01-01', source='admin', kind='lease',
+                  title='Lease renewal', done='signed the lease', day=clock.now().date() + timedelta(days=20),
+                  now=clock.now())
     assert 'keys on' in client.get('/api/life/chapters/lately').json()['now'][0]['line']
     next_stage(client, clock, chapter['id'])
     [place] = items(client, 'home')
@@ -147,9 +183,32 @@ def test_buying_a_place_brings_a_mortgage_until_undone(client, mira, clock, monk
         budget = money.snapshot(definition, today.isoformat(),
                                 money.household(connection, companion['active_timeline_id'], definition, today))
     assert budget['owned'] and any(item['for'] == 'deposit' and item['savings'] for item in budget['bought'])
-    assert 'the mortgage on your home is about' in client.get('/api/context/preview').json()['prompt']
+    prompt = client.get('/api/context/preview').json()['prompt']
+    assert 'the mortgage on your home is about' in prompt and 'as an accountant' in prompt
+    assert ' Rent is about' not in prompt  # The Home line says mortgage too.
+    with client.app.state.database.connect() as connection:
+        has = admin.owns(definition, connection, companion['active_timeline_id'], today)
+        assert connection.execute("SELECT status FROM life_admin WHERE key='admin:lease:2099-01-01'").fetchone()[0] \
+            == 'removed'
+    assert 'rent' not in has  # No lease to renew on a place they own.
     client.post(f"/api/life/chapters/{chapter['id']}/undo")
     assert [item['id'] for item in items(client, 'home')] == [old[0]['id']]
+
+
+def test_each_stage_is_told_in_its_own_week_of_the_history(client, mira, clock, monkeypatch):
+    from companion.memory import history
+    chapter = begun(client, monkeypatch, clock, 'buy_place')
+    hunting = details(client, chapter['id'])
+    next_stage(client, clock, chapter['id'])
+    with client.app.state.database.connect() as connection:
+        timeline = current(client)['active_timeline_id']
+        start = date.fromisoformat(chapter['started_on'])
+        first = history.chapter_stages(connection, timeline, start, start)
+        later = history.chapter_stages(connection, timeline, start + timedelta(days=1), clock.now().date())
+    assert [told for _day, told, _title in first] == [f"You decided to buy a place of your own and found "
+                                                      f"{hunting['place']['details']['description']}; you get the "
+                                                      f"keys on {big_turns.day_text(hunting['keys_on'])}."]
+    assert [told for _day, told, _title in later][0].startswith('You got the keys')
 
 
 def test_retirement_turns_work_into_their_own_time_and_pay_into_a_pension(client, older, clock, monkeypatch):
@@ -165,6 +224,30 @@ def test_retirement_turns_work_into_their_own_time_and_pay_into_a_pension(client
         pay = big_turns.pay(connection, current(client)['active_timeline_id'], clock.now().date(), {'factor': 1})
     assert pay == {'factor': big_turns.PENSION['modern'], 'between_jobs': False, 'retired': True}
     assert 'Retired, you live on a pension of about' in client.get('/api/context/preview').json()['prompt']
+
+
+def plannable(client, kind: str) -> bool:
+    """Whether the chapter could happen today."""
+    with client.app.state.database.connect() as connection:
+        companion = current(client)
+        today = storylines.local_today(companion, client.app.state.database.clock.now())
+        return chapters.PLANS[kind](connection, companion, client.app.state.life.world, today, 'seed') is not None
+
+
+def test_once_retired_no_ordinary_new_job_comes(client, older, clock, monkeypatch):
+    assert plannable(client, 'new_job')
+    chapter = begun(client, monkeypatch, clock, 'retire')
+    assert not plannable(client, 'new_job')  # They handed in their notice.
+    next_stage(client, clock, chapter['id'])
+    assert not plannable(client, 'new_job')
+
+
+def test_an_owner_stays_put(client, mira, clock, monkeypatch):
+    assert plannable(client, 'move')
+    chapter = begun(client, monkeypatch, clock, 'buy_place')
+    assert not plannable(client, 'move')  # House hunting.
+    next_stage(client, clock, chapter['id'])
+    assert not plannable(client, 'move')
 
 
 def test_retirement_is_for_older_characters_only(client, mira, clock, monkeypatch):
@@ -227,8 +310,27 @@ def test_living_together_they_buy_a_place_for_both(client, provider, clock, monk
         shared = moving_in.current(connection, companion['active_timeline_id'])
         costs = money.household(connection, companion['active_timeline_id'], companion['version']['definition'],
                                 clock.now().date())['costs']
-    assert shared['home_item_id'] == place['id'] and shared['neighbourhood'] == place['neighborhood']
+    hood = moving_in.hood_named(money.city_for(companion['version']['definition']), place['neighborhood'])
+    assert shared['home_item_id'] == place['id'] and shared['neighbourhood'] == hood['id']
+    with client.app.state.database.connect() as connection:
+        from companion.life import where
+        assert where.home_text(connection) == f"{place['neighborhood']}, Baltimore"  # The user's home too.
+    assert 'You split the mortgage and the bills' in client.get('/api/context/preview').json()['prompt']
     assert costs['owned'] and costs['shared'] and costs['rent'] == round(place['rent'] / 2, 2)
     client.post(f"/api/life/chapters/{chapter['id']}/undo")
     with client.app.state.database.connect() as connection:
         assert moving_in.current(connection, companion['active_timeline_id'])['home_item_id'] != place['id']
+
+
+@pytest.mark.parametrize(('city_id', 'location', 'career'), [('camelot', 'Woolston, Camelot', 'baker'),
+                                                             ('london-1895', 'Lambeth, London', 'clerk')])
+def test_a_place_bought_for_pennies_or_shillings_has_a_mortgage_above_nothing(city_id, location, career):
+    from companion.world import catalog
+    city = catalog.cities()[city_id]
+    definition = {'name': 'Elowen Ashby', 'home_city': city_id, 'location': location, 'money': {'career': career},
+                  'identity': 'Elowen is 40.'}
+    companion = {'id': 'c', 'version': {'definition': definition}}
+    found = money.profile(definition)
+    for seed in range(12):
+        place = big_turns.place_to_buy(companion, city, found, None, f'seed-{seed}')
+        assert place and place['details']['rent'] >= 1, place
