@@ -115,8 +115,9 @@ def far_plans(connection, companion: dict, today: date, now: datetime | None) ->
     for outing in outings.in_force(connection, companion['active_timeline_id'], today.isoformat()):
         during = any(row['start_date'] <= outing['local_date'] <= row['end_date'] for row in visits)
         if during or outings.state(outing, timezone, when) != 'planned' or outing['place'].get('far') or \
-                outing['activity'] in (*together.AT_YOURS, 'wedding'):
-            continue  # Plans made for a visit are the visit's own; the wedding is in their city, whoever travels.
+                outing['activity'] in (*together.AT_YOURS, 'wedding', 'big-day'):
+            continue  # Plans made for a visit are the visit's own; the wedding is in their city, whoever travels,
+            # and a big day is on its own day (big_days.moved_apart plans the user's stay around it).
         stay = stays[0] if stays else None
         place = {**outing['place'], 'far': 'moved' if stay else 'off', 'far_on': today.isoformat(),
                  'was': outing['local_date']}

@@ -569,12 +569,29 @@ def follow(connection, companion: dict, now: datetime) -> None:
         state = outings.state(outings.view(outing), timezone, now) if outing else None
         if row['status'] == 'declined' and state == 'planned':
             row = taken_back(connection, row, stamp(now))
+        if row['status'] == 'invited' and state == 'planned':
+            state = moved_apart(connection, companion, row, outing, now)
         if row['status'] == 'invited' and state in (None, 'cancelled'):
             decline(connection, row, stamp(now))
         elif row['status'] == 'invited' and state == 'done':
             finish(connection, companion, row, True, now)
         elif row['status'] != 'invited' and row['local_date'] < today.isoformat():
             finish(connection, companion, row, False, now)
+
+
+def moved_apart(connection, companion: dict, row: dict, outing: dict, now: datetime) -> str:
+    """They live apart since the invitation (one of them moved): the user's stay with them is planned around the day,
+    or, when no visit can reach them, the user can't come after all ('cancelled'). Else the outing stays 'planned'."""
+    from companion.life import long_distance
+    between = long_distance.far(connection, companion)
+    if not between or optional(connection, "SELECT id FROM trips WHERE id=? AND status='planned'",
+                               (row['trip_id'] or '',)):
+        return 'planned'
+    if long_distance.reachable(between):
+        trip_id = stay(connection, companion, date.fromisoformat(row['local_date']), outing['message_id'], now)
+        connection.execute('UPDATE big_days SET trip_id=? WHERE id=?', (trip_id or row['trip_id'], row['id']))
+        return 'planned'
+    return 'cancelled'
 
 
 def gone(connection, row: dict) -> bool:

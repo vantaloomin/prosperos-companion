@@ -458,6 +458,29 @@ def test_long_distance_the_day_is_a_stay_and_undoing_the_no_brings_it_back(clien
     assert stays() == ['planned'] and row_of(client, row['id'])['status'] == 'invited'
 
 
+def test_moving_apart_after_saying_yes_plans_a_stay_and_keeps_the_day(client, clock, monkeypatch):
+    monkeypatch.setattr(trips, 'ACTIVE', True)
+    for name in ('CHANCE', 'LONG_CHANCE'):
+        monkeypatch.setattr(trips, name, 0.0)
+    monkeypatch.setattr(long_distance, 'CHANCE', {1: 1.0, 2: 1.0, 3: 1.0})
+    make(client, home_city='Chicago', timezone='America/Chicago')
+    guests(client, 3)
+    row = add(client, clock)
+    at(clock, row['invite_on'], '18:00')
+    _trigger, outing = invite(client, clock)
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'baltimore'}).status_code == 200
+    with client.app.state.database.connect(write=True) as connection:
+        long_distance.settle_moves(connection, current(connection), clock.now().date(), clock.now())
+    advance(client, clock)
+    found = row_of(client, row['id'])
+    with client.app.state.database.connect() as connection:
+        kept = outings.get(connection, outing['id'])
+        stay = one(connection, 'SELECT * FROM trips WHERE id=?', (found['trip_id'],))
+    assert found['status'] == 'invited' and kept['status'] == 'planned' and kept['local_date'] == row['local_date']
+    assert stay['status'] == 'planned' and stay['start_date'] <= row['local_date'] <= stay['end_date']
+
+
 def branch_at(client, message_id, **body):
     branch = client.post('/api/timelines', json={'message_id': message_id, **body}).json()
     assert client.post(f"/api/timelines/{branch['id']}/activate").status_code == 200
