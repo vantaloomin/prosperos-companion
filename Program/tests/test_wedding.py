@@ -525,3 +525,25 @@ def test_the_morning_after_the_wedding_was_yesterday(client, clock, provider):
     done = [line for key, line in morning.items() if key.endswith(':done')]
     assert done and done[0].startswith('- Yesterday you and the user got married at ')
     assert [line for key, line in late.items() if key.endswith(':done')][0].startswith('- Earlier today ')
+
+
+def test_far_apart_they_propose_on_the_users_stay_with_them(client, clock, provider, invites, monkeypatch):
+    from test_their_people import host_visit
+
+    from companion.life import long_distance
+    make(client)
+    set_step(client, 'moving_in')
+    plan_proposal(client, clock)
+    advance(client, clock)
+    monkeypatch.setattr(long_distance, 'far', lambda _connection, _companion: object())
+    at(clock, clock.now().date().isoformat(), '12:00')
+    assert invite(client, clock) == (None, None)
+    # Weeks apart, it waits instead of lapsing.
+    for _week in range(8):
+        clock.advance(timedelta(days=7))
+        advance(client, clock)
+    assert [row['status'] for row in proposals(client)] == ['planned']
+    start = host_visit(client, clock)
+    trigger, outing = invite(client, clock)
+    assert trigger is not None and outing is not None
+    assert outing['local_date'] == (start + timedelta(days=1)).isoformat() and outing['place']['proposal']

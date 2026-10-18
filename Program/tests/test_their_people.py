@@ -291,6 +291,37 @@ def test_far_apart_nothing_is_sent_and_it_stays_planned(client, clock, invites, 
     assert trigger is not None
 
 
+def host_visit(client, clock, days_ahead=10, length=2):
+    """The user's stay with them in their city, `days_ahead` days on."""
+    from companion.life import long_distance, trips
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        today = their_people.local_today(companion, clock.now())
+        start = today + timedelta(days=days_ahead)
+        trips.insert(connection, companion, {
+            'start_date': start.isoformat(), 'end_date': (start + timedelta(days=length)).isoformat(),
+            'city_id': 'baltimore', 'city_name': 'Baltimore', 'kind': 'getaway', 'company': dict(long_distance.YOU),
+            'landmark': None, 'sunny': False, 'cost': 0.0, 'visit': long_distance.HOST}, clock.now())
+    return start
+
+
+def test_far_apart_the_dinner_is_on_the_users_stay_with_them(client, clock, invites, monkeypatch):
+    make(client)
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    from companion.life import long_distance
+    monkeypatch.setattr(long_distance, 'far', lambda _connection, _companion: object())
+    assert invite(client, clock) == (None, None)
+    start = host_visit(client, clock)
+    # Asked as soon as the stay is agreed, for its first full day.
+    trigger, outing = invite(client, clock)
+    assert trigger is not None and outing is not None
+    assert outing['local_date'] == (start + timedelta(days=1)).isoformat()
+    assert outing['activity'] == their_people.AT_FAMILY
+    assert meetups(client)[0]['status'] == 'booked'
+
+
 def test_family_dinner_cannot_move_elsewhere(client, clock, invites):
     make(client)
     set_step(client, 'their_people')

@@ -172,7 +172,10 @@ def follow_proposals(connection, companion: dict, now: datetime) -> None:
             drop(connection, row, None, timestamp)
             continue
         if row['status'] == 'planned':
-            if (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
+            if far(connection, companion) and row['due_on'] < today.isoformat():
+                # Living apart it waits for the user's next stay with them (propose_due), so it never lapses meanwhile.
+                connection.execute('UPDATE proposals SET due_on=? WHERE id=?', (today.isoformat(), row['id']))
+            elif (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
                 drop(connection, row, ask, timestamp)
             continue
         outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (row['outing_id'],))
@@ -182,6 +185,11 @@ def follow_proposals(connection, companion: dict, now: datetime) -> None:
         elif state == 'done':
             asked(connection, companion, row, None, outings.window(outings.view(outing),
                                                                   companion['version']['timezone'])[1])
+
+
+def far(connection, companion: dict) -> bool:
+    from companion.life import long_distance
+    return bool(long_distance.far(connection, companion))
 
 
 def drop(connection, row: dict, ask: dict | None, timestamp: str) -> None:
@@ -199,18 +207,22 @@ def asked(connection, companion: dict, row: dict, message_id: str | None, when: 
                        (local_today(companion, when).isoformat(), message_id, stamp(when), row['id']))
 
 
-def evening(connection, companion: dict, row: dict, local: datetime) -> tuple | None:
+def evening(connection, companion: dict, row: dict, local: datetime, stay: date | None = None) -> tuple | None:
     """(activity, day, at, place) for the evening they propose: a favourite place, a free evening near a Friday or a
-    Saturday."""
+    Saturday, or that evening of the user's stay with them (`stay`, long distance)."""
+    from companion.life import long_distance
     definition = companion['version']['definition']
     data = outings.city_data(connection, definition)
     if not data:
         return None
-    start = local.date() + timedelta(days=2)
+    start = stay or local.date() + timedelta(days=2)
     item = favourite(connection, companion, data, row['id'], start)
     if item is None:
         return None
     activity = PROPOSE_KINDS[item['kind']]
+    if stay is not None:
+        found = (stay, PROPOSE_AT[activity]) if long_distance.free_during_stay(connection, companion, stay) else None
+        return (activity, *found, outings.place_view(item, data)) if found else None
     day = min(start + timedelta(days=(weekday - start.weekday()) % 7) for weekday in PROPOSE_DAYS)
     found = outings.when_free(connection, companion, {'activity': activity, 'day': day, 'at': PROPOSE_AT[activity],
                                                       'firm': False}, local)
@@ -253,9 +265,14 @@ def propose_due(connection, companion: dict, now: datetime) -> list:
         return []
     row = next((item for item in proposals(connection, companion['active_timeline_id'], ('planned',))
                 if item['due_on'] <= local.date().isoformat()), None)
-    if row is None or long_distance.far(connection, companion):
+    if row is None:
         return []
-    found = evening(connection, companion, row, local)
+    # Living apart, they propose on the user's next stay with them in their city.
+    far = long_distance.far(connection, companion)
+    stay = long_distance.next_stay(connection, companion, local.date()) if far else None
+    if far and stay is None:
+        return []
+    found = evening(connection, companion, row, local, stay)
     if found is None:
         return []
     activity, day, at, place = found
@@ -278,7 +295,8 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     proposal_id, activity, day_text, at, place_id = trigger.sources
     row = optional(connection, "SELECT * FROM proposals WHERE id=? AND status='planned'", (proposal_id,))
     day = date.fromisoformat(day_text)
-    if row is None or outings.taken(connection, companion, day):
+    from companion.life.their_people import free_on
+    if row is None or not free_on(connection, companion, day):
         return None
     definition = companion['version']['definition']
     data = outings.city_data(connection, definition)

@@ -11,7 +11,7 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   seeded straight away and nothing is planned.
 - The companion invites the user in a first text (companion/life/openers.py) naming who, where and when; sending it
   books the outing (companion/life/outings.py), in person by v0.12's rules: never across a long distance, where it
-  waits until they live in one city. Today's "Out together" lets the user call it off; called off, it is planned
+  is on the first full day of the user's next stay with them in their city (companion/life/long_distance.py). Today's "Out together" lets the user call it off; called off, it is planned
   once more a few weeks later.
 - Each person at the meet-up gets a seeded first impression of the user (the engine's `people:impression`: warm,
   lovely together, still making up their mind, protective or wary, by who they are to the companion and the drama
@@ -292,9 +292,14 @@ def meet_due(connection, companion: dict, now: datetime) -> list:
     from companion.life import long_distance
     row = next((item for item in meetups(connection, companion['active_timeline_id'], ('planned',))
                 if item['due_on'] <= local.date().isoformat()), None)
-    if row is None or long_distance.far(connection, companion):
+    if row is None:
         return []
-    found = proposal(connection, companion, row, local)
+    # Living apart, it is on the user's next stay with them in their city, asked as soon as the stay is agreed.
+    far = long_distance.far(connection, companion)
+    stay = long_distance.next_stay(connection, companion, local.date()) if far else None
+    if far and stay is None:
+        return []
+    found = proposal(connection, companion, row, local, stay)
     if found is None:
         return []
     activity, day, at, place, people = found
@@ -339,14 +344,20 @@ def clock_text(at: str) -> str:
     return f"{hour % 12 or 12}{'' if minute == '00' else ':' + minute}"
 
 
-def proposal(connection, companion: dict, row: dict, local: datetime) -> tuple | None:
-    """(activity, day, at, place, people) for the meet-up: a free evening near the preferred day."""
+def proposal(connection, companion: dict, row: dict, local: datetime, stay: date | None = None) -> tuple | None:
+    """(activity, day, at, place, people) for the meet-up: a free evening near the preferred day, or that evening of
+    the user's stay with them (`stay`, long distance)."""
+    from companion.life import long_distance
     kind, people = guests_for(connection, companion, row['kind'])
     if not people:
         return None
     activity = AT_FAMILY if kind == 'family' else OUT_WITH_FRIENDS
-    wanted = {'activity': activity, 'day': preferred_day(kind, local.date()), 'at': None, 'firm': False}
-    found = outings.when_free(connection, companion, wanted, local)
+    if stay is not None:
+        found = (stay, outings.ACTIVITIES[activity][2]) if long_distance.free_during_stay(connection, companion, stay) \
+            else None
+    else:
+        wanted = {'activity': activity, 'day': preferred_day(kind, local.date()), 'at': None, 'firm': False}
+        found = outings.when_free(connection, companion, wanted, local)
     if not found:
         return None
     day, at = found
@@ -373,7 +384,7 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     day, now = date.fromisoformat(day_text), parse(timestamp)
     everyone = {person['id']: person for person in local_people(connection, companion)}
     people = [everyone[person_id] for person_id in person_ids.split(',') if person_id in everyone]
-    if not people or outings.taken(connection, companion, day):
+    if not people or not free_on(connection, companion, day):
         return None
     if activity == AT_FAMILY:
         place, cost = family_place(people, meetup_id), 0.0
@@ -399,6 +410,14 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
 
 
 SETTLES = ('meet_people',)
+
+
+def free_on(connection, companion: dict, day: date) -> bool:
+    """Nothing else has the day; on the user's stay with them (long distance), nothing else planned with them."""
+    from companion.life import long_distance
+    if long_distance.staying_on(connection, companion, day):
+        return long_distance.free_during_stay(connection, companion, day)
+    return not outings.taken(connection, companion, day)
 
 
 # First impressions -------------------------------------------------------------------------------------------------
@@ -443,7 +462,7 @@ def follow(connection, companion: dict, now: datetime) -> None:
         if row['status'] == 'planned':
             far = far if far is not None else bool(long_distance.far(connection, companion))
             if far and row['due_on'] < today.isoformat():
-                # Living apart it waits until they live in one city (meet_due), so it never lapses meanwhile.
+                # Living apart it waits for the user's next stay with them (meet_due), so it never lapses meanwhile.
                 connection.execute('UPDATE people_meetups SET due_on=? WHERE id=?', (today.isoformat(), row['id']))
             elif (today - date.fromisoformat(row['due_on'])).days > LAPSE_DAYS:
                 connection.execute("UPDATE people_meetups SET status='dropped', settled_at=? WHERE id=?",
