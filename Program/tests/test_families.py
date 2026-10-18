@@ -407,3 +407,17 @@ def test_a_baby_is_never_named_after_a_word_in_one_of_the_citys_places():
     world = type('World', (), {'find': staticmethod(lambda _text: data)})()
     names = {families.baby_name({'home_city': 'Baltimore'}, world, f'seed-{n}', 'she/her', set()) for n in range(300)}
     assert len(names) > 20 and not names & families.place_words(data)
+
+
+def test_a_first_birthday_gift_fits_an_older_city(monkeypatch):
+    import re
+
+    from companion.life import big_days
+    gifts = big_days.bank()['gifts']
+    assert set(gifts['first_birthday']) < set(gifts['first_birthday_modern'])
+    assert not any(re.search(r'\b(telephone|crayons?|cars?)\b', gift) for gift in gifts['first_birthday'])
+    companion = {'version': {'definition': {'name': 'Mira'}}}
+    for modern, key in ((True, 'first_birthday_modern'), (False, 'first_birthday')):
+        monkeypatch.setattr(big_days, 'modern_city', lambda _connection, _companion, modern=modern: modern)
+        found = {big_days.gift_for(None, companion, big_days.KINDS['first_birthday'], f'seed-{n}')[0] for n in range(60)}
+        assert found <= set(gifts[key])
