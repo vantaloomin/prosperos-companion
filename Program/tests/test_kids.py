@@ -226,7 +226,31 @@ def test_today_says_where_the_kids_are(client, clock):
         row = kids.record(connection, companion['active_timeline_id'])
         them, _name = kids.other_text(connection, companion, row)
     here = kids.with_them('weekends', date.fromisoformat(row['since']), clock.now().date())
-    assert line[1] == ('- Today Leo is with you.' if here else f'- Today Leo is with {them}.')
+    assert line[1] == '- Today Leo is with you.' if here else line[1].startswith(f'- Today Leo is with {them}. ')
+
+
+def test_with_the_other_parent_today_they_know_their_next_weekend(client, clock):
+    make(client, background='Her son Leo, 7, and daughter Mia, 4, live with their dad, her ex-husband Mark Lowe, and '
+                            'spend every other weekend with her.')
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        since = date.fromisoformat(kids.record(connection, companion['active_timeline_id'])['since'])
+        for _ in range(14):  # A Tuesday whose coming weekend is theirs.
+            today = steps.local_today(companion, clock.now())
+            if today.weekday() == 1 and kids.with_them('weekends', since, today + timedelta(days=4)):
+                break
+            clock.advance(timedelta(days=1))
+        saturday = today + timedelta(days=4)
+        line = kids.today_line(connection, companion, clock.now())[1]
+        assert line == (f'- Today the kids are with their dad Mark. This Saturday and Sunday ({saturday.day} and '
+                        f'{(saturday + timedelta(days=1)).day} {saturday:%B}) are your weekend with them; Mark has '
+                        'them until then.') or saturday.month != (saturday + timedelta(days=1)).month
+        clock.advance(timedelta(days=7))
+        assert ' Saturday and Sunday (' in kids.today_line(connection, companion, clock.now())[1]
+        assert ' This Saturday' not in kids.today_line(connection, companion, clock.now())[1]
+    assert kids.next_weekend('weekends', date(2026, 10, 12), date(2026, 10, 27)) == \
+        'This Saturday and Sunday (31 October and 1 November)'
+    assert kids.next_weekend('with_them', date(2026, 10, 12), date(2026, 10, 27)) is None
 
 
 # Seeded for a new companion ---------------------------------------------------------------------------------------

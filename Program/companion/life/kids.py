@@ -775,9 +775,33 @@ def today_line(connection, companion: dict, now) -> tuple[str, str] | None:
     today = steps.local_today(companion, now)
     them, _name = other_text(connection, companion, row)
     who = 'the kids' if len(kids) > 1 else first(kids[0]['name'])
-    here = with_them(pattern, date.fromisoformat(row['since']), today) or at_dinner_on(connection, companion, today)
+    since = date.fromisoformat(row['since'])
+    here = with_them(pattern, since, today) or at_dinner_on(connection, companion, today)
     where = 'with you' if here else f'with {them}'
-    return f'kids:today:{here}', f"- Today {who} {'are' if len(kids) > 1 else 'is'} {where}."
+    line = f"- Today {who} {'are' if len(kids) > 1 else 'is'} {where}."
+    if not here and (coming := next_weekend(pattern, since, today)):
+        _them, name = other_text(connection, companion, row)
+        whom = 'them' if len(kids) > 1 else first(kids[0]['name'])
+        has = 'them' if len(kids) > 1 else families.fill_child('{them}', kids[0])
+        line += f' {coming} are your weekend with {whom}; {name} has {has} until then.'
+    return f'kids:today:{here}', line
+
+
+def next_weekend(pattern: str, since: date, today: date) -> str | None:
+    """'This Saturday and Sunday (10 and 11 October)': the next weekend the kids spend with them, when they live with
+    the other parent (A/B 2026-10-19: 6/6 said whose weekend it is, 0/6 without)."""
+    if pattern != 'weekends':
+        return None
+    saturday = next((today + timedelta(days=offset) for offset in range(1, 15)
+                     if (today + timedelta(days=offset)).weekday() == 5 and with_them(pattern, since,
+                                                                                     today + timedelta(days=offset))),
+                    None)
+    if saturday is None:
+        return None
+    sunday = saturday + timedelta(days=1)
+    days = f'{saturday.day} and {sunday.day} {sunday:%B}' if saturday.month == sunday.month else \
+        f'{saturday.day} {saturday:%B} and {sunday.day} {sunday:%B}'
+    return f"{'This ' if (saturday - today).days < 7 else ''}Saturday and Sunday ({days})"
 
 
 # The Character page -------------------------------------------------------------------------------------------------
