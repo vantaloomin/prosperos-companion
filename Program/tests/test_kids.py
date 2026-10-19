@@ -229,6 +229,20 @@ def test_a_new_companion_may_be_given_kids_by_the_engine(client, monkeypatch):
     assert [kid['name'] for kid in panel(client)['kids']] == [kid['name'] for kid in view['kids']]
 
 
+@pytest.mark.parametrize('city', ['london-1895', 'camelot', 'new-york-1925'])
+def test_in_an_older_city_seeded_kids_live_with_them_and_no_rota(client, monkeypatch, city):
+    forced(monkeypatch, 'kids:has', 1)
+    make(client, home_city=city, location='')
+    view = panel(client)
+    assert view['how'] == 'seeded' and view['kids'] and view['other'] is None and view['pattern'] == 'sole'
+    assert 'weekend' not in prompt(client) and 'a week with' not in prompt(client)
+
+
+def test_in_an_older_city_the_ex_the_description_names_is_still_the_other_parent(client):
+    make(client, home_city='london-1895', location='', background='Her son Leo, 7. Her ex-husband Mark Lowe lives nearby.')
+    assert panel(client)['other']['name'] == 'Mark'
+
+
 def test_no_kids_are_seeded_against_the_description(client, monkeypatch):
     forced(monkeypatch, 'kids:has', 1)
     make(client, background='She never wanted kids.')

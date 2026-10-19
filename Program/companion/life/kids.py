@@ -427,7 +427,14 @@ def other_for(connection, companion: dict, world, found: dict, town: list[dict],
     if partner and not found.get('other'):
         return {'id': partner['id'], 'together': True}
     wanted = found.get('other') or (town_other(town) if town else None) or {}
+    if not wanted and not found.get('pattern') and older(connection, companion):
+        return None  # In an older city a parent raising kids on their own had most often lost their other parent.
     return {'id': add_other(connection, companion, world, wanted, now), 'together': False}
+
+
+def older(connection, companion: dict) -> bool:
+    """An older city (New York 1925, London 1895, Camelot), where kids did not go between two homes by a rota."""
+    return families.older(families.era_of(connection, companion['version']['definition']))
 
 
 def sheet_partner(connection, companion: dict) -> dict | None:
@@ -763,7 +770,7 @@ def reseed(connection, companion: dict, world, row: dict, now) -> None:
         return
     for index, kid in enumerate(seeded(companion)):
         add_kid(connection, companion, world, kid, index, now)
-    if not row['other_id']:
+    if not row['other_id'] and not older(connection, companion):
         other_id = add_other(connection, companion, world, {}, now)
         connection.execute("UPDATE companion_kids SET other_id=?, pattern='with_them', updated_at=? WHERE timeline_id=?",
                            (other_id, stamp(now), row['timeline_id']))
