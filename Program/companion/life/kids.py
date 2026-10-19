@@ -250,7 +250,7 @@ def decide(connection, companion: dict, world, now, fresh: bool) -> dict:
     found = described(definition) if may_have(definition) else {'kids': [], 'none': True}
     town = [] if found['kids'] or found['none'] else town_kids(connection, companion, today)
     how, outcome = ('description' if found['kids'] else 'town' if town else 'none'), None
-    if how == 'none' and fresh and not found['none'] and may_have(definition):
+    if how == 'none' and fresh and not found['none'] and may_have(definition) and not still_to_come(definition):
         outcome = has_outcome(connection, companion, now)
         how = 'seeded' if outcome['picked'] == 1 else 'none'
     kids = found['kids'] or [{'name': None, 'pronouns': item['pronouns'], 'born_on': item['day'], 'modifier': ''}
@@ -281,6 +281,13 @@ def first_pattern(found: dict, other: dict | None) -> str:
 def row_pattern_fixed(found: dict, other: dict) -> bool:
     """Whether the description (or a partner the kids live with) already says where they live."""
     return bool(other.get('together') or found.get('pattern'))
+
+
+def still_to_come(definition: dict) -> bool:
+    """Whether their description says children are still to come ("wants kids someday", "would love a family"): no
+    kids are seeded for them."""
+    from companion.life import parenthood
+    return parenthood.described(definition) in ('yes', 'someday')
 
 
 def has_facts(connection, companion: dict, now) -> dict:

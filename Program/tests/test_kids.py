@@ -235,6 +235,13 @@ def test_no_kids_are_seeded_against_the_description(client, monkeypatch):
     assert not panel(client)['shown']
 
 
+@pytest.mark.parametrize('background', ['She wants kids someday.', "She'd love kids one day.", 'Her two grown sons live in Ohio.'])
+def test_no_kids_are_seeded_when_the_description_says_they_are_still_to_come_or_grown(client, monkeypatch, background):
+    forced(monkeypatch, 'kids:has', 1)
+    make(client, background=background)
+    assert not panel(client)['shown']
+
+
 def test_no_kids_are_seeded_for_someone_already_in_your_life(client, monkeypatch):
     forced(monkeypatch, 'kids:has', 1)
     monkeypatch.setattr(kids, 'ACTIVE', False)
