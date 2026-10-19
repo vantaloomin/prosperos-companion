@@ -137,6 +137,23 @@ def test_the_user_ends_it_and_asks_to_get_back_together(client, couple, provider
     assert {'You got divorced', 'You got back together', 'You got married'} <= {item['text'] for item in items}
 
 
+def test_a_marriage_that_ends_in_an_older_city_is_a_separation(client, couple, provider, monkeypatch):
+    from companion.world import newcomers
+    monkeypatch.setattr(newcomers, 'city_for', lambda *_args: {'era': 'victorian'})
+    client.put('/api/life/steps', json={'step': 'married'})
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-sep-1')
+    found = view(client)
+    assert found['text'] == 'Separated' and found['separated'] and found['summary'] == 'Separated'
+    says(provider)
+    send(client, 'hi', 'client-sep-2')
+    assert 'You and the user separated on' in notes(provider) and 'over in all but name' in notes(provider)
+    assert 'divorce' not in notes(provider)
+    with client.app.state.database.connect() as connection:
+        items = breakups.scrapbook_items(connection, current(connection), '2000-01-01', '2100-01-01')
+    assert 'You separated' in {item['text'] for item in items}
+
+
 def test_breaking_up_while_living_together_they_move_out(client, couple, provider, clock, monkeypatch):
     from test_moving_in import ask_to_move_in, moving_day
     monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # Yes, at your place.
