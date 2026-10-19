@@ -8,7 +8,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, stepDate } from './stepsText'
-import { FAMILY_KEY, KIDS_KEY, OURS_KEY, appPick, arrivalText, decidedHint, journeyLine, nameHint, routeHint, wantsHint } from './familyText'
+import { FAMILY_KEY, KIDS_KEY, OURS_KEY, appPick, arrivalText, decidedHint, journeyLine, nameHint, routeHint, splitLine, wantsHint } from './familyText'
 import { Kids } from './Kids'
 import { HowItWent, OurChildren } from './OurChildren'
 
@@ -28,9 +28,15 @@ export function Family({ name }: { name: string }) {
       <h2 id="family-heading">Family</h2>
       {theirs && <Kids view={theirs} name={name} />}
       {own && <OurChildren view={own} family={view} name={name} howItWent={(child) => <Arrival child={child} journey={view?.journey} name={name} />} />}
-      {view && <Wishes view={view} name={name} headed={Boolean(theirs || own)} folded={Boolean(own)} />}
+      <Together view={view} own={own} name={name} headed={Boolean(theirs || own)} />
     </section>
   )
+}
+
+/** What they want and a family together; while you two are split up, one line saying it comes back. */
+function Together({ view, own, name, headed }: { view: FamilyView | null; own: OursView | null; name: string; headed: boolean }) {
+  if (own?.custody?.split) return <p className="subtle">{splitLine(own.custody, name)}</p>
+  return view && <Wishes view={view} name={name} headed={headed} folded={Boolean(own)} />
 }
 
 /** The panel's three parts, each only when it has something to show. */

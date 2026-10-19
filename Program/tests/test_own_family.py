@@ -271,3 +271,23 @@ def test_growing_families_off_means_no_baby_of_their_own(client, mira, clock, mo
     partnered(client, clock)
     reconcile(client)
     assert children(client) == []
+
+
+def test_split_up_with_a_child_the_ex_stays_as_the_other_parent(client, mira, clock, monkeypatch):
+    sure(monkeypatch)
+    partner = partnered(client, clock)
+    reconcile(client)
+    [child] = children(client)
+    born(client, clock, child)
+    companion = current(client)
+    with client.app.state.database.connect(write=True) as connection:
+        found = love_life.partners(connection, companion['active_timeline_id'])[0]
+        love_life.end(connection, found, 'split', steps.local_today(companion, clock.now()))
+        person = connection.execute('SELECT * FROM circle_people WHERE id=?', (partner['person_id'],)).fetchone()
+        connection.commit()
+    assert person['status'] == 'active' and person['role'] == 'ex' and decode(person['details'])['co_parent']
+    reconcile(client)  # The daily pass decides where the child lives.
+    first = person['name'].split()[0]
+    assert f'- Since you and {first} split up, {child["name"].split()[0]} ' in prompt(client)
+    with client.app.state.database.connect() as connection:
+        assert connection.execute("SELECT id FROM consequences WHERE choice='kids:custody'").fetchone()

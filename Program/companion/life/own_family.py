@@ -332,7 +332,14 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         extra = f" The user is {child['name']}'s godparent." if godparent(connection, timeline_id, child['id']) else ''
         result.append((f"child:{child['id']}", f"- {child['name']} (your {word}, {families.how_old(child, today)}): "
                                                 f"yours and {other}'s.{extra}"))
+        if found := own_custody(connection, companion, child):  # Since they split up (companion/life/custody.py).
+            result.append(found)
     return result + babysitting_lines(connection, companion, now)
+
+
+def own_custody(connection, companion: dict, child: dict) -> tuple[str, str] | None:
+    from companion.life import custody
+    return custody.own_line(connection, companion, child)
 
 
 # Babysitting -----------------------------------------------------------------------------------------------------------
@@ -370,7 +377,10 @@ def reachable(connection, companion: dict) -> bool:
 
 
 def follow(connection, companion: dict, today: date, now) -> None:
-    """An evening that has passed: babysat with a yes, else it went by (someone else watched the child)."""
+    """An evening that has passed: babysat with a yes, else it went by (someone else watched the child). Where a child
+    lives once their parents split up is decided (companion/life/custody.py)."""
+    from companion.life import custody
+    custody.own_advance(connection, companion, now)
     for row in rows(connection, companion['active_timeline_id'], ('planned', 'asked', 'yes')):
         child = optional(connection, "SELECT status FROM circle_children WHERE id=?", (row['child_id'],))
         if child is None or child['status'] == 'ended' or families.withheld(connection):

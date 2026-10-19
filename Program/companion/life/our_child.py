@@ -323,11 +323,17 @@ def care_found(connection, companion: dict, now=None) -> dict:
     return {'care': CARE[outcome['picked']], 'how': 'seeded', 'consequence_id': outcome['id']}
 
 
-def caring(connection, companion: dict, day: date) -> str | None:
-    """Who looks after them on this day: the care picked while the youngest is under school age, else None."""
+def caring(connection, companion: dict, day: date, apart: dict | None | bool = False) -> str | None:
+    """Who looks after them on this day: the care picked while the youngest is under school age, else None. Split up
+    (companion/life/custody.py), the companion works and the children go to daycare in their weeks, none when they
+    live with the user. `apart` is custody.found when the caller has it, for a run of days."""
+    from companion.life import custody
     kids = at_home(connection, companion['active_timeline_id'], day)
     if not kids or families.age_of(kids[-1], day) >= SCHOOL:
         return None
+    split = custody.found(connection, companion) if apart is False else apart
+    if split and split['split']:
+        return None if split['pattern'] == 'with_you' else 'both_work'
     return care_found(connection, companion)['care']
 
 
@@ -360,16 +366,17 @@ def days_off(connection, companion: dict, start: date, end: date) -> dict[str, s
     timeline_id = companion.get('active_timeline_id')
     if not children(connection, timeline_id):
         return {}
-    workdays, result = work.workdays(companion['version']['definition']), {}
+    from companion.life import custody
+    workdays, result, apart = work.workdays(companion['version']['definition']), {}, custody.found(connection, companion)
     day = start
     while day <= end:
-        if label := day_label(connection, companion, day, workdays):
+        if label := day_label(connection, companion, day, workdays, apart):
             result[day.isoformat()] = label
         day += timedelta(days=1)
     return result
 
 
-def day_label(connection, companion: dict, day: date, workdays) -> str | None:
+def day_label(connection, companion: dict, day: date, workdays, apart: dict | None) -> str | None:
     kids = at_home(connection, companion['active_timeline_id'], day)
     if not kids or day.weekday() not in workdays:
         return None
@@ -377,10 +384,10 @@ def day_label(connection, companion: dict, day: date, workdays) -> str | None:
         home = arrived(connection, child)
         if home <= day < home + timedelta(weeks=leave_weeks(connection, child)):
             return LEAVE
-    care = caring(connection, companion, day)
+    care = caring(connection, companion, day, apart)
     if care == 'them_home' or care == 'part_time' and day.weekday() == part_time_day(companion, workdays):
         return HOME_DAY
-    if care != 'you_home' and any(sick_on(connection, child, day) for child in kids):
+    if care != 'you_home' and any(sick_on(connection, child, day) for child in kids) and custody_here(apart, day):
         return SICK_DAY
     return None
 
@@ -388,6 +395,18 @@ def day_label(connection, companion: dict, day: date, workdays) -> str | None:
 def part_time_day(companion: dict, workdays) -> int | None:
     days = sorted(workdays)
     return generators.pick(f"ours:{companion['active_timeline_id']}", 'part-time-day', days) if days else None
+
+
+def custody_here(apart: dict | None, day: date) -> bool:
+    from companion.life import custody
+    return custody.with_them(apart, day)
+
+
+def with_you(connection, companion: dict, day: date) -> bool:
+    """Whether the children are with the companion on this day: always, unless their parents live apart
+    (companion/life/custody.py)."""
+    from companion.life import custody
+    return custody.here(connection, companion, day)
 
 
 def sick_on(connection, child: dict, day: date) -> bool:
@@ -410,7 +429,8 @@ def broken_night(connection, timeline_id: str, day: date) -> dict | None:
         return None
     youngest = kids[-1]
     companion = companion_of(connection, timeline_id)
-    if companion is None or arrived(connection, youngest) > day - timedelta(days=1):
+    if companion is None or arrived(connection, youngest) > day - timedelta(days=1) or \
+            not with_you(connection, companion, day - timedelta(days=1)):
         return None
     if sleeping_through(connection, companion, youngest, day):
         chance = chance / 3 if families.age_of(youngest, day) < 3 else 0.0
@@ -427,11 +447,12 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
     found = money.profile(companion['version']['definition']) if companion else None
     if not found:
         return []
-    month, result = money.monthly_share(found), []
+    from companion.life import custody
+    month, result, apart = money.monthly_share(found), [], custody.found(connection, companion)
     old = OLD_CARE if families.older(era(connection, companion)) else 1.0
     paid = start
     while paid <= day:
-        share = CHILDCARE.get(caring(connection, companion, paid) or '', 0)
+        share = CHILDCARE.get(caring(connection, companion, paid, apart) or '', 0)
         if share and paid.day == 1 and not any(on_leave(connection, child, paid) for child in
                                                 at_home(connection, timeline_id, paid)):
             result.append({'text': 'paid their half of the childcare', 'date': paid.isoformat(), 'spend': '',
@@ -543,6 +564,8 @@ def advance(connection, companion: dict, world, now) -> None:
     today = steps.local_today(companion, now)
     ensure_row(connection, timeline_id, now)
     care_found(connection, companion, now)
+    from companion.life import custody
+    custody.advance(connection, companion, now)
     for child in kids:
         if families.age_of(child, today) >= GROWN:
             grow_up(connection, companion, world, child, today, now)
@@ -621,7 +644,9 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         if found := sheet(connection, companion, child, today):
             result.append((f"ours:sheet:{child['id']}:{today.month}", sheet_line(child, found)))
         result += people_line(connection, companion, child, today) + holiday_line(connection, companion, child, today)
-    return result + days_lines(connection, companion, kids, today)
+    from companion.life import custody
+    return result + custody.context_lines(connection, companion, kids, today, now) + \
+        days_lines(connection, companion, kids, today)
 
 
 def sheet_line(child: dict, found: dict) -> str:
@@ -639,15 +664,17 @@ CARE_WORDS = {
                  '{minder}',
     'them_home': 'you stay home with {names} for now, and the user works',
     'you_home': 'the user stays home with {names} for now, and you work',
+    'split': 'on your workdays {names} {go} to {minder}',
 }
 
 
 def days_lines(connection, companion: dict, kids: list[dict], today: date) -> list[tuple[str, str]]:
     """Who looks after them, and the shape of the day: the school run and bedtime."""
     names = steps.names_text([first(child['name']) for child in kids])
-    result = []
-    if care := caring(connection, companion, today):
-        from companion.life import work
+    result, here = [], with_you(connection, companion, today)
+    if (care := caring(connection, companion, today)) and here:
+        from companion.life import custody, work
+        care = 'split' if (custody.found(connection, companion) or {}).get('split') else care
         minder = 'a neighbor who minds children' if families.older(era(connection, companion)) else 'daycare'
         day = part_time_day(companion, work.workdays(companion['version']['definition']))
         words = CARE_WORDS[care].format(names=names, go='go' if len(kids) > 1 else 'goes', minder=minder,
@@ -658,8 +685,9 @@ def days_lines(connection, companion: dict, kids: list[dict], today: date) -> li
     youngest = kids[-1]
     bed = BEDTIMES[band(youngest, today)]
     run = f"weekday mornings start with the school run for {steps.names_text(school)}; " if school else ''
-    result.append((f'ours:routine:{bool(school)}:{bed}', f"- Your days with {names}: {run}bedtime is around {bed}"
-                                                        f"{'' if band(youngest, today) == 'teen' else ' in the evening'}."))
+    if here:
+        result.append((f'ours:routine:{bool(school)}:{bed}', f"- Your days with {names}: {run}bedtime is around {bed}"
+                                                            f"{'' if band(youngest, today) == 'teen' else ' in the evening'}."))
     return result
 
 
@@ -711,7 +739,7 @@ def today_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
                 when = 'today' if gap == 0 else 'yesterday'
                 result.append((f"ours:milestone:{child['id']}:{item['key']}",
                                f"- {first(child['name'])} {did(connection, companion, child, item['key'])} {when}."))
-        if sick_on(connection, child, today) and today.weekday() < 5:
+        if sick_on(connection, child, today) and today.weekday() < 5 and with_you(connection, companion, today):
             result.append((f"ours:sick:{child['id']}", f"- {first(child['name'])} is home sick today, so one of you "
                                                         'is home to look after them.'))
     if broken_night(connection, timeline_id, today):
@@ -723,7 +751,8 @@ def today_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
             names = steps.names_text([first(child['name']) for child in kids
                                       if families.age_of(child, today) < SITTER_UNDER])
             result.append(('ours:sitter', f'- Tonight {who} is watching {names} while you two are out.'))
-    return result
+    from companion.life import custody
+    return result + custody.today_line(connection, companion, kids, today)
 
 
 # The screens --------------------------------------------------------------------------------------------------------
@@ -747,27 +776,34 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     kids = children(connection, timeline_id)
     if not kids:
         return {'shown': False, 'children': []}
+    from companion.life import custody
     today = steps.local_today(companion, now)
     care = care_found(connection, companion)
     name = companion_first(companion)
+    apart = custody.view(connection, companion, show_odds)
     return {'shown': True, 'children': [child_view(connection, companion, child, today) for child in kids],
-            'care': care['care'], 'care_how': care['how'], 'care_now': caring(connection, companion, today) is not None,
+            'care': care['care'], 'care_how': care['how'],
+            'care_now': caring(connection, companion, today) is not None and not (apart and apart['split']),
             'care_consequence_id': care['consequence_id'] if show_odds else None,
-            'cares': [{'key': key, 'label': CARE_LABELS[key].format(name=name)} for key in CARE]}
+            'cares': [{'key': key, 'label': CARE_LABELS[key].format(name=name)} for key in CARE], 'custody': apart}
 
 
 def today_view(connection, companion: dict, now) -> list[dict]:
     """For Today: each child under 18, their age, what they are into lately and the latest milestone."""
+    from companion.life import custody
     timeline_id = companion.get('active_timeline_id')
     today = steps.local_today(companion, now) if timeline_id else None
-    return [{key: value for key, value in child_view(connection, companion, child, today).items()
-             if key in ('id', 'name', 'age_text', 'relation', 'likes', 'latest')}
-            for child in (at_home(connection, timeline_id, today) if today else [])]
+    kids = at_home(connection, timeline_id, today) if today else []
+    where = custody.where_today(connection, companion, today) if kids else None
+    return [{**{key: value for key, value in child_view(connection, companion, child, today).items()
+                if key in ('id', 'name', 'age_text', 'relation', 'likes', 'latest')}, 'where_today': where}
+            for child in kids]
 
 
 def update(connection, companion: dict, now, care: str | None = None, child_id: str | None = None,
-           name: str | None = None) -> None:
-    """The user sets who looks after them ('auto' lets the app decide again), or renames a child."""
+           name: str | None = None, custody: str | None = None) -> None:
+    """The user sets who looks after them ('auto' lets the app decide again), where they live after a breakup, or
+    renames a child."""
     timeline_id = companion['active_timeline_id']
     require(bool(children(connection, timeline_id)), 'There is no child of yours yet.', 404)
     if care is not None:
@@ -775,6 +811,9 @@ def update(connection, companion: dict, now, care: str | None = None, child_id: 
         ensure_row(connection, timeline_id, now)
         connection.execute('UPDATE our_family SET care=?, updated_at=? WHERE timeline_id=?',
                            (None if care == 'auto' else care, stamp(now), timeline_id))
+    if custody is not None:
+        from companion.life import custody as apart
+        apart.update(connection, companion, custody, now)
     if child_id is not None and name is not None:
         rename(connection, companion, child_id, name, now)
 
@@ -812,8 +851,9 @@ def scrapbook_items(connection, companion: dict, low: date, high: date) -> list[
 
 
 def copy(connection, parent_id: str, new_id: str) -> None:
-    """A fork keeps who looks after them (the children come with the journeys, companion/life/expecting.py)."""
+    """A fork keeps who looks after them and where they live after a breakup (the children come with the journeys,
+    companion/life/expecting.py)."""
     row = family_row(connection, parent_id)
     if row:
-        connection.execute('INSERT INTO our_family (timeline_id, care, created_at, updated_at) VALUES (?, ?, ?, ?)',
-                           (new_id, row['care'], row['created_at'], row['updated_at']))
+        connection.execute('INSERT INTO our_family (timeline_id, care, custody, created_at, updated_at) VALUES '
+                           '(?, ?, ?, ?, ?)', (new_id, row['care'], row['custody'], row['created_at'], row['updated_at']))

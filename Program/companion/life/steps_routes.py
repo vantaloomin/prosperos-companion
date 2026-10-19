@@ -116,6 +116,7 @@ class OursUpdate(Input):
     care: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
     child: str | None = Field(default=None, max_length=64, pattern=r'^[0-9a-f]+$')
     name: str | None = Field(default=None, max_length=60)
+    custody: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
 
 
 def read_ours_view(connection, companion, now) -> dict:
@@ -133,10 +134,10 @@ def read_ours(request: Request):
 
 @router.put('/ours')
 def update_ours(request: Request, body: OursUpdate):
-    """Set who looks after them ('auto' lets the app decide), or rename a child."""
+    """Set who looks after them or where they live after a breakup ('auto' lets the app decide), or rename a child."""
     database = request.app.state.database
     now = database.clock.now()
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        our_child.update(connection, companion, now, body.care, body.child, body.name)
+        our_child.update(connection, companion, now, body.care, body.child, body.name, body.custody)
         return read_ours_view(connection, companion, now)

@@ -340,6 +340,9 @@ ADDED_COLUMNS = (
     # Our child (companion/life/our_child.py, Settings > Realism > Their days): how much family life shapes their
     # days, 0 easy kids (only the good days), 1 gentle, 2 true to life, 3 true-to-life chaos.
     ('life_settings', 'family_life', 'INTEGER NOT NULL DEFAULT 2 CHECK (family_life BETWEEN 0 AND 3)'),
+    # When families change (companion/life/custody.py): where the pair's children live after a breakup, when the user
+    # set it ('with_them', 'shared' or 'with_you'; NULL leaves it to the engine's family:custody).
+    ('our_family', 'custody', "TEXT CHECK (custody IS NULL OR custody IN ('with_them', 'shared', 'with_you'))"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

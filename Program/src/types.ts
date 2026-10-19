@@ -554,6 +554,23 @@ export interface OursView {
   care_now?: boolean
   care_consequence_id?: string | null
   cares?: { key: string; label: string }[]
+  /** Where they live while their parents live apart (companion/life/custody.py); null under one roof. */
+  custody?: Custody | null
+}
+
+/** Where the pair's children live after a breakup (`split`) or across cities (`far`, with the user's `city`):
+ * `patterns` to pick from only after a breakup; the consequence id only with Hidden values' odds on. */
+export interface Custody {
+  pattern: 'with_them' | 'shared' | 'with_you'
+  how: 'set' | 'seeded'
+  split: boolean
+  far: boolean
+  /** The day it ended, after a breakup. */
+  ended_on: string | null
+  city: string | null
+  detail: string
+  patterns: { key: string; label: string }[]
+  consequence_id: string | null
 }
 
 /** One child of the pair: their sheet for now (a newborn has only a temperament) and the milestones reached. Words
@@ -577,7 +594,10 @@ export interface OurChild {
 }
 
 /** A child of the pair on Today. */
-export type TodayChild = Pick<OurChild, 'id' | 'name' | 'age_text' | 'relation' | 'likes' | 'latest'>
+export type TodayChild = Pick<OurChild, 'id' | 'name' | 'age_text' | 'relation' | 'likes' | 'latest'> & {
+  /** 'With Sam today', 'With you today', 'Lives with Sam' while their parents live apart. */
+  where_today?: string | null
+}
 
 /** How the child comes: the stages reached, and once it is under way those to come; the child's name once known;
  * consequence ids only with Hidden values' odds on. */
