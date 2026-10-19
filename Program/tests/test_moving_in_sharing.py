@@ -374,3 +374,6 @@ def test_the_user_moving_city_leaves_one_home_not_a_copy_each(client, provider, 
     assert [found['out_who'] for found in rows] == ['you', 'them']  # Mira keeps the home; Theo takes a place.
     hers, his = homes(client, mira_id, theo_id)
     assert not hers['shared'] and his['description'] != hers['description']
+    with client.app.state.database.connect() as connection:  # Iris: the step no longer reads "living together".
+        texts = [steps.view(connection, by_id(connection, key), clock.now(), False)['text'] for key in (mira_id, theo_id)]
+    assert all(text.endswith('living apart for now') or text == 'Living apart for now' for text in texts), texts

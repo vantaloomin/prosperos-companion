@@ -104,6 +104,12 @@ def living(connection, companion: dict, day: date | None = None) -> dict | None:
     return row if day is None or row['moved_on'] <= day.isoformat() else None
 
 
+def moved_apart(connection, companion: dict) -> bool:
+    """They lived together and don't now (the user moved to another city, say), with no new move under way."""
+    row = latest(connection, companion.get('active_timeline_id') or '')
+    return bool(row and row['status'] == 'moved_out' and row['moved_on'])
+
+
 def shared_home(connection, city_id: str) -> str | None:
     """The neighbourhood of the home the user shares with a companion in their city, for where.py; None otherwise."""
     row = optional(connection, "SELECT m.neighbourhood FROM moving_in m JOIN companions c ON c.active_timeline_id="
