@@ -424,3 +424,27 @@ def test_a_fork_keeps_their_kids(client, provider):
     assert response.status_code == 200, response.text
     view = panel(client)
     assert [kid['name'] for kid in view['kids']] == ['Leo'] and view['other']
+
+
+def test_a_fork_has_its_own_copy_of_where_the_kids_live(client, provider):
+    from conftest import send
+    make(client, background='Her son Leo, 7.')
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    sent = send(client, 'How is Leo?', 'client-kids-02')['message']
+    with client.app.state.database.connect() as connection:
+        parent = kids.record(connection, current(connection)['active_timeline_id'])
+        before = consequences.by_id(connection, parent['pattern_consequence_id'])['picked']
+    fork_id = client.post('/api/timelines', json={'message_id': sent['id']}).json()['id']
+    assert client.post(f'/api/timelines/{fork_id}/activate').status_code == 200
+    with client.app.state.database.connect() as connection:
+        fork = kids.record(connection, current(connection)['active_timeline_id'])
+        copied = consequences.by_id(connection, fork['pattern_consequence_id'])
+    assert fork['timeline_id'] == fork_id
+    assert fork['pattern_consequence_id'] != parent['pattern_consequence_id'] and copied['picked'] == before
+    response = client.post(f"/api/life/consequences/{fork['pattern_consequence_id']}/change",
+                           json={'option': (before + 1) % 3})
+    assert response.status_code == 200, response.text
+    with client.app.state.database.connect() as connection:
+        assert consequences.by_id(connection, parent['pattern_consequence_id'])['picked'] == before
+    assert panel(client)['pattern'] == kids.CUSTODY[(before + 1) % 3]

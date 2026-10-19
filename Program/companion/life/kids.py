@@ -828,12 +828,15 @@ def copy(connection, parent_id: str, new_id: str, ids: dict) -> None:
     companion_id = one(connection, 'SELECT companion_id FROM timelines WHERE id=?', (parent_id,))['companion_id']
     row = record(connection, parent_id)
     if row:
+        # The engine's picks come along as the fork's own (not the parent timeline's rows, which a change there would
+        # move), so the fork keeps where the kids live and can change it without touching the parent.
+        has, where = (row[key] and consequences.copy(connection, row[key], new_id, f'{label}{new_id}')
+                      for key, label in (('consequence_id', 'kids:has:'), ('pattern_consequence_id', 'kids:custody:')))
         connection.execute(
             'INSERT INTO companion_kids (timeline_id, companion_id, how, other_id, pattern, chosen, consequence_id, '
             'pattern_consequence_id, since, removed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (new_id, row['companion_id'], row['how'], ids.get(row['other_id']), row['pattern'], row['chosen'],
-             row['consequence_id'], row['pattern_consequence_id'], row['since'], row['removed'], row['created_at'],
-             row['updated_at']))
+             has, where, row['since'], row['removed'], row['created_at'], row['updated_at']))
     for mark, new_mark in ((f'{MARK}{parent_id}', f'{MARK}{new_id}'),
                            (f'{PARTNER_MARK}{parent_id}', f'{PARTNER_MARK}{new_id}')):
         for kid in many(connection, 'SELECT * FROM circle_children WHERE timeline_id=? AND storyline_id=?',
