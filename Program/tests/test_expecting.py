@@ -114,6 +114,10 @@ def test_their_people_hear_and_react_and_the_news_travels(client, provider, cloc
         today = clock.now().date().isoformat()
         items = expecting.news_items(connection, companion, '2000-01-01', today)
         assert [item['text'] for item in items] == ['Mira and the user are expecting a baby']
+        full = {**companion, 'version': {**companion['version'], 'definition': {
+            **companion['version']['definition'], 'name': 'Mira Reyes'}}}
+        assert [item['text'] for item in expecting.news_items(connection, full, '2000-01-01', today)] == [
+            'Mira and the user are expecting a baby']  # The first name, as a love life's news has it.
 
 
 def test_adopting_waits_for_a_match_and_the_child_comes_home(client, provider, clock, monkeypatch, likeliest):

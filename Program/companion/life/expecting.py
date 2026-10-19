@@ -779,7 +779,7 @@ def news_items(connection, companion: dict, since: str, today: str) -> list[dict
     row = current(connection, companion['active_timeline_id']) if ACTIVE else None
     if row is None or quiet(connection):
         return []
-    name, other = companion['version']['definition']['name'], 'the user'
+    name, other = companion['version']['definition']['name'].split()[0], 'the user'
     words = {'news': f'{name} and {other} are expecting a baby', 'match': f'{name} and {other} are adopting a child',
              'need': f'{name} and {other} are taking in a child', 'born': f'{name} and {other} had their baby',
              'home': f'{name} and {other} welcomed a child home'}
