@@ -6,7 +6,7 @@ from pydantic import Field
 from companion.characters import require_current
 from companion.database import settings
 from companion.life import kids, moving_in, our_child, parenthood, steps
-from companion.models import Input
+from companion.models import Input, KindChange
 
 router = APIRouter(prefix='/api/life/steps')
 
@@ -121,6 +121,17 @@ class OursUpdate(Input):
 
 def read_ours_view(connection, companion, now) -> dict:
     return our_child.view(connection, companion, now, bool(settings(connection).get('show_odds')))
+
+
+@router.put('/ours/{child_id}/kind')
+def update_child_kind(request: Request, child_id: str, body: KindChange):
+    """A child's kind and How long they live, from their card (companion/world/lifespans.py)."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        our_child.set_kind(connection, companion, child_id, body.kind, body.lifespan, now)
+        return read_ours_view(connection, companion, now)
 
 
 @router.get('/ours')

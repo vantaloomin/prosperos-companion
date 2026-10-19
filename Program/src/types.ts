@@ -593,6 +593,7 @@ export interface OurChild {
   quirk: string | null
   milestones: { key: string; label: string; date: string }[]
   latest: { label: string; date: string } | null
+  kind?: KindShown
 }
 
 /** A child of the pair on Today. */
@@ -787,7 +788,29 @@ export interface DiaryEntry {
   entry: { summary: string; activity?: string; place?: string | null; mood?: string | null; post?: unknown }
   status: string
 }
+/** Someone's kind and how long they live (companion/world/lifespans.py `described`). `own` is the user's pick of
+ * How long they live: null as their kind, 0 doesn't age. `years` is what applies (null: they don't age). */
+export interface KindShown {
+  kind: string
+  label: string
+  own: number | null
+  years: number | null
+  kind_years: number | null
+  life_age: number | null
+  /** The app's pick, and the user's ('' for none) where it can differ. */
+  found?: string
+  picked?: string
+}
+
+/** What the Kind and How long they live pickers offer (GET /life/kinds). */
+export interface KindChoices {
+  kinds: { id: string; label: string; lifespan: number | null }[]
+  spans: number[]
+}
+
 export interface CirclePerson {
+  kind?: KindShown
+  own_kind?: string
   id: string
   /** Where their own people are built from (GET /life/network?key=). */
   key: string

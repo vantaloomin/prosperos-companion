@@ -318,9 +318,10 @@ def birthday(person_id: str) -> str:
 
 
 def view(row: dict) -> dict:
+    details = decode(row['details'])
     return {'id': row['id'], 'key': row['seed'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
-            'revision': row['revision'], **decode(row['details']), 'birthday': birthday(row['id']),
-            'schedule': decode(row['schedule'])}
+            'revision': row['revision'], **details, 'birthday': birthday(row['id']),
+            'schedule': decode(row['schedule']), 'kind': ages.person_kind(details)}
 
 
 def build(definition: dict, world, timeline_id: str, size: int, seed: str | None = None, taken=(),
@@ -566,6 +567,18 @@ def rename(connection, person_id, name: str, now) -> dict:
     require(row['status'] == 'active', 'Restore this person before renaming them.', 409)
     connection.execute('UPDATE circle_people SET name=?, revision=revision+1, updated_at=? WHERE id=?',
                        (name.strip(), stamp(now), person_id))
+    return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
+
+
+def set_kind(connection, person_id, kind: str, lifespan: int | None, now) -> dict:
+    """The user's pick of someone's kind and How long they live ('' and None: the app's again; 0: they don't age).
+    Their real age stays; the rules read their life age from it (companion/world/lifespans.py)."""
+    row = person(connection, person_id)
+    require(not kind or kind in lifespans.kinds(), 'Pick one of the kinds listed.', 422)
+    details = {key: value for key, value in decode(row['details']).items() if key not in ('own_kind', 'lifespan')}
+    details |= ({'own_kind': kind} if kind else {}) | ({'lifespan': lifespan} if lifespan is not None else {})
+    connection.execute('UPDATE circle_people SET details=?, revision=revision+1, updated_at=? WHERE id=?',
+                       (encode(details), stamp(now), person_id))
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 

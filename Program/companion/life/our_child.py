@@ -38,7 +38,7 @@ from companion.database import decode, encode, many, optional
 from companion.errors import require
 from companion.life import ages, families, steps
 from companion.life.steps import FAMILY
-from companion.world import catalog, generators
+from companion.world import catalog, generators, lifespans
 
 ACTIVE = True
 TITLE = 'ours'
@@ -591,6 +591,10 @@ def grow_up(connection, companion: dict, world, child: dict, today: date, now) -
     person |= {'name': first(child['name']), 'role': role,
                'details': person['details'] | {'pronouns': child['pronouns'], 'age': families.age_of(child, today),
                                                'local': True, 'our_child': child['id']}}
+    kind = kind_of(connection, companion, child)
+    person['details'] = {key: value for key, value in person['details'].items() if key != 'folk'} | \
+        ({'folk': kind} if kind != lifespans.HUMAN else {}) | \
+        ({'lifespan': child['lifespan']} if child.get('lifespan') is not None else {})
     ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
     circle.insert(connection, timeline_id, [person], ordinal, now)
     person_id = optional(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?',
@@ -598,6 +602,41 @@ def grow_up(connection, companion: dict, world, child: dict, today: date, now) -
     born = date.fromisoformat(child['born_on'])
     ages.keep(connection, 'circle', person_id, families.age_of(child, today), born.strftime('%m-%d'), today, now)
     return person_id
+
+
+def kind_of(connection, companion: dict, child: dict) -> str:
+    """A child's kind (companion/world/lifespans.py): the one picked on their card, else their parents' (an elf and a
+    human have a half-elf) for a child of yours, and human for one who was adopted or fostered. They grow up at a
+    human pace whatever it is; it counts once they are grown."""
+    if child.get('own_kind'):
+        return child['own_kind']
+    from companion.life import expecting, parenthood
+    if journey_of(connection, child)['route'] in (*expecting.ADOPTING, *expecting.FOSTERING):
+        return lifespans.HUMAN
+    definition = companion['version']['definition']
+    data = ages.city_of(connection, definition)
+    yours = lifespans.from_words(parenthood.persona(connection).get('about') or '', data)
+    return lifespans.blend(lifespans.sheet_kind(definition, data), yours, data)
+
+
+def set_kind(connection, companion: dict, child_id: str, kind: str, lifespan: int | None, now) -> None:
+    """The user's pick of a child's kind and How long they live ('' and None: the app's again; 0: they don't age)."""
+    child = optional(connection, 'SELECT * FROM circle_children WHERE id=? AND timeline_id=? AND title=?',
+                     (child_id, companion['active_timeline_id'], TITLE))
+    require(child is not None, 'That child is not one of yours.', 404)
+    require(not kind or kind in lifespans.kinds(), 'Pick one of the kinds listed.', 422)
+    connection.execute('UPDATE circle_children SET own_kind=?, lifespan=?, updated_at=? WHERE id=?',
+                       (kind, lifespan, stamp(now), child_id))
+    grown = next((row for row in circle_rows(connection, companion) if grown_as(row, child)), None)
+    if grown:  # Grown up and in the circle: their row follows.
+        from companion.life import circle
+        circle.set_kind(connection, grown['id'], kind or kind_of(connection, companion, {**child, 'own_kind': ''}),
+                        lifespan, now)
+
+
+def circle_rows(connection, companion: dict) -> list[dict]:
+    from companion.life import circle
+    return circle.people(connection, companion['active_timeline_id'], include_removed=True)
 
 
 def grown_as(person: dict, child: dict) -> bool:
@@ -767,6 +806,8 @@ def child_view(connection, companion: dict, child: dict, today: date) -> dict:
             'relation': {'she/her': 'daughter', 'he/him': 'son'}.get(child['pronouns'], 'child'),
             'temperament': found.get('temperament'), 'likes': found.get('likes'), 'quirk': found.get('quirk'),
             'milestones': [{'key': item['key'], 'label': item['label'], 'date': item['on']} for item in done],
+            'kind': lifespans.described(kind_of(connection, companion, child), child.get('lifespan'), years) |
+            {'found': kind_of(connection, companion, {**child, 'own_kind': ''}), 'picked': child.get('own_kind') or ''},
             'latest': ({'label': done[-1]['label'], 'date': done[-1]['on']} if done else None)}
 
 

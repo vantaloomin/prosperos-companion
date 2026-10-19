@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { CharacterDefinition, Looks } from '../../types'
+import type { CharacterDefinition, KindChoices, KindShown, Looks } from '../../types'
+import { KindFields } from '../kinds/KindFields'
 import { Field, Toggle } from '../../components/Fields'
 import { useSettled } from './useSettled'
 import { decadeHint, emptyLooks, emptyText, heightLabel, keepsAgeHint, looksWords, numberChoices, weightLabel, type LooksWord } from './looksText'
 
 /** What each empty field uses once saved (companion/world/looks.py), and suggestions for the word fields. */
-interface LooksSuggestions { automatic: Looks | null; covered?: string[]; options: Partial<Record<LooksWord, string[]>>; age_now?: number | null }
+interface LooksSuggestions { automatic: Looks | null; covered?: string[]; options: Partial<Record<LooksWord, string[]>>; age_now?: number | null
+  kind?: KindShown & KindChoices & { found: string; found_label: string } }
 
 interface Props { definition: () => CharacterDefinition; looks: Looks | undefined; set: (change: Partial<CharacterDefinition>) => void }
 
@@ -38,6 +40,7 @@ export function LooksFields({ definition, looks, set }: Props) {
         ))}
       </div>
       <KeepsAge definition={definition()} written={current.age} found={found.data} set={set} />
+      <CompanionKind definition={definition()} found={found.data} written={current.age} set={set} />
     </fieldset>
   )
 }
@@ -68,6 +71,20 @@ function WordField({ field, label, value, options, empty, onChange }: WordProps)
 
 function coveredBy(found: LooksSuggestions | undefined) {
   return new Set(found?.covered ?? [])
+}
+
+interface KindProps { definition: CharacterDefinition; found: LooksSuggestions | undefined; written: number | null; set: Props['set'] }
+
+/** Kind and How long they live (companion/world/lifespans.py): read from their description until the user picks.
+ * "Doesn't age" is "Keeps their age" above. */
+function CompanionKind({ definition, found, written, set }: KindProps) {
+  const kind = found?.kind
+  if (!kind) return null
+  return <KindFields id="companion" shown={kind} choices={kind} age={found.age_now ?? written}
+    found={{ kind: kind.found, label: kind.found_label, fromWords: kind.found !== 'human' }}
+    picked={definition.kind ?? ''} own={definition.keeps_age ? 0 : definition.lifespan ?? null}
+    onChange={({ kind: picked, lifespan }) => set(lifespan === 0 ? { kind: picked, lifespan: null, keeps_age: true }
+      : { kind: picked, lifespan, keeps_age: false })} />
 }
 
 interface KeepsAgeProps { definition: CharacterDefinition; written: number | null; found: LooksSuggestions | undefined; set: Props['set'] }

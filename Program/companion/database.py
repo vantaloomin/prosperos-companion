@@ -343,6 +343,10 @@ ADDED_COLUMNS = (
     # When families change (companion/life/custody.py): where the pair's children live after a breakup, when the user
     # set it ('with_them', 'shared' or 'with_you'; NULL leaves it to the engine's family:custody).
     ('our_family', 'custody', "TEXT CHECK (custody IS NULL OR custody IN ('with_them', 'shared', 'with_you'))"),
+    # Lifespans (companion/world/lifespans.py): the kind and How long they live the user picked on a child's card ('' and
+    # NULL: the app's pick, from their parents' kinds; lifespan 0: they don't age).
+    ('circle_children', 'own_kind', "TEXT NOT NULL DEFAULT ''"),
+    ('circle_children', 'lifespan', 'INTEGER'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

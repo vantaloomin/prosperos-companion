@@ -17,13 +17,14 @@ import json
 import re
 from functools import cache
 
+from companion.models import LIFESPANS
 from companion.world import catalog
 
 HUMAN = 'human'
 AGELESS = 'ageless'
 ADULT = 18
 HUMAN_LIFESPAN = 80
-LIFESPANS = (40, 5000)  # The whole years a city file may give a kind.
+CITY_YEARS = (40, 5000)  # The whole years a city file may give a kind.
 WORD_FIELDS = ('identity', 'appearance')
 NEGATED = re.compile(r"\b(?:not|never|isn't|no)\s+(?:\w+\s+)?(?:an?\s+)?$", re.IGNORECASE)
 
@@ -42,8 +43,10 @@ def kinds(data: dict | None = None) -> dict[str, dict]:
 
 
 def lifespan_of(kind: str | None, data: dict | None = None, own: int | None = None) -> int | None:
-    """How long someone lives on average: the user's own pick, else their kind's where they are. None: they don't
-    age."""
+    """How long someone lives on average: the user's own pick (0: they don't age), else their kind's where they are.
+    None: they don't age."""
+    if own == 0:
+        return None
     if own:
         return own
     found = kinds(data).get(kind or HUMAN) or kinds(data)[HUMAN]
@@ -116,6 +119,39 @@ def blend(one: str | None, other: str | None, data: dict | None = None) -> str:
     return max((one, other), key=lambda kind: (spans[kind] is None, spans[kind] or 0, kind))
 
 
+# Pickers and milestones ------------------------------------------------------------------------------------------
+
+SPANS = LIFESPANS  # "How long they live": never free text, so these and "As their kind" (companion/models.py).
+LONG_LIVED = 150  # Past this, milestone birthdays are round 50s and 100s of real years.
+
+
+def choices(data: dict | None = None) -> dict:
+    """What the Kind and How long they live pickers offer where someone lives."""
+    return {'kinds': [{'id': key, 'label': value['label'], 'lifespan': value['lifespan']}
+                      for key, value in kinds(data).items() if value.get('label')],
+            'spans': list(SPANS)}
+
+
+def described(kind: str, own: int | None, real: int | None, data: dict | None = None) -> dict:
+    """A person's kind for their page: {kind, label, own (their own How long they live, None as their kind, 0 doesn't
+    age), years (what applies, None doesn't age), kind_years (their kind's), life_age (None for a human)}."""
+    found = kinds(data).get(kind) or kinds(data)[HUMAN]
+    years = lifespan_of(kind, data, own)
+    return {'kind': kind if kind in kinds(data) else HUMAN, 'label': found['label'], 'own': own, 'years': years,
+            'kind_years': found['lifespan'],
+            'life_age': None if years == HUMAN_LIFESPAN else life_age(real, years)}
+
+
+def milestone(age: int | None, lifespan: int | None = HUMAN_LIFESPAN) -> bool:
+    """A birthday that is a bigger occasion: 30, 40, 50 ... for most, and 100, 150, 200 ... for a kind that lives
+    longer than LONG_LIVED years (an elf's 40th is nothing much)."""
+    if not age or age < 30:
+        return False
+    if lifespan is None or lifespan > LONG_LIVED:
+        return age >= 100 and age % 50 == 0
+    return age % 10 == 0
+
+
 # A city file's kinds ---------------------------------------------------------------------------------------------
 
 def clean(data: dict) -> list[str]:
@@ -147,9 +183,9 @@ def clean_kinds(block: dict) -> tuple[list[str], dict]:
             continue
         span = value.get('lifespan', 'missing')
         if span is not None and (isinstance(span, bool) or not isinstance(span, int)
-                                 or not LIFESPANS[0] <= span <= LIFESPANS[1]):
+                                 or not CITY_YEARS[0] <= span <= CITY_YEARS[1]):
             notes.append(f'Dropped the kind "{key}": its lifespan must be a whole number of years from '
-                         f'{LIFESPANS[0]} to {LIFESPANS[1]}, or null for a kind that doesn\'t age.')
+                         f'{CITY_YEARS[0]} to {CITY_YEARS[1]}, or null for a kind that doesn\'t age.')
             continue
         if key in builtin:
             own[key] = {'lifespan': span}  # A built-in kind: only its lifespan changes here.

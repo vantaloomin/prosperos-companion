@@ -1,7 +1,7 @@
 """Request bodies. Input mirrors prosperos-study server/models.py at bbcbde4."""
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Relationship = Literal['friendship', 'romance', 'mentor', 'family', 'other']
 Layer = Literal['user_fact', 'shared_experience', 'plan', 'temporary', 'relationship', 'companion_life']
@@ -648,3 +648,21 @@ class RecapRead(Input):
 class StatusUpdate(Input):
     """The user's status line for a companion (companion/life/status.py); empty lets the app write it."""
     text: str = Field(default='', max_length=200)
+
+
+# Lifespans (companion/world/lifespans.py `SPANS`): what How long they live offers, besides as their kind.
+LIFESPANS = (80, 150, 300, 600, 1000)
+
+
+class KindChange(Input):
+    """Someone's kind and How long they live, picked on their page: '' and None leave both to the app, 0 years is
+    "Doesn't age" (companion/world/lifespans.py)."""
+    kind: str = Field(default='', max_length=40, pattern=r'^[a-z0-9-]*$')
+    lifespan: int | None = Field(default=None)
+
+    @field_validator('lifespan')
+    @classmethod
+    def listed(cls, value):
+        if value not in (None, 0, *LIFESPANS):
+            raise ValueError('Pick one of the lifespans listed.')
+        return value
