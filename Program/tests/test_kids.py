@@ -248,6 +248,7 @@ def test_in_an_older_city_seeded_kids_live_with_them_and_no_rota(client, monkeyp
     make(client, home_city=city, location='')
     view = panel(client)
     assert view['how'] == 'seeded' and view['kids'] and view['other'] is None and view['pattern'] == 'sole'
+    assert view['pattern_how'] == 'seeded'  # Not "Read from their description".
     assert 'weekend' not in prompt(client) and 'a week with' not in prompt(client)
 
 

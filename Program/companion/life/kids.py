@@ -551,7 +551,7 @@ def pattern_of(connection, row: dict) -> tuple[str, str]:
     if row['pattern_consequence_id']:
         found = consequences.by_id(connection, row['pattern_consequence_id'])
         return CUSTODY[found['picked']], 'seeded'
-    return row['pattern'], 'fixed'
+    return row['pattern'], 'fixed' if row['how'] == 'description' else 'seeded'
 
 
 def with_them(pattern: str, since: date, day: date) -> bool:
