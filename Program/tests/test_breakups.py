@@ -344,6 +344,22 @@ def test_a_branch_from_after_a_breakup_keeps_it_and_one_from_before_does_not(cli
         assert view(client)['stage'] == stage, name
 
 
+def test_a_branch_made_while_things_are_strained_keeps_it(client, couple, provider, clock):
+    set_life(client, rough_patches_realism=3)
+    says(provider)
+    send(client, 'shut up', 'client-strain-1')
+    tick(client)
+    clock.advance(timedelta(days=2, hours=1))
+    tick(client)
+    assert view(client)['stage'] == 'strained'
+    says(provider)
+    message = send(client, 'hi', 'client-strain-2')['message']
+    response = client.post('/api/timelines', json={'message_id': message['id']})
+    assert response.status_code == 200, response.text
+    assert client.post(f"/api/timelines/{response.json()['id']}/activate").status_code == 200
+    assert view(client)['stage'] == 'strained'
+
+
 def test_a_move_not_made_yet_waits_while_they_are_on_a_break(client, couple, provider, clock, monkeypatch):
     from test_moving_in import ask_to_move_in, row
     monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # Yes, at your place.
