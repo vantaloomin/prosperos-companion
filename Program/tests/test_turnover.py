@@ -172,3 +172,26 @@ def test_a_companion_who_knew_someone_hears_they_left():
     assert found and found['text']
     line = ' '.join(encounters.news_of({'left': found}))
     assert line.startswith('They have since ') and date.fromisoformat(found['day']).strftime('%B %Y') in line
+
+
+def test_before_1925_staff_retire_rarely_and_passing_away_is_likelier():
+    modern = turnover.chances('staff', 68, 2, 3, 'modern')
+    victorian = turnover.chances('staff', 68, 2, 3, 'victorian')
+    assert victorian['retired'] < modern['retired'] / 4
+    assert turnover.chances('staff', 80, 2, 3, 'medieval')['retired'] < 0.5 < turnover.chances('staff', 80, 2, 3)['retired']
+    assert victorian['passed'] == pytest.approx(modern['passed'] * 2)
+    # 1925 keeps today's ages and rates.
+    assert turnover.chances('staff', 68, 2, 3, 'jazz-age') == modern
+    assert victorian['moved'] == modern['moved']
+
+
+def test_london_1895_staff_mostly_work_on_where_baltimore_staff_retire():
+    def retired(city_id):
+        data = city(city_id)
+        found = 0
+        for place in data['places'][:60]:
+            for slot in range(3):
+                found += sum(term.why == 'retired' for term in townsfolk.place_terms(data, place, slot,
+                                                                                      turnover.week_of(later(20))))
+        return found
+    assert retired('london-1895') * 2 < retired('baltimore')

@@ -281,14 +281,16 @@ def milestones_between(connection, companion: dict, low: date, high: date) -> li
     from companion.life import circle
     definition, name = companion['version']['definition'], companion['version']['definition']['name']
     people = [(own_birthday(companion['id'], definition), name,
-               lambda day: turns_on(connection, companion['id'], definition, day))]
+               lambda day: turns_on(connection, companion['id'], definition, day), low)]
+    # Someone who joined the circle later (a grandparent added in v0.15) has no milestones from before they did.
     people += [(circle.birthday(person['id']), f"{name}'s {person['role']} {person['name']}",
-                lambda day, key=person['id']: person_age(connection, 'circle', key, day))
+                lambda day, key=person['id']: person_age(connection, 'circle', key, day),
+                max(low, date.fromisoformat(person['created_at'][:10])) if person['created_at'] else low)
                for person in circle.people(connection, companion['active_timeline_id'])]
     found = []
-    for birthday, who, age_of in people:
+    for birthday, who, age_of, since in people:
         for year in range(low.year, high.year + 1):
             day = birthday_in(year, birthday)
-            if low <= day <= high and milestone(age := age_of(day)):
+            if since <= day <= high and milestone(age := age_of(day)):
                 found.append({'date': day.isoformat(), 'text': f'{who} turned {age}'})
     return found

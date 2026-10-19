@@ -46,6 +46,12 @@ YOUNG, YOUNG_LIFT = 30, 1.6
 # Staff retiring: each year's chance from these ages on, and the age by which everyone has.
 RETIRE = ((62, 0.18), (66, 0.4), (70, 0.75))
 RETIRED_BY = 75
+# Before 1925 (London 1895, Camelot and the other old or made-up eras) few could afford to stop working: retiring
+# is rarer and nobody has to, and passing away is about twice as likely (ERA_DEATHS, the same table as
+# companion/life/loss.py's for the circle).
+OLD_ERAS = ('victorian', 'steampunk', 'frontier', 'medieval', 'fantasy')
+OLD_RETIRE = ((66, 0.04), (70, 0.08), (75, 0.15))
+ERA_DEATHS = dict.fromkeys(OLD_ERAS, 2.0)
 # Passing away: a small chance at 30 that rises steeply with age.
 DEATH_AT_30, DEATH_RISE = 0.0004, 0.09
 # Life's big turns (0..3) as multipliers, and passing away: 0 off, then the Loss slider's 0..3 (rare, now and then,
@@ -118,26 +124,33 @@ def week_day(week: int, weekday: int = 0) -> date:
 
 # How long someone stays ---------------------------------------------------------------------------
 
-def chances(kind: str, age: int, pace: int, loss: int) -> dict[str, float]:
-    """This year's chance of each way of leaving, for someone of this kind and age."""
+def chances(kind: str, age: int, pace: int, loss: int, era: str = 'modern') -> dict[str, float]:
+    """This year's chance of each way of leaving, for someone of this kind and age in this era."""
     move = MOVE[kind] * (YOUNG_LIFT if age < YOUNG else 1.0) * PACE[pace]
     found = {'moved': move * (1 - NEW_JOB) if kind == 'staff' else move}
     if kind == 'staff':
         found['new job'] = move * NEW_JOB
-        retire = 1.0 if age >= RETIRED_BY else next((chance for at, chance in reversed(RETIRE) if age >= at), 0.0)
-        found['retired'] = retire if pace else 0.0
+        found['retired'] = retiring(age, era) if pace else 0.0
     if loss:
-        found['passed'] = min(DEATH_AT_30 * math.exp(DEATH_RISE * (age - 30)) * LOSS[loss], 1.0)
+        found['passed'] = min(DEATH_AT_30 * math.exp(DEATH_RISE * (age - 30)) * LOSS[loss] * ERA_DEATHS.get(era, 1.0),
+                              1.0)
     return found
 
 
+def retiring(age: int, era: str) -> float:
+    """This year's chance a member of staff retires."""
+    if era in OLD_ERAS:
+        return next((chance for at, chance in reversed(OLD_RETIRE) if age >= at), 0.0)
+    return 1.0 if age >= RETIRED_BY else next((chance for at, chance in reversed(RETIRE) if age >= at), 0.0)
+
+
 @lru_cache(maxsize=65536)
-def tenure(seed: str, kind: str, age: int, start: int, levels: tuple) -> tuple[int, str] | None:
+def tenure(seed: str, kind: str, age: int, start: int, levels: tuple, era: str = 'modern') -> tuple[int, str] | None:
     """(the week they leave, why) for someone who arrived at week `start` aged `age`, or None if they never do. Each
     year rolls at the levels (`history`) that held when it began."""
     for year in range(120):
         pace, loss, _families = levels_at(start + year * YEAR, levels)
-        found = chances(kind, age + year, pace, loss)
+        found = chances(kind, age + year, pace, loss, era)
         total = sum(found.values())
         roll = generators.unit(seed, 'turnover', year)
         if total and roll < min(total, 1.0):
@@ -156,16 +169,17 @@ class Term:
     why: str | None
 
 
-def terms(seed_of, kind: str, age_of, kept, until: int, last: int = MOST_GENERATIONS - 1) -> list[Term]:
+def terms(seed_of, kind: str, age_of, kept, until: int, last: int = MOST_GENERATIONS - 1,
+          era: str = 'modern') -> list[Term]:
     """Everyone who held a slot up to week `until` (or up to generation `last`), in order. `seed_of(generation)` is
-    who they are drawn from, `age_of(seed, generation)` their age on arriving and `kept(generation)` whether they
-    stay for good."""
+    who they are drawn from, `age_of(seed, generation)` their age on arriving, `kept(generation)` whether they
+    stay for good and `era` the city's (chances)."""
     if not ACTIVE:
         return [Term(0, None, None, None)]
     result, arrived, start = [], None, START_WEEK
     for generation in range(last + 1):
         seed = seed_of(generation)
-        found = None if kept(generation) else tenure(seed, kind, age_of(seed, generation), start, history())
+        found = None if kept(generation) else tenure(seed, kind, age_of(seed, generation), start, history(), era)
         result.append(Term(generation, arrived, *(found or (None, None))))
         if found is None or found[0] > until:
             break

@@ -22,10 +22,10 @@ Cousins may or may not share it.
 import re
 from datetime import date, timedelta
 
-from companion.clock import stamp
+from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import named
+from companion.life import ages, named
 from companion.world import catalog, generators, naming
 
 CIRCLE_SIZE = 5
@@ -42,7 +42,14 @@ QUIET_WORDS = re.compile(r"\b(?:introverted|introvert|shy|loner|reserved|homebod
                          re.IGNORECASE)
 NEGATED = re.compile(r"\b(?:not|never|isn't|aren't|wasn't|hardly|far from|anything but)\s+(?:\w+\s+)?$", re.IGNORECASE)
 FAMILY = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother', 'cousin', 'partner', 'wife', 'husband', 'girlfriend',
-          'boyfriend', 'fiancée', 'fiancé', 'son', 'daughter', 'aunt', 'uncle', 'grandmother', 'grandfather'}
+          'boyfriend', 'fiancée', 'fiancé', 'son', 'daughter', 'aunt', 'uncle', 'grandmother', 'grandfather',
+          'grandparent'}
+GRANDPARENTS = {'grandparent', 'grandmother', 'grandfather', 'grandma', 'grandpa'}
+# A companion younger than this has a grandparent in their circle, aged ELDER_AGES (v0.15: so People can pass away
+# finds someone old). They come on top of the circle's size.
+GRANDCHILD_UNDER = 40
+ELDER_AGES = (75, 95)
+ELDERS = True
 # Relatives who share the companion's family name unless a marriage explains otherwise.
 IMMEDIATE = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother'}
 SUFFIXES = {'jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv'}
@@ -267,7 +274,8 @@ def married_sibling(data: dict | None, timeline_id: str, name: dict, age: int, f
 
 def relation(role: str, pronouns: str) -> str:
     """How the companion would say it: "mom" and "brother" rather than "parent" and "sibling"."""
-    words = {'parent': ('mom', 'dad'), 'sibling': ('sister', 'brother')}.get(role)
+    words = {'parent': ('mom', 'dad'), 'sibling': ('sister', 'brother'),
+             'grandparent': ('grandmother', 'grandfather')}.get(role)
     if words and pronouns in ('she/her', 'he/him'):
         return words[pronouns != 'she/her']
     return role.replace('-', ' ')
@@ -354,16 +362,64 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
         changed = add_named(connection, companion, world, rows, now) or changed
         # A circle assembled smaller than it should now be (a bigger size in Settings, a more sociable
         # companion) fills itself. People the user removed still count, so nobody is replaced behind their back.
-        if (missing := target_size(companion['version']['definition'], setting(connection)) - len(rows)) > 0:
+        if (missing := target_size(companion['version']['definition'], setting(connection)) - len(sized(rows))) > 0:
             fill(connection, companion, world, rows, now, missing)
             changed = True
+        changed = add_grandparent(connection, companion, world, now) or changed
         if changed:
             rows = people(connection, timeline_id, include_removed=True)
         return [row for row in rows if row['status'] == 'active']
     definition = companion['version']['definition']
     insert(connection, timeline_id, build(definition, world, timeline_id, target_size(definition, setting(connection))),
            0, now)
+    add_grandparent(connection, companion, world, now)
     return people(connection, timeline_id)
+
+
+def sized(rows: list[dict]) -> list[dict]:
+    """The rows the circle's size counts: all but the grandparent added on top of it."""
+    return [row for row in rows if not (decode(row['details']) or {}).get('elder')]
+
+
+def add_grandparent(connection, companion: dict, world, now) -> bool:
+    """A grandparent for a companion under GRANDCHILD_UNDER whose circle has none (counting anyone removed or late),
+    added after everyone else. Their date and their days start now: nothing is written for them before they joined
+    (circle created in an existing world on the next reconcile). True when one was added."""
+    timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
+    rows = people(connection, timeline_id, include_removed=True)
+    today = now.astimezone(zone(companion['version']['timezone'])).date()
+    age = ages.companion_age(connection, companion['id'], definition, today)
+    if not ELDERS or age is None or age >= GRANDCHILD_UNDER or any(role_kind(row['role']) in GRANDPARENTS for row in rows):
+        return False
+    elder = grandparent(definition, world, timeline_id, age, {row['name'] for row in rows})
+    ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
+    insert(connection, timeline_id, [elder], ordinal, now)
+    added = one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))
+    connection.execute('INSERT OR IGNORE INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?)',
+                       (timeline_id, added['id'], stamp(now)))
+    return True
+
+
+def grandparent(definition: dict, world, timeline_id: str, age: int, taken: set[str]) -> dict:
+    """The seeded grandparent: retired, local or out of town, on the family's side about half the time."""
+    seed = f'circle:{timeline_id}:grandparent'
+    low = max(ELDER_AGES[0], age + 42)
+    elder_age = low + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * (ELDER_AGES[1] - low))
+    local = generators.unit(seed, 'local') < 0.5
+    data = city_data(definition, world)
+    if data:
+        family = family_name(definition) if generators.unit(seed, 'family-side') < 0.5 else None
+        member = generators.resident(data, seed=seed, role='parent', age=elder_age, local=local,
+                                     family=family, group=family_group(data, family))
+        made = city_person(member, data, definition, None, timeline_id, set(taken) | {definition['name']},
+                           relation('grandparent', member['name']['pronouns']))
+        return made | {'details': made['details'] | {'elder': True}}
+    pronouns = generators.pick(seed, 'pronouns', ['she/her', 'he/him'])
+    made = assemble(seed, 0, definition, None, set(taken) | {definition['name']}, relation('grandparent', pronouns))
+    details = made['details'] | {'career': 'Retired', 'pronouns': pronouns, 'age': elder_age, 'local': local,
+                                 'elder': True}
+    return made | {'career': '', 'details': details,
+                   'schedule': generators.RETIRED_SCHEDULE if local else []}
 
 
 def add_named(connection, companion: dict, world, rows: list[dict], now) -> bool:
@@ -436,7 +492,7 @@ def room(connection, companion: dict) -> dict:
     """How many people the circle has and could have, for the "add people" offer. Someone who passed away still
     holds their place: a death is not a removal (companion/life/loss.py)."""
     definition = companion['version']['definition']
-    active = len([row for row in people(connection, companion['active_timeline_id'], include_removed=True)
+    active = len([row for row in sized(people(connection, companion['active_timeline_id'], include_removed=True))
                   if row['status'] == 'active' or (decode(row['details']) or {}).get('late')])
     return {'people': active, 'target': target_size(definition, setting(connection)),
             'sociability': sociability(definition)}
@@ -444,14 +500,17 @@ def room(connection, companion: dict) -> dict:
 
 def grow(connection, companion: dict, world, now) -> list[dict]:
     """Add people to a circle smaller than it should be, filling the roles a sociable circle has and this
-    one lacks (coworkers, old and new friends, family) before anyone else. Nobody already there changes."""
+    one lacks (coworkers, old and new friends, family) before anyone else. Nobody already there changes. A bigger
+    size in Settings is filled by `ensure` itself, which counts as growing."""
+    before = len(people(connection, companion['active_timeline_id'], include_removed=True))
     ensure(connection, companion, world, now)
     rows = people(connection, companion['active_timeline_id'], include_removed=True)
-    active = [row for row in rows if row['status'] == 'active' or (decode(row['details']) or {}).get('late')]
+    active = [row for row in sized(rows) if row['status'] == 'active' or (decode(row['details']) or {}).get('late')]
     missing = target_size(companion['version']['definition'], setting(connection)) - len(active)
-    require(missing > 0, 'Their circle already has everyone it should. Raise the circle size in Settings to add more '
-            'people.', 409)
-    fill(connection, companion, world, rows, now, missing)
+    require(missing > 0 or len(rows) > before, 'Their circle already has everyone it should. Raise the circle size in '
+            'Settings to add more people.', 409)
+    if missing > 0:
+        fill(connection, companion, world, rows, now, missing)
     return people(connection, companion['active_timeline_id'])
 
 
