@@ -287,9 +287,8 @@ def family_place(connection, companion: dict, people: list[dict], meetup_id: str
     host = people[0]
     if host['group'] != 'family':
         from companion.life import together
-        return together.their_place(connection, companion) | {'id': FAMILY_HOME, 'kind': 'family-home',
-                                                               'spots': list(FAMILY_SPOTS), 'host': None,
-                                                               'owners': [], 'own': True}
+        return together.their_place(connection, companion) | {'id': FAMILY_HOME, 'spots': list(FAMILY_SPOTS),
+                                                               'host': None, 'owners': [], 'own': True}
     parents = [person for person in people if person['kind'] == 'parent']
     owners = parents[:2] if host['kind'] == 'parent' else [host]
     name = ' and '.join(first(person['name']) for person in owners) + "'s place"
@@ -300,10 +299,10 @@ def family_place(connection, companion: dict, people: list[dict], meetup_id: str
 
 def their_words_for_place(place: dict, people: list[dict]) -> str:
     """How the companion says where: "my parents' place", "my mom's place", "The Owl Bar"."""
-    if place['kind'] != 'family-home':
-        return place['name']
     if place.get('own'):
         return 'my place'
+    if place['kind'] != 'family-home':
+        return place['name']
     owners = [person for person in people if person['id'] in place.get('owners', ())]
     if len(owners) == 2:
         return "my parents' place"

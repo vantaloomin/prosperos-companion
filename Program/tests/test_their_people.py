@@ -173,7 +173,7 @@ def test_a_parent_with_no_family_in_town_has_their_friends_to_dinner_with_the_ki
     assert 'dinner at my place' in trigger.reason and 'my place' in trigger.template and '{' not in trigger.template
     assert ' (Leo and Mia will be there too): dinner at my place' in trigger.reason
     assert outing['activity'] == their_people.AT_FAMILY and outing['place']['own']
-    assert outing['place']['name'] == "Mira Costa's place"
+    assert outing['place']['name'] == "Mira Costa's place" and outing['place']['kind'] == 'home'  # 'Their place'
     assert [person['role'] for person in outing['place']['people']] == ['close friend', 'friend']
     at(clock, outing, '19:30')
     says(provider)
