@@ -255,6 +255,41 @@ def leave_days(connection, companion: dict, start: date, end: date) -> dict[str,
     return result
 
 
+def broken_night(connection, timeline_id: str, day: date) -> dict | None:
+    """The body state a broken night with their own baby leaves (companion/life/agenda.py `day_facts`), as for the
+    pair's own (companion/life/our_child.py): by Family life, until the youngest sleeps through on a seeded day, a
+    third as often after that while a toddler; never on an easy life, nor on a night the child is at their ex's."""
+    from companion.life import our_child
+    level = our_child.level(connection)
+    kids = [child for child in own_children(connection, timeline_id) if child['status'] == 'born' and
+            child['born_on'] < day.isoformat() and families.age_of(child, day) < 3] if our_child.BROKEN[level] else []
+    if not kids or not with_them(connection, timeline_id, kids[-1], day - timedelta(days=1)):
+        return None
+    youngest, seed = kids[-1], f"own-nights:{kids[-1]['id']}"
+    low, high = our_child.SLEEPS[level]
+    sleeps = date.fromisoformat(youngest['born_on']) + timedelta(days=low + int(generators.unit(seed, 'sleeps') *
+                                                                                 (high - low)))
+    chance = our_child.BROKEN[level] / (3 if day >= sleeps else 1)
+    if generators.unit(seed, 'night', day.isoformat()) >= chance:
+        return None
+    return {'state': 'tired', 'because': 'after a broken night'}
+
+
+def with_them(connection, timeline_id: str, child: dict, day: date) -> bool:
+    """Whether their child sleeps at theirs this night: always while together; after a split, by the pattern
+    (companion/life/custody.py `own_line`): every night but some weekends, every other week, or weekends only."""
+    from companion.life import custody, our_child
+    person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (child['parent_id'],))
+    if person is None or person['role'] != EX or not (decode(person['details']) or {}).get('co_parent'):
+        return True
+    companion = our_child.companion_of(connection, timeline_id)
+    pattern = custody.OWN_PATTERNS[custody.own_outcome(connection, companion, person)['picked']] if companion else \
+        'with_them'
+    if pattern == 'shared':  # A week each, turn and turn about.
+        return day.isocalendar().week % 2 == 0
+    return pattern == 'with_them' or day.weekday() >= 5
+
+
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
     """Baby things a month before a baby of theirs comes, then their half of childcare each month from the end of
     leave until school (companion/life/money.py household)."""

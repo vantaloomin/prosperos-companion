@@ -318,3 +318,22 @@ def test_after_a_split_nobody_is_asked_to_babysit_for_an_evening_out_with_the_ex
         reconcile(client)
     with client.app.state.database.connect() as connection:
         assert not own_family.rows(connection, companion['active_timeline_id'], ('planned', 'asked', 'yes'))
+
+
+def test_a_new_baby_of_their_own_means_broken_nights_now_and_then(client, mira, clock, monkeypatch):
+    sure(monkeypatch)
+    partnered(client, clock)
+    reconcile(client)
+    [child] = children(client)
+    born(client, clock, child)
+    companion = current(client)
+    timeline_id, first = companion['active_timeline_id'], clock.now().date()
+    with client.app.state.database.connect(write=True) as connection:
+        nights = [own_family.broken_night(connection, timeline_id, first + timedelta(days=n)) for n in range(1, 61)]
+        tired = [night for night in nights if night]
+        assert 5 < len(tired) < 55 and tired[0] == {'state': 'tired', 'because': 'after a broken night'}
+        later = [own_family.broken_night(connection, timeline_id, first + timedelta(days=n)) for n in range(1200, 1260)]
+        assert not any(later)  # Three and over: they sleep.
+    set_life(client, family_life=0)
+    with client.app.state.database.connect() as connection:
+        assert not any(own_family.broken_night(connection, timeline_id, first + timedelta(days=n)) for n in range(1, 61))
