@@ -21,7 +21,37 @@ CHAT = (r'kiss\w*', r'make ?outs?', r'cuddl\w*', r'snuggl\w*', r'caress\w*', r'm
         r'unzip\w*', r'unbutton\w*', r'shirtless', r'panties', r'bra', r'boxers', r'turn(?:s|ed)? (?:me|you) on',
         r'turned on', r'want you(?! to)', r'need you(?! to)', r'take me', r'touch(?:es|ed|ing)? (?:me|you)',
         r'your body', r'my body', r'on top of (?:me|you)', r'shiver\w*', r'whimper\w*', r'pin(?:s|ned)? (?:me|you)',
-        r'tie (?:me|you) up', r'spank\w*', r'collar', r'naughty', r'crav(?:e|ing) you')
+        r'tie (?:me|you) up', r'spank\w*', r'collar', r'naughty', r'crav(?:e|ing) you',
+        # More words and phrasings, slang and a few other languages.
+        r'fu+c?k\w*', r'fck\w*', r'phuck\w*', r'shag(?:ged|ging)', r'shag (?:me|you)',
+        r'screw(?:s|ed|ing)? (?:me|you)', r'bang(?:s|ed|ing)? (?:me|you)', r'seggs', r'secks', r'sext(?:s|ed|ing)?',
+        r'nudes?', r'ma(?:ke|kes|de|king) love', r'fool(?:s|ed|ing)? around', r'frisky', r'ravish\w*',
+        r'lust(?:s|ful|ing|y)?', r'have (?:my|your) way with', r'netflix and chill',
+        r'(?:im|i am|getting|get you|make me|making me|so) wet', r'wet for (?:me|you)', r'(?:rock|getting) hard',
+        r'hard for (?:me|you)', r'make (?:me|you) hard', r'hard ?on', r'boners?', r'erections?',
+        r'lick(?:s|ed|ing)? (?:me|you|my|your|it)', r'suck(?:s|ed|ing)? (?:me|you|my|your|on|it)',
+        r'rid(?:e|es|ing) (?:me|you)', r'go(?:es|ing)? down on', r'went down on', r'blow (?:me|you)', r'dicks?',
+        r'cocks?', r'puss(?:y|ies)', r'clit\w*', r'cum(?:s|ming|med)?',
+        r'(?:inside|in) (?:me|you) (?:tonight|now|deep)', r'inside (?:me|you)', r'come for (?:me|you)',
+        r'make (?:me|you) come', r'tits?', r'titties', r'boobies', r'booty', r'butt(?:ocks)?', r'ass(?:es)?', r'arse',
+        r'strip(?:s|ped)? (?:for|off|down)', r'take (?:it|this|that|them|everything|(?:my|your) \w+) off',
+        r'clothes off', r'wearing nothing', r'what (?:im|i am) wearing', r'(?:spend|stay) the night',
+        r'sle(?:ep|pt|eping) with (?:me|you)', r'l(?:ie|ay|ying) (?:down )?with me',
+        r'(?:shower|bath|bathe|tub)\w* (?:together|with me|with you)', r'massag\w* (?:me|you|my|your)',
+        r'bite (?:me|my|your)', r'nibbl\w* (?:on )?(?:my|your) (?:ears?|necks?|lips?)', r'choke (?:me|you)',
+        r'handcuff\w*', r'blindfold\w*', r'kink\w*', r'submissive', r'domme', r'safe ?words?', r'grop\w*', r'fondl\w*',
+        r'hump(?:s|ed|ing)?', r'thrust\w*', r'climax\w*', r'pleasur(?:e|ing) (?:me|you)', r'hickey\w*', r'smooch\w*',
+        r'snog\w*', r'necking', r'nighties?', r'negligee', r'lap ?dances?', r'quickies?', r'booty call',
+        r'one night stand', r'friends with benefits', r'doggy ?style', r'fantasi[sz]\w*',
+        r'(?:my|your) fantas(?:y|ies)', r'talk(?:ing)? dirty', r'dirty talk',
+        r'(?:you(?:re| re| are)?|looking|look so) (?:so )?hot', r'hot for (?:me|you)',
+        r'(?:feeling|get|getting) spicy', r'kis+(?:e[sd]?|y|ing)?', r'b[eé]same', r'besa(?:r|me)', r'baise\w*',
+        r'l amour', r'follar', r'ficken', r'k[uü]ss\w*', r'bacia\w*')
+# Emoji that read intimate in a chat (they are not words, so they are looked for before anything is folded).
+EMOJI = re.compile('[\U0001F346\U0001F351\U0001F4A6\U0001F445\U0001F975\U0001F608\U0001FAE6\U0001F51E'
+                   '\U0001F48B\U0001F60F]')
+# Letters written as numbers or symbols, folded back so 's3x' or 'f*ck' reads as itself.
+LEET = str.maketrans({'3': 'e', '0': 'o', '1': 'i', '4': 'a', '5': 's', '@': 'a', '$': 's', '*': ''})
 
 
 @cache
@@ -34,7 +64,15 @@ def pattern() -> re.Pattern:
 
 
 def reads_intimate(texts) -> bool:
-    return bool(pattern().search(content.normalize(' '.join(text for text in texts if text))))
+    """Whether any of these reads intimate: as written, with letters written as numbers or symbols read back, and
+    with a letter drawn out ('sooo') read once."""
+    text = ' '.join(text for text in texts if text)
+    if EMOJI.search(text):
+        return True
+    folded = text.casefold().translate(LEET)
+    found = pattern()
+    return any(found.search(content.normalize(variant)) for variant in
+               (text, folded, re.sub(r'(\w)\1+', r'\1', folded)))
 
 
 def family_reply(connection, companion: dict, recent: list[dict], group: dict | None, photo: dict | None) -> bool:

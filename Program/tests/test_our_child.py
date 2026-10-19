@@ -238,3 +238,16 @@ def test_the_sheet_fits_the_childs_age():
     assert not any('groceries' in line['text'] for line in one)
     assert any('groceries' in line['text'] for line in our_child.for_age(bank['quirks_toddler'], 'modern', 3 * 365))
     assert not any(our_child.FOOD.search(line['text']) for line in our_child.for_age(bank['quirks_baby'], 'modern', 100))
+
+
+def test_a_reply_reads_its_side_from_many_wordings():
+    from companion.memory import sides
+    for text in ('fuck me tonight', 'f*ck me', 'make love to me', 'ride me', 'strip for me', 'sleep with me',
+                 'netflix and chill?', 's3x', 'seggs tonight?', 'kis me', 'bésame', "i'm wet", 'sext me',
+                 'go down on me', 'take it off', 'shower together?', 'feeling frisky', '🍆💦', 'wanna come over 😏',
+                 "wanna see what i'm wearing under this", 'kiiiissss me', 'n-u-d-e-s'):
+        assert sides.reads_intimate([text]), text
+    for text in ('how was your day?', 'Ayla laughed so hard at the dog', 'want to do dinner friday, just the two of us?',
+                 'morning love. how did you sleep?', 'the shaggy dog got into the garden', 'that sucks, sorry',
+                 'it is so hot today', 'ugh, the sextant order is late', 'pass the cumin'):
+        assert not sides.reads_intimate([text]), text
