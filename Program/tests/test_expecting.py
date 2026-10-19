@@ -253,9 +253,11 @@ def test_the_news_goes_out_as_a_first_text_only_once_it_happens(client, clock, m
 
 def test_the_bank_has_enough_lines_for_every_era():
     bank = expecting.bank()
-    for key in ('reactions', 'pregnancy', 'waiting'):
+    for key in ('reactions', 'pregnancy', 'waiting', 'names_talk'):
         assert len(bank[key]) >= 100 and len({line['text'] for line in bank[key]}) == len(bank[key]), key
-        assert sum(line['era'] == 'any' for line in bank[key]) >= 30, key
+        for era, unfit in families.UNFIT.items():  # What an older city keeps (expecting.fitting): 100 still.
+            assert sum(line['era'] == 'any' and not unfit.search(line['text']) for line in bank[key]) >= 100, (key, era)
+    assert len(expecting.suggested()) >= 100
     assert all(line['text'].startswith('{who}') for line in bank['reactions'])
     assert all('{name}' in line['text'] for line in bank['names_talk'])
     assert len(big_days.bank()['invite_shower']) >= 100
@@ -436,3 +438,73 @@ def test_the_panel_names_each_outcome_under_hidden_values(client, monkeypatch, l
     assert [item['id'] for item in found['outcomes']] == found['consequences']
     assert client.put('/api/settings', json={'show_odds': False}).status_code == 200
     assert family(client)['journey']['outcomes'] == []
+
+
+def day_of(client, local_date):
+    """The companion's waking blocks on a day (written once automatic events are on and the day has come)."""
+    with client.app.state.database.connect() as connection:
+        rows = connection.execute("SELECT block, entry FROM life_agenda WHERE subject='companion' AND local_date=? "
+                                  "AND json_extract(block, '$.kind')!='sleep' ORDER BY starts_at",
+                                  (local_date,)).fetchall()
+    return [(decode(row['block']), decode(row['entry']) if row['entry'] else None) for row in rows]
+
+
+def test_the_birth_takes_the_whole_day_with_the_user_there(client, provider, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert found and all(block['arrival'] == row['id'] and block['with_user'] for block, _entry in found)
+    assert {block['label'] for block, _entry in found} == {'Having the baby at the hospital, together'}
+    name = row['details']['name']
+    summaries = [entry['summary'] for _block, entry in found]
+    assert f'Mira gave birth to {name} at the hospital, with you there.' in summaries
+    assert all('the user' not in text for text in summaries)
+
+
+def test_the_birth_day_while_long_distance_and_a_homecoming(client, provider, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert {block['label'] for block, _entry in found} == {'Having the baby at the hospital'}
+    assert not any(block['with_user'] for block, _entry in found)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        home = {'id': 'j', 'key': 'home', 'birth': False, 'name': 'Ciro Rossi', 'surrogate': '', 'far': False,
+                'at': 'at the hospital'}
+        assert expecting.arrival_block({'start': '09:00'}, home)['label'] == 'Bringing Ciro home, together'
+        assert expecting.arrival_entry(home, {'start': '09:00'}, companion['version']['definition'])['summary'] == \
+            'Mira brought Ciro home with you.'
+
+
+def test_after_a_breakup_the_birth_day_is_without_the_user(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    to(client, clock, stage(row, 'halfway')['on'])
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-expecting-40')
+    assert client.get('/api/life/breakup').json()['stage'] == 'ended'
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert {block['label'] for block, _entry in found} == {'Having the baby at the hospital'}
+    assert not any(block['with_user'] for block, _entry in found)
+    name = row['details']['name'].split()[0]
+    assert f'Mira gave birth to {name} at the hospital.' in {entry['summary'] for _block, entry in found}
+
+
+def test_with_the_adult_side_on_the_birth_day_is_an_ordinary_one(client, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert found and not any(block.get('arrival') for block, _entry in found)

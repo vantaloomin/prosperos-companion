@@ -380,6 +380,95 @@ def days_off(connection, companion: dict, start: date, end: date) -> dict[str, s
     return result
 
 
+# The day the child comes, in the companion's day (companion/life/agenda.py) -----------------------------------------
+
+# Where a birth is, by era group: a hospital in a modern or jazz-age city, at home with the midwife in an older one.
+BIRTH_PLACE = {'modern': 'at the hospital', 'jazz': 'at the hospital', 'old': 'at home'}
+# The waking blocks of the day: (together, apart) by route. Apart is long distance (Together or apart: the one who
+# lives away isn't there) or on a break or broken up (steps.apart).
+ARRIVAL_LABELS = {'expecting_them': ('Having the baby {at}, together', 'Having the baby {at}'),
+                  'expecting_you': ('With you {at} for the birth', 'Waiting for news of the birth'),
+                  'surrogacy': ('{At} for the birth, together', '{At} for the birth'),
+                  'home': ('Bringing {name} home, together', 'Bringing {name} home')}
+# What the day was, for Today and the companion's life (third person; "you" is the user): (together, long distance,
+# on a break or broken up).
+ARRIVAL_SUMMARIES = {
+    'expecting_them': ('{companion} gave birth to {name} {at}, with you there.',
+                       '{companion} gave birth to {name} {at} while you were away.',
+                       '{companion} gave birth to {name} {at}.'),
+    'expecting_you': ('{companion} was with you {at} while you gave birth to {name}.',
+                      '{companion} waited for news while you gave birth to {name}, far away.',
+                      '{companion} waited for news while you gave birth to {name}.'),
+    'surrogacy': ('{companion} and you were {at} when {surrogate} gave birth to {name}.',
+                  '{companion} was {at} when {surrogate} gave birth to {name}.',
+                  '{companion} was {at} when {surrogate} gave birth to {name}.'),
+    'home': ('{companion} brought {name} home with you.', '{companion} brought {name} home.',
+             '{companion} brought {name} home.')}
+ARRIVAL_LATER = {'birth': '{companion} spent the rest of the day with {name}.',
+                 'home': '{companion} helped {name} settle in at home.'}
+
+
+def arrival_days(connection, companion: dict, since: str) -> dict[str, dict]:
+    """{local date: the day} for the day the child is born or comes home, from `since` on: the whole waking day goes
+    to it (agenda.write_arrival_slot), with the user there unless they live apart (long distance) or are on a break or
+    broken up (`split`). None with the adult
+    side of life on: that day is an ordinary one there."""
+    row = current(connection, companion['active_timeline_id']) if ACTIVE and companion.get('active_timeline_id') \
+        else None
+    if not row or quiet(connection):
+        return {}
+    stage = next((item for item in row['stages'] if item['key'] in ('born', 'home')), None)
+    if stage is None or stage['on'] < since:
+        return {}
+    birth = row['route'] in PREGNANCY
+    return {stage['on']: {'id': row['id'], 'key': row['route'] if birth else 'home', 'birth': birth,
+                          'name': row['details'].get('name') or 'the baby',
+                          'surrogate': row['details'].get('surrogate') or 'the surrogate',
+                          'far': far_on(connection, companion, row), 'split': bool(steps.apart(connection, companion)),
+                          'at': BIRTH_PLACE[era_group(connection, companion)]}}
+
+
+def arrival_block(view: dict, day: dict) -> dict:
+    """A waking block of that day: the birth or homecoming, with the user unless far."""
+    together, apart = ARRIVAL_LABELS[day['key']]
+    away = day['far'] or day.get('split')
+    label = (apart if away else together).format(at=day['at'], At=day['at'][:1].upper() + day['at'][1:],
+                                                       name=first_name(day['name']))
+    return {**view, 'kind': 'leisure' if away else 'social', 'label': label, 'arrival': day['id'],
+            'holiday': None, 'sick_day': False, 'with_user': not away}
+
+
+def arrival_entry(day: dict, block: dict, definition: dict) -> dict:
+    """What a waking slot of that day holds: the birth or homecoming, then (from the evening) the rest of the day."""
+    from companion.life import composer
+    words = {'companion': definition['name'].split()[0], 'name': first_name(day['name']), 'at': day['at'],
+             'surrogate': day['surrogate']}
+    if composer.day_part(block.get('start') or '09:00') in ('morning', 'afternoon'):
+        summary = ARRIVAL_SUMMARIES[day['key']][1 if day['far'] else 2 if day.get('split') else 0].format(**words)
+    else:
+        summary = ARRIVAL_LATER['birth' if day['birth'] else 'home'].format(**words)
+    return {'summary': summary, 'post': summary, 'mood': 'happy', 'activity': 'family-arrival', 'place': None,
+            'with': None, 'weather': block.get('weather'), 'arrival': {'id': day['id']},
+            'composer_version': 'arrival-1'}
+
+
+def first_name(name: str) -> str:
+    return name.split()[0] if name else name
+
+
+def repin(connection, timeline_id: str, days: dict[str, dict]) -> int:
+    """Upcoming companion entries whose arrival day is not the one now planned for their date (the day moved under
+    Hidden values, or a journey was called off) are removed, so they are composed again."""
+    removed = 0
+    for row in many(connection, "SELECT id, local_date, json_extract(block, '$.arrival') AS arrival FROM life_agenda "
+                    "WHERE timeline_id=? AND subject='companion' AND status='upcoming'", (timeline_id,)):
+        wanted = (days.get(row['local_date']) or {}).get('id')
+        if row['arrival'] != wanted and (row['arrival'] or wanted):
+            connection.execute('DELETE FROM life_agenda WHERE id=?', (row['id'],))
+            removed += 1
+    return removed
+
+
 # The calendar, the nursery and the shower ----------------------------------------------------------------------------------
 
 def calendar(connection, companion: dict, row: dict, today: date, now) -> None:
