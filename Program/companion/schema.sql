@@ -2629,3 +2629,12 @@ CREATE TABLE IF NOT EXISTS family_journeys (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS family_journeys_timeline ON family_journeys(timeline_id, status);
+
+-- Our child (companion/life/our_child.py): who looks after the pair's own children until the youngest is at school,
+-- when the user set it ('both_work', 'part_time', 'them_home' or 'you_home'; NULL leaves it to the engine's family:care).
+CREATE TABLE IF NOT EXISTS our_family (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  care TEXT CHECK (care IS NULL OR care IN ('both_work', 'part_time', 'them_home', 'you_home')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

@@ -17,7 +17,7 @@ import { ROUGH_PATCH_LEVELS } from '../profile/roughPatchText'
 import { PACE_LEVELS } from '../character/stepsText'
 import { BREAKUPS_HINT } from '../character/breakupText'
 import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
-import { FAMILY_LEVELS } from '../character/familiesText'
+import { FAMILY_LEVELS, FAMILY_LIFE_LEVELS } from '../character/familiesText'
 import { TURN_LEVELS } from '../character/turnsText'
 import { LOSS_LEVELS, PASS_AWAY_HINT, PASS_AWAY_TIP } from '../character/lossText'
 import { Notice } from '../../components/Feedback'
@@ -65,6 +65,7 @@ export function PaceSettings() {
   const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
   const families = step(FAMILY_LEVELS, data.growing_families, 2)
+  const familyLife = step(FAMILY_LIFE_LEVELS, data.family_life, 2)
   const turns = step(TURN_LEVELS, data.life_turns, 2)
   const loss = step(LOSS_LEVELS, data.loss, 2)
   return (
@@ -106,6 +107,10 @@ export function PaceSettings() {
       <Field label={`Growing families: ${families.label}`} hint={families.hint} tip="Babies and children are only ever mentioned in words, never pictured. Town babies show up in the paper.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.growing_families} label={families.label}
           onChange={(growing_families) => void save({ growing_families })} />}
+      </Field>
+      <Field label={`Family life: ${familyLife.label}`} hint={familyLife.hint} tip="Your own children with them, once you two have one. Children are only ever mentioned in words, never pictured.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.family_life} label={familyLife.label}
+          onChange={(family_life) => void save({ family_life })} />}
       </Field>
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}

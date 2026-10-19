@@ -25,6 +25,8 @@ and their own children (`whose` 'companion') get updates from the parent's side.
 import json
 import re
 import string
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import date, timedelta
 from functools import cache
 
@@ -114,9 +116,24 @@ def level(connection) -> int:
     return int(row.get('growing_families', USUAL))
 
 
+# A reply whose context carries the family lines rather than the adult side's (companion/memory/sides.py).
+FAMILY_REPLY: ContextVar[bool] = ContextVar('family_reply', default=False)
+
+
 def withheld(connection) -> bool:
-    """With the adult side of life on, children stay out of chat prompts altogether (they stay on the screens)."""
-    return intimacy.turned_on(connection)
+    """With the adult side of life on, children stay out of chat prompts (they stay on the screens), except in a reply
+    that carries the family lines instead of the adult side's (`family_reply`)."""
+    return intimacy.turned_on(connection) and not FAMILY_REPLY.get()
+
+
+@contextmanager
+def family_reply(family: bool):
+    """While one reply's context is read: children are in it when `family`."""
+    token = FAMILY_REPLY.set(family)
+    try:
+        yield
+    finally:
+        FAMILY_REPLY.reset(token)
 
 
 def pictured(connection, timeline_id: str, texts) -> bool:
@@ -436,7 +453,7 @@ def age_text(child: dict, day: date) -> str:
     if days < 7:
         return 'a newborn'
     if days < 60:
-        return f"{days // 7} weeks old"
+        return f"{days // 7} week{'s' if days >= 14 else ''} old"
     if (years := age_of(child, day)) < 1:
         return f"{days // 30} months old"
     return f'{years}'

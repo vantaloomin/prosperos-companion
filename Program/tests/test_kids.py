@@ -4,7 +4,7 @@ user as their step-parent, a love-life partner's kids, and the limits children k
 from datetime import date, timedelta
 
 import pytest
-from conftest import reconcile
+from conftest import intimate, reconcile
 
 from companion import consequences
 from companion.characters import current
@@ -281,6 +281,7 @@ def test_with_the_adult_side_on_their_kids_stay_out_of_the_chat_and_are_never_pi
     make(client, background='Her son Leo, 7.')
     assert 'Leo' in prompt(client)
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    intimate(client)
     text = prompt(client)
     assert 'Leo (7' not in text and 'Your children' not in text
     assert panel(client)['shown']

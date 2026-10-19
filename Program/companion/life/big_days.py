@@ -578,7 +578,8 @@ def travels(connection, companion: dict, row: dict) -> bool:
 
 def invitable(connection, companion: dict, row: dict) -> bool:
     """Whether the user could come at all: someone in town or a trip they can make together (or a visit can reach
-    them), not apart from the companion, and no other big day they are asked to that close."""
+    them), not apart from the companion, and no other big day they are asked to that close (their own wedding and the
+    pair's baby shower always ask them)."""
     from companion.life import long_distance
     if row['details'].get('local') is False and not travels(connection, companion, row) or \
             steps.apart(connection, companion) == 'ended':
@@ -586,7 +587,7 @@ def invitable(connection, companion: dict, row: dict) -> bool:
     between = long_distance.far(connection, companion)
     if between and not long_distance.reachable(between):
         return False
-    return not crowded(connection, row)
+    return row['kind'] in ('own_wedding', 'own_shower') or not crowded(connection, row)
 
 
 def crowded(connection, row: dict) -> bool:

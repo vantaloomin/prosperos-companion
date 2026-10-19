@@ -468,6 +468,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
         home,
         kitchen,
         media,
+        our_child,
         outings,
         own_family,
         trips,
@@ -494,7 +495,8 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *wedding.purchases(connection, timeline_id, start, day),
               *big_days.purchases(connection, timeline_id, start, day),
               *big_turns.purchases(connection, timeline_id, start, day),
-              *own_family.purchases(connection, timeline_id, start, day)]
+              *own_family.purchases(connection, timeline_id, start, day),
+              *our_child.purchases(connection, timeline_id, start, day)]
     # Raises, promotions and time between jobs (companion/life/work.py), or a pension once retired (big_turns.py);
     # what big buys took from savings since the goal began (`drawn_from`).
     drawn = drawn_since(connection, timeline_id, drawn_from(connection, definition, day), day)

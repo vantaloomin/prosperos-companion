@@ -5,7 +5,7 @@ import string
 from datetime import date, timedelta
 
 import pytest
-from conftest import reconcile, set_life
+from conftest import intimate, reconcile, set_life
 
 from companion.characters import require_current
 from companion.database import decode, encode
@@ -190,6 +190,7 @@ def test_with_the_adult_side_on_their_own_child_stays_out_of_chat(client, mira, 
     born(client, clock, child)
     assert child['name'] in prompt(client)
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    intimate(client)
     text = prompt(client)
     assert not re.search(rf"\b{child['name']}\b", text) and 'expecting a baby' not in text
     assert any(person['children'] for person in client.get('/api/life/circle').json())

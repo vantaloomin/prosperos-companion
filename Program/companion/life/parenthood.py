@@ -34,7 +34,7 @@ from companion.clock import stamp
 from companion.database import many, optional
 from companion.errors import require
 from companion.life import steps
-from companion.life.steps import FAMILY, USER
+from companion.life.steps import FAMILY, SIBLING, USER
 
 ACTIVE = True
 LADDER = steps.FAMILY_LADDER
@@ -52,6 +52,11 @@ ROUTE_LABELS = {'expecting_them': '{name} carries the baby', 'expecting_you': 'Y
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
+# Another child (companion/life/our_child.py): no sooner than this many days after the youngest came home; one more.
+SIBLING_AFTER = 548
+MOST_CHILDREN = 2
+SIBLING_LINE = ('You and the user have decided to have another child, a brother or sister for {names}. Nothing has come '
+                'of it yet.')
 # The engine's choices about how the child comes (companion/life/expecting.py).
 JOURNEY = ('family:soon', 'family:turn', 'family:wait', 'family:match', 'family:fostered')
 
@@ -216,8 +221,36 @@ def settle(connection, companion: dict, now) -> None:
 
 # The family step -----------------------------------------------------------------------------------------------------------
 
-def reached(connection, timeline_id: str) -> dict | None:
-    return next(iter(steps.reached(connection, timeline_id, LADDER)), None)
+def reached(connection, timeline_id: str, key: str = FAMILY.key) -> dict | None:
+    """Starting a family reached (or, with `key` 'sibling', another child), not taken back."""
+    return next((row for row in steps.reached(connection, timeline_id, LADDER) if row['step'] == key), None)
+
+
+def ours(connection, timeline_id: str) -> list[dict]:
+    """The pair's own children home with them, oldest first (companion/life/our_child.py)."""
+    from companion.life import our_child
+    return our_child.children(connection, timeline_id)
+
+
+def children_names(connection, companion: dict) -> str:
+    return steps.names_text([row['name'].split()[0] for row in ours(connection, companion['active_timeline_id'])])
+
+
+def sibling_open(connection, companion: dict, found: dict | None, today: date | None = None) -> bool:
+    """Whether another child can come up: they decided on a family, live together and aren't apart, their only child
+    is home (by `today`, a year and a half or more), nothing else is on the way and it isn't decided yet."""
+    from companion.life import expecting
+    from companion.world import intimacy
+    timeline_id = companion['active_timeline_id']
+    kids = ours(connection, timeline_id)
+    if not ACTIVE or len(kids) != 1 or reached(connection, timeline_id, SIBLING.key) or not living_on(found):
+        return False
+    journey = expecting.current(connection, timeline_id)
+    if (journey and journey['status'] != 'home') or steps.apart(connection, companion) or \
+            intimacy.reads_as_minor(companion['version']['definition']):
+        return False
+    home = date.fromisoformat((journey or {}).get('arrived_on') or kids[0]['born_on'])
+    return today is None or (today - home).days >= SIBLING_AFTER
 
 
 def living_on(found: dict | None) -> str | None:
@@ -253,6 +286,8 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
     """Once they have lived together long enough and are close enough, the engine decides how soon they bring up
     starting a family. Never when they don't want children, nor with nothing else waiting on an answer."""
     timeline_id = companion['active_timeline_id']
+    if ACTIVE and steps.pace(connection) and reached(connection, timeline_id):
+        return plan_sibling(connection, companion, found, now)
     if not ACTIVE or not steps.pace(connection) or not open_to(connection, companion, found):
         return None
     if quiet(connection) or steps.asks(connection, timeline_id, ('planned', 'open')):
@@ -272,23 +307,62 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
                             due_on=today + timedelta(days=offset), consequence_id=outcome['id'], turn=turn)
 
 
-def still_due(connection, companion: dict, found: dict | None) -> bool:
-    """A planned ask still holds while the step can come up."""
+def plan_sibling(connection, companion: dict, found: dict, now) -> dict | None:
+    """A year and a half after their only child came home, the engine decides how soon they bring up another child
+    (family:another). Never when they don't want children, and on easy kids (Family life 0) only when the user
+    brings it up."""
+    from companion.life import our_child
+    timeline_id, today = companion['active_timeline_id'], steps.local_today(companion, now)
+    if quiet(connection) or not our_child.level(connection) or steps.asks(connection, timeline_id, ('planned', 'open')):
+        return None
+    if not sibling_open(connection, companion, found, today) or steps.waiting(connection, timeline_id, SIBLING.key, today):
+        return None
+    found_facts = sibling_facts(connection, companion, found, now)
+    if found_facts['wants'] == 'no' or found_facts['closeness_over'] < 0:
+        return None
+    turn = 1 + len(many(connection, 'SELECT id FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side=?',
+                        (timeline_id, USER, SIBLING.key, 'them')))
+    outcome = steps.decide(connection, companion, 'family:another', f'family:another:{timeline_id}:{turn}', found_facts,
+                           SIBLING.topic, now)
+    low, high = steps.WHEN[outcome['picked']]
+    offset = random.Random(f'{timeline_id}:{SIBLING.key}:{turn}:when').randint(low, high)
+    return steps.insert_ask(connection, timeline_id, LADDER, SIBLING.key, 'them', 'planned', stamp(now),
+                            due_on=today + timedelta(days=offset), consequence_id=outcome['id'], turn=turn)
+
+
+def sibling_facts(connection, companion: dict, found: dict, now) -> dict:
+    """The family step's facts, with the youngest's age and Family life's level."""
+    from companion.life import families, our_child
+    kids = ours(connection, companion['active_timeline_id'])
+    youngest = families.age_of(kids[-1], steps.local_today(companion, now)) if kids else 0
+    return {**facts(connection, companion, found, now), 'short_days': 0, 'youngest': youngest,
+            'level': our_child.level(connection)}
+
+
+def still_due(connection, companion: dict, found: dict | None, key: str = FAMILY.key, today: date | None = None) -> bool:
+    """A planned ask still holds while the step can come up (another child, by `today`'s date when given)."""
+    if key == SIBLING.key:
+        return sibling_open(connection, companion, found, today)
     return open_to(connection, companion, found)
 
 
-def raised_by_user(connection, companion: dict, found: dict, message: dict, now) -> bool:
-    """The user brought up starting a family: the engine decides the companion's answer (yes, not yet or no)."""
+def raised_by_user(connection, companion: dict, found: dict, message: dict, now, step=FAMILY) -> bool:
+    """The user brought up starting a family (or another child): the engine decides the companion's answer (yes, not
+    yet or no)."""
     timeline_id, timestamp = companion['active_timeline_id'], stamp(now)
     for row in steps.asks(connection, timeline_id, ('planned',)):
         connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?", (timestamp, row['id']))
-    outcome = steps.decide(connection, companion, 'family:answer', f"family:answer:{timeline_id}:{message['id']}",
-                           facts(connection, companion, found, now), FAMILY.topic, now)
+    another = step.key == SIBLING.key
+    choice = 'family:another_answer' if another else 'family:answer'
+    found_facts = sibling_facts(connection, companion, found, now) if another else facts(connection, companion, found,
+                                                                                           now)
+    outcome = steps.decide(connection, companion, choice, f"{choice}:{timeline_id}:{message['id']}", found_facts,
+                           step.topic, now)
     status = ('yes', 'not_yet', 'no')[outcome['picked']]
-    row = steps.insert_ask(connection, timeline_id, LADDER, FAMILY.key, 'you', status, timestamp,
+    row = steps.insert_ask(connection, timeline_id, LADDER, step.key, 'you', status, timestamp,
                            message_id=message['id'], consequence_id=outcome['id'])
     if status == 'yes':
-        steps.insert_step(connection, timeline_id, LADDER, FAMILY.key, steps.local_today(companion, now), 'you',
+        steps.insert_step(connection, timeline_id, LADDER, step.key, steps.local_today(companion, now), 'you',
                           timestamp, row['id'])
         for waiting_ask in steps.asks(connection, timeline_id, ('open',)):
             if waiting_ask['ladder'] == LADDER:
@@ -300,7 +374,7 @@ def raised_by_user(connection, companion: dict, found: dict, message: dict, now)
 def answered(connection, companion: dict, ask: dict, said: str, now) -> None:
     """The user answered when they brought it up: a no to a companion who wants children can start a rough patch (on
     Real life and Drama; companion/life/rough_patches.py keeps it off an easy life)."""
-    if said != 'no' or ask['side'] != 'them' or wants(connection, companion, now) != 'yes':
+    if said != 'no' or ask['side'] != 'them' or ask['step'] != FAMILY.key or wants(connection, companion, now) != 'yes':
         return
     from companion.life import rough_patches
     rough_patches.consider(connection, companion, 'family_no', f"family:{ask['id']}",
@@ -328,10 +402,23 @@ def context_lines(connection, companion: dict, found: dict, now) -> list[tuple[s
         route = route_found(connection, companion)['route']
         from companion.life import expecting
         lines = expecting.context_lines(connection, companion, now)
-        if not lines:  # Once under way (companion/life/expecting.py), what is happening replaces the plan.
+        if not lines and not ours(connection, companion['active_timeline_id']):
+            # Once under way (companion/life/expecting.py), what is happening replaces the plan.
             result.append((f'family:step:{route}', f'- {STEP_LINE.format(route=ROUTE_WORDS[route])}'))
+        elif sibling_waiting(connection, companion):
+            names = children_names(connection, companion)
+            result.append(('family:sibling', f'- {SIBLING_LINE.format(names=names)}'))
         result += lines
     return result
+
+
+def sibling_waiting(connection, companion: dict) -> bool:
+    """Another child decided on, and nothing under way for them yet."""
+    from companion.life import expecting
+    timeline_id = companion['active_timeline_id']
+    journey = expecting.current(connection, timeline_id)
+    return bool(reached(connection, timeline_id, SIBLING.key)) and len(ours(connection, timeline_id)) < MOST_CHILDREN \
+        and (journey is None or journey['status'] in ('home', 'planned'))
 
 
 def view(connection, companion: dict, now, show_odds: bool) -> dict:
@@ -359,7 +446,17 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
             'decided_on': row['reached_on'] if row else None, 'decided_how': row['how'] if row else None,
             'can_decide': not under_way(journey) and (bool(row) or bool(living_on(steps.state(connection, companion, now,
                                                                                                write=False)))),
-            'journey': journey}
+            'journey': journey, **another_view(connection, companion, now)}
+
+
+def another_view(connection, companion: dict, now) -> dict:
+    """Another child: whether you two decided on one, and whether it can be set now."""
+    timeline_id = companion['active_timeline_id']
+    row = reached(connection, timeline_id, SIBLING.key)
+    found = steps.state(connection, companion, now, write=False)
+    return {'another_on': row['reached_on'] if row else None,
+            'can_decide_another': sibling_waiting(connection, companion) if row else
+            sibling_open(connection, companion, found, steps.local_today(companion, now))}
 
 
 def under_way(journey: dict | None) -> bool:
@@ -368,7 +465,7 @@ def under_way(journey: dict | None) -> bool:
 
 
 def update(connection, companion: dict, now, wants_to: str | None = None, route: str | None = None,
-           decided: bool | None = None, name: str | None = None) -> None:
+           decided: bool | None = None, name: str | None = None, another: bool | None = None) -> None:
     """The user sets what they want ('auto' lets the app decide again), how a child would come, the step, or the
     child's name."""
     from companion.life import expecting
@@ -391,15 +488,22 @@ def update(connection, companion: dict, now, wants_to: str | None = None, route:
                        'updated_at=excluded.updated_at', (companion['id'], values['wants'], values['route'], timestamp))
     if decided is not None:
         set_step(connection, companion, decided, now)
+    if another is not None:
+        set_step(connection, companion, another, now, SIBLING)
 
 
-def set_step(connection, companion: dict, decided: bool, now) -> None:
-    """Decided on the Character page: reached today; taken back: undone. Asks waiting about it give way."""
+def set_step(connection, companion: dict, decided: bool, now, step=FAMILY) -> None:
+    """Decided on the Character page: reached today; taken back: undone. Asks waiting about it give way. Another child
+    can be set only while it could come up, and taken back only before anything happened."""
     require(companion['version']['definition'].get('relationship') == 'romance', 'Only a romance has this step.', 422)
     timeline_id, timestamp = companion['active_timeline_id'], stamp(now)
-    row = reached(connection, timeline_id)
+    row = reached(connection, timeline_id, step.key)
+    if step.key == SIBLING.key:
+        found = steps.state(connection, companion, now, write=False)
+        require(sibling_waiting(connection, companion) if row else sibling_open(connection, companion, found),
+                'Another child can\'t be set now.', 409)
     if decided and not row:
-        steps.insert_step(connection, timeline_id, LADDER, FAMILY.key, steps.local_today(companion, now), 'set',
+        steps.insert_step(connection, timeline_id, LADDER, step.key, steps.local_today(companion, now), 'set',
                           timestamp)
     elif not decided and row:
         connection.execute('UPDATE relationship_steps SET undone_at=? WHERE id=?', (timestamp, row['id']))
@@ -413,21 +517,24 @@ def change(connection, companion: dict, consequence_id: str, option: int, now) -
     when the user brought it up moves the step with it; what they want and how a child would come follow the pick."""
     outcome = consequences.change(connection, consequence_id, option, stamp(now))
     row = optional(connection, 'SELECT * FROM step_asks WHERE consequence_id=?', (consequence_id,))
-    if outcome['choice'] == 'family:when' and row and row['status'] == 'planned':
+    if outcome['choice'] in ('family:when', 'family:another') and row and row['status'] == 'planned':
         low, high = steps.WHEN[option]
-        offset = random.Random(f"{row['timeline_id']}:{FAMILY.key}:{row['round']}:when").randint(low, high)
+        offset = random.Random(f"{row['timeline_id']}:{row['step']}:{row['round']}:when").randint(low, high)
         created = date.fromisoformat(row['created_at'][:10])
         connection.execute('UPDATE step_asks SET due_on=? WHERE id=?',
                            ((created + timedelta(days=offset)).isoformat(), row['id']))
+    elif outcome['choice'] == 'family:care':
+        from companion.life import our_child  # Who stays home: the days and money read the pick.
+        our_child.change(connection, companion, consequence_id, option, now)
     elif outcome['choice'] in JOURNEY:
         from companion.life import expecting
         expecting.change(connection, companion, consequence_id, now)
-    elif outcome['choice'] == 'family:answer' and row:
+    elif outcome['choice'] in ('family:answer', 'family:another_answer') and row:
         status = ('yes', 'not_yet', 'no')[option]
         connection.execute('UPDATE step_asks SET status=? WHERE id=?', (status, row['id']))
         connection.execute('UPDATE relationship_steps SET undone_at=? WHERE ask_id=? AND undone_at IS NULL',
                            (stamp(now), row['id']))
-        if status == 'yes' and not reached(connection, row['timeline_id']):
-            steps.insert_step(connection, row['timeline_id'], LADDER, FAMILY.key, steps.local_today(companion, now),
+        if status == 'yes' and not reached(connection, row['timeline_id'], row['step']):
+            steps.insert_step(connection, row['timeline_id'], LADDER, row['step'], steps.local_today(companion, now),
                               'you', stamp(now), row['id'])
     return consequences.by_id(connection, consequence_id)

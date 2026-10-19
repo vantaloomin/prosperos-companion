@@ -109,9 +109,12 @@ def fitting(lines: list[dict], connection, companion: dict) -> list[dict]:
 # Starting --------------------------------------------------------------------------------------------------------------
 
 def decided_on(connection, companion: dict) -> str | None:
+    """When they decided on the child to come: starting a family for the first, another child once one is home."""
     from companion.life import parenthood
-    row = parenthood.reached(connection, companion['active_timeline_id'])
-    return row['reached_on'] if row else None
+    timeline_id = companion['active_timeline_id']
+    homes = len(many(connection, "SELECT id FROM family_journeys WHERE timeline_id=? AND status='home'", (timeline_id,)))
+    row = parenthood.reached(connection, timeline_id, steps.SIBLING.key if homes else steps.FAMILY.key)
+    return row['reached_on'] if row and homes < parenthood.MOST_CHILDREN else None
 
 
 def facts(connection, companion: dict, now) -> dict:
@@ -130,10 +133,11 @@ def decide(connection, companion: dict, choice: str, journey_id: str, found: dic
 
 
 def begin(connection, companion: dict, world, now) -> dict | None:
-    """The day after the family step is reached, everything about how the child comes is planned."""
+    """The day after the family step (or another child) is reached, everything about how the child comes is planned."""
     from companion.life import parenthood
     timeline_id, decided = companion['active_timeline_id'], decided_on(connection, companion)
-    if not decided or current(connection, timeline_id):
+    row = current(connection, timeline_id)
+    if not decided or row and (row['status'] != 'home' or row['started_on'] >= decided):
         return None
     route = parenthood.route_found(connection, companion, now)['route']
     journey_id, timestamp = identifier(), stamp(now)
@@ -294,7 +298,7 @@ def advance(connection, companion: dict, world, now) -> None:
             companion['version']['definition'].get('relationship') != 'romance':
         return
     row = current(connection, companion['active_timeline_id'])
-    if row is None:
+    if row is None or row['status'] == 'home':  # Another child comes the same way (companion/life/parenthood.py).
         begin(connection, companion, world, now)
         return
     if follow_step(connection, companion, row, now):
@@ -565,14 +569,11 @@ def age_words(row: dict) -> str:
 
 
 def arrived_lines(row: dict, today: date) -> list[str]:
-    """Born or home: a child of yours. The day itself, for a while after, says how it went."""
+    """Born or home: for a while after, how the day went. Who the child is, from then on, is Our child's
+    (companion/life/our_child.py, the 'kids' section)."""
     arrived = date.fromisoformat(row['arrived_on'])
     details, gap = row['details'], (today - arrived).days
-    born = row.get('child')
-    how = families.how_old({'born_on': born['born_on']}, today) if born else 'a newborn'
-    whose = 'adopted' if row['route'] in ADOPTING else 'your foster child' if row['route'] in FOSTERING and not \
-        any(stage['key'] == 'adopted' and stage['on'] <= today.isoformat() for stage in row['stages']) else ''
-    lines = [f"- {details['name']} (your {daughter(row)}, {how}): yours and the user's{', ' + whose if whose else ''}."]
+    lines = []
     if gap <= ARRIVED_DAYS:
         when = 'today' if gap == 0 else 'yesterday' if gap == 1 else f'on {long_date(row["arrived_on"])}'
         lines.append(day_line(row, when) if row['route'] in PREGNANCY else
@@ -597,8 +598,7 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         return []
     today, done = local_today(companion, now), reached(row, local_today(companion, now))
     if row['status'] == 'home':
-        child_row = optional(connection, 'SELECT * FROM circle_children WHERE id=?', (row['child_id'] or '',))
-        row = {**row, 'child': child_row, 'details': {**row['details'], 'at': birth_place(connection, companion)}}
+        row = {**row, 'details': {**row['details'], 'at': birth_place(connection, companion)}}
         lines = arrived_lines(row, today)
     elif row['route'] in PREGNANCY:
         lines = pregnancy_lines(row, done, today)

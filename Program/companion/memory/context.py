@@ -45,6 +45,7 @@ from companion.life import (
     moving_in,
     network,
     occasions,
+    our_child,
     outings,
     own_plans,
     pacing,
@@ -68,7 +69,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, corrected, history, look_back, people, phrases, time_recall, vectors
+from companion.memory import closeness, corrected, history, look_back, people, phrases, sides, time_recall, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -758,10 +759,12 @@ def offer_people(packet, connection, companion, now, today):
             packet.offer('circle_now', person['id'], moment)
     for identity, text in families.context_lines(connection, companion, now):
         packet.offer('circle', identity, text)
-    for identity, text in kids.context_lines(connection, companion, now):
+    for identity, text in [*kids.context_lines(connection, companion, now),
+                           *our_child.context_lines(connection, companion, now)]:
         packet.offer('kids', identity, text)
-    if found := kids.today_line(connection, companion, now):
-        packet.offer('circle_now', *found)
+    found = kids.today_line(connection, companion, now)
+    for identity, text in [*([found] if found else []), *our_child.today_lines(connection, companion, now)]:
+        packet.offer('circle_now', identity, text)
     for identity, text in network.context_lines(connection, timeline_id, now):
         packet.offer('acquaintances', identity, text)
     for identity, text in encounters.context_lines(connection, companion, now):
@@ -928,19 +931,32 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     recallable with the group messages trimmed from the shared transcript (`older`), recall answers the group's
     latest message (`query`), and its `lines` are the group section.
     """
-    timeline_id, version = companion['active_timeline_id'], companion['version']
+    timeline_id = companion['active_timeline_id']
     groups = partition(told(eligible(connection, companion, timeline_id, stamp(now)), companion))
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     start = window_start(len(messages))
     recent, older = messages[start:], messages[:start]
     if group is not None:
         recent, older = [], messages + group['older']
-    packet = Packet(budget, hidden=families.hidden(connection, timeline_id))
+    # With the adult side on, the family lines or the adult side's, never both (companion/memory/sides.py).
+    family = sides.family_reply(connection, companion, recent, group, photo)
+    packet = Packet(budget, hidden=sides.hidden(connection, timeline_id, family))
+    with families.family_reply(family):
+        return fill(packet, connection, companion, now, (messages, recent, older, groups),
+                    {'semantic': semantic, 'outside': outside, 'photo': photo, 'group': group,
+                     'family': family})
+
+
+def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict) -> dict:
+    """The rest of `build`: everything offered to the packet, in order, and the packet rendered."""
+    messages, recent, older, groups = turns
+    semantic, outside, photo, group = extra['semantic'], extra['outside'], extra['photo'], extra['group']
+    timeline_id, version = companion['active_timeline_id'], companion['version']
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     texts = group is not None or not (together.in_person(connection, companion, now)
                                        or calls.on_call(connection, companion, now))
-    packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today,
-                                                              texts=texts))
+    packet.require('character', version['id'], character_text(version, connection, intimate=not extra['family'],
+                                                              day=today, texts=texts))
     if who := persona_text(connection, date.fromisoformat(today)):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:

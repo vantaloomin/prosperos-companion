@@ -5,12 +5,13 @@ import string
 from datetime import date, timedelta
 
 import pytest
-from conftest import reconcile, set_life
+from conftest import intimate, reconcile, send, set_life
+from test_steps import says
 
 from companion.characters import require_current
 from companion.database import decode, encode
 from companion.life import body, families, storylines
-from companion.world import couples
+from companion.world import couples, intimacy
 
 WORKDAY = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'start': '09:00', 'end': '17:00', 'days': [0, 1, 2, 3, 4]},
            {'key': 'evening', 'label': 'Evening', 'kind': 'social', 'start': '18:00', 'end': '22:00'},
@@ -120,7 +121,7 @@ def test_a_sister_expects_a_baby_who_joins_the_circle_as_a_niece(client, mira, c
         assert child['name'] not in {row['name'] for row in connection.execute('SELECT name FROM circle_people')}
 
 
-def test_with_the_adult_side_on_children_stay_out_of_the_chat_prompt(client, mira, clock, monkeypatch):
+def test_with_the_adult_side_on_children_stay_out_of_an_intimate_reply(client, mira, clock, monkeypatch, provider):
     sure(monkeypatch)
     sister(client)
     reconcile(client)
@@ -129,8 +130,14 @@ def test_with_the_adult_side_on_children_stay_out_of_the_chat_prompt(client, mir
     reconcile(client)
     assert child['name'] in prompt(client)
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    # An everyday reply carries the family and not the adult side.
     text = prompt(client)
-    assert child['name'] not in text and 'expecting a baby' not in text
+    assert child['name'] in text and intimacy.SETTING not in text and 'Your intimate side' not in text
+    # One that reads intimate carries the adult side and no child.
+    says(provider)
+    send(client, 'come back to bed, I want to kiss you all over', 'client-families-intimate')
+    text = prompt(client)
+    assert child['name'] not in text and 'expecting a baby' not in text and intimacy.SETTING in text
     # The screens still show them.
     assert any(item['story'] == 'expecting' for item in client.get('/api/life/storylines').json())
     assert any(person['children'] for person in client.get('/api/life/circle').json())
@@ -340,6 +347,7 @@ def test_with_the_adult_side_on_no_context_line_names_a_child_even_before_the_ne
     text = prompt(client)
     assert 'Ivy' in text and 'first birthday' in text
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    intimate(client)
     text = prompt(client)  # Before any reconcile has called the party off.
     assert 'Ivy' not in text and 'first birthday' not in text.lower()
 
@@ -499,4 +507,5 @@ def test_the_companion_keeps_knowing_someone_is_expecting_between_the_storyline_
         name = connection.execute('SELECT name FROM circle_people ORDER BY ordinal').fetchone()['name'].split()[0]
     assert f'- Your sister {name} is expecting a baby, due in {due}.' in prompt(client)
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    intimate(client)
     assert 'expecting a baby' not in prompt(client)

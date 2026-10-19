@@ -213,7 +213,7 @@ def test_children_keep_their_limits(client, provider, clock, monkeypatch, likeli
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     assert triggers(client, clock) == []
     says(provider)
-    send(client, 'hey you', 'client-expecting-8')
+    send(client, 'hey you, come to bed', 'client-expecting-8')
     assert 'expecting a baby' not in prompt(provider)
     to(client, clock, (date.fromisoformat(stage(row, 'shower')['on']) - timedelta(days=20)).isoformat())
     with client.app.state.database.connect() as connection:

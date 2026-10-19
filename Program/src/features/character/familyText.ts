@@ -1,5 +1,6 @@
-import type { FamilyView, Journey, Kid, KidsView } from '../../types'
+import type { FamilyView, Journey, Kid, KidsView, OurChild, OursView } from '../../types'
 import { firstName } from './panelText.ts'
+import { stepDate } from './stepsText.ts'
 
 export const FAMILY_KEY = ['family']
 
@@ -118,4 +119,53 @@ function waitingLine(journey: Journey, reached: Set<string>): string {
 export function nameHint(journey: Journey, name: string): string {
   if (journey.renamed) return 'You named them. It stays as you set it.'
   return `${firstName(name)} suggested it. Rename them any time; moments that already happened keep the name they had.`
+}
+
+export const OURS_KEY = ['ours']
+
+/** "Mia, 2, daughter" or "Ivy, newborn, daughter": one of your children with them, on its card. */
+export function ourChildLine(child: OurChild): string {
+  return `${child.name}, ${ourChildAge(child.age_text)}, ${child.relation}`
+}
+
+/** 'newborn', '3 weeks old', '7 months old', '1 year old', '6 years old'. */
+export function ourChildAge(ageText: string): string {
+  if (ageText === 'a newborn') return 'newborn'
+  if (!/^\d+$/.test(ageText)) return ageText
+  return `${ageText} year${ageText === '1' ? '' : 's'} old`
+}
+
+/** "Easygoing and quick to laugh. Lately into puddles." The sheet in a sentence or two. */
+export function sheetText(child: OurChild): string {
+  const temperament = child.temperament ? `${child.temperament[0].toUpperCase()}${child.temperament.slice(1)}.` : ''
+  return [temperament, child.likes ? `Lately into ${child.likes}.` : ''].filter(Boolean).join(' ')
+}
+
+/** "Born Mar 3, 2028" or "Came home Mar 3, 2028": the collapsed line over how it went. */
+export function arrivalText(child: OurChild, route: string | undefined, day: (value: string) => string): string {
+  const born = !route || PREGNANCY.includes(route)
+  return `${born ? 'Born' : 'Came home'} ${day(born ? child.born_on : child.arrived_on)}`
+}
+
+/** Under "Who looks after them": who picked it and when it applies. */
+const CARE_HINTS: Record<string, string> = {
+  both_work: 'you both keep working while they are looked after in the day',
+  part_time: '{name} works part-time',
+  them_home: '{name} stays home with them',
+  you_home: 'you stay home with them',
+}
+
+export function careHint(view: OursView, name: string): string {
+  const who = firstName(name)
+  const how = view.care_how === 'set' ? 'You set this' : `Picked by the app from ${who}'s work and your money`
+  if (!view.care_now) return `${how}. Once the youngest is at school you both work again; this comes back with a new baby.`
+  return `${how}: ${CARE_HINTS[view.care ?? ''] ?? 'this lasts'} until the youngest starts school.`.replace('{name}', who)
+}
+
+/** Under "Another child": where it stands. */
+export function anotherHint(view: FamilyView, name: string): string {
+  const who = firstName(name)
+  if (view.another_on) return `You two decided on ${stepDate(view.another_on)}.`
+  if (view.can_decide_another) return `${who} may bring it up when the time feels right, and you answer in the chat. You can also set it here.`
+  return 'This can come up a year and a half after your first child came home, and only once.'
 }

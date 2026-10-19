@@ -337,6 +337,9 @@ ADDED_COLUMNS = (
     # Companions' own babies (companion/life/own_family.py): whose child this is. '' someone in the circle's (v0.14),
     # 'companion' the companion's own with their partner (`parent_id`).
     ('circle_children', 'whose', "TEXT NOT NULL DEFAULT ''"),
+    # Our child (companion/life/our_child.py, Settings > Realism > Their days): how much family life shapes their
+    # days, 0 easy kids (only the good days), 1 gentle, 2 true to life, 3 true-to-life chaos.
+    ('life_settings', 'family_life', 'INTEGER NOT NULL DEFAULT 2 CHECK (family_life BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -425,6 +428,8 @@ UPGRADE_FAMILIES = {0: {'growing_families': 1}, 3: {'growing_families': 3}}
 # The Loss slider (v0.15) the same way: an easy life rare, a dramatic one often, only while the switch is off and the
 # slider still at its default, so a level the user chose stays.
 UPGRADE_LOSS = {0: {'loss': 0}, 3: {'loss': 3}}
+# Family life (v0.15) the same way: an easy life has easy kids, a dramatic one true-to-life chaos.
+UPGRADE_FAMILY_LIFE = {0: {'family_life': 0}, 3: {'family_life': 3}}
 
 
 def add_columns(connection):
@@ -435,7 +440,7 @@ def add_columns(connection):
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
             added.add((table, column))
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
-                           ('growing_families', UPGRADE_FAMILIES)):
+                           ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
     if ('life_settings', 'loss_by_preset') in added:
