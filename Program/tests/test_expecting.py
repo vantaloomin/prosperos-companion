@@ -125,6 +125,8 @@ def test_adopting_waits_for_a_match_and_the_child_comes_home(client, provider, c
     says(provider)
     send(client, 'any news from the agency?', 'client-expecting-5')
     assert 'You are waiting to be matched with a child; nothing is known about who yet.' in prompt(provider)
+    # The match to come is on the panel, without the day the engine picked.
+    assert [(item['key'], item['date']) for item in family(client)['journey']['stages']][-1] == ('match', None)
     to(client, clock, stage(row, 'match')['on'])
     [trigger] = triggers(client, clock)
     assert row['details']['name'] in trigger.reason and 'matched' in trigger.reason

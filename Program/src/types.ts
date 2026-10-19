@@ -546,7 +546,7 @@ export interface Journey {
   arrived_on: string | null
   name: string | null
   renamed: boolean
-  stages: { key: string; label: string; date: string; done: boolean }[]
+  stages: { key: string; label: string; date: string | null; done: boolean }[]
   consequences: string[]
 }
 

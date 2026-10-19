@@ -8,7 +8,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, stepDate } from './stepsText'
-import { FAMILY_KEY, KIDS_KEY, appPick, decidedHint, journeyLine, nameHint, wantsHint } from './familyText'
+import { FAMILY_KEY, KIDS_KEY, appPick, decidedHint, journeyLine, nameHint, routeHint, wantsHint } from './familyText'
 import { Kids } from './Kids'
 
 type FamilyChange = { wants?: string; route?: string; decided?: boolean; name?: string }
@@ -85,7 +85,11 @@ function TogetherFields({ view, name, save }: { view: FamilyView; name: string; 
           {routes.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
         </select>
       )}
-    </Field> : <p className="subtle">{label}</p>}
+    </Field> : <div className="field">
+      <span className="label-row"><span className="field-label">If you two start a family</span></span>
+      <p className="field-value">{label}</p>
+      <small className="subtle">{routeHint(view.journey)}</small>
+    </div>}
     {view.route_consequence_id && !set && <WhyItWent id={view.route_consequence_id} />}
     <Toggle label={decided} checked={Boolean(view.decided_on)} disabled={!view.can_decide} hint={decidedHint(view, name)}
       onChange={(change) => save({ decided: change })} />
@@ -102,7 +106,7 @@ function OnTheWay({ journey, name, save }: { journey: Journey; name: string; sav
         <ol className="steps-list">
           {journey.stages.map((item) => (
             <li key={item.key}>
-              <strong className={item.done ? undefined : 'step-pending'}>{item.label}</strong> <span className="subtle">· {item.done ? stepDate(item.date) : `around ${stepDate(item.date)}`}</span>
+              <strong className={item.done ? undefined : 'step-pending'}>{item.label}</strong> <span className="subtle">· {stageDate(item)}</span>
             </li>
           ))}
         </ol>
@@ -111,6 +115,11 @@ function OnTheWay({ journey, name, save }: { journey: Journey; name: string; sav
       {journey.consequences.map((id) => <WhyItWent key={id} id={id} />)}
     </div>
   )
+}
+
+function stageDate(item: Journey['stages'][number]): string {
+  if (item.done) return stepDate(item.date ?? '')
+  return item.date ? `around ${stepDate(item.date)}` : 'no date yet'
 }
 
 function ChildName({ journey, name, save }: { journey: Journey; name: string; save: Save }) {

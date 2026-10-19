@@ -728,7 +728,7 @@ def panel(connection, companion: dict, now, show_odds: bool) -> dict | None:
     today = local_today(companion, now)
     done = reached(row, today)
     shown = sorted((shown_stage(stage, done, row) for stage in row['stages'] if listed(stage, done, row)),
-                   key=lambda item: item['date'])
+                   key=lambda item: (item['date'] is None, item['date'] or ''))
     known = row['status'] == 'home' or any(key in done for key in ('name', 'match', 'need', 'born', 'home')) or \
         row['route'] in FOSTERING and 'home' in done
     return {'route': row['route'], 'status': row['status'], 'due_on': row['due_on'] if 'news' in done else None,
@@ -739,20 +739,22 @@ def panel(connection, companion: dict, now, show_odds: bool) -> dict | None:
 
 def listed(stage: dict, done: dict, row: dict) -> bool:
     """A stage the panel lists: those reached, and once it is under way those to come that anyone would know of. Never
-    a hard turn, "any day now", the match, a placement or an adoption before its day (the panel doesn't give away what
-    the engine planned), nor the small moments."""
+    a hard turn, "any day now", a placement or an adoption before its day (the panel doesn't give away what the engine
+    planned), nor the small moments. The match to come shows, without its day."""
     key = stage['key']
     if key.startswith('moment:'):
         return False
     if key in done:
         return True
-    if row['status'] == 'planned' or key in ('bed_rest', 'soon', 'match', 'adopted'):
+    if row['status'] == 'planned' or key in ('bed_rest', 'soon', 'adopted'):
         return False
     return key != 'home' or 'match' in done or 'need' in done
 
 
 def shown_stage(stage: dict, done: dict, row: dict) -> dict:
-    """The birth to come shows as the due date, not the day the engine picked."""
+    """The birth to come shows as the due date, not the day the engine picked; the match to come has no date."""
+    if stage['key'] == 'match' and 'match' not in done:
+        return {'key': 'match', 'label': LABELS['match'], 'date': None, 'done': False}
     if stage['key'] == 'born' and stage['key'] not in done and row['due_on']:
         return {'key': 'due', 'label': 'Due', 'date': row['due_on'], 'done': False}
     return {'key': stage['key'], 'label': LABELS[stage['key']], 'date': stage['on'], 'done': stage['key'] in done}

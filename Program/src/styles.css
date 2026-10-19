@@ -2265,7 +2265,13 @@ p.breakup-line { align-items: center; }
 .kid-card p { margin: 0; }
 .kids-block .kids-standing { margin: 4px 0 0; }
 .family-subheading { margin: 0 0 8px; font-size: 1rem; }
-.family-journey { display: grid; gap: 12px; }
+/* Expecting or adopting together: stages to come in regular weight, room above the next section's divider, and a
+ * readable Save while there is nothing to save. */
+.family-journey { display: grid; gap: 12px; margin-bottom: 24px; }
+.family-journey .steps-list strong.step-pending { font-weight: 400; }
+.family-journey .rename-row .button.primary:disabled { opacity: 1; background: var(--raised); border-color: var(--border); color: var(--muted); }
+.family-panel .field-label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+.family-panel .field-value { margin: 0; color: var(--text); }
 /* Meeting their people: whether they have met you, on the circle list. */
 .met-you { display: flex; align-items: center; gap: 6px; }
 .met-you svg { width: 14px; height: 14px; flex: none; }

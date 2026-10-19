@@ -17,8 +17,13 @@ export function appPick(label: string): string {
   return `Let the app decide (${label})`
 }
 
-/** Where you two stand on starting a family, under the toggle. */
+/** Where you two stand on starting a family, under the toggle; once a child is on the way, why it is locked. */
 export function decidedHint(view: FamilyView, name: string): string {
+  const hint = standing(view, name)
+  return view.journey && view.journey.status !== 'planned' ? `${hint} ${lockedLine(view.journey)}` : hint
+}
+
+function standing(view: FamilyView, name: string): string {
   const who = firstName(name)
   if (view.decided_on) return view.decided_how === 'set' ? 'You set it.' : view.decided_how === 'them' ? `${who} brought it up and you said yes.` : `You brought it up and ${who} said yes.`
   if (!view.can_decide) return `This comes after you two decide to live together.`
@@ -76,6 +81,17 @@ export function standingLine(view: KidsView, name: string): { label: string; tex
 }
 
 const PREGNANCY = ['expecting_them', 'expecting_you', 'surrogacy']
+
+function lockedLine(journey: Journey): string {
+  if (journey.status === 'home') return `Locked now that ${journey.name ?? 'your child'} is home.`
+  return `Locked while ${PREGNANCY.includes(journey.route) ? 'a baby' : 'a child'} is on the way.`
+}
+
+/** Under the route once a child is on the way: why the picker is gone. */
+export function routeHint(journey: Journey): string {
+  if (journey.status === 'home') return 'Set when you started.'
+  return `Set when you started; it can't change while ${PREGNANCY.includes(journey.route) ? 'a baby' : 'a child'} is on the way.`
+}
 
 /** Where the journey stands, in a line: "Expecting, due in June", "Waiting for a match", "Ivy came home Mar 3, 2028". */
 export function journeyLine(journey: Journey, name: string, day: (value: string) => string): string {
