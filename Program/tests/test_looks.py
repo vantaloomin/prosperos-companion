@@ -125,3 +125,16 @@ def test_damage_words_in_any_look_are_pictured_as_shapes():
     event = {'summary': 'Read a book', 'place': '', 'caption': '', 'mood': ''}
     prompt = prompts.compose('Sam', 'Sam has a cleft chin and wears ripped jeans.', [event], '')
     assert 'cleft' not in prompt and 'ripped' not in prompt
+
+
+def test_an_age_spelled_out_is_read_like_digits():
+    def age(text):
+        return looks.age_of({'identity': text}, 'seed')
+    assert age('Jordan is fifty-nine') == 59
+    assert age('Forty-two. A night nurse.') == 42
+    assert age('a thirty-one-year-old baker') == 31
+    assert age("She's nineteen, and loud") == 19
+    # Digits still come first, decades stay as they were, and a count of things is no age.
+    assert age('34, and her brother is fifty') == 34
+    assert age('in her thirties') == 35
+    assert age('has fifty-nine cats') == age('has cats')
