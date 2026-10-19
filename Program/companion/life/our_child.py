@@ -709,8 +709,21 @@ def child_text(connection, child: dict, today: date) -> str:
             stage['key'] == 'adopted' and stage['on'] <= today.isoformat() for stage in decode(row['stages']) or []):
         whose = 'your foster child'
     word = {'she/her': 'daughter', 'he/him': 'son'}.get(child['pronouns'], 'child')
-    return (f"- {child['name']} (your {word}, {families.how_old(child, today)}): yours and the user's"
+    return (f"- {child['name']} (your {word}, {how_old(child, today)}): yours and the user's"
             f"{', ' + whose if whose else ''}.")
+
+
+def how_old(child: dict, today: date) -> str:
+    """'a baby, 7 months old', then '14 months old' until two, then '15' rather than 'a child, 1 year old' or 'a child,
+    15 years old' (A/B 2026-10-19: a tie, no new failures)."""
+    years = families.age_of(child, today)
+    if years < 1:
+        return families.how_old(child, today)
+    if years >= 2:
+        return str(years)
+    born_on = date.fromisoformat(child['born_on'])
+    months = (today.year - born_on.year) * 12 + today.month - born_on.month - (today.day < born_on.day)
+    return f'{months} months old'
 
 
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:

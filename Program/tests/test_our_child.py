@@ -428,3 +428,17 @@ def test_an_evening_out_shows_who_is_watching_the_child(client, clock, monkeypat
         monkeypatch.setattr(our_child, 'relatives', lambda *args: [])
         paid = our_child.sitter_view(connection, companion, evening)
         assert paid['text'].startswith(f'A sitter is watching {first}, about ') and paid['cost'] > 0
+
+
+def test_the_childs_line_gives_months_until_two_then_years(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    with connect(client) as connection:
+        today = our_child.steps.local_today(current(connection), clock.now())
+    for days, told in ((200, 'a baby, 6 months old'), (430, '14 months old'), (15 * 365 + 40, '15')):
+        found = {**child, 'born_on': (today - timedelta(days=days)).isoformat()}
+        assert our_child.how_old(found, today) == told
+    aged(client, child, 430)
+    with connect(client) as connection:
+        line = our_child.child_text(connection, dict(connection.execute(
+            'SELECT * FROM circle_children WHERE id=?', (child['id'],)).fetchone()), today)
+    assert ', 14 months old): yours and the user' in line and 'a child' not in line
