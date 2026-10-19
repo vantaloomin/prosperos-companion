@@ -5,7 +5,7 @@ from pydantic import Field
 
 from companion.characters import require_current
 from companion.database import settings
-from companion.life import kids, moving_in, our_child, parenthood, steps
+from companion.life import expecting, kids, moving_in, our_child, parenthood, steps
 from companion.models import Input, KindChange
 
 router = APIRouter(prefix='/api/life/steps')
@@ -80,6 +80,28 @@ def update_family(request: Request, body: FamilyUpdate):
         parenthood.update(connection, companion, now, body.wants, body.route, body.decided, body.name,
                           body.another)
         return read_family_view(connection, companion, now)
+
+
+@router.get('/family/turns')
+def read_family_turns(request: Request):
+    """The pregnancy's hard turn once it has come (bed rest, an early arrival), for Today with an Undo
+    (companion/life/expecting.py); an empty list when there is none."""
+    database = request.app.state.database
+    with database.connect() as connection:
+        found = expecting.turn_shown(connection, require_current(connection), database.clock.now())
+        return [found] if found else []
+
+
+@router.post('/family/turns/{journey_id}/undo')
+def undo_family_turn(request: Request, journey_id: str):
+    """Take the hard turn back; returns the turns still shown (none)."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        expecting.undo_turn(connection, companion, journey_id, now)
+        found = expecting.turn_shown(connection, companion, now)
+        return [found] if found else []
 
 
 class KidsUpdate(Input):

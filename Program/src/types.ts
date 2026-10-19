@@ -1402,6 +1402,16 @@ export interface NewsItem {
   heard: { name: string; heard_on: string; from: string | null; companion_id: string | null }[]
 }
 
+/** The pregnancy's hard turn once it has come (companion/life/expecting.py `turn_shown`), listed on Today with an
+ * Undo like a chapter: bed rest until the birth, an early arrival for two weeks after it. */
+export interface FamilyTurn {
+  /** The journey's id. */
+  id: string
+  kind: 'bed_rest' | 'early'
+  on: string
+  title: string
+  consequence: string | null
+}
 export interface LifeChapter {
   id: string
   kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves' | 'relationship' | 'move_in' | 'move_out' | 'school' | 'career_change' | 'buy_place' | 'retire' | 'business' | 'health' | 'caring'
