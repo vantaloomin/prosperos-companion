@@ -10,7 +10,7 @@ from test_steps import prompt, says
 from companion import consequences
 from companion.characters import current
 from companion.database import decode
-from companion.life import big_days, breakups, expecting, families, openers, rough_patches
+from companion.life import big_days, breakups, expecting, families, openers, parenthood, rough_patches
 
 
 @pytest.fixture
@@ -334,3 +334,23 @@ def test_an_early_arrival_keeps_the_shower_before_the_birth(client, clock, monke
         big_days.follow(connection, current(connection), clock.now())
         assert connection.execute("SELECT status FROM big_days WHERE kind='own_shower'").fetchone()['status'] == \
             'called_off'
+
+
+def test_a_jazz_age_city_has_no_scans_car_seats_or_surrogates(client, monkeypatch, likeliest):
+    living_together(client, monkeypatch, home_city='new-york-1925', identity='She is a 31-year-old nurse.')
+    found = family(client)
+    assert 'surrogacy' not in [item['key'] for item in found['routes']] and 'adoption' in [
+        item['key'] for item in found['routes']]
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        facts = parenthood.route_facts(connection, companion, None)
+        assert facts['jazz'] == 1 and facts['old'] == 0
+        options = consequences.odds('family:route', {**facts, 'can_carry': 0}, {'name': 'Mira', 'a': '', 'b': ''})
+        assert options[parenthood.ROUTES.index('surrogacy')]['odds'] == 0
+        assert expecting.era_group(connection, companion) == 'jazz'
+        words = expecting.ERA_WORDS['jazz']
+        assert 'scan' not in words['appointment'] + words['halfway']
+        assert not {'a car seat', 'a stroller', 'a baby monitor'} & set(words['things'])
+    for group in ('old', 'jazz', 'modern'):
+        assert len(expecting.ERA_WORDS[group]['things']) >= 2
+    assert 'a pram' not in expecting.ERA_WORDS['old']['things']  # Camelot has none.

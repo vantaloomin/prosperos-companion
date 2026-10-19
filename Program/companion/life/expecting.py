@@ -60,8 +60,12 @@ ARRIVED_DAYS = 14
 MOMENTS = 5
 ERA_WORDS = {'modern': {'appointment': 'First scan', 'halfway': '20-week scan', 'birth': 'at the hospital',
                         'things': ('a crib', 'a car seat', 'a stroller', 'a changing table', 'a baby monitor')},
+             # A jazz-age city (New York 1925): the doctor, no scans, a pram rather than a stroller.
+             'jazz': {'appointment': "The doctor's visit", 'halfway': "The doctor's visit", 'birth': 'at the hospital',
+                      'things': ('a crib', 'a bassinet', 'a pram', 'a high chair', 'a rocking chair')},
+             # Victorian to Camelot: nothing that one of them lacks.
              'old': {'appointment': "The midwife's visit", 'halfway': "The midwife's visit", 'birth': 'at home, with the '
-                     'midwife', 'things': ('a cradle', 'linens and swaddling', 'a pram', 'a rocking chair')}}
+                     'midwife', 'things': ('a cradle', 'linens and swaddling', 'a woollen blanket', 'a little cap')}}
 TOLD_PEOPLE = 3
 # The baby shower is at least this many days before the birth, even an early one.
 SHOWER_BEFORE = 7
@@ -92,8 +96,11 @@ def view(row: dict) -> dict:
 
 
 def era_group(connection, companion: dict) -> str:
+    """'modern', 'jazz' (a jazz-age city) or 'old' (Victorian to Camelot), for ERA_WORDS."""
     from companion.life import parenthood
-    return 'old' if parenthood.old_era(connection, companion) else 'modern'
+    if parenthood.old_era(connection, companion):
+        return 'old'
+    return 'jazz' if parenthood.jazz_era(connection, companion) else 'modern'
 
 
 def modern(connection, companion: dict) -> bool:
@@ -379,7 +386,7 @@ def appointment(connection, companion: dict, row: dict, stage: dict, now) -> Non
            'surrogacy': f" with {row['details'].get('surrogate', 'the surrogate')}"}[row['route']]
     admin.add(connection, companion, key=f"journey:{row['id']}:{stage['key']}", source='admin', kind='family',
               title=title, done=f'went to the {title.lower()}{who}', day=date.fromisoformat(stage['on']), minutes=90,
-              fixed=True, out=era_group(connection, companion) == 'modern', now=now)
+              fixed=True, out=era_group(connection, companion) != 'old', now=now)
 
 
 def home_study(connection, companion: dict, row: dict, stage: dict, now) -> None:

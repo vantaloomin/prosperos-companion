@@ -50,6 +50,8 @@ ROUTE_LABELS = {'expecting_them': '{name} carries the baby', 'expecting_you': 'Y
                 'relative': "Raising a relative's child"}
 # Cities from these eras take in a ward, a foundling or a relative's child (companion/world/schema.py `Era`).
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
+# A jazz-age city adopts and fosters, but a surrogate doesn't fit the times.
+JAZZ_ERAS = {'jazz-age'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
 # Another child (companion/life/our_child.py): no sooner than this many days after the youngest came home; one more.
@@ -182,6 +184,18 @@ def old_era(connection, companion: dict) -> bool:
     return families.era_of(connection, companion['version']['definition']) in OLD_ERAS
 
 
+def jazz_era(connection, companion: dict) -> bool:
+    from companion.life import families
+    return families.era_of(connection, companion['version']['definition']) in JAZZ_ERAS
+
+
+def shown_routes(connection, companion: dict) -> tuple[str, ...]:
+    """The routes that fit their city's era, for the Character page."""
+    if old_era(connection, companion):
+        return OLD_ROUTES
+    return tuple(key for key in MODERN_ROUTES if key != 'surrogacy' or not jazz_era(connection, companion))
+
+
 def route_facts(connection, companion: dict, now) -> dict:
     from companion.life import money
     from companion.world import looks
@@ -192,7 +206,8 @@ def route_facts(connection, companion: dict, now) -> dict:
     found = money.profile(definition)
     return {'can_them': can_them, 'can_you': can_you, 'can_carry': int(can_them or can_you),
             'age': age_of(connection, companion, now), 'your_age': you.get('age') or 0,
-            'tier': found.tier if found else 1, 'old': int(old_era(connection, companion))}
+            'tier': found.tier if found else 1, 'old': int(old_era(connection, companion)),
+            'jazz': int(jazz_era(connection, companion))}
 
 
 def route_found(connection, companion: dict, now=None) -> dict:
@@ -447,7 +462,7 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     route = route_found(connection, companion, now)
     row = reached(connection, companion['active_timeline_id'])
     journey = expecting.panel(connection, companion, now, show_odds)
-    shown = OLD_ROUTES if old_era(connection, companion) else MODERN_ROUTES
+    shown = shown_routes(connection, companion)
     keys = shown if route['route'] in shown else (*shown, route['route'])
     return {**result, 'romance': True, 'route': route['route'], 'route_how': route['how'],
             'route_consequence_id': route['consequence_id'] if show_odds else None,

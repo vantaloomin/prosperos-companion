@@ -1814,6 +1814,12 @@
               "why": "surrogacy doesn't fit the times"
             },
             {
+              "reader": "jazz",
+              "at_least": 1,
+              "times": 0,
+              "why": "surrogacy doesn't fit the times"
+            },
+            {
               "reader": "can_carry",
               "at_most": 0,
               "times": 5,
