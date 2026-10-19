@@ -343,3 +343,20 @@ def test_a_grown_kid_of_an_elf_and_a_human_is_a_half_elf(client, clock, monkeypa
     reconcile(client)
     [leo] = [person for person in client.get('/api/life/circle').json() if person['name'] == 'Leo']
     assert leo['role'] == 'son' and leo['age'] == 18 and leo['kind']['kind'] == 'half-elf'
+
+
+def test_a_child_of_two_of_a_citys_own_kind_is_that_kind(client, clock, monkeypatch):
+    from test_expecting import stage, started, to
+    from test_our_child import ours
+    raw = copy.deepcopy(catalog.city('grandport'))
+    for key in ('data_version', 'import_notes', 'builtin', 'origin'):
+        raw.pop(key, None)
+    raw |= {'id': 'tiefport', 'name': 'Tiefport',
+            'kinds': {'tiefling': {'label': 'Tiefling', 'lifespan': 200, 'words': ['tiefling']}}}
+    assert client.post('/api/world/cities', json=raw).status_code == 200
+    client.put('/api/persona', json={'name': 'Sam', 'about': 'A tiefling smith.'})
+    row = started(client, monkeypatch, identity='She is a tiefling and a 31-year-old nurse.', home_city='tiefport',
+                  location='Gran Porte, Tiefport')
+    to(client, clock, stage(row, 'born')['on'])
+    [child] = ours(client)['children']
+    assert (child['kind']['label'], child['kind']['years']) == ('Tiefling', 200)
