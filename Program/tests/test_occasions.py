@@ -70,7 +70,8 @@ def test_the_companions_birthday_is_a_celebration(client, monkeypatch, clock):
             "SELECT entry FROM life_agenda WHERE subject='companion' AND local_date=? AND entry IS NOT NULL "
             'ORDER BY starts_at', ((clock.now() + timedelta(days=1)).date().isoformat(),))]
     birthday = [entry for entry in entries if entry['activity'] == 'own-birthday']
-    assert len(birthday) == 1 and 'birthday' in birthday[0]['summary']
+    # A milestone reads "Mira marked turning 30 with a party."
+    assert len(birthday) == 1 and re.search(r'birthday|turning \d+', birthday[0]['summary']), birthday
     assert client.post('/api/companion', json={'name': 'Ana', 'birthday': '7-4'}).status_code == 422
 
 
