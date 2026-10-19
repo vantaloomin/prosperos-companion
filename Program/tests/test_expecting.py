@@ -255,3 +255,27 @@ def test_the_bank_has_enough_lines_for_every_era():
     assert all(line['text'].startswith('{who}') for line in bank['reactions'])
     assert all('{name}' in line['text'] for line in bank['names_talk'])
     assert len(big_days.bank()['invite_shower']) >= 100
+
+
+def test_a_branch_made_while_expecting_still_has_the_baby(client, provider, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    to(client, clock, stage(row, 'halfway')['on'])
+    says(provider)
+    sent = send(client, 'how are you feeling', 'client-expecting-10')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id']})
+    assert fork.status_code == 200, fork.text
+    assert client.post(f"/api/timelines/{fork.json()['id']}/activate").status_code == 200
+    copy = journey(client)
+    assert copy['id'] != row['id'] and copy['due_on'] == row['due_on']
+    assert stage(copy, 'born')['on'] == stage(row, 'born')['on']
+    # Its outcomes are the copy's own, for Hidden values there.
+    with client.app.state.database.connect() as connection:
+        for key, consequence_id in decode(copy['consequences']).items():
+            found = consequences.by_id(connection, consequence_id)
+            assert found['timeline_id'] == copy['timeline_id'] and found['subject'] == f"family:{key}:{copy['id']}"
+    to(client, clock, (date.fromisoformat(stage(row, 'born')['on']) + timedelta(days=1)).isoformat())
+    assert journey(client)['status'] == 'home'
+    with client.app.state.database.connect() as connection:
+        kids = connection.execute("SELECT * FROM circle_children WHERE title='ours' AND timeline_id=?",
+                                  (copy['timeline_id'],)).fetchall()
+        assert [kid['name'] for kid in kids] == [row['details']['name']]

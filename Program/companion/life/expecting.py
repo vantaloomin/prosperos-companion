@@ -763,21 +763,22 @@ def shown_stage(stage: dict, done: dict, row: dict) -> dict:
 # Branches -------------------------------------------------------------------------------------------------------------
 
 def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> None:
-    """A journey begun by the fork carries over with the stages reached by then (the rest is planned again on the
-    copy); a child home by then comes too."""
+    """A journey begun by the fork carries over with its plan (the days were picked the day it began, so the due date
+    and the birth stay as they were; what is still to come on the copy comes on the copy) and its engine outcomes; a
+    child home by then comes too."""
     for row in many(connection, "SELECT * FROM family_journeys WHERE timeline_id=? AND started_on<=? AND "
                     "status!='called_off'", (parent_id, cutoff_date)):
         found = view(row)
-        stages = [stage for stage in found['stages'] if stage['on'] <= cutoff_date] or found['stages']
+        reached_by = any(stage['on'] <= cutoff_date for stage in found['stages'])
         home = row['status'] == 'home' and (row['arrived_on'] or '') <= cutoff_date
         journey_id, child_id = identifier(), identifier() if home else None
         connection.execute(
             'INSERT INTO family_journeys (id, timeline_id, companion_id, route, status, decided_on, started_on, '
             'due_on, arrived_on, child_id, stages, details, consequences, created_at, updated_at) '
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (journey_id, new_id, row['companion_id'], row['route'], 'home' if home else 'running' if stages else
+            (journey_id, new_id, row['companion_id'], row['route'], 'home' if home else 'running' if reached_by else
              'planned', row['decided_on'], row['started_on'], row['due_on'], row['arrived_on'] if home else None,
-             child_id, encode(stages if not home else found['stages']), row['details'], row['consequences'],
+             child_id, row['stages'], row['details'], encode(copy_outcomes(connection, found, new_id, journey_id)),
              row['created_at'], row['updated_at']))
         if home:
             kid = optional(connection, 'SELECT * FROM circle_children WHERE id=?', (row['child_id'],))
@@ -787,3 +788,12 @@ def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> None:
                     "born_on, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'ours', ?, ?, ?, ?)",
                     (child_id, new_id, kid['parent_id'], journey_id, kid['name'], kid['pronouns'], kid['born_on'],
                      kid['status'], kid['created_at'], kid['updated_at']))
+
+
+def copy_outcomes(connection, row: dict, new_id: str, journey_id: str) -> dict:
+    """The journey's engine outcomes on the copy (consequences.copy), so Hidden values there change the copy's own."""
+    result = {}
+    for key, consequence_id in (decode(row['consequences']) or {}).items():
+        if consequence_id and optional(connection, 'SELECT id FROM consequences WHERE id=?', (consequence_id,)):
+            result[key] = consequences.copy(connection, consequence_id, new_id, f'family:{key}:{journey_id}')
+    return result
