@@ -388,3 +388,14 @@ def test_sick_days_come_as_many_a_year_as_family_life_says(client, clock, monkey
                 days = [date(year, 1, 1) + timedelta(days=offset) for offset in range(365)]
                 kid = {**child, 'born_on': f'{year - 5}-06-01'}
                 assert sum(our_child.sick_on(connection, kid, day) for day in days) == count
+
+
+def test_renaming_a_grown_child_renames_them_in_the_circle_too(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 18 * 366)
+    reconcile(client)
+    ours(client, child=child['id'], name='Robin Vale')
+    with connect(client) as connection:
+        person = connection.execute("SELECT name FROM circle_people WHERE json_extract(details, '$.our_child')=?",
+                                    (child['id'],)).fetchone()
+    assert person['name'] == 'Robin'

@@ -836,6 +836,10 @@ def rename(connection, companion: dict, child_id: str, name: str, now) -> None:
     name = ' '.join(name.split())
     require(0 < len(name) <= 40, 'Give a name of up to 40 characters.', 422)
     connection.execute('UPDATE circle_children SET name=?, updated_at=? WHERE id=?', (name, stamp(now), child_id))
+    # Grown up, they are also a person in the circle (`grow_up`), known by their first name.
+    connection.execute("UPDATE circle_people SET name=?, revision=revision+1, updated_at=? WHERE timeline_id=? AND "
+                       "json_extract(details, '$.our_child')=?", (first(name), stamp(now), child['timeline_id'],
+                                                                   child_id))
     row = optional(connection, 'SELECT * FROM family_journeys WHERE id=?', (child['storyline_id'],))
     if row:
         connection.execute('UPDATE family_journeys SET details=?, updated_at=? WHERE id=?',
