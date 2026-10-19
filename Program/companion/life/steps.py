@@ -121,6 +121,12 @@ FRIENDSHIP = (
          "other's wedding."),
 )
 LADDERS = {'romance': ROMANCE, 'friendship': FRIENDSHIP}
+# Starting a family (companion/life/parenthood.py): a step beside the romance ladder, from living together on, married
+# or not, so it is not one of the ladder's own (not in `state`'s steps, not set with the step picker).
+FAMILY_LADDER = 'parenthood'
+FAMILY = Step('family', 'Starting a family', 'starting a family', 'decided to start a family', 'starting a family',
+              (365, 180, 90), 4, True, '')
+SIDE = {FAMILY_LADDER: (FAMILY,)}
 CONFESSION = 'confession'
 HOW = ('start', 'history', 'them', 'you', 'set', 'confession')
 
@@ -139,6 +145,9 @@ REASONS = {
     'best_friends': 'The user has become your best friend, and you want them to know. Say so in your own words.',
     'trip': "You'd love to take a first trip away with the user sometime, just the two of you. Suggest it in your own "
             'words; nothing is booked and no dates are set.',
+    'family': "You'd like to start a family with the user: you have been thinking about having children together. "
+              "Bring it up in your own words, gently, and leave them room to say they aren't ready or don't want "
+              "that. Don't settle how or when yet.",
     CONFESSION: "You've fallen for the user, your close friend, and you have decided to tell them. Say it in your own "
                 'words, nervous or brave as fits you, and make it easy for them to say they only see you as a friend.',
 }
@@ -183,6 +192,10 @@ RAISES = {
                           re.IGNORECASE),
     'best_friends': re.compile(r"\b(?:you'?re|you are|be) my best friend|best friends? (?:forever|now)|bff\b",
                                re.IGNORECASE),
+    'family': re.compile(r"\b(?:start(?:ing)? a family|(?:have|having) (?:a baby|a kid|a child|kids|children|babies)"
+                         r"(?: together| with (?:you|me))?|try(?:ing)? for a baby|(?:be|become|becoming) parents|"
+                         r"adopt(?:ing)? (?:a (?:baby|child|kid)|together)|grow(?:ing)? our family|(?:our|a) (?:own )?"
+                         r"(?:baby|kid|child) together)\b", re.IGNORECASE),
     'trip': re.compile(r"\b(?:take|go on|plan) a trip (?:together|with me|just us)|(?:go|travel|get) away (?:together|"
                        r"somewhere together|just us)|road ?trip together|(?:a )?(?:weekend|trip) away together\b",
                        re.IGNORECASE),
@@ -215,6 +228,7 @@ MENTIONS = {
     'engaged': r"marry|married|engaged|propos(?:e|al)|fianc[ée]e?",
     'best_friends': r"best friends?|bff",
     'trip': r"trip|getaway|(?:go|get) away|travel|holiday|vacation",
+    'family': r"famil(?:y|ies)|bab(?:y|ies)|kids?|child(?:ren)?|parents?|adopt\w*",
     CONFESSION: r"feel(?:ings|s|ing)?|crush|fall(?:en|ing)? for|more than friends|(?:as|just) (?:a )?friends?|date|dating|"
                 r"love you",
 }
@@ -265,11 +279,12 @@ def ladder_of(definition: dict) -> str | None:
 
 
 def step_of(ladder: str, key: str) -> Step | None:
-    return next((step for step in LADDERS.get(ladder, ()) if step.key == key), None)
+    return next((step for step in LADDERS.get(ladder) or SIDE.get(ladder, ()) if step.key == key), None)
 
 
 def index_of(ladder: str, key: str) -> int:
-    return next((index for index, step in enumerate(LADDERS[ladder]) if step.key == key), -1)
+    found = LADDERS.get(ladder) or SIDE.get(ladder, ())
+    return next((index for index, step in enumerate(found) if step.key == key), -1)
 
 
 def local_today(companion: dict, now) -> date:
@@ -625,6 +640,9 @@ def advance(connection, companion: dict, now) -> None:
     lapse(connection, companion, now)
     falls(connection, companion, found, now)
     plan_next(connection, companion, found, now)
+    from companion.life import parenthood  # Imported here: parenthood reads this module.
+    parenthood.settle(connection, companion, now)
+    parenthood.plan(connection, companion, found, now)
 
 
 def lapse(connection, companion: dict, now) -> None:
@@ -633,7 +651,7 @@ def lapse(connection, companion: dict, now) -> None:
     for row in asks(connection, companion['active_timeline_id'], ('open', 'planned')):
         if row['status'] == 'open' and now - parse(row['created_at']) >= timedelta(days=OPEN_DAYS):
             connection.execute("UPDATE step_asks SET status='lapsed', settled_at=? WHERE id=?", (stamp(now), row['id']))
-        elif row['status'] == 'planned' and not still_next(found, row):
+        elif row['status'] == 'planned' and not still_due(connection, companion, found, row):
             connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?", (stamp(now), row['id']))
 
 
@@ -750,8 +768,10 @@ def ask_due(connection, companion: dict, now) -> list:
             continue  # They propose in person, on an evening out (companion/life/wedding.py).
         if not row['due_on'] or row['due_on'] > today.isoformat():
             continue
-        if not still_next(found, row):
+        if not still_due(connection, companion, found, row):
             continue  # Moved on meanwhile; the daily check drops it (`lapse`).
+        if row['ladder'] == FAMILY_LADDER and parenthood_quiet(connection):
+            continue  # Waits: not brought up with the adult side on (companion/life/parenthood.py).
         if consequences.total(connection, timeline_id, pairs.companion_key(companion['id']), 'mood', today.isoformat()) < 0:
             continue
         lines = bank()[row['step']]
@@ -768,6 +788,19 @@ def reason_for(connection, companion: dict, step: str) -> str:
         from companion.life import moving_in  # Imported here: moving_in reads this module.
         return moving_in.ask_reason(connection, companion) or REASONS[step]
     return REASONS[step]
+
+
+def still_due(connection, companion: dict, found: dict | None, row: dict) -> bool:
+    """Whether a planned ask still holds: the next step on the ladder, or starting a family while it can come up."""
+    if row['ladder'] == FAMILY_LADDER:
+        from companion.life import parenthood
+        return parenthood.still_due(connection, companion, found)
+    return still_next(found, row)
+
+
+def parenthood_quiet(connection) -> bool:
+    from companion.life import parenthood
+    return parenthood.quiet(connection)
 
 
 def still_next(found: dict | None, row: dict) -> bool:
@@ -913,8 +946,16 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     keys = upcoming(found)
     key = raised(message['text'], keys) if keys else None
     if key is None:
-        return False
+        return raised_family(connection, companion, found, message, now)
     return answers(connection, companion, found, key, message, now)
+
+
+def raised_family(connection, companion: dict, found: dict, message: dict, now) -> bool:
+    """The user brings up starting a family once they live together (companion/life/parenthood.py answers)."""
+    from companion.life import parenthood
+    if not parenthood.open_to(connection, companion, found) or not raised(message['text'], [FAMILY.key]):
+        return False
+    return parenthood.raised_by_user(connection, companion, found, message, now)
 
 
 def upcoming(found: dict) -> list[str]:
@@ -930,6 +971,9 @@ def settle_answer(connection, companion: dict, row: dict, said: str, message: di
     connection.execute('UPDATE step_asks SET status=?, answer_id=?, settled_at=? WHERE id=?',
                        (said, message['id'], timestamp, row['id']))
     day = local_today(companion, now)
+    if row['ladder'] == FAMILY_LADDER:
+        from companion.life import parenthood
+        parenthood.answered(connection, companion, row, said, now)
     if said != 'yes':
         if row['step'] == CONFESSION:
             awkward(connection, companion, row, now)
@@ -1032,6 +1076,7 @@ YOUR_ANSWER = {
     'yes': 'The user just brought up {topic}. Your answer is yes: say so in your own words and mean it.',
     'not_yet': "The user just brought up {topic}. You aren't ready for that yet ({why}): say so kindly in your own "
                'words, without closing the door.',
+    'no': 'The user just brought up {topic}. Your answer is no ({why}): say so kindly and honestly in your own words.',
 }
 CONFESSED = {
     'yes': 'You told the user you have feelings for them, and they just said they feel the same. You are dating now: '
@@ -1076,19 +1121,23 @@ def topic_of(row: dict) -> str:
 
 
 def reason(connection, row: dict) -> str:
-    """Why they aren't ready, from the strongest reason the engine had against yes."""
+    """Why they aren't ready, from the strongest reason the engine had against yes. A no is only ever to starting a
+    family (companion/life/parenthood.py): they don't want children."""
     from companion.database import decode
+    if row['status'] == 'no':
+        return REASON_WORDS["doesn't want children"]
     found = optional(connection, 'SELECT options FROM consequences WHERE id=?', (row['consequence_id'] or '',))
     reasons = decode(found['options'])[0]['reasons'] if found else []
     against = [text for text in reasons if any(word in text for word in ('sooner', 'close enough', 'slow', 'low lately',
-                                                                         'skips'))]
+                                                                         'skips', 'children'))]
     return 'it feels too soon' if not against else REASON_WORDS.get(next(
         (key for key in REASON_WORDS if key in against[0]), ''), 'it feels too soon')
 
 
 REASON_WORDS = {'sooner': 'it feels too soon', 'close enough': "you don't feel close enough yet",
                 'slow': 'you like to take things slowly', 'low lately': "you've been low lately",
-                'skips': "it's a big jump from where you are"}
+                'skips': "it's a big jump from where you are", "doesn't want children": "you don't want children",
+                'someday thing': 'you see children as a someday thing'}
 
 
 def context_lines(connection, companion: dict, now, turn: set[str], group: bool = False) -> list[tuple[str, str]]:
@@ -1101,6 +1150,8 @@ def context_lines(connection, companion: dict, now, turn: set[str], group: bool 
     home = group_home(connection, companion) if group and found['step'] == 'moving_in' else ''
     result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}{':group' if home else ''}",
                context_line(found, others, home))]
+    from companion.life import parenthood  # Imported here: parenthood reads this module.
+    result += parenthood.context_lines(connection, companion, found, now)
     for row in asks(connection, companion['active_timeline_id'], ('open',)):
         if row['message_id'] and row['answer_id'] is None:
             result.append((f"step-ask:{row['id']}:open", '- ' + WAITING.format(
@@ -1163,7 +1214,7 @@ def now_for(day: date, companion: dict):
 def scrapbook_items(connection, companion: dict, low: str, high: str) -> list[dict]:
     """The steps reached in a stretch of time, for the scrapbook's "How you got closer" page."""
     result = []
-    for ladder in LADDERS:
+    for ladder in (*LADDERS, *SIDE):
         for row in reached(connection, companion['active_timeline_id'], ladder):
             if row['how'] in ('history', 'start') or not low <= row['reached_on'] <= high:
                 continue
@@ -1195,12 +1246,24 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
         before = ROMANCE[index_of('romance', 'moving_in') - 1]
         found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
                  'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
-    return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
-            'moving_in': moving,
+    listed = with_family(connection, companion, found)
+    if len(listed) > len(found['steps']):  # Beside the ladder: the summary says it, the step picker stays on the ladder.
+        found = {**found, 'text': f"{found['text']}, {FAMILY.state}"}
+    return {**found, 'steps': listed, 'just_friends': lock,
+            'can_fall': found['ladder'] == 'friendship', 'planned': planned, 'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
                       'topic': 'how you feel' if row['step'] == CONFESSION else topic_of(row),
                       'on': parse(row['created_at']).astimezone(zone(companion['version']['timezone'])).date().isoformat(),
                       'consequence_id': row['consequence_id'] if show_odds else None} for row in recent]}
+
+
+def with_family(connection, companion: dict, found: dict) -> list[dict]:
+    """The steps so far, with starting a family among them by its date (companion/life/parenthood.py)."""
+    row = next(iter(reached(connection, companion['active_timeline_id'], FAMILY_LADDER)), None)
+    if row is None or found['ladder'] != 'romance':
+        return found['steps']
+    item = {'step': FAMILY.key, 'label': FAMILY.label, 'on': row['reached_on'], 'how': row['how']}
+    return sorted([*found['steps'], item], key=lambda entry: entry['on'])
 
 
 def not_moved_text(text: str, status: str) -> str:
@@ -1230,6 +1293,8 @@ def set_step(connection, companion: dict, key: str, now) -> None:
             insert_step(connection, timeline_id, ladder, step.key, day, 'set', timestamp)
     for row in asks(connection, timeline_id, ('planned', 'open')):
         connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?", (timestamp, row['id']))
+    from companion.life import parenthood  # Imported here: parenthood reads this module.
+    parenthood.follow_step(connection, companion, now)
 
 
 def copy_open(connection, parent_id: str, new_id: str, cutoff: str, ids: dict) -> dict[str, str]:

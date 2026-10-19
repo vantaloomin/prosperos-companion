@@ -2213,7 +2213,7 @@ CREATE TABLE IF NOT EXISTS relationship_steps (
   id TEXT PRIMARY KEY,
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   other TEXT NOT NULL DEFAULT 'user',
-  ladder TEXT NOT NULL CHECK (ladder IN ('romance', 'friendship')),
+  ladder TEXT NOT NULL CHECK (ladder IN ('romance', 'friendship', 'parenthood')),
   step TEXT NOT NULL,
   reached_on TEXT NOT NULL,
   how TEXT NOT NULL CHECK (how IN ('start', 'history', 'them', 'you', 'set', 'confession')),
@@ -2550,4 +2550,15 @@ CREATE TABLE IF NOT EXISTS town_levels (
   loss INTEGER NOT NULL,
   families INTEGER NOT NULL,
   created_at TEXT NOT NULL
+);
+
+-- Wanting children (companion/life/parenthood.py): what the user set for a companion on the Character page, NULL
+-- while the app decides (from their description, else the consequence engine's family:wants and family:route).
+-- `wants` is yes, someday or no; `route` how a child would come for the user and a romance companion.
+CREATE TABLE IF NOT EXISTS family_wishes (
+  companion_id TEXT PRIMARY KEY REFERENCES companions(id),
+  wants TEXT CHECK (wants IN ('yes', 'someday', 'no')),
+  route TEXT CHECK (route IN ('expecting_them', 'expecting_you', 'adoption', 'fostering', 'surrogacy', 'ward',
+                              'foundling', 'relative')),
+  updated_at TEXT NOT NULL
 );
