@@ -16,7 +16,7 @@ meeting after that. The bank is data (world/data/life_details.json), so it can g
 import json
 from functools import cache
 
-from companion.world import catalog, generators, perception, townsfolk, wording
+from companion.world import catalog, generators, lifespans, perception, townsfolk, wording
 
 STORIES = 4
 STRETCH = 6  # Stories set aside for each person in a group, so the young can skip some.
@@ -173,9 +173,12 @@ def for_sheet(data: dict, sheet: dict) -> dict:
     if sheet.get('cast') or not sheet['key'].startswith('town:'):
         return {}
     seed, modern = townsfolk.drawn(sheet), townsfolk.modern(data)
+    # What fits their age reads it in human terms (companion/world/lifespans.py): an elf of 225 is in mid-life, not
+    # past every detail's age. How long they have worked keeps their real years.
+    aged = {**sheet, 'age': lifespans.life_age(sheet['age'], lifespans.lifespan_of(sheet.get('folk'), data))}
     return wording.regional_all(data, {
-        'origin': origin(data, sheet, seed, modern), 'work': work(data, sheet, seed), 'family': family(sheet, seed),
-        'pet': pet(seed, modern), 'likes': likes(seed, modern), 'stories': stories(data, sheet, seed, modern)})
+        'origin': origin(data, aged, seed, modern), 'work': work(data, sheet, seed), 'family': family(aged, seed),
+        'pet': pet(seed, modern), 'likes': likes(seed, modern), 'stories': stories(data, aged, seed, modern)})
 
 
 def revealed(data: dict, sheet: dict, times: int) -> dict:

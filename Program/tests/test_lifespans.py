@@ -360,3 +360,17 @@ def test_a_child_of_two_of_a_citys_own_kind_is_that_kind(client, clock, monkeypa
     to(client, clock, stage(row, 'born')['on'])
     [child] = ours(client)['children']
     assert (child['kind']['label'], child['kind']['years']) == ('Tiefling', 200)
+
+
+def test_an_elven_townsperson_past_200_still_has_a_life_story_to_tell():
+    from companion import cast
+    from companion.world import life_details
+    data = catalog.city('grandport')
+    sheet = next(found for hood in data['neighborhoods'] for index in range(1200)
+                 if (found := townsfolk.resident(data, hood['id'], index)).get('folk') == 'elf' and found['age'] > 200)
+    found = life_details.for_sheet(data, sheet)
+    assert found['origin'] and found['family'] and len(found['stories']) == life_details.STORIES
+    assert life_details.revealed(data, sheet, 20)['stories']
+    definition = cast.profile(data, sheet, {'meetings': [], 'in_story': None, 'focus': None, 'match': None},
+                              date(2026, 10, 19))
+    assert sheet['name'] in definition['background'] and definition['kind'] == 'elf'
