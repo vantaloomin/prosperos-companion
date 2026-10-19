@@ -134,8 +134,8 @@ ROUTE_WORDS = {'expecting_them': 'you would carry the baby', 'expecting_you': 't
                'adoption': 'you would adopt', 'fostering': 'you would foster, which may lead to adopting',
                'surrogacy': 'you would have a baby through a surrogate', 'ward': 'you would take in a ward',
                'foundling': 'you would take in a foundling', 'relative': "you would raise a relative's child"}
-STAYED_LINE = ('You and the user settled on {on} that you stay together as you are, without children of your own. It '
-               'is settled: do not bring up having children again.')
+STAYED_LINE = ('On {on} you and the user chose to stay together without children of your own. You have made your peace '
+               'with it; you may feel a pang now and then, but you do not reopen it.')
 STEP_LINE = ('You and the user have decided to start a family together; when it happens, {route}. Nothing has come of '
              'it yet: nobody is expecting and nothing has been arranged.')
 

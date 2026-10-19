@@ -398,7 +398,7 @@ def test_after_two_noes_one_who_wants_children_asks_to_stay_as_you_are_or_separa
     assert planned(client) == []  # Settled for good.
     says(provider)
     send(client, 'morning you', 'client-stay-2')
-    assert 'you stay together as you are, without children of your own' in prompt(provider)
+    assert 'chose to stay together without children of your own' in prompt(provider)
     assert view(client)['step'] == 'moving_in'
 
 
