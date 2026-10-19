@@ -60,6 +60,8 @@ COUNTS = (0.62, 0.93)
 PARTNER_ODDS = ((35, 0.2), (27, 0.12))
 # How old someone is at the earliest when their first child is born.
 PARENT_FROM = 19
+# Days at the least between the birthdays of a brother and sister who aren't twins.
+SPACING = 300
 
 _KIDS = (r'(?:kids?|children|child|step-?(?:sons?|daughters?|kids?|children|child)|sons?|daughters?|boys?|girls?|'
          r'toddlers?|newborns?|teenagers?|teens?)')
@@ -165,7 +167,7 @@ def counted(text: str) -> tuple[int, list[dict]]:
             noun = groups[-1] if len(groups) > 1 and groups[-1] else ''
             if number > count:
                 count = number
-                found = [{'pronouns': sex_of(noun), 'modifier': young_word(modifier, noun)}] * number
+                found = [{'pronouns': sex_of(noun), 'modifier': 'twin' if word == 'twin' else young_word(modifier, noun)}] * number
     return min(count, MOST), found
 
 
@@ -370,7 +372,8 @@ def add_kid(connection, companion: dict, world, kid: dict, index: int, now, pare
     timeline_id, today = companion['active_timeline_id'], steps.local_today(companion, now)
     seed = f"kids:{timeline_id}:{parent_id or companion['id']}:{index}"
     sex = kid.get('pronouns') or ('she/her' if generators().unit(seed, 'sex') < 0.49 else 'he/him')
-    born = kid.get('born_on') or born_on(age_for(connection, companion, kid, seed, today), seed, today)
+    born = kid.get('born_on') or apart(connection, companion, kid, seed, today, parent_id or companion['id'],
+                                       mark or f'{MARK}{timeline_id}')
     name = kid.get('name') or families.baby_name(companion['version']['definition'], world, seed, sex,
                                                  families.taken_names(connection, companion))
     connection.execute(
@@ -379,6 +382,26 @@ def add_kid(connection, companion: dict, world, kid: dict, index: int, now, pare
         (identifier(), timeline_id, parent_id or companion['id'], mark or f'{MARK}{timeline_id}', name, sex,
          'friend' if parent_id else 'family', born.isoformat() if isinstance(born, date) else born, stamp(now),
          stamp(now)))
+
+
+def apart(connection, companion: dict, kid: dict, seed: str, today: date, parent_id: str, mark: str) -> date:
+    """A birthday for a child whose day nobody gave: twins share their twin's, and any other child is born at least
+    `SPACING` days from a brother or sister (the nearest age that allows it), unless their age was given."""
+    siblings = [date.fromisoformat(row['born_on']) for row in many(
+        connection, 'SELECT born_on FROM circle_children WHERE timeline_id=? AND parent_id=? AND storyline_id=?',
+        (companion['active_timeline_id'], parent_id, mark))]
+    if kid.get('modifier') == 'twin' and siblings:
+        return siblings[-1]
+    first_age = age_for(connection, companion, kid, seed, today)
+    if isinstance(kid.get('age'), int) or named.AGE_BEFORE.search(kid.get('modifier') or ''):
+        return born_on(first_age, seed, today)
+    oldest = max(0, min(GROWN - 1, companion_age(connection, companion, today) - PARENT_FROM))
+    for step in range(GROWN * 2):
+        age = first_age + (step + 1) // 2 * (1 if step % 2 else -1)
+        born = born_on(age, seed, today) if 0 <= age <= oldest else None
+        if born and born <= today and all(abs((born - other).days) >= SPACING for other in siblings):
+            return born
+    return born_on(first_age, seed, today)
 
 
 def own(connection, timeline_id: str, include_ended: bool = False) -> list[dict]:

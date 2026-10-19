@@ -448,3 +448,15 @@ def test_a_fork_has_its_own_copy_of_where_the_kids_live(client, provider):
     with client.app.state.database.connect() as connection:
         assert consequences.by_id(connection, parent['pattern_consequence_id'])['picked'] == before
     assert panel(client)['pattern'] == kids.CUSTODY[(before + 1) % 3]
+
+
+@pytest.mark.parametrize('background', ['Parent of two; their daughter Elspeth is six.', 'A single dad of three.'])
+def test_brothers_and_sisters_the_app_ages_are_born_far_enough_apart(client, background):
+    make(client, identity='36. They/them.', background=background)
+    born = sorted(date.fromisoformat(kid['born_on']) for kid in panel(client)['kids'])
+    assert len(born) >= 2 and all((later - earlier).days >= kids.SPACING for earlier, later in zip(born, born[1:]))
+
+
+def test_twins_share_a_birthday(client):
+    make(client, background='Her twins keep her on her toes.')
+    assert len({kid['born_on'] for kid in panel(client)['kids']}) == 1
