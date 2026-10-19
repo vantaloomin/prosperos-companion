@@ -463,3 +463,15 @@ def test_brothers_and_sisters_the_app_ages_are_born_far_enough_apart(client, bac
 def test_twins_share_a_birthday(client):
     make(client, background='Her twins keep her on her toes.')
     assert len({kid['born_on'] for kid in panel(client)['kids']}) == 1
+
+
+def test_a_name_from_their_description_still_counts_once_the_child_is_out_of_the_circle(client, clock):
+    make(client, background='Her son Leo, 7.')
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        connection.execute("UPDATE circle_children SET status='ended' WHERE timeline_id=?",
+                           (companion['active_timeline_id'],))
+        connection.commit()
+        assert families.pictured(connection, companion['active_timeline_id'], ['At the park with Leo'])
+        assert 'Leo' in families.every_name(connection)
+        assert 'Leo' not in families.names(connection, companion['active_timeline_id'])
