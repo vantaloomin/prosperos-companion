@@ -529,9 +529,10 @@ def family_outings(connection, companion: dict) -> list[dict]:
 def plan_outing(connection, companion: dict, today: date, now) -> dict | None:
     """Every five weeks or so, a weekend day out with the user and the children (1 to 15): a walk in the park, or the
     zoo or a museum in a city that has them. An outing like any other, with the children in words only (no photo)."""
-    from companion.life import outings, together, wedding
+    from companion.life import long_distance, outings, together, wedding
     timeline_id = companion['active_timeline_id']
-    if quiet(connection) or steps.apart(connection, companion) or not outing_ages(connection, timeline_id, today):
+    if quiet(connection) or steps.apart(connection, companion) or not outing_ages(connection, timeline_id, today) or \
+            long_distance.far(connection, companion):  # Across cities, not a day out in their city with the user.
         return None
     last = max((date.fromisoformat(item['local_date']) for item in family_outings(connection, companion)),
                default=today - timedelta(days=OUTING_EVERY))

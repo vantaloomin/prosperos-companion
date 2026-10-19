@@ -249,3 +249,28 @@ def test_across_cities_the_user_is_not_the_one_home_with_them(client, clock, mon
         companion = current(connection)
         today = steps.local_today(companion, clock.now())
         assert our_child.caring(connection, companion, today) == 'both_work'
+
+
+def test_across_cities_no_family_day_out_in_their_city(client, clock, monkeypatch, provider):
+    """Planned, then called off by the move, then planned again, day after day: no more."""
+    row, child = born(client, clock, monkeypatch)
+    says(provider)
+    send(client, 'hi', 'client-custody-day-out')
+    aged(client, child, 500)
+    for _ in range(21):  # A day whose week has a family day out that fits.
+        with client.app.state.database.connect(write=True) as connection:
+            companion = current(connection)
+            today = steps.local_today(companion, clock.now())
+            could = our_child.plan_outing(connection, companion, today, clock.now())
+            connection.rollback()
+        if could:
+            break
+        clock.advance(timedelta(days=1))
+    if could is None:
+        pytest.skip('No family day out fits in this world.')
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    if state(client) is None:
+        pytest.skip('The companion lives in Chicago in this world.')
+    with client.app.state.database.connect(write=True) as connection:
+        assert our_child.plan_outing(connection, current(connection), today, clock.now()) is None
