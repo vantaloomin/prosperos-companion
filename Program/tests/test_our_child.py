@@ -454,3 +454,25 @@ def test_in_an_older_city_the_school_run_is_a_walk_to_school(client, clock, monk
         text = ' '.join(line for _key, line in our_child.days_lines(connection, companion, kids, today))
     first = child['name'].split()[0]
     assert f'weekday mornings start with walking {first} to school;' in text and 'school run' not in text
+
+
+def test_gift_lines_only_go_with_a_holiday_for_presents(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 6 * 365)
+    whole = our_child.bank()
+    gift = {'text': '{child} handed out the {holiday} gifts, reading every name out loud.', 'ages': [5, 10]}
+    lantern = {'text': '{child} made a paper lantern for {holiday} and hung it in the window.', 'ages': [5, 10]}
+    monkeypatch.setattr(our_child, 'bank', lambda: {**whole, 'holiday_part': [gift, lantern]})
+    with connect(client) as connection:
+        companion = current(connection)
+        today = our_child.steps.local_today(companion, clock.now())
+        child = dict(connection.execute('SELECT * FROM circle_children WHERE id=?', (child['id'],)).fetchone())
+        for holiday, name in (('midsummer-eve', "St John's Eve"), ('shrove-tuesday', 'Shrove Tuesday')):
+            monkeypatch.setattr('companion.life.traditions.upcoming', lambda *args, key=holiday, label=name: [
+                {'date': today, 'holiday': key, 'name': label}])
+            [(_key, line)] = our_child.holiday_line(connection, companion, child, today)
+            assert 'lantern' in line and 'gifts' not in line
+        monkeypatch.setattr(our_child, 'bank', lambda: {**whole, 'holiday_part': [gift]})
+        monkeypatch.setattr('companion.life.traditions.upcoming', lambda *args: [
+            {'date': today, 'holiday': 'christmas', 'name': 'Christmas Day'}])
+        assert 'Christmas Day gifts' in our_child.holiday_line(connection, companion, child, today)[0][1]
