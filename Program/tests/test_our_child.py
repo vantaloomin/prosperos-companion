@@ -411,3 +411,20 @@ def test_another_child_never_comes_sooner_than_a_year_and_a_half_however_it_is_r
     with connect(client) as connection:
         assert not connection.execute("SELECT * FROM step_asks WHERE step='sibling'").fetchall()
         assert not connection.execute("SELECT * FROM relationship_steps WHERE step='sibling'").fetchall()
+
+
+def test_an_evening_out_shows_who_is_watching_the_child(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 600)
+    first = child['name'].split()[0]
+    with connect(client) as connection:
+        companion = current(connection)
+        today = our_child.steps.local_today(companion, clock.now()).isoformat()
+        evening = {'activity': 'dinner', 'at_time': '19:30', 'local_date': today}
+        assert our_child.sitter_view(connection, companion, {**evening, 'at_time': '12:00'}) is None
+        found = our_child.sitter_view(connection, companion, evening)
+        assert found['text'].split(' is watching ')[1].startswith(first)
+        assert 'your ' not in found['text']
+        monkeypatch.setattr(our_child, 'relatives', lambda *args: [])
+        paid = our_child.sitter_view(connection, companion, evening)
+        assert paid['text'].startswith(f'A sitter is watching {first}, about ') and paid['cost'] > 0

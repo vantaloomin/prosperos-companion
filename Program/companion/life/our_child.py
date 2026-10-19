@@ -504,8 +504,29 @@ def sitter_for(connection, companion: dict, day: date) -> dict:
         if family and generators.unit(f"ours:{companion['active_timeline_id']}", 'sitter', day.isoformat()) < 0.7 \
         else None
     if person:
-        return {'who': person['said'], 'paid': False}
-    return {'who': 'a sitter' if not families.older(era(connection, companion)) else 'a neighbor', 'paid': True}
+        return {'who': person['said'], 'paid': False, 'shown': person['shown']}
+    who = 'a sitter' if not families.older(era(connection, companion)) else 'a neighbor'
+    return {'who': who, 'paid': True, 'shown': who}
+
+
+def sitter_view(connection, companion: dict, outing: dict) -> dict | None:
+    """For an evening out on Today: who watches the children under 13 that night (`sitter_for`, the same pick the day's
+    line and the money use), {text, cost}; a paid sitter's cost is in their money (`purchases`). None for a daytime
+    outing, or with no child at home that night."""
+    if not children(connection, companion.get('active_timeline_id')) or outing['activity'] not in OUT_ACTIVITIES or \
+            (outing['at_time'] or '') < EVENING:
+        return None
+    day = date.fromisoformat(outing['local_date'])
+    kids = [first(child['name']) for child in at_home(connection, companion['active_timeline_id'], day)
+            if families.age_of(child, day) < SITTER_UNDER]
+    if not kids or not with_you(connection, companion, day):
+        return None
+    found = sitter_for(connection, companion, day)
+    from companion.life import money
+    profile = money.profile(companion['version']['definition'])
+    cost = round(money.monthly_share(profile) * SITTER, 2) if found['paid'] and profile else 0
+    text = f"{found['shown'][:1].upper()}{found['shown'][1:]} is watching {steps.names_text(kids)}"
+    return {'text': text + (f", about {money.amount(cost, profile.city['currency'])}." if cost else '.'), 'cost': cost}
 
 
 def relatives(connection, companion: dict) -> list[dict]:
@@ -519,7 +540,8 @@ def relatives(connection, companion: dict) -> list[dict]:
             continue
         role = circle.said(circle.relation(kind, details.get('pronouns') or ''), companion['version']['definition'])
         result.append({'id': person['id'], 'kind': 'grandparents' if kind == 'parent' else 'aunts_uncles',
-                       'said': f"your {role} {first(person['name'])}", 'local': details.get('local', True) is not False})
+                       'said': f"your {role} {first(person['name'])}", 'local': details.get('local', True) is not False,
+                       'shown': f"{companion_first(companion)}'s {role} {first(person['name'])}"})
     return result
 
 
