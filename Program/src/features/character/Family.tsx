@@ -124,7 +124,7 @@ function TogetherFields({ view, name, save }: { view: FamilyView; name: string; 
 function OnTheWay({ journey, name, save, named = true }: { journey: Journey; name: string; save: Save; named?: boolean }) {
   return (
     <div className="steps-detail family-journey">
-      <p className="steps-line">{journeyLine(journey, name, stepDate)}</p>
+      {named && <p className="steps-line">{journeyLine(journey, name, stepDate)}</p>}
       {journey.stages.length > 0 && (
         <ol className="steps-list">
           {journey.stages.map((item) => (

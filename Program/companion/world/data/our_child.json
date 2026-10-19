@@ -206,7 +206,7 @@
       "text": "mellow"
     },
     {
-      "text": "intense about favourite things"
+      "text": "intense about favorite things"
     },
     {
       "text": "placid until hungry"
@@ -388,7 +388,8 @@
       "text": "watching leaves move"
     },
     {
-      "text": "clapping"
+      "text": "clapping",
+      "from": 0.5
     },
     {
       "text": "{their} own toes"
@@ -445,10 +446,12 @@
       "text": "soft cloth books"
     },
     {
-      "text": "gumming a crust of bread"
+      "text": "gumming a crust of bread",
+      "from": 0.5
     },
     {
-      "text": "pulling hats off"
+      "text": "pulling hats off",
+      "from": 0.5
     },
     {
       "text": "grabbing a fistful of hair"
@@ -469,10 +472,12 @@
       "text": "the rustle of a paper bag"
     },
     {
-      "text": "tearing paper"
+      "text": "tearing paper",
+      "from": 0.5
     },
     {
-      "text": "dropping things to watch them fall"
+      "text": "dropping things to watch them fall",
+      "from": 0.5
     },
     {
       "text": "copying faces"
@@ -493,10 +498,12 @@
       "text": "whistling"
     },
     {
-      "text": "a spoon and a cup"
+      "text": "a spoon and a cup",
+      "from": 0.5
     },
     {
-      "text": "nesting cups"
+      "text": "nesting cups",
+      "from": 0.5
     },
     {
       "text": "mashed banana"
@@ -505,13 +512,16 @@
       "text": "mashed sweet potato"
     },
     {
-      "text": "pointing at things"
+      "text": "pointing at things",
+      "from": 0.75
     },
     {
-      "text": "crawling after the cat"
+      "text": "crawling after the cat",
+      "from": 0.6
     },
     {
-      "text": "the stairs"
+      "text": "the stairs",
+      "from": 0.75
     },
     {
       "text": "being outdoors"
@@ -541,13 +551,15 @@
       "text": "a song about the stars"
     },
     {
-      "text": "pulling socks off"
+      "text": "pulling socks off",
+      "from": 0.5
     },
     {
       "text": "rolling over"
     },
     {
-      "text": "sitting up and looking proud"
+      "text": "sitting up and looking proud",
+      "from": 0.5
     },
     {
       "text": "the rocking chair"
@@ -571,13 +583,15 @@
       "text": "picture books with big animals"
     },
     {
-      "text": "patting the dog"
+      "text": "patting the dog",
+      "from": 0.5
     },
     {
       "text": "toes in the grass"
     },
     {
-      "text": "clapping games"
+      "text": "clapping games",
+      "from": 0.6
     },
     {
       "text": "being read to"
@@ -628,7 +642,8 @@
       "text": "the theme song of a cartoon about a dog family"
     },
     {
-      "text": "riding in the supermarket trolley"
+      "text": "riding in the shopping cart",
+      "from": 0.5
     },
     {
       "text": "the little lights on the baby monitor"
@@ -646,7 +661,8 @@
       "text": "grabbing for phones"
     },
     {
-      "text": "the doorway bouncer"
+      "text": "the doorway bouncer",
+      "from": 0.4
     },
     {
       "text": "the hum of the fridge"
@@ -658,7 +674,7 @@
       "text": "the microwave beep"
     },
     {
-      "text": "the tune of the ice cream van"
+      "text": "the tune of the ice cream truck"
     },
     {
       "text": "the dishwasher draining"
@@ -679,22 +695,23 @@
       "text": "a battery toy that sings"
     },
     {
-      "text": "the automatic doors at the shops"
+      "text": "the automatic doors at the store"
     },
     {
       "text": "the weather map on TV"
     },
     {
-      "text": "plastic stacking rings"
+      "text": "plastic stacking rings",
+      "from": 0.75
     },
     {
-      "text": "the click of the car indicator"
+      "text": "the click of the turn signal"
     },
     {
       "text": "the click of the electric kettle"
     },
     {
-      "text": "stroller walks along the high street"
+      "text": "stroller walks along the main street"
     },
     {
       "text": "the glow of the candle from across the room"
@@ -712,7 +729,7 @@
       "text": "the bucket being drawn up from the well"
     },
     {
-      "text": "the chime of the parlour clock"
+      "text": "the chime of the parlor clock"
     },
     {
       "text": "the glow of the oil lamp"
@@ -759,7 +776,8 @@
       "text": "{child} only settles if someone hums the same three notes."
     },
     {
-      "text": "{child} wants a spoon in each hand at every meal, like a tiny drummer."
+      "text": "{child} wants a spoon in each hand at every meal, like a tiny drummer.",
+      "from": 0.5
     },
     {
       "text": "{child} blows raspberries at anyone who says {their} name."
@@ -777,10 +795,12 @@
       "text": "{child} squeals at {their} own reflection like it's an old friend."
     },
     {
-      "text": "{child} will only sip from a cup if someone else is drinking too."
+      "text": "{child} will only sip from a cup if someone else is drinking too.",
+      "from": 0.5
     },
     {
-      "text": "{child} pulls off one sock, never both."
+      "text": "{child} pulls off one sock, never both.",
+      "from": 0.5
     },
     {
       "text": "{child} goes very still and serious at the sound of rain."
@@ -798,10 +818,12 @@
       "text": "{child} holds on to one of our fingers for the whole of every meal."
     },
     {
-      "text": "{child} waves at the moon every evening."
+      "text": "{child} waves at the moon every evening.",
+      "from": 0.75
     },
     {
-      "text": "{child} claps whenever someone drops something."
+      "text": "{child} claps whenever someone drops something.",
+      "from": 0.6
     },
     {
       "text": "{child} sings along with the kettle as it starts to whistle."
@@ -810,7 +832,8 @@
       "text": "{child} turns to the door whenever there is a knock, as if expecting a visitor of {their} own."
     },
     {
-      "text": "{child} prefers the pages of picture books to the pictures, and turns them backwards."
+      "text": "{child} prefers the pages of picture books to the pictures, and turns them backwards.",
+      "from": 0.6
     },
     {
       "text": "{child} gives a gummy grin to every stranger, and a stern look to every aunt."
@@ -819,7 +842,8 @@
       "text": "{child} chews the same corner of the same blanket, and only that corner."
     },
     {
-      "text": "{child} throws {their} spoon and then looks puzzled that it is gone."
+      "text": "{child} throws {their} spoon and then looks puzzled that it is gone.",
+      "from": 0.5
     },
     {
       "text": "{child} sticks {their} tongue out when concentrating on a toy."
@@ -831,16 +855,19 @@
       "text": "{child} grins at {their} own toes as if meeting them for the first time."
     },
     {
-      "text": "{child} insists on holding the spoon even though the food goes everywhere."
+      "text": "{child} insists on holding the spoon even though the food goes everywhere.",
+      "from": 0.5
     },
     {
-      "text": "{child} shouts \"ba!\" at the cat every morning."
+      "text": "{child} shouts \"ba!\" at the cat every morning.",
+      "from": 0.6
     },
     {
       "text": "{child} goes cross-eyed watching a leaf fall."
     },
     {
-      "text": "{child} learned to crawl backwards first and still prefers it."
+      "text": "{child} learned to crawl backwards first and still prefers it.",
+      "from": 0.6
     },
     {
       "text": "{child} only laughs at peekaboo if the hiding lasts exactly the right amount of time."
@@ -849,7 +876,8 @@
       "text": "{child} yawns enormously whenever anyone else yawns."
     },
     {
-      "text": "{child} grabs noses with great determination and will not let go."
+      "text": "{child} grabs noses with great determination and will not let go.",
+      "from": 0.4
     },
     {
       "text": "{child} hums a little tune before every nap."
@@ -861,7 +889,8 @@
       "text": "{child} wakes with the birds and expects the whole house to do the same."
     },
     {
-      "text": "{child} hates having a hat put on and loves pulling one off."
+      "text": "{child} hates having a hat put on and loves pulling one off.",
+      "from": 0.5
     },
     {
       "text": "{child} giggles hardest at the word \"pickle\"."
@@ -870,7 +899,8 @@
       "text": "{child} reaches for every dog in the park as if they were all old friends."
     },
     {
-      "text": "{child} will drop a toy twenty times just to see who fetches it."
+      "text": "{child} will drop a toy twenty times just to see who fetches it.",
+      "from": 0.5
     },
     {
       "text": "{child} kicks off {their} blanket the second it is tucked in."
@@ -879,7 +909,8 @@
       "text": "{child} gets cross if the singing stops before the end of the song."
     },
     {
-      "text": "{child} has a special serious face just for porridge."
+      "text": "{child} has a special serious face just for oatmeal.",
+      "from": 0.5
     },
     {
       "text": "{child} grumbles in {their} sleep like a tiny old sailor."
@@ -888,19 +919,22 @@
       "text": "{child} goes quiet and wide-eyed every time we step outside."
     },
     {
-      "text": "{child} pats the pages of a picture book as if to calm the animals down."
+      "text": "{child} pats the pages of a picture book as if to calm the animals down.",
+      "from": 0.6
     },
     {
       "text": "{child} shrieks with delight at the sight of ducks."
     },
     {
-      "text": "{child} gnaws on wooden spoons with the focus of a craftsman."
+      "text": "{child} gnaws on wooden spoons with the focus of a craftsman.",
+      "from": 0.4
     },
     {
       "text": "{child} copies the shape of our mouths when we talk."
     },
     {
-      "text": "{child} sighs a big contented sigh after every meal."
+      "text": "{child} sighs a big contented sigh after every meal.",
+      "from": 0.5
     },
     {
       "text": "{child} only laughs at the cat when the cat is ignoring {them}."
@@ -909,13 +943,15 @@
       "text": "{child} pulls everyone's hair the moment {theyre} picked up."
     },
     {
-      "text": "{child} lifts both arms up high at the sound of clapping."
+      "text": "{child} lifts both arms up high at the sound of clapping.",
+      "from": 0.6
     },
     {
       "text": "{child} startles at every sneeze and then bursts out laughing."
     },
     {
-      "text": "{child} makes a raspberry noise as a way of saying hello."
+      "text": "{child} makes a raspberry noise as a way of saying hello.",
+      "from": 0.4
     },
     {
       "text": "{child} bounces at the sound of a drum."
@@ -927,7 +963,8 @@
       "text": "{child} is the only one in the house who thinks the dog's snoring is funny."
     },
     {
-      "text": "{child} grips a crust of bread like a precious treasure."
+      "text": "{child} grips a crust of bread like a precious treasure.",
+      "from": 0.5
     },
     {
       "text": "{child} kicks happily at the wind chimes when carried past them."
@@ -945,13 +982,16 @@
       "text": "{child} falls asleep within two minutes of any car ride."
     },
     {
-      "text": "{child} tries to chew the remote control at every chance."
+      "text": "{child} tries to chew the remote control at every chance.",
+      "from": 0.4
     },
     {
-      "text": "{child} reaches for any phone in the room as though it belonged to {them}."
+      "text": "{child} reaches for any phone in the room as though it belonged to {them}.",
+      "from": 0.4
     },
     {
-      "text": "{child} waves at the screen all through video calls with the grandparents."
+      "text": "{child} waves at the screen all through video calls with the grandparents.",
+      "from": 0.6
     },
     {
       "text": "{child} grins at the washing machine as if it were telling jokes."
@@ -978,10 +1018,11 @@
       "text": "{child} watches the ceiling fan as though it were the best show in town."
     },
     {
-      "text": "{child} tries to grab {their} own face on the video call screen."
+      "text": "{child} tries to grab {their} own face on the video call screen.",
+      "from": 0.4
     },
     {
-      "text": "{child} gets very excited about the automatic doors at the shops."
+      "text": "{child} gets very excited about the automatic doors at the store."
     },
     {
       "text": "{child} chews the car seat strap thoughtfully on every trip."
@@ -993,7 +1034,8 @@
       "text": "{child} goes calm the moment the white noise machine comes on."
     },
     {
-      "text": "{child} drops toys out of the supermarket trolley to see who will fetch them."
+      "text": "{child} drops toys out of the shopping cart to see who will fetch them.",
+      "from": 0.6
     },
     {
       "text": "{child} giggles every time the dishwasher drains."
@@ -1008,7 +1050,7 @@
       "text": "{child} squeaks the plastic duck and waits for an answer."
     },
     {
-      "text": "{child} gets excited at the first notes of the ice cream van."
+      "text": "{child} gets excited at the first notes of the ice cream truck."
     },
     {
       "text": "{child} babbles at the fridge whenever it hums."
@@ -1017,7 +1059,8 @@
       "text": "{child} grins at the camera like a seasoned pro whenever a phone comes out."
     },
     {
-      "text": "{child} reaches for the light switch every time {theyre} carried past it."
+      "text": "{child} reaches for the light switch every time {theyre} carried past it.",
+      "from": 0.5
     },
     {
       "text": "{child} kicks {their} legs with joy at the sound of the car keys."
@@ -1029,7 +1072,8 @@
       "text": "{child} laughs when the electric kettle clicks off."
     },
     {
-      "text": "{child} presses the buttons on the musical play mat with {their} nose."
+      "text": "{child} presses the buttons on the musical play mat with {their} nose.",
+      "from": 0.5
     },
     {
       "text": "{child} only settles when the night light throws stars on the ceiling."
@@ -1041,7 +1085,8 @@
       "text": "{child} goes still and solemn whenever the doorbell plays its tune."
     },
     {
-      "text": "{child} tries to eat the corner of every board book with flaps."
+      "text": "{child} tries to eat the corner of every board book with flaps.",
+      "from": 0.4
     },
     {
       "text": "{child} goes still and wide-eyed every time the horses clatter past."
@@ -1050,7 +1095,7 @@
       "text": "{child} watches the candle flame from across the room with great focus."
     },
     {
-      "text": "{child} reaches for the shining brass of the parlour lamp."
+      "text": "{child} reaches for the shining brass of the parlor lamp."
     },
     {
       "text": "{child} laughs at the clank of the well bucket."
@@ -1062,10 +1107,11 @@
       "text": "{child} squeals whenever the market cart rattles by."
     },
     {
-      "text": "{child} hushes for the chime of the parlour clock."
+      "text": "{child} hushes for the chime of the parlor clock."
     },
     {
-      "text": "{child} always grabs for the governess's spectacles."
+      "text": "{child} always grabs for the governess's spectacles.",
+      "from": 0.4
     },
     {
       "text": "{child} gazes at the lamplighter every evening from the window."
@@ -1074,7 +1120,8 @@
       "text": "{child} babbles back at the town crier."
     },
     {
-      "text": "{child} grips the carved wooden rattle so firmly no one else can borrow it."
+      "text": "{child} grips the carved wooden rattle so firmly no one else can borrow it.",
+      "from": 0.3
     },
     {
       "text": "{child} goes quiet at the thud of the butter churn."
@@ -1097,7 +1144,8 @@
   ],
   "likes_toddler": [
     {
-      "text": "jumping in puddles"
+      "text": "jumping in puddles",
+      "from": 2
     },
     {
       "text": "digging in the mud"
@@ -1115,7 +1163,8 @@
       "text": "feeding the ducks"
     },
     {
-      "text": "wearing wellies on the wrong feet"
+      "text": "wearing rain boots on the wrong feet",
+      "from": 2
     },
     {
       "text": "the moon"
@@ -1130,13 +1179,16 @@
       "text": "animal noises"
     },
     {
-      "text": "pretending to be a dog"
+      "text": "pretending to be a dog",
+      "from": 2
     },
     {
-      "text": "chalk drawings on the path"
+      "text": "chalk drawings on the path",
+      "from": 2
     },
     {
-      "text": "helping to sweep"
+      "text": "helping to sweep",
+      "from": 2
     },
     {
       "text": "stirring bowls in the kitchen"
@@ -1148,13 +1200,15 @@
       "text": "worms"
     },
     {
-      "text": "ladybirds"
+      "text": "ladybugs"
     },
     {
-      "text": "picking flowers for everyone"
+      "text": "picking flowers for everyone",
+      "from": 2
     },
     {
-      "text": "chasing pigeons"
+      "text": "chasing pigeons",
+      "from": 2
     },
     {
       "text": "hiding under the table"
@@ -1172,19 +1226,22 @@
       "text": "sand"
     },
     {
-      "text": "jumping off the bottom step"
+      "text": "jumping off the bottom step",
+      "from": 2
     },
     {
       "text": "saying hello to every dog"
     },
     {
-      "text": "lining things up in rows"
+      "text": "lining things up in rows",
+      "from": 2
     },
     {
       "text": "painting with fingers"
     },
     {
-      "text": "salt dough"
+      "text": "salt dough",
+      "from": 2
     },
     {
       "text": "hats, the bigger the better"
@@ -1193,28 +1250,34 @@
       "text": "the same story every single night"
     },
     {
-      "text": "counting to three, again and again"
+      "text": "counting to three, again and again",
+      "from": 2
     },
     {
-      "text": "rolling down grassy hills"
+      "text": "rolling down grassy hills",
+      "from": 2
     },
     {
       "text": "climbing on everything"
     },
     {
-      "text": "playing shop"
+      "text": "playing store",
+      "from": 3
     },
     {
-      "text": "tea parties for the toys"
+      "text": "tea parties for the toys",
+      "from": 2
     },
     {
-      "text": "watering the plants"
+      "text": "watering the plants",
+      "from": 2
     },
     {
       "text": "carrying a stick everywhere"
     },
     {
-      "text": "feeding the hens"
+      "text": "feeding the hens",
+      "from": 2
     },
     {
       "text": "posting things through gaps"
@@ -1223,19 +1286,23 @@
       "text": "soap bubbles"
     },
     {
-      "text": "dressing up in grown-up shoes"
+      "text": "dressing up in grown-up shoes",
+      "from": 2
     },
     {
       "text": "drumming on upturned pots"
     },
     {
-      "text": "hide and seek"
+      "text": "hide and seek",
+      "from": 2
     },
     {
-      "text": "peeling oranges"
+      "text": "peeling oranges",
+      "from": 2
     },
     {
-      "text": "picking blackberries"
+      "text": "picking blackberries",
+      "from": 2
     },
     {
       "text": "spotting birds"
@@ -1247,7 +1314,8 @@
       "text": "pushing a little cart"
     },
     {
-      "text": "kneading bread dough"
+      "text": "kneading bread dough",
+      "from": 2
     },
     {
       "text": "watching the rain"
@@ -1259,19 +1327,22 @@
       "text": "the stars"
     },
     {
-      "text": "a soft toy elephant"
+      "text": "a stuffed toy elephant"
     },
     {
       "text": "being chased"
     },
     {
-      "text": "circle games"
+      "text": "circle games",
+      "from": 2
     },
     {
-      "text": "making a den under blankets"
+      "text": "making a fort under blankets",
+      "from": 2
     },
     {
-      "text": "helping with the washing up"
+      "text": "helping with the dishes",
+      "from": 2
     },
     {
       "text": "floating leaves in puddles"
@@ -1280,16 +1351,19 @@
       "text": "wheelbarrow rides"
     },
     {
-      "text": "building sandcastles"
+      "text": "building sandcastles",
+      "from": 2
     },
     {
       "text": "the echo in the hallway"
     },
     {
-      "text": "jumping in piles of leaves"
+      "text": "jumping in piles of leaves",
+      "from": 2
     },
     {
-      "text": "singing lullabies to the toys"
+      "text": "singing lullabies to the toys",
+      "from": 2
     },
     {
       "text": "the wooden train set"
@@ -1298,43 +1372,51 @@
       "text": "crayons"
     },
     {
-      "text": "doing everything without help"
+      "text": "doing everything without help",
+      "from": 2
     },
     {
-      "text": "drawing circles"
+      "text": "drawing circles",
+      "from": 2
     },
     {
       "text": "butterflies"
     },
     {
-      "text": "the word \"why\""
+      "text": "the word \"why\"",
+      "from": 3
     },
     {
-      "text": "putting on {their} own coat, upside down"
+      "text": "putting on {their} own coat, upside down",
+      "from": 2
     },
     {
       "text": "watching the cat wash itself"
     },
     {
-      "text": "sorting things by colour"
+      "text": "sorting things by color",
+      "from": 3
     },
     {
-      "text": "pretend cooking"
+      "text": "pretend cooking",
+      "from": 2
     },
     {
       "text": "brooms"
     },
     {
-      "text": "buckets and spades"
+      "text": "pails and shovels"
     },
     {
       "text": "walking along low walls holding a hand"
     },
     {
-      "text": "baking biscuits"
+      "text": "baking cookies",
+      "from": 2
     },
     {
-      "text": "cutting things with a blunt knife"
+      "text": "cutting things with a blunt knife",
+      "from": 3
     },
     {
       "text": "a cartoon about a family of rabbits"
@@ -1346,10 +1428,12 @@
       "text": "the ride-on toy car"
     },
     {
-      "text": "a balance bike"
+      "text": "a balance bike",
+      "from": 2
     },
     {
-      "text": "scooting on a little scooter"
+      "text": "scooting on a little scooter",
+      "from": 2
     },
     {
       "text": "plastic dinosaurs"
@@ -1361,22 +1445,23 @@
       "text": "video calls with the grandparents"
     },
     {
-      "text": "pressing the lift buttons"
+      "text": "pressing the elevator buttons"
     },
     {
-      "text": "riding in the supermarket trolley"
+      "text": "riding in the shopping cart"
     },
     {
       "text": "the car wash"
     },
     {
-      "text": "the rubbish lorry on bin day"
+      "text": "the garbage truck on trash day"
     },
     {
       "text": "the slide at the playground"
     },
     {
-      "text": "bouncing on the trampoline"
+      "text": "bouncing on the trampoline",
+      "from": 2
     },
     {
       "text": "stickers on everything"
@@ -1397,31 +1482,34 @@
       "text": "the robot vacuum"
     },
     {
-      "text": "taking photos with the phone"
+      "text": "taking photos with the phone",
+      "from": 2
     },
     {
-      "text": "felt-tip pens"
+      "text": "markers",
+      "from": 2
     },
     {
-      "text": "waving at aeroplanes"
+      "text": "waving at airplanes"
     },
     {
-      "text": "fire engines with sirens going"
+      "text": "fire trucks with sirens going"
     },
     {
-      "text": "the paddling pool"
+      "text": "the kiddie pool"
     },
     {
       "text": "the splash pad at the park"
     },
     {
-      "text": "the escalator at the shopping centre"
+      "text": "the escalator at the mall"
     },
     {
       "text": "a song about a bus on repeat"
     },
     {
-      "text": "the remote-control car"
+      "text": "the remote-control car",
+      "from": 3
     },
     {
       "text": "tractors on TV"
@@ -1436,22 +1524,25 @@
       "text": "a cartoon about a dog family"
     },
     {
-      "text": "the toddler groups at the library"
+      "text": "toddler story time at the library"
     },
     {
       "text": "the train set that runs on batteries"
     },
     {
-      "text": "rolling a hoop with a stick"
+      "text": "rolling a hoop with a stick",
+      "from": 3
     },
     {
-      "text": "spinning the wooden top"
+      "text": "spinning the wooden top",
+      "from": 2
     },
     {
       "text": "patting the market cart horse"
     },
     {
-      "text": "scribbling on a slate"
+      "text": "scribbling on a slate",
+      "from": 2
     },
     {
       "text": "watching the bucket come up from the well"
@@ -1460,7 +1551,7 @@
       "text": "the governess's songs"
     },
     {
-      "text": "plinking the parlour piano"
+      "text": "plinking the parlor piano"
     },
     {
       "text": "watching the cows being milked by hand"
@@ -1487,7 +1578,8 @@
       "text": "a rag doll from the market"
     },
     {
-      "text": "helping turn the butter churn"
+      "text": "helping turn the butter churn",
+      "from": 2
     },
     {
       "text": "watching the blacksmith from the doorway"
@@ -1495,61 +1587,77 @@
   ],
   "quirks_toddler": [
     {
-      "text": "{child} names every bird {they} can see Gerald."
+      "text": "{child} names every bird {they} can see Gerald.",
+      "from": 3
     },
     {
       "text": "{child} insists on saying goodnight to the moon, and gets cross on cloudy nights."
     },
     {
-      "text": "{child} carries a particular pebble everywhere and introduces it to guests."
+      "text": "{child} carries a particular pebble everywhere and introduces it to guests.",
+      "from": 2
     },
     {
-      "text": "{child} answers every question with \"maybe\" in a very grand voice."
+      "text": "{child} answers every question with \"maybe\" in a very grand voice.",
+      "from": 3
     },
     {
-      "text": "{child} will only eat toast cut into triangles."
+      "text": "{child} will only eat toast cut into triangles.",
+      "from": 2
     },
     {
-      "text": "{child} wears {their} wellies in all weather, including indoors."
+      "text": "{child} wears {their} rain boots in all weather, including indoors.",
+      "from": 2
     },
     {
-      "text": "{child} says \"thank you\" to the cat whenever it walks past."
+      "text": "{child} says \"thank you\" to the cat whenever it walks past.",
+      "from": 2
     },
     {
-      "text": "{child} hides peas under the rim of the plate and thinks nobody has noticed."
+      "text": "{child} hides peas under the rim of the plate and thinks nobody has noticed.",
+      "from": 2
     },
     {
-      "text": "{child} sings a made-up song about socks while getting dressed."
+      "text": "{child} sings a made-up song about socks while getting dressed.",
+      "from": 3
     },
     {
-      "text": "{child} lines up all the shoes by the door every morning."
+      "text": "{child} lines up all the shoes by the door every morning.",
+      "from": 2
     },
     {
       "text": "{child} calls every four-legged animal \"doggy\", including the horse."
     },
     {
-      "text": "{child} stomps in every puddle and announces how deep it was."
+      "text": "{child} stomps in every puddle and announces how deep it was.",
+      "from": 2
     },
     {
-      "text": "{child} tucks the toys in at bedtime and tells them a very short story."
+      "text": "{child} tucks the toys in at bedtime and tells them a very short story.",
+      "from": 3
     },
     {
       "text": "{child} gives every spider a name and a polite wave."
     },
     {
-      "text": "{child} tells the dog off for things the dog did not do."
+      "text": "{child} tells the dog off for things the dog did not do.",
+      "from": 3
     },
     {
-      "text": "{child} counts \"one, two, ten!\" before every jump."
+      "text": "{child} counts \"one, two, ten!\" before every jump.",
+      "from": 2
     },
     {
-      "text": "{child} insists on wearing a hat to breakfast."
+      "text": "{child} insists on wearing a hat to breakfast.",
+      "from": 2
     },
     {
-      "text": "{child} talks in the third person like a tiny king: \"{child} wants toast.\""
+      "text": "{child} talks in the third person like a tiny king: \"{child} wants toast.\"",
+      "from": 3
     },
     {
-      "text": "{child} will not let anyone else close the garden gate."
+      "text": "{child} will not let anyone else close the garden gate.",
+      "from": 2
     },
     {
       "text": "{child} says \"bye bye\" to every room before leaving the house."
@@ -1564,16 +1672,19 @@
       "text": "{child} has decided the word for spoon is \"moo\" and will not be corrected."
     },
     {
-      "text": "{child} refuses to walk past a dog without asking its name."
+      "text": "{child} refuses to walk past a dog without asking its name.",
+      "from": 3
     },
     {
       "text": "{child} does a little victory dance after finishing any meal."
     },
     {
-      "text": "{child} has to carry the biggest stick {they} can find on every walk."
+      "text": "{child} has to carry the biggest stick {they} can find on every walk.",
+      "from": 2
     },
     {
-      "text": "{child} gives the toys a stern talking-to when they fall over."
+      "text": "{child} gives the toys a stern talking-to when they fall over.",
+      "from": 3
     },
     {
       "text": "{child} shouts \"again!\" at the end of every story, every song and every swing."
@@ -1585,7 +1696,8 @@
       "text": "{child} only drinks from the blue cup and knows if we try to swap it."
     },
     {
-      "text": "{child} sings to the snails in the garden."
+      "text": "{child} sings to the snails in the garden.",
+      "from": 2
     },
     {
       "text": "{child} hands everyone a leaf as a present."
@@ -1594,52 +1706,66 @@
       "text": "{child} copies the cat's stretch every morning, very seriously."
     },
     {
-      "text": "{child} says \"oh dear\" in exactly the tone of {their} grandparents."
+      "text": "{child} says \"oh dear\" in exactly the tone of {their} grandparents.",
+      "from": 2
     },
     {
       "text": "{child} stirs an empty bowl for ages and then offers everyone a taste."
     },
     {
-      "text": "{child} walks backwards whenever {theyre} told to hurry."
+      "text": "{child} walks backwards whenever {theyre} told to hurry.",
+      "from": 2
     },
     {
-      "text": "{child} keeps a stash of bread crusts for the ducks in {their} pocket."
+      "text": "{child} keeps a stash of bread crusts for the ducks in {their} pocket.",
+      "from": 2
     },
     {
-      "text": "{child} wants to help sweep, and sweeps the same spot for ten minutes."
+      "text": "{child} wants to help sweep, and sweeps the same spot for ten minutes.",
+      "from": 2
     },
     {
-      "text": "{child} announces \"I'm hiding!\" before every game of hide and seek."
+      "text": "{child} announces \"I'm hiding!\" before every game of hide and seek.",
+      "from": 3
     },
     {
       "text": "{child} hides in the same spot every time and giggles loudly."
     },
     {
-      "text": "{child} greets the morning by shouting \"day time!\" from the landing."
+      "text": "{child} greets the morning by shouting \"day time!\" from the landing.",
+      "from": 2
     },
     {
-      "text": "{child} has a favourite worm and checks on it daily."
+      "text": "{child} has a favorite worm and checks on it daily.",
+      "from": 2
     },
     {
-      "text": "{child} sorts the crayons by colour and gets upset if anyone mixes them."
+      "text": "{child} sorts the crayons by color and gets upset if anyone mixes them.",
+      "from": 3
     },
     {
-      "text": "{child} insists on pressing the dough into every corner of the tin."
+      "text": "{child} insists on pressing the dough into every corner of the tin.",
+      "from": 2
     },
     {
-      "text": "{child} pretends the rug is a lake and will not step on it."
+      "text": "{child} pretends the rug is a lake and will not step on it.",
+      "from": 2
     },
     {
-      "text": "{child} gives a running weather report: \"Raining. Still raining.\""
+      "text": "{child} gives a running weather report: \"Raining. Still raining.\"",
+      "from": 3
     },
     {
-      "text": "{child} wants the same story every night and corrects us if we skip a word."
+      "text": "{child} wants the same story every night and corrects us if we skip a word.",
+      "from": 3
     },
     {
-      "text": "{child} calls the moon \"the night lamp\"."
+      "text": "{child} calls the moon \"the night lamp\".",
+      "from": 2
     },
     {
-      "text": "{child} insists that every teddy needs a scarf in winter."
+      "text": "{child} insists that every teddy needs a scarf in winter.",
+      "from": 3
     },
     {
       "text": "{child} says \"shh\" to the wind when it gets too loud."
@@ -1654,10 +1780,11 @@
       "text": "{child} chats to the pigeons as if catching up with old friends."
     },
     {
-      "text": "{child} stops to inspect every crack in the pavement."
+      "text": "{child} stops to inspect every crack in the sidewalk."
     },
     {
-      "text": "{child} wants to carry the shopping and picks the heaviest bag."
+      "text": "{child} wants to carry the groceries and picks the heaviest bag.",
+      "from": 3
     },
     {
       "text": "{child} hums while eating, louder when the food is good."
@@ -1666,85 +1793,107 @@
       "text": "{child} has to wave at every horse, cow and sheep {they} can see."
     },
     {
-      "text": "{child} makes everyone say \"cheers\" before drinking water."
+      "text": "{child} makes everyone say \"cheers\" before drinking water.",
+      "from": 2
     },
     {
-      "text": "{child} calls thunder \"the sky grumbling\"."
+      "text": "{child} calls thunder \"the sky grumbling\".",
+      "from": 3
     },
     {
-      "text": "{child} gives the cat a running commentary on what is for dinner."
+      "text": "{child} gives the cat a running commentary on what is for dinner.",
+      "from": 3
     },
     {
       "text": "{child} curtsies or bows to anyone who says hello, no one knows why."
     },
     {
-      "text": "{child} insists the toys need their own chairs at the table."
+      "text": "{child} insists the toys need their own chairs at the table.",
+      "from": 2
     },
     {
-      "text": "{child} tries to whistle and blows a very determined puff of air instead."
+      "text": "{child} tries to whistle and blows a very determined puff of air instead.",
+      "from": 2
     },
     {
-      "text": "{child} has a very serious face reserved only for colouring in."
+      "text": "{child} has a very serious face reserved only for coloring in.",
+      "from": 2
     },
     {
-      "text": "{child} tells the rain to stop and looks smug when it does."
+      "text": "{child} tells the rain to stop and looks smug when it does.",
+      "from": 3
     },
     {
-      "text": "{child} won't wear anything without a pocket for collecting stones."
+      "text": "{child} won't wear anything without a pocket for collecting stones.",
+      "from": 2
     },
     {
       "text": "{child} says \"hello\" into the TV remote as if it were a phone."
     },
     {
-      "text": "{child} has to press the lift button, and the whole day goes wrong if someone else does."
+      "text": "{child} has to press the elevator button, and the whole day goes wrong if someone else does.",
+      "from": 2
     },
     {
-      "text": "{child} shouts \"bin lorry!\" at the window every bin day, without fail."
+      "text": "{child} shouts \"garbage truck!\" at the window every trash day, without fail.",
+      "from": 2
     },
     {
       "text": "{child} pretends to make video calls with a wooden block."
     },
     {
-      "text": "{child} insists on wearing a bike helmet on the scooter, and also at dinner."
+      "text": "{child} insists on wearing a bike helmet on the scooter, and also at dinner.",
+      "from": 3
     },
     {
-      "text": "{child} can spot a digger from half a mile away."
+      "text": "{child} can spot a digger from half a mile away.",
+      "from": 2
     },
     {
-      "text": "{child} asks the car to \"go faster\" and then to \"go slower\" on every trip."
+      "text": "{child} asks the car to \"go faster\" and then to \"go slower\" on every trip.",
+      "from": 3
     },
     {
-      "text": "{child} sings the theme tune of a cartoon about a dog family all day long."
+      "text": "{child} sings the theme tune of a cartoon about a dog family all day long.",
+      "from": 2
     },
     {
-      "text": "{child} waves at every bus driver and is outraged when one does not wave back."
+      "text": "{child} waves at every bus driver and is outraged when one does not wave back.",
+      "from": 3
     },
     {
       "text": "{child} tells the robot vacuum \"night night\" when it is finished."
     },
     {
-      "text": "{child} insists on putting the shopping on the supermarket belt one item at a time."
+      "text": "{child} insists on putting the groceries on the checkout belt one item at a time.",
+      "from": 3
     },
     {
-      "text": "{child} holds a toy phone to {their} ear and says \"yes, yes, okay\" very seriously."
+      "text": "{child} holds a toy phone to {their} ear and says \"yes, yes, okay\" very seriously.",
+      "from": 2
     },
     {
-      "text": "{child} calls every aeroplane \"my plane\"."
+      "text": "{child} calls every airplane \"my plane\".",
+      "from": 2
     },
     {
-      "text": "{child} names all the plastic dinosaurs after people in the family."
+      "text": "{child} names all the plastic dinosaurs after people in the family.",
+      "from": 3
     },
     {
       "text": "{child} stops dead at the automatic doors to see if they will open for {them}."
     },
     {
-      "text": "{child} wants the same song on in the car and sings only the last word of each line."
+      "text": "{child} wants the same song on in the car and sings only the last word of each line.",
+      "from": 2
     },
     {
-      "text": "{child} takes very blurry photos of the cat whenever a phone is left out."
+      "text": "{child} takes very blurry photos of the cat whenever a phone is left out.",
+      "from": 2
     },
     {
-      "text": "{child} insists on buckling the car seat clip and announces \"click!\"."
+      "text": "{child} insists on buckling the car seat clip and announces \"click!\".",
+      "from": 2
     },
     {
       "text": "{child} waves goodbye to the car wash brushes."
@@ -1753,55 +1902,69 @@
       "text": "{child} makes the toy kitchen microwave beep before serving every pretend meal."
     },
     {
-      "text": "{child} sticks stickers on everyone's sleeves as a sort of medal."
+      "text": "{child} sticks stickers on everyone's sleeves as a sort of medal.",
+      "from": 2
     },
     {
-      "text": "{child} must say goodbye to every child at daycare by name."
+      "text": "{child} must say goodbye to every child at daycare by name.",
+      "from": 3
     },
     {
-      "text": "{child} hides the TV remote in the toy box and pretends to be surprised."
+      "text": "{child} hides the TV remote in the toy box and pretends to be surprised.",
+      "from": 2
     },
     {
       "text": "{child} dances only when nobody is looking at the kitchen radio."
     },
     {
-      "text": "{child} calls the escalator \"the moving stairs\" and treats it like a fairground ride."
+      "text": "{child} calls the escalator \"the moving stairs\" and treats it like a carnival ride.",
+      "from": 3
     },
     {
-      "text": "{child} counts the trampoline bounces and always gets to ten twice."
+      "text": "{child} counts the trampoline bounces and always gets to ten twice.",
+      "from": 3
     },
     {
-      "text": "{child} wants the balance bike parked next to the front door like a real bicycle."
+      "text": "{child} wants the balance bike parked next to the front door like a real bicycle.",
+      "from": 2
     },
     {
-      "text": "{child} insists on pushing the trolley at the supermarket, slowly and in circles."
+      "text": "{child} insists on pushing the cart at the supermarket, slowly and in circles.",
+      "from": 2
     },
     {
-      "text": "{child} shouts \"nee naw\" for every car, not only fire engines."
+      "text": "{child} shouts \"wee-oo\" for every car, not only fire trucks.",
+      "from": 2
     },
     {
-      "text": "{child} pretends to read the news on a toy tablet in a deep voice."
+      "text": "{child} pretends to read the news on a toy tablet in a deep voice.",
+      "from": 3
     },
     {
-      "text": "{child} turns every cardboard box into a car and parks it in the hallway."
+      "text": "{child} turns every cardboard box into a car and parks it in the hallway.",
+      "from": 2
     },
     {
       "text": "{child} has to see the washing machine finish before leaving the room."
     },
     {
-      "text": "{child} asks for \"the bus song\" every time {theyre} in the buggy."
+      "text": "{child} asks for \"the bus song\" every time {theyre} in the stroller."
     },
     {
-      "text": "{child} insists on rolling the hoop all the way to the market and back."
+      "text": "{child} insists on rolling the hoop all the way to the market and back.",
+      "from": 3
     },
     {
-      "text": "{child} scribbles on the slate and then wipes it clean with great ceremony."
+      "text": "{child} scribbles on the slate and then wipes it clean with great ceremony.",
+      "from": 2
     },
     {
-      "text": "{child} tells the market cart horse all about the day."
+      "text": "{child} tells the market cart horse all about the day.",
+      "from": 3
     },
     {
-      "text": "{child} spins the wooden top and shouts \"go!\" every time."
+      "text": "{child} spins the wooden top and shouts \"go!\" every time.",
+      "from": 2
     },
     {
       "text": "{child} peers into the well and calls hello to hear the echo."
@@ -1810,37 +1973,44 @@
       "text": "{child} waits by the window every dusk to wave at the lamplighter."
     },
     {
-      "text": "{child} plinks one note on the parlour piano and bows as if at a concert."
+      "text": "{child} plinks one note on the parlor piano and bows as if at a concert."
     },
     {
-      "text": "{child} copies the town crier's call with a wooden spoon for a bell."
+      "text": "{child} copies the town crier's call with a wooden spoon for a bell.",
+      "from": 2
     },
     {
-      "text": "{child} insists on helping turn the butter churn for exactly three turns."
+      "text": "{child} insists on helping turn the butter churn for exactly three turns.",
+      "from": 2
     },
     {
       "text": "{child} gives the governess a flower every morning."
     },
     {
-      "text": "{child} rides the hobby horse around the parlour at full gallop."
+      "text": "{child} rides the hobby horse around the parlor at full gallop.",
+      "from": 2
     },
     {
-      "text": "{child} counts the carriages going past and loses count at four."
+      "text": "{child} counts the carriages going past and loses count at four.",
+      "from": 3
     },
     {
-      "text": "{child} feeds the carriage horses one carrot at a time and names each one."
+      "text": "{child} feeds the carriage horses one carrot at a time and names each one.",
+      "from": 3
     },
     {
       "text": "{child} watches the blacksmith with {their} hands over {their} ears."
     },
     {
-      "text": "{child} blows out a candle at dusk and then wants it lit again."
+      "text": "{child} blows out a candle at dusk and then wants it lit again.",
+      "from": 2
     },
     {
-      "text": "{child} insists on riding on the hay cart, holding the reins with both hands."
+      "text": "{child} insists on riding on the hay cart, holding the reins with both hands.",
+      "from": 2
     },
     {
-      "text": "{child} curls up in the parlour with the rag doll from the market."
+      "text": "{child} curls up in the parlor with the rag doll from the market."
     }
   ],
   "likes_small_child": [
@@ -1881,7 +2051,7 @@
       "text": "hide-and-seek"
     },
     {
-      "text": "playing shop with buttons for money"
+      "text": "playing store with buttons for money"
     },
     {
       "text": "dressing up in crowns and capes"
@@ -1998,7 +2168,7 @@
       "text": "singing the alphabet"
     },
     {
-      "text": "baking little biscuits"
+      "text": "baking little cookies"
     },
     {
       "text": "horses"
@@ -2040,7 +2210,7 @@
       "text": "catching beetles and letting them go"
     },
     {
-      "text": "colouring in"
+      "text": "coloring in"
     },
     {
       "text": "pretending the floor is lava"
@@ -2094,7 +2264,7 @@
       "text": "going through the car wash"
     },
     {
-      "text": "fire engines with flashing lights"
+      "text": "fire trucks with flashing lights"
     },
     {
       "text": "choosing the bananas at the supermarket"
@@ -2136,10 +2306,10 @@
       "text": "a toy kitchen with plastic food"
     },
     {
-      "text": "felt-tip pens"
+      "text": "markers"
     },
     {
-      "text": "riding the escalator at the shops"
+      "text": "riding the escalator at the store"
     },
     {
       "text": "airplanes going over the house"
@@ -2154,7 +2324,7 @@
       "text": "the bubble machine"
     },
     {
-      "text": "ice lollies from the freezer"
+      "text": "popsicles from the freezer"
     },
     {
       "text": "following the robot vacuum around"
@@ -2172,7 +2342,7 @@
       "text": "a cartoon about a bear who bakes"
     },
     {
-      "text": "pressing the lift buttons"
+      "text": "pressing the elevator buttons"
     },
     {
       "text": "announcing when the traffic lights turn green"
@@ -2208,7 +2378,7 @@
       "text": "peering down the well and calling hello"
     },
     {
-      "text": "the parlour clock that chimes the hours"
+      "text": "the parlor clock that chimes the hours"
     },
     {
       "text": "blowing out the candle at bedtime"
@@ -2252,7 +2422,7 @@
       "text": "{child} eats peas one at a time and counts them out loud."
     },
     {
-      "text": "{child} has decided {their} favourite colour is \"all of them\"."
+      "text": "{child} has decided {their} favorite color is \"all of them\"."
     },
     {
       "text": "{child} keeps a pocket full of interesting stones and forgets to empty it."
@@ -2264,7 +2434,7 @@
       "text": "{child} answers most questions with \"maybe\" and a sly grin."
     },
     {
-      "text": "{child} has a pretend friend called Biscuit who needs a seat at the table."
+      "text": "{child} has a pretend friend called Cookie who needs a seat at the table."
     },
     {
       "text": "{child} hops instead of walking whenever {theyre} happy."
@@ -2345,10 +2515,10 @@
       "text": "{child} has a special spoon and notices at once if it is missing."
     },
     {
-      "text": "{child} pretends to be a puppy whenever it is time to tidy up."
+      "text": "{child} pretends to be a puppy whenever it is time to clean up."
     },
     {
-      "text": "{child} keeps a list of favourite-sounding words, like \"wobble\" and \"pumpernickel\"."
+      "text": "{child} keeps a list of favorite-sounding words, like \"wobble\" and \"pumpernickel\"."
     },
     {
       "text": "{child} draws everyone in the family with enormous smiles and tiny feet."
@@ -2381,7 +2551,7 @@
       "text": "{child} tucks {their} toys in at bedtime with very strict instructions."
     },
     {
-      "text": "{child} would rather wear wellies than any other shoes, sun or rain."
+      "text": "{child} would rather wear rain boots than any other shoes, sun or rain."
     },
     {
       "text": "{child} spells {their} name with the letters in a different order each time."
@@ -2414,7 +2584,7 @@
       "text": "{child} wants to know the name of every single dog in the park."
     },
     {
-      "text": "{child} has three favourite animals and changes them every week."
+      "text": "{child} has three favorite animals and changes them every week."
     },
     {
       "text": "{child} draws faces on boiled eggs before eating them."
@@ -2441,13 +2611,13 @@
       "text": "{child} pretends to be asleep when {theyre} trying not to laugh."
     },
     {
-      "text": "{child} insists on taste-testing everyone's porridge first."
+      "text": "{child} insists on taste-testing everyone's oatmeal first."
     },
     {
       "text": "{child} greets every snail on the path with a polite \"good morning\"."
     },
     {
-      "text": "{child} sorts the biscuits by size before deciding which one to eat."
+      "text": "{child} sorts the cookies by size before deciding which one to eat."
     },
     {
       "text": "{child} reminds us to buckle up before the car has even started."
@@ -2465,7 +2635,7 @@
       "text": "{child} waves at every school bus, whether it is full or not."
     },
     {
-      "text": "{child} presses the lift button and then announces each floor."
+      "text": "{child} presses the elevator button and then announces each floor."
     },
     {
       "text": "{child} asks the smart speaker questions and argues with the answers."
@@ -2474,7 +2644,7 @@
       "text": "{child} puts stickers on the fridge in a very particular pattern."
     },
     {
-      "text": "{child} pretends the supermarket trolley is a racing car."
+      "text": "{child} pretends the shopping cart is a racing car."
     },
     {
       "text": "{child} sings along to the car radio with completely made-up words."
@@ -2501,7 +2671,7 @@
       "text": "{child} wants to press every button on the microwave."
     },
     {
-      "text": "{child} shouts \"beep beep\" at every reversing lorry."
+      "text": "{child} shouts \"beep beep\" at every truck backing up."
     },
     {
       "text": "{child} explains the plot of a cartoon about talking trains to anyone who will listen."
@@ -2552,7 +2722,7 @@
       "text": "{child} says \"thank you\" to the sat nav every time it speaks."
     },
     {
-      "text": "{child} sits in the trolley seat at the shops and waves like royalty."
+      "text": "{child} sits in the cart seat at the store and waves like royalty."
     },
     {
       "text": "{child} rolls {their} hoop all the way to the market and back."
@@ -2567,7 +2737,7 @@
       "text": "{child} writes letters on the slate and then rubs them out to start again."
     },
     {
-      "text": "{child} counts the chimes of the parlour clock out loud."
+      "text": "{child} counts the chimes of the parlor clock out loud."
     },
     {
       "text": "{child} blows out the candle at bedtime with a big puff and a wish."
@@ -2686,7 +2856,7 @@
       "text": "learning a second language"
     },
     {
-      "text": "writing letters to a pen friend"
+      "text": "writing letters to a pen pal"
     },
     {
       "text": "the history of castles"
@@ -2716,7 +2886,7 @@
       "text": "singing in a choir"
     },
     {
-      "text": "football in the street"
+      "text": "soccer in the street"
     },
     {
       "text": "card games with the whole family"
@@ -2779,7 +2949,7 @@
       "text": "inventing board games"
     },
     {
-      "text": "watercolour painting"
+      "text": "watercolor painting"
     },
     {
       "text": "rock pools at the seaside"
@@ -2836,10 +3006,10 @@
       "text": "looking through a telescope"
     },
     {
-      "text": "conkers"
+      "text": "collecting acorns"
     },
     {
-      "text": "sledging down the big hill"
+      "text": "sledding down the big hill"
     },
     {
       "text": "learning to walk on stilts"
@@ -2923,7 +3093,7 @@
       "text": "chess puzzles on the computer"
     },
     {
-      "text": "trips to the cinema"
+      "text": "trips to the movies"
     },
     {
       "text": "roller skating"
@@ -2947,7 +3117,7 @@
       "text": "a video game about building villages"
     },
     {
-      "text": "a cartoon about time-travelling kids"
+      "text": "a cartoon about time-traveling kids"
     },
     {
       "text": "racing a hoop down the hill"
@@ -2977,7 +3147,7 @@
       "text": "lining up tin soldiers"
     },
     {
-      "text": "the travelling puppet show at the fair"
+      "text": "the traveling puppet show at the fair"
     },
     {
       "text": "helping the baker before dawn"
@@ -3060,7 +3230,7 @@
       "text": "{child} keeps score of every family game going back two years."
     },
     {
-      "text": "{child} wears the same lucky jumper on test days."
+      "text": "{child} wears the same lucky sweater on test days."
     },
     {
       "text": "{child} makes bets with the dog about the weather."
@@ -3108,10 +3278,10 @@
       "text": "{child} gives a weather forecast every morning, mostly wrong."
     },
     {
-      "text": "{child} practises magic tricks on the cat, who is unimpressed."
+      "text": "{child} practices magic tricks on the cat, who is unimpressed."
     },
     {
-      "text": "{child} draws maps of the neighbourhood with secret routes marked."
+      "text": "{child} draws maps of the neighborhood with secret routes marked."
     },
     {
       "text": "{child} says \"five more minutes\" and means at least twenty."
@@ -3123,7 +3293,7 @@
       "text": "{child} whistles badly but with total confidence."
     },
     {
-      "text": "{child} sorts {their} books by colour, then by height, then by mood."
+      "text": "{child} sorts {their} books by color, then by height, then by mood."
     },
     {
       "text": "{child} invents a new sandwich every Saturday, with mixed results."
@@ -3156,7 +3326,7 @@
       "text": "{child} builds a den every summer and demands a password to enter."
     },
     {
-      "text": "{child} keeps a list of everyone's favourite pudding."
+      "text": "{child} keeps a list of everyone's favorite dessert."
     },
     {
       "text": "{child} reads the funniest line of {their} book aloud to whoever is nearby."
@@ -3168,10 +3338,10 @@
       "text": "{child} spends ages choosing a library book and then picks the first one {they} saw."
     },
     {
-      "text": "{child} writes \"top secret\" on everything, including the shopping list."
+      "text": "{child} writes \"top secret\" on everything, including the grocery list."
     },
     {
-      "text": "{child} commentates on garden football in a hushed whisper."
+      "text": "{child} commentates on backyard soccer in a hushed whisper."
     },
     {
       "text": "{child} has picked up a grandparent's old saying and uses it constantly."
@@ -3192,7 +3362,7 @@
       "text": "{child} asks what we would do if we found a dragon, and expects a real plan."
     },
     {
-      "text": "{child} reads with a torch long after lights out and thinks nobody knows."
+      "text": "{child} reads with a flashlight long after lights out and thinks nobody knows."
     },
     {
       "text": "{child} labels every jar in the pantry in very neat capitals."
@@ -3285,7 +3455,7 @@
       "text": "{child} knows every button on the TV remote better than we do."
     },
     {
-      "text": "{child} bounces on the trampoline while practising times tables."
+      "text": "{child} bounces on the trampoline while practicing times tables."
     },
     {
       "text": "{child} has to sit on the left side of the car and has a reason for it."
@@ -3330,7 +3500,7 @@
       "text": "{child} reads by candlelight and insists it makes the stories better."
     },
     {
-      "text": "{child} lines up tin soldiers along the parlour windowsill."
+      "text": "{child} lines up tin soldiers along the parlor windowsill."
     },
     {
       "text": "{child} imitates the governess's voice perfectly, then looks innocent."
@@ -3342,7 +3512,7 @@
       "text": "{child} haggles at the market like a seasoned trader."
     },
     {
-      "text": "{child} practises copperplate with a dip pen and gets ink everywhere."
+      "text": "{child} practices copperplate with a dip pen and gets ink everywhere."
     },
     {
       "text": "{child} knows the name of every horse that pulls a cart through town."
@@ -3351,7 +3521,7 @@
       "text": "{child} waits by the door for the post rider every week."
     },
     {
-      "text": "{child} saves pennies for the travelling puppet show."
+      "text": "{child} saves pennies for the traveling puppet show."
     },
     {
       "text": "{child} feeds the pig scraps and gives it the day's news."
@@ -3360,7 +3530,7 @@
       "text": "{child} follows the lamplighter's round each evening, hoping to help."
     },
     {
-      "text": "{child} reads the newspaper aloud in the parlour in a deep, important voice."
+      "text": "{child} reads the newspaper aloud in the parlor in a deep, important voice."
     },
     {
       "text": "{child} keeps a wooden top in each pocket in case of a challenge."
@@ -3443,7 +3613,7 @@
       "text": "singing in a choir"
     },
     {
-      "text": "the theatre club"
+      "text": "the theater club"
     },
     {
       "text": "making music with friends"
@@ -3494,7 +3664,7 @@
       "text": "arguing about ethics"
     },
     {
-      "text": "maths puzzles for fun"
+      "text": "math puzzles for fun"
     },
     {
       "text": "helping younger kids learn to read"
@@ -3554,7 +3724,7 @@
       "text": "quiet mornings with a book"
     },
     {
-      "text": "writing letters to a pen friend"
+      "text": "writing letters to a pen pal"
     },
     {
       "text": "writing comedy sketches"
@@ -3572,7 +3742,7 @@
       "text": "learning to make proper coffee"
     },
     {
-      "text": "organising the bookshelf"
+      "text": "organizing the bookshelf"
     },
     {
       "text": "crosswords"
@@ -3710,10 +3880,10 @@
       "text": "the magic lantern society"
     },
     {
-      "text": "playing the parlour piano for guests"
+      "text": "playing the parlor piano for guests"
     },
     {
-      "text": "the travelling theatre troupe"
+      "text": "the traveling theater troupe"
     },
     {
       "text": "letters sealed with wax"
@@ -3760,7 +3930,7 @@
       "text": "{child} insists {theyre} a morning person and is not."
     },
     {
-      "text": "{child} reorganises the spice cupboard alphabetically every few months."
+      "text": "{child} reorganizes the spice cupboard alphabetically every few months."
     },
     {
       "text": "{child} leaves half-finished cups of tea all over the house."
@@ -3778,7 +3948,7 @@
       "text": "{child} keeps a list of words that should exist."
     },
     {
-      "text": "{child} wears the same comfortable jumper until it is practically family."
+      "text": "{child} wears the same comfortable sweater until it is practically family."
     },
     {
       "text": "{child} argues both sides of a debate just to see what happens."
@@ -3814,7 +3984,7 @@
       "text": "{child} has a strong opinion on the correct way to fold towels."
     },
     {
-      "text": "{child} bakes when stressed, so we can tell it's exam week by the smell of biscuits."
+      "text": "{child} bakes when stressed, so we can tell it's exam week by the smell of cookies."
     },
     {
       "text": "{child} will sit in the kitchen while we cook, just to talk."
@@ -3847,19 +4017,19 @@
       "text": "{child} writes a list of goals every Sunday night."
     },
     {
-      "text": "{child} has a thinking walk: twice round the block, always clockwise."
+      "text": "{child} has a thinking walk: twice around the block, always clockwise."
     },
     {
       "text": "{child} tries to teach us new slang and gets annoyed when we use it."
     },
     {
-      "text": "{child} insisted on doing {their} own laundry and promptly shrank a jumper."
+      "text": "{child} insisted on doing {their} own laundry and promptly shrank a sweater."
     },
     {
       "text": "{child} reads recipes the way other people read novels."
     },
     {
-      "text": "{child} always offers to help with the shopping so {they} can choose the snacks."
+      "text": "{child} always offers to help with the grocery shopping so {they} can choose the snacks."
     },
     {
       "text": "{child} speaks more kindly to the houseplants than to anyone else in the house."
@@ -3880,7 +4050,7 @@
       "text": "{child} says \"literally\" in every sentence and knows it."
     },
     {
-      "text": "{child} keeps an emergency stash of biscuits and guards it closely."
+      "text": "{child} keeps an emergency stash of cookies and guards it closely."
     },
     {
       "text": "{child} plans every family outing like a military operation."
@@ -3949,7 +4119,7 @@
       "text": "{child} keeps the family's birthday list and nags everyone about cards."
     },
     {
-      "text": "{child} insists on carrying the heaviest shopping bag to prove a point."
+      "text": "{child} insists on carrying the heaviest grocery bag to prove a point."
     },
     {
       "text": "{child} has headphones on at all times but somehow hears every mention of food."
@@ -3958,7 +4128,7 @@
       "text": "{child} makes a playlist for every car journey and takes it personally if we skip a song."
     },
     {
-      "text": "{child} quotes films constantly and is shocked when nobody recognises the line."
+      "text": "{child} quotes films constantly and is shocked when nobody recognizes the line."
     },
     {
       "text": "{child} has strong opinions about how the dishwasher should be loaded."
@@ -4057,10 +4227,10 @@
       "text": "{child} scans the supermarket shelves for new flavours and buys one each week to review."
     },
     {
-      "text": "{child} reads in the parlour by lamplight long after the house is quiet."
+      "text": "{child} reads in the parlor by lamplight long after the house is quiet."
     },
     {
-      "text": "{child} copies favourite lines into a commonplace book in very careful handwriting."
+      "text": "{child} copies favorite lines into a commonplace book in very careful handwriting."
     },
     {
       "text": "{child} writes letters, seals them with wax, and walks them to the post."
@@ -4069,7 +4239,7 @@
       "text": "{child} comes home from market proud of the price {they} got for the apples."
     },
     {
-      "text": "{child} plays the parlour piano for guests, but only after a lot of persuading."
+      "text": "{child} plays the parlor piano for guests, but only after a lot of persuading."
     },
     {
       "text": "{child} helps at the forge and comes home smelling of smoke and pride."
@@ -4081,7 +4251,7 @@
       "text": "{child} reads the newspaper aloud to the household after supper."
     },
     {
-      "text": "{child} waits for the post coach every week for news from a pen friend."
+      "text": "{child} waits for the post coach every week for news from a pen pal."
     },
     {
       "text": "{child} drives the market cart on errands and talks to the horse the whole way."
@@ -4110,7 +4280,7 @@
   ],
   "grandparents": [
     {
-      "text": "{who} keeps a tin of ginger biscuits on the low shelf so {child} can reach it."
+      "text": "{who} keeps a tin of gingersnaps on the low shelf so {child} can reach it."
     },
     {
       "text": "{who} taught {child} to whistle with two fingers, and nobody in the house has had a quiet morning since."
@@ -4143,7 +4313,7 @@
       "text": "{who} knits {child} a new scarf every winter, each one longer than the last."
     },
     {
-      "text": "{who} always has a pocket full of something, a shell, a button, a sweet, for {child} to find."
+      "text": "{who} always has a pocket full of something, a shell, a button, a candy, for {child} to find."
     },
     {
       "text": "{who} lets {child} help in the kitchen and pretends not to notice the flour everywhere."
@@ -4191,7 +4361,7 @@
       "text": "{who} taught {child} to sprout beans in a jar and check on them every morning."
     },
     {
-      "text": "{who} keeps a box of old buttons that {child} sorts by colour for hours."
+      "text": "{who} keeps a box of old buttons that {child} sorts by color for hours."
     },
     {
       "text": "{who} is the only person who can get {child} to eat peas."
@@ -4242,13 +4412,13 @@
       "text": "{who} gets down on the floor to play and then needs a hand getting back up, which {child} thinks is hilarious."
     },
     {
-      "text": "{who} and {child} share a love of very sour sweets and make the same face eating them."
+      "text": "{who} and {child} share a love of very sour candy and make the same face eating them."
     },
     {
-      "text": "{who} sends {child} home with a parcel of leftovers every single time."
+      "text": "{who} sends {child} home with a bag of leftovers every single time."
     },
     {
-      "text": "{who} remembers every one of {child}'s favourite things and quizzes you on them."
+      "text": "{who} remembers every one of {child}'s favorite things and quizzes you on them."
     },
     {
       "text": "{who} taught {child} a rhyme for counting magpies, and now every walk is a count."
@@ -4308,7 +4478,7 @@
       "text": "{who} gets the good teacups out when {child} visits and pours milky tea for two."
     },
     {
-      "text": "{who} sneaks {child} the last biscuit and winks at you like you can't see."
+      "text": "{who} sneaks {child} the last cookie and winks at you like you can't see."
     },
     {
       "text": "{who} still has your old wooden blocks, and {child} builds towers with them on the kitchen floor."
@@ -4347,13 +4517,13 @@
       "text": "{who} takes {child} to market on the cart and lets {them} hold the reins on the quiet stretch of road."
     },
     {
-      "text": "{who} keeps a slate by the hearth so {child} can practise letters before supper."
+      "text": "{who} keeps a slate by the hearth so {child} can practice letters before supper."
     },
     {
       "text": "{who} lets {child} light the candles at supper with great ceremony and a long taper."
     },
     {
-      "text": "{who} has a parlour full of fragile things, and {child} is the only one allowed in it."
+      "text": "{who} has a parlor full of fragile things, and {child} is the only one allowed in it."
     },
     {
       "text": "{who} taught {child} to churn butter, and {child} reports on its progress every minute."
@@ -4422,7 +4592,7 @@
       "text": "{who} picks {child} up from school on Wednesdays, and the two of them always stop for an ice cream."
     },
     {
-      "text": "{who} bought a trampoline for the back garden and pretends it was for the neighbours, not {child}."
+      "text": "{who} bought a trampoline for the backyard and pretends it was for the neighbors, not {child}."
     },
     {
       "text": "{who} and {child} watch the same baking show together and score every cake out of ten."
@@ -4434,7 +4604,7 @@
       "text": "{who} keeps a spare car seat in the back of the car for {child}."
     },
     {
-      "text": "{who} takes {child} to the supermarket and lets {them} push the trolley, slowly and sideways."
+      "text": "{who} takes {child} to the supermarket and lets {them} push the cart, slowly and sideways."
     },
     {
       "text": "{who} has {child}'s drawings stuck all over the fridge with magnets."
@@ -4443,7 +4613,7 @@
       "text": "{who} and {child} play a racing game on the console, and {who} has never once won."
     },
     {
-      "text": "{who} took {child} to the cinema to see a cartoon about talking dogs and cried at the end."
+      "text": "{who} took {child} to the movies to see a cartoon about talking dogs and cried at the end."
     },
     {
       "text": "{who} learned a video game just to keep up with {child} and is now shockingly good at it."
@@ -4455,7 +4625,7 @@
       "text": "{who} rings every evening just to hear {child} say goodnight down the phone."
     },
     {
-      "text": "{who} let {child} press all the buttons in the lift once, and now it is a tradition."
+      "text": "{who} let {child} press all the buttons in the elevator once, and now it is a tradition."
     },
     {
       "text": "{who} and {child} make silly videos together that you are not allowed to watch."
@@ -4482,7 +4652,7 @@
       "text": "{who} keeps a tub of plastic dinosaurs for {child}'s visits and knows all their names."
     },
     {
-      "text": "{who} and {child} watch the football together on TV and shout advice at the players."
+      "text": "{who} and {child} watch the game together on TV and shout advice at the players."
     },
     {
       "text": "{who} has a talking speaker in the kitchen that {child} asks for animal noises, over and over."
@@ -4503,7 +4673,7 @@
       "text": "{who} drives {child} to the park on Saturdays with the windows down and the radio up."
     },
     {
-      "text": "{who} watches cartoons with {child} on Saturday mornings and has a favourite character now."
+      "text": "{who} watches cartoons with {child} on Saturday mornings and has a favorite character now."
     },
     {
       "text": "{who} learned to send voice notes just to tell {child} about the birds in the garden."
@@ -4532,7 +4702,7 @@
       "text": "{who} turns up with a new riddle at every visit, and {child} has to solve it before dinner."
     },
     {
-      "text": "{who} taught {child} how to fold a proper paper aeroplane, with a special fold for extra loops."
+      "text": "{who} taught {child} how to fold a proper paper airplane, with a special fold for extra loops."
     },
     {
       "text": "{who} beats {child} at hide and seek by hiding in places nobody would ever think to look."
@@ -4667,7 +4837,7 @@
       "text": "{who} taught {child} to wink, more or less."
     },
     {
-      "text": "{who} and {child} hold a weekly tournament of noughts and crosses."
+      "text": "{who} and {child} hold a weekly tournament of tic-tac-toe."
     },
     {
       "text": "{who} is a champion at shadow puppets, and {child} demands the rabbit every time."
@@ -4700,7 +4870,7 @@
       "text": "{who} and {child} have agreed that broccoli is just tiny trees and eat it accordingly."
     },
     {
-      "text": "{who} plays a tune on a tin whistle by the fire, and {child} marches round the room to it."
+      "text": "{who} plays a tune on a tin whistle by the fire, and {child} marches around the room to it."
     },
     {
       "text": "{who} is building {child} a tree swing, very slowly and with a lot of measuring."
@@ -4727,7 +4897,7 @@
       "text": "{who} taught {child} to roll a hoop faster than any other child in the street."
     },
     {
-      "text": "{who} brings {child} sweets from the market cart on fair days."
+      "text": "{who} brings {child} candy from the market cart on fair days."
     },
     {
       "text": "{who} carved {child} a wooden top with a red stripe that hums as it spins."
@@ -4739,7 +4909,7 @@
       "text": "{who} keeps {child}'s chalk drawing on the slate and refuses to wipe it off."
     },
     {
-      "text": "{who} taught {child} a rope trick learned from the travelling fair."
+      "text": "{who} taught {child} a rope trick learned from the traveling fair."
     },
     {
       "text": "{who} reads {child} adventure stories by candlelight."
@@ -4769,7 +4939,7 @@
       "text": "{who} writes letters to {child} with a pressed flower inside, sealed with wax."
     },
     {
-      "text": "{who} plays the squeezebox in the parlour, and {child} stamps along."
+      "text": "{who} plays the squeezebox in the parlor, and {child} stamps along."
     },
     {
       "text": "{who} lets {child} help collect the eggs and carry them home in an apron."
@@ -4811,7 +4981,7 @@
       "text": "{who} sends {child} photos from work trips with a toy dinosaur in every picture."
     },
     {
-      "text": "{who} took {child} to see a cartoon about a family of bears at the cinema and needed more popcorn than {child} did."
+      "text": "{who} took {child} to see a cartoon about a family of bears at the movies and needed more popcorn than {child} did."
     },
     {
       "text": "{who} lets {child} pick the radio station on car journeys, which means songs about trucks."
@@ -4826,7 +4996,7 @@
       "text": "{who} picks {child} up from daycare on Fridays, and the two of them always stop at the bakery."
     },
     {
-      "text": "{who} took {child} to the supermarket and came back with nothing on the list and three kinds of biscuits."
+      "text": "{who} took {child} to the supermarket and came back with nothing on the list and three kinds of cookies."
     },
     {
       "text": "{who} films {child}'s dance routines and plays them back so {child} can give notes."
@@ -4835,7 +5005,7 @@
       "text": "{who} gave {child} a plastic microphone and regrets it daily."
     },
     {
-      "text": "{who} and {child} watch nature programmes on TV and do all the animal voices."
+      "text": "{who} and {child} watch nature shows on TV and do all the animal voices."
     },
     {
       "text": "{who} rides the bus with {child} just for fun, all the way to the end of the line and back."
@@ -4850,7 +5020,7 @@
       "text": "{who} showed {child} how to make little stop-motion films with plastic toys."
     },
     {
-      "text": "{who} helped {child} build a cardboard robot with bottle tops and a torch for a head."
+      "text": "{who} helped {child} build a cardboard robot with bottle tops and a flashlight for a head."
     },
     {
       "text": "{who} plays the electric keyboard, and {child} presses the button that makes all the drums go."
@@ -4862,7 +5032,7 @@
       "text": "{who} bought {child} a bike helmet and covered it in stickers together."
     },
     {
-      "text": "{who} let {child} choose the colour of a new car, and it is now very bright yellow."
+      "text": "{who} let {child} choose the color of a new car, and it is now very bright yellow."
     },
     {
       "text": "{who} once let {child} spin round and round in an office swivel chair for ten whole minutes."
@@ -4886,7 +5056,7 @@
       "text": "{who} drives us all to the seaside every summer and sings with {child} in the car the whole way."
     },
     {
-      "text": "{who} comes to every school sports day and cheers for {child} through a rolled-up programme."
+      "text": "{who} comes to every school field day and cheers for {child} through a rolled-up program."
     }
   ],
   "holiday_part": [
@@ -4996,7 +5166,7 @@
       ]
     },
     {
-      "text": "{child} gave every guest at {holiday} a crumb of biscuit as a gift.",
+      "text": "{child} gave every guest at {holiday} a crumb of cookie as a gift.",
       "ages": [
         1,
         3
@@ -5164,14 +5334,14 @@
       ]
     },
     {
-      "text": "{child} made {holiday} cards for the neighbours and delivered them personally.",
+      "text": "{child} made {holiday} cards for the neighbors and delivered them personally.",
       "ages": [
         5,
         11
       ]
     },
     {
-      "text": "{child} helped roll out the dough for the {holiday} biscuits and made one shaped like the cat.",
+      "text": "{child} helped roll out the dough for the {holiday} cookies and made one shaped like the cat.",
       "ages": [
         3,
         10
@@ -5283,7 +5453,7 @@
       ]
     },
     {
-      "text": "{child} arranged the {holiday} sweets on a plate in a very particular pattern.",
+      "text": "{child} arranged the {holiday} candy on a plate in a very particular pattern.",
       "ages": [
         4,
         8
@@ -5318,7 +5488,7 @@
       ]
     },
     {
-      "text": "{child} made a {holiday} centrepiece from pine cones, ribbon and an enormous amount of glue.",
+      "text": "{child} made a {holiday} centerpiece from pine cones, ribbon and an enormous amount of glue.",
       "ages": [
         5,
         10
@@ -5444,7 +5614,7 @@
       ]
     },
     {
-      "text": "{child} filmed the {holiday} dinner on your phone and narrated it like a nature programme.",
+      "text": "{child} filmed the {holiday} dinner on your phone and narrated it like a nature show.",
       "ages": [
         8,
         14
@@ -5458,7 +5628,7 @@
       ]
     },
     {
-      "text": "{child} helped push the trolley round the supermarket for the {holiday} shopping and chose the biscuits.",
+      "text": "{child} helped push the cart around the supermarket for the {holiday} groceries and chose the cookies.",
       "ages": [
         4,
         9
@@ -5500,7 +5670,7 @@
       ]
     },
     {
-      "text": "{child} rolled a hoop down the lane to fetch the neighbours for {holiday} supper.",
+      "text": "{child} rolled a hoop down the lane to fetch the neighbors for {holiday} supper.",
       "ages": [
         5,
         10
@@ -5528,7 +5698,7 @@
       ]
     },
     {
-      "text": "{child} recited a {holiday} verse in the parlour with the whole family gathered round.",
+      "text": "{child} recited a {holiday} verse in the parlor with the whole family gathered round.",
       "ages": [
         6,
         12
@@ -5542,7 +5712,7 @@
       ]
     },
     {
-      "text": "{child} helped the governess hang paper chains in the parlour for {holiday}.",
+      "text": "{child} helped the governess hang paper chains in the parlor for {holiday}.",
       "ages": [
         5,
         10
@@ -5668,7 +5838,7 @@
       ]
     },
     {
-      "text": "{child} took charge of the {holiday} shopping list and actually stuck to it.",
+      "text": "{child} took charge of the {holiday} grocery list and actually stuck to it.",
       "ages": [
         13,
         17
@@ -5801,14 +5971,14 @@
       ]
     },
     {
-      "text": "{child} played the piano in the parlour for {holiday}, and everyone sang along.",
+      "text": "{child} played the piano in the parlor for {holiday}, and everyone sang along.",
       "ages": [
         12,
         17
       ]
     },
     {
-      "text": "{child} helped harness the horses for the {holiday} trip to the neighbours.",
+      "text": "{child} helped harness the horses for the {holiday} trip to the neighbors.",
       "ages": [
         13,
         17
@@ -5822,7 +5992,7 @@
       ]
     },
     {
-      "text": "{child} has a favourite {holiday} food and starts asking about it weeks ahead.",
+      "text": "{child} has a favorite {holiday} food and starts asking about it weeks ahead.",
       "ages": [
         3,
         17
@@ -5850,7 +6020,7 @@
       "the horses going by",
       "the knife-grinder's bell",
       "the bucket being drawn up from the well",
-      "the chime of the parlour clock",
+      "the chime of the parlor clock",
       "the glow of the oil lamp",
       "the whirr of the spinning wheel",
       "the ring of the blacksmith's hammer",
@@ -5864,11 +6034,11 @@
       "the cradle by the hearth",
       "{child} goes still and wide-eyed every time the horses clatter past.",
       "{child} watches the candle flame from across the room with great focus.",
-      "{child} reaches for the shining brass of the parlour lamp.",
+      "{child} reaches for the shining brass of the parlor lamp.",
       "{child} laughs at the clank of the well bucket.",
       "{child} settles fastest to the creak of the cradle by the hearth.",
       "{child} squeals whenever the market cart rattles by.",
-      "{child} hushes for the chime of the parlour clock.",
+      "{child} hushes for the chime of the parlor clock.",
       "{child} always grabs for the governess's spectacles.",
       "{child} gazes at the lamplighter every evening from the window.",
       "{child} babbles back at the town crier.",
@@ -5885,7 +6055,7 @@
       "scribbling on a slate",
       "watching the bucket come up from the well",
       "the governess's songs",
-      "plinking the parlour piano",
+      "plinking the parlor piano",
       "watching the cows being milked by hand",
       "the cobbler's hammer",
       "waving at the lamplighter",
@@ -5902,17 +6072,17 @@
       "{child} spins the wooden top and shouts \"go!\" every time.",
       "{child} peers into the well and calls hello to hear the echo.",
       "{child} waits by the window every dusk to wave at the lamplighter.",
-      "{child} plinks one note on the parlour piano and bows as if at a concert.",
+      "{child} plinks one note on the parlor piano and bows as if at a concert.",
       "{child} copies the town crier's call with a wooden spoon for a bell.",
       "{child} insists on helping turn the butter churn for exactly three turns.",
       "{child} gives the governess a flower every morning.",
-      "{child} rides the hobby horse around the parlour at full gallop.",
+      "{child} rides the hobby horse around the parlor at full gallop.",
       "{child} counts the carriages going past and loses count at four.",
       "{child} feeds the carriage horses one carrot at a time and names each one.",
       "{child} watches the blacksmith with {their} hands over {their} ears.",
       "{child} blows out a candle at dusk and then wants it lit again.",
       "{child} insists on riding on the hay cart, holding the reins with both hands.",
-      "{child} curls up in the parlour with the rag doll from the market.",
+      "{child} curls up in the parlor with the rag doll from the market.",
       "rolling a hoop with a stick",
       "spinning a wooden top",
       "the market cart and its patient horse",
@@ -5923,7 +6093,7 @@
       "helping churn the butter",
       "a rag doll with button eyes",
       "peering down the well and calling hello",
-      "the parlour clock that chimes the hours",
+      "the parlor clock that chimes the hours",
       "blowing out the candle at bedtime",
       "the town crier's big voice",
       "a wooden horse on wheels",
@@ -5935,7 +6105,7 @@
       "{child} waves at the lamplighter every evening as if they were old friends.",
       "{child} feeds the chickens and tells each one a joke.",
       "{child} writes letters on the slate and then rubs them out to start again.",
-      "{child} counts the chimes of the parlour clock out loud.",
+      "{child} counts the chimes of the parlor clock out loud.",
       "{child} blows out the candle at bedtime with a big puff and a wish.",
       "{child} spins the wooden top and gives a running commentary.",
       "{child} always wants to ride on the market cart beside the vegetables.",
@@ -5958,7 +6128,7 @@
       "playing knucklebones",
       "the magic lantern show",
       "lining up tin soldiers",
-      "the travelling puppet show at the fair",
+      "the traveling puppet show at the fair",
       "helping the baker before dawn",
       "milking the goat",
       "stitching a sampler",
@@ -5969,17 +6139,17 @@
       "{child} rolls a hoop to school and parks it by the gate.",
       "{child} draws on the slate and hides it before anyone can wipe it clean.",
       "{child} reads by candlelight and insists it makes the stories better.",
-      "{child} lines up tin soldiers along the parlour windowsill.",
+      "{child} lines up tin soldiers along the parlor windowsill.",
       "{child} imitates the governess's voice perfectly, then looks innocent.",
       "{child} carries water from the well and counts every step.",
       "{child} haggles at the market like a seasoned trader.",
-      "{child} practises copperplate with a dip pen and gets ink everywhere.",
+      "{child} practices copperplate with a dip pen and gets ink everywhere.",
       "{child} knows the name of every horse that pulls a cart through town.",
       "{child} waits by the door for the post rider every week.",
-      "{child} saves pennies for the travelling puppet show.",
+      "{child} saves pennies for the traveling puppet show.",
       "{child} feeds the pig scraps and gives it the day's news.",
       "{child} follows the lamplighter's round each evening, hoping to help.",
-      "{child} reads the newspaper aloud in the parlour in a deep, important voice.",
+      "{child} reads the newspaper aloud in the parlor in a deep, important voice.",
       "{child} keeps a wooden top in each pocket in case of a challenge.",
       "{child} trims the candle wick with great ceremony.",
       "{child} won't settle down until the town clock strikes.",
@@ -5989,8 +6159,8 @@
       "helping at the printer's workshop",
       "copying poems into a commonplace book",
       "the magic lantern society",
-      "playing the parlour piano for guests",
-      "the travelling theatre troupe",
+      "playing the parlor piano for guests",
+      "the traveling theater troupe",
       "letters sealed with wax",
       "learning the trade at the forge",
       "haggling at the market",
@@ -6001,15 +6171,15 @@
       "the town band's brass section",
       "the fair that comes through at harvest time",
       "learning to set type by hand",
-      "{child} reads in the parlour by lamplight long after the house is quiet.",
-      "{child} copies favourite lines into a commonplace book in very careful handwriting.",
+      "{child} reads in the parlor by lamplight long after the house is quiet.",
+      "{child} copies favorite lines into a commonplace book in very careful handwriting.",
       "{child} writes letters, seals them with wax, and walks them to the post.",
       "{child} comes home from market proud of the price {they} got for the apples.",
-      "{child} plays the parlour piano for guests, but only after a lot of persuading.",
+      "{child} plays the parlor piano for guests, but only after a lot of persuading.",
       "{child} helps at the forge and comes home smelling of smoke and pride.",
       "{child} fetches water from the well without being asked, which is new.",
       "{child} reads the newspaper aloud to the household after supper.",
-      "{child} waits for the post coach every week for news from a pen friend.",
+      "{child} waits for the post coach every week for news from a pen pal.",
       "{child} drives the market cart on errands and talks to the horse the whole way.",
       "{child} still keeps the old wooden top on the windowsill for luck.",
       "{child} trims the lamps every evening as {their} special job.",
@@ -6022,9 +6192,9 @@
       "{who} taught {child} to roll a hoop down the lane with a stick.",
       "{who} carved {child} a wooden top that spins longer than any other in the street.",
       "{who} takes {child} to market on the cart and lets {them} hold the reins on the quiet stretch of road.",
-      "{who} keeps a slate by the hearth so {child} can practise letters before supper.",
+      "{who} keeps a slate by the hearth so {child} can practice letters before supper.",
       "{who} lets {child} light the candles at supper with great ceremony and a long taper.",
-      "{who} has a parlour full of fragile things, and {child} is the only one allowed in it.",
+      "{who} has a parlor full of fragile things, and {child} is the only one allowed in it.",
       "{who} taught {child} to churn butter, and {child} reports on its progress every minute.",
       "{who} takes {child} to watch the blacksmith shoe the horses on market day.",
       "{who} reads to {child} by lamplight every evening, the same chapter twice.",
@@ -6040,11 +6210,11 @@
       "{who} keeps a jar of barley sugar on the dresser and gives {child} one after supper on market days.",
       "{who} sends {child} to fetch the milk from the dairy and always finds a farthing for the errand.",
       "{who} taught {child} to roll a hoop faster than any other child in the street.",
-      "{who} brings {child} sweets from the market cart on fair days.",
+      "{who} brings {child} candy from the market cart on fair days.",
       "{who} carved {child} a wooden top with a red stripe that hums as it spins.",
       "{who} lets {child} help feed the horses in the stable and brush the old mare.",
       "{who} keeps {child}'s chalk drawing on the slate and refuses to wipe it off.",
-      "{who} taught {child} a rope trick learned from the travelling fair.",
+      "{who} taught {child} a rope trick learned from the traveling fair.",
       "{who} reads {child} adventure stories by candlelight.",
       "{who} took {child} to see the puppet show in the market square and cheered louder than the children.",
       "{who} sneaks {child} away from lessons with the governess to look for frogs.",
@@ -6054,21 +6224,21 @@
       "{who} lets {child} light the lantern when the evening comes in.",
       "{who} showed {child} how to dip candles in the workshop, one careful layer at a time.",
       "{who} writes letters to {child} with a pressed flower inside, sealed with wax.",
-      "{who} plays the squeezebox in the parlour, and {child} stamps along.",
+      "{who} plays the squeezebox in the parlor, and {child} stamps along.",
       "{who} lets {child} help collect the eggs and carry them home in an apron.",
       "{who} taught {child} to write {their} name with a quill, with only a small amount of ink spilled.",
       "{who} takes {child} to the harbour to watch the tall ships come in and names every one.",
-      "{child} rolled a hoop down the lane to fetch the neighbours for {holiday} supper.",
+      "{child} rolled a hoop down the lane to fetch the neighbors for {holiday} supper.",
       "{child} chalked a {holiday} greeting on the slate and propped it by the door.",
       "{child} helped draw water from the well for the {holiday} cooking and carried the small bucket.",
       "{child} rode on the market cart to fetch the {holiday} supplies and waved at everyone on the way.",
-      "{child} recited a {holiday} verse in the parlour with the whole family gathered round.",
+      "{child} recited a {holiday} verse in the parlor with the whole family gathered round.",
       "{child} was given a new wooden top for {holiday} and spun it on every flat surface in the house.",
-      "{child} helped the governess hang paper chains in the parlour for {holiday}.",
+      "{child} helped the governess hang paper chains in the parlor for {holiday}.",
       "{child} held the lantern while we walked home from the {holiday} gathering.",
       "{child} helped trim the lamps for {holiday} evening and polished the glass until it shone.",
-      "{child} played the piano in the parlour for {holiday}, and everyone sang along.",
-      "{child} helped harness the horses for the {holiday} trip to the neighbours."
+      "{child} played the piano in the parlor for {holiday}, and everyone sang along.",
+      "{child} helped harness the horses for the {holiday} trip to the neighbors."
     ],
     "modern": [
       "the ceiling fan",
@@ -6083,7 +6253,7 @@
       "a plastic teething ring",
       "one particular lullaby playlist",
       "the theme song of a cartoon about a dog family",
-      "riding in the supermarket trolley",
+      "riding in the shopping cart",
       "the little lights on the baby monitor",
       "the white noise machine",
       "squeaky plastic ducks",
@@ -6093,19 +6263,19 @@
       "the hum of the fridge",
       "watching the buses go by",
       "the microwave beep",
-      "the tune of the ice cream van",
+      "the tune of the ice cream truck",
       "the dishwasher draining",
       "the musical play mat",
       "the star night light",
       "the blender",
       "the bright foam play mat",
       "a battery toy that sings",
-      "the automatic doors at the shops",
+      "the automatic doors at the store",
       "the weather map on TV",
       "plastic stacking rings",
-      "the click of the car indicator",
+      "the click of the turn signal",
       "the click of the electric kettle",
-      "stroller walks along the high street",
+      "stroller walks along the main street",
       "{child} goes quiet when the vacuum cleaner starts and grins when it stops.",
       "{child} falls asleep within two minutes of any car ride.",
       "{child} tries to chew the remote control at every chance.",
@@ -6120,16 +6290,16 @@
       "{child} laughs every time the microwave beeps.",
       "{child} watches the ceiling fan as though it were the best show in town.",
       "{child} tries to grab {their} own face on the video call screen.",
-      "{child} gets very excited about the automatic doors at the shops.",
+      "{child} gets very excited about the automatic doors at the store.",
       "{child} chews the car seat strap thoughtfully on every trip.",
       "{child} stares at the weather map on TV like a little forecaster.",
       "{child} goes calm the moment the white noise machine comes on.",
-      "{child} drops toys out of the supermarket trolley to see who will fetch them.",
+      "{child} drops toys out of the shopping cart to see who will fetch them.",
       "{child} giggles every time the dishwasher drains.",
       "{child} bounces in the doorway bouncer until sleep wins.",
       "{child} laughs at the blender, then looks very serious about it.",
       "{child} squeaks the plastic duck and waits for an answer.",
-      "{child} gets excited at the first notes of the ice cream van.",
+      "{child} gets excited at the first notes of the ice cream truck.",
       "{child} babbles at the fridge whenever it hums.",
       "{child} grins at the camera like a seasoned pro whenever a phone comes out.",
       "{child} reaches for the light switch every time {theyre} carried past it.",
@@ -6149,10 +6319,10 @@
       "plastic dinosaurs",
       "the toy kitchen",
       "video calls with the grandparents",
-      "pressing the lift buttons",
-      "riding in the supermarket trolley",
+      "pressing the elevator buttons",
+      "riding in the shopping cart",
       "the car wash",
-      "the rubbish lorry on bin day",
+      "the garbage truck on trash day",
       "the slide at the playground",
       "bouncing on the trampoline",
       "stickers on everything",
@@ -6162,23 +6332,23 @@
       "plastic building bricks",
       "the robot vacuum",
       "taking photos with the phone",
-      "felt-tip pens",
-      "waving at aeroplanes",
-      "fire engines with sirens going",
-      "the paddling pool",
+      "markers",
+      "waving at airplanes",
+      "fire trucks with sirens going",
+      "the kiddie pool",
       "the splash pad at the park",
-      "the escalator at the shopping centre",
+      "the escalator at the mall",
       "a song about a bus on repeat",
       "the remote-control car",
       "tractors on TV",
       "the drive-through window",
       "the toy vacuum cleaner",
       "a cartoon about a dog family",
-      "the toddler groups at the library",
+      "toddler story time at the library",
       "the train set that runs on batteries",
       "{child} says \"hello\" into the TV remote as if it were a phone.",
-      "{child} has to press the lift button, and the whole day goes wrong if someone else does.",
-      "{child} shouts \"bin lorry!\" at the window every bin day, without fail.",
+      "{child} has to press the elevator button, and the whole day goes wrong if someone else does.",
+      "{child} shouts \"garbage truck!\" at the window every trash day, without fail.",
       "{child} pretends to make video calls with a wooden block.",
       "{child} insists on wearing a bike helmet on the scooter, and also at dinner.",
       "{child} can spot a digger from half a mile away.",
@@ -6186,9 +6356,9 @@
       "{child} sings the theme tune of a cartoon about a dog family all day long.",
       "{child} waves at every bus driver and is outraged when one does not wave back.",
       "{child} tells the robot vacuum \"night night\" when it is finished.",
-      "{child} insists on putting the shopping on the supermarket belt one item at a time.",
+      "{child} insists on putting the groceries on the checkout belt one item at a time.",
       "{child} holds a toy phone to {their} ear and says \"yes, yes, okay\" very seriously.",
-      "{child} calls every aeroplane \"my plane\".",
+      "{child} calls every airplane \"my plane\".",
       "{child} names all the plastic dinosaurs after people in the family.",
       "{child} stops dead at the automatic doors to see if they will open for {them}.",
       "{child} wants the same song on in the car and sings only the last word of each line.",
@@ -6200,15 +6370,15 @@
       "{child} must say goodbye to every child at daycare by name.",
       "{child} hides the TV remote in the toy box and pretends to be surprised.",
       "{child} dances only when nobody is looking at the kitchen radio.",
-      "{child} calls the escalator \"the moving stairs\" and treats it like a fairground ride.",
+      "{child} calls the escalator \"the moving stairs\" and treats it like a carnival ride.",
       "{child} counts the trampoline bounces and always gets to ten twice.",
       "{child} wants the balance bike parked next to the front door like a real bicycle.",
-      "{child} insists on pushing the trolley at the supermarket, slowly and in circles.",
-      "{child} shouts \"nee naw\" for every car, not only fire engines.",
+      "{child} insists on pushing the cart at the supermarket, slowly and in circles.",
+      "{child} shouts \"wee-oo\" for every car, not only fire trucks.",
       "{child} pretends to read the news on a toy tablet in a deep voice.",
       "{child} turns every cardboard box into a car and parks it in the hallway.",
       "{child} has to see the washing machine finish before leaving the room.",
-      "{child} asks for \"the bus song\" every time {theyre} in the buggy.",
+      "{child} asks for \"the bus song\" every time {theyre} in the stroller.",
       "a cartoon about a family of dogs",
       "riding a scooter",
       "bouncing on the trampoline",
@@ -6218,7 +6388,7 @@
       "a song about a bus, on repeat",
       "watching the diggers at the building site",
       "going through the car wash",
-      "fire engines with flashing lights",
+      "fire trucks with flashing lights",
       "choosing the bananas at the supermarket",
       "the bouncy castle at the fair",
       "stickers, on everything",
@@ -6232,29 +6402,29 @@
       "taking blurry photos on the phone",
       "plastic marble runs",
       "a toy kitchen with plastic food",
-      "felt-tip pens",
-      "riding the escalator at the shops",
+      "markers",
+      "riding the escalator at the store",
       "airplanes going over the house",
       "the automatic doors at the library",
       "a battery train set",
       "the bubble machine",
-      "ice lollies from the freezer",
+      "popsicles from the freezer",
       "following the robot vacuum around",
       "singing along in the car",
       "dressing up as a superhero",
       "a magnetic drawing board",
       "a cartoon about a bear who bakes",
-      "pressing the lift buttons",
+      "pressing the elevator buttons",
       "announcing when the traffic lights turn green",
       "{child} reminds us to buckle up before the car has even started.",
       "{child} narrates the traffic lights: red, wait, green, go.",
       "{child} tries to photograph the cat on the phone and gets mostly thumb.",
       "{child} knows every word of a cartoon about a dog family.",
       "{child} waves at every school bus, whether it is full or not.",
-      "{child} presses the lift button and then announces each floor.",
+      "{child} presses the elevator button and then announces each floor.",
       "{child} asks the smart speaker questions and argues with the answers.",
       "{child} puts stickers on the fridge in a very particular pattern.",
-      "{child} pretends the supermarket trolley is a racing car.",
+      "{child} pretends the shopping cart is a racing car.",
       "{child} sings along to the car radio with completely made-up words.",
       "{child} holds the tablet very close and says \"I'm just looking\".",
       "{child} will only use the green plastic cup.",
@@ -6263,7 +6433,7 @@
       "{child} named the robot vacuum and follows it from room to room.",
       "{child} pretends the scooter is a horse and parks it very carefully.",
       "{child} wants to press every button on the microwave.",
-      "{child} shouts \"beep beep\" at every reversing lorry.",
+      "{child} shouts \"beep beep\" at every truck backing up.",
       "{child} explains the plot of a cartoon about talking trains to anyone who will listen.",
       "{child} bounces on the trampoline while telling very long stories.",
       "{child} dances along whenever the washing machine starts to spin.",
@@ -6280,7 +6450,7 @@
       "{child} reads out the number on every bus that goes by.",
       "{child} wears a superhero cape to the supermarket.",
       "{child} says \"thank you\" to the sat nav every time it speaks.",
-      "{child} sits in the trolley seat at the shops and waves like royalty.",
+      "{child} sits in the cart seat at the store and waves like royalty.",
       "coding simple games",
       "a cartoon about a robot who solves mysteries",
       "riding a bike without stabilisers",
@@ -6307,7 +6477,7 @@
       "a radio-controlled boat",
       "digital drawing",
       "chess puzzles on the computer",
-      "trips to the cinema",
+      "trips to the movies",
       "roller skating",
       "a cartoon about a family of superheroes",
       "making videos about the cat",
@@ -6315,7 +6485,7 @@
       "swapping collector cards with friends",
       "walkie-talkies",
       "a video game about building villages",
-      "a cartoon about time-travelling kids",
+      "a cartoon about time-traveling kids",
       "{child} calls dibs on the front seat the moment the car comes into view.",
       "{child} narrates {their} own day like a nature documentary.",
       "{child} reads the cereal box at breakfast like it's the morning paper.",
@@ -6339,7 +6509,7 @@
       "{child} sets a phone timer for everything, even sweeping up crumbs.",
       "{child} sends messages from the family tablet that are mostly exclamation marks.",
       "{child} knows every button on the TV remote better than we do.",
-      "{child} bounces on the trampoline while practising times tables.",
+      "{child} bounces on the trampoline while practicing times tables.",
       "{child} has to sit on the left side of the car and has a reason for it.",
       "{child} rates every supermarket trip out of ten.",
       "{child} knows every song from a cartoon about a pirate crew.",
@@ -6385,7 +6555,7 @@
       "electronics kits and soldering",
       "{child} has headphones on at all times but somehow hears every mention of food.",
       "{child} makes a playlist for every car journey and takes it personally if we skip a song.",
-      "{child} quotes films constantly and is shocked when nobody recognises the line.",
+      "{child} quotes films constantly and is shocked when nobody recognizes the line.",
       "{child} has strong opinions about how the dishwasher should be loaded.",
       "{child} films cooking experiments on the phone and narrates them like a show.",
       "{child} keeps eleven tabs open on the laptop and swears they are all important.",
@@ -6426,18 +6596,18 @@
       "{who} keeps a tablet just for {child}'s visits, loaded with puzzle games.",
       "{who} sends {child} voice messages with made-up stories, one chapter at a time.",
       "{who} picks {child} up from school on Wednesdays, and the two of them always stop for an ice cream.",
-      "{who} bought a trampoline for the back garden and pretends it was for the neighbours, not {child}.",
+      "{who} bought a trampoline for the backyard and pretends it was for the neighbors, not {child}.",
       "{who} and {child} watch the same baking show together and score every cake out of ten.",
       "{who} is learning to use the phone camera so {child}'s cartwheels can be filmed properly.",
       "{who} keeps a spare car seat in the back of the car for {child}.",
-      "{who} takes {child} to the supermarket and lets {them} push the trolley, slowly and sideways.",
+      "{who} takes {child} to the supermarket and lets {them} push the cart, slowly and sideways.",
       "{who} has {child}'s drawings stuck all over the fridge with magnets.",
       "{who} and {child} play a racing game on the console, and {who} has never once won.",
-      "{who} took {child} to the cinema to see a cartoon about talking dogs and cried at the end.",
+      "{who} took {child} to the movies to see a cartoon about talking dogs and cried at the end.",
       "{who} learned a video game just to keep up with {child} and is now shockingly good at it.",
       "{who} keeps a scooter in the hall for {child}'s visits.",
       "{who} rings every evening just to hear {child} say goodnight down the phone.",
-      "{who} let {child} press all the buttons in the lift once, and now it is a tradition.",
+      "{who} let {child} press all the buttons in the elevator once, and now it is a tradition.",
       "{who} and {child} make silly videos together that you are not allowed to watch.",
       "{who} takes {child} on the bus into town, and they always sit at the very front of the top deck.",
       "{who} has a playlist of old songs, and {child} now dances to every one of them.",
@@ -6446,14 +6616,14 @@
       "{who} lets {child} choose a cereal at the shop, always the one with the cartoon on the box.",
       "{who} waits for {child} by the school gate with a snack in a plastic box, every single time.",
       "{who} keeps a tub of plastic dinosaurs for {child}'s visits and knows all their names.",
-      "{who} and {child} watch the football together on TV and shout advice at the players.",
+      "{who} and {child} watch the game together on TV and shout advice at the players.",
       "{who} has a talking speaker in the kitchen that {child} asks for animal noises, over and over.",
       "{who} and {child} take the train to the seaside every summer and count the stations.",
       "{who} came to watch {child}'s swimming lesson and cheered so loudly the instructor laughed.",
       "{who} brought {child} a little plastic tea set and is served pretend tea at every visit.",
       "{who} lets {child} set the microwave timer and count down the last ten seconds out loud.",
       "{who} drives {child} to the park on Saturdays with the windows down and the radio up.",
-      "{who} watches cartoons with {child} on Saturday mornings and has a favourite character now.",
+      "{who} watches cartoons with {child} on Saturday mornings and has a favorite character now.",
       "{who} learned to send voice notes just to tell {child} about the birds in the garden.",
       "{who} sends {child} videos of the cat doing ridiculous things.",
       "{who} taught {child} a dance from a cartoon, and they perform it at every family party.",
@@ -6465,24 +6635,24 @@
       "{who} takes {child} on the train into the city to see the big museum.",
       "{who} drives a very old car with a horn that {child} is allowed to honk once per trip.",
       "{who} sends {child} photos from work trips with a toy dinosaur in every picture.",
-      "{who} took {child} to see a cartoon about a family of bears at the cinema and needed more popcorn than {child} did.",
+      "{who} took {child} to see a cartoon about a family of bears at the movies and needed more popcorn than {child} did.",
       "{who} lets {child} pick the radio station on car journeys, which means songs about trucks.",
       "{who} built {child} a racetrack out of plastic tubing all down the hallway.",
       "{who} has a phone full of pictures of {child} and shows them to strangers.",
       "{who} picks {child} up from daycare on Fridays, and the two of them always stop at the bakery.",
-      "{who} took {child} to the supermarket and came back with nothing on the list and three kinds of biscuits.",
+      "{who} took {child} to the supermarket and came back with nothing on the list and three kinds of cookies.",
       "{who} films {child}'s dance routines and plays them back so {child} can give notes.",
       "{who} gave {child} a plastic microphone and regrets it daily.",
-      "{who} and {child} watch nature programmes on TV and do all the animal voices.",
+      "{who} and {child} watch nature shows on TV and do all the animal voices.",
       "{who} rides the bus with {child} just for fun, all the way to the end of the line and back.",
       "{who} brought {child} a remote control helicopter, which now lives on the shed roof.",
       "{who} sends a joke by text every morning, and you have to read it out to {child} over breakfast.",
       "{who} showed {child} how to make little stop-motion films with plastic toys.",
-      "{who} helped {child} build a cardboard robot with bottle tops and a torch for a head.",
+      "{who} helped {child} build a cardboard robot with bottle tops and a flashlight for a head.",
       "{who} plays the electric keyboard, and {child} presses the button that makes all the drums go.",
       "{who} takes {child} to the swimming pool and does the loudest jump in the whole place.",
       "{who} bought {child} a bike helmet and covered it in stickers together.",
-      "{who} let {child} choose the colour of a new car, and it is now very bright yellow.",
+      "{who} let {child} choose the color of a new car, and it is now very bright yellow.",
       "{who} once let {child} spin round and round in an office swivel chair for ten whole minutes.",
       "{who} hosts a pizza and cartoon night once a month, and {child} plans it for weeks.",
       "{who} and {child} have a long-running argument over the best cartoon ever made.",
@@ -6490,16 +6660,16 @@
       "{who} gave {child} an old phone with no signal that is now used only for pretend calls.",
       "{who} taught {child} to build a tower of plastic cups that nearly reaches the ceiling.",
       "{who} drives us all to the seaside every summer and sings with {child} in the car the whole way.",
-      "{who} comes to every school sports day and cheers for {child} through a rolled-up programme.",
+      "{who} comes to every school field day and cheers for {child} through a rolled-up program.",
       "{child} stuck star stickers all over the {holiday} cards.",
       "{child} hummed the {holiday} song all the way home in the car seat.",
       "{child} watched a {holiday} cartoon on TV with the whole family and narrated every scene.",
       "{child} showed off a new toy to the grandparents on a {holiday} morning video call.",
       "{child} tried to put a plastic toy duck on the {holiday} table as a decoration.",
       "{child} made a {holiday} playlist for the car ride and insisted on skipping the slow songs.",
-      "{child} filmed the {holiday} dinner on your phone and narrated it like a nature programme.",
+      "{child} filmed the {holiday} dinner on your phone and narrated it like a nature show.",
       "{child} made {holiday} cards on the computer with far too many different fonts.",
-      "{child} helped push the trolley round the supermarket for the {holiday} shopping and chose the biscuits.",
+      "{child} helped push the cart around the supermarket for the {holiday} groceries and chose the cookies.",
       "{child} watched a {holiday} cartoon three times in a row and acted out the ending for us.",
       "{child} video called the cousins on {holiday} morning to compare presents.",
       "{child} insisted on bringing a plastic dinosaur to the {holiday} table as a guest.",

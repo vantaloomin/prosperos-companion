@@ -4183,7 +4183,7 @@
       "label": "Who stays home with the children",
       "options": [
         {
-          "label": "You both keep working",
+          "label": "You both work",
           "weight": 2,
           "rules": [
             {
@@ -4225,7 +4225,7 @@
           ]
         },
         {
-          "label": "{name} stays home with them",
+          "label": "{name} stays home",
           "weight": 1,
           "rules": [
             {
@@ -4255,7 +4255,7 @@
           ]
         },
         {
-          "label": "You stay home with them",
+          "label": "You stay home",
           "weight": 1,
           "rules": [
             {

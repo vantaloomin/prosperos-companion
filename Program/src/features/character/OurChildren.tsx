@@ -94,7 +94,7 @@ function Rename({ child, save }: { child: OurChild; save: (change: OursChange) =
     <details className="our-child-more">
       <summary>Rename</summary>
       <form className="rename-form" onSubmit={(event) => { event.preventDefault(); const next = value.trim(); if (next && next !== child.name) save({ child: child.id, name: next }) }}>
-        <label htmlFor={id}>Their name</label>
+        <label htmlFor={id} className="field-label">Their name</label>
         <div className="rename-row">
           <input id={id} value={value} maxLength={40} onChange={(event) => setValue(event.target.value)} />
           <button type="submit" className="button primary" disabled={!value.trim() || value.trim() === child.name}>Save</button>

@@ -47,8 +47,8 @@ USUAL = 2
 LEVELS = ('easy', 'gentle', 'true to life', 'chaos')
 BANDS = (('baby', 0, 0), ('toddler', 1, 3), ('small_child', 4, 6), ('school_age', 7, 12), ('teen', 13, 17))
 CARE = ('both_work', 'part_time', 'them_home', 'you_home')
-CARE_LABELS = {'both_work': 'You both keep working', 'part_time': '{name} goes part-time',
-               'them_home': '{name} stays home with them', 'you_home': 'You stay home with them'}
+CARE_LABELS = {'both_work': 'You both work', 'part_time': '{name} goes part-time', 'them_home': '{name} stays home',
+               'you_home': 'You stay home'}
 # Until the youngest starts school, who looks after them; then both work again.
 SCHOOL = 5
 # Weeks the companion is off work after a child comes: the one who carried, else a parent taking them in.
@@ -80,7 +80,7 @@ OUTING_AGES = (1, 15)
 OUTING_AHEAD = 7
 NEWBORN_DAYS = 90
 SOLIDS_DAYS = 180
-FOOD = re.compile(r'\b(?:banana\w*|mash\w*|pur[ée]e\w*|food|eat\w*|spoon\w*|porridge|biscuits?|toast|apple\w*|'
+FOOD = re.compile(r'\b(?:banana\w*|mash\w*|pur[ée]e\w*|food|eat\w*|spoon\w*|porridge|oatmeal|biscuits?|cookies?|toast|apple\w*|'
                   r'peas|carrots?|avocado|yogh?urt|crusts?|rusks?|snacks?|bread|cheese|berr(?:y|ies)|pasta|rice)\b',
                   re.IGNORECASE)
 HOLIDAY_AFTER = 3  # Days after a holiday its line stays.
@@ -186,6 +186,13 @@ def fitting(lines: list[dict], era_: str) -> list[dict]:
     return found or lines
 
 
+def for_age(lines: list[dict], era_: str, days: int) -> list[dict]:
+    """The lines for their city that a child this many days old can do: a line's 'from' is the age in years it is
+    written for (a one-year-old doesn't carry the groceries), and a young baby eats nothing solid."""
+    return [line for line in fitting(lines, era_) if line.get('from', 0) * 365 <= days and
+            (days >= SOLIDS_DAYS or not FOOD.search(line['text']))]
+
+
 def filled(text: str, child: dict, **values) -> str:
     line = families.fill_child(text, child)
     for key, value in values.items():
@@ -207,10 +214,9 @@ def sheet(connection, companion: dict, child: dict, day: date) -> dict | None:
     days = (day - date.fromisoformat(child['born_on'])).days
     if days < NEWBORN_DAYS:
         return {'temperament': temperament, 'likes': None, 'quirk': None}
-    likes = [line for line in fitting(bank()[f'likes_{group}'], era_) if days >= SOLIDS_DAYS or not FOOD.search(
-        line['text'])]
-    likes = filled(generators.pick(seed, f'likes:{group}:{month}', likes)['text'], child)
-    quirk = generators.pick(seed, f'quirk:{group}:{season}', fitting(bank()[f'quirks_{group}'], era_))['text']
+    likes = filled(generators.pick(seed, f'likes:{group}:{month}', for_age(bank()[f'likes_{group}'], era_, days))['text'],
+                   child)
+    quirk = generators.pick(seed, f'quirk:{group}:{season}', for_age(bank()[f'quirks_{group}'], era_, days))['text']
     return {'temperament': temperament, 'likes': likes[:1].lower() + likes[1:], 'quirk': filled(quirk, child)}
 
 
@@ -463,7 +469,7 @@ def sitter_for(connection, companion: dict, day: date) -> dict:
         else None
     if person:
         return {'who': person['said'], 'paid': False}
-    return {'who': 'a sitter' if not families.older(era(connection, companion)) else 'a neighbour', 'paid': True}
+    return {'who': 'a sitter' if not families.older(era(connection, companion)) else 'a neighbor', 'paid': True}
 
 
 def relatives(connection, companion: dict) -> list[dict]:
@@ -642,7 +648,7 @@ def days_lines(connection, companion: dict, kids: list[dict], today: date) -> li
     result = []
     if care := caring(connection, companion, today):
         from companion.life import work
-        minder = 'a neighbour who minds children' if families.older(era(connection, companion)) else 'daycare'
+        minder = 'a neighbor who minds children' if families.older(era(connection, companion)) else 'daycare'
         day = part_time_day(companion, work.workdays(companion['version']['definition']))
         words = CARE_WORDS[care].format(names=names, go='go' if len(kids) > 1 else 'goes', minder=minder,
                                         day=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',

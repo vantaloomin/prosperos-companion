@@ -2280,6 +2280,10 @@ p.breakup-line { align-items: center; }
 .our-child-more[open] > summary { margin-bottom: 8px; }
 .our-child-more .family-journey { margin-bottom: 0; }
 .our-child-more .steps-list { font-size: 0.9375rem; }
+.ours-block { margin-bottom: 8px; }
+.ours-block .toggle { margin-bottom: 0; }
+.our-child-more .rename-row .button.primary:disabled { opacity: 1; background: var(--raised); border-color: var(--border); color: var(--muted); }
+@media (max-width: 720px) { .our-child-more summary { padding-block: 11px; } }
 .ours-block .field { margin-top: 8px; }
 .our-family-item p { margin: 0; }
 /* Meeting their people: whether they have met you, on the circle list. */

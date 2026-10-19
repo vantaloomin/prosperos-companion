@@ -28,7 +28,7 @@ test('how they came folds under a line that says born or came home', () => {
 
 test('who looks after them says who picked it and how long it lasts', () => {
   const view = { shown: true, children: [], care: 'part_time', care_how: 'seeded', care_now: true } as OursView
-  assert.match(careHint(view, 'Mira Lane'), /^Picked by the app from Mira's work and your money\. Until the youngest/)
+  assert.match(careHint(view, 'Mira Lane'), /^Picked by the app from Mira's work and your money: Mira works part-time until the youngest starts school\.$/)
   assert.match(careHint({ ...view, care_how: 'set', care_now: false }, 'Mira'), /^You set this\. Once the youngest is at school/)
 })
 
@@ -39,5 +39,5 @@ test('another child says when it can come up', () => {
 })
 
 test('the Family life slider has four steps, easy kids first', () => {
-  assert.deepEqual(FAMILY_LIFE_LEVELS.map((item) => item.label), ['Easy kids', 'Gentle', 'True to life', 'True-to-life chaos'])
+  assert.deepEqual(FAMILY_LIFE_LEVELS.map((item) => item.label), ['Easy', 'Gentle', 'True to life', 'Chaotic'])
 })

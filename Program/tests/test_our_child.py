@@ -223,3 +223,18 @@ def test_the_user_can_bring_up_another_child(client, provider, clock, monkeypatc
     assert asked and asked['status'] in ('yes', 'not_yet', 'no')
     if asked['status'] == 'yes':
         assert family(client)['another_on']
+
+
+def test_the_sheet_fits_the_childs_age():
+    bank = our_child.bank()
+    for band, low, _high in our_child.BANDS:
+        for kind in ('likes', 'quirks'):
+            for era in ('modern', 'medieval', 'victorian', 'jazz-age'):
+                days = max(low * 365, our_child.NEWBORN_DAYS)
+                found = our_child.for_age(bank[f'{kind}_{band}'], era, days)
+                assert found, (kind, band, era)
+                assert all(line.get('from', 0) * 365 <= days for line in found)
+    one = our_child.for_age(bank['quirks_toddler'], 'modern', 400)
+    assert not any('groceries' in line['text'] for line in one)
+    assert any('groceries' in line['text'] for line in our_child.for_age(bank['quirks_toddler'], 'modern', 3 * 365))
+    assert not any(our_child.FOOD.search(line['text']) for line in our_child.for_age(bank['quirks_baby'], 'modern', 100))

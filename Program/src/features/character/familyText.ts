@@ -148,11 +148,18 @@ export function arrivalText(child: OurChild, route: string | undefined, day: (va
 }
 
 /** Under "Who looks after them": who picked it and when it applies. */
+const CARE_HINTS: Record<string, string> = {
+  both_work: 'you both keep working while they are looked after in the day',
+  part_time: '{name} works part-time',
+  them_home: '{name} stays home with them',
+  you_home: 'you stay home with them',
+}
+
 export function careHint(view: OursView, name: string): string {
   const who = firstName(name)
-  const when = view.care_now ? 'Until the youngest starts school.' : 'Once the youngest is at school you both work again; this comes back with a new baby.'
-  if (view.care_how === 'set') return `You set this. ${when}`
-  return `Picked by the app from ${who}'s work and your money. ${when}`
+  const how = view.care_how === 'set' ? 'You set this' : `Picked by the app from ${who}'s work and your money`
+  if (!view.care_now) return `${how}. Once the youngest is at school you both work again; this comes back with a new baby.`
+  return `${how}: ${CARE_HINTS[view.care ?? ''] ?? 'this lasts'} until the youngest starts school.`.replace('{name}', who)
 }
 
 /** Under "Another child": where it stands. */

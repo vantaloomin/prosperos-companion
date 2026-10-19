@@ -14,7 +14,7 @@ export function OurFamily({ family }: { family?: TodayChild[] }) {
           <li key={child.id} className="event our-family-item">
             <p><strong>{child.name}</strong> <span className="subtle">· {ourChildAge(child.age_text)}</span></p>
             {child.likes && <p>Lately into {child.likes}.</p>}
-            {child.latest && <p className="subtle">{child.latest.label}, {stepDate(child.latest.date)}</p>}
+            {child.latest && <p className="subtle pet-line"><span className="pet-line-label">Latest ·</span> {child.latest.label}, {stepDate(child.latest.date)}</p>}
           </li>
         ))}
       </ul>
