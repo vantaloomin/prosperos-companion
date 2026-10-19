@@ -287,3 +287,12 @@ def set_life(client, **values):
     response = client.put('/api/life/settings', json=values)
     assert response.status_code == 200, response.text
     return response.json()
+
+
+def intimate(client):
+    """Makes the next reply read intimate (companion/memory/sides.py), through the chat's author's note: with the
+    adult side on it then carries the adult side and no child."""
+    companion = client.get('/api/companion').json()['companion']
+    response = client.put(f"/api/authors-notes/companion:{companion['id']}",
+                          json={'text': 'Slow, sensual, the two of you alone in the bedroom.'})
+    assert response.status_code == 200, response.text
