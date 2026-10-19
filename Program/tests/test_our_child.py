@@ -13,7 +13,7 @@ from test_steps import prompt, says
 from companion import group_guests
 from companion.characters import current
 from companion.life import families, our_child, work
-from companion.memory import sides
+from companion.memory import context, sides
 from companion.world import intimacy
 
 FORBIDDEN = re.compile(r'\b(?:kiss\w*|naked|nude|bath\w*|bed|body|skin|lips|touch\w*|cuddl\w*|snuggl\w*|undress\w*|'
@@ -287,6 +287,7 @@ def test_the_characters_own_words_count_toward_a_replys_side(client, provider, c
     send(client, 'how was the day?', 'client-ours-9')
     assert child['name'].split()[0] not in prompt(provider)
 
+
 def test_a_reply_without_the_family_lines_leaves_out_lines_about_a_child_however_named(client, provider, clock,
                                                                                        monkeypatch):
     row, child = born(client, clock, monkeypatch)
@@ -308,3 +309,19 @@ def test_a_reply_without_the_family_lines_leaves_out_lines_about_a_child_however
     send(client, 'come here you', 'client-ours-10')
     assert 'Zephyrine' not in whole(provider)
 
+
+def test_a_second_look_through_memory_keeps_to_the_replys_side(client, provider, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    first = child['name'].split()[0]
+    for subject, value in (('Picnic', f'{first} loved the picnic at the lake'),
+                           ('Picnic night', 'After the picnic we made love by the lake')):
+        assert client.post('/api/memories', json={'layer': 'shared_experience', 'subject': subject,
+                                                  'value': value}).status_code == 200
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with connect(client) as connection:
+        companion = current(connection)
+        other = ' '.join(context.looked_back(connection, companion, clock.now(), 'the picnic'))
+        family = ' '.join(context.looked_back(connection, companion, clock.now(), 'the picnic',
+                                                                 family=True))
+    assert first not in other and 'made love' in other
+    assert first in family and 'made love' not in family

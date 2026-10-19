@@ -943,8 +943,9 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     adult = sides.adult_lines(connection, companion, recent, group, photo, family)
     packet = Packet(budget, hidden=sides.hidden(connection, timeline_id, family))
     with families.family_reply(family):
-        return fill(packet, connection, companion, now, (messages, recent, older, groups),
-                    {'semantic': semantic, 'outside': outside, 'photo': photo, 'group': group, 'adult': adult})
+        built = fill(packet, connection, companion, now, (messages, recent, older, groups),
+                     {'semantic': semantic, 'outside': outside, 'photo': photo, 'group': group, 'adult': adult})
+    return {**built, 'family': family}
 
 
 def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict) -> dict:
@@ -1048,9 +1049,10 @@ def widening(messages: list[dict]) -> list[str]:
 
 
 def looked_back(connection, companion, now: datetime, query: str, until_seq: int | None = None,
-                skip=frozenset()) -> list[str]:
+                skip=frozenset(), family: bool = False) -> list[str]:
     """What a second look through memory finds for the words the companion asked about (memory/look_back.py):
-    the same eligible pool as the reply's own recall, less what the reply was already given."""
+    the same eligible pool as the reply's own recall, less what the reply was already given, and none of what the
+    reply's own context leaves out (`family`, as `build` says)."""
     timeline_id = companion['active_timeline_id']
     recallable = partition(told(eligible(connection, companion, timeline_id, stamp(now)), companion))['recallable']
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
@@ -1060,7 +1062,9 @@ def looked_back(connection, companion, now: datetime, query: str, until_seq: int
     span = time_recall.query_span(query, now, timezone)
     found = recalled([memory for memory in recallable if not memory['pinned']], older, query, (), summaries,
                      frozenset(), (span, timezone) if span else None, storylines.recall_items(connection, companion, now))
-    return [text for identity, text in found if identity not in skip][:RECALL_LIMIT]
+    hidden = sides.hidden(connection, timeline_id, family)
+    return [text for identity, text in found if identity not in skip and not (hidden and hidden.search(text))
+            ][:RECALL_LIMIT]
 
 
 def section_text(packet, headings) -> list[str]:
