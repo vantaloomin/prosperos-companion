@@ -17,6 +17,7 @@ person has heard. Secrets keep their own rules (companion/secrets.py) and never 
 Only life events travel, never anything from the user's chats, so no companion can seem to have read the user's
 chats with someone else; prompts also say they don't know whether the user has heard.
 """
+import re
 from datetime import date, time, timedelta
 
 from companion import consequences, secrets
@@ -272,11 +273,20 @@ def listing(connection, companion: dict, now) -> list[dict]:
                      'ORDER BY n.happened_on DESC, n.id', (key, since)):
         rows = many(connection, 'SELECT * FROM news_holders WHERE news_id=? AND holder!=? ORDER BY heard_on, hop, '
                     'holder', (item['id'], key))
-        result.append({'id': item['id'], 'text': item['text'], 'happened_on': item['happened_on'],
-                       'heard': [{'name': who(connection, row['holder'], key), 'heard_on': row['heard_on'],
-                                  'from': None if row['told_by'] == key else who(connection, row['told_by'], key),
+        result.append({'id': item['id'], 'text': on_screen(item['text']), 'happened_on': item['happened_on'],
+                       'heard': [{'name': on_screen(who(connection, row['holder'], key)), 'heard_on': row['heard_on'],
+                                  'from': None if row['told_by'] == key else on_screen(who(connection, row['told_by'],
+                                                                                           key)),
                                   'companion_id': pairs.companion_id(row['holder'])} for row in rows]})
     return result
+
+
+def on_screen(text: str) -> str:
+    """News as the user reads it on Today: "Dana and the user are expecting a baby" is "You and Dana are expecting a
+    baby" (the stored words stay as they are for the prompts that pass it on)."""
+    text = re.sub(r'^(.+?) and the user\b', r'You and \1', text)
+    text = re.sub(r'^the user\b', 'You', text)
+    return re.sub(r'\bthe user\b', 'you', text)
 
 
 def read(database) -> list[dict]:

@@ -354,3 +354,10 @@ def test_a_jazz_age_city_has_no_scans_car_seats_or_surrogates(client, monkeypatc
     for group in ('old', 'jazz', 'modern'):
         assert len(expecting.ERA_WORDS[group]['things']) >= 2
     assert 'a pram' not in expecting.ERA_WORDS['old']['things']  # Camelot has none.
+
+
+def test_word_getting_around_reads_you_and_them_on_today():
+    from companion import news
+    assert news.on_screen('Mira and the user are expecting a baby') == 'You and Mira are expecting a baby'
+    assert news.on_screen('Mira and the user welcomed a child home') == 'You and Mira welcomed a child home'
+    assert news.on_screen('the user') == 'You' and news.on_screen('Mira got a promotion') == 'Mira got a promotion'
