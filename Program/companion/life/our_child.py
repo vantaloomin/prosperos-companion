@@ -91,6 +91,14 @@ BEDTIMES = {'baby': '7', 'toddler': '7', 'small_child': '7:30', 'school_age': '8
 SHEET_PEOPLE = 'grandparents'
 RECENT_DAYS = 1
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
+# Things in the child's bank an older city doesn't have yet, beyond families.UNFIT: no flashlight in 1895, and no
+# newspaper, piano, telescope or grocery list in Camelot.
+_FLASHLIGHT = r'flashlights?'
+_CASTLE = (_FLASHLIGHT + r'|newspapers?|telescopes?|pianos?|comics?|grocer(?:y|ies)|soccer|homework|debate team|'
+           r'guitars?')
+UNFIT = {era: re.compile(rf'\b(?:{words})\b', re.IGNORECASE) for era, words in (
+    ('victorian', _FLASHLIGHT), ('steampunk', _FLASHLIGHT), ('frontier', _FLASHLIGHT), ('medieval', _CASTLE),
+    ('fantasy', _CASTLE))}
 NO_BIKES = {'medieval', 'fantasy'}
 
 # (key, label, days from birth (low, high) or a special rule, eras it needs).
@@ -181,8 +189,9 @@ def band(child: dict, day: date) -> str | None:
 def fitting(lines: list[dict], era_: str) -> list[dict]:
     """The bank lines for their city: its things (families.UNFIT) and its voice ('older' or 'modern' tags)."""
     unfit, wrong = families.UNFIT.get(era_), 'modern' if families.older(era_) else 'older'
+    more = UNFIT.get(era_)
     found = [line for line in lines if not (unfit and unfit.search(line['text'])) and
-             wrong not in tags().get(line['text'], ())]
+             not (more and more.search(line['text'])) and wrong not in tags().get(line['text'], ())]
     return found or lines
 
 

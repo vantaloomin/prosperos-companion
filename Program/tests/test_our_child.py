@@ -346,3 +346,13 @@ def test_another_companion_in_the_chat_keeps_to_one_kind_of_line_too(client, pro
         assert not sides.adult_lines(connection, billy, [{'text': f'{first} took her first steps'}], None, None, False)
         assert sides.hidden(connection, timeline_id, False).search(f'- Mira says {first} is walking now.')
         assert families.pictured(connection, timeline_id, [f'Billy and {first} at the park'])
+
+
+def test_the_childs_lines_fit_an_older_city():
+    bank = our_child.bank()
+    for era, words in (('medieval', ('newspaper', 'telescope', 'piano', 'grocery', 'flashlight', 'homework')),
+                       ('victorian', ('flashlight',))):
+        texts = ' '.join(line['text'] for key, lines in bank.items() if isinstance(lines, list)
+                         for line in our_child.fitting(lines, era))
+        assert not any(word in texts for word in words), era
+    assert any('piano' in line['text'] for line in our_child.fitting(bank['likes_teen'], 'victorian'))
