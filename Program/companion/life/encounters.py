@@ -31,6 +31,9 @@ STEP = timedelta(minutes=45)
 CONTEXT_LIMIT = 6
 # How many meetings before the companion knows their goal, then their flaw and desire.
 KNOWS_GOAL, KNOWS_HEART = 2, 3
+# Someone the companion knew well (KNOWS_HEART meetings) who left stays in the chat context this long after, even
+# when not among the CONTEXT_LIMIT most recently seen, so the companion can bring it up (v0.15).
+LEFT_REMEMBERED = timedelta(weeks=4)
 
 
 def moments(view: dict) -> list[datetime]:
@@ -351,7 +354,12 @@ def news_of(person: dict) -> list[str]:
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     if not ACTIVE:
         return []
-    return [(person['key'], text(person)) for person in known(connection, companion, now)[:CONTEXT_LIMIT]]
+    found = known(connection, companion, now)
+    today = now.astimezone(zone(companion['version']['timezone'])).date()
+    since = (today - LEFT_REMEMBERED).isoformat()
+    lately = [person for person in found[CONTEXT_LIMIT:] if person['times'] >= KNOWS_HEART and person.get('left')
+              and since <= person['left']['day'] <= today.isoformat()]
+    return [(person['key'], text(person)) for person in found[:CONTEXT_LIMIT] + lately]
 
 
 def whereabouts_now(connection, companion: dict, key: str, now) -> dict | None:
