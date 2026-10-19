@@ -25,20 +25,29 @@ export function howText(how: Reached['how'], name: string): string {
 }
 
 /** "Mira brought up being exclusive. You said yes." / "You brought up a key to their place. Mira said not yet." /
- * "Mira said “I love you.” You said it back." */
+ * "Mira said “I love you.” You said it back." / "Mira asked whether you two stay as you are or separate. You chose to
+ * stay as you are." */
 export function askText(ask: Ask, name: string): string {
   const who = firstName(name)
   if (ask.step === 'confession') {
     if (ask.side === 'them') return `${who} told you how they feel. ${ask.status === 'yes' ? 'You said you feel the same.' : ask.status === 'no' ? 'You said you would rather stay friends.' : ask.status === 'open' ? 'Waiting on your answer.' : 'You let it pass.'}`
     return `You told ${who} how you feel. ${ask.status === 'yes' ? `${who} feels the same.` : `${who} would rather stay friends.`}`
   }
-  if (ask.step === 'love') return loveText(ask, who)
+  const own = ({ love: loveText, stay: stayText } as Record<string, (ask: Ask, who: string) => string>)[ask.step]
+  if (own) return own(ask, who)
   if (ask.side === 'them') {
     const answer = { open: 'Waiting on your answer.', yes: 'You said yes.', not_yet: 'You said not yet.', no: 'You said no.', lapsed: 'You let it pass for now.' }[ask.status]
     return `${who} brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${answer}`
   }
   const theirs = { yes: 'said yes.', no: 'said no.' }[ask.status as 'yes' | 'no'] ?? 'said not yet.'
   return `You brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${who} ${theirs}`
+}
+
+/** After two noes to starting a family: "Mira asked whether you two stay as you are or separate. You chose to stay as
+ * you are." */
+function stayText(ask: Ask, who: string): string {
+  const chose = { open: 'Waiting on your answer.', yes: 'You chose to stay as you are.', no: 'You chose to separate.', lapsed: 'You let it pass, so you stay as you are.' }[ask.status as 'open' | 'yes' | 'no' | 'lapsed'] ?? ''
+  return `${who} asked whether you two stay as you are or separate. ${chose}`.trim()
 }
 
 /** "I love you" is said, not brought up: "Mira said “I love you.” You said it back." */

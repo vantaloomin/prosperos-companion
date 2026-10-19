@@ -34,7 +34,7 @@ from companion.clock import stamp
 from companion.database import many, optional
 from companion.errors import require
 from companion.life import steps
-from companion.life.steps import FAMILY, SIBLING, USER
+from companion.life.steps import FAMILY, SIBLING, STAY, USER
 
 ACTIVE = True
 LADDER = steps.FAMILY_LADDER
@@ -54,13 +54,18 @@ OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
 NO_CLINIC_ERAS = {*OLD_ERAS, 'jazz-age'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
-# After the user says no when they bring it up, they ask once more, a year on at the soonest; a second no settles it
-# (the user can still bring it up).
-NO_AGAIN_DAYS = 365
+# After the user says no when they bring it up, they ask once more, half a year on at the soonest (Vanta 2026-10-19); a
+# second no settles it (the user can still bring it up).
+NO_AGAIN_DAYS = 182
 MOST_NOS = 2
+# After that second no, a companion who wants children (not "someday") asks whether the two of them stay as they are
+# or separate, this many days later (seeded); never on an easy life (Vanta 2026-10-19).
+STAY_AFTER = (7, 21)
 # Another child (companion/life/our_child.py): no sooner than this many days after the youngest came home; one more.
 SIBLING_AFTER = 548
 MOST_CHILDREN = 2
+# ... and only while the youngest is under this age (Vanta 2026-10-19: not a 44-year-old with an 18-year-old).
+SIBLING_UNDER = 10
 SIBLING_LINE = ('You and the user have decided to have another child, a brother or sister for {names}. Nothing has come '
                 'of it yet.')
 # The engine's choices about how the child comes (companion/life/expecting.py).
@@ -125,10 +130,19 @@ WANT_LINES = {'yes': 'On children: you would like to have children one day. If i
               'someday': 'On children: you might want children someday, but not any time soon. If it comes up, say '
                          'so honestly.',
               'no': "On children: you don't want children of your own. If it comes up, say so honestly and kindly."}
+# The same for a companion who already has children (their own from before, or the pair's).
+MORE_LINES = {'yes': 'On children: you would like another child one day. If it comes up, say so honestly.',
+              'someday': 'On children: you might want another child someday, but not any time soon. If it comes up, '
+                         'say so honestly.',
+              'no': "On children: you don't want more children. If it comes up, say so honestly and kindly."}
+# The user said not yet when they brought it up: who said it, until a child is on the way (the real model mixed it up).
+NOT_YET_LINE = 'Earlier, when you brought up starting a family, the user said they weren\'t ready yet.'
 ROUTE_WORDS = {'expecting_them': 'you would carry the baby', 'expecting_you': 'the user would carry the baby',
                'adoption': 'you would adopt', 'fostering': 'you would foster, which may lead to adopting',
                'surrogacy': 'you would have a baby through a surrogate', 'ward': 'you would take in a ward',
                'foundling': 'you would take in a foundling', 'relative': "you would raise a relative's child"}
+STAYED_LINE = ('On {on} you and the user chose to stay together without children of your own. You have made your peace '
+               'with it; you may feel a pang now and then, but you do not reopen it.')
 STEP_LINE = ('You and the user have decided to start a family together; when it happens, {route}. Nothing has come of '
              'it yet: nobody is expecting and nothing has been arranged.')
 
@@ -301,7 +315,8 @@ def children_names(connection, companion: dict) -> str:
 
 def sibling_open(connection, companion: dict, found: dict | None, today: date | None = None) -> bool:
     """Whether another child can come up: they decided on a family, live together and aren't apart, their only child
-    is home (by `today`, a year and a half or more), nothing else is on the way and it isn't decided yet."""
+    is home (by `today`, a year and a half or more, and under ten), nothing else is on the way and it isn't decided
+    yet."""
     from companion.life import expecting
     from companion.world import intimacy
     timeline_id = companion['active_timeline_id']
@@ -313,7 +328,13 @@ def sibling_open(connection, companion: dict, found: dict | None, today: date | 
             intimacy.reads_as_minor(companion['version']['definition']):
         return False
     home = date.fromisoformat((journey or {}).get('arrived_on') or kids[0]['born_on'])
-    return today is None or (today - home).days >= SIBLING_AFTER
+    return today is None or ((today - home).days >= SIBLING_AFTER and young_enough(kids, today))
+
+
+def young_enough(kids: list[dict], today: date) -> bool:
+    """Another child comes up only while the youngest is under ten."""
+    from companion.life import families
+    return families.age_of(kids[-1], today) < SIBLING_UNDER
 
 
 def living_on(found: dict | None) -> str | None:
@@ -357,6 +378,8 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
         return None
     found_facts = facts(connection, companion, found, now)
     today = steps.local_today(companion, now)
+    if len(noes(connection, timeline_id)) >= MOST_NOS:
+        return plan_stay(connection, companion, found_facts['wants'], now)
     if found_facts['wants'] == 'no' or found_facts['short_days'] or found_facts['closeness_over'] < 0 or \
             steps.waiting(connection, timeline_id, FAMILY.key, today) or told_no(connection, timeline_id, today):
         return None
@@ -370,13 +393,43 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
                             due_on=today + timedelta(days=offset), consequence_id=outcome['id'], turn=turn)
 
 
+def noes(connection, timeline_id: str) -> list[dict]:
+    """The user's noes when they brought up starting a family, newest first."""
+    return many(connection, "SELECT settled_at FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side='them' "
+                "AND status='no' AND settled_at IS NOT NULL ORDER BY settled_at DESC", (timeline_id, USER, FAMILY.key))
+
+
 def told_no(connection, timeline_id: str, today: date) -> bool:
-    """The user said no when they brought it up: twice, or once less than a year ago."""
-    nos = many(connection, "SELECT settled_at FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side='them' "
-               "AND status='no' AND settled_at IS NOT NULL ORDER BY settled_at DESC", (timeline_id, USER, FAMILY.key))
+    """The user said no when they brought it up: twice, or once less than half a year ago."""
+    nos = noes(connection, timeline_id)
     if len(nos) >= MOST_NOS:
         return True
     return bool(nos) and (today - date.fromisoformat(nos[0]['settled_at'][:10])).days < NO_AGAIN_DAYS
+
+
+def plan_stay(connection, companion: dict, wanted: str, now) -> dict | None:
+    """Two noes to a companion who wants children: a week or few after the second, they ask whether the two of them
+    stay as they are or separate, once. "Someday" lets it rest, and so does an easy life (no breakups there)."""
+    timeline_id = companion['active_timeline_id']
+    if wanted != 'yes' or not may_part(connection, companion) or stay_ask(connection, timeline_id):
+        return None
+    last = date.fromisoformat(noes(connection, timeline_id)[0]['settled_at'][:10])
+    offset = random.Random(f'{timeline_id}:{STAY.key}:when').randint(*STAY_AFTER)
+    return steps.insert_ask(connection, timeline_id, LADDER, STAY.key, 'them', 'planned', stamp(now),
+                            due_on=max(last + timedelta(days=offset), steps.local_today(companion, now)))
+
+
+def may_part(connection, companion: dict) -> bool:
+    """Separating can happen: Breaks and breakups apply and rough patches are true to life or more, so never on an
+    easy life (companion/life/breakups.py)."""
+    from companion.life import breakups, rough_patches
+    return breakups.applies(connection, companion) and rough_patches.level(connection) >= 2
+
+
+def stay_ask(connection, timeline_id: str) -> dict | None:
+    """Their ask whether to stay as they are or separate, any but one given way to something else."""
+    return optional(connection, "SELECT * FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND status<>'dropped' "
+                    'ORDER BY created_at DESC LIMIT 1', (timeline_id, USER, STAY.key))
 
 
 def plan_sibling(connection, companion: dict, found: dict, now) -> dict | None:
@@ -415,6 +468,9 @@ def still_due(connection, companion: dict, found: dict | None, key: str = FAMILY
     """A planned ask still holds while the step can come up (another child, by `today`'s date when given)."""
     if key == SIBLING.key:
         return sibling_open(connection, companion, found, today)
+    if key == STAY.key:
+        return open_to(connection, companion, found) and may_part(connection, companion) and \
+            wants(connection, companion) == 'yes'
     return open_to(connection, companion, found)
 
 
@@ -443,9 +499,15 @@ def raised_by_user(connection, companion: dict, found: dict, message: dict, now,
     return True
 
 
-def answered(connection, companion: dict, ask: dict, said: str, now) -> None:
+def answered(connection, companion: dict, ask: dict, said: str, message: dict, now) -> None:
     """The user answered when they brought it up: a no to a companion who wants children can start a rough patch (on
-    Real life and Drama; companion/life/rough_patches.py keeps it off an easy life)."""
+    Real life and Drama; companion/life/rough_patches.py keeps it off an easy life). Choosing to separate ends it
+    (companion/life/breakups.py); staying settles it for good."""
+    if ask['step'] == STAY.key:
+        if said == 'no' and may_part(connection, companion):
+            from companion.life import breakups
+            breakups.parted(connection, companion, message, now)
+        return
     if said != 'no' or ask['side'] != 'them' or ask['step'] != FAMILY.key or wants(connection, companion, now) != 'yes':
         return
     from companion.life import rough_patches
@@ -469,7 +531,14 @@ def context_lines(connection, companion: dict, found: dict, now) -> list[tuple[s
     if not ACTIVE or quiet(connection) or found['ladder'] not in steps.LADDERS:
         return []
     wanted = wants(connection, companion)  # No clock: the context is read, never written (`settle` records it).
-    result = [(f'family:wants:{wanted}', f'- {WANT_LINES[wanted]}')]
+    more = has_children(connection, companion)
+    result = [(f"family:wants:{wanted}{':more' if more else ''}", f'- {(MORE_LINES if more else WANT_LINES)[wanted]}')]
+    if not more and said_not_yet(connection, companion):
+        result.append(('family:not_yet', f'- {NOT_YET_LINE}'))
+    stayed = stay_ask(connection, companion['active_timeline_id'])
+    if stayed and stayed['status'] in ('yes', 'lapsed') and found['ladder'] == 'romance':
+        on = steps.long_date(stayed['settled_at'][:10])
+        result.append((f"family:stayed:{stayed['id']}", f'- {STAYED_LINE.format(on=on)}'))
     if found['ladder'] == 'romance' and reached(connection, companion['active_timeline_id']):
         route = route_found(connection, companion)['route']
         from companion.life import expecting
@@ -482,6 +551,23 @@ def context_lines(connection, companion: dict, found: dict, now) -> list[tuple[s
             result.append(('family:sibling', f'- {SIBLING_LINE.format(names=names)}'))
         result += lines
     return result
+
+
+def has_children(connection, companion: dict) -> bool:
+    """Whether they already have a child: their own from before (companion/life/kids.py) or the pair's."""
+    from companion.life import kids
+    timeline_id = companion.get('active_timeline_id')
+    return bool(timeline_id and (kids.own(connection, timeline_id) or ours(connection, timeline_id)))
+
+
+def said_not_yet(connection, companion: dict) -> bool:
+    """The user's latest answer when they brought up a family was not yet, and nothing is under way since."""
+    from companion.life import expecting
+    timeline_id = companion['active_timeline_id']
+    last = optional(connection, "SELECT status FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side='them' "
+                    "AND status IN ('yes', 'not_yet', 'no') ORDER BY settled_at DESC LIMIT 1", (timeline_id, USER,
+                                                                                               FAMILY.key))
+    return bool(last) and last['status'] == 'not_yet' and not under_way(expecting.current(connection, timeline_id))
 
 
 def journey_lines(connection, companion: dict, now) -> list[tuple[str, str]]:

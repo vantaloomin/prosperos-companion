@@ -214,6 +214,21 @@ def test_a_year_and_a_half_on_they_bring_up_another_child(client, clock, monkeyp
         assert 'a brother or sister for' in our_child.steps.reason_for(connection, current(connection), 'sibling')
 
 
+def test_another_child_comes_up_only_while_the_youngest_is_under_ten(client, provider, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 9 * 366)
+    assert family(client)['can_decide_another']
+    aged(client, child, 10 * 366)
+    reconcile(client)
+    assert not [ask for ask in planned(client) if ask['step'] == 'sibling']
+    assert not family(client)['can_decide_another']
+    says(provider)
+    send(client, 'should we have another baby?', 'client-ours-ten')
+    with connect(client) as connection:
+        assert not connection.execute("SELECT * FROM step_asks WHERE step='sibling'").fetchall()
+    assert client.put('/api/life/steps/family', json={'another': True}).status_code == 409
+
+
 def test_the_user_can_bring_up_another_child(client, provider, clock, monkeypatch):
     row, child = born(client, clock, monkeypatch)
     aged(client, child, 600)
@@ -256,6 +271,24 @@ def test_a_reply_reads_its_side_from_many_wordings():
 def whole(provider) -> str:
     request = provider.requests[-1]
     return request['system'] + '\n' + '\n'.join(str(message['content']) for message in request['messages'])
+
+
+def test_a_style_note_is_read_for_its_plain_words(client, provider, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    first = child['name'].split()[0]
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    companion = client.get('/api/companion').json()['companion']
+    note = f"/api/authors-notes/companion:{companion['id']}"
+    recent = [{'text': f'how is {first} doing this morning?'}]
+    for text, kept in (('Keep replies short and teasing.', True), ('Keep it light, with eye contact and leather.', True),
+                         ('Slow, sensual, the two of you alone in the bedroom.', False), ('Keep it sexy.', False)):
+        assert client.put(note, json={'text': text}).status_code == 200
+        with connect(client) as connection:
+            assert sides.family_reply(connection, current(connection), recent, None, None) is kept, text
+    assert client.put(note, json={'text': 'Keep replies short and teasing.'}).status_code == 200
+    says(provider)
+    send(client, recent[0]['text'], 'client-ours-note')
+    assert first in provider.requests[-1]['system']
 
 
 def test_a_reply_whose_conversation_says_a_child_carries_one_kind_of_line_or_none(client, provider, clock,

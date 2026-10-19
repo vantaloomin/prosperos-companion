@@ -1,5 +1,6 @@
 """Starting the companion over, or deleting them, after a verified backup."""
 import sqlite3
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -106,6 +107,19 @@ def test_starting_over_keeps_the_character_and_clears_their_history(client, app,
     # The fresh timeline talks and lives from now on.
     send(client, 'Hi again.', 'client-0002')
     assert len(ok(client.get('/api/conversation'))['messages']) == 2
+
+
+def test_starting_over_keeps_a_wants_children_the_user_set_and_clears_the_family(client, app, connected, clock):
+    ok(client.put('/api/life/steps/family', json={'wants': 'no', 'route': 'adoption'}))
+    ok(client.post('/api/companion/start-over', json={'name': 'Mira'}))
+    found = ok(client.get('/api/life/steps/family'))
+    assert found['wants'] == 'no' and found['wants_how'] == 'set'
+    with app.state.database.connect() as connection:
+        assert [tuple(row) for row in connection.execute('SELECT wants, route FROM family_wishes')] == [('no', None)]
+    ok(client.put('/api/life/steps/family', json={'wants': 'auto'}))
+    clock.advance(timedelta(minutes=1))
+    ok(client.post('/api/companion/start-over', json={'name': 'Mira'}))
+    assert count(app, 'family_wishes') == 0
 
 
 def test_deleting_removes_the_companion_and_keeps_the_workspace_setup(client, app, life, clock):
