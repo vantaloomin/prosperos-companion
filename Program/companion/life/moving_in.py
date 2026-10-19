@@ -19,7 +19,8 @@ Together (companion/life/together.py), so the chat is written in person then and
 the user saying they are out, or Heading out on the chat strip, makes it texting for a while (`out_until`).
 
 Moving out (`move_out`) comes after a breakup (Breaks and breakups) or the step taken back on the Character page: the one
-who moved in moves out, picked by rules, and stays in town. No model decides anything: the model only puts it in words.
+who moved in moves out, picked by rules, and stays in town. When the user moves to another city they move out: whoever set the home up
+keeps it, and a home grown for more of them is given up a few months on for a one-bedroom (`downsize`). No model decides anything: the model only puts it in words.
 
 Sharing a home (Vanta's item 1, v0.13): when another romance companion's moving-in step is reached while the user lives
 with someone (or is about to), the newcomer would move into that home. Everyone involved says whether they are open to
@@ -57,6 +58,8 @@ JUST_OUT = timedelta(hours=1)
 # How long the chat context keeps moving day, and a move out.
 TOLD_DAYS = 3
 UNITS = ('shared', 'studio', 'one_bedroom', 'two_bedroom')
+# Days after the user moved away from a home grown for more of them: whoever kept it moves somewhere smaller.
+DOWNSIZE_AFTER = (60, 120)
 # Sharing a home: the choice, how long a "not yet" holds before they are asked again, and traits that speak against it.
 SHARE = 'moving_in:share'
 SHARE_AGAIN = 45
@@ -332,6 +335,7 @@ def advance(connection, companion: dict, now) -> None:
     begin(connection, companion, now)
     row = current(connection, companion['active_timeline_id'])
     if row is None:
+        downsize(connection, companion, now)
         return
     today = local_today(companion, now)
     if not reached(connection, companion, now) or chapter_undone(connection, row):
@@ -652,6 +656,46 @@ def place_of_their_own(connection, companion: dict, row: dict, day: date, now) -
                         f"You moved out of the place you shared with the user, to a place of your own in {hood['name']}.",
                         encode({'location': location}), encode({'ended': [item['id'] for item in old], 'added': [added]}),
                         stamp(now)))
+
+
+def downsize(connection, companion: dict, now) -> None:
+    """The user moved to another city from a home grown for more of them (`grow`), and whoever set it up kept it: a few
+    months on (`DOWNSIZE_AFTER`) they move to a one-bedroom in the same neighbourhood, as a life chapter."""
+    row = latest(connection, companion['active_timeline_id'])
+    if not row or row['status'] != 'moved_out' or row['out_who'] != 'you' or not moved_away(connection, row):
+        return
+    day = date.fromisoformat(row['out_on']) + timedelta(days=random.Random(f"{row['id']}:downsize").randint(
+        *DOWNSIZE_AFTER))
+    item = their_home(connection, companion, day)
+    if day > local_today(companion, now) or not item or item.get('rent_from') != 'shared' or optional(
+            connection, "SELECT id FROM life_chapters WHERE timeline_id=? AND kind='move' AND started_on=?",
+            (row['timeline_id'], day.isoformat())):
+        return
+    city = city_of(connection, row)
+    hood = hood_named(city, row['neighbourhood'] or item.get('neighborhood') or '')
+    rents = (hood or {}).get('rent') or {}
+    if 'one_bedroom' not in rents:
+        return
+    low, high = rents['one_bedroom']
+    name = home.home_name(item['variety'], 'one_bedroom', city)
+    place = same_place(item)
+    place['name'], place['details'] = name, {
+        **{key: value for key, value in place['details'].items() if key != 'rent_from'}, 'shared': False,
+        'bedrooms': 'one_bedroom', 'description': f"{name} in {hood['name']}",
+        'rent': int(round((low + (high - low) * random.Random(f"{row['id']}:downsize:rent").random()) / 25) * 25)}
+    connection.execute('UPDATE home_items SET until=? WHERE id=?', (day.isoformat(), item['id']))
+    added = home.insert_item(connection, row['timeline_id'], place, 'change', day, now)
+    connection.execute('INSERT INTO life_chapters (id, timeline_id, kind, started_on, title, told, share, changes, undo, '
+                       "created_at) VALUES (?, ?, 'move', ?, ?, ?, ?, '{}', ?, ?)",
+                       (identifier(), row['timeline_id'], day.isoformat(),
+                        f"{first_name(companion)} moved to a smaller place in {hood['name']}", DOWNSIZED.format(
+                            hood=hood['name']), 'Moved into a smaller place today. It feels right for one.',
+                        encode({'ended': [item['id']], 'added': [added]}), stamp(now)))
+
+
+# What the one who kept the home is told when they move somewhere smaller (`downsize`).
+DOWNSIZED = ('The home you shared with the user was more than you needed on your own after they moved away, so you '
+             'moved to a one-bedroom in {hood}.')
 
 
 # Sharing a home ---------------------------------------------------------------------------------------------------------
