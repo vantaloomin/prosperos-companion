@@ -469,3 +469,7 @@ def test_after_a_not_yet_the_context_says_who_was_not_ready(client, clock, monke
         connection.commit()
     assert parenthood.NOT_YET_LINE not in preview(client)
 
+
+
+def test_their_family_ask_speaks_for_themselves():
+    assert not [line for line in steps.bank()['family'] if 'with us?' in line]
