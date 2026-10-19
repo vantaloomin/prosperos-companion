@@ -378,7 +378,7 @@ def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
 
 def test_older_cities_speak_in_their_own_voice_and_today_in_a_texting_one():
     bank = families.bank()
-    texts = {line['text'] for key, lines in bank.items() if key not in ('names', 'tags') for line in lines}
+    texts = {line['text'] for key, lines in bank.items() if key not in ('names', 'tags', 'babysit_ask') for line in lines}
     assert set(bank['tags']['older']) <= texts and set(bank['tags']['modern']) <= texts
     for key in ('pregnancy', 'baby_update', 'toddler_update', 'child_update', 'babysit_baby', 'babysit_toddler',
                 'babysit_child'):
