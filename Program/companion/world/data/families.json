@@ -1441,8 +1441,8 @@
    "share": "{child} had a long chat with a pigeon at the park. the pigeon listened"
   },
   {
-   "text": "{child} picked {their} own outfit for daycare: pyjama top and wellies.",
-   "share": "{child} picked {their} own outfit: pyjama top and wellies. {a} let it happen"
+   "text": "{child} picked {their} own outfit for daycare: pajama top and wellies.",
+   "share": "{child} picked {their} own outfit: pajama top and wellies. {a} let it happen"
   },
   {
    "text": "{child} did a sideways roll at toddler gym.",
@@ -2092,7 +2092,7 @@
   },
   {
    "text": "{child} has decided to be a sailor one day.",
-   "share": "{child} has decided to be a sailor one day and practises knots on everything, chair legs included."
+   "share": "{child} has decided to be a sailor one day and practices knots on everything, chair legs included."
   }
  ],
  "babysit_baby": [
@@ -3864,7 +3864,7 @@
    "{name} and {a} walked out on a fine evening and talked about the kind of parents they meant to be.",
    "The midwife came by and told {name} and {a} that all was going well.",
    "{name} and {a} made up the cradle with fresh linen and stood looking at it.",
-   "{name}'s neighbours promised to send soup and bread the week the baby came.",
+   "{name}'s neighbors promised to send soup and bread the week the baby came.",
    "{name} and {a} counted out what they had put by for the baby and found it would do.",
    "{name} let out the seams of a whole wardrobe of clothes.",
    "{name} felt the baby stir for the first time while sitting by the fire.",
@@ -3899,9 +3899,9 @@
    "{name} and {a} hung a little bell over the cradle.",
    "{name} dried a bundle of chamomile for the baby's first bath, as the old women advised.",
    "{name}'s father built a little stool for the child to come.",
-   "{name} and {a} minded a neighbour's baby for an afternoon, for practice.",
+   "{name} and {a} minded a neighbor's baby for an afternoon, for practice.",
    "{name} and {a} found a cradle at the market with a cracked rocker and mended it.",
-   "{name} practised swaddling a loaf of bread, to the family's delight.",
+   "{name} practiced swaddling a loaf of bread, to the family's delight.",
    "{name} and {a} kept a candle in the window on the night word was due.",
    "{name} stitched an initial on a little blanket, then unpicked it because nobody knew the name yet.",
    "{name} and {a} signed the papers at the parsonage with shaking hands.",
@@ -3909,7 +3909,7 @@
    "{name} and {a} walked the long way home, dreaming of the child to come.",
    "{name} filled a chest with little clothes passed down through the family.",
    "{name} and {a} hung a little gown to air by the fire.",
-   "{name} and {a} spent a whole Sunday painting the small room the colour of butter.",
+   "{name} and {a} spent a whole Sunday painting the small room the color of butter.",
    "{name} and {a} gave thanks at supper for the child they had been promised.",
    "{name} carried the letter from the foundling home everywhere, gone soft from folding.",
    "{name} and {a} set aside the best blanket in the house for the baby.",
@@ -3928,7 +3928,7 @@
    "{child} cut a first tooth after three cross nights.",
    "{child} sat up on the hearth rug and looked very pleased about it.",
    "{child} went to sleep to the sound of rain on the roof.",
-   "{child} was passed from arm to arm by the neighbours without a whimper.",
+   "{child} was passed from arm to arm by the neighbors without a whimper.",
    "{child} tasted mashed apple for the first time and made a face.",
    "{child} rolled clean over on the bed and startled {them}self.",
    "{child} babbled away at the cat by the fire.",
@@ -3969,7 +3969,7 @@
    "Would you mind {child} on {day} from {time}? I will leave a good supper and a warm fire, and {partner} and I will be home before late. No obligation at all.",
    "If you could spare the evening of {day}, from {time}, we should be so grateful. {child} will be abed, and {partner} and I long for an evening out. Do decline if you like.",
    "Would you sit up with {child} on {day} from {time}? {partner} wishes to take me dancing, if you can believe it. Only if it is no bother.",
-   "May I ask a favour? Mind {child} on {day} from {time}, and {partner} and I shall bring you back a pie from the fair. Say no if it does not suit.",
+   "May I ask a favor? Mind {child} on {day} from {time}, and {partner} and I shall bring you back a pie from the fair. Say no if it does not suit.",
    "Could you take charge of {child} on {day} from {time}? {partner} and I are going to the play. I would not hold it against you to refuse.",
    "Would you keep house with {child} on {day} from {time}? {partner} and I are wanted at a family supper. Refuse if it is any trouble.",
    "{child} is as good as gold of an evening. Would you sit with {child} on {day} from {time}, so {partner} and I can go out? No obligation.",
@@ -4022,7 +4022,7 @@
    "{name} had a board game night with {child}.",
    "{name} took {child} to an art gallery.",
    "{name} and {a} packed the hospital bag, unpacked it, and packed it again.",
-   "{name} and {a} went to their first antenatal class and practised swaddling a doll.",
+   "{name} and {a} went to their first antenatal class and practiced swaddling a doll.",
    "{name} read a parenting book aloud to {a} until they both fell asleep.",
    "{name} and {a} washed and folded a mountain of tiny baby clothes.",
    "{name} and {a} counted down the weeks on a calendar pinned to the kitchen wall.",
@@ -4030,7 +4030,7 @@
    "{name} and {a} lay awake whispering about what the baby might be like.",
    "{name} and {a} stocked the larder with enough soup to last a month.",
    "{name} and {a} babyproofed the kitchen cupboards months before it was needed.",
-   "{name} and {a} practised bathing a doll at their antenatal class.",
+   "{name} and {a} practiced bathing a doll at their antenatal class.",
    "{name} craved lemons so much that {a} bought a whole sackful at the market.",
    "{name}'s back ached, so {a} learned how to give a proper back rub.",
    "{name} went out at midnight to find {a} the sour plums they were craving.",
@@ -4050,13 +4050,13 @@
    "{child} lost a game and stormed off, then came back and shook hands.",
    "{child} insisted on wearing a cape to school for a whole week.",
    "Would you be up for watching {child} on {day} from {time}? {partner} and I haven't been out in ages. Totally fine if not.",
-   "Huge favour, easy no: could you babysit {child} on {day} from {time}? {partner} and I want a quiet dinner out.",
+   "Huge favor, easy no: could you babysit {child} on {day} from {time}? {partner} and I want a quiet dinner out.",
    "Any chance you're free {day} from {time}? We'd love to leave {child} with you while {partner} and I go to a friend's party. Totally fine if not.",
    "Pizza on us if you'll babysit {child} on {day} from {time}? {partner} and I are desperate for a night out. No pressure.",
    "We haven't had a night out since {child} arrived. Could you babysit {day} from {time} so {partner} and I can escape? Totally fine if not.",
    "Babysitting question. {day}, from {time}, {child} plus you plus snacks. {partner} and I go out to dinner. Interested? Totally fine if not.",
    "It's {partner}'s birthday on {day}. Could you mind {child} from {time} so I can take them out? Totally fine if not.",
-   "Could you do us a massive favour on {day}? Mind {child} from {time} while {partner} and I go to a wedding do. Fine if it doesn't work.",
+   "Could you do us a massive favor on {day}? Mind {child} from {time} while {partner} and I go to a wedding do. Fine if it doesn't work.",
    "Babysit {child} {day} from {time}? We'll leave a list, a feast and the softest blanket while {partner} and I go out. Totally fine if you can't.",
    "Would you like to be the hero of the week? Babysit {child} on {day} from {time} so {partner} and I can get out. Easy no if busy.",
    "Is {day} any good for you? We'd need someone with {child} from {time} while {partner} and I go out for supper. Totally fine if not.",
@@ -4064,11 +4064,11 @@
    "Would you look after {child} on {day} from {time}? They'll likely be asleep while {partner} and I are out. Totally fine if not.",
    "Do you want first dibs on babysitting {child}? {day} from {time}. {partner} and I are going out for dinner. No pressure.",
    "Honest ask, honest answer welcome: could you mind {child} on {day} from {time}? {partner} and I want a night out. Totally fine if not.",
-   "{child} needs a babysitter on {day} from {time}, and you're our favourite person. Could you? {partner} and I want dinner out. No pressure.",
+   "{child} needs a babysitter on {day} from {time}, and you're our favorite person. Could you? {partner} and I want dinner out. No pressure.",
    "Could I bribe you with snacks to babysit {child} on {day} from {time}? {partner} and I need a night. Totally fine if not.",
    "Could you be on {child} duty {day} from {time}? Pizza on us, back by eleven. {partner} and I are going out. Fine if you can't.",
    "{partner} has been planning a surprise for me on {day}. Could you mind {child} from {time}? Totally fine if not.",
-   "Can I ask a favour? {day}, from {time}, {child} needs minding while {partner} and I go to a dinner. Totally fine if not.",
+   "Can I ask a favor? {day}, from {time}, {child} needs minding while {partner} and I go to a dinner. Totally fine if not.",
    "{partner} and I are trying to have one evening out a month. Could you babysit {child} {day} from {time}? Totally fine if not.",
    "Would you mind {child} {day} from {time}? Pizza on us, and {partner} swears we'll be home by ten. Fine if not.",
    "I'm asking for a friend. The friend is me. Could you babysit {child} {day} from {time}? {partner} and I need dinner out. No pressure.",
@@ -4077,7 +4077,7 @@
    "Any chance you'd mind {child} on {day} from {time}? {partner} and I promised ourselves one evening out. Totally fine if not.",
    "Could you be our saviour on {day}? Mind {child} from {time} while {partner} and I go to a friend's party. Totally fine if not.",
    "Would you be okay to babysit {child} {day} from {time}? Pizza on us. {partner} and I are off to a gig. Totally fine if not.",
-   "Would you watch {child} {day} from {time}? {partner} and I are going to the theatre and I'm already excited. Totally fine if not.",
+   "Would you watch {child} {day} from {time}? {partner} and I are going to the theater and I'm already excited. Totally fine if not.",
    "Could you watch {child} {day} from {time}? Snacks on the counter, blanket on the sofa. {partner} and I are going out. Totally fine if not.",
    "Would you be free to watch {child} on {day} from {time}? {partner} and I are going to a dinner. Totally fine if you're not."
   ]
@@ -4100,11 +4100,11 @@
    "share": "hospital bag packed for the third time. {a} added snacks. i added more snacks"
   },
   {
-   "text": "{name}'s aunt sent a box of tiny knitted hats in every colour imaginable.",
+   "text": "{name}'s aunt sent a box of tiny knitted hats in every color imaginable.",
    "share": "my aunt sent nine knitted hats. the baby will have one head. we are well covered"
   },
   {
-   "text": "{name} and {a} went to their first antenatal class and practised swaddling a doll.",
+   "text": "{name} and {a} went to their first antenatal class and practiced swaddling a doll.",
    "share": "antenatal class tonight. i swaddled the practice doll like a burrito. instructor said firm, but not that firm"
   },
   {
@@ -4125,7 +4125,7 @@
   },
   {
    "text": "{name} and {a} counted down the weeks on a calendar pinned to the kitchen wall.",
-   "share": "crossed off another week on the kitchen calendar. {a} uses a different colour every time, for drama"
+   "share": "crossed off another week on the kitchen calendar. {a} uses a different color every time, for drama"
   },
   {
    "text": "{name} hung a little mobile of felt stars above the crib.",
@@ -4144,8 +4144,8 @@
    "share": "gave up on names we like and made a list of names we hate instead. much longer. much more fun"
   },
   {
-   "text": "{name} and {a} spent an evening learning how to fold a cloth nappy.",
-   "share": "cloth nappy practice tonight. {a} folded one like origami. mine looks like a crumpled sail"
+   "text": "{name} and {a} spent an evening learning how to fold a cloth diaper.",
+   "share": "cloth diaper practice tonight. {a} folded one like origami. mine looks like a crumpled sail"
   },
   {
    "text": "{name} cleared out the spare room and found boxes nobody remembered packing.",
@@ -4176,8 +4176,8 @@
    "share": "maternity ward tour today. {a} took notes like there'd be an exam. there won't. probably"
   },
   {
-   "text": "{name}'s neighbour dropped off a basket of baby things and a great deal of advice.",
-   "share": "neighbour came by with a basket of baby stuff and forty minutes of advice. kept the basket. most of the advice too"
+   "text": "{name}'s neighbor dropped off a basket of baby things and a great deal of advice.",
+   "share": "neighbor came by with a basket of baby stuff and forty minutes of advice. kept the basket. most of the advice too"
   },
   {
    "text": "{name} and {a} babyproofed the kitchen cupboards months before it was needed.",
@@ -4192,16 +4192,16 @@
    "share": "long walk with {a} tonight about what kind of parents we want to be. the answer is calm. we'll see"
   },
   {
-   "text": "{name}'s siblings started a fierce competition over who would be the favourite aunt or uncle.",
-   "share": "my siblings are campaigning to be the favourite. there are already bribes. the baby isn't even here"
+   "text": "{name}'s siblings started a fierce competition over who would be the favorite aunt or uncle.",
+   "share": "my siblings are campaigning to be the favorite. there are already bribes. the baby isn't even here"
   },
   {
    "text": "{name} and {a} wrote a letter to the baby to be opened on their eighteenth birthday.",
    "share": "{a} and i wrote a letter for the baby to open at eighteen. i cried twice. {a} cried three times. not a contest"
   },
   {
-   "text": "{name} sorted the baby clothes into piles by size and then by colour.",
-   "share": "organised the baby clothes by size. then by colour. then by cuteness. the cute pile is everything"
+   "text": "{name} sorted the baby clothes into piles by size and then by color.",
+   "share": "organized the baby clothes by size. then by color. then by cuteness. the cute pile is everything"
   },
   {
    "text": "{name} and {a} spent a rainy afternoon arguing over which way the crib should face.",
@@ -4209,10 +4209,10 @@
   },
   {
    "text": "{name}'s friends threw a surprise baby shower with far too many games.",
-   "share": "surprise baby shower today. lost the nappy pinning race, won the lullaby quiz. balance"
+   "share": "surprise baby shower today. lost the diaper pinning race, won the lullaby quiz. balance"
   },
   {
-   "text": "{name} and {a} practised bathing a doll at their antenatal class.",
+   "text": "{name} and {a} practiced bathing a doll at their antenatal class.",
    "share": "bathed a plastic doll in class tonight. i was extremely gentle. the doll still looked judgemental"
   },
   {
@@ -4233,19 +4233,19 @@
   },
   {
    "text": "{name}'s mother arrived with a suitcase full of advice and homemade biscuits.",
-   "share": "mum arrived with biscuits and opinions. the biscuits are excellent. the opinions are plentiful"
+   "share": "mother arrived with biscuits and opinions. the biscuits are excellent. the opinions are plentiful"
   },
   {
    "text": "{name} and {a} danced slowly around the empty nursery one evening.",
-   "share": "{a} and i danced around the empty nursery tonight. no music. still one of my favourite moments ever"
+   "share": "{a} and i danced around the empty nursery tonight. no music. still one of my favorite moments ever"
   },
   {
    "text": "{name} bought the first tiny pair of shoes even though the baby would not walk for a year.",
    "share": "bought baby shoes. the baby won't walk for ages. i don't care. they are the size of my thumb"
   },
   {
-   "text": "{name} and {a} practised changing nappies on a teddy bear.",
-   "share": "practised nappy changes on a teddy bear. teddy is very clean now. teddy did not consent"
+   "text": "{name} and {a} practiced changing diapers on a teddy bear.",
+   "share": "practiced diaper changes on a teddy bear. teddy is very clean now. teddy did not consent"
   },
   {
    "text": "{name} lined the nursery drawers with lavender paper.",
@@ -4327,7 +4327,7 @@
    "carrying": "me"
   },
   {
-   "text": "{name} realised the bump now hid both feet from view.",
+   "text": "{name} realized the bump now hid both feet from view.",
    "share": "can't see my feet anymore. i'm told they're still there. {a} confirms",
    "carrying": "me"
   },
@@ -4387,7 +4387,7 @@
    "carrying": "me"
   },
   {
-   "text": "{name} suddenly could not stand the smell of {a}'s favourite soap.",
+   "text": "{name} suddenly could not stand the smell of {a}'s favorite soap.",
    "share": "the baby hates {a}'s soap. {a} has been demoted to plain unscented. they're taking it well-ish",
    "carrying": "me"
   },
@@ -4714,8 +4714,8 @@
    "share": "Made up the cradle with fresh linen. {a} and I just stood and looked at it for a while."
   },
   {
-   "text": "{name}'s neighbours promised to send soup and bread the week the baby came.",
-   "share": "The neighbours have promised soup and bread the week the baby comes. I could weep, they are so kind."
+   "text": "{name}'s neighbors promised to send soup and bread the week the baby came.",
+   "share": "The neighbors have promised soup and bread the week the baby comes. I could weep, they are so kind."
   },
   {
    "text": "{name} and {a} counted out what they had put by for the baby and found it would do.",
@@ -4829,8 +4829,8 @@
    "modern": true
   },
   {
-   "text": "{name} filed every adoption document in a binder that {a} had colour-coded.",
-   "share": "{a} colour-coded our adoption binder. it has tabs. it has sub-tabs. i'm in awe and slightly scared",
+   "text": "{name} filed every adoption document in a binder that {a} had color-coded.",
+   "share": "{a} color-coded our adoption binder. it has tabs. it has sub-tabs. i'm in awe and slightly scared",
    "modern": true
   },
   {
@@ -4950,7 +4950,7 @@
   },
   {
    "text": "{name} and {a} got an update from the agency saying they were next in line for review.",
-   "share": "agency update: we're next in line for review. i've reorganised the nursery twice in celebration",
+   "share": "agency update: we're next in line for review. i've reorganized the nursery twice in celebration",
    "modern": true
   },
   {
@@ -4994,8 +4994,8 @@
    "modern": true
   },
   {
-   "text": "{name} saved the agency's number as the very first favourite on the phone.",
-   "share": "the agency is now my number one favourite contact. above my mum. she doesn't need to know",
+   "text": "{name} saved the agency's number as the very first favorite on the phone.",
+   "share": "the agency is now my number one favorite contact. above my mother. she doesn't need to know",
    "modern": true
   },
   {
@@ -5029,8 +5029,8 @@
    "modern": true
   },
   {
-   "text": "{name} and {a} practised answering the phone calmly in case it was the agency.",
-   "share": "we practised answering the phone calmly in case it's the agency. {a} still squeaks on hello",
+   "text": "{name} and {a} practiced answering the phone calmly in case it was the agency.",
+   "share": "we practiced answering the phone calmly in case it's the agency. {a} still squeaks on hello",
    "modern": true
   },
   {
@@ -5065,11 +5065,11 @@
   },
   {
    "text": "{name}'s mother sent a bundle of tiny clothes she had kept for years.",
-   "share": "my mum sent a bundle of baby clothes she's been saving for years. she's been waiting for this too"
+   "share": "my mother sent a bundle of baby clothes she's been saving for years. she's been waiting for this too"
   },
   {
-   "text": "{name} and {a} practised rocking a bundle of blankets to get the feel of it.",
-   "share": "practised rocking a bundle of blankets with {a}. we're very good at it. the blankets are very calm"
+   "text": "{name} and {a} practiced rocking a bundle of blankets to get the feel of it.",
+   "share": "practiced rocking a bundle of blankets with {a}. we're very good at it. the blankets are very calm"
   },
   {
    "text": "{name} filled a little chest with soft toys and blankets for the child to come.",
@@ -5116,11 +5116,11 @@
    "share": "made up the little bed with fresh linen and lavender. smells like a meadow in there"
   },
   {
-   "text": "{name}'s neighbours came by one by one with small gifts for the child to come.",
-   "share": "the neighbours keep turning up with tiny gifts. we've got four rattles and a hat with ears"
+   "text": "{name}'s neighbors came by one by one with small gifts for the child to come.",
+   "share": "the neighbors keep turning up with tiny gifts. we've got four rattles and a hat with ears"
   },
   {
-   "text": "{name} and {a} practised lullabies together in the evenings.",
+   "text": "{name} and {a} practiced lullabies together in the evenings.",
    "share": "{a} and i are practising lullabies. we harmonise badly. the cat leaves the room"
   },
   {
@@ -5192,8 +5192,8 @@
    "share": "dried wildflowers to hang over the cradle. the nursery smells like summer now"
   },
   {
-   "text": "{name} practised folding and pinning cloth nappies until it felt natural.",
-   "share": "practised folding cloth nappies all evening. i'm now faster than {a}. they want a rematch"
+   "text": "{name} practiced folding and pinning cloth diapers until it felt natural.",
+   "share": "practiced folding cloth diapers all evening. i'm now faster than {a}. they want a rematch"
   },
   {
    "text": "{name} and {a} bickered fondly over who would get to hold the baby first.",
@@ -5240,8 +5240,8 @@
    "share": "wrote a letter for the little one to read when they're grown. it's mostly about how much we wanted them"
   },
   {
-   "text": "{name} and {a} visited friends with a newborn to practise holding a baby.",
-   "share": "visited friends with a newborn to practise holding. held her like a fragile egg. she fell asleep. victory"
+   "text": "{name} and {a} visited friends with a newborn to practice holding a baby.",
+   "share": "visited friends with a newborn to practice holding. held her like a fragile egg. she fell asleep. victory"
   },
   {
    "text": "{name} and {a} painted a small sign of welcome to hang over the nursery door.",
@@ -5249,7 +5249,7 @@
   },
   {
    "text": "{name} leapt up every time someone knocked at the door, hoping for news.",
-   "share": "every knock on the door and i leap up. so far it's been the neighbour twice and a lost goose once"
+   "share": "every knock on the door and i leap up. so far it's been the neighbor twice and a lost goose once"
   },
   {
    "text": "{name} and {a} filled the house with plants to make it feel warm and alive.",
@@ -5353,7 +5353,7 @@
   },
   {
    "text": "{name} and {a} hung a little bell over the cradle.",
-   "share": "Hung a little bell over the cradle. We ring it every time we pass, to practise."
+   "share": "Hung a little bell over the cradle. We ring it every time we pass, to practice."
   },
   {
    "text": "{name} dried a bundle of chamomile for the baby's first bath, as the old women advised.",
@@ -5364,15 +5364,15 @@
    "share": "My father has built a little stool for the baby. It will be years before it gets sat on. He does not care."
   },
   {
-   "text": "{name} and {a} minded a neighbour's baby for an afternoon, for practice.",
-   "share": "Minded the neighbour's baby for an afternoon, for practice. We kept the baby happy and the baby kept us busy."
+   "text": "{name} and {a} minded a neighbor's baby for an afternoon, for practice.",
+   "share": "Minded the neighbor's baby for an afternoon, for practice. We kept the baby happy and the baby kept us busy."
   },
   {
    "text": "{name} and {a} found a cradle at the market with a cracked rocker and mended it.",
    "share": "Found a cradle at the market with a cracked rocker. {a} mended it in an evening. Good as new, nearly."
   },
   {
-   "text": "{name} practised swaddling a loaf of bread, to the family's delight.",
+   "text": "{name} practiced swaddling a loaf of bread, to the family's delight.",
    "share": "Practised swaddling with a loaf of bread. The family thought it very funny. The loaf was very secure."
   },
   {
@@ -5404,7 +5404,7 @@
    "share": "Hung the little gown to air by the fire. {a} keeps stopping to look at it."
   },
   {
-   "text": "{name} and {a} spent a whole Sunday painting the small room the colour of butter.",
+   "text": "{name} and {a} spent a whole Sunday painting the small room the color of butter.",
    "share": "Spent the whole Sunday painting the small room yellow, like butter. It is the happiest room in the house now."
   },
   {
@@ -5507,7 +5507,7 @@
   },
   {
    "text": "{child} met {their} grandmother and stared at her earrings for ten straight minutes.",
-   "share": "{child} met my mum today. {they} ignored her completely and fell in love with her earrings"
+   "share": "{child} met my mother today. {they} ignored her completely and fell in love with her earrings"
   },
   {
    "text": "{child} started crawling backwards and kept ending up under the sofa.",
@@ -5566,8 +5566,8 @@
    "share": "first big bath. {child} kicked so much water the floor needed mopping. absolute menace"
   },
   {
-   "text": "{name} accidentally put the nappy on backwards at four in the morning.",
-   "share": "put {child}'s nappy on backwards at 4am. {they} didn't care. i cared. i'm a professional"
+   "text": "{name} accidentally put the diaper on backwards at four in the morning.",
+   "share": "put {child}'s diaper on backwards at 4am. {they} didn't care. i cared. i'm a professional"
   },
   {
    "text": "{child} got the hiccups and found them hilarious.",
@@ -5627,7 +5627,7 @@
   },
   {
    "text": "{child} discovered {their} voice could go very high and tested it all afternoon.",
-   "share": "{child} found {their} high notes today. glass is in danger. the neighbours know {their} name now"
+   "share": "{child} found {their} high notes today. glass is in danger. the neighbors know {their} name now"
   },
   {
    "text": "{child} pushed up on {their} arms during tummy time and looked around like a little seal.",
@@ -5690,7 +5690,7 @@
    "share": "i had a full shower with nobody crying. i stood there way too long. i think i saw god"
   },
   {
-   "text": "{child} wailed when the neighbour's dog barked, then barked back.",
+   "text": "{child} wailed when the neighbor's dog barked, then barked back.",
    "share": "dog barked at {child}, {child} cried, then {child} barked back. we've reached an understanding"
   },
   {
@@ -5770,8 +5770,8 @@
    "share": "{child} got stuck under the armchair. {a} did a rescue mission. everyone's fine. armchair is banned"
   },
   {
-   "text": "{child} chewed the corner of {their} favourite cloth book until it was soggy.",
-   "share": "{child}'s favourite book is a cloth one and {they} {are} eating it slowly. very literary"
+   "text": "{child} chewed the corner of {their} favorite cloth book until it was soggy.",
+   "share": "{child}'s favorite book is a cloth one and {they} {are} eating it slowly. very literary"
   },
   {
    "text": "{child} loved the warm water of {their} evening bath so much {they} fell asleep in it.",
@@ -5958,7 +5958,7 @@
    "share": "Rain on the roof tonight and {child} went straight off. I think we have found the secret."
   },
   {
-   "text": "{child} was passed from arm to arm by the neighbours without a whimper.",
+   "text": "{child} was passed from arm to arm by the neighbors without a whimper.",
    "share": "{child} was passed round the whole street today, arm to arm. Not a whimper. Very gracious."
   },
   {
@@ -6033,7 +6033,7 @@
   },
   {
    "text": "{child} called {a} by {a}'s first name and wouldn't stop.",
-   "share": "{child} heard me say {a}'s name and now uses it too. {a} is no longer mum or dad. just a colleague"
+   "share": "{child} heard me say {a}'s name and now uses it too. {a} is no longer a parent. just a colleague"
   },
   {
    "text": "{child} learned to jump with both feet and jumped everywhere.",
@@ -6088,8 +6088,8 @@
    "share": "{child} can count to ten. seven doesn't exist in {their} world. we don't question it"
   },
   {
-   "text": "{child} declared {their} favourite colour was \"sparkle\".",
-   "share": "asked {child} {their} favourite colour. {they} said sparkle. hard to argue with"
+   "text": "{child} declared {their} favorite color was \"sparkle\".",
+   "share": "asked {child} {their} favorite color. {they} said sparkle. hard to argue with"
   },
   {
    "text": "{child} wanted the same bedtime story every night for two weeks.",
@@ -6276,8 +6276,8 @@
    "share": "{child} learned please. says it like a threat. please. very effective though"
   },
   {
-   "text": "{child} spent the morning feeding grass to the neighbour's goat.",
-   "share": "{child} fed the neighbour's goat all morning. the goat is now {their} best friend. we can't afford a goat"
+   "text": "{child} spent the morning feeding grass to the neighbor's goat.",
+   "share": "{child} fed the neighbor's goat all morning. the goat is now {their} best friend. we can't afford a goat"
   },
   {
    "text": "{child} waved goodbye to the bath water as it drained.",
@@ -6296,8 +6296,8 @@
    "share": "{child} put socks on the dog. two of them. the dog looked embarrassed. we let it continue"
   },
   {
-   "text": "{child} cried at the end of {their} favourite song because it ended.",
-   "share": "{child} cries when {their} favourite song ends. every time. we sing it again. we are trapped"
+   "text": "{child} cried at the end of {their} favorite song because it ended.",
+   "share": "{child} cries when {their} favorite song ends. every time. we sing it again. we are trapped"
   },
   {
    "text": "{child} woke {name} up by poking {name}'s eye and saying \"morning\".",
@@ -6321,7 +6321,7 @@
   },
   {
    "text": "{child} pulled every pan out of the cupboard and played them like drums.",
-   "share": "{child} has a drum kit now. it's all our pans. our neighbours love us"
+   "share": "{child} has a drum kit now. it's all our pans. our neighbors love us"
   },
   {
    "text": "{child} gave {their} toast to {a} because {a} looked hungry.",
@@ -6550,7 +6550,7 @@
    "share": "hour of homework protest. then {child} did it all in ten minutes perfectly. the protest was the hard part"
   },
   {
-   "text": "{child} started learning the recorder and practised in every room of the house.",
+   "text": "{child} started learning the recorder and practiced in every room of the house.",
    "share": "{child} is learning the recorder. it's every room. it's every hour. it's one note. it's a lot"
   },
   {
@@ -6711,26 +6711,26 @@
   },
   {
    "text": "{child} cried because {they} didn't get picked for the team and then got picked the next week.",
-   "share": "{child} didn't make the team, cried, practised all week, made it. i'm so proud i could burst"
+   "share": "{child} didn't make the team, cried, practiced all week, made it. i'm so proud i could burst"
   },
   {
    "text": "{child} came home with a painting of the family where {name} had a very long neck.",
    "share": "{child} painted the family. i have a neck like a giraffe. it's on the wall now"
   },
   {
-   "text": "{child} told {a} that {they} {were} getting married to the neighbour's kid.",
-   "share": "{child} announced {theyre} marrying the neighbour's kid. they're six. the wedding is next tuesday apparently"
+   "text": "{child} told {a} that {they} {were} getting married to the neighbor's kid.",
+   "share": "{child} announced {theyre} marrying the neighbor's kid. they're six. the wedding is next tuesday apparently"
   },
   {
-   "text": "{child} asked {name} if the old days had colours.",
-   "share": "{child} asked if the olden days were in colour. i'm not that old. i'm not"
+   "text": "{child} asked {name} if the old days had colors.",
+   "share": "{child} asked if the olden days were in color. i'm not that old. i'm not"
   },
   {
    "text": "{child} learned to knit from {their} grandmother and made a scarf with a hole in it.",
    "share": "grandma taught {child} to knit. {they} made me a scarf. it has a hole in it. i wear it every day"
   },
   {
-   "text": "{child} practised {their} times tables in the bath.",
+   "text": "{child} practiced {their} times tables in the bath.",
    "share": "{child} does times tables in the bath now. seven times eight while splashing. somehow it sticks"
   },
   {
@@ -6742,8 +6742,8 @@
    "share": "family game night. {child} fell asleep halfway through. we kept {their} cards. {they} {were} winning"
   },
   {
-   "text": "{child} got a part in the choir and practised {their} solo in the shower.",
-   "share": "{child} got a solo in choir. practises in the bath every night. the whole street knows the song"
+   "text": "{child} got a part in the choir and practiced {their} solo in the shower.",
+   "share": "{child} got a solo in choir. practices in the bath every night. the whole street knows the song"
   },
   {
    "text": "{child} asked {a} to teach {them} how to fish and caught a boot.",
@@ -6782,7 +6782,7 @@
    "share": "{child} was class helper today. handed out pencils. came home like {they} {were} elected mayor"
   },
   {
-   "text": "{child} decided to grow {their} hair long like {their} favourite character.",
+   "text": "{child} decided to grow {their} hair long like {their} favorite character.",
    "share": "{child} wants long hair like a knight in {their} book. refuses all haircuts. it's going well. it's a lot of hair"
   },
   {
@@ -6910,15 +6910,15 @@
    "share": "{child} and {a} bake bread every sunday now. the kitchen is covered in flour. the bread is great"
   },
   {
-   "text": "{child} volunteered to read aloud in assembly and practised all week.",
-   "share": "{child} read aloud in assembly. practised all week in the mirror. didn't stumble once. so brave"
+   "text": "{child} volunteered to read aloud in assembly and practiced all week.",
+   "share": "{child} read aloud in assembly. practiced all week in the mirror. didn't stumble once. so brave"
   },
   {
    "text": "{child} stayed up late to finish a book and told {name} the whole plot at breakfast.",
    "share": "{child} finished {their} book at midnight then told me the whole plot at breakfast. in detail. spoilers included"
   },
   {
-   "text": "{child} made a map of the neighbourhood with every cat marked on it.",
+   "text": "{child} made a map of the neighborhood with every cat marked on it.",
    "share": "{child} made a map of our street. every cat is marked. the dogs are not. clear priorities"
   },
   {
@@ -6998,7 +6998,7 @@
    "share": "took {child} rowing. {they} did the oars. we went in circles for an hour. best hour of the summer"
   },
   {
-   "text": "{child} started helping the old neighbour carry her firewood every Saturday.",
+   "text": "{child} started helping the old neighbor carry her firewood every Saturday.",
    "share": "{child} helps old mrs hale with her firewood every saturday now. she pays in biscuits. good deal"
   },
   {
@@ -7007,7 +7007,7 @@
   },
   {
    "text": "{child} recited a whole poem at supper without a slip.",
-   "share": "{child} recited a whole poem at supper without a single slip. {a} applauded. So did the neighbours, through the wall."
+   "share": "{child} recited a whole poem at supper without a single slip. {a} applauded. So did the neighbors, through the wall."
   },
   {
    "text": "{child} ran to the baker alone and came back with the right change.",
@@ -7052,7 +7052,7 @@
  ],
  "babysit_ask": [
   "Would you be up for watching {child} on {day} from {time}? {partner} and I haven't been out in ages. Totally fine if not.",
-  "Huge favour, easy no: could you babysit {child} on {day} from {time}? {partner} and I want a quiet dinner out.",
+  "Huge favor, easy no: could you babysit {child} on {day} from {time}? {partner} and I want a quiet dinner out.",
   "{partner} and I have an anniversary on {day}. Any chance you could mind {child} from {time}? No worries at all if you can't.",
   "Could you sit with {child} on {day} from {time}? {partner} and I want a night out. Bedtime is easy, honestly. Say no if it's a pain.",
   "Any chance you're free {day} from {time}? We'd love to leave {child} with you while {partner} and I go to a friend's party. Totally fine if not.",
@@ -7064,13 +7064,13 @@
   "Is it cheeky to ask you to babysit {child} on {day} at {time}? {partner} and I want one grown-up evening. Say no if you need to.",
   "Babysitting question. {day}, from {time}, {child} plus you plus snacks. {partner} and I go out to dinner. Interested? Totally fine if not.",
   "Could I tempt you with a sofa, snacks and a sleeping {child}? {day} from {time}, while {partner} and I head out. Happy with a no.",
-  "Any interest in an evening with {child} on {day}? From {time}. {partner} and I are going to the theatre. Don't feel obliged.",
+  "Any interest in an evening with {child} on {day}? From {time}. {partner} and I are going to the theater. Don't feel obliged.",
   "Would you mind keeping an eye on {child} on {day} from {time}? {partner}'s work do. No hard feelings if you can't.",
   "I hate asking, but could you babysit {child} on {day} from {time}? {partner} and I need a breather. Completely fine to say no.",
   "{child} adores you. Would you watch them on {day} from {time} while {partner} and I go out? No pressure whatsoever.",
   "It's {partner}'s birthday on {day}. Could you mind {child} from {time} so I can take them out? Totally fine if not.",
   "Fancy an evening of very little effort? {child} sleeps, you eat our snacks. {day} from {time}. {partner} and I are off to dinner. Say no if you like.",
-  "Could you do us a massive favour on {day}? Mind {child} from {time} while {partner} and I go to a wedding do. Fine if it doesn't work.",
+  "Could you do us a massive favor on {day}? Mind {child} from {time} while {partner} and I go to a wedding do. Fine if it doesn't work.",
   "Babysit {child} {day} from {time}? We'll leave a list, a feast and the softest blanket while {partner} and I go out. Totally fine if you can't.",
   "Is there any chance you'd watch {child} on {day} from {time}? {partner} and I want to remember what conversation is. No worries if not.",
   "Would you like to be the hero of the week? Babysit {child} on {day} from {time} so {partner} and I can get out. Easy no if busy.",
@@ -7089,8 +7089,8 @@
   "Could you babysit {child} on {day} from {time}? I'll leave the good biscuits out. {partner} and I need an evening. Fine if not.",
   "Would you have {child} for a few hours on {day} from {time}? {partner}'s sister is having a party. No hard feelings at all.",
   "Honest ask, honest answer welcome: could you mind {child} on {day} from {time}? {partner} and I want a night out. Totally fine if not.",
-  "How would you feel about watching {child} on {day} from {time}? {partner} and I are going to the theatre. Say no if you'd rather.",
-  "{child} needs a babysitter on {day} from {time}, and you're our favourite person. Could you? {partner} and I want dinner out. No pressure.",
+  "How would you feel about watching {child} on {day} from {time}? {partner} and I are going to the theater. Say no if you'd rather.",
+  "{child} needs a babysitter on {day} from {time}, and you're our favorite person. Could you? {partner} and I want dinner out. No pressure.",
   "We're going to try a whole evening out on {day}. Could you mind {child} from {time}? Bedtime is simple, and {partner} is already excited. Fine if you can't.",
   "Would you sit with {child} on {day} from {time}? {partner} and I owe a friend a dinner. Say no if it's a stretch.",
   "Could I bribe you with snacks to babysit {child} on {day} from {time}? {partner} and I need a night. Totally fine if not.",
@@ -7099,7 +7099,7 @@
   "Any chance of a babysitter for {child} on {day}? From {time}. {partner} and I have a harvest dance to go to. No pressure.",
   "Could you mind {child} on {day} from {time}? I've already lit the fire in my head. {partner} and I want a quiet supper out. Fine if not.",
   "Would you watch {child} on {day} from {time} while {partner} and I go to a play? Totally understand if you can't.",
-  "Favour time, no guilt either way: could you babysit {child} {day} from {time}? {partner} and I are off to a friend's leaving party.",
+  "Favor time, no guilt either way: could you babysit {child} {day} from {time}? {partner} and I are off to a friend's leaving party.",
   "Would {day} work for an evening with {child}? From {time}. {partner} and I have dinner plans. Feel free to say no.",
   "I promise {child} is easy. Asleep early, wakes at dawn. Could you babysit {day} from {time}? {partner} and I want out. No pressure.",
   "Could you be on {child} duty {day} from {time}? Pizza on us, back by eleven. {partner} and I are going out. Fine if you can't.",
@@ -7109,7 +7109,7 @@
   "Asking before I lose my nerve: could you babysit {child} on {day} from {time}? {partner} and I want dinner out. Fine if not.",
   "Would you mind {child} on {day} from {time}? {partner} and I are going to a friend's birthday supper. Truly fine to say no.",
   "I know it's a lot, so say no if it is. Could you watch {child} {day} from {time}? {partner} and I want an evening to ourselves.",
-  "Can I ask a favour? {day}, from {time}, {child} needs minding while {partner} and I go to a dinner. Totally fine if not.",
+  "Can I ask a favor? {day}, from {time}, {child} needs minding while {partner} and I go to a dinner. Totally fine if not.",
   "We miss going out. Could you mind {child} on {day} from {time} so {partner} and I can? No pressure, really.",
   "Would you consider an evening with {child} on {day} from {time}? {partner} and I are seeing a show. Say no if it's tricky.",
   "{child} has been sleeping through, finally. Want to test it? Babysit {day} from {time} while {partner} and I go out. Fine if not.",
@@ -7121,7 +7121,7 @@
   "Could you look after {child} on {day} from {time}? Honestly they'll be asleep and you'll be bored. {partner} and I need a dinner. No pressure.",
   "Is it a big ask to have you babysit {child} on {day} from {time}? {partner} and I have been invited to a ball. Say no if it is.",
   "Would you mind {child} {day} from {time}? Pizza on us, and {partner} swears we'll be home by ten. Fine if not.",
-  "Could you spare an evening for {child}? {day}, from {time}. {partner} and I want to go to the theatre. No worries if not.",
+  "Could you spare an evening for {child}? {day}, from {time}. {partner} and I want to go to the theater. No worries if not.",
   "Would you be willing to watch {child} on {day} from {time}? First time {partner} and I have left them. Totally fine to say no.",
   "Could you babysit {child} on {day} at {time}? {partner} and I are going to dinner with old friends. No pressure at all.",
   "I'd only ask you. Could you mind {child} on {day} from {time}? {partner} and I want a night out. Absolutely fine if not.",
@@ -7129,10 +7129,10 @@
   "Would you mind {child} on {day} from {time}? {partner} and I are going to a music night. Easy no if you're tired.",
   "Could you be {child}'s keeper for an evening? {day} from {time}, while {partner} and I go out to supper. No pressure.",
   "Would you watch {child} on {day} from {time}? {partner} and I have an anniversary dinner. Say no without a second thought.",
-  "Okay, big favour: could you mind {child} on {day} from {time}? Bedtime is a song and a cuddle. {partner} and I want a night out. Fine if not.",
+  "Okay, big favor: could you mind {child} on {day} from {time}? Bedtime is a song and a cuddle. {partner} and I want a night out. Fine if not.",
   "I'm asking for a friend. The friend is me. Could you babysit {child} {day} from {time}? {partner} and I need dinner out. No pressure.",
   "Could you take {child} off our hands on {day} from {time}? Just for the evening. {partner} and I are going to a party. Totally fine if not.",
-  "Would you like to come over on {day} and watch {child} from {time}? {partner} and I are off to the theatre. No worries if you can't.",
+  "Would you like to come over on {day} and watch {child} from {time}? {partner} and I are off to the theater. No worries if you can't.",
   "Can we borrow your evening? {day} from {time}, with {child}, while {partner} and I go to a friend's dinner. Feel free to say no.",
   "Would you mind {child} on {day} from {time}? They'll be fed, bathed and dozing. {partner} and I want supper out. No pressure.",
   "Could you watch {child} {day} from {time}? Snacks are yours, sofa's yours, {child} is asleep. {partner} and I are off out. Totally fine if not.",
@@ -7148,7 +7148,7 @@
   "Could you mind {child} on {day} from {time}? I know you're busy, so a no is completely fine. {partner} and I want a dinner out.",
   "Would you care to babysit {child} on {day} from {time}? {partner} and I are going to a recital. Say no if it's not your night.",
   "Could you have {child} on {day} from {time}? They'll sleep, you'll relax, {partner} and I will eat something hot. No pressure.",
-  "Would you watch {child} {day} from {time}? {partner} and I are going to the theatre and I'm already excited. Totally fine if not.",
+  "Would you watch {child} {day} from {time}? {partner} and I are going to the theater and I'm already excited. Totally fine if not.",
   "Is there any way you'd mind {child} on {day} from {time}? {partner} and I want a night to ourselves. Say no if it's too much.",
   "Could you keep {child} company on {day} from {time}? {partner} and I are going to a friend's housewarming. No hard feelings if not.",
   "Would you babysit {child} on {day} from {time}? I'll owe you supper for a month. {partner} and I want a night out. No pressure.",
@@ -7177,7 +7177,7 @@
   "Would you mind {child} on {day} from {time}? I will leave a good supper and a warm fire, and {partner} and I will be home before late. No obligation at all.",
   "If you could spare the evening of {day}, from {time}, we should be so grateful. {child} will be abed, and {partner} and I long for an evening out. Do decline if you like.",
   "Would you sit up with {child} on {day} from {time}? {partner} wishes to take me dancing, if you can believe it. Only if it is no bother.",
-  "May I ask a favour? Mind {child} on {day} from {time}, and {partner} and I shall bring you back a pie from the fair. Say no if it does not suit.",
+  "May I ask a favor? Mind {child} on {day} from {time}, and {partner} and I shall bring you back a pie from the fair. Say no if it does not suit.",
   "Could you take charge of {child} on {day} from {time}? {partner} and I are going to the play. I would not hold it against you to refuse.",
   "Would you keep house with {child} on {day} from {time}? {partner} and I are wanted at a family supper. Refuse if it is any trouble.",
   "{child} is as good as gold of an evening. Would you sit with {child} on {day} from {time}, so {partner} and I can go out? No obligation.",
