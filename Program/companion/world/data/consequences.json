@@ -3153,7 +3153,7 @@
         },
         {
           "label": "{a} passes away",
-          "weight": 0.0004,
+          "weight": 0.0012,
           "rules": [
             {
               "reader": "age",
@@ -3199,14 +3199,20 @@
             {
               "reader": "frail",
               "is": 1,
-              "times": 25,
+              "times": 12,
               "why": "caring for {a} has been getting harder"
             },
             {
               "reader": "treatment",
               "is": 1,
-              "times": 8,
+              "times": 6,
               "why": "{a} has been in treatment"
+            },
+            {
+              "reader": "old_era",
+              "is": 1,
+              "times": 2,
+              "why": "people die younger in these times"
             },
             {
               "reader": "loss",

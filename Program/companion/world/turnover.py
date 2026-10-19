@@ -46,8 +46,9 @@ YOUNG, YOUNG_LIFT = 30, 1.6
 # Staff retiring: each year's chance from these ages on, and the age by which everyone has.
 RETIRE = ((62, 0.18), (66, 0.4), (70, 0.75))
 RETIRED_BY = 75
-# Passing away: a small chance at 30 that rises steeply with age.
-DEATH_AT_30, DEATH_RISE = 0.0004, 0.09
+# Passing away: a small chance at 30 that rises steeply with age (true to life: about 1% a year at 60, 2% at 70, 5%
+# at 80 and 15% at 90, with LOSS below).
+DEATH_AT_30, DEATH_RISE = 0.00065, 0.09
 # Life's big turns (0..3) as multipliers, and passing away: 0 off, then the Loss slider's 0..3 (rare, now and then,
 # true to life, often) as 1..4.
 PACE = (0.0, 0.5, 1.0, 1.6)

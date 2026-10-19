@@ -304,10 +304,10 @@ def heard_news(connection, companion, now) -> list[Trigger]:
 
 def occasion(connection, companion, now) -> list[Trigger]:
     """The user's birthday, the companion's own, or a milestone in how long they have talked: on the day.
-    A circle member's birthday stays in the chat context only."""
+    A circle member's birthday, and the day someone died, stay in the chat context only."""
     return [Trigger(item['key'], 'occasion', f"{item['text'][2:]} Write to the user about it, warmly and in your own "
                     'voice.', item['template']) for item in occasions.occasions(connection, companion, now)
-            if item['days'] == 0 and item['kind'] != 'circle_birthday']
+            if item['days'] == 0 and item['kind'] not in ('circle_birthday', 'death_anniversary')]
 
 
 def busy(block: dict | None) -> bool:

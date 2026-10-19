@@ -49,6 +49,8 @@ test('occasions read as a friend would say them', async () => {
   // A step's anniversary names the step, not the first talk (E2E v0.13).
   assert.equal(occasionText({ ...base, kind: 'step_anniversary', days: 0, span: 'a year', did: 'became exclusive' }, 'Mira'), "It's been a year since you two became exclusive.")
   assert.equal(occasionText({ ...base, kind: 'step_anniversary', days: 3, span: '2 years', did: 'swapped keys' }, 'Mira'), 'In 3 days it will be 2 years since you two swapped keys.')
+  // The day someone in their circle died, a year or more on (v0.15).
+  assert.equal(occasionText({ ...base, kind: 'death_anniversary', days: 0, span: 'a year', person: 'Ruth', relation: 'mom' }, 'Mira'), "It's a year today since Mira's mom Ruth died.")
 })
 
 test('the header shows one step anniversary and counts the rest (Iris, E2E v0.13)', async () => {
