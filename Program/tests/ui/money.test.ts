@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { careersFor, todayIso } from '../../src/features/character/money.ts'
 import { completeDefinition } from '../../src/features/character/definition.ts'
-import { goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
+import { costsText, goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
 import type { MoneyView } from '../../src/types.ts'
 
 type Budget = Extract<MoneyView, { available: true }>
@@ -26,9 +26,24 @@ test('money text states payday, mood and goal plainly', () => {
   assert.equal(moodOfMoney({ ...budget, tight: true }, 'Mara'), 'Money is tight for Mara until payday.')
   assert.equal(goalText(budget), 'Saving for a new laptop: 60% there.')
   assert.equal(goalText({ ...budget, goal: { ...budget.goal, stalled: true } }), 'Saving for a new laptop, but nothing is left over to save right now.')
-  assert.equal(rentText(budget), 'Rent: about $1,280 for a studio in Towson.')
-  assert.equal(rentText({ ...budget, rent_from: 'home' }), 'Rent: about $1,280 for their home.')
+  assert.equal(rentText(budget), 'Rent: about $1,280 a month for a studio in Towson.')
+  assert.equal(rentText({ ...budget, rent_from: 'home' }), 'Rent: about $1,280 a month for their home.')
   assert.equal(workText(budget), 'Registered nurse (guessed from who they are), taking home about $4,070 a month.')
+})
+
+test('a medieval kingdom has payments on a place and no pension', () => {
+  const old = { ...budget, owned: true, retired: true, medieval: true }
+  assert.equal(rentText(old), 'Payments: about $1,280 a month for the place they bought.')
+  assert.equal(workText(old), 'Given up work, living on what they put by: about $4,070 a month.')
+  assert.equal(rentText({ ...old, medieval: false }), 'Mortgage: about $1,280 a month for the place they bought.')
+  assert.equal(workText({ ...old, medieval: false }), 'Retired, living on a pension of about $4,070 a month.')
+})
+
+test('a currency ending in a full stop never doubles it, and rent names its period (Camelot)', () => {
+  const pennies = { ...budget, period: 'week' as const, owned: true, medieval: true, text: { ...budget.text, rent: '9 d.', essentials: '20 d.', fun: '12 d.', saving: '6 d.' } }
+  assert.equal(costsText(pennies), 'Everyday costs about 20 d., fun about 12 d., savings about 6 d.')
+  assert.equal(rentText(pennies), 'Payments: about 9 d. a week for the place they bought.')
+  assert.equal(costsText(budget), 'Everyday costs about $1,220, fun about $1,020, savings about $550.')
 })
 
 test('career choices follow the home city era and keep the current pick', () => {

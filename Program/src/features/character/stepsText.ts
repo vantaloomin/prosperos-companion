@@ -61,6 +61,13 @@ export function plannedText(planned: NonNullable<StepsView['planned']>, name: st
   return `${who} plans to ${what} around ${stepDate(planned.due_on)}.`
 }
 
+/** Living apart again, under the steps like a breakup: "Living apart for now since Sep 19, 2026 · you moved". */
+export function apartStep(view: Pick<StepsView, 'apart'>, name: string): string {
+  if (!view.apart?.since) return ''
+  const who = view.apart.by === 'you' ? ' · you moved' : view.apart.by === 'them' ? ` · ${firstName(name)} moved` : ''
+  return `Living apart for now since ${stepDate(view.apart.since)}${who}`
+}
+
 /** Moving in together, in one line: "Mira is moving into your place on Oct 28, 2026.", "Living together since Nov 2,
  * 2026, at a two-bedroom in Canton.", "Mira asked you to move to Chicago. It's your call: change your home city when
  * you're ready." */

@@ -1,5 +1,5 @@
 {
-  "about": "Data banks for bigger life chapters (companion/life/chapters.py): courses someone goes back to school for, what they do with their days once retired, small businesses they start (companion/life/business.py) and long-term health conditions (companion/life/health_turns.py), by era: modern (today and the future), jazz-age (the 1920s) and other (any older past, such as Victorian London, a medieval kingdom or a fairy-tale land). Picked by seed; never shown as a list.",
+  "about": "Data banks for bigger life chapters (companion/life/chapters.py): courses someone goes back to school for, what they do with their days once retired, small businesses they start (companion/life/business.py) and long-term health conditions (companion/life/health_turns.py), by era: modern (today and the future), jazz-age (the 1920s) and other (any older past, such as Victorian London, a medieval kingdom or a fairy-tale land). Courses and businesses split the older past into medieval (a medieval kingdom or a fairy-tale land) and victorian (any other older past, such as Victorian London or the frontier). A condition marked light is more of a nuisance than a worry, and the news is told that way. Picked by seed; never shown as a list.",
   "courses": {
     "modern": [
       {
@@ -1180,7 +1180,7 @@
         "months": 36
       }
     ],
-    "other": [
+    "medieval": [
       {
         "course": "lessons in reading and letters",
         "short": "Letters",
@@ -1197,11 +1197,6 @@
         "months": 12
       },
       {
-        "course": "the mechanics' institute lectures",
-        "short": "Lectures",
-        "months": 6
-      },
-      {
         "course": "a guild's evening lectures in carpentry",
         "short": "Carpentry",
         "months": 12
@@ -1215,16 +1210,6 @@
         "course": "lessons in penmanship",
         "short": "Penmanship",
         "months": 4
-      },
-      {
-        "course": "lessons in French from a governess",
-        "short": "French",
-        "months": 12
-      },
-      {
-        "course": "lessons on the harpsichord",
-        "short": "Harpsichord",
-        "months": 12
       },
       {
         "course": "lessons on the fiddle",
@@ -1250,16 +1235,6 @@
         "course": "lessons in Greek with a scholar",
         "short": "Greek",
         "months": 18
-      },
-      {
-        "course": "lessons in astronomy at the observatory",
-        "short": "Astronomy",
-        "months": 9
-      },
-      {
-        "course": "a course of lectures on natural philosophy",
-        "short": "Natural philosophy",
-        "months": 6
       },
       {
         "course": "an apprenticeship in weaving",
@@ -1367,6 +1342,503 @@
         "months": 18
       },
       {
+        "course": "lessons in map drawing",
+        "short": "Map drawing",
+        "months": 9
+      },
+      {
+        "course": "lessons in navigation from an old sea captain",
+        "short": "Navigation",
+        "months": 12
+      },
+      {
+        "course": "lessons in surveying",
+        "short": "Surveying",
+        "months": 12
+      },
+      {
+        "course": "lessons in botany from a naturalist",
+        "short": "Botany",
+        "months": 9
+      },
+      {
+        "course": "lessons in Italian from a tutor",
+        "short": "Italian",
+        "months": 12
+      },
+      {
+        "course": "lessons in German from a tutor",
+        "short": "German",
+        "months": 12
+      },
+      {
+        "course": "lessons in Spanish from a tutor",
+        "short": "Spanish",
+        "months": 12
+      },
+      {
+        "course": "lessons in Hebrew with the rabbi",
+        "short": "Hebrew",
+        "months": 18
+      },
+      {
+        "course": "lessons in the scriptures",
+        "short": "Scripture",
+        "months": 12
+      },
+      {
+        "course": "lessons in rhetoric",
+        "short": "Rhetoric",
+        "months": 9
+      },
+      {
+        "course": "lessons in logic from a schoolmaster",
+        "short": "Logic",
+        "months": 9
+      },
+      {
+        "course": "lessons in geometry",
+        "short": "Geometry",
+        "months": 9
+      },
+      {
+        "course": "lessons in history from a schoolmaster",
+        "short": "History",
+        "months": 12
+      },
+      {
+        "course": "lessons in poetry",
+        "short": "Poetry",
+        "months": 6
+      },
+      {
+        "course": "lessons in music theory",
+        "short": "Music theory",
+        "months": 12
+      },
+      {
+        "course": "lessons on the lute",
+        "short": "Lute",
+        "months": 12
+      },
+      {
+        "course": "lessons on the flute",
+        "short": "Flute",
+        "months": 9
+      },
+      {
+        "course": "lessons on the harp",
+        "short": "Harp",
+        "months": 12
+      },
+      {
+        "course": "lessons in dancing from a dancing master",
+        "short": "Dancing",
+        "months": 4
+      },
+      {
+        "course": "lessons in fencing",
+        "short": "Fencing",
+        "months": 9
+      },
+      {
+        "course": "lessons in riding",
+        "short": "Riding",
+        "months": 6
+      },
+      {
+        "course": "lessons in archery",
+        "short": "Archery",
+        "months": 4
+      },
+      {
+        "course": "lessons in falconry",
+        "short": "Falconry",
+        "months": 12
+      },
+      {
+        "course": "lessons in oil painting from a master",
+        "short": "Oil painting",
+        "months": 18
+      },
+      {
+        "course": "lessons in portrait painting",
+        "short": "Portraiture",
+        "months": 12
+      },
+      {
+        "course": "lessons in woodcarving",
+        "short": "Woodcarving",
+        "months": 12
+      },
+      {
+        "course": "lessons in cabinetmaking from a joiner",
+        "short": "Joinery",
+        "months": 24
+      },
+      {
+        "course": "lessons in wheelwrighting",
+        "short": "Wheelwright",
+        "months": 24
+      },
+      {
+        "course": "lessons in coopering",
+        "short": "Coopering",
+        "months": 18
+      },
+      {
+        "course": "lessons in bread baking from the baker",
+        "short": "Baking",
+        "months": 6
+      },
+      {
+        "course": "lessons in pastry from a confectioner",
+        "short": "Pastry",
+        "months": 9
+      },
+      {
+        "course": "lessons in cookery from a household cook",
+        "short": "Cookery",
+        "months": 6
+      },
+      {
+        "course": "lessons in gardening from the head gardener",
+        "short": "Gardening",
+        "months": 12
+      },
+      {
+        "course": "lessons in grafting fruit trees",
+        "short": "Grafting",
+        "months": 4
+      },
+      {
+        "course": "lessons in herb lore from a wise woman",
+        "short": "Herb lore",
+        "months": 12
+      },
+      {
+        "course": "lessons in bonesetting from the village healer",
+        "short": "Bonesetting",
+        "months": 18
+      },
+      {
+        "course": "lessons in letter writing",
+        "short": "Letter writing",
+        "months": 4
+      },
+      {
+        "course": "lessons in engraving",
+        "short": "Engraving",
+        "months": 18
+      },
+      {
+        "course": "lessons in silversmithing",
+        "short": "Silversmithing",
+        "months": 24
+      },
+      {
+        "course": "lessons in goldsmithing",
+        "short": "Goldsmithing",
+        "months": 24
+      },
+      {
+        "course": "lessons in leatherwork from the saddler",
+        "short": "Saddlery",
+        "months": 18
+      },
+      {
+        "course": "lessons in rope making",
+        "short": "Rope making",
+        "months": 6
+      },
+      {
+        "course": "lessons in net mending from the fishermen",
+        "short": "Net mending",
+        "months": 3
+      },
+      {
+        "course": "lessons in boatbuilding",
+        "short": "Boatbuilding",
+        "months": 24
+      },
+      {
+        "course": "lessons in sailing a small boat",
+        "short": "Sailing",
+        "months": 4
+      },
+      {
+        "course": "lessons in basketweaving",
+        "short": "Basketry",
+        "months": 4
+      },
+      {
+        "course": "lessons in spinning",
+        "short": "Spinning",
+        "months": 4
+      },
+      {
+        "course": "lessons in knitting",
+        "short": "Knitting",
+        "months": 3
+      },
+      {
+        "course": "lessons in quilting",
+        "short": "Quilting",
+        "months": 6
+      },
+      {
+        "course": "lessons in hat making",
+        "short": "Hat making",
+        "months": 9
+      },
+      {
+        "course": "lessons in perfumery",
+        "short": "Perfumery",
+        "months": 9
+      },
+      {
+        "course": "lessons in distilling cordials",
+        "short": "Cordials",
+        "months": 6
+      },
+      {
+        "course": "lessons in winemaking from a vintner",
+        "short": "Winemaking",
+        "months": 12
+      },
+      {
+        "course": "lessons in animal husbandry",
+        "short": "Husbandry",
+        "months": 12
+      },
+      {
+        "course": "lessons in shepherding",
+        "short": "Shepherding",
+        "months": 6
+      },
+      {
+        "course": "lessons in farriery",
+        "short": "Farriery",
+        "months": 18
+      },
+      {
+        "course": "lessons in horse doctoring",
+        "short": "Horse doctoring",
+        "months": 18
+      },
+      {
+        "course": "lessons in the old tongue from a bard",
+        "short": "Old tongue",
+        "months": 12
+      },
+      {
+        "course": "lessons in storytelling from a bard",
+        "short": "Storytelling",
+        "months": 9
+      },
+      {
+        "course": "lessons in heraldry from a herald",
+        "short": "Heraldry",
+        "months": 9
+      },
+      {
+        "course": "lessons in reckoning with an abacus from a merchant",
+        "short": "Reckoning",
+        "months": 6
+      },
+      {
+        "course": "lessons in swordcraft from the castle's master-at-arms",
+        "short": "Swordcraft",
+        "months": 12
+      },
+      {
+        "course": "lessons in the harp from the court minstrel",
+        "short": "Minstrelsy",
+        "months": 12
+      },
+      {
+        "course": "lessons in reading the hours from the abbey's sisters",
+        "short": "Book of hours",
+        "months": 9
+      },
+      {
+        "course": "lessons in tending the sick at the abbey infirmary",
+        "short": "Infirmary",
+        "months": 18
+      },
+      {
+        "course": "lessons in fletching from the bowyer",
+        "short": "Fletching",
+        "months": 6
+      },
+      {
+        "course": "lessons in tapestry weaving at the hall",
+        "short": "Tapestry",
+        "months": 12
+      },
+      {
+        "course": "lessons in letters from the castle chaplain",
+        "short": "Chaplain's letters",
+        "months": 9
+      }
+    ],
+    "victorian": [
+      {
+        "course": "lessons in reading and letters",
+        "short": "Letters",
+        "months": 9
+      },
+      {
+        "course": "the mechanics' institute lectures",
+        "short": "Lectures",
+        "months": 6
+      },
+      {
+        "course": "lessons with a tutor in arithmetic",
+        "short": "Arithmetic",
+        "months": 6
+      },
+      {
+        "course": "lessons in penmanship",
+        "short": "Penmanship",
+        "months": 4
+      },
+      {
+        "course": "lessons in French from a governess",
+        "short": "French",
+        "months": 12
+      },
+      {
+        "course": "lessons on the harpsichord",
+        "short": "Harpsichord",
+        "months": 12
+      },
+      {
+        "course": "lessons on the fiddle",
+        "short": "Fiddle",
+        "months": 9
+      },
+      {
+        "course": "singing lessons with the choirmaster",
+        "short": "Singing",
+        "months": 8
+      },
+      {
+        "course": "drawing lessons from a travelling painter",
+        "short": "Drawing",
+        "months": 6
+      },
+      {
+        "course": "lessons in bookkeeping from a merchant",
+        "short": "Bookkeeping",
+        "months": 9
+      },
+      {
+        "course": "lessons in Greek with a scholar",
+        "short": "Greek",
+        "months": 18
+      },
+      {
+        "course": "lessons in astronomy at the observatory",
+        "short": "Astronomy",
+        "months": 9
+      },
+      {
+        "course": "a course of lectures on natural philosophy",
+        "short": "Natural philosophy",
+        "months": 6
+      },
+      {
+        "course": "an apprenticeship in weaving",
+        "short": "Weaving",
+        "months": 24
+      },
+      {
+        "course": "lessons from the apothecary",
+        "short": "Apothecary",
+        "months": 18
+      },
+      {
+        "course": "lessons in midwifery from the village midwife",
+        "short": "Midwifery",
+        "months": 24
+      },
+      {
+        "course": "lessons in lacemaking",
+        "short": "Lacemaking",
+        "months": 9
+      },
+      {
+        "course": "lessons in embroidery",
+        "short": "Embroidery",
+        "months": 6
+      },
+      {
+        "course": "lessons in bookbinding from the binder",
+        "short": "Bookbinding",
+        "months": 12
+      },
+      {
+        "course": "lessons in smithing at the forge",
+        "short": "Smithing",
+        "months": 24
+      },
+      {
+        "course": "lessons in pottery at the potter's wheel",
+        "short": "Pottery",
+        "months": 12
+      },
+      {
+        "course": "lessons in cheesemaking",
+        "short": "Cheesemaking",
+        "months": 6
+      },
+      {
+        "course": "lessons in brewing at the alehouse",
+        "short": "Brewing",
+        "months": 6
+      },
+      {
+        "course": "lessons in beekeeping from an old keeper",
+        "short": "Beekeeping",
+        "months": 6
+      },
+      {
+        "course": "lessons in candlemaking",
+        "short": "Candlemaking",
+        "months": 4
+      },
+      {
+        "course": "lessons in soapmaking",
+        "short": "Soapmaking",
+        "months": 3
+      },
+      {
+        "course": "lessons in dyeing cloth",
+        "short": "Dyeing",
+        "months": 6
+      },
+      {
+        "course": "lessons in tailoring from the tailor",
+        "short": "Tailoring",
+        "months": 18
+      },
+      {
+        "course": "lessons in shoemaking from the cobbler",
+        "short": "Shoemaking",
+        "months": 18
+      },
+      {
+        "course": "lessons in stonemasonry",
+        "short": "Masonry",
+        "months": 24
+      },
+      {
+        "course": "lessons in glassblowing",
+        "short": "Glassblowing",
+        "months": 18
+      },
+      {
         "course": "lessons in clockmaking",
         "short": "Clockmaking",
         "months": 24
@@ -1452,11 +1924,6 @@
         "months": 12
       },
       {
-        "course": "lessons on the lute",
-        "short": "Lute",
-        "months": 12
-      },
-      {
         "course": "lessons on the flute",
         "short": "Flute",
         "months": 9
@@ -1485,16 +1952,6 @@
         "course": "lessons in riding",
         "short": "Riding",
         "months": 6
-      },
-      {
-        "course": "lessons in archery",
-        "short": "Archery",
-        "months": 4
-      },
-      {
-        "course": "lessons in falconry",
-        "short": "Falconry",
-        "months": 12
       },
       {
         "course": "lessons in watercolours",
@@ -1555,16 +2012,6 @@
         "course": "lessons in grafting fruit trees",
         "short": "Grafting",
         "months": 4
-      },
-      {
-        "course": "lessons in herb lore from a wise woman",
-        "short": "Herb lore",
-        "months": 12
-      },
-      {
-        "course": "lessons in bonesetting from the village healer",
-        "short": "Bonesetting",
-        "months": 18
       },
       {
         "course": "lessons in nursing from the infirmary sisters",
@@ -1702,21 +2149,6 @@
         "months": 18
       },
       {
-        "course": "lessons in the old tongue from a bard",
-        "short": "Old tongue",
-        "months": 12
-      },
-      {
-        "course": "lessons in storytelling from a bard",
-        "short": "Storytelling",
-        "months": 9
-      },
-      {
-        "course": "lessons in heraldry from a herald",
-        "short": "Heraldry",
-        "months": 9
-      },
-      {
         "course": "lessons in philosophy at the lyceum",
         "short": "Philosophy",
         "months": 18
@@ -1745,6 +2177,36 @@
         "course": "lessons in book-keeping at the commercial school",
         "short": "Commercial",
         "months": 9
+      },
+      {
+        "course": "lessons in typewriting at the commercial school",
+        "short": "Typewriting",
+        "months": 4
+      },
+      {
+        "course": "lessons in telegraphy at the post office school",
+        "short": "Telegraphy",
+        "months": 6
+      },
+      {
+        "course": "lessons in photography from a portrait studio",
+        "short": "Photography",
+        "months": 6
+      },
+      {
+        "course": "the university extension lectures",
+        "short": "Extension lectures",
+        "months": 9
+      },
+      {
+        "course": "lessons in elocution",
+        "short": "Elocution",
+        "months": 4
+      },
+      {
+        "course": "lessons in first aid from the ambulance association",
+        "short": "First aid",
+        "months": 3
       }
     ]
   },
@@ -3101,9 +3563,9 @@
         "cost": 4
       },
       {
-        "business": "a neighbourhood café",
-        "short": "Café",
-        "label": "Running the café",
+        "business": "a neighbourhood caf\u00e9",
+        "short": "Caf\u00e9",
+        "label": "Running the caf\u00e9",
         "cost": 5
       },
       {
@@ -3455,9 +3917,9 @@
         "cost": 3
       },
       {
-        "business": "a board game café",
-        "short": "Game café",
-        "label": "Running the game café",
+        "business": "a board game caf\u00e9",
+        "short": "Game caf\u00e9",
+        "label": "Running the game caf\u00e9",
         "cost": 5
       },
       {
@@ -4537,7 +4999,663 @@
         "cost": 2
       }
     ],
-    "other": [
+    "medieval": [
+      {
+        "business": "a cobbler's shop",
+        "short": "Cobbler",
+        "label": "Running the cobbler's shop",
+        "cost": 2
+      },
+      {
+        "business": "a bakehouse",
+        "short": "Bakehouse",
+        "label": "Running the bakehouse",
+        "cost": 4
+      },
+      {
+        "business": "a tavern",
+        "short": "Tavern",
+        "label": "Running the tavern",
+        "cost": 6
+      },
+      {
+        "business": "an apothecary",
+        "short": "Apothecary",
+        "label": "Running the apothecary",
+        "cost": 4
+      },
+      {
+        "business": "a candle-maker's",
+        "short": "Chandler",
+        "label": "Running the candle shop",
+        "cost": 2
+      },
+      {
+        "business": "a smithy",
+        "short": "Smithy",
+        "label": "Running the smithy",
+        "cost": 5
+      },
+      {
+        "business": "a cooperage",
+        "short": "Cooper",
+        "label": "Running the cooperage",
+        "cost": 3
+      },
+      {
+        "business": "a pottery",
+        "short": "Pottery",
+        "label": "Running the pottery",
+        "cost": 3
+      },
+      {
+        "business": "a weaving workshop",
+        "short": "Weaver",
+        "label": "Running the weaving shed",
+        "cost": 3
+      },
+      {
+        "business": "a dyer's workshop",
+        "short": "Dyer",
+        "label": "Running the dye works",
+        "cost": 3
+      },
+      {
+        "business": "a tailor's shop",
+        "short": "Tailor",
+        "label": "Running the tailor's shop",
+        "cost": 3
+      },
+      {
+        "business": "a dressmaker's",
+        "short": "Dressmaker",
+        "label": "Running the dressmaker's",
+        "cost": 2
+      },
+      {
+        "business": "a milliner's",
+        "short": "Milliner",
+        "label": "Running the milliner's",
+        "cost": 3
+      },
+      {
+        "business": "a glover's shop",
+        "short": "Glover",
+        "label": "Running the glover's",
+        "cost": 2
+      },
+      {
+        "business": "a hatter's",
+        "short": "Hatter",
+        "label": "Running the hatter's",
+        "cost": 3
+      },
+      {
+        "business": "a tannery",
+        "short": "Tannery",
+        "label": "Running the tannery",
+        "cost": 4
+      },
+      {
+        "business": "a saddlery",
+        "short": "Saddler",
+        "label": "Running the saddlery",
+        "cost": 4
+      },
+      {
+        "business": "a rope walk",
+        "short": "Ropemaker",
+        "label": "Running the rope walk",
+        "cost": 3
+      },
+      {
+        "business": "a sail loft",
+        "short": "Sailmaker",
+        "label": "Running the sail loft",
+        "cost": 3
+      },
+      {
+        "business": "a boatyard",
+        "short": "Boatyard",
+        "label": "Running the boatyard",
+        "cost": 6
+      },
+      {
+        "business": "a wheelwright's shop",
+        "short": "Wheelwright",
+        "label": "Running the wheelwright's",
+        "cost": 4
+      },
+      {
+        "business": "a carpenter's shop",
+        "short": "Carpenter",
+        "label": "Running the carpenter's shop",
+        "cost": 3
+      },
+      {
+        "business": "a joinery",
+        "short": "Joiner",
+        "label": "Running the joinery",
+        "cost": 3
+      },
+      {
+        "business": "a cabinetmaker's",
+        "short": "Cabinetmaker",
+        "label": "Running the cabinet shop",
+        "cost": 4
+      },
+      {
+        "business": "a basket-weaver's",
+        "short": "Basketmaker",
+        "label": "Running the basket shop",
+        "cost": 1
+      },
+      {
+        "business": "a mill",
+        "short": "Mill",
+        "label": "Running the mill",
+        "cost": 6
+      },
+      {
+        "business": "a dairy",
+        "short": "Dairy",
+        "label": "Running the dairy",
+        "cost": 4
+      },
+      {
+        "business": "a cheesemaker's",
+        "short": "Cheesemaker",
+        "label": "Running the cheese shop",
+        "cost": 3
+      },
+      {
+        "business": "a butcher's shop",
+        "short": "Butcher",
+        "label": "Running the butcher's",
+        "cost": 4
+      },
+      {
+        "business": "a fishmonger's stall",
+        "short": "Fishmonger",
+        "label": "Running the fish stall",
+        "cost": 2
+      },
+      {
+        "business": "a greengrocer's stall",
+        "short": "Greengrocer",
+        "label": "Running the vegetable stall",
+        "cost": 1
+      },
+      {
+        "business": "a pie shop",
+        "short": "Pie shop",
+        "label": "Running the pie shop",
+        "cost": 3
+      },
+      {
+        "business": "a cookshop",
+        "short": "Cookshop",
+        "label": "Running the cookshop",
+        "cost": 4
+      },
+      {
+        "business": "an inn",
+        "short": "Inn",
+        "label": "Running the inn",
+        "cost": 6
+      },
+      {
+        "business": "a lodging house",
+        "short": "Lodging house",
+        "label": "Running the lodging house",
+        "cost": 5
+      },
+      {
+        "business": "a bathhouse",
+        "short": "Bathhouse",
+        "label": "Running the bathhouse",
+        "cost": 6
+      },
+      {
+        "business": "a laundry",
+        "short": "Laundry",
+        "label": "Running the laundry",
+        "cost": 2
+      },
+      {
+        "business": "a barber's shop",
+        "short": "Barber",
+        "label": "Running the barber's",
+        "cost": 2
+      },
+      {
+        "business": "a perfumer's",
+        "short": "Perfumer",
+        "label": "Running the perfumery",
+        "cost": 4
+      },
+      {
+        "business": "a soap-boiler's",
+        "short": "Soapmaker",
+        "label": "Running the soap works",
+        "cost": 2
+      },
+      {
+        "business": "a confectioner's",
+        "short": "Confectioner",
+        "label": "Running the sweet shop",
+        "cost": 3
+      },
+      {
+        "business": "a spice merchant's",
+        "short": "Spice merchant",
+        "label": "Running the spice shop",
+        "cost": 5
+      },
+      {
+        "business": "a herbalist's",
+        "short": "Herbalist",
+        "label": "Running the herb shop",
+        "cost": 2
+      },
+      {
+        "business": "a bookbinder's",
+        "short": "Bookbinder",
+        "label": "Running the bindery",
+        "cost": 3
+      },
+      {
+        "business": "a bookshop",
+        "short": "Bookshop",
+        "label": "Running the bookshop",
+        "cost": 4
+      },
+      {
+        "business": "a scribe's stall",
+        "short": "Scribe",
+        "label": "Running the writing stall",
+        "cost": 1
+      },
+      {
+        "business": "a mapmaker's",
+        "short": "Mapmaker",
+        "label": "Running the map shop",
+        "cost": 2
+      },
+      {
+        "business": "a glassblower's",
+        "short": "Glassblower",
+        "label": "Running the glassworks",
+        "cost": 5
+      },
+      {
+        "business": "a jeweller's",
+        "short": "Jeweller",
+        "label": "Running the jeweller's",
+        "cost": 6
+      },
+      {
+        "business": "a goldsmith's",
+        "short": "Goldsmith",
+        "label": "Running the goldsmith's",
+        "cost": 6
+      },
+      {
+        "business": "a silversmith's",
+        "short": "Silversmith",
+        "label": "Running the silversmith's",
+        "cost": 5
+      },
+      {
+        "business": "a tinsmith's",
+        "short": "Tinsmith",
+        "label": "Running the tin shop",
+        "cost": 3
+      },
+      {
+        "business": "a pewterer's",
+        "short": "Pewterer",
+        "label": "Running the pewter shop",
+        "cost": 4
+      },
+      {
+        "business": "a locksmith's",
+        "short": "Locksmith",
+        "label": "Running the locksmith's",
+        "cost": 3
+      },
+      {
+        "business": "a farrier's",
+        "short": "Farrier",
+        "label": "Running the farrier's",
+        "cost": 3
+      },
+      {
+        "business": "a livery stable",
+        "short": "Livery",
+        "label": "Running the livery stable",
+        "cost": 5
+      },
+      {
+        "business": "a carter's business",
+        "short": "Carter",
+        "label": "Running the carting business",
+        "cost": 3
+      },
+      {
+        "business": "a ferry",
+        "short": "Ferry",
+        "label": "Running the ferry",
+        "cost": 4
+      },
+      {
+        "business": "a stonemason's yard",
+        "short": "Stonemason",
+        "label": "Running the mason's yard",
+        "cost": 4
+      },
+      {
+        "business": "a thatching business",
+        "short": "Thatcher",
+        "label": "Running the thatching business",
+        "cost": 1
+      },
+      {
+        "business": "a brickworks",
+        "short": "Brickworks",
+        "label": "Running the brickworks",
+        "cost": 5
+      },
+      {
+        "business": "a toymaker's",
+        "short": "Toymaker",
+        "label": "Running the toy shop",
+        "cost": 2
+      },
+      {
+        "business": "a puppet theatre",
+        "short": "Puppet show",
+        "label": "Running the puppet theatre",
+        "cost": 2
+      },
+      {
+        "business": "a travelling players' troupe",
+        "short": "Players",
+        "label": "Running the troupe",
+        "cost": 2
+      },
+      {
+        "business": "a singing school",
+        "short": "Singing school",
+        "label": "Running the singing school",
+        "cost": 1
+      },
+      {
+        "business": "an instrument-maker's",
+        "short": "Instruments",
+        "label": "Running the instrument shop",
+        "cost": 3
+      },
+      {
+        "business": "a dancing school",
+        "short": "Dancing school",
+        "label": "Running the dancing school",
+        "cost": 2
+      },
+      {
+        "business": "an apiary",
+        "short": "Apiary",
+        "label": "Running the apiary",
+        "cost": 2
+      },
+      {
+        "business": "an orchard",
+        "short": "Orchard",
+        "label": "Running the orchard",
+        "cost": 5
+      },
+      {
+        "business": "a market garden",
+        "short": "Market garden",
+        "label": "Running the market garden",
+        "cost": 3
+      },
+      {
+        "business": "a flower stall",
+        "short": "Flower stall",
+        "label": "Running the flower stall",
+        "cost": 1
+      },
+      {
+        "business": "a seed merchant's",
+        "short": "Seedsman",
+        "label": "Running the seed shop",
+        "cost": 2
+      },
+      {
+        "business": "a corn chandler's",
+        "short": "Corn chandler",
+        "label": "Running the corn shop",
+        "cost": 4
+      },
+      {
+        "business": "a draper's shop",
+        "short": "Draper",
+        "label": "Running the drapery",
+        "cost": 4
+      },
+      {
+        "business": "a mercer's",
+        "short": "Mercer",
+        "label": "Running the mercer's",
+        "cost": 5
+      },
+      {
+        "business": "a haberdasher's",
+        "short": "Haberdasher",
+        "label": "Running the haberdasher's",
+        "cost": 3
+      },
+      {
+        "business": "a lacemaker's",
+        "short": "Lacemaker",
+        "label": "Running the lace shop",
+        "cost": 2
+      },
+      {
+        "business": "an embroiderer's workshop",
+        "short": "Embroiderer",
+        "label": "Running the embroidery shop",
+        "cost": 2
+      },
+      {
+        "business": "a felt-maker's",
+        "short": "Feltmaker",
+        "label": "Running the felt shop",
+        "cost": 2
+      },
+      {
+        "business": "a leatherworker's",
+        "short": "Leatherworker",
+        "label": "Running the leather shop",
+        "cost": 3
+      },
+      {
+        "business": "a bootmaker's",
+        "short": "Bootmaker",
+        "label": "Running the boot shop",
+        "cost": 3
+      },
+      {
+        "business": "a sign painter's",
+        "short": "Sign painter",
+        "label": "Running the sign shop",
+        "cost": 1
+      },
+      {
+        "business": "an engraver's",
+        "short": "Engraver",
+        "label": "Running the engraving shop",
+        "cost": 3
+      },
+      {
+        "business": "a woodcarver's",
+        "short": "Woodcarver",
+        "label": "Running the carving shop",
+        "cost": 2
+      },
+      {
+        "business": "a turner's workshop",
+        "short": "Woodturner",
+        "label": "Running the turnery",
+        "cost": 2
+      },
+      {
+        "business": "a broom-maker's",
+        "short": "Broommaker",
+        "label": "Running the broom shop",
+        "cost": 1
+      },
+      {
+        "business": "a brushmaker's",
+        "short": "Brushmaker",
+        "label": "Running the brush shop",
+        "cost": 1
+      },
+      {
+        "business": "a lantern-maker's",
+        "short": "Lanterns",
+        "label": "Running the lantern shop",
+        "cost": 2
+      },
+      {
+        "business": "a pastry shop",
+        "short": "Pastry shop",
+        "label": "Running the pastry shop",
+        "cost": 3
+      },
+      {
+        "business": "a gingerbread stall",
+        "short": "Gingerbread",
+        "label": "Running the gingerbread stall",
+        "cost": 1
+      },
+      {
+        "business": "a sausage stall",
+        "short": "Sausage stall",
+        "label": "Running the sausage stall",
+        "cost": 1
+      },
+      {
+        "business": "a chestnut-roasting stall",
+        "short": "Chestnuts",
+        "label": "Running the chestnut stall",
+        "cost": 1
+      },
+      {
+        "business": "a midwife's practice",
+        "short": "Midwifery",
+        "label": "Running the midwifery",
+        "cost": 1
+      },
+      {
+        "business": "a bonesetter's practice",
+        "short": "Bonesetter",
+        "label": "Running the practice",
+        "cost": 1
+      },
+      {
+        "business": "a grocer's",
+        "short": "Grocer",
+        "label": "Running the grocer's",
+        "cost": 4
+      },
+      {
+        "business": "a pedlar's round",
+        "short": "Pedlar",
+        "label": "Running the pedlar's round",
+        "cost": 1
+      },
+      {
+        "business": "a poultry farm",
+        "short": "Poultry",
+        "label": "Running the poultry farm",
+        "cost": 3
+      },
+      {
+        "business": "a fishing boat",
+        "short": "Fishing boat",
+        "label": "Running the fishing boat",
+        "cost": 5
+      },
+      {
+        "business": "a salt works",
+        "short": "Salt works",
+        "label": "Running the salt works",
+        "cost": 5
+      },
+      {
+        "business": "a stained-glass workshop",
+        "short": "Stained glass",
+        "label": "Running the glass workshop",
+        "cost": 4
+      },
+      {
+        "business": "a bell foundry",
+        "short": "Bell foundry",
+        "label": "Running the foundry",
+        "cost": 6
+      },
+      {
+        "business": "a quill and ink shop",
+        "short": "Stationer",
+        "label": "Running the quill shop",
+        "cost": 2
+      },
+      {
+        "business": "a parchment-maker's",
+        "short": "Parchment",
+        "label": "Running the parchment shop",
+        "cost": 2
+      },
+      {
+        "business": "a needle-maker's",
+        "short": "Needlemaker",
+        "label": "Running the needle shop",
+        "cost": 2
+      },
+      {
+        "business": "a button-maker's",
+        "short": "Buttons",
+        "label": "Running the button shop",
+        "cost": 2
+      },
+      {
+        "business": "a comb-maker's",
+        "short": "Combmaker",
+        "label": "Running the comb shop",
+        "cost": 1
+      },
+      {
+        "business": "a clog-maker's",
+        "short": "Clogs",
+        "label": "Running the clog shop",
+        "cost": 2
+      },
+      {
+        "business": "a market stall",
+        "short": "Market stall",
+        "label": "Running the market stall",
+        "cost": 1
+      },
+      {
+        "business": "a cart-and-carriage repair yard",
+        "short": "Cart repair",
+        "label": "Running the repair yard",
+        "cost": 3
+      }
+    ],
+    "victorian": [
       {
         "business": "a cobbler's shop",
         "short": "Cobbler",
@@ -4821,12 +5939,6 @@
         "cost": 4
       },
       {
-        "business": "a scribe's stall",
-        "short": "Scribe",
-        "label": "Running the writing stall",
-        "cost": 1
-      },
-      {
         "business": "a lending library",
         "short": "Library",
         "label": "Running the library",
@@ -4932,12 +6044,6 @@
         "business": "a puppet theatre",
         "short": "Puppet show",
         "label": "Running the puppet theatre",
-        "cost": 2
-      },
-      {
-        "business": "a travelling players' troupe",
-        "short": "Players",
-        "label": "Running the troupe",
         "cost": 2
       },
       {
@@ -5139,12 +6245,6 @@
         "cost": 1
       },
       {
-        "business": "a bonesetter's practice",
-        "short": "Bonesetter",
-        "label": "Running the practice",
-        "cost": 1
-      },
-      {
         "business": "a grocer's",
         "short": "Grocer",
         "label": "Running the grocer's",
@@ -5202,12 +6302,6 @@
         "business": "a quill and ink shop",
         "short": "Stationer",
         "label": "Running the quill shop",
-        "cost": 2
-      },
-      {
-        "business": "a parchment-maker's",
-        "short": "Parchment",
-        "label": "Running the parchment shop",
         "cost": 2
       },
       {
@@ -5287,7 +6381,8 @@
         "every": 26,
         "avoid": null,
         "advice": "walk every day and swap sweets for fruit",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "high blood pressure",
@@ -5305,7 +6400,8 @@
         "every": 12,
         "avoid": null,
         "advice": "stand up slowly and drink plenty of water",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "high cholesterol",
@@ -5314,7 +6410,8 @@
         "every": 26,
         "avoid": null,
         "advice": "swap fried food for oily fish and oats",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "asthma",
@@ -5341,7 +6438,8 @@
         "every": 26,
         "avoid": "gluten",
         "advice": "cut gluten out and keep a food diary",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a wheat allergy",
@@ -5368,7 +6466,8 @@
         "every": 26,
         "avoid": "dairy",
         "advice": "swap milk for lactose-free versions",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a cow's milk allergy",
@@ -5440,7 +6539,8 @@
         "every": 12,
         "avoid": null,
         "advice": "go easy on aged cheese and wine",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "fructose malabsorption",
@@ -5449,7 +6549,8 @@
         "every": 12,
         "avoid": null,
         "advice": "limit fruit juice and honey",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "an underactive thyroid",
@@ -5458,7 +6559,8 @@
         "every": 26,
         "avoid": null,
         "advice": "take your tablet every morning",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "an overactive thyroid",
@@ -5494,7 +6596,8 @@
         "every": 12,
         "avoid": null,
         "advice": "eat little and often",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "osteoarthritis",
@@ -5560,8 +6663,8 @@
         "min_age": 20
       },
       {
-        "condition": "sjögren's syndrome",
-        "short": "Sjögren's",
+        "condition": "sj\u00f6gren's syndrome",
+        "short": "Sj\u00f6gren's",
         "checkup": "Rheumatology check",
         "every": 26,
         "avoid": null,
@@ -5602,7 +6705,8 @@
         "every": 6,
         "avoid": null,
         "advice": "strengthen the muscles around your joints",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "osteoporosis",
@@ -5638,7 +6742,8 @@
         "every": 4,
         "avoid": null,
         "advice": "fix your desk setup and do the stretches",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "sciatica",
@@ -5665,7 +6770,8 @@
         "every": 4,
         "avoid": null,
         "advice": "keep the shoulder moving with gentle stretches",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "an old rotator cuff injury",
@@ -5683,7 +6789,8 @@
         "every": 8,
         "avoid": null,
         "advice": "wear the wrist splint at night",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "tennis elbow",
@@ -5692,7 +6799,8 @@
         "every": 6,
         "avoid": null,
         "advice": "rest the arm and do the stretches",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a bad knee",
@@ -5701,7 +6809,8 @@
         "every": 4,
         "avoid": null,
         "advice": "rest the knee and do the exercises",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a bad hip",
@@ -5719,7 +6828,8 @@
         "every": 6,
         "avoid": null,
         "advice": "do the balance exercises and wear supportive shoes",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "achilles tendinopathy",
@@ -5728,7 +6838,8 @@
         "every": 4,
         "avoid": null,
         "advice": "do the calf raises and ease off running",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "plantar fasciitis",
@@ -5737,7 +6848,8 @@
         "every": 6,
         "avoid": null,
         "advice": "stretch your calves and wear good shoes",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "flat feet",
@@ -5746,7 +6858,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear the insoles every day",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "bunions",
@@ -5755,7 +6868,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear wide comfortable shoes",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "a jaw joint disorder",
@@ -5773,7 +6887,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear the night guard",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "gum disease",
@@ -5782,7 +6897,8 @@
         "every": 12,
         "avoid": null,
         "advice": "floss every day and brush gently",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "eczema",
@@ -5791,7 +6907,8 @@
         "every": 26,
         "avoid": null,
         "advice": "moisturise twice a day",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "psoriasis",
@@ -5809,7 +6926,8 @@
         "every": 12,
         "avoid": null,
         "advice": "go easy on spicy food and wear sunscreen",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "vitiligo",
@@ -5818,7 +6936,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear sunscreen on the pale patches",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "alopecia areata",
@@ -5827,7 +6946,8 @@
         "every": 12,
         "avoid": null,
         "advice": "use the scalp treatment and be patient",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "chronic hives",
@@ -5836,7 +6956,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take an antihistamine every day",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "seborrhoeic dermatitis",
@@ -5845,7 +6966,8 @@
         "every": 26,
         "avoid": null,
         "advice": "use the medicated shampoo twice a week",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "excessive sweating",
@@ -5854,7 +6976,8 @@
         "every": 26,
         "avoid": null,
         "advice": "use the strong antiperspirant at night",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "hay fever",
@@ -5863,7 +6986,8 @@
         "every": 26,
         "avoid": null,
         "advice": "take an antihistamine in pollen season",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a dust mite allergy",
@@ -5872,7 +6996,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wash your bedding hot every week",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a cat allergy",
@@ -5881,7 +7006,8 @@
         "every": 26,
         "avoid": null,
         "advice": "keep cats out of the bedroom",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "chronic sinusitis",
@@ -5890,7 +7016,8 @@
         "every": 12,
         "avoid": null,
         "advice": "rinse your sinuses daily",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "vocal cord nodules",
@@ -5899,7 +7026,8 @@
         "every": 4,
         "avoid": null,
         "advice": "rest your voice and drink plenty of water",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "tinnitus",
@@ -5908,7 +7036,8 @@
         "every": 26,
         "avoid": null,
         "advice": "use soft background sound at night",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "mild hearing loss",
@@ -5917,11 +7046,12 @@
         "every": 26,
         "avoid": null,
         "advice": "wear your hearing aids",
-        "min_age": 45
+        "min_age": 45,
+        "light": true
       },
       {
-        "condition": "ménière's disease",
-        "short": "Ménière's",
+        "condition": "m\u00e9ni\u00e8re's disease",
+        "short": "M\u00e9ni\u00e8re's",
         "checkup": "Balance clinic",
         "every": 12,
         "avoid": null,
@@ -5935,7 +7065,8 @@
         "every": 12,
         "avoid": null,
         "advice": "do the head movement exercises",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "glaucoma",
@@ -5971,7 +7102,8 @@
         "every": 26,
         "avoid": null,
         "advice": "use lubricating drops and take screen breaks",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "keratoconus",
@@ -6034,7 +7166,8 @@
         "every": 26,
         "avoid": null,
         "advice": "cut back on coffee",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "peripheral neuropathy",
@@ -6052,7 +7185,8 @@
         "every": 26,
         "avoid": null,
         "advice": "cut back on caffeine and stretch before bed",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "sleep apnoea",
@@ -6097,7 +7231,8 @@
         "every": 26,
         "avoid": null,
         "advice": "cut back on caffeine",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a heart murmur",
@@ -6133,7 +7268,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear the compression stockings",
-        "min_age": 35
+        "min_age": 35,
+        "light": true
       },
       {
         "condition": "raynaud's phenomenon",
@@ -6142,7 +7278,8 @@
         "every": 26,
         "avoid": null,
         "advice": "keep your hands and feet warm",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "lymphoedema",
@@ -6160,7 +7297,8 @@
         "every": 8,
         "avoid": null,
         "advice": "eat more iron-rich food",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "haemochromatosis",
@@ -6178,7 +7316,8 @@
         "every": 12,
         "avoid": null,
         "advice": "keep up your injections",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "vitamin d deficiency",
@@ -6187,7 +7326,8 @@
         "every": 26,
         "avoid": null,
         "advice": "get some daylight and take the supplement",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "mild kidney disease",
@@ -6295,7 +7435,8 @@
         "every": 26,
         "avoid": null,
         "advice": "eat smaller meals and avoid late suppers",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a hiatus hernia",
@@ -6322,7 +7463,8 @@
         "every": 12,
         "avoid": null,
         "advice": "add more fibre and water",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a fatty liver",
@@ -6340,7 +7482,8 @@
         "every": 26,
         "avoid": null,
         "advice": "don't skip meals",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       }
     ],
     "jazz-age": [
@@ -6360,7 +7503,8 @@
         "every": 12,
         "avoid": null,
         "advice": "cut out sweets and take a daily constitutional",
-        "min_age": 35
+        "min_age": 35,
+        "light": true
       },
       {
         "condition": "high blood pressure",
@@ -6423,7 +7567,8 @@
         "every": 12,
         "avoid": null,
         "advice": "rise slowly from your chair",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a fainting habit",
@@ -6459,7 +7604,8 @@
         "every": 4,
         "avoid": null,
         "advice": "sleep on a firm mattress and use a hot water bottle",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "sciatica",
@@ -6504,7 +7650,8 @@
         "every": 4,
         "avoid": null,
         "advice": "apply hot compresses morning and night",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a trick knee",
@@ -6513,7 +7660,8 @@
         "every": 6,
         "avoid": null,
         "advice": "strap the knee and give up dancing the Charleston",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "a bad hip",
@@ -6531,7 +7679,8 @@
         "every": 6,
         "avoid": null,
         "advice": "keep it bandaged and wear sensible shoes",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a tennis elbow",
@@ -6540,7 +7689,8 @@
         "every": 6,
         "avoid": null,
         "advice": "rest your racquet arm",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "writer's cramp",
@@ -6549,7 +7699,8 @@
         "every": 6,
         "avoid": null,
         "advice": "use the typewriter instead of the pen",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "fallen arches",
@@ -6558,7 +7709,8 @@
         "every": 12,
         "avoid": null,
         "advice": "wear arch supports in your shoes",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "bunions",
@@ -6567,7 +7719,8 @@
         "every": 12,
         "avoid": null,
         "advice": "give up tight shoes",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "corns",
@@ -6576,7 +7729,8 @@
         "every": 8,
         "avoid": null,
         "advice": "use the corn plasters and soak your feet",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "flat feet",
@@ -6585,7 +7739,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear the orthopaedic boots",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a curvature of the spine",
@@ -6612,7 +7767,8 @@
         "every": 8,
         "avoid": null,
         "advice": "eat slowly and take the bismuth after meals",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a gastric ulcer",
@@ -6630,7 +7786,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take the bicarbonate of soda and skip late suppers",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a sluggish liver",
@@ -6639,7 +7796,8 @@
         "every": 12,
         "avoid": null,
         "advice": "keep off the gin and fried food",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "biliousness",
@@ -6648,7 +7806,8 @@
         "every": 12,
         "avoid": null,
         "advice": "eat plain food and take a liver pill",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "colitis",
@@ -6675,7 +7834,8 @@
         "every": 12,
         "avoid": null,
         "advice": "eat bran and stewed prunes",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "gallbladder trouble",
@@ -6693,7 +7853,8 @@
         "every": 12,
         "avoid": null,
         "advice": "chew charcoal biscuits and eat slowly",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a dropped stomach",
@@ -6738,7 +7899,8 @@
         "every": 26,
         "avoid": "dairy",
         "advice": "take your tea black and skip the cream",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "an allergy to cow's milk",
@@ -6756,7 +7918,8 @@
         "every": 12,
         "avoid": "dairy",
         "advice": "give up cream sauces and butter",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "an allergy to shellfish",
@@ -6810,7 +7973,8 @@
         "every": 4,
         "avoid": null,
         "advice": "stay indoors on high pollen days",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "catarrh",
@@ -6819,7 +7983,8 @@
         "every": 12,
         "avoid": null,
         "advice": "inhale steam with eucalyptus every evening",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "chronic bronchitis",
@@ -6846,7 +8011,8 @@
         "every": 8,
         "avoid": null,
         "advice": "use the nasal douche every morning",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "chronic laryngitis",
@@ -6864,7 +8030,8 @@
         "every": 12,
         "avoid": null,
         "advice": "gargle with salt water",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "pernicious anaemia",
@@ -6954,7 +8121,8 @@
         "every": 12,
         "avoid": null,
         "advice": "use the coal-tar ointment and avoid wool",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "psoriasis",
@@ -6972,7 +8140,8 @@
         "every": 12,
         "avoid": null,
         "advice": "dab on calamine and keep a food list",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "acne rosacea",
@@ -6981,7 +8150,8 @@
         "every": 12,
         "avoid": null,
         "advice": "avoid hot drinks and spicy food",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "leucoderma",
@@ -6999,7 +8169,8 @@
         "every": 4,
         "avoid": null,
         "advice": "use the scalp tonic every night",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "chilblains",
@@ -7008,7 +8179,8 @@
         "every": 8,
         "avoid": null,
         "advice": "wear woollen socks and avoid warming feet by the fire",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "poor circulation",
@@ -7017,7 +8189,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take brisk walks and wear gloves",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "varicose veins",
@@ -7035,7 +8208,8 @@
         "every": 8,
         "avoid": null,
         "advice": "raise your feet in the evenings",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "a weak kidney",
@@ -7089,7 +8263,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear your spectacles and rest your eyes",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "eye strain",
@@ -7098,7 +8273,8 @@
         "every": 26,
         "avoid": null,
         "advice": "stop reading by gaslight",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "deafness in one ear",
@@ -7125,7 +8301,8 @@
         "every": 26,
         "avoid": null,
         "advice": "keep away from the jazz band",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "giddy spells",
@@ -7152,7 +8329,8 @@
         "every": 12,
         "avoid": null,
         "advice": "give up toffee and brush twice a day",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a weak back",
@@ -7170,7 +8348,8 @@
         "every": 6,
         "avoid": null,
         "advice": "kneel on a cushion when you scrub",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "a frozen shoulder",
@@ -7188,7 +8367,8 @@
         "every": 4,
         "avoid": null,
         "advice": "keep the wrist strapped",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "tired limbs",
@@ -7197,7 +8377,8 @@
         "every": 8,
         "avoid": null,
         "advice": "take afternoon rests and plenty of milk",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "sleeping sickness of the afternoon",
@@ -7206,7 +8387,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take a short nap after luncheon",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "snoring",
@@ -7215,7 +8397,8 @@
         "every": 26,
         "avoid": null,
         "advice": "sleep on your side and skip the nightcap",
-        "min_age": 35
+        "min_age": 35,
+        "light": true
       },
       {
         "condition": "a thyroid swelling",
@@ -7242,7 +8425,8 @@
         "every": 12,
         "avoid": null,
         "advice": "eat more greens and drink water",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a racing heart",
@@ -7278,7 +8462,8 @@
         "every": 4,
         "avoid": null,
         "advice": "take a brisk walk daily and skip second helpings",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a dowager's hump",
@@ -7314,7 +8499,8 @@
         "every": 26,
         "avoid": null,
         "advice": "take the waters at a spa",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "an irritable colon",
@@ -7332,7 +8518,8 @@
         "every": 12,
         "avoid": null,
         "advice": "keep to light meals at regular hours",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a weak spine",
@@ -7350,7 +8537,8 @@
         "every": 4,
         "avoid": null,
         "advice": "rest under the heat lamp",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "golfer's elbow",
@@ -7359,7 +8547,8 @@
         "every": 6,
         "avoid": null,
         "advice": "give the links a rest for a season",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a cold liver",
@@ -7368,7 +8557,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take the liver salts in the morning",
-        "min_age": 35
+        "min_age": 35,
+        "light": true
       },
       {
         "condition": "heartburn",
@@ -7377,7 +8567,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take magnesia after dinner",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "an uneasy gut after fat",
@@ -7386,7 +8577,8 @@
         "every": 12,
         "avoid": null,
         "advice": "choose lean meat and boiled fish",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a nickel rash",
@@ -7395,7 +8587,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear only gold or silver jewellery",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "sun sensitivity",
@@ -7404,7 +8597,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear a broad-brimmed hat outdoors",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a persistent ear catarrh",
@@ -7413,7 +8607,8 @@
         "every": 8,
         "avoid": null,
         "advice": "keep your ears dry and warm",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       }
     ],
     "other": [
@@ -7460,7 +8655,8 @@
         "every": 4,
         "avoid": null,
         "advice": "rub in the comfrey salve each night",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "the rheumatics",
@@ -7550,7 +8746,8 @@
         "every": 26,
         "avoid": null,
         "advice": "stay indoors when the hay is cut",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a winter cough",
@@ -7559,7 +8756,8 @@
         "every": 8,
         "avoid": null,
         "advice": "take the honey and horehound syrup",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a wheezing chest",
@@ -7577,7 +8775,8 @@
         "every": 12,
         "avoid": null,
         "advice": "snuff salt water each morning",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "clergyman's sore throat",
@@ -7586,7 +8785,8 @@
         "every": 8,
         "avoid": null,
         "advice": "rest your voice and gargle with sage",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a hoarse voice",
@@ -7595,7 +8795,8 @@
         "every": 8,
         "avoid": null,
         "advice": "keep silent after dark and suck honey lozenges",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "dyspepsia",
@@ -7604,7 +8805,8 @@
         "every": 8,
         "avoid": null,
         "advice": "eat plain food and take the bitters before meals",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a sour stomach",
@@ -7613,7 +8815,8 @@
         "every": 8,
         "avoid": null,
         "advice": "drink chamomile and eat no pickles",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "the heartburn",
@@ -7622,7 +8825,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take the chalk powder and sup early",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "the water brash",
@@ -7631,7 +8835,8 @@
         "every": 12,
         "avoid": null,
         "advice": "eat small dry meals",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "biliousness",
@@ -7640,7 +8845,8 @@
         "every": 12,
         "avoid": null,
         "advice": "keep off fried food and take the blue pill",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a sluggish liver",
@@ -7649,7 +8855,8 @@
         "every": 12,
         "avoid": null,
         "advice": "drink dandelion tea and give up brandy",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "the wind and colic",
@@ -7658,7 +8865,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take fennel tea after meals",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a costive bowel",
@@ -7667,7 +8875,8 @@
         "every": 12,
         "avoid": null,
         "advice": "eat stewed prunes and oat porridge",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a grumbling gut",
@@ -7676,7 +8885,8 @@
         "every": 12,
         "avoid": null,
         "advice": "eat at regular hours and keep off raw fruit",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a weak stomach",
@@ -7685,7 +8895,8 @@
         "every": 26,
         "avoid": null,
         "advice": "take the waters at the spring",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "the bread sickness",
@@ -7739,7 +8950,8 @@
         "every": 26,
         "avoid": "dairy",
         "advice": "cook with dripping instead of butter",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a shellfish rash",
@@ -7784,7 +8996,8 @@
         "every": 26,
         "avoid": "nuts",
         "advice": "keep away from the hazel harvest and nut cakes",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "an almond fever",
@@ -7901,7 +9114,8 @@
         "every": 12,
         "avoid": null,
         "advice": "bathe your eyes in eyebright water",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "gritty eyes",
@@ -7910,7 +9124,8 @@
         "every": 12,
         "avoid": null,
         "advice": "rest your eyes from close work",
-        "min_age": 35
+        "min_age": 35,
+        "light": true
       },
       {
         "condition": "hardness of hearing",
@@ -7928,7 +9143,8 @@
         "every": 26,
         "avoid": null,
         "advice": "keep away from the bells and cannon",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "waxy ears",
@@ -7937,7 +9153,8 @@
         "every": 12,
         "avoid": null,
         "advice": "drop warm oil in your ears each week",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "the stone",
@@ -8000,7 +9217,8 @@
         "every": 8,
         "avoid": null,
         "advice": "wear woollen stockings and keep your feet dry",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "cold hands and feet",
@@ -8009,7 +9227,8 @@
         "every": 12,
         "avoid": null,
         "advice": "wear mittens and drink ginger tea",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "swollen veins",
@@ -8027,7 +9246,8 @@
         "every": 8,
         "avoid": null,
         "advice": "raise your feet of an evening",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "heavy legs",
@@ -8036,7 +9256,8 @@
         "every": 6,
         "avoid": null,
         "advice": "walk a little every day and rest with feet up",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "the salt rheum",
@@ -8072,7 +9293,8 @@
         "every": 12,
         "avoid": null,
         "advice": "cool the skin with dock leaves and vinegar",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a rosy drop",
@@ -8081,7 +9303,8 @@
         "every": 12,
         "avoid": null,
         "advice": "drink less wine and wear a hat in the sun",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "pale patches on the skin",
@@ -8099,7 +9322,8 @@
         "every": 8,
         "avoid": null,
         "advice": "wash your hair with rosemary water",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "thinning hair",
@@ -8108,7 +9332,8 @@
         "every": 12,
         "avoid": null,
         "advice": "rub in the nettle hair tonic",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a sun rash",
@@ -8117,7 +9342,8 @@
         "every": 26,
         "avoid": null,
         "advice": "wear a bonnet or broad hat outdoors",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "sore gums",
@@ -8126,7 +9352,8 @@
         "every": 12,
         "avoid": null,
         "advice": "rinse with myrrh and clean your teeth with a twig",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "bad teeth",
@@ -8198,7 +9425,8 @@
         "every": 4,
         "avoid": null,
         "advice": "lay a hot stone wrapped in flannel on your neck",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a stiff shoulder",
@@ -8207,7 +9435,8 @@
         "every": 4,
         "avoid": null,
         "advice": "swing the arm gently every morning",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "a gammy knee",
@@ -8225,7 +9454,8 @@
         "every": 6,
         "avoid": null,
         "advice": "kneel on a pad when you scrub",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "a game leg",
@@ -8252,7 +9482,8 @@
         "every": 12,
         "avoid": null,
         "advice": "wear high laced boots",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "flat feet",
@@ -8261,7 +9492,8 @@
         "every": 26,
         "avoid": null,
         "advice": "have your boots built up at the arch",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "corns and bunions",
@@ -8270,7 +9502,8 @@
         "every": 8,
         "avoid": null,
         "advice": "soak your feet and wear wider shoes",
-        "min_age": 35
+        "min_age": 35,
+        "light": true
       },
       {
         "condition": "knotted fingers",
@@ -8288,7 +9521,8 @@
         "every": 6,
         "avoid": null,
         "advice": "rest the quill hand and stretch the fingers",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "weaver's wrist",
@@ -8297,7 +9531,8 @@
         "every": 6,
         "avoid": null,
         "advice": "bind the wrist and rest from the loom",
-        "min_age": 25
+        "min_age": 25,
+        "light": true
       },
       {
         "condition": "a smith's elbow",
@@ -8306,7 +9541,8 @@
         "every": 6,
         "avoid": null,
         "advice": "rest the hammer arm and rub in liniment",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a reaper's back",
@@ -8342,7 +9578,8 @@
         "every": 12,
         "avoid": null,
         "advice": "eat more greens and sit on a soft cushion",
-        "min_age": 30
+        "min_age": 30,
+        "light": true
       },
       {
         "condition": "a nosebleed habit",
@@ -8351,7 +9588,8 @@
         "every": 12,
         "avoid": null,
         "advice": "keep your nose moist with goose grease",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a sleepy sickness",
@@ -8369,7 +9607,8 @@
         "every": 26,
         "avoid": null,
         "advice": "sleep on your side and take no wine at night",
-        "min_age": 35
+        "min_age": 35,
+        "light": true
       },
       {
         "condition": "restless legs",
@@ -8396,7 +9635,8 @@
         "every": 12,
         "avoid": null,
         "advice": "take the country air and rest in the afternoons",
-        "min_age": 20
+        "min_age": 20,
+        "light": true
       },
       {
         "condition": "a dry mouth",
@@ -8405,7 +9645,8 @@
         "every": 12,
         "avoid": null,
         "advice": "sip water and suck on a lemon drop",
-        "min_age": 40
+        "min_age": 40,
+        "light": true
       },
       {
         "condition": "the gripes",
@@ -8414,7 +9655,8 @@
         "every": 12,
         "avoid": null,
         "advice": "drink peppermint water after meals",
-        "min_age": 18
+        "min_age": 18,
+        "light": true
       },
       {
         "condition": "a choleric liver",

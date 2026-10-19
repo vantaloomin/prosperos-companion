@@ -1,7 +1,7 @@
 import type { HomeItem, HomeKind } from '../../types'
 import { calendarDay } from '../../when.ts'
 
-export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet', plant: 'Plant', vehicle: 'Getting around', favorite: 'Favourite thing' }
+export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet', plant: 'Plant', vehicle: 'Getting around', favorite: 'Favorite thing' }
 
 /** "A one-bedroom in a rowhouse in Fells Point, Baltimore". */
 export function homeTitle(item: HomeItem): string {
@@ -12,9 +12,10 @@ export function homeTitle(item: HomeItem): string {
 /** "About $1,450 a month (an estimate)", or null where the setting has no rent. */
 export function rentText(item: HomeItem): string | null {
   if (item.rent === null || item.rent === undefined) return null
-  const amount = item.rent_text ?? `${item.currency?.symbol ?? '$'}${item.rent.toLocaleString('en-US')}`
-  if (item.owned) return `Theirs, with a mortgage of about ${amount} a ${item.rent_period ?? 'month'} (an estimate)`
-  return `Rent about ${amount} a ${item.rent_period ?? 'month'} (an estimate)`
+  const amount = `${item.rent_text ?? `${item.currency?.symbol ?? '$'}${item.rent.toLocaleString('en-US')}`} a ${item.rent_period ?? 'month'}`
+  if (!item.owned) return `Rent about ${amount} (an estimate)`
+  // No mortgage in a medieval kingdom: payments on the place.
+  return item.medieval ? `Theirs, paying about ${amount} on it (an estimate)` : `Theirs, with a mortgage of about ${amount} (an estimate)`
 }
 
 /** The description when it says more than the name, with what is wrong right now. */

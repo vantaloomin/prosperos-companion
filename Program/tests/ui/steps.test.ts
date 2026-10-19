@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PACE_LEVELS, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from '../../src/features/character/stepsText.ts'
+import { PACE_LEVELS, apartStep, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from '../../src/features/character/stepsText.ts'
 
 test('the Relationship pace slider has four steps', () => {
   assert.deepEqual(PACE_LEVELS.map((level) => level.label), ['Only when you bring it up', 'Slow', 'True to life', 'Fast'])
@@ -62,4 +62,11 @@ test('sharing a home labels each answer by name, and Living together waits for m
   const moving = { status: 'moving' as const, plan: 'yours' as const, city: 'Baltimore', place: 'Canton', home: '', move_on: '2026-11-01', moved_on: null, consequence_id: null, joins: true }
   assert.equal(pendingStepText(moving), `from ${stepDate('2026-11-01')}`)
   assert.equal(pendingStepText({ ...moving, status: 'waiting', move_on: null }), 'not yet')
+})
+
+test('living apart again ends the steps with since when and who moved (Iris, v0.15)', () => {
+  assert.match(apartStep({ apart: { since: '2026-09-19', by: 'you' } }, 'Mira Costa'), /^Living apart for now since .*2026 · you moved$/)
+  assert.match(apartStep({ apart: { since: '2026-09-19', by: 'them' } }, 'Mira Costa'), / · Mira moved$/)
+  assert.doesNotMatch(apartStep({ apart: { since: '2026-09-19', by: null } }, 'Mira'), /moved/)
+  assert.equal(apartStep({ apart: null }, 'Mira'), '')
 })

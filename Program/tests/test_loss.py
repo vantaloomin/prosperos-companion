@@ -124,7 +124,15 @@ def test_the_odds_rise_steeply_with_age_and_with_a_parent_in_treatment():
         return consequences.odds(loss.CHOICE, {'age': 40, 'loss': 2, 'frail': 0, 'treatment': 0, **facts}, names)[1]
 
     young, old, oldest = chance(age=30)['odds'], chance(age=80)['odds'], chance(age=95)['odds']
-    assert young < 0.001 and 0.01 < old < 0.03 and oldest > 0.05
+    assert young < 0.002 and 0.04 < old < 0.07 and oldest > 0.15
+    # True to life is about real rates (v0.15): about 1% a year at 60, 2% at 70, 5% at 80 and 15% at 90.
+    for age, low, high in ((60, 0.007, 0.013), (70, 0.017, 0.03), (80, 0.04, 0.07), (90, 0.1, 0.18)):
+        assert low < chance(age=age)['odds'] < high, age
+    # The other levels scale with it.
+    assert chance(age=80, loss=0)['odds'] < chance(age=80, loss=1)['odds'] < old < chance(age=80, loss=3)['odds']
+    # Old eras (1895, Camelot): about twice as likely, and said why.
+    then = chance(age=80, old_era=1)
+    assert 1.8 * old < then['odds'] < 2.1 * old and 'people die younger in these times' in then['reasons']
     assert chance(age=70, treatment=1)['odds'] > 5 * chance(age=70)['odds']
     frail = chance(age=80, frail=1)
     assert frail['odds'] > 0.2 and 'caring for Ray has been getting harder' in frail['reasons']
@@ -295,7 +303,7 @@ def test_a_parent_whose_care_went_harder_is_likelier_to_pass_and_their_care_ends
     dies(monkeypatch, mom['id'])
     advance(client, clock)
     row = next(row for row in losses(client) if row['person_id'] == mom['id'])
-    assert row['details']['cause'] == 'illness'
+    assert row['details']['cause'] == 'long illness'
     clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=2))
     advance(client, clock)
     found = details(client, chapter['id'])
@@ -450,3 +458,201 @@ def test_retro_im_keeps_the_plain_mood_line_while_they_grieve(client, clock, mon
     clock.advance(timedelta(days=60))  # Lifting: they are mostly themselves again.
     with client.app.state.database.connect() as connection:
         assert not status.grieving(connection, current(connection), clock.now())
+
+
+# v0.15 follow-ups ---------------------------------------------------------------------------------------------------
+
+def late(client, role, died_on, kind='circle', **details):
+    """A death that already happened, written straight in."""
+    from companion.database import identifier
+    found = person(client, role)
+    with client.app.state.database.connect(write=True) as connection:
+        loss_id = identifier()
+        connection.execute(
+            'INSERT INTO losses (id, timeline_id, kind, person_id, name, role, details, died_on, happened, created_at, '
+            "updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, '2026-01-01', '2026-01-01')",
+            (loss_id, current(connection)['active_timeline_id'], kind, found['id'], found['name'], role,
+             encode({'pronouns': 'she/her', 'depth': loss.depth(role), 'cause': 'sudden', **details}),
+             died_on.isoformat()))
+    return {'id': loss_id, 'name': found['name']}
+
+
+def test_old_eras_double_the_odds_for_the_circle_from_the_rate_table(client, clock, monkeypatch):
+    assert loss.death_factor('victorian') == loss.death_factor('medieval') == 2.0
+    assert loss.death_factor('modern') == loss.death_factor('jazz-age') == 1.0
+    make(client)
+    dad = person(client, 'dad')
+    seen = []
+    real = consequences.decide
+
+    def decide(connection, **kwargs):
+        if kwargs['choice'] == loss.CHOICE:
+            seen.append(kwargs['facts'])
+        return real(connection, **kwargs)
+    monkeypatch.setattr(consequences, 'decide', decide)
+    monkeypatch.setattr(loss, 'era_of', lambda connection, companion: 'victorian')
+    switch(client)
+    advance(client, clock)
+    assert seen and all(facts['old_era'] == 1 for facts in seen)
+    with client.app.state.database.connect() as connection:
+        assert loss.facts_for(connection, dad, clock.now().date(), None, 2)['old_era'] == 0
+
+
+def test_the_town_dies_at_real_rates_when_true_to_life():
+    for age, low, high in ((60, 0.007, 0.013), (70, 0.017, 0.03), (80, 0.04, 0.07), (90, 0.1, 0.18)):
+        assert low < turnover.chances('resident', age, 2, 3)['passed'] < high, age
+    assert turnover.chances('resident', 80, 2, 1)['passed'] < turnover.chances('resident', 80, 2, 4)['passed']
+
+
+@pytest.mark.parametrize(('drama', 'on', 'level', 'expected'),
+                         [(0, 0, 2, 0), (1, 0, 2, 2), (3, 0, 2, 3), (0, 1, 2, 2), (0, 0, 1, 1), (3, 0, 0, 0)])
+def test_an_older_world_gets_the_loss_slider_by_its_preset_unless_the_user_moved_it(tmp_path, drama, on, level,
+                                                                                       expected):
+    import sqlite3
+
+    from companion.database import add_columns, initialize
+    connection = sqlite3.connect(tmp_path / 'old.sqlite3')
+    initialize(connection, '2026-10-01T00:00:00Z')
+    connection.execute('ALTER TABLE life_settings DROP COLUMN loss_by_preset')
+    connection.execute('UPDATE life_settings SET drama=?, people_pass_away=?, loss=?', (drama, on, level))
+    add_columns(connection)
+    assert connection.execute('SELECT loss FROM life_settings').fetchone() == (expected,)
+    connection.close()
+
+
+def test_the_settings_hide_the_upgrade_marker(client):
+    make(client)
+    assert 'loss_by_preset' not in client.get('/api/life/settings').json()
+
+
+def test_their_own_feed_posts_only_a_quiet_status_while_grief_is_raw_or_heavy(client, clock, monkeypatch):
+    from companion.life import social
+    make(client)
+    today = clock.now().date()
+    late(client, 'dad', today - timedelta(days=2))
+    monkeypatch.setattr(social, 'unit', lambda *_args: 0.0)  # Every post that could go up does.
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        posts = social.day_posts(connection, companion, {}, clock.now() - timedelta(days=1), clock.now())
+        assert posts and all(post['kind'] == 'status' and post['content']['text'] in social.STATUS['grief']
+                             and post['content']['tone'] == 'down' for post in posts), posts
+        assert loss.raw_or_heavy(connection, companion['active_timeline_id'], today)
+        # Weeks on, once it lifts, the feed is itself again.
+        later = clock.now() + timedelta(days=60)
+        posts = social.day_posts(connection, companion, {}, later - timedelta(days=1), later)
+        assert any(post['kind'] == 'question' for post in posts)
+        assert not any(post['content']['text'] in social.STATUS['grief'] for post in posts)
+
+
+def test_life_posts_are_held_back_while_grief_is_raw_or_heavy(client, clock):
+    from companion.database import identifier
+    from companion.life import feed
+    make(client)
+    now = clock.now()
+    late(client, 'dad', now.date() - timedelta(days=2))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        timeline = companion['active_timeline_id']
+        for days, summary in ((0, 'Sore tomorrow, worth it today.'), (5, 'Market finds.'), (60, 'Lifting again.')):
+            at = (now - timedelta(days=days) if days < 60 else now + timedelta(days=days)).isoformat()
+            event_id = identifier()
+            connection.execute(
+                'INSERT INTO life_events (id, companion_id, timeline_id, idempotency_key, kind, status, summary, '
+                'starts_at, ends_at, character_version_id, permission_revision, created_at, decided_at) '
+                "VALUES (?, ?, ?, ?, 'ordinary', 'committed', ?, ?, ?, ?, 1, ?, ?)",
+                (event_id, companion['id'], timeline, identifier(), summary, at, at, companion['active_version_id'],
+                 at, at))
+            feed.create(connection, timeline, 'event', f'event:{event_id}', [event_id], at, at)
+        shown = [post['events'][0]['summary'] for post in feed.visible_posts(connection, timeline)]
+    # Two days after the death is held back; five days before it and weeks after, once grief lifts, are not.
+    assert shown == ['Lifting again.', 'Market finds.'], shown
+
+
+def test_friends_answer_a_quiet_grief_status_gently():
+    from companion.life import social
+    for text in social.STATUS['grief']:
+        pool = social.comment_pool('status', {'text': text, 'tone': 'down'}, 'friend', False)
+        assert pool == social.COMMENTS['grief'] and 'Rest up!' not in pool and 'You deserve a nap.' not in pool
+    assert social.comment_pool('status', {'text': 'Coffee first.', 'tone': 'down'}, 'friend', False) == \
+        social.COMMENTS['down']
+
+
+def test_a_death_anniversary_is_an_occasion_on_its_day_and_no_first_text(client, clock):
+    from companion.life import occasions
+    make(client)
+    today = clock.now().date()
+    found = late(client, 'dad', today.replace(year=today.year - 1))
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        items = [item for item in occasions.occasions(connection, companion, clock.now())
+                 if item['kind'] == 'death_anniversary']
+        assert len(items) == 1 and items[0]['days'] == 0 and items[0]['span'] == 'a year', items
+        first = found['name'].split()[0]
+        assert items[0]['person'] == first and items[0]['relation'] == 'dad'
+        assert items[0]['text'].startswith(f'- Today it has been a year since your dad {first} died (')
+        assert "You're thinking of her today" in items[0]['text']
+        assert not [item for item in openers.occasion(connection, companion, clock.now())
+                    if 'death_anniversary' in item.key]
+    # The loss section leaves the day to the occasion, and keeps the plain fact on other days.
+    assert not any('died in' in text for text in lines(client, clock))
+    clock.advance(timedelta(days=1))
+    assert any('You still miss' in text for text in lines(client, clock))
+    with client.app.state.database.connect() as connection:
+        assert not [item for item in occasions.occasions(connection, current(connection), clock.now())
+                    if item['kind'] == 'death_anniversary']
+
+
+def test_a_family_funeral_is_asked_even_with_another_big_day_near(client, clock):
+    from companion.database import identifier
+    make(client)
+    today = clock.now().date()
+    dad, friend = late(client, 'dad', today), late(client, 'close friend', today)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        found = {item['details']['loss_id']: item for item in loss.funerals(connection, companion, today, clock.now())}
+        assert found[dad['id']]['details']['family'] is True and found[friend['id']]['details']['family'] is False
+        timeline_id, day = companion['active_timeline_id'], (today + timedelta(days=6)).isoformat()
+        connection.execute("INSERT INTO big_days (id, timeline_id, kind, source, status, local_date, at_time, until_time, "
+                           "place, invite, details, created_at, updated_at) VALUES (?, ?, 'birthday', 'x', 'invited', ?, "
+                           "'18:00', '22:00', '{}', 1, '{}', ?, ?)",
+                           (identifier(), timeline_id, day, day, day))
+        row = {'id': 'f', 'timeline_id': timeline_id, 'kind': 'funeral', 'local_date': day,
+               'details': {'local': True, 'family': True}}
+        assert big_days.invitable(connection, companion, row)
+        assert not big_days.invitable(connection, companion, {**row, 'details': {'local': True, 'family': False}})
+
+
+def test_obituaries_say_the_name_once_and_no_trade():
+    for line in loss.bank()['obituaries']:
+        assert line.count('{name}') == 1, line
+        assert not re.search(r'whistle|their\} trade|quilts', line), line
+
+
+def test_an_ordinary_funeral_is_at_a_parish_church_and_never_at_a_shrine(monkeypatch):
+    from companion.world import catalog
+    day = date(2026, 10, 20)
+    monkeypatch.setattr(loss, 'customs', lambda connection, companion: loss.bank()['customs']['uk-victorian'])
+    data = catalog.city('london-1895')
+    picked = {loss.venue_for(None, {}, data, f's{index}', day)['name'] for index in range(60)}
+    assert picked and not picked & {'Westminster Abbey', "St Paul's Cathedral"}, picked
+    assert {'Westminster Abbey', "St Paul's Cathedral"} & {loss.venue_for(None, {}, data, f's{index}', day, True)['name']
+                                                           for index in range(60)}
+    monkeypatch.setattr(loss, 'customs', lambda connection, companion: loss.bank()['customs']['japan'])
+    data = catalog.city('osaka')
+    picked = {loss.venue_for(None, {}, data, f's{index}', day)['name'] for index in range(60)}
+    assert not picked & {'Osaka Tenmangu', 'Sumiyoshi Taisha'}, picked
+    monkeypatch.setattr(loss, 'customs', lambda connection, companion: loss.bank()['customs']['uk'])
+    assert loss.venue_for(None, {}, catalog.city('london'), 's', day)['name'] == 'the crematorium chapel'
+
+
+def test_the_news_says_an_illness_with_none_on_record_was_short(client, clock, monkeypatch):
+    make(client)
+    today = clock.now().date()
+    late(client, 'dad', today, cause='illness')
+    assert loss.CAUSES['illness'] == 'after a short illness' and loss.CAUSES['long illness'] == 'after a long illness'
+    monkeypatch.setattr(loss, 'FIRST_TEXTS', True)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        [news] = loss.news_due(connection, companion, clock.now())
+        assert 'after a short illness' in news.reason
+    assert any(', after a short illness.' in text for text in lines(client, clock))

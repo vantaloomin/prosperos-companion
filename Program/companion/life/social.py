@@ -11,6 +11,8 @@ with no model:
 - `city`: the companion passes on city news (an opening, a closing, road works, an annual event).
 - `question`: a small either-or the user can answer; the answer goes to chat as a reply to it.
 
+While grief is raw or heavy (companion/life/loss.py) the companion posts only a quiet status, if any.
+
 Posts are written when the feed or Today is read, for the last few days up to now, under
 idempotency keys seeded by the timeline and slot, so reading twice never posts twice. Likes and
 comments are not stored: they follow from the post, the circle and the clock, so a comment shows
@@ -25,7 +27,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, composer, love_life, wedding
+from companion.life import circle, composer, loss, love_life, wedding
 from companion.world.generators import pick, unit
 
 KINDS = ('status', 'friend', 'birthday', 'holiday', 'city', 'question')
@@ -62,6 +64,8 @@ STATUS = {
     'tv': ('Is anyone watching {item}?',),
     'music': ("Can't get {item} out of my head.",),
     'books': ('{item} keeps popping up everywhere. Has anyone read it?',),
+    # While grief is raw or heavy (companion/life/loss.py): nothing playful, no questions.
+    'grief': ('Quiet few days.', 'Taking things slowly this week.', 'Keeping to myself for a bit.'),
     'any': ('Small wins today.', "Some days are just quiet, and that's fine.", 'Good music, good mood.',
             'Note to self: drink more water.'),
 }
@@ -88,6 +92,8 @@ COMMENTS = {
                 'Proud of you.', 'Yes!!'),
     'sick': ('Feel better!', 'Sending soup.', 'Oh no. Need anything?'),
     'down': ('Rest up!', 'Hang in there.', 'You deserve a nap.', 'Big hug.'),
+    # On a quiet status while grief is raw or heavy.
+    'grief': ('Thinking of you.', 'Here if you need anything.', 'Sending love.', 'Big hug.'),
     'birthday': ('Happy birthday, {name}! 🎉', 'Happy birthday!! 🥳', 'Have the best day, {name}!'),
     'birthday_self': ('Thank you!! ❤️', 'You are the sweetest.', 'Love you for this.'),
     'opening': ("Ooh, I'm in.", 'Count me in.', 'Saturday?'),
@@ -226,10 +232,14 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
         facts = day_facts(connection, timeline_id, local_date)
         # Today's charts only for today: a day being caught up on never borrows them.
         facts['culture'] = culture_picks(connection, now, definition) if day == days[-1] else {}
+        grieving = loss.raw_or_heavy(connection, timeline_id, day)
         if unit(prefix, 'status') < STATUS_CHANCE:
-            text, tone = status_text(prefix, day, facts, definition)
+            text, tone = (pick(prefix, 'line', list(STATUS['grief'])), 'down') if grieving else \
+                status_text(prefix, day, facts, definition)
             result.append(own('status', f'status:{prefix}', at(day, timezone, f'status:{prefix}', 8, 22),
                               {'text': text, 'tone': tone}))
+        if grieving:
+            continue  # Only a quiet status while grief is raw or heavy.
         if unit(prefix, 'question') < QUESTION_CHANCE:
             question, options = pick(prefix, 'question', list(QUESTIONS))
             result.append(own('question', f'question:{prefix}', at(day, timezone, f'question:{prefix}', 12, 21),
@@ -322,7 +332,8 @@ def city_posts(connection, companion, since, now) -> list[dict]:
     for change in changes.known(data, days[-1], changes.stored(connection, data['id'])):
         heard = date.fromisoformat(change['announced'] or change['starts'])
         key = f"city:{timeline_id}:{change['id']}"
-        if heard < days[0] or change['kind'] == 'news' or unit(key, 'share') >= CITY_CHANCE:
+        if heard < days[0] or change['kind'] == 'news' or unit(key, 'share') >= CITY_CHANCE or \
+                loss.raw_or_heavy(connection, timeline_id, heard):
             continue
         text = change_text(change, hoods.get(change['neighborhood'], ''), days[-1])
         result.append(own('city', key, at(heard, timezone, key, 8, 21), {'text': text, 'change': change['kind']}))
@@ -360,6 +371,8 @@ def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool) -
         return COMMENTS['birthday_self'] if commenter == content.get('person') else COMMENTS['birthday']
     if kind == 'city':
         return COMMENTS.get(content.get('change'), COMMENTS['city'])
+    if content.get('text') in STATUS['grief']:
+        return COMMENTS['grief']
     if content.get('tone') == 'sick' or content.get('mood') in SICK:
         return COMMENTS['sick']
     if content.get('tone') == 'down' or content.get('mood') in DOWN:

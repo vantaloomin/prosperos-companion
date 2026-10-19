@@ -278,6 +278,8 @@ PICTURES = {
     'wedding': 'smiling among the guests on {possessive} wedding day',
     # A big day in their circle (companion/life/big_days.py) with the user: dressed up, a guest among guests.
     'big-day': 'dressed up and smiling among the guests at a celebration',
+    # Their own wedding to their partner, with the user standing up at it (big_days.PICTURED).
+    'own-wedding-day': 'smiling in wedding clothes at {possessive} own wedding',
 }
 CALLS = ('called', 'phone')
 

@@ -1,8 +1,11 @@
 """A sociable companion has a bigger circle; who knows whom inside it stays consistent."""
+from datetime import timedelta
+
 import pytest
 from conftest import set_life
 
-from companion.life import body, circle
+from companion.clock import parse
+from companion.life import ages, body, circle
 
 WORKDAY = [{'key': 'work', 'label': 'Work at the agency', 'kind': 'work', 'start': '09:00', 'end': '17:00',
             'days': [0, 1, 2, 3, 4]},
@@ -100,3 +103,67 @@ def test_someone_removed_is_not_replaced_until_the_user_asks(client):
     client.post(f"/api/life/circle/{first['id']}/remove")
     assert len(client.get('/api/life/circle').json()) == circle.CIRCLE_SIZE - 1
     assert len(client.post('/api/life/circle/grow').json()) == circle.CIRCLE_SIZE
+
+
+def test_grow_right_after_raising_the_size_adds_people_instead_of_refusing(client):
+    make(client, 'Warm and curious.')
+    assert len(client.get('/api/life/circle').json()) == circle.CIRCLE_SIZE
+    set_life(client, circle_size=7)
+    grown = client.post('/api/life/circle/grow')
+    assert grown.status_code == 200, grown.text
+    assert len(grown.json()) == 7 and len(client.get('/api/life/circle').json()) == 7
+    assert client.post('/api/life/circle/grow').status_code == 409
+
+
+def elders(client) -> list[dict]:
+    return [person for person in client.get('/api/life/circle').json() if person.get('elder')]
+
+
+def test_a_companion_under_40_has_a_grandparent_on_top_of_their_circle(client, monkeypatch):
+    monkeypatch.setattr(circle, 'ELDERS', True)
+    make(client, 'Warm and curious.', identity='34.')
+    people = client.get('/api/life/circle').json()
+    [elder] = elders(client)
+    assert len(people) == circle.CIRCLE_SIZE + 1 and people[-1]['id'] == elder['id']
+    assert elder['role'] in ('grandmother', 'grandfather', 'grandparent') and 76 <= elder['age'] <= 95
+    assert elder['career'] == 'Retired' and elder['full_name']
+    assert circle.role_kind(elder['role']) in circle.FAMILY
+    # The size is still five: the room offer and growing count without them.
+    assert client.get('/api/life/circle/room').json()['people'] == circle.CIRCLE_SIZE
+    assert client.post('/api/life/circle/grow').status_code == 409
+
+
+def test_a_companion_of_40_or_more_has_none(client, monkeypatch):
+    monkeypatch.setattr(circle, 'ELDERS', True)
+    make(client, 'Warm and curious.', identity='45.')
+    assert elders(client) == []
+
+
+def test_without_a_known_city_the_grandparent_still_has_an_age(client, monkeypatch):
+    monkeypatch.setattr(circle, 'ELDERS', True)
+    response = client.post('/api/companion', json={'name': 'Mira', 'timezone': 'UTC', 'identity': '25.',
+                                                     'personality': 'Warm.'})
+    assert response.status_code == 200, response.text
+    [elder] = elders(client)
+    assert 75 <= elder['age'] <= 95 and elder['pronouns'] in ('she/her', 'he/him')
+
+
+def test_an_existing_circle_gains_a_grandparent_dated_from_then(client, clock, monkeypatch):
+    make(client, 'Warm and curious.', identity='30.')
+    before = client.get('/api/life/circle').json()
+    clock.advance(timedelta(days=40))
+    monkeypatch.setattr(circle, 'ELDERS', True)
+    people = client.get('/api/life/circle').json()
+    [elder] = elders(client)
+    assert [person['id'] for person in people[:-1]] == [person['id'] for person in before]
+    with client.app.state.database.connect() as connection:
+        cursor = connection.execute('SELECT through FROM agenda_cursors WHERE subject=?', (elder['id'],)).fetchone()
+        assert parse(cursor['through']) == clock.now()
+        written = connection.execute('SELECT starts_at FROM life_agenda WHERE subject=?', (elder['id'],)).fetchall()
+        assert all(parse(row['starts_at']) >= clock.now() - timedelta(minutes=1) for row in written)
+        ages.sync(connection, clock.now())
+        row = ages.stored(connection, 'circle', elder['id'])
+        assert row['anchored_on'] == clock.now().date().isoformat() and row['from_age'] == elder['age']
+    # Taken out by the user, they are not added again.
+    client.post(f"/api/life/circle/{elder['id']}/remove")
+    assert elders(client) == []

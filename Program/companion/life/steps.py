@@ -1246,6 +1246,9 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
         before = ROMANCE[index_of('romance', 'moving_in') - 1]
         found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
                  'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
+    elif moving is None and found['step'] == 'moving_in' and moving_in.moved_apart(connection, companion):
+        # Living apart again (the user moved city, say).
+        found = apart_view(found, moving_in.latest(connection, companion['active_timeline_id']))
     listed = with_family(connection, companion, found)
     if len(listed) > len(found['steps']):  # Beside the ladder: the summary says it, the step picker stays on the ladder.
         found = {**found, 'text': f"{found['text']}, {FAMILY.state}"}
@@ -1272,6 +1275,24 @@ def not_moved_text(text: str, status: str) -> str:
     if text.endswith(', living together'):
         return text.removesuffix('living together') + words
     return words.capitalize()
+
+
+def apart_view(found: dict, row: dict | None) -> dict:
+    """The panel while living apart again: the line and the picker's Living together both read "Living apart for
+    now", with no step to set; `apart` says since when and who moved ('you' the user, 'them' the companion), for the
+    line under the steps."""
+    label = 'Living apart for now'
+    return {**found, 'text': apart_text(found['text']), 'label': label,
+            'apart': {'since': row['out_on'], 'by': row['out_who']} if row and row['out_on'] else None,
+            'ladder_steps': [{**item, 'label': label} if item['step'] == 'moving_in' else item
+                             for item in found['ladder_steps']]}
+
+
+def apart_text(text: str) -> str:
+    """Living together decided, but living apart again: "Together 2 years, living apart for now"."""
+    if text.endswith(', living together'):
+        return text.removesuffix('living together') + 'living apart for now'
+    return 'Living apart for now'
 
 
 def set_step(connection, companion: dict, key: str, now) -> None:

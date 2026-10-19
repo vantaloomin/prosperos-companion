@@ -22,7 +22,8 @@ are free to date, the one who moved in moves out (companion/life/moving_in.py), 
 birthday, or reaching out). Getting back together is possible: now and then an ex reaches out (`user:reach_out`), or
 the user asks (`user:back_together`). Back together, they start again as a couple (exclusive), or living together when
 they still do: the steps further on, an engagement or a marriage are taken back (the scrapbook keeps them). A marriage
-ends with the breakup: it reads as a divorce, and the wedding is no longer theirs to talk about as a marriage.
+ends with the breakup: it reads as a divorce (a separation in older cities, `separated`), and the wedding is no longer
+theirs to talk about as a marriage.
 
 No model decides anything; the model only puts it in words.
 """
@@ -450,6 +451,20 @@ def divorced(connection, row: dict) -> bool:
     return row['ladder'] == 'romance' and bool(row['ended_at']) and had_step(connection, row, 'married')
 
 
+def separated(connection, companion: dict) -> bool:
+    """A marriage that ends in an older city (before 1950) is a separation: a divorce took a court case and was
+    rare. Today's cities keep "Divorced"."""
+    from companion.world import newcomers, townsfolk
+    return not townsfolk.modern(newcomers.city_for(connection, companion['version']['definition']))
+
+
+def ended_marriage(connection, companion: dict, row: dict) -> str | None:
+    """'divorced' or 'separated' when they were married when it ended (`divorced`), else None."""
+    if not divorced(connection, row):
+        return None
+    return 'separated' if separated(connection, companion) else 'divorced'
+
+
 def ended_since(connection, timeline_id: str, day: str) -> bool:
     """Whether it ended on or after that day (and stands, or they got back together after it): a wedding before then is
     a marriage that ended (companion/life/wedding.py)."""
@@ -707,6 +722,9 @@ LINES = {
     'divorced': ('- You and the user divorced on {date} ({who} ended it): your marriage is over. You are exes now and you '
                  'have your own life. Be polite and a little distant; do not flirt or act like a couple, and do not '
                  'suggest getting back together.'),
+    'separated': ('- You and the user separated on {date} ({who} ended it): your marriage is over in all but name. You '
+                  'are exes now and you have your own life. Be polite and a little distant; do not flirt or act like a '
+                  'couple, and do not suggest getting back together.'),
     'fell_out_tell': ('- Things between you and the user, your friend, have been strained for too long: you need some '
                       'distance from the friendship for now. Tell them now, honestly and without cruelty, in your own '
                       'words.'),
@@ -783,10 +801,10 @@ def context_lines(connection, companion: dict, now: datetime, turn: set[str],
         return [(f"breakup:{row['id']}:together", LINES['together'].format(what=what))]
     when = row['ended_at'] if found == 'ended' else row['break_at']
     by = 'ended_by' if found == 'ended' else 'break_by'
-    key = 'divorced' if key == 'ended' and divorced(connection, row) else key
+    key = (key == 'ended' and ended_marriage(connection, companion, row)) or key
     text = LINES[key].format(date=long_date(local_day(companion, when)) if when else '',
                              who=who_said(row, by) if row[by] in ('you', 'them') else 'you')
-    if key in ('ended', 'divorced') and had_step(connection, row, 'key'):
+    if key in ('ended', 'divorced', 'separated') and had_step(connection, row, 'key'):
         text += f' {KEYS_BACK}'
     return [(f"breakup:{row['id']}:{key}", text)]
 
@@ -856,8 +874,8 @@ def scrapbook_items(connection, companion: dict, low: str, high: str) -> list[di
                 row['break_by'] == 'you' or picked(connection, row['break_id']) == YES):
             items.append((row['break_at'], 'You took a break'))
         if row['ended_at'] and (found == 'ended' or found == 'together' and stage_before_together(connection, row) == 'ended'):
-            items.append((row['ended_at'], 'You had a falling out' if friend else 'You got divorced' if divorced(
-                connection, row) else 'You broke up'))
+            marriage = not friend and ended_marriage(connection, companion, row)
+            items.append((row['ended_at'], 'You had a falling out' if friend else ENDED_TEXT.get(marriage, 'You broke up')))
         if found == 'together' and (row['together_at'] or row['ended_at']):
             items.append((row['together_at'] or row['ended_at'], 'You made up' if friend else 'You got back together'))
         for when, text in items:
@@ -875,7 +893,8 @@ def scrapbook_items(connection, companion: dict, low: str, high: str) -> list[di
 # Showing it -------------------------------------------------------------------------------------------------------
 
 TEXT = {'strained': 'Things are strained', 'thinking': "They're thinking about a break", 'break': 'On a break',
-        'ended': 'Broke up', 'fell_out': 'Fell out', 'divorced': 'Divorced'}
+        'ended': 'Broke up', 'fell_out': 'Fell out', 'divorced': 'Divorced', 'separated': 'Separated'}
+ENDED_TEXT = {'divorced': 'You got divorced', 'separated': 'You separated'}
 
 
 def view(connection, companion: dict, now: datetime) -> dict:
@@ -884,7 +903,7 @@ def view(connection, companion: dict, now: datetime) -> dict:
     (getting back together always, a warning or a break with Hidden values > moods); `strip` is false a week after it
     ended."""
     empty = {'stage': None, 'text': '', 'since': None, 'by': None, 'id': None, 'odds': [], 'strip': False,
-             'mendable': False, 'summary': '', 'divorced': False,
+             'mendable': False, 'summary': '', 'divorced': False, 'separated': False,
              'ladder': ladder_of(companion) if companion else None, 'on': bool(companion) and switched_on(connection)}
     if not ACTIVE or not companion:
         return empty
@@ -898,10 +917,11 @@ def view(connection, companion: dict, now: datetime) -> dict:
     # The roll that brought it here (the earlier ones are on Today).
     odds = [row[column] for column in ('ended_id', 'break_id', 'thinking_id', 'strained_id') if row[column]][:1]
     recent = found != 'ended' or now - parse(row['ended_at']) < STRIP_ENDED
-    split = found == 'ended' and divorced(connection, row)
+    split = found == 'ended' and ended_marriage(connection, companion, row)
     return {**empty, 'stage': found, 'id': row['id'], 'since': local_day(companion, row[when]),
-            'summary': summary(connection, companion, row, found, now), 'divorced': split,
-            'text': TEXT['fell_out' if friend and found == 'ended' else 'divorced' if split else found],
+            'summary': summary(connection, companion, row, found, now), 'divorced': bool(split),
+            'separated': split == 'separated',
+            'text': TEXT['fell_out' if friend and found == 'ended' else split or found],
             'by': 'you' if by == 'you' else 'them' if by else None, 'strip': recent,
             'mendable': found == 'ended' or bool(shown.get('show_moods')),
             'odds': odds if shown.get('show_odds') else []}
@@ -916,7 +936,7 @@ def summary(connection, companion: dict, row: dict, found: str, now: datetime) -
         return ''
     steps_now = steps.state(connection, companion, now, write=False)
     first = steps_now['steps'][0] if steps_now and steps_now['steps'] else None
-    what = 'Fell out' if row['ladder'] == 'friendship' else 'Divorced' if divorced(connection, row) else 'Broke up'
+    what = 'Fell out' if row['ladder'] == 'friendship' else TEXT[ended_marriage(connection, companion, row) or 'ended']
     if not first or first['how'] in ('history', 'start'):  # No real date for where the app started them.
         return what
     days = (date.fromisoformat(local_day(companion, row['ended_at'])) - date.fromisoformat(first['on'])).days

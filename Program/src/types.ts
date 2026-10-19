@@ -222,6 +222,8 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   rent_from: 'home' | 'budget'
   /** Living on a pension, and paying a mortgage on a place they bought (companion/life/big_turns.py). */
   retired?: boolean
+  /** A medieval kingdom or a fairy-tale land: payments on a place instead of a mortgage, and no pension. */
+  medieval?: boolean
   /** Their own business's short name ('bakery') while they run one (companion/life/business.py). */
   business?: string | null
   owned?: boolean
@@ -514,6 +516,8 @@ export interface StepsView {
   asks?: { id: string; step: string; side: 'them' | 'you'; status: 'open' | 'yes' | 'not_yet' | 'no' | 'lapsed'; topic: string; on: string; consequence_id: string | null }[]
   /** Moving in together (companion/life/moving_in.py), from the moving-in step on; `consequence_id` only with odds on. */
   moving_in?: MovingIn | null
+  /** Living apart again after living together: since when, and who moved out ('you' the user, 'them' the companion). */
+  apart?: { since: string; by: 'you' | 'them' | null } | null
 }
 
 /** Wanting children (GET /api/life/steps/family, companion/life/parenthood.py); `shown` false for one who reads as
@@ -1275,6 +1279,8 @@ export interface LifeChapter {
   /** The day its latest stage came (the day it began for other chapters), as Today shows it. */
   on: string
   consequence: string | null
+  /** How its latest stage went (a business's months, a health turn's outlook, a parent's care), still changeable. */
+  outcome?: string | null
   undone: boolean
 }
 
@@ -1295,6 +1301,10 @@ export interface Consequence {
   options: { option: number; label: string; odds: number; reasons: string[]; moves?: ReasonMove[] }[]
   picked: number
   picked_by: 'dice' | 'user'
+  /** The choice it answered ("business:how"). */
+  choice?: string
+  /** Set when it can no longer change (how a stage went that already led to a later one): why, shown as a hint. */
+  settled?: string
   /** What it left behind for a while, tilting later odds; a ripple reached a companion close to them. */
   marks: { kind: 'mood' | 'money' | 'avoid'; amount: number; note: string; until: string; ripple: boolean; holder: string; who: string | null }[]
 }
@@ -1310,7 +1320,7 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary' | 'death_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
 
 /** A holiday the companion's family keeps (companion/life/traditions.py). */
 export interface Tradition { id: string; holiday: string; name: string; text: string; origin: 'seeded' | 'user'; edited: boolean; next: string | null }
@@ -1353,6 +1363,8 @@ export interface HomeItem {
   rent_period?: 'month' | 'week'
   /** A place they bought: `rent` is then the mortgage (companion/life/big_turns.py). */
   owned?: boolean
+  /** Bought in a medieval kingdom or a fairy-tale land: payments on it, not a mortgage. */
+  medieval?: boolean
   currency?: { code: string; symbol: string; name: string }
   /** The rent (or mortgage) as money.py says it, in the city's money: "$1,410", "8 d.", "15s.". */
   rent_text?: string

@@ -360,7 +360,9 @@ def test_with_the_adult_side_on_a_childs_big_day_is_never_asked_to(client, mira,
 def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
     import re
     bank = families.bank()
-    assert families.fitting(bank['babysit_toddler'], 'modern') == bank['babysit_toddler']
+    older = set(bank['tags']['older'])
+    assert families.fitting(bank['babysit_toddler'], 'modern') == [
+        line for line in bank['babysit_toddler'] if line['text'] not in older]
     for era, words in (('jazz-age', r'\b(scan|daycare|television)\b'), ('victorian', r'\b(phones?|cars?|daycare)\b'),
                        ('medieval', r'\b(phones?|cars?|trains?|strollers?|bananas?)\b')):
         for key in ('pregnancy', 'baby_update', 'toddler_update', 'babysit_toddler', 'babysit_child'):
@@ -372,6 +374,38 @@ def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
     days = [date(2027, 1, 1) + timedelta(days=offset) for offset in range(730)]
     told = ' '.join(news[2] for day in days if (news := families.news_on(child, day, 1.7, True, 'medieval')))
     assert told and not re.search(r'\b(cars?|trains?|phones?|strollers?)\b', told, re.I)
+
+
+def test_older_cities_speak_in_their_own_voice_and_today_in_a_texting_one():
+    bank = families.bank()
+    texts = {line['text'] for key, lines in bank.items() if key not in ('names', 'tags') for line in lines}
+    assert set(bank['tags']['older']) <= texts and set(bank['tags']['modern']) <= texts
+    for key in ('pregnancy', 'baby_update', 'toddler_update', 'child_update', 'babysit_baby', 'babysit_toddler',
+                'babysit_child'):
+        old, new = families.fitting(bank[key], 'victorian'), families.fitting(bank[key], 'modern')
+        assert not {line['text'] for line in old} & set(bank['tags']['modern']), key
+        assert not {line['text'] for line in new} & set(bank['tags']['older']), key
+        assert {line['text'] for line in old} & set(bank['tags']['older']), key
+        assert not any('gonna' in line['share'] or 'honestly' in line['share'] for line in old), key
+    due = date(2027, 3, 1)
+    assert families.announced('friend', due, 'friend', {'name': 'Ada'}, True)[1].endswith('I confess I cried a little')
+    assert families.announced('friend', due, 'friend', {'name': 'Ada'})[1].endswith('not gonna lie')
+    assert families.announced('coworker', due, 'friend', {'name': 'Ada'}, True)[1].endswith(
+        'everyone at work is already knitting something')
+
+
+def test_a_they_them_companion_is_the_cool_relative_and_a_fathers_baby_is_here():
+    due = date(2027, 3, 1)
+    assert families.announced('sibling', due, 'family', {'name': 'Rowan', 'pronouns': 'they/them'})[1] == \
+        "{a} is having a baby!!! due in March. I'm going to be the cool relative"
+    assert families.announced('sibling', due, 'family', {'name': 'Mira', 'identity': 'She is 30.'})[1].endswith(
+        'I am going to be an aunt')
+    child = {'name': 'Nova', 'pronouns': 'she/her', 'title': 'friend'}
+    assert families.arrived(child, 'friend', {}, 'he/him') == (
+        '{a} had the baby: a girl named Nova.', "{a}'s baby is here! a girl, Nova. everyone's doing great")
+    assert families.arrived(child, 'friend', {}, 'she/her')[0] == '{a} had the baby: a girl named Nova.'
+    assert families.arrived(child, 'godchild', {}, 'he/him')[1].startswith("{a}'s baby is here! a girl, Nova, and {a} asked")
+    assert 'crying' not in families.arrived(child, 'family', {}, 'she/her', True)[1]
 
 
 def test_a_baby_is_never_given_the_companions_own_name(client, mira):
@@ -400,6 +434,23 @@ def test_a_companion_living_in_town_never_has_a_town_baby(monkeypatch):
     assert key not in {item['key'] for item in paper.comings_and_goings({**data, 'companions': (sheet['key'],)}, week)}
 
 
+def test_a_companion_made_from_a_townsperson_drops_their_town_love_life():
+    from companion.life import encounters
+    from companion.world import catalog, paper, townsfolk
+    data, span = catalog.city('baltimore'), (date(2026, 10, 19), date(2029, 10, 19))
+    sheet, found = next((sheet, found) for hood in data['neighborhoods'] for slot in range(12)
+                        if (found := couples.events(sheet := townsfolk.resident(data, hood['id'], slot), data, span)))
+    assert couples.couple(sheet, data, span[1]) is not None
+    stand_in = encounters.stand_in(data, 'c1', sheet['key'], {'name': 'Alex Moore', 'identity': '30.'})
+    assert couples.events(stand_in, data, span) == [] and couples.couple(stand_in, data, span[1]) is None
+    kept = {**data, 'companions': (sheet['key'],)}
+    assert couples.events(sheet, kept, span) == [] and couples.couple(sheet, kept, span[1]) is None
+    day = found[0]['day']
+    week = (day - timedelta(days=day.weekday()), day + timedelta(days=6 - day.weekday()))
+    keys = {f"{sheet['key']}:{item['what']}" for item in found if week[0] <= item['day'] <= week[1]}
+    assert not keys & {item['key'] for item in paper.couples_news(kept, week)}
+
+
 def test_a_baby_is_never_named_after_a_word_in_one_of_the_citys_places():
     from companion.world import catalog
     data = catalog.city('baltimore')
@@ -417,8 +468,8 @@ def test_a_first_birthday_gift_fits_an_older_city(monkeypatch):
     assert set(gifts['first_birthday']) < set(gifts['first_birthday_modern'])
     assert not any(re.search(r'\b(telephone|crayons?|cars?)\b', gift) for gift in gifts['first_birthday'])
     companion = {'version': {'definition': {'name': 'Mira'}}}
-    for modern, key in ((True, 'first_birthday_modern'), (False, 'first_birthday')):
-        monkeypatch.setattr(big_days, 'modern_city', lambda _connection, _companion, modern=modern: modern)
+    for era, key in (('modern', 'first_birthday_modern'), ('industrial', 'first_birthday'), ('old', 'first_birthday_old')):
+        monkeypatch.setattr(big_days, 'gift_era', lambda _connection, _companion, era=era: era)
         found = {big_days.gift_for(None, companion, big_days.KINDS['first_birthday'], f'seed-{n}')[0] for n in range(60)}
         assert found <= set(gifts[key])
 

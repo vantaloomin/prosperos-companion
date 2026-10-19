@@ -96,6 +96,8 @@ test('realism presets match the settings they set, and a new world starts on rea
   assert.equal(matchPreset({ ...life, drama: 2 }, fresh), null)
   assert.equal(matchPreset({ ...life, pets_can_die: false }, fresh), null)
   assert.equal(new Set(REALISM_PRESETS.map((preset) => preset.label)).size, REALISM_PRESETS.length)
+  // The Loss slider (People can pass away stays off): rare on an easy life, often with the drama (v0.15).
+  assert.deepEqual(REALISM_PRESETS.map((preset) => [preset.id, preset.life.loss, preset.life.people_pass_away]), [['real', 2, false], ['drama', 3, false], ['easy', 0, false], ['strings', 2, false]])
 })
 
 test('your own mix names the preset it is closest to', async () => {
@@ -103,4 +105,10 @@ test('your own mix names the preset it is closest to', async () => {
   const life = { drama: 3, paced_replies: false, day_shifts: true, on_her_mind: true, upkeep_realism: 3, looks_realism: 3 } as unknown as LifeSettings
   assert.equal(nearestPreset(life, {} as WorkspaceSettings).id, 'drama')
   assert.equal(nearestPreset({ ...life, drama: 0, day_shifts: false }, {} as WorkspaceSettings).id, 'easy')
+})
+
+test('the People can pass away hint says who grieves and that a partner never dies (v0.15)', async () => {
+  const { PASS_AWAY_HINT } = await import('../../src/features/character/lossText.ts')
+  assert.match(PASS_AWAY_HINT, /The companion grieves for weeks/)
+  assert.match(PASS_AWAY_HINT, /never a partner/)
 })

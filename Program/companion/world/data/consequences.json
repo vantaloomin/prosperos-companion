@@ -871,7 +871,7 @@
               "reader": "can_new_job",
               "at_most": 0,
               "times": 0,
-              "why": "{name}'s city has no other job that fits"
+              "why": "{name} has retired, runs a business of their own or is in the middle of a big change, or {name}'s city has no other job that fits"
             },
             {
               "reader": "money",
@@ -1308,8 +1308,8 @@
             {
               "reader": "drama",
               "at_least": 3,
-              "times": 1.5,
-              "why": "the drama level is soap opera"
+              "times": 0.65,
+              "why": "even on soap opera drama, a health turn stays uncommon"
             }
           ],
           "marks": [
@@ -3412,8 +3412,8 @@
             {
               "reader": "turns",
               "at_most": 1,
-              "times": 0.5,
-              "why": "the big turns setting is on gentle"
+              "times": 0,
+              "why": "the big turns setting is on gentle, so only good turns come"
             },
             {
               "reader": "sheet",
@@ -3628,7 +3628,7 @@
         },
         {
           "label": "{a} passes away",
-          "weight": 0.0004,
+          "weight": 0.0012,
           "rules": [
             {
               "reader": "age",
@@ -3674,14 +3674,20 @@
             {
               "reader": "frail",
               "is": 1,
-              "times": 25,
+              "times": 12,
               "why": "caring for {a} has been getting harder"
             },
             {
               "reader": "treatment",
               "is": 1,
-              "times": 8,
+              "times": 6,
               "why": "{a} has been in treatment"
+            },
+            {
+              "reader": "old_era",
+              "is": 1,
+              "times": 2,
+              "why": "people die younger in these times"
             },
             {
               "reader": "loss",

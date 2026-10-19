@@ -20,7 +20,12 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
 - The invitation is a first text (companion/life/openers.py) naming whose day it is, the day, the time and the place;
   sending it books the day as an outing (companion/life/outings.py, activity 'big-day'), in person with the circle
   there. Long distance, the user's stay with them is planned around it by v0.12's rules (a 'host' visit,
-  companion/life/long_distance.py); when no visit can reach them, they go on their own.
+  companion/life/long_distance.py); when no visit can reach them, they go on their own. An out-of-town relative's
+  day is in the city they live in (trips.hometown): the user comes along when a trip from the city they share
+  reaches it, and either way the companion travels there (the fare from their money, a line saying so).
+- The invitation never lands on a day an outing with the user already has: a party or a wedding moves a week on, a
+  day that is its own (a graduation, a funeral) isn't asked to. Only days the user said yes to (or is still to
+  answer) keep another from being asked within INVITE_GAP; after a no, the next one is weighed again.
 - Saying no is fine and remembered: a no in the user's first reply to the invitation, or "Can't make it" on Today,
   and they go on their own with no hard feelings; the chat context keeps it.
 - In a modern city the days before and after carry a line of group chat buzz from the bank for them to pass on.
@@ -49,6 +54,8 @@ ACTIVE = True
 # The invitation as a first text; off in most tests (tests/conftest.py).
 FIRST_TEXTS = True
 ACTIVITY = 'big-day'
+# The photo of their own wedding (images/prompts.py PICTURES): them in wedding clothes, not a guest at a celebration.
+PICTURED = 'own-wedding-day'
 INVITE = 'bigday:invite'
 # Found this far ahead; one closer than SOONEST is too late to plan from now.
 AHEAD = 42
@@ -57,8 +64,13 @@ SOONEST = 3
 INVITE_BEFORE = (14, 28)
 GIFT_BEFORE = 7
 INVITE_HOURS = (10, 21)
-# No two big days the user is asked to within this many days of each other.
+# No two big days the user is asked to within this many days of each other: only days the user said yes to (or is
+# still to answer) count, so a no to one doesn't hide the next.
 INVITE_GAP = 14
+# Days whose date is the host's to pick: moved a week on (up to MOVE_WEEKS times) rather than asking the user to a day
+# an outing with them already has. A graduation, a send-off on their last day or a funeral keeps its day.
+MOVABLE = ('wedding', 'birthday', 'retirement', 'first_birthday', 'own_wedding')
+MOVE_WEEKS = 4
 # How long the chat hears about a big day before it (group chat buzz) and after it.
 BUZZ_BEFORE, BUZZ_AFTER, TOLD_DAYS = 7, 2, 30
 # A friend's chance of marrying in a given year, by the Their love life slider (0 nothing new ... 3 lots going on).
@@ -67,7 +79,8 @@ FRIEND_AGES = (24, 60)
 FRIENDS = {'close friend', 'longtime friend', 'old friend from school', 'old classmate', 'friend', 'new friend',
            'roommate from years ago'}
 # Whose milestone birthday is a party they go to, and who retires with a send-off.
-CLOSE = {'parent', 'sibling', 'cousin', 'aunt', 'uncle', 'grandmother', 'grandfather', *circle.OLD_FRIENDS}
+CLOSE = {'parent', 'sibling', 'cousin', 'aunt', 'uncle', 'grandmother', 'grandfather', 'grandparent',
+         *circle.OLD_FRIENDS}
 RELATIVES = {'parent', 'sibling', 'cousin', 'aunt', 'uncle'}
 RETIRE_AGES = (62, 67)
 STUDENTS = {'College student': 22, 'Graduate student': 26}
@@ -383,7 +396,7 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
         return wedding.venue_for(data, wedding.customs(wedding.culture_of(data)), 'proper', seed, day=day)
     if kind.key == 'funeral':
         from companion.life import loss
-        return loss.venue_for(connection, companion, data, seed, day)
+        return loss.venue_for(connection, companion, data, seed, day, bool(details.get('notable')))
     options = [item for item in data['places'] if item['kind'] in kind.places
                and not any(word in item['name'].lower() for word in NOT_PARTY)]
     if kind.key in ('graduation', 'own_graduation'):
@@ -405,10 +418,16 @@ def gift_for(connection, companion: dict, kind: Kind, seed: str, details: dict |
         flowers = (details or {}).get('flowers', '')
         return flowers, round(money.monthly_share(found) * kind.share, 2) if flowers and found else 0.0
     gifts = bank()['gifts']
-    key = f'{kind.gift}_modern' if f'{kind.gift}_modern' in gifts and modern_city(connection, companion) else kind.gift
-    gift = generators.pick(seed, 'gift', gifts[key])
+    gift = generators.pick(seed, 'gift', gifts.get(f'{kind.gift}_{gift_era(connection, companion)}') or gifts[kind.gift])
     found = money.profile(companion['version']['definition'])
     return gift, round(money.monthly_share(found) * kind.share, 2) if found else 0.0
+
+
+def gift_era(connection, companion: dict) -> str:
+    """Which gift bank: 'modern', 'old' in Camelot (medieval and fantasy cities), else the timeless one (1895, 1925:
+    admin.era_group's 'industrial')."""
+    from companion.life import admin
+    return admin.era_group(outings.city_data(connection, companion['version']['definition']))
 
 
 def outfit_for(connection, companion: dict, row_id: str, day: date, wear: str = '', kind: str = '') -> str:
@@ -453,9 +472,11 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
     if optional(connection, 'SELECT id FROM big_days WHERE timeline_id=? AND source=?', (timeline_id, found['source'])) \
             or day < today + timedelta(days=SOONEST) or kind.modern and not modern_city(connection, companion):
         return None
+    day = clear_day(connection, companion, kind.key, found['source'], day)
     row_id, timestamp = identifier(), stamp(now)
     if found['details'].get('role'):  # As they say it: 'mom' for a parent, 'mother' in 1895 (circle.said).
         found = {**found, 'details': {**found['details'], 'role': spoken(found['details'], companion)}}
+    found = {**found, 'details': {**found['details'], **away(connection, companion, found, day)}}
     seed = f"bigday:{timeline_id}:{found['source']}"
     place = {**place_for(connection, companion, kind, day, seed, found['details']),
              'modern': modern_city(connection, companion)}
@@ -476,20 +497,79 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
     return get(connection, row_id)
 
 
+def clear_day(connection, companion: dict, kind: str, source: str, day: date) -> date:
+    """The day, or when an outing with the user already has it and the host could pick another, the same weekday a
+    week on (up to MOVE_WEEKS times). A townsperson's wedding is the town's own date."""
+    if kind not in MOVABLE or source.startswith('town:'):
+        return day
+    for weeks in range(MOVE_WEEKS + 1):
+        if not with_user_on(connection, companion, day + timedelta(weeks=weeks)):
+            return day + timedelta(weeks=weeks)
+    return day
+
+
+def with_user_on(connection, companion: dict, day: date) -> bool:
+    """An outing with the user is booked for that day."""
+    return bool(optional(connection, "SELECT id FROM outings WHERE companion_id=? AND local_date=? AND "
+                         "status!='cancelled'", (companion['id'], day.isoformat())))
+
+
+def away(connection, companion: dict, found: dict, day: date) -> dict:
+    """An out-of-town relative's day is in the city they live in (trips.hometown, as a trip to see them goes): its
+    name and id, and the fare there and back that comes out of their money the day before (trips.price, a weekend
+    trip's share). {} for a day in town, or when no city can be told."""
+    from companion.life import trips
+    details = found['details']
+    person_id = found['person_id'] or loss_person(connection, details)
+    home = outings.city_data(connection, companion['version']['definition'])
+    if details.get('local') is not False or details.get('city') or not person_id or not home:
+        return {}
+    city = trips.hometown(person_id, home)
+    if city is None:
+        return {}
+    fare = trips.price(companion['version']['definition'], trips.COST_SHARE[2], day - timedelta(days=1), float('inf'))
+    return {'city': city['name'], 'city_id': city['id'], 'fare': fare or 0.0}
+
+
+def loss_person(connection, details: dict) -> str | None:
+    """The circle person a funeral is for (companion/life/loss.py)."""
+    found = optional(connection, 'SELECT person_id FROM losses WHERE id=?', (details.get('loss_id') or '',))
+    return found['person_id'] if found else None
+
+
+def travels(connection, companion: dict, row: dict) -> bool:
+    """The user can come along to a day out of town: both live in the companion's city (long distance, the user
+    can't come) and a trip from there reaches it (trips.fits, within a long weekend's reach)."""
+    from companion.life import long_distance, trips
+    home = outings.city_data(connection, companion['version']['definition'])
+    city = catalog.cities().get(row['details'].get('city_id') or '')
+    return bool(home and city) and not long_distance.far(connection, companion) and trips.fits(home, city) and \
+        catalog.distance_km(home, city) <= trips.REACH_KM[3]
+
+
 def invitable(connection, companion: dict, row: dict) -> bool:
-    """Whether the user could come at all: someone in town (or a visit can reach them), not apart from the companion,
-    and no other big day they are asked to that close."""
+    """Whether the user could come at all: someone in town or a trip they can make together (or a visit can reach
+    them), not apart from the companion, and no other big day they are asked to that close."""
     from companion.life import long_distance
-    if row['details'].get('local') is False or steps.apart(connection, companion) == 'ended':
+    if row['details'].get('local') is False and not travels(connection, companion, row) or \
+            steps.apart(connection, companion) == 'ended':
         return False
     between = long_distance.far(connection, companion)
     if between and not long_distance.reachable(between):
         return False
+    return not crowded(connection, row)
+
+
+def crowded(connection, row: dict) -> bool:
+    """Another big day within INVITE_GAP days that the user said yes to, went to, or is still to be asked to or
+    answer. One they said no to doesn't count, and a funeral in the family is never held back (loss.funerals)."""
+    if row['kind'] == 'funeral' and row['details'].get('family'):
+        return False
     low = (date.fromisoformat(row['local_date']) - timedelta(days=INVITE_GAP)).isoformat()
     high = (date.fromisoformat(row['local_date']) + timedelta(days=INVITE_GAP)).isoformat()
-    return not optional(connection, "SELECT id FROM big_days WHERE timeline_id=? AND id!=? AND invite=1 AND "
-                        "status IN ('planned', 'invited') AND local_date>=? AND local_date<=?",
-                        (row['timeline_id'], row['id'], low, high))
+    return bool(optional(connection, "SELECT id FROM big_days WHERE timeline_id=? AND id!=? AND invite=1 AND "
+                         "(status IN ('planned', 'invited') OR status='done' AND with_user=1) AND local_date>=? AND "
+                         'local_date<=?', (row['timeline_id'], row['id'], low, high)))
 
 
 def decide_invite(connection, companion: dict, row: dict, now: datetime) -> None:
@@ -558,6 +638,7 @@ def advance(connection, companion: dict, now: datetime) -> None:
         return
     today = local_today(companion, now)
     follow(connection, companion, now)
+    reconsider(connection, companion, now)
     people = {row['id']: row for row in circle.people(connection, companion['active_timeline_id'])}
     for source in SOURCES:
         for found in source(connection, companion, today, people, now):
@@ -587,6 +668,23 @@ def follow(connection, companion: dict, now: datetime) -> None:
             finish(connection, companion, row, False, now)
 
 
+def reconsider(connection, companion: dict, now: datetime) -> None:
+    """Days still to be asked to: one left unasked while the user couldn't come (another big day close by they have
+    since said no to, a move) is weighed again, and one whose day an outing with the user has taken since is moved
+    a week on where the host could (`clear_day`)."""
+    for row in rows(connection, companion['active_timeline_id'], ('planned',)):
+        if not row['invite'] and not row['consequence_id']:
+            decide_invite(connection, companion, row, now)
+            row = get(connection, row['id'])
+        day = date.fromisoformat(row['local_date'])
+        moved = clear_day(connection, companion, row['kind'], row['source'], day) if row['invite'] and \
+            with_user_on(connection, companion, day) else day
+        if moved != day:
+            gift_on = max(row['gift_on'] or '', (moved - timedelta(days=GIFT_BEFORE)).isoformat())
+            connection.execute('UPDATE big_days SET local_date=?, gift_on=?, updated_at=? WHERE id=?',
+                               (moved.isoformat(), gift_on, stamp(now), row['id']))
+
+
 def moved_apart(connection, companion: dict, row: dict, outing: dict, now: datetime) -> str:
     """They live apart since the invitation (one of them moved): the user's stay with them is planned around the day,
     or, when no visit can reach them, the user can't come after all ('cancelled'). Else the outing stays 'planned'."""
@@ -595,6 +693,8 @@ def moved_apart(connection, companion: dict, row: dict, outing: dict, now: datet
     if not between or optional(connection, "SELECT id FROM trips WHERE id=? AND status='planned'",
                                (row['trip_id'] or '',)):
         return 'planned'
+    if row['details'].get('city_id'):  # Out of town: the trip there together was from the city they shared.
+        return 'cancelled'
     if long_distance.reachable(between):
         trip_id = stay(connection, companion, date.fromisoformat(row['local_date']), outing['message_id'], now)
         connection.execute('UPDATE big_days SET trip_id=? WHERE id=?', (trip_id or row['trip_id'], row['id']))
@@ -724,7 +824,8 @@ def invite_due(connection, companion: dict, now: datetime) -> list:
     hidden = CHILDS if withheld(connection) else ()  # Called off at the next pass; never asked to meanwhile.
     row = next((item for item in rows(connection, companion['active_timeline_id'], ('planned',))
                 if item['invite'] and item['invite_on'] <= today and item['local_date'] >= soonest
-                and item['kind'] not in hidden and invitable(connection, companion, item)), None)
+                and item['kind'] not in hidden and invitable(connection, companion, item)
+                and not with_user_on(connection, companion, date.fromisoformat(item['local_date']))), None)
     if row is None:
         return []
     day = date.fromisoformat(row['local_date'])
@@ -1011,7 +1112,15 @@ def coming_line(row: dict, today: date) -> str:
             "haven't asked yet."
     else:
         company = " You're going." if row['kind'] in OWN else " You're going on your own."
-    return head + company + gift + wear
+    return head + company + travel_text(row) + gift + wear
+
+
+def travel_text(row: dict) -> str:
+    """A day out of town (`away`): they travel there for it, with the user when the user is coming."""
+    if not row['details'].get('city_id'):
+        return ''
+    return f" It's out of town, in {row['details']['city']}: you travel there for it" + (
+        ', the two of you together.' if row['status'] == 'invited' else '.')
 
 
 def past_line(row: dict, today: date) -> str:
@@ -1067,11 +1176,19 @@ def offer(packet, connection, companion: dict, now: datetime, group=None) -> Non
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
     """Gifts bought this pay period (a week before each big day they go to)."""
-    return [{'text': f"sent {row['gift']}" if row['kind'] in QUIET else f"bought {row['gift']} as a gift",
-             'date': row['gift_on'], 'spend': '', 'cost': row['gift_cost'], 'for': 'funeral' if row['kind'] in QUIET else 'gift'}
-            for row in many(connection, "SELECT * FROM big_days WHERE timeline_id=? AND status!='called_off' AND "
-                            'gift_cost>0 AND gift_on>=? AND gift_on<=?', (timeline_id, start.isoformat(),
-                                                                         day.isoformat()))]
+    gifts = [{'text': f"sent {row['gift']}" if row['kind'] in QUIET else f"bought {row['gift']} as a gift",
+              'date': row['gift_on'], 'spend': '', 'cost': row['gift_cost'], 'for': 'funeral' if row['kind'] in QUIET else 'gift'}
+             for row in many(connection, "SELECT * FROM big_days WHERE timeline_id=? AND status!='called_off' AND "
+                             'gift_cost>0 AND gift_on>=? AND gift_on<=?', (timeline_id, start.isoformat(),
+                                                                          day.isoformat()))]
+    # Out of town (`away`): the fare there and back, the day before.
+    fares = [{'text': f"travelled to {view(row)['details']['city']} for {title(view(row))}", 'date': row['set_off'],
+              'spend': '', 'cost': row['fare'], 'for': 'trip'}
+             for row in many(connection, "SELECT *, date(local_date, '-1 day') AS set_off, json_extract(details, "
+                             "'$.fare') AS fare FROM big_days WHERE timeline_id=? AND status!='called_off' AND "
+                             "json_extract(details, '$.fare')>0 AND date(local_date, '-1 day') BETWEEN ? AND ?",
+                             (timeline_id, start.isoformat(), day.isoformat()))]
+    return gifts + fares
 
 
 # Branches (companion/timelines.py) ---------------------------------------------------------------------------------

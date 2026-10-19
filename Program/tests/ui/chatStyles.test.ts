@@ -31,3 +31,9 @@ test('the chat list beside a chat (feed, bubbles, novel) never grows wider than 
   const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8')
   assert.match(css, /\.side-list ul \{ grid-template-columns: minmax\(0, 1fr\); \}/)
 })
+
+test('a panel before a settings section keeps the panels’ gap above its divider (Iris, v0.15)', () => {
+  const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8')
+  assert.match(css, /\.home-panel \{ margin-top: 32px;/)
+  assert.match(css, /\.home-panel \+ \.settings-section \{ margin-top: 32px; \}/)
+})

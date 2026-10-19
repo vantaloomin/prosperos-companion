@@ -77,6 +77,10 @@ def test_circle_roles_start_where_people_already_are_with_a_stable_nudge():
     assert {pairs.role_default('coworker', f'circle:t:{n}')['level'] for n in range(200)} == {2, 3}
     assert pairs.role_default('mom', 'circle:t:7') == pairs.role_default('mom', 'circle:t:7')
     assert pairs.role_default('someone odd', 'circle:t:1')['level'] == 1
+    # A grandparent starts with the family, never "Just met".
+    for role in ('grandmother', 'grandfather', 'grandparent'):
+        assert [pairs.role_default(role, f'circle:t:{n}')['level'] for n in range(200)] == \
+            [pairs.role_default('mom', f'circle:t:{n}')['level'] for n in range(200)]
 
 
 def test_two_companions_start_as_strangers_unless_their_backstory_is_told_once(client, cast):

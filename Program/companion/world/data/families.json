@@ -499,6 +499,54 @@
   {
    "text": "{a} laughed when the baby seemed to respond to a favorite comedy show.",
    "share": "{a} says the baby moves every time a certain comedy comes on. great taste already"
+  },
+  {
+   "text": "{name} helped {a} sew a little quilt for the cradle.",
+   "share": "Spent the afternoon sewing a quilt for the cradle with {a}. My stitches are crooked, but {a} says they add character."
+  },
+  {
+   "text": "{a} felt the baby kick for the first time with {name} sitting beside them.",
+   "share": "I was sitting with {a} when the baby kicked for the first time. We both went quite still, and then we laughed."
+  },
+  {
+   "text": "{name} and {a} brought the old family cradle down from the attic.",
+   "share": "We brought the old family cradle down from the attic and gave it a good scrub. It looks as good as new."
+  },
+  {
+   "text": "Every letter to {a} comes with advice about the baby now.",
+   "share": "Every letter {a} gets comes with advice about the baby now. Half of it contradicts the other half."
+  },
+  {
+   "text": "{name} knitted a pair of bootees for the baby.",
+   "share": "I've knitted a pair of bootees for the baby. One is rather larger than the other. The baby won't mind."
+  },
+  {
+   "text": "{name} and {a} sat up half the night talking over names.",
+   "share": "We sat up half the night going over names with {a}. Every one of them belonged to somebody's great-aunt."
+  },
+  {
+   "text": "{name} helped {a} whitewash the little room for the baby.",
+   "share": "Helped {a} whitewash the little room for the baby today. I'm still finding white in my hair."
+  },
+  {
+   "text": "The midwife told {a} that all was well.",
+   "share": "The midwife came by and says all is well with {a} and the baby. What a relief."
+  },
+  {
+   "text": "{name} took {a} a basket of good things from the market.",
+   "share": "Took {a} a basket from the market: fresh bread, apples and a little honey. Strict orders to rest."
+  },
+  {
+   "text": "Half of {a}'s street has promised to help when the baby comes.",
+   "share": "Half the street has promised {a} a hand when the baby comes. It is lovely to see."
+  },
+  {
+   "text": "{name} spent the evening by the fire with {a}, hemming little gowns for the baby.",
+   "share": "An evening by the fire with {a}, hemming little gowns. They are so small I keep losing them in my lap."
+  },
+  {
+   "text": "{a} has been told to rest, so {name} has been doing the fetching and carrying.",
+   "share": "{a} has been told to rest, so I've been doing the fetching and carrying. I don't mind a bit."
   }
  ],
  "baby_update": [
@@ -957,6 +1005,46 @@
   {
    "text": "{child} started making a happy humming sound while eating.",
    "share": "{child} hums while eating now. {a} says it means it's tasty"
+  },
+  {
+   "text": "{child} took hold of {name}'s finger and would not let go.",
+   "share": "{child} took hold of my finger today and simply would not let go. I was quite happy to stay."
+  },
+  {
+   "text": "{child} slept the whole night through at last.",
+   "share": "{child} slept the whole night through at last, {a} tells me. The whole house is rejoicing."
+  },
+  {
+   "text": "{child} laughed out loud for the first time.",
+   "share": "{child} laughed out loud today, a proper laugh. {a} and I could not stop grinning."
+  },
+  {
+   "text": "{child} is cutting a first tooth.",
+   "share": "{child} is cutting a first tooth, poor little thing. {a} has been walking the floor half the night."
+  },
+  {
+   "text": "{child} sat up all alone for the first time.",
+   "share": "{child} sat up all alone today and looked very proud about it."
+  },
+  {
+   "text": "{child} has outgrown another set of little gowns.",
+   "share": "{child} has outgrown another set of little gowns already. {a} can barely keep up with the sewing."
+  },
+  {
+   "text": "{child} spent the afternoon babbling at the cat.",
+   "share": "{child} spent the whole afternoon babbling at the cat. The cat listened politely."
+  },
+  {
+   "text": "{child} has started crawling.",
+   "share": "{child} is crawling now, and nothing on the floor is safe. {a} is quite worn out."
+  },
+  {
+   "text": "{child} had a first spoonful of porridge.",
+   "share": "{child} had a first spoonful of porridge today. Most of it went down the front."
+  },
+  {
+   "text": "{name} rocked {child} to sleep by the fire.",
+   "share": "Rocked {child} to sleep by the fire this evening. There's nothing quite so peaceful."
   }
  ],
  "toddler_update": [
@@ -1435,6 +1523,46 @@
   {
    "text": "{child} drew a bright yellow sun at daycare.",
    "share": "{child} drew a sun at daycare. it has a face and sunglasses. very cool sun"
+  },
+  {
+   "text": "{child} toddled right across the room to {name}.",
+   "share": "{child} toddled right across the room to me today. I very nearly wept."
+  },
+  {
+   "text": "{child} said {name}'s name, or very nearly.",
+   "share": "{child} said my name today. Well, nearly. I am counting it."
+  },
+  {
+   "text": "{child} spent the morning chasing the hens round the yard.",
+   "share": "{child} spent the morning chasing the hens round the yard. The hens did not enjoy it."
+  },
+  {
+   "text": "{child} helped {a} with the bread.",
+   "share": "{child} helped {a} with the bread today, which mostly meant flour from head to toe."
+  },
+  {
+   "text": "{child} picked {name} a handful of daisies.",
+   "share": "{child} picked me a fistful of daisies on our walk. I've put them in water."
+  },
+  {
+   "text": "{child} has learned a whole nursery rhyme by heart.",
+   "share": "{child} knows a whole nursery rhyme now and says it to anyone who will stand still long enough."
+  },
+  {
+   "text": "{child} has taken to hiding under the table at bedtime.",
+   "share": "{child} has taken to hiding under the table at bedtime. {a} has had to get very clever."
+  },
+  {
+   "text": "{child} has a first pair of proper shoes.",
+   "share": "{child} has a first pair of proper shoes and keeps stamping about to hear them."
+  },
+  {
+   "text": "{child} fell fast asleep at supper.",
+   "share": "{child} fell fast asleep at supper, spoon still in hand. {a} carried {them} straight up to bed."
+  },
+  {
+   "text": "{child} follows the dog everywhere now.",
+   "share": "{child} follows the dog everywhere now. The dog seems to have accepted it."
   }
  ],
  "child_update": [
@@ -1925,6 +2053,46 @@
   {
    "text": "{child} learned to play a duet with {a} on the piano.",
    "share": "{child} and {a} played a piano duet at the family party. mostly in time. very moving"
+  },
+  {
+   "text": "{child} is learning {their} letters.",
+   "share": "{child} is learning {their} letters and wrote a very large, very wobbly name for me today."
+  },
+  {
+   "text": "{child} recited a whole poem in front of the family.",
+   "share": "{child} recited a whole poem in front of the family tonight without a single stumble. We clapped till our hands hurt."
+  },
+  {
+   "text": "{child} lost a front tooth and whistles through the gap.",
+   "share": "{child} has lost a front tooth and whistles through the gap at every chance."
+  },
+  {
+   "text": "{child} learned to swim in the river this summer.",
+   "share": "{child} learned to swim in the river this summer, with {a} hovering on the bank the whole time."
+  },
+  {
+   "text": "{child} spent the day helping {a} at work.",
+   "share": "{child} spent the day helping {a} at work and came home very important and very tired."
+  },
+  {
+   "text": "{child} whittled a little wooden boat and sailed it on the pond.",
+   "share": "{child} whittled a little wooden boat, with some help, and sailed it on the pond. It floated!"
+  },
+  {
+   "text": "{child} won a prize for neat handwriting.",
+   "share": "{child} won a prize for neat handwriting. Neater than mine, I'm sorry to say."
+  },
+  {
+   "text": "{child} read {name} a whole story aloud.",
+   "share": "{child} read me a whole story aloud tonight, every word of it. I was so proud."
+  },
+  {
+   "text": "{child} has a new best friend from down the lane.",
+   "share": "{child} has a new best friend from down the lane. The two of them are never apart."
+  },
+  {
+   "text": "{child} has decided to be a sailor one day.",
+   "share": "{child} has decided to be a sailor one day and practises knots on everything, chair legs included."
   }
  ],
  "babysit_baby": [
@@ -2371,6 +2539,38 @@
   {
    "text": "{name} took {child} to see the autumn pumpkins at the farm shop.",
    "share": "pumpkin spotting at the farm shop with {child}. {they} tried to hug the biggest one"
+  },
+  {
+   "text": "{name} minded {child} while {a} went to market.",
+   "share": "Minded {child} while {a} went to market. We managed beautifully, mostly by walking up and down."
+  },
+  {
+   "text": "{name} sang {child} to sleep with an old lullaby.",
+   "share": "Sang {child} the old lullaby my own family used to sing. Asleep by the second verse."
+  },
+  {
+   "text": "{name} sat by the cradle while {a} got some rest.",
+   "share": "Sat by the cradle while {a} got a few hours' rest. {child} slept, and so, very nearly, did I."
+  },
+  {
+   "text": "{name} walked {child} up and down until the crying stopped.",
+   "share": "Walked {child} up and down the room for an hour. The crying stopped in the end. My arms may never recover."
+  },
+  {
+   "text": "{name} had {child} for the evening so {a} could go out.",
+   "share": "Had {child} for the evening so {a} could go out. We sat by the fire and I told {them} all the news."
+  },
+  {
+   "text": "{name} gave {child} a bath by the fire.",
+   "share": "Gave {child} a bath by the fire tonight. More water on me than on {child}."
+  },
+  {
+   "text": "{name} took {child} out for some fresh air while {a} slept.",
+   "share": "Took {child} out for some fresh air while {a} slept. {child} looked at every single leaf."
+  },
+  {
+   "text": "{name} kept {child} amused all morning with a wooden rattle.",
+   "share": "Kept {child} amused all morning with a wooden rattle and a great many silly faces."
   }
  ],
  "babysit_toddler": [
@@ -2817,6 +3017,38 @@
   {
    "text": "{name} played a calm game of trains and tunnels under the sofa.",
    "share": "built tunnels under the sofa for the trains with {child}. the dog was a mountain"
+  },
+  {
+   "text": "{name} minded {child} and fed the ducks with {them}.",
+   "share": "Minded {child} today while {a} was out. We fed the ducks and counted every one of them."
+  },
+  {
+   "text": "{name} built a tower of wooden blocks with {child}.",
+   "share": "Built a tower of wooden blocks with {child}. Knocked down, built again, knocked down. Endless joy."
+  },
+  {
+   "text": "{name} told {child} a story about a brave little mouse.",
+   "share": "Told {child} a story about a brave little mouse. Had to tell it four times over."
+  },
+  {
+   "text": "{name} took {child} to see the horses down the road.",
+   "share": "Took {child} to see the horses down the road. {child} wanted to take one home."
+  },
+  {
+   "text": "{name} baked little cakes with {child}.",
+   "share": "Baked little cakes with {child}. Flour everywhere, and every cake was tasted first."
+  },
+  {
+   "text": "{name} sang songs with {child} all afternoon.",
+   "share": "We sang every song I know, all afternoon. {child} knows them better than I do now."
+  },
+  {
+   "text": "{name} played hide and seek in the garden with {child}.",
+   "share": "Played hide and seek in the garden with {child}, who always hides in the same place and is delighted every time."
+  },
+  {
+   "text": "{name} put {child} to bed while {a} was out.",
+   "share": "Put {child} to bed tonight. It took three stories, two drinks of water and one very serious talk about the moon."
   }
  ],
  "babysit_child": [
@@ -3263,6 +3495,38 @@
   {
    "text": "{name} took {child} to an adventure playground.",
    "share": "adventure playground with {child}. {they} found every slide. i found every bench"
+  },
+  {
+   "text": "{name} taught {child} an old card game.",
+   "share": "Taught {child} an old card game tonight. {child} beat me twice and was not gracious about it."
+  },
+  {
+   "text": "{name} helped {child} with {their} sums.",
+   "share": "Helped {child} with {their} sums. We got there in the end, with a good deal of counting on fingers."
+  },
+  {
+   "text": "{name} took {child} fishing.",
+   "share": "Took {child} fishing this morning. We caught nothing at all and had a splendid time."
+  },
+  {
+   "text": "{name} told {child} what {a} was like at that age.",
+   "share": "Told {child} what {a} was like at that age. {child} could hardly believe a word of it."
+  },
+  {
+   "text": "{name} flew a kite on the hill with {child}.",
+   "share": "Flew a kite on the hill with {child}. It spent more time in the hedge than in the sky."
+  },
+  {
+   "text": "{name} taught {child} to whistle.",
+   "share": "Taught {child} to whistle. I may come to regret it."
+  },
+  {
+   "text": "{name} took {child} to the fair.",
+   "share": "Took {child} to the fair. We watched the jugglers and shared a bag of hot chestnuts."
+  },
+  {
+   "text": "{name} read aloud to {child} by the fire all evening.",
+   "share": "{child} begged for one more chapter by the fire, and then another. We read all evening."
   }
  ],
  "names": {
@@ -3522,6 +3786,120 @@
    "Keanu",
    "Nikau",
    "Mason"
+  ]
+ },
+ "tags": {
+  "older": [
+   "{name} helped {a} sew a little quilt for the cradle.",
+   "{a} felt the baby kick for the first time with {name} sitting beside them.",
+   "{name} and {a} brought the old family cradle down from the attic.",
+   "Every letter to {a} comes with advice about the baby now.",
+   "{name} knitted a pair of bootees for the baby.",
+   "{name} and {a} sat up half the night talking over names.",
+   "{name} helped {a} whitewash the little room for the baby.",
+   "The midwife told {a} that all was well.",
+   "{name} took {a} a basket of good things from the market.",
+   "Half of {a}'s street has promised to help when the baby comes.",
+   "{name} spent the evening by the fire with {a}, hemming little gowns for the baby.",
+   "{a} has been told to rest, so {name} has been doing the fetching and carrying.",
+   "{child} took hold of {name}'s finger and would not let go.",
+   "{child} slept the whole night through at last.",
+   "{child} laughed out loud for the first time.",
+   "{child} is cutting a first tooth.",
+   "{child} sat up all alone for the first time.",
+   "{child} has outgrown another set of little gowns.",
+   "{child} spent the afternoon babbling at the cat.",
+   "{child} has started crawling.",
+   "{child} had a first spoonful of porridge.",
+   "{name} rocked {child} to sleep by the fire.",
+   "{child} toddled right across the room to {name}.",
+   "{child} said {name}'s name, or very nearly.",
+   "{child} spent the morning chasing the hens round the yard.",
+   "{child} helped {a} with the bread.",
+   "{child} picked {name} a handful of daisies.",
+   "{child} has learned a whole nursery rhyme by heart.",
+   "{child} has taken to hiding under the table at bedtime.",
+   "{child} has a first pair of proper shoes.",
+   "{child} fell fast asleep at supper.",
+   "{child} follows the dog everywhere now.",
+   "{child} is learning {their} letters.",
+   "{child} recited a whole poem in front of the family.",
+   "{child} lost a front tooth and whistles through the gap.",
+   "{child} learned to swim in the river this summer.",
+   "{child} spent the day helping {a} at work.",
+   "{child} whittled a little wooden boat and sailed it on the pond.",
+   "{child} won a prize for neat handwriting.",
+   "{child} read {name} a whole story aloud.",
+   "{child} has a new best friend from down the lane.",
+   "{child} has decided to be a sailor one day.",
+   "{name} minded {child} while {a} went to market.",
+   "{name} sang {child} to sleep with an old lullaby.",
+   "{name} sat by the cradle while {a} got some rest.",
+   "{name} walked {child} up and down until the crying stopped.",
+   "{name} had {child} for the evening so {a} could go out.",
+   "{name} gave {child} a bath by the fire.",
+   "{name} took {child} out for some fresh air while {a} slept.",
+   "{name} kept {child} amused all morning with a wooden rattle.",
+   "{name} minded {child} and fed the ducks with {them}.",
+   "{name} built a tower of wooden blocks with {child}.",
+   "{name} told {child} a story about a brave little mouse.",
+   "{name} took {child} to see the horses down the road.",
+   "{name} baked little cakes with {child}.",
+   "{name} sang songs with {child} all afternoon.",
+   "{name} played hide and seek in the garden with {child}.",
+   "{name} put {child} to bed while {a} was out.",
+   "{name} taught {child} an old card game.",
+   "{name} helped {child} with {their} sums.",
+   "{name} took {child} fishing.",
+   "{name} told {child} what {a} was like at that age.",
+   "{name} flew a kite on the hill with {child}.",
+   "{name} taught {child} to whistle.",
+   "{name} took {child} to the fair.",
+   "{name} read aloud to {child} by the fire all evening."
+  ],
+  "modern": [
+   "{a} sent {name} the first scan picture.",
+   "{a} told {name} the baby was now the size of a lemon.",
+   "{a} had a midnight craving for pickles and {name} delivered a jar.",
+   "{a} told {name} the baby had started kicking whenever music played.",
+   "{a} put together a list of lullabies to practice.",
+   "{a} told {name} the baby was now the size of an avocado.",
+   "{a} craved spicy noodles every night for a week.",
+   "{a} narrowed the baby name list down to five.",
+   "{name} helped {a} pack the bag for the big day.",
+   "{a} told {name} the baby seemed to calm down whenever the vacuum cleaner ran.",
+   "{a} asked {name} to help pick between two strollers.",
+   "{name} spent the evening blowing up balloons for the baby shower.",
+   "{name} won the guess-the-baby-food game at the shower.",
+   "{a} and the family voted on a middle name.",
+   "{a} kept the final name a secret from everyone, including {name}.",
+   "{a} craved strawberries dipped in yoghurt.",
+   "{name} made {a} a playlist for the drive on the big day.",
+   "{child} slept through the night for the first time.",
+   "{child} clapped along to music.",
+   "{child} tried avocado and pulled a funny face.",
+   "{child} found {their} voice and started babbling nonstop.",
+   "{child} enjoyed {their} first taste of yoghurt.",
+   "{child} started to love the sound of rain on the window.",
+   "{child} started keeping {a} company in the kitchen while {a} cooked.",
+   "{child} wore a tiny raincoat for the first time.",
+   "{child} got the hang of drinking water from a little cup with handles.",
+   "{child} had a big tantrum in the shop over a broken banana.",
+   "{child} had a little cold and spent the day on the sofa with stories.",
+   "{child} wore a dinosaur costume for a week straight.",
+   "{child} had a tantrum leaving the park and forgot it a minute later.",
+   "{child} drew a bright yellow sun at daycare.",
+   "{child} had a cold and missed one day of school.",
+   "{name} got a big laugh out of {child} with a silly face.",
+   "{name} tidied up after babysitting so {a} came home to a neat house.",
+   "{name} looked after {child} while {a} went to a friend's birthday party.",
+   "{name} looked after {child} while {a} helped a friend move house.",
+   "{name} played gentle drums on a box for {child}.",
+   "{name} read {child} a book about a little owl.",
+   "{name} looked after {child} while {a} went to a work event.",
+   "{name} set up a treasure hunt in the garden for {child}.",
+   "{name} had a board game night with {child}.",
+   "{name} took {child} to an art gallery."
   ]
  }
 }

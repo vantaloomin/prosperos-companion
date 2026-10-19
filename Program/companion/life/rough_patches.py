@@ -520,13 +520,14 @@ def tension(connection, companion: dict, now: datetime) -> dict | None:
 def turned_down(connection, companion: dict, message: dict, kind: str, now: datetime) -> bool:
     """The user asks to get together (going out, or a visit) while things are tense: the engine decides whether they
     would rather not, for now. Then nothing is booked, and the reply says so (a visit turned down,
-    companion/life/together.py). True when they turned it down."""
+    companion/life/together.py). True when they turned it down. Never on an easy life (a turn-down is a hard turn):
+    there they say yes, even to a rough patch carried over from a real one."""
     if not ACTIVE or message['role'] != 'user' or not companion.get('active_timeline_id'):
         return False
     if optional(connection, 'SELECT id FROM together_asks WHERE message_id=?', (message['id'],)):
         return True
     found = tension(connection, companion, now)
-    if found is None:
+    if found is None or level(connection) < 2:
         return False
     definition = companion['version']['definition']
     names = {'name': first_name(companion), 'a': 'someone', 'b': ''}

@@ -22,6 +22,8 @@ test('rent and a mortgage read in the money of their city, as the server says it
   const pennies = { code: 'penny', symbol: 'd.', name: 'silver pennies' }
   assert.equal(rentText(item({ rent: 8, rent_period: 'week', currency: pennies, rent_text: '8 d.' })), 'Rent about 8 d. a week (an estimate)')
   assert.equal(rentText(item({ rent: 12, rent_period: 'week', owned: true, currency: pennies, rent_text: '12 d.' })), 'Theirs, with a mortgage of about 12 d. a week (an estimate)')
+  // No mortgage in a medieval kingdom: payments on the place.
+  assert.equal(rentText(item({ rent: 12, rent_period: 'week', owned: true, medieval: true, currency: pennies, rent_text: '12 d.' })), 'Theirs, paying about 12 d. a week on it (an estimate)')
 })
 
 test('details skip a description that repeats the name and add a repair', () => {
@@ -50,4 +52,13 @@ test('housework reads in words, with the last big clean when there was one', asy
   assert.equal(lastClean({ last_big_clean: '2026-10-21', today: '2026-10-22' })?.when, 'yesterday')
   assert.match(lastClean({ last_big_clean: '2026-10-16', today: '2026-10-22' })?.when ?? '', /^\w+day$/)
   assert.match(lastClean({ last_big_clean: '2026-10-12', today: '2026-10-22' })?.when ?? '', /^last \w+day$/)
+})
+
+test('belongings use US spelling on screen', async () => {
+  const { KIND_LABELS } = await import('../../src/features/character/homeText.ts')
+  assert.equal(KIND_LABELS.favorite, 'Favorite thing')
+  const { readFile } = await import('node:fs/promises')
+  for (const file of ['features/character/homeText.ts', 'features/character/Wardrobe.tsx']) {
+    assert.doesNotMatch(await readFile(new URL(`../../src/${file}`, import.meta.url), 'utf8'), /avourite/, file)
+  }
 })

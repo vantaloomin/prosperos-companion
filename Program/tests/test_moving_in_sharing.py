@@ -374,3 +374,36 @@ def test_the_user_moving_city_leaves_one_home_not_a_copy_each(client, provider, 
     assert [found['out_who'] for found in rows] == ['you', 'them']  # Mira keeps the home; Theo takes a place.
     hers, his = homes(client, mira_id, theo_id)
     assert not hers['shared'] and his['description'] != hers['description']
+    with client.app.state.database.connect() as connection:  # Iris: the step no longer reads "living together".
+        texts = [steps.view(connection, by_id(connection, key), clock.now(), False)['text'] for key in (mira_id, theo_id)]
+    assert all(text.endswith('living apart for now') or text == 'Living apart for now' for text in texts), texts
+    with client.app.state.database.connect() as connection:  # The picker says the same: no Living together.
+        views = [steps.view(connection, by_id(connection, key), clock.now(), False) for key in (mira_id, theo_id)]
+    for view in views:
+        picked = next(item for item in view['ladder_steps'] if item['step'] == view['step'])
+        assert view['step'] == 'moving_in' and picked['label'] == view['label'] == 'Living apart for now', view
+        assert 'Living together' not in {item['label'] for item in view['ladder_steps']}
+    assert [view['apart']['by'] for view in views] == ['you', 'them'] and all(view['apart']['since'] for view in views)
+
+
+def test_whoever_kept_a_home_grown_for_three_moves_somewhere_smaller_months_on(client, provider, clock, monkeypatch,
+                                                                                 open_to_it):
+    mira_id, theo_id = three_at_home(client, provider, clock, monkeypatch)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE persona SET home_city_id='chicago' WHERE id=1")
+    advance(client, mira_id, 1, clock)
+    [kept] = homes(client, mira_id)
+    assert kept['bedrooms'] == 'two_bedroom'
+    advance(client, mira_id, moving_in.DOWNSIZE_AFTER[0] - 2, clock)
+    assert homes(client, mira_id)[0]['id'] == kept['id']  # Not yet: she stays a few months.
+    advance(client, mira_id, moving_in.DOWNSIZE_AFTER[1] - moving_in.DOWNSIZE_AFTER[0] + 2, clock)
+    [smaller] = homes(client, mira_id)
+    assert smaller['bedrooms'] == 'one_bedroom' and smaller['rent'] < kept['rent'] and not smaller.get('shared')
+    assert smaller['neighborhood'] == kept['neighborhood']
+    with client.app.state.database.connect() as connection:
+        chapters = many(connection, "SELECT * FROM life_chapters WHERE timeline_id=? AND kind='move'",
+                        (by_id(connection, mira_id)['active_timeline_id'],))
+    assert len(chapters) == 1 and 'one-bedroom' in chapters[0]['told'] and chapters[0]['title'].startswith('Mira moved')
+    advance(client, mira_id, 3, clock)
+    with client.app.state.database.connect() as connection:
+        assert len(many(connection, "SELECT id FROM life_chapters WHERE kind='move'")) == 1  # Once.

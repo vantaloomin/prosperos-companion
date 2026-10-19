@@ -35,6 +35,8 @@ MODERN_WAGE_MULTIPLE = (1.0, 1.25, 1.5, 2.4)
 RENT_MULTIPLE = (2.4, 3.4, 5.0, 8.0)
 WORK_DAYS = {'month': 22, 'week': 6}
 ESSENTIALS = {'modern': 0.3, 'jazz-age': 0.35, 'other': 0.4}
+# A medieval kingdom or a fairy-tale land: payments on a place, not a mortgage, and no pension (big_turns.py).
+MEDIEVAL = {'medieval', 'fantasy'}
 # Share of what is left after rent and essentials that goes on fun; the rest is saved.
 STYLES = {'careful': 0.45, 'balanced': 0.65, 'spender': 0.9}
 # How fast the fun money goes through a pay cycle; spenders run dry before payday.
@@ -492,12 +494,20 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *big_days.purchases(connection, timeline_id, start, day),
               *big_turns.purchases(connection, timeline_id, start, day)]
     # Raises, promotions and time between jobs (companion/life/work.py), or a pension once retired (big_turns.py);
-    # what big buys took from savings since the goal began.
-    since = goal_since(definition.get('money') or {}, day)
-    drawn = drawn_since(connection, timeline_id, since, day)
+    # what big buys took from savings since the goal began (`drawn_from`).
+    drawn = drawn_since(connection, timeline_id, drawn_from(connection, definition, day), day)
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
             'pay': big_turns.pay(connection, timeline_id, day, work.pay(connection, timeline_id, day, start)),
             'drawn': drawn}
+
+
+def drawn_from(connection, definition: dict, day: date) -> date:
+    """When big buys start counting against the savings goal: when the goal began, but never before the world's
+    first day on v0.14 (the town's start, companion/life/ages.py: the upgrade day for an older world), so a ring or a
+    wedding from v0.13 doesn't empty the goal at the upgrade."""
+    from companion.life import ages
+    since, began = goal_since(definition.get('money') or {}, day), ages.town_began(connection)
+    return max(since, began) if began else since
 
 
 def drawn_since(connection, timeline_id: str, since: date, day: date) -> float:
@@ -593,6 +603,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'retired': bool(home and (home.get('pay') or {}).get('retired')),
         'business': (home.get('pay') or {}).get('business') if home else None,
         'owned': bool(home and home['costs'].get('owned')),
+        'medieval': found.city.get('era') in MEDIEVAL,  # No mortgage or pension there.
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
         'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
                                                                   'saving')},
@@ -622,13 +633,16 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     place = 'your home' if view['rent_from'] == 'home' else \
         f"{view['housing']['label']} in {view['housing']['neighborhood']}"
     # A place they bought has a mortgage instead of rent (companion/life/big_turns.py).
-    housing = f"the mortgage on {place} is about {text['rent']}" if view.get('owned') else \
-        f"rent is about {text['rent']} for {place}"
+    loan = 'payments on' if view.get('medieval') else 'the mortgage on'
+    housing = f"{loan} {place} {'are' if view.get('medieval') else 'is'} about {text['rent']}" if view.get('owned') \
+        else f"rent is about {text['rent']} for {place}"
     lines = [('budget', f"- You take home about {text['income']} {per}{work}; {housing}.")]
     if view.get('between_jobs'):
         lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; {housing}.")]
     if view.get('retired'):
-        lines = [('budget', f"- Retired, you live on a pension of about {text['income']} {per}; {housing}.")]
+        lines = [('budget', f"- You have given up work and live on what you put by, about {text['income']} {per}; "
+                            f'{housing}.' if view.get('medieval') else
+                  f"- Retired, you live on a pension of about {text['income']} {per}; {housing}.")]
     if view.get('business'):  # Their own business (companion/life/business.py).
         lines = [('budget', f"- Your {view['business']} brings in about {text['income']} {per}; {housing}.")]
     if view['budget']['upkeep']:

@@ -14,6 +14,8 @@ export interface BreakupView {
   summary: string
   /** Married when it ended: the marriage ended with it. */
   divorced?: boolean
+  /** That marriage, in an older city (before 1950): a separation, "Separated" rather than "Divorced". */
+  separated?: boolean
   since: string | null
   by: 'you' | 'them' | null
   id: string | null
@@ -39,6 +41,13 @@ export function isApart(view: BreakupView | undefined): boolean {
   return view?.stage === 'break' || view?.stage === 'ended'
 }
 
+/** The steps line while apart, only when it says more than the breakup line below it ("Separated after 2 years");
+ * a bare "Separated" or "On a break" would only repeat it, so the line is left out. */
+export function apartSummary(view: BreakupView | undefined): string {
+  if (!view || !isApart(view)) return ''
+  return view.summary && view.summary !== view.text ? view.summary : ''
+}
+
 /** The chat strip, with their name: "Things are strained with Mira", "You and Mira broke up". */
 export function breakupStrip(view: BreakupView | undefined, name: string): string {
   if (!view?.stage || !view.strip) return ''
@@ -47,7 +56,7 @@ export function breakupStrip(view: BreakupView | undefined, name: string): strin
     strained: `Things are strained with ${who}.`,
     thinking: `${who} is thinking about a break.`,
     break: `You and ${who} are on a break.`,
-    ended: view.ladder === 'friendship' ? `You and ${who} fell out.` : view.divorced ? `You and ${who} got divorced.` : `You and ${who} broke up.`,
+    ended: view.ladder === 'friendship' ? `You and ${who} fell out.` : view.separated ? `You and ${who} separated.` : view.divorced ? `You and ${who} got divorced.` : `You and ${who} broke up.`,
   }[view.stage]
 }
 

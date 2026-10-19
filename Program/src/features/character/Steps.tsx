@@ -10,8 +10,8 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { Wedding } from './WeddingPlan'
-import { STEPS_KEY, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from './stepsText'
-import { apartHint, BREAKUP_KEY, breakupLine, endedStep, isApart, mendLabel, mendedText, standsLabel, type BreakupView } from './breakupText'
+import { STEPS_KEY, apartStep, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from './stepsText'
+import { apartHint, apartSummary, BREAKUP_KEY, breakupLine, endedStep, isApart, mendLabel, mendedText, standsLabel, type BreakupView } from './breakupText'
 import { UNDO_MS } from '../profile/roughPatchText'
 
 /** Where you and them stand (companion/life/steps.py): one plain line, the steps so far, what came up lately and,
@@ -34,12 +34,13 @@ export function Steps({ name }: { name: string }) {
   const who = firstName(name)
   // On a break or broken up (companion/life/breakups.py) the summary says so, and the steps wait.
   const apart = isApart(breakup.data)
+  const line = apart ? apartSummary(breakup.data) : view.text
   const hint = apartHint(breakup.data) ||
     `Picked and moved on by the app, as ${who} brings things up and you answer. Set it yourself any time; moving it back takes the later steps back.`
   return (
     <section id="steps" className="home-panel steps-panel" aria-labelledby="steps-heading">
       <h2 id="steps-heading">You and {who}</h2>
-      <p className="steps-line">{apart && breakup.data?.summary ? breakup.data.summary : view.text}</p>
+      {line && <p className="steps-line">{line}</p>}
       <BreakupLine name={name} view={breakup.data} />
       <Field label={standsLabel(breakup.data)} hint={hint}>
         {(id, describedBy) => (
@@ -48,7 +49,7 @@ export function Steps({ name }: { name: string }) {
           </select>
         )}
       </Field>
-      <StepsSoFar view={view} name={name} ended={endedStep(breakup.data, name)} />
+      <StepsSoFar view={view} name={name} ended={endedStep(breakup.data, name) || apartStep(view, name)} />
       <Wedding name={name} />
       {view.can_fall && (
         <Toggle label="Just friends" checked={view.just_friends} disabled={apart} onChange={(just_friends) => void save({ just_friends })}
