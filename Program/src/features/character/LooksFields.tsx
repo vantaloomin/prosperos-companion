@@ -76,21 +76,30 @@ function coveredBy(found: LooksSuggestions | undefined) {
 interface KindProps { definition: CharacterDefinition; found: LooksSuggestions | undefined; written: number | null; set: Props['set'] }
 
 /** Kind and How long they live (companion/world/lifespans.py): read from their description until the user picks.
- * "Doesn't age" is "Keeps their age" above. */
+ * With "Doesn't age", Keeps their age above has nothing to do and is off limits (Iris, v0.15). */
 function CompanionKind({ definition, found, written, set }: KindProps) {
   const kind = found?.kind
   if (!kind) return null
   return <KindFields id="companion" shown={kind} choices={kind} age={found.age_now ?? written}
-    found={{ kind: kind.found, label: kind.found_label, fromWords: kind.found !== 'human' }}
-    picked={definition.kind ?? ''} own={definition.keeps_age ? 0 : definition.lifespan ?? null}
-    onChange={({ kind: picked, lifespan }) => set(lifespan === 0 ? { kind: picked, lifespan: null, keeps_age: true }
-      : { kind: picked, lifespan, keeps_age: false })} />
+    found={{ kind: kind.found, label: kind.found_label, source: kind.found !== 'human' ? 'words' : 'app' }}
+    picked={definition.kind ?? ''} own={definition.lifespan ?? null}
+    note={definition.keeps_age && kind.years !== null ? "Keeps their age is on, so this doesn't change anything yet." : undefined}
+    onChange={({ kind: picked, lifespan }) => set({ kind: picked, lifespan })} />
 }
 
 interface KeepsAgeProps { definition: CharacterDefinition; written: number | null; found: LooksSuggestions | undefined; set: Props['set'] }
 
 /** The "Keeps their age" lock, off by default: they turn a year older on each birthday unless it is on. */
-function KeepsAge({ definition, written, found, set }: KeepsAgeProps) {
+function KeepsAge(props: KeepsAgeProps) {
+  const kind = props.found?.kind
+  if (kind?.years === null) {
+    const hint = kind.own === 0 ? "They don't age, as set under How long they live." : "Their kind doesn't age."
+    return <Toggle label="Keeps their age" checked disabled onChange={() => undefined} hint={hint} />
+  }
+  return <AgingToggle {...props} />
+}
+
+function AgingToggle({ definition, written, found, set }: KeepsAgeProps) {
   return <Toggle label="Keeps their age" checked={Boolean(definition.keeps_age)} onChange={(keeps_age) => set({ keeps_age })}
     hint={keepsAgeHint(definition, written ?? found?.automatic?.age ?? null, found?.age_now ?? null,
       decadeHint(definition.identity ?? '', found?.age_now ?? null))} />

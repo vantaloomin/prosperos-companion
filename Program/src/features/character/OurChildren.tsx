@@ -99,7 +99,7 @@ function ChildKind({ child, save }: { child: OurChild; save: (change: KindChange
   return (
     <details className="our-child-more person-kind">
       <summary>{kindSummary(shown)}</summary>
-      <KindFields id={`child-${child.id}`} shown={shown} found={{ kind: found, label }} picked={shown.picked ?? ''}
+      <KindFields id={`child-${child.id}`} shown={shown} found={{ kind: found, label, source: shown.from_parents ? 'parents' : 'app' }} picked={shown.picked ?? ''}
         own={shown.own} age={child.age} choices={choices} onChange={save} />
     </details>
   )

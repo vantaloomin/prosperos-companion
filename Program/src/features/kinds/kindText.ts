@@ -5,9 +5,14 @@ export function yearsText(years: number) {
   return `${years.toLocaleString('en-US')} years`
 }
 
-/** The Kind picker's first option, the app's pick: "As their words say (Elf)", or "Human" when there is nothing to read. */
-export function foundOption(foundLabel: string, fromWords: boolean) {
-  return fromWords ? `As their description says (${foundLabel})` : `As the app picks (${foundLabel})`
+/** Where the app's pick of a kind came from: their own words, their parents', or the app (a name, or nothing to read). */
+export type KindSource = 'words' | 'parents' | 'app'
+
+/** The Kind picker's first option, the app's pick, saying why: "As their description says (Elf)", "From their parents
+ * (Half-elf)", "As the app picks (Human)". */
+export function foundOption(foundLabel: string, source: KindSource) {
+  if (source === 'words') return `As their description says (${foundLabel})`
+  return source === 'parents' ? `From their parents (${foundLabel})` : `As the app picks (${foundLabel})`
 }
 
 /** How long they live's first option: "As their kind (about 600 years)", "As their kind (doesn't age)". */
@@ -27,8 +32,8 @@ export function spanChoices(choices: KindChoices | undefined, own: number | null
   return own && !spans.includes(own) ? [...spans, own].sort((a, b) => a - b) : spans
 }
 
-/** The summary of a folded kind section on someone's card: "Kind: Elf, about 600 years". */
+/** The summary of a folded kind section on someone's card: "Kind: Elf · lives about 600 years", never read as an age. */
 export function kindSummary(shown: KindShown) {
-  if (shown.years === null) return shown.kind === 'ageless' ? `Kind: ${shown.label}` : `Kind: ${shown.label}, doesn't age`
-  return `Kind: ${shown.label}, about ${yearsText(shown.years)}`
+  if (shown.years === null) return shown.kind === 'ageless' ? `Kind: ${shown.label}` : `Kind: ${shown.label} · doesn't age`
+  return `Kind: ${shown.label} · lives about ${yearsText(shown.years)}`
 }

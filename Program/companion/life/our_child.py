@@ -610,13 +610,19 @@ def kind_of(connection, companion: dict, child: dict) -> str:
     human pace whatever it is; it counts once they are grown."""
     if child.get('own_kind'):
         return child['own_kind']
-    from companion.life import expecting, parenthood
-    if journey_of(connection, child)['route'] in (*expecting.ADOPTING, *expecting.FOSTERING):
+    from companion.life import parenthood
+    if not born_to_you(connection, child):
         return lifespans.HUMAN
     definition = companion['version']['definition']
     data = ages.city_of(connection, definition)
     yours = lifespans.from_words(parenthood.persona(connection).get('about') or '', data)
     return lifespans.blend(lifespans.sheet_kind(definition, data), yours, data)
+
+
+def born_to_you(connection, child: dict) -> bool:
+    """Whether a child was born to the two of you, not adopted or fostered."""
+    from companion.life import expecting
+    return journey_of(connection, child)['route'] not in (*expecting.ADOPTING, *expecting.FOSTERING)
 
 
 def set_kind(connection, companion: dict, child_id: str, kind: str, lifespan: int | None, now) -> None:
@@ -807,7 +813,8 @@ def child_view(connection, companion: dict, child: dict, today: date) -> dict:
             'temperament': found.get('temperament'), 'likes': found.get('likes'), 'quirk': found.get('quirk'),
             'milestones': [{'key': item['key'], 'label': item['label'], 'date': item['on']} for item in done],
             'kind': lifespans.described(kind_of(connection, companion, child), child.get('lifespan'), years) |
-            {'found': kind_of(connection, companion, {**child, 'own_kind': ''}), 'picked': child.get('own_kind') or ''},
+            {'found': kind_of(connection, companion, {**child, 'own_kind': ''}), 'picked': child.get('own_kind') or '',
+             'from_parents': born_to_you(connection, child)},
             'latest': ({'label': done[-1]['label'], 'date': done[-1]['on']} if done else None)}
 
 

@@ -222,7 +222,28 @@ def test_a_child_of_an_elf_and_a_human_is_a_half_elf_until_the_user_picks(client
     to(client, clock, stage(row, 'born')['on'])
     [child] = ours(client)['children']
     assert child['kind']['kind'] == 'half-elf' and child['kind']['found'] == 'half-elf' and child['kind']['picked'] == ''
+    assert child['kind']['from_parents']
     changed = client.put(f"/api/life/steps/ours/{child['id']}/kind", json={'kind': 'elf', 'lifespan': None})
     assert changed.status_code == 200, changed.text
     [child] = changed.json()['children']
     assert child['kind']['kind'] == 'elf' and child['kind']['picked'] == 'elf' and child['kind']['found'] == 'half-elf'
+
+
+def test_doesnt_age_on_the_character_page_is_a_lifespan_of_its_own_beside_keeps_their_age(client):
+    companion = make(client)
+    definition = companion['version']['definition']
+    assert lifespans.ageless({**definition, 'lifespan': 0}) and not lifespans.ageless({**definition, 'lifespan': 1000})
+    shown = client.post('/api/companion/looks', json={'definition': {**definition, 'lifespan': 0}}).json()['kind']
+    assert shown['years'] is None and shown['own'] == 0
+    assert client.post('/api/companion', json={**ELF, 'lifespan': 20}).status_code == 422
+
+
+def test_an_elfs_other_parent_is_a_human_near_their_age_in_human_terms(client):
+    from companion.characters import current
+    from companion.life import kids
+    make(client, identity='Aerin is an elf, 312. A quiet bookbinder with two children. They/them.')
+    with connect(client) as connection:
+        companion = current(connection)
+        person_id = kids.add_other(connection, companion, client.app.state.life.world, {}, client.app.state.database.clock.now())
+        details = decode(connection.execute('SELECT details FROM circle_people WHERE id=?', (person_id,)).fetchone()['details'])
+    assert 40 <= details['age'] <= 60 and not details.get('folk')

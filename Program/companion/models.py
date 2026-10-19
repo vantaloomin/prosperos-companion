@@ -144,9 +144,9 @@ class CharacterDefinition(Input):
     # Everyone gets older (companion/life/ages.py): on, they stay the age written, for characters who shouldn't age.
     keeps_age: bool = False
     # Lifespans (companion/world/lifespans.py): the kind of person they are ('elf'), empty to read it from their words,
-    # and how long they live in years, None for as long as their kind does.
+    # and how long they live in years, None for as long as their kind does and 0 for "Doesn't age".
     kind: str = Field(default='', max_length=40, pattern=r'^[a-z0-9-]*$')
-    lifespan: int | None = Field(default=None, ge=40, le=5000)
+    lifespan: int | None = Field(default=None, ge=0, le=5000)
     money: MoneySetup = Field(default_factory=MoneySetup)
     # Their adult side, only used with Settings > Realism > Adult side of life on; None uses the roll.
     intimacy: IntimacySetup | None = None
@@ -162,6 +162,13 @@ class CharacterDefinition(Input):
     near: str | None = Field(default=None, exclude=True)
     business: dict | None = Field(default=None, exclude=True)
     health: dict | None = Field(default=None, exclude=True)
+
+    @field_validator('lifespan')
+    @classmethod
+    def lifespan_or_ageless(cls, value):
+        if value is not None and 0 < value < 40:
+            raise ValueError('A lifespan is 40 years or more.')
+        return value
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',

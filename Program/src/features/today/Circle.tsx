@@ -168,7 +168,7 @@ function PersonKind({ person, act }: { person: CirclePerson; act: Act }) {
   return (
     <details className="our-child-more person-kind">
       <summary>{kindSummary(person.kind)}</summary>
-      <KindFields id={`person-${person.id}`} shown={person.kind} found={{ kind: found, label }} picked={person.own_kind ?? ''}
+      <KindFields id={`person-${person.id}`} shown={person.kind} found={{ kind: found, label, source: 'app' }} picked={person.own_kind ?? ''}
         own={person.kind.own} age={person.age} choices={choices} onChange={(change) => void save(change)} />
     </details>
   )

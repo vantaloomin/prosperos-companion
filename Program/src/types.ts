@@ -799,6 +799,7 @@ export interface KindShown {
   life_age: number | null
   /** The app's pick, and the user's ('' for none) where it can differ. */
   found?: string
+  from_parents?: boolean
   picked?: string
 }
 
