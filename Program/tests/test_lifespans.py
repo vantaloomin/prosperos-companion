@@ -288,3 +288,14 @@ def test_an_elf_starts_a_family_by_their_age_in_human_terms(client, monkeypatch)
             assert (found == 'partner') == carries, (age, found)
         # A sister of 150 in their circle could be expecting.
         assert [person['id'] for person, _how in families.eligible(connection, 't', [elder], today)] == ['p9']
+
+
+def test_an_elven_townsperson_who_takes_over_stays_an_elf_of_their_age():
+    from companion import cast
+    data = catalog.city('grandport')
+    sheet = next(found for hood in data['neighborhoods'] for index in range(400)
+                 if (found := townsfolk.resident(data, hood['id'], index)).get('folk') == 'elf' and found['age'] > 120)
+    definition = cast.profile(data, sheet, {'meetings': [], 'in_story': None, 'focus': None, 'match': None},
+                              date(2026, 10, 19))
+    assert definition['kind'] == 'elf' and lifespans.sheet_kind(definition, data) == 'elf'
+    assert looks.age_of(definition, 's') == sheet['age']
