@@ -52,6 +52,7 @@ BABYSIT_FROM, BABYSIT_HOURS = 90, ('19:00', '23:00')
 ASK_HOURS = (10, 21)
 TOLD_DAYS = 14
 STATUSES = ('planned', 'asked', 'yes', 'no', 'done', 'called_off')
+EX = 'ex'  # The partner's role once they split up (companion/life/love_life.py).
 
 
 # Who could start a family ---------------------------------------------------------------------------------------------
@@ -355,8 +356,8 @@ def plan_asks(connection, companion: dict, day: date, pace: float, now) -> int:
     for child in families.born(connection, timeline_id, day):
         old = (day - date.fromisoformat(child['born_on'])).days
         seed = f"babysit:{child['id']}"
-        if child.get('whose') != WHOSE or child['parent_status'] != 'active' or old < BABYSIT_FROM or \
-                not families.band(child, day) or generators.unit(seed, 'ask', day.isoformat()) >= BABYSIT * pace:
+        if child.get('whose') != WHOSE or child['parent_status'] != 'active' or child['parent_role'] == EX or \
+                old < BABYSIT_FROM or not families.band(child, day) or generators.unit(seed, 'ask', day.isoformat()) >= BABYSIT * pace:
             continue
         evening = day + timedelta(days=12 if generators.unit(seed, 'when', day.isoformat()) < 0.5 else 5)
         if evening < families.local_today(companion, now) + timedelta(days=3):
@@ -382,8 +383,10 @@ def follow(connection, companion: dict, today: date, now) -> None:
     from companion.life import custody
     custody.own_advance(connection, companion, now)
     for row in rows(connection, companion['active_timeline_id'], ('planned', 'asked', 'yes')):
-        child = optional(connection, "SELECT status FROM circle_children WHERE id=?", (row['child_id'],))
-        if child is None or child['status'] == 'ended' or families.withheld(connection):
+        child = optional(connection, 'SELECT c.status, p.role FROM circle_children c LEFT JOIN circle_people p ON '
+                         'p.id=c.parent_id WHERE c.id=?', (row['child_id'],))
+        # An evening out is with their partner: called off once the two of them have split up.
+        if child is None or child['status'] == 'ended' or child['role'] == EX or families.withheld(connection):
             mark(connection, row, 'called_off', now)
         elif row['local_date'] < today.isoformat():
             mark(connection, row, 'done' if row['status'] == 'yes' else 'called_off', now)

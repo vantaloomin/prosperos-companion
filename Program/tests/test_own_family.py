@@ -291,3 +291,30 @@ def test_split_up_with_a_child_the_ex_stays_as_the_other_parent(client, mira, cl
     assert f'- Since you and {first} split up, {child["name"].split()[0]} ' in prompt(client)
     with client.app.state.database.connect() as connection:
         assert connection.execute("SELECT id FROM consequences WHERE choice='kids:custody'").fetchone()
+
+
+def test_after_a_split_nobody_is_asked_to_babysit_for_an_evening_out_with_the_ex(client, mira, clock, monkeypatch):
+    sure(monkeypatch)
+    monkeypatch.setattr(own_family, 'BABYSIT', 10.0)
+    partnered(client, clock)
+    reconcile(client)
+    [child] = children(client)
+    born(client, clock, child)
+    monkeypatch.setattr(own_family, 'YEARLY', {key: 0.0 for key in own_family.YEARLY})
+    clock.advance(timedelta(days=100 + (7 - (clock.now().date() + timedelta(days=100)).weekday()) % 7))
+    clock.advance(timedelta(hours=12 - clock.now().hour))
+    reconcile(client)
+    companion = current(client)
+    with client.app.state.database.connect(write=True) as connection:
+        assert own_family.rows(connection, companion['active_timeline_id'], ('planned',))  # Asked while together.
+        found = love_life.partners(connection, companion['active_timeline_id'])[0]
+        love_life.end(connection, found, 'split', steps.local_today(companion, clock.now()))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        assert own_family.ask_due(connection, companion, clock.now()) == []
+        assert not own_family.rows(connection, companion['active_timeline_id'], ('planned', 'asked', 'yes'))
+    for _week in range(4):
+        clock.advance(timedelta(days=7))
+        reconcile(client)
+    with client.app.state.database.connect() as connection:
+        assert not own_family.rows(connection, companion['active_timeline_id'], ('planned', 'asked', 'yes'))
