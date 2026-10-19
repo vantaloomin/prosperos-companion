@@ -288,7 +288,9 @@ def add_kid(connection, companion: dict, world, kid: dict, index: int, now, pare
     timeline_id, today = companion['active_timeline_id'], steps.local_today(companion, now)
     seed = f"kids:{timeline_id}:{parent_id or companion['id']}:{index}"
     sex = kid.get('pronouns') or ('she/her' if generators().unit(seed, 'sex') < 0.49 else 'he/him')
-    born = kid.get('born_on') or born_on(age_for(connection, companion, kid, seed, today), seed, today)
+    age = None if kid.get('born_on') else age_for(connection, companion, kid, seed, today)
+    kept = circle_birthday(connection, timeline_id, kid.get('name'))
+    born = kid.get('born_on') or (ages.born_from(age, kept, today) if kept else born_on(age, seed, today))
     name = kid.get('name') or families.baby_name(companion['version']['definition'], world, seed, sex,
                                                  families.taken_names(connection, companion))
     connection.execute(
@@ -297,6 +299,18 @@ def add_kid(connection, companion: dict, world, kid: dict, index: int, now, pare
         (identifier(), timeline_id, parent_id or companion['id'], mark or f'{MARK}{timeline_id}', name, sex,
          'friend' if parent_id else 'family', born.isoformat() if isinstance(born, date) else born, stamp(now),
          stamp(now)))
+
+
+def circle_birthday(connection, timeline_id: str, name: str | None) -> str | None:
+    """The birthday ('MM-DD') a circle from before v0.15 gave a son or daughter of this name, kept when they become
+    a child of the companion's (their birthday was already told, in chat and on Today)."""
+    if not name:
+        return None
+    for person in circle.people(connection, timeline_id, include_removed=True):
+        if person['role'] in ('son', 'daughter') and decode(person['details']).get('sheet') == name:
+            found = ages.stored(connection, 'circle', person['id'])
+            return (found or {}).get('birthday') or decode(person['details']).get('birthday')
+    return None
 
 
 def own(connection, timeline_id: str, include_ended: bool = False) -> list[dict]:
