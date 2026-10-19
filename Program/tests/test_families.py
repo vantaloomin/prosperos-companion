@@ -360,7 +360,9 @@ def test_with_the_adult_side_on_a_childs_big_day_is_never_asked_to(client, mira,
 def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
     import re
     bank = families.bank()
-    assert families.fitting(bank['babysit_toddler'], 'modern') == bank['babysit_toddler']
+    older = set(bank['tags']['older'])
+    assert families.fitting(bank['babysit_toddler'], 'modern') == [
+        line for line in bank['babysit_toddler'] if line['text'] not in older]
     for era, words in (('jazz-age', r'\b(scan|daycare|television)\b'), ('victorian', r'\b(phones?|cars?|daycare)\b'),
                        ('medieval', r'\b(phones?|cars?|trains?|strollers?|bananas?)\b')):
         for key in ('pregnancy', 'baby_update', 'toddler_update', 'babysit_toddler', 'babysit_child'):
@@ -372,6 +374,38 @@ def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
     days = [date(2027, 1, 1) + timedelta(days=offset) for offset in range(730)]
     told = ' '.join(news[2] for day in days if (news := families.news_on(child, day, 1.7, True, 'medieval')))
     assert told and not re.search(r'\b(cars?|trains?|phones?|strollers?)\b', told, re.I)
+
+
+def test_older_cities_speak_in_their_own_voice_and_today_in_a_texting_one():
+    bank = families.bank()
+    texts = {line['text'] for key, lines in bank.items() if key not in ('names', 'tags') for line in lines}
+    assert set(bank['tags']['older']) <= texts and set(bank['tags']['modern']) <= texts
+    for key in ('pregnancy', 'baby_update', 'toddler_update', 'child_update', 'babysit_baby', 'babysit_toddler',
+                'babysit_child'):
+        old, new = families.fitting(bank[key], 'victorian'), families.fitting(bank[key], 'modern')
+        assert not {line['text'] for line in old} & set(bank['tags']['modern']), key
+        assert not {line['text'] for line in new} & set(bank['tags']['older']), key
+        assert {line['text'] for line in old} & set(bank['tags']['older']), key
+        assert not any('gonna' in line['share'] or 'honestly' in line['share'] for line in old), key
+    due = date(2027, 3, 1)
+    assert families.announced('friend', due, 'friend', {'name': 'Ada'}, True)[1].endswith('I confess I cried a little')
+    assert families.announced('friend', due, 'friend', {'name': 'Ada'})[1].endswith('not gonna lie')
+    assert families.announced('coworker', due, 'friend', {'name': 'Ada'}, True)[1].endswith(
+        'everyone at work is already knitting something')
+
+
+def test_a_they_them_companion_is_the_cool_relative_and_a_father_has_the_baby_with_their_partner():
+    due = date(2027, 3, 1)
+    assert families.announced('sibling', due, 'family', {'name': 'Rowan', 'pronouns': 'they/them'})[1] == \
+        "{a} is having a baby!!! due in March. I'm going to be the cool relative"
+    assert families.announced('sibling', due, 'family', {'name': 'Mira', 'identity': 'She is 30.'})[1].endswith(
+        'I am going to be an aunt')
+    child = {'name': 'Nova', 'pronouns': 'she/her', 'title': 'friend'}
+    assert families.arrived(child, 'friend', {}, 'he/him') == (
+        '{a} and their partner had the baby: a girl named Nova.', "{a}'s baby is here! a girl, Nova. everyone's doing great")
+    assert families.arrived(child, 'friend', {}, 'she/her')[0] == '{a} had the baby: a girl named Nova.'
+    assert families.arrived(child, 'godchild', {}, 'he/him')[1].startswith("{a}'s baby is here! a girl, Nova, and {a} asked")
+    assert 'crying' not in families.arrived(child, 'family', {}, 'she/her', True)[1]
 
 
 def test_a_baby_is_never_given_the_companions_own_name(client, mira):
