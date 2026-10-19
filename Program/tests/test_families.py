@@ -481,3 +481,22 @@ def test_every_pregnancy_line_reads_right_told_to_the_companion():
               families.stage(date(2027, 5, 1), *families.arrived({'name': 'Ivy', 'pronouns': 'she/her'}, 'godchild', {}))]
     told = ' '.join(storylines.fill(stage['text'], row, names, {'name': 'Mira'}, True) for stage in stages)
     assert 'you keep checking' in told and 'you keeps' not in told and 'Mira' not in told
+
+
+def test_the_companion_keeps_knowing_someone_is_expecting_between_the_storyline_beats(client, mira, clock,
+                                                                                     monkeypatch):
+    """A pregnancy's beats are months apart, and each shows for three weeks: the due month stays in "People in your
+    life" all the while, and goes with the adult side on."""
+    sure(monkeypatch)
+    sister(client)
+    reconcile(client)
+    [story] = stories(client, 'expecting')
+    first, second = (date.fromisoformat(stage['on']) for stage in decode(story['stages'])[:2])
+    clock.advance(first + timedelta(days=storylines.RECENT_DAYS + 3) - clock.now().date())
+    assert clock.now().date() < second
+    due = decode(story['stages'])[0]['text'].rsplit('due in ', 1)[-1].rstrip('.')
+    with client.app.state.database.connect() as connection:
+        name = connection.execute('SELECT name FROM circle_people ORDER BY ordinal').fetchone()['name'].split()[0]
+    assert f'- Your sister {name} is expecting a baby, due in {due}.' in prompt(client)
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    assert 'expecting a baby' not in prompt(client)

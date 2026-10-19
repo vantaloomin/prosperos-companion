@@ -352,6 +352,8 @@ WIDENED_CHECKS = (
     ('life_admin', "'school', 'health')"),
     # Starting a family, the step beside the romance ladder (companion/life/parenthood.py).
     ('relationship_steps', "'friendship', 'parenthood')"),
+    # The pair's own child, born or home (companion/life/expecting.py).
+    ('circle_children', "'friend', 'ours')"),
 )
 
 
@@ -368,6 +370,8 @@ def initialize(connection, timestamp: str):
     widen_checks(connection)
     connection.execute('CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date)')
     connection.execute('CREATE INDEX IF NOT EXISTS relationship_steps_pair ON relationship_steps(timeline_id, other, ladder)')
+    connection.execute('CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on)')
+    connection.execute('CREATE INDEX IF NOT EXISTS circle_children_parent ON circle_children(parent_id)')
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     connection.execute('CREATE INDEX IF NOT EXISTS memories_person ON memories(person_id)')
     backfill_subject_keys(connection)

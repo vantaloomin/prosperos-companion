@@ -40,6 +40,7 @@ from companion.life import (
     deck,
     dreams,
     encounters,
+    expecting,
     hobbies,
     kitchen,
     long_distance,
@@ -433,8 +434,9 @@ PAST_WAITING = {'occasion', 'postcard'}
 # (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
 # meet their people (companion/life/their_people.py), the evening they plan to propose (companion/life/wedding.py),
 # and asking the user along to a big day in their circle (companion/life/big_days.py), after the news of a death
-# (companion/life/loss.py) so that a funeral is never how the user first hears of it.
-FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, moving_in.share_due, steps.ask_due, their_people.meet_due, wedding.propose_due, loss.news_due, big_days.invite_due, own_family.ask_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+# (companion/life/loss.py) so that a funeral is never how the user first hears of it, and after the news of a baby on
+# the way or a child coming home (companion/life/expecting.py), so a baby shower is never how they hear of that.
+FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, moving_in.share_due, steps.ask_due, their_people.meet_due, wedding.propose_due, loss.news_due, expecting.news_due, big_days.invite_due, own_family.ask_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 

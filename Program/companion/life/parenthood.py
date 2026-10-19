@@ -52,6 +52,8 @@ ROUTE_LABELS = {'expecting_them': '{name} carries the baby', 'expecting_you': 'Y
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
+# The engine's choices about how the child comes (companion/life/expecting.py).
+JOURNEY = ('family:soon', 'family:turn', 'family:wait', 'family:match', 'family:fostered')
 
 # What their own description says, read in this order: "never wanted kids" before "wanted kids", "kids someday"
 # before "wants kids".
@@ -324,7 +326,11 @@ def context_lines(connection, companion: dict, found: dict, now) -> list[tuple[s
     result = [(f'family:wants:{wanted}', f'- {WANT_LINES[wanted]}')]
     if found['ladder'] == 'romance' and reached(connection, companion['active_timeline_id']):
         route = route_found(connection, companion)['route']
-        result.append((f'family:step:{route}', f'- {STEP_LINE.format(route=ROUTE_WORDS[route])}'))
+        from companion.life import expecting
+        lines = expecting.context_lines(connection, companion, now)
+        if not lines:  # Once under way (companion/life/expecting.py), what is happening replaces the plan.
+            result.append((f'family:step:{route}', f'- {STEP_LINE.format(route=ROUTE_WORDS[route])}'))
+        result += lines
     return result
 
 
@@ -341,21 +347,37 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
               'wants_options': [{'key': key, 'label': WANTS_LABELS[key]} for key in WANTS], 'romance': False}
     if definition.get('relationship') != 'romance' or not companion.get('active_timeline_id'):
         return result
+    from companion.life import expecting
     route = route_found(connection, companion, now)
     row = reached(connection, companion['active_timeline_id'])
+    journey = expecting.panel(connection, companion, now, show_odds)
     shown = OLD_ROUTES if old_era(connection, companion) else MODERN_ROUTES
     keys = shown if route['route'] in shown else (*shown, route['route'])
     return {**result, 'romance': True, 'route': route['route'], 'route_how': route['how'],
             'route_consequence_id': route['consequence_id'] if show_odds else None,
             'routes': [{'key': key, 'label': route_label(key, companion)} for key in keys],
             'decided_on': row['reached_on'] if row else None, 'decided_how': row['how'] if row else None,
-            'can_decide': bool(row) or bool(living_on(steps.state(connection, companion, now, write=False)))}
+            'can_decide': not under_way(journey) and (bool(row) or bool(living_on(steps.state(connection, companion, now,
+                                                                                               write=False)))),
+            'journey': journey}
+
+
+def under_way(journey: dict | None) -> bool:
+    """Once anything has happened (companion/life/expecting.py), the route and the step stay as they are."""
+    return bool(journey) and journey['status'] != 'planned'
 
 
 def update(connection, companion: dict, now, wants_to: str | None = None, route: str | None = None,
-           decided: bool | None = None) -> None:
-    """The user sets what they want ('auto' lets the app decide again), how a child would come, or the step."""
+           decided: bool | None = None, name: str | None = None) -> None:
+    """The user sets what they want ('auto' lets the app decide again), how a child would come, the step, or the
+    child's name."""
+    from companion.life import expecting
     timestamp = stamp(now)
+    journey = expecting.current(connection, companion['active_timeline_id']) if companion.get('active_timeline_id') \
+        else None
+    require(not under_way(journey) or (route is None and decided is None), 'A child is already on the way.', 409)
+    if name is not None:
+        expecting.rename(connection, companion, name, now)
     require(wants_to in (None, 'auto', *WANTS), 'Pick yes, someday or not for them.', 422)
     require(route in (None, 'auto', *ROUTES), 'Pick one of the ways a child could come.', 422)
     current = wishes(connection, companion['id'])
@@ -397,6 +419,9 @@ def change(connection, companion: dict, consequence_id: str, option: int, now) -
         created = date.fromisoformat(row['created_at'][:10])
         connection.execute('UPDATE step_asks SET due_on=? WHERE id=?',
                            ((created + timedelta(days=offset)).isoformat(), row['id']))
+    elif outcome['choice'] in JOURNEY:
+        from companion.life import expecting
+        expecting.change(connection, companion, consequence_id, now)
     elif outcome['choice'] == 'family:answer' and row:
         status = ('yes', 'not_yet', 'no')[option]
         connection.execute('UPDATE step_asks SET status=? WHERE id=?', (status, row['id']))

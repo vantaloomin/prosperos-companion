@@ -29,6 +29,7 @@ from companion.life import (
     composer,
     disruptions,
     encounters,
+    expecting,
     families,
     grooming,
     hobbies,
@@ -185,6 +186,7 @@ def extend(connection, companion, world, now) -> dict:
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)
     wedding.advance(connection, companion, now)
+    expecting.advance(connection, companion, world, now)  # Before the big days: a pregnancy brings a baby shower.
     loss.advance(connection, companion, now)  # Before the big days: a death brings a funeral.
     big_days.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}

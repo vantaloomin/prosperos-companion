@@ -130,8 +130,10 @@ def pictured(connection, timeline_id: str, texts) -> bool:
 
 
 def names(connection, timeline_id: str) -> set[str]:
+    """The circle's children and the pair's own child on the way (companion/life/expecting.py)."""
+    from companion.life import expecting
     return {row['name'] for row in many(connection, "SELECT name FROM circle_children WHERE timeline_id=? AND "
-                                        "status!='ended'", (timeline_id,))}
+                                        "status!='ended'", (timeline_id,))} | expecting.names(connection, timeline_id)
 
 
 def hidden(connection, timeline_id: str) -> re.Pattern | None:
@@ -555,7 +557,7 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     from companion.life import own_family
     if withheld(connection):
         return []
-    today, result = local_today(companion, now), []
+    today, result = local_today(companion, now), expecting_lines(connection, companion, now)
     for child in born(connection, companion['active_timeline_id'], today):
         if child['whose'] == own_family.WHOSE:
             continue  # Their own, told by own_family.context_lines below.
@@ -564,6 +566,25 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         result.append((f"child:{child['id']}", f"- {child['name']} ({lead}): your {child['parent_role']} "
                                                 f"{child['parent_name']}'s {whose}."))
     return result + own_family.context_lines(connection, companion, now)
+
+
+def expecting_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
+    """Someone in their circle expecting, between the storyline's beats too (which show only for a few weeks each):
+    "- Your sister Alexis is expecting a baby, due in June." Names no child."""
+    timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
+    people = {person['id']: person for person in circle.people(connection, timeline_id)}
+    result = []
+    for row in expecting(connection, timeline_id, today):
+        person = people.get(decode(row['cast_ids'])[0])
+        if person is None or row['started_on'] > today.isoformat():
+            continue
+        due = decode(row['stages'])[0]['text'].rsplit('due in ', 1)[-1].rstrip('.')
+        role = circle.said(circle.relation(circle.role_kind(person['role']),
+                                           decode(person['details']).get('pronouns') or ''),
+                           companion['version']['definition'])
+        result.append((f"expecting:{row['id']}", f"- Your {role} {person['name'].split()[0]} is expecting a baby, "
+                                                  f"due in {due}."))
+    return result
 
 
 def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -> None:

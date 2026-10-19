@@ -533,6 +533,21 @@ export interface FamilyView {
   route?: string; route_how?: 'set' | 'seeded'; route_consequence_id?: string | null
   routes?: { key: string; label: string }[]
   decided_on?: string | null; decided_how?: 'them' | 'you' | 'set' | null; can_decide?: boolean
+  /** Expecting or adopting together (companion/life/expecting.py), once you two have decided. */
+  journey?: Journey | null
+}
+
+/** How the child comes: the stages reached, and once it is under way those to come; the child's name once known;
+ * consequence ids only with Hidden values' odds on. */
+export interface Journey {
+  route: string
+  status: 'planned' | 'running' | 'home'
+  due_on: string | null
+  arrived_on: string | null
+  name: string | null
+  renamed: boolean
+  stages: { key: string; label: string; date: string; done: boolean }[]
+  consequences: string[]
 }
 
 /** Companions who already have kids (GET /api/life/steps/kids, companion/life/kids.py); `shown` false with none. Where

@@ -2509,7 +2509,7 @@ CREATE TABLE IF NOT EXISTS circle_children (
   storyline_id TEXT NOT NULL,
   name TEXT NOT NULL,
   pronouns TEXT NOT NULL CHECK (pronouns IN ('she/her', 'he/him', 'they/them')),
-  title TEXT NOT NULL CHECK (title IN ('family', 'godchild', 'friend')),
+  title TEXT NOT NULL CHECK (title IN ('family', 'godchild', 'friend', 'ours')),
   born_on TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('expected', 'born', 'ended')),
   created_at TEXT NOT NULL,
@@ -2605,3 +2605,27 @@ CREATE TABLE IF NOT EXISTS companion_kids (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS companion_kids_consequence ON companion_kids(consequence_id);
+
+-- Expecting or adopting together (companion/life/expecting.py): how a child comes for the user and a romance companion
+-- once they decided to start a family, planned the day after by the route picked for them. `stages` holds each stage
+-- with its day ({key, on}), planned again from the engine's picks (`consequences`, by choice) when one is changed;
+-- `details` the child's name and pronouns (the user can rename them), their age when they come home, the due date and
+-- a hard turn. `child_id` is the circle_children row (title 'ours') once born or home.
+CREATE TABLE IF NOT EXISTS family_journeys (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL,
+  route TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('planned', 'running', 'home', 'called_off')),
+  decided_on TEXT NOT NULL,
+  started_on TEXT NOT NULL,
+  due_on TEXT,
+  arrived_on TEXT,
+  child_id TEXT,
+  stages TEXT NOT NULL DEFAULT '[]',
+  details TEXT NOT NULL DEFAULT '{}',
+  consequences TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS family_journeys_timeline ON family_journeys(timeline_id, status);

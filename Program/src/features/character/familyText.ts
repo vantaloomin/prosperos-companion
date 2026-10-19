@@ -1,4 +1,4 @@
-import type { FamilyView, Kid, KidsView } from '../../types'
+import type { FamilyView, Journey, Kid, KidsView } from '../../types'
 import { firstName } from './panelText.ts'
 
 export const FAMILY_KEY = ['family']
@@ -73,4 +73,33 @@ export function standingLine(view: KidsView, name: string): { label: string; tex
   if (view.meeting === 'soon') return { label: 'Meeting soon', text: `you'll meet ${them} at the get-together ${who} planned.` }
   if (view.meeting === 'met') return { label: 'Met', text: `you've met ${them}.` }
   return null
+}
+
+const PREGNANCY = ['expecting_them', 'expecting_you', 'surrogacy']
+
+/** Where the journey stands, in a line: "Expecting, due in June", "Waiting for a match", "Ivy came home Mar 3, 2028". */
+export function journeyLine(journey: Journey, name: string, day: (value: string) => string): string {
+  const who = firstName(name)
+  if (journey.status === 'home' && journey.arrived_on) {
+    return `${journey.name ?? 'Your child'} ${PREGNANCY.includes(journey.route) ? 'was born' : 'came home'} ${day(journey.arrived_on)}`
+  }
+  if (journey.due_on) {
+    const month = new Date(`${journey.due_on}T12:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    return `Expecting a baby, due in ${month}`
+  }
+  if (journey.status === 'planned') return `${who} and you have decided. Nothing has happened yet.`
+  return waitingLine(journey, new Set(journey.stages.filter((item) => item.done).map((item) => item.key)))
+}
+
+function waitingLine(journey: Journey, reached: Set<string>): string {
+  if (journey.route === 'fostering') return reached.has('home') ? `${journey.name} lives with you two` : 'Becoming foster parents'
+  if (journey.route === 'adoption') return reached.has('match') ? `Matched with ${journey.name}` : 'Adopting: waiting for a match'
+  if (journey.route === 'surrogacy') return 'Having a baby through a surrogate'
+  return journey.name ? `Taking in ${journey.name}` : 'Waiting'
+}
+
+/** Under the child's name: who picked it. */
+export function nameHint(journey: Journey, name: string): string {
+  if (journey.renamed) return 'You named them. It stays as you set it.'
+  return `${firstName(name)} suggested it. Rename them any time; moments that already happened keep the name they had.`
 }
