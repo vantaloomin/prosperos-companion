@@ -9,7 +9,7 @@ from conftest import intimate, reconcile
 from companion import consequences
 from companion.characters import current
 from companion.database import decode
-from companion.life import families, kids, love_life, steps
+from companion.life import families, kids, love_life, steps, their_people
 from companion.memory import pairs
 
 DANA = {'name': 'Dana Reyes', 'timezone': 'UTC', 'location': 'Fells Point, Baltimore',
@@ -304,6 +304,27 @@ def test_the_user_meets_the_kids_with_their_people_and_becomes_a_step_parent(cli
     monkeypatch.setattr(kids, 'living_together', lambda *_args: True)
     assert "the user is Leo's step-parent" in prompt(client)
     assert panel(client)['step_parent'] and panel(client)['meeting'] is None
+
+
+def test_drinks_with_their_friends_is_not_meeting_the_kids_and_the_family_dinner_has_them_there(client, clock):
+    make(client, background='Her son Leo, 7, and her daughter Mia, 4.')
+    with client.app.state.database.connect(write=True) as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        connection.execute("INSERT INTO people_meetups (id, timeline_id, kind, why, due_on, status, created_at) VALUES "
+                           "('m1', ?, 'friends', 'step', ?, 'done', ?)", (timeline_id, clock.now().date().isoformat(),
+                                                                         clock.now().isoformat()))
+    assert "hasn't met them yet" in prompt(client) and panel(client)['meeting'] == 'unmet'
+    outing = {'activity': their_people.AT_FAMILY, 'until_time': '21:30',
+              'place': {'name': "Rosa's place", 'first': True, 'people': [{'id': 'p', 'name': 'Rosa', 'role': 'mom'}]}}
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        line = their_people.scene(connection, companion, outing, None)
+        assert 'Here with you: your mom Rosa, and your kids Leo and Mia. Nobody else is there.' in line
+        assert 'Leo' not in their_people.scene(connection, companion, {**outing, 'activity': their_people.OUT_WITH_FRIENDS,
+                                                                          'place': {**outing['place'], 'kind': 'bar'}}, None)
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect(write=True) as connection:
+        assert 'Leo' not in their_people.scene(connection, current(connection), outing, None)
 
 
 def test_a_love_life_partner_may_come_with_kids_and_the_companion_becomes_their_step_parent(client, clock, monkeypatch):

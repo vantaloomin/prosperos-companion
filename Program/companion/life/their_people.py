@@ -676,13 +676,21 @@ def scene(connection, companion: dict, outing: dict, spot: str | None) -> str:
              for person in people if person['id'] in found]
     parts = [f"Right now you and the user are out together, in person: {what(outing)}, until about "
              f"{outing['until_time']}.",
-             f"Here with you: {people_text(people)}. Nobody else is there.",
+             f"Here with you: {people_text(people)}{kids_here(connection, companion, outing)}. Nobody else is there.",
              'It is the first time they are meeting the user.' if place.get('first') else '',
              f"How it is going: {'; '.join(moods)}." if moods else '',
              f'You are {spot}.' if spot else '',
              'Talk as if you are there together, face to face, not texting: what you say and do in the room. The '
              'others are in the room too: you can say briefly what they say or do, but you speak only as yourself.']
     return '- ' + ' '.join(part for part in parts if part)
+
+
+def kids_here(connection, companion: dict, outing: dict) -> str:
+    """', and your kids Leo and Mia': at the family dinner where the user first meets their people, the companion's
+    own kids are there too (companion/life/kids.py), in words only."""
+    from companion.life import kids
+    return kids.at_dinner(connection, companion) if outing['activity'] == AT_FAMILY and outing['place'].get('first') \
+        else ''
 
 
 def doing(outing: dict) -> str:

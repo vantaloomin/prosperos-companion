@@ -623,20 +623,32 @@ def living_together(connection, companion: dict) -> bool:
 
 
 def met(connection, companion: dict) -> bool:
-    """Whether the user has met their kids: at the meet-up for the "meeting their people" step, or by knowing their
-    people already (a pair from way back)."""
+    """Whether the user has met their kids: at the family dinner for the "meeting their people" step (not drinks with
+    their friends), or by knowing their people already (a pair from way back)."""
     timeline_id = companion['active_timeline_id']
-    if optional(connection, "SELECT id FROM people_meetups WHERE timeline_id=? AND why='step' AND status='done'",
-                (timeline_id,)):
+    if optional(connection, "SELECT id FROM people_meetups WHERE timeline_id=? AND why='step' AND kind='family' AND "
+                "status='done'", (timeline_id,)):
         return True
     return bool(optional(connection, "SELECT id FROM people_impressions WHERE timeline_id=? LIMIT 1", (timeline_id,))) \
         and not optional(connection, "SELECT id FROM people_meetups WHERE timeline_id=? AND why='step'", (timeline_id,))
 
 
 def meeting_soon(connection, companion: dict) -> str | None:
-    row = optional(connection, "SELECT kind FROM people_meetups WHERE timeline_id=? AND why='step' AND status IN "
-                   "('planned', 'booked')", (companion['active_timeline_id'],))
-    return None if not row else 'family dinner' if row['kind'] == 'family' else 'night out'
+    row = optional(connection, "SELECT kind FROM people_meetups WHERE timeline_id=? AND why='step' AND kind='family' "
+                   "AND status IN ('planned', 'booked')", (companion['active_timeline_id'],))
+    return 'family dinner' if row else None
+
+
+def at_dinner(connection, companion: dict) -> str:
+    """', and your kids Leo and Mia' (', and your son Leo') for the family dinner's scene; '' with none, or with the
+    adult side on."""
+    found = own(connection, companion['active_timeline_id']) if ACTIVE and companion.get('active_timeline_id') else []
+    if not found or families.withheld(connection):
+        return ''
+    if len(found) == 1:
+        word = {'she/her': 'daughter', 'he/him': 'son'}.get(found[0]['pronouns'], 'child')
+        return f", and your {word} {first(found[0]['name'])}"
+    return f", and your kids {steps.names_text([first(kid['name']) for kid in found])}"
 
 
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
