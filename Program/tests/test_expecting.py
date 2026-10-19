@@ -387,3 +387,21 @@ def test_the_companion_suggested_the_name_as_the_character_page_says():
         row = {'id': f'j{index}', 'details': {'name': 'Maya'}}
         assert not expecting.named(row).startswith('the user ')
     assert len(expecting.suggested()) >= 30
+
+
+def test_bed_rest_keeps_the_companion_carrying_the_baby_home_from_work(client, monkeypatch, likeliest):
+    from companion.life import work
+    started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    turn = decode(journey(client)['consequences'])['turn']
+    assert client.post(f'/api/life/consequences/{turn}/change', json={'option': 1}).status_code == 200
+    row = journey(client)
+    rest, born = (date.fromisoformat(stage(row, key)['on']) for key in ('bed_rest', 'born'))
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        found = work.days_off(connection, companion, rest - timedelta(days=3), born + timedelta(days=3))
+        assert found[rest.isoformat()] == 'Bed rest' and found[born.isoformat()] == 'Bed rest'
+        assert (rest - timedelta(days=1)).isoformat() not in found
+        assert work.LABELS['Bed rest'] == 'On bed rest at home'
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert set(expecting.days_off(connection, current(connection), rest, born).values()) == {'Home day'}

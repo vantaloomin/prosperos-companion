@@ -362,6 +362,23 @@ def arrive(connection, companion: dict, row: dict, today: date, now) -> None:
                            connection, companion, row)}), timestamp, row['id']))
 
 
+def days_off(connection, companion: dict, start: date, end: date) -> dict[str, str]:
+    """{local date: 'Bed rest'} for companion/life/work.py `days_off`: the companion carrying the baby stays home
+    from the day bed rest begins until the birth ('Home day' with the adult side of life on, which names no baby)."""
+    row = current(connection, companion['active_timeline_id']) if ACTIVE and companion.get('active_timeline_id') \
+        else None
+    if not row or row['route'] != 'expecting_them' or row['status'] == 'home':
+        return {}
+    found = {stage['key']: date.fromisoformat(stage['on']) for stage in row['stages']}
+    if 'bed_rest' not in found or 'born' not in found:
+        return {}
+    label, result, day = 'Home day' if quiet(connection) else 'Bed rest', {}, max(start, found['bed_rest'])
+    while day <= min(end, found['born']):
+        result[day.isoformat()] = label
+        day += timedelta(days=1)
+    return result
+
+
 # The calendar, the nursery and the shower ----------------------------------------------------------------------------------
 
 def calendar(connection, companion: dict, row: dict, today: date, now) -> None:
