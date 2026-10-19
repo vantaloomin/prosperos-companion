@@ -2263,6 +2263,8 @@ p.breakup-line { align-items: center; }
 .kids-block > p { margin: 0; }
 .kid-card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-block: 8px; }
 .kid-card p { margin: 0; }
+.kids-block .kids-standing { margin: 4px 0 0; }
+.family-subheading { margin: 0 0 8px; font-size: 1rem; }
 /* Meeting their people: whether they have met you, on the circle list. */
 .met-you { display: flex; align-items: center; gap: 6px; }
 .met-you svg { width: 14px; height: 14px; flex: none; }

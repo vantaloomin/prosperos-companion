@@ -47,9 +47,12 @@ PARTNER_MARK = 'kids:partner:'  # A love-life partner's child.
 PATTERNS = ('together', 'with_them', 'shared', 'weekends', 'sole')
 CUSTODY = ('with_them', 'shared', 'weekends')  # The kids:custody options, in order.
 HOWS = ('description', 'town', 'seeded', 'none')
-PATTERN_LABELS = {'together': 'With {name} and {other}', 'with_them': "With {name}, every other weekend at {other}'s",
-                  'shared': "A week with {name}, a week at {other}'s", 'weekends': "With {other}, every other weekend "
-                  'with {name}', 'sole': 'With {name}'}
+PATTERN_LABELS = {'together': 'With {name} and {other}', 'with_them': 'Mostly with {name}', 'shared': 'Half and half',
+                  'weekends': 'Mostly with {other}', 'sole': 'With {name}'}
+# The same, spelled out, for the hint under the pick.
+PATTERN_DETAILS = {'together': 'with {name} and {other}', 'with_them': "with {name}, every other weekend at {other}'s",
+                   'shared': "a week with {name}, a week at {other}'s",
+                   'weekends': "with {other}, every other weekend with {name}", 'sole': 'with {name}'}
 # A new companion past this age may have kids already (kids:has); how many: one below the first, two below the second.
 SEED_FROM = 27
 COUNTS = (0.62, 0.93)
@@ -603,7 +606,16 @@ def view(connection, companion: dict, world, now, show_odds: bool) -> dict:
             'patterns': [{'key': key, 'label': PATTERN_LABELS[key].format(**labels)} for key in keys],
             'pattern_consequence_id': row['pattern_consequence_id'] if show_odds else None,
             'consequence_id': row['consequence_id'] if show_odds and row['how'] == 'seeded' else None,
-            'step_parent': living_together(connection, companion)}
+            'detail': PATTERN_DETAILS[pattern].format(**labels), 'step_parent': living_together(connection, companion),
+            'meeting': meeting(connection, companion)}
+
+
+def meeting(connection, companion: dict) -> str | None:
+    """For a romance not living together: whether the user has met the kids ('met'), is about to ('soon'), or not
+    yet ('unmet')."""
+    if companion['version']['definition'].get('relationship') != 'romance' or living_together(connection, companion):
+        return None
+    return 'met' if met(connection, companion) else 'soon' if meeting_soon(connection, companion) else 'unmet'
 
 
 def kid_view(kid: dict, today: date) -> dict:
@@ -617,8 +629,10 @@ def fits(row: dict, pattern: str) -> bool:
     return (pattern == 'sole') == (row['other_id'] is None) and (pattern == 'together') == (row['pattern'] == 'together')
 
 
-def update(connection, companion: dict, now, pattern: str | None = None, remove: str | None = None) -> None:
-    """The user sets where the kids live ('auto' gives it back to the app), or takes a child out of their life."""
+def update(connection, companion: dict, now, pattern: str | None = None, remove: str | None = None,
+           restore: str | None = None) -> None:
+    """The user sets where the kids live ('auto' gives it back to the app), takes a child out of their life, or
+    undoes that."""
     row = record(connection, companion['active_timeline_id'])
     require(row is not None, 'They have no children to change.', 404)
     if pattern is not None:
@@ -634,6 +648,19 @@ def update(connection, companion: dict, now, pattern: str | None = None, remove:
         removed = [*decode(row['removed']), first(kid['name'])]
         connection.execute('UPDATE companion_kids SET removed=?, updated_at=? WHERE timeline_id=?',
                            (encode(removed), stamp(now), row['timeline_id']))
+    if restore is not None:
+        bring_back(connection, row, restore, now)
+
+
+def bring_back(connection, row: dict, kid_id: str, now) -> None:
+    """Undo taking a child out of their life."""
+    kid = optional(connection, "SELECT * FROM circle_children WHERE id=? AND storyline_id=? AND status='ended'",
+                   (kid_id, f"{MARK}{row['timeline_id']}"))
+    require(kid is not None, 'That child is not one of theirs.', 404)
+    connection.execute("UPDATE circle_children SET status='born', updated_at=? WHERE id=?", (stamp(now), kid['id']))
+    removed = [name for name in decode(row['removed']) if name != first(kid['name'])]
+    connection.execute('UPDATE companion_kids SET removed=?, updated_at=? WHERE timeline_id=?',
+                       (encode(removed), stamp(now), row['timeline_id']))
 
 
 def change(connection, companion: dict, consequence_id: str, option: int, now) -> dict:

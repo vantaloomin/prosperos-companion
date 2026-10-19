@@ -42,17 +42,35 @@ export function kidsHint(view: KidsView, name: string): string {
   return `Read from ${who}'s description. Take a child out of their life if they shouldn't be there.`
 }
 
-/** Under "Where the kids live": who decided it, and the other parent. */
+/** Under "Where the kids live": who decided it, the arrangement spelled out, and the other parent. */
 export function whereHint(view: KidsView, name: string): string {
   const who = firstName(name)
-  const other = view.other ? ` ${view.other.name}, their other parent, is in ${who}'s circle as their ${view.other.role}.` : ''
-  if (view.pattern_how === 'set') return `You set this.${other}`
-  if (view.pattern_how === 'fixed') return `Read from ${who}'s description.${other}`
-  return `Picked by the app.${other}`
+  const other = view.other ? ` ${firstName(view.other.name)}, their other parent, is in ${who}'s circle as their ${view.other.role}.` : ''
+  const detail = view.detail ? `: ${view.detail}.` : '.'
+  if (view.pattern_how === 'set') return `You set this${detail}${other}`
+  if (view.pattern_how === 'fixed') return `Read from ${who}'s description${detail}${other}`
+  return `Picked by the app${detail}${other}`
 }
 
-/** For a romance: where you stand with their kids. */
-export function stepParentLine(view: KidsView, name: string): string | null {
-  if (!view.step_parent) return null
-  return `You live with ${firstName(name)}, so you're ${view.kids?.length === 1 ? `${view.kids[0].name}'s` : 'their'} step-parent.`
+/** The first choice of "Where the kids live": the description's arrangement or the app's pick, named. */
+export function wherePick(view: KidsView, name: string, label: string): string {
+  if (view.pattern_how === 'fixed') return `From ${firstName(name)}'s description (${label})`
+  return appPick(view.pattern_how === 'set' ? 'what fits them' : label)
+}
+
+/** "Leo", "Leo and Mia", "Leo, Mia and Sam". */
+export function kidNames(view: KidsView): string {
+  const names = (view.kids ?? []).map((kid) => kid.name)
+  return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+}
+
+/** For a romance: where you stand with their kids, as a labelled line under them. */
+export function standingLine(view: KidsView, name: string): { label: string; text: string } | null {
+  const who = firstName(name)
+  const them = (view.kids?.length ?? 0) === 1 ? kidNames(view) : 'them'
+  if (view.step_parent) return { label: 'Step-parent', text: `you live with ${who}, so you're ${kidNames(view)}'s step-parent.` }
+  if (view.meeting === 'unmet') return { label: 'Not met yet', text: `${who} will bring it up when the time feels right.` }
+  if (view.meeting === 'soon') return { label: 'Meeting soon', text: `you'll meet ${them} at the get-together ${who} planned.` }
+  if (view.meeting === 'met') return { label: 'Met', text: `you've met ${them}.` }
+  return null
 }

@@ -3767,7 +3767,7 @@
       "label": "Where {name}'s kids live",
       "options": [
         {
-          "label": "With {name}, every other weekend at {other}'s",
+          "label": "Mostly with {name}",
           "weight": 1.4,
           "rules": [
             {
@@ -3779,7 +3779,7 @@
           ]
         },
         {
-          "label": "A week with {name}, a week at {other}'s",
+          "label": "Half and half",
           "weight": 1,
           "rules": [
             {
@@ -3791,7 +3791,7 @@
           ]
         },
         {
-          "label": "With {other}, every other weekend with {name}",
+          "label": "Mostly with {other}",
           "weight": 0.7,
           "rules": []
         }

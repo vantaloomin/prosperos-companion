@@ -10,6 +10,7 @@ from companion import consequences
 from companion.characters import current
 from companion.database import decode
 from companion.life import families, kids, love_life, steps
+from companion.memory import pairs
 
 DANA = {'name': 'Dana Reyes', 'timezone': 'UTC', 'location': 'Fells Point, Baltimore',
         'identity': '38. She/her. Nurse.', 'relationship': 'romance'}
@@ -125,11 +126,20 @@ def test_a_widowed_parent_has_no_other_parent(client):
     assert 'their other parent is not in the picture' in prompt(client)
 
 
-def test_the_ex_the_description_names_is_the_other_parent(client):
+def test_the_ex_the_description_names_is_the_other_parent(client, clock):
     make(client, background='Her ex-husband Mark Lowe has their son Leo, 7, every other weekend.')
     view = panel(client)
     assert view['other'] == {'name': 'Mark', 'role': 'ex-husband'} and view['pattern'] == 'with_them'
     assert 'every other weekend with their dad Mark' in prompt(client)
+    assert view['detail'] == "with Dana, every other weekend at Mark's"
+    assert [item['label'] for item in view['patterns']] == ['Mostly with Dana', 'Half and half', 'Mostly with Mark']
+    # Someone they share kids with starts where any co-parent does, not as an ex they barely know.
+    mark = next(person for person in circle(client) if person['name'].startswith('Mark'))
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        seed = connection.execute('SELECT seed FROM circle_people WHERE id=?', (mark['id'],)).fetchone()[0]
+        found = pairs.pair(connection, pairs.companion_key(companion['id']), seed, clock.now())
+    assert found['start'] >= pairs.ROLE_DEFAULTS['co-parent'][0]  # The nudge only ever goes up.
 
 
 def test_a_grown_son_stays_in_the_circle_and_nobody_else_counts(client, monkeypatch):
@@ -150,6 +160,11 @@ def test_the_user_can_change_where_they_live_or_take_a_child_out(client):
     assert [kid['name'] for kid in view['kids']] == ['Mia']
     reconcile(client)
     assert [kid['name'] for kid in panel(client)['kids']] == ['Mia'] and 'Leo (7' not in prompt(client)
+    view = set_kids(client, restore=leo['id'])
+    assert sorted(kid['name'] for kid in view['kids']) == ['Leo', 'Mia']
+    reconcile(client)
+    assert sorted(kid['name'] for kid in panel(client)['kids']) == ['Leo', 'Mia'] and 'Leo (7' in prompt(client)
+    set_kids(client, 404, restore=leo['id'])
     assert set_kids(client, pattern='auto')['pattern_how'] == 'seeded'
 
 
@@ -206,6 +221,7 @@ def test_a_companion_who_reads_as_under_18_has_no_kids(client, monkeypatch):
 def test_the_user_meets_the_kids_with_their_people_and_becomes_a_step_parent(client, clock, monkeypatch):
     make(client, background='Her son Leo, 7.')
     assert "hasn't met" in prompt(client)
+    assert panel(client)['meeting'] == 'unmet'
     with client.app.state.database.connect(write=True) as connection:
         companion = current(connection)
         timeline_id = companion['active_timeline_id']
@@ -216,9 +232,10 @@ def test_the_user_meets_the_kids_with_their_people_and_becomes_a_step_parent(cli
     with client.app.state.database.connect(write=True) as connection:
         connection.execute("UPDATE people_meetups SET status='done'")
     assert 'The user has met Leo.' in prompt(client)
+    assert panel(client)['meeting'] == 'met'
     monkeypatch.setattr(kids, 'living_together', lambda *_args: True)
     assert "the user is Leo's step-parent" in prompt(client)
-    assert panel(client)['step_parent']
+    assert panel(client)['step_parent'] and panel(client)['meeting'] is None
 
 
 def test_a_love_life_partner_may_come_with_kids_and_the_companion_becomes_their_step_parent(client, clock, monkeypatch):

@@ -548,7 +548,11 @@ export interface KidsView {
   patterns?: { key: string; label: string }[]
   pattern_consequence_id?: string | null
   consequence_id?: string | null
+  /** The arrangement spelled out: "with Dana, every other weekend at Mark's". */
+  detail?: string
   step_parent?: boolean
+  /** For a romance not living together: whether you have met the kids. */
+  meeting?: 'met' | 'soon' | 'unmet' | null
 }
 
 export interface Kid { id: string; name: string; pronouns: string; born_on: string; age: number; age_text: string; relation: 'son' | 'daughter' | 'child' }

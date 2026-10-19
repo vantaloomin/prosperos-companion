@@ -82,6 +82,7 @@ def update_family(request: Request, body: FamilyUpdate):
 class KidsUpdate(Input):
     pattern: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
     remove: str | None = Field(default=None, max_length=64, pattern=r'^[0-9a-f]+$')
+    restore: str | None = Field(default=None, max_length=64, pattern=r'^[0-9a-f]+$')
 
 
 def read_kids_view(connection, companion, world, now) -> dict:
@@ -104,5 +105,5 @@ def update_kids(request: Request, body: KidsUpdate):
     now = database.clock.now()
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        kids.update(connection, companion, now, body.pattern, body.remove)
+        kids.update(connection, companion, now, body.pattern, body.remove, body.restore)
         return read_kids_view(connection, companion, request.app.state.life.world, now)

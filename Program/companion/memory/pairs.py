@@ -52,8 +52,8 @@ ROLE_DEFAULTS = {
     'girlfriend': (4, 0.0, 0.3), 'boyfriend': (4, 0.0, 0.3), 'partner': (4, 0.0, 0.3),
     'fiancée': (4, 0.5, 0.0), 'fiancé': (4, 0.5, 0.0), 'wife': (5, 0.0, 0.2), 'husband': (5, 0.0, 0.2),
     'spouse': (5, 0.0, 0.2), 'ex': (2, 0.0, 0.3),
-    # Their kids' other parent (companion/life/kids.py): in touch every week or two, warm or not.
-    'co-parent': (3, 0.2, 0.3),
+    # Their kids' other parent (companion/life/kids.py): in touch every week or two, never a stranger.
+    'co-parent': (3, 0.2, 0.0),
 }
 UNKNOWN_ROLE = (1, 0.0, 0.0)
 # The lowest a parent, sibling or grandparent ever stands with the companion (the role defaults never start them lower).
@@ -325,7 +325,9 @@ def both_companions(connection, a: str, b: str, first: dict, second: dict, now, 
 def with_circle(connection, a: str, b: str, me: dict, person: dict, now) -> dict:
     """A companion and someone in their own circle; both directions start at the role's default."""
     from companion.life import circle
-    found = role_default(person['role'], person['seed'])
+    # Their kids' other parent starts where any co-parent does, whatever the description calls them (an ex-husband).
+    found = role_default('co-parent' if decode(person['details'] or '{}').get('co_parent') else person['role'],
+                         person['seed'])
     today = now.astimezone(zone(me['version']['timezone'])).date().isoformat()
     moved = story_moves(connection, me, person['id'], today)
     base = clamp(level_from(found['level'], moved['points']) + moved['steps'])

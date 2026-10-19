@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { kidLine, kidsHint, stepParentLine, whereHint } from '../../src/features/character/familyText.ts'
+import { kidLine, kidsHint, standingLine, whereHint, wherePick } from '../../src/features/character/familyText.ts'
 import type { Kid, KidsView } from '../../src/types.ts'
 
 const kid = (changes: Partial<Kid>): Kid => ({
@@ -22,11 +22,21 @@ test('the hints say where the kids came from and who decided where they live', (
   assert.match(kidsHint(view({ how: 'town' }), 'Dana'), /while living in town/)
   assert.match(kidsHint(view({ how: 'seeded' }), 'Dana'), /^Picked by the app for Dana\./)
   assert.equal(whereHint(view({}), 'Dana'), "Read from Dana's description. Mark, their other parent, is in Dana's circle as their ex-husband.")
+  assert.equal(whereHint(view({ pattern_how: 'seeded', detail: "with Dana, every other weekend at Mark's", other: { name: 'Mark Lowe', role: 'ex-husband' } }), 'Dana'),
+    "Picked by the app: with Dana, every other weekend at Mark's. Mark, their other parent, is in Dana's circle as their ex-husband.")
   assert.equal(whereHint(view({ pattern_how: 'set', other: null }), 'Dana'), 'You set this.')
 })
 
-test('living with a romance companion makes you their step-parent', () => {
-  assert.equal(stepParentLine(view({}), 'Dana'), null)
-  assert.equal(stepParentLine(view({ step_parent: true }), 'Dana'), "You live with Dana, so you're Leo's step-parent.")
-  assert.equal(stepParentLine(view({ step_parent: true, kids: [kid({}), kid({ name: 'Mia' })] }), 'Dana'), "You live with Dana, so you're their step-parent.")
+test('the first choice of where the kids live names the description or the app', () => {
+  assert.equal(wherePick(view({}), 'Sam', 'Mostly with Sam'), "From Sam's description (Mostly with Sam)")
+  assert.equal(wherePick(view({ pattern_how: 'seeded' }), 'Dana', 'Mostly with Dana'), 'Let the app decide (Mostly with Dana)')
+  assert.equal(wherePick(view({ pattern_how: 'set' }), 'Dana', 'Half and half'), 'Let the app decide (what fits them)')
+})
+
+test('a romance shows where you stand with their kids', () => {
+  assert.equal(standingLine(view({}), 'Dana'), null)
+  assert.deepEqual(standingLine(view({ step_parent: true }), 'Dana'), { label: 'Step-parent', text: "you live with Dana, so you're Leo's step-parent." })
+  assert.equal(standingLine(view({ step_parent: true, kids: [kid({ name: 'Major' }), kid({ name: 'Logan' })] }), 'Sam')?.text, "you live with Sam, so you're Major and Logan's step-parent.")
+  assert.deepEqual(standingLine(view({ meeting: 'unmet' }), 'Dana Reyes'), { label: 'Not met yet', text: 'Dana will bring it up when the time feels right.' })
+  assert.equal(standingLine(view({ meeting: 'met', kids: [kid({}), kid({ name: 'Mia' })] }), 'Dana')?.text, "you've met them.")
 })

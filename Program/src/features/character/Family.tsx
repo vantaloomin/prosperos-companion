@@ -28,13 +28,14 @@ export function Family({ name }: { name: string }) {
     <section id="family" className="home-panel steps-panel family-panel" aria-labelledby="family-heading">
       <h2 id="family-heading">Family</h2>
       {theirs && <Kids view={theirs} name={name} />}
-      {view && <Wishes view={view} name={name} />}
+      {view && <Wishes view={view} name={name} headed={Boolean(theirs)} />}
     </section>
   )
 }
 
-/** What they want, and for a romance how a child would come and whether you two have decided. */
-function Wishes({ view, name }: { view: FamilyView; name: string }) {
+/** What they want, and for a romance how a child would come and whether you two have decided; under its own heading
+ * when their kids come first. */
+function Wishes({ view, name, headed }: { view: FamilyView; name: string; headed: boolean }) {
   const client = useQueryClient()
   const [error, setError] = useState('')
   const save = async (change: FamilyChange) => {
@@ -45,6 +46,7 @@ function Wishes({ view, name }: { view: FamilyView; name: string }) {
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'That was not saved.') }
   }
   return <>
+    {headed && <h3 className="family-subheading">{view.romance ? 'A family together' : 'More children'}</h3>}
     <WantsField view={view} name={name} save={(change) => void save(change)} />
     {view.romance && view.routes && <TogetherFields view={view} name={name} save={(change) => void save(change)} />}
     {error && <Notice tone="error">{error}</Notice>}
