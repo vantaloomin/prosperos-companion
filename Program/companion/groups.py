@@ -577,7 +577,7 @@ def prompt(connection, group: dict, companion: dict, stay: dict, now, config: di
     earlier = visible(connection, group['id'], stay['member'], until_seq)
     private = context.build(connection, companion, now, max(budget - token_estimate(shared), 1000), group={
         'older': recall_rows(trimmed, group, title(connection, group)), 'query': query,
-        'lines': group_lines(connection, group, stay, now),
+        'lines': group_lines(connection, group, stay, now), 'shared': shared,
         'previous': earlier[-2]['created_at'] if len(earlier) > 1 else None})
     turn = turn or TURN.format(name=stay['name'], group=title(connection, group))
     # What changes with every message goes with the turn, so the system prompt stays cacheable.

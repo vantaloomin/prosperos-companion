@@ -75,6 +75,18 @@ def reads_intimate(texts) -> bool:
                (text, folded, re.sub(r'(\w)\1+', r'\1', folded)))
 
 
+# The character's own words, in every reply's context.
+OWN = ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location', 'history_together')
+# A child said without their name, in the conversation.
+CHILD = re.compile(r"\b(?:(?:our|the|my|your|his|her|their) (?:daughters?|sons?|kids?|kiddos?|child|children|"
+                   r"little ones?|toddlers?|newborns?|infants?)|(?:our|the) bab(?:y|ies))\b", re.IGNORECASE)
+
+
+def own_words(companion: dict) -> list[str]:
+    definition = companion['version']['definition']
+    return [str(definition.get(key) or '') for key in OWN]
+
+
 def family_reply(connection, companion: dict, recent: list[dict], group: dict | None, photo: dict | None) -> bool:
     """Whether this reply carries the family lines instead of the adult side's. With the adult side off there is
     nothing to choose, and children are in every reply (False here, families.withheld False too); with no child in
@@ -83,10 +95,36 @@ def family_reply(connection, companion: dict, recent: list[dict], group: dict | 
         return False
     try:
         note = authors_note.prompt_text(connection, f"companion:{companion['id']}")
-        texts = [message['text'] for message in recent] + [note, (photo or {}).get('text') or '']
+        texts = [message['text'] for message in recent] + [note, (photo or {}).get('text') or '', *own_words(companion)]
         return not reads_intimate(texts)
     except Exception:  # noqa: BLE001 - fails closed: unsure is intimate.
         return False
+
+
+def adult_lines(connection, companion: dict, recent: list[dict], group: dict | None, photo: dict | None,
+                family: bool) -> bool:
+    """Whether this reply carries the adult side's lines (companion/world/intimacy.py says whether it is on at all):
+    never in a family reply, and not while what goes with the reply anyway (the conversation, a group's shared part,
+    the character's own words, the author's note) names a child or says one, so it carries neither side. Fails
+    closed: anything that cannot be read carries neither."""
+    if family:
+        return False
+    if not intimacy.turned_on(connection) or not children(connection, companion):
+        return True
+    try:
+        note = authors_note.prompt_text(connection, f"companion:{companion['id']}")
+        texts = [message['text'] for message in recent] + [note, (photo or {}).get('text') or '', *own_words(companion),
+                                                            (group or {}).get('shared') or '']
+        return not names_child(connection, companion['active_timeline_id'], texts)
+    except Exception:  # noqa: BLE001 - fails closed.
+        return False
+
+
+def names_child(connection, timeline_id: str, texts) -> bool:
+    from companion.life import families
+    text = ' '.join(text for text in texts if text)
+    return bool(CHILD.search(text)) or any(re.search(rf'\b{re.escape(name)}\b', text)
+                                           for name in families.names(connection, timeline_id))
 
 
 def children(connection, companion: dict) -> bool:

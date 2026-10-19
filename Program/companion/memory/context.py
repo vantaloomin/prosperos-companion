@@ -940,11 +940,11 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         recent, older = [], messages + group['older']
     # With the adult side on, the family lines or the adult side's, never both (companion/memory/sides.py).
     family = sides.family_reply(connection, companion, recent, group, photo)
+    adult = sides.adult_lines(connection, companion, recent, group, photo, family)
     packet = Packet(budget, hidden=sides.hidden(connection, timeline_id, family))
     with families.family_reply(family):
         return fill(packet, connection, companion, now, (messages, recent, older, groups),
-                    {'semantic': semantic, 'outside': outside, 'photo': photo, 'group': group,
-                     'family': family})
+                    {'semantic': semantic, 'outside': outside, 'photo': photo, 'group': group, 'adult': adult})
 
 
 def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict) -> dict:
@@ -955,7 +955,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     texts = group is not None or not (together.in_person(connection, companion, now)
                                        or calls.on_call(connection, companion, now))
-    packet.require('character', version['id'], character_text(version, connection, intimate=not extra['family'],
+    packet.require('character', version['id'], character_text(version, connection, intimate=extra['adult'],
                                                               day=today, texts=texts))
     if who := persona_text(connection, date.fromisoformat(today)):
         packet.offer('persona', 'persona', who)

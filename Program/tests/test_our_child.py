@@ -13,6 +13,7 @@ from test_steps import prompt, says
 from companion import group_guests
 from companion.characters import current
 from companion.life import families, our_child, work
+from companion.memory import sides
 from companion.world import intimacy
 
 FORBIDDEN = re.compile(r'\b(?:kiss\w*|naked|nude|bath\w*|bed|body|skin|lips|touch\w*|cuddl\w*|snuggl\w*|undress\w*|'
@@ -241,7 +242,6 @@ def test_the_sheet_fits_the_childs_age():
 
 
 def test_a_reply_reads_its_side_from_many_wordings():
-    from companion.memory import sides
     for text in ('fuck me tonight', 'f*ck me', 'make love to me', 'ride me', 'strip for me', 'sleep with me',
                  'netflix and chill?', 's3x', 'seggs tonight?', 'kis me', 'bésame', "i'm wet", 'sext me',
                  'go down on me', 'take it off', 'shower together?', 'feeling frisky', '🍆💦', 'wanna come over 😏',
@@ -251,3 +251,39 @@ def test_a_reply_reads_its_side_from_many_wordings():
                  'morning love. how did you sleep?', 'the shaggy dog got into the garden', 'that sucks, sorry',
                  'it is so hot today', 'ugh, the sextant order is late', 'pass the cumin'):
         assert not sides.reads_intimate([text]), text
+
+
+def whole(provider) -> str:
+    request = provider.requests[-1]
+    return request['system'] + '\n' + '\n'.join(str(message['content']) for message in request['messages'])
+
+
+def test_a_reply_whose_conversation_says_a_child_carries_one_kind_of_line_or_none(client, provider, clock,
+                                                                                  monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    first = child['name'].split()[0]
+    send(client, f'how is {first} doing today?', 'client-ours-7')
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    send(client, 'come to bed and kiss me', 'client-ours-8')
+    assert intimacy.SETTING not in whole(provider)
+    with connect(client) as connection:
+        companion = current(connection)
+        own = intimacy.prompt_text(connection, companion['version'])
+        assert own and own not in whole(provider)
+        timeline_id = companion['active_timeline_id']
+        recent = [{'text': 'come to bed and kiss me'}]
+        assert sides.adult_lines(connection, companion, recent, None, None, False)
+        assert not sides.adult_lines(connection, companion, [{'text': 'the kids are finally asleep'}], None,
+                                               None, False)
+        group = {'shared': f'Sam: how is {first}?'}
+        assert not sides.adult_lines(connection, companion, recent, group, None, False)
+        assert not sides.adult_lines(connection, companion, recent, None, None, True)
+        assert sides.names_child(connection, timeline_id, [f'{first} is asleep'])
+
+
+def test_the_characters_own_words_count_toward_a_replys_side(client, provider, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch, background='Loves slow kisses and lazy mornings.')
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    send(client, 'how was the day?', 'client-ours-9')
+    assert child['name'].split()[0] not in prompt(provider)
+
