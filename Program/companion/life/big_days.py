@@ -383,7 +383,7 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
         return wedding.venue_for(data, wedding.customs(wedding.culture_of(data)), 'proper', seed, day=day)
     if kind.key == 'funeral':
         from companion.life import loss
-        return loss.venue_for(connection, companion, data, seed, day)
+        return loss.venue_for(connection, companion, data, seed, day, bool(details.get('notable')))
     options = [item for item in data['places'] if item['kind'] in kind.places
                and not any(word in item['name'].lower() for word in NOT_PARTY)]
     if kind.key in ('graduation', 'own_graduation'):
@@ -485,6 +485,8 @@ def invitable(connection, companion: dict, row: dict) -> bool:
     between = long_distance.far(connection, companion)
     if between and not long_distance.reachable(between):
         return False
+    if row['kind'] == 'funeral' and row['details'].get('family'):  # Family: never held back by another big day.
+        return True
     low = (date.fromisoformat(row['local_date']) - timedelta(days=INVITE_GAP)).isoformat()
     high = (date.fromisoformat(row['local_date']) + timedelta(days=INVITE_GAP)).isoformat()
     return not optional(connection, "SELECT id FROM big_days WHERE timeline_id=? AND id!=? AND invite=1 AND "

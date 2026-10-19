@@ -332,6 +332,8 @@ ADDED_COLUMNS = (
     # (companion/world/turnover.py).
     ('life_settings', 'people_pass_away', 'INTEGER NOT NULL DEFAULT 0 CHECK (people_pass_away IN (0, 1))'),
     ('life_settings', 'loss', 'INTEGER NOT NULL DEFAULT 2 CHECK (loss BETWEEN 0 AND 3)'),
+    # Added once (v0.15) to set the Loss slider by the world's preset (`UPGRADE_LOSS`); nothing reads it.
+    ('life_settings', 'loss_by_preset', 'INTEGER NOT NULL DEFAULT 1'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -410,6 +412,9 @@ UPGRADE_REALISM = {0: {'rough_patches_realism': 1, 'steps_pace': 1, 'love_life':
 UPGRADE_TURNS = {0: {'life_turns': 1}, 3: {'life_turns': 3}}
 # Growing families (v0.14) the same way: an easy life has babies now and then, a dramatic one lots.
 UPGRADE_FAMILIES = {0: {'growing_families': 1}, 3: {'growing_families': 3}}
+# The Loss slider (v0.15) the same way: an easy life rare, a dramatic one often, only while the switch is off and the
+# slider still at its default, so a level the user chose stays.
+UPGRADE_LOSS = {0: {'loss': 0}, 3: {'loss': 3}}
 
 
 def add_columns(connection):
@@ -423,10 +428,12 @@ def add_columns(connection):
                            ('growing_families', UPGRADE_FAMILIES)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
+    if ('life_settings', 'loss_by_preset') in added:
+        preset_upgrade(connection, UPGRADE_LOSS, 'people_pass_away=0 AND loss=2')
 
 
-def preset_upgrade(connection, upgrade: dict):
-    row = connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()
+def preset_upgrade(connection, upgrade: dict, unless_moved: str = '1'):
+    row = connection.execute(f'SELECT drama FROM life_settings WHERE id=1 AND {unless_moved}').fetchone()  # noqa: S608
     picked = upgrade.get(row[0]) if row else None
     if picked:
         connection.execute(f"UPDATE life_settings SET {', '.join(f'{key}=?' for key in picked)} WHERE id=1",  # noqa: S608
