@@ -1,5 +1,6 @@
 """Expecting or adopting together (companion/life/expecting.py): once the pair decided to start a family, the child
 comes by the route picked for them, through months in real time, and joins the circle's children as theirs."""
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -585,3 +586,24 @@ def test_on_the_day_the_name_comes_up_they_text_to_suggest_it(client, clock, mon
     with client.app.state.database.connect(write=True) as connection:
         expecting.rename(connection, current(connection), 'Juniper', clock.now())
     assert triggers(client, clock) == []
+
+
+def test_their_people_react_with_their_own_pronouns():
+    lines = [line['text'] for line in expecting.bank()['reactions']]
+    for pronouns in ('he/him', 'she/her', 'they/them', None):
+        for line in lines:
+            said = expecting.reaction(line, 'your dad Johnny', pronouns)
+            assert '{' not in said and '}' not in said, (line, pronouns)
+    happy = next(line for line in lines if 'forgot what' in line)
+    assert expecting.reaction(happy, 'your dad Johnny', 'he/him') == \
+        'your dad Johnny was so happy he forgot what he had come over to say.'
+    proud = next(line for line in lines if 'proud of you two' in line)
+    assert expecting.reaction(proud, 'your mom Ann', 'she/her') == \
+        'your mom Ann said she was proud of you two, which she does not often say.'
+    assert expecting.reaction(proud, 'your friend Sam', 'they/them') == \
+        'your friend Sam said they were proud of you two, which they do not often say.'
+    # A "them" that is about something else (the questions they asked) stays.
+    questions = next(line for line in lines if 'practical questions' in line)
+    assert expecting.reaction(questions, 'your sister Kim', 'she/her').endswith('write them down.')
+    he = [expecting.reaction(line, 'your dad Johnny', 'he/him') for line in lines]
+    assert not any(re.search(r'\b(?:they|their|themself|themselves)\b', said) for said in he)

@@ -33,7 +33,7 @@ from companion import consequences
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import admin, circle, families, steps
+from companion.life import admin, circle, families, pronouns, steps
 from companion.life.steps import FAMILY
 from companion.world import catalog, generators
 
@@ -855,9 +855,16 @@ def reactions_of(connection, companion: dict, row: dict) -> list[str]:
         role = circle.said(circle.relation(circle.role_kind(person['role']), details.get('pronouns') or ''),
                            companion['version']['definition'])
         line = generators.pick(f"journey:{row['id']}:{person['id']}", f'reaction-{index}', lines)['text']
-        sentence = line.format(who=f"your {role} {person['name'].split()[0]}")
+        sentence = reaction(line, f"your {role} {person['name'].split()[0]}", details.get('pronouns'))
         result.append(sentence[:1].upper() + sentence[1:])
     return result
+
+
+def reaction(line: str, who: str, pronouns_: str | None) -> str:
+    """A reactions bank line said of `who` with their own pronouns ("{they} forgot" for a dad is "he forgot"; A/B:
+    findings/ab-r2-expecting.md, decide-screens); pronouns not known read "they"."""
+    forms = pronouns.person(pronouns_)
+    return line.format(who=who, **{key.replace("'", ''): value for key, value in forms.items()})
 
 
 def moment_line(connection, companion: dict, row: dict, done: dict, today: date) -> list[str]:
