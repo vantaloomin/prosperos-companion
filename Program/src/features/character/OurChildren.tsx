@@ -1,14 +1,14 @@
 import { useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { FamilyView, OurChild, OursView } from '../../types'
+import type { Custody, FamilyView, OurChild, OursView } from '../../types'
 import { Field, Toggle } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { WhyItWent } from '../today/WhyItWent'
 import { STEPS_KEY, stepDate } from './stepsText'
-import { FAMILY_KEY, OURS_KEY, anotherHint, appPick, arrivalText, careHint, ourChildLine, sheetText } from './familyText'
+import { FAMILY_KEY, OURS_KEY, anotherHint, appPick, arrivalText, careHint, custodyHint, ourChildLine, sheetText } from './familyText'
 
-type OursChange = { care?: string; child?: string; name?: string }
+type OursChange = { care?: string; child?: string; name?: string; custody?: string }
 
 /** Our child (companion/life/our_child.py): each child of yours with them as a card (who they are lately, the
  * milestones so far, and how they came, folded away), who looks after them, and another child. Words only: no
@@ -40,7 +40,7 @@ export function OurChildren({ view, family, name, howItWent }: {
           <ChildCard key={child.id} child={child} name={name} save={(change) => void save(change)}>{howItWent(child)}</ChildCard>
         ))}
       </ul>
-      {young.length > 0 && view.care_now && <CareField view={view} name={name} save={(change) => void save(change)} />}
+      {young.length > 0 && <Arrangements view={view} name={name} save={(change) => void save(change)} />}
       {family && (family.another_on || family.can_decide_another) && (
         <Toggle label={family.another_on ? `Another child, since ${stepDate(family.another_on)}` : 'Another child'}
           checked={Boolean(family.another_on)} disabled={!family.can_decide_another} hint={anotherHint(family, name)}
@@ -119,5 +119,32 @@ function CareField({ view, name, save }: { view: OursView; name: string; save: (
       )}
     </Field>
     {view.care_consequence_id && !set && <WhyItWent id={view.care_consequence_id} />}
+  </>
+}
+
+/** For children under 18: where they live while their parents live apart, and who looks after them. */
+function Arrangements({ view, name, save }: { view: OursView; name: string; save: (change: OursChange) => void }) {
+  return <>
+    {view.custody && <CustodyField custody={view.custody} name={name} save={save} />}
+    {view.care_now && <CareField view={view} name={name} save={save} />}
+  </>
+}
+
+/** Where they live while their parents live apart: after a breakup the app's pick first, named, then the others;
+ * across cities, only who they stay with. */
+function CustodyField({ custody, name, save }: { custody: Custody; name: string; save: (change: OursChange) => void }) {
+  const set = custody.how === 'set'
+  const label = custody.patterns.find((item) => item.key === custody.pattern)?.label ?? ''
+  if (custody.patterns.length < 2) return <p className="subtle">{custodyHint(custody, name)}</p>
+  return <>
+    <Field label="Where they live" hint={custodyHint(custody, name)}>
+      {(id, describedBy) => (
+        <select id={id} aria-describedby={describedBy} value={set ? custody.pattern : 'auto'} onChange={(event) => save({ custody: event.target.value })}>
+          <option value="auto">{appPick(set ? 'what fits you two' : label)}</option>
+          {custody.patterns.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+        </select>
+      )}
+    </Field>
+    {custody.consequence_id && !set && <WhyItWent id={custody.consequence_id} />}
   </>
 }

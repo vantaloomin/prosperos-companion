@@ -454,11 +454,13 @@ def step_up(connection, found: dict, key: str, day: date, timestamp: str) -> Non
 
 
 def end(connection, found: dict, how: str, day: date, **values) -> None:
-    """The pair is over: a breakup, the user removing them, or a secret that came out. An ex leaves the circle."""
+    """The pair is over: a breakup, the user removing them, or a secret that came out. An ex leaves the circle,
+    unless the two of them have a child (companion/life/custody.py)."""
     extra = ''.join(f', {column}=?' for column in values)
     connection.execute(f'UPDATE love_partners SET ended_on=?, ended_how=?{extra} WHERE id=? AND ended_on IS NULL',
                        (day.isoformat(), how, *values.values(), found['id']))
-    if found['person_id'] and how == 'split':
+    from companion.life import custody  # A partner they share a child with stays, as the child's other parent.
+    if found['person_id'] and how == 'split' and not custody.keep_coparent(connection, found['person_id'], day):
         connection.execute("UPDATE circle_people SET role='ex', status='removed', revision=revision+1 WHERE id=?",
                            (found['person_id'],))
 

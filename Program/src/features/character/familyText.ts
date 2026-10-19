@@ -1,4 +1,4 @@
-import type { FamilyView, Journey, Kid, KidsView, OurChild, OursView } from '../../types'
+import type { Custody, FamilyView, Journey, Kid, KidsView, OurChild, OursView } from '../../types'
 import { firstName } from './panelText.ts'
 import { stepDate } from './stepsText.ts'
 
@@ -160,6 +160,15 @@ export function careHint(view: OursView, name: string): string {
   const how = view.care_how === 'set' ? 'You set this' : `Picked by the app from ${who}'s work and your money`
   if (!view.care_now) return `${how}. Once the youngest is at school you both work again; this comes back with a new baby.`
   return `${how}: ${CARE_HINTS[view.care ?? ''] ?? 'this lasts'} until the youngest starts school.`.replace('{name}', who)
+}
+
+/** Under "Where they live": since when, who picked it, and the arrangement spelled out. */
+export function custodyHint(custody: Custody, name: string): string {
+  const who = firstName(name)
+  if (!custody.split) return `You live in ${custody.city ?? 'another city'} now, so they stay with ${who}; your visits are when you see them.`
+  const how = custody.how === 'set' ? 'You set this' : `Picked by the app since you and ${who} split up`
+  const far = custody.far ? ` You live in ${custody.city ?? 'another city'} now, so a week each can't work.` : ''
+  return `${how}: ${custody.detail}.${far}`
 }
 
 /** Under "Another child": where it stands. */

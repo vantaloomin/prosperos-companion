@@ -133,11 +133,15 @@ def settings_changed(connection) -> None:
 
 # Who can pass away -------------------------------------------------------------------------------------------------
 
-def spared(connection, timeline_id: str, row: dict) -> bool:
+def spared(connection, timeline_id: str, row: dict, today: date | None = None) -> bool:
     """Never a child, the companion's own partner or anyone the user spared; someone the user wrote into the
-    character's description is spared until the user says otherwise."""
+    character's description is spared until the user says otherwise. Nor, by `today`, the pair's grown child or a
+    parent whose baby is under one or on the way (companion/life/custody.py)."""
+    from companion.life import custody
     details = decode(row['details']) or {}
     if (ages.stored_age(details) or 0) < ADULT or details.get('late'):
+        return True
+    if today is not None and custody.spared(connection, row, today):
         return True
     if details.get('spared', bool(details.get('sheet'))):
         return True
@@ -260,12 +264,25 @@ def advance(connection, companion: dict, now: datetime) -> None:
                                                 (timeline_id,))}
     turns = health_turns(connection, timeline_id, today)
     for row in circle.people(connection, timeline_id):
-        if row['id'] not in planned and not spared(connection, timeline_id, row):
+        if row['id'] not in planned and not spared(connection, timeline_id, row, today):
             consider(connection, companion, row, today, turns.get(row['id'], []), loss, now)
     for row in many(connection, "SELECT * FROM losses WHERE timeline_id=? AND happened=0 AND died_on<=?",
                     (timeline_id, today.isoformat())):
+        if spared_now(connection, row, today):
+            continue
         happen(connection, companion, row, now)
     town(connection, companion, today, now)
+
+
+def spared_now(connection, row: dict, today: date) -> bool:
+    """A death decided before a baby came: called off, and decided afresh once the baby is one."""
+    from companion.life import custody
+    person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['person_id'],))
+    if person is None or not custody.spared(connection, person, today):
+        return False
+    connection.execute('DELETE FROM consequences WHERE id=?', (row['consequence_id'],))
+    connection.execute('DELETE FROM losses WHERE id=?', (row['id'],))
+    return True
 
 
 def happen(connection, companion: dict, row: dict, now) -> None:
