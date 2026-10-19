@@ -144,6 +144,17 @@ def test_who_could_carry_a_baby_follows_both_descriptions(client, monkeypatch, i
     assert (found['can_them'], found['can_you']) == (can_them, can_you)
 
 
+def test_past_fifty_neither_of_them_carries_the_baby():
+    names = {'name': 'Mira', 'a': 'someone', 'b': ''}
+    for old in (0, 1):
+        facts = {'can_them': 1, 'can_you': 1, 'can_carry': 1, 'age': 52, 'your_age': 55, 'tier': 2, 'old': old}
+        odds = {parenthood.ROUTES[item['option']]: item['odds'] for item in consequences.odds('family:route', facts, names)}
+        assert odds['expecting_them'] == odds['expecting_you'] == 0 and sum(odds.values()) > 0.99
+    facts = {**facts, 'age': 47, 'your_age': 30, 'old': 0}
+    odds = {parenthood.ROUTES[item['option']]: item['odds'] for item in consequences.odds('family:route', facts, names)}
+    assert odds['expecting_them'] < 0.1 < odds['expecting_you']
+
+
 def test_they_bring_up_starting_a_family_after_living_together_and_yes_starts_it(client, provider, clock, monkeypatch,
                                                                                  likeliest):
     living_together(client, monkeypatch)

@@ -1734,6 +1734,18 @@
               "at_least": 40,
               "times": 0.5,
               "why": "{name} is past forty"
+            },
+            {
+              "reader": "age",
+              "at_least": 46,
+              "times": 0.1,
+              "why": "{name} is past forty-five"
+            },
+            {
+              "reader": "age",
+              "at_least": 50,
+              "times": 0,
+              "why": "{name} is past fifty"
             }
           ]
         },
@@ -1752,6 +1764,18 @@
               "at_least": 40,
               "times": 0.5,
               "why": "you are past forty"
+            },
+            {
+              "reader": "your_age",
+              "at_least": 46,
+              "times": 0.1,
+              "why": "you are past forty-five"
+            },
+            {
+              "reader": "your_age",
+              "at_least": 50,
+              "times": 0,
+              "why": "you are past fifty"
             }
           ]
         },
