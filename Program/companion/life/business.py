@@ -7,7 +7,8 @@ become the business's (the overlay's `business`, applied by companion/characters
 (companion/life/work.py `works`) and their pay is what the business makes (`pay`, a share of their old pay that starts
 lean). Every three months the consequence engine says how it went (`business:how`): it grows, ticks along, stalls or
 folds. Growing and stalling move what it makes; folding closes it, they live on a little while they look for work, then
-go back to their old line of work. On Gentle a business never folds (Vanta 2026-10-18: good turns only on an easy life).
+go back to their old line of work. On Gentle a business never stalls or folds (Vanta 2026-10-18: good turns only on an
+easy life; v0.15: a stall is a hard turn too).
 After two years open it is simply how they make a living, and the turn ends there. Nothing here calls a model.
 """
 import random
@@ -47,13 +48,13 @@ def plan(connection, companion, world, day, seed) -> dict | None:
     if age is None or not YOUNGEST <= age < OLDEST or not big_turns.works(definition) or not found or not city \
             or not money.has_money(city) or definition.get('business'):
         return None
-    entry = random.Random(f'{seed}:business').choice(big_turns.data()['businesses'][big_turns.era(city)])
+    entry = random.Random(f'{seed}:business').choice(big_turns.bank('businesses', city))
     opens = day + timedelta(days=random.Random(f'{seed}:opens').randint(*OPEN_DAYS))
     cost = round(money.monthly_share(found) * entry['cost'], 2)
     name, when = big_turns.first(definition), big_turns.day_text(opens)
     return {'title': f"{name} is starting {entry['business']}",
             'told': f"You decided to start {entry['business']} of your own; you keep your job until it opens on {when}.",
-            'share': f"I'm doing it. I'm opening {entry['business']}! Opening day is {when}.",
+            'share': f"I'm doing it. I'm opening {entry['business']}! Opening day is {big_turns.soon_text(opens, day)}.",
             'details': {'stage': 'planning', 'next_on': opens.isoformat(), 'opens_on': opens.isoformat(),
                         'business': entry, 'startup': {'on': opens.isoformat(), 'cost': cost}, 'factor': START,
                         'checks': 0}}

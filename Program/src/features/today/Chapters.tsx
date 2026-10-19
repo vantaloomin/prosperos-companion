@@ -4,7 +4,7 @@ import { COMPANION_KEY } from '../../companion'
 import type { LifeChapter } from '../../types'
 import { storyDate } from './storyText'
 import { WhyItWent } from './WhyItWent'
-import { LATELY_KEY } from '../character/turnsText'
+import { LATELY_KEY, outcomeSummary } from '../character/turnsText'
 
 /** Life chapters (companion/life/chapters.py): lasting changes to the companion's life, each with why it went this
  * way and an undo. Shown only when there is one. */
@@ -32,6 +32,7 @@ export function Chapters({ name }: { name: string }) {
                 onClick={() => undo.mutate(item.id)}>Undo</button>
             </p>
             {item.consequence && <WhyItWent id={item.consequence} possibleOnly />}
+            {item.outcome && <WhyItWent id={item.outcome} summary={outcomeSummary(item.kind)} />}
           </li>
         ))}
       </ul>

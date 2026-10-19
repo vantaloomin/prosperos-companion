@@ -222,6 +222,8 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   rent_from: 'home' | 'budget'
   /** Living on a pension, and paying a mortgage on a place they bought (companion/life/big_turns.py). */
   retired?: boolean
+  /** A medieval kingdom or a fairy-tale land: payments on a place instead of a mortgage, and no pension. */
+  medieval?: boolean
   /** Their own business's short name ('bakery') while they run one (companion/life/business.py). */
   business?: string | null
   owned?: boolean
@@ -1260,6 +1262,8 @@ export interface LifeChapter {
   /** The day its latest stage came (the day it began for other chapters), as Today shows it. */
   on: string
   consequence: string | null
+  /** How its latest stage went (a business's months, a health turn's outlook, a parent's care), still changeable. */
+  outcome?: string | null
   undone: boolean
 }
 
@@ -1338,6 +1342,8 @@ export interface HomeItem {
   rent_period?: 'month' | 'week'
   /** A place they bought: `rent` is then the mortgage (companion/life/big_turns.py). */
   owned?: boolean
+  /** Bought in a medieval kingdom or a fairy-tale land: payments on it, not a mortgage. */
+  medieval?: boolean
   currency?: { code: string; symbol: string; name: string }
   /** The rent (or mortgage) as money.py says it, in the city's money: "$1,410", "8 d.", "15s.". */
   rent_text?: string

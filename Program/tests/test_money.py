@@ -102,7 +102,8 @@ def test_historic_cities_use_their_own_currency_and_weekly_pay():
     costs = {'rent': 2, 'rent_period': 'week', 'currency': money.profile(ada).city['currency'], 'owned': True,
              'pets': [], 'vehicles': []}
     lines = dict(money.context_lines(ada, '2026-10-05', {'costs': costs, 'purchases': []}))
-    assert lines['money:2026-10-05:budget'].endswith('is about 2 d.')  # Never '2 d..'.
+    # Never '2 d..'; payments on a place, not a mortgage, in a medieval kingdom (v0.15).
+    assert lines['money:2026-10-05:budget'].endswith('payments on your home are about 2 d.')
 
 
 def test_no_money_or_no_city_leaves_everything_affordable():

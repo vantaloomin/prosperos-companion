@@ -44,6 +44,7 @@ export function goalText(view: Budget): string {
 
 export function workText(view: Budget): string {
   const per = view.period === 'month' ? 'a month' : 'a week'
+  if (view.retired && view.medieval) return `Given up work, living on what they put by: about ${view.text.income} ${per}.`
   if (view.retired) return `Retired, living on a pension of about ${view.text.income} ${per}.`
   if (view.business) return `Their own ${view.business}, taking home about ${view.text.income} ${per}.`
   const work = view.career ? `${view.career.name}${view.career.guessed ? ' (guessed from who they are)' : ''}` : 'Ordinary wage'
@@ -52,7 +53,7 @@ export function workText(view: Budget): string {
 
 /** Rent on their home (from Home) or the budget's own estimate of where they live. */
 export function rentText(view: Budget): string {
-  if (view.owned) return `Mortgage: about ${view.text.rent} for the place they bought.`
+  if (view.owned) return `${view.medieval ? 'Payments' : 'Mortgage'}: about ${view.text.rent} for the place they bought.`
   return view.rent_from === 'home'
     ? `Rent: about ${view.text.rent} for their home.`
     : `Rent: about ${view.text.rent} for ${view.housing.label} in ${view.housing.neighborhood}.`

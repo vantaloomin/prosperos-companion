@@ -359,7 +359,7 @@ def user_move(connection, companion: dict, entry_id: str, now: datetime) -> dict
 
 def owns(definition: dict, connection, timeline_id: str, day: date) -> set[str]:
     """What the companion has that some admin needs: a car, a horse, a rented home (not one they own), glasses, a
-    job."""
+    job, a business they run (companion/life/business.py)."""
     found = set()
     for item in home.items_on(connection, timeline_id, day):
         if item['kind'] == 'vehicle' and item['variety'] in ('car', 'motorcar', 'horse'):
@@ -372,6 +372,8 @@ def owns(definition: dict, connection, timeline_id: str, day: date) -> set[str]:
         found.add('glasses')
     if any(block['kind'] == 'work' for block in definition.get('schedule') or ()):
         found.add('work')
+    if definition.get('business'):
+        found.add('business')
     return found
 
 

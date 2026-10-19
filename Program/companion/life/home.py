@@ -573,8 +573,9 @@ def money_text(home: dict) -> str:
     said = money.amount(home['rent'], currency) if isinstance(currency, dict) and currency.get('symbol') else \
         f"${home['rent']:,}"
     shared = ', split with the user' if home.get('shared') else ''  # Living together (companion/life/moving_in.py).
-    if home.get('owned'):  # A place they bought (companion/life/big_turns.py).
-        return f" The mortgage is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
+    if home.get('owned'):  # A place they bought (companion/life/big_turns.py); no mortgage in a medieval city.
+        loan = 'Payments on it are' if home.get('medieval') else 'The mortgage is'
+        return f" {loan} about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
     return f" Rent is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
 
 
