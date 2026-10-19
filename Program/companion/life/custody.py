@@ -178,7 +178,14 @@ def context_lines(connection, companion: dict, kids: list[dict], today: date, no
         return []
     who, them = names_of(kids), verb(kids, families.fill_child('{them}', kids[0]), 'them')
     since = 'Since you and the user split up, ' if state['split'] else ''
-    if state['far']:
+    if state['far'] and state['split']:  # Exes don't visit each other (long_distance.decide); A/B 2026-10-19.
+        city = (state['far'].your_city or {}).get('name') or 'another city'
+        theirs = (state['far'].their_city or {}).get('name') or 'your city'
+        line = (f"{who} {verb(kids, 'lives', 'live')} with you; the user lives in {city} and comes to {theirs} to see "
+                f'{them} when they can.' if state['pattern'] == 'with_them' else
+                f"{who} {verb(kids, 'lives', 'live')} with the user in {city}; you go to {city} to see {them} when you "
+                'can.')
+    elif state['far']:
         city = (state['far'].your_city or {}).get('name') or 'another city'
         line = (f"{who} {verb(kids, 'lives', 'live')} with you; the user lives in {city} and sees {them} when you visit "
                 'each other.' if state['pattern'] == 'with_them' else

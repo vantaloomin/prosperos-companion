@@ -334,3 +334,19 @@ def test_the_visit_line_keeps_to_one_side(monkeypatch):
     monkeypatch.setattr(families, 'withheld', lambda _connection: False)
     assert 'the user coming to Baltimore the weekend of Saturday January 5 to see Ivy.' in \
         together.child_line(None, 'weekend-host', reason)
+
+
+@pytest.mark.parametrize('lives', ['with_them', 'with_you'])
+def test_exes_across_cities_hear_nothing_of_visiting_each_other(client, split, provider, lives):
+    ours(client, custody=lives)
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    if state(client) is None or not state(client)['far']:
+        pytest.skip('The companion lives in Chicago in this world.')
+    says(provider)
+    send(client, 'hi', f'client-custody-exes-far-{lives}')
+    text = prompt(provider)
+    assert 'visit each other' not in text and 'weekend visits now and then' not in text
+    assert ('the user lives in Chicago and comes to ' if lives == 'with_them' else
+            '; you go to Chicago to see ') in text
+    assert ' and the user lives in Chicago, about ' in text

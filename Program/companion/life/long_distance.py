@@ -495,11 +495,14 @@ def visit_lines(trip: dict, today: date, now: datetime, fresh_ids: set[str]) -> 
 
 
 def distance_line(connection, companion: dict, between: where.Between, now: datetime) -> str:
-    """How far apart they live and the time difference."""
+    """How far apart they live and the time difference; while apart (a break, or exes) nothing about visits."""
     km = f", about {round(between.km):,} km apart" if between.km else ''
     hours = offset(connection, companion, now)
     clock = f' and you are {together.span_text(round(abs(hours) * 60))} {"ahead of" if hours > 0 else "behind"} ' \
         'the user, so mind what time of day it is for each of you' if hours else ''
+    if breakups.apart(connection, companion):  # No weekend visits while apart (`decide`); A/B 2026-10-19.
+        return f"- You live in {between.their_city['name']} and the user lives in {between.your_city['name']}{km}" + \
+            (f':{clock.removeprefix(" and")}.' if clock else '.')
     keep = "you see each other on weekend visits now and then, and talk on the phone in between" if reachable(between) \
         else 'and no trip reaches that far; you keep in touch by phone and letters'
     joint = '; ' if reachable(between) else ', '
