@@ -20,7 +20,7 @@ export function appPick(label: string): string {
 /** Where you two stand on starting a family, under the toggle. */
 export function decidedHint(view: FamilyView, name: string): string {
   const who = firstName(name)
-  if (view.decided_on) return view.decided_how === 'set' ? 'You set this here.' : view.decided_how === 'them' ? `${who} brought it up and you said yes.` : `You brought it up and ${who} said yes.`
+  if (view.decided_on) return view.decided_how === 'set' ? 'You set it.' : view.decided_how === 'them' ? `${who} brought it up and you said yes.` : `You brought it up and ${who} said yes.`
   if (!view.can_decide) return `This comes after you two decide to live together.`
   if (view.wants === 'no') return `${who} doesn't want children, so they won't bring it up. You still can, in the chat.`
   return `${who} brings it up when the time feels right, and you answer in the chat. You can also set it here.`

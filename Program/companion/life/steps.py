@@ -1246,7 +1246,10 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
         before = ROMANCE[index_of('romance', 'moving_in') - 1]
         found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
                  'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
-    return {**found, 'steps': with_family(connection, companion, found), 'just_friends': lock,
+    listed = with_family(connection, companion, found)
+    if len(listed) > len(found['steps']):  # Beside the ladder: the summary says it, the step picker stays on the ladder.
+        found = {**found, 'text': f"{found['text']}, {FAMILY.state}"}
+    return {**found, 'steps': listed, 'just_friends': lock,
             'can_fall': found['ladder'] == 'friendship', 'planned': planned, 'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
                       'topic': 'how you feel' if row['step'] == CONFESSION else topic_of(row),

@@ -133,7 +133,9 @@ def test_they_bring_up_starting_a_family_after_living_together_and_yes_starts_it
     assert 'The user just said yes to starting a family.' in prompt(provider)
     found = family(client)
     assert found['decided_on'] and found['decided_how'] == 'them'
-    assert [item['step'] for item in view(client)['steps']][-1] == 'family'
+    steps_view = view(client)
+    assert steps_view['steps'][-1]['step'] == 'family' and steps_view['step'] == 'moving_in'
+    assert steps_view['text'].endswith('living together, starting a family')
     says(provider)
     send(client, 'what are you thinking about tonight?', 'client-family-2')
     assert 'You and the user have decided to start a family together' in prompt(provider)

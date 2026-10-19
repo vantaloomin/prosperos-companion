@@ -63,7 +63,7 @@ function TogetherFields({ view, name, save }: { view: FamilyView; name: string; 
   const label = routes.find((item) => item.key === view.route)?.label ?? ''
   const decided = view.decided_on ? `Starting a family, since ${stepDate(view.decided_on)}` : 'Starting a family'
   return <>
-    <Field label="If you two start a family" hint={`Picked by the app from you and ${firstName(name)}: who could carry a baby, your ages, money and the times you live in. Change it before it starts.`}>
+    <Field label="If you two start a family" hint={`Picked by the app from you and ${firstName(name)}: who could carry a baby, your ages, money and the times you live in. Change it until a baby is on the way.`}>
       {(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={set ? view.route : 'auto'} onChange={(event) => save({ route: event.target.value })}>
           <option value="auto">{appPick(set ? 'what fits you two' : label)}</option>
