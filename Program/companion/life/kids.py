@@ -38,6 +38,7 @@ from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import ages, circle, families, named, shifts, steps
+from companion.world import lifespans
 
 ACTIVE = True
 MOST = 4
@@ -457,12 +458,27 @@ def grow_up(connection, companion: dict, world, now) -> None:
         person |= {'name': first(kid['name']), 'role': {'she/her': 'daughter', 'he/him': 'son'}.get(kid['pronouns'], 'child'),
                    'details': person['details'] | {'pronouns': kid['pronouns'], 'age': age, 'local': True,
                                                    'grown_kid': kid['id']}}
+        kind = grown_kind(connection, companion, timeline_id)
+        person['details'] = {key: value for key, value in person['details'].items() if key != 'folk'} | \
+            ({'folk': kind} if kind != lifespans.HUMAN else {})
         ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
         circle.insert(connection, timeline_id, [person], ordinal, now)
         person_id = one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?',
                         (timeline_id, ordinal))['id']
         ages.keep(connection, 'circle', person_id, age, date.fromisoformat(kid['born_on']).strftime('%m-%d'), today, now)
         connection.execute("UPDATE circle_children SET status='ended', updated_at=? WHERE id=?", (stamp(now), kid['id']))
+
+
+def grown_kind(connection, companion: dict, timeline_id: str) -> str:
+    """A kid of theirs' kind once grown (companion/world/lifespans.py): from the companion and their other parent
+    (an elf and a human have a half-elf)."""
+    definition = companion['version']['definition']
+    data = ages.city_of(connection, definition)
+    row = optional(connection, 'SELECT other_id FROM companion_kids WHERE timeline_id=?', (timeline_id,))
+    other = optional(connection, 'SELECT details FROM circle_people WHERE id=?', (row['other_id'],)) \
+        if row and row['other_id'] else None
+    found = decode(other['details']) if other else {}
+    return lifespans.blend(lifespans.sheet_kind(definition, data), found.get('own_kind') or found.get('folk'), data)
 
 
 def retire_circle_kids(connection, companion: dict, now) -> None:

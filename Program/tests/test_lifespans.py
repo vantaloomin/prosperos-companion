@@ -329,3 +329,17 @@ def test_a_citys_own_kind_shows_on_a_persons_page_and_can_be_picked(client):
     assert picked.json()['kind']['kind'] == 'tiefling'
     elf = client.put(f"/api/life/circle/{friend['id']}/kind", json={'kind': 'elf', 'lifespan': None}).json()['kind']
     assert elf['years'] == 750
+
+
+def test_a_grown_kid_of_an_elf_and_a_human_is_a_half_elf(client, clock, monkeypatch):
+    from datetime import timedelta
+
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, identity='Aerin is an elf, 312. A quiet bookbinder. She/her.', relationship='romance',
+         background='Her son Leo, 17, and her daughter Mia, 4.')
+    reconcile(client)
+    clock.advance(timedelta(days=370))
+    reconcile(client)
+    [leo] = [person for person in client.get('/api/life/circle').json() if person['name'] == 'Leo']
+    assert leo['role'] == 'son' and leo['age'] == 18 and leo['kind']['kind'] == 'half-elf'
