@@ -575,6 +575,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .home-panel { margin-top: 32px; max-width: 760px; border-top: 1px solid var(--border); padding-top: 18px; display: grid; gap: 12px; }
 .home-panel h2 { margin: 0; }
 .home-panel > .button { justify-self: start; }
+/* The last panel before a settings section (the steps, then Townsfolk on the Character page) keeps the panels' own
+ * 32px gap above that divider, not the list's last line against it. */
+.home-panel + .settings-section { margin-top: 32px; }
 /* Kitchen (src/features/character/Kitchen.tsx): the day sits in a fixed column so the dinners line up. */
 .kitchen-who p, .kitchen-pantry p { margin: 0; }
 .kitchen-who, .kitchen-pantry { display: grid; gap: 4px; }
