@@ -920,7 +920,12 @@ def invitation(row: dict, day: str, time: str, era: str = 'modern') -> str:
         line = seed.choice(lines).format(event=event, day=day, time=time, place=row['place']['name'])
         if row['kind'] == 'funeral':  # Those lines are written all in lower case.
             return line
-    return re.sub(r'(^|[.?!] )next ', r'\1Next ', line[:1].upper() + line[1:])
+    return re.sub(r'(^|[.?!] )next ', r'\1Next ', on_next(line[:1].upper() + line[1:]))
+
+
+def on_next(text: str) -> str:
+    """'on next Saturday' (a line's "on {day}" with `when_text`'s 'next Saturday') reads 'next Saturday'."""
+    return re.sub(r'\b[Oo]n (next \w+day)\b', r'\1', text)
 
 
 SETTLES = ('big_day',)

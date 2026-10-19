@@ -388,3 +388,11 @@ def test_a_young_baby_of_theirs_does_not_walk_sit_up_or_eat_yet():
         found = own_family.news_on(child, date(2027, 1, 4) + timedelta(days=offset), 3.0, 'modern')
         if found:
             assert found[1] in {line['text'] for line in own_family.for_age(lines, offset)}
+
+
+def test_an_ask_for_next_saturday_does_not_say_on_next_saturday():
+    assert big_days.on_next('Could you mind Ivy on next Saturday from 7?') == 'Could you mind Ivy next Saturday from 7?'
+    assert big_days.on_next('on Saturday, November 21') == 'on Saturday, November 21'
+    row = {'id': 'b1', 'kind': 'naming', 'details': {'name': 'Ivy', 'partner': 'Dan'}, 'place': {'modern': True}}
+    for seed in range(40):
+        assert 'on next' not in big_days.invitation({**row, 'id': f'b{seed}'}, 'next Saturday', '11').lower()

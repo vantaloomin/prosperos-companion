@@ -501,7 +501,8 @@ def ask_due(connection, companion: dict, now: datetime) -> list:
               "words, naming the day and the time; make it easy to say no.")
     template = generators.pick(f"babysit:{row['id']}", 'line', fitting_asks(connection, companion)).format(
         child=row['child'], partner=partner, day=when, time=time)
-    return [Trigger(f"babysit:{row['id']}", 'babysit_ask', reason, template[:1].upper() + template[1:], (row['id'],))]
+    template = big_days.on_next(template[:1].upper() + template[1:])
+    return [Trigger(f"babysit:{row['id']}", 'babysit_ask', reason, template, (row['id'],))]
 
 
 def fitting_asks(connection, companion: dict) -> list[str]:
