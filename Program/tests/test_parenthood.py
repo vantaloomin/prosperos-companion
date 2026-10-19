@@ -155,6 +155,18 @@ def test_past_fifty_neither_of_them_carries_the_baby():
     assert odds['expecting_them'] < 0.1 < odds['expecting_you']
 
 
+@pytest.mark.parametrize('text, key', [
+    ('my friends are having a baby, can you believe it?', None),
+    ('Jess and Tom are trying for a baby, should we get them a gift?', None),
+    ("my sister's having a baby, should we visit?", None),
+    ('my sister is having another baby, want to come visit?', None),
+    ('should we try for a baby?', 'family'), ('I want a baby with you', 'family'),
+    ('are you ready to be parents?', 'family'), ('should we have another baby?', 'sibling'),
+])
+def test_someone_else_having_a_baby_is_not_bringing_up_your_own(text, key):
+    assert steps.raised(text, ['family', 'sibling']) == key
+
+
 def test_they_bring_up_starting_a_family_after_living_together_and_yes_starts_it(client, provider, clock, monkeypatch,
                                                                                  likeliest):
     living_together(client, monkeypatch)
