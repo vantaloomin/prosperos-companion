@@ -571,7 +571,8 @@ def set_step(connection, companion: dict, decided: bool, now, step=FAMILY) -> No
     row = reached(connection, timeline_id, step.key)
     if step.key == SIBLING.key:
         found = steps.state(connection, companion, now, write=False)
-        require(sibling_waiting(connection, companion) if row else sibling_open(connection, companion, found),
+        require(sibling_waiting(connection, companion) if row else
+                sibling_open(connection, companion, found, steps.local_today(companion, now)),
                 'Another child can\'t be set now.', 409)
     if decided and not row:
         steps.insert_step(connection, timeline_id, LADDER, step.key, steps.local_today(companion, now), 'set',

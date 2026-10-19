@@ -91,6 +91,14 @@ BEDTIMES = {'baby': '7', 'toddler': '7', 'small_child': '7:30', 'school_age': '8
 SHEET_PEOPLE = 'grandparents'
 RECENT_DAYS = 1
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
+# Things in the child's bank an older city doesn't have yet, beyond families.UNFIT: no flashlight in 1895, and no
+# newspaper, piano, telescope or grocery list in Camelot.
+_FLASHLIGHT = r'flashlights?'
+_CASTLE = (_FLASHLIGHT + r'|newspapers?|telescopes?|pianos?|comics?|grocer(?:y|ies)|soccer|homework|debate team|'
+           r'guitars?')
+UNFIT = {era: re.compile(rf'\b(?:{words})\b', re.IGNORECASE) for era, words in (
+    ('victorian', _FLASHLIGHT), ('steampunk', _FLASHLIGHT), ('frontier', _FLASHLIGHT), ('medieval', _CASTLE),
+    ('fantasy', _CASTLE))}
 NO_BIKES = {'medieval', 'fantasy'}
 
 # (key, label, days from birth (low, high) or a special rule, eras it needs).
@@ -181,8 +189,9 @@ def band(child: dict, day: date) -> str | None:
 def fitting(lines: list[dict], era_: str) -> list[dict]:
     """The bank lines for their city: its things (families.UNFIT) and its voice ('older' or 'modern' tags)."""
     unfit, wrong = families.UNFIT.get(era_), 'modern' if families.older(era_) else 'older'
+    more = UNFIT.get(era_)
     found = [line for line in lines if not (unfit and unfit.search(line['text'])) and
-             wrong not in tags().get(line['text'], ())]
+             not (more and more.search(line['text'])) and wrong not in tags().get(line['text'], ())]
     return found or lines
 
 
@@ -421,8 +430,9 @@ def sick_on(connection, child: dict, day: date) -> bool:
     if not count or not 1 <= years <= 12:
         return False
     rng = random.Random(f"ours:{child['id']}:sick:{day.year}")
-    picked = {date(day.year, 1, 1) + timedelta(days=rng.randrange(365)) for _ in range(count * 2)}
-    return day in {item for item in picked if item.weekday() < 5}
+    start = date(day.year, 1, 1)
+    workdays = [start + timedelta(days=offset) for offset in range(365) if (start + timedelta(days=offset)).weekday() < 5]
+    return day in set(rng.sample(workdays, count))
 
 
 def broken_night(connection, timeline_id: str, day: date) -> dict | None:
@@ -727,7 +737,8 @@ def holiday_line(connection, companion: dict, child: dict, today: date) -> list[
     line = generators.pick(f"ours:{child['id']}", f"holiday:{holiday['holiday']}:{today.year}", lines)
     if line is None:
         return []
-    return [(f"ours:holiday:{child['id']}:{holiday['holiday']}", f"- {filled(line['text'], child, holiday=holiday['name'])}")]
+    text = line['text'].replace('a {holiday}', 'an {holiday}') if holiday['name'][:1] in 'AEIO' else line['text']
+    return [(f"ours:holiday:{child['id']}:{holiday['holiday']}", f"- {filled(text, child, holiday=holiday['name'])}")]
 
 
 def today_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
@@ -747,7 +758,7 @@ def today_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
                                f"- {first(child['name'])} {did(connection, companion, child, item['key'])} {when}."))
         if sick_on(connection, child, today) and today.weekday() < 5 and with_you(connection, companion, today):
             result.append((f"ours:sick:{child['id']}", f"- {first(child['name'])} is home sick today, so one of you "
-                                                        'is home to look after them.'))
+                                                        f"is home to look after {families.fill_child('{them}', child)}."))
     if broken_night(connection, timeline_id, today):
         result.append(('ours:night', f"- {first(kids[-1]['name'])} had you up in the night; you're running on "
                                      'little sleep today.'))
@@ -833,6 +844,10 @@ def rename(connection, companion: dict, child_id: str, name: str, now) -> None:
     name = ' '.join(name.split())
     require(0 < len(name) <= 40, 'Give a name of up to 40 characters.', 422)
     connection.execute('UPDATE circle_children SET name=?, updated_at=? WHERE id=?', (name, stamp(now), child_id))
+    # Grown up, they are also a person in the circle (`grow_up`), known by their first name.
+    connection.execute("UPDATE circle_people SET name=?, revision=revision+1, updated_at=? WHERE timeline_id=? AND "
+                       "json_extract(details, '$.our_child')=?", (first(name), stamp(now), child['timeline_id'],
+                                                                   child_id))
     row = optional(connection, 'SELECT * FROM family_journeys WHERE id=?', (child['storyline_id'],))
     if row:
         connection.execute('UPDATE family_journeys SET details=?, updated_at=? WHERE id=?',

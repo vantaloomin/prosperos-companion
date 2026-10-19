@@ -143,14 +143,24 @@ def pictured(connection, timeline_id: str, texts) -> bool:
         return False
     if FIRST_BIRTHDAY.search(text):
         return True
-    return any(re.search(rf'\b{re.escape(name)}\b', text) for name in names(connection, timeline_id))
+    return any(re.search(rf'\b{re.escape(name)}\b', text) for name in names(connection, timeline_id) | every_name(
+        connection))
 
 
 def names(connection, timeline_id: str) -> set[str]:
-    """The circle's children and the pair's own child on the way (companion/life/expecting.py)."""
+    """The circle's children, the pair's own child on the way (companion/life/expecting.py) and grown up, by the name
+    the circle has for them now (companion/life/our_child.py)."""
     from companion.life import expecting
+    grown = {row['name'] for row in many(connection, "SELECT name FROM circle_people WHERE timeline_id=? AND "
+                                         "json_extract(details, '$.our_child') IS NOT NULL", (timeline_id,))}
     return {row['name'] for row in many(connection, "SELECT name FROM circle_children WHERE timeline_id=? AND "
-                                        "status!='ended'", (timeline_id,))} | expecting.names(connection, timeline_id)
+                                        "status!='ended'", (timeline_id,))} | expecting.names(connection, timeline_id) | grown
+
+
+def every_name(connection) -> set[str]:
+    """Every child's name in any companion's life: another companion's chat or pictures can say any of them."""
+    rows = connection.execute('SELECT active_timeline_id FROM companions WHERE active_timeline_id IS NOT NULL')
+    return set().union(*(names(connection, row['active_timeline_id']) for row in rows.fetchall()))
 
 
 def hidden(connection, timeline_id: str) -> re.Pattern | None:

@@ -977,7 +977,9 @@ def raised_family(connection, companion: dict, found: dict, message: dict, now) 
     while (companion/life/parenthood.py answers)."""
     from companion.life import parenthood
     for step in (FAMILY, SIBLING):
-        if parenthood.still_due(connection, companion, found, step.key) and raised(message['text'], [step.key]):
+        # Another child no sooner than a year and a half after the last came home, raised by either of them.
+        if parenthood.still_due(connection, companion, found, step.key, local_today(companion, now)) and \
+                raised(message['text'], [step.key]):
             return parenthood.raised_by_user(connection, companion, found, message, now, step)
     return False
 
