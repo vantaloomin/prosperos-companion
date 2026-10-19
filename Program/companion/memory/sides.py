@@ -81,6 +81,11 @@ OWN = ('identity', 'personality', 'voice', 'background', 'appearance', 'routine'
 CHILD = re.compile(r"\b(?:(?:our|the|my|your|his|her|their) (?:daughters?|sons?|kids?|kiddos?|child|children|"
                    r"little ones?|toddlers?|newborns?|infants?)|(?:our|the) bab(?:y|ies))\b", re.IGNORECASE)
 
+# A context line about a child without their name, left out of a reply that doesn't carry the family lines.
+CHILD_WORDS = (r'(?i:\b(?:daughters?|sons?|kids?|kiddos?|child|children|childcare|toddlers?|newborns?|infants?|'
+               r'bab(?:y|ies)|nursery|daycare|bedtimes?|school run|(?:grand|step|god)(?:child\w*|daughters?|sons?)|'
+               r'nieces?|nephews?)\b)')
+
 
 def own_words(companion: dict) -> list[str]:
     definition = companion['version']['definition']
@@ -140,7 +145,10 @@ def hidden(connection, timeline_id: str, family: bool) -> re.Pattern | None:
     from companion.life import families
     if family:
         return FamilyLines()
-    return families.hidden(connection, timeline_id)
+    found = families.hidden(connection, timeline_id)
+    if found is None or not families.names(connection, timeline_id):
+        return found
+    return re.compile(f'{found.pattern}|{CHILD_WORDS}')
 
 
 class FamilyLines:

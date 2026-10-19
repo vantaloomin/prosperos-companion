@@ -287,3 +287,24 @@ def test_the_characters_own_words_count_toward_a_replys_side(client, provider, c
     send(client, 'how was the day?', 'client-ours-9')
     assert child['name'].split()[0] not in prompt(provider)
 
+def test_a_reply_without_the_family_lines_leaves_out_lines_about_a_child_however_named(client, provider, clock,
+                                                                                       monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 18 * 366)
+    reconcile(client)
+    with connect(client) as connection:
+        person = connection.execute("SELECT id FROM circle_people WHERE json_extract(details, '$.our_child')=?",
+                                    (child['id'],)).fetchone()
+    assert client.patch(f"/api/life/circle/{person['id']}", json={'name': 'Zephyrine'}).status_code == 200
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with connect(client) as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        found = sides.hidden(connection, timeline_id, False)
+        assert found.search('- Zephyrine (daughter): works at the bakery.')
+        assert found.search('- Your daughter started at the new school.') and found.search('the kids were up early')
+        assert not found.search('- Sana (close friend): financial analyst.')
+        assert families.pictured(connection, timeline_id, ['Zephyrine and Mira at the beach'])
+    intimate(client)
+    send(client, 'come here you', 'client-ours-10')
+    assert 'Zephyrine' not in whole(provider)
+

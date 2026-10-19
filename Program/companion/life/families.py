@@ -147,10 +147,13 @@ def pictured(connection, timeline_id: str, texts) -> bool:
 
 
 def names(connection, timeline_id: str) -> set[str]:
-    """The circle's children and the pair's own child on the way (companion/life/expecting.py)."""
+    """The circle's children, the pair's own child on the way (companion/life/expecting.py) and grown up, by the name
+    the circle has for them now (companion/life/our_child.py)."""
     from companion.life import expecting
+    grown = {row['name'] for row in many(connection, "SELECT name FROM circle_people WHERE timeline_id=? AND "
+                                         "json_extract(details, '$.our_child') IS NOT NULL", (timeline_id,))}
     return {row['name'] for row in many(connection, "SELECT name FROM circle_children WHERE timeline_id=? AND "
-                                        "status!='ended'", (timeline_id,))} | expecting.names(connection, timeline_id)
+                                        "status!='ended'", (timeline_id,))} | expecting.names(connection, timeline_id) | grown
 
 
 def hidden(connection, timeline_id: str) -> re.Pattern | None:
