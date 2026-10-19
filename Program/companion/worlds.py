@@ -29,7 +29,7 @@ from companion import backup, cast, characters, dating, lore, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
-from companion.life import pets, where
+from companion.life import ages, pets, where
 from companion.models import CharacterDefinition
 from companion.world import catalog, changes, custom, generators, mix, townsfolk
 
@@ -512,8 +512,10 @@ def become(state, key: str) -> dict:
         require(not name, f"{name} is already one of your companions, so you can't become them.", 409)
         place_data, sheet, _meetings, _story = cast.townsperson(connection, focus, key, now)
         cast.still_here(place_data, sheet, now, "you can't become them")
+        today = now.astimezone(zone(place_data['timezone'])).date()
+        sheet = {**sheet, 'age': ages.town_age(connection, sheet, today)}  # Birthdays since the town began count.
     town = place_data.get('town', '')
-    persona = persona_for(place_data, sheet, now.astimezone(zone(place_data['timezone'])).date(), database.now())
+    persona = persona_for(place_data, sheet, today, database.now())
     data = registry(database)
     data['personas'].append(persona)
     save(database.root, data)

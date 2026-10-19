@@ -34,3 +34,9 @@ test('ties name a partner first, then who else they know', () => {
   assert.equal(personTies(person({ knows: [{ id: 'a', name: 'Ana', how: 'family' }, { id: 'r', name: 'Rui', how: 'married' }] })),
     'Married to Rui. Knows Ana (family).')
 })
+
+test('parents who parted in an older city read separated, not divorced', () => {
+  assert.equal(personTies(person({ knows: [{ id: 'r', name: 'Rui', how: 'separated' }, { id: 'a', name: 'Ana', how: 'family' }] })),
+    'Separated from Rui. Knows Ana (family).')
+  assert.equal(personTies(person({ knows: [{ id: 'r', name: 'Rui', how: 'divorced' }] })), 'Divorced from Rui.')
+})

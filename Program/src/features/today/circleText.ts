@@ -25,12 +25,15 @@ export function displayName(person: CirclePerson): string {
   return person.full_name?.startsWith(`${person.name} `) ? person.full_name : person.name
 }
 
+/** Parents in the circle: married, divorced, or separated in an older city (companion/life/circle.py `tie`). */
+const COUPLED: Record<string, string> = { married: 'Married to', divorced: 'Divorced from', separated: 'Separated from' }
+
 /** "Married to Rui. Knows Ana (family), Dev (coworkers)": who they know inside the circle. */
 export function personTies(person: CirclePerson): string | null {
   const known = person.knows ?? []
-  const partners = known.filter((item) => item.how === 'married' || item.how === 'divorced')
-    .map((item) => `${item.how === 'divorced' ? 'Divorced from' : 'Married to'} ${item.name}.`)
-  const others = known.filter((item) => item.how !== 'married' && item.how !== 'divorced').map((item) => `${item.name} (${item.how})`)
+  const partners = known.filter((item) => Object.hasOwn(COUPLED, item.how))
+    .map((item) => `${COUPLED[item.how]} ${item.name}.`)
+  const others = known.filter((item) => !Object.hasOwn(COUPLED, item.how)).map((item) => `${item.name} (${item.how})`)
   const text = [...partners, ...(others.length ? [`Knows ${others.join(', ')}.`] : [])].join(' ')
   return text || null
 }
