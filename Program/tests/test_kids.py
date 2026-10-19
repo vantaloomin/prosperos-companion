@@ -160,14 +160,14 @@ def test_a_widowed_parent_has_no_other_parent(client):
     assert view['other'] is None and view['pattern'] == 'sole'
     assert [item['key'] for item in view['patterns']] == ['sole']
     assert not [person for person in circle(client) if person['role'] == 'co-parent']
-    assert 'their other parent is not in the picture' in prompt(client)
+    assert '- Leo lives with you; his other parent is not in the picture.' in prompt(client)
 
 
 def test_the_ex_the_description_names_is_the_other_parent(client, clock):
     make(client, background='Her ex-husband Mark Lowe has their son Leo, 7, every other weekend.')
     view = panel(client)
     assert view['other'] == {'name': 'Mark', 'role': 'ex-husband'} and view['pattern'] == 'with_them'
-    assert 'every other weekend with their dad Mark' in prompt(client)
+    assert 'every other weekend with his dad Mark' in prompt(client)
     assert view['detail'] == "with Dana, every other weekend at Mark's"
     assert [item['label'] for item in view['patterns']] == ['Mostly with Dana', 'Half and half', 'Mostly with Mark']
     # Someone they share kids with starts where any co-parent does, not as an ex they barely know.
@@ -554,3 +554,17 @@ def test_growing_families_at_none_keeps_the_kids_a_description_names(client):
     set_life(client, growing_families=0)
     make(client, background='Her son Leo, 7, and daughter Mia, 4.')
     assert [kid['name'].split()[0] for kid in panel(client)['kids']] == ['Leo', 'Mia']
+
+
+def test_one_child_is_named_in_where_they_live(client):
+    make(client, background='Her son Leo, 7, is her whole world. Her ex-husband Mark Lowe has him every other weekend.')
+    assert '- Leo lives with you and spends every other weekend with his dad Mark.' in prompt(client)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        row = kids.record(connection, companion['active_timeline_id'])
+        two = [{'name': 'Leo', 'pronouns': 'he/him'}, {'name': 'Mia', 'pronouns': 'she/her'}]
+        assert kids.where_line(connection, companion, row, 'weekends', two) == \
+            '- They live with their dad Mark and spend every other weekend with you.'
+        assert kids.where_line(connection, companion, {**row, 'other_id': None}, 'sole', [
+            {'name': 'Rowan Ashby', 'pronouns': 'they/them'}]) == \
+            '- Rowan lives with you; their other parent is not in the picture.'

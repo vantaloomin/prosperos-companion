@@ -652,14 +652,22 @@ def modern(companion: dict) -> bool:
     return perception.era_modern(companion['version']['definition'])
 
 
-def where_line(connection, companion: dict, row: dict, pattern: str) -> str:
+def where_line(connection, companion: dict, row: dict, pattern: str, kids: list[dict] | None = None) -> str:
+    """'- They live with you and spend every other weekend with their dad Mark.'; for one child, by name ('- Leo lives
+    with you and spends every other weekend with his dad Mark.', A/B 2026-10-19: as clear, 5/5 each)."""
+    one = kids[0] if kids and len(kids) == 1 else None
+    who = first(one['name']) if one else 'They'
+    s = 's' if one else ''
     if pattern == 'sole' or not row['other_id']:
-        return '- They live with you; their other parent is not in the picture.'
+        whose = families.fill_child('{their}', one) if one else 'their'
+        return f'- {who} live{s} with you; {whose} other parent is not in the picture.'
     them, _name = other_text(connection, companion, row)
-    return {'together': f'- They live with you and {them}.',
-            'with_them': f'- They live with you and spend every other weekend with {them}.',
-            'shared': f'- They spend a week with you, then a week with {them}, turn and turn about.',
-            'weekends': f'- They live with {them} and spend every other weekend with you.'}[pattern]
+    if one:
+        them = families.fill_child('{their}', one) + them.removeprefix('their')
+    return {'together': f'- {who} live{s} with you and {them}.',
+            'with_them': f'- {who} live{s} with you and spend{s} every other weekend with {them}.',
+            'shared': f'- {who} spend{s} a week with you, then a week with {them}, turn and turn about.',
+            'weekends': f'- {who} live{s} with {them} and spend{s} every other weekend with you.'}[pattern]
 
 
 def user_line(connection, companion: dict, kids: list[dict], now) -> str | None:
@@ -740,7 +748,7 @@ def own_lines(connection, companion: dict, now, today: date) -> list[tuple[str, 
     listed = steps.names_text([kid_text(kid, today) for kid in kids])
     result = [('kids:who', f"- You have {'a child' if len(kids) == 1 else f'{len(kids)} children'}: {listed}.")]
     pattern, _how = pattern_of(connection, row)
-    result.append((f'kids:where:{pattern}', where_line(connection, companion, row, pattern)))
+    result.append((f'kids:where:{pattern}', where_line(connection, companion, row, pattern, kids)))
     if line := user_line(connection, companion, kids, now):
         result.append(('kids:user', line))
     return result
