@@ -62,11 +62,11 @@ STORIES = ('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday')
 # Bank lines naming things an older city doesn't have (no scans or daycare in 1925, no phones or cars in 1895, no
 # trains, prams or bananas in Camelot) are left out there, by its era (companion/world/schema.py `Era`).
 _JAZZ = (r'scans?|ultrasound|sonogram|television|tv|videos?|playlists?|baby monitors?|daycare|robots?|superheroe?s?|'
-         r'rockets?|remote|avocados?')
+         r'rockets?|remote|avocados?|science fairs?|baking soda|book day|stickers?')
 _VICTORIAN = _JAZZ + r'|cars?|car seat|drive|drove|driving|taxi|phones?|fridge|vacuums?|doorbell|pizza|calls?|called'
 _MEDIEVAL = _VICTORIAN + (r'|trains?|bus|buses|strollers?|prams?|photos?|zoo|museums?|chocolate|coffee|tea|bananas?|'
                           r'pasta|peanut butter|cereal|ice cream|crayons?|playground|puzzles?|dinosaurs?|library|'
-                          r'libraries|yoghurt|yogurt|noodles')
+                          r'libraries|yoghurt|yogurt|noodles|hot air balloons?')
 UNFIT = {era: re.compile(rf'\b(?:{words})\b', re.IGNORECASE) for era, words in (
     ('jazz-age', _JAZZ), ('victorian', _VICTORIAN), ('steampunk', _VICTORIAN), ('frontier', _VICTORIAN),
     ('medieval', _MEDIEVAL), ('fantasy', _MEDIEVAL))}

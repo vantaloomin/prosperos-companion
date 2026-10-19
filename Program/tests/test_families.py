@@ -521,3 +521,12 @@ def test_a_circle_baby_a_few_weeks_old_does_not_walk_sit_up_or_eat_yet():
             said = f'{found[1]} {found[2]}'
             assert not our_child.MOVING.search(said) and not our_child.FOOD.search(said) and \
                 not own_family.SITTING.search(said), (offset, said)
+
+
+def test_older_cities_get_no_science_fair_book_day_or_wall_stickers():
+    lines = [line for key, value in families.bank().items() if key != 'tags' and isinstance(value, list)
+             for line in value if isinstance(line, dict) and 'text' in line]
+    for era in ('jazz-age', 'victorian', 'medieval'):
+        said = ' '.join(f"{line['text']} {line['share']}" for line in families.fitting(lines, era)).lower()
+        assert 'science fair' not in said and 'book day' not in said and 'baking soda' not in said
+        assert 'sticker' not in said
