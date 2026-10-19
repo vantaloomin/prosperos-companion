@@ -265,6 +265,7 @@ def test_on_drama_a_secret_stays_hidden_until_it_comes_out(client, romance, cloc
     force(monkeypatch, 1)
     monkeypatch.setattr(love_life, 'OUT_CHANCE', 0)
     monkeypatch.setattr(love_life, 'FIZZLE_CHANCE', 0)
+    client.get('/api/life/circle')  # Their circle is there first, as in the app, so the two never share a name.
     with client.app.state.database.connect(write=True) as connection:
         companion = current(client)
         assert love_life.mode(connection, companion) == 'secret'
