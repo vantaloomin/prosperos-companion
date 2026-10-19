@@ -49,6 +49,23 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.14.0 (2026-10-19)
+
+- **Everyone gets older:** companions, their circle and townsfolk age from today one birthday at a time, with milestone
+  birthday parties, looks that change slowly with age, and a Keeps their age switch.
+- **Bigger life chapters:** back to school, career changes, buying a place, retirement, and on Real life and Drama a
+  business, a health turn or caring for a parent, each running over months with a life lately panel.
+- **Big days in the circle:** weddings, graduations, retirement parties and milestone birthdays as outings with gifts,
+  outfits and you as the plus-one, and a friend who asks you to stand up at their wedding.
+- **Growing families:** pregnancies and babies in the circle who grow up, with companions as aunts, uncles and
+  godparents. Children appear only in words.
+- **Loss and grief:** an opt-in People can pass away switch with a Loss slider, funerals by the city's customs,
+  obituaries, anniversaries and grief that lifts over weeks. Never a companion, a partner or a child.
+- **The town changes hands:** townsfolk move away, retire and are replaced by newcomers, and the paper reports it.
+- **More Realism settings:** Life's big turns and Growing families sliders, People can pass away and Loss.
+- **Fixes:** meeting their people and proposals on long-distance stays, impressions that cool after a breakup, a plain
+  "sorry" as an apology, closer-to-real modern pay, and shared memories newest first.
+
 ## v0.13.0 (2026-10-17)
 
 - **Next steps:** romances move from dating through exclusive, "I love you", meeting their people and a key to their
