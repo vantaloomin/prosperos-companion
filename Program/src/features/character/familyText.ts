@@ -1,4 +1,4 @@
-import type { FamilyView, Kid, KidsView } from '../../types'
+import type { FamilyView, Journey, Kid, KidsView } from '../../types'
 import { firstName } from './panelText.ts'
 
 export const FAMILY_KEY = ['family']
@@ -17,8 +17,13 @@ export function appPick(label: string): string {
   return `Let the app decide (${label})`
 }
 
-/** Where you two stand on starting a family, under the toggle. */
+/** Where you two stand on starting a family, under the toggle; once a child is on the way, why it is locked. */
 export function decidedHint(view: FamilyView, name: string): string {
+  const hint = standing(view, name)
+  return view.journey && view.journey.status !== 'planned' ? `${hint} ${lockedLine(view.journey)}` : hint
+}
+
+function standing(view: FamilyView, name: string): string {
   const who = firstName(name)
   if (view.decided_on) return view.decided_how === 'set' ? 'You set it.' : view.decided_how === 'them' ? `${who} brought it up and you said yes.` : `You brought it up and ${who} said yes.`
   if (!view.can_decide) return `This comes after you two decide to live together.`
@@ -73,4 +78,44 @@ export function standingLine(view: KidsView, name: string): { label: string; tex
   if (view.meeting === 'soon') return { label: 'Meeting soon', text: `you'll meet ${them} at the get-together ${who} planned.` }
   if (view.meeting === 'met') return { label: 'Met', text: `you've met ${them}.` }
   return null
+}
+
+const PREGNANCY = ['expecting_them', 'expecting_you', 'surrogacy']
+
+function lockedLine(journey: Journey): string {
+  if (journey.status === 'home') return `Locked now that ${journey.name ?? 'your child'} is home.`
+  return `Locked while ${PREGNANCY.includes(journey.route) ? 'a baby' : 'a child'} is on the way.`
+}
+
+/** Under the route once a child is on the way: why the picker is gone. */
+export function routeHint(journey: Journey): string {
+  if (journey.status === 'home') return 'Set when you started.'
+  return `Set when you started; it can't change while ${PREGNANCY.includes(journey.route) ? 'a baby' : 'a child'} is on the way.`
+}
+
+/** Where the journey stands, in a line: "Expecting, due in June", "Waiting for a match", "Ivy came home Mar 3, 2028". */
+export function journeyLine(journey: Journey, name: string, day: (value: string) => string): string {
+  const who = firstName(name)
+  if (journey.status === 'home' && journey.arrived_on) {
+    return `${journey.name ?? 'Your child'} ${PREGNANCY.includes(journey.route) ? 'was born' : 'came home'} ${day(journey.arrived_on)}`
+  }
+  if (journey.due_on) {
+    const month = new Date(`${journey.due_on}T12:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    return `Expecting a baby, due in ${month}`
+  }
+  if (journey.status === 'planned') return `${who} and you have decided. Nothing has happened yet.`
+  return waitingLine(journey, new Set(journey.stages.filter((item) => item.done).map((item) => item.key)))
+}
+
+function waitingLine(journey: Journey, reached: Set<string>): string {
+  if (journey.route === 'fostering') return reached.has('home') ? `${journey.name} lives with you two` : 'Becoming foster parents'
+  if (journey.route === 'adoption') return reached.has('match') ? `Matched with ${journey.name}` : 'Adopting: waiting for a match'
+  if (journey.route === 'surrogacy') return 'Having a baby through a surrogate'
+  return journey.name ? `Taking in ${journey.name}` : 'Waiting'
+}
+
+/** Under the child's name: who picked it. */
+export function nameHint(journey: Journey, name: string): string {
+  if (journey.renamed) return 'You named them. It stays as you set it.'
+  return `${firstName(name)} suggested it. Rename them any time; moments that already happened keep the name they had.`
 }

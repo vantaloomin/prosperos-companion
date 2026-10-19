@@ -3796,6 +3796,193 @@
           "rules": []
         }
       ]
+    },
+    "family:soon": {
+      "label": "How soon {name} and you find out a baby is on the way",
+      "options": [
+        {
+          "label": "Within a couple of months",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 35,
+              "times": 0.6,
+              "why": "the one carrying is past thirty-five"
+            },
+            {
+              "reader": "age",
+              "at_least": 40,
+              "times": 0.5,
+              "why": "the one carrying is past forty"
+            }
+          ]
+        },
+        {
+          "label": "In a few months",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "It takes most of a year",
+          "weight": 0.6,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 35,
+              "times": 1.6,
+              "why": "the one carrying is past thirty-five"
+            },
+            {
+              "reader": "age",
+              "at_least": 40,
+              "times": 1.6,
+              "why": "the one carrying is past forty"
+            },
+            {
+              "reader": "route",
+              "is": "surrogacy",
+              "times": 0.6,
+              "why": "a surrogate is part of it from the start"
+            }
+          ]
+        }
+      ]
+    },
+    "family:turn": {
+      "label": "Whether the pregnancy takes a hard turn",
+      "options": [
+        {
+          "label": "It goes smoothly",
+          "weight": 6,
+          "rules": []
+        },
+        {
+          "label": "Bed rest for the last weeks, to be safe",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "turns",
+              "at_most": 0,
+              "times": 0,
+              "why": "life is set to good turns only"
+            },
+            {
+              "reader": "age",
+              "at_least": 38,
+              "times": 1.6,
+              "why": "the one carrying is past thirty-eight"
+            }
+          ]
+        },
+        {
+          "label": "The baby comes a few weeks early",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "turns",
+              "at_most": 0,
+              "times": 0,
+              "why": "life is set to good turns only"
+            },
+            {
+              "reader": "age",
+              "at_least": 38,
+              "times": 1.4,
+              "why": "the one carrying is past thirty-eight"
+            }
+          ]
+        }
+      ]
+    },
+    "family:wait": {
+      "label": "How long {name} and you wait to be matched with a child",
+      "options": [
+        {
+          "label": "A few months",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "few families are waiting where you live"
+            }
+          ]
+        },
+        {
+          "label": "Most of a year",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "A long wait, over a year",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "money is tight, so the agency fees take longer"
+            }
+          ]
+        }
+      ]
+    },
+    "family:match": {
+      "label": "Who {name} and you are matched with",
+      "options": [
+        {
+          "label": "A baby",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "route",
+              "is": "fostering",
+              "times": 0.4,
+              "why": "fostering is mostly for children past babyhood"
+            }
+          ]
+        },
+        {
+          "label": "A young child, one to four",
+          "weight": 1,
+          "rules": []
+        },
+        {
+          "label": "An older child, five to eleven",
+          "weight": 0.7,
+          "rules": [
+            {
+              "reader": "route",
+              "is": "fostering",
+              "times": 1.8,
+              "why": "fostering is mostly for children past babyhood"
+            },
+            {
+              "reader": "age",
+              "at_least": 45,
+              "times": 1.5,
+              "why": "{name} is past forty-five"
+            }
+          ]
+        }
+      ]
+    },
+    "family:fostered": {
+      "label": "Whether fostering leads to adopting",
+      "options": [
+        {
+          "label": "You go on to adopt them",
+          "weight": 1.6,
+          "rules": []
+        },
+        {
+          "label": "They stay in your care as your foster child",
+          "weight": 1,
+          "rules": []
+        }
+      ]
     }
   }
 }

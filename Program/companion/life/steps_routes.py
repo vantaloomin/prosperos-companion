@@ -52,6 +52,7 @@ class FamilyUpdate(Input):
     wants: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
     route: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
     decided: bool | None = None
+    name: str | None = Field(default=None, max_length=60)
 
 
 def read_family_view(connection, companion, now) -> dict:
@@ -75,7 +76,7 @@ def update_family(request: Request, body: FamilyUpdate):
     now = database.clock.now()
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        parenthood.update(connection, companion, now, body.wants, body.route, body.decided)
+        parenthood.update(connection, companion, now, body.wants, body.route, body.decided, body.name)
         return read_family_view(connection, companion, now)
 
 

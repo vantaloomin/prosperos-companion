@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { FamilyView, KidsView } from '../../types'
+import type { FamilyView, Journey, KidsView } from '../../types'
 import { Field, Toggle } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, stepDate } from './stepsText'
-import { FAMILY_KEY, KIDS_KEY, appPick, decidedHint, wantsHint } from './familyText'
+import { FAMILY_KEY, KIDS_KEY, appPick, decidedHint, journeyLine, nameHint, routeHint, wantsHint } from './familyText'
 import { Kids } from './Kids'
 
-type FamilyChange = { wants?: string; route?: string; decided?: boolean }
+type FamilyChange = { wants?: string; route?: string; decided?: boolean; name?: string }
 type Save = (change: FamilyChange) => void
 
 /** Wanting children (companion/life/parenthood.py): whether they want children, and for a romance how a child would
@@ -49,6 +49,7 @@ function Wishes({ view, name, headed }: { view: FamilyView; name: string; headed
     {headed && <h3 className="family-subheading">{view.romance ? 'A family together' : 'More children'}</h3>}
     <WantsField view={view} name={name} save={(change) => void save(change)} />
     {view.romance && view.routes && <TogetherFields view={view} name={name} save={(change) => void save(change)} />}
+    {view.journey && <OnTheWay journey={view.journey} name={name} save={(change) => void save(change)} />}
     {error && <Notice tone="error">{error}</Notice>}
   </>
 }
@@ -77,16 +78,61 @@ function TogetherFields({ view, name, save }: { view: FamilyView; name: string; 
   const label = routes.find((item) => item.key === view.route)?.label ?? ''
   const decided = view.decided_on ? `Starting a family, since ${stepDate(view.decided_on)}` : 'Starting a family'
   return <>
-    <Field label="If you two start a family" hint={`Picked by the app from you and ${firstName(name)}: who could carry a baby, your ages, money and the times you live in. Change it until a baby is on the way.`}>
+    {!view.journey || view.journey.status === 'planned' ? <Field label="If you two start a family" hint={`Picked by the app from you and ${firstName(name)}: who could carry a baby, your ages, money and the times you live in. Change it until a baby is on the way.`}>
       {(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={set ? view.route : 'auto'} onChange={(event) => save({ route: event.target.value })}>
           <option value="auto">{appPick(set ? 'what fits you two' : label)}</option>
           {routes.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
         </select>
       )}
-    </Field>
+    </Field> : <div className="field">
+      <span className="label-row"><span className="field-label">If you two start a family</span></span>
+      <p className="field-value">{label}</p>
+      <small className="subtle">{routeHint(view.journey)}</small>
+    </div>}
     {view.route_consequence_id && !set && <WhyItWent id={view.route_consequence_id} />}
     <Toggle label={decided} checked={Boolean(view.decided_on)} disabled={!view.can_decide} hint={decidedHint(view, name)}
       onChange={(change) => save({ decided: change })} />
   </>
+}
+
+/** Expecting or adopting together (companion/life/expecting.py): where it stands, the stages with their days, and the
+ * child's name once known, which the user can change. */
+function OnTheWay({ journey, name, save }: { journey: Journey; name: string; save: Save }) {
+  return (
+    <div className="steps-detail family-journey">
+      <p className="steps-line">{journeyLine(journey, name, stepDate)}</p>
+      {journey.stages.length > 0 && (
+        <ol className="steps-list">
+          {journey.stages.map((item) => (
+            <li key={item.key}>
+              <strong className={item.done ? undefined : 'step-pending'}>{item.label}</strong> <span className="subtle">· {stageDate(item)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {journey.name && <ChildName key={journey.name} journey={journey} name={name} save={save} />}
+      {journey.consequences.map((id) => <WhyItWent key={id} id={id} />)}
+    </div>
+  )
+}
+
+function stageDate(item: Journey['stages'][number]): string {
+  if (item.done) return stepDate(item.date ?? '')
+  return item.date ? `around ${stepDate(item.date)}` : 'no date yet'
+}
+
+function ChildName({ journey, name, save }: { journey: Journey; name: string; save: Save }) {
+  const [value, setValue] = useState(journey.name ?? '')
+  const submit = () => { const next = value.trim(); if (next && next !== journey.name) save({ name: next }) }
+  return (
+    <form className="rename-form" onSubmit={(event) => { event.preventDefault(); submit() }}>
+      <label htmlFor="child-name">Their name</label>
+      <div className="rename-row">
+        <input id="child-name" value={value} maxLength={40} aria-describedby="child-name-hint" onChange={(event) => setValue(event.target.value)} />
+        <button type="submit" className="button primary" disabled={!value.trim() || value.trim() === journey.name}>Save</button>
+      </div>
+      <small id="child-name-hint" className="subtle">{nameHint(journey, name)}</small>
+    </form>
+  )
 }

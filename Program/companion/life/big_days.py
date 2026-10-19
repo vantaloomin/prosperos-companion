@@ -124,13 +124,16 @@ KINDS = {
                            '17:00', (), 'first_birthday', 0.01),
     # Their own baby's naming day at home (companion/life/own_family.py): a best friend is asked to be the godparent.
     'naming': Kind('naming', "{name}'s naming day", "{who}'s naming day", '11:00', '14:00', (), None),
+    # The pair's baby shower (companion/life/expecting.py), thrown by someone close at their place: no photo, no buzz.
+    'own_shower': Kind('own_shower', 'Baby shower at {name}\'s', 'the baby shower {who} is throwing for you and the user',
+                       '14:00', '17:00', (), None, 0.0, True),
     # Someone in their circle or town who passed away (companion/life/loss.py): its word, times and place follow the
     # city's customs; a quiet day with no photo and no buzz.
     'funeral': Kind('funeral', "{name}'s {word}", "{who}'s {word}", '11:00', '15:00', ('temple', 'landmark', 'garden'),
                     None, 0.005),
 }
 # A child's day: the parent hosts, and it is never pictured or passed on as group chat buzz.
-CHILDS = ('first_birthday', 'naming')
+CHILDS = ('first_birthday', 'naming', 'own_shower')
 GRADUATION_PLACES = ('university', 'college', 'campus', 'school', 'academy', 'institute')
 NOT_PARTY = ('station', 'hospital', 'clinic', 'airport', 'prison', 'jail', 'court', 'police', 'parking', 'office')
 # Bank lines that only fit a modern city (texts, cars, photos): left out in an old one, by the place's `modern`.
@@ -339,6 +342,12 @@ def namings(connection, companion: dict, today: date, people: dict, now) -> list
     return result
 
 
+def showers(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
+    """The pair's baby shower, while they are expecting (companion/life/expecting.py)."""
+    from companion.life import expecting
+    return expecting.showers(connection, companion, today, people, now)
+
+
 def funerals(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
     """A funeral for someone in their circle or town who passed away (companion/life/loss.py)."""
     from companion.life import loss
@@ -347,14 +356,15 @@ def funerals(connection, companion: dict, today: date, people: dict, now) -> lis
 
 # In order; later features add their own.
 SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, graduations, town_weddings, chapters,
-           first_birthdays, namings, funerals]
+           first_birthdays, namings, funerals, showers]
 # The companion's own days: the user is there for them, and there is no gift or buzz about someone else.
-OWN = ('own_wedding', 'own_graduation', 'own_retirement')
+OWN = ('own_wedding', 'own_graduation', 'own_retirement', 'own_shower')
 # Days with no group chat buzz and no photo.
 QUIET = ('funeral',)
 # What they mean to ask the user, before they have: a plus-one, unless it is their own day or a funeral.
 ASKING = {'own_wedding': 'to stand up with you at your wedding', 'own_graduation': 'to be there with you',
-          'own_retirement': 'to be there with you', 'funeral': 'to come with you', 'naming': 'to be the godparent'}
+          'own_retirement': 'to be there with you', 'funeral': 'to come with you', 'naming': 'to be the godparent',
+          'own_shower': 'to come with you'}
 
 
 # Planning a big day ----------------------------------------------------------------------------------------------
@@ -592,12 +602,13 @@ def crowded(connection, row: dict) -> bool:
 
 
 def decide_invite(connection, companion: dict, row: dict, now: datetime) -> None:
-    """Whether they ask the user along: always to their own wedding, else the engine's `bigday:invite`."""
+    """Whether they ask the user along: always to their own wedding and to the pair's baby shower, else the engine's
+    `bigday:invite`."""
     if not invitable(connection, companion, row):
         return
-    if row['kind'] in ('own_wedding', 'naming'):  # A naming day: the user is asked to be godparent if best friends.
+    if row['kind'] in ('own_wedding', 'naming', 'own_shower'):  # A naming day: godparent if best friends.
         found = steps.state(connection, companion, now, write=False) if row['kind'] == 'naming' else None
-        if row['kind'] == 'own_wedding' or found and found['ladder'] == 'friendship' and found['step'] != 'friends':
+        if row['kind'] in ('own_wedding', 'own_shower') or found and found['ladder'] == 'friendship' and found['step'] != 'friends':
             connection.execute('UPDATE big_days SET invite=1 WHERE id=?', (row['id'],))
         return
     from companion import group_guests
@@ -872,6 +883,9 @@ def reason_for(row: dict, day: date) -> str:
                 f"on {day:%A} {day.day} {day:%B} at {row['at_time']}, and you want the user, your close friend, to be "
                 f"{first(row['details']['name'])}'s godparent. Ask them in your own words, naming the day and the time, "
                 'warmly; it means a lot to you.')
+    if row['kind'] == 'own_shower':
+        return (f"{said(row)[:1].upper()}{said(row)[1:]} on {when}. You're both the guests of honour. Tell the user "
+                'about it in your own words, naming the day, the time and the place.')
     if row['kind'] in OWN:
         return (f"It's {said(row)} on {when}, and you'd love the user to be there with you. Ask them in your own "
                 "words, naming the day, the time and the place. If they can't come, that's fine.")
@@ -892,6 +906,9 @@ def invitation(row: dict, day: str, time: str, era: str = 'modern') -> str:
     elif row['kind'] == 'own_wedding':
         line = seed.choice(fitting(bank()['stand_up'], row['place'])).format(
             partner=first(row['details']['name']), day=day, place=row['place']['name'])
+    elif row['kind'] == 'own_shower':
+        line = seed.choice(bank()['invite_shower']).format(host=first(row['details']['name']), day=day, time=time,
+                                                           place=row['place']['name'])
     else:
         event = said(row).replace('your ', 'my ', 1)
         lines = fitting(bank()['invite_funeral' if row['kind'] == 'funeral' else 'invite'], row['place'])
@@ -1096,7 +1113,7 @@ def alone_doing(row: dict) -> str:
         return f'held {title(row)} at home'
     if row['kind'] in OWN:
         return {'own_graduation': 'graduated', 'own_retirement': 'had their retirement party',
-                'own_wedding': 'got married'}[row['kind']] + f' at {place}'
+                'own_wedding': 'got married', 'own_shower': 'had their baby shower'}[row['kind']] + f' at {place}'
     return f'went to {title(row)} at {place}'
 
 

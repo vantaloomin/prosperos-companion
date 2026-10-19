@@ -114,6 +114,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.wedding.FIRST_TEXTS', False)
     # Nor a text from the one you live with about another of your partners moving in (companion/life/moving_in.py).
     monkeypatch.setattr('companion.life.moving_in.FIRST_TEXTS', False)
+    # Nor the news of a baby on the way or a child coming home (companion/life/expecting.py).
+    monkeypatch.setattr('companion.life.expecting.FIRST_TEXTS', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.

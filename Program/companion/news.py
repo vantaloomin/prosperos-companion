@@ -23,7 +23,7 @@ from companion import consequences, secrets
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
 from companion.database import decode, identifier, many, settings
-from companion.life import circle, love_life, storylines
+from companion.life import circle, expecting, families, love_life, storylines
 from companion.memory import pairs
 
 CHOICE = 'news:pass_on'
@@ -56,8 +56,10 @@ def found(connection, companion: dict, now) -> list[dict]:
                     'AND started_on>=? AND started_on<=?', (companion['active_timeline_id'], since, today.isoformat())):
         result.append({'source': f"chapter:{row['id']}", 'text': row['title'].rstrip('.'),
                        'happened_on': row['started_on']})
-    # Their own love life (companion/life/love_life.py): steps and breakups, never a secret.
-    return result + love_life.news_items(connection, companion, since, today.isoformat())
+    # Their own love life (companion/life/love_life.py): steps and breakups, never a secret; a baby on the way or a
+    # child coming home with the user (companion/life/expecting.py).
+    return result + love_life.news_items(connection, companion, since, today.isoformat()) + \
+        expecting.news_items(connection, companion, since, today.isoformat())
 
 
 def register(connection, companion: dict, now) -> None:
@@ -180,9 +182,11 @@ ACTIVE = "JOIN companions c ON c.active_timeline_id=n.timeline_id WHERE n.status
 
 def heard(connection, holder: str, since: str, limit: int = CONTEXT_LIMIT) -> list[dict]:
     """News about someone else that this person heard since `since`, newest first, with who told them. Only news
-    on its companion's active timeline: a forked or abandoned timeline's news stays where it was."""
+    on its companion's active timeline: a forked or abandoned timeline's news stays where it was. With the adult side
+    of life on, none about a child on the way or come home (companion/life/expecting.py)."""
+    kept = " AND n.source NOT LIKE 'journey:%'" if families.withheld(connection) else ''
     return many(connection, 'SELECT n.*, h.told_by, h.heard_on, h.hop, h.via FROM news n JOIN news_holders h '
-                f'ON h.news_id=n.id AND h.holder=? {ACTIVE} AND n.about!=? AND h.heard_on>=? '
+                f'ON h.news_id=n.id AND h.holder=? {ACTIVE} AND n.about!=? AND h.heard_on>=?{kept} '
                 'ORDER BY h.heard_on DESC, n.id LIMIT ?', (holder, holder, since, limit))
 
 
