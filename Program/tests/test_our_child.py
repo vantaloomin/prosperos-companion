@@ -399,3 +399,15 @@ def test_renaming_a_grown_child_renames_them_in_the_circle_too(client, clock, mo
         person = connection.execute("SELECT name FROM circle_people WHERE json_extract(details, '$.our_child')=?",
                                     (child['id'],)).fetchone()
     assert person['name'] == 'Robin'
+
+
+def test_another_child_never_comes_sooner_than_a_year_and_a_half_however_it_is_raised(client, provider, clock,
+                                                                                      monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 100)
+    says(provider)
+    send(client, 'should we have another baby?', 'client-ours-12')
+    assert client.put('/api/life/steps/family', json={'another': True}).status_code == 409
+    with connect(client) as connection:
+        assert not connection.execute("SELECT * FROM step_asks WHERE step='sibling'").fetchall()
+        assert not connection.execute("SELECT * FROM relationship_steps WHERE step='sibling'").fetchall()
