@@ -334,7 +334,12 @@ def caring(connection, companion: dict, day: date, apart: dict | None | bool = F
     split = custody.found(connection, companion) if apart is False else apart
     if split and split['split']:
         return None if split['pattern'] == 'with_you' else 'both_work'
-    return care_found(connection, companion)['care']
+    return across(split, care_found(connection, companion)['care'])
+
+
+def across(apart: dict | None, care: str) -> str:
+    """In different cities the children live with the companion: the user can't be the one at home with them."""
+    return 'both_work' if apart and apart['far'] and care == 'you_home' else care
 
 
 def companion_of(connection, timeline_id: str) -> dict | None:
@@ -781,11 +786,13 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     care = care_found(connection, companion)
     name = companion_first(companion)
     apart = custody.view(connection, companion, show_odds)
+    far = bool(apart and apart['far'])
     return {'shown': True, 'children': [child_view(connection, companion, child, today) for child in kids],
-            'care': care['care'], 'care_how': care['how'],
+            'care': across({'far': far}, care['care']), 'care_how': care['how'],
             'care_now': caring(connection, companion, today) is not None and not (apart and apart['split']),
             'care_consequence_id': care['consequence_id'] if show_odds else None,
-            'cares': [{'key': key, 'label': CARE_LABELS[key].format(name=name)} for key in CARE], 'custody': apart}
+            'cares': [{'key': key, 'label': CARE_LABELS[key].format(name=name)} for key in CARE
+                      if not (far and key == 'you_home')], 'custody': apart}
 
 
 def today_view(connection, companion: dict, now) -> list[dict]:

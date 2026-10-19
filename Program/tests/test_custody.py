@@ -230,3 +230,22 @@ def test_a_branch_from_before_the_breakup_forgets_where_they_were_set_to_live(cl
     says(provider)
     send(client, "I'm breaking up with you.", 'client-custody-9')
     assert state(client)['how'] == 'seeded'
+
+
+def test_across_cities_the_user_is_not_the_one_home_with_them(client, clock, monkeypatch, provider):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 500)
+    ours(client, care='you_home')
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    if state(client) is None:
+        pytest.skip('The companion lives in Chicago in this world.')
+    view = ours(client)
+    assert view['care'] == 'both_work' and 'you_home' not in [item['key'] for item in view['cares']]
+    says(provider)
+    send(client, 'how is she?', 'client-custody-far-care')
+    assert 'the user stays home with' not in prompt(provider)
+    with connect(client) as connection:
+        companion = current(connection)
+        today = steps.local_today(companion, clock.now())
+        assert our_child.caring(connection, companion, today) == 'both_work'
