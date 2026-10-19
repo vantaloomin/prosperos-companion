@@ -1195,6 +1195,8 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
         before = ROMANCE[index_of('romance', 'moving_in') - 1]
         found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
                  'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
+    elif moving is None and found['step'] == 'moving_in' and moving_in.moved_apart(connection, companion):
+        found = {**found, 'text': apart_text(found['text'])}  # Living apart again (the user moved city, say).
     return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
             'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
@@ -1209,6 +1211,13 @@ def not_moved_text(text: str, status: str) -> str:
     if text.endswith(', living together'):
         return text.removesuffix('living together') + words
     return words.capitalize()
+
+
+def apart_text(text: str) -> str:
+    """Living together decided, but living apart again: "Together 2 years, living apart for now"."""
+    if text.endswith(', living together'):
+        return text.removesuffix('living together') + 'living apart for now'
+    return 'Living apart for now'
 
 
 def set_step(connection, companion: dict, key: str, now) -> None:

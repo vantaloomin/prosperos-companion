@@ -14,6 +14,8 @@ export interface BreakupView {
   summary: string
   /** Married when it ended: the marriage ended with it. */
   divorced?: boolean
+  /** That marriage, in an older city (before 1950): a separation, "Separated" rather than "Divorced". */
+  separated?: boolean
   since: string | null
   by: 'you' | 'them' | null
   id: string | null
@@ -47,7 +49,7 @@ export function breakupStrip(view: BreakupView | undefined, name: string): strin
     strained: `Things are strained with ${who}.`,
     thinking: `${who} is thinking about a break.`,
     break: `You and ${who} are on a break.`,
-    ended: view.ladder === 'friendship' ? `You and ${who} fell out.` : view.divorced ? `You and ${who} got divorced.` : `You and ${who} broke up.`,
+    ended: view.ladder === 'friendship' ? `You and ${who} fell out.` : view.separated ? `You and ${who} separated.` : view.divorced ? `You and ${who} got divorced.` : `You and ${who} broke up.`,
   }[view.stage]
 }
 

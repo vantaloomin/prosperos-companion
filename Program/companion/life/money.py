@@ -494,12 +494,20 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *big_days.purchases(connection, timeline_id, start, day),
               *big_turns.purchases(connection, timeline_id, start, day)]
     # Raises, promotions and time between jobs (companion/life/work.py), or a pension once retired (big_turns.py);
-    # what big buys took from savings since the goal began.
-    since = goal_since(definition.get('money') or {}, day)
-    drawn = drawn_since(connection, timeline_id, since, day)
+    # what big buys took from savings since the goal began (`drawn_from`).
+    drawn = drawn_since(connection, timeline_id, drawn_from(connection, definition, day), day)
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
             'pay': big_turns.pay(connection, timeline_id, day, work.pay(connection, timeline_id, day, start)),
             'drawn': drawn}
+
+
+def drawn_from(connection, definition: dict, day: date) -> date:
+    """When big buys start counting against the savings goal: when the goal began, but never before the world's
+    first day on v0.14 (the town's start, companion/life/ages.py: the upgrade day for an older world), so a ring or a
+    wedding from v0.13 doesn't empty the goal at the upgrade."""
+    from companion.life import ages
+    since, began = goal_since(definition.get('money') or {}, day), ages.town_began(connection)
+    return max(since, began) if began else since
 
 
 def drawn_since(connection, timeline_id: str, since: date, day: date) -> float:

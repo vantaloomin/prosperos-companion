@@ -83,12 +83,29 @@ def era_of(connection, definition: dict) -> str:
     return newcomers.city_for(connection, definition).get('era') or 'modern'
 
 
+@cache
+def tags() -> dict[str, set[str]]:
+    """{bank line's text: its tags}: 'older' (said only in older cities), 'modern' (a texting voice only today's
+    have), as in love_life.json."""
+    found = {}
+    for tag, texts in bank()['tags'].items():
+        for text in texts:
+            found.setdefault(text, set()).add(tag)
+    return found
+
+
+def older(era: str) -> bool:
+    from companion.world import townsfolk
+    return era not in townsfolk.MODERN
+
+
 def fitting(lines: list[dict], era: str, carrying: bool = True) -> list[dict]:
-    """The bank lines that fit their city's era and, for `carrying` False, a parent-to-be who isn't the one carrying
-    the baby; all of them if none would."""
-    unfit = UNFIT.get(era)
+    """The bank lines that fit their city's era (its things and its voice) and, for `carrying` False, a parent-to-be
+    who isn't the one carrying the baby; all of them if none would."""
+    unfit, wrong = UNFIT.get(era), 'modern' if older(era) else 'older'
     found = [line for line in lines if not (unfit and unfit.search(f"{line['text']} {line['share']}"))
-             and (carrying or not CARRYING.search(f"{line['text']} {line['share']}"))]
+             and wrong not in tags().get(line['text'], ()) and (carrying or not CARRYING.search(
+                 f"{line['text']} {line['share']}"))]
     return found or lines
 
 
@@ -247,16 +264,17 @@ def plan(connection, companion: dict, world, person: dict, how: str, day: date) 
     soon = min(due, born) - timedelta(days=3 + int(rng(seed, 'soon') * 6))
     sex = 'she/her' if rng(seed, 'sex') < 0.49 else 'he/him'
     name = baby_name(definition, world, seed, sex, taken_names(connection, companion))
-    kind = title(how, seed)
-    carrying, era = decode(person['details']).get('pronouns', 'she/her') == 'she/her', era_of(connection, definition)
-    middle = generators.pick(seed, 'middle', fitting(bank()['pregnancy'], era, carrying))
+    kind, parent = title(how, seed), decode(person['details']).get('pronouns', 'she/her')
+    era = era_of(connection, definition)
+    middle = generators.pick(seed, 'middle', fitting(bank()['pregnancy'], era, parent == 'she/her'))
     child = {'name': name, 'pronouns': sex, 'title': kind}
     stages = [
-        stage(day, *announced(how, due, kind, companion['version']['definition'])),
+        stage(day, *announced(how, due, kind, definition, older(era))),
         stage(halfway, middle['text'], middle['share']),
         stage(soon, "{a}'s baby is due any day now, and {name} keeps checking for news.",
+              'still no baby. I jump every time someone knocks' if older(era) else
               'still no baby. I have checked my phone about four hundred times today'),
-        stage(born, *arrived(child, kind, companion['version']['definition'])),
+        stage(born, *arrived(child, kind, definition, parent, older(era))),
     ]
     return {'stages': stages, 'child': child, 'born': born}
 
@@ -265,35 +283,44 @@ def stage(on: date, text: str, share: str) -> dict:
     return {'on': on.isoformat(), 'text': text, 'share': share, 'tone': 'good'}
 
 
-def announced(how: str, due: date, kind: str, definition: dict) -> tuple[str, str]:
+def announced(how: str, due: date, kind: str, definition: dict, old: bool = False) -> tuple[str, str]:
+    """The news, and the companion's share of it; `old` for an older city's voice."""
     month = due.strftime('%B')
     text = f"{{name}}'s {{a_rel}} {{a}} is expecting a baby, due in {month}."
     if kind == 'family':
-        return text, f'{{a}} is having a baby!!! due in {month}. I am going to be an {aunt(definition)}'
+        found = aunt(definition)
+        return text, f'{{a}} is having a baby!!! due in {month}. ' + (
+            f'I am going to be an {found}' if found else "I'm going to be the cool relative")
     if how == 'coworker':
-        return text, f'{{a}} from work is having a baby, due in {month}. the office is already planning a shower'
-    return text, f'{{a}} just told me they are having a baby!! due in {month}. I cried a little not gonna lie'
+        return text, f'{{a}} from work is having a baby, due in {month}. ' + (
+            'everyone at work is already knitting something' if old else 'the office is already planning a shower')
+    return text, f'{{a}} just told me they are having a baby!! due in {month}. ' + (
+        'I confess I cried a little' if old else 'I cried a little not gonna lie')
 
 
-def aunt(definition: dict) -> str:
-    """'aunt', 'uncle', or 'aunt or uncle or whatever I am' when their pronouns aren't known (they/them)."""
-    found = (pronouns.forms(definition) or {}).get('they')
-    return {'she': 'aunt', 'he': 'uncle'}.get(found, 'aunt. or uncle. a cool relative, anyway')
+def aunt(definition: dict) -> str | None:
+    """'aunt' or 'uncle' by their pronouns; None when those aren't she or he (they/them)."""
+    return {'she': 'aunt', 'he': 'uncle'}.get((pronouns.forms(definition) or {}).get('they'))
 
 
-def arrived(child: dict, kind: str, definition: dict) -> tuple[str, str]:
+def arrived(child: dict, kind: str, definition: dict, parent: str = 'she/her', old: bool = False) -> tuple[str, str]:
+    """The birth, and the companion's share of it: a he/him `parent`'s baby is here (the text the model reads keeps
+    "had the baby", which read better with it: v0.15 follow-ups, ab-e.md), and `old` is an older city's voice."""
     she = child['pronouns'] == 'she/her'
     girl = 'girl' if she else 'boy'
     text = f"{{a}} had the baby: a {girl} named {child['name']}."
     if kind == 'family':
         word = 'niece' if she else 'nephew'
         return (f"{text} {{name}} has a new {word}.",
+                f"{child['name']} is here! A little {girl}, and I have a {word}. I can hardly stop smiling" if old else
                 f"{child['name'].upper()} IS HERE. a little {girl}. I have a {word}!! I'm not crying you're crying")
     if kind == 'godchild':
+        had = f"{{a}}'s baby is here! a {girl}, {child['name']}, and {{a}}" if parent == 'he/him' else \
+            f"{{a}} had a baby {girl}, {child['name']}, and"
         return (f"{text} {{a}} asked {{name}} to be {child['name']}'s godparent.",
-                f"{{a}} had a baby {girl}, {child['name']}, and asked me to be the godparent. I said yes before they "
-                'finished the sentence')
-    return text, f"{{a}} had the baby! a {girl}, {child['name']}. everyone's doing great"
+                f'{had} asked me to be the godparent. I said yes before they finished the sentence')
+    return text, (f"{{a}}'s baby is here! a {girl}, {child['name']}. everyone's doing great" if parent == 'he/him' else
+                  f"{{a}} had the baby! a {girl}, {child['name']}. everyone's doing great")
 
 
 def start(connection, companion: dict, world, person: dict, how: str, day: date, now) -> None:

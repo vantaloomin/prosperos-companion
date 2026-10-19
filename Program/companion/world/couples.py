@@ -56,8 +56,14 @@ def history(seed: str, start: str, weeks: int) -> tuple:
     return tuple(result)
 
 
+def companion_sheet(sheet: dict, data: dict) -> bool:
+    """A companion living in town (`cast`, or one of `data['companions']`, the townsfolk keys companions were made
+    from): their love life is their own, never the seeded townsperson's."""
+    return bool(sheet.get('cast')) or sheet.get('key') in data.get('companions', ())
+
+
 def details_of(sheet: dict, data: dict) -> dict | None:
-    if 'desire' not in sheet or 'age' not in sheet:
+    if 'desire' not in sheet or 'age' not in sheet or companion_sheet(sheet, data):
         return None
     return dating.details(sheet, data)
 
@@ -73,7 +79,7 @@ def partner(sheet: dict, data: dict, number: int, found: dict) -> dict:
 
 def couple(sheet: dict, data: dict, day: date) -> dict | None:
     """Where their love life stands on `day`: {status, partner, since, ex}, or None for someone who started single
-    (or isn't a resident with dating details)."""
+    (or isn't a resident with dating details, or is a companion now)."""
     found = details_of(sheet, data)
     if not found or found['status'] not in PARTNERED:
         return None
@@ -106,9 +112,8 @@ def events(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
 
 def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]:
     """Babies born to them and their partner in a span of days: {partner, day}. Follows Growing families. Never for a
-    companion living in town (`cast`, or one of `data['companions']`, the townsfolk keys companions were made from):
-    a companion's own baby waits for v0.15."""
-    if not turnover.ACTIVE or sheet.get('cast') or sheet.get('key') in data.get('companions', ()):
+    companion living in town (`companion_sheet`): a companion's own baby waits for v0.15."""
+    if not turnover.ACTIVE or companion_sheet(sheet, data):
         return []
     result = []
     for week in range(max(townsfolk.week_of(week_range[0]), turnover.START_WEEK), townsfolk.week_of(week_range[1]) + 1):

@@ -48,18 +48,20 @@ def issue(connection, data: dict, world, day: date) -> dict:
     # Townsfolk are as old as Around town says: from the day the town started getting older (companion/life/ages.py).
     data = {**data, 'began': ages.town_began(connection)}
     talk = gossip(connection, data, week)
+    mine = {**data, 'companions': companion_keys(connection)}
     return {'title': title(data), 'city': data['name'], 'date': day.isoformat(),
             'news': city_news(connection, data, week),
             'townsfolk': [*loss.paper_items(connection, data, week), *townsfolk_news(data, day),
-                          *comings_and_goings({**data, 'companions': companion_keys(connection)}, week)],
-            'couples': [*wedding.paper_items(connection, data, week), *couples_news(data, week)][:MOST_COUPLES + 1],
+                          *comings_and_goings(mine, week)],
+            'couples': [*wedding.paper_items(connection, data, week), *couples_news(mine, week)][:MOST_COUPLES + 1],
             'seen': seen_around(connection, data, week, {(item['date'], item['place']) for item in talk}),
             'gossip': [{'text': item['text']} for item in talk],
             'ahead': coming_up(data, world, day)}
 
 
 def companion_keys(connection) -> tuple[str, ...]:
-    """The townsfolk keys companions were made from: no baby is announced for them (companion/world/couples.py)."""
+    """The townsfolk keys companions were made from: no engagement, wedding or baby of theirs is announced
+    (companion/world/couples.py)."""
     return tuple(row['townsfolk_key'] for row in many(
         connection, "SELECT townsfolk_key FROM companions WHERE COALESCE(townsfolk_key, '')!=''"))
 

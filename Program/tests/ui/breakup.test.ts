@@ -18,6 +18,7 @@ test('a break and a breakup say when and who', () => {
   assert.equal(breakupLine({ ...base, stage: 'ended', text: 'Broke up', by: 'you' }, 'Mira').detail, 'You ended it.')
   assert.equal(breakupStrip({ ...base, stage: 'ended', ladder: 'friendship' }, 'Mira'), 'You and Mira fell out.')
   assert.equal(breakupStrip({ ...base, stage: 'ended', divorced: true }, 'Mira'), 'You and Mira got divorced.')
+  assert.equal(breakupStrip({ ...base, stage: 'ended', divorced: true, separated: true }, 'Mira'), 'You and Mira separated.')
   assert.equal(breakupStrip({ ...base, stage: 'ended', strip: false }, 'Mira'), '')
   assert.equal(mendLabel({ ...base, stage: 'ended' }), 'Get back together')
   assert.equal(mendLabel(base), 'Patch things up')
