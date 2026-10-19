@@ -723,6 +723,8 @@ export interface CirclePerson {
   children?: CircleChild[]
   /** The month their baby is due while they are expecting: "March". */
   expecting?: string | null
+  /** The companion and this partner are adopting rather than expecting. */
+  adopting?: boolean
   /** Written into the character's description (companion/life/named.py): spared from passing away unless `spared` is false. */
   sheet?: string
   /** People can pass away (companion/life/loss.py): whether the user spared them, or let them pass away. */
@@ -744,6 +746,8 @@ export interface CircleChild {
   age_text: string
   relation: string | null
   title: 'family' | 'godchild' | 'friend'
+  /** The companion's own child with their partner (companion/life/own_family.py). */
+  own?: boolean
 }
 
 /** A circle person who has met the user, or is about to (companion/life/their_people.py). `before` is a couple who go

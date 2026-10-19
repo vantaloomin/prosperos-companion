@@ -42,6 +42,7 @@ from companion.life import (
     network,
     occasions,
     outings,
+    own_family,
     own_plans,
     reactions,
     recommendations,
@@ -270,7 +271,7 @@ def pinned_plans(connection, timeline_id, since: str) -> dict[str, list[dict]]:
     nothing else is, and big days they go to on their own (companion/life/big_days.py)."""
     plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
     for extra in (outings.as_plans(connection, timeline_id, since), admin.as_plans(connection, timeline_id, since),
-                  big_days.as_plans(connection, timeline_id, since)):
+                  big_days.as_plans(connection, timeline_id, since), own_family.as_plans(connection, timeline_id, since)):
         for local_date, found in extra.items():
             plans[local_date] = plans.get(local_date, []) + found
     return plans
@@ -341,6 +342,8 @@ def plan_entry(plan: dict, block: dict, definition: dict) -> dict:
         return outings.entry(plan, block, definition)
     if 'admin' in plan:
         return admin.entry(plan, block, definition)
+    if 'babysit' in plan:  # An evening out while the user babysits (companion/life/own_family.py).
+        return own_family.entry(plan, block, definition)
     return big_days.entry(plan, block, definition) if 'big_day' in plan else own_plans.entry(plan, block, definition)
 
 

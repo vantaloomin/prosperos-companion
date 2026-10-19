@@ -2562,3 +2562,24 @@ CREATE TABLE IF NOT EXISTS family_wishes (
                               'foundling', 'relative')),
   updated_at TEXT NOT NULL
 );
+
+-- Companions' own babies (companion/life/own_family.py): an evening the companion asks the user to babysit one of
+-- their own children (`child_id`, circle_children) while they and their partner go out. 'planned' until the ask goes
+-- out as a first text (`message_id`), 'asked' until the user's first reply says 'yes' or 'no'; 'done' once a yes
+-- evening has passed, 'called_off' when an unanswered one did (someone else watched them) or the child is withheld.
+CREATE TABLE IF NOT EXISTS babysitting (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  child_id TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  until_time TEXT NOT NULL,
+  ask_on TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('planned', 'asked', 'yes', 'no', 'done', 'called_off')),
+  message_id TEXT,
+  answered_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, child_id, local_date)
+);
+CREATE INDEX IF NOT EXISTS babysitting_timeline ON babysitting(timeline_id, status, local_date);
