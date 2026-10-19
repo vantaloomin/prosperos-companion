@@ -442,3 +442,15 @@ def test_the_childs_line_gives_months_until_two_then_years(client, clock, monkey
         line = our_child.child_text(connection, dict(connection.execute(
             'SELECT * FROM circle_children WHERE id=?', (child['id'],)).fetchone()), today)
     assert ', 14 months old): yours and the user' in line and 'a child' not in line
+
+
+def test_in_an_older_city_the_school_run_is_a_walk_to_school(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch, home_city='london-1895', location='Marylebone, London')
+    aged(client, child, 6 * 365 + 100)
+    with connect(client) as connection:
+        companion = current(connection)
+        today = our_child.steps.local_today(companion, clock.now())
+        kids = our_child.at_home(connection, companion['active_timeline_id'], today)
+        text = ' '.join(line for _key, line in our_child.days_lines(connection, companion, kids, today))
+    first = child['name'].split()[0]
+    assert f'weekday mornings start with walking {first} to school;' in text and 'school run' not in text

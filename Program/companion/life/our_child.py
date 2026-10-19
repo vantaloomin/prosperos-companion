@@ -781,7 +781,9 @@ def days_lines(connection, companion: dict, kids: list[dict], today: date) -> li
     school = [first(child['name']) for child in kids if SCHOOL <= families.age_of(child, today) <= 12]
     youngest = kids[-1]
     bed = BEDTIMES[band(youngest, today)]
-    run = f"weekday mornings start with the school run for {steps.names_text(school)}; " if school else ''
+    run = (f"weekday mornings start with walking {steps.names_text(school)} to school; "
+           if families.older(era(connection, companion)) else
+           f"weekday mornings start with the school run for {steps.names_text(school)}; ") if school else ''
     if here:
         result.append((f'ours:routine:{bool(school)}:{bed}', f"- Your days with {names}: {run}bedtime is around {bed}"
                                                             f"{'' if band(youngest, today) == 'teen' else ' in the evening'}."))
