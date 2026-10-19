@@ -8,8 +8,9 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   A son or daughter it calls grown, or 18 or over, stays an adult in their circle as before. A companion made from a
   townsperson who had a baby with their partner keeps that child (companion/world/couples.py `babies`). A new
   companion whose description says nothing either way may have kids anyway, at a low rate by age (the engine's
-  kids:has, odds under Hidden values); never one whose description says they have none or never wanted any, and
-  never a companion who was already in the user's life before this came in (`settle`, `fresh`).
+  kids:has, odds under Hidden values); never one whose description says they have none or never wanted any, never
+  with Growing families at None (Vanta 2026-10-19), and never a companion who was already in the user's life before
+  this came in (`settle`, `fresh`).
 - Each child is a `circle_children` row with the companion as `parent_id` (so nothing that lists the circle's
   children under a circle person counts them as a niece or a friend's baby), `MARK` and the timeline as its storyline,
   aging with companion/life/ages.py. Words only, like every child in the circle (companion/life/families.py).
@@ -23,7 +24,8 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   with their people (companion/life/their_people.py, the "meeting their people" step), and once the two of them
   live together (companion/life/moving_in.py) the user is their step-parent.
 - A circle parent the companion dates goes the same way (the v0.14 E2E note): a love-life partner past their
-  twenties may come with kids of their own (`partner_kids`, companion/life/love_life.py), listed under the partner,
+  twenties may come with kids of their own (`partner_kids`, companion/life/love_life.py; not with Growing families at
+  None), listed under the partner,
   and once the companion lives with them the companion is the kids' step-parent.
 
 The Character page's Family panel lists them, with where they live and the other parent; the user can change where
@@ -298,7 +300,8 @@ def has_facts(connection, companion: dict, now) -> dict:
     from companion.life import parenthood
     definition = companion['version']['definition']
     return {'age': parenthood.age_of(connection, companion, now), 'said_no': int(parenthood.described(definition) == 'no'),
-            'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)}}
+            'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)},
+            'growing': families.level(connection)}
 
 
 def has_outcome(connection, companion: dict, now) -> dict:
@@ -577,7 +580,7 @@ def town_kids(connection, companion: dict, today: date) -> list[dict]:
 def partner_kids(connection, companion: dict, world, person: dict, now) -> int:
     """A new love-life partner (companion/life/love_life.py) past their twenties may have kids of their own, a child
     or two, under them in the circle. Returns how many."""
-    if not ACTIVE:
+    if not ACTIVE or not families.level(connection):  # Growing families at None: nobody new comes with kids.
         return 0
     details = decode(person['details'])
     age = details.get('age') if isinstance(details.get('age'), int) else 0
@@ -649,14 +652,22 @@ def modern(companion: dict) -> bool:
     return perception.era_modern(companion['version']['definition'])
 
 
-def where_line(connection, companion: dict, row: dict, pattern: str) -> str:
+def where_line(connection, companion: dict, row: dict, pattern: str, kids: list[dict] | None = None) -> str:
+    """'- They live with you and spend every other weekend with their dad Mark.'; for one child, by name ('- Leo lives
+    with you and spends every other weekend with his dad Mark.', A/B 2026-10-19: as clear, 5/5 each)."""
+    one = kids[0] if kids and len(kids) == 1 else None
+    who = first(one['name']) if one else 'They'
+    s = 's' if one else ''
     if pattern == 'sole' or not row['other_id']:
-        return '- They live with you; their other parent is not in the picture.'
+        whose = families.fill_child('{their}', one) if one else 'their'
+        return f'- {who} live{s} with you; {whose} other parent is not in the picture.'
     them, _name = other_text(connection, companion, row)
-    return {'together': f'- They live with you and {them}.',
-            'with_them': f'- They live with you and spend every other weekend with {them}.',
-            'shared': f'- They spend a week with you, then a week with {them}, turn and turn about.',
-            'weekends': f'- They live with {them} and spend every other weekend with you.'}[pattern]
+    if one:
+        them = families.fill_child('{their}', one) + them.removeprefix('their')
+    return {'together': f'- {who} live{s} with you and {them}.',
+            'with_them': f'- {who} live{s} with you and spend{s} every other weekend with {them}.',
+            'shared': f'- {who} spend{s} a week with you, then a week with {them}, turn and turn about.',
+            'weekends': f'- {who} live{s} with {them} and spend{s} every other weekend with you.'}[pattern]
 
 
 def user_line(connection, companion: dict, kids: list[dict], now) -> str | None:
@@ -737,7 +748,7 @@ def own_lines(connection, companion: dict, now, today: date) -> list[tuple[str, 
     listed = steps.names_text([kid_text(kid, today) for kid in kids])
     result = [('kids:who', f"- You have {'a child' if len(kids) == 1 else f'{len(kids)} children'}: {listed}.")]
     pattern, _how = pattern_of(connection, row)
-    result.append((f'kids:where:{pattern}', where_line(connection, companion, row, pattern)))
+    result.append((f'kids:where:{pattern}', where_line(connection, companion, row, pattern, kids)))
     if line := user_line(connection, companion, kids, now):
         result.append(('kids:user', line))
     return result
@@ -772,9 +783,33 @@ def today_line(connection, companion: dict, now) -> tuple[str, str] | None:
     today = steps.local_today(companion, now)
     them, _name = other_text(connection, companion, row)
     who = 'the kids' if len(kids) > 1 else first(kids[0]['name'])
-    here = with_them(pattern, date.fromisoformat(row['since']), today) or at_dinner_on(connection, companion, today)
+    since = date.fromisoformat(row['since'])
+    here = with_them(pattern, since, today) or at_dinner_on(connection, companion, today)
     where = 'with you' if here else f'with {them}'
-    return f'kids:today:{here}', f"- Today {who} {'are' if len(kids) > 1 else 'is'} {where}."
+    line = f"- Today {who} {'are' if len(kids) > 1 else 'is'} {where}."
+    if not here and (coming := next_weekend(pattern, since, today)):
+        _them, name = other_text(connection, companion, row)
+        whom = 'them' if len(kids) > 1 else first(kids[0]['name'])
+        has = 'them' if len(kids) > 1 else families.fill_child('{them}', kids[0])
+        line += f' {coming} are your weekend with {whom}; {name} has {has} until then.'
+    return f'kids:today:{here}', line
+
+
+def next_weekend(pattern: str, since: date, today: date) -> str | None:
+    """'This Saturday and Sunday (10 and 11 October)': the next weekend the kids spend with them, when they live with
+    the other parent (A/B 2026-10-19: 6/6 said whose weekend it is, 0/6 without)."""
+    if pattern != 'weekends':
+        return None
+    saturday = next((today + timedelta(days=offset) for offset in range(1, 15)
+                     if (today + timedelta(days=offset)).weekday() == 5 and with_them(pattern, since,
+                                                                                     today + timedelta(days=offset))),
+                    None)
+    if saturday is None:
+        return None
+    sunday = saturday + timedelta(days=1)
+    days = f'{saturday.day} and {sunday.day} {sunday:%B}' if saturday.month == sunday.month else \
+        f'{saturday.day} {saturday:%B} and {sunday.day} {sunday:%B}'
+    return f"{'This ' if (saturday - today).days < 7 else ''}Saturday and Sunday ({days})"
 
 
 # The Character page -------------------------------------------------------------------------------------------------

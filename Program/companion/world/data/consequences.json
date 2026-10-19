@@ -3796,6 +3796,12 @@
           "weight": 0.08,
           "rules": [
             {
+              "reader": "growing",
+              "at_most": 0,
+              "times": 0,
+              "why": "Growing families is set to None"
+            },
+            {
               "reader": "age",
               "at_most": 26,
               "times": 0,

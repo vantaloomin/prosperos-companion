@@ -33,4 +33,5 @@ test('a due month shows while they are expecting', () => {
 test('the slider has four steps, the third true to life', () => {
   assert.equal(FAMILY_LEVELS.length, 4)
   assert.equal(FAMILY_LEVELS[2].label, 'True to life')
+  assert.match(FAMILY_LEVELS[0].hint, /new companions and their new partners come without kids unless a description names some/)
 })

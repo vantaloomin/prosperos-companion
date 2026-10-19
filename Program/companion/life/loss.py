@@ -136,7 +136,8 @@ def settings_changed(connection) -> None:
 def spared(connection, timeline_id: str, row: dict, today: date | None = None) -> bool:
     """Never a child, the companion's own partner or anyone the user spared; someone the user wrote into the
     character's description is spared until the user says otherwise. Nor, by `today`, the pair's grown child or a
-    parent whose baby is under one or on the way (companion/life/custody.py)."""
+    parent whose baby is under one or on the way, nor the other parent of a child under 18 the companion shares
+    (companion/life/custody.py)."""
     from companion.life import custody
     details = decode(row['details']) or {}
     if (ages.stored_age(details) or 0) < ADULT or details.get('late'):
@@ -280,7 +281,8 @@ def advance(connection, companion: dict, now: datetime) -> None:
 
 
 def spared_now(connection, row: dict, today: date) -> bool:
-    """A death decided before a baby came: called off, and decided afresh once the baby is one."""
+    """A death decided before a baby came (or while a child they share with the companion is under 18): called off,
+    and decided afresh once they are no longer spared."""
     from companion.life import custody
     person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['person_id'],))
     if person is None or not custody.spared(connection, person, today):

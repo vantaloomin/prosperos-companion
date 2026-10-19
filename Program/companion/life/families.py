@@ -596,7 +596,8 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
             continue  # Their own, told by own_family.context_lines below.
         what, whose = relation(child['title'], child['pronouns']), 'daughter' if child['pronouns'] == 'she/her' else 'son'
         lead = ', '.join(part for part in (f'your {what}' if what else '', how_old(child, today)) if part)
-        result.append((f"child:{child['id']}", f"- {child['name']} ({lead}): your {child['parent_role']} "
+        role = circle.said(child['parent_role'], companion['version']['definition'])
+        result.append((f"child:{child['id']}", f"- {child['name']} ({lead}): your {role} "
                                                 f"{child['parent_name']}'s {whose}."))
     return result + own_family.context_lines(connection, companion, now)
 

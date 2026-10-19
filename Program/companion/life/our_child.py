@@ -84,6 +84,12 @@ FOOD = re.compile(r'\b(?:banana\w*|mash\w*|pur[ée]e\w*|food|eat\w*|spoon\w*|por
                   r'peas|carrots?|avocado|yogh?urt|crusts?|rusks?|snacks?|bread|cheese|berr(?:y|ies)|pasta|rice)\b',
                   re.IGNORECASE)
 HOLIDAY_AFTER = 3  # Days after a holiday its line stays.
+# Holidays where people give presents: only these get the bank's gift and wrapping lines (A/B 2026-10-19: St John's Eve
+# with a gift line had presents in 4/5 replies, 0/5 without).
+GIFT_HOLIDAYS = {'christmas', 'christmas-eve', 'boxing-day', 'epiphany', 'twelfth-night', 'valentines-day', 'white-day',
+                 'pepero-day', 'mothers-day', 'mothering-sunday', 'fathers-day', 'parents-day', 'childrens-day',
+                 'chuseok'}
+GIFTS = re.compile(r'\b(?:gifts?|presents?)\b', re.IGNORECASE)
 PEOPLE_AGES = (2, 10)  # The ages the grandparents', aunts' and uncles' lines are written for.
 MOVING_DAYS = 300
 MOVING = re.compile(r'\b(?:crawl\w*|walk\w*|toddl\w*|ran|run\w*|climb\w*|steps?|stood|standing)\b', re.IGNORECASE)
@@ -709,8 +715,21 @@ def child_text(connection, child: dict, today: date) -> str:
             stage['key'] == 'adopted' and stage['on'] <= today.isoformat() for stage in decode(row['stages']) or []):
         whose = 'your foster child'
     word = {'she/her': 'daughter', 'he/him': 'son'}.get(child['pronouns'], 'child')
-    return (f"- {child['name']} (your {word}, {families.how_old(child, today)}): yours and the user's"
+    return (f"- {child['name']} (your {word}, {how_old(child, today)}): yours and the user's"
             f"{', ' + whose if whose else ''}.")
+
+
+def how_old(child: dict, today: date) -> str:
+    """'a baby, 7 months old', then '14 months old' until two, then '15' rather than 'a child, 1 year old' or 'a child,
+    15 years old' (A/B 2026-10-19: a tie, no new failures)."""
+    years = families.age_of(child, today)
+    if years < 1:
+        return families.how_old(child, today)
+    if years >= 2:
+        return str(years)
+    born_on = date.fromisoformat(child['born_on'])
+    months = (today.year - born_on.year) * 12 + today.month - born_on.month - (today.day < born_on.day)
+    return f'{months} months old'
 
 
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
@@ -768,7 +787,9 @@ def days_lines(connection, companion: dict, kids: list[dict], today: date) -> li
     school = [first(child['name']) for child in kids if SCHOOL <= families.age_of(child, today) <= 12]
     youngest = kids[-1]
     bed = BEDTIMES[band(youngest, today)]
-    run = f"weekday mornings start with the school run for {steps.names_text(school)}; " if school else ''
+    run = (f"weekday mornings start with walking {steps.names_text(school)} to school; "
+           if families.older(era(connection, companion)) else
+           f"weekday mornings start with the school run for {steps.names_text(school)}; ") if school else ''
     if here:
         result.append((f'ours:routine:{bool(school)}:{bed}', f"- Your days with {names}: {run}bedtime is around {bed}"
                                                             f"{'' if band(youngest, today) == 'teen' else ' in the evening'}."))
@@ -800,8 +821,10 @@ def holiday_line(connection, companion: dict, child: dict, today: date) -> list[
         return []
     holiday, years = kept[-1], families.age_of(child, today)
     moving = (today - date.fromisoformat(child['born_on'])).days >= MOVING_DAYS
+    gifts = holiday['holiday'] in GIFT_HOLIDAYS
     lines = [line for line in fitting(bank()['holiday_part'], era(connection, companion))
-             if line['ages'][0] <= years <= line['ages'][1] and (moving or not MOVING.search(line['text']))]
+             if line['ages'][0] <= years <= line['ages'][1] and (moving or not MOVING.search(line['text']))
+             and (gifts or not GIFTS.search(line['text']))]
     line = generators.pick(f"ours:{child['id']}", f"holiday:{holiday['holiday']}:{today.year}", lines)
     if line is None:
         return []
