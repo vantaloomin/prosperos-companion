@@ -270,7 +270,6 @@ def test_a_reply_whose_conversation_says_a_child_carries_one_kind_of_line_or_non
         companion = current(connection)
         own = intimacy.prompt_text(connection, companion['version'])
         assert own and own not in whole(provider)
-        timeline_id = companion['active_timeline_id']
         recent = [{'text': 'come to bed and kiss me'}]
         assert sides.adult_lines(connection, companion, recent, None, None, False)
         assert not sides.adult_lines(connection, companion, [{'text': 'the kids are finally asleep'}], None,
@@ -278,7 +277,7 @@ def test_a_reply_whose_conversation_says_a_child_carries_one_kind_of_line_or_non
         group = {'shared': f'Sam: how is {first}?'}
         assert not sides.adult_lines(connection, companion, recent, group, None, False)
         assert not sides.adult_lines(connection, companion, recent, None, None, True)
-        assert sides.names_child(connection, timeline_id, [f'{first} is asleep'])
+        assert sides.names_child([f'{first} is asleep'], sides.every_name(connection))
 
 
 def test_the_characters_own_words_count_toward_a_replys_side(client, provider, clock, monkeypatch):
@@ -325,3 +324,24 @@ def test_a_second_look_through_memory_keeps_to_the_replys_side(client, provider,
                                                                  family=True))
     assert first not in other and 'made love' in other
     assert first in family and 'made love' not in family
+
+
+def test_another_companion_in_the_chat_keeps_to_one_kind_of_line_too(client, provider, clock, monkeypatch):
+    from test_groups import by_speaker, companion_named, say, start
+    row, child = born(client, clock, monkeypatch)
+    first = child['name'].split()[0]
+    own = client.get('/api/companion').json()['companion']['id']
+    other = companion_named(client, 'Billy Hart', 'Easygoing. 34 years old.')
+    provider.respond = by_speaker
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    group = start(client, [own, other])
+    say(client, group['id'], f'how is little {first}? billy come kiss me', 'client-ours-11')
+    for request in provider.requests:
+        text = request['system'] + '\n'.join(str(message['content']) for message in request['messages'])
+        assert not (first in text and intimacy.SETTING in text)
+    with connect(client) as connection:
+        timeline_id = connection.execute('SELECT active_timeline_id FROM companions WHERE id=?',
+                                         (other,)).fetchone()['active_timeline_id']
+        billy = our_child.companion_of(connection, timeline_id)
+        assert not sides.adult_lines(connection, billy, [{'text': f'{first} took her first steps'}], None, None, False)
+        assert sides.hidden(connection, timeline_id, False).search(f'- Mira says {first} is walking now.')

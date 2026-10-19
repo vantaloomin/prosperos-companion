@@ -114,22 +114,30 @@ def adult_lines(connection, companion: dict, recent: list[dict], group: dict | N
     closed: anything that cannot be read carries neither."""
     if family:
         return False
-    if not intimacy.turned_on(connection) or not children(connection, companion):
+    if not intimacy.turned_on(connection):
         return True
     try:
+        found = every_name(connection)
+        if not found:
+            return True
         note = authors_note.prompt_text(connection, f"companion:{companion['id']}")
         texts = [message['text'] for message in recent] + [note, (photo or {}).get('text') or '', *own_words(companion),
                                                             (group or {}).get('shared') or '']
-        return not names_child(connection, companion['active_timeline_id'], texts)
+        return not names_child(texts, found)
     except Exception:  # noqa: BLE001 - fails closed.
         return False
 
 
-def names_child(connection, timeline_id: str, texts) -> bool:
+def every_name(connection) -> set[str]:
+    """Every child's name in any companion's life: a group chat or another companion's chat can say any of them."""
     from companion.life import families
+    rows = connection.execute('SELECT active_timeline_id FROM companions WHERE active_timeline_id IS NOT NULL')
+    return set().union(*(families.names(connection, row['active_timeline_id']) for row in rows.fetchall()))
+
+
+def names_child(texts, names: set[str]) -> bool:
     text = ' '.join(text for text in texts if text)
-    return bool(CHILD.search(text)) or any(re.search(rf'\b{re.escape(name)}\b', text)
-                                           for name in families.names(connection, timeline_id))
+    return bool(CHILD.search(text)) or any(re.search(rf'\b{re.escape(name)}\b', text) for name in names)
 
 
 def children(connection, companion: dict) -> bool:
@@ -141,14 +149,15 @@ def children(connection, companion: dict) -> bool:
 
 def hidden(connection, timeline_id: str, family: bool) -> re.Pattern | None:
     """What no context line may hold: in a family reply, anything that reads intimate; otherwise, with the adult side
-    on, a child's name (companion/life/families.py `hidden`)."""
+    on, a child's name in any companion's life or a line about a child (companion/life/families.py `hidden`)."""
     from companion.life import families
     if family:
         return FamilyLines()
     found = families.hidden(connection, timeline_id)
-    if found is None or not families.names(connection, timeline_id):
+    names = every_name(connection) if found is not None else set()
+    if not names:
         return found
-    return re.compile(f'{found.pattern}|{CHILD_WORDS}')
+    return re.compile('|'.join([found.pattern, CHILD_WORDS, *(rf'\b{re.escape(name)}\b' for name in sorted(names))]))
 
 
 class FamilyLines:
