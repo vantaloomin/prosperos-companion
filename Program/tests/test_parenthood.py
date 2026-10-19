@@ -128,6 +128,22 @@ def test_two_who_cannot_carry_adopt_or_foster_and_old_cities_take_in_a_ward(clie
     assert possible == {'ward', 'foundling', 'relative'}
 
 
+@pytest.mark.parametrize('identity, gender, about, can_them, can_you', [
+    ('She is a 34-year-old trans woman and a nurse.', 'man', '', 0, 0),
+    ('They are 30, a trans man and a baker.', 'man', '', 1, 0),
+    ('He is 33 and works at the docks.', 'nonbinary', 'Assigned female at birth; could carry a baby.', 0, 1),
+    ('She is 31 and a nurse.', 'woman', 'I can\u2019t have children.', 1, 0),
+])
+def test_who_could_carry_a_baby_follows_both_descriptions(client, monkeypatch, identity, gender, about, can_them,
+                                                          can_you):
+    make(client, monkeypatch, identity=identity)
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': gender, 'about': about}).raise_for_status()
+    with client.app.state.database.connect() as connection:
+        found = parenthood.route_facts(connection, current(connection), None)
+    assert (found['can_them'], found['can_you']) == (can_them, can_you)
+
+
 def test_they_bring_up_starting_a_family_after_living_together_and_yes_starts_it(client, provider, clock, monkeypatch,
                                                                                  likeliest):
     living_together(client, monkeypatch)

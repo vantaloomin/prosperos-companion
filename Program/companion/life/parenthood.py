@@ -107,7 +107,12 @@ _SAYS_YES = (
 SAYS = tuple((wants, re.compile(rf"\b(?:{'|'.join(found)})\b", re.IGNORECASE))
              for wants, found in (('no', _SAYS_NO), ('someday', _SAYS_SOMEDAY), ('yes', _SAYS_YES)))
 CANT = re.compile(r"\b(?:can'?t (?:have|carry) (?:kids|children|a baby|a child)|infertile|unable to have (?:kids|"
-                  r"children)|had a hysterectomy)\b", re.IGNORECASE)
+                  r"children)|had a hysterectomy|trans(?:gender)? (?:woman|girl)|(?:assigned )?male at birth|amab)\b",
+                  re.IGNORECASE)
+# A description that says they could carry a baby, whatever their pronouns: a trans man, someone assigned female at
+# birth, "could get pregnant".
+CAN = re.compile(r"\b(?:trans(?:gender)? (?:man|guy|boy)|(?:assigned )?female at birth|afab|(?:can|could) (?:get "
+                 r"pregnant|carry (?:a baby|a child|children))|(?:has|have) a (?:uterus|womb))\b", re.IGNORECASE)
 
 # The chat context ('steps' section): where they stand on children, and the family step once decided.
 WANT_LINES = {'yes': 'On children: you would like to have children one day. If it comes up, say so honestly.',
@@ -218,12 +223,18 @@ def route_facts(connection, companion: dict, now) -> dict:
     from companion.world import looks
     definition = companion['version']['definition']
     you = persona(connection)
-    can_them = int(looks.pronouns_of(definition) == 'she/her' and not CANT.search(consequences.sheet_text(definition)))
-    can_you = int(you.get('gender') == 'woman' and not CANT.search(you.get('about') or ''))
+    can_them = could_carry(consequences.sheet_text(definition), looks.pronouns_of(definition) == 'she/her')
+    can_you = could_carry(you.get('about') or '', you.get('gender') == 'woman')
     found = money.profile(definition)
     return {'can_them': can_them, 'can_you': can_you, 'can_carry': int(can_them or can_you),
             'age': age_of(connection, companion, now), 'your_age': you.get('age') or 0,
             'tier': found.tier if found else 1, 'old': int(old_era(connection, companion))}
+
+
+def could_carry(text: str, by_default: bool) -> int:
+    """Whether someone could carry a baby: their description says so either way, else by their pronouns or gender."""
+    text = text.replace('\u2019', "'")
+    return int(not CANT.search(text) and (by_default or bool(CAN.search(text))))
 
 
 def route_found(connection, companion: dict, now=None) -> dict:
