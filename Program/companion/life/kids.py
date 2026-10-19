@@ -61,18 +61,47 @@ PARTNER_ODDS = ((35, 0.2), (27, 0.12))
 # How old someone is at the earliest when their first child is born.
 PARENT_FROM = 19
 
-_KIDS = r'(?:kids?|children|child|sons?|daughters?|boys?|girls?)'
+_KIDS = (r'(?:kids?|children|child|step-?(?:sons?|daughters?|kids?|children|child)|sons?|daughters?|boys?|girls?|'
+         r'toddlers?|newborns?|teenagers?|teens?)')
 COUNT_WORDS = {'a': 1, 'an': 1, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5}
 _COUNT = '|'.join(COUNT_WORDS)
-_PARENT = r'(?:mom|mum|mother|dad|father|parent)'
-# "single dad of two", "mother of three", "has two kids", "her three children", "raising a daughter", "her twins".
-COUNTED = (re.compile(rf"\b{_PARENT} (?:of|to) ({_COUNT})\b(?! (?:grown|adult))", re.IGNORECASE),
-           re.compile(rf"\b(?:has|have|raising|raises) ({_COUNT}) (?:(?:young|little|small|school-age|teenage) )?"
-                      rf"({_KIDS})\b", re.IGNORECASE),
-           re.compile(rf"\b(?:her|his|their|my) ({_COUNT}) (?:(?:young|little|small|school-age|teenage) )?({_KIDS})\b",
-                      re.IGNORECASE),
-           re.compile(r'\b(?:her|his|their|my|has|have) (?:(?:young|little|baby|toddler) )?(twins)\b', re.IGNORECASE),
+_PARENT = r'(?:step-?)?(?:mom|mum|mother|dad|father|parent)'
+# The word before them that tells their age: "two teenage daughters", "a six-year-old son".
+_YOUNG = (r'(?:young|little|small|school-age|teenage|teen|toddler|baby|newborn|'
+          rf"(?:{named._AGE[1:-1]})[ -]years?[ -]old)")
+_MOD = rf'(?:({_YOUNG}) )?'
+# "single dad of two", "mother of three boys", "has two teenage daughters", "her three children", "raising a daughter",
+# "her twins", "twin boys", "a stepson", and a count opening a clause ("Married, two teenage daughters.").
+COUNTED = (re.compile(rf"\b{_PARENT} (?:of|to) ({_COUNT})\b(?! (?:grown|adult))(?: {_MOD}({_KIDS})\b)?", re.IGNORECASE),
+           re.compile(rf"\b(?:has|have|raising|raises) ({_COUNT}) {_MOD}({_KIDS})\b", re.IGNORECASE),
+           re.compile(rf"\b(?:her|his|their|my) ({_COUNT}) {_MOD}({_KIDS})\b", re.IGNORECASE),
+           re.compile(rf"(?:^|[.;:,(]\s*|\band )((?-i:[Tt]wo|[Tt]hree|[Ff]our|[Ff]ive)) {_MOD}({_KIDS})\b(?!['’])",
+                      re.IGNORECASE | re.MULTILINE),
+           re.compile(r'\b(?:her|his|their|my|has|have) (?:(?:young|little|baby|toddler) )?(twin)s?(?: (boys|girls|sons|'
+                      r'daughters))?\b', re.IGNORECASE),
+           re.compile(rf"\b(?:has|have|raising|raises) (a|an|one) ((?:{named._AGE[1:-1]})[ -]years?[ -]old)()"
+                      r"(?=\s*(?:[.,;!)]|$|and\b|who\b))", re.IGNORECASE | re.MULTILINE),
            re.compile(rf"\bsingle {_PARENT}\b()", re.IGNORECASE))
+# Children the description names in a list or after "and": "her kids Leo and Mia", "mom of Leo (7) and Mia (4)",
+# "her two teenage daughters, Ava and Zoe", "her son Leo and daughter Mia", "a daughter named Rosa".
+_ONE = rf"{named._NAME}(?: \(\d{{1,2}}\))?"
+_LIST = rf"({_ONE}(?:, {_ONE})*(?:,? (?:and|&) {_ONE})?)"
+_OPENS = r'(?:^|[.;:,(]\s*|\band )(?-i:[Tt]wo|[Tt]hree|[Ff]our|[Ff]ive) '
+LISTED = (re.compile(rf"(?:\b(?:her|his|their|my|has|have|of|to|raising) (?:(?:{_COUNT}) )?|{_OPENS}){_MOD}({_KIDS}),?:? "
+                     rf"(?:(?:named|called) )?{_LIST}", re.IGNORECASE | re.MULTILINE),
+          re.compile(rf"\b{_PARENT} (?:of|to) (?:(?:{_COUNT}),? )?()(){_LIST}", re.IGNORECASE),
+          re.compile(rf"\b(?:and|&) (?:(?:her|his|their|my) )?{_MOD}((?:step-?)?(?:sons?|daughters?)|boys?|girls?),? "
+                     rf"(?:(?:named|called) )?{_LIST}", re.IGNORECASE))
+# How old a child is from the word before them: (youngest, oldest).
+YOUNG_AGES = {**named.YOUNG_WORDS, 'teen': (13, 17), 'teenager': (13, 17), 'toddler': (1, 3), 'newborn': (0, 0),
+              'small': (2, 8), 'school-age': (5, 12)}
+# A pet's or a plant's "mom": "dog mom to Biscuit", "cat dad of two", "mom to a rescue dog".
+PET_PARENT = re.compile(rf"\b(?:dog|cat|plant|pet|fur|puppy|kitty|bird|horse|chicken|bunny|fish)[- ]?{_PARENT}\b[^.;]*|"
+                        rf"\b{_PARENT} (?:of|to) (?:(?:{_COUNT}) )?(?:[\w'-]+ ){{0,2}}?{named.SPECIES_WORD}s?\b",
+                        re.IGNORECASE)
+NOUN_AGES = ('baby', 'toddler', 'newborn', 'teen', 'teenager')
+# Grown children the description mentions: no young kids are seeded beside them.
+GROWN_KIDS = re.compile(rf"\b(?:grown|adult|grown-up) ({_KIDS})\b", re.IGNORECASE)
 NONE = re.compile(r"\b(?:no (?:kids|children)|childless|child[- ]?free|never had (?:kids|children)|(?:doesn'?t|does "
                   r"not|don'?t|do not) have (?:any )?(?:kids|children)|never (?:wanted|wants) (?:kids|children))\b",
                   re.IGNORECASE)
@@ -105,19 +134,57 @@ def record(connection, timeline_id: str) -> dict | None:
 
 # What their description says ---------------------------------------------------------------------------------------
 
-def counted(text: str) -> tuple[int, list[str | None]]:
-    """(how many children the description counts, the pronouns its words give them): 'two sons' are he/him."""
-    count, sexes = 0, []
+def sex_of(noun: str) -> str | None:
+    noun = noun.casefold().removeprefix('step').lstrip('-')
+    return 'he/him' if noun.startswith(('son', 'boy')) else 'she/her' if noun.startswith(('daughter', 'girl')) else None
+
+
+def young_word(modifier: str, noun: str = '') -> str:
+    """'teenage' for "teenage" or "teenagers", '6-year-old' as written: the word `age_for` reads an age from."""
+    word, noun = (modifier or '').casefold(), (noun or '').casefold().rstrip('s')
+    if word in YOUNG_AGES or named.AGE_BEFORE.search(word):
+        return word
+    return noun if noun in NOUN_AGES else ''
+
+
+def kid_words(definition: dict) -> str:
+    """The description without its pets' and plants' "moms" and "dads"."""
+    return PET_PARENT.sub('', named.text_of(definition))
+
+
+def counted(text: str) -> tuple[int, list[dict]]:
+    """(how many children the description counts, each as {pronouns, modifier}): 'two sons' are he/him, 'two
+    teenage daughters' teenage."""
+    count, found = 0, []
     for pattern in COUNTED:
         for match in pattern.finditer(text):
-            groups = [group for group in match.groups() if group is not None]
-            number = 2 if groups and groups[0].casefold() == 'twins' else COUNT_WORDS.get((groups or ['a'])[0].casefold(), 1)
-            noun = (groups[-1] if len(groups) > 1 else '').casefold()
-            sex = 'he/him' if noun.startswith(('son', 'boy')) else 'she/her' if noun.startswith(('daughter', 'girl')) \
-                else None
+            groups = list(match.groups())
+            word = (groups[0] or 'a').casefold()
+            number = 2 if word == 'twin' else COUNT_WORDS.get(word, 1)
+            modifier = groups[1] if len(groups) > 2 else ''
+            noun = groups[-1] if len(groups) > 1 and groups[-1] else ''
             if number > count:
-                count, sexes = number, [sex] * number
-    return min(count, MOST), sexes
+                count = number
+                found = [{'pronouns': sex_of(noun), 'modifier': young_word(modifier, noun)}] * number
+    return min(count, MOST), found
+
+
+def listed(definition: dict) -> list[dict]:
+    """Children the description names in a list ("her kids Leo and Mia", "mom of Leo (7) and Mia (4)") or after "and"
+    ("her son Leo and daughter Mia"), as {name, pronouns, age, modifier, grown}."""
+    text, result = kid_words(definition), {}
+    for pattern in LISTED:
+        for match in pattern.finditer(text):
+            modifier, noun, names = match.groups()
+            for raw in re.findall(named._NAME, names or ''):
+                name = named.clean(raw, definition)
+                if not name or name in result:
+                    continue
+                found = named.child_age(text, name, '')
+                word = young_word(modifier or '', noun or '')
+                result[name] = {'name': name, 'kind': 'child', 'pronouns': sex_of(noun or ''), 'age': found['age'], 'modifier': word,
+                                'grown': found['grown'] or bool(named.GROWN.search(modifier or ''))}
+    return list(result.values())
 
 
 def other_named(text: str) -> dict | None:
@@ -136,13 +203,16 @@ def cue(text: str) -> str | None:
 def described(definition: dict) -> dict:
     """{kids: [{name, pronouns, age, modifier}], none, widowed, other, pattern}: the children the description names
     (not grown ones) and as many more as it counts, unnamed."""
-    text = named.text_of(definition)
+    text = kid_words(definition)
     sheet = [person for person in named.people(definition) if person['kind'] == 'child']
-    count, sexes = counted(text)
+    seen = {person['name'] for person in sheet}
+    sheet += [person for person in listed(definition) if person['name'] not in seen]
+    count, more = counted(text)
     kids = [{'name': person['name'], 'pronouns': person['pronouns'] or None, 'age': person['age'],
-             'modifier': person['modifier']} for person in sheet if named.minor(person)]
-    kids += [{'name': None, 'pronouns': sex, 'age': None, 'modifier': ''} for sex in sexes[len(sheet):]]
-    none = bool(NONE.search(text)) and not kids
+             'modifier': young_word(person['modifier'])} for person in sheet if named.minor(person)]
+    kids += [{'name': None, 'pronouns': item['pronouns'], 'age': None, 'modifier': item['modifier']}
+             for item in more[len(sheet):]]
+    none = bool(NONE.search(text) or GROWN_KIDS.search(text)) and not kids
     return {'kids': kids[:MOST], 'none': none, 'widowed': bool(WIDOWED.search(text)), 'other': other_named(text),
             'pattern': cue(text)}
 
@@ -271,7 +341,11 @@ def age_for(connection, companion: dict, kid: dict, seed: str, today: date) -> i
     if isinstance(kid.get('age'), int):
         return kid['age']
     oldest = max(0, min(GROWN - 1, companion_age(connection, companion, today) - PARENT_FROM))
-    low, high = named.YOUNG_WORDS.get(kid.get('modifier') or '', (0, oldest))
+    modifier = kid.get('modifier') or ''
+    told = named.AGE_BEFORE.search(modifier)
+    if told:
+        return int(told[1]) if told[1].isdigit() else named.NUMBERS[told[1].casefold()]
+    low, high = YOUNG_AGES.get(modifier, (0, oldest))
     low, high = min(low, oldest), min(high, oldest)
     return low + int(generators().unit(seed, 'age') * (high - low + 1))
 

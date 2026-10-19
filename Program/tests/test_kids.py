@@ -72,6 +72,40 @@ def test_kids_are_read_from_the_description(text, expected):
     assert [(kid['name'], kid['pronouns'], kid['age']) for kid in found['kids']] == expected
 
 
+@pytest.mark.parametrize(('text', 'expected'), [
+    ('Her son Leo, 7, and daughter Mia, 4.', [('Leo', 'he/him', 7), ('Mia', 'she/her', 4)]),
+    ('Proud mom of Leo (7) and Mia (4).', [('Leo', None, 7), ('Mia', None, 4)]),
+    ('Her kids Leo and Mia keep her busy.', [('Leo', None, None), ('Mia', None, None)]),
+    ('Mother of two, Leo and Mia.', [('Leo', None, None), ('Mia', None, None)]),
+    ('Her two teenage daughters, Ava and Zoe.', [('Ava', 'she/her', None), ('Zoe', 'she/her', None)]),
+    ('She has a daughter named Rosa who is 9.', [('Rosa', 'she/her', 9)]),
+    ('Their kid Rowan is eight.', [('Rowan', None, 8)]),
+    ('He has a stepson.', [(None, 'he/him', None)]),
+    ('Divorced. Two teenage daughters.', [(None, 'she/her', None)] * 2),
+    ('Mom of two boys.', [(None, 'he/him', None)] * 2),
+    ('She has a six-year-old daughter.', [(None, 'she/her', None)]),
+    ('Dog mom to Biscuit and Pip.', []),
+    ('Cat dad of two.', []),
+    ('Mom to a rescue dog named Biscuit.', []),
+    ('Her two brothers, Tom and Ben.', []),
+    ('Wants kids someday.', []),
+])
+def test_more_ways_a_description_names_or_counts_their_kids(text, expected):
+    found = kids.described({'name': 'Dana Reyes', 'identity': f'38. {text}'})
+    assert [(kid['name'], kid['pronouns'], kid['age']) for kid in found['kids']] == expected
+
+
+def test_the_word_before_unnamed_kids_sets_their_age(monkeypatch):
+    monkeypatch.setattr(kids, 'companion_age', lambda *_args: 41)
+    companion = {'active_timeline_id': 't', 'id': 'c', 'version': {'definition': {'name': 'Dana'}}}
+    found = kids.described({'name': 'Dana', 'identity': '41. She has two teenage daughters and a 6-year-old.'})
+    assert [kid['modifier'] for kid in found['kids']] == ['teenage', 'teenage']
+    today = date(2026, 10, 19)
+    for index, kid in enumerate(found['kids']):
+        assert 13 <= kids.age_for(None, {**companion, 'id': f'c{index}'}, kid, f'seed{index}', today) <= 17
+    assert kids.age_for(None, companion, {'modifier': 'six-year-old'}, 's', today) == 6
+
+
 def test_the_description_says_where_they_live_and_who_the_other_parent_is():
     assert kids.described({'name': 'Dana', 'background': 'Her son Leo spends every other weekend with her.'})['pattern'] == 'weekends'
     assert kids.described({'name': 'Dana', 'background': 'They share custody of Leo.'})['pattern'] is None
