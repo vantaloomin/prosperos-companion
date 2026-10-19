@@ -214,6 +214,21 @@ def test_a_year_and_a_half_on_they_bring_up_another_child(client, clock, monkeyp
         assert 'a brother or sister for' in our_child.steps.reason_for(connection, current(connection), 'sibling')
 
 
+def test_another_child_comes_up_only_while_the_youngest_is_under_ten(client, provider, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 9 * 366)
+    assert family(client)['can_decide_another']
+    aged(client, child, 10 * 366)
+    reconcile(client)
+    assert not [ask for ask in planned(client) if ask['step'] == 'sibling']
+    assert not family(client)['can_decide_another']
+    says(provider)
+    send(client, 'should we have another baby?', 'client-ours-ten')
+    with connect(client) as connection:
+        assert not connection.execute("SELECT * FROM step_asks WHERE step='sibling'").fetchall()
+    assert client.put('/api/life/steps/family', json={'another': True}).status_code == 409
+
+
 def test_the_user_can_bring_up_another_child(client, provider, clock, monkeypatch):
     row, child = born(client, clock, monkeypatch)
     aged(client, child, 600)

@@ -669,7 +669,8 @@ def lapse(connection, companion: dict, now) -> None:
     for row in asks(connection, companion['active_timeline_id'], ('open', 'planned')):
         if row['status'] == 'open' and now - parse(row['created_at']) >= timedelta(days=OPEN_DAYS):
             connection.execute("UPDATE step_asks SET status='lapsed', settled_at=? WHERE id=?", (stamp(now), row['id']))
-        elif row['status'] == 'planned' and not still_due(connection, companion, found, row):
+        elif row['status'] == 'planned' and not still_due(connection, companion, found, row,
+                                                          local_today(companion, now)):
             connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?", (stamp(now), row['id']))
 
 
@@ -786,7 +787,7 @@ def ask_due(connection, companion: dict, now) -> list:
             continue  # They propose in person, on an evening out (companion/life/wedding.py).
         if not row['due_on'] or row['due_on'] > today.isoformat():
             continue
-        if not still_due(connection, companion, found, row):
+        if not still_due(connection, companion, found, row, today):
             continue  # Moved on meanwhile; the daily check drops it (`lapse`).
         if row['ladder'] == FAMILY_LADDER and parenthood_quiet(connection):
             continue  # Waits: not brought up with the adult side on (companion/life/parenthood.py).
@@ -811,11 +812,11 @@ def reason_for(connection, companion: dict, step: str) -> str:
     return REASONS[step]
 
 
-def still_due(connection, companion: dict, found: dict | None, row: dict) -> bool:
+def still_due(connection, companion: dict, found: dict | None, row: dict, today: date | None = None) -> bool:
     """Whether a planned ask still holds: the next step on the ladder, or starting a family while it can come up."""
     if row['ladder'] == FAMILY_LADDER:
         from companion.life import parenthood
-        return parenthood.still_due(connection, companion, found, row['step'])
+        return parenthood.still_due(connection, companion, found, row['step'], today)
     return still_next(found, row)
 
 

@@ -61,6 +61,8 @@ MOST_NOS = 2
 # Another child (companion/life/our_child.py): no sooner than this many days after the youngest came home; one more.
 SIBLING_AFTER = 548
 MOST_CHILDREN = 2
+# ... and only while the youngest is under this age (Vanta 2026-10-19: not a 44-year-old with an 18-year-old).
+SIBLING_UNDER = 10
 SIBLING_LINE = ('You and the user have decided to have another child, a brother or sister for {names}. Nothing has come '
                 'of it yet.')
 # The engine's choices about how the child comes (companion/life/expecting.py).
@@ -301,7 +303,8 @@ def children_names(connection, companion: dict) -> str:
 
 def sibling_open(connection, companion: dict, found: dict | None, today: date | None = None) -> bool:
     """Whether another child can come up: they decided on a family, live together and aren't apart, their only child
-    is home (by `today`, a year and a half or more), nothing else is on the way and it isn't decided yet."""
+    is home (by `today`, a year and a half or more, and under ten), nothing else is on the way and it isn't decided
+    yet."""
     from companion.life import expecting
     from companion.world import intimacy
     timeline_id = companion['active_timeline_id']
@@ -313,7 +316,13 @@ def sibling_open(connection, companion: dict, found: dict | None, today: date | 
             intimacy.reads_as_minor(companion['version']['definition']):
         return False
     home = date.fromisoformat((journey or {}).get('arrived_on') or kids[0]['born_on'])
-    return today is None or (today - home).days >= SIBLING_AFTER
+    return today is None or ((today - home).days >= SIBLING_AFTER and young_enough(kids, today))
+
+
+def young_enough(kids: list[dict], today: date) -> bool:
+    """Another child comes up only while the youngest is under ten."""
+    from companion.life import families
+    return families.age_of(kids[-1], today) < SIBLING_UNDER
 
 
 def living_on(found: dict | None) -> str | None:
