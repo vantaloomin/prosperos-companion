@@ -156,3 +156,33 @@ def test_a_new_world_starts_on_a_real_life(tmp_path):
         row = connection.execute('SELECT drama, rough_patches_realism, steps_pace, love_life, friends_fall, breakups '
                                  'FROM life_settings').fetchone()
     assert tuple(row) == (1, 2, 2, 2, 1, 1)
+
+
+def test_a_widened_table_keeps_the_columns_added_to_it_since(tmp_path):
+    """A v0.14 workspace: circle_children with its older CHECK and without the later `whose` column. Widening the
+    CHECK copies the table, so the column added just before must come along, with every row."""
+    path = tmp_path / 'companion.sqlite3'
+    older_workspace(path)
+    connection = sqlite3.connect(path)
+    connection.execute('DROP TABLE circle_children')
+    connection.execute(
+        "CREATE TABLE circle_children (id TEXT PRIMARY KEY, timeline_id TEXT NOT NULL, parent_id TEXT NOT NULL, "
+        "storyline_id TEXT NOT NULL, name TEXT NOT NULL, pronouns TEXT NOT NULL CHECK (pronouns IN ('she/her', "
+        "'he/him', 'they/them')), title TEXT NOT NULL CHECK (title IN ('family', 'godchild', 'friend')), "
+        "born_on TEXT NOT NULL, status TEXT NOT NULL CHECK (status IN ('expected', 'born', 'ended')), "
+        'created_at TEXT NOT NULL, updated_at TEXT NOT NULL)')
+    connection.execute("INSERT INTO companions (id, created_at) VALUES ('k1', 'x')")
+    connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES ('t1', 'k1', 'active', 'x')")
+    connection.execute("INSERT INTO circle_children VALUES ('c1', 't1', 'p1', 's1', 'Nova', 'she/her', 'family', "
+                       "'2026-09-01', 'born', 'x', 'x')")
+    connection.commit()
+    connection.close()
+
+    database = Database(path)
+
+    with database.connect(write=True) as connection:
+        row = connection.execute("SELECT name, title, whose FROM circle_children WHERE id='c1'").fetchone()
+        assert tuple(row) == ('Nova', 'family', '')
+        connection.execute("INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, "
+                           "title, born_on, status, created_at, updated_at, whose) VALUES ('c2', 't1', 'p1', 's2', "
+                           "'Ivy', 'she/her', 'ours', '2027-01-01', 'born', 'x', 'x', 'companion')")
