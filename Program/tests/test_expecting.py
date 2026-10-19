@@ -480,6 +480,24 @@ def test_the_birth_day_while_long_distance_and_a_homecoming(client, provider, cl
             'Mira brought Ciro home with you.'
 
 
+def test_after_a_breakup_the_birth_day_is_without_the_user(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    to(client, clock, stage(row, 'halfway')['on'])
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-expecting-40')
+    assert client.get('/api/life/breakup').json()['stage'] == 'ended'
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert {block['label'] for block, _entry in found} == {'Having the baby at the hospital'}
+    assert not any(block['with_user'] for block, _entry in found)
+    name = row['details']['name'].split()[0]
+    assert f'Mira gave birth to {name} at the hospital.' in {entry['summary'] for _block, entry in found}
+
+
 def test_with_the_adult_side_on_the_birth_day_is_an_ordinary_one(client, clock, monkeypatch, likeliest):
     row = started(client, monkeypatch, identity='She is a 31-year-old nurse.')
     set_life(client, automatic_events=True, phrase_with_model=False)

@@ -384,28 +384,34 @@ def days_off(connection, companion: dict, start: date, end: date) -> dict[str, s
 
 # Where a birth is, by era group: a hospital in a modern or jazz-age city, at home with the midwife in an older one.
 BIRTH_PLACE = {'modern': 'at the hospital', 'jazz': 'at the hospital', 'old': 'at home'}
-# The waking blocks of the day: (together, apart) by route. Apart is long distance (Together or apart): the one who
-# lives away isn't there.
+# The waking blocks of the day: (together, apart) by route. Apart is long distance (Together or apart: the one who
+# lives away isn't there) or on a break or broken up (steps.apart).
 ARRIVAL_LABELS = {'expecting_them': ('Having the baby {at}, together', 'Having the baby {at}'),
                   'expecting_you': ('With you {at} for the birth', 'Waiting for news of the birth'),
                   'surrogacy': ('{At} for the birth, together', '{At} for the birth'),
                   'home': ('Bringing {name} home, together', 'Bringing {name} home')}
-# What the day was, for Today and the companion's life (third person; "you" is the user).
+# What the day was, for Today and the companion's life (third person; "you" is the user): (together, long distance,
+# on a break or broken up).
 ARRIVAL_SUMMARIES = {
     'expecting_them': ('{companion} gave birth to {name} {at}, with you there.',
-                       '{companion} gave birth to {name} {at} while you were away.'),
+                       '{companion} gave birth to {name} {at} while you were away.',
+                       '{companion} gave birth to {name} {at}.'),
     'expecting_you': ('{companion} was with you {at} while you gave birth to {name}.',
-                      '{companion} waited for news while you gave birth to {name}, far away.'),
+                      '{companion} waited for news while you gave birth to {name}, far away.',
+                      '{companion} waited for news while you gave birth to {name}.'),
     'surrogacy': ('{companion} and you were {at} when {surrogate} gave birth to {name}.',
+                  '{companion} was {at} when {surrogate} gave birth to {name}.',
                   '{companion} was {at} when {surrogate} gave birth to {name}.'),
-    'home': ('{companion} brought {name} home with you.', '{companion} brought {name} home.')}
+    'home': ('{companion} brought {name} home with you.', '{companion} brought {name} home.',
+             '{companion} brought {name} home.')}
 ARRIVAL_LATER = {'birth': '{companion} spent the rest of the day with {name}.',
                  'home': '{companion} helped {name} settle in at home.'}
 
 
 def arrival_days(connection, companion: dict, since: str) -> dict[str, dict]:
     """{local date: the day} for the day the child is born or comes home, from `since` on: the whole waking day goes
-    to it (agenda.write_arrival_slot), with the user there unless they live apart (long distance). None with the adult
+    to it (agenda.write_arrival_slot), with the user there unless they live apart (long distance) or are on a break or
+    broken up (`split`). None with the adult
     side of life on: that day is an ordinary one there."""
     row = current(connection, companion['active_timeline_id']) if ACTIVE and companion.get('active_timeline_id') \
         else None
@@ -418,17 +424,18 @@ def arrival_days(connection, companion: dict, since: str) -> dict[str, dict]:
     return {stage['on']: {'id': row['id'], 'key': row['route'] if birth else 'home', 'birth': birth,
                           'name': row['details'].get('name') or 'the baby',
                           'surrogate': row['details'].get('surrogate') or 'the surrogate',
-                          'far': far_on(connection, companion, row),
+                          'far': far_on(connection, companion, row), 'split': bool(steps.apart(connection, companion)),
                           'at': BIRTH_PLACE[era_group(connection, companion)]}}
 
 
 def arrival_block(view: dict, day: dict) -> dict:
     """A waking block of that day: the birth or homecoming, with the user unless far."""
     together, apart = ARRIVAL_LABELS[day['key']]
-    label = (apart if day['far'] else together).format(at=day['at'], At=day['at'][:1].upper() + day['at'][1:],
+    away = day['far'] or day.get('split')
+    label = (apart if away else together).format(at=day['at'], At=day['at'][:1].upper() + day['at'][1:],
                                                        name=first_name(day['name']))
-    return {**view, 'kind': 'social' if not day['far'] else 'leisure', 'label': label, 'arrival': day['id'],
-            'holiday': None, 'sick_day': False, 'with_user': not day['far']}
+    return {**view, 'kind': 'leisure' if away else 'social', 'label': label, 'arrival': day['id'],
+            'holiday': None, 'sick_day': False, 'with_user': not away}
 
 
 def arrival_entry(day: dict, block: dict, definition: dict) -> dict:
@@ -437,7 +444,7 @@ def arrival_entry(day: dict, block: dict, definition: dict) -> dict:
     words = {'companion': definition['name'].split()[0], 'name': first_name(day['name']), 'at': day['at'],
              'surrogate': day['surrogate']}
     if composer.day_part(block.get('start') or '09:00') in ('morning', 'afternoon'):
-        summary = ARRIVAL_SUMMARIES[day['key']][1 if day['far'] else 0].format(**words)
+        summary = ARRIVAL_SUMMARIES[day['key']][1 if day['far'] else 2 if day.get('split') else 0].format(**words)
     else:
         summary = ARRIVAL_LATER['birth' if day['birth'] else 'home'].format(**words)
     return {'summary': summary, 'post': summary, 'mood': 'happy', 'activity': 'family-arrival', 'place': None,
