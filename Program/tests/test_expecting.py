@@ -361,3 +361,13 @@ def test_word_getting_around_reads_you_and_them_on_today():
     assert news.on_screen('Mira and the user are expecting a baby') == 'You and Mira are expecting a baby'
     assert news.on_screen('Mira and the user welcomed a child home') == 'You and Mira welcomed a child home'
     assert news.on_screen('the user') == 'You' and news.on_screen('Mira got a promotion') == 'Mira got a promotion'
+
+
+def test_the_small_moments_of_one_journey_never_repeat():
+    lines = [line for line in expecting.bank()['pregnancy'] if line['era'] == 'any']
+    for index in range(300):
+        row = {'id': f'journey-{index}'}
+        texts = [expecting.moment_text(row, moment, lines) for moment in range(expecting.MOMENTS)]
+        assert len(set(texts)) == expecting.MOMENTS
+    # The first moment is the line it always was.
+    assert expecting.moment_text({'id': 'x'}, 0, lines) == expecting.generators.pick('journey:x', 'moment:0', lines)['text']

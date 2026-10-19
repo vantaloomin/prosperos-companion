@@ -685,9 +685,17 @@ def moment_line(connection, companion: dict, row: dict, done: dict, today: date)
                  default=None)
     if latest is None or row['status'] == 'home' or (today - date.fromisoformat(latest['on'])).days > RECENT_DAYS:
         return []
-    line = generators.pick(f"journey:{row['id']}", latest['key'],
-                           fitting(bank()[latest['bank_key']], connection, companion))['text']
+    line = moment_text(row, int(latest['key'].split(':')[1]), fitting(bank()[latest['bank_key']], connection, companion))
     return [f"- Lately ({long_date(latest['on'])}): {line}"]
+
+
+def moment_text(row: dict, index: int, lines: list[dict]) -> str:
+    """The bank line for the journey's moment `index`, never one an earlier moment of it had (seeded, in order)."""
+    used: list[str] = []
+    for each in range(index + 1):
+        pool = [line for line in lines if line['text'] not in used] or lines
+        used.append(generators.pick(f"journey:{row['id']}", f'moment:{each}', pool)['text'])
+    return used[-1]
 
 
 # First texts (companion/life/openers.py) ----------------------------------------------------------------------------------
