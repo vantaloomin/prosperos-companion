@@ -294,15 +294,16 @@ def test_after_two_noes_they_stop_bringing_it_up(client, provider, clock, monkey
     assert first_text(client, clock)
     says(provider)
     send(client, "no, I don't want kids", 'client-family-no-1')
+    assert 180 <= parenthood.NO_AGAIN_DAYS <= 184  # About six months (Vanta 2026-10-19).
     clock.advance(timedelta(days=parenthood.NO_AGAIN_DAYS - 30))
     reconcile(client)
-    assert planned(client) == []  # Half a year holds other steps; a no to children holds a year.
+    assert planned(client) == []  # A no to children holds half a year.
     clock.advance(timedelta(days=40))
     reconcile(client)
     [row] = planned(client)
     with client.app.state.database.connect(write=True) as connection:
         connection.execute("UPDATE step_asks SET status='no', settled_at=? WHERE id=?",
-                           ((clock.now() - timedelta(days=400)).isoformat(), row['id']))
+                           ((clock.now() - timedelta(days=200)).isoformat(), row['id']))
     clock.advance(timedelta(days=30))
     reconcile(client)
     assert planned(client) == []  # Two noes settle it.

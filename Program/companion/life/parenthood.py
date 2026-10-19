@@ -54,9 +54,9 @@ OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
 NO_CLINIC_ERAS = {*OLD_ERAS, 'jazz-age'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
-# After the user says no when they bring it up, they ask once more, a year on at the soonest; a second no settles it
-# (the user can still bring it up).
-NO_AGAIN_DAYS = 365
+# After the user says no when they bring it up, they ask once more, half a year on at the soonest (Vanta 2026-10-19); a
+# second no settles it (the user can still bring it up).
+NO_AGAIN_DAYS = 182
 MOST_NOS = 2
 # Another child (companion/life/our_child.py): no sooner than this many days after the youngest came home; one more.
 SIBLING_AFTER = 548
@@ -380,7 +380,7 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
 
 
 def told_no(connection, timeline_id: str, today: date) -> bool:
-    """The user said no when they brought it up: twice, or once less than a year ago."""
+    """The user said no when they brought it up: twice, or once less than half a year ago."""
     nos = many(connection, "SELECT settled_at FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side='them' "
                "AND status='no' AND settled_at IS NOT NULL ORDER BY settled_at DESC", (timeline_id, USER, FAMILY.key))
     if len(nos) >= MOST_NOS:
