@@ -2042,6 +2042,10 @@ export interface PersonaPet { name: string; kind: string; looks: string; born?: 
 export interface Persona {
   id: string; name: string; gender: PersonaGender; age: number | null; about: string; birthday: string; created_at: string
   pets?: PersonaPet[]
+  /** Kind and How long they live as picked on the Persona page ('' and null: read from About you). */
+  kind?: string; lifespan?: number | null
+  /** What applies, the app's pick from their words, and what the pickers offer (companion/worlds.py `kind_shown`). */
+  kind_shown?: KindShown & KindChoices & { found: string; found_label: string; picked: string }
   active: boolean
   worlds: World[]
 }

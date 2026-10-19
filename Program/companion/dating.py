@@ -55,8 +55,13 @@ def profile(connection) -> dict | None:
 
 
 def persona(connection) -> dict | None:
-    """Who the user is in this world (companion/worlds.py), so the profile starts filled in."""
-    return optional(connection, 'SELECT name, gender, age, about FROM persona WHERE id=1')
+    """Who the user is in this world (companion/worlds.py), so the profile starts filled in. The age is in human
+    terms, as matching reads it: an elf of 312 starts the profile at 49."""
+    row = optional(connection, 'SELECT name, gender, age, about, kind, lifespan FROM persona WHERE id=1')
+    if row is None:
+        return None
+    return {'name': row['name'], 'gender': row['gender'], 'about': row['about'],
+            'age': ages.persona_life_age(connection, row) if row['age'] else row['age']}
 
 
 def default_city(connection) -> str:

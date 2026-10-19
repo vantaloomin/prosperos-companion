@@ -653,7 +653,7 @@ def kind_of(connection, companion: dict, child: dict) -> str:
         return lifespans.HUMAN
     definition = companion['version']['definition']
     data = ages.city_of(connection, definition)
-    yours = lifespans.from_words(parenthood.persona(connection).get('about') or '', data)
+    yours = lifespans.persona_kind(parenthood.persona(connection), data)
     return lifespans.blend(lifespans.sheet_kind(definition, data), yours, data)
 
 

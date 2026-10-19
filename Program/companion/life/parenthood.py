@@ -217,7 +217,7 @@ def wants(connection, companion: dict, now=None) -> str:
 # How a child would come -------------------------------------------------------------------------------------------------
 
 def persona(connection) -> dict:
-    return optional(connection, 'SELECT gender, age, about FROM persona WHERE id=1') or {}
+    return optional(connection, 'SELECT gender, age, about, kind, lifespan FROM persona WHERE id=1') or {}
 
 
 def old_era(connection, companion: dict) -> bool:

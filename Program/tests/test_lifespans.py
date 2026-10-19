@@ -362,6 +362,49 @@ def test_a_child_of_two_of_a_citys_own_kind_is_that_kind(client, clock, monkeypa
     assert (child['kind']['label'], child['kind']['years']) == ('Tiefling', 200)
 
 
+def test_a_persona_can_be_an_elf_of_300_once_the_kind_is_picked_or_read_from_their_words(client):
+    make(client)
+    persona = client.get('/api/worlds').json()['persona']
+    url = f"/api/worlds/personas/{persona['id']}"
+    shown = persona['kind_shown']
+    assert shown['kind'] == 'human' and shown['found_label'] == 'Human' and shown['picked'] == ''
+    assert {'id': 'elf', 'label': 'Elf', 'lifespan': 600} in shown['kinds']
+    # Past 120 only for a long-lived kind; a human or a halfling stays at 120 at most.
+    refused = client.patch(url, json={'age': 300})
+    assert refused.status_code == 422 and 'long-lived kind' in refused.text
+    assert client.patch(url, json={'age': 300, 'kind': 'halfling'}).status_code == 422
+    assert client.patch(url, json={'age': 120}).status_code == 200
+    assert client.patch(url, json={'age': 5001, 'kind': 'elf'}).status_code == 422
+    assert client.patch(url, json={'kind': 'sprite'}).status_code == 422
+    assert client.patch(url, json={'lifespan': 250}).status_code == 422
+    picked = client.patch(url, json={'age': 300, 'kind': 'elf'})
+    assert picked.status_code == 200, picked.text
+    shown = picked.json()['persona']['kind_shown']
+    assert shown['kind'] == 'elf' and shown['picked'] == 'elf' and shown['life_age'] == 48
+    with connect(client, write=False) as connection:
+        row = connection.execute('SELECT * FROM persona WHERE id=1').fetchone()
+        assert (row['kind'], row['age']) == ('elf', 300) and ages.persona_life_age(connection, dict(row)) == 48
+        assert parenthood.persona(connection)['kind'] == 'elf'
+        from companion import dating as matchlight
+        assert matchlight.persona(connection)['age'] == 48  # Matchlight's profile starts in human terms.
+    # "Doesn't age" is long-lived too; back to the app's pick with an age past 120 is refused.
+    assert client.patch(url, json={'kind': '', 'lifespan': 0}).status_code == 200
+    assert client.patch(url, json={'lifespan': None}).status_code == 422
+    # Read from their words: an elf by About you may be 300 with no pick.
+    words = client.patch(url, json={'about': 'An elf, a ranger from the old woods.', 'lifespan': None})
+    assert words.status_code == 200, words.text
+    shown = words.json()['persona']['kind_shown']
+    assert shown['found'] == 'elf' and shown['picked'] == '' and shown['kind'] == 'elf'
+
+
+def test_a_new_persona_can_be_made_an_elf(client):
+    make(client)
+    made = client.post('/api/worlds/personas', json={'name': 'Lorien', 'age': 250, 'kind': 'elf'})
+    assert made.status_code == 200, made.text
+    assert made.json()['kind'] == 'elf' and made.json()['age'] == 250
+    assert client.post('/api/worlds/personas', json={'name': 'Tom', 'age': 250}).status_code == 422
+
+
 def test_an_elven_townsperson_past_200_still_has_a_life_story_to_tell():
     from companion import cast
     from companion.world import life_details

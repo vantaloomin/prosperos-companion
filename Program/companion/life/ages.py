@@ -234,10 +234,10 @@ def person_kind(details: dict, data: dict | None = None) -> dict:
 
 
 def persona_life_age(connection, persona: dict, definition: dict | None = None) -> int:
-    """The user's life age, their kind read from their persona's words the way a companion's is."""
+    """The user's life age: their kind as picked on the Persona page, else read from their words the way a
+    companion's is."""
     data = city_of(connection, definition) if definition else None
-    span = lifespans.lifespan_of(lifespans.from_words(persona.get('about') or '', data), data)
-    return lifespans.life_age(persona.get('age') or 0, span) or 0
+    return lifespans.life_age(persona.get('age') or 0, lifespans.persona_lifespan(persona, data)) or 0
 
 
 def town_life_age(connection, sheet: dict, day: date, data: dict | None = None) -> int:
