@@ -264,7 +264,7 @@ def married_sibling(data: dict | None, timeline_id: str, name: dict, age: int, f
     """Whether a sibling is married, and the married name they go by when they took their spouse's.
     Seeded by the timeline, given name and age, so a circle rebuilt or corrected gets the same answer."""
     key = f"married:{timeline_id}:{name['given']}:{age}"
-    chance = next(share for limit, share in MARRIED_BY_AGE if (age or 0) < limit)
+    chance = next((share for limit, share in MARRIED_BY_AGE if (age or 0) < limit), MARRIED_BY_AGE[-1][1])
     if generators.unit(key, 'married') >= chance:
         return {}
     details = {'married': True}
@@ -471,7 +471,8 @@ def match_family(connection, companion: dict, world, rows: list[dict], now) -> b
         if role_kind(row['role']) == 'sibling':
             data = data or city_data(definition, world)
             wanted |= married_sibling(data, row['timeline_id'], {'given': given, 'pronouns': pronouns},
-                                      details.get('age') or 0, family)
+                                      lifespans.life_age(details.get('age') or 0, lifespans.lifespan_of(details.get('folk'), data)),
+                                      family)
         current = {key: details[key] for key in ('full_name', 'married', 'birth_family') if key in details}
         if current == wanted:
             continue

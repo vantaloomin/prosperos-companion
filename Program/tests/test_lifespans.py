@@ -155,3 +155,9 @@ def test_the_companions_relatives_carry_their_kind(client):
         rows = circle.people(connection, companion['active_timeline_id'])
     relatives = [row for row in rows if circle.role_kind(row['role']) in ('parent', 'sibling')]
     assert relatives and all(decode(row['details']).get('folk') == 'elf' for row in relatives)
+
+
+def test_an_elf_sibling_of_three_hundred_is_married_or_not_by_their_life_age():
+    name = {'given': 'Tunde', 'pronouns': 'he/him'}
+    assert isinstance(circle.married_sibling(None, 't1', name, 300, 'Fernwhisper'), dict)
+    assert circle.married_sibling(None, 't1', name, 20, 'Fernwhisper') == {}
