@@ -52,6 +52,10 @@ ROUTE_LABELS = {'expecting_them': '{name} carries the baby', 'expecting_you': 'Y
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
+# After the user says no when they bring it up, they ask once more, a year on at the soonest; a second no settles it
+# (the user can still bring it up).
+NO_AGAIN_DAYS = 365
+MOST_NOS = 2
 # Another child (companion/life/our_child.py): no sooner than this many days after the youngest came home; one more.
 SIBLING_AFTER = 548
 MOST_CHILDREN = 2
@@ -337,7 +341,7 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
     found_facts = facts(connection, companion, found, now)
     today = steps.local_today(companion, now)
     if found_facts['wants'] == 'no' or found_facts['short_days'] or found_facts['closeness_over'] < 0 or \
-            steps.waiting(connection, timeline_id, FAMILY.key, today):
+            steps.waiting(connection, timeline_id, FAMILY.key, today) or told_no(connection, timeline_id, today):
         return None
     turn = 1 + len(many(connection, 'SELECT id FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side=?',
                         (timeline_id, USER, FAMILY.key, 'them')))
@@ -347,6 +351,15 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
     offset = random.Random(f'{timeline_id}:{FAMILY.key}:{turn}:when').randint(low, high)
     return steps.insert_ask(connection, timeline_id, LADDER, FAMILY.key, 'them', 'planned', stamp(now),
                             due_on=today + timedelta(days=offset), consequence_id=outcome['id'], turn=turn)
+
+
+def told_no(connection, timeline_id: str, today: date) -> bool:
+    """The user said no when they brought it up: twice, or once less than a year ago."""
+    nos = many(connection, "SELECT settled_at FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side='them' "
+               "AND status='no' AND settled_at IS NOT NULL ORDER BY settled_at DESC", (timeline_id, USER, FAMILY.key))
+    if len(nos) >= MOST_NOS:
+        return True
+    return bool(nos) and (today - date.fromisoformat(nos[0]['settled_at'][:10])).days < NO_AGAIN_DAYS
 
 
 def plan_sibling(connection, companion: dict, found: dict, now) -> dict | None:

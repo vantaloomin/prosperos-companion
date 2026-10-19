@@ -244,6 +244,31 @@ def test_saying_no_to_one_who_wants_children_can_start_a_rough_patch_but_not_on_
         assert connection.execute("SELECT id FROM rough_patches WHERE cause='family_no'").fetchall()
 
 
+def test_after_two_noes_they_stop_bringing_it_up(client, provider, clock, monkeypatch, likeliest):
+    living_together(client, monkeypatch)
+    clock.advance(timedelta(days=185))
+    reconcile(client)
+    clock.advance(timedelta(days=80))
+    assert first_text(client, clock)
+    says(provider)
+    send(client, "no, I don't want kids", 'client-family-no-1')
+    clock.advance(timedelta(days=parenthood.NO_AGAIN_DAYS - 30))
+    reconcile(client)
+    assert planned(client) == []  # Half a year holds other steps; a no to children holds a year.
+    clock.advance(timedelta(days=40))
+    reconcile(client)
+    [row] = planned(client)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE step_asks SET status='no', settled_at=? WHERE id=?",
+                           ((clock.now() - timedelta(days=400)).isoformat(), row['id']))
+    clock.advance(timedelta(days=30))
+    reconcile(client)
+    assert planned(client) == []  # Two noes settle it.
+    says(provider)
+    send(client, 'actually, could we start a family?', 'client-family-after')
+    assert family(client)['decided_on']
+
+
 def test_with_the_adult_side_on_none_of_it_is_in_the_chat(client, provider, clock, monkeypatch, likeliest):
     living_together(client, monkeypatch)
     client.put('/api/settings', json={'adult_side': True})
