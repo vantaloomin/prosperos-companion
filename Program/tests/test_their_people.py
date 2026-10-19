@@ -171,6 +171,7 @@ def test_a_parent_with_no_family_in_town_has_their_friends_to_dinner_with_the_ki
     clock.advance(timedelta(days=7))
     trigger, outing = invite(client, clock)
     assert 'dinner at my place' in trigger.reason and 'my place' in trigger.template and '{' not in trigger.template
+    assert ' (Leo and Mia will be there too): dinner at my place' in trigger.reason
     assert outing['activity'] == their_people.AT_FAMILY and outing['place']['own']
     assert outing['place']['name'] == "Mira Costa's place"
     assert [person['role'] for person in outing['place']['people']] == ['close friend', 'friend']
@@ -526,3 +527,21 @@ def test_in_a_group_another_companion_knows_they_were_not_at_the_dinner(client, 
     [line] = [text for text in lines if "you weren't there" in text]
     assert line.startswith("Mira took the user to dinner at ") and 'their mom' in line
     assert not any("you weren't there" in text for text in own)
+
+
+def test_the_invitation_to_the_family_dinner_names_their_kids_but_not_with_the_adult_side_on(client, clock, invites,
+                                                                                               monkeypatch):
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, background='Her son Leo, 7.')
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        assert their_people.kids_coming(connection, companion) == ' (Leo will be there too)'
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect(write=True) as connection:
+        assert their_people.kids_coming(connection, current(connection)) == ''
+    trigger, _outing = invite(client, clock)
+    assert 'Leo' not in trigger.reason

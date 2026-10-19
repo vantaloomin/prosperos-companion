@@ -336,12 +336,23 @@ def meet_due(connection, companion: dict, now: datetime) -> list:
     who = people_text(people)
     thing = 'dinner' if activity == AT_FAMILY else 'drinks'
     first_time = row['why'] == 'step'
-    reason = (f"You've arranged for the user to {'meet' if first_time else 'come out with'} {who}: {thing} at "
+    too = kids_coming(connection, companion) if activity == AT_FAMILY and first_time else ''
+    reason = (f"You've arranged for the user to {'meet' if first_time else 'come out with'} {who}{too}: {thing} at "
               f"{words} on {day:%A} {day.day} {day:%B} at {at}. Tell them in your own words, naming who will be there, "
               f"the place, the day and the time{', a little nervous and happy about it' if first_time else ''}.")
     template = invitation(row, people, day, local.date(), clock_text(at), words, place.get('own', False))
     return [Trigger(f"meet:{row['id']}", 'meet_people', reason, template,
                     (row['id'], activity, day.isoformat(), at, place['id'], ','.join(person['id'] for person in people)))]
+
+
+def kids_coming(connection, companion: dict) -> str:
+    """' (Leo and Mia will be there too)': the companion's own kids at the family dinner (companion/life/kids.py), in
+    words only; '' with none, or with the adult side on (A/B 2026-10-19: 8/8 invitations named them, 1/8 without)."""
+    from companion.life import families, kids
+    found = kids.own(connection, companion['active_timeline_id']) if kids.ACTIVE else []
+    if not found or families.withheld(connection):
+        return ''
+    return f" ({steps.names_text([first(kid['name']) for kid in found])} will be there too)"
 
 
 def invitation(row: dict, people: list[dict], day: date, today: date, time: str, words: str, own: bool = False) -> str:
