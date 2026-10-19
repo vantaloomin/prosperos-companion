@@ -129,10 +129,8 @@ def adult_lines(connection, companion: dict, recent: list[dict], group: dict | N
 
 
 def every_name(connection) -> set[str]:
-    """Every child's name in any companion's life: a group chat or another companion's chat can say any of them."""
     from companion.life import families
-    rows = connection.execute('SELECT active_timeline_id FROM companions WHERE active_timeline_id IS NOT NULL')
-    return set().union(*(families.names(connection, row['active_timeline_id']) for row in rows.fetchall()))
+    return families.every_name(connection)
 
 
 def names_child(texts, names: set[str]) -> bool:

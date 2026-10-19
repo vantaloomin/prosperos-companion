@@ -345,3 +345,4 @@ def test_another_companion_in_the_chat_keeps_to_one_kind_of_line_too(client, pro
         billy = our_child.companion_of(connection, timeline_id)
         assert not sides.adult_lines(connection, billy, [{'text': f'{first} took her first steps'}], None, None, False)
         assert sides.hidden(connection, timeline_id, False).search(f'- Mira says {first} is walking now.')
+        assert families.pictured(connection, timeline_id, [f'Billy and {first} at the park'])
