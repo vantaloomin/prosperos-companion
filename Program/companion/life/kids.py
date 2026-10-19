@@ -91,7 +91,7 @@ _LIST = rf"({_ONE}(?:, {_ONE})*(?:,? (?:and|&) {_ONE})?)"
 _OPENS = r'(?:^|[.;:,(]\s*|\band )(?-i:[Tt]wo|[Tt]hree|[Ff]our|[Ff]ive) '
 LISTED = (re.compile(rf"(?:\b(?:her|his|their|my|has|have|of|to|raising) (?:(?:{_COUNT}) )?|{_OPENS}){_MOD}({_KIDS}),?:? "
                      rf"(?:(?:named|called) )?{_LIST}", re.IGNORECASE | re.MULTILINE),
-          re.compile(rf"\b{_PARENT} (?:of|to) (?:(?:{_COUNT}),? )?()(){_LIST}", re.IGNORECASE),
+          re.compile(rf"\b{_PARENT} (?:of|to) (?:(?:{_COUNT})[,:]? )?()(){_LIST}", re.IGNORECASE),
           re.compile(rf"\b(?:and|&) (?:(?:her|his|their|my) )?{_MOD}((?:step-?)?(?:sons?|daughters?)|boys?|girls?),? "
                      rf"(?:(?:named|called) )?{_LIST}", re.IGNORECASE))
 # How old a child is from the word before them: (youngest, oldest).
