@@ -405,3 +405,20 @@ def test_bed_rest_keeps_the_companion_carrying_the_baby_home_from_work(client, m
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     with client.app.state.database.connect() as connection:
         assert set(expecting.days_off(connection, current(connection), rest, born).values()) == {'Home day'}
+
+
+def test_news_on_a_day_the_user_was_away_still_comes(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(expecting, 'FIRST_TEXTS', True)
+    row = started(client, monkeypatch, route='adoption')
+    match = date.fromisoformat(stage(row, 'match')['on'])
+    to(client, clock, (match - timedelta(days=2)).isoformat())
+    says(provider)
+    send(client, 'see you in a few days', 'client-expecting-15')
+    to(client, clock, (match + timedelta(days=3)).isoformat())
+    [trigger] = triggers(client, clock)
+    assert trigger.key == f"journey:{row['id']}:match" and 'matched with' in trigger.reason
+    to(client, clock, (match + timedelta(days=30)).isoformat())  # Long after, and nothing new: no text.
+    says(provider)
+    send(client, 'hi', 'client-expecting-16')
+    clock.advance(timedelta(days=1))
+    assert triggers(client, clock) == []

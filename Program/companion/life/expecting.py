@@ -730,24 +730,27 @@ NEWS = {
             'feel about it, in your own words.',
     'match': 'The adoption agency just called: you and the user have been matched with {name}, {age}, who comes home '
              'on {home}. Text the user about it, in your own words.',
-    'home_fostering': '{name}, {age}, has just been placed with you and the user as your foster child, today. Text '
+    'home_fostering': '{name}, {age}, has just been placed with you and the user as your foster child, {when}. Text '
                       'the user about it, in your own words.',
     'need': 'Word just came that {need}. You and the user are taking them in: {name}, {age}, comes to live with you '
             'on {home}. Tell the user, in your own words.',
-    'born_far': 'Your baby was born today: a {girl}, {name}. The user is away. Text them the news, in your own words.',
+    'born_far': 'Your baby was born {when}: a {girl}, {name}. The user is away. Text them the news, in your own words.',
 }
 
 
 def news_due(connection, companion: dict, now) -> list:
-    """The news of the day, as a first text: finding out, the match, a placement, word of a child who needs a home, or
-    the birth when the user is away. Never with the adult side of life on."""
-    from companion.life import long_distance
+    """The news as a first text: finding out, the match, a placement, word of a child who needs a home, or the birth
+    when the user is away; the latest since yesterday or the user's last visit (love_life.news_since), so news on a
+    day the user was away still comes. Never with the adult side of life on."""
+    from companion.life import long_distance, love_life
     from companion.life.openers import Trigger
     row = current(connection, companion['active_timeline_id']) if ACTIVE and FIRST_TEXTS else None
     if row is None or row['status'] == 'planned' or quiet(connection):
         return []
-    today = local_today(companion, now).isoformat()
-    stage = next((item for item in row['stages'] if item['on'] == today), None)
+    day = local_today(companion, now)
+    today, since = day.isoformat(), love_life.news_since(connection, companion, now, day).isoformat()
+    stage = max((item for item in row['stages'] if since <= item['on'] <= today and news_key(row, item['key'])),
+                key=lambda item: item['on'], default=None)
     key = stage and stage['key']
     if key == 'home' and row['route'] in FOSTERING:
         key = 'home_fostering'
@@ -757,11 +760,17 @@ def news_due(connection, companion: dict, now) -> list:
         return []
     home = next((item['on'] for item in row['stages'] if item['key'] == 'home'), today)
     details = row['details']
-    reason = NEWS[key].format(due=f"{date.fromisoformat(details.get('due_on') or today):%B}",
+    when = 'today' if stage['on'] == today else f"on {long_date(stage['on'])}"
+    reason = NEWS[key].format(due=f"{date.fromisoformat(details.get('due_on') or today):%B}", when=when,
                               carrier=CARRIER.get(row['route'], '').format(**details), name=details['name'],
                               age=age_words(row), home=long_date(home), need=NEEDS.get(row['route'], ''),
                               girl=girl(row))
     return [Trigger(f"journey:{row['id']}:{key}", 'storyline', reason)]
+
+
+def news_key(row: dict, key: str) -> bool:
+    """Whether a stage is news told in a first text."""
+    return key in NEWS or key == 'born' or key == 'home' and row['route'] in FOSTERING
 
 
 def news_items(connection, companion: dict, since: str, today: str) -> list[dict]:
