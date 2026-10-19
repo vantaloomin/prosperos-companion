@@ -291,3 +291,31 @@ def test_split_up_with_a_child_the_ex_stays_as_the_other_parent(client, mira, cl
     assert f'- Since you and {first} split up, {child["name"].split()[0]} ' in prompt(client)
     with client.app.state.database.connect() as connection:
         assert connection.execute("SELECT id FROM consequences WHERE choice='kids:custody'").fetchone()
+
+
+def test_a_branch_keeps_where_their_child_lives_with_the_ex(client, mira, clock, monkeypatch, provider):
+    from conftest import send
+    from test_steps import says
+    sure(monkeypatch)
+    partner = partnered(client, clock)
+    reconcile(client)
+    [child] = children(client)
+    born(client, clock, child)
+    companion = current(client)
+    with client.app.state.database.connect(write=True) as connection:
+        found = love_life.partners(connection, companion['active_timeline_id'])[0]
+        love_life.end(connection, found, 'split', steps.local_today(companion, clock.now()))
+        connection.commit()
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        [before] = connection.execute("SELECT picked FROM consequences WHERE choice='kids:custody'").fetchall()
+    says(provider)
+    sent = send(client, 'hi', 'client-own-branch')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'hello'})
+    assert fork.status_code == 200, fork.text
+    with client.app.state.database.connect() as connection:
+        person = connection.execute("SELECT id FROM circle_people WHERE timeline_id=? AND name=?",
+                                    (fork.json()['id'], partner['name'])).fetchone()
+        copied = connection.execute('SELECT picked, timeline_id FROM consequences WHERE subject=?',
+                                    (f"kids:custody:own:{person['id']}",)).fetchone()
+    assert copied and copied['picked'] == before['picked'] and copied['timeline_id'] == fork.json()['id']

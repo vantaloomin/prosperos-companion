@@ -147,14 +147,20 @@ def advance(connection, companion: dict, now) -> None:
 
 
 def copy(connection, parent_id: str, new_id: str, ids: dict) -> None:
-    """A fork (companion/timelines.py, after breakups.copy) keeps the app's pick for each breakup it carries, and where
-    the user set the children to live for a breakup it carries (our_child.copy copied the setting)."""
+    """A fork (companion/timelines.py, after breakups.copy) keeps the app's pick for each breakup it carries, where the
+    user set the children to live for a breakup it carries (our_child.copy copied the setting), and where a companion's
+    own child lives with an ex of theirs."""
     from companion.life import our_child
     for row in many(connection, 'SELECT id, subject FROM consequences WHERE timeline_id=? AND choice=?',
                     (parent_id, CHOICE)):
         breakup_id = row['subject'].rsplit(':', 1)[-1]
         if breakup_id in ids:
             consequences.copy(connection, row['id'], new_id, f'{CHOICE}:{new_id}:{ids[breakup_id]}')
+    for row in many(connection, 'SELECT id, subject FROM consequences WHERE timeline_id=? AND choice=? AND subject '
+                    'LIKE ?', (parent_id, OWN_CHOICE, f'{OWN_CHOICE}:own:%')):
+        person_id = row['subject'].rsplit(':', 1)[-1]  # A companion's own child with an ex of theirs (own_line).
+        if person_id in ids:
+            consequences.copy(connection, row['id'], new_id, f'{OWN_CHOICE}:own:{ids[person_id]}')
     family = our_child.family_row(connection, parent_id)
     kept = ids.get(family.get('custody_for'))
     connection.execute('UPDATE our_family SET custody=?, custody_for=? WHERE timeline_id=?',
