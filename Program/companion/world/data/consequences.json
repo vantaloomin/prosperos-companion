@@ -1623,6 +1623,12 @@
               "why": "{name} is past forty-five"
             },
             {
+              "reader": "age",
+              "at_least": 52,
+              "times": 0.3,
+              "why": "{name} is past fifty"
+            },
+            {
               "reader": "warmth",
               "at_least": 2,
               "times": 1.4,
@@ -1663,6 +1669,12 @@
               "at_least": 40,
               "times": 0.5,
               "why": "{name} is past forty"
+            },
+            {
+              "reader": "age",
+              "at_least": 48,
+              "times": 0.2,
+              "why": "{name} is nearly fifty or past it"
             },
             {
               "reader": "sheet",

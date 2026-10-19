@@ -103,6 +103,14 @@ def test_a_seeded_wish_has_its_odds_and_someday_turns_to_yes_when_a_baby_comes(c
     assert family(client)['wants'] == 'no'
 
 
+def test_past_fifty_wanting_children_someday_is_rare():
+    names = {'name': 'Mira', 'a': 'someone', 'b': ''}
+    odds = [item['odds'] for item in consequences.odds('family:wants', {'age': 62, 'warmth': 2, 'sheet': set()}, names)]
+    assert odds[2] > 0.7 and odds[1] < 0.1
+    odds = [item['odds'] for item in consequences.odds('family:wants', {'age': 33, 'warmth': 1, 'sheet': set()}, names)]
+    assert odds[2] < 0.2
+
+
 def test_how_a_child_comes_is_picked_from_the_pair(client, monkeypatch, likeliest):
     make(client, monkeypatch, identity='She is a 31-year-old nurse.')
     persona = client.get('/api/worlds').json()['persona']
