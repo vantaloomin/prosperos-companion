@@ -115,8 +115,9 @@ def far_plans(connection, companion: dict, today: date, now: datetime | None) ->
     for outing in outings.in_force(connection, companion['active_timeline_id'], today.isoformat()):
         during = any(row['start_date'] <= outing['local_date'] <= row['end_date'] for row in visits)
         if during or outings.state(outing, timezone, when) != 'planned' or outing['place'].get('far') or \
-                outing['activity'] in (*together.AT_YOURS, 'wedding'):
-            continue  # Plans made for a visit are the visit's own; the wedding is in their city, whoever travels.
+                outing['activity'] in (*together.AT_YOURS, 'wedding', 'big-day'):
+            continue  # Plans made for a visit are the visit's own; the wedding is in their city, whoever travels,
+            # and a big day is on its own day (big_days.moved_apart plans the user's stay around it).
         stay = stays[0] if stays else None
         place = {**outing['place'], 'far': 'moved' if stay else 'off', 'far_on': today.isoformat(),
                  'was': outing['local_date']}
@@ -127,6 +128,30 @@ def far_plans(connection, companion: dict, today: date, now: datetime | None) ->
         else:
             connection.execute("UPDATE outings SET status='cancelled', cancelled_at=?, place=? WHERE id=?",
                                (stamp(when), encode(place), outing['id']))
+
+
+def next_stay(connection, companion: dict, today: date) -> date | None:
+    """The first full day of the user's next stay with them in their city (a visit agreed and still to come), for a
+    plan only their city has: meeting their people, the evening they propose. None when no stay is planned."""
+    row = optional(connection, "SELECT start_date, end_date FROM trips WHERE timeline_id=? AND visit=? AND "
+                   "status='planned' AND start_date>? ORDER BY start_date LIMIT 1",
+                   (companion['active_timeline_id'], HOST, today.isoformat()))
+    if row is None:
+        return None
+    return min(date.fromisoformat(row['start_date']) + timedelta(days=1), date.fromisoformat(row['end_date']))
+
+
+def staying_on(connection, companion: dict, day: date) -> bool:
+    """The user is staying with them in their city that day."""
+    return bool(optional(connection, "SELECT id FROM trips WHERE timeline_id=? AND visit=? AND status='planned' AND "
+                         'start_date<=? AND end_date>=?', (companion['active_timeline_id'], HOST, day.isoformat(),
+                                                          day.isoformat())))
+
+
+def free_during_stay(connection, companion: dict, day: date) -> bool:
+    """Nothing else is planned with the user that day of their stay (the stay itself is no clash)."""
+    return not optional(connection, "SELECT id FROM outings WHERE companion_id=? AND local_date=? AND status!='cancelled'",
+                        (companion['id'], day.isoformat()))
 
 
 def far_lines(connection, companion: dict, today: date) -> list[tuple[str, str]]:

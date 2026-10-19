@@ -20,13 +20,17 @@ from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import (
+    big_days,
+    big_turns,
     breakups,
     encounters,
+    families,
     feed,
     grooming,
     hobbies,
     home,
     kitchen,
+    loss,
     love_life,
     media,
     moving_in,
@@ -217,11 +221,14 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     insert(connection, 'recommendations', [{**row, 'id': ids[row['id']], 'timeline_id': new_id,
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
+    families.copy(connection, parent_id, new_id, ids, cutoff[:10])
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
     copy_steps(connection, parent_id, new_id, cutoff)
     wedding.copy_proposals(connection, steps.copy_open(connection, parent_id, new_id, cutoff, ids), new_id)
     love_life.copy(connection, parent_id, new_id, ids, cutoff[:10])
     wedding.copy(connection, parent_id, new_id, cutoff[:10])
+    loss.copy(connection, parent_id, new_id, ids, cutoff[:10])
+    big_days.copy(connection, parent_id, new_id, ids, cutoff)  # After what its sources name (loss.py's funerals).
     breakups.copy(connection, parent_id, new_id, ids, cutoff)
     copy_impressions(connection, parent_id, new_id, ids, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
@@ -254,10 +261,12 @@ def copy_storylines(connection, parent_id, new_id, ids, cutoff_date):
 def copy_chapters(connection, parent_id, new_id, ids, cutoff_date):
     """Life chapters begun by the fork carry over with how they went; later ones are the copy's own."""
     rows = many(connection, 'SELECT * FROM life_chapters WHERE timeline_id=? AND started_on<=?', (parent_id, cutoff_date))
+    # A big turn as it stood on the fork's day (big_turns.fork_row), with the copies of its people and home items.
+    copies = [big_turns.fork_row(connection, row, identifier(), new_id, cutoff_date) for row in rows]
     insert(connection, 'life_chapters', [{
-        **row, 'id': identifier(), 'timeline_id': new_id, 'undo': remap(row['undo'], ids),
+        **row, 'undo': remap(row['undo'], ids), 'details': remap(row['details'], ids),
         'consequence_id': row['consequence_id'] and consequences.copy(
-            connection, row['consequence_id'], new_id, f"chapter:{new_id}:{row['started_on']}")} for row in rows])
+            connection, row['consequence_id'], new_id, f"chapter:{new_id}:{row['started_on']}")} for row in copies])
     if optional(connection, 'SELECT through FROM chapter_days WHERE timeline_id=?', (parent_id,)):
         connection.execute('INSERT INTO chapter_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
 

@@ -20,6 +20,8 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
     admin,
+    ages,
+    big_days,
     body,
     breakups,
     chapters,
@@ -27,11 +29,13 @@ from companion.life import (
     composer,
     disruptions,
     encounters,
+    families,
     grooming,
     hobbies,
     home,
     kitchen,
     long_distance,
+    loss,
     love_life,
     media,
     moving_in,
@@ -84,8 +88,24 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
     # What the companion has said they like or dislike leans their plans too (companion/self_facts.py).
     result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id']),
                                'own_birthday': occasions.own_birthday(companion),
+                               'milestones': milestones(connection, companion, now),
                                'traditions': kept_traditions(connection, companion, now)}, version['id']))
     return result
+
+
+def milestones(connection, companion, now) -> dict[str, int]:
+    """Their milestone birthdays (30, 40, 50 ...) on the dates an extension can write: {date: the age they turn}, so
+    the evening is a party (companion/life/composer.py)."""
+    birthday = occasions.own_birthday(companion)
+    if not birthday:
+        return {}
+    found = {}
+    for year in range((now - BACKFILL).year, (now + HORIZON).year + 1):
+        day = ages.birthday_in(year, birthday)
+        age = ages.turns_on(connection, companion['id'], companion['version']['definition'], day)
+        if ages.milestone(age) and (now - BACKFILL - timedelta(days=1)).date() <= day <= (now + HORIZON).date():
+            found[day.isoformat()] = age
+    return found
 
 
 def kept_traditions(connection, companion, now) -> dict[str, dict]:
@@ -152,6 +172,7 @@ def extend(connection, companion, world, now) -> dict:
         written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion)
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
+    started += families.advance(connection, companion, world, now)
     reactions.daily(connection, companion, now)
     rough_patches.daily(connection, companion, now)
     # Breaks and breakups (companion/life/breakups.py) read the rough patches just settled.
@@ -161,6 +182,8 @@ def extend(connection, companion, world, now) -> dict:
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)
     wedding.advance(connection, companion, now)
+    loss.advance(connection, companion, now)  # Before the big days: a death brings a funeral.
+    big_days.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
 
 
@@ -243,10 +266,11 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
 
 def pinned_plans(connection, timeline_id, since: str) -> dict[str, list[dict]]:
     """The companion's own plans by local date, with outings with the user, which take their slots the same way
-    (companion/life/outings.py), and appointments, errands and chores (companion/life/admin.py), placed where
-    nothing else is."""
+    (companion/life/outings.py), appointments, errands and chores (companion/life/admin.py), placed where
+    nothing else is, and big days they go to on their own (companion/life/big_days.py)."""
     plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
-    for extra in (outings.as_plans(connection, timeline_id, since), admin.as_plans(connection, timeline_id, since)):
+    for extra in (outings.as_plans(connection, timeline_id, since), admin.as_plans(connection, timeline_id, since),
+                  big_days.as_plans(connection, timeline_id, since)):
         for local_date, found in extra.items():
             plans[local_date] = plans.get(local_date, []) + found
     return plans
@@ -279,9 +303,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         if slot.block.key in pinned:
             plan = pinned[slot.block.key]
             block = outings.marked(block, plan)
-            entry = None if plan and plan.get('continues') else plan and (
-                outings.entry(plan, block, definition) if 'outing' in plan else
-                admin.entry(plan, block, definition) if 'admin' in plan else own_plans.entry(plan, block, definition))
+            entry = None if plan and plan.get('continues') else plan and plan_entry(plan, block, definition)
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)
             if subject == COMPANION:
@@ -310,6 +332,16 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         (identifier(), timeline_id, subject, slot.key, stamp(starts_at), stamp(ends_at), slot.local_date.isoformat(),
          encode(block), encode(entry) if entry else None, scope['basis'], stamp(scope['now'])))
     return 1
+
+
+def plan_entry(plan: dict, block: dict, definition: dict) -> dict:
+    """The entry for a slot a plan takes: an outing with the user, an appointment or errand, a big day they go to on
+    their own (companion/life/big_days.py), or a plan they made in chat."""
+    if 'outing' in plan:
+        return outings.entry(plan, block, definition)
+    if 'admin' in plan:
+        return admin.entry(plan, block, definition)
+    return big_days.entry(plan, block, definition) if 'big_day' in plan else own_plans.entry(plan, block, definition)
 
 
 def write_trip_slot(connection, scope: dict, slot, facts: dict) -> int:
@@ -560,9 +592,13 @@ def forget_person(connection, timeline_id, person_id, now):
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
     result, known = [], circle.ties(circle.people(connection, timeline_id))
-    at_wedding = wedding.guests_there(connection, timeline_id, now)  # Not at work: at the wedding, as its scene says.
-    for row in circle.people(connection, timeline_id, include_removed):
-        person = circle.view(row)
+    # Not at work: at the wedding, or at their own big day (companion/life/big_days.py), as its scene says.
+    at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
+    for row in circle.people(connection, timeline_id, True):
+        late = (decode(row['details']) or {}).get('late')
+        if row['status'] != 'active' and not include_removed and not late:
+            continue  # Someone late stays on the list (companion/life/loss.py); someone removed only when asked.
+        person = circle.view(row) | ({'loss': loss.of_person(connection, row['id'])} if late else {})
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \
             row['id'] not in at_wedding else None
         result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),

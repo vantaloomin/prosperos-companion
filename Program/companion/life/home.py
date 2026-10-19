@@ -78,7 +78,7 @@ FEATURES = {
 SIZES = {'studio': 'a studio', 'one_bedroom': 'a one-bedroom', 'two_bedroom': 'a two-bedroom'}
 HOUSING = {'single-family': 'single-family house', 'master-planned': 'house in a master-planned community',
            'two-family-house': 'two-family house', 'new-build': 'new building'}
-PLURAL = {'rooms', 'lodgings', 'chambers', 'barracks', 'hotel', 'warehouse'}
+PLURAL = {'rooms', 'lodgings', 'chambers', 'barracks'}
 # Favourite things that only suit some moments at home (the rest suit any).
 FITS = {'a cast-iron pan': {'home-cooking'}, 'an overflowing bookshelf': {'reading', 'slow'},
         'a sketchbook': {'slow', 'reading'}, 'a game console': {'slow'}, 'a battered chess set': {'slow'},
@@ -105,12 +105,14 @@ def stems_match(definition: dict, stems) -> bool:
 def housing_text(housing: str) -> str:
     """Readable housing: "rooms-over-store" is "rooms over a store"."""
     text = HOUSING.get(housing, housing.replace('-', ' '))
-    return re.sub(r' (over|behind|around|above) (?!a )', r' \1 a ', text)
+    return re.sub(r' (over|behind|around|above) (?!a )(?![a-z]+s$)', r' \1 a ', text)  # "rooms over shops"
 
 
 def article(text: str) -> str:
-    """"a" or "an" before a thing; none before plurals such as "rooms over a store" or "lodgings"."""
-    if text.split(' ')[0] in PLURAL or text.endswith('quarters'):
+    """"a" or "an" before a thing ("a warehouse conversion"); none before plurals such as "rooms over a store",
+    "warehouse lodgings" or "inn rooms"."""
+    words = text.split(' ')
+    if words[0] in PLURAL or words[-1] in PLURAL or text.endswith('quarters'):
         return text
     return f"{'an' if text[:1] in 'aeiou' else 'a'} {text}"
 
@@ -294,9 +296,13 @@ def items_on(connection, timeline_id, day: date) -> list[dict]:
 
 
 def item_view(row: dict) -> dict:
-    return {'id': row['id'], 'kind': row['kind'], 'name': row['name'], 'variety': row['variety'],
-            **decode(row['details']), 'origin': row['origin'], 'since': row['since'], 'until': row['until'],
-            'edited': bool(row['edited']), 'revision': row['revision']}
+    details = decode(row['details'])
+    found = {'id': row['id'], 'kind': row['kind'], 'name': row['name'], 'variety': row['variety'],
+             **details, 'origin': row['origin'], 'since': row['since'], 'until': row['until'],
+             'edited': bool(row['edited']), 'revision': row['revision']}
+    if details.get('rent') and isinstance(details.get('currency'), dict):  # As money.py says it: '$1,410', '8 d.'.
+        found['rent_text'] = money.amount(details['rent'], details['currency'])
+    return found
 
 
 def repairs_on(connection, timeline_id, day: date) -> dict[str, dict]:
@@ -559,13 +565,17 @@ def pet_hint(connection, timeline_id: str, event: dict, named_ids: list[str], at
 
 
 def money_text(home: dict) -> str:
-    """Rent, unless the budget section already states it."""
+    """Rent (the mortgage, on a place they own), unless the budget section already states it."""
     if not home.get('rent') or home.get('rent_from') == 'budget':
         return ''
     currency = home.get('currency') or {}
-    symbol = currency.get('symbol', '$') if isinstance(currency, dict) else '$'
+    # In the city's own money, as money.py says it ('$1,410', '5 d.').
+    said = money.amount(home['rent'], currency) if isinstance(currency, dict) and currency.get('symbol') else \
+        f"${home['rent']:,}"
     shared = ', split with the user' if home.get('shared') else ''  # Living together (companion/life/moving_in.py).
-    return f" Rent is about {symbol}{home['rent']:,} a {home.get('rent_period', 'month')}{shared} (an estimate)."
+    if home.get('owned'):  # A place they bought (companion/life/big_turns.py).
+        return f" The mortgage is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
+    return f" Rent is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
 
 
 def context_lines(connection, timeline_id: str, day: date) -> list[tuple[str, str]]:
@@ -612,7 +622,7 @@ def monthly_costs(connection, timeline_id: str, day: date) -> dict | None:
     if home is None:
         return None
     return {'rent': home.get('rent'), 'rent_period': home.get('rent_period', 'month'),
-            'currency': home.get('currency'), 'estimate': True,
+            'currency': home.get('currency'), 'estimate': True, 'owned': bool(home.get('owned')),
             'pets': [item['variety'] for item in items if item['kind'] == 'pet'],
             'vehicles': [item['variety'] for item in items if item['kind'] == 'vehicle']}
 

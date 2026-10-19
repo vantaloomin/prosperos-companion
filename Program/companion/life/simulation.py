@@ -26,13 +26,28 @@ from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import agenda, circle, composer, deck, dreams, feed, hobbies, mood, pets, routine, thoughts, upkeep
+from companion.life import (
+    agenda,
+    ages,
+    circle,
+    composer,
+    deck,
+    dreams,
+    feed,
+    hobbies,
+    mood,
+    pets,
+    routine,
+    thoughts,
+    upkeep,
+)
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
 from companion.text_models import config_for, key_for
 from companion.workspace import overlapping_pause
+from companion.world import turnover
 
 LOG = logging.getLogger(__name__)
 
@@ -44,7 +59,7 @@ BACKGROUND_LOOKUP_DEADLINE = 20.0
 # Columns that record a one-time switch to a new default, not settings.
 MARKERS = ('texts_first_on_by_default', 'events_on_by_default')
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts',
-         'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups')
+         'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups', 'people_pass_away')
 NEWS_EVERY = timedelta(minutes=10)
 UNFINISHED = ('planned', 'running', 'interrupted')
 
@@ -74,6 +89,8 @@ def update_settings(database, body) -> dict:
                    for key, value in changes.items() if row[key] != value}
         if changed:
             timestamp = database.now()
+            if {'life_turns', 'growing_families', 'people_pass_away', 'loss'} & set(changed):
+                turnover.record(connection, row, database.clock.now().date(), timestamp)
             columns = ', '.join(f'{key}=?' for key in changed)
             connection.execute(f'UPDATE life_settings SET {columns}, updated_at=? WHERE id=1',
                                (*changed.values(), timestamp))
@@ -86,7 +103,13 @@ def update_settings(database, body) -> dict:
                 upkeep.settings_changed(connection, database.clock.now())
             if 'hobbies_realism' in changed:
                 hobbies.settings_changed(connection, database.clock.now(), row['hobbies_realism'])
-        return settings_view(life_settings(connection))
+            if {'people_pass_away', 'loss'} & set(changed):
+                from companion.life import loss
+                loss.settings_changed(connection)
+        found = settings_view(life_settings(connection))
+    if {'life_turns', 'growing_families', 'people_pass_away', 'loss'} & set(changed):
+        turnover.load(database)  # The town follows Life's big turns, babies (companion/world/couples.py) and Loss.
+    return found
 
 
 # Cursor and runs --------------------------------------------------------------------------------
@@ -457,6 +480,11 @@ class LifeEngine:
     def decide(self, mode, companion_id=None) -> dict:
         with self.database.connect() as connection:
             stepped = may_extend(settings(connection), mode)
+            paused = settings(connection)['paused_at'] is not None
+        if mode == 'return' and not companion_id and not paused:
+            # Birthdays since the last tick move ages on before the agenda is written (companion/life/ages.py).
+            with self.database.connect(write=True) as connection:
+                ages.sync(connection, self.now())
         if stepped:
             agenda.catch_up_in_steps(self.database, companion_id, self.world, self.now())
         with self.database.connect(write=True) as connection:
@@ -839,6 +867,7 @@ class LifeEngine:
             paused = settings(connection)['paused_at'] is not None
             if not paused:
                 news.sync(connection, self.now())
+                ages.sync(connection, self.now())  # Birthdays move everyone's age on (companion/life/ages.py).
                 deck.sync(connection, self.now())
                 dreams.sync(connection, self.now())
         if self.groups is not None and not paused:

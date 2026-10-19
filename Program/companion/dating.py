@@ -14,8 +14,8 @@ from companion.characters import current
 from companion.database import decode, encode, identifier, many, optional, settings
 from companion.errors import DomainError, require
 from companion.images import backends
-from companion.life import encounters, where
-from companion.world import catalog, dating, mix, townsfolk
+from companion.life import ages, encounters, where
+from companion.world import catalog, dating, mix, townsfolk, turnover
 
 # The app's name in modern and future cities: made up, so it is nobody's real app.
 APP_NAME = 'Matchlight'
@@ -133,16 +133,21 @@ def pool(data: dict) -> list[tuple[dict, dict]]:
     """Everyone in the city who is on the app, with their dating details: people at its places, its residents and
     the neighbors who only turn up on the app (townsfolk.APP_MEMBERS). Several thousand people, so it is worked
     out once per city and town; only those looking are named."""
+    # Who is in town changes week by week (companion/world/turnover.py).
+    day = turnover.today(data)
+    week = townsfolk.week_of(day)
     key = (data['id'], data.get('town', ''), data.get('you', ''), tuple(data.get('kin', ())), tuple(place['id'] for place in data['places']),
-           tuple(hood['id'] for hood in data['neighborhoods']), mix.fingerprint())
+           tuple(hood['id'] for hood in data['neighborhoods']), mix.fingerprint(), tuple(data.get('kept', ())), week)
     if key not in _POOLS:
-        found = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])
+        found = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'], day)
                  if dating.on_app(sheet, data)]
         for hood in data['neighborhoods']:
             where = townsfolk.area(data, hood['id'])
-            total = townsfolk.resident_count(data, hood['id']) + townsfolk.APP_MEMBERS
+            members = range(townsfolk.resident_count(data, hood['id']), townsfolk.resident_count(data, hood['id']) +
+                            townsfolk.APP_MEMBERS)
             found += townsfolk.not_you(data, [
-                townsfolk.resident(data, hood['id'], index, where) for index in range(total)
+                townsfolk.resident(data, hood['id'], index, where)
+                for index in [*townsfolk.living(data, hood['id'], day), *members]
                 if dating.on_app(townsfolk.resident(data, hood['id'], index, where, named=False), data)])
         if len(_POOLS) > 16:
             _POOLS.clear()
@@ -155,7 +160,13 @@ def people(connection, data: dict) -> list[tuple[dict, dict]]:
     companion = current(connection)
     cast = encounters.town_cast(connection, companion, data) if companion else encounters.NO_CAST
     skip = set(cast['aliases']) | set(cast['own'])
-    return [item for item in pool(data) if item[0]['key'] not in skip]
+    return [(aged(connection, sheet, data), found) for sheet, found in pool(data) if sheet['key'] not in skip]
+
+
+def aged(connection, sheet: dict, data: dict) -> dict:
+    """Their sheet at the age they are now, as Around town shows it (companion/life/ages.py). Who they are drawn to
+    and the rest of their dating details stay as their seeded sheet gives them."""
+    return {**sheet, 'age': ages.town_age(connection, sheet, turnover.today(data))}
 
 
 def deck(connection, data: dict, mine: dict) -> tuple[list[dict], int]:
@@ -172,7 +183,8 @@ def city_for(connection, city_id: str, town: str) -> dict:
     would make a different person of the same key."""
     from companion.life import network
     data = story.city_data(connection, city_id)
-    return data if data.get('town', '') == town else data | {'town': town, 'you': network.you(connection, town)}
+    return data if data.get('town', '') == town else \
+        data | {'town': town, 'you': network.you(connection, town), 'kept': network.kept(connection, town)}
 
 
 def person(connection, key: str, town: str) -> tuple[dict, dict]:
@@ -181,7 +193,7 @@ def person(connection, key: str, town: str) -> tuple[dict, dict]:
     data = city_for(connection, parts[1], town)
     sheet = townsfolk.find(data, key)
     require(sheet is not None, 'No such person.', 404)
-    return sheet, data
+    return aged(connection, sheet, data), data
 
 
 # Swipes and matches --------------------------------------------------------------------------------------
@@ -251,8 +263,14 @@ def matches(connection, database) -> list[dict]:
         companion = optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (row['person_key'],))
         found.append(card(sheet, data, database) | {'city': {'id': data['id'], 'name': data['name']},
                                                      'companion_id': companion and companion['id'],
-                                                     'places': date_places(data, sheet)})
+                                                     'places': date_places(data, sheet),
+                                                     'left': None if companion else left(sheet, data)})
     return found
+
+
+def left(sheet: dict, data: dict) -> dict | None:
+    """Whether a match has since moved away or passed away (companion/world/turnover.py): {why, day, text}."""
+    return townsfolk.gone(sheet, data, turnover.today(data))
 
 
 def date_places(data: dict, sheet: dict) -> list[dict]:
@@ -305,6 +323,10 @@ def go_on_date(database, key: str, place_id: str) -> dict:
         require(row is not None, 'You can only ask out someone you matched with.', 409)
         require(story_on(connection), 'Turn on Story mode in Settings to meet them in a story.', 409)
         sheet, data = person(connection, key, row['town'])
+        gone = left(sheet, data)
+        if gone:
+            raise DomainError(f"{townsfolk.gone_line(sheet, data, gone)}, so you can't meet them on a date.", 409,
+                              'left_town')
         place = catalog.find(data, place_id)
         require(place is not None and place['kind'] in DATE_KINDS and place in data['places'],
                 'Pick somewhere in their city to meet.', 404)

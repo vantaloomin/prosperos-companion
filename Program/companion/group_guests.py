@@ -103,8 +103,10 @@ def town_tie(person: dict) -> str:
     """Who a townsperson is, as the host would introduce them: "the barista at Blue Moon", "a neighbor from Canton"."""
     if person['kind'] == 'resident':
         return f"a neighbor from {person['neighborhood']}" if person['neighborhood'] else 'someone from around town'
-    return f"the {person['role']} at {person['place']['name']}" if person['staff'] else \
-        f"a regular at {person['place']['name']}"
+    # Once they've left their place (companion/world/turnover.py), it's who they used to be.
+    once = 'formerly ' if person.get('left') else ''
+    return f"{once}the {person['role']} at {person['place']['name']}" if person['staff'] else \
+        f"{once}a regular at {person['place']['name']}"
 
 
 def town_relation(person: dict, host_name: str) -> str:
@@ -128,7 +130,8 @@ def known_by(connection, companion: dict, now) -> list[dict]:
     except Exception:  # noqa: BLE001 - no city to know anyone in: their circle is still there.
         town = []
     found += [from_town(person, host, host_name) for person in town
-              if person['times'] >= KNOWS_TOWNSPERSON and not person.get('cast')]
+              if person['times'] >= KNOWS_TOWNSPERSON and not person.get('cast') and
+              (person.get('left') or {}).get('why') != 'passed']  # Never someone who passed away.
     return found
 
 
@@ -304,12 +307,14 @@ def pull_in(connection, group_id: str, row: dict, members: list[dict], now) -> d
 
 
 def dropping_in(connection, members: list[dict], now) -> list[dict]:
-    """People from a member's circle who have met the user and like them, who may drop in unasked."""
-    from companion.life import their_people
+    """People from a member's circle who have met the user and like them, who may drop in unasked; not once the user
+    and that member have broken up (companion/life/breakups.py)."""
+    from companion.life import breakups, their_people
     result = []
     for person in candidates(connection, members, now):
         companion = host_companion(connection, person) if person['kind'] == 'circle' else None
-        if companion and person['person_id'] in their_people.met_people(connection, companion):
+        if companion and not breakups.ended(connection, companion) and \
+                person['person_id'] in their_people.met_people(connection, companion):
             result.append(person)
     return result
 

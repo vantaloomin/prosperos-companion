@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
+import { addedLine, appliesText, correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory, Person } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
@@ -14,6 +14,19 @@ test('memories group by layer in display order with pinned first and history apa
   assert.deepEqual(groups.map((group) => group.layer), ['user_fact', 'plan'])
   assert.deepEqual(groups[0].current.map((item) => item.id), ['z', 'a', 'b'])
   assert.deepEqual(groups[0].history.map((item) => item.id), ['old'])
+})
+
+test('shared moments list newest first by when they happened, pinned ones in their place', () => {
+  const moment = (id: string, day: string, extra: Partial<Memory> = {}) => memory(id, { layer: 'shared_experience', stated_at: `${day}T23:00:00Z`, ...extra })
+  const groups = groupMemories([moment('wedding', '2026-06-12', { pinned: true }), moment('march', '2026-03-07'), moment('may', '2026-05-16', { pinned: true }),
+    moment('trip', '2026-01-01', { applies_from: '2026-08-07T00:00:00Z' })])
+  assert.deepEqual(groups[0].current.map((item) => item.id), ['trip', 'wedding', 'may', 'march'])
+})
+
+test('only a memory you added yourself says so; one saved automatically leaves it to its badge', () => {
+  assert.equal(addedLine(memory('mine')), 'Added by you directly.')
+  assert.equal(addedLine(memory('visit', { origin: 'automatic' })), null)
+  assert.equal(addedLine(memory('said', { source_message_ids: ['m1'] })), null)
 })
 
 test('earlier versions follow supersession links newest first', () => {
@@ -103,4 +116,11 @@ test('a person is described by relation, or by what is still unknown', () => {
 test('a memory saved without a title is named by its first words', () => {
   assert.equal(titleFrom('  QonCat  '), 'QonCat')
   assert.equal(titleFrom('Likes to be called Q by close friends only'), 'Likes to be called Q by…')
+})
+
+test('a memory with no end date applies from its start, not "to …"', () => {
+  const show = (value: string) => value
+  assert.equal(appliesText('Oct 6', null, show), 'Applies from Oct 6')
+  assert.equal(appliesText(null, 'Oct 9', show), 'Applies until Oct 9')
+  assert.equal(appliesText('Oct 6', 'Oct 9', show), 'Applies Oct 6 to Oct 9')
 })

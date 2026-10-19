@@ -28,7 +28,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import jobs, memes, prompts
-from companion.life import agenda, composer, feed, routine, simulation
+from companion.life import agenda, composer, families, feed, routine, simulation
 from companion.life.openers import Trigger, held
 from companion.life.synthesis import PROMPT_VERSION as WORDING_VERSION
 from companion.text_models import config_for
@@ -270,6 +270,9 @@ class ChatPhotos:
         if composed is None:
             return None
         words = wording(connection, composed, prepared)
+        if families.pictured(connection, timeline_id, [words['summary'], words['post'], place_text(composed.get('place'))]) \
+                or families.childs_day(connection, [(composed.get('outing') or {}).get('id')]):
+            return None  # Children in their circle (companion/life/families.py) are told in words only.
         until = parse(shown['ends_at']).astimezone(zone(version['timezone'])).strftime('%H:%M')
         return {'event_key': key, 'summary': words['summary'], 'caption': words['post'], 'name': version['definition']['name'],
                 'mood': composed.get('mood', ''), 'place': place_text(composed.get('place')),

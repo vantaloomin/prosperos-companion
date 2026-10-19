@@ -10,7 +10,7 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import composer, feed, grooming, home, pets, pronouns, traditions, upkeep, wardrobe
+from companion.life import composer, families, feed, grooming, home, pets, pronouns, traditions, upkeep, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks
@@ -29,7 +29,7 @@ def when(event) -> dict:
     """What the wardrobe and the picture line need: its activity, block kind, local date, weather and company."""
     details = decode(event['details'])
     return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with', 'pet_photo',
-                                                 'hobby')}
+                                                 'hobby', 'outing')}
 
 
 def scene(connection, post_id) -> list[dict]:
@@ -255,6 +255,11 @@ PICTURES = {
     'market': 'browsing the stalls of a busy market',
     'workout': 'mid-workout, slightly out of breath',
     'home-cooking': 'cooking at the stove at home, stirring a pan, ingredients on the counter',
+    # Time at a parent's they care for (companion/life/health_turns.py).
+    'care-dinner': "cooking at the stove in a parent's homey kitchen, filling containers to leave in the fridge",
+    'care-chores': "in a parent's tidy living room, folding laundry and sorting a weekly pill organizer",
+    'care-company': "sitting on a parent's old sofa with a cup of tea, family photos on the wall behind",
+    'care-errands': 'carrying a bag of groceries and a pharmacy bag down a quiet street',
     'dinner-in': 'at a dinner table set for two at home, a home-cooked meal on the plates, candles lit',
     'reading': 'curled up at home reading a book under a blanket',
     'nap': 'lying on a sofa at home under a blanket, just waking from a nap',
@@ -271,6 +276,8 @@ PICTURES = {
     'nail-salon': 'holding up freshly done nails to show them off',
     # Their wedding with the user (companion/life/wedding.py): what they wear is the moment's own.
     'wedding': 'smiling among the guests on {possessive} wedding day',
+    # A big day in their circle (companion/life/big_days.py) with the user: dressed up, a guest among guests.
+    'big-day': 'dressed up and smiling among the guests at a celebration',
 }
 CALLS = ('called', 'phone')
 
@@ -368,7 +375,10 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), **likeness}
+            'marked_nsfw': bool(marked_nsfw), **likeness,
+            **children(connection, post['timeline_id'], [event[key] for event in events
+                                                          for key in ('summary', 'caption', 'label', 'place')],
+                       [(event['moment'].get('outing') or {}).get('id') for event in events])}
 
 
 def pet_prompt(connection, timeline_id, events, image_settings) -> str:
@@ -448,7 +458,9 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
         likeness = {**likeness, 'lora': None}
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
             'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
-            'moment': moment, **likeness}
+            'moment': moment, **likeness,
+            **children(connection, companion['active_timeline_id'],
+                       [moment.get(key) for key in ('summary', 'caption', 'label', 'place')])}
 
 
 def build_meme(connection, meme, image_settings) -> dict:
@@ -469,6 +481,13 @@ def build_meme(connection, meme, image_settings) -> dict:
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': 'meme',
             'aspect': 'square', 'captions': [meme['top'], meme['bottom'], meme['subject'] or ''],
             'meme': meme, **likeness}
+
+
+def children(connection, timeline_id: str, texts, outing_ids=()) -> dict:
+    """Marks a request whose words name a child in the circle, or that shows a child's big day however it was worded
+    (companion/life/families.py), which nothing pictures."""
+    found = families.pictured(connection, timeline_id, texts) or families.childs_day(connection, outing_ids)
+    return {'withheld': True} if found else {}
 
 
 def base_inputs(companion, definition, image_settings) -> dict:

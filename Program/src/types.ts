@@ -129,6 +129,8 @@ export interface CharacterDefinition {
   name: string
   /** "MM-DD"; empty picks a date for them. */
   birthday?: string
+  /** On: they stay the age written instead of turning a year older on each birthday (companion/life/ages.py). */
+  keeps_age?: boolean
   identity: string
   personality: string
   voice: string
@@ -207,7 +209,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral'; shown?: string }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -218,6 +220,11 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   housing: { unit: string; label: string; neighborhood: string }
   budget: { income: number; rent: number; upkeep: number; essentials: number; fun: number; saving: number }
   rent_from: 'home' | 'budget'
+  /** Living on a pension, and paying a mortgage on a place they bought (companion/life/big_turns.py). */
+  retired?: boolean
+  /** Their own business's short name ('bakery') while they run one (companion/life/business.py). */
+  business?: string | null
+  owned?: boolean
   bought: MoneyHappening[]
   payday: { last: string; next: string; cycle_days: number; today: boolean }
   left: number
@@ -481,6 +488,13 @@ export interface LifeSettings {
   breakups: boolean
   /** Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on. */
   love_life: number
+  /** Life's big turns (companion/life/big_turns.py): how often life chapters come, 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful. */
+  life_turns: number
+  /** Births and growing families (companion/life/families.py): 0 none, 1 now and then, 2 true to life, 3 lots. */
+  growing_families: number
+  /** Loss and grief (companion/life/loss.py): whether people can pass away (off on every preset), and how often: 0 rare, 1 now and then, 2 true to life, 3 often. */
+  people_pass_away: boolean
+  loss: number
 }
 
 /** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
@@ -552,7 +566,7 @@ export interface LifeEvent {
   kind: 'routine' | 'plan' | 'ordinary' | 'thread'
   status: 'proposed' | 'committed' | 'rejected' | 'superseded'
   summary: string
-  details: { label?: string; activity?: string; post?: string; mood?: string; local_date?: string; timezone?: string; place?: { id: string; name: string } | null; trip?: unknown }
+  details: { label?: string; activity?: string; post?: string; mood?: string; local_date?: string; timezone?: string; place?: { id: string; name: string } | null; trip?: unknown; outing?: { at: string } | null }
   starts_at: string
   ends_at: string
   revision: number
@@ -686,6 +700,31 @@ export interface CirclePerson {
   love?: string
   /** The latest roll for the two of them, only with Hidden values' odds on. */
   love_odds?: string | null
+  /** Their children (companion/life/families.py), in words only. */
+  children?: CircleChild[]
+  /** The month their baby is due while they are expecting: "March". */
+  expecting?: string | null
+  /** Written into the character's description (companion/life/named.py): spared from passing away unless `spared` is false. */
+  sheet?: string
+  /** People can pass away (companion/life/loss.py): whether the user spared them, or let them pass away. */
+  spared?: boolean
+  /** The day they passed away, when they have. */
+  late?: string
+  loss?: { id: string; died_on: string; consequence_id: string | null } | null
+}
+
+/** A child in the circle (companion/life/families.py): born in the app, listed under their parent. `relation` is what
+ * they are to the companion ('niece', 'godson'), null for a friend's or coworker's baby. */
+export interface CircleChild {
+  id: string
+  name: string
+  pronouns: string
+  born_on: string
+  age: number
+  /** 'a newborn', '3 weeks old', '7 months old', '2'. */
+  age_text: string
+  relation: string | null
+  title: 'family' | 'godchild' | 'friend'
 }
 
 /** A circle person who has met the user, or is about to (companion/life/their_people.py). `before` is a couple who go
@@ -1213,11 +1252,21 @@ export interface NewsItem {
 
 export interface LifeChapter {
   id: string
-  kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves'
+  kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves' | 'relationship' | 'move_in' | 'move_out' | 'school' | 'career_change' | 'buy_place' | 'retire' | 'business' | 'health' | 'caring'
   started_on: string
   title: string
+  /** Where a big turn stands (companion/life/big_turns.py); null for other chapters. */
+  stage: string | null
+  /** The day its latest stage came (the day it began for other chapters), as Today shows it. */
+  on: string
   consequence: string | null
   undone: boolean
+}
+
+/** The Character page's life lately (GET /api/life/chapters/lately): big turns on their way, and the latest chapters. */
+export interface LifeLately {
+  now: { id: string; kind: LifeChapter['kind']; started_on: string; line: string }[]
+  lately: { id: string; kind: LifeChapter['kind']; on: string; title: string }[]
 }
 
 /** Which way a reason pushed the odds of the option it sits under. */
@@ -1246,7 +1295,7 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
 
 /** A holiday the companion's family keeps (companion/life/traditions.py). */
 export interface Tradition { id: string; holiday: string; name: string; text: string; origin: 'seeded' | 'user'; edited: boolean; next: string | null }
@@ -1287,7 +1336,11 @@ export interface HomeItem {
   features?: string[]
   rent?: number | null
   rent_period?: 'month' | 'week'
+  /** A place they bought: `rent` is then the mortgage (companion/life/big_turns.py). */
+  owned?: boolean
   currency?: { code: string; symbol: string; name: string }
+  /** The rent (or mortgage) as money.py says it, in the city's money: "$1,410", "8 d.", "15s.". */
+  rent_text?: string
   out_of_action?: string | null
 }
 
@@ -1461,6 +1514,9 @@ export interface PetsView {
   numbers: boolean
 }
 
+/** How and when a townsperson left their place or town (companion/world/turnover.py). */
+export interface TownLeft { why: 'moved' | 'new job' | 'retired' | 'passed'; day: string; text: string }
+
 export interface Townsperson {
   key: string
   name: string
@@ -1504,6 +1560,8 @@ export interface Townsperson {
   stories?: string[]
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
+  /** Once the companion would know: they have since moved away, left their place or passed away. */
+  left?: TownLeft | null
   /** How close they and the companion feel, both ways; read-only. */
   stage?: PairStage | null
 }
@@ -1601,6 +1659,8 @@ export interface DatingMatch extends DatingCard {
   /** Set once the match became a companion. */
   companion_id: string | null
   places: DatingPlace[]
+  /** They have since moved away or passed away (companion/world/turnover.py). */
+  left?: TownLeft | null
 }
 /** A townsperson's one portrait (companion/dating_photos.py). */
 export interface DatingPhoto { status: 'none' | 'queued' | 'running' | 'completed' | 'failed'; error?: string | null; url?: string | null }

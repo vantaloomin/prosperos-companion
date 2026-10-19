@@ -39,7 +39,7 @@ from companion.world import catalog, generators
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'life_admin.json'
 # Seeded appointments, errands and surprises; their tests turn them on (tests/conftest.py turns them off).
 ACTIVE = True
-SOURCES = ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work')
+SOURCES = ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work', 'school', 'health')
 AHEAD = 21  # Days planned ahead, so Today shows what is coming.
 MOVE_DAYS = 14  # How far an entry may move to find a free time.
 LATER = 365  # How far the Character page looks for what comes due later.
@@ -121,8 +121,10 @@ def clock(total: int) -> str:
     return f'{total // 60:02d}:{total % 60:02d}'
 
 
-def free_blocks(schedule, day: date) -> list[dict]:
-    return [block.view() for block in schedule if block.on(day) and block.kind not in BUSY]
+def free_blocks(schedule, day: date, study: bool = False) -> list[dict]:
+    """The blocks of the day an entry can go in; `study` for an exam, which sits in the class's own time."""
+    busy = BUSY - {'study'} if study else BUSY
+    return [block.view() for block in schedule if block.on(day) and block.kind not in busy]
 
 
 def time_in(block: dict, at: str | None, office: bool, jitter: float = 0.0) -> str | None:
@@ -145,6 +147,7 @@ def time_in(block: dict, at: str | None, office: bool, jitter: float = 0.0) -> s
 class Taken:
     """What already holds the companion's days from one date on: trips and traditions take whole days, plans with the
     user, their own plans and other entries take the block their time falls in, and public holidays close offices."""
+    study = False  # An exam, which goes in class time (big_turns.py).
 
     def __init__(self, connection, companion: dict, start: date, days: int, skip: str | None = None):
         timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
@@ -186,7 +189,7 @@ class Taken:
         if self.blocked(day, out):
             return None
         office = out and (fixed or self.daylight)
-        for block in free_blocks(self.schedule, day):
+        for block in free_blocks(self.schedule, day, self.study):
             if fixed and at and not own_plans.holds(block, at):
                 continue
             found = time_in(block, at, office, self.jitter)
@@ -219,7 +222,7 @@ def place(taken: Taken, day: date, at: str | None, out: bool, fixed: bool, earli
 def add(connection, companion: dict, *, key: str, source: str, kind: str, title: str, done: str, day: date,
         at: str | None = None, minutes: int = 60, fixed: bool = False, place_item: dict | None = None,
         cost: float = 0.0, now: datetime, spend: str = '', line: str = '', deadline: date | None = None,
-        out: bool | None = None) -> dict | None:
+        out: bool | None = None, study: bool = False) -> dict | None:
     """Put something on the companion's calendar, at the nearest free time from `day` (and `at`, 'HH:MM'). The same
     `key` twice returns the entry already there. `done` is what they did, said after their name ("took Biscuit to the
     vet"). `fixed` is for times booked with someone else, which hold their hour; anything else moves out of the way of
@@ -233,7 +236,7 @@ def add(connection, companion: dict, *, key: str, source: str, kind: str, title:
     today = local_now(companion, now).date()
     out = bool(place_item) or fixed if out is None else out
     taken = Taken(connection, companion, min(day, today), MOVE_DAYS * 2)
-    taken.jitter = generators.unit(key, 'time')
+    taken.jitter, taken.study = generators.unit(key, 'time'), study
     spot = place(taken, max(day, today), at, out, fixed, today, deadline)
     if spot is None:
         return None
@@ -355,13 +358,14 @@ def user_move(connection, companion: dict, entry_id: str, now: datetime) -> dict
 # --- Seeded appointments, deadlines, errands and surprises ---
 
 def owns(definition: dict, connection, timeline_id: str, day: date) -> set[str]:
-    """What the companion has that some admin needs: a car, a horse, a rented home, glasses, a job."""
+    """What the companion has that some admin needs: a car, a horse, a rented home (not one they own), glasses, a
+    job."""
     found = set()
     for item in home.items_on(connection, timeline_id, day):
         if item['kind'] == 'vehicle' and item['variety'] in ('car', 'motorcar', 'horse'):
             found.add('horse' if item['variety'] == 'horse' else 'car')
-        if item['kind'] == 'home' and (item.get('rent') or money.profile(definition)):
-            found.add('rent')
+        if item['kind'] == 'home' and not item.get('owned') and (item.get('rent') or money.profile(definition)):
+            found.add('rent')  # A place they bought (big_turns.py) has no lease to renew.
     looks_text = ' '.join([definition.get('appearance', ''), definition.get('in_photos', ''),
                            json.dumps(definition.get('looks') or {})]).lower()
     if any(word in looks_text for word in ('glasses', 'spectacles', 'contact lens')):
@@ -552,7 +556,7 @@ def reflow(connection, companion: dict, today: date, now) -> int:
     moved = 0
     for item in upcoming(connection, companion['active_timeline_id'], today.isoformat()):
         day = date.fromisoformat(item['local_date'])
-        block = next((block for block in free_blocks(taken.schedule, day)
+        block = next((block for block in free_blocks(taken.schedule, day, item['kind'] == 'exam')
                       if own_plans.holds(block, item['at_time'])), None)
         away = day.isoformat() in taken.away
         if away or block is None or taken.held(day, block, by_user_only=True):

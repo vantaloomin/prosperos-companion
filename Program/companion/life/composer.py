@@ -126,6 +126,22 @@ CATALOG = {
         activity('slow', (), ['{name} had a slow, lazy {label} at home.'],
                  ['Doing nothing, beautifully.', 'Slow day.'], ['relaxed']),
     ),
+    # Time at a parent's they care for (companion/life/health_turns.py): an errand block themed 'caring', whose label
+    # names the place ("Evening at Mom's").
+    'care': (
+        activity('care-dinner', (), ['{name} spent the {label}, cooking dinner and keeping them company.',
+                                     '{name} spent the {label}, cooking enough for the next few days too.'],
+                 ['Fed, fussed over, home.', 'Tupperware tower: complete.'], ['tired', 'warm']),
+        activity('care-chores', (), ['{name} spent the {label} on laundry, the dishes and sorting the week\'s pills.',
+                                     '{name} spent the {label} doing the jobs around the house that had piled up.'],
+                 ['Everything sorted for the week.', 'Small jobs, big help.'], ['tired', 'useful']),
+        activity('care-company', (), ['{name} spent the {label} watching an old film together and talking.',
+                                      '{name} spent the {label}, going through old photos together.'],
+                 ['Good one tonight.', 'Old photos, new stories.'], ['warm', 'thoughtful']),
+        activity('care-errands', ('grocery', 'pharmacy'), ['{name} picked up groceries and a prescription{at} '
+                                                          'before the {label}.'],
+                 ['Fridge stocked, pills collected.', 'Running the errands for two.'], ['practical'], ' on the way'),
+    ),
 }
 
 
@@ -169,21 +185,35 @@ OWN_BIRTHDAY = activity('own-birthday', ('restaurant', 'bar'), ['{name} treated 
                          '{name} went out{at} with {friend} for their birthday.'])
 
 
+# A milestone birthday (30, 40, 50 ...: companion/life/ages.py) is a party rather than a dinner. No pronouns, so the
+# lines read right whoever they are.
+MILESTONE_PARTY = activity('own-birthday', ('bar', 'restaurant'), ['{name} threw a party{at} for turning {age}.',
+                                                                   '{name} marked turning {age} with a party{at}.'],
+                           ['{age} and thriving.', 'Big birthday, bigger cake.', 'A new decade starts tonight.',
+                            'Turns out {age} is a party.', 'Everyone came. Best night in ages.'],
+                           ['happy', 'excited', 'warm'], '',
+                           ['{name} threw a party{at} for turning {age}, with {friend} and a crowd of friends.',
+                            '{name} marked turning {age}{at} with {friend} and a crowd of friends.'])
+
+
 def own_birthday(slot: dict, definition: dict, world, seed: str, recent_activities, company, conditions):
-    """On the companion's birthday, a leisure or social slot is a celebration, with a free friend if any."""
+    """On the companion's birthday, a leisure or social slot is a celebration, with a free friend if any; a milestone
+    birthday is a party."""
     mine = definition.get('own_birthday')
     if not mine or not occasions.on(date.fromisoformat(slot['local_date']), mine) \
             or slot['block']['kind'] not in BIRTHDAY_KINDS or slot['block']['start'] < '12:00' \
             or OWN_BIRTHDAY.key in set(recent_activities):
         return None
     rng = random.Random(f'{seed}:own-birthday')
+    age = (definition.get('milestones') or {}).get(slot['local_date'])
+    kind = MILESTONE_PARTY if age else OWN_BIRTHDAY
     friend = company[0] if company else None
-    places = find_places(world, definition, slot, OWN_BIRTHDAY.place_kinds)
+    places = find_places(world, definition, slot, kind.place_kinds)
     place = rng.choice(places) if places else None
     at = f' at {place.name}' if place else ''
-    summary = (rng.choice(OWN_BIRTHDAY.together).format(name=definition['name'], friend=friend['name'], at=at)
-               if friend else rng.choice(OWN_BIRTHDAY.summaries).format(name=definition['name'], at=at))
-    return {'summary': summary, 'post': rng.choice(OWN_BIRTHDAY.captions), 'mood': rng.choice(OWN_BIRTHDAY.moods),
+    summary = (rng.choice(kind.together).format(name=definition['name'], friend=friend['name'], at=at, age=age)
+               if friend else rng.choice(kind.summaries).format(name=definition['name'], at=at, age=age))
+    return {'summary': summary, 'post': rng.choice(kind.captions).format(age=age), 'mood': rng.choice(kind.moods),
             'activity': OWN_BIRTHDAY.key, 'place': place.view() if place else None,
             'with': {'id': friend['id'], 'name': friend['name']} if friend else None,
             'weather': conditions, 'composer_version': COMPOSER_VERSION}
@@ -460,7 +490,7 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     members whose birthday it is."""
     rng = random.Random(seed)
     block = slot['block']
-    options = CATALOG.get(block['kind'])
+    options = CATALOG['care'] if 'caring' in (block.get('themes') or ()) else CATALOG.get(block['kind'])
     if not options or rng.random() < QUIET_SHARE:
         return None
     state = (block.get('body') or {}).get('state')

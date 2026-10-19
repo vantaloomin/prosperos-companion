@@ -1956,7 +1956,7 @@ CREATE TABLE IF NOT EXISTS life_admin (
   id TEXT PRIMARY KEY,
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   key TEXT NOT NULL,
-  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work')),
+  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work', 'school', 'health')),
   kind TEXT NOT NULL,
   title TEXT NOT NULL,
   done_text TEXT NOT NULL,
@@ -2443,3 +2443,111 @@ CREATE TABLE IF NOT EXISTS moving_in_shares (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS moving_in_shares_row ON moving_in_shares(moving_in_id, round);
+-- Everyone gets older (companion/life/ages.py): one birth date per person, worked out once from the age they had
+-- when it was first needed (`from_age`, on `anchored_on`) and their birthday ("MM-DD"), so nobody's age jumps on an
+-- upgrade; from then on their age goes up on each birthday. `kind` is whose: a companion (key: companion id), a circle
+-- member (circle_people id), a love-life partner outside the circle (love_partners id) or the town ('town'; the row
+-- with an empty key holds the day the town's people started getting older, a townsperson's own row their key).
+-- `held_age` is the age a companion who "Keeps their age" is held at: the age they were when it was turned on.
+CREATE TABLE IF NOT EXISTS birth_dates (
+  kind TEXT NOT NULL CHECK (kind IN ('companion', 'circle', 'partner', 'town')),
+  person_key TEXT NOT NULL,
+  born_on TEXT NOT NULL,
+  birthday TEXT NOT NULL,
+  from_age INTEGER NOT NULL,
+  anchored_on TEXT NOT NULL,
+  held_age INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (kind, person_key)
+);
+-- Big days in the circle (companion/life/big_days.py): a wedding, a milestone birthday, a retirement party or a
+-- graduation in the companion's circle or town, or a friend's own wedding (`kind`), found once by `source` (the
+-- storyline, the person and year, the love-life partner). `details` holds whose day it is (name, role, age ...),
+-- `place` where. `invite` is whether they ask the user along (the engine's bigday:invite, `consequence_id`), going out
+-- as a first text on `invite_on`: 'invited' once it has (`message_id`, booked as `outing_id`, and long distance the
+-- user's stay as `trip_id`), 'declined' when the user can't come, 'done' once held (`with_user` when they went).
+-- The gift is bought on `gift_on` for `gift_cost` in the city's money; `outfit` is what they wear.
+CREATE TABLE IF NOT EXISTS big_days (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL,
+  person_id TEXT,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'invited', 'declined', 'done', 'called_off')),
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  until_time TEXT NOT NULL,
+  place TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '{}',
+  invite INTEGER NOT NULL DEFAULT 0 CHECK (invite IN (0, 1)),
+  invite_on TEXT,
+  consequence_id TEXT,
+  gift TEXT NOT NULL DEFAULT '',
+  gift_cost REAL NOT NULL DEFAULT 0,
+  gift_on TEXT,
+  outfit TEXT NOT NULL DEFAULT '',
+  message_id TEXT,
+  outing_id TEXT,
+  trip_id TEXT,
+  with_user INTEGER NOT NULL DEFAULT 0 CHECK (with_user IN (0, 1)),
+  answered_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, source)
+);
+CREATE INDEX IF NOT EXISTS big_days_timeline ON big_days(timeline_id, status, local_date);
+
+-- Births and growing families (companion/life/families.py): a baby in the companion's circle, from the day their
+-- parent's pregnancy storyline (`storyline_id`, story 'expecting') began. `status` is 'expected' until `born_on`,
+-- then 'born'; 'ended' when the storyline was ended first. `title` is what they are to the companion: 'family' (a
+-- niece or nephew), 'godchild' or 'friend' (someone's baby). Children are kept apart from circle_people on purpose.
+CREATE TABLE IF NOT EXISTS circle_children (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  parent_id TEXT NOT NULL,
+  storyline_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  pronouns TEXT NOT NULL CHECK (pronouns IN ('she/her', 'he/him', 'they/them')),
+  title TEXT NOT NULL CHECK (title IN ('family', 'godchild', 'friend')),
+  born_on TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('expected', 'born', 'ended')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on);
+CREATE INDEX IF NOT EXISTS circle_children_parent ON circle_children(parent_id);
+
+-- Loss and grief (companion/life/loss.py): someone in a companion's circle (`person_id`) or a townsperson they knew
+-- (`town_key`) who passed away, or will on `died_on` (`happened` 0 until then), as the engine's loss:passes decided
+-- (`consequence_id`). `details` holds their pronouns, where they lived, the cause, how deep the grief goes and the
+-- period it was decided for. Undoing a death deletes its row.
+CREATE TABLE IF NOT EXISTS losses (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('circle', 'town')),
+  person_id TEXT,
+  town_key TEXT,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '{}',
+  died_on TEXT NOT NULL,
+  happened INTEGER NOT NULL DEFAULT 0 CHECK (happened IN (0, 1)),
+  consequence_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, person_id),
+  UNIQUE (timeline_id, town_key)
+);
+CREATE INDEX IF NOT EXISTS losses_timeline ON losses(timeline_id, happened, died_on);
+
+-- The town changes hands (companion/world/turnover.py): the levels Life's big turns, People can pass away with Loss,
+-- and Growing families held before a change, until the week they stopped holding, so a change only moves the town on
+-- from then. `loss` is 0 when nobody passes away, else the Loss slider plus one.
+CREATE TABLE IF NOT EXISTS town_levels (
+  until_week INTEGER PRIMARY KEY,
+  pace INTEGER NOT NULL,
+  loss INTEGER NOT NULL,
+  families INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);

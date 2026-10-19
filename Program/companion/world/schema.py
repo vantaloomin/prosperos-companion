@@ -317,6 +317,9 @@ class Notable(Record):
     about: Text
     temperament: Id | None = None
     source: Id
+    # Whether they can move away or retire like other townsfolk (companion/world/turnover.py). A setting's own
+    # characters stay put unless the pack says otherwise.
+    can_leave: bool = False
 
 
 # Where a townsperson goes to work on a goal (companion/world/townsfolk.py GOAL_KINDS).

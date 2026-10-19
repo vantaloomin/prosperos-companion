@@ -14,7 +14,7 @@ from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
-from companion.life import agenda, encounters, network
+from companion.life import agenda, ages, encounters, network
 from companion.memory.context import NOTE_CLOSE
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
@@ -69,7 +69,7 @@ def city_data(connection, city_id: str) -> dict:
     if data is None:
         raise DomainError(f'No world data for city {city_id!r}.', 404, 'unknown_city')
     town = companion.get('town_seed') or '' if companion else ''
-    return data | {'kin': [], 'town': town, 'you': network.you(connection, town)}
+    return data | {'kin': [], 'town': town, 'you': network.you(connection, town), 'kept': network.kept(connection, town)}
 
 
 def opening_place(data: dict) -> dict:
@@ -109,7 +109,9 @@ def present(connection, data: dict, place_id: str, moment: datetime) -> list[dic
     for key in found[1] if found else ():
         sheet = encounters.resolve(data, key, cast)
         if sheet and not key.startswith('cast:') and key not in cast['aliases']:
-            people.append({'sheet': sheet, **townsfolk.whereabouts(sheet, data, moment)})
+            # How old they are now (companion/life/ages.py), as Around town says.
+            people.append({'sheet': {**sheet, 'age': ages.town_age(connection, sheet, moment.date())},
+                           **townsfolk.whereabouts(sheet, data, moment)})
     from companion import dating  # The user's date, while one is going on here (docs/dating.md).
     return dating.with_date(connection, data, place_id, moment, people)
 

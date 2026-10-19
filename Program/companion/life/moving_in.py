@@ -26,9 +26,9 @@ with someone (or is about to), the newcomer would move into that home. Everyone 
 sharing it, one roll each in the consequence engine (choice `moving_in:share`, from an open-relationship interest, their
 personality sliders, a trait like jealous or possessive, a rough patch over the user seeing someone else, the drama
 level), and the one already living there hears about it (a line in the chat, and a first text). Everyone open: the
-newcomer moves in on their own moving day, into the same home (`household`), the rent split among everyone and the chores
-taking turns among everyone. Anyone not open: the move waits, asked again some weeks later, and a small rough patch can
-open with the one who isn't ready. The user can make any of the rolls go the other way under Hidden values.
+newcomer moves in on their own moving day, into the same home (`household`, grown to fit everyone: `grow`), the rent
+split among everyone and the chores taking turns among everyone. Anyone not open: the move waits, asked again some
+weeks later, and a small rough patch can open with the one who isn't ready. The user can make any of the rolls go the other way under Hidden values.
 """
 import random
 import re
@@ -39,6 +39,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import home, money, steps, where
+from companion.world import generators
 
 ACTIVE = True
 STEP = 'moving_in'
@@ -64,6 +65,8 @@ FIRST_TEXTS = True
 SETTLES = ('move_share',)
 COUNTS = {2: 'two', 3: 'three', 4: 'four', 5: 'five'}
 TASKS = ('cooking', 'dishes', 'laundry', 'tidying')
+# Upkeep's areas of housework (companion/life/upkeep.py), as the chores they take turns at.
+UPKEEP = {'laundry': 'laundry', 'dishes': 'dishes', 'clutter': 'tidying'}
 
 # The user saying they are out, or back home.
 OUT = re.compile(r"\b(?:i'?m|i am|im) (?:(?:still )?(?:out|at work|at the office|at the gym|at class|at the store|"
@@ -336,7 +339,9 @@ def advance(connection, companion: dict, now) -> None:
     elif row['status'] == 'waiting':
         settle_waiting(connection, companion, row, now)
     elif row['status'] == 'moved' and moved_away(connection, row):
-        move_out(connection, companion, now, 'you')
+        # The user moves out. One home stays: whoever set it up keeps it, and anyone who moved in with them since takes
+        # a place of their own.
+        move_out(connection, companion, now, 'them' if joins(row) else 'you')
 
 
 def after_visit(connection, row: dict, today: date) -> bool:
@@ -477,7 +482,8 @@ def shared_place(seed: str, companion: dict, city: dict | None, hood: dict | Non
         low, high = rents[unit]
         rent = low + (high - low) * random.Random(f'{seed}:rent').random()
         name = home.home_name(place['variety'], unit, city)
-        details.update({'bedrooms': unit, 'rent': int(round(rent / 25) * 25), 'rent_from': 'shared',
+        step = generators.rent_step(rent)  # By 25 in dollars, by 1 in Camelot's pennies (never down to 0).
+        details.update({'bedrooms': unit, 'rent': max(step, int(round(rent / step) * step)), 'rent_from': 'shared',
                         'description': f"{name} in {hood['name']}", 'neighborhood': hood['name']})
         place = {**place, 'name': name}
     return {**place, 'details': {**details, 'shared': True}}
@@ -645,8 +651,9 @@ def place_of_their_own(connection, companion: dict, row: dict, day: date, now) -
 # Sharing a home ---------------------------------------------------------------------------------------------------------
 
 def household(row: dict) -> str:
-    """The shared home a row belongs to, by the row that set it up (the first to live with the user there)."""
-    return row.get('household') or row['id']
+    """The shared home a row belongs to, by the row that set it up (the first to live with the user there). A fork's
+    copy of that row keeps its key (`origin`), so whoever moved in on another timeline still lives there."""
+    return row.get('household') or row.get('origin') or row['id']
 
 
 def joins(row: dict) -> bool:
@@ -674,8 +681,8 @@ def members(connection, key: str, day: date | None = None) -> list[dict]:
     """Everyone living in this shared home (on `day`, else now), moved in and on their active timeline, in the order
     they moved in; `owner` is the companion's id."""
     rows = many(connection, "SELECT m.*, c.id AS owner FROM moving_in m JOIN companions c ON c.active_timeline_id="
-                "m.timeline_id WHERE m.status='moved' AND (m.id=? OR m.household=?) ORDER BY m.moved_on, m.created_at",
-                (key, key))
+                "m.timeline_id WHERE m.status='moved' AND (m.id=? OR m.origin=? OR m.household=?) "
+                'ORDER BY m.moved_on, m.created_at', (key, key, key))
     return [row for row in rows if day is None or row['moved_on'] <= day.isoformat()]
 
 
@@ -702,8 +709,8 @@ def mate_names(connection, row: dict, statuses: tuple[str, ...] = ('moved',)) ->
     """The first names of the others in the home this row shares, or will share."""
     key = household(row)
     rows = many(connection, 'SELECT m.timeline_id FROM moving_in m JOIN companions c ON c.active_timeline_id='
-                f"m.timeline_id WHERE (m.id=? OR m.household=?) AND m.id<>? AND m.status IN ({','.join('?' * len(statuses))}) "
-                'ORDER BY m.created_at', (key, key, row['id'], *statuses))
+                "m.timeline_id WHERE (m.id=? OR m.origin=? OR m.household=?) AND m.id<>? AND m.status IN "
+                f"({','.join('?' * len(statuses))}) ORDER BY m.created_at", (key, key, key, row['id'], *statuses))
     return [first_of(connection, found['timeline_id']) for found in rows]
 
 
@@ -838,11 +845,13 @@ def ask_again(connection, companion: dict, row: dict, mates: list[dict], now) ->
 
 def join_home(connection, companion: dict, row: dict, day: date, now) -> tuple[dict, dict]:
     """Moving into the home the user shares with another: the same place as theirs, and their old home ends."""
-    host = members(connection, row['household'], day)[0]
+    house = members(connection, row['household'], day)
+    host = house[0]
     connection.execute('UPDATE moving_in SET city_id=?, neighbourhood=? WHERE id=?',
                        (host['city_id'], host['neighbourhood'], row['id']))
     city = city_of(connection, host)
     hood = hood_named(city, host['neighbourhood'])
+    grow(connection, house, city, hood, day, len(house) + 2)
     other = owner_of(connection, host['timeline_id'])
     shared = their_home(connection, other, day) if other else None
     timeline_id = companion['active_timeline_id']
@@ -854,6 +863,32 @@ def join_home(connection, companion: dict, row: dict, day: date, now) -> tuple[d
                                                           city, hood, 'one_bedroom')
     added = home.insert_item(connection, timeline_id, place, 'change', day, now)
     return ({'location': location} if location else {}), {'ended': [item['id'] for item in old], 'added': [added]}
+
+
+def size_for(people: int) -> str:
+    """Bedrooms follow the household: a one-bedroom for a couple, the largest size the rents know for more."""
+    return 'one_bedroom' if people <= 2 else 'two_bedroom'
+
+
+def grow(connection, house: list[dict], city: dict | None, hood: dict | None, day: date, people: int) -> None:
+    """Another of the user's partners moving in: a shared home too small for everyone gets the room they need (the
+    same place, a size up, at that size's rent), on each copy of it."""
+    unit = size_for(people)
+    rents = (hood or {}).get('rent') or {}
+    if not city or unit not in rents:
+        return
+    low, high = rents[unit]
+    rent = int(round((low + (high - low) * random.Random(f'home:{household(house[0])}:{unit}').random()) / 25) * 25)
+    for found in house:
+        other = owner_of(connection, found['timeline_id'])
+        item = their_home(connection, other, day) if other else None
+        if not item or (item.get('bedrooms') in UNITS and UNITS.index(item['bedrooms']) >= UNITS.index(unit)):
+            continue
+        name = home.home_name(item['variety'], unit, city)
+        stored = optional(connection, 'SELECT details FROM home_items WHERE id=?', (item['id'],))
+        details = {**decode(stored['details']), 'bedrooms': unit, 'rent': rent, 'rent_from': 'shared',
+                   'description': f"{name} in {hood['name']}"}
+        connection.execute('UPDATE home_items SET name=?, details=? WHERE id=?', (name, encode(details), item['id']))
 
 
 ITEM_KEYS = ('id', 'kind', 'name', 'variety', 'origin', 'since', 'until', 'edited', 'revision')
@@ -1076,6 +1111,28 @@ def rota(companion: dict, day: date, task: str, house: tuple[str, ...]) -> str:
     return 'you' if found == companion['id'] else found
 
 
+def house_of(connection, row: dict, day: date) -> tuple[str, ...]:
+    """The companions' ids at home for the rota, when more of the user's partners live there; () for a couple."""
+    ids = tuple(found['owner'] for found in members(connection, household(row), day))
+    return ids if len(ids) > 1 else ()
+
+
+def chore_turns(connection, companion: dict, day: date) -> dict[str, str] | None:
+    """Living together on `day`, for upkeep.py: each area of housework is 'you' on their turn, else 'done' (it was
+    someone else's turn) or 'undone' (the user said they left it on their own turn). None when they don't live
+    together."""
+    row = living(connection, companion, day)
+    if not row:
+        return None
+    house = house_of(connection, row, day)
+    left = {found['subject'].rsplit(':', 1)[1] for found in many(
+        connection, "SELECT subject FROM rough_patches WHERE cause='chore' AND subject LIKE ?",
+        (f"chore:{row['id']}:{day.isoformat()}:%",))}
+    who = {area: turn(companion, day, task, house) for area, task in UPKEEP.items()}
+    return {area: 'you' if found == 'you' else 'undone' if found == 'user' and UPKEEP[area] in left else 'done'
+            for area, found in who.items()}
+
+
 def out_now(row: dict, now: datetime) -> bool:
     return bool(row['out_until'] and parse(row['out_until']) > now)
 
@@ -1150,7 +1207,7 @@ def skipped(connection, companion: dict, row: dict, text: str, now: datetime):
     found = SKIPPED.search(text)
     task = found and next(task for start, task in SKIPPED_TASKS if found['task'].lower().startswith(start))
     today = local_today(companion, now)
-    if not task or turn(companion, today, task) != 'user':
+    if not task or turn(companion, today, task, house_of(connection, row, today)) != 'user':
         return
     from companion.life import rough_patches
     chore = CHORES[task]
@@ -1217,6 +1274,7 @@ def living_lines(connection, companion: dict, row: dict, now: datetime) -> list[
     since = 'today' if row['moved_on'] == today.isoformat() else f"since {day_text(row['moved_on'])}"
     shared = their_home(connection, companion, today)
     what = shared['description'] if shared else f'a place in {place_text(connection, row)}'
+    costs = 'mortgage' if shared and shared.get('owned') else 'rent'  # A place bought together (big_turns.py).
     yours = [found['name'] for found in pets.of_persona(connection)]
     house = members(connection, household(row), today)
     names = {found['owner']: first_of(connection, found['timeline_id']) for found in house}
@@ -1225,8 +1283,8 @@ def living_lines(connection, companion: dict, row: dict, now: datetime) -> list[
     both = f"all {COUNTS.get(len(mates) + 2, 'of you')}" if mates else 'both'
     animals = f" The user's pets ({', '.join(yours)}) live there too and are {both} of yours now." if yours else ''
     living = (f"- You live with the user and {listed(mates)} (also the user's partner{'s' if len(mates) > 1 else ''}), "
-              f"{since}, at {what}. The {COUNTS.get(len(mates) + 2, 'all')} of you split the rent and the bills. "
-              if mates else f'- You and the user live together, {since}, at {what}. You split the rent and the bills. ')
+              f"{since}, at {what}. The {COUNTS.get(len(mates) + 2, 'all')} of you split the {costs} and the bills. "
+              if mates else f'- You and the user live together, {since}, at {what}. You split the {costs} and the bills. ')
     lines = [(f"moving-in:{row['id']}:home", f'{living}{chores_text(companion, today, ids, names)}{animals}')]
     if row['moved_on'] == today.isoformat():
         lines.append((f"moving-in:{row['id']}:today", '- Today was moving day: you just moved in together.'))
@@ -1263,12 +1321,26 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     if on_break(connection, companion):
         return []  # The move waits while they are on a break (`hold`); the 'breakup' section says where they stand.
     lines = [(f"moving-in:{row['id']}:plan", f'- {joiner_line(connection, row) if joins(row) else plan_line(connection, row)}')]
+    lines += changed_line(connection, row)
     lines += share_lines(connection, companion, now)
     if row['message_id'] and row['message_id'] in fresh_ids:
         lines.append((f"moving-in:{row['id']}:just", JUST_WAITS if row['status'] == 'waiting' and joins(row) else
                       '- You just agreed to live together, and this is how it will go. Say so in this reply, in your '
                       'own words.'))
     return lines
+
+
+def changed_line(connection, row: dict) -> list[tuple[str, str]]:
+    """Until their next reply after the user changed the plan under Hidden values: that it changed, so the reply goes
+    along with it rather than with what they said before (A/B, companion-v14 followups ab-d)."""
+    found = optional(connection, "SELECT changed_at FROM consequences WHERE id=? AND picked_by='user' AND "
+                     'changed_at IS NOT NULL', (row['consequence_id'] or '',))
+    if found is None or joins(row) or optional(
+            connection, "SELECT id FROM messages WHERE timeline_id=? AND role='companion' AND status='complete' AND "
+            'active=1 AND created_at>? LIMIT 1', (row['timeline_id'], found['changed_at'])):
+        return []
+    return [(f"moving-in:{row['id']}:changed:{found['changed_at']}",
+             f'- The plan changed: {plan_line(connection, row)} Go along with it as if you had talked it over.')]
 
 
 # The Character page and Hidden values -------------------------------------------------------------------------------------
@@ -1338,12 +1410,13 @@ def change(connection, companion: dict, consequence_id: str, option: int, now) -
 def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> list[dict]:
     """A fork keeps the plan or the shared home as it stood then (timelines.py inserts the rows): a move or a move out
     that came after the fork point has not happened in the copy yet (`advance` carries a move out again on its day),
-    and the outcome under Hidden values is copied with it, so it can still be changed there."""
+    and the outcome under Hidden values is copied with it, so it can still be changed there. Each copy keeps the row it
+    came from (`origin`), so a home others moved into stays their home on the fork too."""
     rows = []
     for row in many(connection, 'SELECT * FROM moving_in WHERE timeline_id=? AND decided_on<=? ORDER BY created_at',
                     (parent_id, cutoff_date)):
         found = {**row, 'id': identifier(), 'timeline_id': new_id, 'chapter_id': None, 'home_item_id': None,
-                 'message_id': None, 'out_until': None,
+                 'message_id': None, 'out_until': None, 'origin': row.get('origin') or row['id'],
                  'consequence_id': row['consequence_id'] and consequences.copy(
                      connection, row['consequence_id'], new_id, f'moving_in:{new_id}:{len(rows) + 1}')}
         rows.append(found)

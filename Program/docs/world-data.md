@@ -207,7 +207,16 @@ optional `temperament` and `source`. They join that place's townsfolk after the 
 same way, and live by the same rules: days, goals, quirks and flaws are drawn from their key, while the
 name, age, role and temperament are the city's. The companion meets them like anyone else, and what it
 knows of them always includes `about`. Notables are never on the dating app. A pack's notable placed
-somewhere the city lacks is left out with a note.
+somewhere the city lacks is left out with a note. Notables stay in town for good unless `can_leave` is true, when
+they can move away or retire like anyone else and a newcomer takes over their role.
+
+**The town changes hands** (`companion/world/turnover.py`). Each spot a townsperson fills is held by one person
+after another: from 19 October 2026 on, people move away, take other jobs, retire (staff, from their sixties) and,
+with People can pass away on, pass away, at seeded yearly chances that follow their age, Life's big turns and Loss.
+A newcomer takes the spot a few weeks later, keyed by the spot's number plus 1000 for each holder before them
+(`town:<city>:<place>:1003`), so a key still names one person for good and someone who left is still found. Who is
+at a place or on a street depends on the day; nothing is stored. The user's own townsperson and townsfolk who
+became companions never leave. The paper reports departures, arrivals and town couples' babies.
 
 Weather here is climate, not a forecast. Real current conditions belong to the MCP context tools
 (PRD X1–X3); a life event built from climate must not be presented as today's weather.

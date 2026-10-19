@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause, closeness and stacked (for user:rough_patch: the Rough patches slider 0 to 3, what happened, how close the companion feels to the user 1 to 5, and how many rough patches over the same thing are already open or started that day), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The breakup choices (user:strained, user:thinking, user:break, user:falling_out, user:after_break, user:talk_round, user:back_together, user:reach_out; companion/life/breakups.py) read drama, level (the Rough patches slider), closeness, step (how far along the pair is, 0 dating to 7 married), patches (big rough patches of the user's making in the last 45 days, weighed: one over the same thing as another still open counts half, the next a quarter), stacked (how many of those counted for less), cause (the open rough patch's cause), talked (times the user reached out during a break), ended_by (them, you or break), days_apart and months since it ended. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama and pace.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause, closeness and stacked (for user:rough_patch: the Rough patches slider 0 to 3, what happened, how close the companion feels to the user 1 to 5, and how many rough patches over the same thing are already open or started that day), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The breakup choices (user:strained, user:thinking, user:break, user:falling_out, user:after_break, user:talk_round, user:back_together, user:reach_out; companion/life/breakups.py) read drama, level (the Rough patches slider), closeness, step (how far along the pair is, 0 dating to 7 married), patches (big rough patches of the user's making in the last 45 days, weighed: one over the same thing as another still open counts half, the next a quarter), stacked (how many of those counted for less), cause (the open rough patch's cause), talked (times the user reached out during a break), ended_by (them, you or break), days_apart and months since it ended. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama, pace and affords (the biggest wedding their savings cover: 0 small, 1 proper, 2 big). For chapter:next, age is the companion's age now (companion/life/ages.py) and together is 1 while they live with the user.",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -801,6 +801,59 @@
         }
       ]
     },
+    "user:ask_while_tense": {
+      "label": "How {name} answers you asking to get together while things are tense",
+      "options": [
+        {
+          "label": "{name} says yes",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} is forgiving"
+            }
+          ]
+        },
+        {
+          "label": "{name} would rather not, for now",
+          "weight": 0.6,
+          "rules": [
+            {
+              "reader": "patch",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "there's a rough patch open between you"
+            },
+            {
+              "reader": "warning",
+              "is": 1,
+              "times": 1.5,
+              "why": "things are strained between you"
+            },
+            {
+              "reader": "warning",
+              "at_least": 2,
+              "times": 3,
+              "why": "{name} is thinking about a break"
+            },
+            {
+              "reader": "level",
+              "is": 3,
+              "times": 1.5,
+              "why": "rough patches are set to dramatic"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} holds on to things"
+            }
+          ]
+        }
+      ]
+    },
     "chapter:next": {
       "label": "What changes next in {name}'s life",
       "options": [
@@ -956,7 +1009,7 @@
               "reader": "can_relationship",
               "at_most": 0,
               "times": 0,
-              "why": "{name} is already seeing someone, or has no love life of their own here"
+              "why": "{name} is already seeing someone, split up lately, or has no love life of their own here"
             },
             {
               "reader": "love_life",
@@ -993,6 +1046,320 @@
               "at_most": -1,
               "times": 0.8,
               "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} goes back to school",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "can_school",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} has no evenings free for classes, or is already in the middle of a big change"
+            },
+            {
+              "reader": "age",
+              "at_most": 30,
+              "times": 1.5,
+              "why": "{name} is still young"
+            },
+            {
+              "reader": "age",
+              "at_least": 50,
+              "times": 0.5,
+              "why": "{name} is past fifty"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 0.6,
+              "why": "{name}'s description says they're easily distracted"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has been low and wants something new"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "money has been tight for {name}"
+            }
+          ]
+        },
+        {
+          "label": "{name} changes careers",
+          "weight": 0.4,
+          "rules": [
+            {
+              "reader": "can_career_change",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} has no other line of work in {name}'s city to retrain for, or is past changing careers"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.5,
+              "why": "money has been tight for {name}"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.5,
+              "why": "{name} has been unhappy lately"
+            },
+            {
+              "reader": "age",
+              "at_least": 45,
+              "times": 0.5,
+              "why": "{name} is past forty-five"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name}'s description says they're driven"
+            }
+          ]
+        },
+        {
+          "label": "{name} buys a place",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "can_buy_place",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} can't afford a place yet, or already owns one"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 2,
+              "why": "{name} has more money coming in"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 0.3,
+              "why": "money has been tight for {name}"
+            },
+            {
+              "reader": "together",
+              "at_least": 1,
+              "times": 2,
+              "why": "you and {name} live together"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "age",
+              "at_most": 27,
+              "times": 0.5,
+              "why": "{name} is young to buy"
+            }
+          ]
+        },
+        {
+          "label": "{name} retires",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "can_retire",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} isn't near retirement age, or has no job to retire from"
+            },
+            {
+              "reader": "age",
+              "at_least": 65,
+              "times": 3,
+              "why": "{name} is past retirement age"
+            },
+            {
+              "reader": "age",
+              "at_least": 70,
+              "times": 3,
+              "why": "{name} is past seventy"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 0.5,
+              "why": "money has been tight, so {name} keeps working"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 0.6,
+              "why": "{name}'s description says they're driven"
+            }
+          ]
+        },
+        {
+          "label": "{name} starts a business",
+          "weight": 0.4,
+          "rules": [
+            {
+              "reader": "can_business",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} has no job to leave, can't afford to start one, or already runs one"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 2,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 0.7,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "{name} has more money coming in"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 0.5,
+              "why": "money has been tight for {name}"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has been unhappy at work lately"
+            },
+            {
+              "reader": "age",
+              "at_least": 50,
+              "times": 0.5,
+              "why": "{name} is past fifty"
+            }
+          ]
+        },
+        {
+          "label": "{name}'s health takes a turn",
+          "weight": 0.25,
+          "rules": [
+            {
+              "reader": "can_health",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} already lives with a long-term condition, or is in the middle of a big change"
+            },
+            {
+              "reader": "age",
+              "at_most": 30,
+              "times": 0.4,
+              "why": "{name} is still young"
+            },
+            {
+              "reader": "age",
+              "at_least": 50,
+              "times": 2,
+              "why": "{name} is past fifty"
+            },
+            {
+              "reader": "age",
+              "at_least": 65,
+              "times": 1.5,
+              "why": "{name} is past sixty-five"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 30,
+              "note": "{name} is worried about their health",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "label": "{name} starts caring for a parent",
+          "weight": 0.3,
+          "rules": [
+            {
+              "reader": "can_caring",
+              "at_most": 0,
+              "times": 0,
+              "why": "no parent of {name} needs looking after yet, or {name} has no evenings to give"
+            },
+            {
+              "reader": "parent_ill",
+              "at_least": 1,
+              "times": 4,
+              "why": "{name}'s parent just started treatment"
+            },
+            {
+              "reader": "parent_age",
+              "at_least": 75,
+              "times": 2,
+              "why": "{name}'s parent is past seventy-five"
+            },
+            {
+              "reader": "parent_age",
+              "at_least": 85,
+              "times": 1.5,
+              "why": "{name}'s parent is past eighty-five"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 120,
+              "note": "{name} is helping pay for a parent's care",
+              "amount": -1
+            },
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 45,
+              "note": "{name} is worried about a parent",
+              "amount": -1,
+              "ripple": true
             }
           ]
         }
@@ -2409,6 +2776,12 @@
               "is": 1,
               "times": 1.2,
               "why": "a proper wedding fits {name}'s budget"
+            },
+            {
+              "reader": "affords",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} hasn't saved enough for a proper wedding"
             }
           ]
         },
@@ -2451,6 +2824,407 @@
               "at_least": 3,
               "times": 1.3,
               "why": "the drama level is high"
+            },
+            {
+              "reader": "affords",
+              "at_most": 1,
+              "times": 0,
+              "why": "{name} hasn't saved enough for a big wedding"
+            }
+          ]
+        }
+      ]
+    },
+    "bigday:invite": {
+      "label": "Whether {name} asks you along to {a}",
+      "options": [
+        {
+          "label": "{name} goes on their own",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "guests",
+              "is": 1,
+              "times": 2,
+              "why": "Guests is set to now and then"
+            }
+          ]
+        },
+        {
+          "label": "{name} asks you to come with them",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "guests",
+              "at_most": 0,
+              "times": 0,
+              "why": "Guests is set to never"
+            },
+            {
+              "reader": "guests",
+              "at_least": 3,
+              "times": 2,
+              "why": "Guests is set to often"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close"
+            },
+            {
+              "reader": "romance",
+              "is": 1,
+              "times": 2,
+              "why": "you two are together"
+            },
+            {
+              "reader": "family",
+              "is": 1,
+              "times": 1.3,
+              "why": "it's family"
+            }
+          ]
+        }
+      ]
+    },
+    "business:how": {
+      "label": "How {a} is going",
+      "options": [
+        {
+          "label": "{a} grows",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has more money coming in"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 90,
+              "note": "{a} is growing",
+              "amount": 1
+            },
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 30,
+              "note": "{a} is doing well",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "label": "{a} ticks along",
+          "weight": 4,
+          "rules": []
+        },
+        {
+          "label": "{a} stalls",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "turns",
+              "at_most": 1,
+              "times": 0.5,
+              "why": "the big turns setting is on gentle"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.5,
+              "why": "{name}'s description says they're easily distracted"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 90,
+              "note": "business is slow at {a}",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "label": "{a} folds",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "turns",
+              "at_most": 1,
+              "times": 0,
+              "why": "the big turns setting is on gentle, so nothing goes under"
+            },
+            {
+              "reader": "factor",
+              "at_most": 5,
+              "times": 3,
+              "why": "{a} has been making less than a wage for a while"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 2,
+              "why": "money has been tight for {name}"
+            },
+            {
+              "reader": "checks",
+              "at_most": 2,
+              "times": 1.3,
+              "why": "{a} is still new"
+            },
+            {
+              "reader": "checks",
+              "at_least": 4,
+              "times": 0.3,
+              "why": "{a} has found its feet"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 60,
+              "note": "{name} had to close {a}",
+              "amount": -1,
+              "ripple": true
+            },
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 90,
+              "note": "{name} is back to looking for work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "health:outlook": {
+      "label": "How {name}'s {a} looks",
+      "options": [
+        {
+          "label": "{name} can manage {a} well",
+          "weight": 4,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 1,
+              "times": 1.5,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "label": "{a} is a harder road for {name}",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 60,
+              "times": 1.5,
+              "why": "{name} is past sixty"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 60,
+              "note": "{name} is finding {a} hard",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
+        }
+      ]
+    },
+    "caring:how": {
+      "label": "How caring for {a} is going",
+      "options": [
+        {
+          "label": "{a} is doing better",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 80,
+              "times": 0.5,
+              "why": "{a} is past eighty"
+            },
+            {
+              "reader": "checks",
+              "at_least": 2,
+              "times": 0.6,
+              "why": "{name} has been caring for {a} for a while"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 30,
+              "note": "{a} is doing better",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "label": "Caring for {a} goes on as before",
+          "weight": 3,
+          "rules": [],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 95,
+              "note": "{name} is helping pay for {a}'s care",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "label": "{a} needs more help",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 80,
+              "times": 1.5,
+              "why": "{a} is past eighty"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            },
+            {
+              "reader": "turns",
+              "at_most": 1,
+              "times": 0.3,
+              "why": "the big turns setting is on gentle"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 95,
+              "note": "{name} is helping pay for {a}'s care",
+              "amount": -1
+            },
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 60,
+              "note": "{name} is worn out from caring for {a}",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
+        }
+      ]
+    },
+    "loss:passes": {
+      "label": "Whether {a} passes away this year",
+      "options": [
+        {
+          "label": "{a} lives on",
+          "weight": 1
+        },
+        {
+          "label": "{a} passes away",
+          "weight": 0.0004,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 45,
+              "times": 3,
+              "why": "{a} is over 45",
+              "at_most": 54
+            },
+            {
+              "reader": "age",
+              "at_least": 55,
+              "times": 7.5,
+              "why": "{a} is over 55",
+              "at_most": 64
+            },
+            {
+              "reader": "age",
+              "at_least": 65,
+              "times": 19,
+              "why": "{a} is over 65",
+              "at_most": 74
+            },
+            {
+              "reader": "age",
+              "at_least": 75,
+              "times": 47,
+              "why": "{a} is over 75",
+              "at_most": 84
+            },
+            {
+              "reader": "age",
+              "at_least": 85,
+              "times": 117,
+              "why": "{a} is over 85",
+              "at_most": 91
+            },
+            {
+              "reader": "age",
+              "at_least": 92,
+              "times": 234,
+              "why": "{a} is over 90"
+            },
+            {
+              "reader": "frail",
+              "is": 1,
+              "times": 25,
+              "why": "caring for {a} has been getting harder"
+            },
+            {
+              "reader": "treatment",
+              "is": 1,
+              "times": 8,
+              "why": "{a} has been in treatment"
+            },
+            {
+              "reader": "loss",
+              "is": 0,
+              "times": 0.25,
+              "why": "Loss is set to rare"
+            },
+            {
+              "reader": "loss",
+              "is": 1,
+              "times": 0.5,
+              "why": "Loss is set to now and then"
+            },
+            {
+              "reader": "loss",
+              "is": 3,
+              "times": 2,
+              "why": "Loss is set to often"
             }
           ]
         }

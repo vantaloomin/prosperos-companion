@@ -108,6 +108,8 @@ def decide(found: set[str]) -> Classification:
 def classify(request: dict) -> Classification:
     """Never raises: an internal failure routes as NSFW with the reason recorded."""
     try:
+        if request.get('withheld'):
+            return Classification(PROHIBITED, ['not something to picture'])
         result = decide(matches(normalize(request_text(request))))
         if request.get('marked_nsfw') and result.tier == SAFE:
             return Classification(NSFW, ['marked NSFW by you'])

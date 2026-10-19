@@ -189,8 +189,18 @@ GET   /api/life/circle                     # ?include_removed=true also lists re
 PATCH /api/life/circle/{id}                {"name": "Rowan"}
 POST  /api/life/circle/{id}/remove
 POST  /api/life/circle/{id}/restore
+POST  /api/life/circle/{id}/spared         {"spared": false}   # People can pass away: whether they can
+POST  /api/life/circle/{id}/bring-back     # someone who passed away comes back, as if it never happened
 GET   /api/life/circle/{id}/diary          # ?before=<starts_at>&limit=20, newest first
 ```
+
+Loss and grief (companion/life/loss.py): with `people_pass_away` on in the life settings (off on every preset),
+the consequence engine's `loss:passes` decides once a year whether an adult in the circle passes away, by age and the
+`loss` slider (0 rare to 3 often), with a decision of its own for a parent in treatment or whose care went harder.
+Never a companion, a child, the companion's partner, or someone the character's description names unless `spared` is
+false. Someone who passed away stays on the list with `late` (the date) and `loss` (`{id, died_on, consequence_id}`),
+whatever `include_removed` says; restore or bring-back undoes the death, calls off the funeral (a big day of kind
+`funeral`) and changes the outcome to living on.
 
 A person is `{id, name, role, status, revision, career, employer, neighborhood, city, refs, sources,
 data_version, birthday, schedule, now, recent}`, plus `full_name`, `pronouns`, `age`, `local`, `closeness` and
@@ -751,6 +761,59 @@ The chat context lists the day itself and birthdays within a week. Today's respo
 (`[{key, kind, date, days, span, text, template}]`, `kind` one of `user_birthday`, `own_birthday`,
 `circle_birthday`, `anniversary`; a `circle_birthday` adds `person` and `relation`). On the day, an occasion
 other than a circle birthday is the first reason the companion may message first.
+
+### Everyone gets older
+
+`companion/life/ages.py` gives each person one stored birth date (`birth_dates`), worked out once from the age
+they had when it was first needed and their birthday, so nobody's age jumps on an upgrade; from then on their
+age goes up on each birthday. Rules only, no model.
+
+- A companion starts from their looks sheet's age (the Looks age set on the form, else the age their identity
+  gives, else seeded). When the user writes another age or birthday, the date is worked out again, so the form
+  always wins. The definition's `keeps_age` ("Keeps their age" under Looks on the Character page, off by default)
+  holds them at the age they are when it goes on (`held_age`); turned off, they carry on from there. A sheet that reads as under 18 never gets a date.
+- Their Looks line and pictures use the age on that day. Once a birthday takes them past the age their words
+  give, their own prompt adds one line after Looks: "You are 35 now; you turned 35 on 3 March." (A/B
+  2026-10-18: without it most models answered with the age written.) Their written words stay as they are.
+- Circle members and love-life partners age in their stored rows (`details.age`), which `ages.sync` keeps
+  current a few times an hour alongside the news, so everything that reads them sees the age now.
+- Townsfolk stay stateless: their seeded age is their age on the day the town started getting older, plus a
+  year on each seeded birthday since (`ages.town_age`). Around town shows it.
+- Milestone birthdays (30, 40, 50 ...) are bigger: the occasion reads "your 40th birthday, a big one" and
+  carries `turns`, Today says "It is Dana's 40th birthday today.", the first text is "Guess who's 40 today.",
+  the evening is a party, and the scrapbook's year page lists it ("Dana turned 40", "Dana's mom Ruth turned
+  60").
+- Looks drift with age through Looks that change (`grooming.age_signs`, bank `world/data/ageing.json`): first
+  grey hairs, laugh lines and reading glasses at seeded ages, settling in over the years after. Only ages they
+  reach in the app count, only looks the app drew change, and the Looks setting shifts how soon.
+
+### Births and growing families
+
+`companion/life/families.py` brings babies into the circle, rules only. Each Monday a sibling, cousin, friend or
+coworker in the circle aged 24 to 42 may start expecting (a married sibling likeliest), at the pace of Realism >
+Their days > Growing families (life setting `growing_families`: 0 none, 1 now and then, 2 true to life, 3 lots;
+an easy life starts at 1, a dramatic one at 3). Never the companion's parents, their own partner or someone they
+are seeing: a companion's own baby comes with v0.15.
+
+- A pregnancy is a storyline (`expecting`) with four beats over about seven months: the news with a due month,
+  something halfway through, "any day now" and the birth with the baby's name. The old one-line `cousin_baby`
+  storyline no longer starts. Ending it on Today means the baby never arrives.
+- The baby joins the circle the day they are born (`circle_children`, kept apart from `circle_people`), with that
+  birthday, and gets older with it. A sibling's baby is the companion's niece or nephew, a close friend often
+  asks them to be the godparent, anyone else's is theirs. `GET /life/circle` adds `children`
+  (`[{id, name, pronouns, born_on, age, age_text, relation, title}]`) and `expecting` (the due month) to each
+  person.
+- Until a child is 13 the companion babysits now and then (their own family and godchildren, when the parent
+  lives in town) and hears how they are getting on, as single-beat storylines (`babysat`, `baby_update`) from
+  the bank in `world/data/families.json`, at most one a day.
+- A first birthday is a big day (companion/life/big_days.py `first_birthday`): a party at the parent's place the
+  Saturday on or after it, with a gift from the bank and the user asked along by the usual rules. The parent is
+  the one there; there is no group chat buzz about it.
+- The chat context lists each child under "People in your life" ("- Mia (your niece, a child, 2 years old):
+  your sister Ana's daughter.").
+- Town couples' babies (companion/world/couples.py `babies`) follow the same setting; a companion who knows a
+  townsperson well hears they are expecting ("Family news: they're expecting a baby with Dana around March.").
+- Children are only ever words: never in pictures, the feed or group chats.
 
 ## Limits and permissions
 

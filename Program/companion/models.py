@@ -141,6 +141,8 @@ class CharacterDefinition(Input):
     # "MM-DD"; empty picks a date from the companion's id (companion/life/occasions.py).
     texting: TextingStyle = Field(default_factory=TextingStyle)
     birthday: str = Field(default='', pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
+    # Everyone gets older (companion/life/ages.py): on, they stay the age written, for characters who shouldn't age.
+    keeps_age: bool = False
     money: MoneySetup = Field(default_factory=MoneySetup)
     # Their adult side, only used with Settings > Realism > Adult side of life on; None uses the roll.
     intimacy: IntimacySetup | None = None
@@ -150,6 +152,12 @@ class CharacterDefinition(Input):
     # The weeks of shifts or gigs the app adds when it reads the companion (companion/life/shifts.py). Accepted so a
     # form can send back what it was given, and never saved.
     rota: dict | None = Field(default=None, exclude=True)
+    # What their life chapters add to the definition the app reads (companion/characters.py `apply_changes`): the
+    # neighbourhood a move cleared, their own business and a long-term condition. Accepted back from the form the
+    # same way, and never saved: the chapters keep them.
+    near: str | None = Field(default=None, exclude=True)
+    business: dict | None = Field(default=None, exclude=True)
+    health: dict | None = Field(default=None, exclude=True)
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
@@ -457,6 +465,13 @@ class LifeSettingsUpdate(Input):
     friends_fall: bool | None = None
     # Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on.
     love_life: int | None = Field(default=None, ge=0, le=3)
+    # Life's big turns (companion/life/big_turns.py): 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful.
+    life_turns: int | None = Field(default=None, ge=0, le=3)
+    # Births and growing families (companion/life/families.py): 0 none, 1 now and then, 2 true to life, 3 lots.
+    growing_families: int | None = Field(default=None, ge=0, le=3)
+    # Loss and grief (companion/life/loss.py): whether people can pass away, and how often (0 rare ... 3 often).
+    people_pass_away: bool | None = None
+    loss: int | None = Field(default=None, ge=0, le=3)
     # Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life.
     breakups: bool | None = None
     on_her_mind: bool | None = None

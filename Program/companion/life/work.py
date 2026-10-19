@@ -190,6 +190,9 @@ def rules(city: dict | None) -> dict:
 
 
 def works(definition: dict) -> bool:
+    """Whether they have a job; running their own business (companion/life/business.py), Work life steps aside."""
+    if definition.get('business'):
+        return False
     return any(block.kind == 'work' for block in routine.blocks(definition)[0])
 
 
@@ -430,13 +433,13 @@ def hunt_span(found: dict) -> tuple[str, str] | None:
 
 
 def days_off(connection, companion: dict, start: date, end: date) -> dict[str, str]:
-    """{local date: 'Vacation' or 'Job hunt'} for the agenda: vacation days, and workdays while between jobs."""
-    if not ACTIVE:
-        return {}
-    found = state(connection, companion['active_timeline_id'])
+    """{local date: 'Vacation', 'Job hunt' or a big day's title} for the agenda: vacation days, workdays while between
+    jobs, and a workday a big day falls in their working hours (companion/life/big_days.py)."""
+    from companion.life import big_days
+    result = big_days.days_off(connection, companion, start, end)
+    found = state(connection, companion['active_timeline_id']) if ACTIVE else None
     if not found or not level(connection):
-        return {}
-    result = {}
+        return result
     for year in range(start.year, end.year + 1):
         for day in vacation_days(connection, companion, year, found):
             if start.isoformat() <= day <= end.isoformat():

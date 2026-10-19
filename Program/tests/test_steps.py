@@ -1,12 +1,12 @@
 """Next steps (companion/life/steps.py): the ladder, asks either way, a friend falling for you, and the Character page."""
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 from conftest import reconcile, send, set_life
 
 from companion import consequences
 from companion.characters import current
-from companion.life import occasions, steps
+from companion.life import chapters, occasions, steps
 from companion.providers.chat import Chunk
 
 
@@ -60,6 +60,8 @@ def test_steps_brought_up_are_read_from_the_message():
 
 
 def make(client, monkeypatch, relationship='romance', **values):
+    # The dice some tests force would also start a life chapter (caring for a parent), whose news takes the first text.
+    monkeypatch.setattr(chapters, 'CHANCE', (0, 0, 0, 0))
     response = client.post('/api/companion', json={'name': 'Mira', 'timezone': 'UTC', 'relationship': relationship,
                                                      **values})
     assert response.status_code == 200, response.text
@@ -153,7 +155,17 @@ def test_a_friend_close_from_the_start_is_a_best_friend(client, monkeypatch):
 def test_a_match_from_the_dating_app_counts_from_the_first_talk(client, monkeypatch):
     make(client, monkeypatch, starting_closeness=3, history_together='Matched on Matchlight.')
     found = view(client)
-    assert found['text'] == 'Together 1 day, exclusive' and found['steps'][0]['how'] == 'start'
+    # A new romance at "Comfortable" is still dating, not "Together 1 day, exclusive" (E2E v0.13 N4).
+    assert found['text'] == 'Dating for 1 day' and found['steps'][0]['how'] == 'start'
+
+
+def test_a_romance_talking_a_few_weeks_at_comfortable_starts_exclusive(client, clock, monkeypatch):
+    make(client, monkeypatch, starting_closeness=3)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        connection.execute('DELETE FROM relationship_steps WHERE timeline_id=?', (companion['active_timeline_id'],))
+        monkeypatch.setattr(occasions, 'first_talk', lambda *_args: clock.now().date() - timedelta(days=20))
+        assert [key for key, _how in steps.start(connection, companion, 'romance', clock.now())] == ['dating', 'exclusive']
 
 
 def test_mentors_and_family_have_no_ladder(client, provider, monkeypatch):
@@ -328,7 +340,12 @@ def test_pace_off_means_only_when_you_bring_it_up(client, clock, monkeypatch, al
     clock.advance(timedelta(days=60))
     reconcile(client)
     with client.app.state.database.connect() as connection:
-        assert steps.asks(connection, current(connection)['active_timeline_id'], ('planned',)) == []
+        companion = current(connection)
+        assert steps.asks(connection, companion['active_timeline_id'], ('planned',)) == []
+        # Asked, they answer true to life, not slowly ("the relationship pace is slow" never shows).
+        found = steps.state(connection, companion, clock.now(), write=False)
+        facts = steps.facts(connection, companion, found, steps.step_of('romance', 'exclusive'), clock.now())
+        assert facts['pace'] == 2 and facts['short_days'] == max(35 - facts['days'], 0)
 
 
 def test_each_step_is_an_anniversary_and_exclusive_is_known(client, clock, monkeypatch):
@@ -342,7 +359,7 @@ def test_each_step_is_an_anniversary_and_exclusive_is_known(client, clock, monke
         found = [item for item in occasions.occasions(connection, current(connection), clock.now())
                  if item['kind'] == 'step_anniversary']
     assert [item['text'] for item in found] == [
-        f"- Today it has been a year since you and the user became exclusive ({date(2026, 10, 5):%d %B %Y})."]
+        "- Today it has been a year since you and the user became exclusive (5 October 2026)."]
     # Today says which step it was (E2E v0.13: it read "a year since you two started talking").
     assert (found[0]['did'], found[0]['span']) == ('became exclusive', 'a year')
 

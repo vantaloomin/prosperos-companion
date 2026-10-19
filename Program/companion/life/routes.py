@@ -12,6 +12,7 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    big_days,
     breakups,
     calls,
     chapters,
@@ -19,8 +20,10 @@ from companion.life import (
     citymap,
     deck,
     encounters,
+    families,
     feed,
     long_distance,
+    loss,
     love_life,
     money,
     mood,
@@ -46,7 +49,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.models import Input, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
-from companion.world import newcomers, paper
+from companion.world import paper
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -59,6 +62,10 @@ class Reconcile(Input):
 
 class PersonUpdate(Input):
     name: str = Field(min_length=1, max_length=60, pattern=r'\S')
+
+
+class PersonSpared(Input):
+    spared: bool
 
 
 class ReadPosts(Input):
@@ -197,8 +204,10 @@ def read_circle(request: Request, include_removed: bool = False):
         # Someone they are seeing (companion/life/love_life.py): where the two of them stand.
         love = love_life.circle_extras(connection, companion, now, bool(settings(connection)['show_odds']))
         met = their_people.for_circle(connection, companion, bool(settings(connection)['show_odds']), now)
-        return [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {})}
-                for person in people]
+        # Their children and a due month while expecting (companion/life/families.py), in words only.
+        kids = families.for_circle(connection, companion, now)
+        return [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {}),
+                 **kids.get(person['id'], {'children': [], 'expecting': None})} for person in people]
 
 
 def with_pets(connection, companion: dict, world, people: list[dict], now) -> list[dict]:
@@ -246,8 +255,29 @@ def remove_person(request: Request, person_id: str):
 
 @router.post('/circle/{person_id}/restore')
 def restore_person(request: Request, person_id: str):
+    def change(connection, now):
+        if found := loss.of_person(connection, person_id):  # Someone late comes back as if they never passed away.
+            return loss.undo(connection, require_current(connection), found['id'], now)
+        return circle.set_status(connection, person_id, 'active', now)
+    return circle_change(request, person_id, change)
+
+
+@router.post('/circle/{person_id}/spared')
+def spare_person(request: Request, person_id: str, body: PersonSpared):
+    """People can pass away: whether this person can (companion/life/loss.py). Someone the user wrote into the
+    character's description is spared until this says otherwise."""
     return circle_change(request, person_id,
-                         lambda connection, now: circle.set_status(connection, person_id, 'active', now))
+                         lambda connection, now: loss.set_spared(connection, person_id, body.spared, now))
+
+
+@router.post('/circle/{person_id}/bring-back')
+def bring_back(request: Request, person_id: str):
+    """Someone who passed away comes back as if it never happened (companion/life/loss.py)."""
+    def change(connection, now):
+        found = loss.of_person(connection, person_id)
+        require(found is not None, 'They have not passed away.', 409)
+        loss.undo(connection, require_current(connection), found['id'], now)
+    return circle_change(request, person_id, change)
 
 
 @router.get('/circle/{person_id}/diary')
@@ -463,7 +493,8 @@ def read_paper(request: Request, day: str | None = None):
         current = paper.issue_date(storylines.local_today(companion, database.clock.now()))
         asked = paper.issue_date(require_date(day)) if day else current
         shown = min(asked, current)
-        data = newcomers.city_for(connection, companion['version']['definition'])
+        # Their own town: seeded townsfolk, and the townsfolk who became companions staying put (world/turnover.py).
+        data = network.city(connection, companion)
         require(bool(data.get('neighborhoods')), 'Pick a home city for the companion to get its paper.', 404)
         return {**paper.issue(connection, data, request.app.state.life.world, shown),
                 'previous': (shown - timedelta(days=7)).isoformat(),
@@ -478,7 +509,7 @@ def require_date(value: str) -> date:
 
 
 class OutcomeChange(Input):
-    option: int = Field(ge=0, le=9)
+    option: int = Field(ge=0, le=31)  # chapter:next has 13 ways it can go.
 
 
 @router.get('/consequences/{consequence_id}')
@@ -494,6 +525,13 @@ def read_consequence(request: Request, consequence_id: str):
         return found
 
 
+# "Change how it went" by subject prefix, for those that take (connection, companion, consequence_id, option, now).
+CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.change,
+           'people:': lambda: their_people.change, 'breakup:': lambda: breakups.change,
+           'bigday:': lambda: big_days.change, 'tense-ask:': lambda: rough_patches.change_ask,
+           'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change}
+
+
 @router.post('/consequences/{consequence_id}/change')
 def change_consequence(request: Request, consequence_id: str, body: OutcomeChange):
     """The user makes it go another way instead."""
@@ -503,35 +541,16 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         return storylines.change_outcome(db(request), consequence_id, body.option)
     if subject.startswith('chapter:'):
         return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
-    if subject.startswith('moving_in:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return moving_in.change(connection, require_current(connection), consequence_id, body.option,
-                                    database.clock.now())
     if subject.startswith('love:'):
         database = db(request)
         with database.connect(write=True) as connection:
             return love_life.change(connection, require_current(connection), request.app.state.life.world,
                                     consequence_id, body.option, database.clock.now())
-    if subject.startswith('steps:'):
+    change = next((found for prefix, found in CHANGES.items() if subject.startswith(prefix)), None)
+    if change:
         database = db(request)
         with database.connect(write=True) as connection:
-            return steps.change(connection, require_current(connection), consequence_id, body.option, database.clock.now())
-    if subject.startswith('people:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return their_people.change(connection, require_current(connection), consequence_id, body.option,
-                                       database.clock.now())
-    if subject.startswith('breakup:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return breakups.change(connection, require_current(connection), consequence_id, body.option,
-                                   database.clock.now())
-    if subject.startswith('wedding:'):
-        database = db(request)
-        with database.connect(write=True) as connection:
-            return wedding.change_size(connection, require_current(connection), consequence_id, body.option,
-                                       database.clock.now())
+            return change()(connection, require_current(connection), consequence_id, body.option, database.clock.now())
     return reactions.change(db(request), consequence_id, body.option)
 
 
@@ -551,6 +570,12 @@ def change_moment(request: Request, day: date, body: MomentChange):
 def read_chapters(request: Request):
     """The life chapters in place on this timeline (companion/life/chapters.py), newest first."""
     return chapters.listing(db(request))
+
+
+@router.get('/chapters/lately')
+def read_chapters_lately(request: Request):
+    """Big turns on their way and the latest chapters, for the Character page (companion/life/big_turns.py)."""
+    return chapters.lately(db(request))
 
 
 @router.post('/chapters/{chapter_id}/undo')

@@ -42,6 +42,9 @@ test('occasions read as a friend would say them', async () => {
   assert.equal(occasionText({ ...base, kind: 'user_birthday', days: 2 }, 'Mira'), 'Your birthday is in 2 days.')
   assert.equal(occasionText({ ...base, kind: 'own_birthday', days: 0 }, 'Mira'), "It is Mira's birthday today.")
   assert.equal(occasionText({ ...base, kind: 'circle_birthday', days: 1, person: 'Cathy', relation: 'mom' }, 'Mira'), "It is Mira's mom Cathy's birthday tomorrow.")
+  // Milestone birthdays (Everyone gets older) say which.
+  assert.equal(occasionText({ ...base, kind: 'own_birthday', days: 0, turns: 40 }, 'Mira'), "It is Mira's 40th birthday today.")
+  assert.equal(occasionText({ ...base, kind: 'circle_birthday', days: 3, person: 'Cathy', relation: 'mom', turns: 60 }, 'Mira'), "It is Mira's mom Cathy's 60th birthday in 3 days.")
   assert.equal(occasionText({ ...base, kind: 'anniversary', days: 0, span: 'three months' }, 'Mira'), "It's been three months since you two started talking.")
   // A step's anniversary names the step, not the first talk (E2E v0.13).
   assert.equal(occasionText({ ...base, kind: 'step_anniversary', days: 0, span: 'a year', did: 'became exclusive' }, 'Mira'), "It's been a year since you two became exclusive.")
@@ -83,4 +86,7 @@ test('a time beside a label from their day is in their time zone', () => {
   // 6 PM in UTC is 1 PM in Baltimore: the "Afternoon" beside it reads right.
   assert.match(eventWhen('2026-11-29T18:00:00Z', now, 'America/New_York'), /1:00\sPM$/)
   assert.match(eventWhen('2026-11-25T18:00:00Z', now, 'America/New_York'), /^Today, /)
+  // An outing shows its own time, not its block's start (6:00 PM · Evening).
+  assert.match(eventWhen('2026-11-29T23:00:00Z', now, 'America/New_York', '18:30'), /6:30\sPM$/)
+  assert.match(eventWhen('2026-11-29T23:00:00Z', now, 'America/New_York', undefined), /6:00\sPM$/)
 })

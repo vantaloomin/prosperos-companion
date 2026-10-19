@@ -550,6 +550,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .person-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; }
 .person-card { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
 .person-card.removed { opacity: .75; }
+.person-card.late { background: var(--canvas); border-style: dashed; }
 .person-card h3 { font-size: 1.05rem; margin: 0; color: var(--text); }
 .person-card header p { margin: 2px 0 0; }
 .person-actions { display: flex; flex-wrap: wrap; gap: 4px 16px; }
@@ -1715,6 +1716,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .side-list { width: 280px; padding: 14px 8px; border-right: 1px solid var(--border); background: var(--surface); }
 .side-title { margin: 0 10px 10px; font-size: 1rem; }
 .side-list .chat-row { min-height: 60px; }
+/* A row's name, time and preview shrink with an ellipsis instead of widening the list past its edge. */
+.side-list ul { grid-template-columns: minmax(0, 1fr); }
 .side-bubbles .side-title { font-family: var(--ui-font); font-weight: 600; }
 .side-bubbles .chat-row.current { background: var(--accent); color: var(--on-accent); }
 .side-bubbles .chat-row.current :is(.chat-row-preview, .chat-row-time) { color: var(--on-accent); opacity: .85; }
@@ -1884,6 +1887,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .wedding-tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
 .wedding-tasks li.done > span:first-child { text-decoration: line-through; color: var(--muted); }
 .admin-state { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
+.lately-panel .admin-state li { line-height: 1.6; }
 .admin-later { display: grid; max-width: 28rem; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; margin: 0; font-size: 0.875rem; }
 .admin-later > div { display: contents; }
 .admin-later dd { margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
@@ -2222,6 +2226,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .steps-detail p { margin: 2px 0 0; }
 /* Sharing a home: another partner who would move in, with this one's answer right under it. */
 .steps-list .step-pending { color: var(--muted); }
+.steps-list .step-ended { list-style: none; color: var(--muted); }
 .steps-newcomer { margin-top: 10px; }
 .steps-newcomer p { margin: 0 0 4px; }
 .breakup-block { display: grid; gap: 8px; }

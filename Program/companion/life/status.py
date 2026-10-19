@@ -185,7 +185,7 @@ def retro_away(definition: dict, kind: str) -> list[str]:
 def big_events(connection, companion: dict, now) -> list[tuple[str, str, object]]:
     """(local date, line, when it came to be) for chapters and storyline beats they would share, from the last two
     days, newest first. A beat came to be at the start of its day, or when its outcome was decided."""
-    found = [(row['started_on'], row['share'], parse(row['created_at']))
+    found = [(chapters.since(row), row['share'], parse(row['created_at']))
              for row in chapters.fresh(connection, companion, now) if row['share']]
     found += [(beat['on'], beat['share'], beat_since(connection, companion, beat))
               for _key, beat in storylines.fresh_beats(connection, companion, now) if beat.get('share')]
@@ -200,13 +200,22 @@ def beat_since(connection, companion: dict, beat: dict):
 
 
 def mood_line(connection, companion: dict, now, seed: str, retro: bool = False) -> str:
-    """How they feel. In Retro IM a low mood is a sparkly emo line, and a good one leaves it to the everyday line."""
+    """How they feel. In Retro IM a low mood is a sparkly emo line, and a good one leaves it to the everyday line;
+    grief keeps the plain line."""
     from companion import moods
     mood = moods.current(connection, f"companion:{companion['id']}", now)
     feeling = mood and mood['feeling']
-    if retro:
+    if retro and not grieving(connection, companion, now):
         return retro_line(seed, 'emo') if feeling in LOW else ''
     return generators.pick(seed, 'mood', list(MOODS[feeling])) if feeling in MOODS else ''
+
+
+def grieving(connection, companion: dict, now) -> bool:
+    """Someone close died and it still weighs on them (companion/life/loss.py): no playful Retro IM emo line, just
+    the plain one ("could use a hug")."""
+    from companion.life import loss
+    found = loss.grieving(connection, companion, now)
+    return bool(found) and found[1] != 'lifting'
 
 
 def plan_line(connection, companion: dict, now, seed: str) -> str:

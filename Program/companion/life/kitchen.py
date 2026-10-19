@@ -243,6 +243,14 @@ def settled(state: dict) -> dict:
     return {**decode(state['profile']), **decode(state['overrides'] or '{}')}
 
 
+def with_health(found: dict, definition: dict) -> dict:
+    """Their way of eating with a long-term condition's food to avoid (companion/life/health_turns.py)."""
+    health = definition.get('health') or {}
+    if not health.get('avoid') or health['avoid'] in found['avoids']:
+        return found
+    return {**found, 'avoids': [*found['avoids'], health['avoid']]}
+
+
 def realism(connection) -> int:
     row = optional(connection, 'SELECT kitchen_realism FROM life_settings WHERE id=1')
     return row['kitchen_realism'] if row and row['kitchen_realism'] is not None else 2
@@ -259,7 +267,7 @@ class Day:
             world = CatalogWorld()
         self.connection, self.timeline_id, self.definition, self.world = connection, timeline_id, definition, world
         self.memo: dict = {}
-        self.seed, self.found = state['seed'], settled(state)
+        self.seed, self.found = state['seed'], with_health(settled(state), definition)
         self.level = realism(connection)
         self.schedule = routine.blocks(definition)[0]
         self.budget = money.profile(definition)
@@ -335,6 +343,8 @@ class Day:
         elif hours == 0:
             weights['cook'] *= 1.25
         if not modern_bank(self.found['bank']):
+            weights['takeout'] *= 0.6
+        if self.definition.get('health'):  # Looking after a long-term condition, they order in less.
             weights['takeout'] *= 0.6
         tight = self.tight(day)
         if tight:
@@ -727,11 +737,13 @@ def skill_text(found: dict) -> str:
 
 
 def diet_text(found: dict, person: str = 'they') -> str:
-    """'eat everything', 'are vegetarian and allergic to nuts'."""
+    """'eat everything', 'eat everything except nuts', 'are vegetarian and avoid nuts'."""
     verb, be = ('eat', 'are') if person in ('they', 'you') else ('eats', 'is')
     parts = [f'{verb} everything' if found['diet'] == 'omnivore' else f"{be} {found['diet']}"]
     allergies = [name for name in found['avoids'] if name in ('nuts', 'shellfish', 'dairy', 'gluten')]
-    if allergies:
+    if allergies and found['diet'] == 'omnivore':  # Never "eat everything and avoid nuts" (Iris, 2026-10-18).
+        parts = [f'{verb} everything except {listing(allergies)}']
+    elif allergies:
         parts.append(f"{'avoid' if person in ('they', 'you') else 'avoids'} {listing(allergies)}")
     if 'pork' in found['avoids']:
         parts.append(f"{'don’t' if person in ('they', 'you') else 'doesn’t'} eat pork")

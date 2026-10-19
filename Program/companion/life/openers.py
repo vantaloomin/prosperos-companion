@@ -32,6 +32,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
 from companion.life import (
+    big_days,
     breakups,
     calls,
     chapters,
@@ -42,6 +43,7 @@ from companion.life import (
     hobbies,
     kitchen,
     long_distance,
+    loss,
     love_life,
     media,
     moving_in,
@@ -238,8 +240,9 @@ def storyline_news(connection, companion, now) -> list[Trigger]:
 
 def chapter_news(connection, companion, now) -> list[Trigger]:
     """A new chapter of their life that began today or yesterday (companion/life/chapters.py)."""
-    return [Trigger(f"chapter:{row['id']}", 'storyline', f"Something big just changed in your life: {row['told']} Tell "
-                    'the user, the way you would text a friend.', row['share'])
+    # A big turn's later stages (companion/life/big_turns.py) are news of their own.
+    return [Trigger(f"chapter:{row['id']}{chapters.stage_key(row)}", 'storyline', 'Something big just changed in '
+                    f"your life: {row['told']} Tell the user, the way you would text a friend.", row['share'])
             for row in chapters.fresh(connection, companion, now)]
 
 
@@ -427,15 +430,18 @@ PAST_WAITING = {'occasion', 'postcard'}
 # A knock at the door (companion/life/together.py) happens at its minute or not at all, so it comes early; so does a
 # call (companion/life/calls.py), and the text after a missed one. A next step they planned to bring up
 # (companion/life/steps.py) waits for its day, so it goes ahead of the everyday news too, and so does an invitation to
-# meet their people (companion/life/their_people.py), and the evening they plan to propose (companion/life/wedding.py).
-FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, moving_in.share_due, steps.ask_due, their_people.meet_due, wedding.propose_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+# meet their people (companion/life/their_people.py), the evening they plan to propose (companion/life/wedding.py),
+# and asking the user along to a big day in their circle (companion/life/big_days.py), after the news of a death
+# (companion/life/loss.py) so that a funeral is never how the user first hears of it.
+FINDERS = [occasion, breakups.news_due, rough_patches.apology_due, trips.postcard_due, together.knock_due, calls.ring_due, calls.missed_due, moving_in.share_due, steps.ask_due, their_people.meet_due, wedding.propose_due, loss.news_due, big_days.invite_due, love_life.spotted_due, love_life.came_out_due, plan_follow_ups, promises, finished, chapter_news, love_life.news_due, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            kitchen.invite_due, together.suggest_due, long_distance.news_due, media.recommend_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
 # While a rough patch of the user's making is open (companion/life/rough_patches.py) they hold back: no check-ins,
 # invitations, knocks, calls or next steps of their own.
 COOLED = {check_in, usual_time, together.suggest_due, together.knock_due, calls.ring_due, kitchen.invite_due,
-          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due, wedding.propose_due}
+          hobbies.invite_due, media.recommend_due, steps.ask_due, their_people.meet_due, wedding.propose_due,
+          big_days.invite_due}
 
 
 # While apart (companion/life/breakups.py) texting drops off: on a break only what the break itself brings; exes still
@@ -444,6 +450,12 @@ APART = {'break': {breakups.news_due}, 'ended': {breakups.news_due, occasion}}
 # The one occasion an ex still writes about: the user's birthday (not the day they first talked, a step's anniversary,
 # their own birthday or a family holiday).
 EX_OCCASION = 'occasion:user_birthday:'
+
+
+# While they grieve (companion/life/loss.py) they make fewer plans: no plans of their own while it is raw, about half the
+# days while it is heavy.
+PLANS = {together.suggest_due, together.knock_due, kitchen.invite_due, hobbies.invite_due, media.recommend_due,
+         usual_time}
 
 
 def apart_allows(held_back: str | None, trigger: Trigger) -> bool:
@@ -458,7 +470,9 @@ def candidates(connection, companion, now) -> list[Trigger]:
     held_back = breakups.holds(connection, companion)
     allowed = APART.get(held_back)
     cool = cool or held_back == 'cool'
+    grieving = loss.holds_back(connection, companion, now)
     return [trigger for finder in FINDERS if not (cool and finder in COOLED) and (allowed is None or finder in allowed)
+            and not (grieving and finder in PLANS)
             for trigger in finder(connection, companion, now) if trigger.key not in fired
             and apart_allows(held_back, trigger)]
 
@@ -690,7 +704,7 @@ def settle(connection, companion, row, trigger, timestamp):
         kitchen.settle_invite(connection, companion, row, trigger, timestamp)
     if trigger.kind == 'hobby_invite':
         hobbies.settle_invite(connection, companion, row, trigger, timestamp)
-    for module in (together, steps, their_people, wedding, breakups, moving_in):
+    for module in (together, steps, their_people, wedding, big_days, breakups, moving_in):
         if trigger.kind in module.SETTLES:
             module.settle(connection, companion, row, trigger, timestamp)
 

@@ -236,6 +236,12 @@ def pace(connection) -> int:
     return row['steps_pace'] if row and row['steps_pace'] in range(4) else DEFAULT_PACE
 
 
+def timing(connection) -> int:
+    """The pace steps are timed and answered at. Pace 0 ("Only when you bring it up") only keeps them from bringing a
+    step up themselves (`plan_next`, `falls`); asked, they answer the way things go true to life, not slowly."""
+    return pace(connection) or DEFAULT_PACE
+
+
 def friends_fall(connection) -> bool:
     row = optional(connection, 'SELECT friends_fall FROM life_settings WHERE id=1')
     return bool(row['friends_fall']) if row else True
@@ -304,6 +310,8 @@ HISTORY = {
 }
 
 
+# Days talked before a pair the app starts out (no history) can start at exclusive on closeness alone.
+EXCLUSIVE_AFTER = 14
 LONG_BEFORE = re.compile(r"\b(?:years?|months?|ages|since|ago|grew up|childhood|school|college|university|known each "
                          r"other|have known|old friends?|long time)\b", re.IGNORECASE)
 
@@ -330,7 +338,9 @@ def start(connection, companion: dict, ladder: str, now) -> list[tuple[str, str]
     head = int(definition.get('starting_closeness') or 1)
     found = [first]
     if ladder == 'romance':
-        if level >= 3:
+        # A brand-new romance seeded at "Comfortable" is still dating: exclusive takes a couple of weeks, or more
+        # closeness to start with.
+        if level >= 3 and (days >= EXCLUSIVE_AFTER or head >= 4):
             found.append('exclusive')
         if level >= 4 and (days >= 30 or head >= 4):
             found.append('love')
@@ -438,12 +448,20 @@ def long_date(day: str) -> str:
     return f'{found.day} {found:%B %Y}'
 
 
-def context_line(found: dict, others: tuple[str, str] = ('alone', '')) -> str:
+# A group chat has no 'where' section for the moving-in line to point at (E2E v0.13 N2): there it says how things are.
+WHERE_SAID = ('You have decided to live together (whether you have moved in yet is said where it says where you are '
+              'with the user).')
+
+
+def context_line(found: dict, others: tuple[str, str] = ('alone', ''), home: str = '') -> str:
     """Where things stand, for the chat context: the step, how long, and what has not happened yet. `others` is what
-    they know of the user's other romances (`others_known`)."""
+    they know of the user's other romances (`others_known`); `home`, in a group chat, whether they live together yet
+    (`group_home`)."""
     step = step_of(found['ladder'], found['step'])
     kind, sentence = others
     line = SHARED_LINES.get(step.key, {}).get(kind, step.line) + (f' {sentence}' if sentence else '')
+    if home:
+        line = line.replace(WHERE_SAID, home)
     whose = 'Together' if found['ladder'] == 'romance' else 'Friends'
     dated = [item for item in found['steps'] if item['how'] != 'history']
     since = f" {whose} since {long_date(found['since'])}." if dated and dated[0]['step'] == found['steps'][0]['step'] else ''
@@ -478,6 +496,15 @@ KNOWN = {
     'hurt': 'You found out on {on} that the user is also seeing {names}, and it hurts.',
     'settled': 'You found out on {on} that the user is also seeing {names}; you have come to terms with it.',
 }
+
+
+# Their own open relationship with no other romance of the user's here: never "you only see each other".
+OPEN_ALONE = 'Your relationship with the user is open: you both may see other people.'
+
+
+def open_alone(companion: dict) -> bool:
+    from companion.life import love_life
+    return love_life.is_open(companion['version']['definition'])
 
 
 def other_romances(connection, companion: dict, now, since: str = '') -> list[dict]:
@@ -518,7 +545,7 @@ def others_known(connection, companion: dict, found: dict, now) -> tuple[str, st
         return 'alone', ''
     others = other_romances(connection, companion, now)
     if not others:
-        return 'alone', ''
+        return ('known', OPEN_ALONE) if open_alone(companion) else ('alone', '')
     groups: dict[tuple[str, str], list[str]] = {}
     for other in others:
         groups.setdefault(how_known(connection, companion, other, now), []).append(
@@ -545,9 +572,9 @@ def facts(connection, companion: dict, found: dict, step: Step, now) -> dict:
     today = local_today(companion, now)
     current = next(item for item in found['steps'] if item['step'] == found['step'])
     held = (today - date.fromisoformat(current['on'])).days
-    wanted = step.after[max(pace(connection), 1) - 1]
+    wanted = step.after[timing(connection) - 1]
     levels = personality.levels_of(definition.get('personality_sliders') or {})
-    return {'pace': pace(connection), 'closeness': level, 'closeness_over': level - step.closeness,
+    return {'pace': timing(connection), 'closeness': level, 'closeness_over': level - step.closeness,
             'short_days': max(wanted - held, 0), 'days': held, 'drama': drama(connection),
             'social': levels.get('social', 1), 'warmth': levels.get('warmth', 1),
             'mood': consequences.total(connection, companion['active_timeline_id'],
@@ -583,7 +610,7 @@ def waiting(connection, timeline_id: str, step: str, today: date) -> bool:
                     (timeline_id, USER, step))
     if not last or not last['settled_at']:
         return False
-    days = NO_HOLD if last['status'] == 'no' else WAIT_AFTER[max(pace(connection), 1) - 1]
+    days = NO_HOLD if last['status'] == 'no' else WAIT_AFTER[timing(connection) - 1]
     return (today - parse(last['settled_at']).date()).days < days
 
 
@@ -648,8 +675,8 @@ def insert_ask(connection, timeline_id: str, ladder: str, step: str, side: str, 
 
 def falls(connection, companion: dict, found: dict, now) -> dict | None:
     """Once a month the engine decides whether a close friend falls for the user."""
-    if found['ladder'] != 'friendship' or not may_fall(connection, companion, now):
-        return None
+    if found['ladder'] != 'friendship' or not pace(connection) or not may_fall(connection, companion, now):
+        return None  # At pace 0 they never bring anything up themselves, a confession included.
     timeline_id = companion['active_timeline_id']
     today = local_today(companion, now)
     # A month is a 30-day window starting on a day seeded by the timeline, so a month the app is opened at all counts.
@@ -1064,14 +1091,16 @@ REASON_WORDS = {'sooner': 'it feels too soon', 'close enough': "you don't feel c
                 'skips': "it's a big jump from where you are"}
 
 
-def context_lines(connection, companion: dict, now, turn: set[str]) -> list[tuple[str, str]]:
+def context_lines(connection, companion: dict, now, turn: set[str], group: bool = False) -> list[tuple[str, str]]:
     """(identity, line) for the 'steps' section: where things stand, something they brought up that waits for an
     answer, and an answer just given."""
     found = state(connection, companion, now, write=False)
     if found is None or apart(connection, companion) == 'ended':
         return []  # Exes: the 'breakup' section says where they stand (companion/life/breakups.py).
     others = others_known(connection, companion, found, now)
-    result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}", context_line(found, others))]
+    home = group_home(connection, companion) if group and found['step'] == 'moving_in' else ''
+    result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}{':group' if home else ''}",
+               context_line(found, others, home))]
     for row in asks(connection, companion['active_timeline_id'], ('open',)):
         if row['message_id'] and row['answer_id'] is None:
             result.append((f"step-ask:{row['id']}:open", '- ' + WAITING.format(
@@ -1087,8 +1116,20 @@ def offer(packet, connection, companion: dict, now, recent: list[dict], group=No
             if message['role'] != 'user':
                 break
             turn.add(message['id'])
-    for identity, text in context_lines(connection, companion, now, turn):
+    for identity, text in context_lines(connection, companion, now, turn, group is not None):
         packet.offer('steps', identity, text)
+
+
+def group_home(connection, companion: dict) -> str:
+    """Whether they live together yet, and the plan when not, for the moving-in line in a group chat."""
+    from companion.life import moving_in  # Imported here: moving_in reads the steps ladder.
+    if moving_in.living(connection, companion):
+        return 'You live together.'
+    row = moving_in.current(connection, companion['active_timeline_id'])
+    if row is None:
+        return "You have decided to live together, but you don't live together right now."
+    plan = moving_in.joiner_line(connection, row) if moving_in.joins(row) else moving_in.plan_line(connection, row)
+    return f"You have decided to live together and haven't moved in yet: {plan[:1].lower()}{plan[1:]}"
 
 
 # Anniversaries and the scrapbook ---------------------------------------------------------------------------------------------

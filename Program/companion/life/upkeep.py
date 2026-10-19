@@ -5,7 +5,9 @@ work days, dishes from the meals they cook at home (`meals_cooked`), a little ex
 nothing while they are away on a trip and a suitcase of laundry when they get back. Each companion has a seeded habit
 from the words that describe them (neat, average or messy) that sets how much they let build up before dealing with
 it, and how often they deal with it on a work day. Once the mess passes their habit's limit, a day off brings a big
-clean, never on a day with a plan with the user (it waits for the next day off).
+clean, never on a day with a plan with the user (it waits for the next day off). Living together
+(companion/life/moving_in.py), an area that is someone else's turn that day is done by them, unless the user says they
+left it on their turn.
 
 Each day is walked from the one before with seeded dice, and days before their today are kept once walked
 (upkeep_days), so what already happened never changes and the days ahead follow from it. The user can set how tidy
@@ -43,6 +45,8 @@ CHANCE = {'neat': (0.95, 0.75), 'average': (0.8, 0.45), 'messy': (0.55, 0.2)}
 SETTLE = {'neat': 10, 'average': 28, 'messy': 48}
 # After dealing with an area, and after a big clean.
 CLEANED = {'laundry': 5, 'dishes': 4, 'clutter': 10}
+# Living together, a chore the user left undone on their turn: at least the mess that reads as left (STATE_BANDS).
+LEFT_UNDONE = {'laundry': 20, 'dishes': 20, 'clutter': 45}
 FRESH = 3
 # Daily build-up before the slider: (work day, day off). Dishes come per meal cooked at home.
 BUILD = {'laundry': (8, 6), 'clutter': (5, 3)}
@@ -214,7 +218,8 @@ def walk(connection, timeline_id: str, definition: dict, through: date, slider: 
     context = {'kind': habit(state), 'busy': busy_days(definition), 'scale': SCALE[slider], 'keen': KEEN[slider],
                'patience': PATIENCE[slider],
                'planned': user_plan_days(connection, timeline_id, first), 'seed': state['seed'],
-               'away': away_days(connection, timeline_id, first), 'definition': definition}
+               'away': away_days(connection, timeline_id, first), 'definition': definition,
+               'owner': sharing(connection, timeline_id)}
     day = first
     while day < through:
         day += timedelta(days=1)
@@ -243,16 +248,36 @@ def step(connection, timeline_id: str, before: dict, day: date, context: dict) -
     mess = {area: min(100.0, value) for area, value in mess.items()}
     free = not busy and key not in context['planned']
     weekly = kind == 'neat' and since_big >= 7 and sum(mess.values()) >= 40
+    turns = shared_turns(connection, context, day) or {}
+
+    def theirs(area):  # Living together: someone else's turn at it today, done or left undone.
+        return float(CLEANED[area]) if turns[area] == 'done' else max(mess[area], LEFT_UNDONE[area])
     if free and (sum(mess.values()) >= BIG[kind] * context['patience'] or weekly):
-        return {'date': key, 'mess': {area: float(FRESH) for area in AREAS}, 'done': ['big-clean'], 'away': False,
-                'busy': busy, 'since_big': 0}
+        return {'date': key, 'mess': {area: float(FRESH) if turns.get(area, 'you') == 'you' else theirs(area)
+                                      for area in AREAS}, 'done': ['big-clean'], 'away': False, 'busy': busy,
+                'since_big': 0}
     done = []
     for area in AREAS:
+        if turns.get(area, 'you') != 'you':
+            mess[area] = theirs(area)
+            continue
         chance = 1.0 if mess[area] >= 100 and not busy else min(0.97, CHANCE[kind][busy] * context['keen'])
         if mess[area] >= LIMITS[kind][area] * context['patience'] and generators.unit(seed, 'deal', key, area) < chance:
             mess[area] = float(CLEANED[area])
             done.append(area)
     return {'date': key, 'mess': mess, 'done': done, 'away': False, 'busy': busy, 'since_big': since_big}
+
+
+def sharing(connection, timeline_id: str) -> dict | None:
+    """The companion whose timeline this is, when they have ever planned to move in with the user, else None."""
+    from companion.life import moving_in  # moving_in reads upkeep's busy days, so import late
+    return moving_in.latest(connection, timeline_id) and moving_in.owner_of(connection, timeline_id)
+
+
+def shared_turns(connection, context: dict, day: date) -> dict | None:
+    """Living together (companion/life/moving_in.py), whose turn each area is that day; None otherwise."""
+    from companion.life import moving_in
+    return moving_in.chore_turns(connection, context['owner'], day) if context.get('owner') else None
 
 
 def keep(connection, timeline_id: str, days: list[dict]):

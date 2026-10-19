@@ -17,6 +17,9 @@ import { ROUGH_PATCH_LEVELS } from '../profile/roughPatchText'
 import { PACE_LEVELS } from '../character/stepsText'
 import { BREAKUPS_HINT } from '../character/breakupText'
 import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
+import { FAMILY_LEVELS } from '../character/familiesText'
+import { TURN_LEVELS } from '../character/turnsText'
+import { LOSS_LEVELS, PASS_AWAY_HINT, PASS_AWAY_TIP } from '../character/lossText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -61,7 +64,9 @@ export function PaceSettings() {
   const media = step(MEDIA_LEVELS, data.media_realism, 2)
   const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
-  const rough = step(ROUGH_PATCH_LEVELS, data.rough_patches_realism, 2)
+  const families = step(FAMILY_LEVELS, data.growing_families, 2)
+  const turns = step(TURN_LEVELS, data.life_turns, 2)
+  const loss = step(LOSS_LEVELS, data.loss, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
@@ -77,6 +82,18 @@ export function PaceSettings() {
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.work_realism} label={work.label}
           onChange={(work_realism) => void save({ work_realism })} />}
       </Field>
+      <Field label={`Life's big turns: ${turns.label}`} hint={turns.hint} tip="Undo any big turn on Today, or make it go another way under Hidden values.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.life_turns} label={turns.label}
+          onChange={(life_turns) => void save({ life_turns })} />}
+      </Field>
+      <Toggle label="People can pass away" checked={data.people_pass_away} onChange={(value) => void save({ people_pass_away: value })}
+        hint={PASS_AWAY_HINT} tip={PASS_AWAY_TIP} />
+      {data.people_pass_away && (
+        <Field label={`Loss: ${loss.label}`} hint={loss.hint}>
+          {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.loss} label={loss.label}
+            onChange={(value) => void save({ loss: value })} />}
+        </Field>
+      )}
       <Field label={`Their pastimes: ${pastimes.label}`} hint={pastimes.hint} tip="Pastimes from their interests, and ones you add, are never given up on their own.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.hobbies_realism} label={pastimes.label}
           onChange={(hobbies_realism) => void save({ hobbies_realism })} />}
@@ -85,11 +102,11 @@ export function PaceSettings() {
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.together_realism} label={together.label}
           onChange={(together_realism) => void save({ together_realism })} />}
       </Field>
-      <Field label={`Rough patches: ${rough.label}`} hint={rough.hint} tip="You can always clear the air yourself. Companions can be the ones at fault too, and then they apologise first.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.rough_patches_realism} label={rough.label}
-          onChange={(rough_patches_realism) => void save({ rough_patches_realism })} />}
-      </Field>
       <LoveLifeSlider value={data.love_life} onChange={(love_life) => void save({ love_life })} />
+      <Field label={`Growing families: ${families.label}`} hint={families.hint} tip="Babies and children are only ever mentioned in words, never pictured. Town babies show up in the paper.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.growing_families} label={families.label}
+          onChange={(growing_families) => void save({ growing_families })} />}
+      </Field>
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}
           onChange={(guests_realism) => void save({ guests_realism })} />}
@@ -107,12 +124,13 @@ export function PaceSettings() {
   )
 }
 
-/** Love and friendship (companion/life/steps.py): how soon companions bring up the next step, and whether a close
- * friend can fall for you. */
+/** Love and friendship (companion/life/steps.py): how soon companions bring up the next step, whether a close
+ * friend can fall for you, rough patches and breakups. */
 export function LoveSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="love-heading" title="Love and friendship" />
   const pace = PACE_LEVELS[data.steps_pace] ?? PACE_LEVELS[2]
+  const rough = step(ROUGH_PATCH_LEVELS, data.rough_patches_realism, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="love-heading">
       <div>
@@ -126,6 +144,11 @@ export function LoveSettings() {
       <Toggle label="Friends can fall for you" checked={data.friends_fall} onChange={(value) => void save({ friends_fall: value })}
         hint={'Now and then a close friend falls for you and tells you. Say yes and you start dating; say no and the friendship carries on after a few awkward days. Rare on a real life, likelier with more drama.'}
         tip="Keep a friend as just friends on their Character page." />
+      {/* Next to Breaks and breakups, which needs rough patches at true to life or more (Iris). */}
+      <Field label={`Rough patches: ${rough.label}`} hint={rough.hint} tip="You can always clear the air yourself. Companions can be the ones at fault too, and then they apologise first.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.rough_patches_realism} label={rough.label}
+          onChange={(rough_patches_realism) => void save({ rough_patches_realism })} />}
+      </Field>
       <Toggle label="Breaks and breakups" checked={data.breakups} onChange={(value) => void save({ breakups: value })}
         hint={BREAKUPS_HINT} tip="Either of you can end it, and getting back together is possible later. Nothing is deleted." />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}

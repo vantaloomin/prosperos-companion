@@ -5,6 +5,7 @@ the user's boundaries are required: if they cannot fit, the builder reports the 
 dropping them. Everything else is added in priority order until the budget is spent, and the
 receipt records what was included and what was left out, by identity only.
 """
+import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
@@ -18,6 +19,8 @@ from companion.errors import DomainError
 from companion.events import committed
 from companion.life import (
     agenda,
+    ages,
+    big_days,
     body,
     breakups,
     calls,
@@ -28,11 +31,13 @@ from companion.life import (
     disruptions,
     dreams,
     encounters,
+    families,
     grooming,
     hobbies,
     home,
     kitchen,
     long_distance,
+    loss,
     love_life,
     media,
     money,
@@ -137,6 +142,9 @@ HEADINGS = {
             'steps': 'Where things stand between you (decided by the app; the user can see and change it)',
             # Engagement and wedding (companion/life/wedding.py): changes when they propose, plan or hold the wedding.
             'wedding': 'Your engagement and wedding (planned by the app with you; the user can change the plan)',
+            # Big days in the circle (companion/life/big_days.py): changes when one is found, the user is asked or it
+            # is held.
+            'big_days': 'Big days in your circle (weddings, birthdays and the like; decided by the app, keep to them)',
             # Their own love life (companion/life/love_life.py): changes when they meet someone, take a step or split.
             'love': 'Your own love life (decided by the app; keep to it)',
             # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
@@ -157,6 +165,8 @@ HEADINGS = {
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
+            # Loss and grief (companion/life/loss.py): changes daily while they grieve (how long ago, the odd memory).
+            'loss': 'Loss in your life (decided by the app; keep to it)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
             # The housework (companion/life/upkeep.py) changes every day, so it sits with the daily sections, not with
             # the home and belongings above: the start of the prompt stays the same from one day to the next.
@@ -275,6 +285,8 @@ class Packet:
     used: int = 0
     semantic: bool = False
     widened: bool = False
+    # With the adult side on, lines naming a child in their circle (companion/life/families.py `hidden`).
+    hidden: re.Pattern | None = None
 
     def require(self, section, identity, text):
         self.used += token_estimate(text)
@@ -284,6 +296,8 @@ class Packet:
         self.place(section, identity, text)
 
     def offer(self, section, identity, text) -> bool:
+        if self.hidden is not None and text and self.hidden.search(text):
+            return False
         cost = token_estimate(text)
         if self.used + cost > self.budget:
             self.omitted.setdefault(section.rstrip('+'), []).append(identity)
@@ -366,7 +380,7 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
             lines.append(f'{key.capitalize()}: {definition[key]}')
     if version.get('companion_id') and (sheet := looks.text(grooming.sheet(connection, version['companion_id'],
                                                                           definition, day))):
-        lines.append(f'Looks: {sheet}')
+        lines += [f'Looks: {sheet}', *age_lines(connection, version['companion_id'], definition, day)]
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
     lines += list_lines(definition)
@@ -380,6 +394,16 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     if texts and (style := texting.instruction(definition)):
         lines.append(style)  # Not together in person or on a call (`texts` False): nobody texts while talking.
     return '\n'.join(lines)
+
+
+def age_lines(connection, companion_id: str, definition: dict, day: str | None) -> list[str]:
+    """"You are 35 now; you turned 35 on 3 March." once a birthday has taken them past the age their words give
+    (companion/life/ages.py; A/B 2026-10-18: without it most models answered with the age written)."""
+    if connection is None:
+        return []
+    looked_on = grooming.day_of(connection, grooming.timeline_of(connection, companion_id), day)
+    line = ages.age_line(connection, companion_id, definition, looked_on)
+    return [line] if line else []
 
 
 def personality_text(connection, definition: dict, seed: str) -> str | None:
@@ -722,9 +746,14 @@ def offer_people(packet, connection, companion, now, today):
     """The circle, and the storylines going on in their lives and the companion's."""
     timeline_id = companion['active_timeline_id']
     for person in agenda.circle_view(connection, timeline_id, now):
-        packet.offer('circle', person['id'], person_text(person))
+        if person.get('late'):
+            continue  # Someone who passed away is in the 'loss' section (companion/life/loss.py), not among the living.
+        said = circle.said(person['role'], companion['version']['definition'])  # 'mother' in 1895
+        packet.offer('circle', person['id'], person_text({**person, 'role': said}))
         if moment := person_now_text({**person, 'birthday_today': person['birthday'] == today[5:]}):
             packet.offer('circle_now', person['id'], moment)
+    for identity, text in families.context_lines(connection, companion, now):
+        packet.offer('circle', identity, text)
     for identity, text in network.context_lines(connection, timeline_id, now):
         packet.offer('acquaintances', identity, text)
     for identity, text in encounters.context_lines(connection, companion, now):
@@ -898,7 +927,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     recent, older = messages[start:], messages[:start]
     if group is not None:
         recent, older = [], messages + group['older']
-    packet = Packet(budget)
+    packet = Packet(budget, hidden=families.hidden(connection, timeline_id))
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     texts = group is not None or not (together.in_person(connection, companion, now)
                                        or calls.on_call(connection, companion, now))
@@ -926,6 +955,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     love_life.offer(packet, connection, companion, now, group)
     their_people.offer(packet, connection, companion, now, group)
     wedding.offer(packet, connection, companion, now, group)
+    big_days.offer(packet, connection, companion, now, group)
+    loss.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

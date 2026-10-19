@@ -29,4 +29,6 @@ test('dinner at their place: the map drafts it, Today names it, takeout counts a
   assert.equal(suggestion({ id: '~home', name: 'Home', kind: 'home' }), 'Can I come over for dinner at your place this week?')
   assert.equal(placeLine({ id: '~home', name: "Kim's place", kind: 'home', neighborhood: 'Canton', summary: '', cost: '', cuisine: '', city: 'Baltimore' }), 'Their place in Canton')
   assert.equal(boughtFor('food'), 'For dinner')
+  assert.equal(boughtFor('gift'), 'For a big day')
+  assert.equal(boughtFor('funeral'), 'For a funeral')
 })

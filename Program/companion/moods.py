@@ -133,6 +133,8 @@ def day_moods(connection, companion: dict, now) -> list[dict]:
         # Losing a pet weighs most that day and lingers a few days after.
         found.append((('sad', 2 if died == today else 1), f"{first_of(companion)}'s {pets.label(pet['kind'])} "
                       f"{pet['name']} died"))
+    from companion.life import loss
+    found += loss.moods(connection, companion, now)  # Grief: sad while it is raw or heavy.
     for row in many(connection, "SELECT block FROM life_agenda WHERE timeline_id=? AND subject='companion' "
                     "AND local_date=? AND status='happened' ORDER BY starts_at DESC", (companion['active_timeline_id'],
                                                                                         today.isoformat())):

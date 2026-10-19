@@ -1,0 +1,3527 @@
+{
+ "pregnancy": [
+  {
+   "text": "{a} sent {name} the first scan picture.",
+   "share": "look at this tiny bean. {a} just sent me the scan picture and i'm not okay"
+  },
+  {
+   "text": "{a} told {name} the baby was now the size of a lemon.",
+   "share": "apparently the baby is lemon sized this week. next week it's an avocado. who decides this"
+  },
+  {
+   "text": "{a} asked {name} to help paint the nursery a soft green.",
+   "share": "nursery painting day with {a}. i have green paint in places paint should never be"
+  },
+  {
+   "text": "{name} spent the afternoon helping {a} build a bookshelf for the nursery.",
+   "share": "the nursery bookshelf is built. one screw left over. we're choosing not to think about it"
+  },
+  {
+   "text": "{a} had a midnight craving for pickles and {name} delivered a jar.",
+   "share": "emergency pickle delivery for {a} at midnight. i asked zero questions"
+  },
+  {
+   "text": "{name} helped {a} pick a theme for the baby shower.",
+   "share": "baby shower theme decided: woodland animals. i've already seen too many tiny foxes"
+  },
+  {
+   "text": "The family argued about baby names over Sunday dinner.",
+   "share": "the baby name debate at dinner got loud. someone suggested naming the baby after the cat"
+  },
+  {
+   "text": "{a} told {name} the baby had started kicking whenever music played.",
+   "share": "{a} says the baby kicks every time music comes on. future dancer confirmed"
+  },
+  {
+   "text": "{name} went with {a} to a birth class as moral support.",
+   "share": "sat through a birth class with {a}. i now know way too much about breathing techniques"
+  },
+  {
+   "text": "{a} asked {name} to be the baby's godparent.",
+   "share": "{a} asked me to be the godparent. i said yes before the question was even finished"
+  },
+  {
+   "text": "{a} heard the baby's heartbeat at a checkup and called {name} straight after.",
+   "share": "{a} heard the heartbeat today and called me crying happy tears. so then i was crying too"
+  },
+  {
+   "text": "{name} knitted a small yellow blanket for the baby.",
+   "share": "i've been knitting a blanket for the baby. it's lopsided but it's full of love"
+  },
+  {
+   "text": "{a} vetoed every single name on {name}'s list.",
+   "share": "sent {a} my list of baby name ideas. all vetoed. even the good ones"
+  },
+  {
+   "text": "{name} helped {a} wash and fold a mountain of tiny clothes.",
+   "share": "folded about forty tiny onesies with {a} today. how are socks this small even possible"
+  },
+  {
+   "text": "{a} and {name} test-drove strollers in a shop for an hour.",
+   "share": "spent an hour test driving strollers with {a}. i have opinions about wheels now"
+  },
+  {
+   "text": "{name} spent a morning learning to install a car seat with {a}.",
+   "share": "car seat installation took 45 minutes and one small argument. it's in. it's solid"
+  },
+  {
+   "text": "{a} craved lemons all week and {name} brought over a whole bag.",
+   "share": "{a} is eating lemons like oranges right now. i brought a whole bag over"
+  },
+  {
+   "text": "{name} cooked a batch of freezer meals for {a}'s first weeks with the baby.",
+   "share": "made a stack of freezer meals for {a}. soup, lasagne, more soup. future {a} will thank me"
+  },
+  {
+   "text": "{a} started reading stories aloud so the baby could get used to voices.",
+   "share": "{a} reads a story out loud every night now so the baby gets used to voices. very sweet"
+  },
+  {
+   "text": "{name} found an old rocking chair and helped {a} sand and paint it.",
+   "share": "we rescued an old rocking chair for the nursery. sanded it, painted it, it's gorgeous"
+  },
+  {
+   "text": "{a} put together a list of lullabies to practice.",
+   "share": "{a} is practicing lullabies already. i got a private concert and rated it ten out of ten"
+  },
+  {
+   "text": "{name} helped {a} hang a little mobile of paper clouds in the nursery.",
+   "share": "hung paper clouds over the nursery with {a}. took ages to get them level"
+  },
+  {
+   "text": "{a} told {name} the baby had the hiccups again.",
+   "share": "the baby has hiccups apparently. {a} says it feels like popcorn. adorable and weird"
+  },
+  {
+   "text": "{name} went with {a} to choose the baby's going-home outfit.",
+   "share": "we picked the going home outfit. tiny striped thing. i almost cried in the shop"
+  },
+  {
+   "text": "The grandparents-to-be sent {a} a box of family hand-me-downs.",
+   "share": "a box of old family baby clothes arrived for {a}. some of them are older than me"
+  },
+  {
+   "text": "{name} and {a} spent an evening baby-proofing the kitchen cupboards.",
+   "share": "baby proofed the kitchen with {a}. i can no longer open a single cupboard"
+  },
+  {
+   "text": "{a} asked {name} to help write the baby shower invitations.",
+   "share": "addressed thirty baby shower invites by hand. my handwriting has never been this neat"
+  },
+  {
+   "text": "{name} helped {a} pick out a soft nightlight shaped like the moon.",
+   "share": "we found a moon nightlight for the nursery and {a} made me switch it on and off ten times"
+  },
+  {
+   "text": "{a} practiced swaddling on a teddy bear while {name} timed it.",
+   "share": "{a} has been practicing swaddling on a teddy. i timed it. we're down to twelve seconds"
+  },
+  {
+   "text": "{name} took {a} out for a quiet lunch before the baby arrived.",
+   "share": "long lunch with {a} before life gets busy. we laughed so much"
+  },
+  {
+   "text": "{a} told {name} the baby was now the size of an avocado.",
+   "share": "avocado report: the baby is officially avocado sized. growing so fast"
+  },
+  {
+   "text": "{a} and {name} made a countdown chart for the fridge.",
+   "share": "we made a countdown chart for the fridge. {a} crosses off a day every morning"
+  },
+  {
+   "text": "{name} helped {a} choose a color for the nursery walls.",
+   "share": "after nine paint samples we chose the very first one. classic"
+  },
+  {
+   "text": "{a} craved spicy noodles every night for a week.",
+   "share": "{a}'s current craving is very spicy noodles. like, eyes watering spicy. respect"
+  },
+  {
+   "text": "{name} tasted three cakes with {a} to choose one for the baby shower.",
+   "share": "cake tasting for the shower. we picked lemon. i'd have picked all three"
+  },
+  {
+   "text": "{a} narrowed the baby name list down to five.",
+   "share": "down to five names. {a} won't tell me which one is winning. the suspense"
+  },
+  {
+   "text": "{name} wrote a letter for the baby to open on a tenth birthday.",
+   "share": "wrote a letter for the baby to open at ten years old. got a bit emotional writing it"
+  },
+  {
+   "text": "{a} signed up for a baby first-aid class and brought {name} along.",
+   "share": "baby first aid class with {a}. very serious. very useful. i took notes"
+  },
+  {
+   "text": "{name} helped {a} pack the bag for the big day.",
+   "share": "packed the big day bag with {a}. snacks are the priority apparently. no notes"
+  },
+  {
+   "text": "{a} rearranged the nursery for the third time.",
+   "share": "{a} rearranged the nursery again. the chair is back exactly where it started"
+  },
+  {
+   "text": "{name} and {a} planted a little tree in the garden for the baby.",
+   "share": "we planted a tree for the baby today. they can grow up together"
+  },
+  {
+   "text": "{a} asked {name} to collect favorite storybooks for the nursery shelf.",
+   "share": "i'm in charge of the nursery book collection. taking this job extremely seriously"
+  },
+  {
+   "text": "{name} sewed a fabric bunting for the nursery window.",
+   "share": "made bunting for the nursery window. eleven flags. one is upside down. it's charming"
+  },
+  {
+   "text": "{a} told {name} the baby seemed to calm down whenever the vacuum cleaner ran.",
+   "share": "apparently the baby goes calm whenever {a} vacuums. that's a cleaning hack honestly"
+  },
+  {
+   "text": "{a} had a sudden craving for peanut butter toast at three in the morning.",
+   "share": "{a} messaged me at 3am about peanut butter toast. now i'm hungry too"
+  },
+  {
+   "text": "{name} helped {a} set up the audio baby monitor and tested it from the garden.",
+   "share": "tested the baby monitor with {a}. i whispered from the garden and {a} jumped a mile. works great"
+  },
+  {
+   "text": "{a} asked {name} to help pick between two strollers.",
+   "share": "stroller showdown: green or gray. i'm team green, no regrets"
+  },
+  {
+   "text": "The family started a friendly betting pool on the baby's arrival day.",
+   "share": "the family has a betting pool on when the baby arrives. i picked a tuesday"
+  },
+  {
+   "text": "{name} made a playlist of calm songs for the nursery.",
+   "share": "made a calm playlist for the nursery. it's mostly rain sounds and gentle piano"
+  },
+  {
+   "text": "{a} said the baby got very active after breakfast every day.",
+   "share": "{a} says the baby does a whole workout after breakfast every morning"
+  },
+  {
+   "text": "{name} helped {a} assemble a play mat with dangling animals.",
+   "share": "assembled a play mat with a dangling giraffe. the giraffe is my favorite family member now"
+  },
+  {
+   "text": "{a} found a name in an old family book and loved it.",
+   "share": "{a} found a name in an old family book and now it's top of the list. it's lovely"
+  },
+  {
+   "text": "{name} and {a} went to a baby shop and got overwhelmed in the bottle aisle.",
+   "share": "there are roughly four hundred kinds of baby bottle. we left with one"
+  },
+  {
+   "text": "{a} asked {name} to host the baby shower.",
+   "share": "i'm hosting the baby shower. send help. and tiny sandwiches"
+  },
+  {
+   "text": "{name} spent the evening blowing up balloons for the baby shower.",
+   "share": "blew up sixty balloons for the shower. i can't feel my face"
+  },
+  {
+   "text": "The baby shower went off perfectly and {a} loved every minute.",
+   "share": "the shower was perfect. {a} cried at the blanket i made. mission accomplished"
+  },
+  {
+   "text": "{name} won the guess-the-baby-food game at the shower.",
+   "share": "won the mystery baby food game at the shower. apparently my palate is elite"
+  },
+  {
+   "text": "{a} told {name} the baby now moved when familiar voices spoke.",
+   "share": "{a} says the baby moves when i talk now. so obviously i'm talking a lot"
+  },
+  {
+   "text": "{name} read a story aloud to the baby during a visit.",
+   "share": "read the baby a story today. {a} says it was a hit. i'm a natural"
+  },
+  {
+   "text": "{a} and the family voted on a middle name.",
+   "share": "family vote on the middle name. it was close. democracy wins"
+  },
+  {
+   "text": "{a} asked {name} for advice on choosing a stroller blanket.",
+   "share": "consulted on stroller blankets. i said the one with ducks. {a} agreed. obviously"
+  },
+  {
+   "text": "{name} helped {a} make a list of questions for the midwife.",
+   "share": "wrote a list of questions for the midwife with {a}. it's three pages long"
+  },
+  {
+   "text": "{a} went to a gentle stretching class for expecting parents.",
+   "share": "{a} tried a gentle stretching class and called it the most relaxing hour in weeks"
+  },
+  {
+   "text": "{name} brought {a} a box of oranges after hearing about the latest craving.",
+   "share": "latest craving is oranges. delivered a whole box. i'm basically the snack courier now"
+  },
+  {
+   "text": "{a} set up a little reading corner in the nursery.",
+   "share": "the nursery has a reading corner with cushions now. i want one for myself"
+  },
+  {
+   "text": "{name} painted small stars on the nursery ceiling.",
+   "share": "painted tiny stars on the nursery ceiling. my neck hurts but it looks magical"
+  },
+  {
+   "text": "{a} told {name} the baby was now the size of a melon.",
+   "share": "melon. the baby is melon sized now. this is getting real"
+  },
+  {
+   "text": "{a} picked out a soft toy elephant as the baby's first toy.",
+   "share": "{a} chose the baby's first toy. a gray elephant called peanut. we love peanut"
+  },
+  {
+   "text": "{name} helped {a} put up wall stickers of hot air balloons.",
+   "share": "hot air balloon stickers going up in the nursery. very whimsical"
+  },
+  {
+   "text": "{a} started keeping a journal for the baby.",
+   "share": "{a} started a journal for the baby. one page every week. it's so sweet"
+  },
+  {
+   "text": "{name} learned how to fold a stroller in one move.",
+   "share": "i can fold a stroller with one hand now. ask me to show you. please"
+  },
+  {
+   "text": "{a} practiced the drive to the hospital twice.",
+   "share": "{a} did a practice drive to the hospital. twice. we know every traffic light now"
+  },
+  {
+   "text": "{name} helped {a} sort the hand-me-downs by size.",
+   "share": "sorted a mountain of hand me downs by size with {a}. the newborn pile is enormous"
+  },
+  {
+   "text": "The family threw a small dinner to celebrate the halfway mark.",
+   "share": "halfway dinner for {a}. there was cake. any excuse"
+  },
+  {
+   "text": "{a} let {name} break the tie between two names.",
+   "share": "{a} let me break the tie between two names. the pressure. i chose wisely i think"
+  },
+  {
+   "text": "{a} kept the final name a secret from everyone, including {name}.",
+   "share": "{a} has picked a name and won't tell anyone. not even me. rude"
+  },
+  {
+   "text": "{name} made {a} a coupon book of help with chores.",
+   "share": "made {a} a coupon book: one free dinner, one laundry rescue, one nap shift"
+  },
+  {
+   "text": "{a} noticed the baby reacted every time the dog barked.",
+   "share": "the baby apparently reacts every time the dog barks. they're already friends"
+  },
+  {
+   "text": "{name} helped {a} put a little wooden name banner above the nursery door.",
+   "share": "name banner is up over the nursery door. letters stay covered until the big reveal"
+  },
+  {
+   "text": "{a} asked {name} to be on standby for the big day.",
+   "share": "officially on standby for the big day. phone volume is on max"
+  },
+  {
+   "text": "{name} assembled a little wooden toy shelf for the nursery.",
+   "share": "built a toy shelf for the nursery. it's slightly wonky. {a} says it has character"
+  },
+  {
+   "text": "{a} found a wooden rocking horse at a flea market.",
+   "share": "{a} found a wooden rocking horse at a flea market. we're restoring it together"
+  },
+  {
+   "text": "{name} and {a} gave the rocking horse a fresh coat of paint.",
+   "share": "rocking horse restored. it has a blue mane now. very majestic"
+  },
+  {
+   "text": "{a} told {name} the baby threw a little party every evening.",
+   "share": "the baby throws a party every evening apparently. {a} is tired but laughing"
+  },
+  {
+   "text": "{name} helped {a} choose a soft rug for the nursery floor.",
+   "share": "nursery rug chosen. it's so soft i lay on it for five minutes"
+  },
+  {
+   "text": "{a} invited {name} to a picnic with friends who were also expecting.",
+   "share": "picnic with {a}'s friends who are all expecting too. so much advice flying around"
+  },
+  {
+   "text": "{name} collected advice from every parent in the family for {a}.",
+   "share": "made {a} an advice booklet from the whole family. half of it contradicts the other half"
+  },
+  {
+   "text": "{a} craved strawberries dipped in yoghurt.",
+   "share": "strawberries dipped in yoghurt is the current craving. honestly a solid snack"
+  },
+  {
+   "text": "{name} put together a snack basket for {a}'s parental leave.",
+   "share": "packed a snack basket for {a}'s leave. it's mostly crackers. as requested"
+  },
+  {
+   "text": "{a} finished the nursery and gave {name} the grand tour.",
+   "share": "grand tour of the finished nursery. it's perfect. i want to live there"
+  },
+  {
+   "text": "{name} helped {a} test a baby carrier with a teddy inside.",
+   "share": "tested a baby carrier with a teddy inside. very serious business"
+  },
+  {
+   "text": "{a} dug out an old lullaby book from childhood.",
+   "share": "{a} found an old lullaby book from way back. still has crayon on the cover"
+  },
+  {
+   "text": "{name} knitted a tiny hat to match the blanket.",
+   "share": "the blanket now has a matching hat. i'm unstoppable"
+  },
+  {
+   "text": "{a} asked {name} to plan the visiting schedule for after the birth.",
+   "share": "i'm in charge of the visiting rota for when the baby arrives. spreadsheet in progress"
+  },
+  {
+   "text": "{a} told {name} the baby was now the size of a pineapple.",
+   "share": "pineapple sized! the fruit comparisons are getting intense"
+  },
+  {
+   "text": "{name} drove {a} to a checkup when {a}'s car wouldn't start.",
+   "share": "{a}'s car wouldn't start so i played taxi to the checkup. all good with the baby"
+  },
+  {
+   "text": "{a} got a glowing report at the latest checkup.",
+   "share": "checkup went great. the baby is growing perfectly. {a} is beaming"
+  },
+  {
+   "text": "{name} helped {a} write thank-you cards after the shower.",
+   "share": "wrote thank you cards from the shower with {a}. my hand has retired"
+  },
+  {
+   "text": "{a} settled on a gentle animal theme for the nursery.",
+   "share": "nursery theme is gentle animals. lots of bunnies. one single moody owl"
+  },
+  {
+   "text": "{name} spent a Saturday helping {a} clear out the spare room.",
+   "share": "cleared out {a}'s spare room for the nursery. found three boxes of old cables. why"
+  },
+  {
+   "text": "{a} told {name} the baby always stirred when the kettle boiled.",
+   "share": "apparently the kettle wakes the baby up. a tea lover in the making"
+  },
+  {
+   "text": "{name} baked {a} a jar of homemade ginger cookies.",
+   "share": "baked ginger cookies for {a}. half for {a}, half for me. fair split"
+  },
+  {
+   "text": "{a} asked {name} to learn a lullaby to sing on visits.",
+   "share": "i've been assigned a lullaby to learn. rehearsing in the car. traffic loves it"
+  },
+  {
+   "text": "{name} and {a} put together a time capsule for the baby.",
+   "share": "we made a time capsule for the baby. a newspaper, a letter and a coin from this year"
+  },
+  {
+   "text": "{a} picked a soft blue and white color scheme for the nursery.",
+   "share": "color scheme locked in: blue and white with little clouds. very calm"
+  },
+  {
+   "text": "{a} asked {name} to look after the dog when the big day comes.",
+   "share": "i'm on dog duty for the big day. the dog and i have a plan"
+  },
+  {
+   "text": "{a} and {name} counted down the final month over hot chocolate.",
+   "share": "one month to go. we celebrated with hot chocolate. {a} had two"
+  },
+  {
+   "text": "{name} helped {a} list baby names from favorite books.",
+   "share": "made a list of baby names from our favorite books. some are very dramatic. we love them"
+  },
+  {
+   "text": "{a} laughed when {name} suggested a name with four middle names.",
+   "share": "suggested a name with four middle names. {a} laughed for a full minute. not a no though"
+  },
+  {
+   "text": "{a} hung a framed print of a little sailboat in the nursery.",
+   "share": "{a} hung a sailboat print in the nursery. i want it for my own living room"
+  },
+  {
+   "text": "{name} put together a small first-aid kit for the nursery.",
+   "share": "made a little first aid kit for the nursery. plasters with dinosaurs on. important"
+  },
+  {
+   "text": "{a} narrowed the shortlist to just two names.",
+   "share": "it's down to two names. i've been sworn to secrecy and it's killing me"
+  },
+  {
+   "text": "{name} sat with {a} folding muslins and talking about the future.",
+   "share": "folded muslins with {a} and talked about everything. good afternoon"
+  },
+  {
+   "text": "{a} told {name} that teaching the baby to whistle would be {name}'s job.",
+   "share": "{a} says my job is to teach the baby to whistle. i accept this role"
+  },
+  {
+   "text": "{name} practiced making baby food purees in advance.",
+   "share": "practiced making baby purees. carrot and pea. i'm a chef now"
+  },
+  {
+   "text": "{a} showed {name} a new scan picture from the latest checkup.",
+   "share": "new scan picture from {a}. the baby is waving. or stretching. i'm choosing waving"
+  },
+  {
+   "text": "{a} decided on a small, cozy baby shower with just close friends.",
+   "share": "the shower is going to be small and cozy. tea, cake, and nobody making speeches"
+  },
+  {
+   "text": "{a} told {name} the baby would arrive in spring.",
+   "share": "the baby is coming in spring. perfect timing for walks in the park"
+  },
+  {
+   "text": "{name} bought the baby a tiny pair of knitted booties.",
+   "share": "bought the baby booties. they're the size of my thumb. unacceptable cuteness"
+  },
+  {
+   "text": "{name} ordered a wooden name puzzle for the nursery.",
+   "share": "ordered a wooden name puzzle. it'll make sense once the name is official"
+  },
+  {
+   "text": "{a} spent an evening practicing parking the stroller in the hallway.",
+   "share": "{a} has been parking the stroller in the hallway like it's a driving test"
+  },
+  {
+   "text": "{name} made {a} a playlist for the drive on the big day.",
+   "share": "made {a} a playlist for the drive on the big day. calm songs only. no drama"
+  },
+  {
+   "text": "{a} asked {name} to help choose a coat for the baby's first winter.",
+   "share": "coat shopping for a person who doesn't exist yet. the tiny hood got me"
+  },
+  {
+   "text": "{name} helped {a} label the nursery drawers.",
+   "share": "labelled every nursery drawer with {a}. socks, hats, mystery items"
+  },
+  {
+   "text": "{a} laughed when the baby seemed to respond to a favorite comedy show.",
+   "share": "{a} says the baby moves every time a certain comedy comes on. great taste already"
+  }
+ ],
+ "baby_update": [
+  {
+   "text": "{child} smiled at {name} for the first time.",
+   "share": "{child} smiled at me today. a real smile. i'm keeping this memory forever"
+  },
+  {
+   "text": "{child} rolled over for the first time on the play mat.",
+   "share": "{child} rolled over today! {a} screamed, {child} looked very pleased"
+  },
+  {
+   "text": "{child} started teething and {a} sent {name} a very tired message.",
+   "share": "{child} is teething and {a} is running on coffee. sending snacks"
+  },
+  {
+   "text": "{child} slept through the night for the first time.",
+   "share": "{child} slept all night!! {a} woke up confused and suspicious"
+  },
+  {
+   "text": "{child} tried mashed banana as a first food.",
+   "share": "{child}'s first food was banana. reviews were mixed. most of it ended up on the floor"
+  },
+  {
+   "text": "{child} laughed for the first time when {a} sneezed.",
+   "share": "first laugh! it was because {a} sneezed. {child} has great comedic taste"
+  },
+  {
+   "text": "{child} grabbed {name}'s finger and wouldn't let go.",
+   "share": "{child} held my finger for ages today. grip of a tiny wrestler"
+  },
+  {
+   "text": "{child} sat up without any help.",
+   "share": "{child} is sitting up all alone now. very proud, slightly wobbly"
+  },
+  {
+   "text": "{child} said \"baba\" for the first time.",
+   "share": "{child} said 'baba' today. {a} insists it means banana. the debate continues"
+  },
+  {
+   "text": "{child} figured out crawling, but only backwards.",
+   "share": "{child} has figured out crawling. only backwards so far. still counts"
+  },
+  {
+   "text": "{child}'s first tooth came through.",
+   "share": "first tooth! {a} spotted it at breakfast. tiny, sharp, and {child} is very proud"
+  },
+  {
+   "text": "{child} waved bye-bye to {name} for the first time.",
+   "share": "{child} waved at me when i left today. i nearly didn't leave"
+  },
+  {
+   "text": "{child} clapped along to music.",
+   "share": "{child} clapped along to a song today. off beat. enthusiastic. ten out of ten"
+  },
+  {
+   "text": "{child} tried avocado and pulled a funny face.",
+   "share": "avocado was not a hit with {child}. the face {they} pulled. iconic"
+  },
+  {
+   "text": "{child} learned to blow raspberries.",
+   "share": "{child} has learned to blow raspberries and now does it constantly"
+  },
+  {
+   "text": "{child} reached out for {name} for the first time.",
+   "share": "{child} reached out for me today. like actually wanted me. i'm melting"
+  },
+  {
+   "text": "{child} started pulling up to stand on the sofa.",
+   "share": "{child} is pulling up on the sofa now. {a} says the cushions have lost the war"
+  },
+  {
+   "text": "{child} had a little cold and {a} kept {name} posted.",
+   "share": "{child} has a little cold. lots of cuddles and tissues. {theyre} already perking up"
+  },
+  {
+   "text": "{child} giggled at the dog all afternoon.",
+   "share": "{child} thinks the dog is the funniest thing alive. the dog agrees"
+  },
+  {
+   "text": "{child} turned one month old.",
+   "share": "one month of {child}! where did that go"
+  },
+  {
+   "text": "{child} turned six months old and {a} threw a tiny half-birthday party.",
+   "share": "half birthday party for {child}. cake was for us. {child} got a rice cake"
+  },
+  {
+   "text": "{child} celebrated a first birthday with the whole family.",
+   "share": "{child} turned one!! {they} ate cake with total commitment and regretted nothing"
+  },
+  {
+   "text": "{child} found {their} voice and started babbling nonstop.",
+   "share": "{child} talks all day now. no words. just very confident vibes"
+  },
+  {
+   "text": "{child} started copying {a}'s laugh.",
+   "share": "{child} copies {a}'s laugh now. it's the funniest thing"
+  },
+  {
+   "text": "{child} tried peas and spat every single one out.",
+   "share": "peas were rejected. firmly. one by one"
+  },
+  {
+   "text": "{child} went to {their} first baby music class.",
+   "share": "{child} went to baby music class. mostly chewed the maracas"
+  },
+  {
+   "text": "{child} loved the baby swing at the park.",
+   "share": "{child} went on a swing today and giggled the whole time"
+  },
+  {
+   "text": "{child} started recognizing {name}'s voice.",
+   "share": "{a} says {child} turns around when i talk now. i'm famous"
+  },
+  {
+   "text": "{child} played peekaboo with {a} for twenty minutes straight.",
+   "share": "{child} discovered peekaboo. {a} has done it two hundred times today"
+  },
+  {
+   "text": "{child} learned to drink from a sippy cup.",
+   "share": "{child} drank from a sippy cup today. half went in. progress"
+  },
+  {
+   "text": "{child} knocked down every soft block tower {a} built.",
+   "share": "{child} knocked down every tower {a} built. demolition expert"
+  },
+  {
+   "text": "{child} met the family cat and was delighted.",
+   "share": "{child} met the cat. the cat was unimpressed. {child} was thrilled"
+  },
+  {
+   "text": "{child} discovered the joy of banging pots with a wooden spoon.",
+   "share": "{child} has a drum kit now. it's a pot and a spoon. {a} has a headache"
+  },
+  {
+   "text": "{child} went to baby rhyme time at the library.",
+   "share": "baby rhyme time at the library with {child}. lots of clapping. very wholesome"
+  },
+  {
+   "text": "{child} started having porridge for breakfast.",
+   "share": "{child} is on porridge now. a proper breakfast person"
+  },
+  {
+   "text": "{child} crawled across the whole living room to reach the dog.",
+   "share": "{child} crawled across the entire room to get to the dog. determined"
+  },
+  {
+   "text": "{child} cut a second tooth.",
+   "share": "tooth number two has arrived. {child} is handling it like a champ"
+  },
+  {
+   "text": "{child} started waking up with a big grin every morning.",
+   "share": "{a} says {child} wakes up smiling every single day. a morning person. unlike me"
+  },
+  {
+   "text": "{child} went on a first trip to the beach.",
+   "share": "first beach day for {child}! {they} stared at the waves like {they} had discovered magic"
+  },
+  {
+   "text": "{child} tasted strawberry for the first time and loved it.",
+   "share": "strawberries are {child}'s new favorite thing. {they} wanted more immediately"
+  },
+  {
+   "text": "{child} learned to shake {their} head for no.",
+   "share": "{child} learned to shake {their} head no. now everything is a no"
+  },
+  {
+   "text": "{child} sat through a whole board book with {a}.",
+   "share": "{child} sat through an entire book with {a}. a whole one. attention span of a scholar"
+  },
+  {
+   "text": "{child} fell in love with the crinkly pages of a fabric book.",
+   "share": "the crinkly book is {child}'s favorite thing in the world right now"
+  },
+  {
+   "text": "{child} squealed every time {a} sang a silly song.",
+   "share": "{a} has a silly song that makes {child} squeal every time. i need to learn it"
+  },
+  {
+   "text": "{child} visited a farm and saw the goats.",
+   "share": "{child} met goats today. very serious stares between {child} and the goats"
+  },
+  {
+   "text": "{child} tried mashed sweet potato and wanted more.",
+   "share": "sweet potato was a massive hit. {child} demanded seconds"
+  },
+  {
+   "text": "{child} started army crawling across the kitchen.",
+   "share": "{child} is army crawling now. a tiny soldier on a mission to the fridge"
+  },
+  {
+   "text": "{child} watched snow fall for the first time.",
+   "share": "{child} saw snow for the first time from the window. {they} {were} amazed"
+  },
+  {
+   "text": "{child} found a mirror and laughed at the baby inside it.",
+   "share": "{child} found a mirror and thinks there's a new baby friend in it. adorable"
+  },
+  {
+   "text": "{child} started bobbing up and down to music.",
+   "share": "{child} bobs up and down whenever music plays. dancing runs in the family"
+  },
+  {
+   "text": "{child} learned to wave at the neighbors' dog.",
+   "share": "{child} waves at the neighbors' dog every morning now"
+  },
+  {
+   "text": "{child} copied a funny face {a} made.",
+   "share": "{child} copied {a}'s silly face today and {a} lost it"
+  },
+  {
+   "text": "{child} recognized {their} own name for the first time.",
+   "share": "{child} turns around when you say {their} name now. so clever"
+  },
+  {
+   "text": "{child} started insisting on holding the spoon at meals.",
+   "share": "{child} insists on holding the spoon. the kitchen has suffered"
+  },
+  {
+   "text": "{child} spent an afternoon in the garden watching leaves move.",
+   "share": "{child} watched leaves in the garden for an hour. very zen"
+  },
+  {
+   "text": "{child} picked a plush duck as a favorite toy.",
+   "share": "{child} has chosen a favorite toy. a plush duck called mr quack. mr quack goes everywhere"
+  },
+  {
+   "text": "{child} pointed at a bird for the first time.",
+   "share": "{child} pointed at a bird today! actual pointing! {a} is so proud"
+  },
+  {
+   "text": "{child} learned to give high fives.",
+   "share": "{child} does high fives now. i got three today. personal record"
+  },
+  {
+   "text": "{child} stood holding the coffee table for a whole minute.",
+   "share": "{child} stood holding the coffee table for a full minute. very strong"
+  },
+  {
+   "text": "{child} enjoyed {their} first taste of yoghurt.",
+   "share": "yoghurt has been approved by {child}. big fan"
+  },
+  {
+   "text": "{child} turned three months old.",
+   "share": "three months of {child} already. time is fake"
+  },
+  {
+   "text": "{child} turned nine months old.",
+   "share": "{child} is nine months old today. getting so big"
+  },
+  {
+   "text": "{child} started laughing at {their} own sneezes.",
+   "share": "{child} sneezes and then laughs at the sneeze. comedy gold"
+  },
+  {
+   "text": "{child} wore the knitted hat {name} made.",
+   "share": "{a} says {child} wore the hat i knitted today. it fits! it actually fits"
+  },
+  {
+   "text": "{child} got a tiny library card.",
+   "share": "{child} has a library card. {they} {are} officially a reader"
+  },
+  {
+   "text": "{child} met the grandparents for the first time.",
+   "share": "{child} met the grandparents for the first time. everyone cried. good tears"
+  },
+  {
+   "text": "{child} loved stroller walks through the park.",
+   "share": "{child} loves stroller walks. {a} does three laps of the park a day now"
+  },
+  {
+   "text": "{child} figured out how to open a cupboard.",
+   "share": "{child} opened a cupboard today. {a} is fitting a lock on every single one"
+  },
+  {
+   "text": "{child} spent an hour playing with an empty box.",
+   "share": "{a} bought {child} a toy. {child} played with the box. classic"
+  },
+  {
+   "text": "{child} got excited every time the doorbell rang.",
+   "share": "{child} goes wild every time the doorbell rings. the delivery drivers love it"
+  },
+  {
+   "text": "{child} made a baby friend at the park.",
+   "share": "{child} has a park friend. they mostly stare at each other. it's lovely"
+  },
+  {
+   "text": "{child} started saying \"uh-oh\" whenever something fell.",
+   "share": "{child} says uh-oh now. then drops something on purpose to say it again"
+  },
+  {
+   "text": "{child} enjoyed {their} first taste of apple puree.",
+   "share": "apple puree is a yes from {child}. a very loud yes"
+  },
+  {
+   "text": "{child} refused broccoli with great drama.",
+   "share": "broccoli: hard no. {child} looked betrayed"
+  },
+  {
+   "text": "{child} started to love the sound of rain on the window.",
+   "share": "{child} gets so calm listening to rain. same, honestly"
+  },
+  {
+   "text": "{child} learned to roll a ball back to {a}.",
+   "share": "{child} rolled a ball back to {a}! actual teamwork"
+  },
+  {
+   "text": "{child} started keeping {a} company in the kitchen while {a} cooked.",
+   "share": "{child} supervises {a} cooking dinner now. very strict head chef energy"
+  },
+  {
+   "text": "{child} waved at everyone in the shop.",
+   "share": "{child} waved at the whole checkout queue today. local celebrity"
+  },
+  {
+   "text": "{child} tried {their} first piece of toast.",
+   "share": "toast was a hit with {child}. crumbs absolutely everywhere"
+  },
+  {
+   "text": "{child} spent the morning shaking a rattle very seriously.",
+   "share": "{child} shakes a rattle with the focus of a professional musician"
+  },
+  {
+   "text": "{child} started taking steps while holding {a}'s hands.",
+   "share": "{child} is walking holding onto {a}'s hands. solo steps any day now"
+  },
+  {
+   "text": "{child} got a little wooden xylophone and loved it.",
+   "share": "{child} got a xylophone. {a} would like to return it"
+  },
+  {
+   "text": "{child} babbled back at {name} on a phone call.",
+   "share": "{a} put me on speaker and {child} babbled back the whole time. we had a proper chat"
+  },
+  {
+   "text": "{child} enjoyed {their} first autumn walk through the leaves.",
+   "share": "{child} heard leaves crunching under the stroller today. pure joy"
+  },
+  {
+   "text": "{child} had a first morning at nursery.",
+   "share": "{child} had a first morning at nursery. {a} cried more than {child} did"
+  },
+  {
+   "text": "{child} started hugging a soft toy elephant.",
+   "share": "{child} hugs the toy elephant now. gentle little soul"
+  },
+  {
+   "text": "{child} said a first word that sounded like \"dog\".",
+   "share": "{child}'s first word was 'dog'. the dog is very smug about it"
+  },
+  {
+   "text": "{child} pulled every book off the bottom shelf.",
+   "share": "{child} emptied the whole bottom bookshelf today. {a} calls it a reading phase"
+  },
+  {
+   "text": "{child} started crawling at full speed.",
+   "share": "{child} crawls at top speed now. {a} needs running shoes"
+  },
+  {
+   "text": "{child} wore a tiny raincoat for the first time.",
+   "share": "tiny raincoat for {child}. i cannot cope with how cute this is"
+  },
+  {
+   "text": "{child} watched the washing machine spin with total fascination.",
+   "share": "{child} watched the washing machine for twenty minutes. better than television apparently"
+  },
+  {
+   "text": "{child} went on a first bus ride.",
+   "share": "first bus ride for {child}. {they} stared out the window the whole way"
+  },
+  {
+   "text": "{child} learned to shake a tambourine.",
+   "share": "{child} has a tambourine now. the neighbors have opinions"
+  },
+  {
+   "text": "{child} started reaching for food on {a}'s plate.",
+   "share": "{child} is stealing food off {a}'s plate now. a bold move"
+  },
+  {
+   "text": "{child} lit up whenever {a} sang a song with {child}'s name in it.",
+   "share": "{a} made up a song with {child}'s name in it and {child} lights up every time"
+  },
+  {
+   "text": "{child} started copying the sound of the cat.",
+   "share": "{child} meowed at the cat today. the cat meowed back. a conversation"
+  },
+  {
+   "text": "{child} sat through a whole family dinner without a fuss.",
+   "share": "{child} sat through an entire family dinner like a tiny guest of honor"
+  },
+  {
+   "text": "{child} climbed onto a cushion and looked very proud.",
+   "share": "{child} climbed onto a cushion and looked at us like {they} had conquered a mountain"
+  },
+  {
+   "text": "{child} played happily with a set of nesting cups.",
+   "share": "nesting cups are {child}'s favorite toy. {they} {are} very organized about it"
+  },
+  {
+   "text": "{child} laughed nonstop at a bubble machine.",
+   "share": "someone got {child} a bubble machine. instant best day ever"
+  },
+  {
+   "text": "{child} learned to say \"hi\".",
+   "share": "{child} says hi now. to everyone. including the fridge"
+  },
+  {
+   "text": "{child} got a first pair of soft shoes for walking practice.",
+   "share": "{child} got first shoes for walking practice. {they} stomped around like a giant"
+  },
+  {
+   "text": "{child} started saying \"no\" very clearly.",
+   "share": "{child}'s clearest word so far is no. {a} is concerned"
+  },
+  {
+   "text": "{child} loved the sound of the wind chimes on the porch.",
+   "share": "{child} stares at the wind chimes on the porch. tiny wind chime appreciator"
+  },
+  {
+   "text": "{child} turned eleven months and was almost walking.",
+   "share": "eleven months and nearly walking. {child} is in a hurry to grow up"
+  },
+  {
+   "text": "{child} discovered how to make the toy piano play a tune.",
+   "share": "{child} found the button that makes the toy piano play. it's been playing for an hour"
+  },
+  {
+   "text": "{child} spent a morning at the grandparents' house for the first time.",
+   "share": "{child} spent a morning at the grandparents'. came back with three new toys and a sun hat"
+  },
+  {
+   "text": "{child} smiled at {a} through a whole afternoon of errands.",
+   "share": "{a} says {child} was all smiles through every errand today. easiest shopping trip ever"
+  },
+  {
+   "text": "{child} learned to wave at the moon from the window.",
+   "share": "{child} waves at the moon now. {a} has to say goodnight to it too"
+  },
+  {
+   "text": "{child} grinned when {name} came through the door.",
+   "share": "{child} grinned the second i walked in today. best welcome i've ever had"
+  },
+  {
+   "text": "{child} got the hang of drinking water from a little cup with handles.",
+   "share": "{child} can hold the cup with handles all alone now. big kid energy"
+  },
+  {
+   "text": "{child} went to a first family barbecue and charmed everyone.",
+   "share": "{child} charmed the whole barbecue today. waved at every single guest"
+  },
+  {
+   "text": "{child} learned how to turn the pages of a board book.",
+   "share": "{child} turns the pages all alone now. too fast, but still. reading!"
+  },
+  {
+   "text": "{child} started making a happy humming sound while eating.",
+   "share": "{child} hums while eating now. {a} says it means it's tasty"
+  }
+ ],
+ "toddler_update": [
+  {
+   "text": "{child} took {their} first steps at {a}'s place.",
+   "share": "{child} WALKED. three whole steps at {a}'s place. then sat down very pleased"
+  },
+  {
+   "text": "{child} said {their} first proper sentence.",
+   "share": "{child} said 'more cookie please' today. full sentence. manners included"
+  },
+  {
+   "text": "{child} had a big tantrum in the shop over a broken banana.",
+   "share": "{child} had a meltdown in the shop because the banana broke. valid honestly"
+  },
+  {
+   "text": "{child} started potty training.",
+   "share": "potty training has begun at {a}'s house. {a} is brave. sending strength"
+  },
+  {
+   "text": "{child} started daycare.",
+   "share": "{child} started daycare today. {a} sat in the car park for ten minutes after drop off"
+  },
+  {
+   "text": "{child} discovered the word \"why\" and used it all day.",
+   "share": "{child} has discovered 'why'. {a} has answered it about a hundred times today"
+  },
+  {
+   "text": "{child} made a best friend at daycare.",
+   "share": "{child} has a best friend at daycare. they share snacks. it's serious"
+  },
+  {
+   "text": "{child} painted a purple cat at daycare and {a} put it on the fridge.",
+   "share": "{child} painted a 'cat' at daycare. it's purple. it's on the fridge. it's art"
+  },
+  {
+   "text": "{child} learned to climb onto the sofa unassisted.",
+   "share": "{child} can climb onto the sofa alone now. nowhere is out of reach"
+  },
+  {
+   "text": "{child} sang along to a whole nursery rhyme.",
+   "share": "{child} sang a whole nursery rhyme today. half the words were made up"
+  },
+  {
+   "text": "{child} insisted on wearing wellies on a sunny day.",
+   "share": "{child} wore wellies to the park in full sunshine. fashion is about confidence"
+  },
+  {
+   "text": "{child} learned to count to five, mostly.",
+   "share": "{child} counted to five! well. one, two, five. close enough"
+  },
+  {
+   "text": "{child} started calling every dog at the park \"doggy\".",
+   "share": "{child} has named every dog at the park. all of them are called doggy"
+  },
+  {
+   "text": "{child} turned two and had a dinosaur party.",
+   "share": "{child}'s second birthday was dinosaur themed. {they} roared at every guest"
+  },
+  {
+   "text": "{child} ate a whole bowl of peas after refusing them for months.",
+   "share": "{child} ate peas today. voluntarily. {a} is in shock"
+  },
+  {
+   "text": "{child} learned to jump with both feet.",
+   "share": "{child} can jump now. {they} won't stop. the floor is trembling"
+  },
+  {
+   "text": "{child} started saying \"mine\" about everything.",
+   "share": "everything is 'mine' now according to {child}. including my sandwich"
+  },
+  {
+   "text": "{child} helped {a} water the garden.",
+   "share": "{child} watered the garden with {a}. and {a}'s shoes. and the dog"
+  },
+  {
+   "text": "{child} learned the colors red and blue.",
+   "share": "{child} knows red and blue. everything else is also red or blue"
+  },
+  {
+   "text": "{child} built a tower of six blocks.",
+   "share": "{child} built a six block tower and knocked it over with great joy"
+  },
+  {
+   "text": "{child} served {a} pretend soup from a toy kitchen.",
+   "share": "{child} made {a} pretend soup. {a} said it was delicious. {child} said 'no, too hot'"
+  },
+  {
+   "text": "{child} learned to kick a ball.",
+   "share": "{child} kicked a ball today. future football star. or at least future ball kicker"
+  },
+  {
+   "text": "{child} went to {their} first puppet show.",
+   "share": "{child} went to a puppet show and shouted helpful advice at the puppets. very involved"
+  },
+  {
+   "text": "{child} started insisting on doing everything alone.",
+   "share": "{child} says 'me do it' to everything now. even things that are definitely not possible"
+  },
+  {
+   "text": "{child} started pretending to make phone calls with a banana.",
+   "share": "{child} makes phone calls on a banana. very important business"
+  },
+  {
+   "text": "{child} had a little cold and spent the day on the sofa with stories.",
+   "share": "{child} has a cold so {a} declared a sofa and stories day. honestly jealous"
+  },
+  {
+   "text": "{child} scraped a knee at the park and was fine after a plaster.",
+   "share": "{child} scraped a knee at the park. one dinosaur plaster later and {theyre} totally fine"
+  },
+  {
+   "text": "{child} learned to hop like a bunny.",
+   "share": "{child} hops like a bunny everywhere now. no walking. only hopping"
+  },
+  {
+   "text": "{child} recognized the letter A on a shop sign.",
+   "share": "{child} pointed at a sign and said 'A!'. it was an A. genius"
+  },
+  {
+   "text": "{child} drew a circle and announced it was {a}.",
+   "share": "{child} drew a circle and said it's {a}. {a} is honored"
+  },
+  {
+   "text": "{child} learned to say please and thank you.",
+   "share": "{child} says please and thank you now. better manners than most adults"
+  },
+  {
+   "text": "{child} had a tantrum because {they} wanted the actual moon.",
+   "share": "{child} cried because {they} wanted the moon. the actual moon. {a} offered a torch instead"
+  },
+  {
+   "text": "{child} started going down the little slide alone.",
+   "share": "{child} goes down the slide alone now. {a} is pretending to be calm"
+  },
+  {
+   "text": "{child} declared pasta the only acceptable food.",
+   "share": "{child} has declared pasta the only acceptable food. forever"
+  },
+  {
+   "text": "{child} made friends with a snail in the garden.",
+   "share": "{child} has a pet snail named gary. gary lives in the garden. gary is fine"
+  },
+  {
+   "text": "{child} put on {their} own shoes, on the wrong feet.",
+   "share": "{child} put on {their} own shoes! wrong feet, but wow"
+  },
+  {
+   "text": "{child} spent a whole morning in a cardboard box spaceship.",
+   "share": "{child} spent the morning in a box spaceship. went to mars and back by lunch"
+  },
+  {
+   "text": "{child} gave {a} a dandelion as a present.",
+   "share": "{child} picked {a} a dandelion. {a} is keeping it in a glass. very sweet"
+  },
+  {
+   "text": "{child} started drinking from a big cup.",
+   "share": "{child} drinks from a big cup now. mostly successfully"
+  },
+  {
+   "text": "{child} learned every animal noise in the farm book.",
+   "share": "{child} knows all the farm animal noises. the cow one is outstanding"
+  },
+  {
+   "text": "{child} turned three and blew out the candles on the first try.",
+   "share": "{child} turned three and blew out all the candles on the first try. very proud"
+  },
+  {
+   "text": "{child} went to playgroup for the first time.",
+   "share": "{child} went to playgroup and came home covered in glitter. a great sign"
+  },
+  {
+   "text": "{child} learned to ride a balance bike.",
+   "share": "{child} is zooming around on a balance bike now. {a} jogs behind"
+  },
+  {
+   "text": "{child} invented a dance called the wiggle.",
+   "share": "{child} invented a dance called the wiggle. it's mostly wiggling"
+  },
+  {
+   "text": "{child} started helping to tidy up toys.",
+   "share": "{child} helped tidy up today. put one block away. we celebrated"
+  },
+  {
+   "text": "{child} told {a} \"love you\" for the first time.",
+   "share": "{child} told {a} 'love you' today unprompted. {a} had to sit down"
+  },
+  {
+   "text": "{child} asked for {name} at breakfast.",
+   "share": "{a} says {child} asked where i was at breakfast. i'm so loved"
+  },
+  {
+   "text": "{child} started hosting tea parties for stuffed animals.",
+   "share": "{child} hosts tea parties for the stuffed animals now. the bear always gets extra"
+  },
+  {
+   "text": "{child} learned to say the family dog's name.",
+   "share": "{child} can say the dog's name now. the dog is thrilled"
+  },
+  {
+   "text": "{child} discovered puddles and jumped in every one.",
+   "share": "{child} found puddles. every puddle. jumped in all of them"
+  },
+  {
+   "text": "{child} wore a dinosaur costume for a week straight.",
+   "share": "{child} has worn a dinosaur costume for six days straight. respect the commitment"
+  },
+  {
+   "text": "{child} was sad at daycare drop-off but smiling by snack time.",
+   "share": "{child} was sad at drop off but happy by snack time. {a} was sad all day"
+  },
+  {
+   "text": "{child} learned to stack cups in order of size.",
+   "share": "{child} stacked cups in order of size today. very organized mind"
+  },
+  {
+   "text": "{child} named a new teddy after {a}'s favorite food.",
+   "share": "{child} named the new teddy 'noodle'. after {a}'s favorite food"
+  },
+  {
+   "text": "{child} learned the word \"dinosaur\" and said it constantly.",
+   "share": "{child} learned 'dinosaur' and has said it four hundred times today"
+  },
+  {
+   "text": "{child} started waving at the bus driver every morning.",
+   "share": "{child} waves at the bus every morning. the driver honks back. best friends"
+  },
+  {
+   "text": "{child} helped {a} bake cookies and ate the chocolate chips.",
+   "share": "{child} 'helped' {a} bake cookies. the chocolate chips did not make it"
+  },
+  {
+   "text": "{child} started lining up every toy into a train.",
+   "share": "{child} lines up every toy into a train now. the shoes are carriages too"
+  },
+  {
+   "text": "{child} spent a whole day with the grandparents.",
+   "share": "{child} spent the day at the grandparents' and came back saying 'cake' over and over"
+  },
+  {
+   "text": "{child} sang the alphabet song as far as F.",
+   "share": "{child} sang the alphabet song. got to F and then made up the rest"
+  },
+  {
+   "text": "{child} insisted on carrying {their} own backpack to daycare.",
+   "share": "{child} carries {their} own backpack to daycare now. it's nearly as big as {them}"
+  },
+  {
+   "text": "{child} had a tantrum because the toast was cut into squares.",
+   "share": "toast was cut in squares instead of triangles. {child} was devastated. {a} has learned"
+  },
+  {
+   "text": "{child} conquered the little climbing frame at the park.",
+   "share": "{child} conquered the little climbing frame. waved from the top like royalty"
+  },
+  {
+   "text": "{child} started naming the color of every car on the street.",
+   "share": "{child} narrates the color of every car now. walks take forever"
+  },
+  {
+   "text": "{child} made a birthday card for {a} with lots of stickers.",
+   "share": "{child} made {a} a birthday card with about forty stickers. it's beautiful"
+  },
+  {
+   "text": "{child} discovered play dough.",
+   "share": "play dough has entered {child}'s life. it's in the carpet now"
+  },
+  {
+   "text": "{child} pretended to be a cat all afternoon.",
+   "share": "{child} was a cat all afternoon. only meowing. {a} played along"
+  },
+  {
+   "text": "{child} learned to blow bubbles from a wand.",
+   "share": "{child} can blow bubbles now. then pops every one instantly"
+  },
+  {
+   "text": "{child} started singing the same song in the car every trip.",
+   "share": "{child} sings in the car now. same song. on repeat. {a} is coping"
+  },
+  {
+   "text": "{child} learned to say {their} own name.",
+   "share": "{child} can say {their} own name now. very proud of it"
+  },
+  {
+   "text": "{child} shared a toy at the park without being asked.",
+   "share": "{child} shared a toy at the park without being asked! growth!"
+  },
+  {
+   "text": "{child} took a first trip on a boat.",
+   "share": "first boat ride for {child}. {they} waved at every duck"
+  },
+  {
+   "text": "{child} got a little wheelbarrow and helped in the garden.",
+   "share": "{child} has a tiny wheelbarrow and moves leaves around very seriously"
+  },
+  {
+   "text": "{child} insisted on \"reading\" a book to {a}.",
+   "share": "{child} 'read' {a} a story. it was mostly about a dog. plot was strong"
+  },
+  {
+   "text": "{child} learned to hold a crayon properly.",
+   "share": "{child} holds a crayon properly now. art career beginning"
+  },
+  {
+   "text": "{child} started saying hello to the moon every evening.",
+   "share": "{child} says hello to the moon every evening now. very polite to the moon"
+  },
+  {
+   "text": "{child} had a tantrum leaving the park and forgot it a minute later.",
+   "share": "full tantrum leaving the park. forgot all about it a minute later. toddlers are wild"
+  },
+  {
+   "text": "{child} joined a toddler music group.",
+   "share": "{child} joined a music group. {they} {are} the loudest triangle player"
+  },
+  {
+   "text": "{child} learned that ducks prefer oats to bread.",
+   "share": "{child} fed the ducks oats today and told every duck 'eat up'"
+  },
+  {
+   "text": "{child} went to the zoo and loved the penguins.",
+   "share": "zoo trip for {child}. penguins were the highlight. {they} waddled for an hour after"
+  },
+  {
+   "text": "{child} learned to unscrew a lid.",
+   "share": "{child} can open jars now. {a} is in trouble"
+  },
+  {
+   "text": "{child} started telling {a} stories about daycare.",
+   "share": "{child} tells {a} about daycare now. mostly about a kid with a red cup"
+  },
+  {
+   "text": "{child} turned two and a half and announced it to everyone.",
+   "share": "{child} is two and a half and wants everyone to know about the half"
+  },
+  {
+   "text": "{child} got every shape into the shape sorter.",
+   "share": "{child} got all the shapes in the sorter. even the star. the star is hard"
+  },
+  {
+   "text": "{child} helped {a} feed the cat.",
+   "share": "{child} fed the cat today. gave it about twelve cookies. the cat is thrilled"
+  },
+  {
+   "text": "{child} danced at a family party for three hours.",
+   "share": "{child} danced at the family party for hours. outlasted every adult"
+  },
+  {
+   "text": "{child} learned to use a fork.",
+   "share": "{child} uses a fork now. stabs every pea with great precision"
+  },
+  {
+   "text": "{child} tried to whistle and made everyone laugh.",
+   "share": "{child} is trying to whistle. it's just blowing air. very determined"
+  },
+  {
+   "text": "{child} carried the bread at the shop.",
+   "share": "{child} carried the bread at the shop. very important job. guarded it fiercely"
+  },
+  {
+   "text": "{child} made up a song about the cat.",
+   "share": "{child} wrote a song about the cat. the words are just the cat's name"
+  },
+  {
+   "text": "{child} said sorry to a friend after grabbing a toy.",
+   "share": "{child} said sorry to a friend at playgroup. unprompted. i'm so proud"
+  },
+  {
+   "text": "{child} started copying {a} with a tiny broom.",
+   "share": "{child} has a tiny broom and follows {a} around sweeping. best helper"
+  },
+  {
+   "text": "{child} went to the cinema for the first time and lasted twenty minutes.",
+   "share": "first cinema trip. {child} lasted twenty minutes. the popcorn was the real draw"
+  },
+  {
+   "text": "{child} wanted the same bear book every evening.",
+   "share": "{child} wants the same bear book every single evening. {a} knows it by heart now"
+  },
+  {
+   "text": "{child} started wearing a cape everywhere.",
+   "share": "{child} wears a cape everywhere now. superhero duties"
+  },
+  {
+   "text": "{child} counted the stairs and got a creative answer.",
+   "share": "{child} counted the stairs today. there are twelve. {child} says there are nine"
+  },
+  {
+   "text": "{child} threw a ball overarm for the first time.",
+   "share": "{child} threw a ball overarm! it went backwards but still"
+  },
+  {
+   "text": "{child} had a long serious conversation with a pigeon.",
+   "share": "{child} had a long chat with a pigeon at the park. the pigeon listened"
+  },
+  {
+   "text": "{child} picked {their} own outfit for daycare: pyjama top and wellies.",
+   "share": "{child} picked {their} own outfit: pyjama top and wellies. {a} let it happen"
+  },
+  {
+   "text": "{child} did a sideways roll at toddler gym.",
+   "share": "{child} did a forward roll at toddler gym. well, a sideways roll. still impressive"
+  },
+  {
+   "text": "{child} learned to say thank you in two languages.",
+   "share": "{child} can say thank you in two languages now. smarter than me"
+  },
+  {
+   "text": "{child} started shouting \"car!\" when {a}'s car pulled up.",
+   "share": "{child} shouts 'car!' every time {a}'s car pulls up. best welcome ever"
+  },
+  {
+   "text": "{child} brought home a leaf from every walk.",
+   "share": "{child} brings home a leaf from every walk. {a} has a leaf collection now"
+  },
+  {
+   "text": "{child} planted sunflower seeds with {a}.",
+   "share": "{child} planted sunflower seeds with {a}. checks on them every hour"
+  },
+  {
+   "text": "{child}'s sunflower finally bloomed.",
+   "share": "{child}'s sunflower bloomed! {they} {are} very proud. told the whole street"
+  },
+  {
+   "text": "{child} built a blanket fort with {a} on a rainy afternoon.",
+   "share": "rainy day blanket fort at {a}'s. {child} declared it a castle and {a} the dragon"
+  },
+  {
+   "text": "{child} asked {a} to sing the same song ten times in a row.",
+   "share": "{child} requested the same song ten times. {a} is holding up bravely"
+  },
+  {
+   "text": "{child} laughed until {they} hiccuped watching the cat chase string.",
+   "share": "{child} watched the cat chase string and laughed until {they} got hiccups"
+  },
+  {
+   "text": "{child} learned to stamp along to music.",
+   "share": "{child} stamps along to music now. small but mighty"
+  },
+  {
+   "text": "{child} shouted hello to {name} down the phone.",
+   "share": "{child} shouted hello down the phone at me today. my whole day is made"
+  },
+  {
+   "text": "{child} took a favorite teddy everywhere for a month.",
+   "share": "{child} and the teddy are inseparable. it's been to the shops, the park and the library"
+  },
+  {
+   "text": "{child} asked for a pet dragon for the holidays.",
+   "share": "{child} has asked for a dragon for the holidays. {a} is in negotiations"
+  },
+  {
+   "text": "{child} learned a new word every day for a week.",
+   "share": "{child} learned a new word every day this week. today's was 'spoon'"
+  },
+  {
+   "text": "{child} insisted on carrying a shopping bag with one apple in it.",
+   "share": "{child} insisted on carrying a shopping bag. it had one apple in it. very strong"
+  },
+  {
+   "text": "{child} spotted a rainbow on the way home.",
+   "share": "{child} spotted a rainbow on the way home and talked about it for ten minutes"
+  },
+  {
+   "text": "{child} started asking \"what's that?\" about everything.",
+   "share": "'what's that' is {child}'s favorite question. i've explained a lamppost three times"
+  },
+  {
+   "text": "{child} gave {a} a big hug after daycare.",
+   "share": "{a} says {child} gave the biggest hug after daycare today. i'm jealous"
+  },
+  {
+   "text": "{child} learned to say \"{a}\" properly for the first time.",
+   "share": "{child} can finally say {a}'s name properly. {a} is thrilled"
+  },
+  {
+   "text": "{child} drew a bright yellow sun at daycare.",
+   "share": "{child} drew a sun at daycare. it has a face and sunglasses. very cool sun"
+  }
+ ],
+ "child_update": [
+  {
+   "text": "{child} started school.",
+   "share": "{child} started school today!! tiny backpack, big brave face"
+  },
+  {
+   "text": "{child} lost {their} first tooth.",
+   "share": "{child} lost a first tooth. the tooth fairy is apparently paying well these days"
+  },
+  {
+   "text": "{child} joined a football team.",
+   "share": "{child} joined a football team. scored an own goal and celebrated anyway"
+  },
+  {
+   "text": "{child} got a part as a tree in the school play.",
+   "share": "{child} is a tree in the school play. a very important tree"
+  },
+  {
+   "text": "{child} learned to ride a bike without training wheels.",
+   "share": "{child} rode a bike with no training wheels today. {a} ran behind the whole way"
+  },
+  {
+   "text": "{child} entered the science fair with a baking soda volcano.",
+   "share": "{child}'s science fair volcano erupted perfectly. well. slightly too perfectly"
+  },
+  {
+   "text": "{child} finished a whole chapter book alone.",
+   "share": "{child} finished a chapter book alone! {they} {are} already on the next one"
+  },
+  {
+   "text": "{child} got a gold star for spelling.",
+   "share": "gold star for spelling for {child}. {they} spelled 'necessary' right. i still can't"
+  },
+  {
+   "text": "{child} wrote a story about a dragon who loves soup.",
+   "share": "{child} wrote a story about a dragon who loves soup. a bestseller in my opinion"
+  },
+  {
+   "text": "{child} learned to tie {their} shoelaces.",
+   "share": "{child} can tie shoelaces now. bunny ears method. very proud"
+  },
+  {
+   "text": "{child} started piano lessons.",
+   "share": "{child} started piano. the same four notes. over and over. {a} is so proud and so tired"
+  },
+  {
+   "text": "{child} won the egg and spoon race at sports day.",
+   "share": "{child} won the egg and spoon race at sports day! the egg made it too"
+  },
+  {
+   "text": "{child} scraped a knee at football and kept playing.",
+   "share": "{child} scraped a knee at football and kept playing. tough cookie"
+  },
+  {
+   "text": "{child} made a new best friend at school.",
+   "share": "{child} has a new best friend at school. they swap stickers. serious business"
+  },
+  {
+   "text": "{child} learned to do a cartwheel.",
+   "share": "{child} can do a cartwheel now. demonstrates it every five minutes"
+  },
+  {
+   "text": "{child} brought home a clay pot from art class.",
+   "share": "{child} made a clay pot at school. it's lumpy. {a} uses it for keys"
+  },
+  {
+   "text": "{child} finished {their} first year of school.",
+   "share": "{child} finished the first year of school! report says 'very enthusiastic'"
+  },
+  {
+   "text": "{child} learned the five times table.",
+   "share": "{child} knows the five times table. recites it at dinner. we all know it now"
+  },
+  {
+   "text": "{child} picked the violin as {their} instrument.",
+   "share": "{child} picked the violin. the cat has moved out. temporarily"
+  },
+  {
+   "text": "{child} joined the school choir and sang a solo line.",
+   "share": "{child} sang a solo line at the choir concert. i got emotional"
+  },
+  {
+   "text": "{child} went on a school trip to the museum.",
+   "share": "school trip to the museum! {child} came back obsessed with fossils"
+  },
+  {
+   "text": "{child} built a bird feeder with {a}.",
+   "share": "{child} built a bird feeder with {a}. one bird has visited. {they} named it"
+  },
+  {
+   "text": "{child} won a prize for a poem about autumn.",
+   "share": "{child} won a poetry prize! a poem about autumn leaves. we have a poet"
+  },
+  {
+   "text": "{child} announced a plan to become a vet.",
+   "share": "{child} says {they}'ll be a vet one day. has already treated every stuffed toy in the house"
+  },
+  {
+   "text": "{child} learned to do a handstand against the wall.",
+   "share": "{child} can do a handstand against the wall now. {a}'s wall has footprints"
+  },
+  {
+   "text": "{child} borrowed ten books from the library in one go.",
+   "share": "{child} borrowed ten books from the library. the maximum. naturally"
+  },
+  {
+   "text": "{child} learned to play chess and beat {a}.",
+   "share": "{child} beat {a} at chess. {a} is demanding a rematch"
+  },
+  {
+   "text": "{child} came second in a drawing competition.",
+   "share": "{child} came second in a drawing contest. the drawing was of me. i'm on a wall at school"
+  },
+  {
+   "text": "{child} finally learned to whistle.",
+   "share": "{child} can finally whistle. {they} whistled all through dinner"
+  },
+  {
+   "text": "{child} started a rock collection.",
+   "share": "{child} has a rock collection. forty rocks. each one has a name"
+  },
+  {
+   "text": "{child} got the reading award at school.",
+   "share": "{child} got the reading award at school! thirty books this term"
+  },
+  {
+   "text": "{child} joined the after-school coding club.",
+   "share": "{child} joined coding club and made a game about a cat. it's surprisingly good"
+  },
+  {
+   "text": "{child} grew {their} first tomatoes in the garden.",
+   "share": "{child} grew tomatoes! three of them! we're making the tiniest salad"
+  },
+  {
+   "text": "{child} made {a} toast all alone.",
+   "share": "{child} made {a} toast. a bit burnt. made with love"
+  },
+  {
+   "text": "{child} turned seven and had a pirate party.",
+   "share": "{child}'s seventh birthday: pirate party. i was made to walk the plank. it was a cushion"
+  },
+  {
+   "text": "{child} turned ten and had a pizza party.",
+   "share": "double digits! {child} turned ten. pizza party. very grown up"
+  },
+  {
+   "text": "{child} went ice skating for the first time.",
+   "share": "{child} went ice skating and wobbled the whole way round, grinning"
+  },
+  {
+   "text": "{child} won the class spelling bee.",
+   "share": "{child} won the spelling bee! the winning word was 'rhythm'"
+  },
+  {
+   "text": "{child} joined the school gardening club.",
+   "share": "{child} joined gardening club. now gives {a} notes on the roses"
+  },
+  {
+   "text": "{child} baked a birthday cake for {a} with a little help.",
+   "share": "{child} baked {a} a birthday cake. the icing is blue. the inside is also blue"
+  },
+  {
+   "text": "{child} got the lead in the school musical.",
+   "share": "{child} got the lead in the school musical!! i'm getting a front row seat"
+  },
+  {
+   "text": "{child} ran a lemonade stand to raise money for the animal shelter.",
+   "share": "{child}'s lemonade stand raised money for the animal shelter. business genius"
+  },
+  {
+   "text": "{child} started learning French at school.",
+   "share": "{child} is learning french and corrects my pronunciation. rudely. accurately"
+  },
+  {
+   "text": "{child} flew a kite for the first time.",
+   "share": "{child} flew a kite today! it stayed up for ages. {they} {were} so proud"
+  },
+  {
+   "text": "{child} built a model castle out of cardboard.",
+   "share": "{child} built a cardboard castle. it has a drawbridge that works. engineering"
+  },
+  {
+   "text": "{child} had a cold and missed one day of school.",
+   "share": "{child} has a cold and is home with soup and comics. honestly living the dream"
+  },
+  {
+   "text": "{child} memorized all the planets.",
+   "share": "{child} knows all the planets and has strong opinions about pluto"
+  },
+  {
+   "text": "{child} learned a card trick.",
+   "share": "{child} learned a card trick. it doesn't work but the performance is flawless"
+  },
+  {
+   "text": "{child} went to a first concert with {a}.",
+   "share": "{child} went to a first concert with {a}. came home hoarse and happy"
+  },
+  {
+   "text": "{child} helped {a} paint the garden fence.",
+   "share": "{child} helped paint the fence. the fence and {child}'s overalls are the same color now"
+  },
+  {
+   "text": "{child} got a new red bike for {their} birthday.",
+   "share": "{child} got a new bike. red. very fast. has ridden it round the block nine times"
+  },
+  {
+   "text": "{child} started a nature journal.",
+   "share": "{child} keeps a nature journal now. today's entry was about a very large slug"
+  },
+  {
+   "text": "{child} scored {their} first goal for the football team.",
+   "share": "{child} scored a goal!! a real one! for the right team this time"
+  },
+  {
+   "text": "{child} got a certificate for being kind to classmates.",
+   "share": "{child} got a kindness certificate at school. best award there is"
+  },
+  {
+   "text": "{child} started learning to roller skate.",
+   "share": "{child} is learning to roller skate. holds onto {a} like a lifeline"
+  },
+  {
+   "text": "{child} wrote {a} a thank-you letter for no reason.",
+   "share": "{child} wrote {a} a thank you letter just because. {a} is keeping it forever"
+  },
+  {
+   "text": "{child} learned long division.",
+   "share": "{child} learned long division and explained it to me. i understand it less now"
+  },
+  {
+   "text": "{child} built a little robot from a kit with {a}.",
+   "share": "{child} built a little robot with {a}. it drives in circles. we love it"
+  },
+  {
+   "text": "{child} earned a yellow belt in karate.",
+   "share": "{child} earned a yellow belt in karate! bowed to everyone at dinner"
+  },
+  {
+   "text": "{child} came third in the baking contest at the school fair.",
+   "share": "{child} entered the school baking contest with banana muffins. third place!"
+  },
+  {
+   "text": "{child} grew beans in the dark and in the sun for a science project.",
+   "share": "{child}'s science project: beans in the dark vs beans in the sun. results pending"
+  },
+  {
+   "text": "{child} read a poem in front of the whole school.",
+   "share": "{child} read a poem in assembly in front of the whole school. so brave"
+  },
+  {
+   "text": "{child} started a family newspaper.",
+   "share": "{child} started a family newspaper. headline: 'dog eats sock'. hard hitting journalism"
+  },
+  {
+   "text": "{child} learned to knit with {a}.",
+   "share": "{child} learned to knit. first project: a scarf for the cat. the cat refused"
+  },
+  {
+   "text": "{child} started drawing comics.",
+   "share": "{child} draws comics now. i'm a character. i'm a talking potato"
+  },
+  {
+   "text": "{child} learned a song on the recorder.",
+   "share": "{child} learned a song on the recorder. {a} has earplugs now"
+  },
+  {
+   "text": "{child} made bread with {a}.",
+   "share": "{child} made bread with {a}. it's very dense. we're calling it rustic"
+  },
+  {
+   "text": "{child} joined a basketball team.",
+   "share": "{child} joined basketball. {they} {are} tiny but fast"
+  },
+  {
+   "text": "{child} finished a thousand-piece puzzle.",
+   "share": "{child} finished a thousand piece puzzle. two weeks. one missing piece. still counts"
+  },
+  {
+   "text": "{child} won the class quiz.",
+   "share": "{child} won the class quiz. knew the capital of australia. i didn't"
+  },
+  {
+   "text": "{child} organized a litter pick in the park with friends.",
+   "share": "{child} organized a litter pick with friends. saving the planet one crisp packet at a time"
+  },
+  {
+   "text": "{child} started saving pocket money for a telescope.",
+   "share": "{child} is saving for a telescope. has a jar and a chart. very serious"
+  },
+  {
+   "text": "{child} finally bought the telescope and saw the rings of Saturn.",
+   "share": "{child} saw saturn's rings through the new telescope. screamed. i would too"
+  },
+  {
+   "text": "{child} learned to make pancakes for the family.",
+   "share": "{child} made pancakes for the family. one was shaped like a dinosaur. on purpose apparently"
+  },
+  {
+   "text": "{child} wrote to the council asking for a new bench in the park.",
+   "share": "{child} wrote to the council asking for a park bench. {they} got a reply!"
+  },
+  {
+   "text": "{child} danced in a recital.",
+   "share": "{child}'s dance recital was today. waved at {a} mid routine. star quality"
+  },
+  {
+   "text": "{child} started secondary school.",
+   "share": "big school for {child} today. {a} is not coping"
+  },
+  {
+   "text": "{child} taught the whole family a complicated board game.",
+   "share": "{child} taught the whole family a new board game. nobody else understood the rules"
+  },
+  {
+   "text": "{child} built a birdhouse at woodwork club.",
+   "share": "{child} built a birdhouse at woodwork club. a pair of sparrows moved in"
+  },
+  {
+   "text": "{child} earned a knot-tying badge at scouts.",
+   "share": "{child} earned a badge at scouts. can now tie six different knots"
+  },
+  {
+   "text": "{child} started cooking dinner once a week.",
+   "share": "{child} cooks dinner every friday now. it's always pasta. we're all very supportive"
+  },
+  {
+   "text": "{child} became a reading buddy for a younger kid at school.",
+   "share": "{child} is a reading buddy for a younger kid at school. so proud of {them}"
+  },
+  {
+   "text": "{child} made a comic book and sold copies to the family.",
+   "share": "{child} sold me a comic for a pound. i'd have paid more. don't tell {them}"
+  },
+  {
+   "text": "{child} started learning to juggle.",
+   "share": "{child} can juggle two balls. working on three. the living room lamp is nervous"
+  },
+  {
+   "text": "{child} did a charity fun run.",
+   "share": "{child} did a fun run for charity. finished smiling. and asked for ice cream"
+  },
+  {
+   "text": "{child} learned a whole song on the guitar.",
+   "share": "{child} played a whole song on the guitar for me. tiny concert. standing ovation"
+  },
+  {
+   "text": "{child} built a sandcastle with a working moat at the beach.",
+   "share": "{child} built a sandcastle with an actual moat. architect in training"
+  },
+  {
+   "text": "{child} won best costume on book day.",
+   "share": "book day costume prize for {child}! went as a wizard with a cardboard hat"
+  },
+  {
+   "text": "{child} fixed a wobbly chair with {a}'s help.",
+   "share": "{child} fixed a wobbly chair with a screwdriver and {a}'s supervision. handy"
+  },
+  {
+   "text": "{child} looked after the class hamster for the holidays.",
+   "share": "{child} is looking after the class hamster for the holidays. very responsible"
+  },
+  {
+   "text": "{child} took charge of the family recycling.",
+   "share": "{child} has taken over recycling at {a}'s house. strict rules. i've been warned"
+  },
+  {
+   "text": "{child} washed {a}'s car for pocket money.",
+   "share": "{child} washed {a}'s car for pocket money. it has never been shinier"
+  },
+  {
+   "text": "{child} started a book club with friends.",
+   "share": "{child} started a book club with friends. snacks are mandatory"
+  },
+  {
+   "text": "{child} invented a card game.",
+   "share": "{child} invented a card game. rules change every round. {child} always wins"
+  },
+  {
+   "text": "{child} learned to ride a scooter.",
+   "share": "{child} is zooming around on a scooter now. helmet on, big grin"
+  },
+  {
+   "text": "{child} moved up a reading level at school.",
+   "share": "{child} moved up a reading level. chapter books all the way"
+  },
+  {
+   "text": "{child} did a presentation about whales at school.",
+   "share": "{child} did a presentation about whales. i now know a lot about whales. ask me anything"
+  },
+  {
+   "text": "{child} made a paper airplane that flew across the whole room.",
+   "share": "{child}'s paper plane flew the whole length of the living room. we measured it"
+  },
+  {
+   "text": "{child} won science museum tickets in a school raffle.",
+   "share": "{child} won a raffle! science museum tickets. {they} {are} already planning the route"
+  },
+  {
+   "text": "{child} planned a family picnic with a written menu.",
+   "share": "{child} planned a whole family picnic. there's a written menu. very fancy"
+  },
+  {
+   "text": "{child} learned some sign language at school.",
+   "share": "{child} is learning sign language at school and taught me 'thank you'"
+  },
+  {
+   "text": "{child} built a den in the garden with friends.",
+   "share": "{child} and friends built a den in the garden. password required to enter"
+  },
+  {
+   "text": "{child} got elected to the school council.",
+   "share": "{child} got elected to the school council. campaign promise: longer break time"
+  },
+  {
+   "text": "{child} read a whole story to the grandparents over the phone.",
+   "share": "{child} read a whole story to the grandparents on the phone. they loved it"
+  },
+  {
+   "text": "{child} made a solar system model for class.",
+   "share": "{child}'s solar system model has neptune made from a painted tennis ball. brilliant"
+  },
+  {
+   "text": "{child} wrote a song and performed it at a family party.",
+   "share": "{child} wrote a song and performed it at the family party. it was about pancakes"
+  },
+  {
+   "text": "{child} spotted ten different birds on a nature walk.",
+   "share": "{child} spotted ten different birds on a walk. has a little notebook and everything"
+  },
+  {
+   "text": "{child} helped the class plant trees by the river.",
+   "share": "{child}'s class planted trees by the river. {they} named {their} tree after the dog"
+  },
+  {
+   "text": "{child} gave a speech at the end-of-year assembly.",
+   "share": "{child} gave a speech at the end of year assembly. {a} cried in the back row"
+  },
+  {
+   "text": "{child} mastered a tricky tongue twister.",
+   "share": "{child} can say a tongue twister faster than me. humbling"
+  },
+  {
+   "text": "{child} made a vacation journal full of drawings.",
+   "share": "{child} made a vacation journal with drawings of everything. i'm in it, holding an ice cream"
+  },
+  {
+   "text": "{child} started learning to touch-type.",
+   "share": "{child} is learning to type with all ten fingers. faster than me already"
+  },
+  {
+   "text": "{child}'s model boat won the pond race at the fair.",
+   "share": "{child}'s model boat won the pond race. the duck interference was fierce"
+  },
+  {
+   "text": "{child} invented a smoothie recipe.",
+   "share": "{child} invented a smoothie. banana, spinach and too much honey. delicious actually"
+  },
+  {
+   "text": "{child} organized a talent show with the cousins.",
+   "share": "{child} organized a talent show with the cousins. i was a judge. everyone got a ten"
+  },
+  {
+   "text": "{child} folded a hundred paper cranes.",
+   "share": "{child} folded a hundred paper cranes. {a}'s house is full of them"
+  },
+  {
+   "text": "{child} decided to learn every country's flag.",
+   "share": "{child} is learning every flag in the world. quizzes me at random"
+  },
+  {
+   "text": "{child} became captain of the football team.",
+   "share": "{child} is captain of the football team now! the armband is very big on {them}"
+  },
+  {
+   "text": "{child} navigated a family walk with a paper map.",
+   "share": "{child} navigated a whole family walk with a paper map. only one extra loop"
+  },
+  {
+   "text": "{child} built the biggest snowman on the street.",
+   "share": "{child} built the biggest snowman on the street. it has a carrot nose and {a}'s scarf"
+  },
+  {
+   "text": "{child} got a pen pal in another country.",
+   "share": "{child} has a pen pal in another country. writes long letters about the dog"
+  },
+  {
+   "text": "{child} learned to play a duet with {a} on the piano.",
+   "share": "{child} and {a} played a piano duet at the family party. mostly in time. very moving"
+  }
+ ],
+ "babysit_baby": [
+  {
+   "text": "{name} babysat {child} for the evening while {a} went out.",
+   "share": "had {child} for the evening while {a} went out. we watched the rain and shared a rusk. well, {child} did"
+  },
+  {
+   "text": "{name} looked after {child} for the afternoon and sang every song imaginable.",
+   "share": "sang every song i know to {child} this afternoon. tough crowd. one smile"
+  },
+  {
+   "text": "{name} warmed a bottle for {child} and got the temperature right first try.",
+   "share": "got the bottle temperature right on the first go for {child}. basically a professional"
+  },
+  {
+   "text": "{name} took {child} for a long walk in the stroller.",
+   "share": "long stroller walk with {child}. we said hello to four dogs"
+  },
+  {
+   "text": "{name} read {child} the same cloth book three times in a row.",
+   "share": "read {child} the same cloth book three times. {they} loved it every single time"
+  },
+  {
+   "text": "{name} spent the afternoon playing peekaboo with {child}.",
+   "share": "peekaboo marathon with {child}. i'm a comedy genius apparently"
+  },
+  {
+   "text": "{name} sat with {child} on the play mat for an hour.",
+   "share": "an hour on the play mat with {child}. the dangling giraffe is our favorite"
+  },
+  {
+   "text": "{name} fed {child} mashed banana while babysitting.",
+   "share": "fed {child} banana. some of it went in. most of it went on the bib"
+  },
+  {
+   "text": "{name} took {child} to the park to watch the ducks.",
+   "share": "took {child} to see the ducks. {they} {were} unimpressed. the ducks were too"
+  },
+  {
+   "text": "{name} looked after {child} for a morning while {a} had a haircut.",
+   "share": "{a} got a haircut and i got {child} for the morning. best deal"
+  },
+  {
+   "text": "{name} kept {child} entertained with a wooden spoon and a pot.",
+   "share": "entertained {child} with a pot and a spoon for an hour. the neighbors may have heard"
+  },
+  {
+   "text": "{name} hummed lullabies to {child} on the sofa.",
+   "share": "hummed lullabies to {child} on the sofa. {they} {were} so calm. i was even calmer"
+  },
+  {
+   "text": "{name} got a big laugh out of {child} with a silly face.",
+   "share": "got a laugh out of {child} with my silly face. i've peaked"
+  },
+  {
+   "text": "{name} watched {child} for the whole day while {a} went to work.",
+   "share": "full day with {child} while {a} worked. lovely time. i need a lie down"
+  },
+  {
+   "text": "{name} carried {child} around the garden to show off the flowers.",
+   "share": "gave {child} a tour of the garden. {they} liked the yellow flowers best"
+  },
+  {
+   "text": "{name} showed {child} the fish in {a}'s aquarium.",
+   "share": "{child} and i stared at the fish tank for ages. very relaxing for both of us"
+  },
+  {
+   "text": "{name} took {child} along to the greengrocer in the stroller.",
+   "share": "took {child} to the greengrocer. {child} supervised the vegetable choices"
+  },
+  {
+   "text": "{name} gave {child} a serious weather report in a newsreader voice.",
+   "share": "gave {child} a full weather report in my newsreader voice. {they} {were} riveted"
+  },
+  {
+   "text": "{name} spent a rainy afternoon with {child} watching raindrops on the window.",
+   "share": "rainy day with {child}. calm music and watching drops race down the window"
+  },
+  {
+   "text": "{name} taught {child} to clap.",
+   "share": "taught {child} to clap today. well, {they} clapped once. it counts"
+  },
+  {
+   "text": "{name} rolled a soft ball back and forth with {child}.",
+   "share": "rolled a ball to {child} for an hour. {child} rolled it back twice. teamwork"
+  },
+  {
+   "text": "{name} watched {child} for three hours and the time flew by.",
+   "share": "had {child} for three hours and it felt like ten minutes. best company"
+  },
+  {
+   "text": "{name} warmed up some carrot puree for {child} and it was a hit.",
+   "share": "carrot puree for {child} today. a big hit. clean bowl"
+  },
+  {
+   "text": "{name} gave {child} a first taste of pear, with {a}'s okay.",
+   "share": "{a} said yes to pear so {child} tried it with me. huge grin"
+  },
+  {
+   "text": "{name} put on a sock puppet show for {child}.",
+   "share": "sock puppet show for {child}. the sock dragon was a big success"
+  },
+  {
+   "text": "{name} looked after {child} while {a} caught up on errands.",
+   "share": "minded {child} so {a} could run errands. we did nothing and it was perfect"
+  },
+  {
+   "text": "{name} sang {child} a made-up song about the cat.",
+   "share": "made up a song about the cat for {child}. it's a bop. {child} agrees"
+  },
+  {
+   "text": "{name} walked {child} round and round the living room on a teething day.",
+   "share": "teething day with {child}. lots of walking laps of the living room. we got through it"
+  },
+  {
+   "text": "{name} gave {child} a cold teething ring from the fridge.",
+   "share": "the cold teething ring was a game changer for {child} today. noted"
+  },
+  {
+   "text": "{name} helped {child} practice sitting up with lots of cushions.",
+   "share": "sitting up practice with {child}. lots of cushions. lots of wobbles. lots of pride"
+  },
+  {
+   "text": "{name} showed {child} the baby in the mirror.",
+   "share": "showed {child} the mirror. {they} {were} delighted with the baby in there"
+  },
+  {
+   "text": "{name} gave {child} a crinkly toy to play with.",
+   "share": "gave {child} a crinkly toy. {they} crinkled it for twenty minutes straight"
+  },
+  {
+   "text": "{name} spent the morning with {child} listening to birds in the garden.",
+   "share": "morning in the garden with {child} listening to birds. {they} kept looking at the sky"
+  },
+  {
+   "text": "{name} took {child} on a gentle stroller walk to the river.",
+   "share": "stroller walk to the river with {child}. we watched the boats go by"
+  },
+  {
+   "text": "{name} read {child} a cookbook out loud because it was the nearest book.",
+   "share": "read {child} a cookbook out loud. {they} {were} very into the soup chapter"
+  },
+  {
+   "text": "{name} gave {child} a basket of wooden spoons and cups to explore.",
+   "share": "gave {child} a basket of wooden spoons and cups. best toy ever apparently"
+  },
+  {
+   "text": "{name} babysat {child} while {a} went to a work dinner.",
+   "share": "had {child} while {a} went to a work dinner. we had our own dinner. mostly mashed carrot"
+  },
+  {
+   "text": "{name} tidied up after babysitting so {a} came home to a neat house.",
+   "share": "babysat {child} and tidied up after. {a} came home and nearly cried. small wins"
+  },
+  {
+   "text": "{name} blew bubbles for {child} in the garden.",
+   "share": "blew bubbles for {child} in the garden. {they} tried to catch every single one"
+  },
+  {
+   "text": "{name} watched the snow fall from the window with {child}.",
+   "share": "snowy day with {child}. we watched the snow from the window. very cozy"
+  },
+  {
+   "text": "{name} sang the alphabet to {child} in a silly voice.",
+   "share": "did the alphabet in a silly voice for {child}. encore requested"
+  },
+  {
+   "text": "{name} took {child} for the morning so {a} could have a lie-in.",
+   "share": "gave {a} a lie in by taking {child} for the morning. {a} called me a hero"
+  },
+  {
+   "text": "{name} brought {child} a soft toy rabbit.",
+   "share": "brought {child} a soft rabbit. {they} hugged it immediately. i'm the favorite now"
+  },
+  {
+   "text": "{name} played the dropping-the-spoon game with {child} for an hour.",
+   "share": "{child}'s new game: drop the spoon, i pick it up. we played for an hour"
+  },
+  {
+   "text": "{name} showed {child} the moon through the window.",
+   "share": "showed {child} the moon tonight. {they} said 'oo'. i'll take it"
+  },
+  {
+   "text": "{name} played the toy piano for {child}.",
+   "share": "played the toy piano for {child}. my audience of one was very supportive"
+  },
+  {
+   "text": "{name} taught {child} to wave while babysitting.",
+   "share": "taught {child} to wave! {they} waved at the dog. the dog ignored it"
+  },
+  {
+   "text": "{name} settled a fussy hour with a slow stroller walk.",
+   "share": "fussy hour with {child}. a slow stroller walk fixed everything"
+  },
+  {
+   "text": "{name} took {child} to a baby music session while {a} worked.",
+   "share": "took {child} to baby music while {a} worked. {child} shook a maraca at me with intent"
+  },
+  {
+   "text": "{name} built soft-block towers for {child} to knock down.",
+   "share": "built towers for {child} to knock down all afternoon. great stress relief for us both"
+  },
+  {
+   "text": "{name} told {child} funny stories about {a} while babysitting.",
+   "share": "told {child} funny stories about {a}. {child} won't remember. i will"
+  },
+  {
+   "text": "{name} kept {child} busy in the garden while {a} painted the hallway.",
+   "share": "{a} painted the hallway while i kept {child} busy in the garden. good teamwork"
+  },
+  {
+   "text": "{name} sat with {child} under a tree in the park.",
+   "share": "sat under a tree with {child}. {they} watched the leaves move for ages"
+  },
+  {
+   "text": "{name} made a cushion fort for {child} and read stories inside it.",
+   "share": "made a cushion fort for {child} and read stories inside. top tier afternoon"
+  },
+  {
+   "text": "{name} sang {child} a song {a} loved growing up.",
+   "share": "sang {child} the song {a} loved growing up. {child} loved it too. it's genetic"
+  },
+  {
+   "text": "{child} visited {name}'s flat for the first time.",
+   "share": "{child} came to mine for the first time. {they} inspected everything. approved the curtains"
+  },
+  {
+   "text": "{name} looked after {child} on a hot day and stayed in the shade.",
+   "share": "hot day with {child}. we stayed in the shade with a fan and a cloth book"
+  },
+  {
+   "text": "{name} walked {child} down the lane to see the horses.",
+   "share": "walked {child} to see the horses down the lane. {they} {were} fascinated"
+  },
+  {
+   "text": "{name} looked after {child} while {a} went to a yoga class.",
+   "share": "{a} went to yoga and i got {child}. we did our own version on the play mat"
+  },
+  {
+   "text": "{name} hid a toy under a blanket for {child} to find.",
+   "share": "hid a toy under a blanket and {child} found it every time. genius baby"
+  },
+  {
+   "text": "{name} worked out the face that always made {child} smile.",
+   "share": "figured out {child}'s favorite face. it's me pretending to be surprised"
+  },
+  {
+   "text": "{name} read {child} a farm book with all the animal noises.",
+   "share": "did all the farm animal noises for {child}. my pig is unmatched"
+  },
+  {
+   "text": "{name} pushed {child} gently on the baby swing.",
+   "share": "baby swing at the park with {child}. pure giggles"
+  },
+  {
+   "text": "{name} babysat {child} for a whole day solo for the first time.",
+   "share": "first full day solo with {child}. we both made it and had a lot of fun"
+  },
+  {
+   "text": "{name} looked after {child} while {a} went to a friend's birthday party.",
+   "share": "{a} went to a party and i had {child}. we had our own party. very low key"
+  },
+  {
+   "text": "{name} let {child} play with a set of measuring cups.",
+   "share": "measuring cups are {child}'s favorite toy now. kitchens are full of treasure"
+  },
+  {
+   "text": "{name} tried some gentle classical music with {child}.",
+   "share": "tried classical music with {child}. {they} {were} vibing"
+  },
+  {
+   "text": "{name} pushed {child} to the bakery and brought {a} back a treat.",
+   "share": "stroller walk to the bakery with {child}. brought {a} back a croissant. thoughtful"
+  },
+  {
+   "text": "{name} practiced rolling over with {child} on the rug.",
+   "share": "rolling practice with {child} on the rug. very determined. very wobbly"
+  },
+  {
+   "text": "{name} gave {child} a little wooden rattle.",
+   "share": "gave {child} a wooden rattle. {they} shook it with such passion"
+  },
+  {
+   "text": "{name} showed {child} the autumn leaves in the garden.",
+   "share": "showed {child} all the autumn leaves. {they} wanted to hold every one"
+  },
+  {
+   "text": "{name} made shadow animals on the wall for {child}.",
+   "share": "made shadow animals on the wall for {child}. the rabbit was a hit"
+  },
+  {
+   "text": "{name} babysat {child} while {a} went to the gym.",
+   "share": "{a} went to the gym, i had {child}. we did baby squats. i mean i did"
+  },
+  {
+   "text": "{name} brought an old xylophone over for {child}.",
+   "share": "brought my old xylophone for {child}. masterpiece composed. ears ringing"
+  },
+  {
+   "text": "{name} took {child} to a café and wrestled the stroller through the door.",
+   "share": "took {child} to a café. getting the stroller through the door was a whole saga"
+  },
+  {
+   "text": "{name} watched the sunset from the porch with {child}.",
+   "share": "watched the sunset from the porch with {child}. {they} {were} so peaceful"
+  },
+  {
+   "text": "{name} got a high five from {child}.",
+   "share": "got a high five from {child}! well, a high slap. same thing"
+  },
+  {
+   "text": "{child} reached for {name} when {a} came back.",
+   "share": "{a} got back and {child} reached for me first. i'm not saying i'm the favorite but"
+  },
+  {
+   "text": "{name} took {child} out for the afternoon while {a} studied for an exam.",
+   "share": "{a} had an exam to study for so i took {child} out for the afternoon. good luck {a}"
+  },
+  {
+   "text": "{name} made {child} laugh with a fake sneeze.",
+   "share": "sneezed and {child} laughed so hard. i've been fake sneezing for an hour"
+  },
+  {
+   "text": "{name} babysat {child} during a thunderstorm and kept everything calm.",
+   "share": "thunderstorm while babysitting {child}. we sat in a blanket fort and counted the rumbles"
+  },
+  {
+   "text": "{name} showed {child} the first star of the evening.",
+   "share": "showed {child} the first star of the evening. {they} {were} amazed"
+  },
+  {
+   "text": "{name} helped {child} practice with a sippy cup.",
+   "share": "sippy cup practice with {child}. the floor drank most of it"
+  },
+  {
+   "text": "{name} had a kitchen dance party with {child}.",
+   "share": "kitchen dance party with {child}. {they} bounced, i spun. great evening"
+  },
+  {
+   "text": "{name} wiped a lot of yoghurt off the table after lunch with {child}.",
+   "share": "{child} discovered yoghurt can be flung. the table needed a wipe. so did i"
+  },
+  {
+   "text": "{name} walked {child} round the block twice to see the neighbor's cat.",
+   "share": "walked {child} round the block twice to see the neighbor's cat. the cat ignored us"
+  },
+  {
+   "text": "{name} babysat {child} so {a} could have a first evening out in ages.",
+   "share": "babysat {child} so {a} could have a first night out in ages. {a} called twice to check in"
+  },
+  {
+   "text": "{name} sang the same song fourteen times for {child}.",
+   "share": "{child} wanted the same song fourteen times. i have no voice left"
+  },
+  {
+   "text": "{name} admired {child}'s brand new tooth.",
+   "share": "{child} showed me the new tooth. it's tiny and sharp and adorable"
+  },
+  {
+   "text": "{name} gave {child} a lift-the-flap book.",
+   "share": "brought {child} a lift the flap book. {they} lifted every flap with great suspense"
+  },
+  {
+   "text": "{name} looked after {child} while {a} helped a friend move house.",
+   "share": "{a} helped a friend move, i had {child}. honestly i got the better job"
+  },
+  {
+   "text": "{name} and {child} watched the bin lorry go by from the window.",
+   "share": "{child} and i watched the bin lorry from the window. highlight of the day"
+  },
+  {
+   "text": "{name} sat with {child} on the porch swing under a blanket.",
+   "share": "porch swing time with {child} under a blanket. slowest, nicest afternoon"
+  },
+  {
+   "text": "{name} learned {child}'s bottle routine by heart.",
+   "share": "i know {child}'s bottle routine by heart now. very proud of myself"
+  },
+  {
+   "text": "{name} wrote {a} a little report of the day with {child}.",
+   "share": "wrote {a} a full report of my day with {child}. three pages. lots of detail about bananas"
+  },
+  {
+   "text": "{name} played scarf peekaboo with {child}.",
+   "share": "played scarf peekaboo with {child}. the scarf is now the best toy in the house"
+  },
+  {
+   "text": "{name} took {child} to rhyme time at the library.",
+   "share": "took {child} to library rhyme time. i knew none of the actions. {child} didn't mind"
+  },
+  {
+   "text": "{name} kept {child} busy while {a} cooked a big family meal.",
+   "share": "kept {child} busy while {a} cooked for the whole family. my job: chief entertainer"
+  },
+  {
+   "text": "{name} gave {child} a tour of the bookshelf, naming every color.",
+   "share": "gave {child} a tour of the bookshelf. we named every color. {they} liked red best"
+  },
+  {
+   "text": "{name} played gentle drums on a box for {child}.",
+   "share": "played drums on a cardboard box for {child}. {they} {were} my biggest fan"
+  },
+  {
+   "text": "{name} read {child} a book about a little owl.",
+   "share": "read {child} a book about a little owl. did the hoots. nailed the hoots"
+  },
+  {
+   "text": "{name} took {child} to wave at the trains from the bridge.",
+   "share": "took {child} to watch the trains from the footbridge. {they} {were} thrilled every time"
+  },
+  {
+   "text": "{name} and {child} listened to the rain on the conservatory roof.",
+   "share": "rain on the conservatory roof with {child}. we just listened. best afternoon"
+  },
+  {
+   "text": "{name} hung a row of colorful scarves for {child} to grab at.",
+   "share": "hung some colorful scarves for {child} to bat at. hours of fun"
+  },
+  {
+   "text": "{name} pointed out every dog on a walk with {child}.",
+   "share": "pointed out every dog on our walk. {child} squealed at each one. eleven dogs"
+  },
+  {
+   "text": "{name} looked after {child} while {a} went to a parents' evening for an older cousin.",
+   "share": "had {child} while {a} was at a school meeting. we stacked cups and talked about clouds"
+  },
+  {
+   "text": "{name} spent a slow Sunday morning with {child} and a pot of tea.",
+   "share": "slow sunday with {child}. tea for me, oat cookie for {child}. perfect"
+  },
+  {
+   "text": "{name} took {child} out to the garden to say hello to the robin.",
+   "share": "took {child} out to say hello to the robin in the garden. the robin stayed for ages. so did we"
+  },
+  {
+   "text": "{name} spent an afternoon with {child} making happy noises at the cat.",
+   "share": "{child} and i made happy noises at the cat all afternoon. the cat tolerated us"
+  },
+  {
+   "text": "{name} cooked dinner at {a}'s place while {child} watched from the high chair.",
+   "share": "made dinner at {a}'s with {child} watching from the high chair. tough critic. very messy guest"
+  },
+  {
+   "text": "{name} took {child} to see the autumn pumpkins at the farm shop.",
+   "share": "pumpkin spotting at the farm shop with {child}. {they} tried to hug the biggest one"
+  }
+ ],
+ "babysit_toddler": [
+  {
+   "text": "{name} built a blanket fort with {child}.",
+   "share": "built a blanket fort with {child}. {they} named it the castle of snacks"
+  },
+  {
+   "text": "{name} took {child} to the playground for the afternoon.",
+   "share": "playground with {child}. went down the slide forty times. me included"
+  },
+  {
+   "text": "{name} got through a tantrum about the wrong blue cup.",
+   "share": "{child} wanted the blue cup. i gave the blue cup. it was the wrong blue cup"
+  },
+  {
+   "text": "{name} read {child} the same dinosaur book six times.",
+   "share": "read the dinosaur book six times for {child}. i could recite it in my sleep"
+  },
+  {
+   "text": "{name} helped {child} make a pasta necklace.",
+   "share": "{child} made me a pasta necklace. i'm wearing it. no regrets"
+  },
+  {
+   "text": "{name} and {child} jumped in every puddle on the way home.",
+   "share": "jumped in every puddle on the way home with {child}. soaked and happy"
+  },
+  {
+   "text": "{name} made {child} cheese on toast cut into triangles.",
+   "share": "cheese toast in triangles for {child}. learned that lesson from {a}"
+  },
+  {
+   "text": "{name} played trains with {child} for two hours.",
+   "share": "two hours of trains with {child}. i'm now the station master"
+  },
+  {
+   "text": "{name} took {child} to feed the ducks.",
+   "share": "took {child} to feed the ducks. {they} gave every duck a name. most are called duck"
+  },
+  {
+   "text": "{name} did finger painting with {child} at the kitchen table.",
+   "share": "finger painting with {child}. the table is a masterpiece now"
+  },
+  {
+   "text": "{name} built a cushion mountain with {child}.",
+   "share": "cushion mountain with {child}. we climbed it. we conquered it"
+  },
+  {
+   "text": "{name} baked cookies with {child} while {a} was out.",
+   "share": "had {child} while {a} was out. we baked cookies. ate most of them. no regrets"
+  },
+  {
+   "text": "{name} did action songs with {child}.",
+   "share": "did action songs with {child}. my arms are tired. {child} is not tired at all"
+  },
+  {
+   "text": "{name} played shops with {child}.",
+   "share": "played shops with {child}. i bought a banana for a million pounds. bad deal"
+  },
+  {
+   "text": "{name} chased bubbles around the garden with {child}.",
+   "share": "bubble chasing in the garden with {child}. {they} popped every single one"
+  },
+  {
+   "text": "{name} stopped a tantrum with a silly dance.",
+   "share": "stopped a tantrum with my silly dance. {child} laughed. i'm a genius"
+  },
+  {
+   "text": "{name} helped {child} plant seeds in little pots.",
+   "share": "planted seeds with {child}. {they} watered them six times in ten minutes"
+  },
+  {
+   "text": "{name} went on a bug hunt in the garden with {child}.",
+   "share": "bug hunt with {child}. found a beetle. named it keith. keith is fine"
+  },
+  {
+   "text": "{name} had a tea party with {child} and all the teddies.",
+   "share": "tea party with {child} and eleven teddies. i was told off for slurping"
+  },
+  {
+   "text": "{name} made playdough snakes with {child}.",
+   "share": "made playdough snakes with {child}. mine was declared 'not a good snake'"
+  },
+  {
+   "text": "{name} took {child} to the fire station open day.",
+   "share": "took {child} to the fire station open day. {they} got to sit in the truck. ecstatic"
+  },
+  {
+   "text": "{name} had a living room disco with {child}.",
+   "share": "living room disco with {child}. {they} {are} a better dancer than me"
+  },
+  {
+   "text": "{name} drew with chalk on {a}'s garden path with {child}.",
+   "share": "chalk drawings on {a}'s path with {child}. we drew a dragon and a sun"
+  },
+  {
+   "text": "{name} played catch with a soft ball with {child}.",
+   "share": "played catch with {child}. caught it once. {they} {were} very proud"
+  },
+  {
+   "text": "{name} built a train track around the whole living room.",
+   "share": "built a train track around the whole living room for {child}. engineering marvel"
+  },
+  {
+   "text": "{name} pushed {child} on the swings for ages.",
+   "share": "pushed {child} on the swing for twenty minutes. 'higher' every two seconds"
+  },
+  {
+   "text": "{name} went digger spotting with {child}.",
+   "share": "went digger spotting with {child}. found three. best day ever, apparently"
+  },
+  {
+   "text": "{name} got {child} to eat a carrot stick by calling it a magic wand.",
+   "share": "got {child} to eat a carrot stick by calling it a magic wand. tips available"
+  },
+  {
+   "text": "{name} made pancakes with {child}.",
+   "share": "made pancakes with {child}. one was a star. one was a mess. both delicious"
+  },
+  {
+   "text": "{name} made a den under the table with {child} on a rainy day.",
+   "share": "rainy day den under the table with {child}. password is 'banana'"
+  },
+  {
+   "text": "{name} read {child} stories in funny voices.",
+   "share": "did funny voices for {child}'s stories. now i have to do the dragon voice forever"
+  },
+  {
+   "text": "{name} looked after {child} while {a} went to a work event.",
+   "share": "had {child} while {a} went to a work thing. we watched the bin lorry. iconic"
+  },
+  {
+   "text": "{name} took {child} to the library.",
+   "share": "library trip with {child}. {they} chose a book about a sad potato"
+  },
+  {
+   "text": "{name} built sandcastles in the sandpit with {child}.",
+   "share": "sandpit castle with {child}. it fell down. we built it again. and again"
+  },
+  {
+   "text": "{name} played the floor is lava with {child}.",
+   "share": "the floor is lava at {a}'s house. {child} has been on the sofa for an hour"
+  },
+  {
+   "text": "{name} had a garden picnic with {child}.",
+   "share": "garden picnic with {child}. we shared crackers. {child} counted every one"
+  },
+  {
+   "text": "{name} taught {child} a new song about a frog.",
+   "share": "taught {child} a frog song. {they} sang it at {a} the second {a} got home"
+  },
+  {
+   "text": "{name} hid a teddy for {child} to find.",
+   "share": "hid the teddy and {child} found it every time. too clever for me"
+  },
+  {
+   "text": "{name} watered the plants with {child}.",
+   "share": "watered the plants with {child}. also watered my shoes"
+  },
+  {
+   "text": "{name} made a cardboard box car with {child}.",
+   "share": "made a box car with {child}. {they} drove me to the pretend shops"
+  },
+  {
+   "text": "{name} did a ten-piece puzzle with {child}.",
+   "share": "did a ten piece puzzle with {child}. took forty minutes. worth it"
+  },
+  {
+   "text": "{name} took {child} to the farm park to see the goats.",
+   "share": "goats at the farm park with {child}. one goat stole a leaf. {child} was outraged"
+  },
+  {
+   "text": "{name} ate pretend soup from {child}'s toy kitchen.",
+   "share": "ate pretend soup from {child}'s kitchen. {child} said it was too spicy. i agreed"
+  },
+  {
+   "text": "{name} built the tallest block tower ever with {child}.",
+   "share": "tallest block tower ever with {child}. then {child} knocked it down. as tradition demands"
+  },
+  {
+   "text": "{name} got through a calm, tantrum-free lunch with {child}.",
+   "share": "lunch with {child} went smoothly. pasta. no tantrums. call the newspapers"
+  },
+  {
+   "text": "{name} lost a long negotiation with {child} about wellies.",
+   "share": "45 minute negotiation with {child} about wellies. {child} won"
+  },
+  {
+   "text": "{name} drew a giant snail with {child}.",
+   "share": "drew a giant snail with {child}. {child} added nine legs. snails need them apparently"
+  },
+  {
+   "text": "{name} took {child} to a toddler music class.",
+   "share": "toddler music class with {child}. i was the only adult doing the actions fully"
+  },
+  {
+   "text": "{name} made {child} a crown out of paper.",
+   "share": "made {child} a paper crown. {they} {are} the ruler of the living room now"
+  },
+  {
+   "text": "{name} counted red cars from the window with {child}.",
+   "share": "counted red cars with {child}. we got to twelve. thirteen if you count a red van"
+  },
+  {
+   "text": "{name} set up a treasure hunt in the garden for {child}.",
+   "share": "treasure hunt in the garden with {child}. the treasure was a cookie. very hyped"
+  },
+  {
+   "text": "{name} played animal charades with {child}.",
+   "share": "animal charades with {child}. my elephant was apparently 'a sad chair'"
+  },
+  {
+   "text": "{name} helped {child} make a card for {a}.",
+   "share": "made a card for {a} with {child}. it's mostly glue. {a} loves it"
+  },
+  {
+   "text": "{name} looked after {child} during a little cold with stories and warm toast.",
+   "share": "{child} has a little cold so we stayed in with stories and warm toast"
+  },
+  {
+   "text": "{name} drew a road on paper for {child}'s toy cars.",
+   "share": "drew a road on paper and {child} drove every car on it. traffic was heavy"
+  },
+  {
+   "text": "{name} cleaned up a cereal spill with {child} without any fuss.",
+   "share": "{child} spilled cereal everywhere. we called it a cereal snowstorm and tidied it together"
+  },
+  {
+   "text": "{name} sang the bus song with {child}.",
+   "share": "sang the bus song with {child}. eleven verses. some were brand new"
+  },
+  {
+   "text": "{child} came over to {name}'s place and inspected everything.",
+   "share": "{child} came to mine. inspected everything. moved my plants. approved the kitchen"
+  },
+  {
+   "text": "{name} made jelly with {child}.",
+   "share": "made jelly with {child}. {they} stared at it wobbling for ages"
+  },
+  {
+   "text": "{name} taught {child} to hop on one foot.",
+   "share": "taught {child} to hop on one foot. {they} hopped all afternoon"
+  },
+  {
+   "text": "{name} played musical statues with {child}.",
+   "share": "musical statues with {child}. {they} never stop moving. won anyway"
+  },
+  {
+   "text": "{name} went on a stick-collecting walk with {child}.",
+   "share": "stick collecting walk with {child}. came home with thirty sticks. {a} is thrilled"
+  },
+  {
+   "text": "{name} played post office with {child}.",
+   "share": "{child} delivered me eight letters. all scribbles. all very important"
+  },
+  {
+   "text": "{name} helped {child} brush the dog.",
+   "share": "{child} and i brushed the dog. the dog has never looked fancier"
+  },
+  {
+   "text": "{name} did a sticker book with {child}.",
+   "share": "sticker book afternoon with {child}. most stickers are on my sleeves now"
+  },
+  {
+   "text": "{name} built a tiny snowman with {child} on a snowy morning.",
+   "share": "tiny snowman with {child}. {they} gave it a leaf for a nose"
+  },
+  {
+   "text": "{name} built a cushion obstacle course for {child}.",
+   "share": "built a cushion obstacle course for {child}. {they} did it eleven times"
+  },
+  {
+   "text": "{name} played follow the leader around the garden with {child}.",
+   "share": "follow the leader with {child}. {child} led me straight through a hedge"
+  },
+  {
+   "text": "{name} made paper planes with {child}.",
+   "share": "made paper planes with {child}. {theyre} better at throwing them than me"
+  },
+  {
+   "text": "{name} read {child} a moon book and then went outside to find the moon.",
+   "share": "read {child} a moon book then we went out to find the moon. found it"
+  },
+  {
+   "text": "{name} built a pretend zoo with {child}'s toy animals.",
+   "share": "built a pretend zoo with {child}. the lion was in charge of snacks"
+  },
+  {
+   "text": "{name} took {child} to the pond to look for frogs.",
+   "share": "frog spotting at the pond with {child}. saw one. {they} said hello very politely"
+  },
+  {
+   "text": "{name} taught {child} a clapping game.",
+   "share": "taught {child} a clapping game. we're up to five claps without messing up"
+  },
+  {
+   "text": "{name} took {child} to soft play.",
+   "share": "soft play with {child}. i went in the ball pit. no regrets"
+  },
+  {
+   "text": "{name} painted pebbles with {child}.",
+   "share": "painted pebbles with {child}. ours are ladybirds. {child}'s is 'a very angry cloud'"
+  },
+  {
+   "text": "{name} had a tidy-up race with {child}.",
+   "share": "tidy up race with {child}. {they} won. the toys are away. everybody wins"
+  },
+  {
+   "text": "{name} made spaghetti for {child} on an evening of babysitting.",
+   "share": "spaghetti night with {child}. noodles everywhere. joy everywhere"
+  },
+  {
+   "text": "{name} lay on the grass with {child} naming cloud shapes.",
+   "share": "cloud spotting with {child}. we saw a dog, a boat and 'a big potato'"
+  },
+  {
+   "text": "{name} took {child} to the bakery for a treat.",
+   "share": "took {child} to the bakery. {they} chose the biggest cookie. bold"
+  },
+  {
+   "text": "{name} taught {child} to roar like a lion.",
+   "share": "taught {child} a lion roar. {a} came home to two lions"
+  },
+  {
+   "text": "{name} babysat {child}, who wore a superhero cape the whole time.",
+   "share": "{child} wore a cape the whole time i babysat. we saved the living room twice"
+  },
+  {
+   "text": "{name} played I spy with colors with {child}.",
+   "share": "i spy with {child}. everything was red. even the green things"
+  },
+  {
+   "text": "{name} gave {child} a xylophone lesson.",
+   "share": "xylophone lesson with {child}. we have a band now. we're terrible"
+  },
+  {
+   "text": "{name} made a mud kitchen in the garden with {child}.",
+   "share": "mud kitchen with {child}. i've been served six mud pies"
+  },
+  {
+   "text": "{name} helped {child} feed the fish.",
+   "share": "{child} fed the fish with my help. one pinch. {child} wanted more pinches"
+  },
+  {
+   "text": "{name} played the mystery bag game with {child}.",
+   "share": "mystery bag game with {child}. {they} guessed spoon for everything"
+  },
+  {
+   "text": "{name} taught {child} the names of the trees on the street.",
+   "share": "taught {child} oak and birch. every tree is oak now"
+  },
+  {
+   "text": "{name} stayed calm through a meltdown about socks.",
+   "share": "meltdown about socks today. we got through it. socks remain on"
+  },
+  {
+   "text": "{name} played the tambourine for {child}'s dance show.",
+   "share": "{child} put on a dance show. i was the band. the tambourine was essential"
+  },
+  {
+   "text": "{name} made a boat out of a big box with {child}.",
+   "share": "made a boat out of a box. {child} sailed to the kitchen and back"
+  },
+  {
+   "text": "{name} found a ladybird in the garden with {child}.",
+   "share": "{child} found a ladybird and named it {a}. {a} is honored"
+  },
+  {
+   "text": "{name} took {child} to wave at the trains at the station.",
+   "share": "waved at trains with {child}. one driver waved back. {child} hasn't stopped talking about it"
+  },
+  {
+   "text": "{name} made a pine cone bird feeder with {child}.",
+   "share": "made a pine cone bird feeder with {child}. now we wait for birds. patiently. ish"
+  },
+  {
+   "text": "{name} built a whole city of blocks on the floor with {child}.",
+   "share": "built a block city with {child}. {child} is mayor. i'm the bin collector"
+  },
+  {
+   "text": "{name} jumped in leaf piles with {child}.",
+   "share": "jumped in leaf piles with {child}. we're both covered in leaves"
+  },
+  {
+   "text": "{name} had a sing-along in the car with {child}.",
+   "share": "sing along in the car with {child}. same song four times. great acoustics"
+  },
+  {
+   "text": "{name} made banana muffins with {child}.",
+   "share": "made banana muffins with {child}. {child} was in charge of mashing. very thorough"
+  },
+  {
+   "text": "{name} helped {child} dress up as a firefighter.",
+   "share": "{child} dressed up as a firefighter and rescued my teddy from the sofa"
+  },
+  {
+   "text": "{child} taught {name} a song from daycare.",
+   "share": "{child} taught me a song from daycare. i'm still learning the hand movements"
+  },
+  {
+   "text": "{name} rolled out a giant sheet of paper for {child} to draw on.",
+   "share": "rolled out a giant sheet of paper for {child}. it's a mural now"
+  },
+  {
+   "text": "{name} gave {a} an afternoon off and took {child} to the park.",
+   "share": "gave {a} an afternoon off. {child} and i went to the park and counted pigeons"
+  },
+  {
+   "text": "{name} counted the stairs with {child}.",
+   "share": "counted the stairs with {child}. {child} got a different number every time"
+  },
+  {
+   "text": "{name} made sock puppets with {child}.",
+   "share": "made sock puppets with {child}. {child}'s puppet is called 'mr cheese'"
+  },
+  {
+   "text": "{name} set up a toy car wash with {child} and a sponge.",
+   "share": "toy car wash with {child} and a sponge. every car is spotless now"
+  },
+  {
+   "text": "{child} helped {name} sweep the kitchen.",
+   "share": "{child} helped me sweep. there's more on the floor than before. great effort"
+  },
+  {
+   "text": "{name} played a long game of peekaboo behind the curtains with {child}.",
+   "share": "{child} hid behind the curtain and i had to 'find' {them} fifty times. very surprised every time"
+  },
+  {
+   "text": "{name} sorted toy animals into families with {child}.",
+   "share": "sorted all the toy animals into families with {child}. the dinosaurs got their own house"
+  },
+  {
+   "text": "{name} made a toy shop till out of a shoebox for {child}.",
+   "share": "made {child} a shoebox till. i've been charged three pounds for a sock"
+  },
+  {
+   "text": "{name} took {child} to see the ducklings at the pond.",
+   "share": "ducklings at the pond with {child}. {they} counted them. there were five. {child} said ten"
+  },
+  {
+   "text": "{name} let {child} help make a fruit salad.",
+   "share": "made fruit salad with {child}. {child} did the stirring. very serious stirring"
+  },
+  {
+   "text": "{name} played a calm game of trains and tunnels under the sofa.",
+   "share": "built tunnels under the sofa for the trains with {child}. the dog was a mountain"
+  }
+ ],
+ "babysit_child": [
+  {
+   "text": "{name} took {child} to the cinema.",
+   "share": "cinema trip with {child}. {they} whispered commentary the whole way through. loved it"
+  },
+  {
+   "text": "{name} helped {child} with math homework.",
+   "share": "did math homework with {child}. {child} ended up explaining it to me"
+  },
+  {
+   "text": "{name} taught {child} a card game.",
+   "share": "taught {child} a card game. now i'm losing every round"
+  },
+  {
+   "text": "{name} baked cookies with {child}.",
+   "share": "baked cookies with {child}. half went in the oven. half were eaten as dough"
+  },
+  {
+   "text": "{name} went for a bike ride in the park with {child}.",
+   "share": "bike ride in the park with {child}. {they} beat me up the hill"
+  },
+  {
+   "text": "{name} had a board game night with {child}.",
+   "share": "board game night with {child}. {they} won three in a row. i want a recount"
+  },
+  {
+   "text": "{name} helped {child} practice lines for the school play.",
+   "share": "ran lines with {child} for the school play. i'm the understudy tree now"
+  },
+  {
+   "text": "{name} built a giant block castle with {child}.",
+   "share": "built a giant block castle with {child}. took all afternoon. totally worth it"
+  },
+  {
+   "text": "{name} took {child} to the natural history museum.",
+   "share": "museum trip with {child}. dinosaur skeletons. many questions. few answers from me"
+  },
+  {
+   "text": "{name} helped {child} make a water cycle model for school.",
+   "share": "made a water cycle model with {child} for school. clouds made of cotton wool"
+  },
+  {
+   "text": "{name} taught {child} to flip pancakes.",
+   "share": "taught {child} to flip pancakes. one landed on the floor. the rest were perfect"
+  },
+  {
+   "text": "{name} played football in the garden with {child}.",
+   "share": "football in the garden with {child}. i was in goal. i let in everything"
+  },
+  {
+   "text": "{name} made a comic strip with {child}.",
+   "share": "made a comic with {child}. i'm a superhero called captain crumbs"
+  },
+  {
+   "text": "{name} took {child} to the library to pick books.",
+   "share": "library trip with {child}. came home with nine books and a very happy reader"
+  },
+  {
+   "text": "{name} picked {child} up from school while {a} worked late.",
+   "share": "did school pickup for {child}. heard every single detail about lunch"
+  },
+  {
+   "text": "{name} helped {child} practice spelling words.",
+   "share": "spelling practice with {child}. {child} got 10 out of 10. i'd have got 8"
+  },
+  {
+   "text": "{name} taught {child} how to play chess.",
+   "share": "taught {child} chess. {child} has already invented new rules"
+  },
+  {
+   "text": "{name} started a thousand-piece jigsaw with {child}.",
+   "share": "thousand piece jigsaw with {child}. we're on the edges. it's going to take years"
+  },
+  {
+   "text": "{name} went on a nature walk with {child}.",
+   "share": "nature walk with {child}. we found a feather, a pinecone and a very big slug"
+  },
+  {
+   "text": "{name} built a bird box with {child}.",
+   "share": "built a bird box with {child}. {they} painted it bright orange. birds will definitely spot it"
+  },
+  {
+   "text": "{name} cooked tacos with {child}.",
+   "share": "{child} cooked dinner with me. tacos. {child} was in charge of cheese. there is a lot of cheese"
+  },
+  {
+   "text": "{name} played a racing game with {child}.",
+   "share": "played a racing game with {child}. i came last. every time"
+  },
+  {
+   "text": "{name} sat in as the audience for {child}'s piano practice.",
+   "share": "piano practice with {child}. i was the audience. standing ovation"
+  },
+  {
+   "text": "{name} took {child} to a kite festival.",
+   "share": "kite festival with {child}! {their} kite was a dragon. it flew so high"
+  },
+  {
+   "text": "{name} wrote a story with {child} about a space hamster.",
+   "share": "wrote a story with {child} about a space hamster. sequel already planned"
+  },
+  {
+   "text": "{name} made paper boats with {child} and raced them on the pond.",
+   "share": "made paper boats with {child} and raced them on the pond. {child}'s won"
+  },
+  {
+   "text": "{name} had a film night with {child}, with homemade popcorn.",
+   "share": "film night with {child}. homemade popcorn. {they} chose one about a talking dog"
+  },
+  {
+   "text": "{name} listened to {child} read for the school reading log.",
+   "share": "read with {child} for the reading log. {child} did all the voices"
+  },
+  {
+   "text": "{name} took {child} to a local football match.",
+   "share": "took {child} to a local football match. {they} cheered for both teams to be fair"
+  },
+  {
+   "text": "{name} helped {child} train for the sack race on sports day.",
+   "share": "sack race training with {child} in the garden. i fell over. {child} did not"
+  },
+  {
+   "text": "{name} taught {child} to whistle with a blade of grass.",
+   "share": "taught {child} grass whistling. {they} got it first try. i took years"
+  },
+  {
+   "text": "{name} did a baking soda and vinegar experiment with {child}.",
+   "share": "baking soda and vinegar experiment with {child}. the kitchen is fizzy. we're thrilled"
+  },
+  {
+   "text": "{name} played a quiz game with {child}.",
+   "share": "quiz with {child}. {child} knows more about sharks than any adult alive"
+  },
+  {
+   "text": "{name} helped {child} practice riding without training wheels.",
+   "share": "held the bike seat for {child}, then let go. {they} didn't notice. {they} {were} riding!"
+  },
+  {
+   "text": "{name} built a cushion fort with rooms and rules with {child}.",
+   "share": "cushion fort with {child}. it has rooms. it has rules. i'm only allowed in the hallway"
+  },
+  {
+   "text": "{name} helped {child} make a birthday present for {a}.",
+   "share": "made {a} a birthday present with {child}. it's a painted mug. please act surprised {a}"
+  },
+  {
+   "text": "{name} folded origami frogs with {child}.",
+   "share": "origami frogs with {child}. they actually jump. we had a frog race"
+  },
+  {
+   "text": "{name} took {child} to the zoo.",
+   "share": "zoo day with {child}. {they} wanted to stay with the meerkats forever"
+  },
+  {
+   "text": "{name} made up a times tables song with {child}.",
+   "share": "made up a times tables song with {child}. it's catchy. i can't stop singing it"
+  },
+  {
+   "text": "{name} built a model rocket from a kit with {child}.",
+   "share": "built a model rocket with {child}. it's on the shelf. launch day pending"
+  },
+  {
+   "text": "{name} made smoothies with {child}.",
+   "share": "smoothie lab with {child}. we invented the purple monster. it's mostly berries"
+  },
+  {
+   "text": "{name} took {child} to a pottery class.",
+   "share": "pottery class with {child}. {child} made a bowl. i made a lump. we're both proud"
+  },
+  {
+   "text": "{name} planted herbs on the windowsill with {child}.",
+   "share": "planted herbs with {child}. basil, mint and something {child} calls 'magic leaves'"
+  },
+  {
+   "text": "{name} helped {child} rehearse a class presentation on penguins.",
+   "share": "practiced {child}'s penguin presentation. i'm an expert on penguins now"
+  },
+  {
+   "text": "{name} taught {child} a coin trick.",
+   "share": "taught {child} a coin trick. {they} {are} better at it than me already"
+  },
+  {
+   "text": "{name} took {child} to a farmers' market.",
+   "share": "farmers market with {child}. {they} picked the weirdest looking vegetables on purpose"
+  },
+  {
+   "text": "{name} had a karaoke night with {child}.",
+   "share": "karaoke with {child}. {child} sang every song. i was the backing dancer"
+  },
+  {
+   "text": "{name} played tennis with {child} at the park.",
+   "share": "tennis with {child}. more ball chasing than tennis but we laughed the whole time"
+  },
+  {
+   "text": "{name} designed a board game with {child}.",
+   "share": "{child} and i designed a board game. the rules are long. the snakes are friendly"
+  },
+  {
+   "text": "{name} took {child} on the bus into town.",
+   "share": "bus trip into town with {child}. {they} narrated the whole route like a tour guide"
+  },
+  {
+   "text": "{name} helped {child} write a thank-you note to a teacher.",
+   "share": "helped {child} write a thank you note to the teacher. {child} drew a cat on it"
+  },
+  {
+   "text": "{name} made homemade pizza with {child}.",
+   "share": "homemade pizza with {child}. pineapple on half. i'm staying neutral"
+  },
+  {
+   "text": "{name} built a den in the garden with {child}.",
+   "share": "den building in the garden with {child}. it has a door and an official sign"
+  },
+  {
+   "text": "{name} took {child} to an art gallery.",
+   "share": "art gallery with {child}. {they} said {they} could paint better. honestly maybe"
+  },
+  {
+   "text": "{name} spent a snow day with {child} building a snowman.",
+   "share": "snow day with {child}. we built a snowman and named it {a}"
+  },
+  {
+   "text": "{name} taught {child} how to use a compass.",
+   "share": "taught {child} to use a compass. we navigated to the garden shed. success"
+  },
+  {
+   "text": "{name} took {child} to the planetarium.",
+   "share": "planetarium with {child}. {they} {are} now planning a trip to mars"
+  },
+  {
+   "text": "{name} made friendship bracelets with {child}.",
+   "share": "friendship bracelets with {child}. i'm wearing three. {child} is wearing eight"
+  },
+  {
+   "text": "{name} helped {child} clean out the hamster cage.",
+   "share": "cleaned the hamster cage with {child}. the hamster supervised"
+  },
+  {
+   "text": "{name} went to {child}'s football match while {a} was at work.",
+   "share": "went to {child}'s match while {a} worked. cheered so loud. {child} scored!"
+  },
+  {
+   "text": "{name} had a picnic by the river with {child}.",
+   "share": "picnic by the river with {child}. we gave our crusts to the ducks. the ducks approved"
+  },
+  {
+   "text": "{name} taught {child} three chords on the ukulele.",
+   "share": "taught {child} three chords on the ukulele. we wrote a song about cereal"
+  },
+  {
+   "text": "{name} went strawberry picking with {child}.",
+   "share": "strawberry picking with {child}. we picked a lot. we ate a lot"
+  },
+  {
+   "text": "{name} made a book day costume with {child}.",
+   "share": "made a book day costume with {child}. {they} {are} going as a wizard. hat engineered by me"
+  },
+  {
+   "text": "{name} played word games with {child} on a long car ride.",
+   "share": "word games on a car ride with {child}. {child} wins at everything"
+  },
+  {
+   "text": "{name} baked {a}'s birthday cake with {child}.",
+   "share": "baked {a}'s birthday cake with {child}. it leans to the left. it's perfect"
+  },
+  {
+   "text": "{name} helped {child} with a school project about volcanoes.",
+   "share": "volcano project with {child}. i'm learning more than {they} {are}"
+  },
+  {
+   "text": "{name} taught {child} to make a sandwich.",
+   "share": "taught {child} to make a sandwich. it had seven fillings. a triumph"
+  },
+  {
+   "text": "{name} went stargazing in the garden with {child}.",
+   "share": "stargazing in the garden with {child}. we found the plough. and a plane"
+  },
+  {
+   "text": "{name} helped {child} write to a pen pal.",
+   "share": "helped {child} write to a pen pal. three pages. mostly about the dog"
+  },
+  {
+   "text": "{name} sorted {child}'s bookshelf by color.",
+   "share": "sorted {child}'s bookshelf by color. looks amazing. finding anything is impossible"
+  },
+  {
+   "text": "{name} played charades with {child}.",
+   "share": "charades with {child}. {they} acted out a toaster perfectly"
+  },
+  {
+   "text": "{name} took {child} to a puppet theater.",
+   "share": "puppet theater with {child}. {they} laughed so hard at the crocodile"
+  },
+  {
+   "text": "{name} learned {child}'s dance for the school show.",
+   "share": "learned {child}'s school show dance. i'm a backup dancer now"
+  },
+  {
+   "text": "{name} built a marble run across the kitchen with {child}.",
+   "share": "built a marble run with {child}. it goes across the whole kitchen"
+  },
+  {
+   "text": "{name} made slime with {child}.",
+   "share": "made slime with {child}. it's green. it's everywhere. it's glorious"
+  },
+  {
+   "text": "{name} took {child} bowling.",
+   "share": "bowling with {child}. {child} got a strike. i got the gutter. repeatedly"
+  },
+  {
+   "text": "{name} helped {child} write a poem for a competition.",
+   "share": "helped {child} with a poem for a competition. it rhymes 'moon' with 'spoon'. classic"
+  },
+  {
+   "text": "{name} made homemade lemonade with {child}.",
+   "share": "made lemonade with {child}. too sour. added sugar. too sweet. perfect eventually"
+  },
+  {
+   "text": "{name} taught {child} to skip stones on the lake.",
+   "share": "taught {child} to skip stones. {they} got five skips. my record is three"
+  },
+  {
+   "text": "{name} designed a recycling poster with {child}.",
+   "share": "designed a poster about recycling with {child}. it has a heroic bin on it"
+  },
+  {
+   "text": "{name} went on a detective mission with {child} to find the remote.",
+   "share": "detective mission with {child}: find the remote. found it in the fridge. case closed"
+  },
+  {
+   "text": "{name} taught {child} noughts and crosses.",
+   "share": "taught {child} noughts and crosses. {they} beat me eleven times"
+  },
+  {
+   "text": "{name} helped {child} build a model dream house.",
+   "share": "{child} built a model dream house with me. it has a slide instead of stairs"
+  },
+  {
+   "text": "{name} took {child} to a dog show.",
+   "share": "dog show with {child}. {they} picked the winner before the judges did. correct"
+  },
+  {
+   "text": "{name} cooked a three-course dinner for {a} with {child}.",
+   "share": "{child} and i made {a} a three course dinner. course one was chips"
+  },
+  {
+   "text": "{name} helped {child} prepare for a music exam.",
+   "share": "helped {child} prepare for a music exam. i played the examiner. very strict"
+  },
+  {
+   "text": "{name} tried to explain the rules of cricket to {child}.",
+   "share": "explained cricket to {child}. neither of us understands it now"
+  },
+  {
+   "text": "{name} made a little birdbath from an old dish with {child}.",
+   "share": "made a little birdbath with {child}. a robin turned up within the hour"
+  },
+  {
+   "text": "{name} took {child} to a farm to feed the lambs.",
+   "share": "fed lambs at the farm with {child}. {child} named every single one"
+  },
+  {
+   "text": "{name} made a robot out of boxes with {child}.",
+   "share": "made a box robot with {child}. it's called bolt. bolt is our friend"
+  },
+  {
+   "text": "{name} helped {child} plan a lemonade stand.",
+   "share": "{child}'s lemonade stand business meeting today. i'm the investor"
+  },
+  {
+   "text": "{name} played badminton in the garden with {child}.",
+   "share": "badminton in the garden with {child}. the shuttlecock lives in a tree now"
+  },
+  {
+   "text": "{name} took {child} on a day out to a castle ruin.",
+   "share": "castle day out with {child}. {they} {were} a knight. i was the dragon. naturally"
+  },
+  {
+   "text": "{name} made a family tree with {child}.",
+   "share": "made a family tree with {child}. i'm on a branch near the top. very honored"
+  },
+  {
+   "text": "{name} helped {child} create a scavenger hunt for {a}.",
+   "share": "{child} and i made a scavenger hunt for {a}. twelve clues. one involves the freezer"
+  },
+  {
+   "text": "{name} helped {child} memorize a poem.",
+   "share": "{child} memorized a whole poem with me. performed it in the kitchen. bravo"
+  },
+  {
+   "text": "{name} took {child} to an author reading at the library.",
+   "share": "author reading at the library with {child}. {they} asked the best question of the day"
+  },
+  {
+   "text": "{name} sorted {child}'s sticker collection.",
+   "share": "sorted {child}'s sticker collection. there are categories. there are sub categories"
+  },
+  {
+   "text": "{name} built a bug hotel with {child}.",
+   "share": "built a bug hotel with {child}. five star accommodation for beetles"
+  },
+  {
+   "text": "{name} shot hoops with {child} at the park.",
+   "share": "shooting hoops with {child}. {they} got four in a row. i hit the rim every time"
+  },
+  {
+   "text": "{name} did a crossword with {child}.",
+   "share": "crossword with {child}. {they} knew the answer to the hardest clue. i'm stunned"
+  },
+  {
+   "text": "{name} buried a time capsule in the garden with {child}.",
+   "share": "buried a time capsule in the garden with {child}. open in ten years. i've written it down"
+  },
+  {
+   "text": "{name} made a weather chart with {child}.",
+   "share": "made a weather chart with {child}. today is 'mostly gray with a chance of cookies'"
+  },
+  {
+   "text": "{name} took {child} to the fair and rode the teacups.",
+   "share": "fair with {child}. we rode the teacups twice. i'm still dizzy"
+  },
+  {
+   "text": "{name} taught {child} to juggle with rolled-up socks.",
+   "share": "juggling lesson with {child} using rolled up socks. we're both terrible"
+  },
+  {
+   "text": "{name} took {child} for ice cream after a school concert.",
+   "share": "ice cream after {child}'s school concert. {they} sang beautifully. i'm still emotional"
+  },
+  {
+   "text": "{name} wrote a short play for the cousins with {child}.",
+   "share": "wrote a play with {child} for the cousins. i'm cast as 'the grumpy owl'"
+  },
+  {
+   "text": "{name} played hangman with {child}.",
+   "share": "hangman with {child}. every word was 'dinosaur'. very tough"
+  },
+  {
+   "text": "{name} helped {child} practice times tables with flashcards.",
+   "share": "flashcard drill with {child}. {they} got the sevens. i'm still stuck on the sevens"
+  },
+  {
+   "text": "{name} took {child} to an adventure playground.",
+   "share": "adventure playground with {child}. {they} found every slide. i found every bench"
+  }
+ ],
+ "names": {
+  "she": [
+   "Olivia",
+   "Amelia",
+   "Isla",
+   "Ava",
+   "Mia",
+   "Sophia",
+   "Grace",
+   "Lily",
+   "Freya",
+   "Ella",
+   "Poppy",
+   "Evie",
+   "Ruby",
+   "Hazel",
+   "Willow",
+   "Ivy",
+   "Florence",
+   "Matilda",
+   "Rosie",
+   "Daisy",
+   "Lucia",
+   "Sofia",
+   "Valentina",
+   "Camila",
+   "Martina",
+   "Elena",
+   "Ximena",
+   "Paloma",
+   "Carmen",
+   "Inés",
+   "Alba",
+   "Noelia",
+   "Amara",
+   "Adaeze",
+   "Chiamaka",
+   "Ngozi",
+   "Ayo",
+   "Folake",
+   "Abena",
+   "Ama",
+   "Efua",
+   "Zuri",
+   "Imani",
+   "Nia",
+   "Kemi",
+   "Yewande",
+   "Aanya",
+   "Priya",
+   "Anika",
+   "Diya",
+   "Ishani",
+   "Kavya",
+   "Meera",
+   "Saanvi",
+   "Riya",
+   "Tara",
+   "Zara",
+   "Leela",
+   "Nisha",
+   "Asha",
+   "Mei",
+   "Yuna",
+   "Hana",
+   "Sakura",
+   "Aiko",
+   "Yui",
+   "Jia",
+   "Xiu",
+   "Min",
+   "Seo-yeon",
+   "Ji-woo",
+   "Haruka",
+   "Lin",
+   "Layla",
+   "Amira",
+   "Yasmin",
+   "Noor",
+   "Leila",
+   "Mariam",
+   "Aisha",
+   "Salma",
+   "Rania",
+   "Zainab",
+   "Farah",
+   "Anya",
+   "Mila",
+   "Katya",
+   "Daria",
+   "Zofia",
+   "Milena",
+   "Nadia",
+   "Vera",
+   "Alina",
+   "Lena",
+   "Kira",
+   "Chloe",
+   "Maya",
+   "Nora",
+   "Aurora",
+   "Clara",
+   "Iris",
+   "Luna",
+   "Stella",
+   "Maeve",
+   "Siobhan",
+   "Aoife",
+   "Niamh",
+   "Ingrid",
+   "Astrid",
+   "Elif",
+   "Defne",
+   "Ayla",
+   "Talia",
+   "Noa",
+   "Esther",
+   "Sienna",
+   "Gianna",
+   "Chiara",
+   "Giulia",
+   "Anaïs",
+   "Céline",
+   "Manon",
+   "Léa",
+   "Thandi",
+   "Lerato",
+   "Naledi",
+   "Kalani",
+   "Leilani",
+   "Malia",
+   "Aroha"
+  ],
+  "he": [
+   "Oliver",
+   "George",
+   "Noah",
+   "Arthur",
+   "Leo",
+   "Harry",
+   "Oscar",
+   "Theo",
+   "Henry",
+   "Archie",
+   "Jack",
+   "Freddie",
+   "Alfie",
+   "Finley",
+   "Charlie",
+   "Thomas",
+   "Isaac",
+   "Arlo",
+   "Reuben",
+   "Felix",
+   "Mateo",
+   "Santiago",
+   "Diego",
+   "Lucas",
+   "Hugo",
+   "Pablo",
+   "Alejandro",
+   "Javier",
+   "Thiago",
+   "Bruno",
+   "Emilio",
+   "Rafael",
+   "Kwame",
+   "Kofi",
+   "Chidi",
+   "Emeka",
+   "Tunde",
+   "Femi",
+   "Obinna",
+   "Kojo",
+   "Ade",
+   "Jabari",
+   "Tendai",
+   "Sizwe",
+   "Ayodele",
+   "Arjun",
+   "Rohan",
+   "Aarav",
+   "Vihaan",
+   "Kabir",
+   "Dev",
+   "Ishaan",
+   "Aryan",
+   "Rahul",
+   "Nikhil",
+   "Sanjay",
+   "Ravi",
+   "Veer",
+   "Haruto",
+   "Ren",
+   "Kenji",
+   "Hiroshi",
+   "Wei",
+   "Jun",
+   "Hao",
+   "Min-jun",
+   "Seo-jun",
+   "Ji-ho",
+   "Riku",
+   "Sora",
+   "Kai",
+   "Omar",
+   "Yusuf",
+   "Adam",
+   "Zayd",
+   "Karim",
+   "Idris",
+   "Samir",
+   "Ibrahim",
+   "Hamza",
+   "Tariq",
+   "Bilal",
+   "Rami",
+   "Ivan",
+   "Mikhail",
+   "Nikolai",
+   "Luka",
+   "Milan",
+   "Matej",
+   "Pavel",
+   "Dmitri",
+   "Oleg",
+   "Marek",
+   "Stefan",
+   "Bogdan",
+   "Liam",
+   "Ethan",
+   "Caleb",
+   "Owen",
+   "Ezra",
+   "Silas",
+   "Jasper",
+   "Rowan",
+   "Cillian",
+   "Oisin",
+   "Eoin",
+   "Lars",
+   "Soren",
+   "Magnus",
+   "Emre",
+   "Deniz",
+   "Eli",
+   "Ari",
+   "Lorenzo",
+   "Matteo",
+   "Enzo",
+   "Luca",
+   "Mathis",
+   "Thabo",
+   "Lwazi",
+   "Keanu",
+   "Nikau",
+   "Mason"
+  ]
+ }
+}

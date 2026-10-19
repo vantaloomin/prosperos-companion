@@ -8,8 +8,8 @@ function days(from: string, to: string): number {
 }
 
 /** Where a purchase this pay period went: "At home, they …", "Out with you, they paid for dinner at …". */
-export function boughtFor(kind?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby'): string {
-  return { hobby: 'For their pastimes', clothes: 'For their wardrobe', looks: 'For their looks', outing: 'Out with you', trip: 'Away', food: 'For dinner', media: 'For their downtime', home: 'At home' }[kind ?? 'home']
+export function boughtFor(kind?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral'): string {
+  return { ring: 'From their savings', wedding: 'From their savings', hobby: 'For their pastimes', clothes: 'For their wardrobe', looks: 'For their looks', outing: 'Out with you', trip: 'Away', food: 'For dinner', media: 'For their downtime', home: 'At home', school: 'For their course', deposit: 'From their savings', business: 'From their savings', care: 'For family', gift: 'For a big day', funeral: 'For a funeral' }[kind ?? 'home']
 }
 
 export function shortDate(iso: string): string {
@@ -44,12 +44,15 @@ export function goalText(view: Budget): string {
 
 export function workText(view: Budget): string {
   const per = view.period === 'month' ? 'a month' : 'a week'
+  if (view.retired) return `Retired, living on a pension of about ${view.text.income} ${per}.`
+  if (view.business) return `Their own ${view.business}, taking home about ${view.text.income} ${per}.`
   const work = view.career ? `${view.career.name}${view.career.guessed ? ' (guessed from who they are)' : ''}` : 'Ordinary wage'
   return `${work}, taking home about ${view.text.income} ${per}.`
 }
 
 /** Rent on their home (from Home) or the budget's own estimate of where they live. */
 export function rentText(view: Budget): string {
+  if (view.owned) return `Mortgage: about ${view.text.rent} for the place they bought.`
   return view.rent_from === 'home'
     ? `Rent: about ${view.text.rent} for their home.`
     : `Rent: about ${view.text.rent} for ${view.housing.label} in ${view.housing.neighborhood}.`
