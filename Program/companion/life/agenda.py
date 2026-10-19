@@ -33,6 +33,7 @@ from companion.life import (
     grooming,
     hobbies,
     home,
+    kids,
     kitchen,
     long_distance,
     loss,
@@ -174,6 +175,7 @@ def extend(connection, companion, world, now) -> dict:
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
     started += families.advance(connection, companion, world, now)
+    kids.settle(connection, companion, world, now)
     reactions.daily(connection, companion, now)
     rough_patches.daily(connection, companion, now)
     # Breaks and breakups (companion/life/breakups.py) read the rough patches just settled.

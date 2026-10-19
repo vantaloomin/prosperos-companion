@@ -142,9 +142,9 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
     group = family_group(data, family)
     made = generators.circle(data, seed=base, size=min(size, len(order)), home=home, order=order, coworkers=works,
                              family=family, group=group)
-    sheet_people = named.people(definition) if sheet else []
+    sheet_people = named.in_circle(definition) if sheet else []
     taken = set(taken or ()) | {definition['name'], *definition['name'].split()[:1]} | \
-        {person['name'].split()[0] for person in sheet_people}
+        {person['name'].split()[0] for person in named.people(definition)}  # Their children's names too.
     result = [city_person(member, data, definition, family, timeline_id, taken) for member in made['people']]
 
     def make(index, person):
@@ -341,7 +341,7 @@ def build(definition: dict, world, timeline_id: str, size: int, seed: str | None
         if not person['local']:
             made |= {'career': '', 'schedule': [], 'details': made['details'] | {'career': '', 'employer': ''}}
         return made
-    return with_named(built, named.people(definition) if sheet else [], make)
+    return with_named(built, named.in_circle(definition) if sheet else [], make)
 
 
 def insert(connection, timeline_id, built: list[dict], first: int, now):
@@ -373,6 +373,8 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
     insert(connection, timeline_id, build(definition, world, timeline_id, target_size(definition, setting(connection))),
            0, now)
     add_grandparent(connection, companion, world, now)
+    from companion.life import kids  # A companion new to the user: their kids, maybe seeded, and the other parent.
+    kids.settle(connection, companion, world, now, fresh=True)
     return people(connection, timeline_id)
 
 
@@ -430,7 +432,7 @@ def add_named(connection, companion: dict, world, rows: list[dict], now) -> bool
     definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
     there = {row['name'].split()[0] for row in rows} | {decode(row['details']).get('sheet') for row in rows}
     parents = {row['role'] for row in rows if row['status'] == 'active' and role_kind(row['role']) == 'parent'}
-    missing = {person['name'] for person in named.people(definition) if person['name'].split()[0] not in there
+    missing = {person['name'] for person in named.in_circle(definition) if person['name'].split()[0] not in there
                and person['name'] not in there and not (person['kind'] == 'parent' and parents & {named_role(person),
                                                                                                     'parent'})}
     if not missing:
@@ -475,7 +477,8 @@ def match_family(connection, companion: dict, world, rows: list[dict], now) -> b
 
 def role_kind(role: str) -> str:
     return {'mom': 'parent', 'dad': 'parent', 'mother': 'parent', 'father': 'parent', 'sister': 'sibling',
-            'brother': 'sibling', 'old classmate': 'old friend from school'}.get(role, role)
+            'brother': 'sibling', 'old classmate': 'old friend from school', 'ex-wife': 'ex',
+            'ex-husband': 'ex'}.get(role, role)
 
 
 # In the old eras (London 1895, Camelot) people say mother and father, not mom and dad.

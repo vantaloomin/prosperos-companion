@@ -52,6 +52,8 @@ ROLE_DEFAULTS = {
     'girlfriend': (4, 0.0, 0.3), 'boyfriend': (4, 0.0, 0.3), 'partner': (4, 0.0, 0.3),
     'fiancée': (4, 0.5, 0.0), 'fiancé': (4, 0.5, 0.0), 'wife': (5, 0.0, 0.2), 'husband': (5, 0.0, 0.2),
     'spouse': (5, 0.0, 0.2), 'ex': (2, 0.0, 0.3),
+    # Their kids' other parent (companion/life/kids.py): in touch every week or two, warm or not.
+    'co-parent': (3, 0.2, 0.3),
 }
 UNKNOWN_ROLE = (1, 0.0, 0.0)
 # The lowest a parent, sibling or grandparent ever stands with the companion (the role defaults never start them lower).

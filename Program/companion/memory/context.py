@@ -35,6 +35,7 @@ from companion.life import (
     grooming,
     hobbies,
     home,
+    kids,
     kitchen,
     long_distance,
     loss,
@@ -190,6 +191,9 @@ HEADINGS = {
             'hobbies': 'Your pastimes (fictional, yours; when one comes up, keep to how far along you are and how '
                        'often you go, and never invent a big achievement that is not listed)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            # Companions who already have kids (companion/life/kids.py): changes with a birthday or a move.
+            'kids': 'Your children (decided by the app: they are yours and part of your days; keep to their names and '
+                    'ages, and never invent other children)',
             # Meeting their people (companion/life/their_people.py): changes when someone meets the user, and weekly.
             'their_people': 'What your people think of the user (decided by the app: pass it on now and then, the way '
                             'people do, like "my mom keeps asking when you\'re coming back", and never contradict it)',
@@ -754,6 +758,10 @@ def offer_people(packet, connection, companion, now, today):
             packet.offer('circle_now', person['id'], moment)
     for identity, text in families.context_lines(connection, companion, now):
         packet.offer('circle', identity, text)
+    for identity, text in kids.context_lines(connection, companion, now):
+        packet.offer('kids', identity, text)
+    if found := kids.today_line(connection, companion, now):
+        packet.offer('circle_now', *found)
     for identity, text in network.context_lines(connection, timeline_id, now):
         packet.offer('acquaintances', identity, text)
     for identity, text in encounters.context_lines(connection, companion, now):

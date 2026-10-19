@@ -3710,6 +3710,92 @@
           ]
         }
       ]
+    },
+    "kids:has": {
+      "label": "Whether {name} already has children",
+      "options": [
+        {
+          "label": "{name} has no children",
+          "weight": 1,
+          "rules": []
+        },
+        {
+          "label": "{name} already has a child or two",
+          "weight": 0.08,
+          "rules": [
+            {
+              "reader": "age",
+              "at_most": 26,
+              "times": 0,
+              "why": "{name} is still young"
+            },
+            {
+              "reader": "age",
+              "at_least": 33,
+              "times": 1.8,
+              "why": "{name} is past thirty-three"
+            },
+            {
+              "reader": "age",
+              "at_least": 40,
+              "times": 1.3,
+              "why": "{name} is past forty"
+            },
+            {
+              "reader": "said_no",
+              "at_least": 1,
+              "times": 0,
+              "why": "{name}'s description says children were never in the plan"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 0.6,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        }
+      ]
+    },
+    "kids:custody": {
+      "label": "Where {name}'s kids live",
+      "options": [
+        {
+          "label": "With {name}, every other weekend at {other}'s",
+          "weight": 1.4,
+          "rules": [
+            {
+              "reader": "away",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "the kids' other parent lives in another city"
+            }
+          ]
+        },
+        {
+          "label": "A week with {name}, a week at {other}'s",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "away",
+              "at_least": 1,
+              "times": 0,
+              "why": "the kids' other parent lives in another city"
+            }
+          ]
+        },
+        {
+          "label": "With {other}, every other weekend with {name}",
+          "weight": 0.7,
+          "rules": []
+        }
+      ]
     }
   }
 }

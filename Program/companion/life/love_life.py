@@ -313,6 +313,8 @@ def begin(connection, companion: dict, world, day: date, found: dict, now) -> di
     row = one(connection, 'SELECT * FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))
     partner_id = insert(connection, companion, row['name'], {**person['details'], 'met': found['met']}, day, now,
                         person_id=row['id'])
+    from companion.life import kids  # Someone past their twenties may come with kids (companion/life/kids.py).
+    kids.partner_kids(connection, companion, world, row, now)
     return {'partner': partner_id}
 
 

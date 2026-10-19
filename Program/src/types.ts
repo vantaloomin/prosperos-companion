@@ -535,6 +535,24 @@ export interface FamilyView {
   decided_on?: string | null; decided_how?: 'them' | 'you' | 'set' | null; can_decide?: boolean
 }
 
+/** Companions who already have kids (GET /api/life/steps/kids, companion/life/kids.py); `shown` false with none. Where
+ * they live is the app's pick (`seeded`), fixed by the description or the household (`fixed`), or the user's (`set`);
+ * consequence ids only with Hidden values' odds on. */
+export interface KidsView {
+  shown: boolean
+  how?: 'description' | 'town' | 'seeded'
+  kids?: Kid[]
+  other?: { name: string; role: string } | null
+  pattern?: 'together' | 'with_them' | 'shared' | 'weekends' | 'sole'
+  pattern_how?: 'set' | 'seeded' | 'fixed'
+  patterns?: { key: string; label: string }[]
+  pattern_consequence_id?: string | null
+  consequence_id?: string | null
+  step_parent?: boolean
+}
+
+export interface Kid { id: string; name: string; pronouns: string; born_on: string; age: number; age_text: string; relation: 'son' | 'daughter' | 'child' }
+
 /** Whose place in one city ('yours', 'theirs', 'new'), or who moves across the distance ('them' to your city; 'you',
  * which waits until you move to theirs). `place` is the neighbourhood, `city` the city, `home` the shared home once moved. */
 export interface MovingIn {
