@@ -24,6 +24,7 @@ partner while the user babysits (`babysitting`, asked in a first text, a plain y
 Children are words only, as in v0.14: never in pictures, never in Matchlight, and with the adult side of life on
 nothing about them reaches a chat prompt, the godparent day is called off and nobody is asked to babysit.
 """
+import re
 from datetime import date, datetime, timedelta
 
 from companion.clock import stamp, zone
@@ -52,6 +53,7 @@ BABYSIT_FROM, BABYSIT_HOURS = 90, ('19:00', '23:00')
 ASK_HOURS = (10, 21)
 TOLD_DAYS = 14
 STATUSES = ('planned', 'asked', 'yes', 'no', 'done', 'called_off')
+EX = 'ex'  # The partner's role once they split up (companion/life/love_life.py).
 
 
 # Who could start a family ---------------------------------------------------------------------------------------------
@@ -170,8 +172,8 @@ def plan(connection, companion: dict, world, person: dict, how: str, day: date) 
     child = {'name': name, 'pronouns': sex}
     stages = [{**families.stage(day, *news(how, month, era)), 'due': month, 'route': how},
               families.stage(halfway, middle['text'], middle['share']),
-              families.stage(soon, *any_day(how)),
-              families.stage(born, *arrived(how, child))]
+              families.stage(soon, *any_day(how, era)),
+              families.stage(born, *arrived(how, child, era))]
     return {'stages': stages, 'child': child, 'born': born}
 
 
@@ -186,8 +188,11 @@ def middle_lines(how: str, era: str) -> list[dict]:
 
 
 def news(how: str, month: str, era: str) -> tuple[str, str]:
+    """The news, and the companion's share of it (in an older city's voice there)."""
+    old = families.older(era)
     if how == 'adopting' and era != 'modern':
         return (f'{{name}} and {{a}} will take in a baby to raise, around {month}.',
+                f'{{a}} and I are to take in a baby to raise, around {month}, we think. My heart is so full.' if old else
                 f'{{a}} and I are taking in a baby to raise. around {month}, we think. my heart is so full')
     if how == 'adopting':
         return (f'{{name}} and {{a}} are adopting a baby, who should come home around {month}.',
@@ -195,26 +200,41 @@ def news(how: str, month: str, era: str) -> tuple[str, str]:
                 "if all goes well")
     if how == 'carrying':
         return (f'{{name}} and {{a}} are expecting a baby, due in {month}.',
-                f"okay. sit down. I'm pregnant!! {{a}} and I are having a baby, due in {month}")
+                f'I have news, and I can hardly write it straight: I am expecting! {{a}} and I are to have a baby in '
+                f'{month}.' if old else f"okay. sit down. I'm pregnant!! {{a}} and I are having a baby, due in {month}")
     return (f'{{name}} and {{a}} are expecting a baby, due in {month}.',
+            f'{{a}} is expecting! We are to have a baby in {month}, and I cannot stop smiling.' if old else
             f"{{a}} is pregnant!!! we're having a baby. due in {month}. I can't stop smiling")
 
 
-def any_day(how: str) -> tuple[str, str]:
+def any_day(how: str, era: str = 'modern') -> tuple[str, str]:
+    """'Any day now', and the share; an older city has no agency match or hospital bag."""
+    old = families.older(era)
+    if how == 'adopting' and old:
+        return (OLD_COMING, 'Any day now our little one comes to us. I cannot sit still.')
     if how == 'adopting':
         return ('{name} and {a} heard there is a match, and the baby comes home any day now.',
                 "there's a match. a baby. ours. any day now and I can't sit still")
+    if old:
+        return (OLD_DUE, 'Any day now. The cradle is made up, the midwife knows to come, and we jump at every knock.')
     return ('The baby is due any day now, and {name} and {a} have the bag packed by the door.',
             "any day now. the bag's been packed by the door for two weeks and we keep checking it")
 
 
-def arrived(how: str, child: dict) -> tuple[str, str]:
-    she = child['pronouns'] == 'she/her'
+# 'Any day now' in an older city (A/B: companion-e2e-v15/findings/ab-ownbabies.md).
+OLD_COMING = 'Word has come that the baby {name} and {a} are to raise will come home within the week, any day now.'
+OLD_DUE = 'The baby is due any day now, and {name} and {a} have the cradle made up and the midwife ready to send for.'
+
+
+def arrived(how: str, child: dict, era: str = 'modern') -> tuple[str, str]:
+    she, old = child['pronouns'] == 'she/her', families.older(era)
     girl, here, word = ('girl', "SHE'S HERE", 'daughter') if she else ('boy', "HE'S HERE", 'son')
     if how == 'adopting':
         return (f"{{name}} and {{a}} brought the baby home: a {girl} named {child['name']}.",
-                f"{child['name']} is home. our {word}. I keep just looking at {'her' if she else 'him'}")
+                f"{child['name']} is home with us. Our {word}. I keep just looking at {'her' if she else 'him'}." if old
+                else f"{child['name']} is home. our {word}. I keep just looking at {'her' if she else 'him'}")
     return (f"{{name}} and {{a}} had the baby: a {girl} named {child['name']}.",
+            f"{'She' if she else 'He'} is here! {child['name']}. {{a}} and I are worn out and quite in love." if old else
             f"{here}. {child['name']}. {{a}} and I are so tired and so in love")
 
 
@@ -252,6 +272,41 @@ def leave_days(connection, companion: dict, start: date, end: date) -> dict[str,
             result[day.isoformat()] = LEAVE
             day += timedelta(days=1)
     return result
+
+
+def broken_night(connection, timeline_id: str, day: date) -> dict | None:
+    """The body state a broken night with their own baby leaves (companion/life/agenda.py `day_facts`), as for the
+    pair's own (companion/life/our_child.py): by Family life, until the youngest sleeps through on a seeded day, a
+    third as often after that while a toddler; never on an easy life, nor on a night the child is at their ex's."""
+    from companion.life import our_child
+    level = our_child.level(connection)
+    kids = [child for child in own_children(connection, timeline_id) if child['status'] == 'born' and
+            child['born_on'] < day.isoformat() and families.age_of(child, day) < 3] if our_child.BROKEN[level] else []
+    if not kids or not with_them(connection, timeline_id, kids[-1], day - timedelta(days=1)):
+        return None
+    youngest, seed = kids[-1], f"own-nights:{kids[-1]['id']}"
+    low, high = our_child.SLEEPS[level]
+    sleeps = date.fromisoformat(youngest['born_on']) + timedelta(days=low + int(generators.unit(seed, 'sleeps') *
+                                                                                 (high - low)))
+    chance = our_child.BROKEN[level] / (3 if day >= sleeps else 1)
+    if generators.unit(seed, 'night', day.isoformat()) >= chance:
+        return None
+    return {'state': 'tired', 'because': 'after a broken night'}
+
+
+def with_them(connection, timeline_id: str, child: dict, day: date) -> bool:
+    """Whether their child sleeps at theirs this night: always while together; after a split, by the pattern
+    (companion/life/custody.py `own_line`): every night but some weekends, every other week, or weekends only."""
+    from companion.life import custody, our_child
+    person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (child['parent_id'],))
+    if person is None or person['role'] != EX or not (decode(person['details']) or {}).get('co_parent'):
+        return True
+    companion = our_child.companion_of(connection, timeline_id)
+    pattern = custody.OWN_PATTERNS[custody.own_outcome(connection, companion, person)['picked']] if companion else \
+        'with_them'
+    if pattern == 'shared':  # A week each, turn and turn about.
+        return day.isocalendar().week % 2 == 0
+    return pattern == 'with_them' or day.weekday() >= 5
 
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
@@ -294,8 +349,23 @@ def news_on(child: dict, day: date, pace: float, era: str) -> tuple[str, str, st
     if day.weekday() != int(generators.unit(seed, 'news-day', week) * 7) or \
             generators.unit(seed, 'update', week) >= UPDATE * pace:
         return None
-    line = generators.pick(seed, f'update-line-{week}', families.fitting(families.bank()[f'own_{group}'], era))
+    line = generators.pick(seed, f'update-line-{week}', for_age(families.fitting(families.bank()[f'own_{group}'], era),
+                                                                (day - first).days))
     return 'baby_update', line['text'], line['share']
+
+
+# A young baby doesn't sit up, roll, cut teeth, eat or walk yet (as for the pair's own, companion/life/our_child.py).
+SITTING = re.compile(r'\b(?:sat|sits|sitting|roll\w*|tooth|teeth)\b', re.IGNORECASE)
+SITTING_DAYS = 150
+
+
+def for_age(lines: list[dict], days: int) -> list[dict]:
+    """The bank lines a baby this many days old can do."""
+    from companion.life import our_child
+    rules = ((our_child.MOVING, our_child.MOVING_DAYS), (our_child.FOOD, our_child.SOLIDS_DAYS),
+             (SITTING, SITTING_DAYS))
+    return [line for line in lines if not any(days < after and found.search(f"{line['text']} {line['share']}")
+                                              for found, after in rules)] or lines
 
 
 def naming_days(connection, companion: dict, low: date, high: date) -> list[dict]:
@@ -355,8 +425,8 @@ def plan_asks(connection, companion: dict, day: date, pace: float, now) -> int:
     for child in families.born(connection, timeline_id, day):
         old = (day - date.fromisoformat(child['born_on'])).days
         seed = f"babysit:{child['id']}"
-        if child.get('whose') != WHOSE or child['parent_status'] != 'active' or old < BABYSIT_FROM or \
-                not families.band(child, day) or generators.unit(seed, 'ask', day.isoformat()) >= BABYSIT * pace:
+        if child.get('whose') != WHOSE or child['parent_status'] != 'active' or child['parent_role'] == EX or \
+                old < BABYSIT_FROM or not families.band(child, day) or generators.unit(seed, 'ask', day.isoformat()) >= BABYSIT * pace:
             continue
         evening = day + timedelta(days=12 if generators.unit(seed, 'when', day.isoformat()) < 0.5 else 5)
         if evening < families.local_today(companion, now) + timedelta(days=3):
@@ -382,8 +452,10 @@ def follow(connection, companion: dict, today: date, now) -> None:
     from companion.life import custody
     custody.own_advance(connection, companion, now)
     for row in rows(connection, companion['active_timeline_id'], ('planned', 'asked', 'yes')):
-        child = optional(connection, "SELECT status FROM circle_children WHERE id=?", (row['child_id'],))
-        if child is None or child['status'] == 'ended' or families.withheld(connection):
+        child = optional(connection, 'SELECT c.status, p.role FROM circle_children c LEFT JOIN circle_people p ON '
+                         'p.id=c.parent_id WHERE c.id=?', (row['child_id'],))
+        # An evening out is with their partner: called off once the two of them have split up.
+        if child is None or child['status'] == 'ended' or child['role'] == EX or families.withheld(connection):
             mark(connection, row, 'called_off', now)
         elif row['local_date'] < today.isoformat():
             mark(connection, row, 'done' if row['status'] == 'yes' else 'called_off', now)
@@ -429,14 +501,16 @@ def ask_due(connection, companion: dict, now: datetime) -> list:
               "words, naming the day and the time; make it easy to say no.")
     template = generators.pick(f"babysit:{row['id']}", 'line', fitting_asks(connection, companion)).format(
         child=row['child'], partner=partner, day=when, time=time)
-    return [Trigger(f"babysit:{row['id']}", 'babysit_ask', reason, template[:1].upper() + template[1:], (row['id'],))]
+    template = big_days.on_next(template[:1].upper() + template[1:])
+    return [Trigger(f"babysit:{row['id']}", 'babysit_ask', reason, template, (row['id'],))]
 
 
 def fitting_asks(connection, companion: dict) -> list[str]:
     era = families.era_of(connection, companion['version']['definition'])
-    unfit = families.UNFIT.get(era)
+    unfit, wrong = families.UNFIT.get(era), 'modern' if families.older(era) else 'older'
     lines = families.bank()['babysit_ask']
-    return [line for line in lines if not (unfit and unfit.search(line))] or lines
+    return [line for line in lines if not (unfit and unfit.search(line)) and
+            wrong not in families.tags().get(line, ())] or lines
 
 
 SETTLES = ('babysit_ask',)

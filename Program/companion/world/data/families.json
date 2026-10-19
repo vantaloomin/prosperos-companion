@@ -3855,7 +3855,128 @@
    "{name} flew a kite on the hill with {child}.",
    "{name} taught {child} to whistle.",
    "{name} took {child} to the fair.",
-   "{name} read aloud to {child} by the fire all evening."
+   "{name} read aloud to {child} by the fire all evening.",
+   "{name} and {a} brought the family cradle down from the loft and polished it till it shone.",
+   "{name} and {a} sat up by the fire talking over names until the candle burned down.",
+   "{name} hemmed a stack of little gowns for the baby.",
+   "{name} and {a} whitewashed the small room for the baby.",
+   "{name}'s mother sent a parcel of knitted things for the baby.",
+   "{name} and {a} walked out on a fine evening and talked about the kind of parents they meant to be.",
+   "The midwife came by and told {name} and {a} that all was going well.",
+   "{name} and {a} made up the cradle with fresh linen and stood looking at it.",
+   "{name}'s neighbours promised to send soup and bread the week the baby came.",
+   "{name} and {a} counted out what they had put by for the baby and found it would do.",
+   "{name} let out the seams of a whole wardrobe of clothes.",
+   "{name} felt the baby stir for the first time while sitting by the fire.",
+   "{name} rested every afternoon on the midwife's orders and grumbled about it.",
+   "{name} found the smell of the bakery in the mornings suddenly too much to bear.",
+   "{name} sat with feet up of an evening while {a} fussed over the cushions.",
+   "{name} rubbed {a}'s aching back every evening by the fire.",
+   "{name} took over hauling the firewood so {a} could rest.",
+   "{name} felt the baby kick under {a}'s hand and laughed out loud.",
+   "{name} walked {a} home from market at a snail's pace, arm in arm.",
+   "{name} sat up with {a} through a restless night and read aloud until morning came.",
+   "{name} and {a} went to see the parish clerk about taking in a child.",
+   "{name} and {a} told the family they meant to raise a child who needed a home.",
+   "{name}'s cousin wrote of a baby in her village who would need a family.",
+   "{name} and {a} made up the cradle though nobody yet knew when the baby would come.",
+   "{name} sewed a small quilt from scraps of the whole family's old clothes.",
+   "The minister visited {name} and {a} to see that their home was fit for a child.",
+   "{name} and {a} sat up late wondering who their little one would be.",
+   "{name} asked the oldest woman on the street for advice on raising a baby.",
+   "{name} and {a} heard from the foundling home that a baby might be theirs before long.",
+   "{name} and {a} put by a little money each week for the child to come.",
+   "{name}'s mother brought out the christening gown every child in the family had worn.",
+   "{name} and {a} cleared out the small room and scrubbed it from floor to rafters.",
+   "{name} knitted little caps in three sizes, not knowing how big the baby would be.",
+   "{name} and {a} wrote to every relation to say a child was coming to them.",
+   "The midwife promised {name} and {a} she would look in when the baby came.",
+   "{name} walked past the foundling home and stopped to look up at the windows.",
+   "{name} and {a} settled on a name for a girl and another for a boy.",
+   "{name}'s friends gathered to hem baby linen for the child to come.",
+   "{name} and {a} heard that the baby they were to raise had been born.",
+   "{name} spent an evening carving a little wooden rattle.",
+   "{name} and {a} hung a little bell over the cradle.",
+   "{name} dried a bundle of chamomile for the baby's first bath, as the old women advised.",
+   "{name}'s father built a little stool for the child to come.",
+   "{name} and {a} minded a neighbour's baby for an afternoon, for practice.",
+   "{name} and {a} found a cradle at the market with a cracked rocker and mended it.",
+   "{name} practised swaddling a loaf of bread, to the family's delight.",
+   "{name} and {a} kept a candle in the window on the night word was due.",
+   "{name} stitched an initial on a little blanket, then unpicked it because nobody knew the name yet.",
+   "{name} and {a} signed the papers at the parsonage with shaking hands.",
+   "{name}'s friends promised to stand by the family when the child came.",
+   "{name} and {a} walked the long way home, dreaming of the child to come.",
+   "{name} filled a chest with little clothes passed down through the family.",
+   "{name} and {a} hung a little gown to air by the fire.",
+   "{name} and {a} spent a whole Sunday painting the small room the colour of butter.",
+   "{name} and {a} gave thanks at supper for the child they had been promised.",
+   "{name} carried the letter from the foundling home everywhere, gone soft from folding.",
+   "{name} and {a} set aside the best blanket in the house for the baby.",
+   "{name} learned the lullabies {name}'s grandmother used to sing.",
+   "{name} and {a} told the children on the street a baby was coming, and were asked a great many questions.",
+   "{name} and {a} made a list of everything a baby needs and found they had most of it.",
+   "{name} stood in the doorway of the little room each night before bed.",
+   "{name} and {a} went to the fair and could not stop watching the families with little ones.",
+   "{name} wove a basket for carrying the baby to market.",
+   "{name} and {a} hung a horseshoe over the door for luck before the child came.",
+   "{name} and {a} took the old rocking chair to the joiner to be mended.",
+   "{child} slept in the cradle by the fire through a whole long evening.",
+   "{child} smiled at {name} over the morning porridge.",
+   "{child} kicked free of the swaddling for the third night running.",
+   "{child} laughed out loud at {a} sneezing.",
+   "{child} cut a first tooth after three cross nights.",
+   "{child} sat up on the hearth rug and looked very pleased about it.",
+   "{child} went to sleep to the sound of rain on the roof.",
+   "{child} was passed from arm to arm by the neighbours without a whimper.",
+   "{child} tasted mashed apple for the first time and made a face.",
+   "{child} rolled clean over on the bed and startled {them}self.",
+   "{child} babbled away at the cat by the fire.",
+   "{child} slept the whole night through, to everyone's astonishment.",
+   "{child} toddled round the yard after the hens all morning.",
+   "{child} said {a}'s name clear as a bell.",
+   "{child} helped {name} knead the bread and ate a good deal of the dough.",
+   "{child} fell asleep under the kitchen table with the dog.",
+   "{child} learned to climb the stairs and not yet how to come down.",
+   "{child} put on {a}'s boots and clomped about the house in them.",
+   "{child} picked a fistful of daisies for {name}, roots and all.",
+   "{child} sang to the rag doll every night before bed.",
+   "{child} refused the porridge, then ate {a}'s whole bowl.",
+   "{child} splashed so much in the tub that the floor needed mopping.",
+   "{child} learned to say please and said it to everything.",
+   "{child} waited at the window every evening to wave at the moon.",
+   "{child} learned {their} letters at the kitchen table.",
+   "{child} recited a whole poem at supper without a slip.",
+   "{child} ran to the baker alone and came back with the right change.",
+   "{child} learned to whistle and would not stop.",
+   "{child} helped {a} mend the fence and hit {their} thumb only once.",
+   "{child} won the sack race at the summer fair.",
+   "{child} copied out a story in {their} best hand for {name}'s birthday.",
+   "{child} came home with muddy knees and a frog in {their} pocket.",
+   "{child} skipped a stone five times across the pond.",
+   "{child} read aloud to {name} by the fire, for once instead of the other way round.",
+   "{child} earned a penny helping at the market and spent it on a sugar mouse.",
+   "{child} asked the name of every star in the sky.",
+   "Would you be so kind as to sit with {child} on {day} from {time}? {partner} and I are asked out to supper. Do say no if it does not suit.",
+   "Might I beg a kindness? {partner} and I would like an evening out on {day}. Could you mind {child} from {time}? Refuse me freely.",
+   "{partner} and I are invited to a dance on {day}. Would you keep {child} company from {time}? Say no without a second thought.",
+   "Could you sit by the fire with {child} on {day}, from {time}? {partner} and I have a supper to go to. Only if it suits you.",
+   "I hardly like to ask, but would you mind {child} on {day} from {time}? {partner} and I have not been out together since the baby came. Do say if you cannot.",
+   "Would you watch over {child} on {day} from {time}, while {partner} and I go to a friend's wedding supper? There is no harm in saying no.",
+   "Would you be our guardian angel on {day}? {child} needs minding from {time} while {partner} and I dine out. Say no if it is a trouble.",
+   "Could {child} spend the evening of {day} with you, from {time}? {partner} and I have promised ourselves a walk and a supper. Only if you are free.",
+   "{partner} and I are bidden to a friend's betrothal supper on {day}. Would you mind {child} from {time}? Say no if you must.",
+   "Would you mind {child} on {day} from {time}? I will leave a good supper and a warm fire, and {partner} and I will be home before late. No obligation at all.",
+   "If you could spare the evening of {day}, from {time}, we should be so grateful. {child} will be abed, and {partner} and I long for an evening out. Do decline if you like.",
+   "Would you sit up with {child} on {day} from {time}? {partner} wishes to take me dancing, if you can believe it. Only if it is no bother.",
+   "May I ask a favour? Mind {child} on {day} from {time}, and {partner} and I shall bring you back a pie from the fair. Say no if it does not suit.",
+   "Could you take charge of {child} on {day} from {time}? {partner} and I are going to the play. I would not hold it against you to refuse.",
+   "Would you keep house with {child} on {day} from {time}? {partner} and I are wanted at a family supper. Refuse if it is any trouble.",
+   "{child} is as good as gold of an evening. Would you sit with {child} on {day} from {time}, so {partner} and I can go out? No obligation.",
+   "We should be ever so grateful if you would mind {child} on {day} from {time}. {partner} and I mean to go out for supper. Say if it does not suit.",
+   "Would you watch {child} for us on {day}, from {time}? {partner} and I have a feast to go to. Only if it suits you.",
+   "Dare I ask? {partner} and I would dearly love the harvest supper on {day}. Could you sit with {child} from {time}? I shall understand if not.",
+   "Would you come and mind {child} on {day} from {time}? {partner} and I are to dine with old friends. Do not trouble yourself if you cannot."
   ],
   "modern": [
    "{a} sent {name} the first scan picture.",
@@ -3899,7 +4020,66 @@
    "{name} looked after {child} while {a} went to a work event.",
    "{name} set up a treasure hunt in the garden for {child}.",
    "{name} had a board game night with {child}.",
-   "{name} took {child} to an art gallery."
+   "{name} took {child} to an art gallery.",
+   "{name} and {a} packed the hospital bag, unpacked it, and packed it again.",
+   "{name} and {a} went to their first antenatal class and practised swaddling a doll.",
+   "{name} read a parenting book aloud to {a} until they both fell asleep.",
+   "{name} and {a} washed and folded a mountain of tiny baby clothes.",
+   "{name} and {a} counted down the weeks on a calendar pinned to the kitchen wall.",
+   "{name} and {a} timed the journey to the hospital twice, just to be sure.",
+   "{name} and {a} lay awake whispering about what the baby might be like.",
+   "{name} and {a} stocked the larder with enough soup to last a month.",
+   "{name} and {a} babyproofed the kitchen cupboards months before it was needed.",
+   "{name} and {a} practised bathing a doll at their antenatal class.",
+   "{name} craved lemons so much that {a} bought a whole sackful at the market.",
+   "{name}'s back ached, so {a} learned how to give a proper back rub.",
+   "{name} went out at midnight to find {a} the sour plums they were craving.",
+   "{name} looked after {a} through a rough bout of morning sickness and made plain toast after.",
+   "{name} cheered {a} on through a breathing class and did every exercise alongside them.",
+   "{name} teared up the first time {a} guided their hand to feel the baby move.",
+   "{child} found {their} own feet and spent the whole morning holding them.",
+   "{child} fell asleep in {their} high chair face-first in sweet potato.",
+   "{child} tried a chunk of soft cheese and kept signing for more.",
+   "{child} sang a song that was just the word \"potato\" over and over.",
+   "{child} gave {name} a pretend cup of soup made of grass.",
+   "{child} said {their} first full sentence asking for more cheese.",
+   "{child} fell asleep on the way home in {a}'s arms.",
+   "{child} spoke {their} first two-word sentence: \"more cake\".",
+   "{child} made a best friend called Sam and talked about Sam at every meal.",
+   "{child} won a race on sports day and collapsed in delight.",
+   "{child} lost a game and stormed off, then came back and shook hands.",
+   "{child} insisted on wearing a cape to school for a whole week.",
+   "Would you be up for watching {child} on {day} from {time}? {partner} and I haven't been out in ages. Totally fine if not.",
+   "Huge favour, easy no: could you babysit {child} on {day} from {time}? {partner} and I want a quiet dinner out.",
+   "Any chance you're free {day} from {time}? We'd love to leave {child} with you while {partner} and I go to a friend's party. Totally fine if not.",
+   "Pizza on us if you'll babysit {child} on {day} from {time}? {partner} and I are desperate for a night out. No pressure.",
+   "We haven't had a night out since {child} arrived. Could you babysit {day} from {time} so {partner} and I can escape? Totally fine if not.",
+   "Babysitting question. {day}, from {time}, {child} plus you plus snacks. {partner} and I go out to dinner. Interested? Totally fine if not.",
+   "It's {partner}'s birthday on {day}. Could you mind {child} from {time} so I can take them out? Totally fine if not.",
+   "Could you do us a massive favour on {day}? Mind {child} from {time} while {partner} and I go to a wedding do. Fine if it doesn't work.",
+   "Babysit {child} {day} from {time}? We'll leave a list, a feast and the softest blanket while {partner} and I go out. Totally fine if you can't.",
+   "Would you like to be the hero of the week? Babysit {child} on {day} from {time} so {partner} and I can get out. Easy no if busy.",
+   "Is {day} any good for you? We'd need someone with {child} from {time} while {partner} and I go out for supper. Totally fine if not.",
+   "Would you babysit {child} on {day}? From {time}, back before midnight, pizza on us. {partner} says no pressure, and so do I.",
+   "Would you look after {child} on {day} from {time}? They'll likely be asleep while {partner} and I are out. Totally fine if not.",
+   "Do you want first dibs on babysitting {child}? {day} from {time}. {partner} and I are going out for dinner. No pressure.",
+   "Honest ask, honest answer welcome: could you mind {child} on {day} from {time}? {partner} and I want a night out. Totally fine if not.",
+   "{child} needs a babysitter on {day} from {time}, and you're our favourite person. Could you? {partner} and I want dinner out. No pressure.",
+   "Could I bribe you with snacks to babysit {child} on {day} from {time}? {partner} and I need a night. Totally fine if not.",
+   "Could you be on {child} duty {day} from {time}? Pizza on us, back by eleven. {partner} and I are going out. Fine if you can't.",
+   "{partner} has been planning a surprise for me on {day}. Could you mind {child} from {time}? Totally fine if not.",
+   "Can I ask a favour? {day}, from {time}, {child} needs minding while {partner} and I go to a dinner. Totally fine if not.",
+   "{partner} and I are trying to have one evening out a month. Could you babysit {child} {day} from {time}? Totally fine if not.",
+   "Would you mind {child} {day} from {time}? Pizza on us, and {partner} swears we'll be home by ten. Fine if not.",
+   "I'm asking for a friend. The friend is me. Could you babysit {child} {day} from {time}? {partner} and I need dinner out. No pressure.",
+   "Could you take {child} off our hands on {day} from {time}? Just for the evening. {partner} and I are going to a party. Totally fine if not.",
+   "Could you watch {child} {day} from {time}? Snacks are yours, sofa's yours, {child} is asleep. {partner} and I are off out. Totally fine if not.",
+   "Any chance you'd mind {child} on {day} from {time}? {partner} and I promised ourselves one evening out. Totally fine if not.",
+   "Could you be our saviour on {day}? Mind {child} from {time} while {partner} and I go to a friend's party. Totally fine if not.",
+   "Would you be okay to babysit {child} {day} from {time}? Pizza on us. {partner} and I are off to a gig. Totally fine if not.",
+   "Would you watch {child} {day} from {time}? {partner} and I are going to the theatre and I'm already excited. Totally fine if not.",
+   "Could you watch {child} {day} from {time}? Snacks on the counter, blanket on the sofa. {partner} and I are going out. Totally fine if not.",
+   "Would you be free to watch {child} on {day} from {time}? {partner} and I are going to a dinner. Totally fine if you're not."
   ]
  },
  "own_expecting": [
@@ -4500,6 +4680,96 @@
    "text": "{name} heard the baby's heartbeat at {a}'s check-up and grinned the whole way home.",
    "share": "heard the baby's heartbeat at {a}'s check-up. like a tiny galloping horse. still grinning",
    "carrying": "them"
+  },
+  {
+   "text": "{name} and {a} brought the family cradle down from the loft and polished it till it shone.",
+   "share": "The family cradle is down from the loft and polished. {a} says it has rocked four generations."
+  },
+  {
+   "text": "{name} and {a} sat up by the fire talking over names until the candle burned down.",
+   "share": "Sat up by the fire with {a} talking over names until the candle gave out. We are no nearer."
+  },
+  {
+   "text": "{name} hemmed a stack of little gowns for the baby.",
+   "share": "I have hemmed six little gowns this week. They are so small I keep holding them up to the light."
+  },
+  {
+   "text": "{name} and {a} whitewashed the small room for the baby.",
+   "share": "The small room is whitewashed and ready. {a} wears more of it than the walls do."
+  },
+  {
+   "text": "{name}'s mother sent a parcel of knitted things for the baby.",
+   "share": "My mother has sent a parcel of knitted things. Bonnets, bootees, and a shawl fit for a prince."
+  },
+  {
+   "text": "{name} and {a} walked out on a fine evening and talked about the kind of parents they meant to be.",
+   "share": "Walked out with {a} this evening and talked about what sort of parents we mean to be. Patient, we decided. We shall see."
+  },
+  {
+   "text": "The midwife came by and told {name} and {a} that all was going well.",
+   "share": "The midwife came by today and says all is going just as it should. We breathed out for the first time in weeks."
+  },
+  {
+   "text": "{name} and {a} made up the cradle with fresh linen and stood looking at it.",
+   "share": "Made up the cradle with fresh linen. {a} and I just stood and looked at it for a while."
+  },
+  {
+   "text": "{name}'s neighbours promised to send soup and bread the week the baby came.",
+   "share": "The neighbours have promised soup and bread the week the baby comes. I could weep, they are so kind."
+  },
+  {
+   "text": "{name} and {a} counted out what they had put by for the baby and found it would do.",
+   "share": "Counted up what we have put by for the baby. It will do, if we are careful. {a} says we always are."
+  },
+  {
+   "text": "{name} let out the seams of a whole wardrobe of clothes.",
+   "share": "I have let out the seams of everything I own. Next I shall have to borrow from {a}.",
+   "carrying": "me"
+  },
+  {
+   "text": "{name} felt the baby stir for the first time while sitting by the fire.",
+   "share": "I felt the baby stir tonight, sitting by the fire. Just a flutter. I held quite still for an hour.",
+   "carrying": "me"
+  },
+  {
+   "text": "{name} rested every afternoon on the midwife's orders and grumbled about it.",
+   "share": "The midwife says I must rest every afternoon. I am resting. I am not enjoying it.",
+   "carrying": "me"
+  },
+  {
+   "text": "{name} found the smell of the bakery in the mornings suddenly too much to bear.",
+   "share": "The bakery smell in the mornings, which I used to love, now sends me straight back indoors.",
+   "carrying": "me"
+  },
+  {
+   "text": "{name} sat with feet up of an evening while {a} fussed over the cushions.",
+   "share": "{a} fusses over my cushions all evening. I have not lifted a finger since supper and I am told this is right.",
+   "carrying": "me"
+  },
+  {
+   "text": "{name} rubbed {a}'s aching back every evening by the fire.",
+   "share": "{a}'s back aches in the evenings now, so I rub it by the fire until sleep wins.",
+   "carrying": "them"
+  },
+  {
+   "text": "{name} took over hauling the firewood so {a} could rest.",
+   "share": "I have taken over all the heavy work so {a} can rest. Hauling firewood has never felt so noble.",
+   "carrying": "them"
+  },
+  {
+   "text": "{name} felt the baby kick under {a}'s hand and laughed out loud.",
+   "share": "Felt the baby kick under my hand tonight. I laughed out loud and {a} told me to hush.",
+   "carrying": "them"
+  },
+  {
+   "text": "{name} walked {a} home from market at a snail's pace, arm in arm.",
+   "share": "Walked {a} home from market at a snail's pace, arm in arm. Nobody overtook us without smiling.",
+   "carrying": "them"
+  },
+  {
+   "text": "{name} sat up with {a} through a restless night and read aloud until morning came.",
+   "share": "{a} could not settle last night, so I read aloud until the sky went grey. The baby liked it, I think.",
+   "carrying": "them"
   }
  ],
  "own_adopting": [
@@ -4994,16 +5264,192 @@
    "share": "{a} and i remind each other every night: the right little one will come. we believe it"
   },
   {
-   "text": "{name} and {a} danced around the kitchen after a dear friend agreed to be the child's godparent.",
-   "share": "a dear friend agreed to be godparent. we danced around the kitchen. {a} stepped on my foot twice"
-  },
-  {
    "text": "{name} and {a} counted the coins in the jar they had been saving for the baby.",
    "share": "counted the baby savings jar with {a}. it's mostly small coins. it's a lot of small coins"
   },
   {
    "text": "{name} hung a mobile of carved wooden birds above the cradle.",
    "share": "hung a mobile of little wooden birds over the cradle. they spin when the window's open. so peaceful"
+  },
+  {
+   "text": "{name} and {a} went to see the parish clerk about taking in a child.",
+   "share": "We went to see the parish clerk about taking in a little one. He wrote everything down very slowly."
+  },
+  {
+   "text": "{name} and {a} told the family they meant to raise a child who needed a home.",
+   "share": "Told the family we mean to raise a child who needs a home. My aunt cried and then gave advice for an hour."
+  },
+  {
+   "text": "{name}'s cousin wrote of a baby in her village who would need a family.",
+   "share": "My cousin writes there may be a little one in her village who needs a family. We hardly dare hope."
+  },
+  {
+   "text": "{name} and {a} made up the cradle though nobody yet knew when the baby would come.",
+   "share": "We have made up the cradle, though nobody can say when the baby will come. It looks very empty and very hopeful."
+  },
+  {
+   "text": "{name} sewed a small quilt from scraps of the whole family's old clothes.",
+   "share": "I am sewing a quilt from scraps of the whole family's old clothes, so the baby comes wrapped in all of us."
+  },
+  {
+   "text": "The minister visited {name} and {a} to see that their home was fit for a child.",
+   "share": "The minister came to look over the house and see we are fit to raise a child. I scrubbed the step three times."
+  },
+  {
+   "text": "{name} and {a} sat up late wondering who their little one would be.",
+   "share": "Sat up late with {a} wondering who our little one will be. We have imagined at least nine different babies."
+  },
+  {
+   "text": "{name} asked the oldest woman on the street for advice on raising a baby.",
+   "share": "I asked the oldest woman on our street for advice. She talked until dark and I wrote it all down."
+  },
+  {
+   "text": "{name} and {a} heard from the foundling home that a baby might be theirs before long.",
+   "share": "Word from the foundling home: there may be a baby for us before long. I have read the letter twenty times."
+  },
+  {
+   "text": "{name} and {a} put by a little money each week for the child to come.",
+   "share": "We put a little by each week now for the little one. {a} keeps the jar on the high shelf, away from me."
+  },
+  {
+   "text": "{name}'s mother brought out the christening gown every child in the family had worn.",
+   "share": "My mother brought out the christening gown every child in our family has worn. Our little one will wear it too."
+  },
+  {
+   "text": "{name} and {a} cleared out the small room and scrubbed it from floor to rafters.",
+   "share": "Cleared out the small room and scrubbed it from floor to rafters. It is ready for someone very small."
+  },
+  {
+   "text": "{name} knitted little caps in three sizes, not knowing how big the baby would be.",
+   "share": "I have knitted three little caps in three sizes, because nobody can tell me how big the baby will be."
+  },
+  {
+   "text": "{name} and {a} wrote to every relation to say a child was coming to them.",
+   "share": "We have written to every relation to say a child is coming to us. The replies are already coming back, full of advice."
+  },
+  {
+   "text": "The midwife promised {name} and {a} she would look in when the baby came.",
+   "share": "The midwife says she will look in when the baby comes, to see we are doing things right. I am glad of it."
+  },
+  {
+   "text": "{name} walked past the foundling home and stopped to look up at the windows.",
+   "share": "Walked past the foundling home today and stood looking up at the windows. Somewhere in there, perhaps."
+  },
+  {
+   "text": "{name} and {a} settled on a name for a girl and another for a boy.",
+   "share": "We have a name for a girl and a name for a boy now. We shook hands on it like a bargain."
+  },
+  {
+   "text": "{name}'s friends gathered to hem baby linen for the child to come.",
+   "share": "My friends came round to hem baby linen tonight. We talked more than we sewed, but it got done."
+  },
+  {
+   "text": "{name} and {a} heard that the baby they were to raise had been born.",
+   "share": "We hear the baby we are to raise has been born. Soon now. I keep looking at the door."
+  },
+  {
+   "text": "{name} spent an evening carving a little wooden rattle.",
+   "share": "Spent the evening carving a wooden rattle. It is lopsided. It rattles. That is all a rattle needs."
+  },
+  {
+   "text": "{name} and {a} hung a little bell over the cradle.",
+   "share": "Hung a little bell over the cradle. We ring it every time we pass, to practise."
+  },
+  {
+   "text": "{name} dried a bundle of chamomile for the baby's first bath, as the old women advised.",
+   "share": "The old women say to bathe a new baby in chamomile water, so I have dried a whole bundle. I take advice from everyone now."
+  },
+  {
+   "text": "{name}'s father built a little stool for the child to come.",
+   "share": "My father has built a little stool for the baby. It will be years before it gets sat on. He does not care."
+  },
+  {
+   "text": "{name} and {a} minded a neighbour's baby for an afternoon, for practice.",
+   "share": "Minded the neighbour's baby for an afternoon, for practice. We kept the baby happy and the baby kept us busy."
+  },
+  {
+   "text": "{name} and {a} found a cradle at the market with a cracked rocker and mended it.",
+   "share": "Found a cradle at the market with a cracked rocker. {a} mended it in an evening. Good as new, nearly."
+  },
+  {
+   "text": "{name} practised swaddling a loaf of bread, to the family's delight.",
+   "share": "Practised swaddling with a loaf of bread. The family thought it very funny. The loaf was very secure."
+  },
+  {
+   "text": "{name} and {a} kept a candle in the window on the night word was due.",
+   "share": "We kept a candle in the window tonight while we waited for word. Silly, maybe. It felt right."
+  },
+  {
+   "text": "{name} stitched an initial on a little blanket, then unpicked it because nobody knew the name yet.",
+   "share": "Stitched an initial on the little blanket, then unpicked it. We do not know the name yet. Too eager."
+  },
+  {
+   "text": "{name} and {a} signed the papers at the parsonage with shaking hands.",
+   "share": "We signed the papers at the parsonage today. My hand shook so much the ink blotted. It still counts."
+  },
+  {
+   "text": "{name}'s friends promised to stand by the family when the child came.",
+   "share": "Our friends say they will stand by us when the child comes. I believe them. It helps."
+  },
+  {
+   "text": "{name} and {a} walked the long way home, dreaming of the child to come.",
+   "share": "Walked the long way home with {a}, talking about the little one. We were very slow and very happy."
+  },
+  {
+   "text": "{name} filled a chest with little clothes passed down through the family.",
+   "share": "The chest at the foot of our bed is full of little clothes from all over the family. Some are older than I am."
+  },
+  {
+   "text": "{name} and {a} hung a little gown to air by the fire.",
+   "share": "Hung the little gown to air by the fire. {a} keeps stopping to look at it."
+  },
+  {
+   "text": "{name} and {a} spent a whole Sunday painting the small room the colour of butter.",
+   "share": "Spent the whole Sunday painting the small room yellow, like butter. It is the happiest room in the house now."
+  },
+  {
+   "text": "{name} and {a} gave thanks at supper for the child they had been promised.",
+   "share": "We gave thanks at supper for the little one we have been promised. Neither of us could finish eating."
+  },
+  {
+   "text": "{name} carried the letter from the foundling home everywhere, gone soft from folding.",
+   "share": "I carry the letter from the foundling home in my pocket. It is going soft from all the folding."
+  },
+  {
+   "text": "{name} and {a} set aside the best blanket in the house for the baby.",
+   "share": "Set aside the best blanket in the house for the baby. {a} says we can make do with the scratchy one. Fair."
+  },
+  {
+   "text": "{name} learned the lullabies {name}'s grandmother used to sing.",
+   "share": "I have been learning the lullabies my grandmother used to sing. I only half remember the words. The tune is what counts."
+  },
+  {
+   "text": "{name} and {a} told the children on the street a baby was coming, and were asked a great many questions.",
+   "share": "Told the children on our street a baby is coming to us. I was asked where from, how big, and whether it bites."
+  },
+  {
+   "text": "{name} and {a} made a list of everything a baby needs and found they had most of it.",
+   "share": "Made a list of what a baby needs. We have most of it. We have far too many caps."
+  },
+  {
+   "text": "{name} stood in the doorway of the little room each night before bed.",
+   "share": "Every night before bed I stand in the doorway of the little room for a minute. Soon there will be someone in it."
+  },
+  {
+   "text": "{name} and {a} went to the fair and could not stop watching the families with little ones.",
+   "share": "Went to the fair and could not stop watching the families with little ones. Next year that will be us."
+  },
+  {
+   "text": "{name} wove a basket for carrying the baby to market.",
+   "share": "Wove a basket for carrying the baby to market. It is sturdy. {a} tested it with a cabbage."
+  },
+  {
+   "text": "{name} and {a} hung a horseshoe over the door for luck before the child came.",
+   "share": "Hung a horseshoe over the door for luck. Every bit helps."
+  },
+  {
+   "text": "{name} and {a} took the old rocking chair to the joiner to be mended.",
+   "share": "The old rocking chair has gone to the joiner to be mended. The baby will need rocking and so will I."
   }
  ],
  "own_baby": [
@@ -5482,6 +5928,54 @@
   {
    "text": "{child} slept in until seven and {name} and {a} didn't know what to do.",
    "share": "{child} slept til seven. {a} and i lay there awake at five out of habit. robbed of our lie-in by ourselves"
+  },
+  {
+   "text": "{child} slept in the cradle by the fire through a whole long evening.",
+   "share": "{child} slept the whole evening in the cradle by the fire. {a} and I talked in whispers and felt very grand."
+  },
+  {
+   "text": "{child} smiled at {name} over the morning porridge.",
+   "share": "{child} smiled at me over my porridge this morning. A real smile. I shall not recover."
+  },
+  {
+   "text": "{child} kicked free of the swaddling for the third night running.",
+   "share": "Third night running {child} has kicked free of the swaddling. Wrapped tight at bedtime, loose as a sack by morning."
+  },
+  {
+   "text": "{child} laughed out loud at {a} sneezing.",
+   "share": "{a} sneezed and {child} laughed out loud. {a} has been pretending to sneeze ever since."
+  },
+  {
+   "text": "{child} cut a first tooth after three cross nights.",
+   "share": "A first tooth at last, after three very cross nights. {child} is pleased with it. We are worn to threads."
+  },
+  {
+   "text": "{child} sat up on the hearth rug and looked very pleased about it.",
+   "share": "{child} sat up on the hearth rug all alone and looked about like the master of the house."
+  },
+  {
+   "text": "{child} went to sleep to the sound of rain on the roof.",
+   "share": "Rain on the roof tonight and {child} went straight off. I think we have found the secret."
+  },
+  {
+   "text": "{child} was passed from arm to arm by the neighbours without a whimper.",
+   "share": "{child} was passed round the whole street today, arm to arm. Not a whimper. Very gracious."
+  },
+  {
+   "text": "{child} tasted mashed apple for the first time and made a face.",
+   "share": "{child} has tried mashed apple. The face! But then {they} opened {their} mouth for more."
+  },
+  {
+   "text": "{child} rolled clean over on the bed and startled {them}self.",
+   "share": "{child} rolled clean over on the bed today and gave {them}self such a fright. Then did it again."
+  },
+  {
+   "text": "{child} babbled away at the cat by the fire.",
+   "share": "{child} has a great deal to say to the cat these evenings. The cat listens politely."
+  },
+  {
+   "text": "{child} slept the whole night through, to everyone's astonishment.",
+   "share": "{child} slept the whole night through. I woke at dawn in a panic and found {them} snoring."
   }
  ],
  "own_toddler": [
@@ -5960,6 +6454,54 @@
   {
    "text": "{child} helped plant beans and checked every hour if they had grown.",
    "share": "we planted beans. {child} checks every hour if they've grown. it's been one day. still no beans"
+  },
+  {
+   "text": "{child} toddled round the yard after the hens all morning.",
+   "share": "{child} spent the morning chasing the hens round the yard. The hens are tired. {child} is not."
+  },
+  {
+   "text": "{child} said {a}'s name clear as a bell.",
+   "share": "{child} said {a}'s name today, clear as a bell. {a} has been unbearable since."
+  },
+  {
+   "text": "{child} helped {name} knead the bread and ate a good deal of the dough.",
+   "share": "{child} helped me knead the bread. Most of the dough went into {child}. The loaf was small."
+  },
+  {
+   "text": "{child} fell asleep under the kitchen table with the dog.",
+   "share": "Found {child} asleep under the kitchen table with the dog. Neither would move, so we ate around them."
+  },
+  {
+   "text": "{child} learned to climb the stairs and not yet how to come down.",
+   "share": "{child} can climb the stairs now. Coming down is another matter. I am at the bottom a great deal."
+  },
+  {
+   "text": "{child} put on {a}'s boots and clomped about the house in them.",
+   "share": "{child} put on {a}'s boots and clomped round the house for an hour, very serious."
+  },
+  {
+   "text": "{child} picked a fistful of daisies for {name}, roots and all.",
+   "share": "{child} brought me a fistful of daisies, roots and all. They are in a cup on the sill."
+  },
+  {
+   "text": "{child} sang to the rag doll every night before bed.",
+   "share": "{child} sings to the rag doll every night now. No words, a great deal of feeling."
+  },
+  {
+   "text": "{child} refused the porridge, then ate {a}'s whole bowl.",
+   "share": "{child} would not touch the porridge. Then ate {a}'s whole bowl. Same porridge."
+  },
+  {
+   "text": "{child} splashed so much in the tub that the floor needed mopping.",
+   "share": "Bath night. {child} was in the tub, and most of the water was on the floor, and on me."
+  },
+  {
+   "text": "{child} learned to say please and said it to everything.",
+   "share": "{child} has learned to say please and now says it to the cat, the door and the rain."
+  },
+  {
+   "text": "{child} waited at the window every evening to wave at the moon.",
+   "share": "Every evening {child} waits at the window for the moon, and waves at it."
   }
  ],
  "own_child": [
@@ -6458,6 +7000,54 @@
   {
    "text": "{child} started helping the old neighbour carry her firewood every Saturday.",
    "share": "{child} helps old mrs hale with her firewood every saturday now. she pays in biscuits. good deal"
+  },
+  {
+   "text": "{child} learned {their} letters at the kitchen table.",
+   "share": "{child} knows all {their} letters now, learned at the kitchen table. I am prouder than is decent."
+  },
+  {
+   "text": "{child} recited a whole poem at supper without a slip.",
+   "share": "{child} recited a whole poem at supper without a single slip. {a} applauded. So did the neighbours, through the wall."
+  },
+  {
+   "text": "{child} ran to the baker alone and came back with the right change.",
+   "share": "Sent {child} to the baker alone for the first time. Back with the loaf and the right change. Grown up overnight."
+  },
+  {
+   "text": "{child} learned to whistle and would not stop.",
+   "share": "{child} has learned to whistle. {child} has not learned to stop."
+  },
+  {
+   "text": "{child} helped {a} mend the fence and hit {their} thumb only once.",
+   "share": "{child} helped {a} mend the fence today and hit {their} own thumb only once. A tradesman in the making."
+  },
+  {
+   "text": "{child} won the sack race at the summer fair.",
+   "share": "{child} won the sack race at the summer fair! Hopped the whole way with the most serious face you ever saw."
+  },
+  {
+   "text": "{child} copied out a story in {their} best hand for {name}'s birthday.",
+   "share": "For my birthday {child} copied out a whole story in {their} best hand. I shall keep it forever."
+  },
+  {
+   "text": "{child} came home with muddy knees and a frog in {their} pocket.",
+   "share": "{child} came home with muddy knees and a frog in {their} pocket. The frog has been returned to the pond."
+  },
+  {
+   "text": "{child} skipped a stone five times across the pond.",
+   "share": "{child} skipped a stone five times across the pond today. Wants to tell everyone. Has told everyone."
+  },
+  {
+   "text": "{child} read aloud to {name} by the fire, for once instead of the other way round.",
+   "share": "{child} read to me by the fire tonight, for once instead of the other way round. I nearly fell asleep, very happily."
+  },
+  {
+   "text": "{child} earned a penny helping at the market and spent it on a sugar mouse.",
+   "share": "{child} earned a penny helping at the market and spent it straight away on a sugar mouse. Shared the tail with me."
+  },
+  {
+   "text": "{child} asked the name of every star in the sky.",
+   "share": "{child} wanted to know the name of every star tonight. I made some of them up. Do not tell."
   }
  ],
  "babysit_ask": [
@@ -6574,6 +7164,26 @@
   "Would you be free to watch {child} on {day} from {time}? {partner} and I are going to a dinner. Totally fine if you're not.",
   "Is it awful to ask you to babysit {child} on {day} from {time}? {partner} and I want to see a play. Say no if it's a bother.",
   "Could you mind {child} {day} from {time}? They're easy, I swear, mostly asleep. {partner} and I are going to a party. No pressure.",
-  "Would you watch {child} on {day} from {time}? {partner} and I want a night of grown-up talk. Completely fine if you can't."
+  "Would you watch {child} on {day} from {time}? {partner} and I want a night of grown-up talk. Completely fine if you can't.",
+  "Would you be so kind as to sit with {child} on {day} from {time}? {partner} and I are asked out to supper. Do say no if it does not suit.",
+  "Might I beg a kindness? {partner} and I would like an evening out on {day}. Could you mind {child} from {time}? Refuse me freely.",
+  "{partner} and I are invited to a dance on {day}. Would you keep {child} company from {time}? Say no without a second thought.",
+  "Could you sit by the fire with {child} on {day}, from {time}? {partner} and I have a supper to go to. Only if it suits you.",
+  "I hardly like to ask, but would you mind {child} on {day} from {time}? {partner} and I have not been out together since the baby came. Do say if you cannot.",
+  "Would you watch over {child} on {day} from {time}, while {partner} and I go to a friend's wedding supper? There is no harm in saying no.",
+  "Would you be our guardian angel on {day}? {child} needs minding from {time} while {partner} and I dine out. Say no if it is a trouble.",
+  "Could {child} spend the evening of {day} with you, from {time}? {partner} and I have promised ourselves a walk and a supper. Only if you are free.",
+  "{partner} and I are bidden to a friend's betrothal supper on {day}. Would you mind {child} from {time}? Say no if you must.",
+  "Would you mind {child} on {day} from {time}? I will leave a good supper and a warm fire, and {partner} and I will be home before late. No obligation at all.",
+  "If you could spare the evening of {day}, from {time}, we should be so grateful. {child} will be abed, and {partner} and I long for an evening out. Do decline if you like.",
+  "Would you sit up with {child} on {day} from {time}? {partner} wishes to take me dancing, if you can believe it. Only if it is no bother.",
+  "May I ask a favour? Mind {child} on {day} from {time}, and {partner} and I shall bring you back a pie from the fair. Say no if it does not suit.",
+  "Could you take charge of {child} on {day} from {time}? {partner} and I are going to the play. I would not hold it against you to refuse.",
+  "Would you keep house with {child} on {day} from {time}? {partner} and I are wanted at a family supper. Refuse if it is any trouble.",
+  "{child} is as good as gold of an evening. Would you sit with {child} on {day} from {time}, so {partner} and I can go out? No obligation.",
+  "We should be ever so grateful if you would mind {child} on {day} from {time}. {partner} and I mean to go out for supper. Say if it does not suit.",
+  "Would you watch {child} for us on {day}, from {time}? {partner} and I have a feast to go to. Only if it suits you.",
+  "Dare I ask? {partner} and I would dearly love the harvest supper on {day}. Could you sit with {child} from {time}? I shall understand if not.",
+  "Would you come and mind {child} on {day} from {time}? {partner} and I are to dine with old friends. Do not trouble yourself if you cannot."
  ]
 }

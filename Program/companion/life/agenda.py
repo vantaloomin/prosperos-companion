@@ -425,8 +425,10 @@ def day_facts(connection, timeline_id, subject, definition, world, day, holiday)
             'happenings': composer.happenings(world, definition, local_date), 'holiday': holiday,
             'body': body.state_on(f'{timeline_id}:{subject}', day,
                                   body.previous_entries(connection, timeline_id, subject, day), world, definition)
-            # A broken night with the pair's little one (companion/life/our_child.py).
-            or (our_child.broken_night(connection, timeline_id, day) if subject == COMPANION else None)}
+            # A broken night with the pair's little one (companion/life/our_child.py), or with their own
+            # (companion/life/own_family.py).
+            or (our_child.broken_night(connection, timeline_id, day) or own_family.broken_night(
+                connection, timeline_id, day) if subject == COMPANION else None)}
 
 
 def day_block(block: dict, facts: dict) -> dict:
