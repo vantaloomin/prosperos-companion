@@ -169,6 +169,16 @@ each one for an ordinary name; a name the user typed (or one in the world data) 
 gets a short "names for anyone new" context section of ready-made names for the companion's city and a
 spread of ages (`companion/world/newcomers.py`), so the model never has to invent one.
 
+**Kinds and lifespans.** A name group may tie its people to a kind with `"kind": "elf"` (Grandport's `elven`
+group does). Kinds and their average lifespans are in `lifespans.json` (Human 80, Elf 600, Half-elf 180, Dwarf 300,
+Halfling 110, Orc 55, Doesn't age); a city may add a `kinds` block that changes a built-in kind's lifespan there
+(`{"elf": {"lifespan": 750}}`) or adds a kind of its own (`{"tiefling": {"label": "Tiefling", "lifespan": 110,
+"words": ["tiefling"]}}`). A lifespan is a whole number from 40 to 5000, or null for a kind that doesn't age; a bad
+entry, or a group naming an unknown kind, is dropped with a note and the city still loads. Real ages stay as they
+are; rules about how far through life someone is read their life age (`companion/world/lifespans.py`): their real
+age through childhood, then adulthood stretched to their kind's lifespan, so an elf of 300 is 48 in human terms and
+is seeded, retires, dates and passes away like it. A city file can only change how long adulthood lasts.
+
 **Local colour.** Each city lists things locals eat, drink, say, root for and do (`local_color`, with
 `kind` dish, drink, saying, custom, team, shop, legend, rumor or other), with the places they are easiest to find and
 the seasons they belong to. `local_color` picks a few for a seed, in season on `day`, so the model can

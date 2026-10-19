@@ -16,7 +16,7 @@ seeded status (who is single and looking stays the same pool).
 from datetime import date, timedelta
 from functools import lru_cache
 
-from companion.world import dating, generators, townsfolk, turnover
+from companion.world import dating, generators, lifespans, townsfolk, turnover
 
 # Each week's chance, from the epoch.
 ENGAGE = 1 / 90  # Seeing someone, after `ENGAGE_AFTER` weeks together: they get engaged.
@@ -69,12 +69,16 @@ def details_of(sheet: dict, data: dict) -> dict | None:
 
 
 def partner(sheet: dict, data: dict, number: int, found: dict) -> dict:
-    """Their partner: a seeded name, someone they are drawn to, near their age."""
+    """Their partner: a seeded name, someone they are drawn to, near their age in human terms (an elf of 300 and a
+    human of 48 are a match, companion/world/lifespans.py)."""
     seed = f'{townsfolk.drawn(sheet)}:partner:{number}'
     gender = generators.pick(seed, 'gender', sorted(found['drawn_to'])) or 'woman'
-    age = max(18, sheet['age'] + round(generators.unit(seed, 'age') * 10) - 5)
-    name = generators.name(data, seed=seed, pronouns=GENDER_PRONOUNS.get(gender, 'they'), age=age)
-    return {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age}
+    life = max(18, found.get('life', sheet['age']) + round(generators.unit(seed, 'age') * 10) - 5)
+    folk = townsfolk.folk_of(data, seed)
+    age = lifespans.real_age(life, lifespans.lifespan_of(folk, data))
+    name = generators.name(data, seed=seed, pronouns=GENDER_PRONOUNS.get(gender, 'they'), age=life)
+    made = {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age}
+    return made | ({'folk': folk} if folk != lifespans.HUMAN else {})
 
 
 def couple(sheet: dict, data: dict, day: date) -> dict | None:
@@ -117,7 +121,7 @@ def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
         return []
     result = []
     for week in range(max(townsfolk.week_of(week_range[0]), turnover.START_WEEK), townsfolk.week_of(week_range[1]) + 1):
-        age = age_on(sheet, data, turnover.week_day(week, 3))
+        age = dating.life_of({**sheet, 'age': age_on(sheet, data, turnover.week_day(week, 3))}, data)
         chance = BABY * turnover.PACE[turnover.levels_at(week)[2]] / turnover.YEAR
         if generators.unit(townsfolk.drawn(sheet), 'baby', week) >= chance or not BABY_AGES[0] <= age <= BABY_AGES[1]:
             continue

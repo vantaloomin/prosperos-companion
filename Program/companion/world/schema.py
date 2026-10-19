@@ -210,6 +210,9 @@ class NameGroup(Record):
     own_family: bool = False
     # Endings a woman's family name takes instead (Roman Cornelius becomes Cornelia): {"ius": "ia"}.
     feminine_family: dict[str, str] = Field(default_factory=dict)
+    # The kind of people this group's names belong to (companion/world/lifespans.py), built in or the city's own;
+    # empty for humans. An unknown kind is dropped when the city loads.
+    kind: str | None = Field(default=None, max_length=40)
 
     @model_validator(mode='after')
     def check(self):
@@ -423,6 +426,10 @@ class City(Record):
     notables: list[Notable] = Field(default_factory=list, max_length=200)
     # Quirks and goals of the city's own for its townsfolk (companion/world/townsfolk.py).
     townsfolk: Townsfolk | None = None
+    # Kinds of people (companion/world/lifespans.py): a built-in kind's lifespan here ({"elf": {"lifespan": 750}}) or
+    # a kind of the city's own (label, lifespan and words). Checked when the city loads (lifespans.clean), which
+    # drops a bad entry with a note rather than stopping the city loading.
+    kinds: dict[str, dict] | None = None
 
     @model_validator(mode='after')
     def check(self):

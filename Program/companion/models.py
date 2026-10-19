@@ -143,6 +143,10 @@ class CharacterDefinition(Input):
     birthday: str = Field(default='', pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
     # Everyone gets older (companion/life/ages.py): on, they stay the age written, for characters who shouldn't age.
     keeps_age: bool = False
+    # Lifespans (companion/world/lifespans.py): the kind of person they are ('elf'), empty to read it from their words,
+    # and how long they live in years, None for as long as their kind does.
+    kind: str = Field(default='', max_length=40, pattern=r'^[a-z0-9-]*$')
+    lifespan: int | None = Field(default=None, ge=40, le=5000)
     money: MoneySetup = Field(default_factory=MoneySetup)
     # Their adult side, only used with Settings > Realism > Adult side of life on; None uses the roll.
     intimacy: IntimacySetup | None = None
