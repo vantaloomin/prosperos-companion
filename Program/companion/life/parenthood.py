@@ -135,6 +135,8 @@ MORE_LINES = {'yes': 'On children: you would like another child one day. If it c
               'someday': 'On children: you might want another child someday, but not any time soon. If it comes up, '
                          'say so honestly.',
               'no': "On children: you don't want more children. If it comes up, say so honestly and kindly."}
+# The user said not yet when they brought it up: who said it, until a child is on the way (the real model mixed it up).
+NOT_YET_LINE = 'Earlier, when you brought up starting a family, the user said they weren\'t ready yet.'
 ROUTE_WORDS = {'expecting_them': 'you would carry the baby', 'expecting_you': 'the user would carry the baby',
                'adoption': 'you would adopt', 'fostering': 'you would foster, which may lead to adopting',
                'surrogacy': 'you would have a baby through a surrogate', 'ward': 'you would take in a ward',
@@ -531,6 +533,8 @@ def context_lines(connection, companion: dict, found: dict, now) -> list[tuple[s
     wanted = wants(connection, companion)  # No clock: the context is read, never written (`settle` records it).
     more = has_children(connection, companion)
     result = [(f"family:wants:{wanted}{':more' if more else ''}", f'- {(MORE_LINES if more else WANT_LINES)[wanted]}')]
+    if not more and said_not_yet(connection, companion):
+        result.append(('family:not_yet', f'- {NOT_YET_LINE}'))
     stayed = stay_ask(connection, companion['active_timeline_id'])
     if stayed and stayed['status'] in ('yes', 'lapsed') and found['ladder'] == 'romance':
         on = steps.long_date(stayed['settled_at'][:10])
@@ -554,6 +558,16 @@ def has_children(connection, companion: dict) -> bool:
     from companion.life import kids
     timeline_id = companion.get('active_timeline_id')
     return bool(timeline_id and (kids.own(connection, timeline_id) or ours(connection, timeline_id)))
+
+
+def said_not_yet(connection, companion: dict) -> bool:
+    """The user's latest answer when they brought up a family was not yet, and nothing is under way since."""
+    from companion.life import expecting
+    timeline_id = companion['active_timeline_id']
+    last = optional(connection, "SELECT status FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side='them' "
+                    "AND status IN ('yes', 'not_yet', 'no') ORDER BY settled_at DESC LIMIT 1", (timeline_id, USER,
+                                                                                               FAMILY.key))
+    return bool(last) and last['status'] == 'not_yet' and not under_way(expecting.current(connection, timeline_id))
 
 
 def journey_lines(connection, companion: dict, now) -> list[tuple[str, str]]:

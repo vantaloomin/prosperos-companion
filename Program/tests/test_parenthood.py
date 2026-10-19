@@ -451,3 +451,21 @@ def test_one_who_already_has_kids_is_asked_about_more(client, monkeypatch):
     set_family(client, wants='yes')
     assert 'you would like another child one day' in preview(client)
 
+
+def test_after_a_not_yet_the_context_says_who_was_not_ready(client, clock, monkeypatch):
+    living_together(client, monkeypatch)
+    with client.app.state.database.connect(write=True) as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        steps.insert_ask(connection, timeline_id, parenthood.LADDER, steps.FAMILY.key, 'them', 'not_yet',
+                         clock.now().isoformat())
+        connection.commit()
+    assert parenthood.NOT_YET_LINE in preview(client)
+    set_family(client, decided=True)
+    assert parenthood.NOT_YET_LINE in preview(client)  # Still true once decided, until a child is on the way.
+    clock.advance(timedelta(days=60))
+    with client.app.state.database.connect(write=True) as connection:
+        steps.insert_ask(connection, timeline_id, parenthood.LADDER, steps.FAMILY.key, 'them', 'yes',
+                         clock.now().isoformat())
+        connection.commit()
+    assert parenthood.NOT_YET_LINE not in preview(client)
+
