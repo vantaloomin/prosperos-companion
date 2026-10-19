@@ -525,8 +525,14 @@ def named(row: dict) -> str:
     """How they landed on the name (the companion suggested it), from the bank; a name the user gave is theirs."""
     if row['details'].get('renamed'):
         return 'the user picked it'
-    line = generators.pick(f"journey:{row['id']}", 'named', bank()['names_talk'])['text']
+    line = generators.pick(f"journey:{row['id']}", 'named', suggested())['text']
     return line.format(name=row['details']['name']).rstrip('.')
+
+
+def suggested() -> list[dict]:
+    """The names_talk lines where the companion came up with the name, as the Character page says ("Dana suggested
+    it"); not those where the user did, which would also decide what the user did."""
+    return [line for line in bank()['names_talk'] if not line['text'].startswith('the user ')]
 
 
 CARRIER = {'expecting_them': 'you are the one carrying the baby', 'expecting_you': 'the user is carrying the baby',

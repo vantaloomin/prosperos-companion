@@ -380,3 +380,10 @@ def test_an_older_citys_lines_name_nothing_the_era_lacks(client, monkeypatch):
         for key in ('reactions', 'pregnancy', 'waiting'):
             kept = expecting.fitting(expecting.bank()[key], connection, companion)
             assert len(kept) >= 50 and not any(families.UNFIT['medieval'].search(line['text']) for line in kept), key
+
+
+def test_the_companion_suggested_the_name_as_the_character_page_says():
+    for index in range(200):
+        row = {'id': f'j{index}', 'details': {'name': 'Maya'}}
+        assert not expecting.named(row).startswith('the user ')
+    assert len(expecting.suggested()) >= 30
