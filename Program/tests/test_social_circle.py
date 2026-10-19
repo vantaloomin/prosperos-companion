@@ -4,6 +4,7 @@ from datetime import timedelta
 import pytest
 from conftest import set_life
 
+from companion.characters import current
 from companion.clock import parse
 from companion.life import ages, body, circle
 
@@ -167,3 +168,15 @@ def test_an_existing_circle_gains_a_grandparent_dated_from_then(client, clock, m
     # Taken out by the user, they are not added again.
     client.post(f"/api/life/circle/{elder['id']}/remove")
     assert elders(client) == []
+
+
+def test_the_grandparent_never_shares_a_first_name_with_someone_in_the_circle(client):
+    make(client, 'Warm and curious.', identity='30.')
+    world = client.app.state.life.world
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+    definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
+    first = circle.grandparent(definition, world, timeline_id, 30, set())
+    given = first['details']['full_name'].split()[0]
+    again = circle.grandparent(definition, world, timeline_id, 30, {given, 'Someone Else'})
+    assert again['details']['full_name'].split()[0] != given and again['name'] != first['name']
