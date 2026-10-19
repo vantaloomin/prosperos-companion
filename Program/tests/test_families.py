@@ -394,7 +394,7 @@ def test_older_cities_speak_in_their_own_voice_and_today_in_a_texting_one():
         'everyone at work is already knitting something')
 
 
-def test_a_they_them_companion_is_the_cool_relative_and_a_father_has_the_baby_with_their_partner():
+def test_a_they_them_companion_is_the_cool_relative_and_a_fathers_baby_is_here():
     due = date(2027, 3, 1)
     assert families.announced('sibling', due, 'family', {'name': 'Rowan', 'pronouns': 'they/them'})[1] == \
         "{a} is having a baby!!! due in March. I'm going to be the cool relative"
@@ -402,7 +402,7 @@ def test_a_they_them_companion_is_the_cool_relative_and_a_father_has_the_baby_wi
         'I am going to be an aunt')
     child = {'name': 'Nova', 'pronouns': 'she/her', 'title': 'friend'}
     assert families.arrived(child, 'friend', {}, 'he/him') == (
-        '{a} and their partner had the baby: a girl named Nova.', "{a}'s baby is here! a girl, Nova. everyone's doing great")
+        '{a} had the baby: a girl named Nova.', "{a}'s baby is here! a girl, Nova. everyone's doing great")
     assert families.arrived(child, 'friend', {}, 'she/her')[0] == '{a} had the baby: a girl named Nova.'
     assert families.arrived(child, 'godchild', {}, 'he/him')[1].startswith("{a}'s baby is here! a girl, Nova, and {a} asked")
     assert 'crying' not in families.arrived(child, 'family', {}, 'she/her', True)[1]

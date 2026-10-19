@@ -304,12 +304,11 @@ def aunt(definition: dict) -> str | None:
 
 
 def arrived(child: dict, kind: str, definition: dict, parent: str = 'she/her', old: bool = False) -> tuple[str, str]:
-    """The birth, and the companion's share of it; a he/him `parent` had the baby with their partner, and `old` is an
-    older city's voice."""
+    """The birth, and the companion's share of it: a he/him `parent`'s baby is here (the text the model reads keeps
+    "had the baby", which read better with it: v0.15 follow-ups, ab-e.md), and `old` is an older city's voice."""
     she = child['pronouns'] == 'she/her'
     girl = 'girl' if she else 'boy'
-    who = '{a} and their partner' if parent == 'he/him' else '{a}'
-    text = f"{who} had the baby: a {girl} named {child['name']}."
+    text = f"{{a}} had the baby: a {girl} named {child['name']}."
     if kind == 'family':
         word = 'niece' if she else 'nephew'
         return (f"{text} {{name}} has a new {word}.",
