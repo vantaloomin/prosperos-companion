@@ -440,3 +440,22 @@ def test_a_matchlight_card_for_an_elf_gives_their_age_in_human_terms():
     assert card['age'] == 225 and card['life_age'] == dating.life_of(elf, data) == 40
     human = {**townsfolk.resident(data, 'gran-porte', 3), 'age': 34, 'folk': 'human'}
     assert dating.card(human, data, date(2026, 10, 19))['life_age'] is None
+
+
+def test_the_prompt_gives_an_elf_personas_age_in_human_terms(client):
+    from companion.memory import context
+    make(client)
+    persona = client.get('/api/worlds').json()['persona']
+    url = f"/api/worlds/personas/{persona['id']}"
+    assert client.patch(url, json={'name': 'Sam', 'age': 34, 'about': 'A ranger.'}).status_code == 200
+    with connect(client, write=False) as connection:
+        assert '- Age: 34\n' in context.persona_text(connection)
+    assert client.patch(url, json={'age': 312, 'kind': 'elf'}).status_code == 200
+    with connect(client, write=False) as connection:
+        assert '- Age: 312 (an elf; about 49 in human terms)\n' in context.persona_text(connection)
+    assert client.patch(url, json={'kind': '', 'about': 'A dwarven smith.', 'age': 150}).status_code == 200
+    with connect(client, write=False) as connection:
+        assert '- Age: 150 (a dwarf; about 47 in human terms)\n' in context.persona_text(connection)
+    assert client.patch(url, json={'lifespan': 0}).status_code == 200
+    with connect(client, write=False) as connection:
+        assert "- Age: 150 (doesn't age)\n" in context.persona_text(connection)

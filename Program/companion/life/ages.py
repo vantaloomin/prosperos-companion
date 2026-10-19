@@ -240,6 +240,22 @@ def persona_life_age(connection, persona: dict, definition: dict | None = None) 
     return lifespans.life_age(persona.get('age') or 0, lifespans.persona_lifespan(persona, data)) or 0
 
 
+def persona_age_text(connection, persona: dict, definition: dict | None = None) -> str:
+    """The user's age for the prompt's persona lines: "312 (an elf; about 49 in human terms)" for a kind picked on the
+    Persona page or read from their words (A/B: findings/ab-r2-expecting.md, decide-screens), else just the age."""
+    data = city_of(connection, definition) if definition else None
+    kind, age = lifespans.persona_kind(persona, data), persona.get('age')
+    span = lifespans.persona_lifespan(persona, data)
+    if not age or (kind == lifespans.HUMAN and span == lifespans.HUMAN_LIFESPAN):
+        return str(age or '')
+    if span is None:
+        return f"{age} (doesn't age)"
+    label = lifespans.kinds(data)[kind]['label'].lower() if kind != lifespans.HUMAN else 'human'
+    article = 'an' if label[:1] in 'aeiou' else 'a'
+    life = lifespans.life_age(age, span)
+    return f'{age} ({article} {label}; about {life} in human terms)' if life != age else f'{age} ({article} {label})'
+
+
 def town_life_age(connection, sheet: dict, day: date, data: dict | None = None) -> int:
     """A townsperson's life age: their kind comes with their sheet (from their name group)."""
     return lifespans.life_age(town_age(connection, sheet, day), lifespans.lifespan_of(sheet.get('folk'), data))

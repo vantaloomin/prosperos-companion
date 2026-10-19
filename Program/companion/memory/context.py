@@ -326,12 +326,14 @@ FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
 
 
-def persona_text(connection, today: date | None = None) -> str | None:
-    """The user's persona in this world (companion/worlds.py): only what they filled in, never a placeholder."""
+def persona_text(connection, today: date | None = None, definition: dict | None = None) -> str | None:
+    """The user's persona in this world (companion/worlds.py): only what they filled in, never a placeholder. A
+    long-lived kind's age comes with their kind and their age in human terms (companion/life/ages.py)."""
     row = connection.execute('SELECT * FROM persona WHERE id=1').fetchone()
     if not row:
         return None
-    parts = [f"Name: {row['name']}" if row['name'].strip() else '', f"Age: {row['age']}" if row['age'] else '',
+    age = ages.persona_age_text(connection, dict(row), definition)
+    parts = [f"Name: {row['name']}" if row['name'].strip() else '', f'Age: {age}' if row['age'] else '',
              f"Gender: {row['gender']}" if row['gender'] else '',
              # Where they live in this world (companion/life/where.py): the app's pick until they change it.
              f'Lives in: {home}' if (home := where.home_text(connection)) else '', row['about'].strip()]
@@ -958,7 +960,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
                                        or calls.on_call(connection, companion, now))
     packet.require('character', version['id'], character_text(version, connection, intimate=extra['adult'],
                                                               day=today, texts=texts))
-    if who := persona_text(connection, date.fromisoformat(today)):
+    if who := persona_text(connection, date.fromisoformat(today), version['definition']):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))
