@@ -687,3 +687,148 @@ def test_before_asking_their_own_day_is_never_a_plus_one():
         assert 'plus-one' not in big_days.coming_line({**row, 'kind': kind}, date(2027, 2, 1))
     assert 'as your plus-one' in big_days.coming_line({**row, 'kind': 'wedding', 'details': {'name': 'Leo'}},
                                                        date(2027, 2, 1))
+
+
+def test_a_no_to_one_big_day_lets_the_next_one_close_by_be_asked(client, clock):
+    make(client)
+    guests(client, 3)
+    first = add(client, clock, days=30)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE big_days SET invite=1 WHERE id=?', (first['id'],))
+    second = add(client, clock, kind='birthday', role='mom', days=36, source='test:2', age=60)
+    assert second['invite'] == 0 and second['consequence_id'] is None  # Held back by the first, still to be asked.
+    advance(client, clock)
+    assert row_of(client, second['id'])['consequence_id'] is None
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE big_days SET status='declined' WHERE id=?", (first['id'],))
+    advance(client, clock)
+    assert row_of(client, second['id'])['consequence_id']  # The no doesn't hide it: the engine decides now.
+
+
+def test_a_day_the_user_went_to_still_holds_the_next_back_but_not_a_funeral_in_the_family(client, clock):
+    make(client)
+    first = add(client, clock, days=30)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE big_days SET invite=1, status='done', with_user=1 WHERE id=?", (first['id'],))
+        near = {'id': 'near', 'timeline_id': first['timeline_id'], 'kind': 'birthday', 'details': {},
+                'local_date': (date.fromisoformat(first['local_date']) + timedelta(days=5)).isoformat()}
+        assert big_days.crowded(connection, near)
+        assert not big_days.crowded(connection, {**near, 'kind': 'funeral', 'details': {'family': True}})
+        connection.execute("UPDATE big_days SET with_user=0 WHERE id=?", (first['id'],))
+        assert not big_days.crowded(connection, near)
+
+
+def test_an_out_of_town_relatives_wedding_is_a_trip_you_can_come_along_to(client, clock, monkeypatch):
+    make(client)
+    client.get('/api/life/home')
+    set_details(client, person(client, 'brother')['id'], local=False, city='')
+    row = add(client, clock)
+    details = row['details']
+    assert details['city'] and details['city_id'] and row['place']['name'] == f"a venue in {details['city']}"
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        assert big_days.invitable(connection, companion, row)
+        set_off = date.fromisoformat(row['local_date']) - timedelta(days=1)
+        fares = [item for item in big_days.purchases(connection, companion['active_timeline_id'], set_off, set_off)
+                 if item['for'] == 'trip']
+        assert details['fare'] > 0 and fares == [{'text': f"travelled to {details['city']} for {big_days.title(row)}",
+                                                  'date': set_off.isoformat(), 'spend': '', 'cost': details['fare'],
+                                                  'for': 'trip'}]
+        monkeypatch.setattr(long_distance, 'far', lambda *_args: object())
+        assert not big_days.invitable(connection, companion, row)  # The user lives elsewhere: they go on their own.
+    line = next(text for text in lines(client, clock) if 'wedding is on' in text)
+    assert f"It's out of town, in {details['city']}: you travel there for it." in line
+    assert "It's out of town" in big_days.coming_line({**row, 'status': 'invited'}, clock.now().date())
+    assert 'the two of you together' in big_days.coming_line({**row, 'status': 'invited'}, clock.now().date())
+
+
+def coffee(client, clock, day, key):
+    """An outing with the user booked for that day."""
+    from companion.life import together
+    place = {'id': 'cafe', 'name': 'Daily Grind', 'kind': 'cafe', 'neighborhood': ''}
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, character_version_id, "
+                           "memory_revision, created_at, completed_at) VALUES (?, ?, ?, 'companion', 'Coffee?', "
+                           "'complete', 1, ?, 0, ?, ?)", (key, companion['active_timeline_id'], 90 + len(key),
+                                                          companion['active_version_id'], clock.now().isoformat(),
+                                                          clock.now().isoformat()))
+        together.insert(connection, companion, key, 'coffee', place, day, '11:00', '12:00', None,
+                        clock.now().isoformat())
+
+
+def test_a_big_day_moves_off_a_day_an_outing_with_you_has(client, clock):
+    make(client)
+    guests(client, 3)
+    day = clock.now().date() + timedelta(days=30)
+    coffee(client, clock, day, 'm-1')
+    party = add(client, clock, kind='birthday', role='mom', source='test:party', age=60)
+    assert party['local_date'] == (day + timedelta(days=7)).isoformat()  # The host picked the next weekend.
+    graduation = add(client, clock, kind='graduation', role='cousin', source='test:graduation')
+    assert graduation['local_date'] == day.isoformat()  # Its day is its own.
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE big_days SET invite=(id=?)', (graduation['id'],))
+    at(clock, graduation['invite_on'], '12:00')
+    with client.app.state.database.connect() as connection:
+        assert not big_days.invite_due(connection, current(connection), clock.now())  # Never to a day already taken.
+    later = add(client, clock, kind='wedding', role='brother', days=60, source='test:later')
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE big_days SET invite=1 WHERE id=?', (later['id'],))
+    coffee(client, clock, date.fromisoformat(later['local_date']), 'm-22')
+    advance(client, clock)
+    assert row_of(client, later['id'])['local_date'] == (date.fromisoformat(later['local_date']) +
+                                                          timedelta(days=7)).isoformat()
+
+
+def test_camelot_has_its_own_gifts_and_1895_keeps_the_timeless_ones(client, clock):
+    gifts = big_days.bank()['gifts']
+    for kind in ('wedding', 'birthday', 'first_birthday'):
+        found = gifts[f'{kind}_old']
+        assert len(found) >= 25 and len(set(found)) == len(found)
+        assert not any(re.search(r'\b(?:tea|teacup|sparkling|champagne|whisky|printed|framed)\b', gift) for gift in found)
+    client.post('/api/companion', json={'name': 'Elayne', 'timezone': 'Europe/London', 'home_city': 'Camelot'})
+    client.get('/api/life/circle')
+    row = add(client, clock, role=None, source='test:camelot', name='Cynan Ap Rhys')
+    assert row['gift'] in gifts['wedding_old']
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        for number in range(40):
+            gift, _cost = big_days.gift_for(connection, companion, big_days.KINDS['birthday'], f'seed-{number}')
+            assert gift in gifts['birthday_old'], gift
+        definition = {**companion['version']['definition'], 'home_city': 'london-1895'}
+        victorian = {**companion, 'version': {**companion['version'], 'definition': definition}}
+        assert {big_days.gift_for(connection, victorian, big_days.KINDS['birthday'], f'seed-{number}')[0]
+                for number in range(40)} <= set(gifts['birthday'])
+
+
+def test_a_friends_own_wedding_photo_has_them_in_wedding_clothes():
+    from companion.images import prompts
+    line = prompts.doing({'activity': big_days.PICTURED, 'summary': 'Priya got married.', 'place': 'Royal Observatory'},
+                         'Priya', 'her', 'she')
+    assert line == 'Priya is smiling in wedding clothes at her own wedding at Royal Observatory.'
+
+
+def test_a_wedding_a_friend_went_to_is_a_big_day_not_their_own_wedding(client, clock, monkeypatch):
+    from companion.life import wedding
+
+    class Packet:
+        def __init__(self):
+            self.offered = []
+
+        def offer(self, section, identity, text):
+            self.offered.append((section, identity))
+
+    make(client, 'friendship')
+    monkeypatch.setattr(wedding, 'context_lines', lambda *_args: [('wedding:w1:done', '- You married the user.'),
+                                                                  ('wedding-guest:w2:done:2026-10-10', '- The user '
+                                                                   'married Mira on 10 October; you were there.')])
+    packet = Packet()
+    with client.app.state.database.connect() as connection:
+        wedding.offer(packet, connection, current(connection), clock.now())
+    assert packet.offered == [('wedding', 'wedding:w1:done'), ('big_days', 'wedding-guest:w2:done:2026-10-10')]
+
+
+def test_the_feed_rephrase_keeps_the_user_on_a_day_together():
+    from companion.life import synthesis
+    assert 'when the facts say "with you", keep "with you"' in synthesis.RULES
+    assert 'Never add the user' in synthesis.RULES
