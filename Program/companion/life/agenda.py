@@ -602,7 +602,7 @@ def forget_person(connection, timeline_id, person_id, now):
 
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
-    result, known = [], circle.ties(circle.people(connection, timeline_id))
+    result, known = [], circle.ties(circle.people(connection, timeline_id), circle.older_era(connection, timeline_id))
     # Not at work: at the wedding, or at their own big day (companion/life/big_days.py), as its scene says.
     at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
     for row in circle.people(connection, timeline_id, True):

@@ -50,6 +50,10 @@ GRANDPARENTS = {'grandparent', 'grandmother', 'grandfather', 'grandma', 'grandpa
 GRANDCHILD_UNDER = 40
 ELDER_AGES = (75, 95)
 ELDERS = True
+# Parents in the circle who parted: a quarter today, this share in an older city, where it reads "separated".
+OLDER_PARTED = 0.04
+PARTED = {'divorced': 'Divorced from', 'separated': 'Separated from'}
+COUPLED = ('married', *PARTED)
 # Relatives who share the companion's family name unless a marriage explains otherwise.
 IMMEDIATE = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother'}
 SUFFIXES = {'jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv'}
@@ -568,12 +572,14 @@ def set_status(connection, person_id, status: str, now) -> dict:
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 
-def tie(first: dict, second: dict) -> str | None:
-    """How two circle members know each other, the same every time for the same two people."""
+def tie(first: dict, second: dict, older: bool = False) -> str | None:
+    """How two circle members know each other, the same every time for the same two people. In an older city
+    (before 1950) parents who parted are separated, and far fewer did (breakups.separated)."""
     kinds = {role_kind(first['role']), role_kind(second['role'])}
     pair = ':'.join(sorted((first['id'], second['id'])))
     if kinds == {'parent'}:
-        return 'divorced' if generators.unit(pair, 'divorced') < 0.25 else 'married'
+        parted = generators.unit(pair, 'divorced') < (OLDER_PARTED if older else 0.25)
+        return ('separated' if older else 'divorced') if parted else 'married'
     if kinds <= FAMILY:
         return 'family'
     if kinds == {'coworker'}:
@@ -586,12 +592,12 @@ def tie(first: dict, second: dict) -> str | None:
     return 'friends' if generators.unit(pair, 'friends') < chance else None
 
 
-def ties(rows: list[dict]) -> dict[str, list[dict]]:
+def ties(rows: list[dict], older: bool = False) -> dict[str, list[dict]]:
     """Who each active member knows inside the circle: {person id: [{id, name, how}]}."""
     result = {row['id']: [] for row in rows}
     for index, first in enumerate(rows):
         for second in rows[index + 1:]:
-            if how := tie(first, second):
+            if how := tie(first, second, older):
                 result[first['id']].append({'id': second['id'], 'name': second['name'], 'how': how})
                 result[second['id']].append({'id': first['id'], 'name': first['name'], 'how': how})
     return result
@@ -599,7 +605,15 @@ def ties(rows: list[dict]) -> dict[str, list[dict]]:
 
 def ties_text(known: list[dict]) -> str:
     """"Married to Rui. Knows Ana (family), Dev (coworkers).": for the chat context."""
-    partners = [f"{'Divorced from' if item['how'] == 'divorced' else 'Married to'} {item['name']}."
-                for item in known if item['how'] in ('married', 'divorced')]
-    others = [f"{item['name']} ({item['how']})" for item in known if item['how'] not in ('married', 'divorced')]
+    partners = [f"{PARTED.get(item['how'], 'Married to')} {item['name']}." for item in known if item['how'] in COUPLED]
+    others = [f"{item['name']} ({item['how']})" for item in known if item['how'] not in COUPLED]
     return ' '.join(partners + ([f"Knows {', '.join(others)}."] if others else []))
+
+
+def older_era(connection, timeline_id: str) -> bool:
+    """The timeline's companion lives in an older city (before 1950), as breakups.separated reads it."""
+    from companion.characters import by_id
+    from companion.world import newcomers, townsfolk
+    row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    companion = row and by_id(connection, row['companion_id'])
+    return bool(companion) and not townsfolk.modern(newcomers.city_for(connection, companion['version']['definition']))
