@@ -413,7 +413,7 @@ def grandparent(definition: dict, world, timeline_id: str, age: int, taken: set[
                                      family=family, group=family_group(data, family))
         made = city_person(member, data, definition, None, timeline_id, set(taken) | {definition['name']},
                            relation('grandparent', member['name']['pronouns']))
-        return made | {'details': made['details'] | {'elder': True}}
+        return made | {'details': made['details'] | {'career': 'Retired', 'elder': True}}
     pronouns = generators.pick(seed, 'pronouns', ['she/her', 'he/him'])
     made = assemble(seed, 0, definition, None, set(taken) | {definition['name']}, relation('grandparent', pronouns))
     details = made['details'] | {'career': 'Retired', 'pronouns': pronouns, 'age': elder_age, 'local': local,
