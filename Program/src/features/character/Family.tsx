@@ -8,7 +8,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, stepDate } from './stepsText'
-import { FAMILY_KEY, KIDS_KEY, OURS_KEY, appPick, arrivalText, decidedHint, journeyLine, nameHint, routeHint, splitLine, wantsHint } from './familyText'
+import { FAMILY_KEY, KIDS_KEY, OURS_KEY, appPick, arrivalText, decidedHint, journeyLine, nameHint, outcomeSummary, routeHint, splitLine, wantsHint } from './familyText'
 import { Kids } from './Kids'
 import { HowItWent, OurChildren } from './OurChildren'
 
@@ -141,7 +141,7 @@ function OnTheWay({ journey, name, save, named = true }: { journey: Journey; nam
         </ol>
       )}
       {named && journey.name && <ChildName key={journey.name} journey={journey} name={name} save={save} />}
-      {journey.consequences.map((id) => <WhyItWent key={id} id={id} />)}
+      {(journey.outcomes ?? journey.consequences.map((id) => ({ key: '', id }))).map((item) => <WhyItWent key={item.id} id={item.id} summary={outcomeSummary(item.key, journey.route)} />)}
     </div>
   )
 }

@@ -813,7 +813,10 @@ def panel(connection, companion: dict, now, show_odds: bool) -> dict | None:
     return {'route': row['route'], 'status': row['status'], 'due_on': row['due_on'] if 'news' in done else None,
             'arrived_on': row['arrived_on'], 'name': row['details'].get('name') if known else None,
             'renamed': bool(row['details'].get('renamed')), 'stages': shown,
-            'consequences': list((decode(row['consequences']) or {}).values()) if show_odds else []}
+            'consequences': list((decode(row['consequences']) or {}).values()) if show_odds else [],
+            # Which of the engine's choices each is (soon, turn, wait, match, fostered), so the panel can name them.
+            'outcomes': [{'key': key, 'id': value} for key, value in (decode(row['consequences']) or {}).items()]
+            if show_odds else []}
 
 
 def listed(stage: dict, done: dict, row: dict) -> bool:

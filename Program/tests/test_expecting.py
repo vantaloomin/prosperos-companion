@@ -426,3 +426,13 @@ def test_news_on_a_day_the_user_was_away_still_comes(client, provider, clock, mo
     send(client, 'hi', 'client-expecting-16')
     clock.advance(timedelta(days=1))
     assert triggers(client, clock) == []
+
+
+def test_the_panel_names_each_outcome_under_hidden_values(client, monkeypatch, likeliest):
+    started(client, monkeypatch, route='adoption')
+    assert client.put('/api/settings', json={'show_odds': True}).status_code == 200
+    found = family(client)['journey']
+    assert [item['key'] for item in found['outcomes']] == ['wait', 'match']
+    assert [item['id'] for item in found['outcomes']] == found['consequences']
+    assert client.put('/api/settings', json={'show_odds': False}).status_code == 200
+    assert family(client)['journey']['outcomes'] == []

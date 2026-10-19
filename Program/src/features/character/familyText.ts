@@ -184,3 +184,17 @@ export function anotherHint(view: FamilyView, name: string): string {
   if (view.can_decide_another) return `${who} may bring it up when the time feels right, and you answer in the chat. You can also set it here.`
   return 'This can come up a year and a half after your first child came home, and only once.'
 }
+
+/** The summary of each "Why it went this way" under a journey (Hidden values), so two or three in a row say which is
+ * which: how soon, the hard turn, the wait, who the child is, whether fostering leads to adopting. */
+export function outcomeSummary(key: string, route: string): string {
+  const pregnancy = PREGNANCY.includes(route)
+  const summaries: Record<string, string> = {
+    soon: route === 'surrogacy' ? 'Why the surrogacy took this long' : 'Why finding out took this long',
+    turn: pregnancy ? 'Why the pregnancy went this way' : 'Why it went this way',
+    wait: 'Why the wait for a match is this long',
+    match: 'How old the child will be',
+    fostered: 'Whether fostering leads to adopting',
+  }
+  return summaries[key] ?? 'Why it went this way'
+}
