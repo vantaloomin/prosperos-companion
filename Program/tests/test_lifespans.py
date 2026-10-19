@@ -405,6 +405,20 @@ def test_a_new_persona_can_be_made_an_elf(client):
     assert client.post('/api/worlds/personas', json={'name': 'Tom', 'age': 250}).status_code == 422
 
 
+def test_becoming_an_elven_townsperson_makes_an_elf_persona_of_their_real_age():
+    from companion import worlds
+    data = catalog.city('grandport')
+    sheet = next(found for hood in data['neighborhoods'] for index in range(400)
+                 if (found := townsfolk.resident(data, hood['id'], index)).get('folk') == 'elf' and found['age'] > 120)
+    persona = worlds.persona_for(data, sheet, date(2026, 10, 19), '2026-10-19T00:00:00Z')
+    assert persona['kind'] == 'elf' and persona['age'] == sheet['age'] and persona['lifespan'] is None
+    assert lifespans.persona_kind(persona, data) == 'elf'
+    assert lifespans.long_lived(lifespans.persona_lifespan(persona, data))
+    human = next(found for index in range(50)
+                 if (found := townsfolk.resident(data, data['neighborhoods'][0]['id'], index)).get('folk') in (None, 'human'))
+    assert worlds.persona_for(data, human, date(2026, 10, 19), '2026-10-19T00:00:00Z')['kind'] == ''
+
+
 def test_an_elven_townsperson_past_200_still_has_a_life_story_to_tell():
     from companion import cast
     from companion.world import life_details

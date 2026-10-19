@@ -500,7 +500,9 @@ def persona_for(data: dict, sheet: dict, today: date, timestamp: str) -> dict:
     definition = cast.profile(data, sheet, met, today)
     return {'id': identifier(), 'name': sheet['full'], 'gender': gender_of(sheet),
             'age': sheet['age'], 'about': sheet_text(definition)[:2000], 'birthday': '', 'created_at': timestamp,
-            'townsfolk_key': sheet['key'], 'town_seed': data.get('town', '')}
+            'townsfolk_key': sheet['key'], 'town_seed': data.get('town', ''),
+            # Their kind comes with them: an elven townsperson is an elf of their real age (companion/cast.py).
+            'kind': definition.get('kind') or '', 'lifespan': None}
 
 
 def become(state, key: str) -> dict:
