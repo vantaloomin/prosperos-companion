@@ -2200,6 +2200,12 @@
           "weight": 0.22,
           "rules": [
             {
+              "reader": "breakups",
+              "at_most": 0,
+              "times": 0,
+              "why": "breakups are off (an easy life has none)"
+            },
+            {
               "reader": "drama",
               "at_least": 2,
               "times": 1.8,
