@@ -3,7 +3,7 @@
 Every record names a source from its file's `sources` table, so each fact can be traced to where it
 came from, under which license, and when it was gathered.
 """
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -429,7 +429,7 @@ class City(Record):
     # Kinds of people (companion/world/lifespans.py): a built-in kind's lifespan here ({"elf": {"lifespan": 750}}) or
     # a kind of the city's own (label, lifespan and words). Checked when the city loads (lifespans.clean), which
     # drops a bad entry with a note rather than stopping the city loading.
-    kinds: dict[str, dict] | None = None
+    kinds: Any = None  # Any shape here: a wrong one is dropped with a note (lifespans.clean), not a failed load.
 
     @model_validator(mode='after')
     def check(self):

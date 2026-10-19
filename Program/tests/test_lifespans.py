@@ -247,3 +247,14 @@ def test_an_elfs_other_parent_is_a_human_near_their_age_in_human_terms(client):
         person_id = kids.add_other(connection, companion, client.app.state.life.world, {}, client.app.state.database.clock.now())
         details = decode(connection.execute('SELECT details FROM circle_people WHERE id=?', (person_id,)).fetchone()['details'])
     assert 40 <= details['age'] <= 60 and not details.get('folk')
+
+
+def test_a_city_file_whose_kinds_block_is_the_wrong_shape_still_loads():
+    for block in ({'elf': 750}, [{'elf': {'lifespan': 750}}], 'elves'):
+        raw = copy.deepcopy(catalog.city('grandport'))
+        for key in ('data_version', 'import_notes', 'builtin', 'origin'):
+            raw.pop(key, None)
+        raw['kinds'] = block
+        data = catalog.prepare(raw, mend=True)
+        assert 'kinds' not in data and any('kind' in note for note in data['import_notes'])
+        assert lifespans.lifespan_of('elf', data) == 600

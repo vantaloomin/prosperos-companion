@@ -158,7 +158,11 @@ def clean(data: dict) -> list[str]:
     """Check a city's `kinds` block and its name groups' kinds in place: a bad entry is dropped, with a note saying
     why, and the city still loads. Childhood and the age of 18 are not the city's to change: only how long adulthood
     lasts."""
-    notes, own = clean_kinds(data.get('kinds') or {})
+    block = data.get('kinds') or {}
+    if not isinstance(block, dict):
+        notes, own = ['Dropped the kinds block: it needs to name each kind with its lifespan.'], {}
+    else:
+        notes, own = clean_kinds(block)
     if own:
         data['kinds'] = own
     else:
