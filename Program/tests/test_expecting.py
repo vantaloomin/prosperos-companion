@@ -371,3 +371,12 @@ def test_the_small_moments_of_one_journey_never_repeat():
         assert len(set(texts)) == expecting.MOMENTS
     # The first moment is the line it always was.
     assert expecting.moment_text({'id': 'x'}, 0, lines) == expecting.generators.pick('journey:x', 'moment:0', lines)['text']
+
+
+def test_an_older_citys_lines_name_nothing_the_era_lacks(client, monkeypatch):
+    living_together(client, monkeypatch, home_city='camelot')
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        for key in ('reactions', 'pregnancy', 'waiting'):
+            kept = expecting.fitting(expecting.bank()[key], connection, companion)
+            assert len(kept) >= 50 and not any(families.UNFIT['medieval'].search(line['text']) for line in kept), key

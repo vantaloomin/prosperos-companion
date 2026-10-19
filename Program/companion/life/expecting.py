@@ -109,10 +109,12 @@ def modern(connection, companion: dict) -> bool:
 
 
 def fitting(lines: list[dict], connection, companion: dict) -> list[dict]:
-    """The bank lines for their city: every line in a modern one, only those for any era elsewhere."""
+    """The bank lines for their city: every line in a modern one, only those for any era elsewhere, and none naming
+    something the era lacks (families.UNFIT: no tea in Camelot)."""
     if modern(connection, companion):
         return lines
-    return [line for line in lines if line.get('era') == 'any'] or lines
+    unfit = families.UNFIT.get(families.era_of(connection, companion['version']['definition']))
+    return [line for line in lines if line.get('era') == 'any' and not (unfit and unfit.search(line['text']))] or lines
 
 
 # Starting --------------------------------------------------------------------------------------------------------------
