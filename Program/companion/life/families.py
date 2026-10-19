@@ -518,6 +518,7 @@ def child_news(connection, companion: dict, people: list[dict], when: tuple[date
 
 def news_on(child: dict, day: date, pace: float, local: bool, era: str = 'modern') -> tuple[str, str, str] | None:
     """(story, text, share) for what comes up about this child on this day, if anything."""
+    from companion.life import own_family
     seed, first = f"child:{child['id']}", date.fromisoformat(child['born_on'])
     if FIRST_BIRTHDAY_BEAT and day == ages.birthday_in(first.year + 1, first.strftime('%m-%d')):
         return ('first_birthday', "{name} went to {child}'s first birthday party at {a}'s.",
@@ -531,11 +532,13 @@ def news_on(child: dict, day: date, pace: float, local: bool, era: str = 'modern
         return None
     sits = child['title'] != 'friend' and local and (day - first).days >= BABYSIT_FROM
     if sits and generators.unit(seed, 'babysit', week) < BABYSIT * pace:
-        line = generators.pick(seed, f'babysit-line-{week}', fitting(bank()[f'babysit_{group}'], era))
+        line = generators.pick(seed, f'babysit-line-{week}', own_family.for_age(fitting(bank()[f'babysit_{group}'], era),
+                                                                                  (day - first).days))
         return 'babysat', line['text'], line['share']
     chance = UPDATE['friend' if child['title'] == 'friend' else 'family'] * pace
     if generators.unit(seed, 'update', week) < chance:
-        line = generators.pick(seed, f'update-line-{week}', fitting(bank()[f'{group}_update'], era))
+        line = generators.pick(seed, f'update-line-{week}', own_family.for_age(fitting(bank()[f'{group}_update'], era),
+                                                                                 (day - first).days))
         return 'baby_update', line['text'], line['share']
     return None
 

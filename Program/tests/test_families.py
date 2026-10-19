@@ -510,3 +510,14 @@ def test_the_companion_keeps_knowing_someone_is_expecting_between_the_storyline_
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     intimate(client)
     assert 'expecting a baby' not in prompt(client)
+
+
+def test_a_circle_baby_a_few_weeks_old_does_not_walk_sit_up_or_eat_yet():
+    from companion.life import our_child, own_family
+    child = {'id': 'c1', 'born_on': '2027-01-04', 'pronouns': 'she/her', 'name': 'Ivy', 'title': 'sister'}
+    for offset in range(1, 140):
+        found = families.news_on(child, date(2027, 1, 4) + timedelta(days=offset), 3.0, True, 'modern')
+        if found and found[0] in ('baby_update', 'babysat'):
+            said = f'{found[1]} {found[2]}'
+            assert not our_child.MOVING.search(said) and not our_child.FOOD.search(said) and \
+                not own_family.SITTING.search(said), (offset, said)
