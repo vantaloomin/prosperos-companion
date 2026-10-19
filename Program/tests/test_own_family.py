@@ -219,6 +219,7 @@ def test_a_best_friend_is_asked_to_be_godparent_at_the_naming_day(client, mira, 
             rows = big_days.rows(connection, current(client)['active_timeline_id'])
     [row] = [row for row in rows if row['kind'] == 'naming']
     assert row['invite'] == 1 and row['details']['name'] == child['name'] and row['place']['name'].startswith('Mira and ')
+    assert row['details']['pronouns'] == child['pronouns']  # The baby's, not their partner's.
     assert date.fromisoformat(row['local_date']).weekday() == 5
     text = big_days.invitation(row, 'Saturday', '11')
     assert child['name'] in text and 'Saturday' in text

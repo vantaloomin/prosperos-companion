@@ -337,7 +337,8 @@ def namings(connection, companion: dict, today: date, people: dict, now) -> list
         if row is not None:
             child = {'she/her': 'daughter', 'he/him': 'son'}.get(item['pronouns'], 'child')
             result.append(candidate('naming', item['key'], row, date.fromisoformat(item['date']), name=item['child'],
-                                    role=child, host=row['name'], host_role=row['role'], partner=first(row['name']),
+                                    role=child, pronouns=item['pronouns'], host=row['name'], host_role=row['role'],
+                                    partner=first(row['name']),
                                     home=f"{name} and {first(row['name'])}'s place"))
     return result
 
