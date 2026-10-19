@@ -891,6 +891,9 @@ NEWS = {
     'need': 'Word just came that {need}. You and the user are taking them in: {name}, {age}, comes to live with you '
             'on {home}. Tell the user, in your own words.',
     'born_far': 'Your baby was born {when}: a {girl}, {name}. The user is away. Text them the news, in your own words.',
+    # The day the name comes up, when the companion suggested it (A/B: findings/ab-r2-expecting.md, decide-screens).
+    'name': "You've been thinking about names for the baby, and one keeps coming back to you: {name}. Suggest it to "
+            'the user in your own words, and leave them room to say no.',
 }
 
 
@@ -925,7 +928,10 @@ def news_due(connection, companion: dict, now) -> list:
 
 
 def news_key(row: dict, key: str) -> bool:
-    """Whether a stage is news told in a first text."""
+    """Whether a stage is news told in a first text; the name only while it is the one the companion suggested
+    (not once the user named the child)."""
+    if key == 'name':
+        return not row['details'].get('renamed')
     return key in NEWS or key == 'born' or key == 'home' and row['route'] in FOSTERING
 
 

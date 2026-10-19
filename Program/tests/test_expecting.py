@@ -570,3 +570,18 @@ def test_a_hard_turn_on_today_keeps_the_same_hold_as_the_news(client, clock, mon
     assert len(client.get('/api/life/steps/family/turns').json()) == 1
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     assert client.get('/api/life/steps/family/turns').json() == []
+
+
+def test_on_the_day_the_name_comes_up_they_text_to_suggest_it(client, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(expecting, 'FIRST_TEXTS', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', location='Baltimore')
+    to(client, clock, stage(row, 'name')['on'])
+    [trigger] = triggers(client, clock)
+    name = journey(client)['details']['name']
+    assert trigger.key == f"journey:{row['id']}:name"
+    assert trigger.reason == (f"You've been thinking about names for the baby, and one keeps coming back to you: {name}. "
+                              'Suggest it to the user in your own words, and leave them room to say no.')
+    # Once the user has named the child themselves, nothing is suggested.
+    with client.app.state.database.connect(write=True) as connection:
+        expecting.rename(connection, current(connection), 'Juniper', clock.now())
+    assert triggers(client, clock) == []
