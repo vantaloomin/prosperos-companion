@@ -210,7 +210,9 @@ def eligible(connection, timeline_id: str, people: list[dict], day: date) -> lis
     busy = {person for row in expecting(connection, timeline_id, day) for person in decode(row['cast_ids'])}
     found = []
     for person in people:
-        age, how = decode(person['details']).get('age'), kinship(person)
+        details = decode(person['details'])
+        age, how = details.get('age'), kinship(person)
+        age = ages.person_life_age(connection, details, age) if isinstance(age, int) else age  # In human terms.
         if not how or person['role'] in PARTNERS or person['id'] in dating | busy or not isinstance(age, int) \
                 or not AGES[0] <= age <= AGES[1]:
             continue

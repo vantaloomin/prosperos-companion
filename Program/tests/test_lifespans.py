@@ -4,7 +4,7 @@ from datetime import date
 
 from conftest import reconcile
 
-from companion.database import decode
+from companion.database import decode, encode
 from companion.life import ages, big_turns, circle, loss, parenthood
 from companion.world import catalog, couples, dating, generators, intimacy, lifespans, looks, townsfolk, turnover
 
@@ -271,3 +271,20 @@ def test_a_city_file_cannot_change_how_long_humans_live_or_make_doesnt_age_age()
     assert '"human"' in notes and '"ageless"' in notes
     assert lifespans.lifespan_of('human', data) == 80 and lifespans.lifespan_of('ageless', data) is None
     assert lifespans.sheet_lifespan({'identity': 'A baker.'}, data) == 80
+
+
+def test_an_elf_starts_a_family_by_their_age_in_human_terms(client, monkeypatch):
+    from companion.life import families, own_family
+    companion = make(client, identity='Aerin is an elf, 150. A quiet bookbinder. He/him.', relationship='friendship')
+    monkeypatch.setattr(own_family, 'pair', lambda *_args: {'how': 'married'})
+    today = date(2026, 10, 19)
+    elder = {'id': 'p9', 'role': 'sister', 'details': '{"age": 150, "folk": "elf"}'}
+    with connect(client) as connection:
+        assert own_family.ready(connection, companion, today)  # 150 is 32 in human terms.
+        # Their elf partner of 200 (37 in human terms) can carry; a human partner of 50 can't.
+        for age, folk, carries in ((200, 'elf', True), (50, None, False)):
+            details = {'pronouns': 'she/her', 'age': age} | ({'folk': folk} if folk else {})
+            found = own_family.route(connection, companion, {'details': encode(details)}, 's', 'medieval', today)
+            assert (found == 'partner') == carries, (age, found)
+        # A sister of 150 in their circle could be expecting.
+        assert [person['id'] for person, _how in families.eligible(connection, 't', [elder], today)] == ['p9']

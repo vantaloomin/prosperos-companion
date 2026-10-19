@@ -100,7 +100,8 @@ def own_children(connection, timeline_id: str) -> list[dict]:
 
 
 def age_now(connection, companion: dict, day: date) -> int | None:
-    return ages.companion_age(connection, companion['id'], companion['version']['definition'], day)
+    """Their age in human terms (companion/world/lifespans.py): an elf of 150 is 32, so starts a family like a human."""
+    return ages.companion_life_age(connection, companion['id'], companion['version']['definition'], day)
 
 
 def ready(connection, companion: dict, day: date) -> dict | None:
@@ -145,7 +146,8 @@ def route(connection, companion: dict, person: dict, seed: str, era: str, day: d
     modern city."""
     details = decode(person['details'])
     mine = looks.pronouns_of(companion['version']['definition'])
-    ages_ = {'carrying': age_now(connection, companion, day), 'partner': details.get('age')}
+    ages_ = {'carrying': age_now(connection, companion, day),
+             'partner': ages.person_life_age(connection, details, details.get('age'), companion['version']['definition'])}
     able = [who for who, said in (('carrying', mine), ('partner', details.get('pronouns')))
             if (said == 'she/her' or said == 'they/them' and generators.unit(seed, f'can:{who}') < 0.5)
             and (ages_[who] is None or ages_[who] <= AGES[1])]
