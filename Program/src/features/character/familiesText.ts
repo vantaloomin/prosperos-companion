@@ -2,7 +2,7 @@ import type { CircleChild, CirclePerson } from '../../types'
 
 /** The Growing families slider's steps (companion/life/families.py: PACE, YEARLY and the town's couples.BABY). */
 export const FAMILY_LEVELS = [
-  { label: 'None', hint: 'Nobody new is expecting. Children already in their lives stay and keep growing up.' },
+  { label: 'None', hint: 'Nobody new is expecting, and new companions and their new partners come without kids unless a description names some. Children already in their lives stay and keep growing up.' },
   { label: 'Now and then', hint: 'Once in a while a sibling, cousin or friend has a baby, and you hear how the little one is getting on.' },
   { label: 'True to life', hint: 'People in their thirties have babies about as often as people do. They become an aunt, uncle or godparent, babysit now and then and go to first birthdays. Living with a partner, they may start a family of their own.' },
   { label: 'Lots', hint: 'Babies all round, in their circle and in town, with more updates and more babysitting.' },
