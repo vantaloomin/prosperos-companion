@@ -337,3 +337,36 @@ def test_a_new_baby_of_their_own_means_broken_nights_now_and_then(client, mira, 
     set_life(client, family_life=0)
     with client.app.state.database.connect() as connection:
         assert not any(own_family.broken_night(connection, timeline_id, first + timedelta(days=n)) for n in range(1, 61))
+
+
+@pytest.mark.parametrize('era', ['jazz-age', 'victorian', 'medieval', 'fantasy'])
+def test_an_older_city_hears_their_news_in_its_own_voice(era):
+    bank, tags = families.bank(), families.tags()
+    modern = re.compile(r"\b(?:match|agency|bag|hospital|honestly|okay)\b|!!", re.IGNORECASE)
+    for how in ('carrying', 'partner', 'adopting'):
+        lines = [own_family.news(how, 'May', era), own_family.any_day(how, era),
+                 own_family.arrived(how, {'name': 'Ivy', 'pronouns': 'she/her'}, era)]
+        for text, share in lines:
+            assert not modern.search(text) and not modern.search(share) and not re.match('[a-z]', share), (text, share)
+        # Every middle beat in an older city fits it, and there are still plenty to pick from.
+        middle = own_family.middle_lines(how, era)
+        assert len(middle) >= 90 and not any('modern' in tags.get(line['text'], ()) for line in middle)
+    for key in ('own_baby', 'own_toddler', 'own_child'):
+        found = families.fitting(bank[key], era)
+        assert len(found) >= 100 and not any('modern' in tags.get(line['text'], ()) for line in found), key
+        assert any('older' in tags.get(line['text'], ()) for line in found)
+    assert len(own_family.middle_lines('adopting', era)) >= 100
+
+
+def test_babysitting_asks_fit_the_citys_era(client, mira):
+    tags = families.tags()
+    with client.app.state.database.connect() as connection:
+        companion = current(client)
+        today = own_family.fitting_asks(connection, companion)
+        assert len(today) >= 100 and not any('older' in tags.get(line, ()) for line in today)
+        old = {**companion, 'version': {**companion['version'], 'definition': {
+            **companion['version']['definition'], 'home_city': 'london-1895', 'location': 'Marylebone, London'}}}
+        assert families.era_of(connection, old['version']['definition']) == 'victorian'
+        older = own_family.fitting_asks(connection, old)
+    assert len(older) >= 100 and not any('modern' in tags.get(line, ()) or 'izza' in line for line in older)
+    assert any('older' in tags.get(line, ()) for line in older)

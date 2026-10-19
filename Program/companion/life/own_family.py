@@ -171,8 +171,8 @@ def plan(connection, companion: dict, world, person: dict, how: str, day: date) 
     child = {'name': name, 'pronouns': sex}
     stages = [{**families.stage(day, *news(how, month, era)), 'due': month, 'route': how},
               families.stage(halfway, middle['text'], middle['share']),
-              families.stage(soon, *any_day(how)),
-              families.stage(born, *arrived(how, child))]
+              families.stage(soon, *any_day(how, era)),
+              families.stage(born, *arrived(how, child, era))]
     return {'stages': stages, 'child': child, 'born': born}
 
 
@@ -187,8 +187,11 @@ def middle_lines(how: str, era: str) -> list[dict]:
 
 
 def news(how: str, month: str, era: str) -> tuple[str, str]:
+    """The news, and the companion's share of it (in an older city's voice there)."""
+    old = families.older(era)
     if how == 'adopting' and era != 'modern':
         return (f'{{name}} and {{a}} will take in a baby to raise, around {month}.',
+                f'{{a}} and I are to take in a baby to raise, around {month}, we think. My heart is so full.' if old else
                 f'{{a}} and I are taking in a baby to raise. around {month}, we think. my heart is so full')
     if how == 'adopting':
         return (f'{{name}} and {{a}} are adopting a baby, who should come home around {month}.',
@@ -196,26 +199,41 @@ def news(how: str, month: str, era: str) -> tuple[str, str]:
                 "if all goes well")
     if how == 'carrying':
         return (f'{{name}} and {{a}} are expecting a baby, due in {month}.',
-                f"okay. sit down. I'm pregnant!! {{a}} and I are having a baby, due in {month}")
+                f'I have news, and I can hardly write it straight: I am expecting! {{a}} and I are to have a baby in '
+                f'{month}.' if old else f"okay. sit down. I'm pregnant!! {{a}} and I are having a baby, due in {month}")
     return (f'{{name}} and {{a}} are expecting a baby, due in {month}.',
+            f'{{a}} is expecting! We are to have a baby in {month}, and I cannot stop smiling.' if old else
             f"{{a}} is pregnant!!! we're having a baby. due in {month}. I can't stop smiling")
 
 
-def any_day(how: str) -> tuple[str, str]:
+def any_day(how: str, era: str = 'modern') -> tuple[str, str]:
+    """'Any day now', and the share; an older city has no agency match or hospital bag."""
+    old = families.older(era)
+    if how == 'adopting' and old:
+        return (OLD_COMING, 'Any day now our little one comes to us. I cannot sit still.')
     if how == 'adopting':
         return ('{name} and {a} heard there is a match, and the baby comes home any day now.',
                 "there's a match. a baby. ours. any day now and I can't sit still")
+    if old:
+        return (OLD_DUE, 'Any day now. The cradle is made up, the midwife knows to come, and we jump at every knock.')
     return ('The baby is due any day now, and {name} and {a} have the bag packed by the door.',
             "any day now. the bag's been packed by the door for two weeks and we keep checking it")
 
 
-def arrived(how: str, child: dict) -> tuple[str, str]:
-    she = child['pronouns'] == 'she/her'
+# 'Any day now' in an older city (A/B: companion-e2e-v15/findings/ab-ownbabies.md).
+OLD_COMING = 'Word has come that the baby {name} and {a} are to raise will come home within the week, any day now.'
+OLD_DUE = 'The baby is due any day now, and {name} and {a} have the cradle made up and the midwife ready to send for.'
+
+
+def arrived(how: str, child: dict, era: str = 'modern') -> tuple[str, str]:
+    she, old = child['pronouns'] == 'she/her', families.older(era)
     girl, here, word = ('girl', "SHE'S HERE", 'daughter') if she else ('boy', "HE'S HERE", 'son')
     if how == 'adopting':
         return (f"{{name}} and {{a}} brought the baby home: a {girl} named {child['name']}.",
-                f"{child['name']} is home. our {word}. I keep just looking at {'her' if she else 'him'}")
+                f"{child['name']} is home with us. Our {word}. I keep just looking at {'her' if she else 'him'}." if old
+                else f"{child['name']} is home. our {word}. I keep just looking at {'her' if she else 'him'}")
     return (f"{{name}} and {{a}} had the baby: a {girl} named {child['name']}.",
+            f"{'She' if she else 'He'} is here! {child['name']}. {{a}} and I are worn out and quite in love." if old else
             f"{here}. {child['name']}. {{a}} and I are so tired and so in love")
 
 
@@ -472,9 +490,10 @@ def ask_due(connection, companion: dict, now: datetime) -> list:
 
 def fitting_asks(connection, companion: dict) -> list[str]:
     era = families.era_of(connection, companion['version']['definition'])
-    unfit = families.UNFIT.get(era)
+    unfit, wrong = families.UNFIT.get(era), 'modern' if families.older(era) else 'older'
     lines = families.bank()['babysit_ask']
-    return [line for line in lines if not (unfit and unfit.search(line))] or lines
+    return [line for line in lines if not (unfit and unfit.search(line)) and
+            wrong not in families.tags().get(line, ())] or lines
 
 
 SETTLES = ('babysit_ask',)
