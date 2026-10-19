@@ -71,7 +71,7 @@ from companion.models import (
     TimelineUpdate,
     TownSeed,
 )
-from companion.world import intimacy, looks, perception, personality
+from companion.world import intimacy, lifespans, looks, perception, personality
 
 router = APIRouter(prefix='/api')
 
@@ -225,10 +225,20 @@ def looks_suggestions(request: Request, body: PerceptionRequest):
         today = request.app.state.database.clock.now().astimezone(zone(companion['version']['timezone'])).date() \
             if companion else None
         age_now = grooming.sheet(connection, companion['id'], body.definition, today).get('age') if companion else None
+        data = ages.city_of(connection, body.definition)
     automatic = looks.for_companion(companion['id'], body.definition) if companion else None
     line = in_photos({'name': '', **body.definition, 'in_photos': ''})
     return {'automatic': automatic, 'covered': sorted(looks.covered(body.definition.get('appearance', ''))),
-            'options': looks.options(), 'in_photos': line, 'age_now': age_now}
+            'options': looks.options(), 'in_photos': line, 'age_now': age_now,
+            'kind': kind_view(body.definition, data, age_now or (automatic or {}).get('age'))}
+
+
+def kind_view(definition: dict, data: dict | None, age: int | None) -> dict:
+    """Kind and How long they live on the Character page (companion/world/lifespans.py): what their words say
+    (`found`), what applies, their age in human terms and what the pickers offer."""
+    found = lifespans.sheet_kind({**definition, 'kind': ''}, data)
+    shown = lifespans.described(lifespans.sheet_kind(definition, data), definition.get('lifespan'), age, data)
+    return {**shown, 'found': found, 'found_label': lifespans.kinds(data)[found]['label'], **lifespans.choices(data)}
 
 
 @router.post('/companion/draft/card')

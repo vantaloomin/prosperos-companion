@@ -7,8 +7,12 @@ import { Notice } from '../../components/Feedback'
 import { WhyItWent } from '../today/WhyItWent'
 import { STEPS_KEY, stepDate } from './stepsText'
 import { FAMILY_KEY, OURS_KEY, anotherHint, appPick, arrivalText, careHint, custodyHint, ourChildLine, sheetText } from './familyText'
+import { KindFields } from '../kinds/KindFields'
+import { useKindChoices } from '../kinds/useKindChoices'
+import { kindSummary } from '../kinds/kindText'
 
 type OursChange = { care?: string; child?: string; name?: string; custody?: string }
+type KindChange = { kind: string; lifespan: number | null }
 
 /** Our child (companion/life/our_child.py): each child of yours with them as a card (who they are lately, the
  * milestones so far, and how they came, folded away), who looks after them, and another child. Words only: no
@@ -24,6 +28,12 @@ export function OurChildren({ view, family, name, howItWent }: {
       client.setQueryData(OURS_KEY, await api<OursView>('/life/steps/ours', change, 'PUT'))
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'That was not saved.') }
   }
+  const saveKind = async (child: OurChild, change: KindChange) => {
+    setError('')
+    try {
+      client.setQueryData(OURS_KEY, await api<OursView>(`/life/steps/ours/${child.id}/kind`, change, 'PUT'))
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'That was not saved.') }
+  }
   const saveFamily = async (another: boolean) => {
     setError('')
     try {
@@ -37,7 +47,8 @@ export function OurChildren({ view, family, name, howItWent }: {
       <h3 id="ours-heading">{view.children.length === 1 ? 'Your child' : 'Your children'}</h3>
       <ul className="person-list" aria-labelledby="ours-heading">
         {view.children.map((child) => (
-          <ChildCard key={child.id} child={child} name={name} save={(change) => void save(change)}>{howItWent(child)}</ChildCard>
+          <ChildCard key={child.id} child={child} name={name} save={(change) => void save(change)}
+            saveKind={(change) => void saveKind(child, change)}>{howItWent(child)}</ChildCard>
         ))}
       </ul>
       {young.length > 0 && <Arrangements view={view} name={name} save={(change) => void save(change)} />}
@@ -52,8 +63,8 @@ export function OurChildren({ view, family, name, howItWent }: {
 }
 
 /** One child: name, age and who they are lately; the milestones so far and how they came fold away. */
-function ChildCard({ child, name, save, children }: {
-  child: OurChild; name: string; save: (change: OursChange) => void; children: ReactNode
+function ChildCard({ child, name, save, saveKind, children }: {
+  child: OurChild; name: string; save: (change: OursChange) => void; saveKind: (change: KindChange) => void; children: ReactNode
 }) {
   return (
     <li className="person-card kid-card our-child-card">
@@ -72,8 +83,25 @@ function ChildCard({ child, name, save, children }: {
         </details>
       )}
       {children}
+      {child.kind && <ChildKind child={child} save={saveKind} />}
       <Rename child={child} save={save} />
     </li>
+  )
+}
+
+/** Their kind and How long they live, folded away: their parents' kind (an elf and a human have a half-elf) until the
+ * user picks another. They grow up at a human pace whatever it is (companion/world/lifespans.py). */
+function ChildKind({ child, save }: { child: OurChild; save: (change: KindChange) => void }) {
+  const choices = useKindChoices()
+  const shown = child.kind!
+  const found = shown.found ?? 'human'
+  const label = choices?.kinds.find((item) => item.id === found)?.label ?? 'Human'
+  return (
+    <details className="our-child-more person-kind">
+      <summary>{kindSummary(shown)}</summary>
+      <KindFields id={`child-${child.id}`} shown={shown} found={{ kind: found, label, source: shown.from_parents ? 'parents' : 'app' }} picked={shown.picked ?? ''}
+        own={shown.own} age={child.age} choices={choices} onChange={save} />
+    </details>
   )
 }
 

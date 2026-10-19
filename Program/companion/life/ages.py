@@ -67,9 +67,10 @@ def last_birthday(birthday: str, day: date) -> date:
     return this_year if this_year <= day else birthday_in(day.year - 1, birthday)
 
 
-def milestone(age: int | None) -> bool:
-    """30, 40, 50 ...: a birthday that is a bigger occasion."""
-    return bool(age) and age >= FIRST_MILESTONE and age % 10 == 0
+def milestone(age: int | None, lifespan: int | None = lifespans.HUMAN_LIFESPAN) -> bool:
+    """30, 40, 50 ...: a birthday that is a bigger occasion; 100, 150, 200 ... for a long-lived kind
+    (companion/world/lifespans.py)."""
+    return lifespans.milestone(age, lifespan)
 
 
 def ordinal(number: int) -> str:
@@ -178,13 +179,20 @@ def age_line(connection, companion_id: str, definition: dict, day: date | None) 
     their words give, so the model doesn't answer with the age written (A/B: /mnt/project-files/companion-ages-ab).
     None until then."""
     age, written = companion_age(connection, companion_id, definition, day), written_age(companion_id, definition)
-    if age is None or day is None or age == written:
+    if age is None or day is None:
         return None
+    # A long-lived kind (companion/world/lifespans.py) also hears their age in human terms (A/B:
+    # /mnt/project-files/companion-lifespan-ab), always, so the model plays an elf of 312 as someone in mid-life.
+    span = companion_lifespan(connection, definition)
+    life = lifespans.life_age(age, span) if span not in (None, lifespans.HUMAN_LIFESPAN) else None
+    if age == written:
+        return f'You are {age}, about {life} in human terms.' if life is not None else None
     birthday, row = own_birthday(companion_id, definition), stored(connection, 'companion', companion_id)
     # Held at an age, the birthday that made them that age; otherwise their latest one.
     turned = birthday_in(date.fromisoformat(row['born_on']).year + age, birthday) \
         if row['held_age'] else last_birthday(birthday, day)
-    return f"You are {age} now; you turned {age} on {turned.day} {turned.strftime('%B')}."
+    said = f"You are {age} now; you turned {age} on {turned.day} {turned.strftime('%B')}"
+    return f'{said} (about {life} in human terms).' if life is not None else f'{said}.'
 
 
 # --- Life age ---
@@ -208,14 +216,21 @@ def companion_life_age(connection, companion_id: str, definition: dict, day: dat
 def person_lifespan(connection, details: dict, definition: dict | None = None) -> int | None:
     """How long a circle member or partner lives, from their row: their own pick, else their kind's (a relative of
     a long-lived companion shares their kind) in the companion's city."""
-    kind, own = details.get('folk'), details.get('lifespan')
-    if not own and kind in (None, '', lifespans.HUMAN):
+    kind, own = details.get('own_kind') or details.get('folk'), details.get('lifespan')
+    if own is None and kind in (None, '', lifespans.HUMAN):
         return lifespans.HUMAN_LIFESPAN
     return lifespans.lifespan_of(kind, city_of(connection, definition) if definition else None, own)
 
 
 def person_life_age(connection, details: dict, real: int | None, definition: dict | None = None) -> int | None:
     return lifespans.life_age(real, person_lifespan(connection, details, definition))
+
+
+def person_kind(details: dict, data: dict | None = None) -> dict:
+    """A circle member's kind for their page (lifespans.described): the user's pick, else the app's."""
+    found = details.get('folk') or lifespans.HUMAN  # The app's pick.
+    return lifespans.described(details.get('own_kind') or found, details.get('lifespan'), stored_age(details), data) \
+        | {'found': found}
 
 
 def persona_life_age(connection, persona: dict, definition: dict | None = None) -> int:
@@ -334,16 +349,18 @@ def milestones_between(connection, companion: dict, low: date, high: date) -> li
     from companion.life import circle
     definition, name = companion['version']['definition'], companion['version']['definition']['name']
     people = [(own_birthday(companion['id'], definition), name,
-               lambda day: turns_on(connection, companion['id'], definition, day), low)]
+               lambda day: turns_on(connection, companion['id'], definition, day), low,
+               companion_lifespan(connection, definition))]
     # Someone who joined the circle later (a grandparent added in v0.15) has no milestones from before they did.
     people += [(circle.birthday(person['id']), f"{name}'s {person['role']} {person['name']}",
                 lambda day, key=person['id']: person_age(connection, 'circle', key, day),
-                max(low, date.fromisoformat(person['created_at'][:10])) if person['created_at'] else low)
+                max(low, date.fromisoformat(person['created_at'][:10])) if person['created_at'] else low,
+                person_lifespan(connection, decode(person['details']) or {}, definition))
                for person in circle.people(connection, companion['active_timeline_id'])]
     found = []
-    for birthday, who, age_of, since in people:
+    for birthday, who, age_of, since, span in people:
         for year in range(low.year, high.year + 1):
             day = birthday_in(year, birthday)
-            if since <= day <= high and milestone(age := age_of(day)):
+            if since <= day <= high and milestone(age := age_of(day), span):
                 found.append({'date': day.isoformat(), 'text': f'{who} turned {age}'})
     return found

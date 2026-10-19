@@ -1,7 +1,7 @@
 """Request bodies. Input mirrors prosperos-study server/models.py at bbcbde4."""
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Relationship = Literal['friendship', 'romance', 'mentor', 'family', 'other']
 Layer = Literal['user_fact', 'shared_experience', 'plan', 'temporary', 'relationship', 'companion_life']
@@ -144,9 +144,9 @@ class CharacterDefinition(Input):
     # Everyone gets older (companion/life/ages.py): on, they stay the age written, for characters who shouldn't age.
     keeps_age: bool = False
     # Lifespans (companion/world/lifespans.py): the kind of person they are ('elf'), empty to read it from their words,
-    # and how long they live in years, None for as long as their kind does.
+    # and how long they live in years, None for as long as their kind does and 0 for "Doesn't age".
     kind: str = Field(default='', max_length=40, pattern=r'^[a-z0-9-]*$')
-    lifespan: int | None = Field(default=None, ge=40, le=5000)
+    lifespan: int | None = Field(default=None, ge=0, le=5000)
     money: MoneySetup = Field(default_factory=MoneySetup)
     # Their adult side, only used with Settings > Realism > Adult side of life on; None uses the roll.
     intimacy: IntimacySetup | None = None
@@ -162,6 +162,13 @@ class CharacterDefinition(Input):
     near: str | None = Field(default=None, exclude=True)
     business: dict | None = Field(default=None, exclude=True)
     health: dict | None = Field(default=None, exclude=True)
+
+    @field_validator('lifespan')
+    @classmethod
+    def lifespan_or_ageless(cls, value):
+        if value is not None and 0 < value < 40:
+            raise ValueError('A lifespan is 40 years or more.')
+        return value
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
@@ -648,3 +655,21 @@ class RecapRead(Input):
 class StatusUpdate(Input):
     """The user's status line for a companion (companion/life/status.py); empty lets the app write it."""
     text: str = Field(default='', max_length=200)
+
+
+# Lifespans (companion/world/lifespans.py `SPANS`): what How long they live offers, besides as their kind.
+LIFESPANS = (80, 150, 300, 600, 1000)
+
+
+class KindChange(Input):
+    """Someone's kind and How long they live, picked on their page: '' and None leave both to the app, 0 years is
+    "Doesn't age" (companion/world/lifespans.py)."""
+    kind: str = Field(default='', max_length=40, pattern=r'^[a-z0-9-]*$')
+    lifespan: int | None = Field(default=None)
+
+    @field_validator('lifespan')
+    @classmethod
+    def listed(cls, value):
+        if value not in (None, 0, *LIFESPANS):
+            raise ValueError('Pick one of the lifespans listed.')
+        return value

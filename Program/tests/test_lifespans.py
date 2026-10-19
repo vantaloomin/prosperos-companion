@@ -6,7 +6,7 @@ from conftest import reconcile
 
 from companion.database import decode
 from companion.life import ages, big_turns, circle, loss, parenthood
-from companion.world import catalog, couples, dating, generators, intimacy, lifespans, townsfolk, turnover
+from companion.world import catalog, couples, dating, generators, intimacy, lifespans, looks, townsfolk, turnover
 
 ELF = {'name': 'Aerin Leafmantle', 'identity': 'Aerin is an elf, 90. A quiet bookbinder. They/them.',
        'personality': 'Patient and dry.', 'timezone': 'UTC', 'home_city': 'baltimore'}
@@ -161,3 +161,89 @@ def test_an_elf_sibling_of_three_hundred_is_married_or_not_by_their_life_age():
     name = {'given': 'Tunde', 'pronouns': 'he/him'}
     assert isinstance(circle.married_sibling(None, 't1', name, 300, 'Fernwhisper'), dict)
     assert circle.married_sibling(None, 't1', name, 20, 'Fernwhisper') == {}
+
+
+def test_milestone_birthdays_are_round_hundreds_and_fifties_for_a_long_lived_kind():
+    assert [age for age in range(18, 120) if lifespans.milestone(age)] == [30, 40, 50, 60, 70, 80, 90, 100, 110]
+    assert [age for age in range(18, 420) if lifespans.milestone(age, 600)] == [100, 150, 200, 250, 300, 350, 400]
+    assert lifespans.milestone(40, 110) and not lifespans.milestone(40, 180) and lifespans.milestone(150, None)
+
+
+def test_a_three_digit_age_is_read_only_for_a_long_lived_kind_and_drawn_the_age_they_look():
+    assert looks.age_of({'identity': 'Aerin is an elf, 312. A bookbinder.'}, 's') == 312
+    assert looks.age_of({'identity': 'A 450-year-old dwarf smith.'}, 's') == 450
+    assert looks.age_of({'identity': 'She is 312 days sober, a 34-year-old nurse.'}, 's') == 34
+    elf = looks.picture({'age': 312, 'looks_age': 48, 'pronouns': 'they/them'}, 'Aerin')
+    assert 'forties' in elf and 'three hundred' not in elf
+
+
+def test_an_elf_hears_their_age_in_human_terms_and_a_human_hears_nothing_new(client, clock):
+    companion = make(client, identity='Aerin is an elf, 312. A quiet bookbinder. They/them.')
+    definition = companion['version']['definition']
+    today = clock.now().date()
+    with connect(client) as connection:
+        assert ages.age_line(connection, companion['id'], definition, today) == 'You are 312, about 49 in human terms.'
+        human = {**definition, 'identity': 'Aerin is 34. A quiet bookbinder. They/them.'}
+        assert ages.age_line(connection, companion['id'], human, today) is None
+
+
+def test_the_user_picks_a_circle_persons_kind_and_their_life_age_follows(client):
+    make(client)
+    reconcile(client)
+    people = client.get('/api/life/circle').json()
+    person = next(item for item in people if item.get('folk') == 'elf' and (item.get('age') or 0) >= 30)
+    assert person['kind']['kind'] == 'elf'  # Aerin's relatives share Aerin's kind.
+    changed = client.put(f"/api/life/circle/{person['id']}/kind", json={'kind': 'dwarf', 'lifespan': 1000})
+    assert changed.status_code == 200, changed.text
+    shown = changed.json()['kind']
+    assert shown['kind'] == 'dwarf' and shown['own'] == 1000 and shown['years'] == 1000 and shown['kind_years'] == 300
+    assert client.put(f"/api/life/circle/{person['id']}/kind", json={'kind': 'dragon', 'lifespan': None}).status_code == 422
+    assert client.put(f"/api/life/circle/{person['id']}/kind", json={'kind': '', 'lifespan': 123}).status_code == 422
+    back = client.put(f"/api/life/circle/{person['id']}/kind", json={'kind': '', 'lifespan': 0}).json()['kind']
+    assert back['kind'] == 'elf' and back['years'] is None
+    kinds = client.get('/api/life/kinds').json()
+    assert {'human', 'elf', 'half-elf', 'dwarf', 'halfling', 'orc', 'ageless'} <= {item['id'] for item in kinds['kinds']}
+    assert kinds['spans'] == [80, 150, 300, 600, 1000]
+
+
+def test_the_character_page_reads_their_kind_from_their_words_until_the_user_picks(client):
+    companion = make(client)
+    definition = companion['version']['definition']
+    found = client.post('/api/companion/looks', json={'definition': definition}).json()['kind']
+    assert found['found'] == 'elf' and found['kind'] == 'elf' and found['years'] == 600 and found['own'] is None
+    picked = client.post('/api/companion/looks', json={'definition': {**definition, 'kind': 'orc'}}).json()['kind']
+    assert picked['found'] == 'elf' and picked['kind'] == 'orc' and picked['years'] == 55
+
+
+def test_a_child_of_an_elf_and_a_human_is_a_half_elf_until_the_user_picks(client, clock, monkeypatch):
+    from test_expecting import stage, started, to
+    from test_our_child import ours
+    row = started(client, monkeypatch, identity='She is an elf and a 31-year-old nurse.')
+    to(client, clock, stage(row, 'born')['on'])
+    [child] = ours(client)['children']
+    assert child['kind']['kind'] == 'half-elf' and child['kind']['found'] == 'half-elf' and child['kind']['picked'] == ''
+    assert child['kind']['from_parents']
+    changed = client.put(f"/api/life/steps/ours/{child['id']}/kind", json={'kind': 'elf', 'lifespan': None})
+    assert changed.status_code == 200, changed.text
+    [child] = changed.json()['children']
+    assert child['kind']['kind'] == 'elf' and child['kind']['picked'] == 'elf' and child['kind']['found'] == 'half-elf'
+
+
+def test_doesnt_age_on_the_character_page_is_a_lifespan_of_its_own_beside_keeps_their_age(client):
+    companion = make(client)
+    definition = companion['version']['definition']
+    assert lifespans.ageless({**definition, 'lifespan': 0}) and not lifespans.ageless({**definition, 'lifespan': 1000})
+    shown = client.post('/api/companion/looks', json={'definition': {**definition, 'lifespan': 0}}).json()['kind']
+    assert shown['years'] is None and shown['own'] == 0
+    assert client.post('/api/companion', json={**ELF, 'lifespan': 20}).status_code == 422
+
+
+def test_an_elfs_other_parent_is_a_human_near_their_age_in_human_terms(client):
+    from companion.characters import current
+    from companion.life import kids
+    make(client, identity='Aerin is an elf, 312. A quiet bookbinder with two children. They/them.')
+    with connect(client) as connection:
+        companion = current(connection)
+        person_id = kids.add_other(connection, companion, client.app.state.life.world, {}, client.app.state.database.clock.now())
+        details = decode(connection.execute('SELECT details FROM circle_people WHERE id=?', (person_id,)).fetchone()['details'])
+    assert 40 <= details['age'] <= 60 and not details.get('folk')

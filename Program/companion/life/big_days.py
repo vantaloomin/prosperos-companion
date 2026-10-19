@@ -242,7 +242,8 @@ def milestone_birthdays(connection, companion: dict, today: date, people: dict, 
             continue
         birthday = next_birthday(row['id'], today)
         age = age_of(connection, row, birthday)
-        if ages.milestone(age):
+        if ages.milestone(age, ages.person_lifespan(connection, decode(row['details']) or {},
+                                                    companion['version']['definition'])):
             day = birthday if birthday.weekday() >= 4 else birthday + timedelta(days=5 - birthday.weekday())
             result.append(candidate('birthday', f"birthday:{row['id']}:{birthday.year}", row, day, age=age))
     return result

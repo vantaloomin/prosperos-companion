@@ -371,8 +371,9 @@ def add_other(connection, companion: dict, world, wanted: dict, now) -> str:
     person = circle.build(definition, world, timeline_id, 1, f'kids:{timeline_id}:other', taken, sheet=False)[0]
     details = person['details']
     pronouns_ = wanted.get('pronouns') or details.get('pronouns') or 'they/them'
-    age = companion_age(connection, companion, steps.local_today(companion, now)) + \
-        int(generators().unit(timeline_id, 'other-age') * 7) - 3
+    # Near the companion's age in human terms: a human, so an elf of 312 has a co-parent in their forties.
+    life = ages.companion_life_age(connection, companion['id'], definition, steps.local_today(companion, now)) or 30
+    age = life + int(generators().unit(timeline_id, 'other-age') * 7) - 3
     if wanted.get('name'):
         person['name'] = first(wanted['name'])
         details = details | ({'full_name': wanted['name']} if ' ' in wanted['name'] else {}) | {'sheet': wanted['name']}
