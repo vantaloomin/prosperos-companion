@@ -483,6 +483,15 @@ def context_lines(connection, companion: dict, found: dict, now) -> list[tuple[s
     return result
 
 
+def journey_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
+    """After a breakup, a child still on the way (or just come) goes on (companion/life/expecting.py), in the same
+    words as before."""
+    from companion.life import expecting
+    if not ACTIVE or quiet(connection) or not companion.get('active_timeline_id'):
+        return []
+    return expecting.context_lines(connection, companion, now)
+
+
 def sibling_waiting(connection, companion: dict) -> bool:
     """Another child decided on, and nothing under way for them yet."""
     from companion.life import expecting

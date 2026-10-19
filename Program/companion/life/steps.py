@@ -1172,7 +1172,9 @@ def context_lines(connection, companion: dict, now, turn: set[str], group: bool 
     answer, and an answer just given."""
     found = state(connection, companion, now, write=False)
     if found is None or apart(connection, companion) == 'ended':
-        return []  # Exes: the 'breakup' section says where they stand (companion/life/breakups.py).
+        # Exes: the 'breakup' section says where they stand (companion/life/breakups.py); a child on the way goes on.
+        from companion.life import parenthood
+        return parenthood.journey_lines(connection, companion, now)
     others = others_known(connection, companion, found, now)
     home = group_home(connection, companion) if group and found['step'] == 'moving_in' else ''
     result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}{':group' if home else ''}",

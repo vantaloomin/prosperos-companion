@@ -742,6 +742,9 @@ def gone(connection, row: dict) -> bool:
     if row['kind'] == 'funeral':
         from companion.life import loss
         return loss.gone(connection, row)
+    if row['kind'] == 'own_shower':
+        from companion.life import expecting
+        return expecting.shower_gone(connection, row)
     if row['person_id']:
         person = optional(connection, 'SELECT status FROM circle_people WHERE id=?', (row['person_id'],))
         if person is None or person['status'] == 'removed':

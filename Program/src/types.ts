@@ -610,6 +610,8 @@ export interface Journey {
   renamed: boolean
   stages: { key: string; label: string; date: string | null; done: boolean }[]
   consequences: string[]
+  /** The same outcomes with the engine's choice each is ('soon', 'turn', 'wait', 'match', 'fostered'). */
+  outcomes?: { key: string; id: string }[]
 }
 
 /** Companions who already have kids (GET /api/life/steps/kids, companion/life/kids.py); `shown` false with none. Where

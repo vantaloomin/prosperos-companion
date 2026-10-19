@@ -60,9 +60,15 @@ ARRIVED_DAYS = 14
 MOMENTS = 5
 ERA_WORDS = {'modern': {'appointment': 'First scan', 'halfway': '20-week scan', 'birth': 'at the hospital',
                         'things': ('a crib', 'a car seat', 'a stroller', 'a changing table', 'a baby monitor')},
+             # A jazz-age city (New York 1925): the doctor, no scans, a pram rather than a stroller.
+             'jazz': {'appointment': "The doctor's visit", 'halfway': "The doctor's visit", 'birth': 'at the hospital',
+                      'things': ('a crib', 'a bassinet', 'a pram', 'a high chair', 'a rocking chair')},
+             # Victorian to Camelot: nothing that one of them lacks.
              'old': {'appointment': "The midwife's visit", 'halfway': "The midwife's visit", 'birth': 'at home, with the '
-                     'midwife', 'things': ('a cradle', 'linens and swaddling', 'a pram', 'a rocking chair')}}
+                     'midwife', 'things': ('a cradle', 'linens and swaddling', 'a woollen blanket', 'a little cap')}}
 TOLD_PEOPLE = 3
+# The baby shower is at least this many days before the birth, even an early one.
+SHOWER_BEFORE = 7
 
 
 @cache
@@ -90,8 +96,12 @@ def view(row: dict) -> dict:
 
 
 def era_group(connection, companion: dict) -> str:
+    """'modern', 'jazz' (a jazz-age city) or 'old' (Victorian to Camelot), for ERA_WORDS."""
     from companion.life import parenthood
-    return 'old' if parenthood.old_era(connection, companion) else 'modern'
+    found = parenthood.era(connection, companion)
+    if found in parenthood.OLD_ERAS:
+        return 'old'
+    return 'jazz' if found == 'jazz-age' else 'modern'
 
 
 def modern(connection, companion: dict) -> bool:
@@ -100,10 +110,12 @@ def modern(connection, companion: dict) -> bool:
 
 
 def fitting(lines: list[dict], connection, companion: dict) -> list[dict]:
-    """The bank lines for their city: every line in a modern one, only those for any era elsewhere."""
+    """The bank lines for their city: every line in a modern one, only those for any era elsewhere, and none naming
+    something the era lacks (families.UNFIT: no tea in Camelot)."""
     if modern(connection, companion):
         return lines
-    return [line for line in lines if line.get('era') == 'any'] or lines
+    unfit = families.UNFIT.get(families.era_of(connection, companion['version']['definition']))
+    return [line for line in lines if line.get('era') == 'any' and not (unfit and unfit.search(line['text']))] or lines
 
 
 # Starting --------------------------------------------------------------------------------------------------------------
@@ -213,7 +225,11 @@ def pregnancy(connection, companion: dict, row: dict, start: date, seed: str, fo
     if modern(connection, companion):
         stages.append(at(halfway + timedelta(days=span(seed, 'name', (14, 40))), 'name'))
         shower = due - timedelta(days=span(seed, 'shower', (35, 42)))
-        stages.append(at(shower + timedelta(days=(5 - shower.weekday()) % 7), 'shower'))
+        shower += timedelta(days=(5 - shower.weekday()) % 7)
+        if shower > born - timedelta(days=SHOWER_BEFORE):  # An early arrival: the Saturday a week or more before.
+            shower = born - timedelta(days=SHOWER_BEFORE)
+            shower -= timedelta(days=(shower.weekday() - 5) % 7)
+        stages.append(at(shower, 'shower'))
     if turn == 'bed_rest':
         stages.append(at(due - timedelta(days=span(seed, 'rest', (63, 77))), 'bed_rest'))
     if turn != 'early':
@@ -342,8 +358,26 @@ def arrive(connection, companion: dict, row: dict, today: date, now) -> None:
         "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'ours', ?, 'born', ?, ?)",
         (child_id, row['timeline_id'], companion['id'], row['id'], details['name'], details['pronouns'],
          born_on.isoformat(), timestamp, timestamp))
-    connection.execute("UPDATE family_journeys SET status='home', child_id=?, arrived_on=?, updated_at=? WHERE id=?",
-                       (child_id, arrived.isoformat(), timestamp, row['id']))
+    connection.execute("UPDATE family_journeys SET status='home', child_id=?, arrived_on=?, details=?, updated_at=? "
+                       'WHERE id=?', (child_id, arrived.isoformat(), encode({**details, 'far': far_on(
+                           connection, companion, row)}), timestamp, row['id']))
+
+
+def days_off(connection, companion: dict, start: date, end: date) -> dict[str, str]:
+    """{local date: 'Bed rest'} for companion/life/work.py `days_off`: the companion carrying the baby stays home
+    from the day bed rest begins until the birth ('Home day' with the adult side of life on, which names no baby)."""
+    row = current(connection, companion['active_timeline_id']) if ACTIVE and companion.get('active_timeline_id') \
+        else None
+    if not row or row['route'] != 'expecting_them' or row['status'] == 'home':
+        return {}
+    found = {stage['key']: date.fromisoformat(stage['on']) for stage in row['stages']}
+    if 'bed_rest' not in found or 'born' not in found:
+        return {}
+    label, result, day = 'Home day' if quiet(connection) else 'Bed rest', {}, max(start, found['bed_rest'])
+    while day <= min(end, found['born']):
+        result[day.isoformat()] = label
+        day += timedelta(days=1)
+    return result
 
 
 # The calendar, the nursery and the shower ----------------------------------------------------------------------------------
@@ -372,7 +406,7 @@ def appointment(connection, companion: dict, row: dict, stage: dict, now) -> Non
            'surrogacy': f" with {row['details'].get('surrogate', 'the surrogate')}"}[row['route']]
     admin.add(connection, companion, key=f"journey:{row['id']}:{stage['key']}", source='admin', kind='family',
               title=title, done=f'went to the {title.lower()}{who}', day=date.fromisoformat(stage['on']), minutes=90,
-              fixed=True, out=era_group(connection, companion) == 'modern', now=now)
+              fixed=True, out=era_group(connection, companion) != 'old', now=now)
 
 
 def home_study(connection, companion: dict, row: dict, stage: dict, now) -> None:
@@ -446,6 +480,13 @@ def showers(connection, companion: dict, today: date, people: dict, now) -> list
                                host=host['name'], host_role=host['role'])]
 
 
+def shower_gone(connection, row: dict) -> bool:
+    """A planned shower is called off once the child has come (an early arrival) or the journey is not this one."""
+    found = current(connection, row['timeline_id'])
+    return found is None or row['source'] != f"journey:{found['id']}:shower" or found['status'] == 'home' or \
+        not any(stage['key'] == 'shower' for stage in found['stages'])
+
+
 # Hidden values ---------------------------------------------------------------------------------------------------------
 
 def change(connection, companion: dict, consequence_id: str, now) -> None:
@@ -502,8 +543,14 @@ def named(row: dict) -> str:
     """How they landed on the name (the companion suggested it), from the bank; a name the user gave is theirs."""
     if row['details'].get('renamed'):
         return 'the user picked it'
-    line = generators.pick(f"journey:{row['id']}", 'named', bank()['names_talk'])['text']
+    line = generators.pick(f"journey:{row['id']}", 'named', suggested())['text']
     return line.format(name=row['details']['name']).rstrip('.')
+
+
+def suggested() -> list[dict]:
+    """The names_talk lines where the companion came up with the name, as the Character page says ("Dana suggested
+    it"); not those where the user did, which would also decide what the user did."""
+    return [line for line in bank()['names_talk'] if not line['text'].startswith('the user ')]
 
 
 CARRIER = {'expecting_them': 'you are the one carrying the baby', 'expecting_you': 'the user is carrying the baby',
@@ -581,11 +628,19 @@ def arrived_lines(row: dict, today: date) -> list[str]:
     return lines
 
 
+BIRTH_WHERE = {'expecting_them': 'You gave birth {at}, with the user there with you.',
+               'expecting_you': 'The user gave birth {at}, and you were there.',
+               'surrogacy': 'Your surrogate, {surrogate}, gave birth {at}, and you and the user were there.'}
+# Long distance on the day (companion/life/long_distance.py): the one who lives away wasn't there.
+BIRTH_FAR = {'expecting_them': "You gave birth {at}. The user lives away and couldn't be there; you told them the news.",
+             'expecting_you': "The user gave birth {at}, where they live. You live away and couldn't be there.",
+             'surrogacy': "Your surrogate, {surrogate}, gave birth {at}, and you were there. The user lives away and "
+                          "couldn't be."}
+
+
 def day_line(row: dict, when: str) -> str:
     early = ', a few weeks early and doing well' if any(item.get('early') for item in row['stages']) else ''
-    where = {'expecting_them': 'You gave birth {at}, with the user there with you.',
-             'expecting_you': 'The user gave birth {at}, and you were there.',
-             'surrogacy': 'Your surrogate, {surrogate}, gave birth {at}, and you and the user were there.'}[row['route']]
+    where = (BIRTH_FAR if row['details'].get('far') else BIRTH_WHERE)[row['route']]
     return (f"- Your baby was born {when}: a {girl(row)}, {row['details']['name']}{early}. "
             + where.format(**{'surrogate': 'your surrogate', **row['details']}))
 
@@ -598,7 +653,8 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         return []
     today, done = local_today(companion, now), reached(row, local_today(companion, now))
     if row['status'] == 'home':
-        row = {**row, 'details': {**row['details'], 'at': birth_place(connection, companion)}}
+        row = {**row, 'details': {**row['details'], 'at': birth_place(connection, companion),
+                                  'far': far_on(connection, companion, row)}}
         lines = arrived_lines(row, today)
     elif row['route'] in PREGNANCY:
         lines = pregnancy_lines(row, done, today)
@@ -612,6 +668,13 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
 
 def birth_place(connection, companion: dict) -> str:
     return ERA_WORDS[era_group(connection, companion)]['birth']
+
+
+def far_on(connection, companion: dict, row: dict) -> bool:
+    """Whether they lived apart, long distance, when the child came: kept from the day (`arrive`), else as now."""
+    from companion.life import long_distance
+    kept = row['details'].get('far')
+    return bool(long_distance.far(connection, companion)) if kept is None else kept
 
 
 def told_line(connection, companion: dict, row: dict, done: dict) -> list[str]:
@@ -648,9 +711,17 @@ def moment_line(connection, companion: dict, row: dict, done: dict, today: date)
                  default=None)
     if latest is None or row['status'] == 'home' or (today - date.fromisoformat(latest['on'])).days > RECENT_DAYS:
         return []
-    line = generators.pick(f"journey:{row['id']}", latest['key'],
-                           fitting(bank()[latest['bank_key']], connection, companion))['text']
+    line = moment_text(row, int(latest['key'].split(':')[1]), fitting(bank()[latest['bank_key']], connection, companion))
     return [f"- Lately ({long_date(latest['on'])}): {line}"]
+
+
+def moment_text(row: dict, index: int, lines: list[dict]) -> str:
+    """The bank line for the journey's moment `index`, never one an earlier moment of it had (seeded, in order)."""
+    used: list[str] = []
+    for each in range(index + 1):
+        pool = [line for line in lines if line['text'] not in used] or lines
+        used.append(generators.pick(f"journey:{row['id']}", f'moment:{each}', pool)['text'])
+    return used[-1]
 
 
 # First texts (companion/life/openers.py) ----------------------------------------------------------------------------------
@@ -660,24 +731,27 @@ NEWS = {
             'feel about it, in your own words.',
     'match': 'The adoption agency just called: you and the user have been matched with {name}, {age}, who comes home '
              'on {home}. Text the user about it, in your own words.',
-    'home_fostering': '{name}, {age}, has just been placed with you and the user as your foster child, today. Text '
+    'home_fostering': '{name}, {age}, has just been placed with you and the user as your foster child, {when}. Text '
                       'the user about it, in your own words.',
     'need': 'Word just came that {need}. You and the user are taking them in: {name}, {age}, comes to live with you '
             'on {home}. Tell the user, in your own words.',
-    'born_far': 'Your baby was born today: a {girl}, {name}. The user is away. Text them the news, in your own words.',
+    'born_far': 'Your baby was born {when}: a {girl}, {name}. The user is away. Text them the news, in your own words.',
 }
 
 
 def news_due(connection, companion: dict, now) -> list:
-    """The news of the day, as a first text: finding out, the match, a placement, word of a child who needs a home, or
-    the birth when the user is away. Never with the adult side of life on."""
-    from companion.life import long_distance
+    """The news as a first text: finding out, the match, a placement, word of a child who needs a home, or the birth
+    when the user is away; the latest since yesterday or the user's last visit (love_life.news_since), so news on a
+    day the user was away still comes. Never with the adult side of life on."""
+    from companion.life import long_distance, love_life
     from companion.life.openers import Trigger
     row = current(connection, companion['active_timeline_id']) if ACTIVE and FIRST_TEXTS else None
     if row is None or row['status'] == 'planned' or quiet(connection):
         return []
-    today = local_today(companion, now).isoformat()
-    stage = next((item for item in row['stages'] if item['on'] == today), None)
+    day = local_today(companion, now)
+    today, since = day.isoformat(), love_life.news_since(connection, companion, now, day).isoformat()
+    stage = max((item for item in row['stages'] if since <= item['on'] <= today and news_key(row, item['key'])),
+                key=lambda item: item['on'], default=None)
     key = stage and stage['key']
     if key == 'home' and row['route'] in FOSTERING:
         key = 'home_fostering'
@@ -687,11 +761,17 @@ def news_due(connection, companion: dict, now) -> list:
         return []
     home = next((item['on'] for item in row['stages'] if item['key'] == 'home'), today)
     details = row['details']
-    reason = NEWS[key].format(due=f"{date.fromisoformat(details.get('due_on') or today):%B}",
+    when = 'today' if stage['on'] == today else f"on {long_date(stage['on'])}"
+    reason = NEWS[key].format(due=f"{date.fromisoformat(details.get('due_on') or today):%B}", when=when,
                               carrier=CARRIER.get(row['route'], '').format(**details), name=details['name'],
                               age=age_words(row), home=long_date(home), need=NEEDS.get(row['route'], ''),
                               girl=girl(row))
     return [Trigger(f"journey:{row['id']}:{key}", 'storyline', reason)]
+
+
+def news_key(row: dict, key: str) -> bool:
+    """Whether a stage is news told in a first text."""
+    return key in NEWS or key == 'born' or key == 'home' and row['route'] in FOSTERING
 
 
 def news_items(connection, companion: dict, since: str, today: str) -> list[dict]:
@@ -700,7 +780,7 @@ def news_items(connection, companion: dict, since: str, today: str) -> list[dict
     row = current(connection, companion['active_timeline_id']) if ACTIVE else None
     if row is None or quiet(connection):
         return []
-    name, other = companion['version']['definition']['name'], 'the user'
+    name, other = companion['version']['definition']['name'].split()[0], 'the user'
     words = {'news': f'{name} and {other} are expecting a baby', 'match': f'{name} and {other} are adopting a child',
              'need': f'{name} and {other} are taking in a child', 'born': f'{name} and {other} had their baby',
              'home': f'{name} and {other} welcomed a child home'}
@@ -734,7 +814,10 @@ def panel(connection, companion: dict, now, show_odds: bool) -> dict | None:
     return {'route': row['route'], 'status': row['status'], 'due_on': row['due_on'] if 'news' in done else None,
             'arrived_on': row['arrived_on'], 'name': row['details'].get('name') if known else None,
             'renamed': bool(row['details'].get('renamed')), 'stages': shown,
-            'consequences': list((decode(row['consequences']) or {}).values()) if show_odds else []}
+            'consequences': list((decode(row['consequences']) or {}).values()) if show_odds else [],
+            # Which of the engine's choices each is (soon, turn, wait, match, fostered), so the panel can name them.
+            'outcomes': [{'key': key, 'id': value} for key, value in (decode(row['consequences']) or {}).items()]
+            if show_odds else []}
 
 
 def listed(stage: dict, done: dict, row: dict) -> bool:
@@ -763,21 +846,22 @@ def shown_stage(stage: dict, done: dict, row: dict) -> dict:
 # Branches -------------------------------------------------------------------------------------------------------------
 
 def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> None:
-    """A journey begun by the fork carries over with the stages reached by then (the rest is planned again on the
-    copy); a child home by then comes too."""
+    """A journey begun by the fork carries over with its plan (the days were picked the day it began, so the due date
+    and the birth stay as they were; what is still to come on the copy comes on the copy) and its engine outcomes; a
+    child home by then comes too."""
     for row in many(connection, "SELECT * FROM family_journeys WHERE timeline_id=? AND started_on<=? AND "
                     "status!='called_off'", (parent_id, cutoff_date)):
         found = view(row)
-        stages = [stage for stage in found['stages'] if stage['on'] <= cutoff_date] or found['stages']
+        reached_by = any(stage['on'] <= cutoff_date for stage in found['stages'])
         home = row['status'] == 'home' and (row['arrived_on'] or '') <= cutoff_date
         journey_id, child_id = identifier(), identifier() if home else None
         connection.execute(
             'INSERT INTO family_journeys (id, timeline_id, companion_id, route, status, decided_on, started_on, '
             'due_on, arrived_on, child_id, stages, details, consequences, created_at, updated_at) '
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (journey_id, new_id, row['companion_id'], row['route'], 'home' if home else 'running' if stages else
+            (journey_id, new_id, row['companion_id'], row['route'], 'home' if home else 'running' if reached_by else
              'planned', row['decided_on'], row['started_on'], row['due_on'], row['arrived_on'] if home else None,
-             child_id, encode(stages if not home else found['stages']), row['details'], row['consequences'],
+             child_id, row['stages'], row['details'], encode(copy_outcomes(connection, found, new_id, journey_id)),
              row['created_at'], row['updated_at']))
         if home:
             kid = optional(connection, 'SELECT * FROM circle_children WHERE id=?', (row['child_id'],))
@@ -787,3 +871,12 @@ def copy(connection, parent_id: str, new_id: str, cutoff_date: str) -> None:
                     "born_on, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'ours', ?, ?, ?, ?)",
                     (child_id, new_id, kid['parent_id'], journey_id, kid['name'], kid['pronouns'], kid['born_on'],
                      kid['status'], kid['created_at'], kid['updated_at']))
+
+
+def copy_outcomes(connection, row: dict, new_id: str, journey_id: str) -> dict:
+    """The journey's engine outcomes on the copy (consequences.copy), so Hidden values there change the copy's own."""
+    result = {}
+    for key, consequence_id in (decode(row['consequences']) or {}).items():
+        if consequence_id and optional(connection, 'SELECT id FROM consequences WHERE id=?', (consequence_id,)):
+            result[key] = consequences.copy(connection, consequence_id, new_id, f'family:{key}:{journey_id}')
+    return result
