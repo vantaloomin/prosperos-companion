@@ -350,6 +350,10 @@ ADDED_COLUMNS = (
     # NULL: the app's pick, from their parents' kinds; lifespan 0: they don't age).
     ('circle_children', 'own_kind', "TEXT NOT NULL DEFAULT ''"),
     ('circle_children', 'lifespan', 'INTEGER'),
+    # The user's kind and How long they live, picked on the Persona page (companion/worlds.py; '' and NULL: read from
+    # their own words; lifespan 0: they don't age).
+    ('persona', 'kind', "TEXT NOT NULL DEFAULT ''"),
+    ('persona', 'lifespan', 'INTEGER'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

@@ -10,14 +10,41 @@ export type KindSource = 'words' | 'parents' | 'app'
 
 /** The Kind picker's first option, the app's pick, saying why: "As their description says (Elf)", "From their parents
  * (Half-elf)", "As the app picks (Human)". */
-export function foundOption(foundLabel: string, source: KindSource) {
-  if (source === 'words') return `As their description says (${foundLabel})`
+export function foundOption(foundLabel: string, source: KindSource, you = false) {
+  if (source === 'words') return you ? `As About you says (${foundLabel})` : `As their description says (${foundLabel})`
   return source === 'parents' ? `From their parents (${foundLabel})` : `As the app picks (${foundLabel})`
 }
 
-/** How long they live's first option: "As their kind (about 600 years)", "As their kind (doesn't age)". */
-export function asKindOption(kindYears: number | null) {
-  return kindYears === null ? "As their kind (doesn't age)" : `As their kind (about ${yearsText(kindYears)})`
+/** How long they live's first option: "As their kind (about 600 years)", "As their kind (doesn't age)"; "your kind"
+ * on the Persona page. */
+export function asKindOption(kindYears: number | null, you = false) {
+  const whose = you ? 'your' : 'their'
+  return kindYears === null ? `As ${whose} kind (doesn't age)` : `As ${whose} kind (about ${yearsText(kindYears)})`
+}
+
+const HUMAN_YEARS = 80
+const ADULT = 18
+/** Past this, a kind is long-lived (companion/world/lifespans.py `LONG_LIVED`): an age past 120 can be theirs. */
+export const LONG_LIVED = 150
+
+/** Their age in human terms (companion/world/lifespans.py `life_age`): childhood at a human pace, then adulthood
+ * stretched to their lifespan. Null lifespan: they don't age, so it is the age they are. */
+export function lifeAge(real: number, lifespan: number | null) {
+  if (lifespan === null || real <= ADULT || lifespan === HUMAN_YEARS) return real
+  return Math.round(ADULT + (real - ADULT) * (HUMAN_YEARS - ADULT) / (lifespan - ADULT))
+}
+
+/** How long someone lives as the pickers stand: their own pick (0 doesn't age), else the picked kind's, else the
+ * kind the app read. Null: they don't age. */
+export function pickedLifespan(choices: KindChoices, picked: string, own: number | null, foundYears: number | null) {
+  if (own === 0) return null
+  if (own) return own
+  const kind = choices.kinds.find((item) => item.id === picked)
+  return kind ? kind.lifespan : foundYears
+}
+
+export function longLived(lifespan: number | null) {
+  return lifespan === null || lifespan > LONG_LIVED
 }
 
 /** "About 48 in human terms": under the pickers, only when it differs from the age they are. */

@@ -399,7 +399,8 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         if child.get('whose') != WHOSE:
             continue
         word = {'she/her': 'daughter', 'he/him': 'son'}.get(child['pronouns'], 'child')
-        other = f"your {child['parent_role']} {child['parent_name']}" if child['parent_status'] == 'active' else \
+        role = circle.said(child['parent_role'], companion['version']['definition'])
+        other = f"your {role} {child['parent_name']}" if child['parent_status'] == 'active' else \
             child['parent_name']
         extra = f" The user is {child['name']}'s godparent." if godparent(connection, timeline_id, child['id']) else ''
         result.append((f"child:{child['id']}", f"- {child['name']} (your {word}, {families.how_old(child, today)}): "

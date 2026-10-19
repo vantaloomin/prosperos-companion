@@ -1,5 +1,6 @@
 """Expecting or adopting together (companion/life/expecting.py): once the pair decided to start a family, the child
 comes by the route picked for them, through months in real time, and joins the circle's children as theirs."""
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -508,3 +509,101 @@ def test_with_the_adult_side_on_the_birth_day_is_an_ordinary_one(client, clock, 
     to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
     found = day_of(client, born)
     assert found and not any(block.get('arrival') for block, _entry in found)
+
+
+def test_bed_rest_shows_on_today_and_undo_ends_it(client, clock, monkeypatch, likeliest):
+    started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    turn = decode(journey(client)['consequences'])['turn']
+    assert client.post(f'/api/life/consequences/{turn}/change', json={'option': 1}).status_code == 200
+    row = journey(client)
+    rest = date.fromisoformat(stage(row, 'bed_rest')['on'])
+    to(client, clock, (rest - timedelta(days=1)).isoformat())
+    assert client.get('/api/life/steps/family/turns').json() == []  # Nothing before it comes.
+    to(client, clock, (rest + timedelta(days=2)).isoformat())
+    [shown] = client.get('/api/life/steps/family/turns').json()
+    assert shown['kind'] == 'bed_rest' and shown['on'] == rest.isoformat() and shown['consequence'] == turn
+    assert shown['title'].startswith('Mira went on bed rest') and 'the user' not in shown['title']
+    assert client.post(f"/api/life/steps/family/turns/{row['id']}/undo").json() == []
+    after = journey(client)
+    assert 'bed_rest' not in {item['key'] for item in after['stages']} and after['details']['turn'] == 'none'
+    assert stage(after, 'born')['on'] > (rest + timedelta(days=2)).isoformat()
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        assert expecting.days_off(connection, companion, rest, rest + timedelta(days=60)) == {}
+        assert not any('bed rest' in line for _key, line in expecting.context_lines(connection, companion, clock.now()))
+        assert consequences.by_id(connection, turn)['picked'] == 0
+    assert client.post(f"/api/life/steps/family/turns/{row['id']}/undo").status_code == 409
+
+
+def test_an_early_arrival_shows_on_today_and_undo_puts_the_baby_back_on_the_way(client, clock, monkeypatch,
+                                                                                likeliest):
+    started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    turn = decode(journey(client)['consequences'])['turn']
+    assert client.post(f'/api/life/consequences/{turn}/change', json={'option': 2}).status_code == 200
+    row = journey(client)
+    born = date.fromisoformat(stage(row, 'born')['on'])
+    to(client, clock, (born + timedelta(days=1)).isoformat())
+    home = journey(client)
+    assert home['status'] == 'home' and home['child_id']
+    [shown] = client.get('/api/life/steps/family/turns').json()
+    weeks = round((date.fromisoformat(home['due_on']) - born).days / 7)
+    assert shown['kind'] == 'early' and shown['title'] == f"{home['details']['name']} was born {weeks} weeks early, " \
+        'and is doing well'
+    assert client.post(f"/api/life/steps/family/turns/{row['id']}/undo").json() == []
+    after = journey(client)
+    assert after['status'] == 'running' and after['child_id'] is None and after['details']['turn'] == 'none'
+    assert stage(after, 'born')['on'] > (born + timedelta(days=1)).isoformat()
+    assert after['details']['name'] == home['details']['name']
+    with client.app.state.database.connect() as connection:
+        assert connection.execute('SELECT COUNT(*) FROM circle_children WHERE id=?',
+                                  (home['child_id'],)).fetchone()[0] == 0
+    to(client, clock, stage(after, 'born')['on'])  # The baby still comes, at term.
+    assert journey(client)['status'] == 'home'
+    # Long after an early arrival there is nothing to undo on Today.
+    assert client.get('/api/life/steps/family/turns').json() == []
+
+
+def test_a_hard_turn_on_today_keeps_the_same_hold_as_the_news(client, clock, monkeypatch, likeliest):
+    started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    turn = decode(journey(client)['consequences'])['turn']
+    assert client.post(f'/api/life/consequences/{turn}/change', json={'option': 1}).status_code == 200
+    to(client, clock, (date.fromisoformat(stage(journey(client), 'bed_rest')['on']) + timedelta(days=1)).isoformat())
+    assert len(client.get('/api/life/steps/family/turns').json()) == 1
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    assert client.get('/api/life/steps/family/turns').json() == []
+
+
+def test_on_the_day_the_name_comes_up_they_text_to_suggest_it(client, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(expecting, 'FIRST_TEXTS', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', location='Baltimore')
+    to(client, clock, stage(row, 'name')['on'])
+    [trigger] = triggers(client, clock)
+    name = journey(client)['details']['name']
+    assert trigger.key == f"journey:{row['id']}:name"
+    assert trigger.reason == (f"You've been thinking about names for the baby, and one keeps coming back to you: {name}. "
+                              'Suggest it to the user in your own words, and leave them room to say no.')
+    # Once the user has named the child themselves, nothing is suggested.
+    with client.app.state.database.connect(write=True) as connection:
+        expecting.rename(connection, current(connection), 'Juniper', clock.now())
+    assert triggers(client, clock) == []
+
+
+def test_their_people_react_with_their_own_pronouns():
+    lines = [line['text'] for line in expecting.bank()['reactions']]
+    for pronouns in ('he/him', 'she/her', 'they/them', None):
+        for line in lines:
+            said = expecting.reaction(line, 'your dad Johnny', pronouns)
+            assert '{' not in said and '}' not in said, (line, pronouns)
+    happy = next(line for line in lines if 'forgot what' in line)
+    assert expecting.reaction(happy, 'your dad Johnny', 'he/him') == \
+        'your dad Johnny was so happy he forgot what he had come over to say.'
+    proud = next(line for line in lines if 'proud of you two' in line)
+    assert expecting.reaction(proud, 'your mom Ann', 'she/her') == \
+        'your mom Ann said she was proud of you two, which she does not often say.'
+    assert expecting.reaction(proud, 'your friend Sam', 'they/them') == \
+        'your friend Sam said they were proud of you two, which they do not often say.'
+    # A "them" that is about something else (the questions they asked) stays.
+    questions = next(line for line in lines if 'practical questions' in line)
+    assert expecting.reaction(questions, 'your sister Kim', 'she/her').endswith('write them down.')
+    he = [expecting.reaction(line, 'your dad Johnny', 'he/him') for line in lines]
+    assert not any(re.search(r'\b(?:they|their|themself|themselves)\b', said) for said in he)

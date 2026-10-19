@@ -214,6 +214,21 @@ def test_a_year_and_a_half_on_they_bring_up_another_child(client, clock, monkeyp
         assert 'a brother or sister for' in our_child.steps.reason_for(connection, current(connection), 'sibling')
 
 
+def test_another_child_comes_up_only_while_the_youngest_is_under_ten(client, provider, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 9 * 366)
+    assert family(client)['can_decide_another']
+    aged(client, child, 10 * 366)
+    reconcile(client)
+    assert not [ask for ask in planned(client) if ask['step'] == 'sibling']
+    assert not family(client)['can_decide_another']
+    says(provider)
+    send(client, 'should we have another baby?', 'client-ours-ten')
+    with connect(client) as connection:
+        assert not connection.execute("SELECT * FROM step_asks WHERE step='sibling'").fetchall()
+    assert client.put('/api/life/steps/family', json={'another': True}).status_code == 409
+
+
 def test_the_user_can_bring_up_another_child(client, provider, clock, monkeypatch):
     row, child = born(client, clock, monkeypatch)
     aged(client, child, 600)
@@ -256,6 +271,24 @@ def test_a_reply_reads_its_side_from_many_wordings():
 def whole(provider) -> str:
     request = provider.requests[-1]
     return request['system'] + '\n' + '\n'.join(str(message['content']) for message in request['messages'])
+
+
+def test_a_style_note_is_read_for_its_plain_words(client, provider, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    first = child['name'].split()[0]
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    companion = client.get('/api/companion').json()['companion']
+    note = f"/api/authors-notes/companion:{companion['id']}"
+    recent = [{'text': f'how is {first} doing this morning?'}]
+    for text, kept in (('Keep replies short and teasing.', True), ('Keep it light, with eye contact and leather.', True),
+                         ('Slow, sensual, the two of you alone in the bedroom.', False), ('Keep it sexy.', False)):
+        assert client.put(note, json={'text': text}).status_code == 200
+        with connect(client) as connection:
+            assert sides.family_reply(connection, current(connection), recent, None, None) is kept, text
+    assert client.put(note, json={'text': 'Keep replies short and teasing.'}).status_code == 200
+    says(provider)
+    send(client, recent[0]['text'], 'client-ours-note')
+    assert first in provider.requests[-1]['system']
 
 
 def test_a_reply_whose_conversation_says_a_child_carries_one_kind_of_line_or_none(client, provider, clock,
@@ -428,3 +461,51 @@ def test_an_evening_out_shows_who_is_watching_the_child(client, clock, monkeypat
         monkeypatch.setattr(our_child, 'relatives', lambda *args: [])
         paid = our_child.sitter_view(connection, companion, evening)
         assert paid['text'].startswith(f'A sitter is watching {first}, about ') and paid['cost'] > 0
+
+
+def test_the_childs_line_gives_months_until_two_then_years(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    with connect(client) as connection:
+        today = our_child.steps.local_today(current(connection), clock.now())
+    for days, told in ((200, 'a baby, 6 months old'), (430, '14 months old'), (15 * 365 + 40, '15')):
+        found = {**child, 'born_on': (today - timedelta(days=days)).isoformat()}
+        assert our_child.how_old(found, today) == told
+    aged(client, child, 430)
+    with connect(client) as connection:
+        line = our_child.child_text(connection, dict(connection.execute(
+            'SELECT * FROM circle_children WHERE id=?', (child['id'],)).fetchone()), today)
+    assert ', 14 months old): yours and the user' in line and 'a child' not in line
+
+
+def test_in_an_older_city_the_school_run_is_a_walk_to_school(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch, home_city='london-1895', location='Marylebone, London')
+    aged(client, child, 6 * 365 + 100)
+    with connect(client) as connection:
+        companion = current(connection)
+        today = our_child.steps.local_today(companion, clock.now())
+        kids = our_child.at_home(connection, companion['active_timeline_id'], today)
+        text = ' '.join(line for _key, line in our_child.days_lines(connection, companion, kids, today))
+    first = child['name'].split()[0]
+    assert f'weekday mornings start with walking {first} to school;' in text and 'school run' not in text
+
+
+def test_gift_lines_only_go_with_a_holiday_for_presents(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 6 * 365)
+    whole = our_child.bank()
+    gift = {'text': '{child} handed out the {holiday} gifts, reading every name out loud.', 'ages': [5, 10]}
+    lantern = {'text': '{child} made a paper lantern for {holiday} and hung it in the window.', 'ages': [5, 10]}
+    monkeypatch.setattr(our_child, 'bank', lambda: {**whole, 'holiday_part': [gift, lantern]})
+    with connect(client) as connection:
+        companion = current(connection)
+        today = our_child.steps.local_today(companion, clock.now())
+        child = dict(connection.execute('SELECT * FROM circle_children WHERE id=?', (child['id'],)).fetchone())
+        for holiday, name in (('midsummer-eve', "St John's Eve"), ('shrove-tuesday', 'Shrove Tuesday')):
+            monkeypatch.setattr('companion.life.traditions.upcoming', lambda *args, key=holiday, label=name: [
+                {'date': today, 'holiday': key, 'name': label}])
+            [(_key, line)] = our_child.holiday_line(connection, companion, child, today)
+            assert 'lantern' in line and 'gifts' not in line
+        monkeypatch.setattr(our_child, 'bank', lambda: {**whole, 'holiday_part': [gift]})
+        monkeypatch.setattr('companion.life.traditions.upcoming', lambda *args: [
+            {'date': today, 'holiday': 'christmas', 'name': 'Christmas Day'}])
+        assert 'Christmas Day gifts' in our_child.holiday_line(connection, companion, child, today)[0][1]

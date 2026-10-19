@@ -340,7 +340,9 @@ def notice(sheet: dict, found: dict, data: dict) -> str:
 def card(sheet: dict, data: dict, day: date, found: dict | None = None) -> dict:
     """What the dating screen shows about someone: first name, age, looks, job and bio. Never their family name."""
     found = found or details(sheet, data)
-    return {'key': sheet['key'], 'name': sheet['name'], 'age': sheet['age'], 'gender': found['gender'],
+    return {'key': sheet['key'], 'name': sheet['name'], 'age': sheet['age'],
+            # A long-lived kind's age in human terms, as matching reads it (`life_of`): an elf of 225 is about 40.
+            'life_age': found['life'] if found['life'] != sheet['age'] else None, 'gender': found['gender'],
             'pronouns': sheet.get('pronouns', ''), 'orientation': found['orientation'],
             'looking': found['looking'], 'looking_text': LOOKING_TEXT.get(found['looking'], ''),
             'looks': looks_text(found['looks'], data), 'job': job_text(sheet),

@@ -90,7 +90,7 @@ def invites(monkeypatch):
 
 
 def test_the_bank_has_enough_lines_and_each_names_who_where_and_when():
-    for kind in ('family', 'friends'):
+    for kind in ('family', 'friends', 'home'):
         lines = their_people.bank()[kind]
         assert len(lines) >= 100 and len(set(lines)) == len(lines)
         for line in lines:
@@ -158,6 +158,33 @@ def test_with_no_family_in_town_they_go_out_with_friends(client, clock, invites)
     set_step(client, 'their_people')
     advance(client, clock)
     assert meetups(client)[0]['kind'] == 'friends'
+
+
+def test_a_parent_with_no_family_in_town_has_their_friends_to_dinner_with_the_kids(client, provider, clock, invites,
+                                                                                    monkeypatch):
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, roles=['close friend', 'friend', 'coworker'], background='Her son Leo, 7, and daughter Mia, 4.')
+    set_step(client, 'their_people')
+    advance(client, clock)
+    assert meetups(client)[0]['kind'] == 'family'
+    clock.advance(timedelta(days=7))
+    trigger, outing = invite(client, clock)
+    assert 'dinner at my place' in trigger.reason and 'my place' in trigger.template and '{' not in trigger.template
+    assert ' (Leo and Mia will be there too): dinner at my place' in trigger.reason
+    assert outing['activity'] == their_people.AT_FAMILY and outing['place']['own']
+    assert outing['place']['name'] == "Mira Costa's place" and outing['place']['kind'] == 'home'  # 'Their place'
+    assert [person['role'] for person in outing['place']['people']] == ['close friend', 'friend']
+    assert [kid['name'] for kid in outing['place']['kids']] == ['Leo', 'Mia']  # Today's guest line names them
+    assert [kid['role'].split(',')[0] for kid in outing['place']['kids']] == ['son', 'daughter']
+    at(clock, outing, '19:30')
+    says(provider)
+    send(client, 'hi everyone!', 'client-people-home')
+    assert 'and your kids Leo and Mia. Nobody else is there.' in prompt(provider)
+    clock.advance(timedelta(days=1))
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        assert kids.met(connection, current(connection))
 
 
 def test_called_off_it_comes_round_again_later(client, clock, invites):
@@ -502,3 +529,21 @@ def test_in_a_group_another_companion_knows_they_were_not_at_the_dinner(client, 
     [line] = [text for text in lines if "you weren't there" in text]
     assert line.startswith("Mira took the user to dinner at ") and 'their mom' in line
     assert not any("you weren't there" in text for text in own)
+
+
+def test_the_invitation_to_the_family_dinner_names_their_kids_but_not_with_the_adult_side_on(client, clock, invites,
+                                                                                               monkeypatch):
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, background='Her son Leo, 7.')
+    set_step(client, 'their_people')
+    advance(client, clock)
+    clock.advance(timedelta(days=7))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        assert their_people.kids_coming(connection, companion) == ' (Leo will be there too)'
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect(write=True) as connection:
+        assert their_people.kids_coming(connection, current(connection)) == ''
+    trigger, _outing = invite(client, clock)
+    assert 'Leo' not in trigger.reason

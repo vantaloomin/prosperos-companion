@@ -33,7 +33,7 @@ from companion import consequences
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import admin, circle, families, steps
+from companion.life import admin, circle, families, pronouns, steps
 from companion.life.steps import FAMILY
 from companion.world import catalog, generators
 
@@ -585,6 +585,72 @@ def change(connection, companion: dict, consequence_id: str, now) -> None:
         plan(connection, companion, None, row, now)
 
 
+# A hard turn on Today (Vanta, 2026-10-19: "Yes, with Undos") ----------------------------------------------------------
+
+# What Today says, "you" for the user: bed rest by who carries, then an early arrival.
+TURN_TITLES = {'expecting_them': '{companion} went on bed rest, to be safe, until the baby comes',
+               'expecting_you': 'You went on bed rest, to be safe, until the baby comes',
+               'surrogacy': '{surrogate}, your surrogate, went on bed rest, to be safe, until the baby comes',
+               'early': '{name} was born {weeks} weeks early, and is doing well'}
+
+
+def turn_shown(connection, companion: dict, now) -> dict | None:
+    """The pregnancy's hard turn once it has come, for Today with an Undo, as Life's big turns are: bed rest until the
+    birth, an early arrival for `ARRIVED_DAYS` after it. None with the adult side of life on (as the news)."""
+    row = current(connection, companion['active_timeline_id']) if ACTIVE and companion.get('active_timeline_id') \
+        else None
+    if row is None or row['route'] not in PREGNANCY or quiet(connection):
+        return None
+    turn, today, done = row['details'].get('turn'), local_today(companion, now), None
+    if turn == 'bed_rest' and row['status'] != 'home':
+        done = reached(row, today).get('bed_rest')
+    born = next((stage for stage in row['stages'] if stage['key'] == 'born'), None)
+    if turn == 'early' and row['status'] == 'home' and born and born.get('early') and \
+            (today - date.fromisoformat(born['on'])).days <= ARRIVED_DAYS:
+        done = born
+    if done is None:
+        return None
+    weeks = max(1, round((date.fromisoformat(row['due_on'] or done['on']) - date.fromisoformat(done['on'])).days / 7))
+    title = TURN_TITLES['early' if turn == 'early' else row['route']].format(
+        companion=first_name(companion['version']['definition']['name']), weeks=weeks,
+        **{'surrogate': 'Your surrogate', **row['details']})
+    return {'id': row['id'], 'kind': turn, 'on': done['on'], 'title': title,
+            'consequence': (decode(row['consequences']) or {}).get('turn')}
+
+
+def undo_turn(connection, companion: dict, journey_id: str, now) -> None:
+    """Take the hard turn back, as a chapter's Undo does: the engine's pick becomes "no hard turn" (you picked it) and
+    what is still to come is planned again. Bed rest ends; an early arrival goes back to being on the way, due as
+    planned. What happened in the meantime stays."""
+    shown = turn_shown(connection, companion, now)
+    require(shown is not None and shown['id'] == journey_id, 'That has already been undone or is past changing.', 409)
+    row = current(connection, companion['active_timeline_id'])
+    if shown['consequence']:
+        consequences.change(connection, shown['consequence'], TURNS.index('none'), stamp(now))
+    stages = [stage for stage in row['stages'] if stage['key'] != shown['kind'] and
+              not (shown['kind'] == 'early' and stage['key'] == 'born')]
+    if shown['kind'] == 'early':
+        connection.execute('DELETE FROM circle_children WHERE id=?', (row['child_id'],))
+        connection.execute("UPDATE family_journeys SET status='running', child_id=NULL, arrived_on=NULL WHERE id=?",
+                           (row['id'],))
+    details = {key: value for key, value in row['details'].items() if key != 'far'} | {'turn': 'none'}
+    connection.execute('UPDATE family_journeys SET stages=?, details=?, updated_at=? WHERE id=?',
+                       (encode(stages), encode(details), stamp(now), row['id']))
+    plan(connection, companion, None, current(connection, companion['active_timeline_id']), now)
+    still_to_come(connection, companion, row['id'], now)
+
+
+def still_to_come(connection, companion: dict, journey_id: str, now) -> None:
+    """After an early arrival is undone the birth is still to come: on the due date, or tomorrow when that has passed."""
+    row = current(connection, companion['active_timeline_id'])
+    if row is None or row['id'] != journey_id or any(stage['key'] == 'born' for stage in row['stages']):
+        return
+    day = max(date.fromisoformat(row['due_on']), local_today(companion, now) + timedelta(days=1))
+    stages = sorted(row['stages'] + [at(day, 'born', early=False)], key=lambda stage: (stage['on'], stage['key']))
+    connection.execute('UPDATE family_journeys SET stages=?, updated_at=? WHERE id=?',
+                       (encode(stages), stamp(now), journey_id))
+
+
 def rename(connection, companion: dict, name: str, now) -> None:
     """The user names the child (on the Character page): the name stays from then on."""
     row = current(connection, companion['active_timeline_id'])
@@ -789,9 +855,16 @@ def reactions_of(connection, companion: dict, row: dict) -> list[str]:
         role = circle.said(circle.relation(circle.role_kind(person['role']), details.get('pronouns') or ''),
                            companion['version']['definition'])
         line = generators.pick(f"journey:{row['id']}:{person['id']}", f'reaction-{index}', lines)['text']
-        sentence = line.format(who=f"your {role} {person['name'].split()[0]}")
+        sentence = reaction(line, f"your {role} {person['name'].split()[0]}", details.get('pronouns'))
         result.append(sentence[:1].upper() + sentence[1:])
     return result
+
+
+def reaction(line: str, who: str, pronouns_: str | None) -> str:
+    """A reactions bank line said of `who` with their own pronouns ("{they} forgot" for a dad is "he forgot"; A/B:
+    findings/ab-r2-expecting.md, decide-screens); pronouns not known read "they"."""
+    forms = pronouns.person(pronouns_)
+    return line.format(who=who, **{key.replace("'", ''): value for key, value in forms.items()})
 
 
 def moment_line(connection, companion: dict, row: dict, done: dict, today: date) -> list[str]:
@@ -825,6 +898,9 @@ NEWS = {
     'need': 'Word just came that {need}. You and the user are taking them in: {name}, {age}, comes to live with you '
             'on {home}. Tell the user, in your own words.',
     'born_far': 'Your baby was born {when}: a {girl}, {name}. The user is away. Text them the news, in your own words.',
+    # The day the name comes up, when the companion suggested it (A/B: findings/ab-r2-expecting.md, decide-screens).
+    'name': "You've been thinking about names for the baby, and one keeps coming back to you: {name}. Suggest it to "
+            'the user in your own words, and leave them room to say no.',
 }
 
 
@@ -859,7 +935,10 @@ def news_due(connection, companion: dict, now) -> list:
 
 
 def news_key(row: dict, key: str) -> bool:
-    """Whether a stage is news told in a first text."""
+    """Whether a stage is news told in a first text; the name only while it is the one the companion suggested
+    (not once the user named the child)."""
+    if key == 'name':
+        return not row['details'].get('renamed')
     return key in NEWS or key == 'born' or key == 'home' and row['route'] in FOSTERING
 
 

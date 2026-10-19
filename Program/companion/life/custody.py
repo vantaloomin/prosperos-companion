@@ -19,7 +19,8 @@ model:
   circle as the child's other parent, and where the child lives is the engine's kids:custody, as for kids they had
   before (companion/life/kids.py).
 - Loss (companion/life/loss.py): children are never the one who passes away, nor the pair's grown child; a parent
-  with a baby under one, or one on the way, is spared until the baby turns one.
+  with a baby under one, or one on the way, is spared until the baby turns one, and the other parent of a child the
+  companion shares with them (an ex co-parent, the kids' other parent) until the child is 18 (Vanta 2026-10-19).
 
 Children keep v0.14's limits everywhere: words only, and with the adult side of life on a reply carries the family
 lines or the adult side's, never both (our_child.quiet).
@@ -41,6 +42,7 @@ DETAILS = {'with_them': "with {name}, every other weekend with you", 'shared': '
 FAR_DETAILS = {'with_them': 'with {name}; you see {them} when you visit', 'with_you': 'with you; {name} sees {them} '
                'when you visit'}
 BABY_DAYS = 365
+SHARED_UNTIL = 18  # The other parent of a child the companion shares is spared until the child is grown.
 OWN_CHOICE = 'kids:custody'
 OWN_PATTERNS = ('with_them', 'shared', 'weekends')
 SPLIT = 'split'
@@ -176,7 +178,14 @@ def context_lines(connection, companion: dict, kids: list[dict], today: date, no
         return []
     who, them = names_of(kids), verb(kids, families.fill_child('{them}', kids[0]), 'them')
     since = 'Since you and the user split up, ' if state['split'] else ''
-    if state['far']:
+    if state['far'] and state['split']:  # Exes don't visit each other (long_distance.decide); A/B 2026-10-19.
+        city = (state['far'].your_city or {}).get('name') or 'another city'
+        theirs = (state['far'].their_city or {}).get('name') or 'your city'
+        line = (f"{who} {verb(kids, 'lives', 'live')} with you; the user lives in {city} and comes to {theirs} to see "
+                f'{them} when they can.' if state['pattern'] == 'with_them' else
+                f"{who} {verb(kids, 'lives', 'live')} with the user in {city}; you go to {city} to see {them} when you "
+                'can.')
+    elif state['far']:
         city = (state['far'].your_city or {}).get('name') or 'another city'
         line = (f"{who} {verb(kids, 'lives', 'live')} with you; the user lives in {city} and sees {them} when you visit "
                 'each other.' if state['pattern'] == 'with_them' else
@@ -326,8 +335,9 @@ def own_advance(connection, companion: dict, now) -> None:
 # Loss ---------------------------------------------------------------------------------------------------------------
 
 def spared(connection, person: dict, day: date) -> bool:
-    """Never the pair's grown child, and never a parent while their baby is under one or on the way: their own
-    (circle_children under them) or, for the kids' other parent, the companion's kids with them (kids.py)."""
+    """Never the pair's grown child, never a parent while their baby is under one or on the way (circle_children
+    under them), and never the other parent of a child under 18 the companion shares with them: the companion's own
+    child with them (own_family.py) or the kids they had before (kids.py)."""
     details = decode(person['details']) or {}
     if details.get('our_child'):
         return True
@@ -335,6 +345,8 @@ def spared(connection, person: dict, day: date) -> bool:
     if optional(connection, "SELECT id FROM circle_children WHERE parent_id=? AND (status='expected' OR "
                 "(status='born' AND born_on>?)) LIMIT 1", (person['id'], young)):
         return True
-    return bool(optional(connection, "SELECT c.id FROM companion_kids k JOIN circle_children c ON "
-                         "c.storyline_id='kids:' || k.timeline_id WHERE k.other_id=? AND c.status='born' AND "
-                         'c.born_on>? LIMIT 1', (person['id'], young)))
+    shared = many(connection, "SELECT born_on FROM circle_children WHERE parent_id=? AND whose='companion' AND "
+                  "status='born'", (person['id'],))
+    shared += many(connection, "SELECT c.born_on FROM companion_kids k JOIN circle_children c ON "
+                   "c.storyline_id='kids:' || k.timeline_id WHERE k.other_id=? AND c.status='born'", (person['id'],))
+    return any(families.age_of(child, day) < SHARED_UNTIL for child in shared)

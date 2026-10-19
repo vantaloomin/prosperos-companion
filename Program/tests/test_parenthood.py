@@ -282,7 +282,7 @@ def test_saying_no_to_one_who_wants_children_can_start_a_rough_patch_but_not_on_
         companion = current(connection)
     set_life(client, rough_patches_realism=2)
     with client.app.state.database.connect(write=True) as connection:
-        parenthood.answered(connection, companion, dict(ask), 'no', clock.now())
+        parenthood.answered(connection, companion, dict(ask), 'no', None, clock.now())
         assert connection.execute("SELECT id FROM rough_patches WHERE cause='family_no'").fetchall()
 
 
@@ -294,15 +294,16 @@ def test_after_two_noes_they_stop_bringing_it_up(client, provider, clock, monkey
     assert first_text(client, clock)
     says(provider)
     send(client, "no, I don't want kids", 'client-family-no-1')
+    assert 180 <= parenthood.NO_AGAIN_DAYS <= 184  # About six months (Vanta 2026-10-19).
     clock.advance(timedelta(days=parenthood.NO_AGAIN_DAYS - 30))
     reconcile(client)
-    assert planned(client) == []  # Half a year holds other steps; a no to children holds a year.
+    assert planned(client) == []  # A no to children holds half a year.
     clock.advance(timedelta(days=40))
     reconcile(client)
     [row] = planned(client)
     with client.app.state.database.connect(write=True) as connection:
         connection.execute("UPDATE step_asks SET status='no', settled_at=? WHERE id=?",
-                           ((clock.now() - timedelta(days=400)).isoformat(), row['id']))
+                           ((clock.now() - timedelta(days=200)).isoformat(), row['id']))
     clock.advance(timedelta(days=30))
     reconcile(client)
     assert planned(client) == []  # Two noes settle it.
@@ -341,3 +342,134 @@ def test_a_no_is_never_put_as_too_soon(client, monkeypatch):
     make(client, monkeypatch)
     with client.app.state.database.connect() as connection:
         assert steps.reason(connection, {'status': 'no', 'consequence_id': None}) == "you don't want children"
+
+
+def two_noes(client, clock, monkeypatch, wants='yes', **values):
+    """Living together, and the user said no twice when they brought up starting a family; Breaks and breakups on."""
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    living_together(client, monkeypatch, wants=wants, **values)
+    clock.advance(timedelta(days=400))
+    with client.app.state.database.connect(write=True) as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        for days in (300, 2):
+            at = (clock.now() - timedelta(days=days)).isoformat()
+            steps.insert_ask(connection, timeline_id, parenthood.LADDER, steps.FAMILY.key, 'them', 'no', at)
+        connection.commit()
+
+
+def stay_text(client, clock):
+    """Their ask whether to stay as they are or separate, brought up today (only the model writes it)."""
+    from companion.life import openers
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        [trigger] = [item for item in openers.candidates(connection, companion, clock.now()) if item.kind == 'next_step']
+        connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, character_version_id, "
+                           "memory_revision, created_at, completed_at) VALUES ('stay-ask', ?, 99, 'companion', ?, "
+                           "'complete', 1, ?, 0, ?, ?)", (companion['active_timeline_id'], 'Can we talk about us?',
+                                                          companion['active_version_id'], clock.now().isoformat(),
+                                                          clock.now().isoformat()))
+        steps.settle(connection, companion, {'id': 'stay-ask'}, trigger, clock.now().isoformat())
+    return trigger
+
+
+def due_stay(client, clock):
+    reconcile(client)
+    [row] = planned(client)
+    assert row['step'] == steps.STAY.key
+    clock.advance(timedelta(days=parenthood.STAY_AFTER[1] + 1))
+    trigger = stay_text(client, clock)
+    assert 'stay together as you are' in trigger.reason and trigger.template is None
+    return row
+
+
+def test_after_two_noes_one_who_wants_children_asks_to_stay_as_you_are_or_separate(client, provider, clock,
+                                                                                  monkeypatch):
+    two_noes(client, clock, monkeypatch)
+    due_stay(client, clock)
+    says(provider)
+    send(client, "I don't want to lose you. Let's stay as we are.", 'client-stay-1')
+    assert steps.STAYED in prompt(provider)
+    with client.app.state.database.connect() as connection:
+        assert connection.execute("SELECT status FROM step_asks WHERE step='stay'").fetchone()[0] == 'yes'
+        assert not connection.execute("SELECT id FROM relationship_steps WHERE step='stay'").fetchall()
+    clock.advance(timedelta(days=500))
+    reconcile(client)
+    assert planned(client) == []  # Settled for good.
+    says(provider)
+    send(client, 'morning you', 'client-stay-2')
+    assert 'chose to stay together without children of your own' in prompt(provider)
+    assert view(client)['step'] == 'moving_in'
+
+
+def test_choosing_to_separate_ends_it(client, provider, clock, monkeypatch):
+    from companion.life import breakups
+    two_noes(client, clock, monkeypatch)
+    due_stay(client, clock)
+    says(provider)
+    send(client, 'I think we should separate. You deserve the family you want.', 'client-stay-3')
+    assert 'they just chose to separate' in prompt(provider)
+    with client.app.state.database.connect() as connection:
+        assert breakups.apart(connection, current(connection)) == 'ended'
+
+
+def test_someday_or_an_easy_life_lets_it_rest_after_two_noes(client, clock, monkeypatch):
+    two_noes(client, clock, monkeypatch, wants='someday')
+    reconcile(client)
+    assert planned(client) == []
+    set_family(client, wants='yes')
+    set_life(client, rough_patches_realism=1)
+    reconcile(client)
+    assert planned(client) == []
+    set_life(client, rough_patches_realism=2)
+    reconcile(client)
+    assert [row['step'] for row in planned(client)] == [steps.STAY.key]
+
+
+@pytest.mark.parametrize(('text', 'said'), [
+    ("I don't want to lose you. Let's stay as we are.", 'yes'), ('stay. obviously. you are enough for me', 'yes'),
+    ("I'm not going anywhere", 'yes'), ("i don't want to separate", 'yes'), ('I choose us', 'yes'),
+    ('I think we should separate', 'no'), ("maybe it's time we go our separate ways", 'no'),
+    ("we can't stay together if we want different things", 'no'), ('i think we should split up', 'no'),
+    ('yes', None), ('no', None), ("I don't know", None)])
+def test_staying_or_separating_is_read_from_the_answer(text, said):
+    assert steps.stay_answer(text) == said
+
+
+def preview(client) -> str:
+    return client.get('/api/context/preview').json()['prompt']
+
+
+def test_one_who_already_has_kids_is_asked_about_more(client, monkeypatch):
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, monkeypatch, background='Her son Leo, 7, and her daughter Mia (4) are her whole world.')
+    assert client.get('/api/life/circle').status_code == 200
+    set_family(client, wants='no')
+    text = preview(client)
+    assert "On children: you don't want more children." in text and 'children of your own' not in text
+    set_family(client, wants='yes')
+    assert 'you would like another child one day' in preview(client)
+
+
+def test_after_a_not_yet_the_context_says_who_was_not_ready(client, clock, monkeypatch):
+    living_together(client, monkeypatch)
+    with client.app.state.database.connect(write=True) as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        steps.insert_ask(connection, timeline_id, parenthood.LADDER, steps.FAMILY.key, 'them', 'not_yet',
+                         clock.now().isoformat())
+        connection.commit()
+    assert parenthood.NOT_YET_LINE in preview(client)
+    set_family(client, decided=True)
+    assert parenthood.NOT_YET_LINE in preview(client)  # Still true once decided, until a child is on the way.
+    clock.advance(timedelta(days=60))
+    with client.app.state.database.connect(write=True) as connection:
+        steps.insert_ask(connection, timeline_id, parenthood.LADDER, steps.FAMILY.key, 'them', 'yes',
+                         clock.now().isoformat())
+        connection.commit()
+    assert parenthood.NOT_YET_LINE not in preview(client)
+
+
+
+def test_their_family_ask_speaks_for_themselves():
+    assert not [line for line in steps.bank()['family'] if 'with us?' in line]

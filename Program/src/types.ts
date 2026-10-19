@@ -1402,6 +1402,16 @@ export interface NewsItem {
   heard: { name: string; heard_on: string; from: string | null; companion_id: string | null }[]
 }
 
+/** The pregnancy's hard turn once it has come (companion/life/expecting.py `turn_shown`), listed on Today with an
+ * Undo like a chapter: bed rest until the birth, an early arrival for two weeks after it. */
+export interface FamilyTurn {
+  /** The journey's id. */
+  id: string
+  kind: 'bed_rest' | 'early'
+  on: string
+  title: string
+  consequence: string | null
+}
 export interface LifeChapter {
   id: string
   kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves' | 'relationship' | 'move_in' | 'move_out' | 'school' | 'career_change' | 'buy_place' | 'retire' | 'business' | 'health' | 'caring'
@@ -1809,6 +1819,8 @@ export interface DatingProfile {
 }
 export interface DatingCard {
   key: string; name: string; age: number; gender: DatingGender; pronouns: string; orientation: string
+  /** A long-lived kind's age in human terms (matching reads it); null when it is their age. */
+  life_age?: number | null
   looking: DatingAim; looking_text: string; looks: string; job: string; neighborhood: string; bio: string
   /** An older era's personal-column notice, with initials only; '' on a dating app. */
   notice: string
@@ -2032,6 +2044,10 @@ export interface PersonaPet { name: string; kind: string; looks: string; born?: 
 export interface Persona {
   id: string; name: string; gender: PersonaGender; age: number | null; about: string; birthday: string; created_at: string
   pets?: PersonaPet[]
+  /** Kind and How long they live as picked on the Persona page ('' and null: read from About you). */
+  kind?: string; lifespan?: number | null
+  /** What applies, the app's pick from their words, and what the pickers offer (companion/worlds.py `kind_shown`). */
+  kind_shown?: KindShown & KindChoices & { found: string; found_label: string; picked: string }
   active: boolean
   worlds: World[]
 }

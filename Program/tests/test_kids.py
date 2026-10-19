@@ -4,7 +4,7 @@ user as their step-parent, a love-life partner's kids, and the limits children k
 from datetime import date, timedelta
 
 import pytest
-from conftest import intimate, reconcile
+from conftest import intimate, reconcile, set_life
 
 from companion import consequences
 from companion.characters import current
@@ -160,14 +160,14 @@ def test_a_widowed_parent_has_no_other_parent(client):
     assert view['other'] is None and view['pattern'] == 'sole'
     assert [item['key'] for item in view['patterns']] == ['sole']
     assert not [person for person in circle(client) if person['role'] == 'co-parent']
-    assert 'their other parent is not in the picture' in prompt(client)
+    assert '- Leo lives with you; his other parent is not in the picture.' in prompt(client)
 
 
 def test_the_ex_the_description_names_is_the_other_parent(client, clock):
     make(client, background='Her ex-husband Mark Lowe has their son Leo, 7, every other weekend.')
     view = panel(client)
     assert view['other'] == {'name': 'Mark', 'role': 'ex-husband'} and view['pattern'] == 'with_them'
-    assert 'every other weekend with their dad Mark' in prompt(client)
+    assert 'every other weekend with his dad Mark' in prompt(client)
     assert view['detail'] == "with Dana, every other weekend at Mark's"
     assert [item['label'] for item in view['patterns']] == ['Mostly with Dana', 'Half and half', 'Mostly with Mark']
     # Someone they share kids with starts where any co-parent does, not as an ex they barely know.
@@ -226,7 +226,31 @@ def test_today_says_where_the_kids_are(client, clock):
         row = kids.record(connection, companion['active_timeline_id'])
         them, _name = kids.other_text(connection, companion, row)
     here = kids.with_them('weekends', date.fromisoformat(row['since']), clock.now().date())
-    assert line[1] == ('- Today Leo is with you.' if here else f'- Today Leo is with {them}.')
+    assert line[1] == '- Today Leo is with you.' if here else line[1].startswith(f'- Today Leo is with {them}. ')
+
+
+def test_with_the_other_parent_today_they_know_their_next_weekend(client, clock):
+    make(client, background='Her son Leo, 7, and daughter Mia, 4, live with their dad, her ex-husband Mark Lowe, and '
+                            'spend every other weekend with her.')
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        since = date.fromisoformat(kids.record(connection, companion['active_timeline_id'])['since'])
+        for _ in range(14):  # A Tuesday whose coming weekend is theirs.
+            today = steps.local_today(companion, clock.now())
+            if today.weekday() == 1 and kids.with_them('weekends', since, today + timedelta(days=4)):
+                break
+            clock.advance(timedelta(days=1))
+        saturday = today + timedelta(days=4)
+        line = kids.today_line(connection, companion, clock.now())[1]
+        assert line == (f'- Today the kids are with their dad Mark. This Saturday and Sunday ({saturday.day} and '
+                        f'{(saturday + timedelta(days=1)).day} {saturday:%B}) are your weekend with them; Mark has '
+                        'them until then.') or saturday.month != (saturday + timedelta(days=1)).month
+        clock.advance(timedelta(days=7))
+        assert ' Saturday and Sunday (' in kids.today_line(connection, companion, clock.now())[1]
+        assert ' This Saturday' not in kids.today_line(connection, companion, clock.now())[1]
+    assert kids.next_weekend('weekends', date(2026, 10, 12), date(2026, 10, 27)) == \
+        'This Saturday and Sunday (31 October and 1 November)'
+    assert kids.next_weekend('with_them', date(2026, 10, 12), date(2026, 10, 27)) is None
 
 
 # Seeded for a new companion ---------------------------------------------------------------------------------------
@@ -508,3 +532,39 @@ def test_a_v014_son_handed_to_the_kids_keeps_his_birthday(client, monkeypatch):
         [kid] = [dict(row) for row in connection.execute("SELECT * FROM circle_children WHERE name='Leo'")]
     assert kid['born_on'][5:] == birthday, (kid, birthday)
     assert [item['age'] for item in panel(client)['kids']] == [7]
+
+
+def test_growing_families_at_none_means_no_seeded_kids_and_no_partner_with_kids(client, clock, monkeypatch):
+    set_life(client, growing_families=0)
+    found = consequences.odds('kids:has', {'age': 40, 'growing': 0, 'said_no': 0, 'sheet': set()}, {'name': 'Dana'})
+    assert found[1]['odds'] == 0 and 'Growing families is set to None' in found[1]['reasons']
+    monkeypatch.setattr(kids, 'PARTNER_ODDS', ((0, 1.0),))
+    make(client, relationship='friendship', identity='44. She/her. Nurse.')
+    assert not panel(client)['shown']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        assert kids.record(connection, companion['active_timeline_id'])['how'] == 'none'
+        person = dict(connection.execute('SELECT * FROM circle_people ORDER BY ordinal LIMIT 1').fetchone())
+        connection.execute("UPDATE circle_people SET details=json_set(details, '$.age', 40) WHERE id=?", (person['id'],))
+        person = dict(connection.execute('SELECT * FROM circle_people WHERE id=?', (person['id'],)).fetchone())
+        assert kids.partner_kids(connection, companion, None, person, clock.now()) == 0
+
+
+def test_growing_families_at_none_keeps_the_kids_a_description_names(client):
+    set_life(client, growing_families=0)
+    make(client, background='Her son Leo, 7, and daughter Mia, 4.')
+    assert [kid['name'].split()[0] for kid in panel(client)['kids']] == ['Leo', 'Mia']
+
+
+def test_one_child_is_named_in_where_they_live(client):
+    make(client, background='Her son Leo, 7, is her whole world. Her ex-husband Mark Lowe has him every other weekend.')
+    assert '- Leo lives with you and spends every other weekend with his dad Mark.' in prompt(client)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        row = kids.record(connection, companion['active_timeline_id'])
+        two = [{'name': 'Leo', 'pronouns': 'he/him'}, {'name': 'Mia', 'pronouns': 'she/her'}]
+        assert kids.where_line(connection, companion, row, 'weekends', two) == \
+            '- They live with their dad Mark and spend every other weekend with you.'
+        assert kids.where_line(connection, companion, {**row, 'other_id': None}, 'sole', [
+            {'name': 'Rowan Ashby', 'pronouns': 'they/them'}]) == \
+            '- Rowan lives with you; their other parent is not in the picture.'

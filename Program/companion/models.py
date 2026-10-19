@@ -597,6 +597,12 @@ Gender = Literal['woman', 'man', 'nonbinary', '']
 Birthday = Annotated[str, Field(pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')]
 
 
+# Lifespans (companion/world/lifespans.py `SPANS`): what How long they live offers, besides as their kind.
+LIFESPANS = (80, 150, 300, 600, 1000)
+# A persona's age: up to 120, and up to 5,000 for a long-lived kind (companion/worlds.py).
+PERSONA_AGES = (120, 5000)
+
+
 class PersonaPet(Input):
     """One of the user's own pets (companion/life/pets.py gives it a life): their words, never invented."""
     name: str = Field(min_length=1, max_length=40, pattern=r'\S')
@@ -610,10 +616,22 @@ class PersonaInput(Input):
     """Who the user is in a persona's worlds (companion/worlds.py). Only the user says this; blanks stay blank."""
     name: str | None = Field(None, max_length=80)
     gender: Gender | None = None
-    age: int | None = Field(None, ge=18, le=120)
+    # Past 120 only for a long-lived kind, picked below or read from About you (companion/worlds.py checks it).
+    age: int | None = Field(None, ge=18, le=PERSONA_AGES[1])
     about: str | None = Field(None, max_length=2000)
     birthday: Birthday | None = None
     pets: list[PersonaPet] | None = Field(None, max_length=8)
+    # Kind and How long they live (companion/world/lifespans.py), as on the Character page: '' and None leave both to
+    # their words, 0 years is "Doesn't age".
+    kind: str | None = Field(None, max_length=40, pattern=r'^[a-z0-9-]*$')
+    lifespan: int | None = None
+
+    @field_validator('lifespan')
+    @classmethod
+    def listed(cls, value):
+        if value not in (None, 0, *LIFESPANS):
+            raise ValueError('Pick one of the lifespans listed.')
+        return value
 
 
 class NewPersona(PersonaInput):
@@ -657,8 +675,6 @@ class StatusUpdate(Input):
     text: str = Field(default='', max_length=200)
 
 
-# Lifespans (companion/world/lifespans.py `SPANS`): what How long they live offers, besides as their kind.
-LIFESPANS = (80, 150, 300, 600, 1000)
 
 
 class KindChange(Input):

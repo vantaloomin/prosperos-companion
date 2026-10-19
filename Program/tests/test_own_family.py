@@ -424,3 +424,23 @@ def test_a_branch_keeps_where_their_child_lives_with_the_ex(client, mira, clock,
         copied = connection.execute('SELECT picked, timeline_id FROM consequences WHERE subject=?',
                                     (f"kids:custody:own:{person['id']}",)).fetchone()
     assert copied and copied['picked'] == before['picked'] and copied['timeline_id'] == fork.json()['id']
+
+
+def test_in_an_older_city_their_partner_is_their_sweetheart(client, clock):
+    response = client.post('/api/companion', json={
+        'name': 'Ada Hartley', 'timezone': 'Europe/London', 'schedule': WORKDAY, 'home_city': 'london-1895',
+        'location': 'Marylebone, London', 'identity': '29. She/her.', 'relationship': 'friendship'})
+    assert response.status_code == 200, response.text
+    assert client.get('/api/life/circle').status_code == 200
+    partner = partnered(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        today = steps.local_today(companion, clock.now())
+        connection.execute(
+            'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, born_on, '
+            "status, whose, created_at, updated_at) VALUES ('kid', ?, ?, 'own', 'Florence', 'she/her', 'family', ?, "
+            "'born', 'companion', 'x', 'x')", (companion['active_timeline_id'], partner['person_id'],
+                                               (today - timedelta(days=150)).isoformat()))
+    text, name = prompt(client), partner['name'].split()[0]
+    assert f"yours and your sweetheart {name}'s." in text and f'- {name} (sweetheart)' in text
+    assert 'boyfriend' not in text

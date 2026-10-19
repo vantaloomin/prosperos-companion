@@ -25,6 +25,7 @@ AGELESS = 'ageless'
 ADULT = 18
 HUMAN_LIFESPAN = 80
 CITY_YEARS = (40, 5000)  # The whole years a city file may give a kind.
+LONG_LIVED = 150  # Past this, milestone birthdays are round 50s and 100s of real years, and an age past 120 can be theirs.
 WORD_FIELDS = ('identity', 'appearance')
 NEGATED = re.compile(r"\b(?:not|never|isn't|no)\s+(?:\w+\s+)?(?:an?\s+)?$", re.IGNORECASE)
 
@@ -102,6 +103,23 @@ def sheet_lifespan(definition: dict, data: dict | None = None) -> int | None:
     return lifespan_of(sheet_kind(definition, data), data, definition.get('lifespan'))
 
 
+def persona_kind(persona: dict, data: dict | None = None) -> str:
+    """The user's kind: the one picked on the Persona page, else what their own words (About you) say."""
+    own = persona.get('kind')
+    if own and own in kinds(data):
+        return own
+    return from_words(persona.get('about') or '', data)
+
+
+def persona_lifespan(persona: dict, data: dict | None = None) -> int | None:
+    return lifespan_of(persona_kind(persona, data), data, persona.get('lifespan'))
+
+
+def long_lived(lifespan: int | None) -> bool:
+    """A kind that lives well past a hundred (or doesn't age), so a three-digit age can be theirs."""
+    return lifespan is None or lifespan > LONG_LIVED
+
+
 def ageless(definition: dict, data: dict | None = None) -> bool:
     """Whether a companion stays the age they are: "Keeps their age", or a kind that doesn't age."""
     return bool(definition.get('keeps_age')) or sheet_lifespan(definition, data) is None
@@ -122,7 +140,6 @@ def blend(one: str | None, other: str | None, data: dict | None = None) -> str:
 # Pickers and milestones ------------------------------------------------------------------------------------------
 
 SPANS = LIFESPANS  # "How long they live": never free text, so these and "As their kind" (companion/models.py).
-LONG_LIVED = 150  # Past this, milestone birthdays are round 50s and 100s of real years.
 
 
 def choices(data: dict | None = None) -> dict:

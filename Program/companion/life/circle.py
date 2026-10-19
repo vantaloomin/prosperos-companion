@@ -508,7 +508,8 @@ def role_kind(role: str) -> str:
 
 
 # In the old eras (London 1895, Camelot) people say mother and father, not mom and dad.
-OLD_WORDS = {'mom': 'mother', 'dad': 'father'}
+# In an older era (A/B 2026-10-19 for the sweetheart: a tie, no new failures).
+OLD_WORDS = {'mom': 'mother', 'dad': 'father', 'boyfriend': 'sweetheart', 'girlfriend': 'sweetheart'}
 
 
 def said(role: str, definition: dict) -> str:
