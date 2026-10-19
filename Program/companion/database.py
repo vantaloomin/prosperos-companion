@@ -334,6 +334,9 @@ ADDED_COLUMNS = (
     ('life_settings', 'loss', 'INTEGER NOT NULL DEFAULT 2 CHECK (loss BETWEEN 0 AND 3)'),
     # Added once (v0.15) to set the Loss slider by the world's preset (`UPGRADE_LOSS`); nothing reads it.
     ('life_settings', 'loss_by_preset', 'INTEGER NOT NULL DEFAULT 1'),
+    # Companions' own babies (companion/life/own_family.py): whose child this is. '' someone in the circle's (v0.14),
+    # 'companion' the companion's own with their partner (`parent_id`).
+    ('circle_children', 'whose', "TEXT NOT NULL DEFAULT ''"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

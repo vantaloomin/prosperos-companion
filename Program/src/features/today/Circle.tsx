@@ -13,7 +13,7 @@ import { WhyItWent } from './WhyItWent'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
-import { childLabel, childLine, expectingLine } from '../character/familiesText'
+import { childLabel, childLine, expectingLabel, expectingLine } from '../character/familiesText'
 import { lateText } from '../character/lossText'
 import { useLifeSettings } from '../settings/useLifeSettings'
 
@@ -213,7 +213,7 @@ function PersonDetails({ person, work, companion }: { person: CirclePerson; work
 function ChildLines({ person, companion }: { person: CirclePerson; companion: string }) {
   const expecting = expectingLine(person)
   return <>
-    {expecting && <p className="subtle pet-line"><span className="pet-line-label">Expecting ·</span> {expecting}.</p>}
+    {expecting && <p className="subtle pet-line"><span className="pet-line-label">{expectingLabel(person)} ·</span> {expecting}.</p>}
     {(person.children ?? []).map((child) => (
       <p key={child.id} className="subtle pet-line"><span className="pet-line-label">{childLabel(child)} ·</span> {childLine(child, person.name, companion)}.</p>
     ))}

@@ -793,7 +793,7 @@ age goes up on each birthday. Rules only, no model.
 coworker in the circle aged 24 to 42 may start expecting (a married sibling likeliest), at the pace of Realism >
 Their days > Growing families (life setting `growing_families`: 0 none, 1 now and then, 2 true to life, 3 lots;
 an easy life starts at 1, a dramatic one at 3). Never the companion's parents, their own partner or someone they
-are seeing: a companion's own baby comes with v0.15.
+are seeing: their own baby is below.
 
 - A pregnancy is a storyline (`expecting`) with four beats over about seven months: the news with a due month,
   something halfway through, "any day now" and the birth with the baby's name. The old one-line `cousin_baby`
@@ -814,6 +814,30 @@ are seeing: a companion's own baby comes with v0.15.
 - Town couples' babies (companion/world/couples.py `babies`) follow the same setting; a companion who knows a
   townsperson well hears they are expecting ("Family news: they're expecting a baby with Dana around March.").
 - Children are only ever words: never in pictures, the feed or group chats.
+
+### Companions' own babies
+
+`companion/life/own_family.py` (v0.15): a companion who is not the user's romance, living with or married to their
+own partner (or married on their sheet), can have a baby with them, rolled on the same Mondays and Growing families
+setting, more likely married, by whether they want children (description words first, else seeded) and only while
+they are 24 to 44.
+
+- The app picks how: one of them expecting (whoever can carry by pronouns and age) or adopting a newborn (when
+  neither can, and now and then in a modern city; an older city takes in a baby to raise). It runs as a storyline,
+  `expecting` or `adopting`, with the news, a bank beat (`own_expecting`, `own_adopting`), "any day now" and the
+  baby. `GET /life/circle` adds `adopting` (true) next to `expecting` on the partner.
+- The child is the companion's own (`circle_children.whose` = `companion`, the partner as `parent_id`): `children`
+  items carry `own: true` and `relation` `daughter`, `son` or `child`, and stay listed if the partner leaves the
+  circle. Updates come from the parent's side (`own_baby`, `own_toddler`, `own_child`); they never babysit their own.
+- Their days change: weeks of parental leave (`Parental leave` in work days off), baby things a month before and
+  their half of childcare each month until five (money purchases `baby`, `childcare`).
+- A naming day at home six to twelve weeks on (big day `naming`): a best friend is asked to be the godparent in a
+  first text (bank `godparent` in big_days.json). No photo, no buzz, called off with the adult side on.
+- Now and then (`babysitting` table) they ask the user, in a first text, to babysit for a Saturday evening while
+  they and their partner go out; a plain yes or no in the user's first reply answers it, and their evening out
+  takes the slot in their day.
+- The chat context: "- Ivy (your daughter, a baby, 6 weeks old): yours and your boyfriend Tyler's." and lines for a
+  babysitting evening asked, agreed, under way or done.
 
 ## Limits and permissions
 

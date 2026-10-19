@@ -19,8 +19,8 @@ chats, Matchlight, love lives, the web of who knows whom) ever sees them; they a
 adult side of life on, nothing about them goes in a chat prompt (`withheld`), and no picture is made of words that
 name one or their first birthday (`pictured`).
 
-A companion's own baby with their partner, and children for the user and a companion, come with v0.15 (#73): the
-companion's partner is never cast here.
+A companion's own baby with their partner (v0.15) is companion/life/own_family.py: their partner is never cast here,
+and their own children (`whose` 'companion') get updates from the parent's side.
 """
 import json
 import re
@@ -50,13 +50,13 @@ GROWN = 13  # Updates and babysitting stop here.
 UPDATE = {'family': 1 / 5, 'friend': 1 / 14}
 BABYSIT = 1 / 7
 BABYSIT_FROM = 90  # Days old.
-# The companion's own partner: their baby waits for v0.15.
+# The companion's own partner: their baby with them is companion/life/own_family.py.
 PARTNERS = {'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée', 'fiancé', 'spouse'}
 FRIENDS = {'friend', 'new friend', 'roommate from years ago', 'neighbor'}
 # A first birthday is a big day of its own (companion/life/big_days.py), so it is no longer a storyline beat.
 FIRST_BIRTHDAY_BEAT = False
 FIRST_BIRTHDAY = re.compile(r'\b(?:first|1st) (?:birthday|bday)\b', re.IGNORECASE)
-STORIES = ('expecting', 'baby_update', 'babysat', 'first_birthday')
+STORIES = ('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday')
 # Bank lines naming things an older city doesn't have (no scans or daycare in 1925, no phones or cars in 1895, no
 # trains, prams or bananas in Camelot) are left out there, by its era (companion/world/schema.py `Era`).
 _JAZZ = (r'scans?|ultrasound|sonogram|television|tv|videos?|playlists?|baby monitors?|daycare|robots?|superheroe?s?|'
@@ -192,9 +192,9 @@ def eligible(connection, timeline_id: str, people: list[dict], day: date) -> lis
 
 
 def expecting(connection, timeline_id: str, day: date) -> list[dict]:
-    """Pregnancy storylines whose baby hasn't arrived by this day."""
-    rows = many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND story='expecting' AND status='running'",
-                (timeline_id,))
+    """Pregnancy (and the companion's own adoption) storylines whose baby hasn't arrived by this day."""
+    rows = many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND story IN ('expecting', 'adopting') AND "
+                "status='running'", (timeline_id,))
     return [row for row in rows if decode(row['stages'])[-1]['on'] > day.isoformat()]
 
 
@@ -211,6 +211,13 @@ def title(how: str, seed: str) -> str:
     if how == 'close friend' and generators.unit(seed, 'godparent') < GODPARENT:
         return 'godchild'
     return 'friend'
+
+
+def kin(child: dict) -> str | None:
+    """What a child is to the companion: their own 'daughter', 'son' or 'child', else `relation`."""
+    if child.get('whose') == 'companion':
+        return {'she/her': 'daughter', 'he/him': 'son'}.get(child['pronouns'], 'child')
+    return relation(child['title'], child['pronouns'])
 
 
 def relation(title_: str, pronouns_: str) -> str | None:
@@ -357,8 +364,10 @@ def local_today(companion: dict, now) -> date:
 def advance(connection, companion: dict, world, now) -> int:
     """Rules only, with the agenda (companion/life/agenda.py): babies arrive, pregnancies start, and updates and
     babysitting come round, for the days since the last check (at most CATCH_UP_DAYS). Returns how many began."""
+    from companion.life import own_family
     timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
     settle(connection, timeline_id, today, now)
+    own_family.follow(connection, companion, today, now)
     if not ACTIVE:
         return 0
     pace = PACE[level(connection)]
@@ -368,6 +377,8 @@ def advance(connection, companion: dict, world, now) -> int:
         day = today - timedelta(days=offset)
         if pace and day.weekday() == 0:
             begun += expect(connection, companion, world, people, day, pace, now)
+            begun += own_family.expect(connection, companion, world, day, pace, now)
+            own_family.plan_asks(connection, companion, day, pace, now)
         begun += child_news(connection, companion, people, (day, era), pace, now)
     return begun
 
@@ -403,12 +414,13 @@ def expect(connection, companion: dict, world, people: list[dict], day: date, pa
 # Children ------------------------------------------------------------------------------------------
 
 def born(connection, timeline_id: str, today: date, include_removed=False) -> list[dict]:
-    """Children born by this day, oldest first; with their parent removed from the circle, only on request."""
+    """Children born by this day, oldest first; with their parent removed from the circle, only on request (the
+    companion's own children always)."""
     rows = many(connection, "SELECT c.*, p.name AS parent_name, p.role AS parent_role, p.status AS parent_status FROM "
                 'circle_children c JOIN circle_people p ON p.id=c.parent_id WHERE c.timeline_id=? AND '
                 "c.status='born' AND c.born_on<=? ORDER BY c.born_on, c.id",
                 (timeline_id, today.isoformat()))
-    return [row for row in rows if include_removed or row['parent_status'] == 'active']
+    return [row for row in rows if include_removed or row['parent_status'] == 'active' or row['whose'] == 'companion']
 
 
 def age_of(child: dict, day: date) -> int:
@@ -457,12 +469,14 @@ def fill_child(text: str, child: dict) -> str:
 def child_news(connection, companion: dict, people: list[dict], when: tuple[date, str], pace: float, now) -> int:
     """An update, a babysitting evening or a first birthday on this day (`when` is the day and their city's era), at
     most one a day across the circle."""
+    from companion.life import own_family
     timeline_id, (day, era) = companion['active_timeline_id'], when
     local = {person['id']: decode(person['details']).get('local', True) for person in people}
     for child in born(connection, timeline_id, day):
         if child['parent_id'] not in local or child['born_on'] == day.isoformat():
             continue
-        news = news_on(child, day, pace, bool(local[child['parent_id']]), era)
+        news = own_family.news_on(child, day, pace, era) if child['whose'] == own_family.WHOSE else \
+            news_on(child, day, pace, bool(local[child['parent_id']]), era)
         if not news:
             continue
         if told(connection, timeline_id, news[0], child['parent_id'], day):
@@ -507,7 +521,7 @@ def first_birthdays(connection, companion: dict, low: date, high: date) -> list[
         if low <= day <= high:
             result.append({'key': f"first-birthday:{child['id']}", 'date': day.isoformat(), 'child': child['name'],
                            'parent_id': child['parent_id'], 'parent': child['parent_name'],
-                           'pronouns': child['pronouns'], 'relation': relation(child['title'], child['pronouns'])})
+                           'pronouns': child['pronouns'], 'relation': kin(child)})
     return result
 
 
@@ -516,7 +530,7 @@ def first_birthdays(connection, companion: dict, low: date, high: date) -> list[
 def child_view(child: dict, day: date) -> dict:
     return {'id': child['id'], 'name': child['name'], 'pronouns': child['pronouns'], 'born_on': child['born_on'],
             'age': age_of(child, day), 'age_text': age_text(child, day),
-            'relation': relation(child['title'], child['pronouns']), 'title': child['title']}
+            'relation': kin(child), 'title': child['title'], 'own': child['whose'] == 'companion'}
 
 
 def for_circle(connection, companion: dict, now) -> dict[str, dict]:
@@ -528,31 +542,36 @@ def for_circle(connection, companion: dict, now) -> dict[str, dict]:
             child_view(child, today))
     for row in expecting(connection, timeline_id, today):
         if row['started_on'] <= today.isoformat():
-            person_id = decode(row['cast_ids'])[0]
-            due = decode(row['stages'])[0]['text'].rsplit('due in ', 1)[-1].rstrip('.')
+            person_id, first = decode(row['cast_ids'])[0], decode(row['stages'])[0]
+            due = first.get('due') or first['text'].rsplit('due in ', 1)[-1].rstrip('.')
             found.setdefault(person_id, {'children': [], 'expecting': None})['expecting'] = due
+            found[person_id]['adopting'] = row['story'] == 'adopting'
     return found
 
 
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     """The children in their circle for the chat context, told to the companion: "- Mia (your niece, 2 years old):
     your sister Ana's daughter." None with the adult side on."""
+    from companion.life import own_family
     if withheld(connection):
         return []
     today, result = local_today(companion, now), []
     for child in born(connection, companion['active_timeline_id'], today):
+        if child['whose'] == own_family.WHOSE:
+            continue  # Their own, told by own_family.context_lines below.
         what, whose = relation(child['title'], child['pronouns']), 'daughter' if child['pronouns'] == 'she/her' else 'son'
         lead = ', '.join(part for part in (f'your {what}' if what else '', how_old(child, today)) if part)
         result.append((f"child:{child['id']}", f"- {child['name']} ({lead}): your {child['parent_role']} "
                                                 f"{child['parent_name']}'s {whose}."))
-    return result
+    return result + own_family.context_lines(connection, companion, now)
 
 
 def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -> None:
     """A fork's children: those whose storylines came with it (timelines.copy_storylines), by the copied storyline
     that has the same parent and day."""
     copies = {(row['started_on'], row['cast_ids']): row['id'] for row in many(
-        connection, "SELECT id, started_on, cast_ids FROM storylines WHERE timeline_id=? AND story='expecting'",
+        connection, "SELECT id, started_on, cast_ids FROM storylines WHERE timeline_id=? AND story IN ('expecting', "
+        "'adopting')",
         (new_id,))}
     for row in many(connection, 'SELECT c.*, s.started_on FROM circle_children c JOIN storylines s ON '
                     's.id=c.storyline_id WHERE c.timeline_id=?', (parent_id,)):
@@ -561,6 +580,6 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff_date: str) -
         if person and story and row['started_on'] <= cutoff_date:
             connection.execute(
                 'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, '
-                'born_on, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'born_on, status, whose, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 (identifier(), new_id, person, story, row['name'], row['pronouns'], row['title'], row['born_on'],
-                 row['status'], row['created_at'], row['updated_at']))
+                 row['status'], row['whose'], row['created_at'], row['updated_at']))

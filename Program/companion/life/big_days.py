@@ -122,13 +122,15 @@ KINDS = {
     # A baby in their circle turning one (companion/life/families.py): at their parent's place.
     'first_birthday': Kind('first_birthday', "{name}'s first birthday", "{who}'s first birthday party", '14:00',
                            '17:00', (), 'first_birthday', 0.01),
+    # Their own baby's naming day at home (companion/life/own_family.py): a best friend is asked to be the godparent.
+    'naming': Kind('naming', "{name}'s naming day", "{who}'s naming day", '11:00', '14:00', (), None),
     # Someone in their circle or town who passed away (companion/life/loss.py): its word, times and place follow the
     # city's customs; a quiet day with no photo and no buzz.
     'funeral': Kind('funeral', "{name}'s {word}", "{who}'s {word}", '11:00', '15:00', ('temple', 'landmark', 'garden'),
                     None, 0.005),
 }
 # A child's day: the parent hosts, and it is never pictured or passed on as group chat buzz.
-CHILDS = ('first_birthday',)
+CHILDS = ('first_birthday', 'naming')
 GRADUATION_PLACES = ('university', 'college', 'campus', 'school', 'academy', 'institute')
 NOT_PARTY = ('station', 'hospital', 'clinic', 'airport', 'prison', 'jail', 'court', 'police', 'parking', 'office')
 # Bank lines that only fit a modern city (texts, cars, photos): left out in an old one, by the place's `modern`.
@@ -320,6 +322,23 @@ def first_birthdays(connection, companion: dict, today: date, people: dict, now)
     return result
 
 
+def namings(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
+    """Their own baby's naming day (companion/life/own_family.py), at home with their partner. None while the adult
+    side of life is on."""
+    from companion.life import families, own_family
+    if families.withheld(connection):
+        return []
+    result, name = [], first(companion['version']['definition']['name'])
+    for item in own_family.naming_days(connection, companion, today, today + timedelta(days=AHEAD)):
+        row = people.get(item['parent_id'])
+        if row is not None:
+            child = {'she/her': 'daughter', 'he/him': 'son'}.get(item['pronouns'], 'child')
+            result.append(candidate('naming', item['key'], row, date.fromisoformat(item['date']), name=item['child'],
+                                    role=child, host=row['name'], host_role=row['role'], partner=first(row['name']),
+                                    home=f"{name} and {first(row['name'])}'s place"))
+    return result
+
+
 def funerals(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
     """A funeral for someone in their circle or town who passed away (companion/life/loss.py)."""
     from companion.life import loss
@@ -328,14 +347,14 @@ def funerals(connection, companion: dict, today: date, people: dict, now) -> lis
 
 # In order; later features add their own.
 SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, graduations, town_weddings, chapters,
-           first_birthdays, funerals]
+           first_birthdays, namings, funerals]
 # The companion's own days: the user is there for them, and there is no gift or buzz about someone else.
 OWN = ('own_wedding', 'own_graduation', 'own_retirement')
 # Days with no group chat buzz and no photo.
 QUIET = ('funeral',)
 # What they mean to ask the user, before they have: a plus-one, unless it is their own day or a funeral.
 ASKING = {'own_wedding': 'to stand up with you at your wedding', 'own_graduation': 'to be there with you',
-          'own_retirement': 'to be there with you', 'funeral': 'to come with you'}
+          'own_retirement': 'to be there with you', 'funeral': 'to come with you', 'naming': 'to be the godparent'}
 
 
 # Planning a big day ----------------------------------------------------------------------------------------------
@@ -390,7 +409,7 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
         return {'id': '~big-day', 'name': name, 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
                 'cuisine': '', 'city': away, 'city_id': '', 'spots': []}
     if kind.key in CHILDS:
-        return {'id': '~big-day', 'name': f"{first(details.get('host') or '')}'s place", 'kind': 'venue',
+        return {'id': '~big-day', 'name': details.get('home') or f"{first(details.get('host') or '')}'s place", 'kind': 'venue',
                 'neighborhood': '', 'summary': '', 'cost': '', 'cuisine': '', 'city': '', 'city_id': '', 'spots': []}
     if kind.key in ('wedding', 'own_wedding'):
         return wedding.venue_for(data, wedding.customs(wedding.culture_of(data)), 'proper', seed, day=day)
@@ -576,8 +595,10 @@ def decide_invite(connection, companion: dict, row: dict, now: datetime) -> None
     """Whether they ask the user along: always to their own wedding, else the engine's `bigday:invite`."""
     if not invitable(connection, companion, row):
         return
-    if row['kind'] == 'own_wedding':
-        connection.execute('UPDATE big_days SET invite=1 WHERE id=?', (row['id'],))
+    if row['kind'] in ('own_wedding', 'naming'):  # A naming day: the user is asked to be godparent if best friends.
+        found = steps.state(connection, companion, now, write=False) if row['kind'] == 'naming' else None
+        if row['kind'] == 'own_wedding' or found and found['ladder'] == 'friendship' and found['step'] != 'friends':
+            connection.execute('UPDATE big_days SET invite=1 WHERE id=?', (row['id'],))
         return
     from companion import group_guests
     from companion.memory import closeness
@@ -846,6 +867,11 @@ def reason_for(row: dict, day: date) -> str:
         return (f"You and {first(row['details']['name'])} are getting married on {when}, and you want the user, your "
                 'close friend, to stand up with you at the wedding. Ask them in your own words, naming the day and the '
                 'place, warmly; it means a lot to you.')
+    if row['kind'] == 'naming':
+        return (f"You and {row['details']['partner']} are holding {first(row['details']['name'])}'s naming day at home "
+                f"on {day:%A} {day.day} {day:%B} at {row['at_time']}, and you want the user, your close friend, to be "
+                f"{first(row['details']['name'])}'s godparent. Ask them in your own words, naming the day and the time, "
+                'warmly; it means a lot to you.')
     if row['kind'] in OWN:
         return (f"It's {said(row)} on {when}, and you'd love the user to be there with you. Ask them in your own "
                 "words, naming the day, the time and the place. If they can't come, that's fine.")
@@ -860,7 +886,10 @@ def reason_for(row: dict, day: date) -> str:
 
 def invitation(row: dict, day: str, time: str, era: str = 'modern') -> str:
     seed = random.Random(f"{row['id']}:line")
-    if row['kind'] == 'own_wedding':
+    if row['kind'] == 'naming':
+        line = seed.choice(fitting(bank()['godparent'], row['place'])).format(
+            child=first(row['details']['name']), partner=row['details']['partner'], day=day, time=time)
+    elif row['kind'] == 'own_wedding':
         line = seed.choice(fitting(bank()['stand_up'], row['place'])).format(
             partner=first(row['details']['name']), day=day, place=row['place']['name'])
     else:
@@ -888,6 +917,7 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     day = date.fromisoformat(row['local_date'])
     place = {**row['place'], 'big_day': row['id'], 'title': title(row, companion['version']['definition']['name']),
              'event': row['kind'], 'gift': row['gift'], 'standing_up': row['kind'] == 'own_wedding',
+             'godparent': row['kind'] == 'naming',
              'own': row['kind'] in OWN, 'no_photo': row['kind'] in CHILDS, 'quiet': row['kind'] in QUIET,
              'people': [host(row)] if row['person_id'] else []}
     outing = together.insert(connection, companion, message['id'], ACTIVITY, place, day, row['at_time'],
@@ -952,6 +982,8 @@ def doing(outing: dict) -> str:
     place = outing['place']
     if place.get('standing_up'):
         return f"got married at {place['name']}, with you standing up with them"
+    if place.get('godparent'):
+        return f"held {place.get('title') or 'a naming day'} at home, with you as godparent"
     if place.get('own'):
         did = 'graduated' if place.get('event') == 'own_graduation' else 'had their retirement party'
         return f"{did} at {place['name']}, with you there"
@@ -964,6 +996,7 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None) -> st
     if row is None:
         return f"- Right now you and the user are at {what(outing)}, in person, until about {outing['until_time']}."
     role = ('standing up with you as your closest friend' if row['kind'] == 'own_wedding' else
+            f"there to be {first(row['details']['name'])}'s godparent" if row['kind'] == 'naming' else
             'there for you' if row['kind'] in OWN + QUIET else 'your plus-one')
     parts = [f"Right now you are at {said(row)}, in person, at {row['place']['name']}, from {row['at_time']} until "
              f"about {row['until_time']}. The user is here with you, {role}.",
@@ -994,6 +1027,9 @@ def memory_text(outing: dict, name: str) -> dict:
     if place.get('standing_up'):
         return {'subject': event, 'value': f"You stood up at {name}'s wedding at {place['name']} on {day:%A, %B} "
                                            f'{day.day}, {day.year}.'}
+    if place.get('godparent'):
+        return {'subject': event, 'value': f"You became the godparent at {event} on {day:%A, %B} {day.day}, "
+                                           f'{day.year}.'}
     if place.get('own'):
         return {'subject': event, 'value': f"You were there for {event} at {place['name']} on {day:%A, %B} {day.day}, "
                                            f'{day.year}.'}
@@ -1056,6 +1092,8 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
 def alone_doing(row: dict) -> str:
     """'went to Leo's wedding at The Belvedere', 'graduated at Johns Hopkins University'."""
     place = row['place']['name']
+    if row['kind'] == 'naming':
+        return f'held {title(row)} at home'
     if row['kind'] in OWN:
         return {'own_graduation': 'graduated', 'own_retirement': 'had their retirement party',
                 'own_wedding': 'got married'}[row['kind']] + f' at {place}'
@@ -1102,6 +1140,7 @@ def coming_line(row: dict, today: date) -> str:
     wear = f" You plan to wear {row['outfit']}." if row['outfit'] else ''
     if row['status'] == 'invited':
         company = (' The user is standing up with you.' if row['kind'] == 'own_wedding' else
+                   ' The user is coming, to be the godparent.' if row['kind'] == 'naming' else
                    ' The user is coming, there for you.' if row['kind'] in OWN + QUIET else
                    ' The user is coming with you as your plus-one.')
     elif row['status'] == 'declined':
@@ -1111,7 +1150,8 @@ def coming_line(row: dict, today: date) -> str:
         company = f" You mean to ask the user {ASKING.get(row['kind'], 'to come with you as your plus-one')}; you " \
             "haven't asked yet."
     else:
-        company = " You're going." if row['kind'] in OWN else " You're going on your own."
+        company = " You're going." if row['kind'] in OWN else " You're holding it at home." \
+            if row['kind'] == 'naming' else " You're going on your own."
     return head + company + travel_text(row) + gift + wear
 
 
@@ -1125,6 +1165,8 @@ def travel_text(row: dict) -> str:
 
 def past_line(row: dict, today: date) -> str:
     when = f"{long_date(row['local_date'])} ({days_ago(date.fromisoformat(row['local_date']), today)})"
+    if row['with_user'] and row['kind'] == 'naming':
+        return f"- On {when} you held {said(row)} at home, and the user became {first(row['details']['name'])}'s godparent."
     if row['with_user']:
         return f'- On {when} you and the user went to {said(row)} together.'
     alone = " on your own; the user couldn't make it, and that was fine" if row['answered_at'] else ''

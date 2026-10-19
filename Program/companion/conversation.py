@@ -36,6 +36,7 @@ from companion.life import (
     moving_in,
     occasions,
     outings,
+    own_family,
     own_plans,
     pacing,
     recommendations,
@@ -90,6 +91,8 @@ def record_user(database, body) -> dict:
         steps.note(connection, message, companion, database.now())
         # A no to a big day they asked the user along to (companion/life/big_days.py): fine, and remembered.
         big_days.note(connection, message, companion, database.now())
+        # A yes or no to babysitting their child for an evening (companion/life/own_family.py).
+        own_family.note(connection, message, companion, database.now())
         # A move-in step just reached settles where (companion/life/moving_in.py); "I'm out" or "I'm home" at home.
         moving_in.note(connection, message, companion, database.now())
         self_checks.heed(connection, message, database.now())

@@ -170,8 +170,8 @@ STORIES = (
 # day each storyline starts; the stages here only stand for them.
 STORIES += tuple(Story(key, 0, 'family', (beat('{name} heard some family news from {a}.', 'family news from {a}!', 'good'),),
                        own=True)
-                 for key in ('expecting', 'baby_update', 'babysat', 'first_birthday'))
-FAMILY = frozenset(('expecting', 'baby_update', 'babysat', 'first_birthday'))
+                 for key in ('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
+FAMILY = frozenset(('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
 OWN = frozenset(story.key for story in STORIES if story.own)
 
 
