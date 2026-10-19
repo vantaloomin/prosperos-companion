@@ -24,6 +24,7 @@ partner while the user babysits (`babysitting`, asked in a first text, a plain y
 Children are words only, as in v0.14: never in pictures, never in Matchlight, and with the adult side of life on
 nothing about them reaches a chat prompt, the godparent day is called off and nobody is asked to babysit.
 """
+import re
 from datetime import date, datetime, timedelta
 
 from companion.clock import stamp, zone
@@ -348,8 +349,23 @@ def news_on(child: dict, day: date, pace: float, era: str) -> tuple[str, str, st
     if day.weekday() != int(generators.unit(seed, 'news-day', week) * 7) or \
             generators.unit(seed, 'update', week) >= UPDATE * pace:
         return None
-    line = generators.pick(seed, f'update-line-{week}', families.fitting(families.bank()[f'own_{group}'], era))
+    line = generators.pick(seed, f'update-line-{week}', for_age(families.fitting(families.bank()[f'own_{group}'], era),
+                                                                (day - first).days))
     return 'baby_update', line['text'], line['share']
+
+
+# A young baby doesn't sit up, roll, cut teeth, eat or walk yet (as for the pair's own, companion/life/our_child.py).
+SITTING = re.compile(r'\b(?:sat|sits|sitting|roll\w*|tooth|teeth)\b', re.IGNORECASE)
+SITTING_DAYS = 150
+
+
+def for_age(lines: list[dict], days: int) -> list[dict]:
+    """The bank lines a baby this many days old can do."""
+    from companion.life import our_child
+    rules = ((our_child.MOVING, our_child.MOVING_DAYS), (our_child.FOOD, our_child.SOLIDS_DAYS),
+             (SITTING, SITTING_DAYS))
+    return [line for line in lines if not any(days < after and found.search(f"{line['text']} {line['share']}")
+                                              for found, after in rules)] or lines
 
 
 def naming_days(connection, companion: dict, low: date, high: date) -> list[dict]:

@@ -371,3 +371,20 @@ def test_babysitting_asks_fit_the_citys_era(client, mira):
         older = own_family.fitting_asks(connection, old)
     assert len(older) >= 100 and not any('modern' in tags.get(line, ()) or 'izza' in line for line in older)
     assert any('older' in tags.get(line, ()) for line in older)
+
+
+def test_a_young_baby_of_theirs_does_not_walk_sit_up_or_eat_yet():
+    from companion.life import our_child
+    lines = families.fitting(families.bank()['own_baby'], 'modern')
+    young = own_family.for_age(lines, 40)
+    assert len(young) >= 50
+    for line in young:
+        said = f"{line['text']} {line['share']}"
+        assert not our_child.MOVING.search(said) and not our_child.FOOD.search(said) and \
+            not own_family.SITTING.search(said), line
+    assert len(own_family.for_age(lines, 330)) == len(lines)
+    child = {'id': 'c1', 'born_on': '2027-01-04', 'pronouns': 'she/her', 'name': 'Ivy'}
+    for offset in range(0, 140):
+        found = own_family.news_on(child, date(2027, 1, 4) + timedelta(days=offset), 3.0, 'modern')
+        if found:
+            assert found[1] in {line['text'] for line in own_family.for_age(lines, offset)}
