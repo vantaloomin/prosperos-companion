@@ -184,9 +184,13 @@ def health_turns(connection, timeline_id: str, today: date) -> dict[str, list[tu
     return found
 
 
-def facts_for(connection, row: dict, today: date, turn: str | None, loss: int, era: str = 'modern') -> dict:
+def facts_for(connection, row: dict, today: date, turn: str | None, loss: int, era: str = 'modern',
+              definition: dict | None = None) -> dict:
+    """What `loss:passes` reads: their life age (companion/world/lifespans.py; an elf of 300 is 48 in human terms), so
+    a long-lived person seldom passes away."""
     details = decode(row['details']) or {}
-    age = ages.person_age(connection, 'circle', row['id'], today) or ages.stored_age(details) or 0
+    real = ages.person_age(connection, 'circle', row['id'], today) or ages.stored_age(details) or 0
+    age = ages.person_life_age(connection, details, real, definition) or 0
     return {'age': age, 'loss': loss, 'frail': int(turn == 'frail'), 'treatment': int(turn == TREATMENT),
             'family': int(circle.role_kind(row['role']) in circle.FAMILY), 'old_era': int(death_factor(era) > 1)}
 
@@ -217,7 +221,7 @@ def plan(connection, companion: dict, row: dict, day: date, today: date, outcome
          window: str) -> None:
     """A death decided: on its day they pass away (`happen`)."""
     details = decode(row['details']) or {}
-    age = facts_for(connection, row, today, None, 0)['age']
+    age = facts_for(connection, row, today, None, 0, definition=companion['version']['definition'])['age']
     cause = 'long illness' if why in ('frail', TREATMENT) else 'old age' if age >= 80 else \
         generators.pick(f"loss:{row['id']}", 'cause', ['illness', 'sudden'])
     connection.execute(
@@ -234,9 +238,10 @@ def plan(connection, companion: dict, row: dict, day: date, today: date, outcome
 def consider(connection, companion: dict, row: dict, today: date, turns: list, loss: int, now) -> None:
     """This person's year, and any health turn of theirs: whether they pass away, decided once each."""
     start, era = watch_from(connection, row, today, now), era_of(connection, companion)
+    definition = companion['version']['definition']
     window = (today - start).days // YEAR
     found = decide(connection, companion, row, f"loss:{row['id']}:{window}",
-                   facts_for(connection, row, today, None, loss, era), now)
+                   facts_for(connection, row, today, None, loss, era, definition), now)
     if found:
         offset = int(generators.unit(row['id'], 'loss-day', window) * YEAR)
         ill = turns[-1][2] if turns else ''  # Someone already ill passes away of it.
@@ -245,7 +250,7 @@ def consider(connection, companion: dict, row: dict, today: date, turns: list, l
         return
     for key, since, fact in turns:
         found = decide(connection, companion, row, f"loss:{row['id']}:{key}",
-                       facts_for(connection, row, today, fact, loss, era), now)
+                       facts_for(connection, row, today, fact, loss, era, definition), now)
         if found:
             offset = 30 + int(generators.unit(row['id'], 'loss-turn', key) * 270)
             plan(connection, companion, row, date.fromisoformat(since) + timedelta(days=offset), today, found, fact,

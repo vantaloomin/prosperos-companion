@@ -26,7 +26,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import ages, named
-from companion.world import catalog, generators, naming
+from companion.world import catalog, generators, lifespans, naming
 
 CIRCLE_SIZE = 5
 SIZES = {'quiet': 4, 'usual': CIRCLE_SIZE, 'social': 10}
@@ -144,8 +144,9 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
     works = social and bool(work_blocks(definition))
     family, base = family_name(definition), seed or f'circle:{timeline_id}'
     group = family_group(data, family)
+    folk = lifespans.sheet_kind(definition, data)  # Their relatives are their kind (companion/world/lifespans.py).
     made = generators.circle(data, seed=base, size=min(size, len(order)), home=home, order=order, coworkers=works,
-                             family=family, group=group)
+                             family=family, group=group, folk=folk)
     sheet_people = named.in_circle(definition) if sheet else []
     taken = set(taken or ()) | {definition['name'], *definition['name'].split()[:1]} | \
         {person['name'].split()[0] for person in named.people(definition)}  # Their children's names too.
@@ -156,7 +157,8 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
         related = role in ('parent', 'sibling', 'cousin')
         member = generators.resident(data, seed=f'{base}:named:{index}', role=role, local=person['local'],
                                      near=home if role in ('neighbor', 'parent', 'sibling') else None,
-                                     family=family if related else None, group=group if related else None)
+                                     family=family if related else None, group=group if related else None,
+                                     folk=folk if related else None)
         pronouns = person['pronouns'] or 'they/them'
         given = person['name'].split()[0]
         full = person['name'] if ' ' in person['name'] else given
@@ -178,11 +180,15 @@ def city_person(member: dict, data: dict, definition: dict, family: str | None, 
                'closeness': member['closeness'], 'haunts': [spot['name'] for spot in member['haunts']],
                'refs': member.get('refs', []), 'sources': member.get('sources', []),
                'data_version': data['data_version']}
+    if member.get('folk'):
+        details['folk'] = member['folk']  # Not human (companion/world/lifespans.py).
     # Relatives carry the family name, unless the sheet gives a named one their full name.
     if family and member['role'] in ('parent', 'sibling') and (role is None or ' ' not in member['name']['full']):
         details['full_name'] = f"{member['name']['given']} {family_form(family, member['name']['pronouns'])}"
         if member['role'] == 'sibling' and role is None:
-            details |= married_sibling(data, timeline_id, member['name'], member['age'], family)
+            # Married or not by their age in human terms (companion/world/lifespans.py).
+            life = lifespans.life_age(member['age'], lifespans.lifespan_of(member.get('folk'), data))
+            details |= married_sibling(data, timeline_id, member['name'], life, family)
     # Two people with the same first name go by their full names, so events stay unambiguous.
     shown = member['name']['given'] if member['name']['given'] not in taken else details['full_name']
     taken.add(shown)
@@ -262,7 +268,7 @@ def married_sibling(data: dict | None, timeline_id: str, name: dict, age: int, f
     """Whether a sibling is married, and the married name they go by when they took their spouse's.
     Seeded by the timeline, given name and age, so a circle rebuilt or corrected gets the same answer."""
     key = f"married:{timeline_id}:{name['given']}:{age}"
-    chance = next(share for limit, share in MARRIED_BY_AGE if (age or 0) < limit)
+    chance = next((share for limit, share in MARRIED_BY_AGE if (age or 0) < limit), MARRIED_BY_AGE[-1][1])
     if generators.unit(key, 'married') >= chance:
         return {}
     details = {'married': True}
@@ -316,9 +322,10 @@ def birthday(person_id: str) -> str:
 
 
 def view(row: dict) -> dict:
+    details = decode(row['details'])
     return {'id': row['id'], 'key': row['seed'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
-            'revision': row['revision'], **decode(row['details']), 'birthday': birthday(row['id']),
-            'schedule': decode(row['schedule'])}
+            'revision': row['revision'], **details, 'birthday': birthday(row['id']),
+            'schedule': decode(row['schedule']), 'kind': ages.person_kind(details)}
 
 
 def build(definition: dict, world, timeline_id: str, size: int, seed: str | None = None, taken=(),
@@ -394,7 +401,7 @@ def add_grandparent(connection, companion: dict, world, now) -> bool:
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     rows = people(connection, timeline_id, include_removed=True)
     today = now.astimezone(zone(companion['version']['timezone'])).date()
-    age = ages.companion_age(connection, companion['id'], definition, today)
+    age = ages.companion_life_age(connection, companion['id'], definition, today)  # In human terms.
     if not ELDERS or age is None or age >= GRANDCHILD_UNDER or any(role_kind(row['role']) in GRANDPARENTS for row in rows):
         return False
     elder = grandparent(definition, world, timeline_id, age, {row['name'] for row in rows})
@@ -406,12 +413,13 @@ def add_grandparent(connection, companion: dict, world, now) -> bool:
     return True
 
 
-def elder_resident(data: dict, seed: str, age: int, local: bool, family: str | None, firsts: set[str]) -> dict:
+def elder_resident(data: dict, seed: str, age: int, local: bool, family: str | None, firsts: set[str],
+                   folk: str | None) -> dict:
     """A resident for the grandparent whose first name nobody in the circle has (a sibling and a grandmother both
     "Ayo Solano" read as one person), after a few tries."""
     for attempt in range(8):
         member = generators.resident(data, seed=seed if not attempt else f'{seed}:{attempt}', role='parent', age=age,
-                                     local=local, family=family, group=family_group(data, family))
+                                     local=local, family=family, group=family_group(data, family), folk=folk)
         if member['name']['given'] not in firsts:
             break
     return member
@@ -424,16 +432,18 @@ def grandparent(definition: dict, world, timeline_id: str, age: int, taken: set[
     elder_age = low + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * (ELDER_AGES[1] - low))
     local = generators.unit(seed, 'local') < 0.5
     data = city_data(definition, world)
+    folk = lifespans.sheet_kind(definition, data)  # Ages here are in human terms; their real one follows their kind.
     if data:
         family = family_name(definition) if generators.unit(seed, 'family-side') < 0.5 else None
-        member = elder_resident(data, seed, elder_age, local, family, {name.split()[0] for name in taken})
+        member = elder_resident(data, seed, elder_age, local, family, {name.split()[0] for name in taken}, folk)
         made = city_person(member, data, definition, None, timeline_id, set(taken) | {definition['name']},
                            relation('grandparent', member['name']['pronouns']))
         return made | {'details': made['details'] | {'career': 'Retired', 'elder': True}}
     pronouns = generators.pick(seed, 'pronouns', ['she/her', 'he/him'])
     made = assemble(seed, 0, definition, None, set(taken) | {definition['name']}, relation('grandparent', pronouns))
-    details = made['details'] | {'career': 'Retired', 'pronouns': pronouns, 'age': elder_age, 'local': local,
-                                 'elder': True}
+    details = made['details'] | {'career': 'Retired', 'pronouns': pronouns, 'local': local, 'elder': True,
+                                 'age': lifespans.real_age(elder_age, lifespans.lifespan_of(folk, data))}
+    details |= {'folk': folk} if folk != lifespans.HUMAN else {}
     return made | {'career': '', 'details': details,
                    'schedule': generators.RETIRED_SCHEDULE if local else []}
 
@@ -477,7 +487,8 @@ def match_family(connection, companion: dict, world, rows: list[dict], now) -> b
         if role_kind(row['role']) == 'sibling':
             data = data or city_data(definition, world)
             wanted |= married_sibling(data, row['timeline_id'], {'given': given, 'pronouns': pronouns},
-                                      details.get('age') or 0, family)
+                                      lifespans.life_age(details.get('age') or 0, lifespans.lifespan_of(details.get('folk'), data)),
+                                      family)
         current = {key: details[key] for key in ('full_name', 'married', 'birth_family') if key in details}
         if current == wanted:
             continue
@@ -571,6 +582,18 @@ def rename(connection, person_id, name: str, now) -> dict:
     require(row['status'] == 'active', 'Restore this person before renaming them.', 409)
     connection.execute('UPDATE circle_people SET name=?, revision=revision+1, updated_at=? WHERE id=?',
                        (name.strip(), stamp(now), person_id))
+    return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
+
+
+def set_kind(connection, person_id, kind: str, lifespan: int | None, now) -> dict:
+    """The user's pick of someone's kind and How long they live ('' and None: the app's again; 0: they don't age).
+    Their real age stays; the rules read their life age from it (companion/world/lifespans.py)."""
+    row = person(connection, person_id)
+    require(not kind or kind in lifespans.kinds(), 'Pick one of the kinds listed.', 422)
+    details = {key: value for key, value in decode(row['details']).items() if key not in ('own_kind', 'lifespan')}
+    details |= ({'own_kind': kind} if kind else {}) | ({'lifespan': lifespan} if lifespan is not None else {})
+    connection.execute('UPDATE circle_people SET details=?, revision=revision+1, updated_at=? WHERE id=?',
+                       (encode(details), stamp(now), person_id))
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 

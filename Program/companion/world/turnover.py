@@ -8,8 +8,8 @@ generation, so `town:<city>:<place>:1003` is the third person to hold slot 3 aft
 parts and their number, and someone who left is still found by their key: a companion who knew them remembers.
 
 How long someone stays is seeded a year at a time from when they arrived: each year of their stay rolls once
-against their chances that year (moving away, a new job, retiring, passing away), which follow their age and who
-they are, and a roll that comes up picks the week they go. A newcomer takes the spot that same week, so a place
+against their chances that year (moving away, a new job, retiring, passing away), which follow their life age (their
+age in human terms, companion/world/lifespans.py: an elf seldom retires or passes away) and who they are, and a roll that comes up picks the week they go. A newcomer takes the spot that same week, so a place
 never runs short of people and a street never has a gap. Nothing is stored, and there is no horizon: the same slot on the same day has the same person, however many years on.
 
 Nobody had left before START, so towns people already knew don't lose anyone on upgrade. A companion is never
@@ -30,7 +30,7 @@ from datetime import date, timedelta
 from functools import lru_cache
 
 from companion.clock import Clock, zone
-from companion.world import generators
+from companion.world import generators, lifespans
 
 ACTIVE = True
 STRIDE = 1000
@@ -146,12 +146,15 @@ def retiring(age: int, era: str) -> float:
 
 
 @lru_cache(maxsize=65536)
-def tenure(seed: str, kind: str, age: int, start: int, levels: tuple, era: str = 'modern') -> tuple[int, str] | None:
-    """(the week they leave, why) for someone who arrived at week `start` aged `age`, or None if they never do. Each
-    year rolls at the levels (`history`) that held when it began."""
+def tenure(seed: str, kind: str, age: int, start: int, levels: tuple, era: str = 'modern',
+           lifespan: int | None = lifespans.HUMAN_LIFESPAN) -> tuple[int, str] | None:
+    """(the week they leave, why) for someone who arrived at week `start` aged `age` (real years) who lives about
+    `lifespan` years (None: they don't age), or None if they never do. Each year rolls at the levels (`history`) that
+    held when it began."""
     for year in range(120):
         pace, loss, _families = levels_at(start + year * YEAR, levels)
-        found = chances(kind, age + year, pace, loss, era)
+        life = age if lifespan is None else lifespans.life_age(age + year, lifespan)
+        found = chances(kind, life, pace, loss, era)
         total = sum(found.values())
         roll = generators.unit(seed, 'turnover', year)
         if total and roll < min(total, 1.0):
@@ -171,16 +174,18 @@ class Term:
 
 
 def terms(seed_of, kind: str, age_of, kept, until: int, last: int = MOST_GENERATIONS - 1,
-          era: str = 'modern') -> list[Term]:
+          era: str = 'modern', lifespan_of=None) -> list[Term]:
     """Everyone who held a slot up to week `until` (or up to generation `last`), in order. `seed_of(generation)` is
     who they are drawn from, `age_of(seed, generation)` their age on arriving, `kept(generation)` whether they
-    stay for good and `era` the city's (chances)."""
+    stay for good, `era` the city's (chances) and `lifespan_of(seed)` how long they live (a human's when None)."""
     if not ACTIVE:
         return [Term(0, None, None, None)]
     result, arrived, start = [], None, START_WEEK
     for generation in range(last + 1):
         seed = seed_of(generation)
-        found = None if kept(generation) else tenure(seed, kind, age_of(seed, generation), start, history(), era)
+        span = lifespan_of(seed) if lifespan_of else lifespans.HUMAN_LIFESPAN
+        found = None if kept(generation) else tenure(seed, kind, age_of(seed, generation), start, history(), era,
+                                                     span)
         result.append(Term(generation, arrived, *(found or (None, None))))
         if found is None or found[0] > until:
             break

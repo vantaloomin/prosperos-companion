@@ -137,6 +137,15 @@ def age_of(connection, companion: dict, day: date) -> int | None:
     return ages.companion_age(connection, companion['id'], definition, day)
 
 
+def life_age_of(connection, companion: dict, day: date) -> int | None:
+    """How far through life they are in human terms (companion/world/lifespans.py), what the odds read; None like
+    `age_of`."""
+    definition = companion['version']['definition']
+    if intimacy.reads_as_minor(definition):
+        return None
+    return ages.companion_life_age(connection, companion['id'], definition, day)
+
+
 def running(connection, timeline_id: str) -> list[dict]:
     """Big turns still on their way (a stage to come), oldest first."""
     return many(connection, "SELECT * FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL AND "
@@ -149,16 +158,16 @@ def finished(connection, timeline_id: str, kind: str, stage: str) -> dict | None
 
 
 def free(connection, companion: dict, day: date) -> int | None:
-    """Their age when a big turn could start (one at a time, adults only), else None."""
+    """Their life age (`life_age_of`) when a big turn could start (one at a time, adults only), else None."""
     if running(connection, companion['active_timeline_id']):
         return None
     found = age_of(connection, companion, day)
-    return found if found is not None and found >= ADULT else None
+    return life_age_of(connection, companion, day) if found is not None and found >= ADULT else None
 
 
 def facts(connection, companion: dict, day: date) -> dict:
     """What the engine reads for big turns."""
-    return {'age': age_of(connection, companion, day), 'turns': level(connection),
+    return {'age': life_age_of(connection, companion, day), 'turns': level(connection),
             'together': int(bool(moving_in.living(connection, companion, day))),
             **health_turns.facts(connection, companion, day)}
 

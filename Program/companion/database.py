@@ -346,6 +346,10 @@ ADDED_COLUMNS = (
     # The breakup that choice was made in: it holds only while that one stands (not after getting back together and
     # splitting again).
     ('our_family', 'custody_for', 'TEXT'),
+    # Lifespans (companion/world/lifespans.py): the kind and How long they live the user picked on a child's card ('' and
+    # NULL: the app's pick, from their parents' kinds; lifespan 0: they don't age).
+    ('circle_children', 'own_kind', "TEXT NOT NULL DEFAULT ''"),
+    ('circle_children', 'lifespan', 'INTEGER'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

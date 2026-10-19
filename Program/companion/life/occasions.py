@@ -26,7 +26,7 @@ from calendar import monthrange
 from datetime import date, timedelta
 
 from companion.clock import parse, zone
-from companion.database import optional, settings
+from companion.database import decode, optional, settings
 from companion.life import ages, circle, loss, steps, traditions
 from companion.world import generators
 
@@ -153,7 +153,9 @@ def occasions(connection, companion: dict, now) -> list[dict]:
         ahead = days_until(own_today, circle.birthday(person['id']))
         if ahead <= SOON:
             day = own_today + timedelta(days=ahead)
-            turns = turning(ages.person_age(connection, 'circle', person['id'], day))
+            turns = turning(ages.person_age(connection, 'circle', person['id'], day),
+                            ages.person_lifespan(connection, decode(person['details']) or {},
+                                                 companion['version']['definition']))
             found.append(occasion('circle_birthday', day, ahead, f"your {person['role']} {person['name']}'s "
                                   f"{ages.ordinal(turns) + ' ' if turns else ''}birthday", '', person=person,
                                   turns=turns))
@@ -183,7 +185,8 @@ def occasions(connection, companion: dict, now) -> list[dict]:
 def own_occasion(connection, companion: dict, day: date, ahead: int) -> dict:
     """Their own birthday; a milestone says which, and someone who keeps their age is not a year older."""
     definition = companion['version']['definition']
-    turns = turning(ages.turns_on(connection, companion['id'], definition, day))
+    turns = turning(ages.turns_on(connection, companion['id'], definition, day),
+                    ages.companion_lifespan(connection, definition))
     found = occasion('own_birthday', day, ahead, f'your {ages.ordinal(turns)} birthday, a big one' if turns
                      else 'your birthday', '', turns=turns)
     if found['template'] and definition.get('keeps_age'):
@@ -191,9 +194,10 @@ def own_occasion(connection, companion: dict, day: date, ahead: int) -> dict:
     return found
 
 
-def turning(age: int | None) -> int | None:
-    """The age a birthday turns them, when it is a milestone (30, 40, 50 ...: companion/life/ages.py)."""
-    return age if ages.milestone(age) else None
+def turning(age: int | None, lifespan: int | None = 80) -> int | None:
+    """The age a birthday turns them, when it is a milestone (30, 40, 50 ..., an elf's 100, 150 ...:
+    companion/life/ages.py)."""
+    return age if ages.milestone(age, lifespan) else None
 
 
 def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', person: dict | None = None,

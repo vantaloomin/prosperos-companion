@@ -29,7 +29,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import ages, circle, composer, money
-from companion.world import catalog, generators, looks
+from companion.world import catalog, generators, lifespans, looks
 
 COMPANION = 'companion'
 PERIOD_DAYS = 14
@@ -376,7 +376,7 @@ class Draw:
         modern, hair = self.found['era'] in MODERN, bool(self.parsed)
         grow = hair and not so_far.get('growing') and length_now(self.parsed, so_far, day) < 7
         wears = bool(so_far.get('glasses')) or 'glasses' in (self.sheet.get('feature') or '')
-        age = self.sheet.get('age') or 30
+        age = self.sheet.get('looks_age') or self.sheet.get('age') or 30
         beard = self.found['who'] == 'm' or self.found['who'] == 'n' and bool(self.sheet.get('facial_hair'))
         return [('colour', 3.0 + self.found['daring'] if modern and hair else 0), ('cut', 3.0 if hair else 0),
                 ('glasses', (2.0 if wears else 0.5 if age >= 40 else 0) if 'feature' in self.fields else 0),
@@ -537,7 +537,10 @@ def age_signs(connection, timeline_id: str, definition: dict, state: dict, so_fa
     age = sheet.get('age')
     if not row or not age:
         return ''
-    since = row['from_age']  # The age their words give, where their date started: what came after it shows.
+    # In human terms (companion/world/lifespans.py): an elf of 300 greys like someone of 48.
+    span = ages.companion_lifespan(connection, definition)
+    age = lifespans.life_age(age, span)
+    since = lifespans.life_age(row['from_age'], span)  # Their words' age, where their date started: what came after.
     shift = AGE_SHIFT[level(connection)]
     wears = so_far.get('glasses') or 'glasses' in (sheet.get('feature') or '')
     bare = bool(HAIRLESS.search(sheet.get('hair') or ''))
@@ -589,6 +592,8 @@ def sheet(connection, companion_id: str, definition: dict, day: date | str | Non
         return base
     # Their age on the day (companion/life/ages.py): a year older after each birthday, unless they keep their age.
     aged = {'age': ages.companion_age(connection, companion_id, definition, day)} if base.get('age') else {}
+    if aged and (span := ages.companion_lifespan(connection, definition)) != lifespans.HUMAN_LIFESPAN:
+        aged['looks_age'] = lifespans.life_age(aged['age'], span)  # How old they look: pictures draw this.
     return {**base, **aged, **changes_on(connection, timeline_id, definition, {**base, **aged}, day, bold_only)}
 
 

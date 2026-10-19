@@ -12,6 +12,7 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    ages,
     big_days,
     big_turns,
     breakups,
@@ -51,8 +52,8 @@ from companion.life import (
     wedding,
 )
 from companion.memory import pairs
-from companion.models import Input, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
-from companion.world import paper
+from companion.models import Input, KindChange, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
+from companion.world import lifespans, paper
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -248,6 +249,20 @@ def grow_circle(request: Request):
 def rename_person(request: Request, person_id: str, body: PersonUpdate):
     return circle_change(request, person_id,
                          lambda connection, now: circle.rename(connection, person_id, body.name, now))
+
+
+@router.put('/circle/{person_id}/kind')
+def set_person_kind(request: Request, person_id: str, body: KindChange):
+    return circle_change(request, person_id,
+                         lambda connection, now: circle.set_kind(connection, person_id, body.kind, body.lifespan, now))
+
+
+@router.get('/kinds')
+def kinds(request: Request):
+    """What the Kind and How long they live pickers offer, where the open companion lives."""
+    with db(request).connect() as connection:
+        companion = require_current(connection)
+        return lifespans.choices(ages.city_of(connection, companion['version']['definition']))
 
 
 @router.post('/circle/{person_id}/remove')

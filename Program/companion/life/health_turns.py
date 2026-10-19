@@ -26,7 +26,7 @@ from datetime import date, timedelta
 from companion import consequences
 from companion.clock import stamp
 from companion.database import decode, many, optional
-from companion.life import big_turns, circle, money
+from companion.life import ages, big_turns, circle, money
 from companion.memory import pairs
 
 OUTLOOK, HOW = 'health:outlook', 'caring:how'
@@ -85,7 +85,7 @@ def diagnosed(connection, companion, row, details, day, now) -> dict:
     name = big_turns.first(definition)
     outcome = consequences.decide(
         connection, timeline_id=row['timeline_id'], choice=OUTLOOK, subject=f"health:{row['id']}",
-        facts={'age': big_turns.age_of(connection, companion, day), 'drama': drama(connection)},
+        facts={'age': big_turns.life_age_of(connection, companion, day), 'drama': drama(connection)},
         names={'name': name, 'a': condition['condition'], 'b': ''},
         labels=[option['label'].format(name=name, a=condition['condition'])
                 for option in consequences.tables()[OUTLOOK]['options']],
@@ -161,7 +161,9 @@ def parents(connection, companion: dict, day: date) -> list[tuple[dict, int, boo
     for person in circle.people(connection, timeline_id):
         if circle.role_kind(person['role']) != 'parent' or cared_for(connection, timeline_id, person['id']):
             continue
-        age = decode(person['details']).get('age') or 0
+        details = decode(person['details'])
+        # How far through life they are: a long-lived parent is seldom old enough to need care.
+        age = ages.person_life_age(connection, details, details.get('age') or 0, companion['version']['definition'])
         if age >= OLD_PARENT or person['id'] in ill:
             found.append((person, age, person['id'] in ill))
     return sorted(found, key=lambda item: (not item[2], -item[1], item[0]['ordinal']))
@@ -220,6 +222,13 @@ def care_begins(connection, companion, row, details, day, now) -> dict:
                         'next_on': (day + timedelta(days=CARE_CHECK)).isoformat()}}
 
 
+def parent_life_age(connection, companion: dict, person: dict | None) -> int | None:
+    if not person:
+        return None
+    details = decode(person['details'])
+    return ages.person_life_age(connection, details, details.get('age'), companion['version']['definition'])
+
+
 def care_check(connection, companion, row, details, day, now) -> dict:
     """Three months on: the engine says how it is going."""
     definition = companion['version']['definition']
@@ -228,7 +237,7 @@ def care_check(connection, companion, row, details, day, now) -> dict:
     names = {'name': name, 'a': details['name'], 'b': ''}
     outcome = consequences.decide(
         connection, timeline_id=row['timeline_id'], choice=HOW, subject=f"caring:{row['id']}:{details['checks']}",
-        facts={'age_a': decode(person['details']).get('age') if person else None, 'drama': drama(connection),
+        facts={'age_a': parent_life_age(connection, companion, person), 'drama': drama(connection),
                'turns': big_turns.level(connection), 'checks': details['checks']}, names=names,
         labels=[option['label'].format(**names) for option in consequences.tables()[HOW]['options']],
         day=day.isoformat(), timestamp=stamp(now), holders={'me': pairs.companion_key(companion['id'])}, now=now)

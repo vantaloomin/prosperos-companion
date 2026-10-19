@@ -31,6 +31,10 @@ UNITS = {word: value for value, word in enumerate('one two three four five six s
 _SPELLED = (rf"(eighteen|nineteen|(?:{'|'.join(TENS)})(?:[- ](?:{'|'.join(UNITS)}))?)")
 SPELLED_AGE = re.compile(rf"(?:^\s*|\b(?:is|am|aged|age|turned|turning)\s+|['’](?:s|m)\s+|\ba\s+){_SPELLED}"
                          rf"(?=[-\s]*(?:years?\b|y/?o\b|and\b|but\b|[,.;!()–—]|$))", re.IGNORECASE)
+# A long-lived kind's age in three or four digits, said as their age: "a 312-year-old", "312 years old", "is 312",
+# "an elf, 312.".
+LONG_AGE = re.compile(r"\b([1-9]\d{2,3})[- ]years?[- ]old\b|\b(?:is|am|aged|age)\s+([1-9]\d{2,3})\b(?!\s*(?:%|cm|kg|lb))"
+                      r"|,\s*([1-9]\d{2,3})(?=\s*(?:[.,;]|$))")
 # What the free-text appearance already says, by field: a drawn value for that field is left out.
 COVERED = {
     'height_cm': r"\b(?:tall|short|petite|height|lanky|towering|\d'\s?\d|\d{3}\s?cm|feet|foot|footer|ft|inch(?:es)?)\b",
@@ -108,6 +112,8 @@ def pronouns_of(definition: dict) -> str:
 def age_of(definition: dict, seed: str) -> int:
     """The age their identity gives ("34.", "a 28-year-old", "in her thirties"), else a seeded adult age."""
     text = str(definition.get('identity') or '').lower()
+    if (found := LONG_AGE.search(text)) and long_lived(definition):
+        return int(found[1] or found[2] or found[3])  # "a 312-year-old elf", "she is 312" (companion/world/lifespans.py)
     if found := re.search(r'\b(1[89]|[2-9]\d)\b(?!\s*(?:%|percent|minutes|hours|days|weeks|months|cats|dogs))', text):
         return int(found[1])
     if found := SPELLED_AGE.search(text):
@@ -115,6 +121,14 @@ def age_of(definition: dict, seed: str) -> int:
     if age := next((age for stem, age in AGE_WORDS.items() if f'{stem}ies' in text), None):
         return age
     return 24 + round(generators.unit(seed, 'looks-age') * 16)
+
+
+def long_lived(definition: dict) -> bool:
+    """Whether their words name a kind that lives well past a hundred (an elf, a dwarf), so a three-digit age is
+    theirs."""
+    from companion.world import lifespans
+    span = lifespans.sheet_lifespan(definition)
+    return span is None or span > lifespans.LONG_LIVED
 
 
 def spelled(words: str) -> int:
@@ -265,7 +279,8 @@ def picture(sheet: dict, who: str) -> str:
             if word]
     opening = article(f"{', '.join(size)} {noun}") if size else article(noun)
     if sheet.get('age'):
-        opening += f" in {possessive} {age_words(sheet['age'])}"
+        # A long-lived kind is drawn the age they look (companion/world/lifespans.py): "312" comes back ancient.
+        opening += f" in {possessive} {age_words(sheet.get('looks_age') or sheet['age'])}"
     eyes = ' '.join(part for part in (sheet.get('eye_shape'), sheet.get('eyes')) if part)
     parts = [skin_text(sheet),
              article(f"{sheet['face']} face") if sheet.get('face') else '', sheet.get('jaw') or '', sheet.get('nose') or '',

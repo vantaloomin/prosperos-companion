@@ -1,0 +1,71 @@
+{
+ "kinds": {
+  "human": {
+   "label": "Human",
+   "lifespan": 80,
+   "words": []
+  },
+  "elf": {
+   "label": "Elf",
+   "lifespan": 600,
+   "words": [
+    "elf",
+    "elven",
+    "elvish"
+   ]
+  },
+  "half-elf": {
+   "label": "Half-elf",
+   "lifespan": 180,
+   "words": [
+    "half-elf",
+    "half elf",
+    "half-elven"
+   ]
+  },
+  "dwarf": {
+   "label": "Dwarf",
+   "lifespan": 300,
+   "words": [
+    "dwarf",
+    "dwarven",
+    "dwarvish"
+   ]
+  },
+  "halfling": {
+   "label": "Halfling",
+   "lifespan": 110,
+   "words": [
+    "halfling",
+    "hobbit"
+   ]
+  },
+  "orc": {
+   "label": "Orc",
+   "lifespan": 55,
+   "words": [
+    "orc",
+    "orcish",
+    "half-orc"
+   ]
+  },
+  "ageless": {
+   "label": "Doesn't age",
+   "lifespan": null,
+   "words": [
+    "immortal",
+    "ageless",
+    "vampire"
+   ]
+  }
+ },
+ "blends": [
+  {
+   "parents": [
+    "elf",
+    "human"
+   ],
+   "child": "half-elf"
+  }
+ ]
+}

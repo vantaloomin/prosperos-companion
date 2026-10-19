@@ -37,6 +37,7 @@ None of these are required, but each one gives the life sim and the companion mo
 | `prices` | Everyday costs (coffee, a pint, a bus fare) in the city's `currency`. |
 | `transit` | Lines that neighbourhoods name, for getting around. |
 | `water` | Sea, rivers and lakes for the drawn map of a city without a street map (fictional, original and private cities). A sea gives the `side` its coast faces (`north`, `south`, `east`, `west`); a river gives two or more `[lat, lon]` `points` in order; a lake gives one point, its centre. Each may have a `name` and a `width_km`. |
+| `kinds` | Long-lived (or short-lived) people. A name group with `"kind": "elf"` gives elves; a `kinds` block changes a kind's lifespan here or adds your own, such as `"tiefling": {"label": "Tiefling", "lifespan": 110, "words": ["tiefling"]}`. Lifespans are whole years from 40 to 5000, or null for people who don't age. |
 | `setting` and `era` | `real`, `fictional` or `original`, and `modern`, `victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `jazz-age` (the 1920s), `future` or `other`. Real-world lookups only run for real, modern cities. |
 
 Aim for 8 to 25 neighbourhoods with three or more places each, including somewhere to eat or drink in every one. The built-in cities have about 80 to 170 places.

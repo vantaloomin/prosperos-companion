@@ -103,11 +103,11 @@ def milestones(connection, companion, now) -> dict[str, int]:
     birthday = occasions.own_birthday(companion)
     if not birthday:
         return {}
-    found = {}
+    found, span = {}, ages.companion_lifespan(connection, companion['version']['definition'])
     for year in range((now - BACKFILL).year, (now + HORIZON).year + 1):
         day = ages.birthday_in(year, birthday)
         age = ages.turns_on(connection, companion['id'], companion['version']['definition'], day)
-        if ages.milestone(age) and (now - BACKFILL - timedelta(days=1)).date() <= day <= (now + HORIZON).date():
+        if ages.milestone(age, span) and (now - BACKFILL - timedelta(days=1)).date() <= day <= (now + HORIZON).date():
             found[day.isoformat()] = age
     return found
 

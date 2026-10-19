@@ -582,7 +582,9 @@ WORK = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'start': '09:00', 'end'
         {'key': 'morning', 'label': 'Morning', 'kind': 'leisure', 'start': '07:00', 'end': '09:00'}]
 
 
-def test_a_big_day_in_working_hours_is_a_day_off_for_it(client, clock):
+def test_a_big_day_in_working_hours_is_a_day_off_for_it(client, clock, monkeypatch):
+    from companion.life import body
+    monkeypatch.setattr(body, 'sick', lambda *args: False)  # A seeded cold (by the random timeline id) would keep them home.
     make(client, schedule=WORK)
     guests(client, 3)
     row = add(client, clock)  # 15:00 to 22:00, in the middle of their shift.

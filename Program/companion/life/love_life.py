@@ -42,8 +42,8 @@ from companion import consequences
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import breakups, circle, pronouns, steps
-from companion.world import catalog
+from companion.life import ages, breakups, circle, pronouns, steps
+from companion.world import catalog, lifespans
 
 # Off in tests unless a test turns it on (tests/conftest.py): a seeded partner adds circle people and first texts.
 ACTIVE = True
@@ -182,6 +182,8 @@ def new_person(connection, companion: dict, world, seed: str) -> dict:
     data = circle.city_data(definition, world)
     # Near the age they are now, birthdays and all (companion/life/ages.py).
     age = grooming.sheet(connection, companion['id'], definition).get('age') or looks.age_of(definition, companion['id'])
+    # Near it in human terms (companion/world/lifespans.py): an elf of 300 meets someone of about 48, of any kind.
+    age = lifespans.life_age(age, ages.companion_lifespan(connection, definition))
     wanted = drawn_to(connection, companion)
     taken = {row['name'] for row in circle.people(connection, timeline_id, include_removed=True)} | {definition['name']}
     used = first_names_in_use(connection, companion)
