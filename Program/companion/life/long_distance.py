@@ -24,7 +24,7 @@ from datetime import date, datetime, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import encode, many, optional, settings
 from companion.errors import require
-from companion.life import money, own_plans, together, trips, where
+from companion.life import breakups, money, own_plans, together, trips, where
 from companion.world import catalog, generators
 
 ACTIVE = True
@@ -190,7 +190,8 @@ def decide(connection, companion: dict, home: dict, between: where.Between, satu
     """Whether they plan a weekend visit with the user that weekend (trips.plan_ahead asks, weekends 8 to 22 days
     ahead), and which way; the same answer for the same weekend."""
     chosen = together.level(connection)
-    if not ACTIVE or not chosen or recent(connection, companion, saturday, gap(chosen, between)):
+    if not ACTIVE or not chosen or recent(connection, companion, saturday, gap(chosen, between)) or \
+            breakups.apart(connection, companion):  # On a break or exes: they don't come to stay.
         return None
     found = weekend(connection, companion, home, between, saturday)
     if not found:

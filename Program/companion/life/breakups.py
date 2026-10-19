@@ -421,13 +421,16 @@ def held_back(connection, row: dict, outcome: dict, option: int, before: str, no
 
 
 def call_off_plans(connection, companion: dict, now: datetime) -> None:
-    """Outings with the user that haven't started yet are off while they are apart."""
+    """Outings with the user that haven't started yet are off while they are apart, and so are weekend visits across
+    cities (companion/life/long_distance.py), quietly: no line says the user called them off."""
     from companion.life import outings
     tz = companion['version']['timezone']
     for outing in outings.in_force(connection, companion['active_timeline_id'], local_today(companion, now).isoformat()):
         if outings.state(outing, tz, now) == 'planned':
             connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE id=?",
                                (stamp(now), outing['id']))
+    connection.execute("UPDATE trips SET status='cancelled' WHERE timeline_id=? AND visit!='' AND status='planned' AND "
+                       'start_date>?', (companion['active_timeline_id'], local_today(companion, now).isoformat()))
 
 
 def back_together(connection, companion: dict, row: dict, now: datetime) -> None:
