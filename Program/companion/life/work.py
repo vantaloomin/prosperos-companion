@@ -67,7 +67,8 @@ CATCH_UP_DAYS = 400
 AHEAD_DAYS = 14
 RECENT_DAYS = 30
 # Days off the agenda shows for work life (agenda.holiday_block), by the name it is given.
-LABELS = {'Vacation': 'Vacation day', 'Job hunt': 'Job hunting', 'Parental leave': 'On parental leave'}
+LABELS = {'Vacation': 'Vacation day', 'Job hunt': 'Job hunting', 'Parental leave': 'On parental leave',
+          'Home day': 'A day at home', 'Family sick day': 'A day off to look after family'}
 LATE_TITLE = 'Staying late at work'
 LATE_DONE = 'stayed late at work on '
 WORKLOAD_WORDS = {'slammed': 'Slammed this week', 'normal': 'An ordinary week at work', 'slow': 'A slow week at work'}
@@ -435,9 +436,11 @@ def hunt_span(found: dict) -> tuple[str, str] | None:
 def days_off(connection, companion: dict, start: date, end: date) -> dict[str, str]:
     """{local date: 'Vacation', 'Job hunt' or a big day's title} for the agenda: vacation days, workdays while between
     jobs, and a workday a big day falls in their working hours (companion/life/big_days.py)."""
-    from companion.life import big_days, own_family
-    # Weeks of parental leave after a baby of theirs (companion/life/own_family.py), then big days.
+    from companion.life import big_days, our_child, own_family
+    # Weeks of parental leave after a baby of theirs (companion/life/own_family.py), days home with the pair's own
+    # (companion/life/our_child.py), then big days.
     result = {**own_family.leave_days(connection, companion, start, end),
+              **our_child.days_off(connection, companion, start, end),
               **big_days.days_off(connection, companion, start, end)}
     found = state(connection, companion['active_timeline_id']) if ACTIVE else None
     if not found or not level(connection):
@@ -800,6 +803,8 @@ def pay(connection, timeline_id: str, day: date, payday: date | None = None) -> 
         return None
     hunting = found['status'] == 'hunting' and found['hunt_since'] <= day.isoformat()
     factor = found['pay'] * (HUNT_PAY.get(found['hunt_reason'] or '', 0.5) if hunting else 1)
+    from companion.life import our_child
+    factor *= our_child.pay(connection, timeline_id, day)  # Part-time or at home with the pair's children.
     if not hunting and shifts.ACTIVE:
         # Shifts worked and gigs landed lately, tips and all (companion/life/shifts.py).
         factor *= shifts.pay(connection, timeline_id, payday or day)

@@ -45,6 +45,7 @@ from companion.life import (
     moving_in,
     network,
     occasions,
+    our_child,
     outings,
     own_plans,
     pacing,
@@ -758,10 +759,12 @@ def offer_people(packet, connection, companion, now, today):
             packet.offer('circle_now', person['id'], moment)
     for identity, text in families.context_lines(connection, companion, now):
         packet.offer('circle', identity, text)
-    for identity, text in kids.context_lines(connection, companion, now):
+    for identity, text in [*kids.context_lines(connection, companion, now),
+                           *our_child.context_lines(connection, companion, now)]:
         packet.offer('kids', identity, text)
-    if found := kids.today_line(connection, companion, now):
-        packet.offer('circle_now', *found)
+    found = kids.today_line(connection, companion, now)
+    for identity, text in [*([found] if found else []), *our_child.today_lines(connection, companion, now)]:
+        packet.offer('circle_now', identity, text)
     for identity, text in network.context_lines(connection, timeline_id, now):
         packet.offer('acquaintances', identity, text)
     for identity, text in encounters.context_lines(connection, companion, now):

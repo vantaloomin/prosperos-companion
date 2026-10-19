@@ -1,41 +1,64 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { FamilyView, Journey, KidsView } from '../../types'
+import type { FamilyView, Journey, KidsView, OurChild, OursView } from '../../types'
 import { Field, Toggle } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, stepDate } from './stepsText'
-import { FAMILY_KEY, KIDS_KEY, appPick, decidedHint, journeyLine, nameHint, routeHint, wantsHint } from './familyText'
+import { FAMILY_KEY, KIDS_KEY, OURS_KEY, appPick, arrivalText, decidedHint, journeyLine, nameHint, routeHint, wantsHint } from './familyText'
 import { Kids } from './Kids'
+import { HowItWent, OurChildren } from './OurChildren'
 
 type FamilyChange = { wants?: string; route?: string; decided?: boolean; name?: string }
 type Save = (change: FamilyChange) => void
 
 /** Wanting children (companion/life/parenthood.py): whether they want children, and for a romance how a child would
  * come for you two and whether you have decided to start a family; first, the kids they already have
- * (companion/life/kids.py). The app picks each one; the user can change it. */
+ * (companion/life/kids.py), and your own children with them (companion/life/our_child.py). The app picks each one;
+ * the user can change it. */
 export function Family({ name }: { name: string }) {
-  const query = useQuery({ queryKey: FAMILY_KEY, queryFn: () => api<FamilyView>('/life/steps/family') })
-  const kids = useQuery({ queryKey: KIDS_KEY, queryFn: () => api<KidsView>('/life/steps/kids') })
-  if (query.isError) return <ErrorNotice error={query.error} />
-  const view = query.data?.shown ? query.data : null
-  const theirs = kids.data?.shown ? kids.data : null
-  if (!view && !theirs) return null
+  const { error, view, theirs, own } = useFamily()
+  if (error) return <ErrorNotice error={error} />
+  if (!view && !theirs && !own) return null
   return (
     <section id="family" className="home-panel steps-panel family-panel" aria-labelledby="family-heading">
       <h2 id="family-heading">Family</h2>
       {theirs && <Kids view={theirs} name={name} />}
-      {view && <Wishes view={view} name={name} headed={Boolean(theirs)} />}
+      {own && <OurChildren view={own} family={view} name={name} howItWent={(child) => <Arrival child={child} journey={view?.journey} name={name} />} />}
+      {view && <Wishes view={view} name={name} headed={Boolean(theirs || own)} folded={Boolean(own)} />}
     </section>
   )
 }
 
+/** The panel's three parts, each only when it has something to show. */
+function useFamily() {
+  const query = useQuery({ queryKey: FAMILY_KEY, queryFn: () => api<FamilyView>('/life/steps/family') })
+  const kids = useQuery({ queryKey: KIDS_KEY, queryFn: () => api<KidsView>('/life/steps/kids') })
+  const ours = useQuery({ queryKey: OURS_KEY, queryFn: () => api<OursView>('/life/steps/ours') })
+  return {
+    error: query.error, view: shownOnly(query.data), theirs: shownOnly(kids.data), own: shownOnly(ours.data),
+  }
+}
+
+function shownOnly<T extends { shown: boolean }>(data: T | undefined): T | null {
+  return data?.shown ? data : null
+}
+
+/** Under a child's card: how they came, folded ("Born Mar 3, 2028 · Show how it went"), when the journey that brought
+ * them is the one the panel has; else just the day. */
+function Arrival({ child, journey, name }: { child: OurChild; journey?: Journey | null; name: string }) {
+  if (!journey || journey.status !== 'home' || journey.name !== child.name) {
+    return <p className="subtle">{arrivalText(child, undefined, stepDate)}</p>
+  }
+  return <HowItWent child={child} route={journey.route}><OnTheWay journey={journey} name={name} save={() => undefined} named={false} /></HowItWent>
+}
+
 /** What they want, and for a romance how a child would come and whether you two have decided; under its own heading
  * when their kids come first. */
-function Wishes({ view, name, headed }: { view: FamilyView; name: string; headed: boolean }) {
+function Wishes({ view, name, headed, folded }: { view: FamilyView; name: string; headed: boolean; folded: boolean }) {
   const client = useQueryClient()
   const [error, setError] = useState('')
   const save = async (change: FamilyChange) => {
@@ -49,7 +72,7 @@ function Wishes({ view, name, headed }: { view: FamilyView; name: string; headed
     {headed && <h3 className="family-subheading">{view.romance ? 'A family together' : 'More children'}</h3>}
     <WantsField view={view} name={name} save={(change) => void save(change)} />
     {view.romance && view.routes && <TogetherFields view={view} name={name} save={(change) => void save(change)} />}
-    {view.journey && <OnTheWay journey={view.journey} name={name} save={(change) => void save(change)} />}
+    {view.journey && !(folded && view.journey.status === 'home') && <OnTheWay journey={view.journey} name={name} save={(change) => void save(change)} />}
     {error && <Notice tone="error">{error}</Notice>}
   </>
 }
@@ -98,7 +121,7 @@ function TogetherFields({ view, name, save }: { view: FamilyView; name: string; 
 
 /** Expecting or adopting together (companion/life/expecting.py): where it stands, the stages with their days, and the
  * child's name once known, which the user can change. */
-function OnTheWay({ journey, name, save }: { journey: Journey; name: string; save: Save }) {
+function OnTheWay({ journey, name, save, named = true }: { journey: Journey; name: string; save: Save; named?: boolean }) {
   return (
     <div className="steps-detail family-journey">
       <p className="steps-line">{journeyLine(journey, name, stepDate)}</p>
@@ -111,7 +134,7 @@ function OnTheWay({ journey, name, save }: { journey: Journey; name: string; sav
           ))}
         </ol>
       )}
-      {journey.name && <ChildName key={journey.name} journey={journey} name={name} save={save} />}
+      {named && journey.name && <ChildName key={journey.name} journey={journey} name={name} save={save} />}
       {journey.consequences.map((id) => <WhyItWent key={id} id={id} />)}
     </div>
   )

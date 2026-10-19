@@ -585,6 +585,9 @@ def later_hours(outing: dict) -> list[str]:
 def doing(outing: dict) -> str:
     """'went to dinner at Lupa', 'went for a walk in Patterson Park'."""
     place, activity = outing['place']['name'], outing['activity']
+    if outing['place'].get('family'):  # A family day out (companion/life/our_child.py).
+        from companion.life import our_child
+        return our_child.doing(outing)
     if activity in (*MEETUPS, *LONG_DAYS):
         return planned_doing(outing)
     if activity == 'dinner-in':
@@ -741,6 +744,9 @@ def what(outing: dict) -> str:
         return f"{hobby.get('event') or hobby['together']} at {place['name']}"
     kind = f"{proper(place['cuisine'])} {place['kind']}".strip() if place.get('cuisine') else place['kind']
     area = f" in {place['neighborhood']}" if place['neighborhood'] else ''
+    if place.get('family'):  # A family day out (companion/life/our_child.py): the children in words only.
+        from companion.life import steps
+        return f"a family day out with {steps.names_text(place['family'])} at {place['name']} ({kind}{area})"
     return f"{ACTIVITIES[outing['activity']][5]} at {place['name']} ({kind}{area})"
 
 

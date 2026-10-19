@@ -3983,6 +3983,302 @@
           "rules": []
         }
       ]
+    },
+    "family:another": {
+      "label": "When {name} brings up having another child",
+      "options": [
+        {
+          "label": "{name} brings it up soon",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "yes",
+              "times": 1.8,
+              "why": "{name} wants children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0.4,
+              "why": "{name} was slow to want children"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "you two are married"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 2,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.4,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "age",
+              "at_least": 35,
+              "times": 1.4,
+              "why": "{name} is past thirty-five"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.4,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} brings it up in a few weeks",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "{name} waits a couple of months",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 2,
+              "why": "{name} was slow to want children"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 0.7,
+              "why": "you two are married"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 2.5,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 0.3,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.8,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "family:another_answer": {
+      "label": "How {name} answers when you bring up another child",
+      "options": [
+        {
+          "label": "{name} says yes",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "no",
+              "times": 0,
+              "why": "{name} doesn't want children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0.5,
+              "why": "{name} sees children as a someday thing"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "you two are married"
+            },
+            {
+              "reader": "closeness_over",
+              "at_most": -1,
+              "times": 0.3,
+              "why": "{name} doesn't feel close enough yet"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.5,
+              "why": "{name} has been low lately"
+            },
+            {
+              "reader": "youngest",
+              "at_most": 2,
+              "times": 0.6,
+              "why": "your youngest is still little"
+            }
+          ]
+        },
+        {
+          "label": "{name} isn't ready yet",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 1.5,
+              "why": "{name} sees children as a someday thing"
+            },
+            {
+              "reader": "youngest",
+              "at_most": 2,
+              "times": 1.5,
+              "why": "your youngest is still little"
+            }
+          ]
+        },
+        {
+          "label": "{name} doesn't want another child",
+          "weight": 0.05,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "no",
+              "times": 100,
+              "why": "{name} doesn't want children"
+            },
+            {
+              "reader": "level",
+              "at_least": 3,
+              "times": 2,
+              "why": "family life is true-to-life chaos already"
+            }
+          ]
+        }
+      ]
+    },
+    "family:care": {
+      "label": "Who stays home with the children",
+      "options": [
+        {
+          "label": "You both keep working",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 1.6,
+              "why": "money is tight, so you both need to work"
+            },
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 0.6,
+              "why": "in these times one parent usually stays home"
+            }
+          ]
+        },
+        {
+          "label": "{name} goes part-time",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "works",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} has no job to cut back"
+            },
+            {
+              "reader": "tier",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "you two can manage on less"
+            },
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 0.5,
+              "why": "part-time work is rare in these times"
+            }
+          ]
+        },
+        {
+          "label": "{name} stays home with them",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "works",
+              "at_most": 0,
+              "times": 3,
+              "why": "{name} isn't working"
+            },
+            {
+              "reader": "carried",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "{name} carried the baby"
+            },
+            {
+              "reader": "wants",
+              "is": "yes",
+              "times": 1.3,
+              "why": "{name} always wanted children"
+            },
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 0.4,
+              "why": "money is too tight for one wage"
+            }
+          ]
+        },
+        {
+          "label": "You stay home with them",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "works",
+              "at_most": 0,
+              "times": 0.2,
+              "why": "{name} isn't working, so it would be {name} at home"
+            },
+            {
+              "reader": "carried_you",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "you carried the baby"
+            },
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 0.4,
+              "why": "money is too tight for one wage"
+            }
+          ]
+        }
+      ]
     }
   }
 }

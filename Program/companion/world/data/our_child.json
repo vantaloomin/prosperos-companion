@@ -4137,7 +4137,7 @@
       "text": "{who} grows a row of strawberries every year that are officially {child}'s."
     },
     {
-      "text": "{who} tells {child} stories about me as a kid, and I would like some of them to stop."
+      "text": "{who} tells {child} stories about you as a kid, and you would like some of them to stop."
     },
     {
       "text": "{who} knits {child} a new scarf every winter, each one longer than the last."
@@ -4152,13 +4152,13 @@
       "text": "{who} and {child} feed the ducks together and have named the boldest one Admiral."
     },
     {
-      "text": "{who} says {child} has my stubborn streak and seems very pleased about it."
+      "text": "{who} says {child} has your stubborn streak and seems very pleased about it."
     },
     {
       "text": "{who} keeps a height chart on the pantry door and measures {child} at every visit."
     },
     {
-      "text": "{who} taught {child} a card game I have never once been able to follow."
+      "text": "{who} taught {child} a card game you have never once been able to follow."
     },
     {
       "text": "{who} and {child} do the crossword together, with {child} in charge of the pencil."
@@ -4179,7 +4179,7 @@
       "text": "{who} makes pancakes in funny shapes for {child}, and the shapes get stranger every time."
     },
     {
-      "text": "{who} slips {child} an extra spoonful of pudding when I'm not looking, and I always see."
+      "text": "{who} slips {child} an extra spoonful of pudding when you're not looking, and you always see."
     },
     {
       "text": "{who} reads {child} the same story at every visit and does all the voices."
@@ -4203,7 +4203,7 @@
       "text": "{who} has started calling {child} by a nickname nobody else understands."
     },
     {
-      "text": "{who} says {child} is the cleverest person in the family, which I find a little rude."
+      "text": "{who} says {child} is the cleverest person in the family, which you find a little rude."
     },
     {
       "text": "{who} saves the wishbone for {child} every time there is a roast."
@@ -4248,7 +4248,7 @@
       "text": "{who} sends {child} home with a parcel of leftovers every single time."
     },
     {
-      "text": "{who} remembers every one of {child}'s favourite things and quizzes me on them."
+      "text": "{who} remembers every one of {child}'s favourite things and quizzes you on them."
     },
     {
       "text": "{who} taught {child} a rhyme for counting magpies, and now every walk is a count."
@@ -4269,7 +4269,7 @@
       "text": "{who} is teaching {child} to sew on a button, very patiently."
     },
     {
-      "text": "{who} keeps saying {child} is just like me at that age, then tells the story of my worst haircut to prove it."
+      "text": "{who} keeps saying {child} is just like you at that age, then tells the story of your worst haircut to prove it."
     },
     {
       "text": "{who} and {child} have a standing arrangement to share an apple after lunch."
@@ -4308,10 +4308,10 @@
       "text": "{who} gets the good teacups out when {child} visits and pours milky tea for two."
     },
     {
-      "text": "{who} sneaks {child} the last biscuit and winks at me like I can't see."
+      "text": "{who} sneaks {child} the last biscuit and winks at you like you can't see."
     },
     {
-      "text": "{who} still has my old wooden blocks, and {child} builds towers with them on the kitchen floor."
+      "text": "{who} still has your old wooden blocks, and {child} builds towers with them on the kitchen floor."
     },
     {
       "text": "{who} built {child} a little stool so {child} can reach the kitchen counter."
@@ -4407,7 +4407,7 @@
       "text": "{who} keeps {child}'s school photo on the fridge and shows it to everyone who visits."
     },
     {
-      "text": "{who} texts me a photo every time {child} does something new, which is several times an hour."
+      "text": "{who} texts you a photo every time {child} does something new, which is several times an hour."
     },
     {
       "text": "{who} lets {child} pick the music in the car, so we now know every word of a song about a bus."
@@ -4458,7 +4458,7 @@
       "text": "{who} let {child} press all the buttons in the lift once, and now it is a tradition."
     },
     {
-      "text": "{who} and {child} make silly videos together that I am not allowed to watch."
+      "text": "{who} and {child} make silly videos together that you are not allowed to watch."
     },
     {
       "text": "{who} takes {child} on the bus into town, and they always sit at the very front of the top deck."
@@ -4613,7 +4613,7 @@
       "text": "{who} lets {child} do the countdown before anything happens, even pouring the tea."
     },
     {
-      "text": "{who} tells {child} wild stories about my childhood that are roughly half true."
+      "text": "{who} tells {child} wild stories about your childhood that are roughly half true."
     },
     {
       "text": "{who} gave {child} a little notebook for collecting interesting words."
@@ -4844,7 +4844,7 @@
       "text": "{who} brought {child} a remote control helicopter, which now lives on the shed roof."
     },
     {
-      "text": "{who} sends a joke by text every morning, and I have to read it out to {child} over breakfast."
+      "text": "{who} sends a joke by text every morning, and you have to read it out to {child} over breakfast."
     },
     {
       "text": "{who} showed {child} how to make little stop-motion films with plastic toys."
@@ -5003,7 +5003,7 @@
       ]
     },
     {
-      "text": "{child} watched the {holiday} candles from my arms, completely still for once.",
+      "text": "{child} watched the {holiday} candles from your arms, completely still for once.",
       "ages": [
         0,
         2
@@ -5444,7 +5444,7 @@
       ]
     },
     {
-      "text": "{child} filmed the {holiday} dinner on my phone and narrated it like a nature programme.",
+      "text": "{child} filmed the {holiday} dinner on your phone and narrated it like a nature programme.",
       "ages": [
         8,
         14
@@ -5717,7 +5717,7 @@
       ]
     },
     {
-      "text": "{child} helped me plan the whole {holiday} menu and had strong views about the potatoes.",
+      "text": "{child} helped you plan the whole {holiday} menu and had strong views about the potatoes.",
       "ages": [
         12,
         17
@@ -5752,7 +5752,7 @@
       ]
     },
     {
-      "text": "{child} made the {holiday} playlist and only let a few of my songs on it.",
+      "text": "{child} made the {holiday} playlist and only let a few of your songs on it.",
       "ages": [
         12,
         17
@@ -6421,7 +6421,7 @@
       "{who} video calls {child} every Sunday and mostly gets a long view of the ceiling.",
       "{who} has learned an entire cartoon theme song just to sing it with {child}.",
       "{who} keeps {child}'s school photo on the fridge and shows it to everyone who visits.",
-      "{who} texts me a photo every time {child} does something new, which is several times an hour.",
+      "{who} texts you a photo every time {child} does something new, which is several times an hour.",
       "{who} lets {child} pick the music in the car, so we now know every word of a song about a bus.",
       "{who} keeps a tablet just for {child}'s visits, loaded with puzzle games.",
       "{who} sends {child} voice messages with made-up stories, one chapter at a time.",
@@ -6438,7 +6438,7 @@
       "{who} keeps a scooter in the hall for {child}'s visits.",
       "{who} rings every evening just to hear {child} say goodnight down the phone.",
       "{who} let {child} press all the buttons in the lift once, and now it is a tradition.",
-      "{who} and {child} make silly videos together that I am not allowed to watch.",
+      "{who} and {child} make silly videos together that you are not allowed to watch.",
       "{who} takes {child} on the bus into town, and they always sit at the very front of the top deck.",
       "{who} has a playlist of old songs, and {child} now dances to every one of them.",
       "{who} records every one of {child}'s school concerts on the phone and sends the clips to the whole family.",
@@ -6476,7 +6476,7 @@
       "{who} and {child} watch nature programmes on TV and do all the animal voices.",
       "{who} rides the bus with {child} just for fun, all the way to the end of the line and back.",
       "{who} brought {child} a remote control helicopter, which now lives on the shed roof.",
-      "{who} sends a joke by text every morning, and I have to read it out to {child} over breakfast.",
+      "{who} sends a joke by text every morning, and you have to read it out to {child} over breakfast.",
       "{who} showed {child} how to make little stop-motion films with plastic toys.",
       "{who} helped {child} build a cardboard robot with bottle tops and a torch for a head.",
       "{who} plays the electric keyboard, and {child} presses the button that makes all the drums go.",
@@ -6497,7 +6497,7 @@
       "{child} showed off a new toy to the grandparents on a {holiday} morning video call.",
       "{child} tried to put a plastic toy duck on the {holiday} table as a decoration.",
       "{child} made a {holiday} playlist for the car ride and insisted on skipping the slow songs.",
-      "{child} filmed the {holiday} dinner on my phone and narrated it like a nature programme.",
+      "{child} filmed the {holiday} dinner on your phone and narrated it like a nature programme.",
       "{child} made {holiday} cards on the computer with far too many different fonts.",
       "{child} helped push the trolley round the supermarket for the {holiday} shopping and chose the biscuits.",
       "{child} watched a {holiday} cartoon three times in a row and acted out the ending for us.",
@@ -6505,7 +6505,7 @@
       "{child} insisted on bringing a plastic dinosaur to the {holiday} table as a guest.",
       "{child} sat in the back of the car on the way to {holiday} lunch and counted every lit-up window.",
       "{child} took the school bus home on the last day before {holiday}, singing the whole way.",
-      "{child} made the {holiday} playlist and only let a few of my songs on it.",
+      "{child} made the {holiday} playlist and only let a few of your songs on it.",
       "{child} took the family {holiday} photo with a phone timer and made us redo it eleven times.",
       "{child} set up a video call so the far-away relatives could join {holiday} dinner.",
       "{child} put {their} phone away for the whole of {holiday} dinner without being asked.",

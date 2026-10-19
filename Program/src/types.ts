@@ -494,6 +494,8 @@ export interface LifeSettings {
   life_turns: number
   /** Births and growing families (companion/life/families.py): 0 none, 1 now and then, 2 true to life, 3 lots. */
   growing_families: number
+  /** Our child (companion/life/our_child.py): 0 easy kids ... 3 true-to-life chaos. */
+  family_life: number
   /** Loss and grief (companion/life/loss.py): whether people can pass away (off on every preset), and how often: 0 rare, 1 now and then, 2 true to life, 3 often. */
   people_pass_away: boolean
   loss: number
@@ -535,7 +537,47 @@ export interface FamilyView {
   decided_on?: string | null; decided_how?: 'them' | 'you' | 'set' | null; can_decide?: boolean
   /** Expecting or adopting together (companion/life/expecting.py), once you two have decided. */
   journey?: Journey | null
+  /** Another child (companion/life/parenthood.py): when you two decided on one, and whether it can be set now. */
+  another_on?: string | null
+  can_decide_another?: boolean
 }
+
+/** The pair's own children (GET /api/life/steps/ours, companion/life/our_child.py); `shown` false with none. Who
+ * looks after them is the app's pick (`seeded`) or the user's (`set`); its consequence id only with Hidden values'
+ * odds on. */
+export interface OursView {
+  shown: boolean
+  children: OurChild[]
+  care?: 'both_work' | 'part_time' | 'them_home' | 'you_home'
+  care_how?: 'set' | 'seeded'
+  /** Whether it applies now: until the youngest starts school. */
+  care_now?: boolean
+  care_consequence_id?: string | null
+  cares?: { key: string; label: string }[]
+}
+
+/** One child of the pair: their sheet for now (a newborn has only a temperament) and the milestones reached. Words
+ * only, never a picture. */
+export interface OurChild {
+  id: string
+  name: string
+  pronouns: string
+  born_on: string
+  arrived_on: string
+  journey_id: string
+  age: number
+  age_text: string
+  grown: boolean
+  relation: 'son' | 'daughter' | 'child'
+  temperament: string | null
+  likes: string | null
+  quirk: string | null
+  milestones: { key: string; label: string; date: string }[]
+  latest: { label: string; date: string } | null
+}
+
+/** A child of the pair on Today. */
+export type TodayChild = Pick<OurChild, 'id' | 'name' | 'age_text' | 'relation' | 'likes' | 'latest'>
 
 /** How the child comes: the stages reached, and once it is under way those to come; the child's name once known;
  * consequence ids only with Hidden values' odds on. */
@@ -662,6 +704,8 @@ export interface Today {
   mind?: { thoughts: Thought[] } | null
   moments: Moment[]
   dreams: Dream[]
+  /** The pair's own children (companion/life/our_child.py). */
+  family?: TodayChild[]
 }
 
 /** One day's thought on the companion's mind. */

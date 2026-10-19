@@ -43,6 +43,7 @@ from companion.life import (
     moving_in,
     network,
     occasions,
+    our_child,
     outings,
     own_family,
     own_plans,
@@ -187,6 +188,7 @@ def extend(connection, companion, world, now) -> dict:
     their_people.advance(connection, companion, now)
     wedding.advance(connection, companion, now)
     expecting.advance(connection, companion, world, now)  # Before the big days: a pregnancy brings a baby shower.
+    our_child.advance(connection, companion, world, now)
     loss.advance(connection, companion, now)  # Before the big days: a death brings a funeral.
     big_days.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
@@ -422,7 +424,9 @@ def day_facts(connection, timeline_id, subject, definition, world, day, holiday)
     return {'weather': composer.weather(world, definition, local_date),
             'happenings': composer.happenings(world, definition, local_date), 'holiday': holiday,
             'body': body.state_on(f'{timeline_id}:{subject}', day,
-                                  body.previous_entries(connection, timeline_id, subject, day), world, definition)}
+                                  body.previous_entries(connection, timeline_id, subject, day), world, definition)
+            # A broken night with the pair's little one (companion/life/our_child.py).
+            or (our_child.broken_night(connection, timeline_id, day) if subject == COMPANION else None)}
 
 
 def day_block(block: dict, facts: dict) -> dict:

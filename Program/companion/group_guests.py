@@ -79,7 +79,12 @@ def host_companion(connection, stay_or_candidate: dict) -> dict | None:
 
 
 def circle_people(connection, companion: dict) -> list[dict]:
-    return circle.people(connection, companion['active_timeline_id']) if companion.get('active_timeline_id') else []
+    """The circle, without the pair's own grown children while the adult side of life is on (a group chat always
+    carries its lines, companion/memory/sides.py)."""
+    from companion.life import our_child
+    from companion.world import intimacy
+    rows = circle.people(connection, companion['active_timeline_id']) if companion.get('active_timeline_id') else []
+    return [row for row in rows if not (our_child.grown_child(row) and intimacy.turned_on(connection))]
 
 
 def full_name(row: dict, details: dict) -> str:

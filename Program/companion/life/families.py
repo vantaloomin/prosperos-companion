@@ -453,7 +453,7 @@ def age_text(child: dict, day: date) -> str:
     if days < 7:
         return 'a newborn'
     if days < 60:
-        return f"{days // 7} weeks old"
+        return f"{days // 7} week{'s' if days >= 14 else ''} old"
     if (years := age_of(child, day)) < 1:
         return f"{days // 30} months old"
     return f'{years}'

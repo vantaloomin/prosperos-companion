@@ -5,7 +5,7 @@ from pydantic import Field
 
 from companion.characters import require_current
 from companion.database import settings
-from companion.life import kids, moving_in, parenthood, steps
+from companion.life import kids, moving_in, our_child, parenthood, steps
 from companion.models import Input
 
 router = APIRouter(prefix='/api/life/steps')
@@ -53,6 +53,7 @@ class FamilyUpdate(Input):
     route: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
     decided: bool | None = None
     name: str | None = Field(default=None, max_length=60)
+    another: bool | None = None
 
 
 def read_family_view(connection, companion, now) -> dict:
@@ -76,7 +77,8 @@ def update_family(request: Request, body: FamilyUpdate):
     now = database.clock.now()
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        parenthood.update(connection, companion, now, body.wants, body.route, body.decided, body.name)
+        parenthood.update(connection, companion, now, body.wants, body.route, body.decided, body.name,
+                          body.another)
         return read_family_view(connection, companion, now)
 
 
@@ -108,3 +110,33 @@ def update_kids(request: Request, body: KidsUpdate):
         companion = require_current(connection)
         kids.update(connection, companion, now, body.pattern, body.remove, body.restore)
         return read_kids_view(connection, companion, request.app.state.life.world, now)
+
+
+class OursUpdate(Input):
+    care: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
+    child: str | None = Field(default=None, max_length=64, pattern=r'^[0-9a-f]+$')
+    name: str | None = Field(default=None, max_length=60)
+
+
+def read_ours_view(connection, companion, now) -> dict:
+    return our_child.view(connection, companion, now, bool(settings(connection).get('show_odds')))
+
+
+@router.get('/ours')
+def read_ours(request: Request):
+    """The Family panel's children of yours (companion/life/our_child.py): each child and who looks after them."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect() as connection:
+        return read_ours_view(connection, require_current(connection), now)
+
+
+@router.put('/ours')
+def update_ours(request: Request, body: OursUpdate):
+    """Set who looks after them ('auto' lets the app decide), or rename a child."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        our_child.update(connection, companion, now, body.care, body.child, body.name)
+        return read_ours_view(connection, companion, now)

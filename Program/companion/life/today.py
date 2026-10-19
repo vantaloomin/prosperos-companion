@@ -14,6 +14,7 @@ from companion.life import (
     feed,
     mood,
     occasions,
+    our_child,
     routine,
     simulation,
     thoughts,
@@ -150,6 +151,8 @@ def view(database) -> dict:
             if workspace['show_moods'] else None,
             'day': day(connection, timeline_id, now.astimezone(zone(version['timezone'])).date().isoformat()),
             'occasions': occasions.occasions(connection, companion, now),
+            # The pair's own children (companion/life/our_child.py): words only, no picture.
+            'family': our_child.today_view(connection, companion, now),
         }
         current, upcoming, default = day_now(connection, companion, now)
     result['routine'] = {'default_schedule': default, 'current': current, 'next': upcoming}
