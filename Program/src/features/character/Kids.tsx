@@ -9,14 +9,13 @@ import { WhyItWent } from '../today/WhyItWent'
 import { KIDS_KEY, kidLine, kidsHint, standingLine, whereHint, wherePick } from './familyText'
 
 type KidsChange = { pattern?: string; remove?: string; restore?: string }
-type Removed = { id: string; name: string } | null
+export type Removed = { id: string; name: string } | null
 
 /** Companions who already have kids (companion/life/kids.py): their children, where they live and their other parent.
  * The app decides from their description; the user can change where the kids live or take a child out of their life. */
-export function Kids({ view, name }: { view: KidsView; name: string }) {
+export function Kids({ view, name, removed, setRemoved }: { view: KidsView; name: string; removed: Removed; setRemoved: (removed: Removed) => void }) {
   const client = useQueryClient()
   const [error, setError] = useState('')
-  const [removed, setRemoved] = useState<Removed>(null)
   const save = async (change: KidsChange, after: Removed = null) => {
     setError('')
     try {
@@ -48,6 +47,27 @@ export function Kids({ view, name }: { view: KidsView; name: string }) {
           {removed.name} is no longer part of their life.</Notice>}
         {error && <Notice tone="error">{error}</Notice>}
       </div>
+    </div>
+  )
+}
+
+/** Undo for the last child taken out of their life, once the list of their kids has gone. */
+export function KidsUndo({ removed, setRemoved }: { removed: Removed; setRemoved: (removed: Removed) => void }) {
+  const client = useQueryClient()
+  const [error, setError] = useState('')
+  if (!removed) return null
+  const undo = async () => {
+    setError('')
+    try {
+      client.setQueryData(KIDS_KEY, await api<KidsView>('/life/steps/kids', { restore: removed.id }, 'PUT'))
+      setRemoved(null)
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'That was not saved.') }
+  }
+  return (
+    <div aria-live="polite">
+      <Notice action={<button type="button" className="text-button" onClick={() => void undo()}>Undo</button>}>
+        {removed.name} is no longer part of their life.</Notice>
+      {error && <Notice tone="error">{error}</Notice>}
     </div>
   )
 }
