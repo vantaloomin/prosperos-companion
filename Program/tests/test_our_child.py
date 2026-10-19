@@ -356,3 +356,24 @@ def test_the_childs_lines_fit_an_older_city():
                          for line in our_child.fitting(lines, era))
         assert not any(word in texts for word in words), era
     assert any('piano' in line['text'] for line in our_child.fitting(bank['likes_teen'], 'victorian'))
+
+
+def test_a_sick_day_and_a_holiday_read_right_for_the_child(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 6 * 365)
+    monkeypatch.setattr(our_child, 'sick_on', lambda connection, kid, day: True)
+    with connect(client) as connection:
+        companion = current(connection)
+        today = our_child.steps.local_today(companion, clock.now())
+        monkeypatch.setattr('companion.life.traditions.upcoming', lambda *args: [
+            {'date': today, 'holiday': 'easter', 'name': 'Easter Day'}])
+        whole = our_child.bank()
+        monkeypatch.setattr(our_child, 'bank', lambda: {**whole, 'holiday_part': [
+            {'text': '{child} made up a {holiday} treasure hunt for the cousins.', 'ages': [4, 12]}]})
+        child = dict(connection.execute('SELECT * FROM circle_children WHERE id=?', (child['id'],)).fetchone())
+        found = dict(our_child.today_lines(connection, companion, clock.now() if today.weekday() < 5 else
+                                           clock.now() + timedelta(days=2)))
+        [holiday] = our_child.holiday_line(connection, companion, child, today)
+    them = {'she/her': 'her', 'he/him': 'him'}.get(child['pronouns'], 'them')
+    assert found[f"ours:sick:{child['id']}"].endswith(f'is home to look after {them}.')
+    assert holiday

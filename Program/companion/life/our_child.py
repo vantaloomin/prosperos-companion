@@ -750,7 +750,7 @@ def today_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
                                f"- {first(child['name'])} {did(connection, companion, child, item['key'])} {when}."))
         if sick_on(connection, child, today) and today.weekday() < 5 and with_you(connection, companion, today):
             result.append((f"ours:sick:{child['id']}", f"- {first(child['name'])} is home sick today, so one of you "
-                                                        'is home to look after them.'))
+                                                        f"is home to look after {families.fill_child('{them}', child)}."))
     if broken_night(connection, timeline_id, today):
         result.append(('ours:night', f"- {first(kids[-1]['name'])} had you up in the night; you're running on "
                                      'little sleep today.'))
