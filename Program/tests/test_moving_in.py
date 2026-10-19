@@ -370,8 +370,8 @@ def test_a_move_undone_on_the_character_page_is_not_told_as_moving_out(client, p
     apart_from(client, monkeypatch, relationship='romance')
     ask_to_move_in(client, provider)
     moving_day(client, clock)
-    chapter = client.get('/api/life/chapters').json()[0]
-    assert client.post(f"/api/life/chapters/{chapter['id']}/undo").status_code == 200
+    chapter = row(client)['chapter_id']  # Not the newest chapter: a seeded big turn can land on moving day too.
+    assert client.post(f'/api/life/chapters/{chapter}/undo').status_code == 200
     reconcile(client)
     with client.app.state.database.connect() as connection:
         found = moving_in.latest(connection, current(connection)['active_timeline_id'])
