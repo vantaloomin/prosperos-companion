@@ -522,7 +522,8 @@ class Conversation:
         with self.database.connect() as connection:
             companion = chat_owner(connection, user['timeline_id'])
             return context.looked_back(connection, companion, self.database.clock.now(), query, user['seq'],
-                                       frozenset(packet['receipt']['included'].get('recalled', ())))
+                                       frozenset(packet['receipt']['included'].get('recalled', ())),
+                                       packet.get('family', False))
 
     async def write(self, prepared, key, packet, text, publish, active, step=lambda _phase: None, lookout=None,
                     started=lambda: None) -> tuple[str, str | None, int, str | None]:

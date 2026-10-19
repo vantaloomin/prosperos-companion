@@ -38,6 +38,7 @@ from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import ages, circle, families, named, shifts, steps
+from companion.world import lifespans
 
 ACTIVE = True
 MOST = 4
@@ -60,19 +61,50 @@ COUNTS = (0.62, 0.93)
 PARTNER_ODDS = ((35, 0.2), (27, 0.12))
 # How old someone is at the earliest when their first child is born.
 PARENT_FROM = 19
+# Days at the least between the birthdays of a brother and sister who aren't twins.
+SPACING = 300
 
-_KIDS = r'(?:kids?|children|child|sons?|daughters?|boys?|girls?)'
+_KIDS = (r'(?:kids?|children|child|step-?(?:sons?|daughters?|kids?|children|child)|sons?|daughters?|boys?|girls?|'
+         r'toddlers?|newborns?|teenagers?|teens?)')
 COUNT_WORDS = {'a': 1, 'an': 1, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5}
 _COUNT = '|'.join(COUNT_WORDS)
-_PARENT = r'(?:mom|mum|mother|dad|father|parent)'
-# "single dad of two", "mother of three", "has two kids", "her three children", "raising a daughter", "her twins".
-COUNTED = (re.compile(rf"\b{_PARENT} (?:of|to) ({_COUNT})\b(?! (?:grown|adult))", re.IGNORECASE),
-           re.compile(rf"\b(?:has|have|raising|raises) ({_COUNT}) (?:(?:young|little|small|school-age|teenage) )?"
-                      rf"({_KIDS})\b", re.IGNORECASE),
-           re.compile(rf"\b(?:her|his|their|my) ({_COUNT}) (?:(?:young|little|small|school-age|teenage) )?({_KIDS})\b",
-                      re.IGNORECASE),
-           re.compile(r'\b(?:her|his|their|my|has|have) (?:(?:young|little|baby|toddler) )?(twins)\b', re.IGNORECASE),
+_PARENT = r'(?:step-?)?(?:mom|mum|mother|dad|father|parent)'
+# The word before them that tells their age: "two teenage daughters", "a six-year-old son".
+_YOUNG = (r'(?:young|little|small|school-age|teenage|teen|toddler|baby|newborn|'
+          rf"(?:{named._AGE[1:-1]})[ -]years?[ -]old)")
+_MOD = rf'(?:({_YOUNG}) )?'
+# "single dad of two", "mother of three boys", "has two teenage daughters", "her three children", "raising a daughter",
+# "her twins", "twin boys", "a stepson", and a count opening a clause ("Married, two teenage daughters.").
+COUNTED = (re.compile(rf"\b{_PARENT} (?:of|to) ({_COUNT})\b(?! (?:grown|adult))(?: {_MOD}({_KIDS})\b)?", re.IGNORECASE),
+           re.compile(rf"\b(?:has|have|raising|raises) ({_COUNT}) {_MOD}({_KIDS})\b", re.IGNORECASE),
+           re.compile(rf"\b(?:her|his|their|my) ({_COUNT}) {_MOD}({_KIDS})\b", re.IGNORECASE),
+           re.compile(rf"(?:^|[.;:,(]\s*|\band )((?-i:[Tt]wo|[Tt]hree|[Ff]our|[Ff]ive)) {_MOD}({_KIDS})\b(?!['’])",
+                      re.IGNORECASE | re.MULTILINE),
+           re.compile(r'\b(?:her|his|their|my|has|have) (?:(?:young|little|baby|toddler) )?(twin)s?(?: (boys|girls|sons|'
+                      r'daughters))?\b', re.IGNORECASE),
+           re.compile(rf"\b(?:has|have|raising|raises) (a|an|one) ((?:{named._AGE[1:-1]})[ -]years?[ -]old)()"
+                      r"(?=\s*(?:[.,;!)]|$|and\b|who\b))", re.IGNORECASE | re.MULTILINE),
            re.compile(rf"\bsingle {_PARENT}\b()", re.IGNORECASE))
+# Children the description names in a list or after "and": "her kids Leo and Mia", "mom of Leo (7) and Mia (4)",
+# "her two teenage daughters, Ava and Zoe", "her son Leo and daughter Mia", "a daughter named Rosa".
+_ONE = rf"{named._NAME}(?: \(\d{{1,2}}\))?"
+_LIST = rf"({_ONE}(?:, {_ONE})*(?:,? (?:and|&) {_ONE})?)"
+_OPENS = r'(?:^|[.;:,(]\s*|\band )(?-i:[Tt]wo|[Tt]hree|[Ff]our|[Ff]ive) '
+LISTED = (re.compile(rf"(?:\b(?:her|his|their|my|has|have|of|to|raising) (?:(?:{_COUNT}) )?|{_OPENS}){_MOD}({_KIDS}),?:? "
+                     rf"(?:(?:named|called) )?{_LIST}", re.IGNORECASE | re.MULTILINE),
+          re.compile(rf"\b{_PARENT} (?:of|to) (?:(?:{_COUNT})[,:]? )?()(){_LIST}", re.IGNORECASE),
+          re.compile(rf"\b(?:and|&) (?:(?:her|his|their|my) )?{_MOD}((?:step-?)?(?:sons?|daughters?)|boys?|girls?),? "
+                     rf"(?:(?:named|called) )?{_LIST}", re.IGNORECASE))
+# How old a child is from the word before them: (youngest, oldest).
+YOUNG_AGES = {**named.YOUNG_WORDS, 'teen': (13, 17), 'teenager': (13, 17), 'toddler': (1, 3), 'newborn': (0, 0),
+              'small': (2, 8), 'school-age': (5, 12)}
+# A pet's or a plant's "mom": "dog mom to Biscuit", "cat dad of two", "mom to a rescue dog".
+PET_PARENT = re.compile(rf"\b(?:dog|cat|plant|pet|fur|puppy|kitty|bird|horse|chicken|bunny|fish)[- ]?{_PARENT}\b[^.;]*|"
+                        rf"\b{_PARENT} (?:of|to) (?:(?:{_COUNT}) )?(?:[\w'-]+ ){{0,2}}?{named.SPECIES_WORD}s?\b",
+                        re.IGNORECASE)
+NOUN_AGES = ('baby', 'toddler', 'newborn', 'teen', 'teenager')
+# Grown children the description mentions: no young kids are seeded beside them.
+GROWN_KIDS = re.compile(rf"\b(?:grown|adult|grown-up) ({_KIDS})\b", re.IGNORECASE)
 NONE = re.compile(r"\b(?:no (?:kids|children)|childless|child[- ]?free|never had (?:kids|children)|(?:doesn'?t|does "
                   r"not|don'?t|do not) have (?:any )?(?:kids|children)|never (?:wanted|wants) (?:kids|children))\b",
                   re.IGNORECASE)
@@ -105,19 +137,57 @@ def record(connection, timeline_id: str) -> dict | None:
 
 # What their description says ---------------------------------------------------------------------------------------
 
-def counted(text: str) -> tuple[int, list[str | None]]:
-    """(how many children the description counts, the pronouns its words give them): 'two sons' are he/him."""
-    count, sexes = 0, []
+def sex_of(noun: str) -> str | None:
+    noun = noun.casefold().removeprefix('step').lstrip('-')
+    return 'he/him' if noun.startswith(('son', 'boy')) else 'she/her' if noun.startswith(('daughter', 'girl')) else None
+
+
+def young_word(modifier: str, noun: str = '') -> str:
+    """'teenage' for "teenage" or "teenagers", '6-year-old' as written: the word `age_for` reads an age from."""
+    word, noun = (modifier or '').casefold(), (noun or '').casefold().rstrip('s')
+    if word in YOUNG_AGES or named.AGE_BEFORE.search(word):
+        return word
+    return noun if noun in NOUN_AGES else ''
+
+
+def kid_words(definition: dict) -> str:
+    """The description without its pets' and plants' "moms" and "dads"."""
+    return PET_PARENT.sub('', named.text_of(definition))
+
+
+def counted(text: str) -> tuple[int, list[dict]]:
+    """(how many children the description counts, each as {pronouns, modifier}): 'two sons' are he/him, 'two
+    teenage daughters' teenage."""
+    count, found = 0, []
     for pattern in COUNTED:
         for match in pattern.finditer(text):
-            groups = [group for group in match.groups() if group is not None]
-            number = 2 if groups and groups[0].casefold() == 'twins' else COUNT_WORDS.get((groups or ['a'])[0].casefold(), 1)
-            noun = (groups[-1] if len(groups) > 1 else '').casefold()
-            sex = 'he/him' if noun.startswith(('son', 'boy')) else 'she/her' if noun.startswith(('daughter', 'girl')) \
-                else None
+            groups = list(match.groups())
+            word = (groups[0] or 'a').casefold()
+            number = 2 if word == 'twin' else COUNT_WORDS.get(word, 1)
+            modifier = groups[1] if len(groups) > 2 else ''
+            noun = groups[-1] if len(groups) > 1 and groups[-1] else ''
             if number > count:
-                count, sexes = number, [sex] * number
-    return min(count, MOST), sexes
+                count = number
+                found = [{'pronouns': sex_of(noun), 'modifier': 'twin' if word == 'twin' else young_word(modifier, noun)}] * number
+    return min(count, MOST), found
+
+
+def listed(definition: dict) -> list[dict]:
+    """Children the description names in a list ("her kids Leo and Mia", "mom of Leo (7) and Mia (4)") or after "and"
+    ("her son Leo and daughter Mia"), as {name, pronouns, age, modifier, grown}."""
+    text, result = kid_words(definition), {}
+    for pattern in LISTED:
+        for match in pattern.finditer(text):
+            modifier, noun, names = match.groups()
+            for raw in re.findall(named._NAME, names or ''):
+                name = named.clean(raw, definition)
+                if not name or name in result:
+                    continue
+                found = named.child_age(text, name, '')
+                word = young_word(modifier or '', noun or '')
+                result[name] = {'name': name, 'kind': 'child', 'pronouns': sex_of(noun or ''), 'age': found['age'], 'modifier': word,
+                                'grown': found['grown'] or bool(named.GROWN.search(modifier or ''))}
+    return list(result.values())
 
 
 def other_named(text: str) -> dict | None:
@@ -136,13 +206,16 @@ def cue(text: str) -> str | None:
 def described(definition: dict) -> dict:
     """{kids: [{name, pronouns, age, modifier}], none, widowed, other, pattern}: the children the description names
     (not grown ones) and as many more as it counts, unnamed."""
-    text = named.text_of(definition)
+    text = kid_words(definition)
     sheet = [person for person in named.people(definition) if person['kind'] == 'child']
-    count, sexes = counted(text)
+    seen = {person['name'] for person in sheet}
+    sheet += [person for person in listed(definition) if person['name'] not in seen]
+    count, more = counted(text)
     kids = [{'name': person['name'], 'pronouns': person['pronouns'] or None, 'age': person['age'],
-             'modifier': person['modifier']} for person in sheet if named.minor(person)]
-    kids += [{'name': None, 'pronouns': sex, 'age': None, 'modifier': ''} for sex in sexes[len(sheet):]]
-    none = bool(NONE.search(text)) and not kids
+             'modifier': young_word(person['modifier'])} for person in sheet if named.minor(person)]
+    kids += [{'name': None, 'pronouns': item['pronouns'], 'age': None, 'modifier': item['modifier']}
+             for item in more[len(sheet):]]
+    none = bool(NONE.search(text) or GROWN_KIDS.search(text)) and not kids
     return {'kids': kids[:MOST], 'none': none, 'widowed': bool(WIDOWED.search(text)), 'other': other_named(text),
             'pattern': cue(text)}
 
@@ -171,6 +244,7 @@ def settle(connection, companion: dict, world, now, fresh: bool = False) -> dict
     else:
         reseed(connection, companion, world, row, now)
         add_described(connection, companion, world, row, now)
+        grow_up(connection, companion, world, now)
     retire_circle_kids(connection, companion, now)
     return row
 
@@ -180,7 +254,7 @@ def decide(connection, companion: dict, world, now, fresh: bool) -> dict:
     found = described(definition) if may_have(definition) else {'kids': [], 'none': True}
     town = [] if found['kids'] or found['none'] else town_kids(connection, companion, today)
     how, outcome = ('description' if found['kids'] else 'town' if town else 'none'), None
-    if how == 'none' and fresh and not found['none'] and may_have(definition):
+    if how == 'none' and fresh and not found['none'] and may_have(definition) and not still_to_come(definition):
         outcome = has_outcome(connection, companion, now)
         how = 'seeded' if outcome['picked'] == 1 else 'none'
     kids = found['kids'] or [{'name': None, 'pronouns': item['pronouns'], 'born_on': item['day'], 'modifier': ''}
@@ -211,6 +285,13 @@ def first_pattern(found: dict, other: dict | None) -> str:
 def row_pattern_fixed(found: dict, other: dict) -> bool:
     """Whether the description (or a partner the kids live with) already says where they live."""
     return bool(other.get('together') or found.get('pattern'))
+
+
+def still_to_come(definition: dict) -> bool:
+    """Whether their description says children are still to come ("wants kids someday", "would love a family"): no
+    kids are seeded for them."""
+    from companion.life import parenthood
+    return parenthood.described(definition) in ('yes', 'someday')
 
 
 def has_facts(connection, companion: dict, now) -> dict:
@@ -271,7 +352,11 @@ def age_for(connection, companion: dict, kid: dict, seed: str, today: date) -> i
     if isinstance(kid.get('age'), int):
         return kid['age']
     oldest = max(0, min(GROWN - 1, companion_age(connection, companion, today) - PARENT_FROM))
-    low, high = named.YOUNG_WORDS.get(kid.get('modifier') or '', (0, oldest))
+    modifier = kid.get('modifier') or ''
+    told = named.AGE_BEFORE.search(modifier)
+    if told:
+        return int(told[1]) if told[1].isdigit() else named.NUMBERS[told[1].casefold()]
+    low, high = YOUNG_AGES.get(modifier, (0, oldest))
     low, high = min(low, oldest), min(high, oldest)
     return low + int(generators().unit(seed, 'age') * (high - low + 1))
 
@@ -288,7 +373,10 @@ def add_kid(connection, companion: dict, world, kid: dict, index: int, now, pare
     timeline_id, today = companion['active_timeline_id'], steps.local_today(companion, now)
     seed = f"kids:{timeline_id}:{parent_id or companion['id']}:{index}"
     sex = kid.get('pronouns') or ('she/her' if generators().unit(seed, 'sex') < 0.49 else 'he/him')
-    born = kid.get('born_on') or born_on(age_for(connection, companion, kid, seed, today), seed, today)
+    kept = None if kid.get('born_on') else circle_birthday(connection, timeline_id, kid.get('name'))
+    born = kid.get('born_on') or (ages.born_from(age_for(connection, companion, kid, seed, today), kept, today) if kept
+                                  else apart(connection, companion, kid, seed, today, parent_id or companion['id'],
+                                             mark or f'{MARK}{timeline_id}'))
     name = kid.get('name') or families.baby_name(companion['version']['definition'], world, seed, sex,
                                                  families.taken_names(connection, companion))
     connection.execute(
@@ -297,6 +385,38 @@ def add_kid(connection, companion: dict, world, kid: dict, index: int, now, pare
         (identifier(), timeline_id, parent_id or companion['id'], mark or f'{MARK}{timeline_id}', name, sex,
          'friend' if parent_id else 'family', born.isoformat() if isinstance(born, date) else born, stamp(now),
          stamp(now)))
+
+
+def apart(connection, companion: dict, kid: dict, seed: str, today: date, parent_id: str, mark: str) -> date:
+    """A birthday for a child whose day nobody gave: twins share their twin's, and any other child is born at least
+    `SPACING` days from a brother or sister (the nearest age that allows it), unless their age was given."""
+    siblings = [date.fromisoformat(row['born_on']) for row in many(
+        connection, 'SELECT born_on FROM circle_children WHERE timeline_id=? AND parent_id=? AND storyline_id=?',
+        (companion['active_timeline_id'], parent_id, mark))]
+    if kid.get('modifier') == 'twin' and siblings:
+        return siblings[-1]
+    first_age = age_for(connection, companion, kid, seed, today)
+    if isinstance(kid.get('age'), int) or named.AGE_BEFORE.search(kid.get('modifier') or ''):
+        return born_on(first_age, seed, today)
+    oldest = max(0, min(GROWN - 1, companion_age(connection, companion, today) - PARENT_FROM))
+    for step in range(GROWN * 2):
+        age = first_age + (step + 1) // 2 * (1 if step % 2 else -1)
+        born = born_on(age, seed, today) if 0 <= age <= oldest else None
+        if born and born <= today and all(abs((born - other).days) >= SPACING for other in siblings):
+            return born
+    return born_on(first_age, seed, today)
+
+
+def circle_birthday(connection, timeline_id: str, name: str | None) -> str | None:
+    """The birthday ('MM-DD') a circle from before v0.15 gave a son or daughter of this name, kept when they become
+    a child of the companion's (their birthday was already told, in chat and on Today)."""
+    if not name:
+        return None
+    for person in circle.people(connection, timeline_id, include_removed=True):
+        if person['role'] in ('son', 'daughter') and decode(person['details']).get('sheet') == name:
+            found = ages.stored(connection, 'circle', person['id'])
+            return (found or {}).get('birthday') or decode(person['details']).get('birthday')
+    return None
 
 
 def own(connection, timeline_id: str, include_ended: bool = False) -> list[dict]:
@@ -324,6 +444,43 @@ def add_described(connection, companion: dict, world, row: dict, now) -> None:
                                                    row['timeline_id']))
 
 
+def grow_up(connection, companion: dict, world, now) -> None:
+    """A child of theirs who has turned 18 is a grown son or daughter in their circle, living in town, and no longer
+    one of the kids (companion/life/our_child.py does the same for the pair's own)."""
+    timeline_id, today = companion['active_timeline_id'], steps.local_today(companion, now)
+    for kid in own(connection, timeline_id):
+        age = families.age_of(kid, today)
+        if age < GROWN:
+            continue
+        rows = circle.people(connection, timeline_id, include_removed=True)
+        person = circle.build(companion['version']['definition'], world, timeline_id, 1, f"kids:{kid['id']}:grown",
+                              {row['name'] for row in rows}, sheet=False)[0]
+        person |= {'name': first(kid['name']), 'role': {'she/her': 'daughter', 'he/him': 'son'}.get(kid['pronouns'], 'child'),
+                   'details': person['details'] | {'pronouns': kid['pronouns'], 'age': age, 'local': True,
+                                                   'grown_kid': kid['id']}}
+        kind = grown_kind(connection, companion, timeline_id)
+        person['details'] = {key: value for key, value in person['details'].items() if key != 'folk'} | \
+            ({'folk': kind} if kind != lifespans.HUMAN else {})
+        ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
+        circle.insert(connection, timeline_id, [person], ordinal, now)
+        person_id = one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?',
+                        (timeline_id, ordinal))['id']
+        ages.keep(connection, 'circle', person_id, age, date.fromisoformat(kid['born_on']).strftime('%m-%d'), today, now)
+        connection.execute("UPDATE circle_children SET status='ended', updated_at=? WHERE id=?", (stamp(now), kid['id']))
+
+
+def grown_kind(connection, companion: dict, timeline_id: str) -> str:
+    """A kid of theirs' kind once grown (companion/world/lifespans.py): from the companion and their other parent
+    (an elf and a human have a half-elf)."""
+    definition = companion['version']['definition']
+    data = ages.city_of(connection, definition)
+    row = optional(connection, 'SELECT other_id FROM companion_kids WHERE timeline_id=?', (timeline_id,))
+    other = optional(connection, 'SELECT details FROM circle_people WHERE id=?', (row['other_id'],)) \
+        if row and row['other_id'] else None
+    found = decode(other['details']) if other else {}
+    return lifespans.blend(lifespans.sheet_kind(definition, data), found.get('own_kind') or found.get('folk'), data)
+
+
 def retire_circle_kids(connection, companion: dict, now) -> None:
     """A son or daughter the description names who a circle from before v0.15 holds as a person (grown-up, with a
     job): out of the circle, since they are a child (`circle_children` holds them now)."""
@@ -346,7 +503,14 @@ def other_for(connection, companion: dict, world, found: dict, town: list[dict],
     if partner and not found.get('other'):
         return {'id': partner['id'], 'together': True}
     wanted = found.get('other') or (town_other(town) if town else None) or {}
+    if not wanted and not found.get('pattern') and older(connection, companion):
+        return None  # In an older city a parent raising kids on their own had most often lost their other parent.
     return {'id': add_other(connection, companion, world, wanted, now), 'together': False}
+
+
+def older(connection, companion: dict) -> bool:
+    """An older city (New York 1925, London 1895, Camelot), where kids did not go between two homes by a rota."""
+    return families.older(families.era_of(connection, companion['version']['definition']))
 
 
 def sheet_partner(connection, companion: dict) -> dict | None:
@@ -382,7 +546,12 @@ def add_other(connection, companion: dict, world, wanted: dict, now) -> str:
                                      'co_parent': True}}
     ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
     circle.insert(connection, timeline_id, [person], ordinal, now)
-    return one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))['id']
+    added = one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))['id']
+    # Their days start now, as a grandparent's do (circle.add_grandparent): nothing is written for them before they
+    # joined, such as two weeks of a circle from v0.14.
+    connection.execute('INSERT OR IGNORE INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?)',
+                       (timeline_id, added, stamp(now)))
+    return added
 
 
 # A townsperson's own --------------------------------------------------------------------------------------------------
@@ -441,7 +610,7 @@ def pattern_of(connection, row: dict) -> tuple[str, str]:
     if row['pattern_consequence_id']:
         found = consequences.by_id(connection, row['pattern_consequence_id'])
         return CUSTODY[found['picked']], 'seeded'
-    return row['pattern'], 'fixed'
+    return row['pattern'], 'fixed' if row['how'] == 'description' else 'seeded'
 
 
 def with_them(pattern: str, since: date, day: date) -> bool:
@@ -513,20 +682,41 @@ def living_together(connection, companion: dict) -> bool:
 
 
 def met(connection, companion: dict) -> bool:
-    """Whether the user has met their kids: at the meet-up for the "meeting their people" step, or by knowing their
-    people already (a pair from way back)."""
+    """Whether the user has met their kids: at the family dinner for the "meeting their people" step (not drinks with
+    their friends), or by knowing their people already (a pair from way back)."""
     timeline_id = companion['active_timeline_id']
-    if optional(connection, "SELECT id FROM people_meetups WHERE timeline_id=? AND why='step' AND status='done'",
-                (timeline_id,)):
+    if optional(connection, "SELECT id FROM people_meetups WHERE timeline_id=? AND why='step' AND kind='family' AND "
+                "status='done'", (timeline_id,)):
         return True
     return bool(optional(connection, "SELECT id FROM people_impressions WHERE timeline_id=? LIMIT 1", (timeline_id,))) \
         and not optional(connection, "SELECT id FROM people_meetups WHERE timeline_id=? AND why='step'", (timeline_id,))
 
 
 def meeting_soon(connection, companion: dict) -> str | None:
-    row = optional(connection, "SELECT kind FROM people_meetups WHERE timeline_id=? AND why='step' AND status IN "
-                   "('planned', 'booked')", (companion['active_timeline_id'],))
-    return None if not row else 'family dinner' if row['kind'] == 'family' else 'night out'
+    row = optional(connection, "SELECT kind FROM people_meetups WHERE timeline_id=? AND why='step' AND kind='family' "
+                   "AND status IN ('planned', 'booked')", (companion['active_timeline_id'],))
+    return 'family dinner' if row else None
+
+
+def at_dinner_on(connection, companion: dict, day: date) -> bool:
+    """Whether the family dinner where the user first meets their people (and their kids) is on this day: the kids are
+    with them that day, whatever the rota says."""
+    from companion.life import outings, their_people
+    return any(row['activity'] == their_people.AT_FAMILY and row['local_date'] == day.isoformat() and
+               (row['place'] if isinstance(row['place'], dict) else decode(row['place'])).get('first')
+               for row in outings.in_force(connection, companion['active_timeline_id'], day.isoformat()))
+
+
+def at_dinner(connection, companion: dict) -> str:
+    """', and your kids Leo and Mia' (', and your son Leo') for the family dinner's scene; '' with none, or with the
+    adult side on."""
+    found = own(connection, companion['active_timeline_id']) if ACTIVE and companion.get('active_timeline_id') else []
+    if not found or families.withheld(connection):
+        return ''
+    if len(found) == 1:
+        word = {'she/her': 'daughter', 'he/him': 'son'}.get(found[0]['pronouns'], 'child')
+        return f", and your {word} {first(found[0]['name'])}"
+    return f", and your kids {steps.names_text([first(kid['name']) for kid in found])}"
 
 
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
@@ -561,7 +751,7 @@ def step_lines(connection, companion: dict, today: date) -> list[tuple[str, str]
         if found['secret'] or 'living together' not in love_life.lived(connection, companion, found):
             continue
         kids = [kid for kid in partners_kids(connection, companion['active_timeline_id'])
-                if kid['person_id'] == found['person_id']]
+                if kid['person_id'] == found['person_id'] and families.age_of(kid, today) < GROWN]
         if kids:
             listed = steps.names_text([kid_text(kid, today).replace('your ', f"{first(found['name'])}'s ") for kid in kids])
             result.append((f"kids:step:{found['id']}", f"- You live with {found['name']} and {listed}: you are "
@@ -582,7 +772,7 @@ def today_line(connection, companion: dict, now) -> tuple[str, str] | None:
     today = steps.local_today(companion, now)
     them, _name = other_text(connection, companion, row)
     who = 'the kids' if len(kids) > 1 else first(kids[0]['name'])
-    here = with_them(pattern, date.fromisoformat(row['since']), today)
+    here = with_them(pattern, date.fromisoformat(row['since']), today) or at_dinner_on(connection, companion, today)
     where = 'with you' if here else f'with {them}'
     return f'kids:today:{here}', f"- Today {who} {'are' if len(kids) > 1 else 'is'} {where}."
 
@@ -683,7 +873,7 @@ def reseed(connection, companion: dict, world, row: dict, now) -> None:
         return
     for index, kid in enumerate(seeded(companion)):
         add_kid(connection, companion, world, kid, index, now)
-    if not row['other_id']:
+    if not row['other_id'] and not older(connection, companion):
         other_id = add_other(connection, companion, world, {}, now)
         connection.execute("UPDATE companion_kids SET other_id=?, pattern='with_them', updated_at=? WHERE timeline_id=?",
                            (other_id, stamp(now), row['timeline_id']))
@@ -697,12 +887,15 @@ def copy(connection, parent_id: str, new_id: str, ids: dict) -> None:
     companion_id = one(connection, 'SELECT companion_id FROM timelines WHERE id=?', (parent_id,))['companion_id']
     row = record(connection, parent_id)
     if row:
+        # The engine's picks come along as the fork's own (not the parent timeline's rows, which a change there would
+        # move), so the fork keeps where the kids live and can change it without touching the parent.
+        has, where = (row[key] and consequences.copy(connection, row[key], new_id, f'{label}{new_id}')
+                      for key, label in (('consequence_id', 'kids:has:'), ('pattern_consequence_id', 'kids:custody:')))
         connection.execute(
             'INSERT INTO companion_kids (timeline_id, companion_id, how, other_id, pattern, chosen, consequence_id, '
             'pattern_consequence_id, since, removed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (new_id, row['companion_id'], row['how'], ids.get(row['other_id']), row['pattern'], row['chosen'],
-             row['consequence_id'], row['pattern_consequence_id'], row['since'], row['removed'], row['created_at'],
-             row['updated_at']))
+             has, where, row['since'], row['removed'], row['created_at'], row['updated_at']))
     for mark, new_mark in ((f'{MARK}{parent_id}', f'{MARK}{new_id}'),
                            (f'{PARTNER_MARK}{parent_id}', f'{PARTNER_MARK}{new_id}')):
         for kid in many(connection, 'SELECT * FROM circle_children WHERE timeline_id=? AND storyline_id=?',

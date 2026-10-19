@@ -23,6 +23,7 @@ from companion.life import (
     big_days,
     big_turns,
     breakups,
+    custody,
     encounters,
     expecting,
     families,
@@ -238,6 +239,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     loss.copy(connection, parent_id, new_id, ids, cutoff[:10])
     big_days.copy(connection, parent_id, new_id, ids, cutoff)  # After what its sources name (loss.py's funerals).
     breakups.copy(connection, parent_id, new_id, ids, cutoff)
+    custody.copy(connection, parent_id, new_id, ids)  # After the breakups it names.
     copy_impressions(connection, parent_id, new_id, ids, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
     network.copy(connection, parent_id, new_id, cutoff)

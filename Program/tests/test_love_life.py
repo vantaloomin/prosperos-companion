@@ -265,6 +265,7 @@ def test_on_drama_a_secret_stays_hidden_until_it_comes_out(client, romance, cloc
     force(monkeypatch, 1)
     monkeypatch.setattr(love_life, 'OUT_CHANCE', 0)
     monkeypatch.setattr(love_life, 'FIZZLE_CHANCE', 0)
+    client.get('/api/life/circle')  # Their circle is there first, as in the app, so the two never share a name.
     with client.app.state.database.connect(write=True) as connection:
         companion = current(client)
         assert love_life.mode(connection, companion) == 'secret'
@@ -626,3 +627,23 @@ def test_the_paper_says_were_wed_in_older_eras(monkeypatch):
     assert found['headline'] == f"{sheet['name']} and George were wed." and ' wed on ' in found['text']
     [modern] = paper.couples_news(catalog.cities()['baltimore'], (date(2027, 6, 10), date(2027, 6, 16)))
     assert modern['headline'].endswith('got married.')
+
+
+def test_with_breakups_off_as_on_an_easy_life_their_couple_never_splits(client, mira, clock, monkeypatch):  # noqa: F811
+    names = {'name': 'Mira', 'partner': 'Sam', 'a': 'Sam', 'b': '', 'step': 'being exclusive'}
+    off = consequences.odds(love_life.NEXT, {'love_life': 1, 'drama': 0, 'step': 7, 'can_up': 0, 'breakups': 0}, names)
+    assert off[2]['odds'] == 0 and 'breakups are off (an easy life has none)' in off[2]['reasons']
+    assert client.put('/api/life/settings', json={'breakups': False}).status_code == 200
+    found = begin_partner(client, clock)
+    real = consequences.roll
+
+    def roll(seed, options):  # A split whenever the odds leave any room for one.
+        if ':love:' in seed:
+            return 2 if options[2]['odds'] > 0 else 0
+        return real(seed, options)
+    monkeypatch.setattr(consequences, 'roll', roll)
+    clock.advance(timedelta(days=1500))
+    with client.app.state.database.connect(write=True) as connection:
+        love_life.advance(connection, current(client), client.app.state.life.world, clock.now())
+    [after] = partner_row(client)
+    assert after['id'] == found['id'] and after['ended_on'] is None

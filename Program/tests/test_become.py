@@ -96,3 +96,23 @@ def test_nobody_anywhere_in_town_is_them(client, met):
 def test_a_new_life_is_always_a_grown_up(client, met):
     _mira, person, _town = met
     assert ok(client.post('/api/worlds/become', json={'key': person['key']}))['persona']['age'] >= 18
+
+
+def test_a_birthday_since_the_town_began_makes_them_a_year_older(client, met):
+    """They are as old as Around town shows them (companion/life/ages.py `town_age`), not their seeded sheet age."""
+    from datetime import timedelta
+
+    from companion.clock import zone
+    from companion.life import ages
+    _mira, person, _town = met
+    with client.app.state.database.connect(write=True) as connection:
+        began = ages.town_began(connection)
+        connection.execute("UPDATE birth_dates SET anchored_on=? WHERE kind='town' AND person_key=''",
+                           ((began - timedelta(days=366)).isoformat(),))
+        data = network.city(connection, require_current(connection))
+        sheet = townsfolk.find(data, person['key'])
+        today = client.app.state.database.clock.now().astimezone(zone(data['timezone'])).date()
+        now = ages.town_age(connection, sheet, today)
+    assert sheet.get('arrived') or now > sheet['age']  # A year and a week back: one birthday or two since.
+    after = ok(client.post('/api/worlds/become', json={'key': person['key']}))
+    assert after['persona']['age'] == now and str(now) in after['persona']['about']

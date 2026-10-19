@@ -421,13 +421,16 @@ def held_back(connection, row: dict, outcome: dict, option: int, before: str, no
 
 
 def call_off_plans(connection, companion: dict, now: datetime) -> None:
-    """Outings with the user that haven't started yet are off while they are apart."""
+    """Outings with the user that haven't started yet are off while they are apart, and so are weekend visits across
+    cities (companion/life/long_distance.py), quietly: no line says the user called them off."""
     from companion.life import outings
     tz = companion['version']['timezone']
     for outing in outings.in_force(connection, companion['active_timeline_id'], local_today(companion, now).isoformat()):
         if outings.state(outing, tz, now) == 'planned':
             connection.execute("UPDATE outings SET status='cancelled', cancelled_at=? WHERE id=?",
                                (stamp(now), outing['id']))
+    connection.execute("UPDATE trips SET status='cancelled' WHERE timeline_id=? AND visit!='' AND status='planned' AND "
+                       'start_date>?', (companion['active_timeline_id'], local_today(companion, now).isoformat()))
 
 
 def back_together(connection, companion: dict, row: dict, now: datetime) -> None:
@@ -996,14 +999,19 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str) -> Non
             continue
         found = {**row, 'id': identifier(), 'timeline_id': new_id, 'message_id': ids.get(row['message_id']),
                  'answer_id': ids.get(row['answer_id'])}
+        ids[row['id']] = found['id']  # For what names the episode (custody.copy).
         for at, columns in LATER:
             if row[at] and row[at] > cutoff:
                 found.update(dict.fromkeys(columns))
         for column in ('strained_id', 'thinking_id', 'break_id', 'ended_id', 'together_id'):
             if found[column]:
-                subject = optional(connection, 'SELECT subject FROM consequences WHERE id=?', (found[column],))
-                found[column] = consequences.copy(connection, found[column], new_id, (subject or {}).get(
-                    'subject', '').replace(row['id'], found['id']) or f"breakup:{found['id']}:{column}")
+                was = (optional(connection, 'SELECT subject FROM consequences WHERE id=?', (found[column],)) or
+                       {}).get('subject', '')
+                # A subject naming the rough patch rather than this row ("breakup:<patch>:strained") gets one of the
+                # copy's own: subjects are unique, and the patch is not copied.
+                subject = was.replace(row['id'], found['id'])
+                found[column] = consequences.copy(connection, found[column], new_id, subject if subject != was else
+                                                  f"breakup:{found['id']}:{column}")
         marks = ', '.join('?' * len(found))
         connection.execute(f"INSERT INTO breakups ({', '.join(found)}) VALUES ({marks})",  # noqa: S608
                            tuple(found.values()))

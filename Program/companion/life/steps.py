@@ -201,8 +201,8 @@ RAISES = {
                                re.IGNORECASE),
     'family': re.compile(r"\b(?:start(?:ing)? a family|(?:have|having) (?:a baby|a kid|a child|kids|children|babies)"
                          r"(?: together| with (?:you|me))?|try(?:ing)? for a baby|(?:be|become|becoming) parents|"
-                         r"adopt(?:ing)? (?:a (?:baby|child|kid)|together)|grow(?:ing)? our family|(?:our|a) (?:own )?"
-                         r"(?:baby|kid|child) together)\b", re.IGNORECASE),
+                         r"adopt(?:ing|ed)? (?:a (?:baby|child|kid)|together)|grow(?:ing)? our family|(?:our|a) (?:own )?"
+                         r"(?:baby|kid|child) together|(?:a baby|kids|children) with you)\b", re.IGNORECASE),
     'sibling': re.compile(r"\b(?:(?:have|having|adopt(?:ing)?|try(?:ing)? for) (?:another|a second|one more) "
                           r"(?:baby|kid|child|one)|another (?:baby|kid|child) (?:together|with (?:you|me))|(?:a )?(?:little "
                           r")?(?:brother|sister|sibling) for (?:him|her|them|\w+)|grow(?:ing)? our family again|(?:our|a) "
@@ -213,6 +213,12 @@ RAISES = {
 }
 # A statement counts for these without a question: saying it is the step.
 SAID_IS_ENOUGH = {'love', 'best_friends'}
+# Someone else having a baby ("my sister is having a baby", "Jess and Tom are trying for a baby") isn't the user
+# bringing up a family of their own: the words just before say who.
+OTHERS = re.compile(r"(?:\b(?!(?:we|you|i)\b)[a-z]+ (?:is|are|was|were|has been|have been|had been|keeps?|kept|started|"
+                    r"just|might be|may be|will be|could be)|\b(?!(?:we|you)')[a-z]+'(?:s|re))\s+(?:\w+\s+)?$",
+                    re.IGNORECASE)
+ABOUT_OTHERS = {'family', 'sibling'}
 # The user telling a friend they have feelings for them.
 FEELINGS = re.compile(r"\b(?:i (?:have|'?ve got|'?ve had|have had|got) (?:feelings|a crush|a thing) (?:for|on) you|i'?m "
                       r"(?:falling for|into|crushing on|in love with) you|i like you (?:as more than|more than|like that)|"
@@ -925,7 +931,8 @@ def raised(text: str, keys: list[str]) -> str | None:
         for key in keys:
             found = RAISES[key].search(sentence)
             if found and meant(sentence, found) and (key in SAID_IS_ENOUGH or ASKS.search(sentence)) and not \
-                    re.search(r"\b(?:don'?t|do not|never|not)\b[^.!?]*$", sentence[:found.start()], re.IGNORECASE):
+                    re.search(r"\b(?:don'?t|do not|never|not)\b[^.!?]*$", sentence[:found.start()], re.IGNORECASE) \
+                    and not (key in ABOUT_OTHERS and OTHERS.search(sentence[:found.start()])):
                 return key
     return None
 
@@ -970,7 +977,9 @@ def raised_family(connection, companion: dict, found: dict, message: dict, now) 
     while (companion/life/parenthood.py answers)."""
     from companion.life import parenthood
     for step in (FAMILY, SIBLING):
-        if parenthood.still_due(connection, companion, found, step.key) and raised(message['text'], [step.key]):
+        # Another child no sooner than a year and a half after the last came home, raised by either of them.
+        if parenthood.still_due(connection, companion, found, step.key, local_today(companion, now)) and \
+                raised(message['text'], [step.key]):
             return parenthood.raised_by_user(connection, companion, found, message, now, step)
     return False
 
@@ -1163,7 +1172,9 @@ def context_lines(connection, companion: dict, now, turn: set[str], group: bool 
     answer, and an answer just given."""
     found = state(connection, companion, now, write=False)
     if found is None or apart(connection, companion) == 'ended':
-        return []  # Exes: the 'breakup' section says where they stand (companion/life/breakups.py).
+        # Exes: the 'breakup' section says where they stand (companion/life/breakups.py); a child on the way goes on.
+        from companion.life import parenthood
+        return parenthood.journey_lines(connection, companion, now)
     others = others_known(connection, companion, found, now)
     home = group_home(connection, companion) if group and found['step'] == 'moving_in' else ''
     result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}{':group' if home else ''}",

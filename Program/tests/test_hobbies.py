@@ -254,6 +254,7 @@ def test_a_pastime_together_takes_its_usual_time_counts_and_is_remembered(client
 
 def test_the_panel_shows_numbers_as_of_today_not_the_days_walked_ahead(client, kim):
     reconcile(client)
+    walk(client, 21)  # A few weeks ahead, so some practice always lands after today whatever their dice.
     with client.app.state.database.connect() as connection:
         timeline = connection.execute('SELECT active_timeline_id FROM companions').fetchone()['active_timeline_id']
         ahead = {row['id']: row['sessions'] for row in rows(client)}

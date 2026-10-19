@@ -30,3 +30,5 @@ max-complexity = 10
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# A test stuck this long prints every thread's stack, so a hang on CI shows where it is.
+faulthandler_timeout = 300

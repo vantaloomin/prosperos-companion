@@ -55,6 +55,19 @@ def test_their_description_says_whether_they_want_children():
     assert parenthood.described({'personality': 'Driven and funny.'}) is None
 
 
+@pytest.mark.parametrize('text, wants', [
+    ('She never wanted to be a mother.', 'no'), ("He doesn't want to have kids.", 'no'), ('She doesn\u2019t want kids.', 'no'),
+    ('Kids aren\u2019t for her.', 'no'), ('She has decided against having children.', 'no'),
+    ('Not a kid person.', 'no'), ("They'd rather not have children.", 'no'), ('Never saw herself as a mom.', 'no'),
+    ("He can't wait to be a dad.", 'yes'), ('She wants to start a family.', 'yes'), ('Wants three kids.', 'yes'),
+    ('She hopes to have children.', 'yes'), ("She's always pictured herself with kids.", 'yes'),
+    ('Not ready for kids yet.', 'someday'), ('She never wanted kids to see her cry.', None),
+    ('She works with children at the hospital.', None),
+])
+def test_their_description_is_read_in_other_words_too(text, wants):
+    assert parenthood.described({'identity': text}) == wants
+
+
 def test_the_app_picks_what_they_want_and_the_user_can_change_it(client, monkeypatch):
     make(client, monkeypatch, background='Has always wanted a big family.')
     found = family(client)
@@ -90,6 +103,21 @@ def test_a_seeded_wish_has_its_odds_and_someday_turns_to_yes_when_a_baby_comes(c
     assert family(client)['wants'] == 'no'
 
 
+def test_past_fifty_wanting_children_someday_is_rare():
+    names = {'name': 'Mira', 'a': 'someone', 'b': ''}
+    odds = [item['odds'] for item in consequences.odds('family:wants', {'age': 62, 'warmth': 2, 'sheet': set()}, names)]
+    assert odds[2] > 0.7 and odds[1] < 0.1
+    odds = [item['odds'] for item in consequences.odds('family:wants', {'age': 33, 'warmth': 1, 'sheet': set()}, names)]
+    assert odds[2] < 0.2
+
+
+@pytest.mark.parametrize('wanted', ['yes', 'someday'])
+def test_one_who_wants_children_never_answers_that_they_dont(wanted):
+    facts = {'wants': wanted, 'married': 0, 'short_days': 30, 'closeness_over': -1, 'pace': 1, 'mood': -1}
+    odds = consequences.odds('family:answer', facts, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    assert odds[2]['odds'] == 0
+
+
 def test_how_a_child_comes_is_picked_from_the_pair(client, monkeypatch, likeliest):
     make(client, monkeypatch, identity='She is a 31-year-old nurse.')
     persona = client.get('/api/worlds').json()['persona']
@@ -113,6 +141,72 @@ def test_two_who_cannot_carry_adopt_or_foster_and_old_cities_take_in_a_ward(clie
     odds = consequences.odds('family:route', facts, {'name': 'Mira', 'a': 'someone', 'b': ''})
     possible = {parenthood.ROUTES[item['option']] for item in odds if item['odds'] > 0}
     assert possible == {'ward', 'foundling', 'relative'}
+
+
+@pytest.mark.parametrize('identity, gender, about, can_them, can_you', [
+    ('She is a 34-year-old trans woman and a nurse.', 'man', '', 0, 0),
+    ('They are 30, a trans man and a baker.', 'man', '', 1, 0),
+    ('He is 33 and works at the docks.', 'nonbinary', 'Assigned female at birth; could carry a baby.', 0, 1),
+    ('She is 31 and a nurse.', 'woman', 'I can\u2019t have children.', 1, 0),
+])
+def test_who_could_carry_a_baby_follows_both_descriptions(client, monkeypatch, identity, gender, about, can_them,
+                                                          can_you):
+    make(client, monkeypatch, identity=identity)
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': gender, 'about': about}).raise_for_status()
+    with client.app.state.database.connect() as connection:
+        found = parenthood.route_facts(connection, current(connection), None)
+    assert (found['can_them'], found['can_you']) == (can_them, can_you)
+
+
+def test_past_fifty_neither_of_them_carries_the_baby():
+    names = {'name': 'Mira', 'a': 'someone', 'b': ''}
+    for old in (0, 1):
+        facts = {'can_them': 1, 'can_you': 1, 'can_carry': 1, 'age': 52, 'your_age': 55, 'tier': 2, 'old': old}
+        odds = {parenthood.ROUTES[item['option']]: item['odds'] for item in consequences.odds('family:route', facts, names)}
+        assert odds['expecting_them'] == odds['expecting_you'] == 0 and sum(odds.values()) > 0.99
+    facts = {**facts, 'age': 47, 'your_age': 30, 'old': 0}
+    odds = {parenthood.ROUTES[item['option']]: item['odds'] for item in consequences.odds('family:route', facts, names)}
+    assert odds['expecting_them'] < 0.1 < odds['expecting_you']
+
+
+@pytest.mark.parametrize('text, key', [
+    ('my friends are having a baby, can you believe it?', None),
+    ('Jess and Tom are trying for a baby, should we get them a gift?', None),
+    ("my sister's having a baby, should we visit?", None),
+    ('my sister is having another baby, want to come visit?', None),
+    ('should we try for a baby?', 'family'), ('I want a baby with you', 'family'),
+    ('are you ready to be parents?', 'family'), ('should we have another baby?', 'sibling'),
+])
+def test_someone_else_having_a_baby_is_not_bringing_up_your_own(text, key):
+    assert steps.raised(text, ['family', 'sibling']) == key
+
+
+def test_new_york_1925_adopts_or_fosters_but_never_through_a_surrogate(client, monkeypatch):
+    make(client, monkeypatch, identity='He is a 35-year-old carpenter.', home_city='new-york-1925')
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': 'man'}).raise_for_status()
+    found = family(client)
+    assert 'surrogacy' not in [item['key'] for item in found['routes']]
+    with client.app.state.database.connect() as connection:
+        facts = parenthood.route_facts(connection, current(connection), None)
+    odds = consequences.odds('family:route', {**facts, 'tier': 3}, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    possible = {parenthood.ROUTES[item['option']] for item in odds if item['odds'] > 0}
+    assert possible == {'adoption', 'fostering'}
+
+
+@pytest.mark.parametrize('city, possible', [
+    ('london-1895', {'ward', 'foundling', 'relative'}), ('new-york-1925', {'adoption', 'fostering'}),
+    ('baltimore', {'expecting_them', 'expecting_you', 'adoption', 'fostering', 'surrogacy'}),
+])
+def test_two_women_in_older_times_take_in_a_child(client, monkeypatch, city, possible):
+    make(client, monkeypatch, identity='She is a 30-year-old seamstress.', home_city=city)
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': 'woman', 'age': 31}).raise_for_status()
+    with client.app.state.database.connect() as connection:
+        facts = parenthood.route_facts(connection, current(connection), None)
+    odds = consequences.odds('family:route', {**facts, 'tier': 3}, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    assert {parenthood.ROUTES[item['option']] for item in odds if item['odds'] > 0} == possible
 
 
 def test_they_bring_up_starting_a_family_after_living_together_and_yes_starts_it(client, provider, clock, monkeypatch,
@@ -190,6 +284,31 @@ def test_saying_no_to_one_who_wants_children_can_start_a_rough_patch_but_not_on_
     with client.app.state.database.connect(write=True) as connection:
         parenthood.answered(connection, companion, dict(ask), 'no', clock.now())
         assert connection.execute("SELECT id FROM rough_patches WHERE cause='family_no'").fetchall()
+
+
+def test_after_two_noes_they_stop_bringing_it_up(client, provider, clock, monkeypatch, likeliest):
+    living_together(client, monkeypatch)
+    clock.advance(timedelta(days=185))
+    reconcile(client)
+    clock.advance(timedelta(days=80))
+    assert first_text(client, clock)
+    says(provider)
+    send(client, "no, I don't want kids", 'client-family-no-1')
+    clock.advance(timedelta(days=parenthood.NO_AGAIN_DAYS - 30))
+    reconcile(client)
+    assert planned(client) == []  # Half a year holds other steps; a no to children holds a year.
+    clock.advance(timedelta(days=40))
+    reconcile(client)
+    [row] = planned(client)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE step_asks SET status='no', settled_at=? WHERE id=?",
+                           ((clock.now() - timedelta(days=400)).isoformat(), row['id']))
+    clock.advance(timedelta(days=30))
+    reconcile(client)
+    assert planned(client) == []  # Two noes settle it.
+    says(provider)
+    send(client, 'actually, could we start a family?', 'client-family-after')
+    assert family(client)['decided_on']
 
 
 def test_with_the_adult_side_on_none_of_it_is_in_the_chat(client, provider, clock, monkeypatch, likeliest):

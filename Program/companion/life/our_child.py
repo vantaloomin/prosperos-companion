@@ -91,6 +91,14 @@ BEDTIMES = {'baby': '7', 'toddler': '7', 'small_child': '7:30', 'school_age': '8
 SHEET_PEOPLE = 'grandparents'
 RECENT_DAYS = 1
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
+# Things in the child's bank an older city doesn't have yet, beyond families.UNFIT: no flashlight in 1895, and no
+# newspaper, piano, telescope or grocery list in Camelot.
+_FLASHLIGHT = r'flashlights?'
+_CASTLE = (_FLASHLIGHT + r'|newspapers?|telescopes?|pianos?|comics?|grocer(?:y|ies)|soccer|homework|debate team|'
+           r'guitars?')
+UNFIT = {era: re.compile(rf'\b(?:{words})\b', re.IGNORECASE) for era, words in (
+    ('victorian', _FLASHLIGHT), ('steampunk', _FLASHLIGHT), ('frontier', _FLASHLIGHT), ('medieval', _CASTLE),
+    ('fantasy', _CASTLE))}
 NO_BIKES = {'medieval', 'fantasy'}
 
 # (key, label, days from birth (low, high) or a special rule, eras it needs).
@@ -181,8 +189,9 @@ def band(child: dict, day: date) -> str | None:
 def fitting(lines: list[dict], era_: str) -> list[dict]:
     """The bank lines for their city: its things (families.UNFIT) and its voice ('older' or 'modern' tags)."""
     unfit, wrong = families.UNFIT.get(era_), 'modern' if families.older(era_) else 'older'
+    more = UNFIT.get(era_)
     found = [line for line in lines if not (unfit and unfit.search(line['text'])) and
-             wrong not in tags().get(line['text'], ())]
+             not (more and more.search(line['text'])) and wrong not in tags().get(line['text'], ())]
     return found or lines
 
 
@@ -334,7 +343,12 @@ def caring(connection, companion: dict, day: date, apart: dict | None | bool = F
     split = custody.found(connection, companion) if apart is False else apart
     if split and split['split']:
         return None if split['pattern'] == 'with_you' else 'both_work'
-    return care_found(connection, companion)['care']
+    return across(split, care_found(connection, companion)['care'])
+
+
+def across(apart: dict | None, care: str) -> str:
+    """In different cities the children live with the companion: the user can't be the one at home with them."""
+    return 'both_work' if apart and apart['far'] and care == 'you_home' else care
 
 
 def companion_of(connection, timeline_id: str) -> dict | None:
@@ -416,8 +430,9 @@ def sick_on(connection, child: dict, day: date) -> bool:
     if not count or not 1 <= years <= 12:
         return False
     rng = random.Random(f"ours:{child['id']}:sick:{day.year}")
-    picked = {date(day.year, 1, 1) + timedelta(days=rng.randrange(365)) for _ in range(count * 2)}
-    return day in {item for item in picked if item.weekday() < 5}
+    start = date(day.year, 1, 1)
+    workdays = [start + timedelta(days=offset) for offset in range(365) if (start + timedelta(days=offset)).weekday() < 5]
+    return day in set(rng.sample(workdays, count))
 
 
 def broken_night(connection, timeline_id: str, day: date) -> dict | None:
@@ -489,8 +504,29 @@ def sitter_for(connection, companion: dict, day: date) -> dict:
         if family and generators.unit(f"ours:{companion['active_timeline_id']}", 'sitter', day.isoformat()) < 0.7 \
         else None
     if person:
-        return {'who': person['said'], 'paid': False}
-    return {'who': 'a sitter' if not families.older(era(connection, companion)) else 'a neighbor', 'paid': True}
+        return {'who': person['said'], 'paid': False, 'shown': person['shown']}
+    who = 'a sitter' if not families.older(era(connection, companion)) else 'a neighbor'
+    return {'who': who, 'paid': True, 'shown': who}
+
+
+def sitter_view(connection, companion: dict, outing: dict) -> dict | None:
+    """For an evening out on Today: who watches the children under 13 that night (`sitter_for`, the same pick the day's
+    line and the money use), {text, cost}; a paid sitter's cost is in their money (`purchases`). None for a daytime
+    outing, or with no child at home that night."""
+    if not children(connection, companion.get('active_timeline_id')) or outing['activity'] not in OUT_ACTIVITIES or \
+            (outing['at_time'] or '') < EVENING:
+        return None
+    day = date.fromisoformat(outing['local_date'])
+    kids = [first(child['name']) for child in at_home(connection, companion['active_timeline_id'], day)
+            if families.age_of(child, day) < SITTER_UNDER]
+    if not kids or not with_you(connection, companion, day):
+        return None
+    found = sitter_for(connection, companion, day)
+    from companion.life import money
+    profile = money.profile(companion['version']['definition'])
+    cost = round(money.monthly_share(profile) * SITTER, 2) if found['paid'] and profile else 0
+    text = f"{found['shown'][:1].upper()}{found['shown'][1:]} is watching {steps.names_text(kids)}"
+    return {'text': text + (f", about {money.amount(cost, profile.city['currency'])}." if cost else '.'), 'cost': cost}
 
 
 def relatives(connection, companion: dict) -> list[dict]:
@@ -504,7 +540,8 @@ def relatives(connection, companion: dict) -> list[dict]:
             continue
         role = circle.said(circle.relation(kind, details.get('pronouns') or ''), companion['version']['definition'])
         result.append({'id': person['id'], 'kind': 'grandparents' if kind == 'parent' else 'aunts_uncles',
-                       'said': f"your {role} {first(person['name'])}", 'local': details.get('local', True) is not False})
+                       'said': f"your {role} {first(person['name'])}", 'local': details.get('local', True) is not False,
+                       'shown': f"{companion_first(companion)}'s {role} {first(person['name'])}"})
     return result
 
 
@@ -524,9 +561,10 @@ def family_outings(connection, companion: dict) -> list[dict]:
 def plan_outing(connection, companion: dict, today: date, now) -> dict | None:
     """Every five weeks or so, a weekend day out with the user and the children (1 to 15): a walk in the park, or the
     zoo or a museum in a city that has them. An outing like any other, with the children in words only (no photo)."""
-    from companion.life import outings, together, wedding
+    from companion.life import long_distance, outings, together, wedding
     timeline_id = companion['active_timeline_id']
-    if quiet(connection) or steps.apart(connection, companion) or not outing_ages(connection, timeline_id, today):
+    if quiet(connection) or steps.apart(connection, companion) or not outing_ages(connection, timeline_id, today) or \
+            long_distance.far(connection, companion):  # Across cities, not a day out in their city with the user.
         return None
     last = max((date.fromisoformat(item['local_date']) for item in family_outings(connection, companion)),
                default=today - timedelta(days=OUTING_EVERY))
@@ -630,14 +668,15 @@ def set_kind(connection, companion: dict, child_id: str, kind: str, lifespan: in
     child = optional(connection, 'SELECT * FROM circle_children WHERE id=? AND timeline_id=? AND title=?',
                      (child_id, companion['active_timeline_id'], TITLE))
     require(child is not None, 'That child is not one of yours.', 404)
-    require(not kind or kind in lifespans.kinds(), 'Pick one of the kinds listed.', 422)
+    data = ages.city_of(connection, companion['version']['definition'])  # Its own kinds count too.
+    require(not kind or kind in lifespans.kinds(data), 'Pick one of the kinds listed.', 422)
     connection.execute('UPDATE circle_children SET own_kind=?, lifespan=?, updated_at=? WHERE id=?',
                        (kind, lifespan, stamp(now), child_id))
     grown = next((row for row in circle_rows(connection, companion) if grown_as(row, child)), None)
     if grown:  # Grown up and in the circle: their row follows.
         from companion.life import circle
         circle.set_kind(connection, grown['id'], kind or kind_of(connection, companion, {**child, 'own_kind': ''}),
-                        lifespan, now)
+                        lifespan, now, data)
 
 
 def circle_rows(connection, companion: dict) -> list[dict]:
@@ -766,7 +805,8 @@ def holiday_line(connection, companion: dict, child: dict, today: date) -> list[
     line = generators.pick(f"ours:{child['id']}", f"holiday:{holiday['holiday']}:{today.year}", lines)
     if line is None:
         return []
-    return [(f"ours:holiday:{child['id']}:{holiday['holiday']}", f"- {filled(line['text'], child, holiday=holiday['name'])}")]
+    text = line['text'].replace('a {holiday}', 'an {holiday}') if holiday['name'][:1] in 'AEIO' else line['text']
+    return [(f"ours:holiday:{child['id']}:{holiday['holiday']}", f"- {filled(text, child, holiday=holiday['name'])}")]
 
 
 def today_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
@@ -786,7 +826,7 @@ def today_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
                                f"- {first(child['name'])} {did(connection, companion, child, item['key'])} {when}."))
         if sick_on(connection, child, today) and today.weekday() < 5 and with_you(connection, companion, today):
             result.append((f"ours:sick:{child['id']}", f"- {first(child['name'])} is home sick today, so one of you "
-                                                        'is home to look after them.'))
+                                                        f"is home to look after {families.fill_child('{them}', child)}."))
     if broken_night(connection, timeline_id, today):
         result.append(('ours:night', f"- {first(kids[-1]['name'])} had you up in the night; you're running on "
                                      'little sleep today.'))
@@ -812,7 +852,8 @@ def child_view(connection, companion: dict, child: dict, today: date) -> dict:
             'relation': {'she/her': 'daughter', 'he/him': 'son'}.get(child['pronouns'], 'child'),
             'temperament': found.get('temperament'), 'likes': found.get('likes'), 'quirk': found.get('quirk'),
             'milestones': [{'key': item['key'], 'label': item['label'], 'date': item['on']} for item in done],
-            'kind': lifespans.described(kind_of(connection, companion, child), child.get('lifespan'), years) |
+            'kind': lifespans.described(kind_of(connection, companion, child), child.get('lifespan'), years,
+                                        ages.city_of(connection, companion['version']['definition'])) |
             {'found': kind_of(connection, companion, {**child, 'own_kind': ''}), 'picked': child.get('own_kind') or '',
              'from_parents': born_to_you(connection, child)},
             'latest': ({'label': done[-1]['label'], 'date': done[-1]['on']} if done else None)}
@@ -829,11 +870,13 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     care = care_found(connection, companion)
     name = companion_first(companion)
     apart = custody.view(connection, companion, show_odds)
+    far = bool(apart and apart['far'])
     return {'shown': True, 'children': [child_view(connection, companion, child, today) for child in kids],
-            'care': care['care'], 'care_how': care['how'],
+            'care': across({'far': far}, care['care']), 'care_how': care['how'],
             'care_now': caring(connection, companion, today) is not None and not (apart and apart['split']),
             'care_consequence_id': care['consequence_id'] if show_odds else None,
-            'cares': [{'key': key, 'label': CARE_LABELS[key].format(name=name)} for key in CARE], 'custody': apart}
+            'cares': [{'key': key, 'label': CARE_LABELS[key].format(name=name)} for key in CARE
+                      if not (far and key == 'you_home')], 'custody': apart}
 
 
 def today_view(connection, companion: dict, now) -> list[dict]:
@@ -873,6 +916,10 @@ def rename(connection, companion: dict, child_id: str, name: str, now) -> None:
     name = ' '.join(name.split())
     require(0 < len(name) <= 40, 'Give a name of up to 40 characters.', 422)
     connection.execute('UPDATE circle_children SET name=?, updated_at=? WHERE id=?', (name, stamp(now), child_id))
+    # Grown up, they are also a person in the circle (`grow_up`), known by their first name.
+    connection.execute("UPDATE circle_people SET name=?, revision=revision+1, updated_at=? WHERE timeline_id=? AND "
+                       "json_extract(details, '$.our_child')=?", (first(name), stamp(now), child['timeline_id'],
+                                                                   child_id))
     row = optional(connection, 'SELECT * FROM family_journeys WHERE id=?', (child['storyline_id'],))
     if row:
         connection.execute('UPDATE family_journeys SET details=?, updated_at=? WHERE id=?',

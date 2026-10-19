@@ -219,6 +219,7 @@ def test_a_best_friend_is_asked_to_be_godparent_at_the_naming_day(client, mira, 
             rows = big_days.rows(connection, current(client)['active_timeline_id'])
     [row] = [row for row in rows if row['kind'] == 'naming']
     assert row['invite'] == 1 and row['details']['name'] == child['name'] and row['place']['name'].startswith('Mira and ')
+    assert row['details']['pronouns'] == child['pronouns']  # The baby's, not their partner's.
     assert date.fromisoformat(row['local_date']).weekday() == 5
     text = big_days.invitation(row, 'Saturday', '11')
     assert child['name'] in text and 'Saturday' in text
@@ -291,3 +292,135 @@ def test_split_up_with_a_child_the_ex_stays_as_the_other_parent(client, mira, cl
     assert f'- Since you and {first} split up, {child["name"].split()[0]} ' in prompt(client)
     with client.app.state.database.connect() as connection:
         assert connection.execute("SELECT id FROM consequences WHERE choice='kids:custody'").fetchone()
+
+
+def test_after_a_split_nobody_is_asked_to_babysit_for_an_evening_out_with_the_ex(client, mira, clock, monkeypatch):
+    sure(monkeypatch)
+    monkeypatch.setattr(own_family, 'BABYSIT', 10.0)
+    partnered(client, clock)
+    reconcile(client)
+    [child] = children(client)
+    born(client, clock, child)
+    monkeypatch.setattr(own_family, 'YEARLY', {key: 0.0 for key in own_family.YEARLY})
+    clock.advance(timedelta(days=100 + (7 - (clock.now().date() + timedelta(days=100)).weekday()) % 7))
+    clock.advance(timedelta(hours=12 - clock.now().hour))
+    reconcile(client)
+    companion = current(client)
+    with client.app.state.database.connect(write=True) as connection:
+        assert own_family.rows(connection, companion['active_timeline_id'], ('planned',))  # Asked while together.
+        found = love_life.partners(connection, companion['active_timeline_id'])[0]
+        love_life.end(connection, found, 'split', steps.local_today(companion, clock.now()))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        assert own_family.ask_due(connection, companion, clock.now()) == []
+        assert not own_family.rows(connection, companion['active_timeline_id'], ('planned', 'asked', 'yes'))
+    for _week in range(4):
+        clock.advance(timedelta(days=7))
+        reconcile(client)
+    with client.app.state.database.connect() as connection:
+        assert not own_family.rows(connection, companion['active_timeline_id'], ('planned', 'asked', 'yes'))
+
+
+def test_a_new_baby_of_their_own_means_broken_nights_now_and_then(client, mira, clock, monkeypatch):
+    sure(monkeypatch)
+    partnered(client, clock)
+    reconcile(client)
+    [child] = children(client)
+    born(client, clock, child)
+    companion = current(client)
+    timeline_id, first = companion['active_timeline_id'], clock.now().date()
+    with client.app.state.database.connect(write=True) as connection:
+        nights = [own_family.broken_night(connection, timeline_id, first + timedelta(days=n)) for n in range(1, 61)]
+        tired = [night for night in nights if night]
+        assert 5 < len(tired) < 55 and tired[0] == {'state': 'tired', 'because': 'after a broken night'}
+        later = [own_family.broken_night(connection, timeline_id, first + timedelta(days=n)) for n in range(1200, 1260)]
+        assert not any(later)  # Three and over: they sleep.
+    set_life(client, family_life=0)
+    with client.app.state.database.connect() as connection:
+        assert not any(own_family.broken_night(connection, timeline_id, first + timedelta(days=n)) for n in range(1, 61))
+
+
+@pytest.mark.parametrize('era', ['jazz-age', 'victorian', 'medieval', 'fantasy'])
+def test_an_older_city_hears_their_news_in_its_own_voice(era):
+    bank, tags = families.bank(), families.tags()
+    modern = re.compile(r"\b(?:match|agency|bag|hospital|honestly|okay)\b|!!", re.IGNORECASE)
+    for how in ('carrying', 'partner', 'adopting'):
+        lines = [own_family.news(how, 'May', era), own_family.any_day(how, era),
+                 own_family.arrived(how, {'name': 'Ivy', 'pronouns': 'she/her'}, era)]
+        for text, share in lines:
+            assert not modern.search(text) and not modern.search(share) and not re.match('[a-z]', share), (text, share)
+        # Every middle beat in an older city fits it, and there are still plenty to pick from.
+        middle = own_family.middle_lines(how, era)
+        assert len(middle) >= 90 and not any('modern' in tags.get(line['text'], ()) for line in middle)
+    for key in ('own_baby', 'own_toddler', 'own_child'):
+        found = families.fitting(bank[key], era)
+        assert len(found) >= 100 and not any('modern' in tags.get(line['text'], ()) for line in found), key
+        assert any('older' in tags.get(line['text'], ()) for line in found)
+    assert len(own_family.middle_lines('adopting', era)) >= 100
+
+
+def test_babysitting_asks_fit_the_citys_era(client, mira):
+    tags = families.tags()
+    with client.app.state.database.connect() as connection:
+        companion = current(client)
+        today = own_family.fitting_asks(connection, companion)
+        assert len(today) >= 100 and not any('older' in tags.get(line, ()) for line in today)
+        old = {**companion, 'version': {**companion['version'], 'definition': {
+            **companion['version']['definition'], 'home_city': 'london-1895', 'location': 'Marylebone, London'}}}
+        assert families.era_of(connection, old['version']['definition']) == 'victorian'
+        older = own_family.fitting_asks(connection, old)
+    assert len(older) >= 100 and not any('modern' in tags.get(line, ()) or 'izza' in line for line in older)
+    assert any('older' in tags.get(line, ()) for line in older)
+
+
+def test_a_young_baby_of_theirs_does_not_walk_sit_up_or_eat_yet():
+    from companion.life import our_child
+    lines = families.fitting(families.bank()['own_baby'], 'modern')
+    young = own_family.for_age(lines, 40)
+    assert len(young) >= 50
+    for line in young:
+        said = f"{line['text']} {line['share']}"
+        assert not our_child.MOVING.search(said) and not our_child.FOOD.search(said) and \
+            not own_family.SITTING.search(said), line
+    assert len(own_family.for_age(lines, 330)) == len(lines)
+    child = {'id': 'c1', 'born_on': '2027-01-04', 'pronouns': 'she/her', 'name': 'Ivy'}
+    for offset in range(0, 140):
+        found = own_family.news_on(child, date(2027, 1, 4) + timedelta(days=offset), 3.0, 'modern')
+        if found:
+            assert found[1] in {line['text'] for line in own_family.for_age(lines, offset)}
+
+
+def test_an_ask_for_next_saturday_does_not_say_on_next_saturday():
+    assert big_days.on_next('Could you mind Ivy on next Saturday from 7?') == 'Could you mind Ivy next Saturday from 7?'
+    assert big_days.on_next('on Saturday, November 21') == 'on Saturday, November 21'
+    row = {'id': 'b1', 'kind': 'naming', 'details': {'name': 'Ivy', 'partner': 'Dan'}, 'place': {'modern': True}}
+    for seed in range(40):
+        assert 'on next' not in big_days.invitation({**row, 'id': f'b{seed}'}, 'next Saturday', '11').lower()
+
+
+def test_a_branch_keeps_where_their_child_lives_with_the_ex(client, mira, clock, monkeypatch, provider):
+    from conftest import send
+    from test_steps import says
+    sure(monkeypatch)
+    partner = partnered(client, clock)
+    reconcile(client)
+    [child] = children(client)
+    born(client, clock, child)
+    companion = current(client)
+    with client.app.state.database.connect(write=True) as connection:
+        found = love_life.partners(connection, companion['active_timeline_id'])[0]
+        love_life.end(connection, found, 'split', steps.local_today(companion, clock.now()))
+        connection.commit()
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        [before] = connection.execute("SELECT picked FROM consequences WHERE choice='kids:custody'").fetchall()
+    says(provider)
+    sent = send(client, 'hi', 'client-own-branch')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'hello'})
+    assert fork.status_code == 200, fork.text
+    with client.app.state.database.connect() as connection:
+        person = connection.execute("SELECT id FROM circle_people WHERE timeline_id=? AND name=?",
+                                    (fork.json()['id'], partner['name'])).fetchone()
+        copied = connection.execute('SELECT picked, timeline_id FROM consequences WHERE subject=?',
+                                    (f"kids:custody:own:{person['id']}",)).fetchone()
+    assert copied and copied['picked'] == before['picked'] and copied['timeline_id'] == fork.json()['id']

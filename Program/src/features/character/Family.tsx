@@ -8,8 +8,8 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, stepDate } from './stepsText'
-import { FAMILY_KEY, KIDS_KEY, OURS_KEY, appPick, arrivalText, decidedHint, journeyLine, nameHint, routeHint, splitLine, wantsHint } from './familyText'
-import { Kids } from './Kids'
+import { FAMILY_KEY, KIDS_KEY, OURS_KEY, appPick, arrivalText, decidedHint, journeyLine, nameHint, outcomeSummary, routeHint, splitLine, wantsHint } from './familyText'
+import { Kids, KidsUndo, type Removed } from './Kids'
 import { HowItWent, OurChildren } from './OurChildren'
 
 type FamilyChange = { wants?: string; route?: string; decided?: boolean; name?: string }
@@ -21,12 +21,14 @@ type Save = (change: FamilyChange) => void
  * the user can change it. */
 export function Family({ name }: { name: string }) {
   const { error, view, theirs, own } = useFamily()
+  const [removed, setRemoved] = useState<Removed>(null)
   if (error) return <ErrorNotice error={error} />
-  if (!view && !theirs && !own) return null
+  if (!view && !theirs && !own && !removed) return null
   return (
     <section id="family" className="home-panel steps-panel family-panel" aria-labelledby="family-heading">
       <h2 id="family-heading">Family</h2>
-      {theirs && <Kids view={theirs} name={name} />}
+      {theirs ? <Kids view={theirs} name={name} removed={removed} setRemoved={setRemoved} />
+        : <KidsUndo removed={removed} setRemoved={setRemoved} />}
       {own && <OurChildren view={own} family={view} name={name} howItWent={(child) => <Arrival child={child} journey={view?.journey} name={name} />} />}
       <Together view={view} own={own} name={name} headed={Boolean(theirs || own)} />
     </section>
@@ -141,7 +143,7 @@ function OnTheWay({ journey, name, save, named = true }: { journey: Journey; nam
         </ol>
       )}
       {named && journey.name && <ChildName key={journey.name} journey={journey} name={name} save={save} />}
-      {journey.consequences.map((id) => <WhyItWent key={id} id={id} />)}
+      {(journey.outcomes ?? journey.consequences.map((id) => ({ key: '', id }))).map((item) => <WhyItWent key={item.id} id={item.id} summary={outcomeSummary(item.key, journey.route)} />)}
     </div>
   )
 }

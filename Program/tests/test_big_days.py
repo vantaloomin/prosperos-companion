@@ -691,7 +691,10 @@ def test_before_asking_their_own_day_is_never_a_plus_one():
                                                        date(2027, 2, 1))
 
 
-def test_a_no_to_one_big_day_lets_the_next_one_close_by_be_asked(client, clock):
+def test_a_no_to_one_big_day_lets_the_next_one_close_by_be_asked(client, clock, monkeypatch):
+    # Only these two days: a seeded milestone birthday in the circle that the engine asks the user to (about 1 run in
+    # 75) would hold the second back on its own, which is a different rule.
+    monkeypatch.setattr(big_days, 'SOURCES', [])
     make(client)
     guests(client, 3)
     first = add(client, clock, days=30)

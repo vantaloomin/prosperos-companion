@@ -55,7 +55,8 @@ def inputs(sheet: dict, data: dict) -> dict:
     face = appearance.for_sheet(sheet, data)
     setting = SETTINGS.get(sheet['place'].get('kind'), 'at home') if dating.surface(data) == 'app' else \
         'plain studio backdrop'
-    prompt = PROMPT.format(frame=FRAMES[dating.surface(data)], who=WHO[found['gender']], age=max(sheet['age'], 18),
+    prompt = PROMPT.format(frame=FRAMES[dating.surface(data)], who=WHO[found['gender']],
+                           age=max(found.get('life') or sheet['age'], 18),  # An elf of 300 looks 48.
                            build=looks['build'], skin=face['skin'], face=face['face'], jaw=face['jaw'],
                            nose=face['nose'], hair=looks['hair'], eyes=looks['eyes'],
                            beard=f", {looks['beard']}" if looks.get('beard') else '', detail=looks['detail'],

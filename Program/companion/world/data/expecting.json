@@ -459,6 +459,126 @@
     {
       "text": "{who} pressed a small coin into your hand for luck.",
       "era": "any"
+    },
+    {
+      "text": "{who} cried first and laughed second, and then asked to hear it all again.",
+      "era": "any"
+    },
+    {
+      "text": "{who} sat down on the doorstep and said nothing for a while, smiling the whole time.",
+      "era": "any"
+    },
+    {
+      "text": "{who} started counting on their fingers to work out when the little one would come.",
+      "era": "any"
+    },
+    {
+      "text": "{who} insisted on making supper for you both every Sunday from now on.",
+      "era": "any"
+    },
+    {
+      "text": "{who} went straight to the old chest and came back with a bundle of baby things.",
+      "era": "any"
+    },
+    {
+      "text": "{who} wanted to know at once whether there would be a naming day or a party.",
+      "era": "any"
+    },
+    {
+      "text": "{who} said it was about time this family had some good news.",
+      "era": "any"
+    },
+    {
+      "text": "{who} warned you both about sleepless nights, then said they would not have missed theirs for anything.",
+      "era": "any"
+    },
+    {
+      "text": "{who} hugged you so hard your feet nearly left the ground.",
+      "era": "any"
+    },
+    {
+      "text": "{who} asked what the little one would name them, and has been trying out answers ever since.",
+      "era": "any"
+    },
+    {
+      "text": "{who} gave you two a list of names nobody had asked for.",
+      "era": "any"
+    },
+    {
+      "text": "{who} said they had been hoping for this, and their voice shook a little.",
+      "era": "any"
+    },
+    {
+      "text": "{who} told a long story about the night you were born, and got most of it wrong.",
+      "era": "any"
+    },
+    {
+      "text": "{who} walked you both to the gate afterwards and kept waving until you turned the corner.",
+      "era": "any"
+    },
+    {
+      "text": "{who} set aside their best wool for something small and warm.",
+      "era": "any"
+    },
+    {
+      "text": "{who} could not stop grinning all through supper.",
+      "era": "any"
+    },
+    {
+      "text": "{who} asked twice if it was a joke, and then believed it all at once.",
+      "era": "any"
+    },
+    {
+      "text": "{who} said the house would be loud again, and seemed glad of it.",
+      "era": "any"
+    },
+    {
+      "text": "{who} started giving advice before you had finished the sentence.",
+      "era": "any"
+    },
+    {
+      "text": "{who} wrote it down in the family book that same night.",
+      "era": "any"
+    },
+    {
+      "text": "{who} said a little prayer of thanks under their breath.",
+      "era": "any"
+    },
+    {
+      "text": "{who} offered to help with anything, and named three things straight away.",
+      "era": "any"
+    },
+    {
+      "text": "{who} took both your hands and held on for a long moment.",
+      "era": "any"
+    },
+    {
+      "text": "{who} asked how you two were feeling before anything else, which you both noticed.",
+      "era": "any"
+    },
+    {
+      "text": "{who} told you that the first year goes by faster than you think.",
+      "era": "any"
+    },
+    {
+      "text": "{who} raised a glass at supper and made everyone stand up for a toast.",
+      "era": "any"
+    },
+    {
+      "text": "{who} said they would teach the little one every song they know.",
+      "era": "any"
+    },
+    {
+      "text": "{who} kept saying \"a baby\" quietly to themselves, as if trying it out.",
+      "era": "any"
+    },
+    {
+      "text": "{who} wanted to tell the whole family at the next gathering, and made you promise to wait for it.",
+      "era": "any"
+    },
+    {
+      "text": "{who} made a fuss of you both and would not let either of you carry anything heavy.",
+      "era": "any"
     }
   ],
   "pregnancy": [
@@ -925,6 +1045,206 @@
     {
       "text": "you two cleared a shelf by the bed for the baby's things.",
       "era": "any"
+    },
+    {
+      "text": "you two counted the months on your fingers again, just to be sure.",
+      "era": "any"
+    },
+    {
+      "text": "you two picked out a corner of the bedroom for the cradle and kept moving it a little to the left.",
+      "era": "any"
+    },
+    {
+      "text": "the user hung a small mobile of carved birds above where the cradle will go.",
+      "era": "any"
+    },
+    {
+      "text": "you two spent a rainy afternoon going through the family's old baby things.",
+      "era": "any"
+    },
+    {
+      "text": "you two walked to the river at dusk and talked about whose laugh the baby would have.",
+      "era": "any"
+    },
+    {
+      "text": "the user started keeping a little book of everything you two want to remember from these months.",
+      "era": "any"
+    },
+    {
+      "text": "you two made a list of lullabies and sang each one badly to see which stuck.",
+      "era": "any"
+    },
+    {
+      "text": "you found your own baby blanket at the bottom of a chest and cried a little.",
+      "era": "any"
+    },
+    {
+      "text": "you two practiced swaddling a loaf of bread wrapped in a towel and laughed until you had to stop.",
+      "era": "any"
+    },
+    {
+      "text": "the user built a small shelf for the baby's things and asked you three times if it was straight.",
+      "era": "any"
+    },
+    {
+      "text": "you two stayed up late listing everything you would do differently from your own parents.",
+      "era": "any"
+    },
+    {
+      "text": "you two planted a little tree in the garden for the baby.",
+      "era": "any"
+    },
+    {
+      "text": "the user knitted the same tiny sock four times before it came out right.",
+      "era": "any"
+    },
+    {
+      "text": "you two argued over whether the baby would sleep in your room or the next one, and decided on yours.",
+      "era": "any"
+    },
+    {
+      "text": "you two spent a slow morning in bed making up silly names you would never use.",
+      "era": "any"
+    },
+    {
+      "text": "the user brought home a little wooden spoon and said every child needs one.",
+      "era": "any"
+    },
+    {
+      "text": "you two sorted the little clothes by size and then sorted them again by color.",
+      "era": "any"
+    },
+    {
+      "text": "you two had your first real worry about money and talked it through until it felt smaller.",
+      "era": "any"
+    },
+    {
+      "text": "you two wrote the baby a letter to open when they are grown.",
+      "era": "any"
+    },
+    {
+      "text": "you two cleared a whole shelf for blankets and then filled it in an afternoon.",
+      "era": "any"
+    },
+    {
+      "text": "the user asked an old neighbor for advice and came back with an hour of stories.",
+      "era": "any"
+    },
+    {
+      "text": "you two kept losing count of how many weeks it had been and settled on \"nearly there\".",
+      "era": "any"
+    },
+    {
+      "text": "you two took a long walk every evening and said it was practice for later.",
+      "era": "any"
+    },
+    {
+      "text": "you two lit a candle at supper for the baby, and it has become a little habit.",
+      "era": "any"
+    },
+    {
+      "text": "the user cleaned the whole house top to bottom one evening for no reason anyone could name.",
+      "era": "any"
+    },
+    {
+      "text": "you two found a quiet hour on a Sunday to just sit and imagine the baby's face.",
+      "era": "any"
+    },
+    {
+      "text": "you two tried to agree on who would get up first in the night and both volunteered.",
+      "era": "any"
+    },
+    {
+      "text": "you two sewed a small quilt from scraps of your old clothes.",
+      "era": "any"
+    },
+    {
+      "text": "the user sat beside you and read aloud until you both fell asleep.",
+      "era": "any"
+    },
+    {
+      "text": "you two took the cradle out to the yard and gave it a fresh coat of oil.",
+      "era": "any"
+    },
+    {
+      "text": "you two made room in the cupboard for the little things and found an old letter from your parents.",
+      "era": "any"
+    },
+    {
+      "text": "the midwife came round and stayed for supper, full of stories of other babies.",
+      "era": "any"
+    },
+    {
+      "text": "you two told each other one fear and one hope each, and felt better for it.",
+      "era": "any"
+    },
+    {
+      "text": "the user found a little pair of shoes at the market and could not leave them behind.",
+      "era": "any"
+    },
+    {
+      "text": "you two were asked about the due date so many times that you started answering together.",
+      "era": "any"
+    },
+    {
+      "text": "you two spent an evening deciding which grandparent the baby would be named after, and chose neither.",
+      "era": "any"
+    },
+    {
+      "text": "you two made a small bag ready by the door for when the day comes.",
+      "era": "any"
+    },
+    {
+      "text": "you two cooked a big batch of stew to put by for the first weeks.",
+      "era": "any"
+    },
+    {
+      "text": "the user rocked the empty cradle with one foot all through supper without noticing.",
+      "era": "any"
+    },
+    {
+      "text": "you two stood in the doorway of the baby's corner for a long time, just looking.",
+      "era": "any"
+    },
+    {
+      "text": "you two had friends over and they all argued about what the baby would be like.",
+      "era": "any"
+    },
+    {
+      "text": "you two decided which of you would hold the baby first and then agreed it did not matter.",
+      "era": "any"
+    },
+    {
+      "text": "the user wrote out the family's names in the front of an old book, leaving a space at the bottom.",
+      "era": "any"
+    },
+    {
+      "text": "you two practiced folding cloths for the baby until you could do it with your eyes shut.",
+      "era": "any"
+    },
+    {
+      "text": "you two spent a quiet evening by the window watching the first snow and talking about next winter.",
+      "era": "any"
+    },
+    {
+      "text": "you two made a promise to each other to keep one evening a week just for the two of you.",
+      "era": "any"
+    },
+    {
+      "text": "you two stitched the baby's initials into a little blanket, leaving the last letter for later.",
+      "era": "any"
+    },
+    {
+      "text": "the user hummed the same tune for a week, and now you both think of it as the baby's song.",
+      "era": "any"
+    },
+    {
+      "text": "you two went through the whole house looking for sharp corners and found more than you expected.",
+      "era": "any"
+    },
+    {
+      "text": "you two sat on the step in the evening sun and said \"we're having a baby\" out loud, just to hear it.",
+      "era": "any"
     }
   ],
   "waiting": [
@@ -1371,6 +1691,206 @@
     {
       "text": "the user made a small wooden stool so a child could reach the washbasin.",
       "era": "any"
+    },
+    {
+      "text": "you two checked the post every morning and tried to pretend you weren't.",
+      "era": "any"
+    },
+    {
+      "text": "you two read every letter twice, in case you had missed something.",
+      "era": "any"
+    },
+    {
+      "text": "the user built a small bed frame in the evenings and would not let you see it until it was done.",
+      "era": "any"
+    },
+    {
+      "text": "you two made a list of games you remember from childhood, ready to teach.",
+      "era": "any"
+    },
+    {
+      "text": "you two cleared a hook by the door for a small coat.",
+      "era": "any"
+    },
+    {
+      "text": "you two talked about what you would say on the first day and could not agree on the first word.",
+      "era": "any"
+    },
+    {
+      "text": "you two made up the spare bed with fresh linen, then made it up again a week later.",
+      "era": "any"
+    },
+    {
+      "text": "you two kept a lamp in the window for no reason other than it felt right.",
+      "era": "any"
+    },
+    {
+      "text": "the user started learning a few lullabies, just in case they were needed.",
+      "era": "any"
+    },
+    {
+      "text": "you two went over the house as if you were a child seeing it for the first time.",
+      "era": "any"
+    },
+    {
+      "text": "you two lowered a shelf so small hands could reach it.",
+      "era": "any"
+    },
+    {
+      "text": "you two sat up late with a list of questions for the next meeting.",
+      "era": "any"
+    },
+    {
+      "text": "you two answered the same questions about your home for the third time and did not mind.",
+      "era": "any"
+    },
+    {
+      "text": "you two had a long talk about how to make a child feel welcome without asking too much of them.",
+      "era": "any"
+    },
+    {
+      "text": "the user put a little box of wooden toys by the hearth, and you both kept rearranging it.",
+      "era": "any"
+    },
+    {
+      "text": "you two asked the neighbors to keep an ear out, and they were kinder about it than you expected.",
+      "era": "any"
+    },
+    {
+      "text": "you two had a hard week of hearing nothing and held on to each other through it.",
+      "era": "any"
+    },
+    {
+      "text": "you two went for long walks to stop waiting for news for an hour or two.",
+      "era": "any"
+    },
+    {
+      "text": "you two talked about the child's own family and how to keep them close.",
+      "era": "any"
+    },
+    {
+      "text": "you two wrote down why you wanted this, in case you were asked again, and read it back together.",
+      "era": "any"
+    },
+    {
+      "text": "you two picked out a small chair at the market and carried it home between you.",
+      "era": "any"
+    },
+    {
+      "text": "the user taught themself to plait hair on a length of rope, just in case.",
+      "era": "any"
+    },
+    {
+      "text": "you two had friends round who had done this before, and listened to every word.",
+      "era": "any"
+    },
+    {
+      "text": "you two made a little shelf of picture books in the room that waits.",
+      "era": "any"
+    },
+    {
+      "text": "the user wrote a short letter to the child you have not met yet and put it in a drawer.",
+      "era": "any"
+    },
+    {
+      "text": "you two agreed that whatever happens, you will not rush anyone into calling you anything.",
+      "era": "any"
+    },
+    {
+      "text": "you two sorted out the clothes your nieces and nephews had grown out of.",
+      "era": "any"
+    },
+    {
+      "text": "you two learned the names of the nearby school and the people who run it.",
+      "era": "any"
+    },
+    {
+      "text": "you two went over your days and worked out who would be home when.",
+      "era": "any"
+    },
+    {
+      "text": "you two spent a Sunday making the garden safe and ended up building a swing.",
+      "era": "any"
+    },
+    {
+      "text": "you two promised each other that the room would never be empty of light at night.",
+      "era": "any"
+    },
+    {
+      "text": "you two had a quiet supper the day the papers went in, and toasted each other.",
+      "era": "any"
+    },
+    {
+      "text": "you two kept the room dusted every week, even though nobody had come yet.",
+      "era": "any"
+    },
+    {
+      "text": "the user brought home a small blanket from the market and folded it on the bed in the spare room.",
+      "era": "any"
+    },
+    {
+      "text": "you two talked about birthdays and how to keep one for a child who may not know theirs.",
+      "era": "any"
+    },
+    {
+      "text": "you two went to meet another family who had taken a child in, and came home full of questions.",
+      "era": "any"
+    },
+    {
+      "text": "you two learned to cook a few simple dishes children usually like.",
+      "era": "any"
+    },
+    {
+      "text": "you two had a long, honest talk about what you would do if it didn't happen this year.",
+      "era": "any"
+    },
+    {
+      "text": "you two set a place at the table one evening, just to see how it would look.",
+      "era": "any"
+    },
+    {
+      "text": "you two took turns reading aloud from a children's book to see who did the voices better.",
+      "era": "any"
+    },
+    {
+      "text": "you two kept a jar for the small coins and named it the child's fund.",
+      "era": "any"
+    },
+    {
+      "text": "the user mended a broken doll from the market and set it on the windowsill.",
+      "era": "any"
+    },
+    {
+      "text": "you two told your parents the wait was long, and they told you the good things always are.",
+      "era": "any"
+    },
+    {
+      "text": "you two spent an evening imagining the first walk together and where it would go.",
+      "era": "any"
+    },
+    {
+      "text": "you two learned the old songs your grandparents sang and practiced them on each other.",
+      "era": "any"
+    },
+    {
+      "text": "you two went through the house and made sure every door could be opened by a child from the inside.",
+      "era": "any"
+    },
+    {
+      "text": "you two had a visit from someone kind who asked hard questions, and felt better for it after.",
+      "era": "any"
+    },
+    {
+      "text": "you two marked the date of the meeting on the wall and crossed off the days.",
+      "era": "any"
+    },
+    {
+      "text": "you two kept saying \"when\" instead of \"if\", on purpose.",
+      "era": "any"
+    },
+    {
+      "text": "you two sat on the bed in the empty room and talked until it got dark.",
+      "era": "any"
     }
   ],
   "names_talk": [
@@ -1509,6 +2029,326 @@
     {
       "text": "you two whispered {name} in the waiting room and it felt real for the first time.",
       "era": "modern"
+    },
+    {
+      "text": "you said {name} on a walk by the river and the user stopped in their tracks.",
+      "era": "any"
+    },
+    {
+      "text": "you two wrote {name} on the wall by the bed in pencil to see how it looked.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} half as a joke, and by supper neither of you was joking.",
+      "era": "any"
+    },
+    {
+      "text": "you two tried {name} with every nickname you could think of and liked them all.",
+      "era": "any"
+    },
+    {
+      "text": "you remembered {name} from an old story your grandmother used to tell.",
+      "era": "any"
+    },
+    {
+      "text": "you two kept coming back to {name} no matter how long the list got.",
+      "era": "any"
+    },
+    {
+      "text": "you whispered {name} across the pillow one night and the user said \"yes\" before you finished.",
+      "era": "any"
+    },
+    {
+      "text": "you two said {name} in your sternest voice and your softest, and it worked for both.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} after a dream, and the user said it was the best idea you had had all year.",
+      "era": "any"
+    },
+    {
+      "text": "you two each made a list of ten, and {name} was on both.",
+      "era": "any"
+    },
+    {
+      "text": "you named {name} after someone you both admired, and the user agreed straight away.",
+      "era": "any"
+    },
+    {
+      "text": "you two settled on {name} sitting on the back step on a warm evening.",
+      "era": "any"
+    },
+    {
+      "text": "you found {name} carved on an old bench and could not get it out of your head.",
+      "era": "any"
+    },
+    {
+      "text": "you two liked {name} because nobody in either family had it yet.",
+      "era": "any"
+    },
+    {
+      "text": "you liked {name} because it sounded kind, and the user liked it for the same reason.",
+      "era": "any"
+    },
+    {
+      "text": "you two read {name} aloud in front of the whole family and nobody objected, which felt like a miracle.",
+      "era": "any"
+    },
+    {
+      "text": "you brought up {name} again after weeks of lists, and this time it stuck.",
+      "era": "any"
+    },
+    {
+      "text": "you two practiced calling {name} in for supper and laughed at how real it sounded.",
+      "era": "any"
+    },
+    {
+      "text": "you two spent a whole winter on the question and {name} was the answer by spring.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} because it means something good, and the user looked it up twice to be sure.",
+      "era": "any"
+    },
+    {
+      "text": "you two tried writing {name} in your best hand and decided it looked right.",
+      "era": "any"
+    },
+    {
+      "text": "you heard {name} in a song at a wedding and kept humming it for days.",
+      "era": "any"
+    },
+    {
+      "text": "you two said {name} in the dark, very quietly, and it felt like a promise.",
+      "era": "any"
+    },
+    {
+      "text": "you picked {name} for the way it sat next to the family name.",
+      "era": "any"
+    },
+    {
+      "text": "you two gave {name} a week's trial, and by the end of it you could not imagine anything else.",
+      "era": "any"
+    },
+    {
+      "text": "you said {name} over the washing up and the user dropped a plate.",
+      "era": "any"
+    },
+    {
+      "text": "you two drew names from a bowl for fun, and when {name} came out you both went quiet.",
+      "era": "any"
+    },
+    {
+      "text": "you thought of {name} while you were doing something else entirely and said it out loud.",
+      "era": "any"
+    },
+    {
+      "text": "you two chose {name} after a long talk about who you hope this child will be.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} for an old friend you both miss, and the user took your hand.",
+      "era": "any"
+    },
+    {
+      "text": "you two wrote {name} on a scrap of paper and kept it in your pocket for a week to be sure.",
+      "era": "any"
+    },
+    {
+      "text": "you found {name} in an old letter from a great-grandparent and it felt like a sign.",
+      "era": "any"
+    },
+    {
+      "text": "you two agreed on {name} on the first try and then spent a month doubting how easy it was.",
+      "era": "any"
+    },
+    {
+      "text": "you had a feeling about {name} from the start and waited for the user to come round.",
+      "era": "any"
+    },
+    {
+      "text": "you two let the family suggest names for a month and then chose {name} anyway.",
+      "era": "any"
+    },
+    {
+      "text": "you said {name} while you were half asleep and the user wrote it down so you would not forget.",
+      "era": "any"
+    },
+    {
+      "text": "you two picked {name} because it is easy to shout across a field.",
+      "era": "any"
+    },
+    {
+      "text": "you liked {name} because it sounds like someone who would be good to their friends.",
+      "era": "any"
+    },
+    {
+      "text": "you two tested {name} on the neighbors' children, who approved.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} on a long journey and it carried you both for miles.",
+      "era": "any"
+    },
+    {
+      "text": "you two sat by the fire saying {name} in different ways until it sounded like a person.",
+      "era": "any"
+    },
+    {
+      "text": "you two both liked {name} best but each waited for the other to say it first.",
+      "era": "any"
+    },
+    {
+      "text": "you remembered {name} from a teacher you loved as a child.",
+      "era": "any"
+    },
+    {
+      "text": "you two read through an old book of names and stopped at {name} on the same page.",
+      "era": "any"
+    },
+    {
+      "text": "you came up with {name} while watching the sunrise, and the user said it suited the morning.",
+      "era": "any"
+    },
+    {
+      "text": "you two chose {name} because it can grow up and still fit.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} and the user said it twice, slowly, and smiled.",
+      "era": "any"
+    },
+    {
+      "text": "you two kept {name} a secret from everyone, which was harder than choosing it.",
+      "era": "any"
+    },
+    {
+      "text": "you liked {name} for its sound, and the user liked it for its meaning.",
+      "era": "any"
+    },
+    {
+      "text": "you two looked at the first letter, then the whole word, and both said {name}.",
+      "era": "any"
+    },
+    {
+      "text": "you said {name} one ordinary morning, and that was that.",
+      "era": "any"
+    },
+    {
+      "text": "you two put {name} on a little wooden plaque before you had even agreed, just to test it.",
+      "era": "any"
+    },
+    {
+      "text": "you picked {name} after hearing a stranger shout it across the market square.",
+      "era": "any"
+    },
+    {
+      "text": "you two wrote {name} in the snow on the window and left it there till it melted.",
+      "era": "any"
+    },
+    {
+      "text": "you two said {name} and {name} again at supper until the soup went cold.",
+      "era": "any"
+    },
+    {
+      "text": "you thought {name} was too grand at first, and then could not think of anything else.",
+      "era": "any"
+    },
+    {
+      "text": "you two crossed {name} off once, then wrote it back on in bigger letters.",
+      "era": "any"
+    },
+    {
+      "text": "you mentioned {name} to the user in passing, and they turned round and said \"that one\".",
+      "era": "any"
+    },
+    {
+      "text": "you two chose {name} because it made you both think of someone kind.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} after a long day, and the user said it made the day worth it.",
+      "era": "any"
+    },
+    {
+      "text": "you two had three favorites until {name} won by a whisker.",
+      "era": "any"
+    },
+    {
+      "text": "you found {name} in a book of old ballads and read the verse to the user.",
+      "era": "any"
+    },
+    {
+      "text": "you two settled on {name} at a picnic, with grass in your hair.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} and the user's whole face changed.",
+      "era": "any"
+    },
+    {
+      "text": "you two took turns saying {name} with different middle names until one fit.",
+      "era": "any"
+    },
+    {
+      "text": "you heard {name} in a story by the fire and said it to the user on the way home.",
+      "era": "any"
+    },
+    {
+      "text": "you two liked {name} because it is short enough to shout across a yard and long enough to mean something.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} for a grandparent who would have loved this child.",
+      "era": "any"
+    },
+    {
+      "text": "you two went back and forth for weeks, and then you said {name} and the question was over.",
+      "era": "any"
+    },
+    {
+      "text": "you said {name} while looking out of the window at the rain, and it felt right.",
+      "era": "any"
+    },
+    {
+      "text": "you two picked {name} together on a long evening with nothing else to do.",
+      "era": "any"
+    },
+    {
+      "text": "you thought {name} up out of nowhere, and the user said it sounded like it had always been there.",
+      "era": "any"
+    },
+    {
+      "text": "you two decided on {name} and then told nobody for a whole month, just to keep it to yourselves.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name}, and the user said they had been thinking the same thing.",
+      "era": "any"
+    },
+    {
+      "text": "you two kept the list in a drawer, and {name} was the only one with a star next to it.",
+      "era": "any"
+    },
+    {
+      "text": "you two read {name} out to each other in every voice you could manage.",
+      "era": "any"
+    },
+    {
+      "text": "you liked {name} because it rhymes with nothing, and the user liked that too.",
+      "era": "any"
+    },
+    {
+      "text": "you two chose {name} on a quiet morning, and wrote it down so it would be real.",
+      "era": "any"
+    },
+    {
+      "text": "you suggested {name} at a family supper and the table went quiet, then warm.",
+      "era": "any"
+    },
+    {
+      "text": "you two agreed on {name} with a handshake, then laughed at yourselves for it.",
+      "era": "any"
     }
   ]
 }

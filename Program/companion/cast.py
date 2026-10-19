@@ -21,7 +21,7 @@ from companion.errors import DomainError, require
 from companion.life import ages, encounters, network, town_personality
 from companion.memory import pairs
 from companion.models import CharacterDefinition, CharacterDraftRequest
-from companion.world import catalog, generators, life_details, looks, perception, profile_bank, townsfolk
+from companion.world import catalog, generators, life_details, lifespans, looks, perception, profile_bank, townsfolk
 
 # A shift's part of the day sets when they sleep, as (bed, wake).
 SLEEP = {'morning': ('21:30', '05:00'), 'afternoon': ('23:30', '08:00'), 'evening': ('01:30', '09:30'),
@@ -257,6 +257,11 @@ def profile(data: dict, sheet: dict, found: dict, today: date, changed: dict | N
     # They keep their face and build, so their pictures show the person met in town (companion/world/looks.py).
     found = {field: value for field, value in looks.for_sheet(sheet, data).items() if field in looks.FIELDS}
     found['age'] = max(found.get('age') or 0, age_now)  # Their face as met, their age as it is now.
+    if (folk := sheet.get('folk')) and lifespans.lifespan_of(folk, data) != lifespans.HUMAN_LIFESPAN:
+        # A long-lived townsperson stays their kind (companion/world/lifespans.py), and their age, past what the form
+        # holds, comes from their identity's "140 years old".
+        definition['kind'] = folk
+        found.pop('age')
     definition['looks'] = {**found, 'drawn': found}
     # They keep how they came across in town, and how they see themselves.
     lines = perception.for_sheet(data, sheet)

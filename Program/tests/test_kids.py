@@ -9,7 +9,7 @@ from conftest import intimate, reconcile
 from companion import consequences
 from companion.characters import current
 from companion.database import decode
-from companion.life import families, kids, love_life, steps
+from companion.life import families, kids, love_life, steps, their_people
 from companion.memory import pairs
 
 DANA = {'name': 'Dana Reyes', 'timezone': 'UTC', 'location': 'Fells Point, Baltimore',
@@ -70,6 +70,43 @@ def forced(monkeypatch, choice: str, option: int):
 def test_kids_are_read_from_the_description(text, expected):
     found = kids.described({'name': 'Dana Reyes', 'identity': text})
     assert [(kid['name'], kid['pronouns'], kid['age']) for kid in found['kids']] == expected
+
+
+@pytest.mark.parametrize(('text', 'expected'), [
+    ('Her son Leo, 7, and daughter Mia, 4.', [('Leo', 'he/him', 7), ('Mia', 'she/her', 4)]),
+    ('Proud mom of Leo (7) and Mia (4).', [('Leo', None, 7), ('Mia', None, 4)]),
+    ('Her kids Leo and Mia keep her busy.', [('Leo', None, None), ('Mia', None, None)]),
+    ('Mother of two, Leo and Mia.', [('Leo', None, None), ('Mia', None, None)]),
+    ('Single mom of two: Theo (6) and Ivy (3).', [('Theo', None, 6), ('Ivy', None, 3)]),
+    ('Single mom of a son, Theo, 6.', [('Theo', 'he/him', 6)]),
+    ('She has a son, Theo, who is 6.', [('Theo', 'he/him', 6)]),
+    ('Her two teenage daughters, Ava and Zoe.', [('Ava', 'she/her', None), ('Zoe', 'she/her', None)]),
+    ('She has a daughter named Rosa who is 9.', [('Rosa', 'she/her', 9)]),
+    ('Their kid Rowan is eight.', [('Rowan', None, 8)]),
+    ('He has a stepson.', [(None, 'he/him', None)]),
+    ('Divorced. Two teenage daughters.', [(None, 'she/her', None)] * 2),
+    ('Mom of two boys.', [(None, 'he/him', None)] * 2),
+    ('She has a six-year-old daughter.', [(None, 'she/her', None)]),
+    ('Dog mom to Biscuit and Pip.', []),
+    ('Cat dad of two.', []),
+    ('Mom to a rescue dog named Biscuit.', []),
+    ('Her two brothers, Tom and Ben.', []),
+    ('Wants kids someday.', []),
+])
+def test_more_ways_a_description_names_or_counts_their_kids(text, expected):
+    found = kids.described({'name': 'Dana Reyes', 'identity': f'38. {text}'})
+    assert [(kid['name'], kid['pronouns'], kid['age']) for kid in found['kids']] == expected
+
+
+def test_the_word_before_unnamed_kids_sets_their_age(monkeypatch):
+    monkeypatch.setattr(kids, 'companion_age', lambda *_args: 41)
+    companion = {'active_timeline_id': 't', 'id': 'c', 'version': {'definition': {'name': 'Dana'}}}
+    found = kids.described({'name': 'Dana', 'identity': '41. She has two teenage daughters and a 6-year-old.'})
+    assert [kid['modifier'] for kid in found['kids']] == ['teenage', 'teenage']
+    today = date(2026, 10, 19)
+    for index, kid in enumerate(found['kids']):
+        assert 13 <= kids.age_for(None, {**companion, 'id': f'c{index}'}, kid, f'seed{index}', today) <= 17
+    assert kids.age_for(None, companion, {'modifier': 'six-year-old'}, 's', today) == 6
 
 
 def test_the_description_says_where_they_live_and_who_the_other_parent_is():
@@ -168,6 +205,19 @@ def test_the_user_can_change_where_they_live_or_take_a_child_out(client):
     assert set_kids(client, pattern='auto')['pattern_how'] == 'seeded'
 
 
+def test_a_child_of_theirs_who_turns_18_joins_their_circle_as_a_grown_son(client, clock):
+    make(client, background='Her son Leo, 17, and her daughter Mia, 4.')
+    clock.advance(timedelta(days=370))
+    reconcile(client)
+    assert [kid['name'] for kid in panel(client)['kids']] == ['Mia']
+    grown = [person for person in circle(client) if person['name'] == 'Leo']
+    assert len(grown) == 1 and grown[0]['role'] == 'son'
+    text = prompt(client)
+    assert 'your son)' not in text and '- Leo (son)' in text
+    reconcile(client)
+    assert len([person for person in circle(client) if person['name'] == 'Leo']) == 1
+
+
 def test_today_says_where_the_kids_are(client, clock):
     make(client, background='Her son Leo, 7, lives with his dad and spends every other weekend with her.')
     with client.app.state.database.connect(write=True) as connection:
@@ -180,6 +230,18 @@ def test_today_says_where_the_kids_are(client, clock):
 
 
 # Seeded for a new companion ---------------------------------------------------------------------------------------
+
+def test_on_the_day_of_the_family_dinner_the_kids_are_with_them_whatever_the_rota(client, clock, monkeypatch):
+    make(client, background='Her son Leo, 7, lives with his dad and spends every other weekend with her.')
+    monkeypatch.setattr(kids, 'with_them', lambda *_args: False)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        assert kids.today_line(connection, companion, clock.now())[1].startswith('- Today Leo is with their')
+        dinner = {'activity': their_people.AT_FAMILY, 'local_date': steps.local_today(companion, clock.now()).isoformat(),
+                  'place': {'first': True}}
+        monkeypatch.setattr('companion.life.outings.in_force', lambda *_args: [dinner])
+        assert kids.today_line(connection, companion, clock.now())[1] == '- Today Leo is with you.'
+
 
 def test_a_new_companion_may_be_given_kids_by_the_engine(client, monkeypatch):
     forced(monkeypatch, 'kids:has', 1)
@@ -195,9 +257,31 @@ def test_a_new_companion_may_be_given_kids_by_the_engine(client, monkeypatch):
     assert [kid['name'] for kid in panel(client)['kids']] == [kid['name'] for kid in view['kids']]
 
 
+@pytest.mark.parametrize('city', ['london-1895', 'camelot', 'new-york-1925'])
+def test_in_an_older_city_seeded_kids_live_with_them_and_no_rota(client, monkeypatch, city):
+    forced(monkeypatch, 'kids:has', 1)
+    make(client, home_city=city, location='')
+    view = panel(client)
+    assert view['how'] == 'seeded' and view['kids'] and view['other'] is None and view['pattern'] == 'sole'
+    assert view['pattern_how'] == 'seeded'  # Not "Read from their description".
+    assert 'weekend' not in prompt(client) and 'a week with' not in prompt(client)
+
+
+def test_in_an_older_city_the_ex_the_description_names_is_still_the_other_parent(client):
+    make(client, home_city='london-1895', location='', background='Her son Leo, 7. Her ex-husband Mark Lowe lives nearby.')
+    assert panel(client)['other']['name'] == 'Mark'
+
+
 def test_no_kids_are_seeded_against_the_description(client, monkeypatch):
     forced(monkeypatch, 'kids:has', 1)
     make(client, background='She never wanted kids.')
+    assert not panel(client)['shown']
+
+
+@pytest.mark.parametrize('background', ['She wants kids someday.', "She'd love kids one day.", 'Her two grown sons live in Ohio.'])
+def test_no_kids_are_seeded_when_the_description_says_they_are_still_to_come_or_grown(client, monkeypatch, background):
+    forced(monkeypatch, 'kids:has', 1)
+    make(client, background=background)
     assert not panel(client)['shown']
 
 
@@ -236,6 +320,27 @@ def test_the_user_meets_the_kids_with_their_people_and_becomes_a_step_parent(cli
     monkeypatch.setattr(kids, 'living_together', lambda *_args: True)
     assert "the user is Leo's step-parent" in prompt(client)
     assert panel(client)['step_parent'] and panel(client)['meeting'] is None
+
+
+def test_drinks_with_their_friends_is_not_meeting_the_kids_and_the_family_dinner_has_them_there(client, clock):
+    make(client, background='Her son Leo, 7, and her daughter Mia, 4.')
+    with client.app.state.database.connect(write=True) as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        connection.execute("INSERT INTO people_meetups (id, timeline_id, kind, why, due_on, status, created_at) VALUES "
+                           "('m1', ?, 'friends', 'step', ?, 'done', ?)", (timeline_id, clock.now().date().isoformat(),
+                                                                         clock.now().isoformat()))
+    assert "hasn't met them yet" in prompt(client) and panel(client)['meeting'] == 'unmet'
+    outing = {'activity': their_people.AT_FAMILY, 'until_time': '21:30',
+              'place': {'name': "Rosa's place", 'first': True, 'people': [{'id': 'p', 'name': 'Rosa', 'role': 'mom'}]}}
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        line = their_people.scene(connection, companion, outing, None)
+        assert 'Here with you: your mom Rosa, and your kids Leo and Mia. Nobody else is there.' in line
+        assert 'Leo' not in their_people.scene(connection, companion, {**outing, 'activity': their_people.OUT_WITH_FRIENDS,
+                                                                          'place': {**outing['place'], 'kind': 'bar'}}, None)
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect(write=True) as connection:
+        assert 'Leo' not in their_people.scene(connection, current(connection), outing, None)
 
 
 def test_a_love_life_partner_may_come_with_kids_and_the_companion_becomes_their_step_parent(client, clock, monkeypatch):
@@ -322,3 +427,84 @@ def test_a_fork_keeps_their_kids(client, provider):
     assert response.status_code == 200, response.text
     view = panel(client)
     assert [kid['name'] for kid in view['kids']] == ['Leo'] and view['other']
+
+
+def test_a_fork_has_its_own_copy_of_where_the_kids_live(client, provider):
+    from conftest import send
+    make(client, background='Her son Leo, 7.')
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    sent = send(client, 'How is Leo?', 'client-kids-02')['message']
+    with client.app.state.database.connect() as connection:
+        parent = kids.record(connection, current(connection)['active_timeline_id'])
+        before = consequences.by_id(connection, parent['pattern_consequence_id'])['picked']
+    fork_id = client.post('/api/timelines', json={'message_id': sent['id']}).json()['id']
+    assert client.post(f'/api/timelines/{fork_id}/activate').status_code == 200
+    with client.app.state.database.connect() as connection:
+        fork = kids.record(connection, current(connection)['active_timeline_id'])
+        copied = consequences.by_id(connection, fork['pattern_consequence_id'])
+    assert fork['timeline_id'] == fork_id
+    assert fork['pattern_consequence_id'] != parent['pattern_consequence_id'] and copied['picked'] == before
+    response = client.post(f"/api/life/consequences/{fork['pattern_consequence_id']}/change",
+                           json={'option': (before + 1) % 3})
+    assert response.status_code == 200, response.text
+    with client.app.state.database.connect() as connection:
+        assert consequences.by_id(connection, parent['pattern_consequence_id'])['picked'] == before
+    assert panel(client)['pattern'] == kids.CUSTODY[(before + 1) % 3]
+
+
+@pytest.mark.parametrize('background', ['Parent of two; their daughter Elspeth is six.', 'A single dad of three.'])
+def test_brothers_and_sisters_the_app_ages_are_born_far_enough_apart(client, background):
+    make(client, identity='36. They/them.', background=background)
+    born = sorted(date.fromisoformat(kid['born_on']) for kid in panel(client)['kids'])
+    assert len(born) >= 2 and all((later - earlier).days >= kids.SPACING for earlier, later in zip(born, born[1:]))
+
+
+def test_twins_share_a_birthday(client):
+    make(client, background='Her twins keep her on her toes.')
+    assert len({kid['born_on'] for kid in panel(client)['kids']}) == 1
+
+
+def test_a_name_from_their_description_still_counts_once_the_child_is_out_of_the_circle(client, clock):
+    make(client, background='Her son Leo, 7.')
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        connection.execute("UPDATE circle_children SET status='ended' WHERE timeline_id=?",
+                           (companion['active_timeline_id'],))
+        connection.commit()
+        assert families.pictured(connection, companion['active_timeline_id'], ['At the park with Leo'])
+        assert 'Leo' in families.every_name(connection)
+        assert 'Leo' not in families.names(connection, companion['active_timeline_id'])
+
+
+def test_an_other_parent_added_to_an_existing_circle_has_no_days_before_then(client, clock, monkeypatch):
+    """A v0.14 circle gains the kids' other parent at the upgrade: their days start then, none written before."""
+    from companion.clock import parse
+    monkeypatch.setattr(kids, 'ACTIVE', False)
+    make(client, identity='38. A single dad of two. He/him.')
+    circle(client)
+    clock.advance(timedelta(days=10))
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    reconcile(client)
+    other = next(person for person in circle(client) if person['role'] == 'co-parent')
+    with client.app.state.database.connect() as connection:
+        cursor = connection.execute('SELECT through FROM agenda_cursors WHERE subject=?', (other['id'],)).fetchone()
+        written = connection.execute('SELECT starts_at FROM life_agenda WHERE subject=?', (other['id'],)).fetchall()
+    assert cursor and parse(cursor['through']) >= clock.now() - timedelta(hours=1)
+    assert all(parse(row['starts_at']) >= clock.now() - timedelta(hours=1) for row in written)
+
+
+def test_a_v014_son_handed_to_the_kids_keeps_his_birthday(client, monkeypatch):
+    from companion.life import named
+    monkeypatch.setattr(kids, 'ACTIVE', False)
+    monkeypatch.setattr(named, 'in_circle', named.people)  # The circle as v0.14 assembled it.
+    make(client, background='Her son Leo, 7.')
+    [leo] = [person for person in circle(client) if person['name'] == 'Leo']
+    birthday = leo['birthday']
+    monkeypatch.undo()
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        [kid] = [dict(row) for row in connection.execute("SELECT * FROM circle_children WHERE name='Leo'")]
+    assert kid['born_on'][5:] == birthday, (kid, birthday)
+    assert [item['age'] for item in panel(client)['kids']] == [7]

@@ -50,6 +50,10 @@ GRANDPARENTS = {'grandparent', 'grandmother', 'grandfather', 'grandma', 'grandpa
 GRANDCHILD_UNDER = 40
 ELDER_AGES = (75, 95)
 ELDERS = True
+# Parents in the circle who parted: a quarter today, this share in an older city, where it reads "separated".
+OLDER_PARTED = 0.04
+PARTED = {'divorced': 'Divorced from', 'separated': 'Separated from'}
+COUPLED = ('married', *PARTED)
 # Relatives who share the companion's family name unless a marriage explains otherwise.
 IMMEDIATE = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother'}
 SUFFIXES = {'jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv'}
@@ -317,11 +321,12 @@ def birthday(person_id: str) -> str:
     return (date(2001, 1, 1) + timedelta(days=int(generators.unit(person_id, 'birthday') * 365))).strftime('%m-%d')
 
 
-def view(row: dict) -> dict:
+def view(row: dict, data: dict | None = None) -> dict:
+    """One person for the page; `data`: the companion's city, whose own kinds and lifespans their kind reads."""
     details = decode(row['details'])
     return {'id': row['id'], 'key': row['seed'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
             'revision': row['revision'], **details, 'birthday': birthday(row['id']),
-            'schedule': decode(row['schedule']), 'kind': ages.person_kind(details)}
+            'schedule': decode(row['schedule']), 'kind': ages.person_kind(details, data)}
 
 
 def build(definition: dict, world, timeline_id: str, size: int, seed: str | None = None, taken=(),
@@ -409,6 +414,18 @@ def add_grandparent(connection, companion: dict, world, now) -> bool:
     return True
 
 
+def elder_resident(data: dict, seed: str, age: int, local: bool, family: str | None, firsts: set[str],
+                   folk: str | None) -> dict:
+    """A resident for the grandparent whose first name nobody in the circle has (a sibling and a grandmother both
+    "Ayo Solano" read as one person), after a few tries."""
+    for attempt in range(8):
+        member = generators.resident(data, seed=seed if not attempt else f'{seed}:{attempt}', role='parent', age=age,
+                                     local=local, family=family, group=family_group(data, family), folk=folk)
+        if member['name']['given'] not in firsts:
+            break
+    return member
+
+
 def grandparent(definition: dict, world, timeline_id: str, age: int, taken: set[str]) -> dict:
     """The seeded grandparent: retired, local or out of town, on the family's side about half the time."""
     seed = f'circle:{timeline_id}:grandparent'
@@ -419,8 +436,7 @@ def grandparent(definition: dict, world, timeline_id: str, age: int, taken: set[
     folk = lifespans.sheet_kind(definition, data)  # Ages here are in human terms; their real one follows their kind.
     if data:
         family = family_name(definition) if generators.unit(seed, 'family-side') < 0.5 else None
-        member = generators.resident(data, seed=seed, role='parent', age=elder_age, local=local,
-                                     family=family, group=family_group(data, family), folk=folk)
+        member = elder_resident(data, seed, elder_age, local, family, {name.split()[0] for name in taken}, folk)
         made = city_person(member, data, definition, None, timeline_id, set(taken) | {definition['name']},
                            relation('grandparent', member['name']['pronouns']))
         return made | {'details': made['details'] | {'career': 'Retired', 'elder': True}}
@@ -570,11 +586,12 @@ def rename(connection, person_id, name: str, now) -> dict:
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 
-def set_kind(connection, person_id, kind: str, lifespan: int | None, now) -> dict:
+def set_kind(connection, person_id, kind: str, lifespan: int | None, now, data: dict | None = None) -> dict:
     """The user's pick of someone's kind and How long they live ('' and None: the app's again; 0: they don't age).
-    Their real age stays; the rules read their life age from it (companion/world/lifespans.py)."""
+    Their real age stays; the rules read their life age from it (companion/world/lifespans.py). `data`: the
+    companion's city, which may have kinds of its own."""
     row = person(connection, person_id)
-    require(not kind or kind in lifespans.kinds(), 'Pick one of the kinds listed.', 422)
+    require(not kind or kind in lifespans.kinds(data), 'Pick one of the kinds listed.', 422)
     details = {key: value for key, value in decode(row['details']).items() if key not in ('own_kind', 'lifespan')}
     details |= ({'own_kind': kind} if kind else {}) | ({'lifespan': lifespan} if lifespan is not None else {})
     connection.execute('UPDATE circle_people SET details=?, revision=revision+1, updated_at=? WHERE id=?',
@@ -590,12 +607,14 @@ def set_status(connection, person_id, status: str, now) -> dict:
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 
-def tie(first: dict, second: dict) -> str | None:
-    """How two circle members know each other, the same every time for the same two people."""
+def tie(first: dict, second: dict, older: bool = False) -> str | None:
+    """How two circle members know each other, the same every time for the same two people. In an older city
+    (before 1950) parents who parted are separated, and far fewer did (breakups.separated)."""
     kinds = {role_kind(first['role']), role_kind(second['role'])}
     pair = ':'.join(sorted((first['id'], second['id'])))
     if kinds == {'parent'}:
-        return 'divorced' if generators.unit(pair, 'divorced') < 0.25 else 'married'
+        parted = generators.unit(pair, 'divorced') < (OLDER_PARTED if older else 0.25)
+        return ('separated' if older else 'divorced') if parted else 'married'
     if kinds <= FAMILY:
         return 'family'
     if kinds == {'coworker'}:
@@ -608,12 +627,12 @@ def tie(first: dict, second: dict) -> str | None:
     return 'friends' if generators.unit(pair, 'friends') < chance else None
 
 
-def ties(rows: list[dict]) -> dict[str, list[dict]]:
+def ties(rows: list[dict], older: bool = False) -> dict[str, list[dict]]:
     """Who each active member knows inside the circle: {person id: [{id, name, how}]}."""
     result = {row['id']: [] for row in rows}
     for index, first in enumerate(rows):
         for second in rows[index + 1:]:
-            if how := tie(first, second):
+            if how := tie(first, second, older):
                 result[first['id']].append({'id': second['id'], 'name': second['name'], 'how': how})
                 result[second['id']].append({'id': first['id'], 'name': first['name'], 'how': how})
     return result
@@ -621,7 +640,23 @@ def ties(rows: list[dict]) -> dict[str, list[dict]]:
 
 def ties_text(known: list[dict]) -> str:
     """"Married to Rui. Knows Ana (family), Dev (coworkers).": for the chat context."""
-    partners = [f"{'Divorced from' if item['how'] == 'divorced' else 'Married to'} {item['name']}."
-                for item in known if item['how'] in ('married', 'divorced')]
-    others = [f"{item['name']} ({item['how']})" for item in known if item['how'] not in ('married', 'divorced')]
+    partners = [f"{PARTED.get(item['how'], 'Married to')} {item['name']}." for item in known if item['how'] in COUPLED]
+    others = [f"{item['name']} ({item['how']})" for item in known if item['how'] not in COUPLED]
     return ' '.join(partners + ([f"Knows {', '.join(others)}."] if others else []))
+
+
+def city_of_timeline(connection, timeline_id: str) -> dict | None:
+    """The city of the timeline's companion, None for a place the app doesn't know."""
+    from companion.characters import by_id
+    row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    companion = row and by_id(connection, row['companion_id'])
+    return ages.city_of(connection, companion['version']['definition']) if companion else None
+
+
+def older_era(connection, timeline_id: str) -> bool:
+    """The timeline's companion lives in an older city (before 1950), as breakups.separated reads it."""
+    from companion.characters import by_id
+    from companion.world import newcomers, townsfolk
+    row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    companion = row and by_id(connection, row['companion_id'])
+    return bool(companion) and not townsfolk.modern(newcomers.city_for(connection, companion['version']['definition']))

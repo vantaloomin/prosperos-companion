@@ -53,7 +53,8 @@ jobs:
 
   backend:
     # Windows runs the suite several times slower than Linux, so its tests are split over three jobs to stay well
-    # inside the time limit (COMPANION_TEST_SHARD, tests/conftest.py).
+    # inside the time limit (COMPANION_TEST_SHARD, tests/conftest.py). Now and then a Windows runner is about four
+    # times slower again (one third of the suite in 28 minutes, the other two in 8), so the limit leaves room for it.
     name: backend (${{ matrix.os }}${{ matrix.shard && format(' {0}', matrix.shard) || '' }})
     strategy:
       fail-fast: false
@@ -65,7 +66,7 @@ jobs:
           - {os: windows-latest, shard: 2/3}
           - {os: windows-latest, shard: 3/3}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:

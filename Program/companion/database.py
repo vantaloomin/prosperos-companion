@@ -343,6 +343,9 @@ ADDED_COLUMNS = (
     # When families change (companion/life/custody.py): where the pair's children live after a breakup, when the user
     # set it ('with_them', 'shared' or 'with_you'; NULL leaves it to the engine's family:custody).
     ('our_family', 'custody', "TEXT CHECK (custody IS NULL OR custody IN ('with_them', 'shared', 'with_you'))"),
+    # The breakup that choice was made in: it holds only while that one stands (not after getting back together and
+    # splitting again).
+    ('our_family', 'custody_for', 'TEXT'),
     # Lifespans (companion/world/lifespans.py): the kind and How long they live the user picked on a child's card ('' and
     # NULL: the app's pick, from their parents' kinds; lifespan 0: they don't age).
     ('circle_children', 'own_kind', "TEXT NOT NULL DEFAULT ''"),
@@ -484,6 +487,12 @@ def widen_checks(connection):
         definition = re.search(rf'CREATE TABLE IF NOT EXISTS {table} \((.*?)\n\);', SCHEMA, re.S).group(1)
         columns = ', '.join(item[1] for item in connection.execute(f'PRAGMA table_info({table})'))
         connection.execute(f'CREATE TABLE {table}_widened ({definition})')
+        # Columns added later (ADDED_COLUMNS, added above) are not in schema.sql's definition: add them here too, so
+        # the copy keeps them.
+        have = {item[1] for item in connection.execute(f'PRAGMA table_info({table}_widened)')}
+        for added_table, column, added in ADDED_COLUMNS:
+            if added_table == table and column not in have:
+                connection.execute(f'ALTER TABLE {table}_widened ADD COLUMN {column} {added}')
         connection.execute(f'INSERT INTO {table}_widened ({columns}) SELECT {columns} FROM {table}')
         connection.execute(f'DROP TABLE {table}')
         connection.execute(f'ALTER TABLE {table}_widened RENAME TO {table}')

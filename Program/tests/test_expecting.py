@@ -10,7 +10,7 @@ from test_steps import prompt, says
 from companion import consequences
 from companion.characters import current
 from companion.database import decode
-from companion.life import big_days, expecting, families, openers
+from companion.life import big_days, breakups, expecting, families, openers, parenthood, rough_patches
 
 
 @pytest.fixture
@@ -114,6 +114,10 @@ def test_their_people_hear_and_react_and_the_news_travels(client, provider, cloc
         today = clock.now().date().isoformat()
         items = expecting.news_items(connection, companion, '2000-01-01', today)
         assert [item['text'] for item in items] == ['Mira and the user are expecting a baby']
+        full = {**companion, 'version': {**companion['version'], 'definition': {
+            **companion['version']['definition'], 'name': 'Mira Reyes'}}}
+        assert [item['text'] for item in expecting.news_items(connection, full, '2000-01-01', today)] == [
+            'Mira and the user are expecting a baby']  # The first name, as a love life's news has it.
 
 
 def test_adopting_waits_for_a_match_and_the_child_comes_home(client, provider, clock, monkeypatch, likeliest):
@@ -249,9 +253,258 @@ def test_the_news_goes_out_as_a_first_text_only_once_it_happens(client, clock, m
 
 def test_the_bank_has_enough_lines_for_every_era():
     bank = expecting.bank()
-    for key in ('reactions', 'pregnancy', 'waiting'):
+    for key in ('reactions', 'pregnancy', 'waiting', 'names_talk'):
         assert len(bank[key]) >= 100 and len({line['text'] for line in bank[key]}) == len(bank[key]), key
-        assert sum(line['era'] == 'any' for line in bank[key]) >= 30, key
+        for era, unfit in families.UNFIT.items():  # What an older city keeps (expecting.fitting): 100 still.
+            assert sum(line['era'] == 'any' and not unfit.search(line['text']) for line in bank[key]) >= 100, (key, era)
+    assert len(expecting.suggested()) >= 100
     assert all(line['text'].startswith('{who}') for line in bank['reactions'])
     assert all('{name}' in line['text'] for line in bank['names_talk'])
     assert len(big_days.bank()['invite_shower']) >= 100
+
+
+def test_a_branch_made_while_expecting_still_has_the_baby(client, provider, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    to(client, clock, stage(row, 'halfway')['on'])
+    says(provider)
+    sent = send(client, 'how are you feeling', 'client-expecting-10')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id']})
+    assert fork.status_code == 200, fork.text
+    assert client.post(f"/api/timelines/{fork.json()['id']}/activate").status_code == 200
+    copy = journey(client)
+    assert copy['id'] != row['id'] and copy['due_on'] == row['due_on']
+    assert stage(copy, 'born')['on'] == stage(row, 'born')['on']
+    # Its outcomes are the copy's own, for Hidden values there.
+    with client.app.state.database.connect() as connection:
+        for key, consequence_id in decode(copy['consequences']).items():
+            found = consequences.by_id(connection, consequence_id)
+            assert found['timeline_id'] == copy['timeline_id'] and found['subject'] == f"family:{key}:{copy['id']}"
+    to(client, clock, (date.fromisoformat(stage(row, 'born')['on']) + timedelta(days=1)).isoformat())
+    assert journey(client)['status'] == 'home'
+    with client.app.state.database.connect() as connection:
+        kids = connection.execute("SELECT * FROM circle_children WHERE title='ours' AND timeline_id=?",
+                                  (copy['timeline_id'],)).fetchall()
+        assert [kid['name'] for kid in kids] == [row['details']['name']]
+
+
+def test_a_birth_while_long_distance_says_the_user_was_away(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(expecting, 'FIRST_TEXTS', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    to(client, clock, stage(row, 'halfway')['on'])
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    to(client, clock, stage(row, 'born')['on'])
+    [trigger] = triggers(client, clock)
+    assert 'The user is away' in trigger.reason
+    says(provider)
+    send(client, 'hi', 'client-expecting-11')
+    assert "The user lives away and couldn't be there" in prompt(provider)
+    assert 'with the user there with you' not in prompt(provider)
+
+
+def test_a_breakup_while_expecting_keeps_the_baby_in_the_chat(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    to(client, clock, stage(row, 'halfway')['on'])
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-expecting-12')
+    assert client.get('/api/life/breakup').json()['stage'] == 'ended'
+    says(provider)
+    send(client, 'hi', 'client-expecting-13')
+    assert 'You and the user broke up on' in prompt(provider)
+    assert 'You and the user are expecting a baby, due in' in prompt(provider)
+    to(client, clock, stage(row, 'born')['on'])
+    assert journey(client)['status'] == 'home'
+    says(provider)
+    send(client, 'hi', 'client-expecting-14')
+    assert f"Your baby was born today: a {expecting.girl(row)}, {row['details']['name']}" in prompt(provider)
+
+
+def test_an_early_arrival_keeps_the_shower_before_the_birth(client, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(big_days, 'ACTIVE', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', location='Baltimore')
+    early = {'soon': {'picked': 0}, 'turn': {'picked': expecting.TURNS.index('early')}}
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        for index in range(300):  # Every seed: the shower is a Saturday at least a week before an early birth.
+            stages, _ = expecting.pregnancy(connection, companion, row, date(2027, 1, 1), f'journey:{index}', early)
+            shower, born = (date.fromisoformat(stage({'stages': stages}, key)['on']) for key in ('shower', 'born'))
+            assert shower.weekday() == 5 and (born - shower).days >= expecting.SHOWER_BEFORE
+    # A shower planned when the child comes first is called off.
+    to(client, clock, (date.fromisoformat(stage(row, 'shower')['on']) - timedelta(days=20)).isoformat())
+    with client.app.state.database.connect(write=True) as connection:
+        assert connection.execute("SELECT status FROM big_days WHERE kind='own_shower'").fetchone()['status'] != \
+            'called_off'
+        connection.execute("UPDATE family_journeys SET status='home'")
+        big_days.follow(connection, current(connection), clock.now())
+        assert connection.execute("SELECT status FROM big_days WHERE kind='own_shower'").fetchone()['status'] == \
+            'called_off'
+
+
+def test_a_jazz_age_city_has_no_scans_car_seats_or_surrogates(client, monkeypatch, likeliest):
+    living_together(client, monkeypatch, home_city='new-york-1925', identity='She is a 31-year-old nurse.')
+    found = family(client)
+    assert 'surrogacy' not in [item['key'] for item in found['routes']] and 'adoption' in [
+        item['key'] for item in found['routes']]
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        facts = parenthood.route_facts(connection, companion, None)
+        assert facts['surrogate'] == 0 and facts['old'] == 0
+        options = consequences.odds('family:route', {**facts, 'can_carry': 0}, {'name': 'Mira', 'a': '', 'b': ''})
+        assert options[parenthood.ROUTES.index('surrogacy')]['odds'] == 0
+        assert expecting.era_group(connection, companion) == 'jazz'
+        words = expecting.ERA_WORDS['jazz']
+        assert 'scan' not in words['appointment'] + words['halfway']
+        assert not {'a car seat', 'a stroller', 'a baby monitor'} & set(words['things'])
+    for group in ('old', 'jazz', 'modern'):
+        assert len(expecting.ERA_WORDS[group]['things']) >= 2
+    assert 'a pram' not in expecting.ERA_WORDS['old']['things']  # Camelot has none.
+
+
+def test_word_getting_around_reads_you_and_them_on_today():
+    from companion import news
+    assert news.on_screen('Mira and the user are expecting a baby') == 'You and Mira are expecting a baby'
+    assert news.on_screen('Mira and the user welcomed a child home') == 'You and Mira welcomed a child home'
+    assert news.on_screen('the user') == 'You' and news.on_screen('Mira got a promotion') == 'Mira got a promotion'
+
+
+def test_the_small_moments_of_one_journey_never_repeat():
+    lines = [line for line in expecting.bank()['pregnancy'] if line['era'] == 'any']
+    for index in range(300):
+        row = {'id': f'journey-{index}'}
+        texts = [expecting.moment_text(row, moment, lines) for moment in range(expecting.MOMENTS)]
+        assert len(set(texts)) == expecting.MOMENTS
+    # The first moment is the line it always was.
+    assert expecting.moment_text({'id': 'x'}, 0, lines) == expecting.generators.pick('journey:x', 'moment:0', lines)['text']
+
+
+def test_an_older_citys_lines_name_nothing_the_era_lacks(client, monkeypatch):
+    living_together(client, monkeypatch, home_city='camelot')
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        for key in ('reactions', 'pregnancy', 'waiting'):
+            kept = expecting.fitting(expecting.bank()[key], connection, companion)
+            assert len(kept) >= 50 and not any(families.UNFIT['medieval'].search(line['text']) for line in kept), key
+
+
+def test_the_companion_suggested_the_name_as_the_character_page_says():
+    for index in range(200):
+        row = {'id': f'j{index}', 'details': {'name': 'Maya'}}
+        assert not expecting.named(row).startswith('the user ')
+    assert len(expecting.suggested()) >= 30
+
+
+def test_bed_rest_keeps_the_companion_carrying_the_baby_home_from_work(client, monkeypatch, likeliest):
+    from companion.life import work
+    started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    turn = decode(journey(client)['consequences'])['turn']
+    assert client.post(f'/api/life/consequences/{turn}/change', json={'option': 1}).status_code == 200
+    row = journey(client)
+    rest, born = (date.fromisoformat(stage(row, key)['on']) for key in ('bed_rest', 'born'))
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        found = work.days_off(connection, companion, rest - timedelta(days=3), born + timedelta(days=3))
+        assert found[rest.isoformat()] == 'Bed rest' and found[born.isoformat()] == 'Bed rest'
+        assert (rest - timedelta(days=1)).isoformat() not in found
+        assert work.LABELS['Bed rest'] == 'On bed rest at home'
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert set(expecting.days_off(connection, current(connection), rest, born).values()) == {'Home day'}
+
+
+def test_news_on_a_day_the_user_was_away_still_comes(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(expecting, 'FIRST_TEXTS', True)
+    row = started(client, monkeypatch, route='adoption')
+    match = date.fromisoformat(stage(row, 'match')['on'])
+    to(client, clock, (match - timedelta(days=2)).isoformat())
+    says(provider)
+    send(client, 'see you in a few days', 'client-expecting-15')
+    to(client, clock, (match + timedelta(days=3)).isoformat())
+    [trigger] = triggers(client, clock)
+    assert trigger.key == f"journey:{row['id']}:match" and 'matched with' in trigger.reason
+    to(client, clock, (match + timedelta(days=30)).isoformat())  # Long after, and nothing new: no text.
+    says(provider)
+    send(client, 'hi', 'client-expecting-16')
+    clock.advance(timedelta(days=1))
+    assert triggers(client, clock) == []
+
+
+def test_the_panel_names_each_outcome_under_hidden_values(client, monkeypatch, likeliest):
+    started(client, monkeypatch, route='adoption')
+    assert client.put('/api/settings', json={'show_odds': True}).status_code == 200
+    found = family(client)['journey']
+    assert [item['key'] for item in found['outcomes']] == ['wait', 'match']
+    assert [item['id'] for item in found['outcomes']] == found['consequences']
+    assert client.put('/api/settings', json={'show_odds': False}).status_code == 200
+    assert family(client)['journey']['outcomes'] == []
+
+
+def day_of(client, local_date):
+    """The companion's waking blocks on a day (written once automatic events are on and the day has come)."""
+    with client.app.state.database.connect() as connection:
+        rows = connection.execute("SELECT block, entry FROM life_agenda WHERE subject='companion' AND local_date=? "
+                                  "AND json_extract(block, '$.kind')!='sleep' ORDER BY starts_at",
+                                  (local_date,)).fetchall()
+    return [(decode(row['block']), decode(row['entry']) if row['entry'] else None) for row in rows]
+
+
+def test_the_birth_takes_the_whole_day_with_the_user_there(client, provider, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert found and all(block['arrival'] == row['id'] and block['with_user'] for block, _entry in found)
+    assert {block['label'] for block, _entry in found} == {'Having the baby at the hospital, together'}
+    name = row['details']['name']
+    summaries = [entry['summary'] for _block, entry in found]
+    assert f'Mira gave birth to {name} at the hospital, with you there.' in summaries
+    assert all('the user' not in text for text in summaries)
+
+
+def test_the_birth_day_while_long_distance_and_a_homecoming(client, provider, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert {block['label'] for block, _entry in found} == {'Having the baby at the hospital'}
+    assert not any(block['with_user'] for block, _entry in found)
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        home = {'id': 'j', 'key': 'home', 'birth': False, 'name': 'Ciro Rossi', 'surrogate': '', 'far': False,
+                'at': 'at the hospital'}
+        assert expecting.arrival_block({'start': '09:00'}, home)['label'] == 'Bringing Ciro home, together'
+        assert expecting.arrival_entry(home, {'start': '09:00'}, companion['version']['definition'])['summary'] == \
+            'Mira brought Ciro home with you.'
+
+
+def test_after_a_breakup_the_birth_day_is_without_the_user(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    to(client, clock, stage(row, 'halfway')['on'])
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-expecting-40')
+    assert client.get('/api/life/breakup').json()['stage'] == 'ended'
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert {block['label'] for block, _entry in found} == {'Having the baby at the hospital'}
+    assert not any(block['with_user'] for block, _entry in found)
+    name = row['details']['name'].split()[0]
+    assert f'Mira gave birth to {name} at the hospital.' in {entry['summary'] for _block, entry in found}
+
+
+def test_with_the_adult_side_on_the_birth_day_is_an_ordinary_one(client, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    set_life(client, automatic_events=True, phrase_with_model=False)
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    born = stage(row, 'born')['on']
+    to(client, clock, (date.fromisoformat(born) + timedelta(days=1)).isoformat())
+    found = day_of(client, born)
+    assert found and not any(block.get('arrival') for block, _entry in found)

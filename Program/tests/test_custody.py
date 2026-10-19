@@ -162,3 +162,115 @@ def test_loss_spares_a_parent_with_a_baby_under_one_and_the_pairs_grown_child(cl
         grown = {**person, 'id': 'nobody', 'details': '{"our_child": "abc"}'}
         assert custody.spared(connection, grown, today)
         assert loss.spared(connection, timeline_id, person, today)
+
+
+def test_where_the_user_set_them_to_live_holds_for_that_breakup_only(client, split, provider, clock, monkeypatch):
+    ours(client, custody='with_you')
+    clock.advance(timedelta(days=20))
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[-1]['option'])  # They want that too.
+    says(provider)
+    send(client, 'can we try again?', 'client-custody-5')
+    assert state(client) is None
+    clock.advance(timedelta(days=40))
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-custody-6')
+    assert state(client)['how'] == 'seeded'  # A second breakup: the app picks afresh, and the user can set it again.
+
+
+def test_undoing_getting_back_together_keeps_where_the_user_set_them_to_live(client, split):
+    ours(client, custody='with_you')
+    row = client.get('/api/life/breakup').json()
+    assert client.post(f"/api/life/breakup/{row['id']}/mend").status_code == 200
+    assert state(client) is None
+    assert client.post(f"/api/life/breakup/{row['id']}/undo").status_code == 200
+    assert (state(client)['pattern'], state(client)['how']) == ('with_you', 'set')
+
+
+def branched(client, text='hello'):
+    sent = send(client, 'hi', f'client-custody-{text}')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id'], 'text': text})
+    assert fork.status_code == 200, fork.text
+    assert client.post(f"/api/timelines/{fork.json()['id']}/activate").status_code == 200
+
+
+def test_a_branch_after_the_breakup_keeps_where_they_live(client, split, provider, monkeypatch):
+    reconcile(client)  # The app's pick, recorded.
+    before = state(client)
+    roll = consequences.roll
+
+    def again(seed, found):
+        assert custody.CHOICE not in seed, 'where they live was picked again'
+        return roll(seed, found)
+    monkeypatch.setattr(consequences, 'roll', again)
+    says(provider)
+    branched(client)
+    after = state(client)
+    assert (after['pattern'], after['how'], after['since']) == (before['pattern'], 'seeded', before['since'])
+    ours(client, custody='shared')
+    says(provider)
+    branched(client, 'again')
+    assert state(client)['pattern'] == 'shared' and state(client)['how'] == 'set'
+
+
+def test_a_branch_from_before_the_breakup_forgets_where_they_were_set_to_live(client, clock, monkeypatch, provider):
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    row, child = born(client, clock, monkeypatch)
+    says(provider)
+    sent = send(client, 'good morning', 'client-custody-7')['message']
+    clock.advance(timedelta(hours=2))
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-custody-8')
+    ours(client, custody='with_you')
+    fork = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'good morning!'})
+    assert fork.status_code == 200, fork.text
+    client.post(f"/api/timelines/{fork.json()['id']}/activate")
+    assert state(client) is None
+    with connect(client) as connection:
+        assert our_child.family_row(connection, current(connection)['active_timeline_id'])['custody'] is None
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-custody-9')
+    assert state(client)['how'] == 'seeded'
+
+
+def test_across_cities_the_user_is_not_the_one_home_with_them(client, clock, monkeypatch, provider):
+    row, child = born(client, clock, monkeypatch)
+    aged(client, child, 500)
+    ours(client, care='you_home')
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    if state(client) is None:
+        pytest.skip('The companion lives in Chicago in this world.')
+    view = ours(client)
+    assert view['care'] == 'both_work' and 'you_home' not in [item['key'] for item in view['cares']]
+    says(provider)
+    send(client, 'how is she?', 'client-custody-far-care')
+    assert 'the user stays home with' not in prompt(provider)
+    with connect(client) as connection:
+        companion = current(connection)
+        today = steps.local_today(companion, clock.now())
+        assert our_child.caring(connection, companion, today) == 'both_work'
+
+
+def test_across_cities_no_family_day_out_in_their_city(client, clock, monkeypatch, provider):
+    """Planned, then called off by the move, then planned again, day after day: no more."""
+    row, child = born(client, clock, monkeypatch)
+    says(provider)
+    send(client, 'hi', 'client-custody-day-out')
+    aged(client, child, 500)
+    for _ in range(21):  # A day whose week has a family day out that fits.
+        with client.app.state.database.connect(write=True) as connection:
+            companion = current(connection)
+            today = steps.local_today(companion, clock.now())
+            could = our_child.plan_outing(connection, companion, today, clock.now())
+            connection.rollback()
+        if could:
+            break
+        clock.advance(timedelta(days=1))
+    if could is None:
+        pytest.skip('No family day out fits in this world.')
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    if state(client) is None:
+        pytest.skip('The companion lives in Chicago in this world.')
+    with client.app.state.database.connect(write=True) as connection:
+        assert our_child.plan_outing(connection, current(connection), today, clock.now()) is None

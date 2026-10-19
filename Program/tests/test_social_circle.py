@@ -4,6 +4,7 @@ from datetime import timedelta
 import pytest
 from conftest import set_life
 
+from companion.characters import current
 from companion.clock import parse
 from companion.life import ages, body, circle
 
@@ -167,3 +168,39 @@ def test_an_existing_circle_gains_a_grandparent_dated_from_then(client, clock, m
     # Taken out by the user, they are not added again.
     client.post(f"/api/life/circle/{elder['id']}/remove")
     assert elders(client) == []
+
+
+def test_parents_who_parted_in_an_older_city_are_separated_and_rarer():
+    """A quarter of the circle's parents today are divorced; before 1950 (breakups.separated) few parted, and they
+    separated."""
+    pairs = [({'id': f'a{n}', 'role': 'mom'}, {'id': f'b{n}', 'role': 'dad'}) for n in range(2000)]
+    today = [circle.tie(first, second) for first, second in pairs]
+    older = [circle.tie(first, second, older=True) for first, second in pairs]
+    assert set(today) == {'married', 'divorced'} and 0.2 < today.count('divorced') / len(pairs) < 0.3
+    assert set(older) == {'married', 'separated'} and older.count('separated') / len(pairs) < 0.07
+    assert circle.ties_text([{'name': 'Rui', 'how': 'separated'}]) == 'Separated from Rui.'
+
+
+def test_an_older_citys_circle_says_its_parents_separated(client, monkeypatch):
+    monkeypatch.setattr(circle, 'OLDER_PARTED', 1.0)
+    response = client.post('/api/companion', json={'name': 'Ellis Hart', 'timezone': 'Europe/London',
+                                                   'home_city': 'london-1895', 'identity': '29. A clerk.',
+                                                   'relationship': 'friendship'})
+    assert response.status_code == 200, response.text
+    client.put('/api/life/settings', json={'circle_size': 12})
+    people = client.get('/api/life/circle').json()
+    parents = [person for person in people if circle.role_kind(person['role']) == 'parent']
+    hows = {item['how'] for person in parents for item in person['knows'] if item['id'] in {p['id'] for p in parents}}
+    assert len(parents) >= 2 and hows == {'separated'}
+
+
+def test_the_grandparent_never_shares_a_first_name_with_someone_in_the_circle(client):
+    make(client, 'Warm and curious.', identity='30.')
+    world = client.app.state.life.world
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+    definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
+    first = circle.grandparent(definition, world, timeline_id, 30, set())
+    given = first['details']['full_name'].split()[0]
+    again = circle.grandparent(definition, world, timeline_id, 30, {given, 'Someone Else'})
+    assert again['details']['full_name'].split()[0] != given and again['name'] != first['name']

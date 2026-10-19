@@ -387,6 +387,7 @@ def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
 def test_older_cities_speak_in_their_own_voice_and_today_in_a_texting_one():
     bank = families.bank()
     texts = {line['text'] for key, lines in bank.items() if key not in ('names', 'tags', 'babysit_ask') for line in lines}
+    texts |= set(bank['babysit_ask'])  # Plain-text asks are tagged by themselves (companion/life/own_family.py).
     assert set(bank['tags']['older']) <= texts and set(bank['tags']['modern']) <= texts
     for key in ('pregnancy', 'baby_update', 'toddler_update', 'child_update', 'babysit_baby', 'babysit_toddler',
                 'babysit_child'):
@@ -509,3 +510,23 @@ def test_the_companion_keeps_knowing_someone_is_expecting_between_the_storyline_
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     intimate(client)
     assert 'expecting a baby' not in prompt(client)
+
+
+def test_a_circle_baby_a_few_weeks_old_does_not_walk_sit_up_or_eat_yet():
+    from companion.life import our_child, own_family
+    child = {'id': 'c1', 'born_on': '2027-01-04', 'pronouns': 'she/her', 'name': 'Ivy', 'title': 'sister'}
+    for offset in range(1, 140):
+        found = families.news_on(child, date(2027, 1, 4) + timedelta(days=offset), 3.0, True, 'modern')
+        if found and found[0] in ('baby_update', 'babysat'):
+            said = f'{found[1]} {found[2]}'
+            assert not our_child.MOVING.search(said) and not our_child.FOOD.search(said) and \
+                not own_family.SITTING.search(said), (offset, said)
+
+
+def test_older_cities_get_no_science_fair_book_day_or_wall_stickers():
+    lines = [line for key, value in families.bank().items() if key != 'tags' and isinstance(value, list)
+             for line in value if isinstance(line, dict) and 'text' in line]
+    for era in ('jazz-age', 'victorian', 'medieval'):
+        said = ' '.join(f"{line['text']} {line['share']}" for line in families.fitting(lines, era)).lower()
+        assert 'science fair' not in said and 'book day' not in said and 'baking soda' not in said
+        assert 'sticker' not in said

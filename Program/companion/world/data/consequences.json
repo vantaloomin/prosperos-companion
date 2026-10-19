@@ -1623,6 +1623,12 @@
               "why": "{name} is past forty-five"
             },
             {
+              "reader": "age",
+              "at_least": 52,
+              "times": 0.3,
+              "why": "{name} is past fifty"
+            },
+            {
               "reader": "warmth",
               "at_least": 2,
               "times": 1.4,
@@ -1663,6 +1669,12 @@
               "at_least": 40,
               "times": 0.5,
               "why": "{name} is past forty"
+            },
+            {
+              "reader": "age",
+              "at_least": 48,
+              "times": 0.2,
+              "why": "{name} is nearly fifty or past it"
             },
             {
               "reader": "sheet",
@@ -1730,10 +1742,28 @@
               "why": "{name} isn't the one who could carry a baby"
             },
             {
+              "reader": "no_donor",
+              "at_least": 1,
+              "times": 0,
+              "why": "in these times there is no way for you two to have a baby yourselves"
+            },
+            {
               "reader": "age",
               "at_least": 40,
               "times": 0.5,
               "why": "{name} is past forty"
+            },
+            {
+              "reader": "age",
+              "at_least": 46,
+              "times": 0.1,
+              "why": "{name} is past forty-five"
+            },
+            {
+              "reader": "age",
+              "at_least": 50,
+              "times": 0,
+              "why": "{name} is past fifty"
             }
           ]
         },
@@ -1748,10 +1778,28 @@
               "why": "you aren't the one who could carry a baby"
             },
             {
+              "reader": "no_donor",
+              "at_least": 1,
+              "times": 0,
+              "why": "in these times there is no way for you two to have a baby yourselves"
+            },
+            {
               "reader": "your_age",
               "at_least": 40,
               "times": 0.5,
               "why": "you are past forty"
+            },
+            {
+              "reader": "your_age",
+              "at_least": 46,
+              "times": 0.1,
+              "why": "you are past forty-five"
+            },
+            {
+              "reader": "your_age",
+              "at_least": 50,
+              "times": 0,
+              "why": "you are past fifty"
             }
           ]
         },
@@ -1810,6 +1858,12 @@
             {
               "reader": "old",
               "at_least": 1,
+              "times": 0,
+              "why": "surrogacy doesn't fit the times"
+            },
+            {
+              "reader": "surrogate",
+              "at_most": 0,
               "times": 0,
               "why": "surrogacy doesn't fit the times"
             },
@@ -2067,6 +2121,18 @@
               "is": "no",
               "times": 100,
               "why": "{name} doesn't want children"
+            },
+            {
+              "reader": "wants",
+              "is": "yes",
+              "times": 0,
+              "why": "{name} wants children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0,
+              "why": "{name} wants children someday"
             }
           ]
         }
@@ -2133,6 +2199,12 @@
           "label": "{name} and {partner} break up",
           "weight": 0.22,
           "rules": [
+            {
+              "reader": "breakups",
+              "at_most": 0,
+              "times": 0,
+              "why": "breakups are off (an easy life has none)"
+            },
             {
               "reader": "drama",
               "at_least": 2,

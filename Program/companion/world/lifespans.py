@@ -158,7 +158,11 @@ def clean(data: dict) -> list[str]:
     """Check a city's `kinds` block and its name groups' kinds in place: a bad entry is dropped, with a note saying
     why, and the city still loads. Childhood and the age of 18 are not the city's to change: only how long adulthood
     lasts."""
-    notes, own = clean_kinds(data.get('kinds') or {})
+    block = data.get('kinds') or {}
+    if not isinstance(block, dict):
+        notes, own = ['Dropped the kinds block: it needs to name each kind with its lifespan.'], {}
+    else:
+        notes, own = clean_kinds(block)
     if own:
         data['kinds'] = own
     else:
@@ -186,6 +190,10 @@ def clean_kinds(block: dict) -> tuple[list[str], dict]:
                                  or not CITY_YEARS[0] <= span <= CITY_YEARS[1]):
             notes.append(f'Dropped the kind "{key}": its lifespan must be a whole number of years from '
                          f'{CITY_YEARS[0]} to {CITY_YEARS[1]}, or null for a kind that doesn\'t age.')
+            continue
+        if key in (HUMAN, AGELESS):
+            notes.append(f'Dropped the kind "{key}": ' + ('humans live 80 years everywhere, the measure for every '
+                                                         'other kind.' if key == HUMAN else "it doesn't age anywhere."))
             continue
         if key in builtin:
             own[key] = {'lifespan': span}  # A built-in kind: only its lifespan changes here.

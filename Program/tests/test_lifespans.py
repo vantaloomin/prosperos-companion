@@ -4,7 +4,7 @@ from datetime import date
 
 from conftest import reconcile
 
-from companion.database import decode
+from companion.database import decode, encode
 from companion.life import ages, big_turns, circle, loss, parenthood
 from companion.world import catalog, couples, dating, generators, intimacy, lifespans, looks, townsfolk, turnover
 
@@ -247,3 +247,116 @@ def test_an_elfs_other_parent_is_a_human_near_their_age_in_human_terms(client):
         person_id = kids.add_other(connection, companion, client.app.state.life.world, {}, client.app.state.database.clock.now())
         details = decode(connection.execute('SELECT details FROM circle_people WHERE id=?', (person_id,)).fetchone()['details'])
     assert 40 <= details['age'] <= 60 and not details.get('folk')
+
+
+def test_a_city_file_whose_kinds_block_is_the_wrong_shape_still_loads():
+    for block in ({'elf': 750}, [{'elf': {'lifespan': 750}}], 'elves'):
+        raw = copy.deepcopy(catalog.city('grandport'))
+        for key in ('data_version', 'import_notes', 'builtin', 'origin'):
+            raw.pop(key, None)
+        raw['kinds'] = block
+        data = catalog.prepare(raw, mend=True)
+        assert 'kinds' not in data and any('kind' in note for note in data['import_notes'])
+        assert lifespans.lifespan_of('elf', data) == 600
+
+
+def test_a_city_file_cannot_change_how_long_humans_live_or_make_doesnt_age_age():
+    raw = copy.deepcopy(catalog.city('grandport'))
+    for key in ('data_version', 'import_notes', 'builtin', 'origin'):
+        raw.pop(key, None)
+    raw['kinds'] = {'human': {'lifespan': 120}, 'ageless': {'lifespan': 500}, 'elf': {'lifespan': 750}}
+    data = catalog.prepare(raw, mend=True)
+    assert data['kinds'] == {'elf': {'lifespan': 750}}
+    notes = ' '.join(data['import_notes'])
+    assert '"human"' in notes and '"ageless"' in notes
+    assert lifespans.lifespan_of('human', data) == 80 and lifespans.lifespan_of('ageless', data) is None
+    assert lifespans.sheet_lifespan({'identity': 'A baker.'}, data) == 80
+
+
+def test_an_elf_starts_a_family_by_their_age_in_human_terms(client, monkeypatch):
+    from companion.life import families, own_family
+    companion = make(client, identity='Aerin is an elf, 150. A quiet bookbinder. He/him.', relationship='friendship')
+    monkeypatch.setattr(own_family, 'pair', lambda *_args: {'how': 'married'})
+    today = date(2026, 10, 19)
+    elder = {'id': 'p9', 'role': 'sister', 'details': '{"age": 150, "folk": "elf"}'}
+    with connect(client) as connection:
+        assert own_family.ready(connection, companion, today)  # 150 is 32 in human terms.
+        # Their elf partner of 200 (37 in human terms) can carry; a human partner of 50 can't.
+        for age, folk, carries in ((200, 'elf', True), (50, None, False)):
+            details = {'pronouns': 'she/her', 'age': age} | ({'folk': folk} if folk else {})
+            found = own_family.route(connection, companion, {'details': encode(details)}, 's', 'medieval', today)
+            assert (found == 'partner') == carries, (age, found)
+        # A sister of 150 in their circle could be expecting.
+        assert [person['id'] for person, _how in families.eligible(connection, 't', [elder], today)] == ['p9']
+
+
+def test_an_elven_townsperson_who_takes_over_stays_an_elf_of_their_age():
+    from companion import cast
+    data = catalog.city('grandport')
+    sheet = next(found for hood in data['neighborhoods'] for index in range(400)
+                 if (found := townsfolk.resident(data, hood['id'], index)).get('folk') == 'elf' and found['age'] > 120)
+    definition = cast.profile(data, sheet, {'meetings': [], 'in_story': None, 'focus': None, 'match': None},
+                              date(2026, 10, 19))
+    assert definition['kind'] == 'elf' and lifespans.sheet_kind(definition, data) == 'elf'
+    assert looks.age_of(definition, 's') == sheet['age']
+
+
+def test_an_elf_on_the_dating_app_is_drawn_the_age_they_look():
+    from companion import dating_photos
+    data = catalog.city('grandport')
+    sheet = {**townsfolk.resident(data, 'gran-porte', 3), 'age': 300, 'folk': 'elf'}
+    prompt = dating_photos.inputs(sheet, data)['prompt']
+    assert '48 years old' in prompt and '300' not in prompt
+
+
+def test_a_citys_own_kind_shows_on_a_persons_page_and_can_be_picked(client):
+    raw = copy.deepcopy(catalog.city('grandport'))
+    for key in ('data_version', 'import_notes', 'builtin', 'origin'):
+        raw.pop(key, None)
+    raw |= {'id': 'tiefport', 'name': 'Tiefport',
+            'kinds': {'elf': {'lifespan': 750}, 'tiefling': {'label': 'Tiefling', 'lifespan': 200, 'words': ['tiefling']}}}
+    assert client.post('/api/world/cities', json=raw).status_code == 200
+    make(client, identity='Aerin is a tiefling, 100. A bard. They/them.', home_city='tiefport',
+         location='Gran Porte, Tiefport')
+    reconcile(client)
+    people = client.get('/api/life/circle').json()
+    relatives = [person for person in people if person.get('folk')]
+    assert relatives and all(person['kind']['label'] == 'Tiefling' and person['kind']['years'] == 200
+                             for person in relatives)
+    friend = next(person for person in people if not person.get('folk'))
+    picked = client.put(f"/api/life/circle/{friend['id']}/kind", json={'kind': 'tiefling', 'lifespan': None})
+    assert picked.status_code == 200, picked.text
+    assert picked.json()['kind']['kind'] == 'tiefling'
+    elf = client.put(f"/api/life/circle/{friend['id']}/kind", json={'kind': 'elf', 'lifespan': None}).json()['kind']
+    assert elf['years'] == 750
+
+
+def test_a_grown_kid_of_an_elf_and_a_human_is_a_half_elf(client, clock, monkeypatch):
+    from datetime import timedelta
+
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, identity='Aerin is an elf, 312. A quiet bookbinder. She/her.', relationship='romance',
+         background='Her son Leo, 17, and her daughter Mia, 4.')
+    reconcile(client)
+    clock.advance(timedelta(days=370))
+    reconcile(client)
+    [leo] = [person for person in client.get('/api/life/circle').json() if person['name'] == 'Leo']
+    assert leo['role'] == 'son' and leo['age'] == 18 and leo['kind']['kind'] == 'half-elf'
+
+
+def test_a_child_of_two_of_a_citys_own_kind_is_that_kind(client, clock, monkeypatch):
+    from test_expecting import stage, started, to
+    from test_our_child import ours
+    raw = copy.deepcopy(catalog.city('grandport'))
+    for key in ('data_version', 'import_notes', 'builtin', 'origin'):
+        raw.pop(key, None)
+    raw |= {'id': 'tiefport', 'name': 'Tiefport',
+            'kinds': {'tiefling': {'label': 'Tiefling', 'lifespan': 200, 'words': ['tiefling']}}}
+    assert client.post('/api/world/cities', json=raw).status_code == 200
+    client.put('/api/persona', json={'name': 'Sam', 'about': 'A tiefling smith.'})
+    row = started(client, monkeypatch, identity='She is a tiefling and a 31-year-old nurse.', home_city='tiefport',
+                  location='Gran Porte, Tiefport')
+    to(client, clock, stage(row, 'born')['on'])
+    [child] = ours(client)['children']
+    assert (child['kind']['label'], child['kind']['years']) == ('Tiefling', 200)

@@ -42,7 +42,7 @@ from companion import consequences
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import ages, circle, pronouns, steps
+from companion.life import ages, breakups, circle, pronouns, steps
 from companion.world import catalog, lifespans
 
 # Off in tests unless a test turns it on (tests/conftest.py): a seeded partner adds circle people and first texts.
@@ -434,7 +434,7 @@ def roll(connection, companion: dict, found: dict, top: int, following, topic: s
     from companion.memory import pairs
     definition = companion['version']['definition']
     facts = {'love_life': level(connection), 'drama': steps.drama(connection), 'step': top,
-             'can_up': int(following is not None),
+             'can_up': int(following is not None), 'breakups': int(breakups.switched_on(connection)),
              'mood': consequences.total(connection, companion['active_timeline_id'],
                                         pairs.companion_key(companion['id']), 'mood', day.isoformat()),
              'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)}}

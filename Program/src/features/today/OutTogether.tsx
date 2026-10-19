@@ -53,10 +53,17 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {peopleLine(outing.place, outing.state) && <p className="subtle">{peopleLine(outing.place, outing.state)}</p>}
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
+      <SitterLine outing={outing} />
       {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <Now outing={outing} act={act} />}
     </li>
   )
+}
+
+/** An evening out with a child of yours at home: who is watching them that night (words only). */
+function SitterLine({ outing }: { outing: Outing }) {
+  if (!outing.sitter || outing.state === 'cancelled') return null
+  return <p className="subtle">{outing.sitter.text}</p>
 }
 
 /** Head home, or Call it a night after a long day: your wedding, or a big day in their circle (not a funeral). */
