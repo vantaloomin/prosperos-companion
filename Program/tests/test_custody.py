@@ -185,3 +185,48 @@ def test_undoing_getting_back_together_keeps_where_the_user_set_them_to_live(cli
     assert client.post(f"/api/life/breakup/{row['id']}/undo").status_code == 200
     assert (state(client)['pattern'], state(client)['how']) == ('with_you', 'set')
 
+
+def branched(client, text='hello'):
+    sent = send(client, 'hi', f'client-custody-{text}')['message']
+    fork = client.post('/api/timelines', json={'message_id': sent['id'], 'text': text})
+    assert fork.status_code == 200, fork.text
+    assert client.post(f"/api/timelines/{fork.json()['id']}/activate").status_code == 200
+
+
+def test_a_branch_after_the_breakup_keeps_where_they_live(client, split, provider, monkeypatch):
+    reconcile(client)  # The app's pick, recorded.
+    before = state(client)
+    roll = consequences.roll
+
+    def again(seed, found):
+        assert custody.CHOICE not in seed, 'where they live was picked again'
+        return roll(seed, found)
+    monkeypatch.setattr(consequences, 'roll', again)
+    says(provider)
+    branched(client)
+    after = state(client)
+    assert (after['pattern'], after['how'], after['since']) == (before['pattern'], 'seeded', before['since'])
+    ours(client, custody='shared')
+    says(provider)
+    branched(client, 'again')
+    assert state(client)['pattern'] == 'shared' and state(client)['how'] == 'set'
+
+
+def test_a_branch_from_before_the_breakup_forgets_where_they_were_set_to_live(client, clock, monkeypatch, provider):
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    row, child = born(client, clock, monkeypatch)
+    says(provider)
+    sent = send(client, 'good morning', 'client-custody-7')['message']
+    clock.advance(timedelta(hours=2))
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-custody-8')
+    ours(client, custody='with_you')
+    fork = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'good morning!'})
+    assert fork.status_code == 200, fork.text
+    client.post(f"/api/timelines/{fork.json()['id']}/activate")
+    assert state(client) is None
+    with connect(client) as connection:
+        assert our_child.family_row(connection, current(connection)['active_timeline_id'])['custody'] is None
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-custody-9')
+    assert state(client)['how'] == 'seeded'

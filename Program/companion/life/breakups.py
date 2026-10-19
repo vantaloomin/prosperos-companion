@@ -996,6 +996,7 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str) -> Non
             continue
         found = {**row, 'id': identifier(), 'timeline_id': new_id, 'message_id': ids.get(row['message_id']),
                  'answer_id': ids.get(row['answer_id'])}
+        ids[row['id']] = found['id']  # For what names the episode (custody.copy).
         for at, columns in LATER:
             if row[at] and row[at] > cutoff:
                 found.update(dict.fromkeys(columns))

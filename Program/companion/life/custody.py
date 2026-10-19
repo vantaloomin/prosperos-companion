@@ -28,7 +28,7 @@ from datetime import date, timedelta
 
 from companion import consequences
 from companion.clock import parse, stamp
-from companion.database import decode, encode, optional
+from companion.database import decode, encode, many, optional
 from companion.errors import require
 from companion.life import families, shifts, steps
 from companion.life.steps import FAMILY
@@ -144,6 +144,21 @@ def here(connection, companion: dict, day: date) -> bool:
 def advance(connection, companion: dict, now) -> None:
     """Once a day (our_child.advance): where the children live is decided once a breakup ends things."""
     found(connection, companion, now)
+
+
+def copy(connection, parent_id: str, new_id: str, ids: dict) -> None:
+    """A fork (companion/timelines.py, after breakups.copy) keeps the app's pick for each breakup it carries, and where
+    the user set the children to live for a breakup it carries (our_child.copy copied the setting)."""
+    from companion.life import our_child
+    for row in many(connection, 'SELECT id, subject FROM consequences WHERE timeline_id=? AND choice=?',
+                    (parent_id, CHOICE)):
+        breakup_id = row['subject'].rsplit(':', 1)[-1]
+        if breakup_id in ids:
+            consequences.copy(connection, row['id'], new_id, f'{CHOICE}:{new_id}:{ids[breakup_id]}')
+    family = our_child.family_row(connection, parent_id)
+    kept = ids.get(family.get('custody_for'))
+    connection.execute('UPDATE our_family SET custody=?, custody_for=? WHERE timeline_id=?',
+                       (family.get('custody') if kept else None, kept, new_id))
 
 
 # The chat context -----------------------------------------------------------------------------------------------------
