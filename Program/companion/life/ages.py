@@ -248,7 +248,12 @@ def town_age(connection, sheet: dict, day: date) -> int:
     of their seeded birthdays since. A townsperson with a row of their own (one who became someone) goes by it."""
     if row := stored(connection, 'town', sheet['key']):
         return age_from(row, day)
-    began = town_began(connection)
+    return aged(sheet, day, town_began(connection))
+
+
+def aged(sheet: dict, day: date, began: date | None) -> int:
+    """A townsperson's age on a day, from the day the town started getting older (`town_began`): for the paper and
+    town couples (companion/world/paper.py, couples.py), which have that day but no connection."""
     # A newcomer (companion/world/turnover.py) was their seeded age the day they arrived in town.
     if began is not None and sheet.get('arrived'):
         began = max(began, date.fromisoformat(sheet['arrived']))

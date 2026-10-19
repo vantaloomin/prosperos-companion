@@ -195,3 +195,25 @@ def test_london_1895_staff_mostly_work_on_where_baltimore_staff_retire():
                                                                                       turnover.week_of(later(20))))
         return found
     assert retired('london-1895') * 2 < retired('baltimore')
+
+
+def test_the_paper_gives_the_age_around_town_does(monkeypatch):
+    from companion.life import ages
+    monkeypatch.setattr(turnover, 'STATE', turnover.Levels(turnover.STATE.clock, loss=4))
+    data = city() | {'began': date(2027, 2, 14)}
+    for place in data['places']:
+        found = [term for term in townsfolk.place_terms(data, place, 0, turnover.week_of(later(30)))
+                 if term.why == 'passed']
+        if found:
+            break
+    term = found[0]
+
+    def sheet_of(generation):
+        return townsfolk.person(data, place, turnover.STRIDE * generation)
+    [item] = [item for item in paper.moves(data, [term], range(term.left, term.left + 1), sheet_of)
+              if item.get('obituary')]
+    sheet, day = sheet_of(term.generation), turnover.week_day(term.left)
+    assert f" at {ages.aged(sheet, day, data['began'])}" in item['text']
+    assert couples.age_on(sheet, data, day) == ages.aged(sheet, day, data['began'])
+    # Without the town's own day, the paper counts from when the town started changing hands.
+    assert couples.age_on(sheet, city(), day) == ages.aged(sheet, day, turnover.START)
