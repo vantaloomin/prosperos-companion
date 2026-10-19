@@ -568,6 +568,31 @@ def test_life_posts_are_held_back_while_grief_is_raw_or_heavy(client, clock):
     assert shown == ['Lifting again.', 'Market finds.'], shown
 
 
+def test_a_post_already_read_stays_on_show_through_grief(client, clock):
+    """A workspace from v0.14 showed every post on the days after a death: one the user read stays."""
+    from companion.database import identifier
+    from companion.life import feed
+    make(client)
+    now = clock.now()
+    late(client, 'dad', now.date() - timedelta(days=2))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        timeline = companion['active_timeline_id']
+        for summary, read in (('Read already.', True), ('Not read yet.', False)):
+            at, event_id = now.isoformat(), identifier()
+            connection.execute(
+                'INSERT INTO life_events (id, companion_id, timeline_id, idempotency_key, kind, status, summary, '
+                'starts_at, ends_at, character_version_id, permission_revision, created_at, decided_at) '
+                "VALUES (?, ?, ?, ?, 'ordinary', 'committed', ?, ?, ?, ?, 1, ?, ?)",
+                (event_id, companion['id'], timeline, identifier(), summary, at, at, companion['active_version_id'],
+                 at, at))
+            feed.create(connection, timeline, 'event', f'event:{event_id}', [event_id], at, at)
+            if read:
+                connection.execute('UPDATE feed_posts SET read_at=? WHERE idempotency_key=?', (at, f'event:{event_id}'))
+        shown = [post['events'][0]['summary'] for post in feed.visible_posts(connection, timeline)]
+    assert shown == ['Read already.'], shown
+
+
 def test_friends_answer_a_quiet_grief_status_gently():
     from companion.life import social
     for text in social.STATUS['grief']:

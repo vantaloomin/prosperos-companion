@@ -1005,9 +1005,13 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str) -> Non
                 found.update(dict.fromkeys(columns))
         for column in ('strained_id', 'thinking_id', 'break_id', 'ended_id', 'together_id'):
             if found[column]:
-                subject = optional(connection, 'SELECT subject FROM consequences WHERE id=?', (found[column],))
-                found[column] = consequences.copy(connection, found[column], new_id, (subject or {}).get(
-                    'subject', '').replace(row['id'], found['id']) or f"breakup:{found['id']}:{column}")
+                was = (optional(connection, 'SELECT subject FROM consequences WHERE id=?', (found[column],)) or
+                       {}).get('subject', '')
+                # A subject naming the rough patch rather than this row ("breakup:<patch>:strained") gets one of the
+                # copy's own: subjects are unique, and the patch is not copied.
+                subject = was.replace(row['id'], found['id'])
+                found[column] = consequences.copy(connection, found[column], new_id, subject if subject != was else
+                                                  f"breakup:{found['id']}:{column}")
         marks = ', '.join('?' * len(found))
         connection.execute(f"INSERT INTO breakups ({', '.join(found)}) VALUES ({marks})",  # noqa: S608
                            tuple(found.values()))

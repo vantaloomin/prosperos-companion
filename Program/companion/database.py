@@ -483,6 +483,12 @@ def widen_checks(connection):
         definition = re.search(rf'CREATE TABLE IF NOT EXISTS {table} \((.*?)\n\);', SCHEMA, re.S).group(1)
         columns = ', '.join(item[1] for item in connection.execute(f'PRAGMA table_info({table})'))
         connection.execute(f'CREATE TABLE {table}_widened ({definition})')
+        # Columns added later (ADDED_COLUMNS, added above) are not in schema.sql's definition: add them here too, so
+        # the copy keeps them.
+        have = {item[1] for item in connection.execute(f'PRAGMA table_info({table}_widened)')}
+        for added_table, column, added in ADDED_COLUMNS:
+            if added_table == table and column not in have:
+                connection.execute(f'ALTER TABLE {table}_widened ADD COLUMN {column} {added}')
         connection.execute(f'INSERT INTO {table}_widened ({columns}) SELECT {columns} FROM {table}')
         connection.execute(f'DROP TABLE {table}')
         connection.execute(f'ALTER TABLE {table}_widened RENAME TO {table}')

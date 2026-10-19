@@ -372,8 +372,10 @@ def add_kid(connection, companion: dict, world, kid: dict, index: int, now, pare
     timeline_id, today = companion['active_timeline_id'], steps.local_today(companion, now)
     seed = f"kids:{timeline_id}:{parent_id or companion['id']}:{index}"
     sex = kid.get('pronouns') or ('she/her' if generators().unit(seed, 'sex') < 0.49 else 'he/him')
-    born = kid.get('born_on') or apart(connection, companion, kid, seed, today, parent_id or companion['id'],
-                                       mark or f'{MARK}{timeline_id}')
+    kept = None if kid.get('born_on') else circle_birthday(connection, timeline_id, kid.get('name'))
+    born = kid.get('born_on') or (ages.born_from(age_for(connection, companion, kid, seed, today), kept, today) if kept
+                                  else apart(connection, companion, kid, seed, today, parent_id or companion['id'],
+                                             mark or f'{MARK}{timeline_id}'))
     name = kid.get('name') or families.baby_name(companion['version']['definition'], world, seed, sex,
                                                  families.taken_names(connection, companion))
     connection.execute(
@@ -402,6 +404,18 @@ def apart(connection, companion: dict, kid: dict, seed: str, today: date, parent
         if born and born <= today and all(abs((born - other).days) >= SPACING for other in siblings):
             return born
     return born_on(first_age, seed, today)
+
+
+def circle_birthday(connection, timeline_id: str, name: str | None) -> str | None:
+    """The birthday ('MM-DD') a circle from before v0.15 gave a son or daughter of this name, kept when they become
+    a child of the companion's (their birthday was already told, in chat and on Today)."""
+    if not name:
+        return None
+    for person in circle.people(connection, timeline_id, include_removed=True):
+        if person['role'] in ('son', 'daughter') and decode(person['details']).get('sheet') == name:
+            found = ages.stored(connection, 'circle', person['id'])
+            return (found or {}).get('birthday') or decode(person['details']).get('birthday')
+    return None
 
 
 def own(connection, timeline_id: str, include_ended: bool = False) -> list[dict]:
@@ -515,7 +529,12 @@ def add_other(connection, companion: dict, world, wanted: dict, now) -> str:
                                      'co_parent': True}}
     ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
     circle.insert(connection, timeline_id, [person], ordinal, now)
-    return one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))['id']
+    added = one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))['id']
+    # Their days start now, as a grandparent's do (circle.add_grandparent): nothing is written for them before they
+    # joined, such as two weeks of a circle from v0.14.
+    connection.execute('INSERT OR IGNORE INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?)',
+                       (timeline_id, added, stamp(now)))
+    return added
 
 
 # A townsperson's own --------------------------------------------------------------------------------------------------

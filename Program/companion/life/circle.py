@@ -406,6 +406,17 @@ def add_grandparent(connection, companion: dict, world, now) -> bool:
     return True
 
 
+def elder_resident(data: dict, seed: str, age: int, local: bool, family: str | None, firsts: set[str]) -> dict:
+    """A resident for the grandparent whose first name nobody in the circle has (a sibling and a grandmother both
+    "Ayo Solano" read as one person), after a few tries."""
+    for attempt in range(8):
+        member = generators.resident(data, seed=seed if not attempt else f'{seed}:{attempt}', role='parent', age=age,
+                                     local=local, family=family, group=family_group(data, family))
+        if member['name']['given'] not in firsts:
+            break
+    return member
+
+
 def grandparent(definition: dict, world, timeline_id: str, age: int, taken: set[str]) -> dict:
     """The seeded grandparent: retired, local or out of town, on the family's side about half the time."""
     seed = f'circle:{timeline_id}:grandparent'
@@ -415,8 +426,7 @@ def grandparent(definition: dict, world, timeline_id: str, age: int, taken: set[
     data = city_data(definition, world)
     if data:
         family = family_name(definition) if generators.unit(seed, 'family-side') < 0.5 else None
-        member = generators.resident(data, seed=seed, role='parent', age=elder_age, local=local,
-                                     family=family, group=family_group(data, family))
+        member = elder_resident(data, seed, elder_age, local, family, {name.split()[0] for name in taken})
         made = city_person(member, data, definition, None, timeline_id, set(taken) | {definition['name']},
                            relation('grandparent', member['name']['pronouns']))
         return made | {'details': made['details'] | {'career': 'Retired', 'elder': True}}

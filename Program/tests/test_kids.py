@@ -475,3 +475,36 @@ def test_a_name_from_their_description_still_counts_once_the_child_is_out_of_the
         assert families.pictured(connection, companion['active_timeline_id'], ['At the park with Leo'])
         assert 'Leo' in families.every_name(connection)
         assert 'Leo' not in families.names(connection, companion['active_timeline_id'])
+
+
+def test_an_other_parent_added_to_an_existing_circle_has_no_days_before_then(client, clock, monkeypatch):
+    """A v0.14 circle gains the kids' other parent at the upgrade: their days start then, none written before."""
+    from companion.clock import parse
+    monkeypatch.setattr(kids, 'ACTIVE', False)
+    make(client, identity='38. A single dad of two. He/him.')
+    circle(client)
+    clock.advance(timedelta(days=10))
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    reconcile(client)
+    other = next(person for person in circle(client) if person['role'] == 'co-parent')
+    with client.app.state.database.connect() as connection:
+        cursor = connection.execute('SELECT through FROM agenda_cursors WHERE subject=?', (other['id'],)).fetchone()
+        written = connection.execute('SELECT starts_at FROM life_agenda WHERE subject=?', (other['id'],)).fetchall()
+    assert cursor and parse(cursor['through']) >= clock.now() - timedelta(hours=1)
+    assert all(parse(row['starts_at']) >= clock.now() - timedelta(hours=1) for row in written)
+
+
+def test_a_v014_son_handed_to_the_kids_keeps_his_birthday(client, monkeypatch):
+    from companion.life import named
+    monkeypatch.setattr(kids, 'ACTIVE', False)
+    monkeypatch.setattr(named, 'in_circle', named.people)  # The circle as v0.14 assembled it.
+    make(client, background='Her son Leo, 7.')
+    [leo] = [person for person in circle(client) if person['name'] == 'Leo']
+    birthday = leo['birthday']
+    monkeypatch.undo()
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        [kid] = [dict(row) for row in connection.execute("SELECT * FROM circle_children WHERE name='Leo'")]
+    assert kid['born_on'][5:] == birthday, (kid, birthday)
+    assert [item['age'] for item in panel(client)['kids']] == [7]

@@ -160,7 +160,10 @@ def visible_posts(connection, timeline_id, include_hidden=False) -> list[dict]:
     rows = many(connection, f'SELECT * FROM feed_posts WHERE timeline_id=? AND status IN {statuses} '
                 'ORDER BY occurs_at DESC, id DESC', (timeline_id,))
     mourning = grief_test(connection, timeline_id)
-    return [view for view in (post_view(connection, row) for row in rows if not mourning(row['occurs_at'])) if view]
+    # A post the user already read or reacted to stays: holding back never takes away what they saw (a workspace
+    # from before v0.15 had these posts on show).
+    return [view for view in (post_view(connection, row) for row in rows
+                              if row['read_at'] or row['reaction'] or not mourning(row['occurs_at'])) if view]
 
 
 def grief_test(connection, timeline_id):
