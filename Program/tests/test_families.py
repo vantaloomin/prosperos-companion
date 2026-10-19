@@ -400,6 +400,23 @@ def test_a_companion_living_in_town_never_has_a_town_baby(monkeypatch):
     assert key not in {item['key'] for item in paper.comings_and_goings({**data, 'companions': (sheet['key'],)}, week)}
 
 
+def test_a_companion_made_from_a_townsperson_drops_their_town_love_life():
+    from companion.life import encounters
+    from companion.world import catalog, paper, townsfolk
+    data, span = catalog.city('baltimore'), (date(2026, 10, 19), date(2029, 10, 19))
+    sheet, found = next((sheet, found) for hood in data['neighborhoods'] for slot in range(12)
+                        if (found := couples.events(sheet := townsfolk.resident(data, hood['id'], slot), data, span)))
+    assert couples.couple(sheet, data, span[1]) is not None
+    stand_in = encounters.stand_in(data, 'c1', sheet['key'], {'name': 'Alex Moore', 'identity': '30.'})
+    assert couples.events(stand_in, data, span) == [] and couples.couple(stand_in, data, span[1]) is None
+    kept = {**data, 'companions': (sheet['key'],)}
+    assert couples.events(sheet, kept, span) == [] and couples.couple(sheet, kept, span[1]) is None
+    day = found[0]['day']
+    week = (day - timedelta(days=day.weekday()), day + timedelta(days=6 - day.weekday()))
+    keys = {f"{sheet['key']}:{item['what']}" for item in found if week[0] <= item['day'] <= week[1]}
+    assert not keys & {item['key'] for item in paper.couples_news(kept, week)}
+
+
 def test_a_baby_is_never_named_after_a_word_in_one_of_the_citys_places():
     from companion.world import catalog
     data = catalog.city('baltimore')
