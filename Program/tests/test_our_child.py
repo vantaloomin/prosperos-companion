@@ -376,4 +376,4 @@ def test_a_sick_day_and_a_holiday_read_right_for_the_child(client, clock, monkey
         [holiday] = our_child.holiday_line(connection, companion, child, today)
     them = {'she/her': 'her', 'he/him': 'him'}.get(child['pronouns'], 'them')
     assert found[f"ours:sick:{child['id']}"].endswith(f'is home to look after {them}.')
-    assert holiday
+    assert 'made up an Easter Day treasure hunt' in holiday[1]

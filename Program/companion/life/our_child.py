@@ -730,7 +730,8 @@ def holiday_line(connection, companion: dict, child: dict, today: date) -> list[
     line = generators.pick(f"ours:{child['id']}", f"holiday:{holiday['holiday']}:{today.year}", lines)
     if line is None:
         return []
-    return [(f"ours:holiday:{child['id']}:{holiday['holiday']}", f"- {filled(line['text'], child, holiday=holiday['name'])}")]
+    text = line['text'].replace('a {holiday}', 'an {holiday}') if holiday['name'][:1] in 'AEIO' else line['text']
+    return [(f"ours:holiday:{child['id']}:{holiday['holiday']}", f"- {filled(text, child, holiday=holiday['name'])}")]
 
 
 def today_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
