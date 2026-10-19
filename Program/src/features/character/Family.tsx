@@ -1,27 +1,43 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { FamilyView } from '../../types'
+import type { FamilyView, KidsView } from '../../types'
 import { Field, Toggle } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, stepDate } from './stepsText'
-import { FAMILY_KEY, appPick, decidedHint, wantsHint } from './familyText'
+import { FAMILY_KEY, KIDS_KEY, appPick, decidedHint, wantsHint } from './familyText'
+import { Kids } from './Kids'
 
 type FamilyChange = { wants?: string; route?: string; decided?: boolean }
 type Save = (change: FamilyChange) => void
 
 /** Wanting children (companion/life/parenthood.py): whether they want children, and for a romance how a child would
- * come for you two and whether you have decided to start a family. The app picks each one; the user can change it. */
+ * come for you two and whether you have decided to start a family; first, the kids they already have
+ * (companion/life/kids.py). The app picks each one; the user can change it. */
 export function Family({ name }: { name: string }) {
-  const client = useQueryClient()
   const query = useQuery({ queryKey: FAMILY_KEY, queryFn: () => api<FamilyView>('/life/steps/family') })
-  const [error, setError] = useState('')
-  const view = query.data
+  const kids = useQuery({ queryKey: KIDS_KEY, queryFn: () => api<KidsView>('/life/steps/kids') })
   if (query.isError) return <ErrorNotice error={query.error} />
-  if (!view?.shown) return null
+  const view = query.data?.shown ? query.data : null
+  const theirs = kids.data?.shown ? kids.data : null
+  if (!view && !theirs) return null
+  return (
+    <section id="family" className="home-panel steps-panel family-panel" aria-labelledby="family-heading">
+      <h2 id="family-heading">Family</h2>
+      {theirs && <Kids view={theirs} name={name} />}
+      {view && <Wishes view={view} name={name} headed={Boolean(theirs)} />}
+    </section>
+  )
+}
+
+/** What they want, and for a romance how a child would come and whether you two have decided; under its own heading
+ * when their kids come first. */
+function Wishes({ view, name, headed }: { view: FamilyView; name: string; headed: boolean }) {
+  const client = useQueryClient()
+  const [error, setError] = useState('')
   const save = async (change: FamilyChange) => {
     setError('')
     try {
@@ -29,14 +45,12 @@ export function Family({ name }: { name: string }) {
       void client.invalidateQueries({ queryKey: STEPS_KEY })
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'That was not saved.') }
   }
-  return (
-    <section id="family" className="home-panel steps-panel family-panel" aria-labelledby="family-heading">
-      <h2 id="family-heading">Family</h2>
-      <WantsField view={view} name={name} save={(change) => void save(change)} />
-      {view.romance && view.routes && <TogetherFields view={view} name={name} save={(change) => void save(change)} />}
-      {error && <Notice tone="error">{error}</Notice>}
-    </section>
-  )
+  return <>
+    {headed && <h3 className="family-subheading">{view.romance ? 'A family together' : 'More children'}</h3>}
+    <WantsField view={view} name={name} save={(change) => void save(change)} />
+    {view.romance && view.routes && <TogetherFields view={view} name={name} save={(change) => void save(change)} />}
+    {error && <Notice tone="error">{error}</Notice>}
+  </>
 }
 
 /** Whether they want children: the app's pick first, named, then the three answers. */

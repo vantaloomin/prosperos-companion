@@ -5,7 +5,7 @@ from pydantic import Field
 
 from companion.characters import require_current
 from companion.database import settings
-from companion.life import moving_in, parenthood, steps
+from companion.life import kids, moving_in, parenthood, steps
 from companion.models import Input
 
 router = APIRouter(prefix='/api/life/steps')
@@ -77,3 +77,33 @@ def update_family(request: Request, body: FamilyUpdate):
         companion = require_current(connection)
         parenthood.update(connection, companion, now, body.wants, body.route, body.decided)
         return read_family_view(connection, companion, now)
+
+
+class KidsUpdate(Input):
+    pattern: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
+    remove: str | None = Field(default=None, max_length=64, pattern=r'^[0-9a-f]+$')
+    restore: str | None = Field(default=None, max_length=64, pattern=r'^[0-9a-f]+$')
+
+
+def read_kids_view(connection, companion, world, now) -> dict:
+    return kids.view(connection, companion, world, now, bool(settings(connection).get('show_odds')))
+
+
+@router.get('/kids')
+def read_kids(request: Request):
+    """The Family panel's kids (companion/life/kids.py): their children, where they live and their other parent."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        return read_kids_view(connection, require_current(connection), request.app.state.life.world, now)
+
+
+@router.put('/kids')
+def update_kids(request: Request, body: KidsUpdate):
+    """Set where the kids live ('auto' lets the app decide), or take a child out of their life."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        kids.update(connection, companion, now, body.pattern, body.remove, body.restore)
+        return read_kids_view(connection, companion, request.app.state.life.world, now)

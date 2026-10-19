@@ -2583,3 +2583,25 @@ CREATE TABLE IF NOT EXISTS babysitting (
   UNIQUE (timeline_id, child_id, local_date)
 );
 CREATE INDEX IF NOT EXISTS babysitting_timeline ON babysitting(timeline_id, status, local_date);
+
+-- Companions who already have kids (companion/life/kids.py), per timeline: how their own children came to be known
+-- (`how`: their description, their life as a townsperson, the consequence engine's kids:has, or none), the kids' other
+-- parent in their circle (`other_id`, NULL when widowed), where the kids live (`chosen` by the user, else kids:custody's
+-- pick when `pattern_consequence_id`, else `pattern` as the description or the household fixed it), the Monday alternate weeks count from (`since`)
+-- and the first names of children the user took out of their life (`removed`, JSON), so the description doesn't
+-- bring them back. The children themselves are in circle_children.
+CREATE TABLE IF NOT EXISTS companion_kids (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  how TEXT NOT NULL CHECK (how IN ('description', 'town', 'seeded', 'none')),
+  other_id TEXT,
+  pattern TEXT NOT NULL CHECK (pattern IN ('together', 'with_them', 'shared', 'weekends', 'sole')),
+  chosen TEXT CHECK (chosen IN ('together', 'with_them', 'shared', 'weekends', 'sole')),
+  consequence_id TEXT,
+  pattern_consequence_id TEXT,
+  since TEXT NOT NULL,
+  removed TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS companion_kids_consequence ON companion_kids(consequence_id);

@@ -2256,6 +2256,15 @@ p.breakup-line { align-items: center; }
 .steps-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; }
 /* Wanting children (companion/life/parenthood.py): room under the last toggle, as under the steps list. */
 .family-panel .toggle { margin-bottom: 24px; }
+.family-panel { min-width: 0; }
+.family-panel select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.kids-block { display: grid; gap: 8px; margin-bottom: 24px; min-width: 0; }
+.kids-block h3 { margin: 0; font-size: 1rem; }
+.kids-block > p { margin: 0; }
+.kid-card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-block: 8px; }
+.kid-card p { margin: 0; }
+.kids-block .kids-standing { margin: 4px 0 0; }
+.family-subheading { margin: 0 0 8px; font-size: 1rem; }
 /* Meeting their people: whether they have met you, on the circle list. */
 .met-you { display: flex; align-items: center; gap: 6px; }
 .met-you svg { width: 14px; height: 14px; flex: none; }

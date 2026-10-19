@@ -1,4 +1,4 @@
-import type { FamilyView } from '../../types'
+import type { FamilyView, Kid, KidsView } from '../../types'
 import { firstName } from './panelText.ts'
 
 export const FAMILY_KEY = ['family']
@@ -24,4 +24,53 @@ export function decidedHint(view: FamilyView, name: string): string {
   if (!view.can_decide) return `This comes after you two decide to live together.`
   if (view.wants === 'no') return `${who} doesn't want children, so they won't bring it up. You still can, in the chat.`
   return `${who} brings it up when the time feels right, and you answer in the chat. You can also set it here.`
+}
+
+export const KIDS_KEY = ['kids']
+
+/** "Leo, 7, son" or "Ivy, 7 months old, daughter": one of their own children on the Family panel. */
+export function kidLine(kid: Kid): string {
+  const age = kid.age_text === 'a newborn' ? 'newborn' : kid.age_text
+  return `${kid.name}, ${age}, ${kid.relation}`
+}
+
+/** Where their kids came from, under the list. */
+export function kidsHint(view: KidsView, name: string): string {
+  const who = firstName(name)
+  if (view.how === 'town') return `${who} had them while living in town, before they were a companion.`
+  if (view.how === 'seeded') return `Picked by the app for ${who}. Take a child out of their life if they shouldn't be there.`
+  return `Read from ${who}'s description. Take a child out of their life if they shouldn't be there.`
+}
+
+/** Under "Where the kids live": who decided it, the arrangement spelled out, and the other parent. */
+export function whereHint(view: KidsView, name: string): string {
+  const who = firstName(name)
+  const other = view.other ? ` ${firstName(view.other.name)}, their other parent, is in ${who}'s circle as their ${view.other.role}.` : ''
+  const detail = view.detail ? `: ${view.detail}.` : '.'
+  if (view.pattern_how === 'set') return `You set this${detail}${other}`
+  if (view.pattern_how === 'fixed') return `Read from ${who}'s description${detail}${other}`
+  return `Picked by the app${detail}${other}`
+}
+
+/** The first choice of "Where the kids live": the description's arrangement or the app's pick, named. */
+export function wherePick(view: KidsView, name: string, label: string): string {
+  if (view.pattern_how === 'fixed') return `From ${firstName(name)}'s description (${label})`
+  return appPick(view.pattern_how === 'set' ? 'what fits them' : label)
+}
+
+/** "Leo", "Leo and Mia", "Leo, Mia and Sam". */
+export function kidNames(view: KidsView): string {
+  const names = (view.kids ?? []).map((kid) => kid.name)
+  return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+}
+
+/** For a romance: where you stand with their kids, as a labelled line under them. */
+export function standingLine(view: KidsView, name: string): { label: string; text: string } | null {
+  const who = firstName(name)
+  const them = (view.kids?.length ?? 0) === 1 ? kidNames(view) : 'them'
+  if (view.step_parent) return { label: 'Step-parent', text: `you live with ${who}, so you're ${kidNames(view)}'s step-parent.` }
+  if (view.meeting === 'unmet') return { label: 'Not met yet', text: `${who} will bring it up when the time feels right.` }
+  if (view.meeting === 'soon') return { label: 'Meeting soon', text: `you'll meet ${them} at the get-together ${who} planned.` }
+  if (view.meeting === 'met') return { label: 'Met', text: `you've met ${them}.` }
+  return null
 }
