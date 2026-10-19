@@ -111,6 +111,13 @@ def test_past_fifty_wanting_children_someday_is_rare():
     assert odds[2] < 0.2
 
 
+@pytest.mark.parametrize('wanted', ['yes', 'someday'])
+def test_one_who_wants_children_never_answers_that_they_dont(wanted):
+    facts = {'wants': wanted, 'married': 0, 'short_days': 30, 'closeness_over': -1, 'pace': 1, 'mood': -1}
+    odds = consequences.odds('family:answer', facts, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    assert odds[2]['odds'] == 0
+
+
 def test_how_a_child_comes_is_picked_from_the_pair(client, monkeypatch, likeliest):
     make(client, monkeypatch, identity='She is a 31-year-old nurse.')
     persona = client.get('/api/worlds').json()['persona']

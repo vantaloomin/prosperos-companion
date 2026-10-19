@@ -2103,6 +2103,18 @@
               "is": "no",
               "times": 100,
               "why": "{name} doesn't want children"
+            },
+            {
+              "reader": "wants",
+              "is": "yes",
+              "times": 0,
+              "why": "{name} wants children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0,
+              "why": "{name} wants children someday"
             }
           ]
         }
