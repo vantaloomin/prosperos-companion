@@ -730,6 +730,21 @@ def at_dinner(connection, companion: dict) -> str:
     return f", and your kids {steps.names_text([first(kid['name']) for kid in found])}"
 
 
+def at_dinner_guests(connection, companion: dict, day: date) -> list[dict]:
+    """The kids at the family dinner, for Today's guest line: [{'name': 'Leo', 'role': 'son, 6'}]; none with the
+    adult side on."""
+    found = own(connection, companion['active_timeline_id']) if ACTIVE and companion.get('active_timeline_id') else []
+    if not found or families.withheld(connection):
+        return []
+    result = []
+    for kid in found:
+        born = date.fromisoformat(kid['born_on'])
+        age = day.year - born.year - ((day.month, day.day) < (born.month, born.day))
+        word = {'she/her': 'daughter', 'he/him': 'son'}.get(kid['pronouns'], 'child')
+        result.append({'name': first(kid['name']), 'role': f"{word}, {age}" if age else f"{word}, a baby"})
+    return result
+
+
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     """(identity, line) for the 'kids' section: their children, where they live, and where the user stands with them;
     and the step-children of a love-life partner they live with. None with the adult side on."""

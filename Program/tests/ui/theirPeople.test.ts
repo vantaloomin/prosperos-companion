@@ -31,6 +31,9 @@ test('a family dinner says who comes and where', () => {
   // Once it is over it reads as past.
   assert.equal(peopleLine(place, 'done'), 'With Ana (mom), Rui (dad) and Leo (brother), the first time you met')
   assert.equal(peopleLine({ ...place, people: [place.people[0]], first: false }), 'With Ana (mom)')
+  const kids = [{ name: 'Leo', role: 'son, 6' }, { name: 'Maya', role: 'daughter, 3' }]
+  assert.equal(peopleLine({ ...place, people: [place.people[0]], kids }),
+    'With Leo (son, 6), Maya (daughter, 3) and Ana (mom), meeting you for the first time')
   assert.equal(peopleLine({ ...place, people: undefined }), '')
 })
 

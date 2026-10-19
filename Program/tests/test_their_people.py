@@ -175,6 +175,8 @@ def test_a_parent_with_no_family_in_town_has_their_friends_to_dinner_with_the_ki
     assert outing['activity'] == their_people.AT_FAMILY and outing['place']['own']
     assert outing['place']['name'] == "Mira Costa's place" and outing['place']['kind'] == 'home'  # 'Their place'
     assert [person['role'] for person in outing['place']['people']] == ['close friend', 'friend']
+    assert [kid['name'] for kid in outing['place']['kids']] == ['Leo', 'Mia']  # Today's guest line names them
+    assert [kid['role'].split(',')[0] for kid in outing['place']['kids']] == ['son', 'daughter']
     at(clock, outing, '19:30')
     says(provider)
     send(client, 'hi everyone!', 'client-people-home')

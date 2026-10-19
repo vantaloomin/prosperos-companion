@@ -437,6 +437,9 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
         cost = bill if affordable else round(bill * 0.6, 2)
     place |= {'people': [{'id': person['id'], 'name': person['name'], 'role': person['role']} for person in people],
               'meetup': meetup_id, 'first': row['why'] == 'step'}
+    if activity == AT_FAMILY and place['first']:
+        from companion.life import kids
+        place['kids'] = kids.at_dinner_guests(connection, companion, day)
     outing = together.insert(connection, companion, message['id'], activity, place, day, at,
                              outings.until(at, activity), None, timestamp)
     # No photo of it: the image model can't place the user at a family table (images/prompts.py).
