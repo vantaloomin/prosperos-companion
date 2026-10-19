@@ -1132,9 +1132,11 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     version = companion['version']
     since = (now.astimezone(zone(version['timezone'])).date() - timedelta(days=14)).isoformat()
     found = in_force(connection, companion['active_timeline_id'], since, include_cancelled=True)
+    from companion.life import our_child  # An evening out with a child at home: who watches them (screen only).
     return [{**outing, 'state': state(outing, version['timezone'], now),
              'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
-             'cost_text': money_text(companion, outing).strip()} for outing in found]
+             'cost_text': money_text(companion, outing).strip(),
+             'sitter': our_child.sitter_view(connection, companion, outing)} for outing in found]
 
 
 def photo_ready(connection, now: datetime) -> list[dict]:
