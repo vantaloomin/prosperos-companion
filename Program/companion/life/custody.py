@@ -37,8 +37,8 @@ PATTERNS = ('with_them', 'shared', 'with_you')
 LABELS = {'with_them': 'Mostly with {name}', 'shared': 'Half and half', 'with_you': 'Mostly with you'}
 DETAILS = {'with_them': "with {name}, every other weekend with you", 'shared': 'a week with {name}, a week with you',
            'with_you': 'with you, every other weekend with {name}'}
-FAR_DETAILS = {'with_them': 'with {name}; you see {them} on your visits', 'with_you': 'with you; {name} sees {them} on '
-               'your visits'}
+FAR_DETAILS = {'with_them': 'with {name}; you see {them} when you visit', 'with_you': 'with you; {name} sees {them} '
+               'when you visit'}
 BABY_DAYS = 365
 OWN_CHOICE = 'kids:custody'
 OWN_PATTERNS = ('with_them', 'shared', 'weekends')
@@ -207,7 +207,10 @@ def view(connection, companion: dict, show_odds: bool) -> dict | None:
     them = families.fill_child('{them}', kids[0]) if len(kids) == 1 else 'them'
     keys = [key for key in PATTERNS if not (state['far'] and key == 'shared')]
     details = FAR_DETAILS if state['far'] else DETAILS
+    ended_on = steps.local_today(companion, parse(ended(connection, companion)['ended_at'])).isoformat() \
+        if state['split'] else None
     return {'pattern': state['pattern'], 'how': state['how'], 'split': state['split'], 'far': bool(state['far']),
+            'ended_on': ended_on,
             'city': (state['far'].your_city or {}).get('name') if state['far'] else None,
             'detail': details[state['pattern']].format(name=name, them=them),
             'patterns': [{'key': key, 'label': LABELS[key].format(name=name)} for key in keys] if state['split'] else [],

@@ -565,6 +565,8 @@ export interface Custody {
   how: 'set' | 'seeded'
   split: boolean
   far: boolean
+  /** The day it ended, after a breakup. */
+  ended_on: string | null
   city: string | null
   detail: string
   patterns: { key: string; label: string }[]

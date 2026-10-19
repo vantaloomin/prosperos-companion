@@ -135,7 +135,13 @@ function Arrangements({ view, name, save }: { view: OursView; name: string; save
 function CustodyField({ custody, name, save }: { custody: Custody; name: string; save: (change: OursChange) => void }) {
   const set = custody.how === 'set'
   const label = custody.patterns.find((item) => item.key === custody.pattern)?.label ?? ''
-  if (custody.patterns.length < 2) return <p className="subtle">{custodyHint(custody, name)}</p>
+  if (custody.patterns.length < 2) {
+    return <div className="field">
+      <span className="label-row"><span className="field-label">Where they live</span></span>
+      <p className="field-value">{custody.pattern === 'with_you' ? 'With you' : `With ${name.split(' ')[0]}`}</p>
+      <small className="subtle">{custodyHint(custody, name)}</small>
+    </div>
+  }
   return <>
     <Field label="Where they live" hint={custodyHint(custody, name)}>
       {(id, describedBy) => (

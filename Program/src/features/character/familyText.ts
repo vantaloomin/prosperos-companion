@@ -165,10 +165,16 @@ export function careHint(view: OursView, name: string): string {
 /** Under "Where they live": since when, who picked it, and the arrangement spelled out. */
 export function custodyHint(custody: Custody, name: string): string {
   const who = firstName(name)
-  if (!custody.split) return `You live in ${custody.city ?? 'another city'} now, so they stay with ${who}; your visits are when you see them.`
+  if (!custody.split) return `You live in ${custody.city ?? 'another city'} now, so they stay with ${who} and you see them when you visit.`
   const how = custody.how === 'set' ? 'You set this' : `Picked by the app since you and ${who} split up`
   const far = custody.far ? ` You live in ${custody.city ?? 'another city'} now, so a week each can't work.` : ''
   return `${how}: ${custody.detail}.${far}`
+}
+
+/** In place of "A family together" while you two are split up. */
+export function splitLine(custody: Custody, name: string): string {
+  const when = custody.ended_on ? ` on ${stepDate(custody.ended_on)}` : ''
+  return `You and ${firstName(name)} split up${when}; this comes back if you get back together.`
 }
 
 /** Under "Another child": where it stands. */
