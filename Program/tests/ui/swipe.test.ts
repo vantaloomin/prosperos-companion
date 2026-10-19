@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { BLANK, interestText } from '../../src/features/dating/datingText.ts'
+import { BLANK, cardHeading, cardLabel, humanTerms, interestText } from '../../src/features/dating/datingText.ts'
 import { undoLabel, answeredText, arrowWay, decide, hintText, nextHeard, pose, stamp, threshold, tilt, undoShown } from '../../src/features/dating/swipe.ts'
 
 test('a drag past a third of the card likes to the right and passes to the left', () => {
@@ -100,4 +100,15 @@ test('the Like stamp sits on the edge that stays on screen, and a notice wraps i
 test('the interest line names one age once when the range is a single year', () => {
   assert.match(interestText({ ...BLANK, age_min: 22, age_max: 22 }), /aged 22, looking/)
   assert.match(interestText({ ...BLANK, age_min: 22, age_max: 30 }), /aged 22 to 30, looking/)
+})
+
+test('a card of a long-lived kind gives their age in human terms beside the real one', () => {
+  const elf = { name: 'Aerwen', age: 225, life_age: 40 }
+  assert.equal(cardHeading(elf), 'Aerwen, 225')
+  assert.equal(humanTerms(elf), 'about 40 in human terms')
+  assert.equal(cardLabel(elf), 'Aerwen, 225, about 40 in human terms')
+  for (const human of [{ name: 'Maya', age: 29, life_age: null }, { name: 'Maya', age: 29 }, { name: 'Maya', age: 29, life_age: 29 }]) {
+    assert.equal(humanTerms(human), '')
+    assert.equal(cardLabel(human), 'Maya, 29')
+  }
 })

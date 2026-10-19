@@ -1819,6 +1819,8 @@ export interface DatingProfile {
 }
 export interface DatingCard {
   key: string; name: string; age: number; gender: DatingGender; pronouns: string; orientation: string
+  /** A long-lived kind's age in human terms (matching reads it); null when it is their age. */
+  life_age?: number | null
   looking: DatingAim; looking_text: string; looks: string; job: string; neighborhood: string; bio: string
   /** An older era's personal-column notice, with initials only; '' on a dating app. */
   notice: string

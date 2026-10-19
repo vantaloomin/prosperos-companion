@@ -12,6 +12,17 @@ export function cardHeading(card: Pick<DatingCard, 'name' | 'age'>): string {
   return `${card.name}, ${card.age}`
 }
 
+/** "about 40 in human terms", beside the real age of someone of a long-lived kind; '' for everyone else. */
+export function humanTerms(card: Pick<DatingCard, 'age' | 'life_age'>): string {
+  return card.life_age && card.life_age !== card.age ? `about ${card.life_age} in human terms` : ''
+}
+
+/** The card as it is read out: "Aerwen, 225, about 40 in human terms". */
+export function cardLabel(card: Pick<DatingCard, 'name' | 'age' | 'life_age'>): string {
+  const terms = humanTerms(card)
+  return terms ? `${cardHeading(card)}, ${terms}` : cardHeading(card)
+}
+
 /** "Showing women aged 25 to 40, looking for a relationship." */
 export function interestText(profile: DatingProfile): string {
   const who = GENDERS.filter(([value]) => profile.interested_in.includes(value)).map(([, , plural]) => plural.toLowerCase())

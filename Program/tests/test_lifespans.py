@@ -431,3 +431,12 @@ def test_an_elven_townsperson_past_200_still_has_a_life_story_to_tell():
     definition = cast.profile(data, sheet, {'meetings': [], 'in_story': None, 'focus': None, 'match': None},
                               date(2026, 10, 19))
     assert sheet['name'] in definition['background'] and definition['kind'] == 'elf'
+
+
+def test_a_matchlight_card_for_an_elf_gives_their_age_in_human_terms():
+    data = catalog.city('grandport')
+    elf = {**townsfolk.resident(data, 'gran-porte', 3), 'age': 225, 'folk': 'elf'}
+    card = dating.card(elf, data, date(2026, 10, 19))
+    assert card['age'] == 225 and card['life_age'] == dating.life_of(elf, data) == 40
+    human = {**townsfolk.resident(data, 'gran-porte', 3), 'age': 34, 'folk': 'human'}
+    assert dating.card(human, data, date(2026, 10, 19))['life_age'] is None
