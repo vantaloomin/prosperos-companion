@@ -1,11 +1,11 @@
 """Next steps API (companion/life/steps.py): where the user and the open companion stand, setting the step and the
-"just friends" lock."""
+"just friends" lock, and the Family panel (companion/life/parenthood.py)."""
 from fastapi import APIRouter, Request
 from pydantic import Field
 
 from companion.characters import require_current
 from companion.database import settings
-from companion.life import moving_in, steps
+from companion.life import moving_in, parenthood, steps
 from companion.models import Input
 
 router = APIRouter(prefix='/api/life/steps')
@@ -46,3 +46,34 @@ def update_steps(request: Request, body: StepsUpdate):
         if body.just_friends is not None:
             steps.set_lock(connection, companion, body.just_friends, database.now())
         return read(connection, companion, now)
+
+
+class FamilyUpdate(Input):
+    wants: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
+    route: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
+    decided: bool | None = None
+
+
+def read_family_view(connection, companion, now) -> dict:
+    return parenthood.view(connection, companion, now, bool(settings(connection).get('show_odds')))
+
+
+@router.get('/family')
+def read_family(request: Request):
+    """The Family panel on the Character page: whether they want children, how a child would come for you two, and
+    whether you have decided to start a family; the odds only with Hidden values' odds on."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        return read_family_view(connection, require_current(connection), now)
+
+
+@router.put('/family')
+def update_family(request: Request, body: FamilyUpdate):
+    """Set whether they want children ('auto' lets the app decide), how a child would come, or the step."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        parenthood.update(connection, companion, now, body.wants, body.route, body.decided)
+        return read_family_view(connection, companion, now)

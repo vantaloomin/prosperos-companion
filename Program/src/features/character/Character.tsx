@@ -44,6 +44,7 @@ import { BringCharacter } from './BringCharacter'
 import { BringChat } from './BringChat'
 import { Lore } from './Lore'
 import { Steps } from './Steps'
+import { Family } from './Family'
 import { LifeLately } from './LifeLately'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
@@ -188,6 +189,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
   const name = companion.version.name
   return (<>
     <Steps name={name} />
+    <Family name={name} />
     {details && <>
       <LifeLately name={name} />
       <Home name={name} />

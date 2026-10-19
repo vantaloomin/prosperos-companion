@@ -30,6 +30,7 @@ from companion.life import (
     moving_in,
     network,
     outings,
+    parenthood,
     pets,
     reactions,
     recommendations,
@@ -529,7 +530,8 @@ def read_consequence(request: Request, consequence_id: str):
 CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.change,
            'people:': lambda: their_people.change, 'breakup:': lambda: breakups.change,
            'bigday:': lambda: big_days.change, 'tense-ask:': lambda: rough_patches.change_ask,
-           'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change}
+           'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change,
+           'family:': lambda: parenthood.change}
 
 
 @router.post('/consequences/{consequence_id}/change')

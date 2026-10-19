@@ -37,7 +37,8 @@ export function askText(ask: Ask, name: string): string {
     const answer = { open: 'Waiting on your answer.', yes: 'You said yes.', not_yet: 'You said not yet.', no: 'You said no.', lapsed: 'You let it pass for now.' }[ask.status]
     return `${who} brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${answer}`
   }
-  return `You brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${ask.status === 'yes' ? `${who} said yes.` : `${who} said not yet.`}`
+  const theirs = { yes: 'said yes.', no: 'said no.' }[ask.status as 'yes' | 'no'] ?? 'said not yet.'
+  return `You brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${who} ${theirs}`
 }
 
 /** "I love you" is said, not brought up: "Mira said “I love you.” You said it back." */
