@@ -55,6 +55,19 @@ def test_their_description_says_whether_they_want_children():
     assert parenthood.described({'personality': 'Driven and funny.'}) is None
 
 
+@pytest.mark.parametrize('text, wants', [
+    ('She never wanted to be a mother.', 'no'), ("He doesn't want to have kids.", 'no'), ('She doesn\u2019t want kids.', 'no'),
+    ('Kids aren\u2019t for her.', 'no'), ('She has decided against having children.', 'no'),
+    ('Not a kid person.', 'no'), ("They'd rather not have children.", 'no'), ('Never saw herself as a mom.', 'no'),
+    ("He can't wait to be a dad.", 'yes'), ('She wants to start a family.', 'yes'), ('Wants three kids.', 'yes'),
+    ('She hopes to have children.', 'yes'), ("She's always pictured herself with kids.", 'yes'),
+    ('Not ready for kids yet.', 'someday'), ('She never wanted kids to see her cry.', None),
+    ('She works with children at the hospital.', None),
+])
+def test_their_description_is_read_in_other_words_too(text, wants):
+    assert parenthood.described({'identity': text}) == wants
+
+
 def test_the_app_picks_what_they_want_and_the_user_can_change_it(client, monkeypatch):
     make(client, monkeypatch, background='Has always wanted a big family.')
     found = family(client)

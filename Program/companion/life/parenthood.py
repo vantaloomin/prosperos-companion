@@ -61,21 +61,51 @@ SIBLING_LINE = ('You and the user have decided to have another child, a brother 
 JOURNEY = ('family:soon', 'family:turn', 'family:wait', 'family:match', 'family:fostered')
 
 # What their own description says, read in this order: "never wanted kids" before "wanted kids", "kids someday"
-# before "wants kids".
+# before "wants kids". Each list is a set of alternatives.
 _KIDS = r'(?:kids|children|a child|a baby|babies|a family|a big family)'
-SAYS = (
-    ('no', re.compile(rf"\b(?:never (?:wanted|wants|want) {_KIDS}|(?:don'?t|doesn'?t|do not|does not|won'?t) (?:ever )?"
-                      rf"want {_KIDS}|child[- ]?free|no (?:interest in|desire for|plans for) (?:having )?{_KIDS}|not "
-                      r"the (?:parenting|parent|maternal|paternal|family) type|(?:hates|can'?t stand) (?:kids|children)|"
-                      r"kids (?:are|were) never (?:in the cards|for (?:me|him|her|them)))\b", re.IGNORECASE)),
-    ('someday', re.compile(rf"\b{_KIDS} (?:someday|some day|one day|eventually|down the line|later on)\b|\bmaybe "
-                           r"(?:kids|children)\b|\bsomeday,? (?:kids|children|a family)\b", re.IGNORECASE)),
-    ('yes', re.compile(rf"\b(?:(?:always )?(?:wanted|wants|want) {_KIDS}|(?:always )?wanted to be a (?:mom|mum|mother|"
-                       r"dad|father|parent)|dreams? (?:of|about) (?:a family|having (?:kids|children)|being a (?:mom|mum|"
-                       r"mother|dad|father|parent))|(?:would|'d) love (?:kids|children|a family|to be a (?:parent|mom|mum|"
-                       r"mother|dad|father))|baby fever|longs? for (?:a family|children|kids)|family[- ](?:minded|"
-                       r"oriented))\b", re.IGNORECASE)),
+_PARENT = r'(?:a )?(?:mom|mum|mother|dad|father|parent)'
+_SELF = r'(?:her|him|them|my|your|one)sel(?:f|ves)'
+_WANT = r'want(?:s|ed)?'
+_NOT = r"(?:don'?t|doesn'?t|do not|does not|won'?t|didn'?t|did not|never)"
+# "never wanted kids to see her cry" is not about wanting children.
+_NOT_ABOUT = r'(?! (?:to|around|near|in|at)\b)'
+_SAYS_NO = (
+    rf"never (?:planned on|planned to have) {_KIDS}",
+    rf"{_NOT} (?:ever |really )?{_WANT} (?:to (?:have|raise) )?{_KIDS}{_NOT_ABOUT}",
+    rf"{_NOT} (?:ever |really )?{_WANT} to be {_PARENT}",
+    r'child[- ]?free',
+    rf"no (?:interest in|desire for|plans for|intention of|wish for|wish to have) (?:having |raising )?{_KIDS}",
+    r'not (?:the|a) (?:parenting|parent|maternal|paternal|family|kids?|baby) (?:type|person)',
+    r"(?:hates|can'?t stand) (?:kids|children)",
+    r"(?:kids|children|motherhood|fatherhood|parenthood|parenting|a family) (?:are|is|were|was|aren'?t|isn'?t|weren'?t|"
+    r"wasn'?t) (?:never |not )?(?:in the cards|for (?:me|him|her|them))",
+    r'decided (?:against|not to have) (?:having )?(?:kids|children)',
+    r"(?:would|'d) rather not have (?:kids|children)",
+    rf"never (?:saw|sees|see|pictured|imagined) {_SELF} (?:as {_PARENT}|with (?:kids|children))",
+    rf"can'?t (?:imagine|see) (?:{_SELF} )?(?:being {_PARENT}|as {_PARENT}|having (?:kids|children))",
 )
+_SAYS_SOMEDAY = (
+    rf"{_KIDS} (?:someday|some day|one day|eventually|down the line|later on)(?! soon)",
+    r'maybe (?:kids|children)',
+    r'someday,? (?:kids|children|a family)',
+    r'not ready for (?:kids|children|a family|a baby) yet',
+    r'(?:kids|children)\W+maybe later',
+)
+_SAYS_YES = (
+    rf"(?:always )?(?:{_WANT}|hop(?:es|ing)? to have|(?:would|'d) like to have) {_KIDS}{_NOT_ABOUT}",
+    rf"(?:always )?{_WANT} to (?:have|start|raise) {_KIDS}",
+    rf"(?:always )?{_WANT} to be {_PARENT}",
+    rf"{_WANT} (?:a houseful|lots|a bunch|two|three|four|five|several) (?:of )?(?:kids|children)",
+    rf"dreams? (?:of|about) (?:a family|having (?:kids|children)|being {_PARENT})",
+    rf"(?:would|'d) love (?:kids|children|a family|to be {_PARENT})",
+    rf"can'?t wait to (?:be {_PARENT}|have (?:kids|children|a family|a baby))",
+    r'baby fever',
+    r'longs? for (?:a family|children|kids)',
+    r'family[- ](?:minded|oriented)',
+    rf"(?:always )?(?:pictured|pictures|imagined|imagines|sees|saw) {_SELF} (?:with (?:kids|children)|as {_PARENT})",
+)
+SAYS = tuple((wants, re.compile(rf"\b(?:{'|'.join(found)})\b", re.IGNORECASE))
+             for wants, found in (('no', _SAYS_NO), ('someday', _SAYS_SOMEDAY), ('yes', _SAYS_YES)))
 CANT = re.compile(r"\b(?:can'?t (?:have|carry) (?:kids|children|a baby|a child)|infertile|unable to have (?:kids|"
                   r"children)|had a hysterectomy)\b", re.IGNORECASE)
 
@@ -112,6 +142,7 @@ def described(definition: dict) -> str | None:
     """'yes', 'someday' or 'no' when their own description says it, else None."""
     themes = ' '.join(definition.get('life_themes') or [])
     text = f"{consequences.sheet_text(definition)} {definition.get('history_together') or ''} {themes}"
+    text = text.replace('\u2019', "'").replace('\u2018', "'")  # "doesn’t" as typed on a phone.
     return next((wants for wants, pattern in SAYS if pattern.search(text)), None)
 
 
