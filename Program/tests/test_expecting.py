@@ -10,7 +10,7 @@ from test_steps import prompt, says
 from companion import consequences
 from companion.characters import current
 from companion.database import decode
-from companion.life import big_days, expecting, families, openers
+from companion.life import big_days, breakups, expecting, families, openers, rough_patches
 
 
 @pytest.fixture
@@ -294,3 +294,22 @@ def test_a_birth_while_long_distance_says_the_user_was_away(client, provider, cl
     send(client, 'hi', 'client-expecting-11')
     assert "The user lives away and couldn't be there" in prompt(provider)
     assert 'with the user there with you' not in prompt(provider)
+
+
+def test_a_breakup_while_expecting_keeps_the_baby_in_the_chat(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    to(client, clock, stage(row, 'halfway')['on'])
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-expecting-12')
+    assert client.get('/api/life/breakup').json()['stage'] == 'ended'
+    says(provider)
+    send(client, 'hi', 'client-expecting-13')
+    assert 'You and the user broke up on' in prompt(provider)
+    assert 'You and the user are expecting a baby, due in' in prompt(provider)
+    to(client, clock, stage(row, 'born')['on'])
+    assert journey(client)['status'] == 'home'
+    says(provider)
+    send(client, 'hi', 'client-expecting-14')
+    assert f"Your baby was born today: a {expecting.girl(row)}, {row['details']['name']}" in prompt(provider)
