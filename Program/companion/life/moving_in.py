@@ -1274,7 +1274,8 @@ def living_lines(connection, companion: dict, row: dict, now: datetime) -> list[
     since = 'today' if row['moved_on'] == today.isoformat() else f"since {day_text(row['moved_on'])}"
     shared = their_home(connection, companion, today)
     what = shared['description'] if shared else f'a place in {place_text(connection, row)}'
-    costs = 'mortgage' if shared and shared.get('owned') else 'rent'  # A place bought together (big_turns.py).
+    # A place bought together (big_turns.py): its payments, in a medieval city.
+    costs = ('payments' if shared.get('medieval') else 'mortgage') if shared and shared.get('owned') else 'rent'
     yours = [found['name'] for found in pets.of_persona(connection)]
     house = members(connection, household(row), today)
     names = {found['owner']: first_of(connection, found['timeline_id']) for found in house}

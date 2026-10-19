@@ -92,3 +92,10 @@ test('a time beside a label from their day is in their time zone', () => {
   assert.match(eventWhen('2026-11-29T23:00:00Z', now, 'America/New_York', '18:30'), /6:30\sPM$/)
   assert.match(eventWhen('2026-11-29T23:00:00Z', now, 'America/New_York', undefined), /6:00\sPM$/)
 })
+
+test('a big turn names how its latest stage went for "Make it go this way"', async () => {
+  const { outcomeSummary } = await import('../../src/features/character/turnsText.ts')
+  assert.equal(outcomeSummary('business'), 'How the business is going')
+  assert.equal(outcomeSummary('health'), 'How it looks')
+  assert.equal(outcomeSummary('caring'), 'How the caring is going')
+})

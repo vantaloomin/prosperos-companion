@@ -35,6 +35,8 @@ MODERN_WAGE_MULTIPLE = (1.0, 1.25, 1.5, 2.4)
 RENT_MULTIPLE = (2.4, 3.4, 5.0, 8.0)
 WORK_DAYS = {'month': 22, 'week': 6}
 ESSENTIALS = {'modern': 0.3, 'jazz-age': 0.35, 'other': 0.4}
+# A medieval kingdom or a fairy-tale land: payments on a place, not a mortgage, and no pension (big_turns.py).
+MEDIEVAL = {'medieval', 'fantasy'}
 # Share of what is left after rent and essentials that goes on fun; the rest is saved.
 STYLES = {'careful': 0.45, 'balanced': 0.65, 'spender': 0.9}
 # How fast the fun money goes through a pay cycle; spenders run dry before payday.
@@ -593,6 +595,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'retired': bool(home and (home.get('pay') or {}).get('retired')),
         'business': (home.get('pay') or {}).get('business') if home else None,
         'owned': bool(home and home['costs'].get('owned')),
+        'medieval': found.city.get('era') in MEDIEVAL,  # No mortgage or pension there.
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
         'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
                                                                   'saving')},
@@ -622,13 +625,16 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     place = 'your home' if view['rent_from'] == 'home' else \
         f"{view['housing']['label']} in {view['housing']['neighborhood']}"
     # A place they bought has a mortgage instead of rent (companion/life/big_turns.py).
-    housing = f"the mortgage on {place} is about {text['rent']}" if view.get('owned') else \
-        f"rent is about {text['rent']} for {place}"
+    loan = 'payments on' if view.get('medieval') else 'the mortgage on'
+    housing = f"{loan} {place} {'are' if view.get('medieval') else 'is'} about {text['rent']}" if view.get('owned') \
+        else f"rent is about {text['rent']} for {place}"
     lines = [('budget', f"- You take home about {text['income']} {per}{work}; {housing}.")]
     if view.get('between_jobs'):
         lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; {housing}.")]
     if view.get('retired'):
-        lines = [('budget', f"- Retired, you live on a pension of about {text['income']} {per}; {housing}.")]
+        lines = [('budget', f"- You have given up work and live on what you put by, about {text['income']} {per}; "
+                            f'{housing}.' if view.get('medieval') else
+                  f"- Retired, you live on a pension of about {text['income']} {per}; {housing}.")]
     if view.get('business'):  # Their own business (companion/life/business.py).
         lines = [('budget', f"- Your {view['business']} brings in about {text['income']} {per}; {housing}.")]
     if view['budget']['upkeep']:

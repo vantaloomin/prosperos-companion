@@ -4,6 +4,7 @@ import { api } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings } from '../../companion'
 import type { Consequence, ReasonMove } from '../../types'
 import { storyDate } from './storyText'
+import { LATELY_KEY } from '../character/turnsText'
 
 /** "Why it went this way": each way a turning could have gone, its odds and what moved them, and a way to make
  * it go another way. Loads only when opened, and shows only with Hidden values > odds turned on. `settled` when it can't
@@ -26,7 +27,7 @@ function Odds({ id, possibleOnly, settled, summary }: { id: string; possibleOnly
       setFailed(error instanceof Error ? error.message : String(error))
       return
     }
-    await Promise.all([['storylines'], ['reactions'], ['chapters'], ['circle'], ['breakup'], ['steps'], COMPANION_KEY].map((queryKey) => client.invalidateQueries({ queryKey })))
+    await Promise.all([['storylines'], ['reactions'], ['chapters'], ['circle'], ['breakup'], ['steps'], LATELY_KEY, COMPANION_KEY].map((queryKey) => client.invalidateQueries({ queryKey })))
   }
   return (
     <details className="why-it-went" onToggle={(event) => setOpen(event.currentTarget.open)}>

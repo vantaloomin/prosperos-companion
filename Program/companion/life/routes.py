@@ -13,6 +13,7 @@ from companion.errors import DomainError, require
 from companion.life import (
     agenda,
     big_days,
+    big_turns,
     breakups,
     calls,
     chapters,
@@ -529,7 +530,10 @@ def read_consequence(request: Request, consequence_id: str):
 CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.change,
            'people:': lambda: their_people.change, 'breakup:': lambda: breakups.change,
            'bigday:': lambda: big_days.change, 'tense-ask:': lambda: rough_patches.change_ask,
-           'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change}
+           'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change,
+           # How a business, a health turn or a parent's care is going (big_turns.py).
+           'business:': lambda: big_turns.change_stage, 'health:': lambda: big_turns.change_stage,
+           'caring:': lambda: big_turns.change_stage}
 
 
 @router.post('/consequences/{consequence_id}/change')

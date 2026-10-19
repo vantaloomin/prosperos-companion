@@ -31,6 +31,14 @@ test('money text states payday, mood and goal plainly', () => {
   assert.equal(workText(budget), 'Registered nurse (guessed from who they are), taking home about $4,070 a month.')
 })
 
+test('a medieval kingdom has payments on a place and no pension', () => {
+  const old = { ...budget, owned: true, retired: true, medieval: true }
+  assert.equal(rentText(old), 'Payments: about $1,280 for the place they bought.')
+  assert.equal(workText(old), 'Given up work, living on what they put by: about $4,070 a month.')
+  assert.equal(rentText({ ...old, medieval: false }), 'Mortgage: about $1,280 for the place they bought.')
+  assert.equal(workText({ ...old, medieval: false }), 'Retired, living on a pension of about $4,070 a month.')
+})
+
 test('career choices follow the home city era and keep the current pick', () => {
   const careers = [{ id: 'nurse', name: 'Nurse', pay: '$$', eras: ['modern'] }, { id: 'smith', name: 'Smith', pay: '$', eras: ['medieval'] }]
   assert.deepEqual(careersFor(careers, 'medieval', '').map((career) => career.id), ['smith'])
