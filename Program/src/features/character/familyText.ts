@@ -51,7 +51,7 @@ export function kidsHint(view: KidsView, name: string): string {
 /** Under "Where the kids live": who decided it, the arrangement spelled out, and the other parent. */
 export function whereHint(view: KidsView, name: string): string {
   const who = firstName(name)
-  const other = view.other ? ` ${firstName(view.other.name)}, their other parent, is in ${who}'s circle as their ${view.other.role}.` : ''
+  const other = view.other ? ` ${firstName(view.other.name)}, their other parent, is ${who}'s ${view.other.role}.` : ''
   const detail = view.detail ? `: ${view.detail}.` : '.'
   if (view.pattern_how === 'set') return `You set this${detail}${other}`
   if (view.pattern_how === 'fixed') return `Read from ${who}'s description${detail}${other}`
