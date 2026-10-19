@@ -25,6 +25,8 @@ def net(monkeypatch):
         ('https', 'http'), bool(calls) and calls[-1] == ('serve', port)))
     monkeypatch.setattr(tailscale, 'serve', lambda port: calls.append(('serve', port)))
     monkeypatch.setattr(tailscale, 'stop', lambda port: calls.append(('stop',)))
+    # Looking this PC's name up can take half a minute on a CI Mac; the home-network tests set their own.
+    monkeypatch.setattr(lan, 'addresses', lambda: ['192.168.1.20'])
     return calls
 
 
