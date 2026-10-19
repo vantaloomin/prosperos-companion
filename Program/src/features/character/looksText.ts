@@ -41,6 +41,17 @@ export function keepsAgeHint(definition: Pick<CharacterDefinition, 'name' | 'kee
   return `${lead} a year older on each birthday. Turn this on for a character who shouldn't age.`
 }
 
+const DECADES: Record<string, number> = { twenties: 20, thirties: 30, forties: 40, fifties: 50, sixties: 60, seventies: 70, eighties: 80, nineties: 90 }
+
+/** Their identity's words stay as written (companion/life/ages.py), so "in her thirties" can sit beside an age that has
+ * moved on: said here, never in the prompt (v0.15). Empty while the age is inside the decade the words give. */
+export function decadeHint(identity: string, now: number | null) {
+  const found = /\b(twenties|thirties|forties|fifties|sixties|seventies|eighties|nineties)\b/i.exec(identity)
+  if (!found || now === null) return ''
+  const decade = DECADES[found[1].toLowerCase()]
+  return now >= decade && now < decade + 10 ? '' : `They're ${now} now; the description says ${found[1].toLowerCase()}.`
+}
+
 /** The "left empty" choice, short enough for a phone field (Iris, v0.14): what is drawn, or that Appearance says it; a field drawn as nothing (no facial hair) is none. */
 export function emptyText(saved: boolean, covered: boolean, shown: string | null) {
   if (!saved) return 'Picked for them if left empty'

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { calendarDay, clockTime, dayAndClock, exactTime, relativeTime } from '../../src/when.ts'
+import { calendarDay, clockTime, dayAndClock, exactTime, listTime, relativeTime } from '../../src/when.ts'
 
 const at = (day: number, hour: number, minute = 0, second = 0) => new Date(2026, 9, day, hour, minute, second).getTime()
 const iso = (ms: number) => new Date(ms).toISOString()
@@ -61,4 +61,12 @@ test('dates follow the user\'s locale: no screen hard-codes a day-month (en-GB) 
     assert.doesNotMatch(text, /['"]en-GB['"]/, file)
     assert.doesNotMatch(text, /\[\s*'Jan',\s*'Feb'/, `${file} spells months itself; use calendarDay`)
   }
+})
+
+test('the chat list shows the clock today, the day this year and the year before (Iris, v0.14)', () => {
+  assert.equal(listTime(iso(at(8, 9, 14)), now), '9:14 AM')
+  assert.equal(listTime(iso(at(7, 21, 0)), now), 'Oct 7')
+  assert.equal(listTime(iso(new Date(2026, 0, 4, 9).getTime()), now), 'Jan 4')
+  assert.equal(listTime(iso(new Date(2025, 0, 4, 9).getTime()), now), 'Jan 4, 2025')
+  assert.equal(listTime('not a date', now), '')
 })

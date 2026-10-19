@@ -65,6 +65,15 @@ export function clockTime(value: string, now: number): string {
   return `${(sameYear ? DAY : DAY_YEAR).format(then)}, ${clock}`
 }
 
+/** A chat list's "when" (Iris, v0.14): the clock time today, "Jan 4" this year, "Jan 4, 2026" before, so names keep the room. */
+export function listTime(value: string, now: number): string {
+  const then = Date.parse(value)
+  if (Number.isNaN(then)) return ''
+  if (daysBetween(then, now) === 0) return CLOCK.format(then)
+  const sameYear = new Date(then).getFullYear() === new Date(now).getFullYear()
+  return (sameYear ? DAY : DAY_YEAR).format(then)
+}
+
 /** "Oct 12, 4:51 PM": the short date and clock time, with the year only when it is not this year's. */
 export function dayAndClock(value: string, now: number = Date.now()): string {
   const then = Date.parse(value)
