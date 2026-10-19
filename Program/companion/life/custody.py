@@ -9,7 +9,8 @@ model:
   the two of them now live in different cities: mostly with the companion (every other weekend with the user), half
   and half (a week each, turn and turn about), or mostly with the user (every other weekend with the companion). The
   weeks alternate the way a rota does (companion/life/shifts.py `monday_of`), from the week it ended. The user can
-  set it on the Character page, or change how it went under Hidden values. The children go on in words in both
+  set it on the Character page (for that breakup: getting back together and splitting again starts from
+  the app's pick), or change how it went under Hidden values. The children go on in words in both
   lives: on Today and the Character page, and in the companion's texts, where they are and whose week it is. Getting
   back together ends it. Never on an easy life, which has no breakups (companion/life/breakups.py).
 - Long distance with a child (companion/life/long_distance.py): the children stay with the parent they live with
@@ -109,7 +110,8 @@ def found(connection, companion: dict, now=None) -> dict | None:
     if row is None:
         return {'pattern': 'with_them', 'how': 'seeded', 'consequence_id': None, 'since': None, 'far': between,
                 'split': False} if between else None
-    set_to = our_child.family_row(connection, timeline_id).get('custody')
+    family = our_child.family_row(connection, timeline_id)
+    set_to = family.get('custody') if family.get('custody_for') == row['id'] else None  # Set in this breakup.
     outcome = None if set_to else outcome_of(connection, companion, row, now)
     pattern = set_to or PATTERNS[outcome['picked']]
     if between and pattern == 'shared':
@@ -232,12 +234,14 @@ def where_today(connection, companion: dict, today: date) -> str | None:
 def update(connection, companion: dict, custody: str, now) -> None:
     """The user sets where the children live after the breakup ('auto' gives it back to the app)."""
     from companion.life import our_child
-    require(ended(connection, companion) is not None, 'You two are not apart.', 409)
+    row = ended(connection, companion)
+    require(row is not None, 'You two are not apart.', 409)
     require(custody in ('auto', *PATTERNS), 'Pick where they live.', 422)
     timeline_id = companion['active_timeline_id']
     our_child.ensure_row(connection, timeline_id, now)
-    connection.execute('UPDATE our_family SET custody=?, updated_at=? WHERE timeline_id=?',
-                       (None if custody == 'auto' else custody, stamp(now), timeline_id))
+    connection.execute('UPDATE our_family SET custody=?, custody_for=?, updated_at=? WHERE timeline_id=?',
+                       (None, None, stamp(now), timeline_id) if custody == 'auto' else
+                       (custody, row['id'], stamp(now), timeline_id))
 
 
 # A companion and their own partner -----------------------------------------------------------------------------------

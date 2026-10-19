@@ -343,6 +343,9 @@ ADDED_COLUMNS = (
     # When families change (companion/life/custody.py): where the pair's children live after a breakup, when the user
     # set it ('with_them', 'shared' or 'with_you'; NULL leaves it to the engine's family:custody).
     ('our_family', 'custody', "TEXT CHECK (custody IS NULL OR custody IN ('with_them', 'shared', 'with_you'))"),
+    # The breakup that choice was made in: it holds only while that one stands (not after getting back together and
+    # splitting again).
+    ('our_family', 'custody_for', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

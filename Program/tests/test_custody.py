@@ -162,3 +162,26 @@ def test_loss_spares_a_parent_with_a_baby_under_one_and_the_pairs_grown_child(cl
         grown = {**person, 'id': 'nobody', 'details': '{"our_child": "abc"}'}
         assert custody.spared(connection, grown, today)
         assert loss.spared(connection, timeline_id, person, today)
+
+
+def test_where_the_user_set_them_to_live_holds_for_that_breakup_only(client, split, provider, clock, monkeypatch):
+    ours(client, custody='with_you')
+    clock.advance(timedelta(days=20))
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[-1]['option'])  # They want that too.
+    says(provider)
+    send(client, 'can we try again?', 'client-custody-5')
+    assert state(client) is None
+    clock.advance(timedelta(days=40))
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-custody-6')
+    assert state(client)['how'] == 'seeded'  # A second breakup: the app picks afresh, and the user can set it again.
+
+
+def test_undoing_getting_back_together_keeps_where_the_user_set_them_to_live(client, split):
+    ours(client, custody='with_you')
+    row = client.get('/api/life/breakup').json()
+    assert client.post(f"/api/life/breakup/{row['id']}/mend").status_code == 200
+    assert state(client) is None
+    assert client.post(f"/api/life/breakup/{row['id']}/undo").status_code == 200
+    assert (state(client)['pattern'], state(client)['how']) == ('with_you', 'set')
+
