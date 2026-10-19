@@ -131,6 +131,8 @@ export interface CharacterDefinition {
   birthday?: string
   /** On: they stay the age written instead of turning a year older on each birthday (companion/life/ages.py). */
   keeps_age?: boolean
+  kind?: string
+  lifespan?: number | null
   identity: string
   personality: string
   voice: string

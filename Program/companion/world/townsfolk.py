@@ -22,7 +22,7 @@ import json
 import re
 from datetime import date, datetime
 
-from companion.world import catalog, generators, turnover
+from companion.world import catalog, generators, lifespans, turnover
 from companion.world.wording import regional
 
 MODERN = {'modern', 'future', 'other'}
@@ -283,8 +283,10 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     notable = None if generation else held
     role = (held['role'], held['role'], held['staff']) if held else _slot_role(data, place, slot)
     title = held['role'] if held else role_title(data, role, place)
-    age = notable['age'] if notable else seeded_age(seed, False)
-    name = _named(notable) if notable else generators.name(data, seed=seed, age=age)
+    folk = lifespans.HUMAN if notable else folk_of(data, seed)
+    age = notable['age'] if notable else seeded_real_age(data, seed, False)
+    life = lifespans.life_age(age, lifespans.lifespan_of(folk, data))
+    name = _named(notable) if notable else generators.name(data, seed=seed, age=life)
     hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
     order = goal_order(data, seed)
     sheet = {
@@ -293,7 +295,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         'role': title, 'kind': 'staff' if role[2] else 'regular', 'staff': role[2], 'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'],
                                                    'neighborhood': place['neighborhood']},
         'home': generators.pick(seed, 'home', hoods, [3, 1, 1, 1][:len(hoods)]),
-        'occupation': title if role[2] else _occupation(data, seed, age),
+        'occupation': title if role[2] else _occupation(data, seed, life),
         'temperament': generators.pick(seed, 'temperament', sorted(TEMPERAMENTS)),
         'quirk': quirk_for(data, seed),
         'flaw': generators.pick(seed, 'flaw', sorted(FLAWS)),
@@ -301,6 +303,8 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         'goals': order,
         'night_owl': generators.unit(seed, 'owl') < 0.25,
     }
+    if folk != lifespans.HUMAN:
+        sheet['folk'] = folk
     if generation:
         sheet['arrived'] = arrival(data, place['id'], slot, generation)
     if notable:
@@ -332,9 +336,28 @@ def _slot_role(data: dict, place: dict, slot: int) -> tuple:
 
 
 def seeded_age(seed: str, resident: bool) -> int:
-    """How old someone is when they turn up in town."""
+    """How old someone is in human terms when they turn up in town (their life age, companion/world/lifespans.py)."""
     middle = (generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2
     return 18 + round(middle * 66) if resident else 19 + round(middle * 52)
+
+
+def folk_of(data: dict, seed: str) -> str:
+    """Their kind, from the name group their name comes from (Grandport's elves): human for most."""
+    return lifespans.of_group(data, generators.group_of(data, seed))
+
+
+def seeded_real_age(data: dict, seed: str, resident: bool) -> int:
+    """How old someone really is when they turn up: `seeded_age` in their kind's years, so an elven newcomer is
+    often centuries old."""
+    return lifespans.real_age(seeded_age(seed, resident), lifespans.lifespan_of(folk_of(data, seed), data))
+
+
+def lifespan_of_seed(data: dict):
+    """How long whoever a seed draws lives, for turnover; None when the city has no long-lived people at all."""
+    groups, mix = catalog.name_groups(data)
+    if not any(groups[key].get('kind') for key in mix):
+        return None
+    return lambda seed: lifespans.lifespan_of(folk_of(data, seed), data)
 
 
 # Who holds each spot (companion/world/turnover.py) -------------------------------------------------
@@ -355,7 +378,7 @@ def place_terms(data: dict, place: dict, slot: int, until: int, last: int = turn
     notable, staff = _notable(data, place, slot), staffed(data, place, slot)
 
     def age_of(seed, generation):
-        return notable['age'] if notable and not generation else seeded_age(seed, False)
+        return notable['age'] if notable and not generation else seeded_real_age(data, seed, False)
     return _terms(data, f"town:{data['id']}:{place['id']}", slot, 'staff' if staff else 'regular', age_of, until, last,
                   bool(notable) and not notable.get('can_leave'))
 
@@ -363,7 +386,7 @@ def place_terms(data: dict, place: dict, slot: int, until: int, last: int = turn
 def hood_terms(data: dict, hood_id: str, slot: int, until: int, last: int = turnover.MOST_GENERATIONS - 1) -> list:
     """Everyone who lived in this spot on a street up to week `until` (or generation `last`)."""
     return _terms(data, f"town:{data['id']}:~{hood_id}", slot, 'resident',
-                  lambda seed, _generation: seeded_age(seed, True), until, last)
+                  lambda seed, _generation: seeded_real_age(data, seed, True), until, last)
 
 
 def _terms(data: dict, prefix: str, slot: int, kind: str, age_of, until: int, last: int, fixed: bool = False) -> list:
@@ -374,7 +397,7 @@ def _terms(data: dict, prefix: str, slot: int, kind: str, age_of, until: int, la
         return f'{prefix}:{slot + turnover.STRIDE * generation}'
     return turnover.terms(lambda generation: seed_for(data, key(generation)), kind, age_of,
                           lambda generation: (fixed and not generation) or key(generation) in kept, until, last,
-                          data.get('era', 'modern'))
+                          data.get('era', 'modern'), lifespan_of_seed(data))
 
 
 def holder(found: list, slot: int, day: date) -> int | None:
@@ -769,8 +792,10 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
     where = where or area(data, hood_id)
     key = key or f"town:{data['id']}:~{hood_id}:{index}"
     seed = seed_for(data, key)
-    age = seeded_age(seed, True)
-    occupation = _occupation(data, seed, age)
+    folk = folk_of(data, seed)
+    age = seeded_real_age(data, seed, True)
+    life = lifespans.life_age(age, lifespans.lifespan_of(folk, data))
+    occupation = _occupation(data, seed, life)
     haunt = generators.pick(seed, 'haunt', where['haunts']) if where['haunts'] else None
     place = view(haunt) if haunt else street(data, hood_id)
     order = goal_order(data, seed)
@@ -804,10 +829,12 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
                             'stop': stop}
     sheet['reach'] = sorted({place['id'], sheet['street']['id'],
                              *(spot['id'] for spot in sheet['spots'].values() if spot)})
+    if folk != lifespans.HUMAN:
+        sheet['folk'] = folk
     if key.startswith('town:') and slot_of(index)[1]:
         sheet['arrived'] = arrival(data, f'~{hood_id}', slot_of(index)[0], slot_of(index)[1])
     if named:
-        name = generators.name(data, seed=seed, age=age)
+        name = generators.name(data, seed=seed, age=life)
         sheet |= {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'heritage': name['culture'] or name['group']}
     return sheet
 

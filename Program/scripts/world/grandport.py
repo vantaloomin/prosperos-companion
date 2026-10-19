@@ -779,8 +779,10 @@ names = {
  # Short northern names with the tribe as the family name, like the wiki's Kasa of the Boar Tribe.
  'pictish': {'feminine': PICT_F, 'masculine': PICT_M, 'neutral': [], 'family': PICT_FAMILY,
  'own_family': True},
- # Elves are rare since the Veil; names after the wiki's elven and Greek-sounding ones.
- 'elven': {'feminine': ELF_F, 'masculine': ELF_M, 'neutral': [], 'family': ELF_FAMILY, 'own_family': True},
+ # Elves are rare since the Veil; names after the wiki's elven and Greek-sounding ones. They live long
+ # (companion/world/lifespans.py), so an elven resident is often centuries old.
+ 'elven': {'feminine': ELF_F, 'masculine': ELF_M, 'neutral': [], 'family': ELF_FAMILY, 'own_family': True,
+ 'kind': 'elf'},
  },
 }
 

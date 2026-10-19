@@ -116,9 +116,10 @@ def described(definition: dict) -> str | None:
 
 
 def age_of(connection, companion: dict, now) -> int:
+    """Their life age (companion/world/lifespans.py), what the family odds read: their real age for a human."""
     from companion.life import ages
     day = steps.local_today(companion, now) if now else None
-    return ages.companion_age(connection, companion['id'], companion['version']['definition'], day) or 0
+    return ages.companion_life_age(connection, companion['id'], companion['version']['definition'], day) or 0
 
 
 def wants_facts(connection, companion: dict, now) -> dict:
@@ -183,7 +184,7 @@ def old_era(connection, companion: dict) -> bool:
 
 
 def route_facts(connection, companion: dict, now) -> dict:
-    from companion.life import money
+    from companion.life import ages, money
     from companion.world import looks
     definition = companion['version']['definition']
     you = persona(connection)
@@ -191,7 +192,7 @@ def route_facts(connection, companion: dict, now) -> dict:
     can_you = int(you.get('gender') == 'woman' and not CANT.search(you.get('about') or ''))
     found = money.profile(definition)
     return {'can_them': can_them, 'can_you': can_you, 'can_carry': int(can_them or can_you),
-            'age': age_of(connection, companion, now), 'your_age': you.get('age') or 0,
+            'age': age_of(connection, companion, now), 'your_age': ages.persona_life_age(connection, you, definition),
             'tier': found.tier if found else 1, 'old': int(old_era(connection, companion))}
 
 

@@ -11,7 +11,7 @@ one in fifty), and the chance of having a partner rises with age until widowhood
 """
 from datetime import date
 
-from companion.world import generators, mix, townsfolk
+from companion.world import generators, lifespans, mix, townsfolk
 
 GENDERS = ('woman', 'man', 'nonbinary')
 GENDER_OF = {'she/her': 'woman', 'he/him': 'man', 'they/them': 'nonbinary'}
@@ -117,9 +117,16 @@ def gender(sheet: dict) -> str:
     return GENDER_OF.get(sheet.get('pronouns', ''), 'nonbinary')
 
 
+def life_of(sheet: dict, data: dict | None = None) -> int:
+    """Their age in human terms (companion/world/lifespans.py): who is partnered, who is looking and who they date
+    follow it, so an elf of 300 dates like someone of 48. Orientation keeps their real age, as their adult side does."""
+    return lifespans.life_age(sheet['age'], lifespans.lifespan_of(sheet.get('folk'), data))
+
+
 def rates(age: int) -> tuple:
     """The age band's orientation rates, as the world's mix has them (companion/world/mix.py)."""
-    return mix.orientation_band(next(band for band in ORIENTATION_RATES if age <= band[0]))
+    # An elf of 300 is in the last band (companion/world/lifespans.py).
+    return mix.orientation_band(next((band for band in ORIENTATION_RATES if age <= band[0]), ORIENTATION_RATES[-1]))
 
 
 def orientation(seed: str, age: int, who: str) -> tuple[str, list[str]]:
@@ -139,7 +146,7 @@ def orientation(seed: str, age: int, who: str) -> tuple[str, list[str]]:
 
 def status(seed: str, age: int, desire: str, modern: bool) -> str:
     """Single, seeing someone, married or widowed."""
-    _upper, partnered, married = next(band for band in PARTNERED if age <= band[0])
+    _upper, partnered, married = next((band for band in PARTNERED if age <= band[0]), PARTNERED[-1])
     if desire == 'company':  # Wanting someone to come home to: most of them haven't found them.
         partnered *= 0.2
     elif desire == 'family':
@@ -149,8 +156,9 @@ def status(seed: str, age: int, desire: str, modern: bool) -> str:
     return 'widowed' if age >= 60 and generators.unit(seed, 'widowed') < 0.4 else 'single'
 
 
-def looking(seed: str, age: int, desire: str, single: bool, modern: bool) -> str:
-    """What they are after: 'serious', 'casual', 'friends', or 'no' (not looking, so not on the app)."""
+def looking(seed: str, age: int, desire: str, single: bool, modern: bool, real: int | None = None) -> str:
+    """What they are after: 'serious', 'casual', 'friends', or 'no' (not looking, so not on the app). `age` is their
+    life age; `real` their real one, which `orientation` reads, when it differs."""
     if not single:
         return 'no'
     away = 0.6 if desire == 'quiet' else 0.1 if desire == 'company' else 0.35
@@ -158,7 +166,7 @@ def looking(seed: str, age: int, desire: str, single: bool, modern: bool) -> str
         away = max(away, 0.55)
     # Gay, lesbian and bisexual adults use dating apps about twice as often (Pew, 2023: 51% against 28%). This
     # reads the same roll `orientation` does, before their gender is known.
-    _upper, gay, bi_woman, bi_man = rates(age)
+    _upper, gay, bi_woman, bi_man = rates(age if real is None else real)
     if generators.unit(seed, 'orientation') < gay + max(bi_woman, bi_man):
         away /= 3
     if generators.unit(seed, 'looking') < away:
@@ -192,7 +200,7 @@ def height_cm(seed: str, who: str, modern: bool) -> int:
 
 
 def hair(seed: str, sheet: dict, who: str, era: str) -> str:
-    age = sheet['age']
+    age = life_of(sheet)
     if who == 'man' and age >= 35 and generators.unit(seed, 'bald') < (age - 30) / 60:
         return generators.pick(seed, 'bald-how', ['a shaved head', 'thinning hair', 'a receding hairline'])
     color = weighted(seed, 'hair', HAIR[region(sheet)])
@@ -250,20 +258,21 @@ def on_app(sheet: dict, data: dict) -> bool:
     """Whether they are looking at all, from what the sheet has before it is named (names are the slow part)."""
     if sheet.get('notable'):
         return False  # A city's named characters are never on the app.
-    seed, is_modern = townsfolk.drawn(sheet), townsfolk.modern(data)
-    single = status(seed, sheet['age'], sheet['desire'], is_modern) in ('single', 'widowed')
-    return looking(seed, sheet['age'], sheet['desire'], single, is_modern) != 'no'
+    seed, is_modern, life = townsfolk.drawn(sheet), townsfolk.modern(data), life_of(sheet, data)
+    single = status(seed, life, sheet['desire'], is_modern) in ('single', 'widowed')
+    return looking(seed, life, sheet['desire'], single, is_modern, sheet['age']) != 'no'
 
 
 def details(sheet: dict, data: dict) -> dict:
     """Everything about them that dating needs, the same every time for the same person."""
     seed, who, is_modern = townsfolk.drawn(sheet), gender(sheet), townsfolk.modern(data)
     label, drawn_to = orientation(seed, sheet['age'], who)
-    state = status(seed, sheet['age'], sheet['desire'], is_modern)
-    after = looking(seed, sheet['age'], sheet['desire'], state in ('single', 'widowed'), is_modern)
-    low, high = age_range(sheet['age'], after)
+    life = life_of(sheet, data)
+    state = status(seed, life, sheet['desire'], is_modern)
+    after = looking(seed, life, sheet['desire'], state in ('single', 'widowed'), is_modern, sheet['age'])
+    low, high = age_range(life, after)  # In human terms, like `suits` reads it.
     return {'gender': who, 'orientation': label, 'drawn_to': drawn_to, 'status': state, 'looking': after,
-            'age_range': [low, high], 'picky': round(generators.unit(seed, 'picky'), 3), 'looks': looks(sheet, data)}
+            'age_range': [low, high], 'life': life, 'picky': round(generators.unit(seed, 'picky'), 3), 'looks': looks(sheet, data)}
 
 
 # How they come across ------------------------------------------------------------------------------------
@@ -347,7 +356,7 @@ def likes(sheet: dict, found: dict, profile: dict) -> float:
         chance += 0.1
     if found['looking'] != profile['looking_for']:
         chance -= 0.2
-    chance -= max(0, abs(sheet['age'] - profile['age']) - 5) * 0.02
+    chance -= max(0, abs(found.get('life', sheet['age']) - profile['age']) - 5) * 0.02
     return min(max(chance, 0.05), 0.9)
 
 
@@ -361,7 +370,7 @@ def suits(sheet: dict, found: dict, profile: dict) -> bool:
     Someone looking for friends meets anyone also looking for friends."""
     if found['looking'] == 'no' or sheet['age'] < 18 or profile['age'] < 18:
         return False
-    if not profile['age_min'] <= sheet['age'] <= profile['age_max']:
+    if not profile['age_min'] <= found.get('life', sheet['age']) <= profile['age_max']:
         return False
     if found['gender'] not in profile['interested_in']:
         return False

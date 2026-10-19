@@ -105,7 +105,7 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
-OMIT_WHEN_EMPTY = {'townsfolk'}
+OMIT_WHEN_EMPTY = {'townsfolk', 'kinds'}
 
 
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
@@ -120,6 +120,8 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     # The townsfolk block is optional and newer than most cities: left out when absent, so their data_version
     # stays the same.
     data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
+    from companion.world import lifespans
+    notes += lifespans.clean(data)
     known = careers_for(data)
     for employer in data['employers']:
         unknown = set(employer['careers']) - set(known)

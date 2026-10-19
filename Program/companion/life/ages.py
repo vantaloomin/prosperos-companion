@@ -18,6 +18,10 @@ nobody's age jumps on the upgrade, and from then on their age goes up on each bi
 - A townsperson: rebuilt from a seed, so nothing is stored for them; their seeded age is their age on the day the
   town started getting older (the town row), and they turn a year older on each seeded birthday after it.
 
+Every age here is a real one. Rules about how far through life someone is (odds, life chapters, health, passing
+away, retiring) read their life age instead (`companion_life_age`, `person_life_age`, `town_life_age`): the same for
+a human, stretched for a long-lived kind (companion/world/lifespans.py), so an elf of 300 is 48 in human terms.
+
 Milestone birthdays (30, 40, 50 ...) are bigger occasions (companion/life/occasions.py, composer.py) and go in the
 scrapbook (companion/life/scrapbook.py).
 """
@@ -26,7 +30,7 @@ from datetime import date, timedelta
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, many, optional
-from companion.world import generators, intimacy, looks
+from companion.world import generators, intimacy, lifespans, looks
 
 ADULT = 18
 FIRST_MILESTONE = 30
@@ -137,7 +141,7 @@ def turns_on(connection, companion_id: str, definition: dict, day: date) -> int 
     """The age a companion turns on a birthday by their stored date; None while they keep their age or before their
     date is stored or follows their form, so a birthday never counts an age it can't be sure of."""
     age = written_age(companion_id, definition)
-    if age is None or definition.get('keeps_age'):
+    if age is None or lifespans.ageless(definition):
         return None
     row = stored(connection, 'companion', companion_id)
     if not current(row, age, own_birthday(companion_id, definition)):
@@ -161,10 +165,11 @@ def sync_companion(connection, companion: dict, now) -> None:
                    now, written=age)
     elif not current(row, age, birthday):
         row = keep(connection, 'companion', companion['id'], age, birthday, today, now)
-    if definition.get('keeps_age') and not row['held_age']:
+    held = lifespans.ageless(definition)  # "Keeps their age", or a kind that doesn't age.
+    if held and not row['held_age']:
         connection.execute("UPDATE birth_dates SET held_age=? WHERE kind='companion' AND person_key=?",
                            (age_from(row, today), companion['id']))
-    elif not definition.get('keeps_age') and row['held_age']:
+    elif not held and row['held_age']:
         keep(connection, 'companion', companion['id'], row['held_age'], birthday, today, now, written=age)
 
 
@@ -180,6 +185,49 @@ def age_line(connection, companion_id: str, definition: dict, day: date | None) 
     turned = birthday_in(date.fromisoformat(row['born_on']).year + age, birthday) \
         if row['held_age'] else last_birthday(birthday, day)
     return f"You are {age} now; you turned {age} on {turned.day} {turned.strftime('%B')}."
+
+
+# --- Life age ---
+
+def city_of(connection, definition: dict) -> dict | None:
+    from companion.life import outings
+    return outings.city_data(connection, definition) if connection is not None else None
+
+
+def companion_lifespan(connection, definition: dict) -> int | None:
+    """How long a companion lives: the Character page's pick, else their kind's (from their words) where they are."""
+    return lifespans.sheet_lifespan(definition, city_of(connection, definition))
+
+
+def companion_life_age(connection, companion_id: str, definition: dict, day: date | None) -> int | None:
+    """How far through life a companion is in human terms (`companion_age` for a human)."""
+    return lifespans.life_age(companion_age(connection, companion_id, definition, day),
+                              companion_lifespan(connection, definition))
+
+
+def person_lifespan(connection, details: dict, definition: dict | None = None) -> int | None:
+    """How long a circle member or partner lives, from their row: their own pick, else their kind's (a relative of
+    a long-lived companion shares their kind) in the companion's city."""
+    kind, own = details.get('folk'), details.get('lifespan')
+    if not own and kind in (None, '', lifespans.HUMAN):
+        return lifespans.HUMAN_LIFESPAN
+    return lifespans.lifespan_of(kind, city_of(connection, definition) if definition else None, own)
+
+
+def person_life_age(connection, details: dict, real: int | None, definition: dict | None = None) -> int | None:
+    return lifespans.life_age(real, person_lifespan(connection, details, definition))
+
+
+def persona_life_age(connection, persona: dict, definition: dict | None = None) -> int:
+    """The user's life age, their kind read from their persona's words the way a companion's is."""
+    data = city_of(connection, definition) if definition else None
+    span = lifespans.lifespan_of(lifespans.from_words(persona.get('about') or '', data), data)
+    return lifespans.life_age(persona.get('age') or 0, span) or 0
+
+
+def town_life_age(connection, sheet: dict, day: date, data: dict | None = None) -> int:
+    """A townsperson's life age: their kind comes with their sheet (from their name group)."""
+    return lifespans.life_age(town_age(connection, sheet, day), lifespans.lifespan_of(sheet.get('folk'), data))
 
 
 # --- The circle, partners and the town ---

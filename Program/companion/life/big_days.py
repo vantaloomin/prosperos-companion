@@ -182,6 +182,12 @@ def age_of(connection, row: dict, day: date) -> int | None:
     return ages.person_age(connection, 'circle', row['id'], day) or ages.stored_age(decode(row['details']) or {})
 
 
+def life_age_of(connection, row: dict, day: date, companion: dict) -> int | None:
+    """Their life age (companion/world/lifespans.py), for when someone marries, retires or graduates."""
+    return ages.person_life_age(connection, decode(row['details']) or {}, age_of(connection, row, day),
+                                companion['version']['definition'])
+
+
 # Where big days come from ----------------------------------------------------------------------------------------
 
 def candidate(kind: str, source: str, row: dict | None, day: date, **details) -> dict:
@@ -215,7 +221,7 @@ def friend_weddings(connection, companion: dict, today: date, people: dict, now)
         details = decode(row['details']) or {}
         if circle.role_kind(row['role']) not in FRIENDS or details.get('married') or details.get('love'):
             continue
-        age = age_of(connection, row, today) or 0
+        age = life_age_of(connection, row, today, companion) or 0
         for year in (today.year, today.year + 1):
             seed = f"bigday:friend:{row['id']}"
             if not FRIEND_AGES[0] <= age <= FRIEND_AGES[1] or generators.unit(seed, 'year', year) >= rate:
@@ -257,7 +263,7 @@ def retirements(connection, companion: dict, today: date, people: dict, now) -> 
         seed = f"bigday:retire:{row['id']}"
         retire_at = RETIRE_AGES[0] + int(generators.unit(seed, 'age') * (RETIRE_AGES[1] - RETIRE_AGES[0] + 1))
         birthday = next_birthday(row['id'], today)
-        if (age_of(connection, row, birthday) or 0) >= retire_at:
+        if (life_age_of(connection, row, birthday, companion) or 0) >= retire_at:
             day = birthday + timedelta(days=(4 - birthday.weekday()) % 7 or 7)
             result.append(candidate('retirement', f"retirement:{row['id']}", row, day))
     return result
@@ -269,7 +275,7 @@ def graduations(connection, companion: dict, today: date, people: dict, now) -> 
     for row in people.values():
         details = decode(row['details']) or {}
         old_enough = STUDENTS.get(details.get('career') or '')
-        if not old_enough or details.get('graduated') or (age_of(connection, row, today) or 0) < old_enough:
+        if not old_enough or details.get('graduated') or (life_age_of(connection, row, today, companion) or 0) < old_enough:
             continue
         day = saturday_in(today.year, f"bigday:graduate:{row['id']}", (5, 6))
         result.append(candidate('graduation', f"graduation:{row['id']}:{today.year}", row, day))

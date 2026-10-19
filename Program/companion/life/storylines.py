@@ -28,6 +28,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import circle, pronouns
+from companion.world import lifespans
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
 # Per drama level: chance a storyline starts on a given day, and how many can run at once.
@@ -192,7 +193,9 @@ def kind(person: dict) -> str:
 
 def working(person: dict) -> bool:
     details = decode(person['details'])
-    return (details.get('age') or 40) < 67 and details.get('career') != 'Retired'
+    # Retiring follows their age in human terms (companion/world/lifespans.py; the city's own lifespans aside).
+    span = lifespans.lifespan_of(details.get('folk'), None, details.get('lifespan'))
+    return (lifespans.life_age(details.get('age'), span) or 40) < 67 and details.get('career') != 'Retired'
 
 
 FRIENDLY = {'friends', 'old friends', 'coworkers'}
