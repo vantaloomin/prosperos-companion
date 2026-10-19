@@ -677,6 +677,9 @@ def downsize(connection, companion: dict, now) -> None:
     if 'one_bedroom' not in rents:
         return
     low, high = rents['one_bedroom']
+    if item.get('rent'):  # Smaller is cheaper than the home they kept, wherever its rent fell in the range.
+        high = min(high, item['rent'] - 25)
+        low = min(low, high)
     name = home.home_name(item['variety'], 'one_bedroom', city)
     place = same_place(item)
     place['name'], place['details'] = name, {

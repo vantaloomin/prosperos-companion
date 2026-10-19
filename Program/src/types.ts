@@ -520,6 +520,21 @@ export interface StepsView {
   apart?: { since: string; by: 'you' | 'them' | null } | null
 }
 
+/** Wanting children (GET /api/life/steps/family, companion/life/parenthood.py); `shown` false for one who reads as
+ * a minor. The route and the family step only for a romance; consequence ids only with Hidden values' odds on. */
+export interface FamilyView {
+  shown: boolean
+  wants: 'yes' | 'someday' | 'no'
+  wants_how: 'set' | 'description' | 'seeded' | 'nudged'
+  nudged_by: string | null
+  wants_consequence_id: string | null
+  wants_options: { key: string; label: string }[]
+  romance: boolean
+  route?: string; route_how?: 'set' | 'seeded'; route_consequence_id?: string | null
+  routes?: { key: string; label: string }[]
+  decided_on?: string | null; decided_how?: 'them' | 'you' | 'set' | null; can_decide?: boolean
+}
+
 /** Whose place in one city ('yours', 'theirs', 'new'), or who moves across the distance ('them' to your city; 'you',
  * which waits until you move to theirs). `place` is the neighbourhood, `city` the city, `home` the shared home once moved. */
 export interface MovingIn {

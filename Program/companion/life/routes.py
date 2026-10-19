@@ -31,6 +31,7 @@ from companion.life import (
     moving_in,
     network,
     outings,
+    parenthood,
     pets,
     reactions,
     recommendations,
@@ -532,6 +533,7 @@ CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.chang
            'people:': lambda: their_people.change, 'breakup:': lambda: breakups.change,
            'bigday:': lambda: big_days.change, 'tense-ask:': lambda: rough_patches.change_ask,
            'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change,
+           'family:': lambda: parenthood.change,
            # How a business, a health turn or a parent's care is going (big_turns.py).
            'business:': lambda: big_turns.change_stage, 'health:': lambda: big_turns.change_stage,
            'caring:': lambda: big_turns.change_stage}

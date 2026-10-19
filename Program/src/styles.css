@@ -2254,6 +2254,8 @@ p.breakup-line { align-items: center; }
   .steps-panel .why-it-went .text-button { min-height: 44px; }
 }
 .steps-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; }
+/* Wanting children (companion/life/parenthood.py): room under the last toggle, as under the steps list. */
+.family-panel .toggle { margin-bottom: 24px; }
 /* Meeting their people: whether they have met you, on the circle list. */
 .met-you { display: flex; align-items: center; gap: 6px; }
 .met-you svg { width: 14px; height: 14px; flex: none; }
