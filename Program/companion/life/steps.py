@@ -1196,7 +1196,7 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
         found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
                  'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
     elif moving is None and found['step'] == 'moving_in' and moving_in.moved_apart(connection, companion):
-        found = {**found, 'text': apart_text(found['text'])}  # Living apart again (the user moved city, say).
+        found = apart_view(found)  # Living apart again (the user moved city, say).
     return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
             'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
@@ -1211,6 +1211,15 @@ def not_moved_text(text: str, status: str) -> str:
     if text.endswith(', living together'):
         return text.removesuffix('living together') + words
     return words.capitalize()
+
+
+def apart_view(found: dict) -> dict:
+    """The panel while living apart again: the line and the picker's Living together both read "Living apart for
+    now", with no step to set."""
+    label = 'Living apart for now'
+    return {**found, 'text': apart_text(found['text']), 'label': label,
+            'ladder_steps': [{**item, 'label': label} if item['step'] == 'moving_in' else item
+                             for item in found['ladder_steps']]}
 
 
 def apart_text(text: str) -> str:

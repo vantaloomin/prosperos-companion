@@ -544,6 +544,39 @@ def test_their_own_feed_posts_only_a_quiet_status_while_grief_is_raw_or_heavy(cl
         assert not any(post['content']['text'] in social.STATUS['grief'] for post in posts)
 
 
+def test_life_posts_are_held_back_while_grief_is_raw_or_heavy(client, clock):
+    from companion.database import identifier
+    from companion.life import feed
+    make(client)
+    now = clock.now()
+    late(client, 'dad', now.date() - timedelta(days=2))
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        timeline = companion['active_timeline_id']
+        for days, summary in ((0, 'Sore tomorrow, worth it today.'), (5, 'Market finds.'), (60, 'Lifting again.')):
+            at = (now - timedelta(days=days) if days < 60 else now + timedelta(days=days)).isoformat()
+            event_id = identifier()
+            connection.execute(
+                'INSERT INTO life_events (id, companion_id, timeline_id, idempotency_key, kind, status, summary, '
+                'starts_at, ends_at, character_version_id, permission_revision, created_at, decided_at) '
+                "VALUES (?, ?, ?, ?, 'ordinary', 'committed', ?, ?, ?, ?, 1, ?, ?)",
+                (event_id, companion['id'], timeline, identifier(), summary, at, at, companion['active_version_id'],
+                 at, at))
+            feed.create(connection, timeline, 'event', f'event:{event_id}', [event_id], at, at)
+        shown = [post['events'][0]['summary'] for post in feed.visible_posts(connection, timeline)]
+    # Two days after the death is held back; five days before it and weeks after, once grief lifts, are not.
+    assert shown == ['Lifting again.', 'Market finds.'], shown
+
+
+def test_friends_answer_a_quiet_grief_status_gently():
+    from companion.life import social
+    for text in social.STATUS['grief']:
+        pool = social.comment_pool('status', {'text': text, 'tone': 'down'}, 'friend', False)
+        assert pool == social.COMMENTS['grief'] and 'Rest up!' not in pool and 'You deserve a nap.' not in pool
+    assert social.comment_pool('status', {'text': 'Coffee first.', 'tone': 'down'}, 'friend', False) == \
+        social.COMMENTS['down']
+
+
 def test_a_death_anniversary_is_an_occasion_on_its_day_and_no_first_text(client, clock):
     from companion.life import occasions
     make(client)

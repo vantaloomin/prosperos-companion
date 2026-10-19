@@ -92,6 +92,8 @@ COMMENTS = {
                 'Proud of you.', 'Yes!!'),
     'sick': ('Feel better!', 'Sending soup.', 'Oh no. Need anything?'),
     'down': ('Rest up!', 'Hang in there.', 'You deserve a nap.', 'Big hug.'),
+    # On a quiet status while grief is raw or heavy.
+    'grief': ('Thinking of you.', 'Here if you need anything.', 'Sending love.', 'Big hug.'),
     'birthday': ('Happy birthday, {name}! 🎉', 'Happy birthday!! 🥳', 'Have the best day, {name}!'),
     'birthday_self': ('Thank you!! ❤️', 'You are the sweetest.', 'Love you for this.'),
     'opening': ("Ooh, I'm in.", 'Count me in.', 'Saturday?'),
@@ -369,6 +371,8 @@ def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool) -
         return COMMENTS['birthday_self'] if commenter == content.get('person') else COMMENTS['birthday']
     if kind == 'city':
         return COMMENTS.get(content.get('change'), COMMENTS['city'])
+    if content.get('text') in STATUS['grief']:
+        return COMMENTS['grief']
     if content.get('tone') == 'sick' or content.get('mood') in SICK:
         return COMMENTS['sick']
     if content.get('tone') == 'down' or content.get('mood') in DOWN:

@@ -154,6 +154,19 @@ def test_a_marriage_that_ends_in_an_older_city_is_a_separation(client, couple, p
     assert 'You separated' in {item['text'] for item in items}
 
 
+def test_a_move_planned_when_it_ends_is_dropped_from_the_steps(client, couple, provider, clock):
+    client.put('/api/life/steps', json={'step': 'married'})
+    planned = client.get('/api/life/steps').json()['moving_in']
+    assert planned and planned['status'] == 'moving', planned
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-plan-1')
+    assert view(client)['stage'] == 'ended'
+    assert client.get('/api/life/steps').json()['moving_in'] is None
+    clock.advance(timedelta(days=1, hours=1))
+    reconcile(client)  # The daily pass plans no new move while apart.
+    assert client.get('/api/life/steps').json()['moving_in'] is None
+
+
 def test_breaking_up_while_living_together_they_move_out(client, couple, provider, clock, monkeypatch):
     from test_moving_in import ask_to_move_in, moving_day
     monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # Yes, at your place.

@@ -42,8 +42,18 @@ export function goalText(view: Budget): string {
   return `Saving for ${goal.label}: ${Math.round(goal.share * 100)}% there.`
 }
 
+/** "a month" or "a week": the budget's period, as each amount line reads. */
+export function perText(view: Budget): string {
+  return view.period === 'month' ? 'a month' : 'a week'
+}
+
+/** Ends a line with one full stop, never two after an amount that ends in one ("6 d."). */
+export function sentence(text: string): string {
+  return text.endsWith('.') ? text : `${text}.`
+}
+
 export function workText(view: Budget): string {
-  const per = view.period === 'month' ? 'a month' : 'a week'
+  const per = perText(view)
   if (view.retired && view.medieval) return `Given up work, living on what they put by: about ${view.text.income} ${per}.`
   if (view.retired) return `Retired, living on a pension of about ${view.text.income} ${per}.`
   if (view.business) return `Their own ${view.business}, taking home about ${view.text.income} ${per}.`
@@ -53,8 +63,14 @@ export function workText(view: Budget): string {
 
 /** Rent on their home (from Home) or the budget's own estimate of where they live. */
 export function rentText(view: Budget): string {
-  if (view.owned) return `${view.medieval ? 'Payments' : 'Mortgage'}: about ${view.text.rent} for the place they bought.`
+  const rent = `about ${view.text.rent} ${perText(view)}`
+  if (view.owned) return `${view.medieval ? 'Payments' : 'Mortgage'}: ${rent} for the place they bought.`
   return view.rent_from === 'home'
-    ? `Rent: about ${view.text.rent} for their home.`
-    : `Rent: about ${view.text.rent} for ${view.housing.label} in ${view.housing.neighborhood}.`
+    ? `Rent: ${rent} for their home.`
+    : `Rent: ${rent} for ${view.housing.label} in ${view.housing.neighborhood}.`
+}
+
+/** Everyday costs, fun and savings for the period, ending in one full stop whatever the currency. */
+export function costsText(view: Budget): string {
+  return sentence(`Everyday costs about ${view.text.essentials}, fun about ${view.text.fun}, savings about ${view.text.saving}`)
 }

@@ -9,9 +9,10 @@ Return batches make one digest post; background batches make one post per event 
 image columns are a hook for a later image job: the text never waits for an image.
 """
 from companion.characters import definition_for_timeline, require_current
+from companion.clock import parse, zone
 from companion.database import decode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import composer, social
+from companion.life import composer, loss, social
 
 REACTIONS = ('heart', 'laugh', 'wow', 'sad', 'hug')
 # A photo sent in chat waits on a post keyed to the event its slot will become (companion/images/photos.py).
@@ -158,7 +159,24 @@ def visible_posts(connection, timeline_id, include_hidden=False) -> list[dict]:
     statuses = "('visible','hidden')" if include_hidden else "('visible')"
     rows = many(connection, f'SELECT * FROM feed_posts WHERE timeline_id=? AND status IN {statuses} '
                 'ORDER BY occurs_at DESC, id DESC', (timeline_id,))
-    return [view for view in (post_view(connection, row) for row in rows) if view]
+    mourning = grief_test(connection, timeline_id)
+    return [view for view in (post_view(connection, row) for row in rows if not mourning(row['occurs_at'])) if view]
+
+
+def grief_test(connection, timeline_id):
+    """A test for whether a life post falls on a day grief is raw or heavy (companion/life/loss.py): those posts are
+    held back, so the feed shows only the quiet status (companion/life/social.py) those days."""
+    losses = loss.rows(connection, timeline_id) if loss.ACTIVE else []
+    if not losses:
+        return lambda _occurs_at: False
+    row = optional(connection, 'SELECT v.timezone FROM timelines t JOIN companions c ON c.id=t.companion_id '
+                   'JOIN character_versions v ON v.id=c.active_version_id WHERE t.id=?', (timeline_id,))
+    timezone = zone(row['timezone'] if row else 'UTC')
+
+    def mourning(occurs_at: str) -> bool:
+        day = parse(occurs_at).astimezone(timezone).date()
+        return any(loss.stage(found, day) in ('raw', 'heavy') for found in losses)
+    return mourning
 
 
 def everything(connection, companion, now: str, include_hidden=False, source='all') -> list[dict]:

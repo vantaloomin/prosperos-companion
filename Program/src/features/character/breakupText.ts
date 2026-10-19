@@ -41,6 +41,13 @@ export function isApart(view: BreakupView | undefined): boolean {
   return view?.stage === 'break' || view?.stage === 'ended'
 }
 
+/** The steps line while apart, only when it says more than the breakup line below it ("Separated after 2 years");
+ * a bare "Separated" or "On a break" would only repeat it, so the line is left out. */
+export function apartSummary(view: BreakupView | undefined): string {
+  if (!view || !isApart(view)) return ''
+  return view.summary && view.summary !== view.text ? view.summary : ''
+}
+
 /** The chat strip, with their name: "Things are strained with Mira", "You and Mira broke up". */
 export function breakupStrip(view: BreakupView | undefined, name: string): string {
   if (!view?.stage || !view.strip) return ''

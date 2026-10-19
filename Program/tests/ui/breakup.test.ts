@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { apartHint, breakupLine, breakupStrip, endedStep, mendLabel, standsLabel, type BreakupView } from '../../src/features/character/breakupText.ts'
+import { apartHint, apartSummary, breakupLine, breakupStrip, endedStep, mendLabel, standsLabel, type BreakupView } from '../../src/features/character/breakupText.ts'
 
 const base: BreakupView = { stage: 'strained', text: 'Things are strained', summary: '', since: '2026-10-12', by: null, id: 'b', odds: [], strip: true, mendable: false, ladder: 'romance', on: true }
 
@@ -38,4 +38,12 @@ test('apart after a marriage, the picker shows where things stood and the steps 
   assert.match(endedStep(ended, 'Mira Costa'), /^Divorced .*2026 · you ended it$/)
   assert.match(endedStep({ ...ended, by: 'them' }, 'Mira Costa'), / · Mira ended it$/)
   assert.equal(endedStep(base, 'Mira Costa'), '')
+})
+
+test('apart, the steps line shows only what the breakup line does not already say (London 1895)', () => {
+  const separated: BreakupView = { ...base, stage: 'ended', text: 'Separated', summary: 'Separated', separated: true, divorced: true, by: 'them' }
+  assert.equal(apartSummary(separated), '')
+  assert.equal(apartSummary({ ...separated, summary: 'Separated after 2 years' }), 'Separated after 2 years')
+  assert.equal(apartSummary({ ...base, stage: 'break', text: 'On a break', summary: 'On a break' }), '')
+  assert.equal(apartSummary(base), '')
 })

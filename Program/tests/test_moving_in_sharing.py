@@ -377,6 +377,12 @@ def test_the_user_moving_city_leaves_one_home_not_a_copy_each(client, provider, 
     with client.app.state.database.connect() as connection:  # Iris: the step no longer reads "living together".
         texts = [steps.view(connection, by_id(connection, key), clock.now(), False)['text'] for key in (mira_id, theo_id)]
     assert all(text.endswith('living apart for now') or text == 'Living apart for now' for text in texts), texts
+    with client.app.state.database.connect() as connection:  # The picker says the same: no Living together.
+        views = [steps.view(connection, by_id(connection, key), clock.now(), False) for key in (mira_id, theo_id)]
+    for view in views:
+        picked = next(item for item in view['ladder_steps'] if item['step'] == view['step'])
+        assert view['step'] == 'moving_in' and picked['label'] == view['label'] == 'Living apart for now', view
+        assert 'Living together' not in {item['label'] for item in view['ladder_steps']}
 
 
 def test_whoever_kept_a_home_grown_for_three_moves_somewhere_smaller_months_on(client, provider, clock, monkeypatch,
