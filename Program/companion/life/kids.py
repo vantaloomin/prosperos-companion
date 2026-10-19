@@ -381,7 +381,12 @@ def add_other(connection, companion: dict, world, wanted: dict, now) -> str:
                                      'co_parent': True}}
     ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
     circle.insert(connection, timeline_id, [person], ordinal, now)
-    return one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))['id']
+    added = one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))['id']
+    # Their days start now, as a grandparent's do (circle.add_grandparent): nothing is written for them before they
+    # joined, such as two weeks of a circle from v0.14.
+    connection.execute('INSERT OR IGNORE INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?)',
+                       (timeline_id, added, stamp(now)))
+    return added
 
 
 # A townsperson's own --------------------------------------------------------------------------------------------------

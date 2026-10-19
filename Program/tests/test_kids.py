@@ -322,3 +322,20 @@ def test_a_fork_keeps_their_kids(client, provider):
     assert response.status_code == 200, response.text
     view = panel(client)
     assert [kid['name'] for kid in view['kids']] == ['Leo'] and view['other']
+
+
+def test_an_other_parent_added_to_an_existing_circle_has_no_days_before_then(client, clock, monkeypatch):
+    """A v0.14 circle gains the kids' other parent at the upgrade: their days start then, none written before."""
+    from companion.clock import parse
+    monkeypatch.setattr(kids, 'ACTIVE', False)
+    make(client, identity='38. A single dad of two. He/him.')
+    circle(client)
+    clock.advance(timedelta(days=10))
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    reconcile(client)
+    other = next(person for person in circle(client) if person['role'] == 'co-parent')
+    with client.app.state.database.connect() as connection:
+        cursor = connection.execute('SELECT through FROM agenda_cursors WHERE subject=?', (other['id'],)).fetchone()
+        written = connection.execute('SELECT starts_at FROM life_agenda WHERE subject=?', (other['id'],)).fetchall()
+    assert cursor and parse(cursor['through']) >= clock.now() - timedelta(hours=1)
+    assert all(parse(row['starts_at']) >= clock.now() - timedelta(hours=1) for row in written)
