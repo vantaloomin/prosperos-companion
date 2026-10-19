@@ -299,3 +299,11 @@ def test_an_elven_townsperson_who_takes_over_stays_an_elf_of_their_age():
                               date(2026, 10, 19))
     assert definition['kind'] == 'elf' and lifespans.sheet_kind(definition, data) == 'elf'
     assert looks.age_of(definition, 's') == sheet['age']
+
+
+def test_an_elf_on_the_dating_app_is_drawn_the_age_they_look():
+    from companion import dating_photos
+    data = catalog.city('grandport')
+    sheet = {**townsfolk.resident(data, 'gran-porte', 3), 'age': 300, 'folk': 'elf'}
+    prompt = dating_photos.inputs(sheet, data)['prompt']
+    assert '48 years old' in prompt and '300' not in prompt
