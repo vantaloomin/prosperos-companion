@@ -130,6 +130,11 @@ WANT_LINES = {'yes': 'On children: you would like to have children one day. If i
               'someday': 'On children: you might want children someday, but not any time soon. If it comes up, say '
                          'so honestly.',
               'no': "On children: you don't want children of your own. If it comes up, say so honestly and kindly."}
+# The same for a companion who already has children (their own from before, or the pair's).
+MORE_LINES = {'yes': 'On children: you would like another child one day. If it comes up, say so honestly.',
+              'someday': 'On children: you might want another child someday, but not any time soon. If it comes up, '
+                         'say so honestly.',
+              'no': "On children: you don't want more children. If it comes up, say so honestly and kindly."}
 ROUTE_WORDS = {'expecting_them': 'you would carry the baby', 'expecting_you': 'the user would carry the baby',
                'adoption': 'you would adopt', 'fostering': 'you would foster, which may lead to adopting',
                'surrogacy': 'you would have a baby through a surrogate', 'ward': 'you would take in a ward',
@@ -524,7 +529,8 @@ def context_lines(connection, companion: dict, found: dict, now) -> list[tuple[s
     if not ACTIVE or quiet(connection) or found['ladder'] not in steps.LADDERS:
         return []
     wanted = wants(connection, companion)  # No clock: the context is read, never written (`settle` records it).
-    result = [(f'family:wants:{wanted}', f'- {WANT_LINES[wanted]}')]
+    more = has_children(connection, companion)
+    result = [(f"family:wants:{wanted}{':more' if more else ''}", f'- {(MORE_LINES if more else WANT_LINES)[wanted]}')]
     stayed = stay_ask(connection, companion['active_timeline_id'])
     if stayed and stayed['status'] in ('yes', 'lapsed') and found['ladder'] == 'romance':
         on = steps.long_date(stayed['settled_at'][:10])
@@ -541,6 +547,13 @@ def context_lines(connection, companion: dict, found: dict, now) -> list[tuple[s
             result.append(('family:sibling', f'- {SIBLING_LINE.format(names=names)}'))
         result += lines
     return result
+
+
+def has_children(connection, companion: dict) -> bool:
+    """Whether they already have a child: their own from before (companion/life/kids.py) or the pair's."""
+    from companion.life import kids
+    timeline_id = companion.get('active_timeline_id')
+    return bool(timeline_id and (kids.own(connection, timeline_id) or ours(connection, timeline_id)))
 
 
 def journey_lines(connection, companion: dict, now) -> list[tuple[str, str]]:

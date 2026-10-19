@@ -434,3 +434,20 @@ def test_someday_or_an_easy_life_lets_it_rest_after_two_noes(client, clock, monk
     ('yes', None), ('no', None), ("I don't know", None)])
 def test_staying_or_separating_is_read_from_the_answer(text, said):
     assert steps.stay_answer(text) == said
+
+
+def preview(client) -> str:
+    return client.get('/api/context/preview').json()['prompt']
+
+
+def test_one_who_already_has_kids_is_asked_about_more(client, monkeypatch):
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, monkeypatch, background='Her son Leo, 7, and her daughter Mia (4) are her whole world.')
+    assert client.get('/api/life/circle').status_code == 200
+    set_family(client, wants='no')
+    text = preview(client)
+    assert "On children: you don't want more children." in text and 'children of your own' not in text
+    set_family(client, wants='yes')
+    assert 'you would like another child one day' in preview(client)
+
