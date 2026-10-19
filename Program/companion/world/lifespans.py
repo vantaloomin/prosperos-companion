@@ -191,6 +191,10 @@ def clean_kinds(block: dict) -> tuple[list[str], dict]:
             notes.append(f'Dropped the kind "{key}": its lifespan must be a whole number of years from '
                          f'{CITY_YEARS[0]} to {CITY_YEARS[1]}, or null for a kind that doesn\'t age.')
             continue
+        if key in (HUMAN, AGELESS):
+            notes.append(f'Dropped the kind "{key}": ' + ('humans live 80 years everywhere, the measure for every '
+                                                         'other kind.' if key == HUMAN else "it doesn't age anywhere."))
+            continue
         if key in builtin:
             own[key] = {'lifespan': span}  # A built-in kind: only its lifespan changes here.
             continue

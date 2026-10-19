@@ -258,3 +258,16 @@ def test_a_city_file_whose_kinds_block_is_the_wrong_shape_still_loads():
         data = catalog.prepare(raw, mend=True)
         assert 'kinds' not in data and any('kind' in note for note in data['import_notes'])
         assert lifespans.lifespan_of('elf', data) == 600
+
+
+def test_a_city_file_cannot_change_how_long_humans_live_or_make_doesnt_age_age():
+    raw = copy.deepcopy(catalog.city('grandport'))
+    for key in ('data_version', 'import_notes', 'builtin', 'origin'):
+        raw.pop(key, None)
+    raw['kinds'] = {'human': {'lifespan': 120}, 'ageless': {'lifespan': 500}, 'elf': {'lifespan': 750}}
+    data = catalog.prepare(raw, mend=True)
+    assert data['kinds'] == {'elf': {'lifespan': 750}}
+    notes = ' '.join(data['import_notes'])
+    assert '"human"' in notes and '"ageless"' in notes
+    assert lifespans.lifespan_of('human', data) == 80 and lifespans.lifespan_of('ageless', data) is None
+    assert lifespans.sheet_lifespan({'identity': 'A baker.'}, data) == 80
