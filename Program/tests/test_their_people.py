@@ -90,7 +90,7 @@ def invites(monkeypatch):
 
 
 def test_the_bank_has_enough_lines_and_each_names_who_where_and_when():
-    for kind in ('family', 'friends'):
+    for kind in ('family', 'friends', 'home'):
         lines = their_people.bank()[kind]
         assert len(lines) >= 100 and len(set(lines)) == len(lines)
         for line in lines:
@@ -158,6 +158,30 @@ def test_with_no_family_in_town_they_go_out_with_friends(client, clock, invites)
     set_step(client, 'their_people')
     advance(client, clock)
     assert meetups(client)[0]['kind'] == 'friends'
+
+
+def test_a_parent_with_no_family_in_town_has_their_friends_to_dinner_with_the_kids(client, provider, clock, invites,
+                                                                                    monkeypatch):
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, roles=['close friend', 'friend', 'coworker'], background='Her son Leo, 7, and daughter Mia, 4.')
+    set_step(client, 'their_people')
+    advance(client, clock)
+    assert meetups(client)[0]['kind'] == 'family'
+    clock.advance(timedelta(days=7))
+    trigger, outing = invite(client, clock)
+    assert 'dinner at my place' in trigger.reason and 'my place' in trigger.template and '{' not in trigger.template
+    assert outing['activity'] == their_people.AT_FAMILY and outing['place']['own']
+    assert outing['place']['name'] == "Mira Costa's place"
+    assert [person['role'] for person in outing['place']['people']] == ['close friend', 'friend']
+    at(clock, outing, '19:30')
+    says(provider)
+    send(client, 'hi everyone!', 'client-people-home')
+    assert 'and your kids Leo and Mia. Nobody else is there.' in prompt(provider)
+    clock.advance(timedelta(days=1))
+    advance(client, clock)
+    with client.app.state.database.connect() as connection:
+        assert kids.met(connection, current(connection))
 
 
 def test_called_off_it_comes_round_again_later(client, clock, invites):

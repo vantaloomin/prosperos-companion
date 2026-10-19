@@ -5,7 +5,8 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
 
 - Once a romance reaches the "meeting their people" step (companion/life/steps.py), a meet-up is planned a few days
   later with no question asked: dinner at their family's place when a parent or a sibling lives in town, else drinks
-  with their friends. For a best friend, now and then (the engine's `people:night_out`, by the Relationship pace
+  with their friends; a companion with kids of their own has their friends to dinner at home instead, with the kids
+  there (companion/life/kids.py). For a best friend, now and then (the engine's `people:night_out`, by the Relationship pace
   slider and how outgoing they are) a night out with their friends comes up too. A pair that has been together for
   years by how they know each other ("married for ten years"), or an existing pair that starts at the step, met
   everyone already: those first impressions are seeded straight away and nothing is planned.
@@ -131,13 +132,23 @@ def local_people(connection, companion: dict) -> list[dict]:
 
 
 def guests_for(connection, companion: dict, kind: str) -> tuple[str, list[dict]]:
-    """(family or friends, who comes): family when a parent or sibling lives in town, else their friends."""
+    """(family or friends, who comes): family when a parent or sibling lives in town, else their friends. A companion
+    with kids of their own and no family in town has their friends to dinner at home, with the kids there (Vanta
+    2026-10-19): still the family dinner."""
     found = local_people(connection, companion)
     family = sorted((person for person in found if person['group'] == 'family'), key=lambda item: item['kind'] != 'parent')
     friends = [person for person in found if person['group'] == 'friends']
     if kind == 'family' and family:
         return 'family', family[:MOST]
+    if kind == 'family' and friends and parent(connection, companion):
+        return 'family', friends[:MOST]
     return 'friends', friends[:MOST]
+
+
+def parent(connection, companion: dict) -> bool:
+    """Whether they have kids of their own under 18 (companion/life/kids.py)."""
+    from companion.life import kids
+    return kids.ACTIVE and bool(kids.own(connection, companion['active_timeline_id']))
 
 
 def people_text(people: list[dict], yours: bool = True) -> str:
@@ -270,9 +281,15 @@ def preferred_day(kind: str, today: date) -> date:
     return min(start + timedelta(days=(weekday - start.weekday()) % 7) for weekday in PREFERRED[kind])
 
 
-def family_place(people: list[dict], meetup_id: str) -> dict:
-    """The family home the dinner is at: a parent's, else a sibling's ("Ana and Rui's place")."""
+def family_place(connection, companion: dict, people: list[dict], meetup_id: str) -> dict:
+    """The family home the dinner is at: a parent's, else a sibling's ("Ana and Rui's place"); their own place when
+    it is their friends who come (`guests_for`)."""
     host = people[0]
+    if host['group'] != 'family':
+        from companion.life import together
+        return together.their_place(connection, companion) | {'id': FAMILY_HOME, 'kind': 'family-home',
+                                                               'spots': list(FAMILY_SPOTS), 'host': None,
+                                                               'owners': [], 'own': True}
     parents = [person for person in people if person['kind'] == 'parent']
     owners = parents[:2] if host['kind'] == 'parent' else [host]
     name = ' and '.join(first(person['name']) for person in owners) + "'s place"
@@ -285,6 +302,8 @@ def their_words_for_place(place: dict, people: list[dict]) -> str:
     """How the companion says where: "my parents' place", "my mom's place", "The Owl Bar"."""
     if place['kind'] != 'family-home':
         return place['name']
+    if place.get('own'):
+        return 'my place'
     owners = [person for person in people if person['id'] in place.get('owners', ())]
     if len(owners) == 2:
         return "my parents' place"
@@ -320,15 +339,15 @@ def meet_due(connection, companion: dict, now: datetime) -> list:
     reason = (f"You've arranged for the user to {'meet' if first_time else 'come out with'} {who}: {thing} at "
               f"{words} on {day:%A} {day.day} {day:%B} at {at}. Tell them in your own words, naming who will be there, "
               f"the place, the day and the time{', a little nervous and happy about it' if first_time else ''}.")
-    template = invitation(row, people, day, local.date(), clock_text(at), words)
+    template = invitation(row, people, day, local.date(), clock_text(at), words, place.get('own', False))
     return [Trigger(f"meet:{row['id']}", 'meet_people', reason, template,
                     (row['id'], activity, day.isoformat(), at, place['id'], ','.join(person['id'] for person in people)))]
 
 
-def invitation(row: dict, people: list[dict], day: date, today: date, time: str, words: str) -> str:
-    """The invitation from the bank. A week or more away it is "next Saturday", or a Saturday invitation for the
-    Saturday after reads as today."""
-    lines = bank()[row['kind']]
+def invitation(row: dict, people: list[dict], day: date, today: date, time: str, words: str, own: bool = False) -> str:
+    """The invitation from the bank (`own`: dinner at their own place with their friends). A week or more away it is
+    "next Saturday", or a Saturday invitation for the Saturday after reads as today."""
+    lines = bank()['home' if own else row['kind']]
     far = (day - today).days >= 7
     if far:
         lines = [line for line in lines if 'this {day}' not in line.lower()]
@@ -372,7 +391,7 @@ def proposal(connection, companion: dict, row: dict, local: datetime, stay: date
         return None
     day, at = found
     if activity == AT_FAMILY:
-        return activity, day, at, family_place(people, row['id']), people
+        return activity, day, at, family_place(connection, companion, people, row['id']), people
     definition = companion['version']['definition']
     data = outings.city_data(connection, definition)
     if not data:
@@ -397,7 +416,7 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     if not people or not free_on(connection, companion, day):
         return None
     if activity == AT_FAMILY:
-        place, cost = family_place(people, meetup_id), 0.0
+        place, cost = family_place(connection, companion, people, meetup_id), 0.0
     else:
         data = outings.city_data(connection, companion['version']['definition'])
         item = next((place for place in (data or {}).get('places', ()) if place['id'] == place_id), None)
