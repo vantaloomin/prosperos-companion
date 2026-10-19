@@ -1172,7 +1172,8 @@ def photograph(database) -> None:
         elif outing['activity'] == 'big-day':
             from companion.life import big_days
             found = {**found, 'wearing': big_days.photo_wearing(connection, outing),
-                     'label': f"At {outing['place'].get('title') or 'a big day'}"}
+                     'label': f"At {outing['place'].get('title') or 'a big day'}",
+                     **({'activity': big_days.PICTURED} if outing['place'].get('standing_up') else {})}
         inputs = prompts.build_moment(connection, found, jobs.image_settings(connection), 'moment')
         connection.execute('UPDATE outings SET photo_post_id=? WHERE id=?', (post_id, outing['id']))
     if jobs.routable(database, inputs):

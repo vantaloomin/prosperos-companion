@@ -417,8 +417,8 @@ def test_a_first_birthday_gift_fits_an_older_city(monkeypatch):
     assert set(gifts['first_birthday']) < set(gifts['first_birthday_modern'])
     assert not any(re.search(r'\b(telephone|crayons?|cars?)\b', gift) for gift in gifts['first_birthday'])
     companion = {'version': {'definition': {'name': 'Mira'}}}
-    for modern, key in ((True, 'first_birthday_modern'), (False, 'first_birthday')):
-        monkeypatch.setattr(big_days, 'modern_city', lambda _connection, _companion, modern=modern: modern)
+    for era, key in (('modern', 'first_birthday_modern'), ('industrial', 'first_birthday'), ('old', 'first_birthday_old')):
+        monkeypatch.setattr(big_days, 'gift_era', lambda _connection, _companion, era=era: era)
         found = {big_days.gift_for(None, companion, big_days.KINDS['first_birthday'], f'seed-{n}')[0] for n in range(60)}
         assert found <= set(gifts[key])
 
