@@ -274,3 +274,35 @@ def test_across_cities_no_family_day_out_in_their_city(client, clock, monkeypatc
         pytest.skip('The companion lives in Chicago in this world.')
     with client.app.state.database.connect(write=True) as connection:
         assert our_child.plan_outing(connection, current(connection), today, clock.now()) is None
+
+
+def test_loss_spares_the_other_parent_of_any_child_under_18_the_companion_shares(client, clock, monkeypatch):
+    born(client, clock, monkeypatch)
+    with connect(client) as connection:
+        companion = current(connection)
+        timeline_id = companion['active_timeline_id']
+        today = steps.local_today(companion, clock.now())
+        people = [dict(row) for row in connection.execute(
+            "SELECT * FROM circle_people WHERE timeline_id=? AND status='active' LIMIT 2", (timeline_id,))]
+        ex, other = people
+        assert not custody.spared(connection, ex, today) and not custody.spared(connection, other, today)
+        child = (identifier(), timeline_id, ex['id'], 'own', 'Ivy', 'she/her', 'family',
+                 (today - timedelta(days=10 * 365)).isoformat(), 'x', 'x')
+        connection.execute(
+            'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, born_on, '
+            "status, whose, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'born', 'companion', ?, ?)", child)
+        assert custody.spared(connection, ex, today)  # Their own child with an ex, ten years old.
+        assert custody.spared(connection, ex, today + timedelta(days=7 * 365))
+        assert not custody.spared(connection, ex, today + timedelta(days=8 * 365 + 5))  # Grown: no longer spared.
+        connection.execute(
+            "INSERT INTO companion_kids (timeline_id, companion_id, how, other_id, pattern, since, created_at, "
+            "updated_at) VALUES (?, ?, 'seeded', ?, 'with_them', ?, 'x', 'x')",
+            (timeline_id, companion['id'], other['id'], today.isoformat()))
+        connection.execute(
+            'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, born_on, '
+            "status, created_at, updated_at) VALUES (?, ?, ?, ?, 'Leo', 'he/him', 'family', ?, 'born', 'x', 'x')",
+            (identifier(), timeline_id, companion['id'], f'kids:{timeline_id}',
+             (today - timedelta(days=12 * 365)).isoformat()))
+        assert custody.spared(connection, other, today)  # The other parent of the kids they had before, Leo at 12.
+        assert loss.spared(connection, timeline_id, other, today)
+        assert not custody.spared(connection, other, today + timedelta(days=6 * 365 + 10))
