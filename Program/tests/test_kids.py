@@ -4,7 +4,7 @@ user as their step-parent, a love-life partner's kids, and the limits children k
 from datetime import date, timedelta
 
 import pytest
-from conftest import intimate, reconcile
+from conftest import intimate, reconcile, set_life
 
 from companion import consequences
 from companion.characters import current
@@ -508,3 +508,25 @@ def test_a_v014_son_handed_to_the_kids_keeps_his_birthday(client, monkeypatch):
         [kid] = [dict(row) for row in connection.execute("SELECT * FROM circle_children WHERE name='Leo'")]
     assert kid['born_on'][5:] == birthday, (kid, birthday)
     assert [item['age'] for item in panel(client)['kids']] == [7]
+
+
+def test_growing_families_at_none_means_no_seeded_kids_and_no_partner_with_kids(client, clock, monkeypatch):
+    set_life(client, growing_families=0)
+    found = consequences.odds('kids:has', {'age': 40, 'growing': 0, 'said_no': 0, 'sheet': set()}, {'name': 'Dana'})
+    assert found[1]['odds'] == 0 and 'Growing families is set to None' in found[1]['reasons']
+    monkeypatch.setattr(kids, 'PARTNER_ODDS', ((0, 1.0),))
+    make(client, relationship='friendship', identity='44. She/her. Nurse.')
+    assert not panel(client)['shown']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        assert kids.record(connection, companion['active_timeline_id'])['how'] == 'none'
+        person = dict(connection.execute('SELECT * FROM circle_people ORDER BY ordinal LIMIT 1').fetchone())
+        connection.execute("UPDATE circle_people SET details=json_set(details, '$.age', 40) WHERE id=?", (person['id'],))
+        person = dict(connection.execute('SELECT * FROM circle_people WHERE id=?', (person['id'],)).fetchone())
+        assert kids.partner_kids(connection, companion, None, person, clock.now()) == 0
+
+
+def test_growing_families_at_none_keeps_the_kids_a_description_names(client):
+    set_life(client, growing_families=0)
+    make(client, background='Her son Leo, 7, and daughter Mia, 4.')
+    assert [kid['name'].split()[0] for kid in panel(client)['kids']] == ['Leo', 'Mia']
