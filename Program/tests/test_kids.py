@@ -228,6 +228,18 @@ def test_today_says_where_the_kids_are(client, clock):
 
 # Seeded for a new companion ---------------------------------------------------------------------------------------
 
+def test_on_the_day_of_the_family_dinner_the_kids_are_with_them_whatever_the_rota(client, clock, monkeypatch):
+    make(client, background='Her son Leo, 7, lives with his dad and spends every other weekend with her.')
+    monkeypatch.setattr(kids, 'with_them', lambda *_args: False)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        assert kids.today_line(connection, companion, clock.now())[1].startswith('- Today Leo is with their')
+        dinner = {'activity': their_people.AT_FAMILY, 'local_date': steps.local_today(companion, clock.now()).isoformat(),
+                  'place': {'first': True}}
+        monkeypatch.setattr('companion.life.outings.in_force', lambda *_args: [dinner])
+        assert kids.today_line(connection, companion, clock.now())[1] == '- Today Leo is with you.'
+
+
 def test_a_new_companion_may_be_given_kids_by_the_engine(client, monkeypatch):
     forced(monkeypatch, 'kids:has', 1)
     make(client)

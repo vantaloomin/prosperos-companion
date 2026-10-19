@@ -639,6 +639,15 @@ def meeting_soon(connection, companion: dict) -> str | None:
     return 'family dinner' if row else None
 
 
+def at_dinner_on(connection, companion: dict, day: date) -> bool:
+    """Whether the family dinner where the user first meets their people (and their kids) is on this day: the kids are
+    with them that day, whatever the rota says."""
+    from companion.life import outings, their_people
+    return any(row['activity'] == their_people.AT_FAMILY and row['local_date'] == day.isoformat() and
+               (row['place'] if isinstance(row['place'], dict) else decode(row['place'])).get('first')
+               for row in outings.in_force(connection, companion['active_timeline_id'], day.isoformat()))
+
+
 def at_dinner(connection, companion: dict) -> str:
     """', and your kids Leo and Mia' (', and your son Leo') for the family dinner's scene; '' with none, or with the
     adult side on."""
@@ -704,7 +713,7 @@ def today_line(connection, companion: dict, now) -> tuple[str, str] | None:
     today = steps.local_today(companion, now)
     them, _name = other_text(connection, companion, row)
     who = 'the kids' if len(kids) > 1 else first(kids[0]['name'])
-    here = with_them(pattern, date.fromisoformat(row['since']), today)
+    here = with_them(pattern, date.fromisoformat(row['since']), today) or at_dinner_on(connection, companion, today)
     where = 'with you' if here else f'with {them}'
     return f'kids:today:{here}', f"- Today {who} {'are' if len(kids) > 1 else 'is'} {where}."
 
