@@ -76,7 +76,7 @@ function Piece({ item, view, act, gone = false }: { item: WardrobeItem; view: Wa
     <li className={`wardrobe-piece${gone ? ' removed' : ''}`}>
       <span>
         {pieceTitle(item)}
-        {item.favorite && <><Star aria-hidden="true" className="wardrobe-star" /><span className="visually-hidden"> (a favourite)</span></>}
+        {item.favorite && <><Star aria-hidden="true" className="wardrobe-star" /><span className="visually-hidden"> (a favorite)</span></>}
         {item.description && <span className="subtle"> {item.description}</span>}
         {since && <span className="subtle"> · {since}</span>}
       </span>
@@ -120,7 +120,7 @@ function EditForm({ item, view, act, onDone }: { item: WardrobeItem; view: Wardr
       <label htmlFor={`wardrobe-description-${item.id}`}>Note (optional)</label>
       <input id={`wardrobe-description-${item.id}`} value={description} maxLength={300} onChange={(event) => setDescription(event.target.value)} />
       <CategorySelect id={`wardrobe-category-${item.id}`} view={view} value={category} onChange={setCategory} />
-      <Toggle label="A favourite (worn often)" checked={favorite} onChange={setFavorite} />
+      <Toggle label="A favorite (worn often)" checked={favorite} onChange={setFavorite} />
       <div className="rename-row">
         <button type="submit" className="button primary">Save</button>
         <button type="button" className="button quiet" onClick={onDone}>Cancel</button>
@@ -147,7 +147,7 @@ function AddForm({ view, act, onDone }: { view: WardrobeView; act: Act; onDone: 
       <small id="wardrobe-add-name-hint" className="subtle">Colour and kind, the way you would describe it. Pictures use these words.</small>
       <label htmlFor="wardrobe-add-description">Note (optional)</label>
       <input id="wardrobe-add-description" value={description} maxLength={300} placeholder="A gift from their sister" onChange={(event) => setDescription(event.target.value)} />
-      <Toggle label="A favourite (worn often)" checked={favorite} onChange={setFavorite} />
+      <Toggle label="A favorite (worn often)" checked={favorite} onChange={setFavorite} />
       <div className="rename-row">
         <button type="submit" className="button primary" disabled={!name.trim()}>Add</button>
         <button type="button" className="button quiet" onClick={onDone}>Cancel</button>

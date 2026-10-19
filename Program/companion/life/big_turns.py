@@ -549,6 +549,23 @@ def fork_row(connection, row: dict, copy_id: str, timeline_id: str, cutoff: str)
     return {**found, 'id': copy_id, 'timeline_id': timeline_id, 'undo': encode(undo), 'details': encode(details)}
 
 
+LATEST_ONLY = 'Only how it went most recently can still be changed; this one already led to what came after.'
+
+
+def stage_settled(row: dict | None, consequence_id: str) -> bool:
+    """Whether how a stage went already led to a later stage, so it can no longer change."""
+    return bool(row) and decode(row['undo']).get('decided', [None])[-1] != consequence_id
+
+
+def settled_note(connection, found: dict) -> str:
+    """For "Why it went this way" on how a stage went: why it can no longer change, up front; else ''."""
+    kind, _, rest = found['subject'].partition(':')
+    if kind not in ('business', 'health', 'caring'):
+        return ''
+    row = optional(connection, 'SELECT undo FROM life_chapters WHERE id=? AND undone_at IS NULL', (rest.split(':')[0],))
+    return LATEST_ONLY if stage_settled(row, found['id']) else ''
+
+
 def change_stage(connection, companion: dict, consequence_id: str, option: int, now) -> dict:
     """"Make it go this way" on how a stage went (business:how, health:outlook, caring:how): the stage that rolled it
     and any that followed are taken back, it comes again on its own day the way the user picked, and the days since
@@ -558,8 +575,7 @@ def change_stage(connection, companion: dict, consequence_id: str, option: int, 
                    (found['subject'].split(':')[1], companion['active_timeline_id']))
     require(row is not None, 'That turn is not on this timeline.', 404)
     require(0 <= option < len(found['options']), 'There is no such way for it to go.', 422)
-    require(decode(row['undo']).get('decided', [None])[-1] == consequence_id,
-            'Only how it went most recently can still be changed; this one already led to what came after.', 409)
+    require(not stage_settled(row, consequence_id), LATEST_ONLY, 409)
     rewound, details = dict(row), decode(row['details'])
     while details.get('before'):
         rewound, details = back_one(rewound, details)

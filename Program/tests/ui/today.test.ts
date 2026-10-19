@@ -99,3 +99,15 @@ test('a big turn names how its latest stage went for "Make it go this way"', asy
   assert.equal(outcomeSummary('health'), 'How it looks')
   assert.equal(outcomeSummary('caring'), 'How the caring is going')
 })
+
+test('how a stage went names the business once and keeps each row short (Iris, v0.15)', async () => {
+  const { markLine, outcomeIntro, outcomeRow } = await import('../../src/features/character/turnsText.ts')
+  assert.equal(outcomeIntro('business:how', 'How the solar panel installation business is going', 'Maya Ortiz'),
+    "How Maya's solar panel installation business is going")
+  assert.equal(outcomeIntro('caring:how', 'How caring for their mom is going', 'Maya'), 'How caring for their mom is going')
+  assert.deepEqual([0, 1, 2, 3].map((option) => outcomeRow('business:how', option, 'x')), ['It grows', 'It ticks along', 'It stalls', 'It folds'])
+  assert.equal(outcomeRow('health:outlook', 1, 'x'), "It's a harder road")
+  assert.equal(outcomeRow('caring:how', 2, 'x'), 'They need more help')
+  assert.equal(outcomeRow('steps:ask', 0, 'They say yes'), 'They say yes')
+  assert.equal(markLine('the business is growing', 'Fri, Oct 30'), 'The business is growing, until Fri, Oct 30')
+})

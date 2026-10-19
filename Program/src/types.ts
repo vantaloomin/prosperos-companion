@@ -516,6 +516,8 @@ export interface StepsView {
   asks?: { id: string; step: string; side: 'them' | 'you'; status: 'open' | 'yes' | 'not_yet' | 'no' | 'lapsed'; topic: string; on: string; consequence_id: string | null }[]
   /** Moving in together (companion/life/moving_in.py), from the moving-in step on; `consequence_id` only with odds on. */
   moving_in?: MovingIn | null
+  /** Living apart again after living together: since when, and who moved out ('you' the user, 'them' the companion). */
+  apart?: { since: string; by: 'you' | 'them' | null } | null
 }
 
 /** Whose place in one city ('yours', 'theirs', 'new'), or who moves across the distance ('them' to your city; 'you',
@@ -1284,6 +1286,10 @@ export interface Consequence {
   options: { option: number; label: string; odds: number; reasons: string[]; moves?: ReasonMove[] }[]
   picked: number
   picked_by: 'dice' | 'user'
+  /** The choice it answered ("business:how"). */
+  choice?: string
+  /** Set when it can no longer change (how a stage went that already led to a later one): why, shown as a hint. */
+  settled?: string
   /** What it left behind for a while, tilting later odds; a ripple reached a companion close to them. */
   marks: { kind: 'mood' | 'money' | 'avoid'; amount: number; note: string; until: string; ripple: boolean; holder: string; who: string | null }[]
 }

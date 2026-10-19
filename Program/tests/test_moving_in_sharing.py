@@ -383,6 +383,7 @@ def test_the_user_moving_city_leaves_one_home_not_a_copy_each(client, provider, 
         picked = next(item for item in view['ladder_steps'] if item['step'] == view['step'])
         assert view['step'] == 'moving_in' and picked['label'] == view['label'] == 'Living apart for now', view
         assert 'Living together' not in {item['label'] for item in view['ladder_steps']}
+    assert [view['apart']['by'] for view in views] == ['you', 'them'] and all(view['apart']['since'] for view in views)
 
 
 def test_whoever_kept_a_home_grown_for_three_moves_somewhere_smaller_months_on(client, provider, clock, monkeypatch,

@@ -1196,7 +1196,8 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
         found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
                  'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
     elif moving is None and found['step'] == 'moving_in' and moving_in.moved_apart(connection, companion):
-        found = apart_view(found)  # Living apart again (the user moved city, say).
+        # Living apart again (the user moved city, say).
+        found = apart_view(found, moving_in.latest(connection, companion['active_timeline_id']))
     return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
             'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
@@ -1213,11 +1214,13 @@ def not_moved_text(text: str, status: str) -> str:
     return words.capitalize()
 
 
-def apart_view(found: dict) -> dict:
+def apart_view(found: dict, row: dict | None) -> dict:
     """The panel while living apart again: the line and the picker's Living together both read "Living apart for
-    now", with no step to set."""
+    now", with no step to set; `apart` says since when and who moved ('you' the user, 'them' the companion), for the
+    line under the steps."""
     label = 'Living apart for now'
     return {**found, 'text': apart_text(found['text']), 'label': label,
+            'apart': {'since': row['out_on'], 'by': row['out_who']} if row and row['out_on'] else None,
             'ladder_steps': [{**item, 'label': label} if item['step'] == 'moving_in' else item
                              for item in found['ladder_steps']]}
 

@@ -75,6 +75,6 @@ interface KeepsAgeProps { definition: CharacterDefinition; written: number | nul
 /** The "Keeps their age" lock, off by default: they turn a year older on each birthday unless it is on. */
 function KeepsAge({ definition, written, found, set }: KeepsAgeProps) {
   return <Toggle label="Keeps their age" checked={Boolean(definition.keeps_age)} onChange={(keeps_age) => set({ keeps_age })}
-    hint={[keepsAgeHint(definition, written ?? found?.automatic?.age ?? null, found?.age_now ?? null),
-      decadeHint(definition.identity ?? '', found?.age_now ?? null)].filter(Boolean).join(' ')} />
+    hint={keepsAgeHint(definition, written ?? found?.automatic?.age ?? null, found?.age_now ?? null,
+      decadeHint(definition.identity ?? '', found?.age_now ?? null))} />
 }

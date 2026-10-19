@@ -10,7 +10,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { Wedding } from './WeddingPlan'
-import { STEPS_KEY, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from './stepsText'
+import { STEPS_KEY, apartStep, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from './stepsText'
 import { apartHint, apartSummary, BREAKUP_KEY, breakupLine, endedStep, isApart, mendLabel, mendedText, standsLabel, type BreakupView } from './breakupText'
 import { UNDO_MS } from '../profile/roughPatchText'
 
@@ -49,7 +49,7 @@ export function Steps({ name }: { name: string }) {
           </select>
         )}
       </Field>
-      <StepsSoFar view={view} name={name} ended={endedStep(breakup.data, name)} />
+      <StepsSoFar view={view} name={name} ended={endedStep(breakup.data, name) || apartStep(view, name)} />
       <Wedding name={name} />
       {view.can_fall && (
         <Toggle label="Just friends" checked={view.just_friends} disabled={apart} onChange={(just_friends) => void save({ just_friends })}

@@ -215,10 +215,13 @@ def test_how_a_business_goes_can_be_changed_while_it_is_the_latest(client, mira,
     assert all('slow' not in mark['note'] for mark in marks)
 
     first = listed['outcome']
+    assert client.get(f'/api/life/consequences/{first}').json()['settled'] == ''
     land(monkeypatch, business.CHOICE, 1)
     next_stage(client, clock, chapter['id'])
     response = change(client, first, 3)
     assert response.status_code == 409 and 'most recently' in response.json()['detail']
+    # Read again, it says so up front, so the page shows the reason in place of "Make it go this way".
+    assert client.get(f'/api/life/consequences/{first}').json()['settled'] == response.json()['detail']
 
 
 def test_how_a_health_turn_looks_can_be_changed_after_it_settled(client, older, clock, monkeypatch):

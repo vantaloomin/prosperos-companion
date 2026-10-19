@@ -32,7 +32,7 @@ export function Chapters({ name }: { name: string }) {
                 onClick={() => undo.mutate(item.id)}>Undo</button>
             </p>
             {item.consequence && <WhyItWent id={item.consequence} possibleOnly />}
-            {item.outcome && <WhyItWent id={item.outcome} summary={outcomeSummary(item.kind)} />}
+            {item.outcome && <WhyItWent id={item.outcome} summary={outcomeSummary(item.kind)} name={name} />}
           </li>
         ))}
       </ul>

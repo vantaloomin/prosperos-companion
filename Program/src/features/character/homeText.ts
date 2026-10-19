@@ -1,7 +1,7 @@
 import type { HomeItem, HomeKind } from '../../types'
 import { calendarDay } from '../../when.ts'
 
-export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet', plant: 'Plant', vehicle: 'Getting around', favorite: 'Favourite thing' }
+export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet', plant: 'Plant', vehicle: 'Getting around', favorite: 'Favorite thing' }
 
 /** "A one-bedroom in a rowhouse in Fells Point, Baltimore". */
 export function homeTitle(item: HomeItem): string {

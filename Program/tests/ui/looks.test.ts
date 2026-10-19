@@ -35,7 +35,9 @@ test('an empty field before the first save says it is picked, short enough for a
 })
 
 test('an identity in a decade the age has left says so on the Character page', () => {
-  assert.equal(decadeHint('In her thirties, a translator.', 47), "They're 47 now; the description says thirties.")
+  assert.equal(decadeHint('In her thirties, a translator.', 47), 'thirties')
+  assert.equal(keepsAgeHint({ name: 'Maya Ortiz' }, 35, 47, 'thirties'),
+    "Maya is 47 now, though their description says thirties, and turns a year older on each birthday. Turn this on for a character who shouldn't age.")
   assert.equal(decadeHint('In her late Thirties.', 39), '')
   assert.equal(decadeHint('34. A translator.', 47), '')
   assert.equal(decadeHint('In his forties.', null), '')

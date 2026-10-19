@@ -53,3 +53,12 @@ test('housework reads in words, with the last big clean when there was one', asy
   assert.match(lastClean({ last_big_clean: '2026-10-16', today: '2026-10-22' })?.when ?? '', /^\w+day$/)
   assert.match(lastClean({ last_big_clean: '2026-10-12', today: '2026-10-22' })?.when ?? '', /^last \w+day$/)
 })
+
+test('belongings use US spelling on screen', async () => {
+  const { KIND_LABELS } = await import('../../src/features/character/homeText.ts')
+  assert.equal(KIND_LABELS.favorite, 'Favorite thing')
+  const { readFile } = await import('node:fs/promises')
+  for (const file of ['features/character/homeText.ts', 'features/character/Wardrobe.tsx']) {
+    assert.doesNotMatch(await readFile(new URL(`../../src/${file}`, import.meta.url), 'utf8'), /avourite/, file)
+  }
+})

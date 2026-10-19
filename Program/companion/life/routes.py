@@ -523,7 +523,8 @@ def read_consequence(request: Request, consequence_id: str):
         # Sharing a home: the answer of one living there shows on the newcomer's page too (moving_in.py).
         require(found['timeline_id'] == companion['active_timeline_id'] or
                 moving_in.shown_with(connection, consequence_id, companion), 'That outcome is not on this timeline.', 404)
-        return found
+        # How a stage went, once a later stage followed: no "Make it go this way", and why (big_turns.py).
+        return {**found, 'settled': big_turns.settled_note(connection, found)}
 
 
 # "Change how it went" by subject prefix, for those that take (connection, companion, consequence_id, option, now).
