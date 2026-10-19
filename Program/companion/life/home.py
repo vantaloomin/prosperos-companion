@@ -564,19 +564,15 @@ def pet_hint(connection, timeline_id: str, event: dict, named_ids: list[str], at
     return parts
 
 
-def money_text(home: dict, others: tuple[str, ...] = ()) -> str:
-    """Rent (the mortgage, on a place they own), unless the budget section already states it; `others` are the user's
-    other partners who share the home too."""
+def money_text(home: dict) -> str:
+    """Rent (the mortgage, on a place they own), unless the budget section already states it."""
     if not home.get('rent') or home.get('rent_from') == 'budget':
         return ''
     currency = home.get('currency') or {}
     # In the city's own money, as money.py says it ('$1,410', '5 d.').
     said = money.amount(home['rent'], currency) if isinstance(currency, dict) and currency.get('symbol') else \
         f"${home['rent']:,}"
-    shared = ''  # Living together (companion/life/moving_in.py), with more of the user's partners or not.
-    if home.get('shared'):
-        shared = f", split between you, the user{''.join(f', {name}' for name in others[:-1])} and {others[-1]}" \
-            if others else ', split with the user'
+    shared = ', split with the user' if home.get('shared') else ''  # Living together (companion/life/moving_in.py).
     if home.get('owned'):  # A place they bought (companion/life/big_turns.py).
         return f" The mortgage is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
     return f" Rent is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
@@ -592,7 +588,7 @@ def context_lines(connection, timeline_id: str, day: date) -> list[tuple[str, st
     for item in items:
         if item['kind'] == 'pet':
             continue
-        text = item_line(item, housemates(connection, timeline_id) if item.get('shared') else ())
+        text = item_line(item)
         if item['id'] in repairs:
             text += f" Right now it is {repair_status(item)} (back {repairs[item['id']]['until']})."
         lines.append((item['id'], text))
@@ -603,21 +599,14 @@ def context_lines(connection, timeline_id: str, day: date) -> list[tuple[str, st
     return lines + pets.context_lines(connection, timeline_id, day)
 
 
-def item_line(item: dict, others: tuple[str, ...] = ()) -> str:
+def item_line(item: dict) -> str:
     if item['kind'] == 'home':
         features = item.get('features') or []
         return (f"- Home: {item['description']}" + (f", {item['city']}" if item.get('city') else '') + '.'
-                + (f" It has {' and '.join(features)}." if features else '') + money_text(item, others))
+                + (f" It has {' and '.join(features)}." if features else '') + money_text(item))
     label = {'pet': 'Pet', 'plant': 'Plant', 'vehicle': 'Getting around', 'favorite': 'A favourite thing'}[item['kind']]
     detail = f" ({item['description']})" if item['description'] != item['name'] else ''
     return f"- {label}: {item['name']}{detail}."
-
-
-def housemates(connection, timeline_id: str) -> tuple[str, ...]:
-    """The first names of the user's other partners living in the home this timeline shares with the user."""
-    from companion.life import moving_in  # Imported here: moving_in builds on this module.
-    row = moving_in.latest(connection, timeline_id)
-    return tuple(moving_in.mate_names(connection, row)) if row and row['status'] == 'moved' else ()
 
 
 def repair_status(item: dict) -> str:
