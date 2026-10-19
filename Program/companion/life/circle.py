@@ -321,11 +321,12 @@ def birthday(person_id: str) -> str:
     return (date(2001, 1, 1) + timedelta(days=int(generators.unit(person_id, 'birthday') * 365))).strftime('%m-%d')
 
 
-def view(row: dict) -> dict:
+def view(row: dict, data: dict | None = None) -> dict:
+    """One person for the page; `data`: the companion's city, whose own kinds and lifespans their kind reads."""
     details = decode(row['details'])
     return {'id': row['id'], 'key': row['seed'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
             'revision': row['revision'], **details, 'birthday': birthday(row['id']),
-            'schedule': decode(row['schedule']), 'kind': ages.person_kind(details)}
+            'schedule': decode(row['schedule']), 'kind': ages.person_kind(details, data)}
 
 
 def build(definition: dict, world, timeline_id: str, size: int, seed: str | None = None, taken=(),
@@ -585,11 +586,12 @@ def rename(connection, person_id, name: str, now) -> dict:
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 
-def set_kind(connection, person_id, kind: str, lifespan: int | None, now) -> dict:
+def set_kind(connection, person_id, kind: str, lifespan: int | None, now, data: dict | None = None) -> dict:
     """The user's pick of someone's kind and How long they live ('' and None: the app's again; 0: they don't age).
-    Their real age stays; the rules read their life age from it (companion/world/lifespans.py)."""
+    Their real age stays; the rules read their life age from it (companion/world/lifespans.py). `data`: the
+    companion's city, which may have kinds of its own."""
     row = person(connection, person_id)
-    require(not kind or kind in lifespans.kinds(), 'Pick one of the kinds listed.', 422)
+    require(not kind or kind in lifespans.kinds(data), 'Pick one of the kinds listed.', 422)
     details = {key: value for key, value in decode(row['details']).items() if key not in ('own_kind', 'lifespan')}
     details |= ({'own_kind': kind} if kind else {}) | ({'lifespan': lifespan} if lifespan is not None else {})
     connection.execute('UPDATE circle_people SET details=?, revision=revision+1, updated_at=? WHERE id=?',
@@ -641,6 +643,14 @@ def ties_text(known: list[dict]) -> str:
     partners = [f"{PARTED.get(item['how'], 'Married to')} {item['name']}." for item in known if item['how'] in COUPLED]
     others = [f"{item['name']} ({item['how']})" for item in known if item['how'] not in COUPLED]
     return ' '.join(partners + ([f"Knows {', '.join(others)}."] if others else []))
+
+
+def city_of_timeline(connection, timeline_id: str) -> dict | None:
+    """The city of the timeline's companion, None for a place the app doesn't know."""
+    from companion.characters import by_id
+    row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    companion = row and by_id(connection, row['companion_id'])
+    return ages.city_of(connection, companion['version']['definition']) if companion else None
 
 
 def older_era(connection, timeline_id: str) -> bool:

@@ -254,7 +254,13 @@ def rename_person(request: Request, person_id: str, body: PersonUpdate):
 @router.put('/circle/{person_id}/kind')
 def set_person_kind(request: Request, person_id: str, body: KindChange):
     return circle_change(request, person_id,
-                         lambda connection, now: circle.set_kind(connection, person_id, body.kind, body.lifespan, now))
+                         lambda connection, now: circle.set_kind(connection, person_id, body.kind, body.lifespan, now,
+                                                                 kinds_city(connection)))
+
+
+def kinds_city(connection) -> dict | None:
+    """The open companion's city, whose own kinds the pickers offer (companion/world/lifespans.py)."""
+    return ages.city_of(connection, require_current(connection)['version']['definition'])
 
 
 @router.get('/kinds')

@@ -668,14 +668,15 @@ def set_kind(connection, companion: dict, child_id: str, kind: str, lifespan: in
     child = optional(connection, 'SELECT * FROM circle_children WHERE id=? AND timeline_id=? AND title=?',
                      (child_id, companion['active_timeline_id'], TITLE))
     require(child is not None, 'That child is not one of yours.', 404)
-    require(not kind or kind in lifespans.kinds(), 'Pick one of the kinds listed.', 422)
+    data = ages.city_of(connection, companion['version']['definition'])  # Its own kinds count too.
+    require(not kind or kind in lifespans.kinds(data), 'Pick one of the kinds listed.', 422)
     connection.execute('UPDATE circle_children SET own_kind=?, lifespan=?, updated_at=? WHERE id=?',
                        (kind, lifespan, stamp(now), child_id))
     grown = next((row for row in circle_rows(connection, companion) if grown_as(row, child)), None)
     if grown:  # Grown up and in the circle: their row follows.
         from companion.life import circle
         circle.set_kind(connection, grown['id'], kind or kind_of(connection, companion, {**child, 'own_kind': ''}),
-                        lifespan, now)
+                        lifespan, now, data)
 
 
 def circle_rows(connection, companion: dict) -> list[dict]:
@@ -851,7 +852,8 @@ def child_view(connection, companion: dict, child: dict, today: date) -> dict:
             'relation': {'she/her': 'daughter', 'he/him': 'son'}.get(child['pronouns'], 'child'),
             'temperament': found.get('temperament'), 'likes': found.get('likes'), 'quirk': found.get('quirk'),
             'milestones': [{'key': item['key'], 'label': item['label'], 'date': item['on']} for item in done],
-            'kind': lifespans.described(kind_of(connection, companion, child), child.get('lifespan'), years) |
+            'kind': lifespans.described(kind_of(connection, companion, child), child.get('lifespan'), years,
+                                        ages.city_of(connection, companion['version']['definition'])) |
             {'found': kind_of(connection, companion, {**child, 'own_kind': ''}), 'picked': child.get('own_kind') or '',
              'from_parents': born_to_you(connection, child)},
             'latest': ({'label': done[-1]['label'], 'date': done[-1]['on']} if done else None)}

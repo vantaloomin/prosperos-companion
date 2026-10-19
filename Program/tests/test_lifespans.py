@@ -307,3 +307,25 @@ def test_an_elf_on_the_dating_app_is_drawn_the_age_they_look():
     sheet = {**townsfolk.resident(data, 'gran-porte', 3), 'age': 300, 'folk': 'elf'}
     prompt = dating_photos.inputs(sheet, data)['prompt']
     assert '48 years old' in prompt and '300' not in prompt
+
+
+def test_a_citys_own_kind_shows_on_a_persons_page_and_can_be_picked(client):
+    raw = copy.deepcopy(catalog.city('grandport'))
+    for key in ('data_version', 'import_notes', 'builtin', 'origin'):
+        raw.pop(key, None)
+    raw |= {'id': 'tiefport', 'name': 'Tiefport',
+            'kinds': {'elf': {'lifespan': 750}, 'tiefling': {'label': 'Tiefling', 'lifespan': 200, 'words': ['tiefling']}}}
+    assert client.post('/api/world/cities', json=raw).status_code == 200
+    make(client, identity='Aerin is a tiefling, 100. A bard. They/them.', home_city='tiefport',
+         location='Gran Porte, Tiefport')
+    reconcile(client)
+    people = client.get('/api/life/circle').json()
+    relatives = [person for person in people if person.get('folk')]
+    assert relatives and all(person['kind']['label'] == 'Tiefling' and person['kind']['years'] == 200
+                             for person in relatives)
+    friend = next(person for person in people if not person.get('folk'))
+    picked = client.put(f"/api/life/circle/{friend['id']}/kind", json={'kind': 'tiefling', 'lifespan': None})
+    assert picked.status_code == 200, picked.text
+    assert picked.json()['kind']['kind'] == 'tiefling'
+    elf = client.put(f"/api/life/circle/{friend['id']}/kind", json={'kind': 'elf', 'lifespan': None}).json()['kind']
+    assert elf['years'] == 750
