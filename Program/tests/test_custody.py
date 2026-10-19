@@ -306,3 +306,31 @@ def test_loss_spares_the_other_parent_of_any_child_under_18_the_companion_shares
         assert custody.spared(connection, other, today)  # The other parent of the kids they had before, Leo at 12.
         assert loss.spared(connection, timeline_id, other, today)
         assert not custody.spared(connection, other, today + timedelta(days=6 * 365 + 10))
+
+
+@pytest.mark.parametrize('lives', ['with_them', 'with_you'])
+def test_split_up_across_cities_a_visit_asked_for_is_to_see_the_child(client, split, provider, lives):
+    ours(client, custody=lives)
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    if state(client) is None or not state(client)['far']:
+        pytest.skip('The companion lives in Chicago in this world.')
+    says(provider)
+    send(client, 'can I come see you next weekend?', f'client-custody-see-{lives}')
+    text, first = prompt(provider), split['name'].split()[0]
+    who = 'the user coming to ' if lives == 'with_them' else 'you going to Chicago'
+    assert "You are not together any more, so it isn't a stay with you: it is settled as " + who in text
+    assert f'to see {first}.' in text
+    with connect(client) as connection:
+        assert not connection.execute("SELECT id FROM trips WHERE visit!='' AND status='planned'").fetchall()
+
+
+def test_the_visit_line_keeps_to_one_side(monkeypatch):
+    from companion.life import families, together
+    reason = {'why': 'child', 'names': ['Ivy'], 'lives': 'them', 'city': 'Baltimore', 'saturday': '2030-01-05'}
+    monkeypatch.setattr(families, 'withheld', lambda _connection: True)
+    line = together.child_line(None, 'weekend-host', reason)
+    assert 'Ivy' not in line and "it isn't a stay with you" in line
+    monkeypatch.setattr(families, 'withheld', lambda _connection: False)
+    assert 'the user coming to Baltimore the weekend of Saturday January 5 to see Ivy.' in \
+        together.child_line(None, 'weekend-host', reason)

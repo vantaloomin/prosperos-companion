@@ -9,7 +9,8 @@ when they can't afford the fare this pay period, the user comes to them. Cities 
 longer visits (Thursday to Monday, when they are off those days), and calls carry the rest (companion/life/calls.py
 rings more for them). How often follows the Getting together slider (life_settings.together_realism): never on their
 own at 0, and a visit asked for in the chat ("come visit me?", "can I come see you next weekend?") is settled the same
-way at any level: the weekend asked, or the next free one, and when none works the reply says why.
+way at any level: the weekend asked, or the next free one, and when none works the reply says why. Split up with a
+child under 18, it is settled as coming to see the child that weekend, not a stay with each other (`for_the_child`).
 
 They tell the user about a visit the app planned (a first text, companion/life/openers.py). While it is under way they
 are together in person (together.state, 'staying' or 'hosting'): the chat writes face to face, nothing is held, nobody
@@ -312,7 +313,26 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     local = now.astimezone(zone(companion['version']['timezone'])).date()
     day = visit_day(message['text'], local, own_plans.holiday_dates(connection, companion['version']['definition'],
                                                                     local))
+    if for_the_child(connection, companion, message, direction, weekends(local, day)[0], timestamp):
+        return True
     return request(connection, companion, message, direction, day, timestamp)
+
+
+def for_the_child(connection, companion: dict, message: dict, direction: str, saturday: date, timestamp: str) -> bool:
+    """Split up with a child under 18 (companion/life/custody.py): a visit asked for in the chat is settled as the
+    parent the child doesn't live with coming to see them that weekend, never a stay with each other (Vanta
+    2026-10-19). Nothing is booked: the reply says so (together_asks)."""
+    from companion.life import custody, our_child
+    state = custody.found(connection, companion)
+    kids = our_child.at_home(connection, companion['active_timeline_id'], saturday)
+    if not state or not state['split'] or not kids:
+        return False
+    theirs = custody.with_them(state, saturday)
+    city = (state['far'].their_city if theirs else state['far'].your_city) or {}
+    return together.record(connection, companion, message, f'weekend-{direction}',
+                           {'why': 'child', 'names': [custody.first(kid['name']) for kid in kids],
+                            'lives': 'them' if theirs else 'you', 'city': city.get('name') or '',
+                            'saturday': saturday.isoformat()}, timestamp)
 
 
 def visit_day(text: str, today: date, holidays: dict) -> date | None:
