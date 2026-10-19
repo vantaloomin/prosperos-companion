@@ -12,7 +12,7 @@ from test_together import EVENINGS, mira, says
 from companion import cast, consequences
 from companion.characters import by_id, create_in, current
 from companion.database import many, optional
-from companion.life import money, moving_in, rough_patches, steps
+from companion.life import home, money, moving_in, rough_patches, steps
 from companion.memory import context
 from companion.models import CharacterDefinition
 
@@ -344,6 +344,13 @@ def test_the_shared_home_grows_with_the_household(client, provider, clock, monke
     assert hers['rent'] == his['rent'] and hers['id'] == before['id']  # The same place, at a two-bedroom's rent.
     assert rent_paid(client, mira_id) == rent_paid(client, theo_id) == round(hers['rent'] / 3, 2)
     assert moving_in.size_for(2) == 'one_bedroom' and moving_in.size_for(4) == 'two_bedroom'
+    with client.app.state.database.connect() as connection:  # The home line names everyone the rent is split between.
+        lines = {key: home.context_lines(connection, by_id(connection, key)['active_timeline_id'], clock.now().date())
+                 for key in (mira_id, theo_id)}
+    assert 'a month, split between you, the user and Theo (an estimate).' in lines[mira_id][0][1]
+    assert 'a month, split between you, the user and Mira (an estimate).' in lines[theo_id][0][1]
+    assert home.money_text({'rent': 900, 'shared': True}, ('Theo', 'Ava')).startswith(
+        ' Rent is about $900 a month, split between you, the user, Theo and Ava')
 
 
 def test_a_fork_of_the_one_who_set_the_home_up_still_shares_it(client, provider, clock, monkeypatch, open_to_it):
