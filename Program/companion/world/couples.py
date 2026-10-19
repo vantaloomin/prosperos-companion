@@ -110,10 +110,9 @@ def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
     a companion's own baby waits for v0.15."""
     if not turnover.ACTIVE or sheet.get('cast') or sheet.get('key') in data.get('companions', ()):
         return []
-    arrived = townsfolk.week_of(date.fromisoformat(sheet['arrived'])) if sheet.get('arrived') else turnover.START_WEEK
     result = []
     for week in range(max(townsfolk.week_of(week_range[0]), turnover.START_WEEK), townsfolk.week_of(week_range[1]) + 1):
-        age = sheet['age'] + max(week - arrived, 0) // turnover.YEAR
+        age = age_on(sheet, data, turnover.week_day(week, 3))
         chance = BABY * turnover.PACE[turnover.levels_at(week)[2]] / turnover.YEAR
         if generators.unit(townsfolk.drawn(sheet), 'baby', week) >= chance or not BABY_AGES[0] <= age <= BABY_AGES[1]:
             continue
@@ -122,6 +121,13 @@ def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
         if state and state['status'] in ('engaged', 'married') and week_range[0] <= day <= week_range[1]:
             result.append({'partner': state['partner'], 'day': day})
     return result
+
+
+def age_on(sheet: dict, data: dict, day: date) -> int:
+    """Their age on a day as Around town has it (companion/life/ages.py): from the day the town started getting older
+    (`data['began']`, the paper's; else when it started changing hands) and their seeded birthday."""
+    from companion.life import ages
+    return ages.aged(sheet, day, data.get('began') or turnover.START)
 
 
 def family_news(sheet: dict, data: dict, day: date) -> str | None:

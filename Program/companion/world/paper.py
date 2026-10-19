@@ -43,8 +43,10 @@ def title(data: dict) -> str:
 def issue(connection, data: dict, world, day: date) -> dict:
     """The issue out on the Sunday `day`, for the city `data`: the week up to it, and the week after. Engagements and
     weddings lead with the user's own (companion/life/wedding.py)."""
-    from companion.life import loss, wedding
+    from companion.life import ages, loss, wedding
     week = (day - timedelta(days=6), day)
+    # Townsfolk are as old as Around town says: from the day the town started getting older (companion/life/ages.py).
+    data = {**data, 'began': ages.town_began(connection)}
     talk = gossip(connection, data, week)
     return {'title': title(data), 'city': data['name'], 'date': day.isoformat(),
             'news': city_news(connection, data, week),
@@ -154,8 +156,7 @@ def moves(data: dict, terms: list, weeks: range, sheet_of) -> list[dict]:
     result = []
     for term in terms:
         if term.left in weeks and (sheet := sheet_of(term.generation))['key'] != data.get('you'):
-            years = (term.left - (term.arrived if term.arrived is not None else turnover.START_WEEK)) // turnover.YEAR
-            result.append(departure(data, sheet, term.why, sheet['age'] + years))
+            result.append(departure(data, sheet, term.why, couples.age_on(sheet, data, turnover.week_day(term.left))))
         if term.arrived in weeks and (sheet := sheet_of(term.generation))['key'] != data.get('you'):
             result.append(arrival(data, sheet))
     return result

@@ -67,7 +67,8 @@ FRIEND_AGES = (24, 60)
 FRIENDS = {'close friend', 'longtime friend', 'old friend from school', 'old classmate', 'friend', 'new friend',
            'roommate from years ago'}
 # Whose milestone birthday is a party they go to, and who retires with a send-off.
-CLOSE = {'parent', 'sibling', 'cousin', 'aunt', 'uncle', 'grandmother', 'grandfather', *circle.OLD_FRIENDS}
+CLOSE = {'parent', 'sibling', 'cousin', 'aunt', 'uncle', 'grandmother', 'grandfather', 'grandparent',
+         *circle.OLD_FRIENDS}
 RELATIVES = {'parent', 'sibling', 'cousin', 'aunt', 'uncle'}
 RETIRE_AGES = (62, 67)
 STUDENTS = {'College student': 22, 'Graduate student': 26}

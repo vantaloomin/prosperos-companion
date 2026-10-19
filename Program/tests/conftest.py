@@ -128,6 +128,13 @@ def no_turnover(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_grandparents(monkeypatch):
+    """A companion under 40 has a grandparent on top of their circle's size (companion/life/circle.py), which would
+    change unrelated tests' circles; tests/test_social_circle.py turns it on."""
+    monkeypatch.setattr('companion.life.circle.ELDERS', False)
+
+
+@pytest.fixture(autouse=True)
 def no_new_babies(monkeypatch):
     """Pregnancies, updates and babysitting in the circle (companion/life/families.py) are seeded dice that would add
     storylines to unrelated tests; tests/test_families.py turns them on."""

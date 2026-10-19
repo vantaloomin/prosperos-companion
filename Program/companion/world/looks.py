@@ -24,6 +24,13 @@ FIELDS = NUMBERS + WORDS
 WHO = {'she/her': 'woman', 'he/him': 'man', 'they/them': 'person'}
 PRONOUNS = {'woman': 'she/her', 'man': 'he/him', 'nonbinary': 'they/them'}
 AGE_WORDS = {'twent': 25, 'thirt': 35, 'fort': 45, 'fift': 55, 'sixt': 65, 'sevent': 75}
+# An age spelled out ("Jordan is fifty-nine", "a forty-two-year-old", "Thirty-four."), read the way
+# intimacy.own_age reads one: said as what they are, as their age, or opening who they are.
+TENS = {'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90}
+UNITS = {word: value for value, word in enumerate('one two three four five six seven eight nine'.split(), start=1)}
+_SPELLED = (rf"(eighteen|nineteen|(?:{'|'.join(TENS)})(?:[- ](?:{'|'.join(UNITS)}))?)")
+SPELLED_AGE = re.compile(rf"(?:^\s*|\b(?:is|am|aged|age|turned|turning)\s+|['’](?:s|m)\s+|\ba\s+){_SPELLED}"
+                         rf"(?=[-\s]*(?:years?\b|y/?o\b|and\b|but\b|[,.;!()–—]|$))", re.IGNORECASE)
 # What the free-text appearance already says, by field: a drawn value for that field is left out.
 COVERED = {
     'height_cm': r"\b(?:tall|short|petite|height|lanky|towering|\d'\s?\d|\d{3}\s?cm|feet|foot|footer|ft|inch(?:es)?)\b",
@@ -103,9 +110,19 @@ def age_of(definition: dict, seed: str) -> int:
     text = str(definition.get('identity') or '').lower()
     if found := re.search(r'\b(1[89]|[2-9]\d)\b(?!\s*(?:%|percent|minutes|hours|days|weeks|months|cats|dogs))', text):
         return int(found[1])
+    if found := SPELLED_AGE.search(text):
+        return spelled(found[1])
     if age := next((age for stem, age in AGE_WORDS.items() if f'{stem}ies' in text), None):
         return age
     return 24 + round(generators.unit(seed, 'looks-age') * 16)
+
+
+def spelled(words: str) -> int:
+    """'fifty-nine' as 59, 'nineteen' as 19."""
+    if words in ('eighteen', 'nineteen'):
+        return 18 + (words == 'nineteen')
+    tens, _, unit = words.replace('-', ' ').partition(' ')
+    return TENS[tens] + UNITS.get(unit, 0)
 
 
 def heritage_of(definition: dict) -> str:

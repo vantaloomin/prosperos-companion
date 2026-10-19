@@ -373,7 +373,8 @@ def _terms(data: dict, prefix: str, slot: int, kind: str, age_of, until: int, la
     def key(generation):
         return f'{prefix}:{slot + turnover.STRIDE * generation}'
     return turnover.terms(lambda generation: seed_for(data, key(generation)), kind, age_of,
-                          lambda generation: (fixed and not generation) or key(generation) in kept, until, last)
+                          lambda generation: (fixed and not generation) or key(generation) in kept, until, last,
+                          data.get('era', 'modern'))
 
 
 def holder(found: list, slot: int, day: date) -> int | None:
