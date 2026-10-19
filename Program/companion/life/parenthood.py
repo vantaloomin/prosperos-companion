@@ -50,6 +50,8 @@ ROUTE_LABELS = {'expecting_them': '{name} carries the baby', 'expecting_you': 'Y
                 'relative': "Raising a relative's child"}
 # Cities from these eras take in a ward, a foundling or a relative's child (companion/world/schema.py `Era`).
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
+# Adopting and fostering fit New York 1925; a surrogate doesn't.
+NO_SURROGATE_ERAS = {*OLD_ERAS, 'jazz-age'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
 # After the user says no when they bring it up, they ask once more, a year on at the soonest; a second no settles it
@@ -218,8 +220,12 @@ def persona(connection) -> dict:
 
 
 def old_era(connection, companion: dict) -> bool:
+    return era(connection, companion) in OLD_ERAS
+
+
+def era(connection, companion: dict) -> str:
     from companion.life import families
-    return families.era_of(connection, companion['version']['definition']) in OLD_ERAS
+    return families.era_of(connection, companion['version']['definition'])
 
 
 def route_facts(connection, companion: dict, now) -> dict:
@@ -232,7 +238,8 @@ def route_facts(connection, companion: dict, now) -> dict:
     found = money.profile(definition)
     return {'can_them': can_them, 'can_you': can_you, 'can_carry': int(can_them or can_you),
             'age': age_of(connection, companion, now), 'your_age': you.get('age') or 0,
-            'tier': found.tier if found else 1, 'old': int(old_era(connection, companion))}
+            'tier': found.tier if found else 1, 'old': int(old_era(connection, companion)),
+            'surrogate': int(era(connection, companion) not in NO_SURROGATE_ERAS)}
 
 
 def could_carry(text: str, by_default: bool) -> int:
@@ -249,6 +256,13 @@ def route_found(connection, companion: dict, now=None) -> dict:
     outcome = rolled(connection, companion, 'family:route', f"family:route:{companion['id']}",
                      route_facts(connection, companion, now), now)
     return {'route': ROUTES[outcome['picked']], 'how': 'seeded', 'consequence_id': outcome['id']}
+
+
+def routes_for(found_era: str) -> tuple[str, ...]:
+    """The ways a child could come that fit the city's era."""
+    if found_era in OLD_ERAS:
+        return OLD_ROUTES
+    return tuple(key for key in MODERN_ROUTES if key != 'surrogacy' or found_era not in NO_SURROGATE_ERAS)
 
 
 def route_label(route: str, companion: dict) -> str:
@@ -493,7 +507,7 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     route = route_found(connection, companion, now)
     row = reached(connection, companion['active_timeline_id'])
     journey = expecting.panel(connection, companion, now, show_odds)
-    shown = OLD_ROUTES if old_era(connection, companion) else MODERN_ROUTES
+    shown = routes_for(era(connection, companion))
     keys = shown if route['route'] in shown else (*shown, route['route'])
     return {**result, 'romance': True, 'route': route['route'], 'route_how': route['how'],
             'route_consequence_id': route['consequence_id'] if show_odds else None,

@@ -182,6 +182,19 @@ def test_someone_else_having_a_baby_is_not_bringing_up_your_own(text, key):
     assert steps.raised(text, ['family', 'sibling']) == key
 
 
+def test_new_york_1925_adopts_or_fosters_but_never_through_a_surrogate(client, monkeypatch):
+    make(client, monkeypatch, identity='He is a 35-year-old carpenter.', home_city='new-york-1925')
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': 'man'}).raise_for_status()
+    found = family(client)
+    assert 'surrogacy' not in [item['key'] for item in found['routes']]
+    with client.app.state.database.connect() as connection:
+        facts = parenthood.route_facts(connection, current(connection), None)
+    odds = consequences.odds('family:route', {**facts, 'tier': 3}, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    possible = {parenthood.ROUTES[item['option']] for item in odds if item['odds'] > 0}
+    assert possible == {'adoption', 'fostering'}
+
+
 def test_they_bring_up_starting_a_family_after_living_together_and_yes_starts_it(client, provider, clock, monkeypatch,
                                                                                  likeliest):
     living_together(client, monkeypatch)
