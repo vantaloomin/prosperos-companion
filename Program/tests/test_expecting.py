@@ -279,3 +279,18 @@ def test_a_branch_made_while_expecting_still_has_the_baby(client, provider, cloc
         kids = connection.execute("SELECT * FROM circle_children WHERE title='ours' AND timeline_id=?",
                                   (copy['timeline_id'],)).fetchall()
         assert [kid['name'] for kid in kids] == [row['details']['name']]
+
+
+def test_a_birth_while_long_distance_says_the_user_was_away(client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(expecting, 'FIRST_TEXTS', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', home_city='baltimore')
+    to(client, clock, stage(row, 'halfway')['on'])
+    world = client.get('/api/worlds').json()['world']
+    assert client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}).status_code == 200
+    to(client, clock, stage(row, 'born')['on'])
+    [trigger] = triggers(client, clock)
+    assert 'The user is away' in trigger.reason
+    says(provider)
+    send(client, 'hi', 'client-expecting-11')
+    assert "The user lives away and couldn't be there" in prompt(provider)
+    assert 'with the user there with you' not in prompt(provider)

@@ -342,8 +342,9 @@ def arrive(connection, companion: dict, row: dict, today: date, now) -> None:
         "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'ours', ?, 'born', ?, ?)",
         (child_id, row['timeline_id'], companion['id'], row['id'], details['name'], details['pronouns'],
          born_on.isoformat(), timestamp, timestamp))
-    connection.execute("UPDATE family_journeys SET status='home', child_id=?, arrived_on=?, updated_at=? WHERE id=?",
-                       (child_id, arrived.isoformat(), timestamp, row['id']))
+    connection.execute("UPDATE family_journeys SET status='home', child_id=?, arrived_on=?, details=?, updated_at=? "
+                       'WHERE id=?', (child_id, arrived.isoformat(), encode({**details, 'far': far_on(
+                           connection, companion, row)}), timestamp, row['id']))
 
 
 # The calendar, the nursery and the shower ----------------------------------------------------------------------------------
@@ -581,11 +582,19 @@ def arrived_lines(row: dict, today: date) -> list[str]:
     return lines
 
 
+BIRTH_WHERE = {'expecting_them': 'You gave birth {at}, with the user there with you.',
+               'expecting_you': 'The user gave birth {at}, and you were there.',
+               'surrogacy': 'Your surrogate, {surrogate}, gave birth {at}, and you and the user were there.'}
+# Long distance on the day (companion/life/long_distance.py): the one who lives away wasn't there.
+BIRTH_FAR = {'expecting_them': "You gave birth {at}. The user lives away and couldn't be there; you told them the news.",
+             'expecting_you': "The user gave birth {at}, where they live. You live away and couldn't be there.",
+             'surrogacy': "Your surrogate, {surrogate}, gave birth {at}, and you were there. The user lives away and "
+                          "couldn't be."}
+
+
 def day_line(row: dict, when: str) -> str:
     early = ', a few weeks early and doing well' if any(item.get('early') for item in row['stages']) else ''
-    where = {'expecting_them': 'You gave birth {at}, with the user there with you.',
-             'expecting_you': 'The user gave birth {at}, and you were there.',
-             'surrogacy': 'Your surrogate, {surrogate}, gave birth {at}, and you and the user were there.'}[row['route']]
+    where = (BIRTH_FAR if row['details'].get('far') else BIRTH_WHERE)[row['route']]
     return (f"- Your baby was born {when}: a {girl(row)}, {row['details']['name']}{early}. "
             + where.format(**{'surrogate': 'your surrogate', **row['details']}))
 
@@ -598,7 +607,8 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         return []
     today, done = local_today(companion, now), reached(row, local_today(companion, now))
     if row['status'] == 'home':
-        row = {**row, 'details': {**row['details'], 'at': birth_place(connection, companion)}}
+        row = {**row, 'details': {**row['details'], 'at': birth_place(connection, companion),
+                                  'far': far_on(connection, companion, row)}}
         lines = arrived_lines(row, today)
     elif row['route'] in PREGNANCY:
         lines = pregnancy_lines(row, done, today)
@@ -612,6 +622,13 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
 
 def birth_place(connection, companion: dict) -> str:
     return ERA_WORDS[era_group(connection, companion)]['birth']
+
+
+def far_on(connection, companion: dict, row: dict) -> bool:
+    """Whether they lived apart, long distance, when the child came: kept from the day (`arrive`), else as now."""
+    from companion.life import long_distance
+    kept = row['details'].get('far')
+    return bool(long_distance.far(connection, companion)) if kept is None else kept
 
 
 def told_line(connection, companion: dict, row: dict, done: dict) -> list[str]:
