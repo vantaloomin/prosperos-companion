@@ -1,9 +1,9 @@
 """Which side of life a reply's context carries while Settings > Realism > Adult side of life is on (v0.15).
 
 Each reply's context carries either the family lines (children in the circle, the pair's own child) or the adult
-side's lines (companion/world/intimacy.py), never both. A reply whose conversation, author's note or picture reads
-intimate keeps the adult side and drops every line about a child, as v0.14 did for every reply; any other reply drops
-the adult side's lines and keeps the family. Rules only, never a model, and it fails closed: anything unsure, or that
+side's lines (companion/world/intimacy.py), never both. A reply whose conversation, author's note (its plain words)
+or picture reads intimate keeps the adult side and drops every line about a child, as v0.14 did for every reply; any
+other reply drops the adult side's lines and keeps the family. Rules only, never a model, and it fails closed: anything unsure, or that
 cannot be read, counts as intimate. A group chat reply always counts as intimate.
 """
 import re
@@ -56,21 +56,32 @@ LEET = str.maketrans({'3': 'e', '0': 'o', '1': 'i', '4': 'a', '5': 's', '@': 'a'
 
 @cache
 def pattern() -> re.Pattern:
-    """Every word that makes a reply read intimate: a picture's sexual, nude and unsure words, the chat's own, and
-    the adult side's interests (companion/world/data/intimacy.json)."""
-    terms = [*content.SEXUAL, *content.NUDITY, *(term for term in content.UNCERTAIN if term not in NOT_INTIMATE), *CHAT]
-    terms += [re.escape(content.normalize(entry['label'])) for entry in intimacy.bank()['interests']]
+    """Every word that makes a reply read intimate: the plain ones and the adult side's interests
+    (companion/world/data/intimacy.json)."""
+    terms = [*plain_terms(), *(re.escape(content.normalize(entry['label'])) for entry in intimacy.bank()['interests'])]
     return re.compile(r'\b(?:' + '|'.join(terms) + r')\b')
 
 
-def reads_intimate(texts) -> bool:
+def plain_terms() -> list[str]:
+    """A picture's sexual, nude and unsure words, and the chat's own."""
+    return [*content.SEXUAL, *content.NUDITY, *(term for term in content.UNCERTAIN if term not in NOT_INTIMATE), *CHAT]
+
+
+@cache
+def plain_pattern() -> re.Pattern:
+    """Every word but the adult side's interest labels, for a standing note: a style note names a manner ("short and
+    teasing"), which is not what the reply is about."""
+    return re.compile(r'\b(?:' + '|'.join(plain_terms()) + r')\b')
+
+
+def reads_intimate(texts, plain: bool = False) -> bool:
     """Whether any of these reads intimate: as written, with letters written as numbers or symbols read back, and
-    with a letter drawn out ('sooo') read once."""
+    with a letter drawn out ('sooo') read once. `plain` leaves out the interest labels."""
     text = ' '.join(text for text in texts if text)
     if EMOJI.search(text):
         return True
     folded = text.casefold().translate(LEET)
-    found = pattern()
+    found = plain_pattern() if plain else pattern()
     return any(found.search(content.normalize(variant)) for variant in
                (text, folded, re.sub(r'(\w)\1+', r'\1', folded)))
 
@@ -100,8 +111,8 @@ def family_reply(connection, companion: dict, recent: list[dict], group: dict | 
         return False
     try:
         note = authors_note.prompt_text(connection, f"companion:{companion['id']}")
-        texts = [message['text'] for message in recent] + [note, (photo or {}).get('text') or '', *own_words(companion)]
-        return not reads_intimate(texts)
+        texts = [message['text'] for message in recent] + [(photo or {}).get('text') or '', *own_words(companion)]
+        return not reads_intimate(texts) and not reads_intimate([note], plain=True)
     except Exception:  # noqa: BLE001 - fails closed: unsure is intimate.
         return False
 

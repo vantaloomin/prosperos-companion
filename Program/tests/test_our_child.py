@@ -273,6 +273,24 @@ def whole(provider) -> str:
     return request['system'] + '\n' + '\n'.join(str(message['content']) for message in request['messages'])
 
 
+def test_a_style_note_is_read_for_its_plain_words(client, provider, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    first = child['name'].split()[0]
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    companion = client.get('/api/companion').json()['companion']
+    note = f"/api/authors-notes/companion:{companion['id']}"
+    recent = [{'text': f'how is {first} doing this morning?'}]
+    for text, kept in (('Keep replies short and teasing.', True), ('Keep it light, with eye contact and leather.', True),
+                         ('Slow, sensual, the two of you alone in the bedroom.', False), ('Keep it sexy.', False)):
+        assert client.put(note, json={'text': text}).status_code == 200
+        with connect(client) as connection:
+            assert sides.family_reply(connection, current(connection), recent, None, None) is kept, text
+    assert client.put(note, json={'text': 'Keep replies short and teasing.'}).status_code == 200
+    says(provider)
+    send(client, recent[0]['text'], 'client-ours-note')
+    assert first in provider.requests[-1]['system']
+
+
 def test_a_reply_whose_conversation_says_a_child_carries_one_kind_of_line_or_none(client, provider, clock,
                                                                                   monkeypatch):
     row, child = born(client, clock, monkeypatch)
