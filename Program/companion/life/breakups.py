@@ -657,6 +657,20 @@ def you_end(connection, companion: dict, row: dict | None, message: dict, now: d
     after_end(connection, companion, now)
 
 
+def parted(connection, companion: dict, message: dict, now: datetime) -> None:
+    """Asked whether to stay as they are or separate (companion/life/parenthood.py), the user chose to separate: it
+    ends here, as when the user ends it, said in its own words."""
+    if not applies(connection, companion) or apart(connection, companion):
+        return
+    row, _found = current(connection, companion)
+    values = {'ended_by': 'you', 'ended_at': stamp(now), 'answer_id': message['id'], 'answer_said': 'parted'}
+    if row is None:
+        insert(connection, companion, now, strained_by='you', strained_at=stamp(now), **values)
+    else:
+        update(connection, row, **values)
+    after_end(connection, companion, now)
+
+
 def you_break(connection, companion: dict, row: dict | None, message: dict, now: datetime) -> None:
     values = {'break_by': 'you', 'break_at': stamp(now), 'message_id': message['id']}
     if row is None:
@@ -733,6 +747,9 @@ LINES = {
                       'words.'),
     'fell_out': ('- You and the user had a falling out on {date} and you are not close right now. Be civil and brief, '
                  'and do not act as if nothing happened.'),
+    'parted': ('- You asked the user whether the two of you should stay as you are, without children, or separate, and '
+               'they just chose to separate. It hurts, but you both see it: you want children and they do not. React '
+               'in your own words; do not beg or argue. You are not together anymore.'),
     'you_ended': ('- The user just broke up with you. It hurts. React honestly in your own words; do not beg or argue, '
                   'and do not pretend it is fine.'),
     'you_fell_out': ('- The user just told you they do not want to be friends anymore. It hurts. React honestly in your '
@@ -821,7 +838,7 @@ def turn_key(row: dict, found: str, turn: set[str]) -> str | None:
     friend = row['ladder'] == 'friendship'
     if row['answer_id'] and row['answer_id'] in turn:
         answered = row['answer_said'] or ''
-        if answered.startswith('reach_'):
+        if answered.startswith('reach_') or answered == 'parted':
             return answered
         if found == 'together':
             return 'friends_yes' if friend else 'round_yes' if row['break_at'] and not row['ended_at'] else 'back_yes'

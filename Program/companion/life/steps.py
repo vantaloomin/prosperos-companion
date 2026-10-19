@@ -130,7 +130,11 @@ FAMILY = Step('family', 'Starting a family', 'starting a family', 'decided to st
 # half; at most one more.
 SIBLING = Step('sibling', 'Another child', 'thinking about another child', 'decided to have another child',
                'having another child', (548, 548, 548), 4, True, '')
-SIDE = {FAMILY_LADDER: (FAMILY, SIBLING)}
+# After the user said no twice to a companion who wants children (companion/life/parenthood.py): they ask whether the
+# two of them stay as they are or separate (Vanta 2026-10-19). Never reached as a step: the answer settles it.
+STAY = Step('stay', 'Staying as you are', 'staying as you are', 'decided to stay as you are',
+            'whether the two of you stay as you are or separate', (0, 0, 0), 4, True, '')
+SIDE = {FAMILY_LADDER: (FAMILY, SIBLING, STAY)}
 CONFESSION = 'confession'
 HOW = ('start', 'history', 'them', 'you', 'set', 'confession')
 
@@ -155,6 +159,9 @@ REASONS = {
     'sibling': "You'd like to have another child with the user, a brother or sister for {names}. Bring it up in your "
                "own words, gently, and leave them room to say they aren't ready or that one is enough. Don't settle "
                'how or when yet.',
+    'stay': "You want children, and the user has told you twice that they don't. Ask them, gently and honestly, in your "
+            'own words, whether the two of you should stay together as you are, without children, or separate. Say '
+            "you love them; don't blame or pressure them, and leave the choice to them.",
     CONFESSION: "You've fallen for the user, your close friend, and you have decided to tell them. Say it in your own "
                 'words, nervous or brave as fits you, and make it easy for them to say they only see you as a friend.',
 }
@@ -247,11 +254,28 @@ MENTIONS = {
     'trip': r"trip|getaway|(?:go|get) away|travel|holiday|vacation",
     'family': r"famil(?:y|ies)|bab(?:y|ies)|kids?|child(?:ren)?|parents?|adopt\w*",
     'sibling': r"another|second|one more|siblings?|brother|sister|bab(?:y|ies)|kids?|child(?:ren)?|famil(?:y|ies)",
+    'stay': r"stay\w*|separat\w*|split\w*|break(?:ing)? up|part(?:ing)? ways|together|leav\w*|go(?:ing)? our (?:own|separate) "
+            r"ways",
     CONFESSION: r"feel(?:ings|s|ing)?|crush|fall(?:en|ing)? for|more than friends|(?:as|just) (?:a )?friends?|date|dating|"
                 r"love you",
 }
 # A clear answer: the yes, not yet or no comes first, in a short opening ("yes!", "not yet, sorry", "haha sure").
 CLEAR_WORDS = 4
+# The user's answer to staying as they are or separating: staying is 'yes', separating 'no'. Not wanting to part is
+# read first ("I don't want to separate"); a bare yes or no answers neither.
+KEEPS_US = re.compile(r"\b(?:i (?:don'?t|do not) want (?:to (?:separate|split|break up|lose you|leave|end (?:this|us|it))|"
+                      r"(?:a |to )?(?:separation|breakup))|i'?m not (?:leaving|going anywhere)|not going anywhere|(?:i|we) "
+                      r"(?:can'?t|couldn'?t) (?:lose|leave) (?:you|each other|this)|no (?:separating|splitting|breaking up))\b",
+                      re.IGNORECASE)
+PARTS_US = re.compile(r"\b(?:separat(?:e|ing|ion)|split(?:ting)? up|split|break(?:ing)? up|part(?:ing)? ways|go(?:ing)? "
+                      r"(?:our|your|my) (?:own|separate) ways?|end (?:this|it|things|us)|let (?:you|each other) go|we "
+                      r"(?:shouldn'?t|can'?t|cannot) (?:stay|be) together|(?:it'?s|its) (?:over|time (?:to|we) (?:part|"
+                      r"go))|i'?m leaving|i should (?:go|leave)|you deserve (?:to have|someone who)|find someone who)\b",
+                      re.IGNORECASE)
+STAYS = re.compile(r"\b(?:stay(?:ing)?(?: (?:as we are|together|with you|the way we are|like this|just us|us))?|let'?s stay|i "
+                   r"(?:want|choose|pick) (?:you|us|to stay)|i choose us|(?:you(?:'re| are)|we(?:'re| are)|this is|us is) "
+                   r"enough|keep (?:us|what we have|going)|just (?:the two of us|us)|(?:i )?want to be with you|as we are)\b",
+                   re.IGNORECASE)
 
 
 @cache
@@ -793,8 +817,8 @@ def ask_due(connection, companion: dict, now) -> list:
             continue  # Waits: not brought up with the adult side on (companion/life/parenthood.py).
         if consequences.total(connection, timeline_id, pairs.companion_key(companion['id']), 'mood', today.isoformat()) < 0:
             continue
-        lines = bank()[row['step']]
-        template = random.Random(f"{row['id']}:line").choice(lines)
+        lines = bank().get(row['step'])  # Staying or separating is only ever written by the model.
+        template = random.Random(f"{row['id']}:line").choice(lines) if lines else None
         result.append(Trigger(f"step-ask:{row['id']}", 'next_step', reason_for(connection, companion, row['step']),
                               template, (row['id'],)))
     return result
@@ -845,6 +869,16 @@ def plain(text: str) -> str:
     return own_plans.QUOTED.sub(' ', own_plans.ACTIONS.sub(' ', text)).replace('’', "'")
 
 
+def stay_answer(text: str) -> str | None:
+    """'yes' (staying as they are) or 'no' (separating) when a message answers which, else None."""
+    text = plain(text)
+    if KEEPS_US.search(text):
+        return 'yes'
+    if PARTS_US.search(text):
+        return 'no'
+    return 'yes' if STAYS.search(text) else None
+
+
 def answer(text: str) -> str | None:
     """'yes', 'not_yet' or 'no' when a message plainly answers something brought up, else None."""
     text = plain(text)
@@ -862,7 +896,8 @@ def answer_to(connection, row: dict, message: dict) -> str | None:
     it is a clear yes or no right after the companion brought it up again. So a "lol ok" about something else days
     later is not a yes."""
     text = message['text']
-    said = answer(text) or ('yes' if said_itself(row['step'], text) else None)
+    reader = stay_answer if row['step'] == STAY.key else answer
+    said = reader(text) or ('yes' if said_itself(row['step'], text) else None)
     if said is None:
         return None
     asked = ask_seq(connection, row, message)
@@ -871,7 +906,7 @@ def answer_to(connection, row: dict, message: dict) -> str | None:
     again = last_word(connection, message)
     if again and again['seq'] > asked and names_step(row['step'], again['text']) and \
             first_turn(connection, message, again['seq']):
-        return clear(text)
+        return clear(text, reader)
     return None
 
 
@@ -886,10 +921,10 @@ def names_step(step: str, text: str) -> bool:
     return bool(step in MENTIONS and re.search(rf"\b(?:{MENTIONS[step]})\b", plain(text), re.IGNORECASE))
 
 
-def clear(text: str) -> str | None:
+def clear(text: str, reader=answer) -> str | None:
     """'yes', 'not_yet' or 'no' when the message opens with it ("yes!", "not yet, sorry"), else None."""
     opening = re.split(r"[.!?,;:\n]|\s[-–—]\s", plain(text).strip(), maxsplit=1)[0]
-    return answer(opening) if len(opening.split()) <= CLEAR_WORDS else None
+    return reader(opening) if len(opening.split()) <= CLEAR_WORDS else None
 
 
 def ask_seq(connection, row: dict, message: dict) -> int:
@@ -1000,7 +1035,9 @@ def settle_answer(connection, companion: dict, row: dict, said: str, message: di
     day = local_today(companion, now)
     if row['ladder'] == FAMILY_LADDER:
         from companion.life import parenthood
-        parenthood.answered(connection, companion, row, said, now)
+        parenthood.answered(connection, companion, row, said, message, now)
+        if row['step'] == STAY.key:
+            return  # Never a step reached: the answer settles it.
     if said != 'yes':
         if row['step'] == CONFESSION:
             awkward(connection, companion, row, now)
@@ -1117,6 +1154,8 @@ TOLD = {
     'no': "The user just told you they have feelings for you. You don't feel that way about them: say so kindly and "
           'honestly in your own words, and that you want to keep the friendship.',
 }
+STAYED = ('The user just said they want to stay together as you are, without children. You accept it: say so in your '
+          'own words, warmly. This settles it; do not bring up children again.')
 WAITING = ('Earlier you brought up {topic} with the user and they have not answered yet. If they answer now, take it '
            'as they mean it; do not ask again.')
 
@@ -1133,6 +1172,8 @@ def fresh_lines(connection, companion: dict, now, turn: set[str]) -> list[tuple[
         topic = topic_of(row)
         if row['step'] == CONFESSION:
             text = (CONFESSED if row['side'] == 'them' else TOLD).get(row['status'], '')
+        elif row['step'] == STAY.key:  # Separating is said in the 'breakup' section (companion/life/breakups.py).
+            text = STAYED if row['status'] == 'yes' else ''
         elif row['side'] == 'them':
             text = ANSWERED.get(row['status'], '').format(topic=topic)
         else:
