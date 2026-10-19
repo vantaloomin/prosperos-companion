@@ -63,6 +63,8 @@ ERA_WORDS = {'modern': {'appointment': 'First scan', 'halfway': '20-week scan', 
              'old': {'appointment': "The midwife's visit", 'halfway': "The midwife's visit", 'birth': 'at home, with the '
                      'midwife', 'things': ('a cradle', 'linens and swaddling', 'a pram', 'a rocking chair')}}
 TOLD_PEOPLE = 3
+# The baby shower is at least this many days before the birth, even an early one.
+SHOWER_BEFORE = 7
 
 
 @cache
@@ -213,7 +215,11 @@ def pregnancy(connection, companion: dict, row: dict, start: date, seed: str, fo
     if modern(connection, companion):
         stages.append(at(halfway + timedelta(days=span(seed, 'name', (14, 40))), 'name'))
         shower = due - timedelta(days=span(seed, 'shower', (35, 42)))
-        stages.append(at(shower + timedelta(days=(5 - shower.weekday()) % 7), 'shower'))
+        shower += timedelta(days=(5 - shower.weekday()) % 7)
+        if shower > born - timedelta(days=SHOWER_BEFORE):  # An early arrival: the Saturday a week or more before.
+            shower = born - timedelta(days=SHOWER_BEFORE)
+            shower -= timedelta(days=(shower.weekday() - 5) % 7)
+        stages.append(at(shower, 'shower'))
     if turn == 'bed_rest':
         stages.append(at(due - timedelta(days=span(seed, 'rest', (63, 77))), 'bed_rest'))
     if turn != 'early':
@@ -445,6 +451,13 @@ def showers(connection, companion: dict, today: date, people: dict, now) -> list
         return []
     return [big_days.candidate('own_shower', f"journey:{row['id']}:shower", host, date.fromisoformat(stage['on']),
                                host=host['name'], host_role=host['role'])]
+
+
+def shower_gone(connection, row: dict) -> bool:
+    """A planned shower is called off once the child has come (an early arrival) or the journey is not this one."""
+    found = current(connection, row['timeline_id'])
+    return found is None or row['source'] != f"journey:{found['id']}:shower" or found['status'] == 'home' or \
+        not any(stage['key'] == 'shower' for stage in found['stages'])
 
 
 # Hidden values ---------------------------------------------------------------------------------------------------------

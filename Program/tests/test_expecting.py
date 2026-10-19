@@ -313,3 +313,24 @@ def test_a_breakup_while_expecting_keeps_the_baby_in_the_chat(client, provider, 
     says(provider)
     send(client, 'hi', 'client-expecting-14')
     assert f"Your baby was born today: a {expecting.girl(row)}, {row['details']['name']}" in prompt(provider)
+
+
+def test_an_early_arrival_keeps_the_shower_before_the_birth(client, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(big_days, 'ACTIVE', True)
+    row = started(client, monkeypatch, identity='She is a 31-year-old nurse.', location='Baltimore')
+    early = {'soon': {'picked': 0}, 'turn': {'picked': expecting.TURNS.index('early')}}
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        for index in range(300):  # Every seed: the shower is a Saturday at least a week before an early birth.
+            stages, _ = expecting.pregnancy(connection, companion, row, date(2027, 1, 1), f'journey:{index}', early)
+            shower, born = (date.fromisoformat(stage({'stages': stages}, key)['on']) for key in ('shower', 'born'))
+            assert shower.weekday() == 5 and (born - shower).days >= expecting.SHOWER_BEFORE
+    # A shower planned when the child comes first is called off.
+    to(client, clock, (date.fromisoformat(stage(row, 'shower')['on']) - timedelta(days=20)).isoformat())
+    with client.app.state.database.connect(write=True) as connection:
+        assert connection.execute("SELECT status FROM big_days WHERE kind='own_shower'").fetchone()['status'] != \
+            'called_off'
+        connection.execute("UPDATE family_journeys SET status='home'")
+        big_days.follow(connection, current(connection), clock.now())
+        assert connection.execute("SELECT status FROM big_days WHERE kind='own_shower'").fetchone()['status'] == \
+            'called_off'
