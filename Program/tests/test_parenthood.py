@@ -195,6 +195,20 @@ def test_new_york_1925_adopts_or_fosters_but_never_through_a_surrogate(client, m
     assert possible == {'adoption', 'fostering'}
 
 
+@pytest.mark.parametrize('city, possible', [
+    ('london-1895', {'ward', 'foundling', 'relative'}), ('new-york-1925', {'adoption', 'fostering'}),
+    ('baltimore', {'expecting_them', 'expecting_you', 'adoption', 'fostering', 'surrogacy'}),
+])
+def test_two_women_in_older_times_take_in_a_child(client, monkeypatch, city, possible):
+    make(client, monkeypatch, identity='She is a 30-year-old seamstress.', home_city=city)
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': 'woman', 'age': 31}).raise_for_status()
+    with client.app.state.database.connect() as connection:
+        facts = parenthood.route_facts(connection, current(connection), None)
+    odds = consequences.odds('family:route', {**facts, 'tier': 3}, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    assert {parenthood.ROUTES[item['option']] for item in odds if item['odds'] > 0} == possible
+
+
 def test_they_bring_up_starting_a_family_after_living_together_and_yes_starts_it(client, provider, clock, monkeypatch,
                                                                                  likeliest):
     living_together(client, monkeypatch)

@@ -50,8 +50,8 @@ ROUTE_LABELS = {'expecting_them': '{name} carries the baby', 'expecting_you': 'Y
                 'relative': "Raising a relative's child"}
 # Cities from these eras take in a ward, a foundling or a relative's child (companion/world/schema.py `Era`).
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
-# Adopting and fostering fit New York 1925; a surrogate doesn't.
-NO_SURROGATE_ERAS = {*OLD_ERAS, 'jazz-age'}
+# Before clinics (New York 1925 and older): no surrogate, and two who could both carry have no donor to turn to.
+NO_CLINIC_ERAS = {*OLD_ERAS, 'jazz-age'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
 # After the user says no when they bring it up, they ask once more, a year on at the soonest; a second no settles it
@@ -236,10 +236,12 @@ def route_facts(connection, companion: dict, now) -> dict:
     can_them = could_carry(consequences.sheet_text(definition), looks.pronouns_of(definition) == 'she/her')
     can_you = could_carry(you.get('about') or '', you.get('gender') == 'woman')
     found = money.profile(definition)
+    clinic = int(era(connection, companion) not in NO_CLINIC_ERAS)
     return {'can_them': can_them, 'can_you': can_you, 'can_carry': int(can_them or can_you),
+            'no_donor': int(bool(can_them and can_you and not clinic)),
             'age': age_of(connection, companion, now), 'your_age': you.get('age') or 0,
             'tier': found.tier if found else 1, 'old': int(old_era(connection, companion)),
-            'surrogate': int(era(connection, companion) not in NO_SURROGATE_ERAS)}
+            'surrogate': clinic}
 
 
 def could_carry(text: str, by_default: bool) -> int:
@@ -262,7 +264,7 @@ def routes_for(found_era: str) -> tuple[str, ...]:
     """The ways a child could come that fit the city's era."""
     if found_era in OLD_ERAS:
         return OLD_ROUTES
-    return tuple(key for key in MODERN_ROUTES if key != 'surrogacy' or found_era not in NO_SURROGATE_ERAS)
+    return tuple(key for key in MODERN_ROUTES if key != 'surrogacy' or found_era not in NO_CLINIC_ERAS)
 
 
 def route_label(route: str, companion: dict) -> str:

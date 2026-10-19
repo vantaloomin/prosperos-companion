@@ -1742,6 +1742,12 @@
               "why": "{name} isn't the one who could carry a baby"
             },
             {
+              "reader": "no_donor",
+              "at_least": 1,
+              "times": 0,
+              "why": "in these times there is no way for you two to have a baby yourselves"
+            },
+            {
               "reader": "age",
               "at_least": 40,
               "times": 0.5,
@@ -1770,6 +1776,12 @@
               "at_most": 0,
               "times": 0,
               "why": "you aren't the one who could carry a baby"
+            },
+            {
+              "reader": "no_donor",
+              "at_least": 1,
+              "times": 0,
+              "why": "in these times there is no way for you two to have a baby yourselves"
             },
             {
               "reader": "your_age",
