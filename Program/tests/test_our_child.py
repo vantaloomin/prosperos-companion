@@ -377,3 +377,14 @@ def test_a_sick_day_and_a_holiday_read_right_for_the_child(client, clock, monkey
     them = {'she/her': 'her', 'he/him': 'him'}.get(child['pronouns'], 'them')
     assert found[f"ours:sick:{child['id']}"].endswith(f'is home to look after {them}.')
     assert 'made up an Easter Day treasure hunt' in holiday[1]
+
+
+def test_sick_days_come_as_many_a_year_as_family_life_says(client, clock, monkeypatch):
+    row, child = born(client, clock, monkeypatch)
+    for level, count in enumerate(our_child.SICK_DAYS):
+        set_life(client, family_life=level)
+        with connect(client) as connection:
+            for year in (2030, 2031):
+                days = [date(year, 1, 1) + timedelta(days=offset) for offset in range(365)]
+                kid = {**child, 'born_on': f'{year - 5}-06-01'}
+                assert sum(our_child.sick_on(connection, kid, day) for day in days) == count

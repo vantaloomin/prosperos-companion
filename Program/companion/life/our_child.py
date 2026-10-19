@@ -425,8 +425,9 @@ def sick_on(connection, child: dict, day: date) -> bool:
     if not count or not 1 <= years <= 12:
         return False
     rng = random.Random(f"ours:{child['id']}:sick:{day.year}")
-    picked = {date(day.year, 1, 1) + timedelta(days=rng.randrange(365)) for _ in range(count * 2)}
-    return day in {item for item in picked if item.weekday() < 5}
+    start = date(day.year, 1, 1)
+    workdays = [start + timedelta(days=offset) for offset in range(365) if (start + timedelta(days=offset)).weekday() < 5]
+    return day in set(rng.sample(workdays, count))
 
 
 def broken_night(connection, timeline_id: str, day: date) -> dict | None:
