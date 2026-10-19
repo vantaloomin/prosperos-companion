@@ -241,6 +241,7 @@ def settle(connection, companion: dict, world, now, fresh: bool = False) -> dict
     else:
         reseed(connection, companion, world, row, now)
         add_described(connection, companion, world, row, now)
+        grow_up(connection, companion, world, now)
     retire_circle_kids(connection, companion, now)
     return row
 
@@ -403,6 +404,28 @@ def add_described(connection, companion: dict, world, row: dict, now) -> None:
         connection.execute("UPDATE companion_kids SET other_id=?, how='description', pattern=?, updated_at=? "
                            'WHERE timeline_id=?', (other['id'], first_pattern(found, other), stamp(now),
                                                    row['timeline_id']))
+
+
+def grow_up(connection, companion: dict, world, now) -> None:
+    """A child of theirs who has turned 18 is a grown son or daughter in their circle, living in town, and no longer
+    one of the kids (companion/life/our_child.py does the same for the pair's own)."""
+    timeline_id, today = companion['active_timeline_id'], steps.local_today(companion, now)
+    for kid in own(connection, timeline_id):
+        age = families.age_of(kid, today)
+        if age < GROWN:
+            continue
+        rows = circle.people(connection, timeline_id, include_removed=True)
+        person = circle.build(companion['version']['definition'], world, timeline_id, 1, f"kids:{kid['id']}:grown",
+                              {row['name'] for row in rows}, sheet=False)[0]
+        person |= {'name': first(kid['name']), 'role': {'she/her': 'daughter', 'he/him': 'son'}.get(kid['pronouns'], 'child'),
+                   'details': person['details'] | {'pronouns': kid['pronouns'], 'age': age, 'local': True,
+                                                   'grown_kid': kid['id']}}
+        ordinal = max((row['ordinal'] for row in rows), default=-1) + 1
+        circle.insert(connection, timeline_id, [person], ordinal, now)
+        person_id = one(connection, 'SELECT id FROM circle_people WHERE timeline_id=? AND ordinal=?',
+                        (timeline_id, ordinal))['id']
+        ages.keep(connection, 'circle', person_id, age, date.fromisoformat(kid['born_on']).strftime('%m-%d'), today, now)
+        connection.execute("UPDATE circle_children SET status='ended', updated_at=? WHERE id=?", (stamp(now), kid['id']))
 
 
 def retire_circle_kids(connection, companion: dict, now) -> None:
@@ -648,7 +671,7 @@ def step_lines(connection, companion: dict, today: date) -> list[tuple[str, str]
         if found['secret'] or 'living together' not in love_life.lived(connection, companion, found):
             continue
         kids = [kid for kid in partners_kids(connection, companion['active_timeline_id'])
-                if kid['person_id'] == found['person_id']]
+                if kid['person_id'] == found['person_id'] and families.age_of(kid, today) < GROWN]
         if kids:
             listed = steps.names_text([kid_text(kid, today).replace('your ', f"{first(found['name'])}'s ") for kid in kids])
             result.append((f"kids:step:{found['id']}", f"- You live with {found['name']} and {listed}: you are "

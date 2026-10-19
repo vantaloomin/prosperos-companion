@@ -202,6 +202,19 @@ def test_the_user_can_change_where_they_live_or_take_a_child_out(client):
     assert set_kids(client, pattern='auto')['pattern_how'] == 'seeded'
 
 
+def test_a_child_of_theirs_who_turns_18_joins_their_circle_as_a_grown_son(client, clock):
+    make(client, background='Her son Leo, 17, and her daughter Mia, 4.')
+    clock.advance(timedelta(days=370))
+    reconcile(client)
+    assert [kid['name'] for kid in panel(client)['kids']] == ['Mia']
+    grown = [person for person in circle(client) if person['name'] == 'Leo']
+    assert len(grown) == 1 and grown[0]['role'] == 'son'
+    text = prompt(client)
+    assert 'your son)' not in text and '- Leo (son)' in text
+    reconcile(client)
+    assert len([person for person in circle(client) if person['name'] == 'Leo']) == 1
+
+
 def test_today_says_where_the_kids_are(client, clock):
     make(client, background='Her son Leo, 7, lives with his dad and spends every other weekend with her.')
     with client.app.state.database.connect(write=True) as connection:
