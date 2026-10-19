@@ -19,9 +19,9 @@ test('what came up lately says the answer', () => {
   assert.equal(askText({ ...ask, side: 'you', status: 'not_yet', topic: 'a key to your place' }, 'Mira'), 'You brought up a key to their place. Mira said not yet.')
   assert.equal(askText({ ...ask, step: 'confession', status: 'no' }, 'Mira'), 'Mira told you how they feel. You said you would rather stay friends.')
   const stay = { ...ask, step: 'stay', topic: 'whether the two of you stay as you are or separate' }
-  assert.equal(askText(stay, 'Mira'), 'Mira asked whether you two stay as you are or separate. You chose to stay as you are.')
-  assert.equal(askText({ ...stay, status: 'no' }, 'Mira'), 'Mira asked whether you two stay as you are or separate. You chose to separate.')
-  assert.equal(askText({ ...stay, status: 'lapsed' }, 'Mira'), 'Mira asked whether you two stay as you are or separate. You let it pass, so you stay as you are.')
+  assert.equal(askText(stay, 'Mira'), 'Mira brought up whether you two stay as you are or separate. You chose to stay as you are.')
+  assert.equal(askText({ ...stay, status: 'no' }, 'Mira'), 'Mira brought up whether you two stay as you are or separate. You chose to separate.')
+  assert.equal(askText({ ...stay, status: 'lapsed' }, 'Mira'), 'Mira brought up whether you two stay as you are or separate. You let it pass, so you stay as you are.')
 })
 
 test('the planned note names the step, with a short date that never breaks', () => {

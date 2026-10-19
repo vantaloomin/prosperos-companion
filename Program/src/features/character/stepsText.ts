@@ -25,7 +25,7 @@ export function howText(how: Reached['how'], name: string): string {
 }
 
 /** "Mira brought up being exclusive. You said yes." / "You brought up a key to their place. Mira said not yet." /
- * "Mira said “I love you.” You said it back." / "Mira asked whether you two stay as you are or separate. You chose to
+ * "Mira said “I love you.” You said it back." / "Mira brought up whether you two stay as you are or separate. You chose to
  * stay as you are." */
 export function askText(ask: Ask, name: string): string {
   const who = firstName(name)
@@ -43,11 +43,11 @@ export function askText(ask: Ask, name: string): string {
   return `You brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${who} ${theirs}`
 }
 
-/** After two noes to starting a family: "Mira asked whether you two stay as you are or separate. You chose to stay as
+/** After two noes to starting a family: "Mira brought up whether you two stay as you are or separate. You chose to stay as
  * you are." */
 function stayText(ask: Ask, who: string): string {
   const chose = { open: 'Waiting on your answer.', yes: 'You chose to stay as you are.', no: 'You chose to separate.', lapsed: 'You let it pass, so you stay as you are.' }[ask.status as 'open' | 'yes' | 'no' | 'lapsed'] ?? ''
-  return `${who} asked whether you two stay as you are or separate. ${chose}`.trim()
+  return `${who} brought up whether you two stay as you are or separate. ${chose}`.trim()
 }
 
 /** "I love you" is said, not brought up: "Mira said “I love you.” You said it back." */
