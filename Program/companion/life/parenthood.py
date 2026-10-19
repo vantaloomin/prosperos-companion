@@ -50,8 +50,14 @@ ROUTE_LABELS = {'expecting_them': '{name} carries the baby', 'expecting_you': 'Y
                 'relative': "Raising a relative's child"}
 # Cities from these eras take in a ward, a foundling or a relative's child (companion/world/schema.py `Era`).
 OLD_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'}
+# Before clinics (New York 1925 and older): no surrogate, and two who could both carry have no donor to turn to.
+NO_CLINIC_ERAS = {*OLD_ERAS, 'jazz-age'}
 # "Someday" waits twice as long at moving in before they bring it up.
 SOMEDAY_WAIT = 2
+# After the user says no when they bring it up, they ask once more, a year on at the soonest; a second no settles it
+# (the user can still bring it up).
+NO_AGAIN_DAYS = 365
+MOST_NOS = 2
 # Another child (companion/life/our_child.py): no sooner than this many days after the youngest came home; one more.
 SIBLING_AFTER = 548
 MOST_CHILDREN = 2
@@ -61,23 +67,58 @@ SIBLING_LINE = ('You and the user have decided to have another child, a brother 
 JOURNEY = ('family:soon', 'family:turn', 'family:wait', 'family:match', 'family:fostered')
 
 # What their own description says, read in this order: "never wanted kids" before "wanted kids", "kids someday"
-# before "wants kids".
+# before "wants kids". Each list is a set of alternatives.
 _KIDS = r'(?:kids|children|a child|a baby|babies|a family|a big family)'
-SAYS = (
-    ('no', re.compile(rf"\b(?:never (?:wanted|wants|want) {_KIDS}|(?:don'?t|doesn'?t|do not|does not|won'?t) (?:ever )?"
-                      rf"want {_KIDS}|child[- ]?free|no (?:interest in|desire for|plans for) (?:having )?{_KIDS}|not "
-                      r"the (?:parenting|parent|maternal|paternal|family) type|(?:hates|can'?t stand) (?:kids|children)|"
-                      r"kids (?:are|were) never (?:in the cards|for (?:me|him|her|them)))\b", re.IGNORECASE)),
-    ('someday', re.compile(rf"\b{_KIDS} (?:someday|some day|one day|eventually|down the line|later on)\b|\bmaybe "
-                           r"(?:kids|children)\b|\bsomeday,? (?:kids|children|a family)\b", re.IGNORECASE)),
-    ('yes', re.compile(rf"\b(?:(?:always )?(?:wanted|wants|want) {_KIDS}|(?:always )?wanted to be a (?:mom|mum|mother|"
-                       r"dad|father|parent)|dreams? (?:of|about) (?:a family|having (?:kids|children)|being a (?:mom|mum|"
-                       r"mother|dad|father|parent))|(?:would|'d) love (?:kids|children|a family|to be a (?:parent|mom|mum|"
-                       r"mother|dad|father))|baby fever|longs? for (?:a family|children|kids)|family[- ](?:minded|"
-                       r"oriented))\b", re.IGNORECASE)),
+_PARENT = r'(?:a )?(?:mom|mum|mother|dad|father|parent)'
+_SELF = r'(?:her|him|them|my|your|one)sel(?:f|ves)'
+_WANT = r'want(?:s|ed)?'
+_NOT = r"(?:don'?t|doesn'?t|do not|does not|won'?t|didn'?t|did not|never)"
+# "never wanted kids to see her cry" is not about wanting children.
+_NOT_ABOUT = r'(?! (?:to|around|near|in|at)\b)'
+_SAYS_NO = (
+    rf"never (?:planned on|planned to have) {_KIDS}",
+    rf"{_NOT} (?:ever |really )?{_WANT} (?:to (?:have|raise) )?{_KIDS}{_NOT_ABOUT}",
+    rf"{_NOT} (?:ever |really )?{_WANT} to be {_PARENT}",
+    r'child[- ]?free',
+    rf"no (?:interest in|desire for|plans for|intention of|wish for|wish to have) (?:having |raising )?{_KIDS}",
+    r'not (?:the|a) (?:parenting|parent|maternal|paternal|family|kids?|baby) (?:type|person)',
+    r"(?:hates|can'?t stand) (?:kids|children)",
+    r"(?:kids|children|motherhood|fatherhood|parenthood|parenting|a family) (?:are|is|were|was|aren'?t|isn'?t|weren'?t|"
+    r"wasn'?t) (?:never |not )?(?:in the cards|for (?:me|him|her|them))",
+    r'decided (?:against|not to have) (?:having )?(?:kids|children)',
+    r"(?:would|'d) rather not have (?:kids|children)",
+    rf"never (?:saw|sees|see|pictured|imagined) {_SELF} (?:as {_PARENT}|with (?:kids|children))",
+    rf"can'?t (?:imagine|see) (?:{_SELF} )?(?:being {_PARENT}|as {_PARENT}|having (?:kids|children))",
 )
+_SAYS_SOMEDAY = (
+    rf"{_KIDS} (?:someday|some day|one day|eventually|down the line|later on)(?! soon)",
+    r'maybe (?:kids|children)',
+    r'someday,? (?:kids|children|a family)',
+    r'not ready for (?:kids|children|a family|a baby) yet',
+    r'(?:kids|children)\W+maybe later',
+)
+_SAYS_YES = (
+    rf"(?:always )?(?:{_WANT}|hop(?:es|ing)? to have|(?:would|'d) like to have) {_KIDS}{_NOT_ABOUT}",
+    rf"(?:always )?{_WANT} to (?:have|start|raise) {_KIDS}",
+    rf"(?:always )?{_WANT} to be {_PARENT}",
+    rf"{_WANT} (?:a houseful|lots|a bunch|two|three|four|five|several) (?:of )?(?:kids|children)",
+    rf"dreams? (?:of|about) (?:a family|having (?:kids|children)|being {_PARENT})",
+    rf"(?:would|'d) love (?:kids|children|a family|to be {_PARENT})",
+    rf"can'?t wait to (?:be {_PARENT}|have (?:kids|children|a family|a baby))",
+    r'baby fever',
+    r'longs? for (?:a family|children|kids)',
+    r'family[- ](?:minded|oriented)',
+    rf"(?:always )?(?:pictured|pictures|imagined|imagines|sees|saw) {_SELF} (?:with (?:kids|children)|as {_PARENT})",
+)
+SAYS = tuple((wants, re.compile(rf"\b(?:{'|'.join(found)})\b", re.IGNORECASE))
+             for wants, found in (('no', _SAYS_NO), ('someday', _SAYS_SOMEDAY), ('yes', _SAYS_YES)))
 CANT = re.compile(r"\b(?:can'?t (?:have|carry) (?:kids|children|a baby|a child)|infertile|unable to have (?:kids|"
-                  r"children)|had a hysterectomy)\b", re.IGNORECASE)
+                  r"children)|had a hysterectomy|trans(?:gender)? (?:woman|girl)|(?:assigned )?male at birth|amab)\b",
+                  re.IGNORECASE)
+# A description that says they could carry a baby, whatever their pronouns: a trans man, someone assigned female at
+# birth, "could get pregnant".
+CAN = re.compile(r"\b(?:trans(?:gender)? (?:man|guy|boy)|(?:assigned )?female at birth|afab|(?:can|could) (?:get "
+                 r"pregnant|carry (?:a baby|a child|children))|(?:has|have) a (?:uterus|womb))\b", re.IGNORECASE)
 
 # The chat context ('steps' section): where they stand on children, and the family step once decided.
 WANT_LINES = {'yes': 'On children: you would like to have children one day. If it comes up, say so honestly.',
@@ -112,6 +153,7 @@ def described(definition: dict) -> str | None:
     """'yes', 'someday' or 'no' when their own description says it, else None."""
     themes = ' '.join(definition.get('life_themes') or [])
     text = f"{consequences.sheet_text(definition)} {definition.get('history_together') or ''} {themes}"
+    text = text.replace('\u2019', "'").replace('\u2018', "'")  # "doesn’t" as typed on a phone.
     return next((wants for wants, pattern in SAYS if pattern.search(text)), None)
 
 
@@ -178,8 +220,12 @@ def persona(connection) -> dict:
 
 
 def old_era(connection, companion: dict) -> bool:
+    return era(connection, companion) in OLD_ERAS
+
+
+def era(connection, companion: dict) -> str:
     from companion.life import families
-    return families.era_of(connection, companion['version']['definition']) in OLD_ERAS
+    return families.era_of(connection, companion['version']['definition'])
 
 
 def route_facts(connection, companion: dict, now) -> dict:
@@ -187,12 +233,21 @@ def route_facts(connection, companion: dict, now) -> dict:
     from companion.world import looks
     definition = companion['version']['definition']
     you = persona(connection)
-    can_them = int(looks.pronouns_of(definition) == 'she/her' and not CANT.search(consequences.sheet_text(definition)))
-    can_you = int(you.get('gender') == 'woman' and not CANT.search(you.get('about') or ''))
+    can_them = could_carry(consequences.sheet_text(definition), looks.pronouns_of(definition) == 'she/her')
+    can_you = could_carry(you.get('about') or '', you.get('gender') == 'woman')
     found = money.profile(definition)
+    clinic = int(era(connection, companion) not in NO_CLINIC_ERAS)
     return {'can_them': can_them, 'can_you': can_you, 'can_carry': int(can_them or can_you),
+            'no_donor': int(bool(can_them and can_you and not clinic)),
             'age': age_of(connection, companion, now), 'your_age': you.get('age') or 0,
-            'tier': found.tier if found else 1, 'old': int(old_era(connection, companion))}
+            'tier': found.tier if found else 1, 'old': int(old_era(connection, companion)),
+            'surrogate': clinic}
+
+
+def could_carry(text: str, by_default: bool) -> int:
+    """Whether someone could carry a baby: their description says so either way, else by their pronouns or gender."""
+    text = text.replace('\u2019', "'")
+    return int(not CANT.search(text) and (by_default or bool(CAN.search(text))))
 
 
 def route_found(connection, companion: dict, now=None) -> dict:
@@ -203,6 +258,13 @@ def route_found(connection, companion: dict, now=None) -> dict:
     outcome = rolled(connection, companion, 'family:route', f"family:route:{companion['id']}",
                      route_facts(connection, companion, now), now)
     return {'route': ROUTES[outcome['picked']], 'how': 'seeded', 'consequence_id': outcome['id']}
+
+
+def routes_for(found_era: str) -> tuple[str, ...]:
+    """The ways a child could come that fit the city's era."""
+    if found_era in OLD_ERAS:
+        return OLD_ROUTES
+    return tuple(key for key in MODERN_ROUTES if key != 'surrogacy' or found_era not in NO_CLINIC_ERAS)
 
 
 def route_label(route: str, companion: dict) -> str:
@@ -295,7 +357,7 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
     found_facts = facts(connection, companion, found, now)
     today = steps.local_today(companion, now)
     if found_facts['wants'] == 'no' or found_facts['short_days'] or found_facts['closeness_over'] < 0 or \
-            steps.waiting(connection, timeline_id, FAMILY.key, today):
+            steps.waiting(connection, timeline_id, FAMILY.key, today) or told_no(connection, timeline_id, today):
         return None
     turn = 1 + len(many(connection, 'SELECT id FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side=?',
                         (timeline_id, USER, FAMILY.key, 'them')))
@@ -305,6 +367,15 @@ def plan(connection, companion: dict, found: dict, now) -> dict | None:
     offset = random.Random(f'{timeline_id}:{FAMILY.key}:{turn}:when').randint(low, high)
     return steps.insert_ask(connection, timeline_id, LADDER, FAMILY.key, 'them', 'planned', stamp(now),
                             due_on=today + timedelta(days=offset), consequence_id=outcome['id'], turn=turn)
+
+
+def told_no(connection, timeline_id: str, today: date) -> bool:
+    """The user said no when they brought it up: twice, or once less than a year ago."""
+    nos = many(connection, "SELECT settled_at FROM step_asks WHERE timeline_id=? AND other=? AND step=? AND side='them' "
+               "AND status='no' AND settled_at IS NOT NULL ORDER BY settled_at DESC", (timeline_id, USER, FAMILY.key))
+    if len(nos) >= MOST_NOS:
+        return True
+    return bool(nos) and (today - date.fromisoformat(nos[0]['settled_at'][:10])).days < NO_AGAIN_DAYS
 
 
 def plan_sibling(connection, companion: dict, found: dict, now) -> dict | None:
@@ -438,7 +509,7 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
     route = route_found(connection, companion, now)
     row = reached(connection, companion['active_timeline_id'])
     journey = expecting.panel(connection, companion, now, show_odds)
-    shown = OLD_ROUTES if old_era(connection, companion) else MODERN_ROUTES
+    shown = routes_for(era(connection, companion))
     keys = shown if route['route'] in shown else (*shown, route['route'])
     return {**result, 'romance': True, 'route': route['route'], 'route_how': route['how'],
             'route_consequence_id': route['consequence_id'] if show_odds else None,
