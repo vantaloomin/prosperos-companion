@@ -521,3 +521,14 @@ def test_gift_lines_only_go_with_a_holiday_for_presents(client, clock, monkeypat
         monkeypatch.setattr('companion.life.traditions.upcoming', lambda *args: [
             {'date': today, 'holiday': 'christmas', 'name': 'Christmas Day'}])
         assert 'Christmas Day gifts' in our_child.holiday_line(connection, companion, child, today)[0][1]
+
+
+def test_a_line_about_adopting_or_fostering_reads_as_about_a_child():
+    import re
+
+    from companion.memory import sides
+    words = re.compile(sides.CHILD_WORDS)
+    for line in ('you paid your share of the adoption agency fees', 'they finished foster carer training',
+                 'they met the surrogacy agency', 'she is pregnant'):
+        assert words.search(line), line
+    assert not words.search('they had dinner with Sam Foster')
