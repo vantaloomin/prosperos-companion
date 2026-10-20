@@ -11,7 +11,7 @@ from test_steps import prompt, says
 from companion import consequences
 from companion.characters import current
 from companion.database import decode
-from companion.life import big_days, breakups, expecting, families, money, openers, parenthood, rough_patches
+from companion.life import admin, big_days, breakups, expecting, families, money, openers, parenthood, rough_patches
 
 
 @pytest.fixture
@@ -654,7 +654,8 @@ def test_adopting_or_fostering_a_baby_buys_baby_things_once_the_baby_is_known(cl
     with client.app.state.database.connect() as connection:
         assert not connection.execute("SELECT 1 FROM life_admin WHERE key LIKE 'journey:%:things'").fetchall()
     assert 'things' not in [item['key'] for item in family(client)['journey']['stages']]
-    to(client, clock, match.isoformat())
+    # From the match it goes on the calendar as it comes within Life admin's weeks ahead.
+    to(client, clock, max(match, things - timedelta(days=admin.AHEAD)).isoformat())
     with client.app.state.database.connect() as connection:
         entry = connection.execute("SELECT title, cost FROM life_admin WHERE key LIKE 'journey:%:things'").fetchone()
     assert entry['title'] == 'Buy baby things' and entry['cost'] == cost
