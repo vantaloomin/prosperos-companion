@@ -8,8 +8,8 @@ from test_pictures import png
 
 from companion import export, groups, pictures, story
 from companion.clock import stamp
-from companion.database import identifier
-from companion.images import storage
+from companion.database import encode, identifier
+from companion.images import memes, storage
 
 
 def ok(response):
@@ -155,6 +155,28 @@ def chat_photo(connection, database, chat, message_id, data):
         (job_id, post_id, chat['timeline'], chat['version'], stored['file'], now))
     connection.execute('INSERT INTO chat_photos (message_id, post_id, job_id, summary, created_at) '
                        'VALUES (?, ?, ?, ?, ?)', (message_id, post_id, job_id, 'Mira at the pier', now))
+
+
+def test_a_meme_on_a_template_exports_its_picture_and_a_gif_is_left_out(client, chat):
+    database = client.app.state.database
+    reply = add(client, chat, 'companion', 'Ha', 0)
+    other = add(client, chat, 'companion', 'Also', 1)
+    picture = (memes.DATA / 'pack' / 'frog-stone.jpg').read_bytes()
+    with database.connect(write=True) as connection:
+        for message_id, source, extra in ((reply, 'template', {'meme_picture': encode(
+                {'id': 'pack:frog-stone', 'width': 640, 'height': 512, 'boxes': []})}),
+                                          (other, 'gif', {'gif': encode({'url': 'https://media1.giphy.com/x.gif',
+                                                                         'width': 200, 'height': 150})})):
+            post_id, now = identifier(), database.now()
+            connection.execute("INSERT INTO feed_posts (id, timeline_id, kind, idempotency_key, occurs_at, created_at) "
+                               "VALUES (?, ?, 'event', ?, ?, ?)", (post_id, chat['timeline'], post_id, now, now))
+            column = next(iter(extra))
+            connection.execute(f"INSERT INTO chat_photos (message_id, post_id, kind, summary, top_text, bottom_text, "
+                               f"meme_source, {column}, created_at) VALUES (?, ?, 'meme', 'a stone frog', 'Me', "
+                               "'Also me', ?, ?, ?)", (message_id, post_id, source, extra[column], now))
+    page = exported(client, f"chat/{chat['timeline']}").text
+    assert f'src="data:image/jpeg;base64,{base64.b64encode(picture).decode()}"' in page
+    assert '<figcaption>Me / Also me</figcaption>' in page and 'giphy' not in page
 
 
 def test_a_missing_picture_file_is_noted_not_fatal(client, chat):

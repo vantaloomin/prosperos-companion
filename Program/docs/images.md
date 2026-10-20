@@ -259,9 +259,36 @@ asks for no photo.
   moment shows the one already made.
 - A meme is a joke, not an event. Its captions come from templates that fit the companion's day
   (`companion/images/memes.py`: what their routine has them doing, rain, late night or morning), and
-  the last few are not repeated. The picture is the companion pulling a face or a simple fictional
-  scene, made square on a post of its own that never reaches the feed. The interface draws the
-  captions over it; the image model is never asked for text. Captions are classified with the rest.
+  the last few are not repeated. Each caption has a mood, and a few are "this, not that" pairs for
+  a two-panel format. The interface draws the captions over the picture; no model is ever asked for
+  text. Captions are classified with the rest.
+- Memes need no image backend (Hit List #50). The picture under one comes from
+  (`companion/images/meme_pictures.py`):
+  - the starter pack in `companion/images/meme_data/pack`, public-domain and CC0 pictures shipped
+    with the app, each credited in `pack.json`;
+  - classic formats (`meme_data/formats.json`), downloaded blank from memegen.link in the background
+    the first time memes are sent and kept in the data folder's `meme-formats` folder, never in the
+    repository. Only the format's name is sent. Settings > Images > "Download classic meme formats"
+    turns it off;
+  - the user's own `Meme templates` folder in the data folder (Settings > Images > Open folder, on
+    the PC). A picture there may have a JSON file of the same name beside it, in memegen's shape:
+    `{"about": "...", "moods": [...], "boxes": [{"x", "y", "w", "h"}, ...]}`, boxes as fractions of
+    the picture, top to bottom. Without one the text goes top and bottom and the picture fits any
+    mood.
+  With an image backend set up, about a third of memes are still made by it: the companion pulling a
+  face or a simple fictional scene, square, on a post of its own that never reaches the feed. A
+  meme on a template has no image job and no post in the feed either, and the chat keeps the
+  template's own shape.
+- Reaction GIFs (`companion/images/gifs.py`) are off until the user adds their own GIPHY key in
+  Settings > Images, kept in the system's credential store and refused over plain-http Wi-Fi. Only a
+  search word from a fixed list, picked by the meme's mood, is sent to GIPHY, never the user's
+  words; only the G and PG ratings are asked for and kept, and the chat loads the GIF from GIPHY with
+  its "Powered by GIPHY" credit. Searches are kept for six hours. An unasked GIF uses only searches
+  already made (a missing one is fetched in the background for next time); asking for a GIF waits
+  four seconds at most. Without a key, or with GIPHY not answering, a meme is sent instead.
+- Realism > Their days > "Memes and GIFs" sets how often they send memes and GIFs unasked: never,
+  now and then, true to life (default) or often. Asking for one always works unless it is Never.
+  Memes and GIFs belong to eras with phones (modern and future cities).
 - Pictures nobody asked for: now and then a reply comes with a photo or selfie of a moment not yet
   sent in chat (a seeded chance per reply), and a meme is likely when the user sounds bored or down.
   At most three a day, two hours apart, and the reply knows it chose to send it. When the companion

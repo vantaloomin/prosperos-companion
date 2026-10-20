@@ -26,7 +26,21 @@ export function photoLine(photo: ChatPhoto): string | null {
 const KINDS: Record<ChatPhoto['kind'], string> = { moment: 'Photo', selfie: 'Selfie', view: 'Photo of the view', meme: 'Meme picture' }
 
 /** Alt text for the picture itself; a meme's captions are real text drawn over it. */
-export const photoAlt = (name: string, photo: ChatPhoto) => `${KINDS[photo.kind]} from ${name}: ${photo.summary}`
+export const photoAlt = (name: string, photo: ChatPhoto) => photo.source === 'gif' ? `Reaction GIF from ${name}` : `${KINDS[photo.kind]} from ${name}: ${photo.summary}`
+
+/** Where the picture loads from: a template's or GIF's own address, else the image job's file once it is made. */
+export const photoSource = (photo: ChatPhoto, jobFile: (ref: string) => string) => photo.src ?? (photo.ref ? jobFile(photo.ref) : null)
+
+/** The widest a meme on a template or a GIF shows, and the most room a tall one may take. */
+const FITTED_WIDTH = 340
+const FITTED_HEIGHT = 400
+
+/** A template's or GIF's own shape, so the chat holds exactly its space: no wider than a square meme, no taller than a portrait photo. */
+export function fittedSize(photo: ChatPhoto): { aspectRatio: string; width: string } | null {
+  if (!photo.src || !photo.width || !photo.height) return null
+  const width = Math.round(Math.min(FITTED_WIDTH, FITTED_HEIGHT * photo.width / photo.height))
+  return { aspectRatio: `${photo.width} / ${photo.height}`, width: `min(100%, ${width}px)` }
+}
 
 /** The newest reply that sent a photo of their moment (not a meme), for the Visual novel stage's backdrop. */
 export function latestPhotoId(messages: Message[]): string | null {

@@ -354,6 +354,16 @@ ADDED_COLUMNS = (
     # their own words; lifespan 0: they don't age).
     ('persona', 'kind', "TEXT NOT NULL DEFAULT ''"),
     ('persona', 'lifespan', 'INTEGER'),
+    # Memes without a picture model (companion/images/meme_pictures.py, gifs.py): where a meme's picture came from
+    # ('' an image model, 'template' a picture on this computer, 'gif' a reaction GIF), the template picture
+    # ({id, width, height, boxes}) and the GIF ({url, width, height, page, tag}).
+    ('chat_photos', 'meme_source', "TEXT NOT NULL DEFAULT ''"),
+    ('chat_photos', 'meme_picture', 'TEXT'),
+    ('chat_photos', 'gif', 'TEXT'),
+    # Whether classic meme formats are downloaded from memegen.link the first time memes are sent (Settings > Images).
+    ('image_settings', 'meme_formats', 'INTEGER NOT NULL DEFAULT 1 CHECK (meme_formats IN (0, 1))'),
+    # Memes and GIFs (Settings > Realism > Their days): 0 never, 1 now and then, 2 true to life, 3 often.
+    ('life_settings', 'memes_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (memes_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

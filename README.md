@@ -163,3 +163,5 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 ## License
 
 Licensed under the [GNU Affero General Public License v3.0](LICENSE), matching the Prospero's Study code it reuses.
+
+The meme starter pack (`Program/companion/images/meme_data/pack`) is public-domain and CC0 artwork, mostly from the KB, National Library of the Netherlands, via Europeana, plus the Art Institute of Chicago, the Cleveland Museum of Art and the Metropolitan Museum of Art; `pack.json` credits each picture. Classic meme formats are downloaded from [memegen.link](https://memegen.link) (MIT) on first use and never ship with the app. Reaction GIFs are Powered by GIPHY, with the user's own key.

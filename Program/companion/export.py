@@ -19,14 +19,14 @@ import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 from companion import chats, pictures
 from companion.characters import for_timeline
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional, settings
 from companion.errors import DomainError, require
-from companion.images import photos, storage
+from companion.images import meme_pictures, photos, storage
 from companion.local_zone import valid
 from companion.voice import notes as voice_notes
 
@@ -112,18 +112,29 @@ def user_picture(folder: Path, row: dict) -> Picture:
 
 
 def chat_photo(database, connection, photo: dict) -> Picture | None:
-    """A photo the companion sent, once it was made; one still being made or that failed shows nothing."""
-    if photo['ref'] is None:
-        return None
-    job = optional(connection, 'SELECT output_file FROM image_jobs WHERE id=?', (photo['ref'],))
-    try:
-        path = storage.path_of(database, job['output_file']) if job and job['output_file'] else None
-    except FileNotFoundError:
-        path = None
+    """A photo the companion sent, once it was made; one still being made or that failed shows nothing. A meme on a
+    template on this computer shows its picture; a reaction GIF lives on GIPHY, so it shows nothing."""
+    path = template_path(database, photo) if photo.get('source') == 'template' else made_path(database, connection, photo)
     if path is None:
         return None
     meme = ' / '.join(part for part in (photo['top_text'], photo['bottom_text']) if part)
     return Picture(meme or photo['summary'], path, storage.TYPES.get(path.suffix.lstrip('.'), ''))
+
+
+def made_path(database, connection, photo: dict):
+    if photo['ref'] is None:
+        return None
+    job = optional(connection, 'SELECT output_file FROM image_jobs WHERE id=?', (photo['ref'],))
+    try:
+        return storage.path_of(database, job['output_file']) if job and job['output_file'] else None
+    except FileNotFoundError:
+        return None
+
+
+def template_path(database, photo: dict):
+    picture_id = unquote((photo.get('src') or '').removeprefix(photos.PICTURES))
+    path = meme_pictures.path_of(database.root, picture_id)
+    return path if path and path.suffix.lstrip('.') in storage.TYPES else None
 
 
 def group_entries(connection, group_id: str) -> list[Entry]:

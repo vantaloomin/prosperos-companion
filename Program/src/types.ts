@@ -63,7 +63,22 @@ export interface ChatPhoto {
   unasked: boolean
   /** The shape it is made in; the chat holds that space while it loads. Older servers leave it out. */
   aspect?: 'square' | 'landscape' | 'portrait'
+  /** A meme's picture: made by an image model, a template on this computer, or a reaction GIF (companion/images/gifs.py). */
+  source?: 'model' | 'template' | 'gif'
+  /** A template's or GIF's own address and size, there from the start; null for a picture an image model makes. */
+  src?: string | null
+  width?: number | null
+  height?: number | null
+  /** A template's text boxes as fractions of the picture, top to bottom; empty for the classic top and bottom lines. */
+  boxes?: MemeBox[]
+  /** A GIF's page on GIPHY. */
+  page?: string
 }
+
+export interface MemeBox { x: number; y: number; w: number; h: number }
+
+/** Where meme pictures come from (Settings > Images > Memes and GIFs). */
+export interface MemeSources { folder: string; mine: number; pack: number; formats_on: boolean; formats_here: number; formats_total: number; gif_key: boolean }
 
 export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean }
 
@@ -481,6 +496,8 @@ export interface LifeSettings {
   media_realism: number
   /** Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   hobbies_realism: number
+  /** Memes and GIFs (companion/images/photos.py): how often memes come unasked, 0 never (none at all) to 3 often. */
+  memes_realism: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
@@ -961,7 +978,7 @@ export interface ImageBackend {
   experimental: boolean
 }
 
-export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 

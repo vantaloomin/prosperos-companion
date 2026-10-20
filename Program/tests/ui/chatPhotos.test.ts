@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { canRetry, isTaking, latestPhotoId, photoAlt, photoLine, photoShape } from '../../src/features/conversation/photoState.ts'
+import { canRetry, fittedSize, isTaking, latestPhotoId, photoAlt, photoLine, photoShape, photoSource } from '../../src/features/conversation/photoState.ts'
 import type { ChatPhoto, Message } from '../../src/types.ts'
 
 const photo: ChatPhoto = { message_id: 'r1', post_id: 'p1', kind: 'moment', summary: 'Mira painted by the river.', top_text: '', bottom_text: '', status: 'queued', job_id: 'j1', ref: null, error: null, in_feed: false, unasked: false }
@@ -47,4 +47,16 @@ test('a photo holds the shape it is made in, and one that ended without a pictur
   assert.equal(canRetry({ ...photo, status: 'failed', error: 'The provider did not answer within the time limit.' }), true)
   assert.equal(canRetry({ ...photo, status: 'interrupted' }), true)
   assert.equal(canRetry({ ...photo, status: 'completed', ref: 'j1' }), false)
+})
+
+test('a meme on a template or a GIF loads from its own address and keeps its own shape', () => {
+  const file = (ref: string) => `/files/${ref}`
+  assert.equal(photoSource({ ...photo, ref: 'j1' }, file), '/files/j1')
+  assert.equal(photoSource(photo, file), null)
+  const template: ChatPhoto = { ...photo, kind: 'meme', job_id: null, status: 'completed', source: 'template', src: '/api/images/memes/pictures/pack:cat', width: 600, height: 400 }
+  assert.equal(photoSource(template, file), '/api/images/memes/pictures/pack:cat')
+  assert.deepEqual(fittedSize(template), { aspectRatio: '600 / 400', width: 'min(100%, 340px)' })
+  assert.deepEqual(fittedSize({ ...template, width: 300, height: 600 }), { aspectRatio: '300 / 600', width: 'min(100%, 200px)' })
+  assert.equal(fittedSize(photo), null)
+  assert.equal(photoAlt('Mira', { ...template, source: 'gif' }), 'Reaction GIF from Mira')
 })
