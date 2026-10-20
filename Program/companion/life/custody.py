@@ -31,7 +31,7 @@ from companion import consequences
 from companion.clock import parse, stamp
 from companion.database import decode, encode, many, optional
 from companion.errors import require
-from companion.life import families, shifts, steps
+from companion.life import families, shifts, stays, steps
 from companion.life.steps import FAMILY
 
 CHOICE = 'family:custody'
@@ -120,14 +120,18 @@ def found(connection, companion: dict, now=None) -> dict | None:
         pattern = 'with_them'  # A week each can't cross cities: they stay where they live, with the companion.
     since = shifts.monday_of(steps.local_today(companion, parse(row['ended_at'])))
     return {'pattern': pattern, 'how': 'set' if set_to else 'seeded', 'consequence_id': outcome and outcome['id'],
-            'since': since, 'far': between, 'split': True}
+            'since': since, 'far': between, 'split': True,
+            'stays': stays.rows_for(connection, timeline_id, stays.OURS, row['id'])}
 
 
 def with_them(state: dict | None, day: date) -> bool:
-    """Whether the children are with the companion on this day: always while together; across cities with the
-    parent they live with; else by the weekends and weeks of the pattern."""
+    """Whether the children are with the companion on this day: always while together; split up, as the stays with
+    the other parent say (companion/life/stays.py); else across cities with the parent they live with, and in one
+    city by the weekends and weeks of the pattern."""
     if state is None:
         return True
+    if state.get('stays'):
+        return stays.with_companion(state['stays'], day, with_them({**state, 'stays': None}, day))
     if state['far']:
         return state['pattern'] != 'with_you'
     odd = ((shifts.monday_of(day) - state['since']).days // 7) % 2 == 1

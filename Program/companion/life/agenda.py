@@ -51,6 +51,7 @@ from companion.life import (
     recommendations,
     rough_patches,
     routine,
+    stays,
     steps,
     storylines,
     their_people,
@@ -189,6 +190,7 @@ def extend(connection, companion, world, now) -> dict:
     wedding.advance(connection, companion, now)
     expecting.advance(connection, companion, world, now)  # Before the big days: a pregnancy brings a baby shower.
     our_child.advance(connection, companion, world, now)
+    stays.plan_ahead(connection, companion, now)  # After the breakups and custody: stays with the other parent.
     loss.advance(connection, companion, now)  # Before the big days: a death brings a funeral.
     big_days.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}

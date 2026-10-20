@@ -1,27 +1,33 @@
 """Life admin API: the companion's appointments, errands and chores, and moving one to another day; the wedding being
 planned (companion/life/wedding.py), which the user can move, send elsewhere, resize or trim."""
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Request
 from pydantic import Field
 
 from companion.characters import require_current
 from companion.database import settings
-from companion.life import admin, wedding
+from companion.life import admin, stays, wedding
 from companion.models import Input
 
 router = APIRouter(prefix='/api/life/admin')
+STAY_ACTIONS = {'move': stays.move, 'skip': stays.skip, 'undo': stays.undo}
 
 
-def overview(request: Request, entry_id: str | None = None, change: 'WeddingChange | None' = None) -> dict:
-    """The Life admin panel, after moving an entry when one is named. The agenda picks the move up when it next
-    extends; the meter shows only with Hidden values' home-life meters on. The wedding plan is part of it."""
+def overview(request: Request, entry_id: str | None = None, change: 'WeddingChange | None' = None,
+             stay: tuple[str, str] | None = None) -> dict:
+    """The Life admin panel, after moving an entry when one is named, or moving, skipping or taking back skipping a
+    stay with the other parent (companion/life/stays.py). The agenda picks the move up when it next extends; the meter
+    shows only with Hidden values' home-life meters on. The wedding plan is part of it."""
     database = request.app.state.database
     now = database.clock.now()
-    with database.connect(write=bool(entry_id or change)) as connection:
+    with database.connect(write=bool(entry_id or change or stay)) as connection:
         companion = require_current(connection)
         if entry_id:
             admin.user_move(connection, companion, entry_id, now)
+        if stay:
+            STAY_ACTIONS[stay[0]](connection, companion, stay[1], now)
         if change:
             wedding.change(connection, companion, now, day=change.day, venue=change.venue, size=change.size,
                            guest=change.guest, invited=change.invited)
@@ -53,3 +59,10 @@ def change_wedding(request: Request, body: WeddingChange):
 def move_entry(request: Request, entry_id: str):
     """Another day: the nearest free time from the next day on."""
     return overview(request, entry_id)
+
+
+@router.post('/stays/{stay_id}/{action}')
+def change_stay(request: Request, stay_id: str, action: Literal['move', 'skip', 'undo']):
+    """A stay with the other parent: to the next free weekend ('move'), skipped with a make-up planned ('skip'), or
+    skipping taken back ('undo')."""
+    return overview(request, stay=(action, stay_id))

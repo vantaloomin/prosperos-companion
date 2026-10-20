@@ -2638,3 +2638,35 @@ CREATE TABLE IF NOT EXISTS our_family (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- Visits with the other parent (companion/life/stays.py): the stays a child of parents who live apart spends with the
+-- parent they don't live with. `family` is the case ('ours' after the user and the companion split, keyed by the
+-- breakup as `subject`; 'own' a companion's own child with an ex; 'kids' the kids they had before, keyed by the other
+-- parent), `host` who the children stay with ('you', 'companion' or 'other'), `reason` why it is planned (the rhythm,
+-- 'far' across cities, a summer week, a birthday, a public holiday, asked for in the chat, a make-up for a skip),
+-- `extra` the child of a birthday, the holiday's name or the skipped stay a make-up is for. `first_start`/`first_end`
+-- are where it was planned before the user moved it; across cities `city_name` is where it is and `travels` who goes.
+CREATE TABLE IF NOT EXISTS family_stays (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  family TEXT NOT NULL CHECK (family IN ('ours', 'own', 'kids')),
+  subject TEXT NOT NULL,
+  host TEXT NOT NULL CHECK (host IN ('you', 'companion', 'other')),
+  reason TEXT NOT NULL CHECK (reason IN ('rota', 'far', 'summer', 'birthday', 'holiday', 'asked', 'make-up')),
+  extra TEXT NOT NULL DEFAULT '',
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  first_start TEXT NOT NULL,
+  first_end TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'skipped')),
+  moved_reason TEXT NOT NULL DEFAULT '',
+  skipped_at TEXT,
+  city_name TEXT NOT NULL DEFAULT '',
+  travels TEXT NOT NULL DEFAULT '' CHECK (travels IN ('', 'child', 'you', 'companion')),
+  message_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, key)
+);
+CREATE INDEX IF NOT EXISTS family_stays_case ON family_stays(timeline_id, family, subject, start_date);
