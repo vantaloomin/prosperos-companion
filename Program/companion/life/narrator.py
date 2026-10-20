@@ -362,7 +362,9 @@ def whereabouts(sheet: dict, data: dict, day: date, now) -> list[dict]:
         if found['doing'] != 'asleep' and text != last:
             key = f"where:{sheet['key']}:{day.isoformat()}:{part}"
             usual = doing_text(townsfolk.whereabouts(sheet, data, local - timedelta(days=1))) == text
-            words = random.Random(key).choice(AGAIN) if usual else 'In the {part}, {first} was {text}.'
+            # Turned by the day, so the same part never reads the same two days running.
+            turn = (day.toordinal() + random.Random(f"{sheet['key']}:{part}").randrange(len(AGAIN))) % len(AGAIN)
+            words = AGAIN[turn] if usual else 'In the {part}, {first} was {text}.'
             result.append(item(key, stamp(local), 'day', words.format(part=part, first=first, text=text)))
         last = text
     return result

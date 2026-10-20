@@ -207,3 +207,5 @@ def test_a_townsperson_routine_does_not_read_word_for_word_each_day(client):
     client.put('/api/observer', json={'watching': True})
     found = [line['text'] for line in lines(feed(client)) if line['id'].startswith('where:')]
     assert found and len(set(found)) > len(found) // 2
+    for day, before in zip(feed(client)['days'], feed(client)['days'][1:]):
+        assert not {line['text'] for line in day['items']} & {line['text'] for line in before['items']}
