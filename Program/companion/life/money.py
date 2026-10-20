@@ -452,6 +452,10 @@ UPKEEP = {'dog': 0.025, 'cat': 0.015, 'rabbit': 0.01, 'bird': 0.005, 'parrot': 0
           'guinea-pig': 0.006, 'lizard': 0.008, 'snake': 0.006, 'tortoise': 0.005, 'ferret': 0.012, 'chickens': 0.006,
           'car': 0.08, 'motorcar': 0.08, 'scooter': 0.02, 'horse': 0.06, 'bike': 0.003, 'bicycle': 0.003}
 PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
+# A big bill that can't wait for savings (a child's nursery, an adoption agency's fees: companion/life/expecting.py):
+# what their savings on hand cover comes out of them, the rest month by month from their pay, about this share of a
+# month's take-home each month and paid off within OWED_MONTHS, as people pay such a bill off.
+OWED_SHARE, OWED_MONTHS, OWED_DAYS = 0.12, 60, 30
 
 
 def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
@@ -463,6 +467,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
         admin,
         big_days,
         big_turns,
+        expecting,
         grooming,
         hobbies,
         home,
@@ -496,6 +501,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *big_days.purchases(connection, timeline_id, start, day),
               *big_turns.purchases(connection, timeline_id, start, day),
               *own_family.purchases(connection, timeline_id, start, day),
+              *expecting.purchases(connection, timeline_id, start, day),
               *our_child.purchases(connection, timeline_id, start, day)]
     # Raises, promotions and time between jobs (companion/life/work.py), or a pension once retired (big_turns.py);
     # what big buys took from savings since the goal began (`drawn_from`).
@@ -515,10 +521,12 @@ def drawn_from(connection, definition: dict, day: date) -> date:
 
 
 def drawn_since(connection, timeline_id: str, since: date, day: date) -> float:
-    """What big buys took from savings between two dates: a ring or a wedding, or a deposit on a place."""
-    from companion.life import big_turns, wedding
-    deposits = [item for item in big_turns.purchases(connection, timeline_id, since, day) if item.get('savings')]
-    return sum(item['cost'] for item in [*wedding.purchases(connection, timeline_id, since, day), *deposits])
+    """What big buys took from savings between two dates: a ring or a wedding, a deposit on a place, or a child's
+    nursery and an agency's fees (companion/life/expecting.py)."""
+    from companion.life import big_turns, expecting, wedding
+    found = [item for item in [*big_turns.purchases(connection, timeline_id, since, day),
+                               *expecting.purchases(connection, timeline_id, since, day)] if item.get('savings')]
+    return sum(item['cost'] for item in [*wedding.purchases(connection, timeline_id, since, day), *found])
 
 
 # How far back savings on hand reach: what they put by in this long, less what came out of it.
@@ -537,6 +545,23 @@ def on_hand(connection, timeline_id: str, definition: dict, day: date) -> float 
     since = day - timedelta(days=SAVED_DAYS)
     drawn = drawn_since(connection, timeline_id, since, day)
     return max(saved_since(found, since, day) - drawn, 0.0)
+
+
+def paying(cost: float, saved: float | None, month: float) -> dict:
+    """How a big bill is paid ({saved, monthly, months}): from savings what `saved` covers, the rest in equal
+    payments of about OWED_SHARE of a month's take-home (`month`), never over OWED_MONTHS."""
+    from_savings = round(min(cost, max(saved or 0.0, 0.0)), 2)
+    rest = round(cost - from_savings, 2)
+    if rest < 1 or month <= 0:
+        return {'saved': round(cost, 2), 'monthly': 0.0, 'months': 0}
+    months = min(max(round(rest / (month * OWED_SHARE)), 1), OWED_MONTHS)
+    return {'saved': from_savings, 'monthly': round(rest / months, 2), 'months': months}
+
+
+def typical_month(city: dict) -> float:
+    """A middle wage's take-home for a month in this city: what a fee everyone there pays alike is reckoned in."""
+    income = take_home(city, DEFAULT_TIER)
+    return income if city['rent_period'] == 'month' else income * 52 / 12
 
 
 def monthly_share(found: Profile) -> float:
@@ -671,7 +696,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
             'hobby': 'on your pastimes', 'ring': 'from your savings', 'wedding': 'from your savings',
             'gift': 'on gifts', 'school': 'on your course', 'deposit': 'from your savings',
-            'business': 'from your savings', 'care': "on a parent's care", 'funeral': 'for a funeral'}
+            'business': 'from your savings', 'care': "on a parent's care", 'funeral': 'for a funeral',
+            'family': 'from your savings', 'owed': 'on what you still owe'}
 
 
 def payday_text(view: dict, local_date: str) -> str:
