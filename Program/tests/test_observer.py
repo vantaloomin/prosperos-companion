@@ -187,3 +187,10 @@ def test_an_unusable_entry_is_dropped(client):
     assert narrator.usable('Mira and Theo had sex.', 'Mira Costa') is None
     assert narrator.usable('Mira had a good day.', 'Mira Costa') == 'Mira had a good day.'
     assert json.dumps(narrator.public({'key': 'k', 'kind': 'companion', 'name': 'Mira', 'companion': {}}))
+
+
+def test_a_thought_already_told_or_kept_all_week_shows_once():
+    told = [narrator.item('event:1', '2026-10-18T13:00:00Z', 'day', 'Mira had something come up (the laundry). Mira ran errands.')]
+    thoughts = [narrator.item(f'thought:{day}', f'2026-10-{day}T21:00:00Z', 'thought', text) for day, text in
+                ((18, 'Mira had something come up (the laundry).'), (19, 'Money is tight.'), (20, 'Money is tight.'))]
+    assert [line['id'] for line in narrator.fresh(thoughts, told)] == ['thought:20']

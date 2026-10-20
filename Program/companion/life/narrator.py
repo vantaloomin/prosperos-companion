@@ -185,8 +185,8 @@ def day_events(connection, companion, since: str, now, voice: int, first: str) -
     for row in rows:
         mood = decode(row['details']).get('mood')
         inner = thought_after(voice, row['id'] in standing, f"event:{row['id']}", mood, first)
-        result.append(item(f"event:{row['id']}", row['starts_at'], 'day', said(row['summary'], definition),
-                           inner=inner))
+        text = said(row['summary'], definition).replace(definition['name'], first)
+        result.append(item(f"event:{row['id']}", row['starts_at'], 'day', text, inner=inner))
     return result
 
 
@@ -219,6 +219,18 @@ def on_their_mind(connection, companion, now, voice: int) -> list[dict]:
     timezone = companion['version']['timezone']
     return [item(f"thought:{found['day']}", at(date.fromisoformat(found['day']), EVENING, timezone), 'thought',
                  found['text']) for found in thoughts.week(connection, companion, now)]
+
+
+def fresh(thoughts: list[dict], told: list[dict]) -> list[dict]:
+    """Thoughts not already told: by another line, or on a later day (a thought that stays all week shows once)."""
+    seen = [line['text'].casefold() for line in told]
+    result = []
+    for line in sorted(thoughts, key=lambda found: found['at'], reverse=True):
+        text = line['text'].casefold().rstrip('.')
+        if not any(text in other for other in seen):
+            result.append(line)
+            seen.append(text)
+    return result
 
 
 def beats(connection, companion, now, since: date, voice: int, first: str) -> list[dict]:
@@ -310,8 +322,7 @@ def companion_lines(connection, companion, now) -> list[dict]:
              + dreamed(connection, companion, now) + beats(connection, companion, now, since, voice, first)
              + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since))
     lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
-    told_already = {line['text'] for line in lines}
-    lines += [line for line in on_their_mind(connection, companion, now, voice) if line['text'] not in told_already]
+    lines += fresh(on_their_mind(connection, companion, now, voice), lines)
     lines += feeling(connection, companion, now, voice, bool(workspace['show_moods']), first)
     lines += wandering([day for day in days if day in lived], timezone, now, voice, f"companion:{companion['id']}",
                        first)

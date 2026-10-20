@@ -1,5 +1,6 @@
 import { Eye } from 'lucide-react'
 import { useObserver } from './useObserver'
+import { firstName } from './watchText'
 
 /** Shown above every other view while the user is just watching (companion/observer.py), so they know nobody is
  * expecting them and how to get back to the Watching page. */
@@ -10,7 +11,7 @@ export function WatchBanner({ onWatch, onOpen }: { onWatch: boolean; onOpen: () 
   return (
     <div className="watch-banner" role="status">
       <Eye aria-hidden="true" />
-      <span>You&apos;re just watching{focus ? ` ${focus.name}` : ''}. Writing to anyone steps you back in.</span>
+      <span>You&apos;re just watching{focus ? ` ${firstName(focus.name)}` : ''}. Writing to anyone steps you back in.</span>
       <button type="button" className="text-button" onClick={onOpen}>Back to watching</button>
     </div>
   )
