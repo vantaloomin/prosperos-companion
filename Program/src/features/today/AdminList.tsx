@@ -75,5 +75,5 @@ function StayButtons({ item, busy, act }: { item: AdminItem; busy: boolean; act:
 
 /** Under a skipped stay, when its make-up is (Iris: the child wasn't simply dropped). */
 function MadeUp({ item }: { item: AdminItem }) {
-  return item.stay?.made_up ? <p className="subtle">Made up on {dayText(item.stay.made_up)}</p> : null
+  return item.stay?.made_up ? <p className="subtle">Made up on {dayText(item.stay.made_up)}.</p> : null
 }
