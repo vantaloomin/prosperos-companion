@@ -2670,3 +2670,26 @@ CREATE TABLE IF NOT EXISTS family_stays (
   UNIQUE (timeline_id, key)
 );
 CREATE INDEX IF NOT EXISTS family_stays_case ON family_stays(timeline_id, family, subject, start_date);
+
+-- Observer mode (companion/observer.py): whether the user is just watching this world, and whose day the Watching
+-- page follows (`focus`: 'companion:<id>' or a townsperson's key). `ended_at` is when watching last stopped, so a
+-- companion doesn't count time spent watching as time the user was away.
+CREATE TABLE IF NOT EXISTS observer (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  watching INTEGER NOT NULL DEFAULT 0 CHECK (watching IN (0, 1)),
+  focus TEXT NOT NULL DEFAULT '',
+  started_at TEXT,
+  ended_at TEXT,
+  updated_at TEXT NOT NULL
+);
+
+-- The day of whoever is watched in a few lines, written by the model in the background when model phrasing and
+-- background activity are on (companion/life/narrator.py). One per focus and local day; `text` NULL when the try
+-- was not usable, so the rule-built lines stand alone.
+CREATE TABLE IF NOT EXISTS observer_entries (
+  focus TEXT NOT NULL,
+  day TEXT NOT NULL,
+  text TEXT,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (focus, day)
+);

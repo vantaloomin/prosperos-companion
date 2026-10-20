@@ -39,7 +39,7 @@ WORKSPACE = (
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
     'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge', 'authors_notes',
-    'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books',
+    'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books', 'observer',
     'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.
@@ -52,7 +52,7 @@ CHARACTER = (
 # drawn from them (world_changes with origin 'real') goes with them by ON DELETE CASCADE; changes
 # the user made to a city stay.
 HISTORY = (
-    'away_recaps', 'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
+    'observer_entries', 'away_recaps', 'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
     'birth_dates', 'closeness_jokes', 'closeness_settings', 'people_impressions', 'people_meetups', 'step_settings', 'family_wishes', 'family_journeys', 'our_family', 'proposals', 'weddings', 'big_days', 'losses', 'step_asks', 'relationship_steps', 'love_partners', 'moving_in_shares', 'moving_in', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'breakup_reaches', 'breakups', 'rough_patch_promises', 'rough_patches', 'calls', 'together_asks', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
@@ -105,6 +105,7 @@ OWN = {
     'news_holders': "news_id IN (SELECT id FROM news WHERE timeline_id IN gone_timelines) "
                     "OR holder='companion:' || :companion",
     'companions': 'id=:companion',
+    'observer_entries': "focus='companion:' || :companion",
     # Birth dates (companion/life/ages.py): theirs, their circle's and their partners'; the town's stay.
     'birth_dates': "(kind='companion' AND person_key=:companion) OR (kind='circle' AND person_key IN "
                    "(SELECT id FROM circle_people WHERE timeline_id IN gone_timelines)) OR (kind='partner' AND "

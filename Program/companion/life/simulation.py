@@ -36,6 +36,7 @@ from companion.life import (
     feed,
     hobbies,
     mood,
+    narrator,
     pets,
     routine,
     thoughts,
@@ -806,6 +807,7 @@ class LifeEngine:
                 await self.quietly_observe()
             await self.quietly_prepare()
             await self.quietly_think()
+            await self.quietly_narrate()
         # First messages have their own setting (texts_first), so the companion can text while the
         # app is closed even when background activity is off; the open app also asks each minute.
         await self.quietly_text()
@@ -910,6 +912,36 @@ class LifeEngine:
     def save_thought(self, row, text):
         with self.database.connect(write=True) as connection:
             thoughts.save_polish(connection, row, text)
+
+    async def quietly_narrate(self):
+        """The day before of whoever the user is just watching, in the model's few lines (companion/life/narrator.py),
+        when model phrasing is on: once a day, and the rule-built lines stand alone when it is not usable."""
+        try:
+            due = await asyncio.to_thread(self.due_entry)
+            if due is None:
+                return
+            config, found = due
+            try:
+                text = await narrator.write(self.provider, self.scheduler, config, key_for(self.vault, config), found)
+            except DomainError:
+                text = None
+            await asyncio.to_thread(self.save_entry, found, text)
+        except BackgroundInterrupted:
+            pass
+        except Exception:  # noqa: BLE001 - the day's lines are already on the page.
+            LOG.exception("A watched day's entry could not be written.")
+
+    def due_entry(self):
+        with self.database.connect() as connection:
+            config, life = config_for(connection, 'life'), life_settings(connection)
+            if config is None or not life['phrase_with_model'] or settings(connection)['paused_at'] is not None:
+                return None
+            found = narrator.due_entry(connection, self.now())
+            return (config, found) if found else None
+
+    def save_entry(self, found, text):
+        with self.database.connect(write=True) as connection:
+            narrator.save_entry(connection, found, text, self.database.now())
 
     async def quietly_life(self, mode):
         """The companion in focus, then this turn of everyone else."""

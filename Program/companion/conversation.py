@@ -18,6 +18,7 @@ from companion import (
     logs,
     model_calls,
     moods,
+    observer,
     pictures,
     safety,
     self_checks,
@@ -77,6 +78,7 @@ def record_user(database, body) -> dict:
             (message_id, timeline_id, next_seq(connection, timeline_id), body.text, body.client_id,
              companion['active_version_id'], database.now(), database.now()))
         pictures.attach(connection, message_id, body.picture_ids)
+        observer.step_in(connection, database.now())  # Writing to them ends just watching (companion/observer.py).
         # Sending on a timeline made by a historical edit uses up its waiting draft (C4).
         connection.execute('UPDATE timelines SET draft=NULL WHERE id=?', (timeline_id,))
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
