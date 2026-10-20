@@ -530,3 +530,60 @@ def test_older_cities_get_no_science_fair_book_day_or_wall_stickers():
         said = ' '.join(f"{line['text']} {line['share']}" for line in families.fitting(lines, era)).lower()
         assert 'science fair' not in said and 'book day' not in said and 'baking soda' not in said
         assert 'sticker' not in said
+
+
+def test_a_babys_odds_show_under_hidden_values_and_no_baby_ends_it(client, mira, clock, monkeypatch):
+    usual = dict(families.YEARLY)
+    sure(monkeypatch)
+    person = sister(client)
+    reconcile(client)
+    [story] = stories(client, 'expecting')
+    [listed] = [item for item in client.get('/api/life/storylines').json() if item['id'] == story['id']]
+    odds_id = listed['beats'][0]['consequence']
+    outcome = client.get(f'/api/life/consequences/{odds_id}').json()
+    who = person['name'].split()[0]
+    assert outcome['label'] == f'Whether {who} has a baby this year' and outcome['picked'] == 0
+    assert outcome['options'][0]['label'] == f'{who} is expecting a baby' and not outcome['settled']
+    assert outcome['options'][0]['reasons'] == [f"{who} is Mira's sister", f'{who} is married']
+    assert outcome['options'][0]['moves'] == ['possible', 'more']
+    # At the usual pace a married sister's weekly chance comes to about a fifth over a year.
+    found = families.yearly_options(usual['married sibling'] / 52, [], ('yes', 'no'))
+    assert found[0]['odds'] == 0.2 and found[0]['odds'] + found[1]['odds'] == 1
+    changed = client.post(f'/api/life/consequences/{odds_id}/change', json={'option': 1}).json()
+    assert changed['picked'] == 1 and changed['picked_by'] == 'user'
+    assert stories(client, 'expecting')[0]['status'] == 'ended' and children(client)[0]['status'] == 'ended'
+    client.post(f'/api/life/consequences/{odds_id}/change', json={'option': 0}).raise_for_status()
+    assert stories(client, 'expecting')[0]['status'] == 'running' and children(client)[0]['status'] == 'expected'
+    clock.advance(date.fromisoformat(children(client)[0]['born_on']) - clock.now().date() + timedelta(days=1))
+    reconcile(client)
+    assert client.get(f'/api/life/consequences/{odds_id}').json()['settled'] == families.BORN_NOTE
+    assert client.post(f'/api/life/consequences/{odds_id}/change', json={'option': 1}).status_code == 409
+
+
+def test_the_slider_off_its_usual_step_is_a_reason_in_a_babys_odds(client, mira, monkeypatch):
+    sure(monkeypatch)
+    person = sister(client, role='cousin', married=False)
+    set_life(client, growing_families=3)
+    reconcile(client)
+    [listed] = [item for item in client.get('/api/life/storylines').json() if item['story'] == 'expecting']
+    outcome = client.get(f"/api/life/consequences/{listed['beats'][0]['consequence']}").json()
+    assert outcome['options'][0]['reasons'] == [f"{person['name'].split()[0]} is Mira's cousin",
+                                                'Growing families is set to Lots']
+    assert outcome['options'][0]['moves'] == ['possible', 'more']
+
+
+def test_a_fork_keeps_a_babys_odds_as_its_own(client, mira, clock, monkeypatch, provider):
+    sure(monkeypatch)
+    sister(client)
+    reconcile(client)
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    sent = send(client, 'How is your sister?', 'client-family-odds')['message']
+    response = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'How is everyone?'})
+    assert response.status_code == 200, response.text
+    original, copy = sorted(stories(client, 'expecting'), key=lambda row: row['timeline_id'] != sent['timeline_id'])
+    first, second = json.loads(original['stages'])[0]['odds'], json.loads(copy['stages'])[0]['odds']
+    assert first and second and first != second
+    with client.app.state.database.connect() as connection:
+        row = connection.execute('SELECT subject, timeline_id FROM consequences WHERE id=?', (second,)).fetchone()
+    assert row['subject'] == f"baby:{copy['id']}" and row['timeline_id'] == copy['timeline_id']

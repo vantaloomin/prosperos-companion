@@ -365,12 +365,85 @@ def arrived(child: dict, kind: str, definition: dict, parent: str = 'she/her', o
 def start(connection, companion: dict, world, person: dict, how: str, day: date, now) -> None:
     found, timeline_id = plan(connection, companion, world, person, how, day), companion['active_timeline_id']
     storyline_id = insert_story(connection, timeline_id, 'expecting', person['id'], found['stages'], day, now)
+    keep_odds(connection, timeline_id, storyline_id, CIRCLE_BABY, *circle_odds(connection, companion, person, how),
+              day, now)
     child = found['child']
     connection.execute(
         'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, born_on, status, '
         "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'expected', ?, ?)",
         (identifier(), timeline_id, person['id'], storyline_id, child['name'], child['pronouns'], child['title'],
          found['born'].isoformat(), stamp(now), stamp(now)))
+
+
+# The odds behind a baby (Hidden values): a seeded chance each week, not the consequence engine, kept with the
+# chance it had over a year and why, under the news on Today (companion/consequences.py `record`).
+CIRCLE_BABY, OWN_BABY = 'baby:circle', 'baby:own'
+BORN_NOTE = 'The baby has arrived, so this can no longer change.'
+
+
+def pace_reasons(connection) -> list[tuple[str, str]]:
+    """(why, move) for the Growing families slider when it is off its usual step."""
+    return {1: [('Growing families is set to Now and then', 'less')],
+            3: [('Growing families is set to Lots', 'more')]}.get(level(connection), [])
+
+
+def yearly_options(weekly: float, reasons: list[tuple[str, str]], labels: tuple[str, str]) -> list[dict]:
+    """A baby on the way, or not, with the chance a week's roll at `weekly` gives over a year (in whole percents, so
+    the two shown add up to 100)."""
+    year = round(1 - (1 - min(max(weekly, 0.0), 1.0)) ** 52, 2)
+    return [{'option': 0, 'odds': year, 'reasons': [why for why, _move in reasons],
+             'moves': [move for _why, move in reasons], 'label': labels[0]},
+            {'option': 1, 'odds': round(1 - year, 2), 'reasons': [], 'moves': [], 'label': labels[1]}]
+
+
+def circle_odds(connection, companion: dict, person: dict, how: str) -> tuple[str, list[dict], dict]:
+    """(label, options, names) for a circle member's baby: how the companion knows them and the slider."""
+    who, theirs = person['name'].split()[0], companion['version']['definition']['name'].split()[0]
+    reasons = [(f"{who} is {theirs}'s {person['role']}", 'possible'),
+               *([(f'{who} is married', 'more')] if how == 'married sibling' else []), *pace_reasons(connection)]
+    options = yearly_options(YEARLY[how] * PACE[level(connection)] / 52, reasons,
+                             (f'{who} is expecting a baby', f'No baby for {who} this year'))
+    return f'Whether {who} has a baby this year', options, {'a': who, 'name': theirs}
+
+
+def keep_odds(connection, timeline_id: str, storyline_id: str, choice: str, label: str, options: list[dict],
+              names: dict, day: date, now) -> None:
+    """Records the odds and hangs them on the news, the storyline's first beat."""
+    from companion import consequences
+    outcome = consequences.record(connection, timeline_id=timeline_id, choice=choice, subject=f'baby:{storyline_id}',
+                                  label=label, options=options, picked=0, day=day.isoformat(), timestamp=stamp(now),
+                                  names=names)
+    row = optional(connection, 'SELECT stages FROM storylines WHERE id=?', (storyline_id,))
+    stages = decode(row['stages'])
+    stages[0]['odds'] = outcome['id']
+    connection.execute('UPDATE storylines SET stages=? WHERE id=?', (encode(stages), storyline_id))
+
+
+def odds_settled(connection, found: dict) -> str:
+    """For "Why it went this way" on a baby: why it can no longer change, once the baby has come; else ''."""
+    if not found['subject'].startswith('baby:'):
+        return ''
+    child = optional(connection, 'SELECT born_on, status FROM circle_children WHERE storyline_id=?',
+                     (found['subject'].removeprefix('baby:'),))
+    return BORN_NOTE if child and child['status'] == 'born' else ''
+
+
+def change_baby(connection, companion: dict, consequence_id: str, option: int, now) -> dict:
+    """"Make it go this way" on a baby's odds: no baby ends the storyline (as "End this storyline" does) and the baby
+    never comes; a baby puts back one taken away that way. Not once the baby has arrived."""
+    from companion import consequences
+    from companion.errors import require
+    found = consequences.by_id(connection, consequence_id)
+    storyline_id = found['subject'].removeprefix('baby:')
+    row = optional(connection, 'SELECT * FROM storylines WHERE id=? AND timeline_id=?',
+                   (storyline_id, companion['active_timeline_id']))
+    require(row is not None, 'That outcome is not on this timeline.', 404)
+    require(0 <= option < len(found['options']), 'There is no such way for it to go.', 422)
+    require(not odds_settled(connection, found), BORN_NOTE, 409)
+    connection.execute('UPDATE storylines SET status=? WHERE id=?', ('running' if option == 0 else 'ended', row['id']))
+    connection.execute("UPDATE circle_children SET status=?, updated_at=? WHERE storyline_id=? AND status!='born'",
+                       ('expected' if option == 0 else 'ended', stamp(now), row['id']))
+    return consequences.change(connection, consequence_id, option, stamp(now))
 
 
 def insert_story(connection, timeline_id: str, story: str, person_id: str, stages: list[dict], day: date, now) -> str:

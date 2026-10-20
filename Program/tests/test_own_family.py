@@ -444,3 +444,19 @@ def test_in_an_older_city_their_partner_is_their_sweetheart(client, clock):
     text, name = prompt(client), partner['name'].split()[0]
     assert f"yours and your sweetheart {name}'s." in text and f'- {name} (sweetheart)' in text
     assert 'boyfriend' not in text
+
+
+def test_their_own_babys_odds_show_under_hidden_values(client, mira, clock, monkeypatch):
+    sure(monkeypatch)
+    partnered(client, clock)
+    reconcile(client)
+    [story] = [item for item in client.get('/api/life/storylines').json() if item['story'] in ('expecting', 'adopting')]
+    outcome = client.get(f"/api/life/consequences/{story['beats'][0]['consequence']}").json()
+    assert outcome['label'].startswith('Whether Mira and ') and outcome['label'].endswith(' have a baby this year')
+    assert outcome['options'][0]['label'] == 'A baby on the way' and outcome['picked'] == 0
+    assert outcome['options'][0]['reasons'][1:] == ['Mira wants children']
+    assert outcome['options'][0]['reasons'][0].endswith(' live together')
+    assert outcome['options'][0]['moves'] == ['possible', 'more']
+    # At the usual pace, living together and wanting children: about 17% over a year.
+    usual = own_family.families.yearly_options(0.12 * 1.6 / 52, [], ('yes', 'no'))
+    assert usual[0]['odds'] == 0.17 and usual[1]['odds'] == 0.83
