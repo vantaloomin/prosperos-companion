@@ -68,7 +68,7 @@ test('older saved characters get a default money setup', () => {
 
 test('every purchase on the Money panel says where the money went, family costs included', () => {
   assert.equal(boughtFor('family'), 'From their savings')
-  assert.equal(boughtFor('owed'), 'On what they owe')
+  assert.equal(boughtFor('owed'), 'Toward what they owe')
   assert.equal(boughtFor('childcare'), 'For the family')
   assert.equal(boughtFor('admin'), 'At home')
   assert.equal(boughtFor(undefined), 'At home')
