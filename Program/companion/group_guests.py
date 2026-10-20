@@ -184,7 +184,7 @@ def who(connection, person: dict) -> str:
         details = decode(row['details']) if row else {}
         if details.get('career'):
             text += f", {details['career'].lower()}" + (f" at {details['employer']}" if details.get('employer') else '')
-    return text + '.'
+    return text if text.endswith('.') else text + '.'  # "at Coutts and Co." already ends it.
 
 
 def doing(connection, person: dict, companion: dict, now) -> str | None:

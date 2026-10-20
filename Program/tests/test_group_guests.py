@@ -263,3 +263,16 @@ def test_their_people_stop_dropping_in_once_you_have_split(monkeypatch):
     assert group_guests.dropping_in(None, [], None) == [person]
     monkeypatch.setattr(breakups, 'ended', lambda *_args: True)
     assert group_guests.dropping_in(None, [], None) == []
+
+
+def test_a_guests_employer_ending_in_a_full_stop_ends_their_line_once(app, client, companion):
+    from companion.database import decode, encode
+    ok(client.get('/api/life/circle'))
+    with app.state.database.connect(write=True) as connection:
+        row = connection.execute("SELECT * FROM circle_people WHERE timeline_id=? LIMIT 1",
+                                 (companion['active_timeline_id'],)).fetchone()
+        details = decode(row['details']) | {'career': 'Bank clerk', 'employer': 'Coutts and Co.'}
+        connection.execute('UPDATE circle_people SET details=? WHERE id=?', (encode(details), row['id']))
+        line = group_guests.who(connection, {'full': row['name'], 'relation': row['role'], 'kind': 'circle',
+                                             'person_id': row['id']})
+    assert line == f"{row['name']}, {row['role']}, bank clerk at Coutts and Co."
