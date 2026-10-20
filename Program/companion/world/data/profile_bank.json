@@ -1330,6 +1330,676 @@
    "Holds a pose for twenty minutes without a twitch.",
    "Finds the same pose again exactly after a break.",
    "Stays warm in a cold studio with nothing on."
+  ],
+  "hull-technician": [
+   "Finds a hairline crack in a hull plate by the sound it makes under a tapping hammer.",
+   "Patches a weeping seam from the inside before the pressure alarm has finished.",
+   "Reads a plate-stress chart at a glance and knows which section to check first."
+  ],
+  "reactor-technician": [
+   "Keeps the reactor's cooling loops balanced through a whole shift without a single alarm.",
+   "Spots a drifting sensor reading and recalibrates it before anyone upstairs notices.",
+   "Talks a new hand through a coolant flush calmly, one valve at a time."
+  ],
+  "life-support-engineer": [
+   "Balances the air mix for a whole deck by adjusting three scrubbers by hand.",
+   "Traces a carbon dioxide spike to a clogged filter two decks away.",
+   "Writes maintenance rotas that keep every system running with nothing left to chance."
+  ],
+  "propulsion-engineer": [
+   "Trims the drive's thrust by a fraction and saves a week of fuel over a year.",
+   "Can strip and rebuild an injector assembly with their eyes half closed.",
+   "Explains a burn plan to the bridge in plain words and numbers that hold up."
+  ],
+  "shuttle-pilot": [
+   "Lines up a shuttle with a docking collar on the first pass, even in a crosswind of debris.",
+   "Runs a full pre-flight checklist from memory and still reads every line.",
+   "Keeps passengers calm through a rough launch with a steady voice and a bad joke."
+  ],
+  "docking-controller": [
+   "Juggles six shuttles in the approach lanes and never lets two share a gap.",
+   "Spots a misaligned approach on the screens a few seconds before the pilot does.",
+   "Reschedules a whole afternoon of launches when one bay seal fails."
+  ],
+  "traffic-controller": [
+   "Keeps every craft around the ship in its lane with a clear, unhurried voice.",
+   "Reads a busy traffic screen like a page of large print.",
+   "Calls a hold at exactly the right moment and makes it stick."
+  ],
+  "bridge-officer": [
+   "Stands a long watch on the bridge and stays sharp to the last minute.",
+   "Takes a fault report, decides and gives three orders in under a minute.",
+   "Writes a watch log that the next officer can pick up without a question."
+  ],
+  "comms-officer": [
+   "Pulls a clean signal out of a hiss of static by patient tuning.",
+   "Relays a message between two tired, cross people without passing on the temper.",
+   "Keeps the station link running through a solar storm by switching bands on the fly."
+  ],
+  "drone-operator": [
+   "Flies an inspection drone along the outer hull and never clips a fin.",
+   "Fixes a drone's jammed arm in the field with a spare part and a cable tie.",
+   "Plans a survey route that covers a whole ring in one battery charge."
+  ],
+  "robotics-technician": [
+   "Diagnoses a jerking service robot by listening to its joints.",
+   "Rewrites a maintenance bot's route so it stops getting stuck in the same lift.",
+   "Keeps a fleet of cleaning robots running on half the spare parts they asked for."
+  ],
+  "systems-engineer": [
+   "Maps how a failure in one system spreads to three others before it happens.",
+   "Gets engineers from four crews to agree on a single plan.",
+   "Writes a fault tree that finds the real cause instead of the loudest one."
+  ],
+  "network-engineer": [
+   "Finds the one bad switch slowing a whole deck's network.",
+   "Reroutes the ship's traffic around a cut line in the middle of a shift.",
+   "Keeps the network diagram up to date, which nobody else ever does."
+  ],
+  "software-developer": [
+   "Tracks down a bug that only shows up at ship's night.",
+   "Writes code that the next person can read without swearing.",
+   "Turns a vague request from the council offices into a tool people actually use."
+  ],
+  "machine-learning-engineer": [
+   "Trains a model to predict filter failures a week ahead.",
+   "Spots when a model is learning the wrong thing from bad data.",
+   "Explains what a model can and cannot do without overselling it."
+  ],
+  "systems-analyst": [
+   "Finds the three steps in a process that waste everyone's afternoon.",
+   "Interviews tired staff and comes away with what they actually need.",
+   "Turns a tangle of spreadsheets into one clear system."
+  ],
+  "security-analyst": [
+   "Notices an odd login pattern at three in the morning and follows it up.",
+   "Locks down a system without locking out the people who need it.",
+   "Explains a security risk to the council in words that make them act."
+  ],
+  "power-grid-technician": [
+   "Balances the ship's power load through the evening rush on the rings.",
+   "Finds a failing junction box by the smell of hot insulation.",
+   "Switches a whole deck to backup power without the lights so much as flickering."
+  ],
+  "water-reclamation-technician": [
+   "Tests a water sample and knows which filter stage has slipped.",
+   "Clears a blocked reclamation line without spilling a drop.",
+   "Keeps the purity readings in the green through a week of heavy use."
+  ],
+  "air-systems-technician": [
+   "Finds a stuck vent damper by following the draught with a strip of paper.",
+   "Swaps a scrubber cartridge in a cramped duct in a few minutes.",
+   "Keeps every cabin's air fresh through the busiest week of the year."
+  ],
+  "environmental-controller": [
+   "Holds a deck's temperature steady to half a degree all day.",
+   "Brings the humidity down on a damp farm deck before the mould takes hold.",
+   "Reads the environmental boards for every ring at once and acts on the right one."
+  ],
+  "radiation-safety-officer": [
+   "Reads a dosimeter log and knows who needs a rest from the reactor halls.",
+   "Sets up a shielded work area quickly and checks it twice.",
+   "Explains radiation risks calmly to frightened people."
+  ],
+  "materials-scientist": [
+   "Tests a new alloy until it fails, then works out exactly why.",
+   "Finds a cheaper material that does the same job as the scarce one.",
+   "Reads a fracture under the microscope like a story."
+  ],
+  "astrophysicist": [
+   "Works through a page of equations about the star ahead and finds the slip.",
+   "Turns a month of observations into one clear, careful result.",
+   "Explains the ship's course to schoolchildren so they actually get it."
+  ],
+  "observatory-astronomer": [
+   "Finds a faint new object in a night of images.",
+   "Keeps the big telescope aligned through every course change.",
+   "Runs a public stargazing evening that keeps a crowd of families quiet and amazed."
+  ],
+  "star-cartographer": [
+   "Updates the star charts with every new observation and never loses a point.",
+   "Plots a course correction on paper and checks it against the computer.",
+   "Draws a chart so clear a child can find the target star."
+  ],
+  "ecosystem-biologist": [
+   "Notices a drop in the bee count before the fruit harvest suffers.",
+   "Balances a closed ecosystem so pests stay rare and nothing takes over.",
+   "Keeps careful field notes that the next biologist can rely on."
+  ],
+  "asteroid-surveyor": [
+   "Reads a rock's worth from a spectrum in minutes.",
+   "Plans a survey flight that covers a whole field on one tank.",
+   "Writes a survey report short enough that people read it."
+  ],
+  "ore-processing-engineer": [
+   "Gets more metal out of a load of ore by tuning the crushers.",
+   "Keeps the processing line running through a jam without a stop.",
+   "Spots a dangerous gas build-up before the alarms do."
+  ],
+  "cargo-handler": [
+   "Stacks a hold so the heaviest crates are low and the urgent ones are near the door.",
+   "Moves a load safely with a loader in a space with no room to spare.",
+   "Checks a manifest against the crates and finds the one that is missing."
+  ],
+  "quartermaster": [
+   "Knows where every spare part on the ship is kept, and how many are left.",
+   "Stretches a short supply to last until the next delivery.",
+   "Says no to an unreasonable request so kindly people thank them for it."
+  ],
+  "freight-scheduler": [
+   "Fits a week of deliveries into three days when a shuttle is grounded.",
+   "Spots a clash on the schedule long before anyone loads a crate.",
+   "Keeps traders, pilots and customs happy with the same timetable."
+  ],
+  "supply-chain-manager": [
+   "Sees a shortage coming months ahead and orders before it bites.",
+   "Negotiates a better deal with station traders without souring the friendship.",
+   "Builds a spare-parts plan that survives a bad year."
+  ],
+  "rations-planner": [
+   "Plans a fortnight of meals for a ring from whatever the farms can spare.",
+   "Balances calories, taste and the water budget on one sheet.",
+   "Explains a ration change to an angry mess hall and keeps them on side."
+  ],
+  "customs-inspector": [
+   "Spots the one crate in a hundred that does not match its label.",
+   "Clears a queue of traders quickly without cutting corners.",
+   "Stays polite with a rude passenger and still does the job properly."
+  ],
+  "fabrication-technician": [
+   "Prints a replacement part from a worn original and gets it right first time.",
+   "Tunes a printer until its parts come out clean and strong.",
+   "Turns a sketch on a napkin into a working part by the end of the shift."
+  ],
+  "machinist": [
+   "Turns a part on the lathe to a hair's width of the drawing.",
+   "Makes a tool that does not exist yet to fix a job that cannot wait.",
+   "Keeps their machines oiled, aligned and quietly perfect."
+  ],
+  "pressure-welder": [
+   "Lays a weld that holds pressure on the first test.",
+   "Works in a tight duct in a pressure suit for hours without a slip.",
+   "Reads a weld's colour and knows if it will crack."
+  ],
+  "habitat-builder": [
+   "Fits a new cabin module into a ring without disturbing the neighbors.",
+   "Reads a deck plan and spots the clash before the panels arrive.",
+   "Builds to the spec, on time, with nothing left over."
+  ],
+  "cabin-fitter": [
+   "Fits out a family cabin in a day so it feels like home.",
+   "Squeezes a desk, a bunk and a cupboard into a space that barely fits two.",
+   "Fixes a sticking hatch with a few minutes and the right shim."
+  ],
+  "electrician": [
+   "Traces a fault through a whole corridor's wiring and finds it behind one panel.",
+   "Rewires a cabin safely and leaves it tidier than they found it.",
+   "Explains to a family why their lights flicker, and fixes it."
+  ],
+  "plumber": [
+   "Finds a leak behind a bulkhead by the sound of dripping alone.",
+   "Swaps a burst pipe in a cramped cabin without flooding the floor.",
+   "Keeps a whole ring's water running through the morning rush."
+  ],
+  "lift-mechanic": [
+   "Frees a stuck lift with the passengers inside and keeps them laughing.",
+   "Hears a worn cable in a lift shaft before it shows on any test.",
+   "Services a bank of lifts overnight so nobody notices they were down."
+  ],
+  "recycling-worker": [
+   "Sorts a mixed load fast and pulls out everything that can be used again.",
+   "Spots a dangerous battery in the waste before it reaches the crusher.",
+   "Turns scrap into something someone on the Swap will trade for."
+  ],
+  "waste-processing-technician": [
+   "Keeps the digesters at the right temperature so nothing smells upstairs.",
+   "Clears a blocked waste line with patience and a strong stomach.",
+   "Reads the processing logs and catches a problem before it spreads."
+  ],
+  "transit-pod-operator": [
+   "Keeps pods running on time through the shift change crush.",
+   "Talks a nervous first-time rider through a pod ride calmly.",
+   "Spots a fault on the rail and stops the line before trouble."
+  ],
+  "transit-dispatcher": [
+   "Reroutes the trams around a closed section without missing a beat.",
+   "Keeps an eye on every line at once and knows which one to fix first.",
+   "Answers an angry passenger call with patience and a real answer."
+  ],
+  "hydroponics-technician": [
+   "Reads a plant's leaves and knows which nutrient it is short of.",
+   "Adjusts the nutrient mix for a whole rack without drowning a single root.",
+   "Brings a sick crop back to health in a week."
+  ],
+  "crop-scientist": [
+   "Breeds a tomato that grows well under the farm lamps and tastes like a real one.",
+   "Runs careful trials and trusts the results over the hopes.",
+   "Explains to the growers why a new variety is worth the change."
+  ],
+  "algae-farm-worker": [
+   "Keeps the algae vats bright green and the right thickness.",
+   "Spots a contaminated vat by its colour and drains it before it spreads.",
+   "Harvests a vat cleanly and gets it growing again by the end of shift."
+  ],
+  "mushroom-grower": [
+   "Keeps the caves at the damp, dark warmth the mushrooms love.",
+   "Picks a rack of oyster mushrooms at exactly the right moment.",
+   "Spots mould on a block before it ruins the whole rack."
+  ],
+  "pollination-technician": [
+   "Pollinates a rack of fruit trees by hand with a soft brush and a steady hand.",
+   "Keeps the ship's bees healthy and calm through a hive check.",
+   "Times a pollination run so every flower is caught at its best."
+  ],
+  "arboretum-keeper": [
+   "Prunes an old tree so it keeps its shape for another fifty years.",
+   "Knows every tree in the arboretum by name and history.",
+   "Plans planting so there is always something in flower."
+  ],
+  "cultured-meat-technician": [
+   "Keeps the cultures growing clean and steady in the vats.",
+   "Tunes a batch so it comes out with the texture of real meat.",
+   "Spots a contaminated culture before it reaches the kitchens."
+  ],
+  "food-printer-technician": [
+   "Fixes a jammed food printer in the middle of the lunch rush.",
+   "Tunes a recipe file until the printed bread tastes properly baked.",
+   "Keeps the printers clean enough to pass any inspection."
+  ],
+  "galley-cook": [
+   "Cooks for three hundred on a tight ration and still makes it taste good.",
+   "Keeps three pots, an oven and a queue going at once.",
+   "Turns yesterday's leftovers into today's favourite."
+  ],
+  "head-chef": [
+   "Builds a menu around whatever the farms harvested that morning.",
+   "Runs a busy kitchen with a calm voice and a sharp eye.",
+   "Tastes a sauce and knows exactly what it needs."
+  ],
+  "canteen-baker": [
+   "Bakes a thousand rolls before the morning bell and none of them burn.",
+   "Shapes loaves fast and evenly, half asleep.",
+   "Rescues a dough that has not risen with warmth and patience."
+  ],
+  "noodle-bar-owner": [
+   "Pulls noodles by hand faster than a machine and twice as even.",
+   "Keeps a broth going for years and knows exactly how it tastes today.",
+   "Remembers every regular's order and how they like it."
+  ],
+  "coffee-bar-attendant": [
+   "Pulls a good cup of coffee during the morning rush without a mistake.",
+   "Remembers regulars' orders and starts making them as they walk in.",
+   "Keeps the queue moving and the counter clean at once."
+  ],
+  "lounge-bartender": [
+   "Mixes a cocktail properly from memory and talks while doing it.",
+   "Spots when someone has had enough and handles it gently.",
+   "Keeps a busy bar moving with nobody waiting too long."
+  ],
+  "brewer": [
+   "Brews a steady batch of ale from ship-grown barley.",
+   "Tastes a fermenting batch and knows if it is going wrong.",
+   "Keeps the brewery spotless so nothing spoils the beer."
+  ],
+  "nutritionist": [
+   "Plans a diet for a growing child from the ship's rations.",
+   "Explains why a meal plan matters without making anyone feel told off.",
+   "Spots a deficiency in a patient's diet from a few questions."
+  ],
+  "general-practitioner": [
+   "Listens to a patient for five minutes and hears what they did not say.",
+   "Diagnoses a common illness quickly and a rare one carefully.",
+   "Explains a diagnosis in plain words and checks it was understood."
+  ],
+  "clinic-nurse": [
+   "Takes blood from a frightened child in one gentle go.",
+   "Runs a busy clinic list and still makes each patient feel seen.",
+   "Spots a patient getting worse before the readings show it."
+  ],
+  "night-ward-nurse": [
+   "Keeps a ward calm and safe through a long night shift.",
+   "Wakes fully alert for an alarm at four in the morning.",
+   "Writes clear night notes that the day team can act on."
+  ],
+  "emergency-medic": [
+   "Stays calm and quick at the scene of an accident.",
+   "Stabilises an injured worker in a cramped duct.",
+   "Hands over a patient to the clinic with every detail that matters."
+  ],
+  "surgeon": [
+   "Operates for hours with steady hands and a clear head.",
+   "Plans an operation down to the last instrument.",
+   "Tells a family difficult news honestly and kindly."
+  ],
+  "dispensary-pharmacist": [
+   "Catches a dangerous mix of medicines before it reaches the patient.",
+   "Stretches a scarce medicine fairly across everyone who needs it.",
+   "Explains how to take a medicine so it is remembered."
+  ],
+  "dentist": [
+   "Fills a tooth so gently the patient barely notices.",
+   "Calms a nervous patient with a steady voice and a good plan.",
+   "Spots trouble on an x-ray long before it starts to hurt."
+  ],
+  "physiotherapist": [
+   "Gets a stiff back moving again with the right stretches.",
+   "Plans a recovery programme for low-gravity workers and their bones.",
+   "Keeps patients doing their exercises with encouragement, not nagging."
+  ],
+  "counsellor": [
+   "Listens without judging and asks the question that opens things up.",
+   "Helps a grieving family talk to each other again.",
+   "Knows when to refer someone on and does it kindly."
+  ],
+  "midwife": [
+   "Stays calm and kind through a long labour.",
+   "Spots a problem early and acts quickly.",
+   "Supports new parents through the first wobbly weeks."
+  ],
+  "medical-lab-technician": [
+   "Runs a batch of tests quickly and accurately.",
+   "Spots an odd result and reruns it before it is reported.",
+   "Keeps the lab spotless and every sample labelled."
+  ],
+  "gene-therapist": [
+   "Explains a complex treatment to a worried family in plain words.",
+   "Follows a treatment protocol to the letter, every time.",
+   "Keeps meticulous records so every result can be traced."
+  ],
+  "animal-care-vet": [
+   "Calms a frightened cat enough to examine it.",
+   "Diagnoses a sick rabbit from a few careful checks.",
+   "Tells an owner bad news gently and honestly."
+  ],
+  "care-worker": [
+   "Helps an older resident wash and dress with dignity and good humour.",
+   "Notices small changes in someone's health and reports them.",
+   "Makes a lonely afternoon pass with a game of cards and a proper chat."
+  ],
+  "tutor": [
+   "Finds the one explanation that makes a stuck student understand.",
+   "Plans lessons around what each student actually needs.",
+   "Keeps a bored teenager interested for a whole hour."
+  ],
+  "academy-lecturer": [
+   "Gives a lecture that students talk about afterwards.",
+   "Marks a stack of essays fairly and with useful notes.",
+   "Supervises research without taking it over."
+  ],
+  "archivist": [
+   "Finds a single record in the Archive from a vague description.",
+   "Preserves a crumbling document so it lasts another century.",
+   "Organises a messy collection so anyone can search it."
+  ],
+  "nursery-worker": [
+   "Keeps a room of toddlers happy, fed and safe all day.",
+   "Calms a crying child and gets them playing again.",
+   "Tells parents how their child's day really went."
+  ],
+  "flight-instructor": [
+   "Teaches a nervous student to land a shuttle with confidence.",
+   "Spots a bad habit early and corrects it kindly.",
+   "Stays calm when a student makes a mistake at the controls."
+  ],
+  "heritage-curator": [
+   "Builds an exhibition that tells a story people remember.",
+   "Handles fragile objects with care and good records.",
+   "Talks about the ship's history so a crowd leans in."
+  ],
+  "academy-student": [
+   "Juggles lectures, practical shifts and a part-time job.",
+   "Pulls together a project the night before and somehow it works.",
+   "Learns fast from anyone willing to show them how."
+  ],
+  "security-officer": [
+   "Calms a bar argument before it turns into a fight.",
+   "Knows every corridor on their patch and who belongs there.",
+   "Writes an incident report that is clear, fair and short."
+  ],
+  "investigator": [
+   "Finds the pattern in a pile of small reports.",
+   "Interviews a witness and gets the details without leading them.",
+   "Builds a case that holds up when the council asks questions."
+  ],
+  "council-clerk": [
+   "Takes minutes of a long council meeting accurately.",
+   "Knows the procedure for everything and where to find the form.",
+   "Keeps the councillors to time without upsetting anyone."
+  ],
+  "district-administrator": [
+   "Runs a ring's services smoothly and keeps the budget.",
+   "Sorts out a dispute between neighbours before it reaches the council.",
+   "Plans a ring's maintenance so nothing is forgotten."
+  ],
+  "advocate": [
+   "Argues a case clearly and with evidence.",
+   "Explains a resident's rights to them in plain words.",
+   "Finds the detail in the rules that wins the case."
+  ],
+  "mediator": [
+   "Helps two angry people find something they both agree on.",
+   "Keeps a hard conversation calm and fair.",
+   "Writes an agreement that both sides actually keep."
+  ],
+  "fire-and-pressure-crew": [
+   "Seals a section and fights a fire in a corridor with no way out.",
+   "Responds to an alarm in under two minutes, fully suited.",
+   "Drills the crew until everyone knows their job blind."
+  ],
+  "rescue-specialist": [
+   "Gets an injured worker out of a cramped duct safely.",
+   "Plans a rescue in a few seconds and talks the team through it.",
+   "Stays calm in a damaged section with the alarms going."
+  ],
+  "census-officer": [
+   "Counts a whole ring's residents accurately in a week.",
+   "Gets reluctant households to answer politely.",
+   "Spots an error in the records and tracks down the truth."
+  ],
+  "housing-officer": [
+   "Matches a growing family to a cabin that fits.",
+   "Juggles the waiting list fairly and explains every decision.",
+   "Handles a heated complaint without losing their temper."
+  ],
+  "shopkeeper": [
+   "Knows what each regular needs before they ask.",
+   "Keeps the shelves stocked through a supply shortage.",
+   "Makes a sale without ever making anyone feel pushed."
+  ],
+  "market-trader": [
+   "Sells out a stall by midday with good patter and fair prices.",
+   "Haggles hard but leaves both sides smiling.",
+   "Sets up and packs away a stall in minutes."
+  ],
+  "electronics-repair-technician": [
+   "Brings a dead screen back to life with a soldering iron and patience.",
+   "Finds a broken component on a crowded board by eye.",
+   "Fixes a gadget rather than telling someone to replace it."
+  ],
+  "ledger-accountant": [
+   "Balances a month of ship accounts and finds the one wrong entry.",
+   "Explains the credit budget to councillors in plain numbers.",
+   "Keeps neat books that any auditor would be happy to see."
+  ],
+  "credit-broker": [
+   "Finds a fair credit deal for a family in a tight spot.",
+   "Reads a trader's accounts and spots trouble ahead.",
+   "Explains the cost of borrowing honestly."
+  ],
+  "insurance-assessor": [
+   "Inspects a damaged cabin and values it fairly.",
+   "Spots a dishonest claim from a few small details.",
+   "Explains a payout clearly and kindly."
+  ],
+  "trade-negotiator": [
+   "Gets a better deal from the station without souring the friendship.",
+   "Knows exactly what the other side wants before the meeting starts.",
+   "Keeps a long negotiation going until it lands."
+  ],
+  "crew-recruiter": [
+   "Matches the right person to the right crew.",
+   "Reads a nervous applicant and puts them at ease.",
+   "Finds people for a hard job nobody wants."
+  ],
+  "corridor-courier": [
+   "Knows the fastest route between any two points on the ship.",
+   "Delivers a parcel on time through the shift change crush.",
+   "Remembers every hatch code and every grumpy recipient."
+  ],
+  "feed-reporter": [
+   "Gets the story from the right person before the feed goes out.",
+   "Writes a clear report quickly and checks every fact.",
+   "Asks the awkward question at a council meeting politely."
+  ],
+  "broadcaster": [
+   "Fills a dead minute on air without anyone noticing.",
+   "Keeps a live show running smoothly when a guest is late.",
+   "Has a warm voice that the whole ship trusts at breakfast."
+  ],
+  "session-musician": [
+   "Learns a set by ear in an afternoon.",
+   "Plays in any style the band needs that night.",
+   "Keeps time when everyone else on stage loses it."
+  ],
+  "immersive-designer": [
+   "Builds a virtual space that people forget is not real.",
+   "Tests a design on real people and fixes what confuses them.",
+   "Turns a vague idea into a working scene by the deadline."
+  ],
+  "game-designer": [
+   "Balances a game so it is hard enough to be fun.",
+   "Watches players and spots where they get bored.",
+   "Writes rules so clear nobody argues about them."
+  ],
+  "stage-actor": [
+   "Learns a part quickly and makes it sound new every night.",
+   "Holds an audience in silence with a single pause.",
+   "Takes a director's note and uses it on the next run."
+  ],
+  "muralist": [
+   "Paints a mural along a curved corridor without a wobble.",
+   "Plans a design that suits the space and the people who use it.",
+   "Mixes paints from scraps that still match the sketch."
+  ],
+  "club-dj": [
+   "Reads a dance floor and changes the mood with one track.",
+   "Mixes two tracks so smoothly nobody hears the join.",
+   "Keeps a crowd dancing until the morning lights come up."
+  ],
+  "novelist": [
+   "Writes a page a day, every day, whatever happens.",
+   "Cuts a favourite chapter when the story needs it.",
+   "Listens to people in mess halls and keeps the best lines."
+  ],
+  "fitness-coach": [
+   "Plans a workout for any body and any gravity.",
+   "Pushes a client hard without pushing them too far.",
+   "Keeps a class laughing and sweating at once."
+  ],
+  "zero-g-coach": [
+   "Teaches a beginner to move in zero gravity without spinning out.",
+   "Spots a bad tumble coming and catches it.",
+   "Plans training that builds muscle where gravity will not."
+  ],
+  "pool-attendant": [
+   "Spots a struggling swimmer before anyone else.",
+   "Keeps the water clean and the chemicals balanced.",
+   "Keeps a busy pool safe without spoiling anyone's fun."
+  ],
+  "hairdresser": [
+   "Cuts a style that suits the face as well as the photo.",
+   "Keeps a client chatting happily through a long appointment.",
+   "Fixes a home haircut gone wrong without a word of blame."
+  ],
+  "cabin-cleaner": [
+   "Turns a cabin round between residents in an hour.",
+   "Knows which cleaner shifts which stain.",
+   "Notices a broken fitting and reports it before it gets worse."
+  ],
+  "concierge": [
+   "Finds a table, a ticket or a shuttle seat when everything is full.",
+   "Remembers every guest's name and how they like things.",
+   "Smooths over a complaint before it becomes a scene."
+  ],
+  "viewport-guide": [
+   "Names every bright star in the viewport and tells a story about each.",
+   "Keeps a group of schoolchildren listening for a whole tour.",
+   "Answers the same question for the hundredth time as if it were new."
+  ],
+  "guesthouse-manager": [
+   "Keeps every room booked and every guest happy.",
+   "Fixes a booking mix-up quickly and kindly.",
+   "Runs a tight budget without guests ever noticing."
+  ],
+  "event-coordinator": [
+   "Plans a festival for a thousand people on a ring with one lift.",
+   "Has a plan B and a plan C ready when things go wrong.",
+   "Keeps suppliers, performers and the council all on schedule."
+  ],
+  "arboretum-ranger": [
+   "Knows every path, tree and duck in the arboretum.",
+   "Leads a school group round the forest and keeps them interested.",
+   "Talks a teenager down from the old oak without a scene."
+  ],
+  "tank-diver": [
+   "Dives the great tank for an hour and comes up with every filter checked.",
+   "Spots a failing seal underwater by the trail of bubbles.",
+   "Stays calm in the dark water when a torch fails."
+  ],
+  "drive-watch-engineer": [
+   "Stays alert through a whole night watch over the drive.",
+   "Hears a change in the drive's hum before the gauges move.",
+   "Keeps a watch log that the day crew trusts completely."
+  ],
+  "hoopball-player": [
+   "Makes a weightless pass across the Flight Hall that lands on a teammate.",
+   "Turns in the air faster than anyone on the team.",
+   "Keeps going hard into the last minute of a tied match."
+  ],
+  "glassblower": [
+   "Blows a thin, even glass from a lump of scrap.",
+   "Judges the heat of molten glass by its colour.",
+   "Makes a matching set of cups by eye."
+  ],
+  "voyage-registrar": [
+   "Records a birth, a partnership or a death accurately and kindly.",
+   "Finds an old family record in the register in minutes.",
+   "Leads a partnership ceremony with warmth and good timing."
+  ],
+  "lantern-maker": [
+   "Folds and glues a paper lantern in a few minutes.",
+   "Paints a lantern panel so it glows beautifully when lit.",
+   "Makes fifty lanterns for the fair and keeps every one neat."
+  ],
+  "seed-vault-keeper": [
+   "Tests old seeds and knows which batch will still grow.",
+   "Keeps the vault at exactly the right cold, year after year.",
+   "Plans next year's planting with the growers."
+  ],
+  "ring-steward": [
+   "Knows everyone on their ring and what they need.",
+   "Sorts out a noise complaint before it becomes a feud.",
+   "Welcomes a new family and has them settled in a day."
+  ],
+  "star-guide": [
+   "Names the stars ahead so a crowd of families can find them.",
+   "Tells the story of the voyage in a way that gives people goosebumps.",
+   "Keeps a room of fidgety children quiet in the dark."
+  ],
+  "shepherd": [
+   "Moves a flock across the Sheep Deck without a single stray.",
+   "Shears a sheep quickly and cleanly in one fleece.",
+   "Spots a lame sheep across the deck at a glance."
+  ],
+  "coffee-roaster": [
+   "Roasts a batch of beans to exactly the right colour.",
+   "Tastes a cup and knows which terrace the beans came from.",
+   "Blends beans into a coffee that tastes the same every week."
+  ],
+  "gate-announcer": [
+   "Calls every departure clearly over a noisy concourse.",
+   "Finds a late passenger with one well-worded announcement.",
+   "Keeps the departures board right when the schedule changes by the minute."
   ]
  },
  "staff": {

@@ -27,7 +27,7 @@
   "walk": 4.5,
   "tram": 26,
   "lift": 18,
-  "pod": 30
+  "monorail": 30
  },
  "enclosed": true,
  "neighbours": [
@@ -3453,7 +3453,7 @@
   {
    "id": "pod-line",
    "name": "Pod line",
-   "kind": "pod",
+   "kind": "monorail",
    "summary": "Four-seat transit pods on rails around and between the rings, booked from any hatch panel.",
    "source": "curated-2026-10"
   }
@@ -3901,7 +3901,7 @@
      "Thea",
      "Willa",
      "Zadie",
-     "Aurelia",
+     "Rosalie",
      "Celeste",
      "Maren",
      "Nell",
@@ -3909,7 +3909,7 @@
     ],
     "masculine": [
      "Orrin",
-     "Soren",
+     "Anders",
      "Tobias",
      "Ezra",
      "Felix",

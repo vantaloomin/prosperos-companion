@@ -535,7 +535,7 @@ TRANSIT = [
     {'id': 'ring-lifts', 'name': 'Ring lifts', 'kind': 'lift', 'summary': 'Big passenger lifts on the spokes '
      'between the rings and the weightless core; the ride up makes children giggle as gravity fades.',
      'source': SRC},
-    {'id': 'pod-line', 'name': 'Pod line', 'kind': 'pod', 'summary': 'Four-seat transit pods on rails around '
+    {'id': 'pod-line', 'name': 'Pod line', 'kind': 'monorail', 'summary': 'Four-seat transit pods on rails around '
      'and between the rings, booked from any hatch panel.', 'source': SRC},
 ]
 
@@ -755,8 +755,8 @@ SHIPBORN = {
     'feminine': ['Wren', 'Juniper', 'Linnea', 'Tamsin', 'Marisol', 'Ines', 'Hazel', 'Ada', 'Iris', 'Clementine',
                  'Rosalind', 'Mae', 'Noor', 'Talia', 'Priya', 'Saoirse', 'Mira', 'Ingrid', 'Delphine', 'Yara',
                  'Esme', 'Imogen', 'Selma', 'Freya', 'Opal', 'Pearl', 'Ruth', 'Beatrix', 'Odette', 'Lucia',
-                 'Paloma', 'Signe', 'Thea', 'Willa', 'Zadie', 'Aurelia', 'Celeste', 'Maren', 'Nell', 'Hester'],
-    'masculine': ['Orrin', 'Soren', 'Tobias', 'Ezra', 'Felix', 'Rafael', 'Anselm', 'Bram', 'Caspian', 'Dashiell',
+                 'Paloma', 'Signe', 'Thea', 'Willa', 'Zadie', 'Rosalie', 'Celeste', 'Maren', 'Nell', 'Hester'],
+    'masculine': ['Orrin', 'Anders', 'Tobias', 'Ezra', 'Felix', 'Rafael', 'Anselm', 'Bram', 'Caspian', 'Dashiell',
                   'Emil', 'Gideon', 'Hugo', 'Idris', 'Jonah', 'Kasimir', 'Leander', 'Mateo', 'Nico',
                   'Osric', 'Pavel', 'Quentin', 'Rafferty', 'Silas', 'Teodor', 'Ulric', 'Viktor', 'Wendell',
                   'Yusuf', 'Zeno', 'Arlo', 'Booker', 'Cyrus', 'Dov', 'Elias', 'Florian', 'Jasper', 'Lorcan',
@@ -785,7 +785,7 @@ CITY = {
                'weightless core for sport and Port Vesper three hours away by shuttle.',
     'lat': 0.0, 'lon': -140.0,
     'currency': {'code': 'CR', 'symbol': 'cr', 'name': 'credits'}, 'rent_period': 'month',
-    'speeds': {'walk': 4.5, 'tram': 26, 'lift': 18, 'pod': 30},
+    'speeds': {'walk': 4.5, 'tram': 26, 'lift': 18, 'monorail': 30},
     'enclosed': True,
     'neighbours': [{'city': 'port-vesper', 'hours': 3}],
     'calendar': 'none',

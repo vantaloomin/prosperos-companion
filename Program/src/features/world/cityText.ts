@@ -18,6 +18,8 @@ export interface CityListing {
   distribution: 'public' | 'private'
   /** What the server mended or added when it loaded the city; empty when it loaded as written. */
   import_notes?: string[]
+  /** A ship or station (companion/world/ships.py): its neighborhoods are decks. */
+  enclosed?: boolean
 }
 
 /** One of the user's own cities that no longer loads, with its saved definition. */
@@ -89,7 +91,7 @@ const SETTINGS: Record<CityListing['setting'], string> = { real: 'Real city', fi
 export function cityFacts(city: CityListing): string {
   const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
   return [SETTINGS[city.setting], city.era,
-    `${plural(city.counts.neighborhoods, 'neighborhood', 'neighborhoods')}, ${plural(city.counts.places, 'place', 'places')}`].join(' · ')
+    `${city.enclosed ? plural(city.counts.neighborhoods, 'deck', 'decks') : plural(city.counts.neighborhoods, 'neighborhood', 'neighborhoods')}, ${plural(city.counts.places, 'place', 'places')}`].join(' · ')
 }
 
 /** A file name for an exported city. */

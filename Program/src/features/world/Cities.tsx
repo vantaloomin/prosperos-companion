@@ -260,7 +260,7 @@ function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: 
   return (
     <div className="city-editor form-stack">
       <h3>{editing.mode === 'create' ? (editing.ship ? 'New ship' : 'New city') : `Editing ${editing.id}`}</h3>
-      <p className="subtle" id="city-json-hint">A city is a JSON file. Every place, college and employer names its neighborhood. New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
+      <p className="subtle" id="city-json-hint">{editing.mode === 'create' && editing.ship ? 'A ship is a city file with "enclosed": true, so it has no weather or cars. Its decks are its neighborhoods, and every place and employer names its deck.' : 'A city is a JSON file. Every place, college and employer names its neighborhood.'} New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
       <label htmlFor="city-json" className="visually-hidden">City definition</label>
       <textarea id="city-json" aria-describedby="city-json-hint" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
       <div aria-live="polite">{result && <FeedbackNotice feedback={result} />}</div>

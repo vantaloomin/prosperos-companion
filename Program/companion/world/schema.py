@@ -31,7 +31,9 @@ CollegeType = Id
 Size = Literal['small', 'medium', 'large']
 TRANSIT_KINDS = ('subway', 'light-rail', 'commuter-rail', 'bus', 'ferry', 'water-taxi', 'monorail',
                       'streetcar', 'bike-share', 'car', 'rideshare', 'walk',
-                      'carriage', 'horse', 'tram', 'airship', 'boat', 'stagecoach')
+                      'carriage', 'horse', 'tram', 'airship', 'boat', 'stagecoach',
+                      # Ships and stations (companion/world/ships.py).
+                      'lift', 'shuttle')
 TransitKind = Id
 # What a city is: a real place, a well-known fictional setting, or an original one (built in or the user's own).
 Setting = Literal['real', 'fictional', 'original']

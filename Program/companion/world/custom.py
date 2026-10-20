@@ -193,7 +193,7 @@ def ship_template(today: str) -> dict:
     return {
         'schema_version': 1, 'id': 'my-ship', 'name': 'My ship', 'setting': 'original', 'era': 'future',
         'region': 'Between the stars', 'country': 'Generation ship', 'timezone': 'UTC', 'enclosed': True,
-        'summary': 'A few words about the ship: how many aboard, how long it has been travelling and where to.',
+        'summary': 'A few words about the ship: how many aboard, how long it has been traveling and where to.',
         'lat': 0.0, 'lon': -140.0, 'calendar': 'none',
         'currency': {'code': 'CR', 'symbol': 'cr', 'name': 'credits'},
         'speeds': {'walk': 4.5, 'lift': 18},
