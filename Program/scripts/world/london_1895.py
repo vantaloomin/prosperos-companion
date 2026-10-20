@@ -519,7 +519,7 @@ CITY = {
         career('bank-clerk', 'Bank clerk', 'finance', 'office', '$$', 'A desk in a City bank, counting, posting '
                'and checking figures under strict rules about dress and punctuality.',
                ['ledgers', 'promotion', 'City crowds', 'a steady salary']),
-        career('typist', 'Typewriter girl', 'commerce', 'office', '$', 'Typing letters and documents on a '
+        career('typist', 'Typist', 'commerce', 'office', '$', 'Typing letters and documents on a '
                'Remington in an office or a typewriting bureau, a new kind of work for young women.',
                ['the machine', 'carbon copies', 'independence', 'ABC lunches']),
         career('telegraph-operator', 'Telegraph clerk', 'communications', 'rotating', '$', 'Sending and receiving '
