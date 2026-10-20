@@ -644,7 +644,8 @@ def other_text(connection, companion: dict, row: dict) -> tuple[str, str]:
     other = circle.person(connection, row['other_id'])
     found = decode(other['details']).get('pronouns', '')
     words = OLD_OTHER_WORDS if not modern(companion) else OTHER_WORDS
-    return f"their {words.get(found, 'other parent')} {other['name']}", first(other['name'])
+    word = circle.said(words.get(found, 'other parent'), companion['version']['definition'])  # 'mum' in London.
+    return f"their {word} {other['name']}", first(other['name'])
 
 
 def modern(companion: dict) -> bool:
