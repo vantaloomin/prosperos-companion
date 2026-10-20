@@ -2769,6 +2769,171 @@
    "eras": [
     "modern"
    ]
+  },
+  {
+   "text": "finished a whole race without spinning out",
+   "post": "Whole race, no spins. Small victories.",
+   "level": 0,
+   "for": [
+    "sim-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "learned the racing line on their favourite track",
+   "post": "Found the racing line. Shaved two seconds.",
+   "level": 1,
+   "for": [
+    "sim-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "set a personal best on the hardest circuit",
+   "post": "New personal best on the hard track.",
+   "level": 2,
+   "for": [
+    "sim-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "made the top ten on the local leaderboard",
+   "post": "Top ten on the booth leaderboard. Hello.",
+   "level": 3,
+   "for": [
+    "sim-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "won the booth league season",
+   "post": "Season champion. Wheel, pedals, glory.",
+   "level": 4,
+   "for": [
+    "sim-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "flew a full lap of the course without crashing",
+   "post": "One full lap. Zero crashes. Victory.",
+   "level": 0,
+   "for": [
+    "drone-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "tuned the drone until it flew straight",
+   "post": "Tuned it. It flies straight now. Mostly.",
+   "level": 1,
+   "for": [
+    "drone-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "threaded the tightest gate on the course at speed",
+   "post": "Through the tight gate, full speed.",
+   "level": 2,
+   "for": [
+    "drone-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "placed in a race night for the first time",
+   "post": "Placed third on race night.",
+   "level": 3,
+   "for": [
+    "drone-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "built a drone that won a race night",
+   "post": "Built it myself. Won with it.",
+   "level": 4,
+   "for": [
+    "drone-racing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "solved the cube without looking up the steps",
+   "post": "Solved it, no guide.",
+   "level": 0,
+   "for": [
+    "speedcubing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got the solve time under two minutes",
+   "post": "Under two minutes.",
+   "level": 1,
+   "for": [
+    "speedcubing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got the solve time under a minute",
+   "post": "Under a minute.",
+   "level": 2,
+   "for": [
+    "speedcubing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "learned to solve it blindfolded",
+   "post": "Solved it blindfolded. Party trick unlocked.",
+   "level": 3,
+   "for": [
+    "speedcubing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "won a speedcubing meet",
+   "post": "Won the speedcubing meet.",
+   "level": 4,
+   "for": [
+    "speedcubing"
+   ],
+   "eras": [
+    "future"
+   ]
   }
  ],
  "sessions": [

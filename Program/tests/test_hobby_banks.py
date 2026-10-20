@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 BANKS = Path(__file__).resolve().parents[1] / 'companion' / 'world' / 'data' / 'hobbies'
-ERAS = ('modern', 'jazz-age', 'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy')
+ERAS = ('modern', 'jazz-age', 'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy', 'future')
 LEVELS = range(5)
 # Words that would give the companion a gender, or that the app keeps out of milestones and pictures.
 GENDERED = re.compile(r"\b(?:he|she|him|her|his|hers|himself|herself)\b", re.I)
@@ -32,7 +32,8 @@ def bank(kind: str) -> dict:
 
 
 def in_era(eras: list[str], era: str) -> bool:
-    return 'any' in eras or era in eras
+    """As the app reads it (companion/life/hobbies.py): the future keeps today's as well as its own."""
+    return 'any' in eras or era in eras or era == 'future' and 'modern' in eras
 
 
 def hobbies_of(kind: str) -> list[dict]:

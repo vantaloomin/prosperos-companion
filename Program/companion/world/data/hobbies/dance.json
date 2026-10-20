@@ -2317,6 +2317,61 @@
    "eras": [
     "any"
    ]
+  },
+  {
+   "text": "climbed the silks to the top for the first time",
+   "post": "Climbed to the top of the silks.",
+   "level": 0,
+   "for": [
+    "aerial-silks"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "held a first pose up on the silks",
+   "post": "Held a pose up there. Arms shaking.",
+   "level": 1,
+   "for": [
+    "aerial-silks"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "learned a drop and did it without hesitating",
+   "post": "Did the drop. Did not hesitate. Screamed a bit.",
+   "level": 2,
+   "for": [
+    "aerial-silks"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "performed in the studio showcase",
+   "post": "Studio showcase done. Up in the silks, in the lights.",
+   "level": 3,
+   "for": [
+    "aerial-silks"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "choreographed a routine of their own",
+   "post": "My own routine, start to finish.",
+   "level": 4,
+   "for": [
+    "aerial-silks"
+   ],
+   "eras": [
+    "future"
+   ]
   }
  ],
  "sessions": [

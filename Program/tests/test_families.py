@@ -1,6 +1,7 @@
 """Births and growing families (companion/life/families.py): pregnancies in the circle run as storylines over months,
 then the baby joins the circle as a child, in words only."""
 import json
+import re
 import string
 from datetime import date, timedelta
 
@@ -137,7 +138,9 @@ def test_with_the_adult_side_on_children_stay_out_of_an_intimate_reply(client, m
     says(provider)
     send(client, 'come back to bed, I want to kiss you all over', 'client-families-intimate')
     text = prompt(client)
-    assert child['name'] not in text and 'expecting a baby' not in text and intimacy.SETTING in text
+    # Whole words only: a child called Jack or John must not match 'jackets' or 'Johns Hopkins'.
+    assert not re.search(rf"\b{re.escape(child['name'])}\b", text)
+    assert 'expecting a baby' not in text and intimacy.SETTING in text
     # The screens still show them.
     assert any(item['story'] == 'expecting' for item in client.get('/api/life/storylines').json())
     assert any(person['children'] for person in client.get('/api/life/circle').json())

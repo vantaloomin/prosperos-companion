@@ -179,8 +179,9 @@ def town_career(data: dict, seed: str, label: str = 'career', fits=None, pronoun
 # --- Climate and the calendar ---
 
 def conditions(data: dict, day: date, seed: str = '') -> dict | None:
-    """Typical weather for the date from monthly climate, with a seeded chance of rain; None without a climate."""
-    if not data['climate']:
+    """Typical weather for the date from monthly climate, with a seeded chance of rain; None without a climate, and
+    aboard a ship or station (companion/world/ships.py), which has no weather."""
+    if not data['climate'] or data.get('enclosed') is True:
         return None
     month = data['climate']['months'][day.month - 1]
     wet = unit(seed or day.isoformat(), data['id'], 'rain') < month['rain_days'] / 30

@@ -13,7 +13,7 @@ from companion.errors import require
 from companion.life import composer, families, feed, grooming, home, pets, pronouns, traditions, upkeep, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
-from companion.world import looks
+from companion.world import looks, ships
 
 PROMPT_VERSION = 6
 DEFAULT_STYLE = 'Candid, natural-light photograph'
@@ -170,6 +170,44 @@ def light(hour, weather) -> str:
     return f"{', '.join(parts)[:1].upper()}{', '.join(parts)[1:]}." if parts else ''
 
 
+# Aboard a ship or station (companion/world/ships.py) the light is the ship's own, on its day and night cycle.
+SHIP_LIGHT = ((5, "corridor lights brightening for ship's morning"), (8, "bright, even ship's-morning light from the "
+              'ceiling panels'), (11, 'even white light from the overhead panels'), (15, 'warm late-shift light from '
+              'the overhead panels'), (18, "corridor lights warming toward ship's evening"), (20, "corridor lights "
+              "dimmed for ship's night, a soft glow from the wall panels"))
+
+
+def ship_light(hour) -> str:
+    """The ship's light at the moment's hour, or '' when the hour is not known; there is no weather aboard."""
+    if hour is None:
+        return ''
+    found = next((text for start, text in reversed(SHIP_LIGHT) if hour >= start), SHIP_LIGHT[-1][1])
+    return f'{found[:1].upper()}{found[1:]}.'
+
+
+# Outdoor wording said as what it is aboard, in visible words: whole phrases first.
+ABOARD_WORDS = (
+    (r'walking outdoors along a path', "walking along a wide ship's corridor"),
+    (r'outdoors in a festival crowd', 'in a festival crowd in a big indoor hall'),
+    (r'down a quiet street', 'along a quiet corridor'),
+    (r'on a city street', "on a busy ship's concourse"),
+    (r'along a park path', 'along the running track of the park deck'),
+    (r'(?:a )?clear night sky full of stars', 'a wide viewport full of stars'),
+    (r'a sky full of stars', 'a wide viewport full of stars'),
+    (r'in the sunshine', 'under the grow lights'),
+    (r'on a sunny windowsill', 'on a bright ledge by a viewport'),
+    (r'among trees in a quiet park', 'among the trees of the arboretum deck'),
+    (r'\boutdoors\b', 'in a big indoor hall'),
+    (r'\bstreetlights\b', 'corridor lights'),
+)
+
+
+def aboard_words(text: str) -> str:
+    for pattern, said in ABOARD_WORDS:
+        text = re.sub(pattern, said, text, flags=re.IGNORECASE)
+    return text
+
+
 CAMERAS = {'moment': 'Shot at eye level on a phone camera, natural colours, realistic skin texture, shallow depth of field.',
            'selfie': 'Slight wide-angle phone-camera look, natural colours, realistic skin texture.',
            'view': 'Phone-camera look, natural colours, everything in the scene in focus.'}
@@ -204,14 +242,15 @@ def restyle(inputs: dict, own: str | None) -> dict:
 
 
 def compose(name, appearance, events, style, setting='', dressed=False, framing='moment', who=None, sheet='',
-            look=None) -> str:
+            look=None, aboard=False) -> str:
     """A digest is illustrated by its first event; one picture of several outings would invent a
     moment that never happened. `dressed` means `setting` says what they wear, so the appearance's
     usual clothes are left out. The event may carry the local `hour` and `weather` for the light;
     its caption is never drawn (the feed shows it under the picture). A chat photo's `framing` opens
     the paragraph in place of the plain moment; `who` overrides the pronoun read from the appearance.
     `sheet` is their looks in words (`sheet_for`), ahead of the free-text appearance; `look` is the In photos
-    line (`in_photos`), which stands in for the appearance when given."""
+    line (`in_photos`), which stands in for the appearance when given. `aboard` (a ship or station) gives the ship's
+    light and says outdoor scenes as indoor ones."""
     event = events[0]
     who = who or pronoun(appearance)
     subject, possessive = PRONOUNS[who]
@@ -230,7 +269,10 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
              sheet, f'{look}.' if look else '', setting, action,
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
-             light(event.get('hour'), event.get('weather')), camera(style, framing)]
+             ship_light(event.get('hour')) if aboard else light(event.get('hour'), event.get('weather')),
+             camera(style, framing)]
+    if aboard:
+        parts[3:5] = [aboard_words(part) for part in parts[3:5]]
     return looks.seen(' '.join(part for part in parts if part))
 
 
@@ -370,7 +412,8 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
         likeness = {**likeness, 'lora': None}
     return {'prompt_version': PROMPT_VERSION,
             'prompt': prompt or feed_prompt(definition, first, image_settings,
-                                            setting(connection, post['timeline_id'], events[0]), who, sheet),
+                                            setting(connection, post['timeline_id'], events[0]), who, sheet,
+                                            ships.aboard(connection, definition)),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
@@ -393,10 +436,10 @@ def pet_prompt(connection, timeline_id, events, image_settings) -> str:
     return pets.photo_prompt(found, shot['shows'], image_settings['style']) if found else ''
 
 
-def feed_prompt(definition, first, image_settings, worn: tuple[str, bool], who, sheet) -> str:
+def feed_prompt(definition, first, image_settings, worn: tuple[str, bool], who, sheet, aboard=False) -> str:
     look = in_photos(definition, who, worn[1])
     return compose(definition['name'], definition.get('appearance', ''), [first], image_settings['style'], *worn, who=who,
-                   sheet=sheet, look=look)
+                   sheet=sheet, look=look, aboard=aboard)
 
 
 def setting(connection, timeline_id, event) -> tuple[str, bool]:
@@ -454,7 +497,7 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))
     look = '' if framing == 'view' else in_photos(definition, who, bool(wearing))
     prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),
-                     framing, who, '' if framing == 'view' else sheet, look)
+                     framing, who, '' if framing == 'view' else sheet, look, ships.aboard(connection, definition))
     likeness = current_for_images(connection)
     if framing == 'view':
         likeness = {**likeness, 'lora': None}

@@ -18,13 +18,18 @@ from companion.world.schema import Career, Careers, City, Featured, Holidays, Na
 DATA = Path(__file__).parent / 'data'
 LOG = logging.getLogger(__name__)
 BUILTIN_CITIES = DATA / 'cities'
+CAREER_FILES = ('careers.json', 'careers-future.json')
 
 
 @cache
 def careers() -> dict[str, dict]:
-    """The shared career catalogue, across every era."""
-    catalogue = Careers.model_validate_json((DATA / 'careers.json').read_text(encoding='utf-8'))
-    return {career.id: career.model_dump() for career in catalogue.careers}
+    """The shared career catalogue, across every era: careers.json, then the future era's own file (ships, stations
+    and future cities, companion/world/ships.py)."""
+    found = {}
+    for name in CAREER_FILES:
+        catalogue = Careers.model_validate_json((DATA / name).read_text(encoding='utf-8'))
+        found |= {career.id: career.model_dump() for career in catalogue.careers}
+    return found
 
 
 def careers_for(data: dict, *, needs_met: bool = True) -> dict[str, dict]:
@@ -105,7 +110,7 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
-OMIT_WHEN_EMPTY = {'townsfolk', 'kinds'}
+OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours'}
 
 
 def unset_work_rules(data: dict):
@@ -131,8 +136,9 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     # stays the same.
     data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
     unset_work_rules(data)
-    from companion.world import lifespans
+    from companion.world import lifespans, ships
     notes += lifespans.clean(data)
+    notes += ships.settle(data)
     known = careers_for(data)
     for employer in data['employers']:
         unknown = set(employer['careers']) - set(known)

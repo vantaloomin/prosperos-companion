@@ -1,0 +1,2280 @@
+{
+ "schema_version": 1,
+ "source": {
+  "kind": "curated",
+  "title": "Future-era career catalogue written for Prospero Companion",
+  "license": "CC0-1.0",
+  "retrieved": "2026-10-20",
+  "note": "Everyday work in a future city, ship or station, for fiction; not labour statistics."
+ },
+ "careers": [
+  {
+   "id": "hull-technician",
+   "name": "Hull technician",
+   "sector": "engineering",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Inspects and patches hull plating on rotating shifts, mostly from the inside.",
+   "themes": [
+    "hull plating",
+    "pressure checks",
+    "the shift crew",
+    "tool lockers"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "reactor-technician",
+   "name": "Reactor technician",
+   "sector": "engineering",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$",
+   "summary": "Watches the reactor's readings and keeps its cooling loops serviced.",
+   "themes": [
+    "readouts",
+    "cooling loops",
+    "safety drills",
+    "quiet control rooms"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "life-support-engineer",
+   "name": "Life-support engineer",
+   "sector": "engineering",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$",
+   "summary": "Keeps the air, water and pressure systems in balance for everyone aboard or in the district.",
+   "themes": [
+    "air mix",
+    "water balance",
+    "alarms that are almost always false",
+    "maintenance logs"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "propulsion-engineer",
+   "name": "Propulsion engineer",
+   "sector": "aerospace",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Designs and tunes engines and thrusters, and argues about fuel budgets.",
+   "themes": [
+    "thrust tests",
+    "fuel budgets",
+    "simulation runs",
+    "design reviews"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "shuttle-pilot",
+   "name": "Shuttle pilot",
+   "sector": "aerospace",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$",
+   "summary": "Flies the regular shuttle runs between the docks and the places nearby.",
+   "themes": [
+    "flight plans",
+    "docking approaches",
+    "passengers",
+    "the shuttle bay"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "navigator",
+   "name": "Navigator",
+   "sector": "aerospace",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$",
+   "summary": "Plots courses and keeps an eye on the long view ahead.",
+   "themes": [
+    "star charts",
+    "course corrections",
+    "night watches",
+    "the bridge crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "docking-controller",
+   "name": "Docking controller",
+   "sector": "aerospace",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Talks shuttles and freighters in and out of the docking bays.",
+   "themes": [
+    "approach windows",
+    "clearances",
+    "busy bays",
+    "radio chatter"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "traffic-controller",
+   "name": "Traffic controller",
+   "sector": "aerospace",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$",
+   "summary": "Keeps the lanes clear for everything that flies in and out.",
+   "themes": [
+    "flight lanes",
+    "holding patterns",
+    "split-second calls",
+    "the control room"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "bridge-officer",
+   "name": "Bridge officer",
+   "sector": "aerospace",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$$",
+   "summary": "Stands watch on the bridge and signs off on the day-to-day running of things.",
+   "themes": [
+    "watches",
+    "reports",
+    "command decisions",
+    "the bridge crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "comms-officer",
+   "name": "Communications officer",
+   "sector": "communications",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Handles long-range messages, relay schedules and the occasional garbled signal.",
+   "themes": [
+    "relay schedules",
+    "message queues",
+    "signal delay",
+    "night watches"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "drone-operator",
+   "name": "Maintenance drone operator",
+   "sector": "engineering",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Steers repair drones through ducts and along the outer skin from a console.",
+   "themes": [
+    "drone feeds",
+    "tight ducts",
+    "repair queues",
+    "consoles"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "robotics-technician",
+   "name": "Robotics technician",
+   "sector": "engineering",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Repairs and recalibrates the robots that do the heavy and dull work.",
+   "themes": [
+    "servos",
+    "calibration",
+    "spare parts",
+    "the workshop"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "systems-engineer",
+   "name": "Systems engineer",
+   "sector": "technology",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Keeps the computer systems that run everything talking to each other.",
+   "themes": [
+    "outages",
+    "upgrades",
+    "on-call weeks",
+    "design reviews"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "network-engineer",
+   "name": "Network engineer",
+   "sector": "communications",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Runs the local network and the relays that carry it further.",
+   "themes": [
+    "relays",
+    "bandwidth",
+    "cabling",
+    "outage reports"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "software-developer",
+   "name": "Software developer",
+   "sector": "technology",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Writes and fixes the software that people use every day.",
+   "themes": [
+    "code reviews",
+    "releases",
+    "bug reports",
+    "standups"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "machine-learning-engineer",
+   "name": "Machine-learning engineer",
+   "sector": "technology",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$$",
+   "summary": "Trains and tests the models behind the assistants and the forecasts.",
+   "themes": [
+    "training runs",
+    "test sets",
+    "model reviews",
+    "long meetings"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "systems-analyst",
+   "name": "Systems analyst",
+   "sector": "technology",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Turns the numbers from sensors and records into reports people can act on.",
+   "themes": [
+    "dashboards",
+    "reports",
+    "sensor data",
+    "quarterly reviews"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "security-analyst",
+   "name": "Security analyst",
+   "sector": "technology",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Watches for intrusions and patches the holes before someone finds them.",
+   "themes": [
+    "alerts",
+    "patches",
+    "audits",
+    "night pages"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "power-grid-technician",
+   "name": "Power-grid technician",
+   "sector": "engineering",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Maintains the power lines, batteries and switching gear.",
+   "themes": [
+    "switchgear",
+    "battery banks",
+    "load shedding",
+    "fault calls"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "water-reclamation-technician",
+   "name": "Water reclamation technician",
+   "sector": "engineering",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Runs the plant that cleans and returns every drop of water.",
+   "themes": [
+    "filters",
+    "water tests",
+    "pumps",
+    "the smell nobody mentions"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "air-systems-technician",
+   "name": "Air systems technician",
+   "sector": "engineering",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Services the scrubbers, fans and filters that keep the air fresh.",
+   "themes": [
+    "scrubbers",
+    "filters",
+    "airflow readings",
+    "ducts"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "environmental-controller",
+   "name": "Environmental controller",
+   "sector": "engineering",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Sets the temperature, humidity and light cycles, and fields the complaints about them.",
+   "themes": [
+    "light cycles",
+    "humidity",
+    "complaints",
+    "control panels"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "radiation-safety-officer",
+   "name": "Radiation safety officer",
+   "sector": "science",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Checks shielding and dose badges and keeps everyone inside the limits.",
+   "themes": [
+    "dose badges",
+    "shielding checks",
+    "storm warnings",
+    "reports"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "materials-scientist",
+   "name": "Materials scientist",
+   "sector": "science",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Tests new alloys, fabrics and coatings in the lab.",
+   "themes": [
+    "lab tests",
+    "samples",
+    "grant reports",
+    "stress tests"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "astrophysicist",
+   "name": "Astrophysicist",
+   "sector": "science",
+   "schedule": "academic",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Studies stars and the space between them, and teaches a class or two.",
+   "themes": [
+    "observations",
+    "papers",
+    "students",
+    "long calculations"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "observatory-astronomer",
+   "name": "Observatory astronomer",
+   "sector": "science",
+   "schedule": "shift-night",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Runs the telescopes through the night and logs what they see.",
+   "themes": [
+    "telescope time",
+    "night shifts",
+    "logbooks",
+    "clear views"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "star-cartographer",
+   "name": "Star cartographer",
+   "sector": "science",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Updates the charts that pilots and navigators rely on.",
+   "themes": [
+    "charts",
+    "survey data",
+    "corrections",
+    "quiet offices"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "ecosystem-biologist",
+   "name": "Ecosystem biologist",
+   "sector": "science",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Keeps watch on the closed ecosystems of farms, gardens and water.",
+   "themes": [
+    "samples",
+    "balance",
+    "microbes",
+    "field notes"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "asteroid-surveyor",
+   "name": "Asteroid surveyor",
+   "sector": "mining",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$",
+   "summary": "Surveys rocks for ore and water, and writes up which ones are worth the trip.",
+   "themes": [
+    "survey runs",
+    "ore samples",
+    "long shifts",
+    "reports"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "ore-processing-engineer",
+   "name": "Ore processing engineer",
+   "sector": "mining",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$",
+   "summary": "Runs the plant that turns raw ore into usable metal.",
+   "themes": [
+    "smelters",
+    "yields",
+    "safety checks",
+    "shift handovers"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "cargo-handler",
+   "name": "Cargo handler",
+   "sector": "logistics",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Loads and unloads freight in the docking bays.",
+   "themes": [
+    "crates",
+    "loaders",
+    "manifests",
+    "the bay crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "quartermaster",
+   "name": "Quartermaster",
+   "sector": "logistics",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Keeps track of stores and decides what gets ordered and who gets it.",
+   "themes": [
+    "inventories",
+    "requisitions",
+    "shortages",
+    "storerooms"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "freight-scheduler",
+   "name": "Freight scheduler",
+   "sector": "logistics",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Fits every shipment into the next available run.",
+   "themes": [
+    "schedules",
+    "delays",
+    "manifests",
+    "phone calls"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "supply-chain-manager",
+   "name": "Supply chain manager",
+   "sector": "logistics",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Plans how food, parts and fuel arrive months ahead.",
+   "themes": [
+    "forecasts",
+    "contracts",
+    "shortages",
+    "meetings"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "rations-planner",
+   "name": "Rations planner",
+   "sector": "logistics",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Works out what everyone will eat for the next season, down to the gram.",
+   "themes": [
+    "menus",
+    "stock levels",
+    "nutrition tables",
+    "surpluses"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "customs-inspector",
+   "name": "Customs inspector",
+   "sector": "government",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Checks what comes in through the docks and what goes out.",
+   "themes": [
+    "inspections",
+    "declarations",
+    "contraband",
+    "queues"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "fabrication-technician",
+   "name": "Fabrication technician",
+   "sector": "manufacturing",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Runs the printers and mills that make parts on demand.",
+   "themes": [
+    "print queues",
+    "failed prints",
+    "spare parts",
+    "the fab shop"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "machinist",
+   "name": "Machinist",
+   "sector": "manufacturing",
+   "schedule": "shift-day",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Cuts and finishes precision parts by hand and machine.",
+   "themes": [
+    "tolerances",
+    "lathes",
+    "orders",
+    "the workshop"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "pressure-welder",
+   "name": "Pressure welder",
+   "sector": "construction",
+   "schedule": "shift-day",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Welds seams that have to hold air for decades.",
+   "themes": [
+    "seams",
+    "inspections",
+    "protective gear",
+    "the crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "habitat-builder",
+   "name": "Habitat builder",
+   "sector": "construction",
+   "schedule": "early",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Puts up new living quarters, module by module.",
+   "themes": [
+    "modules",
+    "deadlines",
+    "heavy lifting",
+    "the site crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "cabin-fitter",
+   "name": "Cabin fitter",
+   "sector": "construction",
+   "schedule": "shift-day",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Fits out cabins and flats with bunks, cupboards and wiring.",
+   "themes": [
+    "fittings",
+    "tight spaces",
+    "measurements",
+    "clients"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "electrician",
+   "name": "Electrician",
+   "sector": "trades",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Rewires, repairs and installs, one call-out at a time.",
+   "themes": [
+    "call-outs",
+    "wiring",
+    "fuse boxes",
+    "clients"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "plumber",
+   "name": "Plumber",
+   "sector": "trades",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Fixes leaks and blocked lines, where a leak is everybody's problem.",
+   "themes": [
+    "leaks",
+    "pipes",
+    "call-outs",
+    "clients"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "lift-mechanic",
+   "name": "Lift mechanic",
+   "sector": "trades",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Keeps the lifts running between levels, and gets people out when they stick.",
+   "themes": [
+    "lift shafts",
+    "breakdowns",
+    "inspections",
+    "call-outs"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "recycling-worker",
+   "name": "Recycling plant worker",
+   "sector": "city-works",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Sorts and processes everything that gets thrown away, because nothing is wasted.",
+   "themes": [
+    "sorting lines",
+    "quotas",
+    "odd finds",
+    "the shift crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "waste-processing-technician",
+   "name": "Waste processing technician",
+   "sector": "city-works",
+   "schedule": "shift-night",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Runs the plant that turns waste into fertiliser and feedstock overnight.",
+   "themes": [
+    "tanks",
+    "readings",
+    "night shifts",
+    "strong coffee"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "transit-pod-operator",
+   "name": "Transit pod operator",
+   "sector": "transit",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Drives or minds the pods and trams that move people around.",
+   "themes": [
+    "routes",
+    "passengers",
+    "timetables",
+    "breakdowns"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "transit-dispatcher",
+   "name": "Transit dispatcher",
+   "sector": "transit",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Keeps the trams and lifts on schedule from a control desk.",
+   "themes": [
+    "timetables",
+    "delays",
+    "radios",
+    "the control desk"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "hydroponics-technician",
+   "name": "Hydroponics technician",
+   "sector": "agriculture",
+   "schedule": "early",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Tends the grow racks, checks the nutrient mix and harvests on schedule.",
+   "themes": [
+    "grow racks",
+    "nutrient mix",
+    "harvests",
+    "grow lights"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "crop-scientist",
+   "name": "Crop scientist",
+   "sector": "agriculture",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Breeds and tests crops that grow well under lamps and in small spaces.",
+   "themes": [
+    "test plots",
+    "yields",
+    "seed stock",
+    "reports"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "algae-farm-worker",
+   "name": "Algae farm worker",
+   "sector": "agriculture",
+   "schedule": "early",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Tends the algae tanks that feed people and clean the air.",
+   "themes": [
+    "tanks",
+    "harvests",
+    "green hands",
+    "the early crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "mushroom-grower",
+   "name": "Mushroom grower",
+   "sector": "agriculture",
+   "schedule": "early",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Grows mushrooms in dark, damp rooms and sells them by the crate.",
+   "themes": [
+    "spawn",
+    "harvests",
+    "damp rooms",
+    "regular buyers"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "pollination-technician",
+   "name": "Pollination technician",
+   "sector": "agriculture",
+   "schedule": "early",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Looks after the bees and pollinates by hand where bees cannot reach.",
+   "themes": [
+    "bees",
+    "flowering racks",
+    "brushes",
+    "quiet mornings"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "arboretum-keeper",
+   "name": "Arboretum keeper",
+   "sector": "gardens",
+   "schedule": "early",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Cares for the trees and gardens that everyone comes to sit in.",
+   "themes": [
+    "pruning",
+    "visitors",
+    "soil tests",
+    "quiet mornings"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "cultured-meat-technician",
+   "name": "Cultured-meat technician",
+   "sector": "food",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Grows meat in vats and keeps every batch clean.",
+   "themes": [
+    "vats",
+    "batches",
+    "sterile rooms",
+    "taste tests"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "food-printer-technician",
+   "name": "Food-printer technician",
+   "sector": "food",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Keeps the canteen food printers fed, cleaned and working.",
+   "themes": [
+    "cartridges",
+    "cleaning cycles",
+    "menus",
+    "canteen rushes"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "galley-cook",
+   "name": "Galley cook",
+   "sector": "hospitality",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Cooks for the shared canteen in big batches, three sittings a day.",
+   "themes": [
+    "big batches",
+    "sittings",
+    "the galley crew",
+    "complaints about the soup"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "head-chef",
+   "name": "Head chef",
+   "sector": "hospitality",
+   "schedule": "evening",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Runs a busy restaurant kitchen and writes the menu.",
+   "themes": [
+    "menus",
+    "the line",
+    "service",
+    "suppliers"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "canteen-baker",
+   "name": "Baker",
+   "sector": "food",
+   "schedule": "early",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Bakes the bread and pastries before anyone else is up.",
+   "themes": [
+    "ovens",
+    "early starts",
+    "dough",
+    "regulars"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "noodle-bar-owner",
+   "name": "Noodle bar owner",
+   "sector": "food",
+   "schedule": "evening",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Runs a small noodle bar with six stools and a long queue.",
+   "themes": [
+    "broth",
+    "regulars",
+    "late nights",
+    "suppliers"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "coffee-bar-attendant",
+   "name": "Coffee bar attendant",
+   "sector": "hospitality",
+   "schedule": "early",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Makes coffee and tea for the morning rush.",
+   "themes": [
+    "the morning rush",
+    "regulars",
+    "milk orders",
+    "tips"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "lounge-bartender",
+   "name": "Lounge bartender",
+   "sector": "hospitality",
+   "schedule": "evening",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Mixes drinks and listens to people in a bar with a view.",
+   "themes": [
+    "regulars",
+    "cocktails",
+    "late nights",
+    "the view"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "brewer",
+   "name": "Brewer",
+   "sector": "food",
+   "schedule": "shift-day",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Brews beer and kombucha in small batches.",
+   "themes": [
+    "batches",
+    "tastings",
+    "tanks",
+    "regular buyers"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "nutritionist",
+   "name": "Nutritionist",
+   "sector": "healthcare",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Helps people eat well on what can be grown and printed.",
+   "themes": [
+    "meal plans",
+    "clients",
+    "check-ins",
+    "food logs"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "general-practitioner",
+   "name": "General practitioner",
+   "sector": "healthcare",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$$",
+   "summary": "Sees patients at the clinic, from colds to check-ups.",
+   "themes": [
+    "patients",
+    "check-ups",
+    "referrals",
+    "long clinic days"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "clinic-nurse",
+   "name": "Clinic nurse",
+   "sector": "healthcare",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Works the clinic floor on long day shifts.",
+   "themes": [
+    "patients",
+    "handoffs",
+    "charting",
+    "coworkers on the ward"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "night-ward-nurse",
+   "name": "Night ward nurse",
+   "sector": "healthcare",
+   "schedule": "shift-night",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Covers the ward through the night.",
+   "themes": [
+    "quiet wards",
+    "night handoffs",
+    "sleeping by day",
+    "emergencies"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "emergency-medic",
+   "name": "Emergency medic",
+   "sector": "healthcare",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Answers emergency calls and gets people to the clinic in time.",
+   "themes": [
+    "call-outs",
+    "stretchers",
+    "adrenaline",
+    "the crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "surgeon",
+   "name": "Surgeon",
+   "sector": "healthcare",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$$",
+   "summary": "Operates on scheduled and emergency cases.",
+   "themes": [
+    "operating theatre",
+    "long cases",
+    "on-call nights",
+    "the surgical team"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "dispensary-pharmacist",
+   "name": "Pharmacist",
+   "sector": "healthcare",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Makes up prescriptions and advises on what not to mix.",
+   "themes": [
+    "prescriptions",
+    "questions",
+    "stock",
+    "regulars"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "dentist",
+   "name": "Dentist",
+   "sector": "healthcare",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Fixes teeth and gently tells people to floss.",
+   "themes": [
+    "patients",
+    "check-ups",
+    "fillings",
+    "nervous patients"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "physiotherapist",
+   "name": "Physiotherapist",
+   "sector": "healthcare",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Helps people rebuild strength after injuries and long trips.",
+   "themes": [
+    "exercises",
+    "patients",
+    "progress",
+    "the gym room"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "counsellor",
+   "name": "Counsellor",
+   "sector": "care",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Talks people through hard times, an hour at a time.",
+   "themes": [
+    "clients",
+    "listening",
+    "notes",
+    "boundaries"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "midwife",
+   "name": "Midwife",
+   "sector": "healthcare",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Looks after parents through pregnancy and birth.",
+   "themes": [
+    "births",
+    "check-ups",
+    "night calls",
+    "families"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "medical-lab-technician",
+   "name": "Medical lab technician",
+   "sector": "healthcare",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Runs the tests behind every diagnosis.",
+   "themes": [
+    "samples",
+    "analysers",
+    "results",
+    "urgent requests"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "gene-therapist",
+   "name": "Gene therapy specialist",
+   "sector": "biotech",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$$",
+   "summary": "Designs and delivers treatments that correct faulty genes.",
+   "themes": [
+    "patients",
+    "trials",
+    "lab results",
+    "ethics boards"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "animal-care-vet",
+   "name": "Animal doctor",
+   "sector": "healthcare",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Treats pets and the farm animals, from cats to chickens.",
+   "themes": [
+    "patients",
+    "owners",
+    "surgery days",
+    "the clinic"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "care-worker",
+   "name": "Care worker",
+   "sector": "care",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Helps older people with their days, at home or in care.",
+   "themes": [
+    "residents",
+    "routines",
+    "families",
+    "long shifts"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "schoolteacher",
+   "name": "Schoolteacher",
+   "sector": "education",
+   "schedule": "academic",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Teaches a class of children everything from maths to history.",
+   "themes": [
+    "lessons",
+    "marking",
+    "parents",
+    "the staff room"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "tutor",
+   "name": "Tutor",
+   "sector": "education",
+   "schedule": "flexible",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Tutors students one to one, mostly in the evenings.",
+   "themes": [
+    "students",
+    "exam season",
+    "lesson plans",
+    "parents"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "academy-lecturer",
+   "name": "Academy lecturer",
+   "sector": "education",
+   "schedule": "academic",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Lectures, supervises students and tries to find time for research.",
+   "themes": [
+    "lectures",
+    "students",
+    "research",
+    "committees"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "archivist",
+   "name": "Archivist",
+   "sector": "learning",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Keeps the records, books and history safe and findable.",
+   "themes": [
+    "records",
+    "requests",
+    "quiet stacks",
+    "old files"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "nursery-worker",
+   "name": "Nursery worker",
+   "sector": "education",
+   "schedule": "early",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Looks after small children while their parents work.",
+   "themes": [
+    "little ones",
+    "nap time",
+    "parents",
+    "craft time"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "flight-instructor",
+   "name": "Flight instructor",
+   "sector": "aerospace",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Teaches new pilots, in the simulator first.",
+   "themes": [
+    "students",
+    "simulator hours",
+    "check rides",
+    "logbooks"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "heritage-curator",
+   "name": "Heritage curator",
+   "sector": "arts",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Looks after a collection of objects and stories from the old days.",
+   "themes": [
+    "exhibits",
+    "visitors",
+    "restoration",
+    "donations"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "academy-student",
+   "name": "Academy student",
+   "sector": "education",
+   "schedule": "academic",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Studies full time at the academy, with a part-time job on the side.",
+   "themes": [
+    "lectures",
+    "exams",
+    "study groups",
+    "cheap meals"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "security-officer",
+   "name": "Security officer",
+   "sector": "security",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Patrols, answers calls and keeps the peace.",
+   "themes": [
+    "patrols",
+    "incidents",
+    "reports",
+    "the night shift"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "investigator",
+   "name": "Investigator",
+   "sector": "law-enforcement",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Looks into thefts, fights and the odd mystery.",
+   "themes": [
+    "cases",
+    "interviews",
+    "paperwork",
+    "hunches"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "council-clerk",
+   "name": "Council clerk",
+   "sector": "government",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Files records, issues permits and answers the public.",
+   "themes": [
+    "permits",
+    "forms",
+    "the public",
+    "queues"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "district-administrator",
+   "name": "District administrator",
+   "sector": "government",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Runs the day-to-day business of a deck or district.",
+   "themes": [
+    "budgets",
+    "meetings",
+    "complaints",
+    "reports"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "advocate",
+   "name": "Advocate",
+   "sector": "legal",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$$",
+   "summary": "Represents clients in disputes and in court.",
+   "themes": [
+    "cases",
+    "clients",
+    "hearings",
+    "late nights"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "mediator",
+   "name": "Mediator",
+   "sector": "legal",
+   "schedule": "flexible",
+   "employment": "freelance",
+   "pay": "$$",
+   "summary": "Helps neighbours, partners and crews settle disputes before they grow.",
+   "themes": [
+    "disputes",
+    "sessions",
+    "agreements",
+    "patience"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "fire-and-pressure-crew",
+   "name": "Fire and pressure crew",
+   "sector": "public-safety",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Answers fires, leaks and pressure alarms.",
+   "themes": [
+    "alarms",
+    "drills",
+    "equipment checks",
+    "the crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "rescue-specialist",
+   "name": "Rescue specialist",
+   "sector": "public-safety",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$$",
+   "summary": "Goes in when something goes badly wrong, in a suit if needed.",
+   "themes": [
+    "drills",
+    "rescues",
+    "suits",
+    "the crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "census-officer",
+   "name": "Census officer",
+   "sector": "government",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Keeps count of who lives where and who has moved.",
+   "themes": [
+    "records",
+    "visits",
+    "forms",
+    "numbers"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "housing-officer",
+   "name": "Housing officer",
+   "sector": "government",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Allocates homes and handles swaps and repairs.",
+   "themes": [
+    "waiting lists",
+    "tenants",
+    "repairs",
+    "complaints"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "shopkeeper",
+   "name": "Shopkeeper",
+   "sector": "retail",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Runs a small shop that sells a bit of everything.",
+   "themes": [
+    "stock",
+    "customers",
+    "deliveries",
+    "regulars"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "market-trader",
+   "name": "Market trader",
+   "sector": "retail",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Sells from a stall at the market, rain or no rain.",
+   "themes": [
+    "the stall",
+    "customers",
+    "haggling",
+    "stock"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "electronics-repair-technician",
+   "name": "Electronics repair technician",
+   "sector": "retail",
+   "schedule": "shift-day",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Mends devices that would cost too much to replace.",
+   "themes": [
+    "repairs",
+    "customers",
+    "spare parts",
+    "tiny screws"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "ledger-accountant",
+   "name": "Accountant",
+   "sector": "finance",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Keeps the books for businesses and crews.",
+   "themes": [
+    "ledgers",
+    "audits",
+    "deadlines",
+    "clients"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "credit-broker",
+   "name": "Credit broker",
+   "sector": "finance",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$",
+   "summary": "Arranges loans and trades credits for clients.",
+   "themes": [
+    "trades",
+    "clients",
+    "rates",
+    "markets"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "insurance-assessor",
+   "name": "Insurance assessor",
+   "sector": "insurance",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Inspects damage and decides what a policy will pay.",
+   "themes": [
+    "claims",
+    "inspections",
+    "reports",
+    "disputes"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "trade-negotiator",
+   "name": "Trade negotiator",
+   "sector": "commerce",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$$$",
+   "summary": "Negotiates the deals that bring in what cannot be made locally.",
+   "themes": [
+    "contracts",
+    "calls",
+    "deadlines",
+    "deals"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "crew-recruiter",
+   "name": "Recruiter",
+   "sector": "business",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Finds people for jobs and jobs for people.",
+   "themes": [
+    "interviews",
+    "candidates",
+    "placements",
+    "calls"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "tailor",
+   "name": "Tailor",
+   "sector": "garment",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Makes and alters clothes to measure.",
+   "themes": [
+    "fittings",
+    "alterations",
+    "fabric",
+    "clients"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "corridor-courier",
+   "name": "Courier",
+   "sector": "logistics",
+   "schedule": "shift-day",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Runs packages and messages across town by foot, lift and tram.",
+   "themes": [
+    "deliveries",
+    "routes",
+    "tips",
+    "shortcuts"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "feed-reporter",
+   "name": "News reporter",
+   "sector": "media",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Reports the local news for the daily feed.",
+   "themes": [
+    "stories",
+    "sources",
+    "deadlines",
+    "editors"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "broadcaster",
+   "name": "Broadcaster",
+   "sector": "media",
+   "schedule": "early",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Hosts the morning show that everyone half-listens to.",
+   "themes": [
+    "the morning show",
+    "guests",
+    "listeners",
+    "early starts"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "session-musician",
+   "name": "Session musician",
+   "sector": "entertainment",
+   "schedule": "evening",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Plays gigs and recording sessions, whatever pays.",
+   "themes": [
+    "gigs",
+    "rehearsals",
+    "bandmates",
+    "late nights"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "immersive-designer",
+   "name": "Immersive scene designer",
+   "sector": "creative",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Builds the virtual scenes people step into for games and holidays.",
+   "themes": [
+    "scenes",
+    "clients",
+    "deadlines",
+    "test runs"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "game-designer",
+   "name": "Game designer",
+   "sector": "technology",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Designs games and argues about what makes them fun.",
+   "themes": [
+    "playtests",
+    "design docs",
+    "deadlines",
+    "the team"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "stage-actor",
+   "name": "Stage actor",
+   "sector": "entertainment",
+   "schedule": "evening",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Acts in the local theatre company and auditions between runs.",
+   "themes": [
+    "rehearsals",
+    "auditions",
+    "opening nights",
+    "the cast"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "muralist",
+   "name": "Muralist",
+   "sector": "arts",
+   "schedule": "flexible",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Paints walls that would otherwise be bare, on commission.",
+   "themes": [
+    "commissions",
+    "sketches",
+    "scaffolds",
+    "paint"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "photographer",
+   "name": "Photographer",
+   "sector": "creative",
+   "schedule": "flexible",
+   "employment": "freelance",
+   "pay": "$$",
+   "summary": "Shoots portraits, events and the occasional wedding.",
+   "themes": [
+    "shoots",
+    "clients",
+    "editing",
+    "events"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "club-dj",
+   "name": "Club DJ",
+   "sector": "entertainment",
+   "schedule": "evening",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Plays late sets at the clubs and lounges.",
+   "themes": [
+    "sets",
+    "late nights",
+    "crowds",
+    "new tracks"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "novelist",
+   "name": "Novelist",
+   "sector": "creative",
+   "schedule": "flexible",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Writes novels and takes odd jobs between advances.",
+   "themes": [
+    "drafts",
+    "deadlines",
+    "readings",
+    "odd jobs"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "fitness-coach",
+   "name": "Fitness coach",
+   "sector": "fitness",
+   "schedule": "early",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Runs classes and training sessions at the gym.",
+   "themes": [
+    "classes",
+    "clients",
+    "early starts",
+    "programmes"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "zero-g-coach",
+   "name": "Low-gravity sports coach",
+   "sector": "recreation",
+   "schedule": "evening",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Coaches teams in the sports played in low gravity.",
+   "themes": [
+    "training",
+    "matches",
+    "the team",
+    "injuries avoided"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "pool-attendant",
+   "name": "Pool attendant",
+   "sector": "recreation",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Keeps watch at the pool and keeps the water clean.",
+   "themes": [
+    "swimmers",
+    "water tests",
+    "whistles",
+    "long shifts"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "hairdresser",
+   "name": "Hairdresser",
+   "sector": "services",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Cuts and colours hair and hears everyone's news.",
+   "themes": [
+    "clients",
+    "gossip",
+    "appointments",
+    "colours"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "cabin-cleaner",
+   "name": "Cleaner",
+   "sector": "services",
+   "schedule": "early",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Cleans offices, halls and shared spaces before the day starts.",
+   "themes": [
+    "rounds",
+    "early starts",
+    "supplies",
+    "the crew"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "concierge",
+   "name": "Concierge",
+   "sector": "hospitality",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Looks after guests at the front desk and solves their small problems.",
+   "themes": [
+    "guests",
+    "bookings",
+    "requests",
+    "the front desk"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "viewport-guide",
+   "name": "Tour guide",
+   "sector": "tourism",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Shows visitors around and tells the stories behind the sights.",
+   "themes": [
+    "tours",
+    "visitors",
+    "the same jokes",
+    "tips"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "guesthouse-manager",
+   "name": "Guesthouse manager",
+   "sector": "hospitality",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Runs a small guesthouse for visitors and new arrivals.",
+   "themes": [
+    "guests",
+    "bookings",
+    "staff",
+    "repairs"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "chaplain",
+   "name": "Chaplain",
+   "sector": "religion",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Offers a listening ear and services for anyone who wants one.",
+   "themes": [
+    "services",
+    "visits",
+    "listening",
+    "quiet chapels"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "event-coordinator",
+   "name": "Event coordinator",
+   "sector": "hospitality",
+   "schedule": "flexible",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Plans the festivals, weddings and parties that break up the year.",
+   "themes": [
+    "clients",
+    "budgets",
+    "suppliers",
+    "big days"
+   ],
+   "eras": [
+    "future"
+   ]
+  }
+ ]
+}

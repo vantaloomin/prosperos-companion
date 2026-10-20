@@ -19,7 +19,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import circle, money, named, pets, upkeep
-from companion.world import catalog, generators
+from companion.world import catalog, generators, ships
 
 COMPANION = 'companion'
 KINDS = ('home', 'pet', 'plant', 'vehicle', 'favorite')
@@ -188,7 +188,10 @@ def plant_item(seed: str, era_modern: bool, label: str, taken=()) -> dict | None
 
 
 def vehicle_item(seed: str, data: dict | None) -> dict | None:
-    """A way to get around: a car is likelier where there is no subway; earlier eras ride or cycle."""
+    """A way to get around: a car is likelier where there is no subway; earlier eras ride or cycle. Aboard a ship
+    or station (companion/world/ships.py) people walk or take the lifts."""
+    if ships.enclosed(data):
+        return None
     if modern(data):
         speeds = data['speeds'] if data else {}
         car = 0.5 if not data else 0.3 if 'subway' in speeds else 0.65

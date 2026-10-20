@@ -52,7 +52,10 @@ def winter(world, definition, day: date) -> bool:
     conditions = weather(world, definition, day.isoformat())
     if conditions and conditions.get('season'):
         return conditions['season'] == 'winter'
-    return day.month in WINTER_MONTHS
+    from companion.life.circle import city_data
+    from companion.world import ships
+    # Aboard a ship or station there is no winter: colds come at the same rate all year.
+    return day.month in WINTER_MONTHS and not ships.enclosed(city_data(definition, world))
 
 
 def cold_days(seed: str, period: int, world, definition) -> set[date]:
