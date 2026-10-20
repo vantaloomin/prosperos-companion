@@ -12,7 +12,7 @@ from test_steps import prompt, says
 
 from companion import group_guests
 from companion.characters import current
-from companion.life import families, our_child, work
+from companion.life import families, money, our_child, work
 from companion.memory import context, sides
 from companion.world import intimacy
 
@@ -124,7 +124,14 @@ def test_who_stays_home_shapes_their_workdays_and_money(client, clock, monkeypat
     with connect(client) as connection:
         companion = current(connection)
         bought = our_child.purchases(connection, companion['active_timeline_id'], today, today + timedelta(days=40))
-        assert any(item['for'] == 'childcare' for item in bought)
+        care = next(item for item in bought if item['for'] == 'childcare')
+        assert care['text'] == 'paid your half of the childcare' and care['shown'] == 'paid their half of the childcare'
+        definition = companion['version']['definition']
+        found = money.snapshot(definition, today.isoformat(), {'costs': {}, 'purchases': [care]})
+        assert ('- This pay period you spent money for the family: you paid your half of the childcare.' in
+                [line for _key, line in money.context_lines(definition, today.isoformat(),
+                                                            {'costs': {}, 'purchases': [care]})])
+        assert found['bought'][0]['shown'] == 'paid their half of the childcare'
         assert our_child.pay(connection, companion['active_timeline_id'], today) == 1.0
     assert ours(client, care='auto')['care_how'] == 'seeded'
 

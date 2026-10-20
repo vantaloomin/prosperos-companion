@@ -329,7 +329,8 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
         care = born + timedelta(weeks=LEAVE_WEEKS[how_of(connection, child)])
         while care <= min(day, ages.birthday_in(born.year + SCHOOL, born.strftime('%m-%d'))):
             if care >= start and child['status'] == 'born':
-                result.append({'text': f"paid their half of {child['name']}'s childcare", 'date': care.isoformat(),
+                result.append({'text': f"paid your half of {child['name']}'s childcare",
+                               'shown': f"paid their half of {child['name']}'s childcare", 'date': care.isoformat(),
                                'spend': '', 'cost': round(month * CHILDCARE, 2), 'for': 'childcare'})
             care += timedelta(days=30)
     return result
