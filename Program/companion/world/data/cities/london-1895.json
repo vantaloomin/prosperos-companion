@@ -3372,7 +3372,11 @@
    "eras": [
     "victorian"
    ],
-   "worked_by": "women"
+   "worked_by": "women",
+   "ages": [
+    18,
+    40
+   ]
   },
   {
    "id": "telegraph-operator",
@@ -3427,7 +3431,11 @@
    "eras": [
     "victorian"
    ],
-   "worked_by": "women"
+   "worked_by": "women",
+   "ages": [
+    18,
+    50
+   ]
   },
   {
    "id": "schoolmistress",
@@ -3756,6 +3764,10 @@
    ],
    "eras": [
     "victorian"
+   ],
+   "ages": [
+    18,
+    24
    ]
   },
   {

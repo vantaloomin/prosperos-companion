@@ -11,7 +11,7 @@ from test_steps import prompt, says
 from companion import consequences
 from companion.characters import current
 from companion.database import decode
-from companion.life import big_days, breakups, expecting, families, money, openers, parenthood, rough_patches
+from companion.life import admin, big_days, breakups, expecting, families, money, openers, parenthood, rough_patches
 
 
 @pytest.fixture
@@ -125,13 +125,14 @@ def test_adopting_waits_for_a_match_and_the_child_comes_home(client, provider, c
     monkeypatch.setattr(expecting, 'FIRST_TEXTS', True)
     row = started(client, monkeypatch, route='adoption')
     keys = [item['key'] for item in row['stages'] if not item['key'].startswith('moment:')]
-    assert keys == ['agency', 'home_study', 'match', 'home']
+    assert keys == ['agency', 'home_study', 'match', 'things', 'home']  # A baby (the likeliest match) needs things.
     to(client, clock, stage(row, 'agency')['on'])
     says(provider)
     send(client, 'any news from the agency?', 'client-expecting-5')
     assert 'You are waiting to be matched with a child; nothing is known about who yet.' in prompt(provider)
     # The match to come is on the panel, without the day the engine picked.
     assert [(item['key'], item['date']) for item in family(client)['journey']['stages']][-1] == ('match', None)
+    assert 'things' not in [item['key'] for item in family(client)['journey']['stages']]
     to(client, clock, stage(row, 'match')['on'])
     [trigger] = triggers(client, clock)
     assert row['details']['name'] in trigger.reason and 'matched' in trigger.reason
@@ -639,6 +640,42 @@ def test_a_child_costs_what_it_would_in_a_modern_us_city(client, monkeypatch, li
         for route in ('fostering', 'ward', 'foundling', 'relative'):
             assert not any(expecting.fee(connection, companion, {**row, 'route': route}, key) for key in
                            ('training', 'agency', 'match', 'home', 'need', 'adopted', 'nursery'))
+
+
+def test_adopting_or_fostering_a_baby_buys_baby_things_once_the_baby_is_known(client, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, route='adoption', identity='She is a 31-year-old nurse.', home_city='Baltimore')
+    match, things, home = (date.fromisoformat(stage(row, key)['on']) for key in ('match', 'things', 'home'))
+    assert match < things < home
+    with client.app.state.database.connect() as connection:
+        cost, what = expecting.fee(connection, current(connection), row, 'things')
+    assert 600 <= cost * 2 <= 3000 and what == 'the baby things'
+    # Before the match, neither the calendar nor the panel gives it away.
+    to(client, clock, (match - timedelta(days=1)).isoformat())
+    with client.app.state.database.connect() as connection:
+        assert not connection.execute("SELECT 1 FROM life_admin WHERE key LIKE 'journey:%:things'").fetchall()
+    assert 'things' not in [item['key'] for item in family(client)['journey']['stages']]
+    # From the match it goes on the calendar as it comes within Life admin's weeks ahead.
+    to(client, clock, max(match, things - timedelta(days=admin.AHEAD)).isoformat())
+    with client.app.state.database.connect() as connection:
+        entry = connection.execute("SELECT title, cost FROM life_admin WHERE key LIKE 'journey:%:things'").fetchone()
+    assert entry['title'] == 'Buy baby things' and entry['cost'] == cost
+    assert 'things' in [item['key'] for item in family(client)['journey']['stages']]
+    # An older child needs none.
+    choice = decode(journey(client)['consequences'])['match']
+    assert client.post(f'/api/life/consequences/{choice}/change', json={'option': 2}).status_code == 200
+    assert 'things' not in [item['key'] for item in journey(client)['stages'] if item['on'] > clock.now().date().isoformat()]
+
+
+def test_fostering_a_baby_buys_baby_things_after_the_placement(client, monkeypatch, likeliest):
+    started(client, monkeypatch, route='fostering', identity='She is a 31-year-old nurse.', home_city='Baltimore')
+    choice = decode(journey(client)['consequences'])['match']
+    assert client.post(f'/api/life/consequences/{choice}/change', json={'option': 0}).status_code == 200
+    row = journey(client)
+    home, things = (date.fromisoformat(stage(row, key)['on']) for key in ('home', 'things'))
+    assert 1 <= (things - home).days <= 4
+    with client.app.state.database.connect() as connection:
+        assert expecting.fee(connection, current(connection), row, 'things')
+        assert not expecting.fee(connection, current(connection), row, 'training')
 
 
 def test_an_adoption_is_paid_from_savings_then_month_by_month(client, provider, clock, monkeypatch, likeliest):

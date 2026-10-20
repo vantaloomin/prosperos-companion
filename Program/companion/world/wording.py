@@ -7,6 +7,8 @@ city is in the United States; everywhere else the text is left as written.
 """
 import re
 
+BRITISH = re.compile(r'^(?:uk|u\.k\.|united kingdom|great britain|britain|england|scotland|wales|northern ireland)$',
+                     re.IGNORECASE)
 AMERICAN = re.compile(r'^(?:us|usa|u\.s\.a?\.?|united states(?: of america)?|america)$', re.IGNORECASE)
 # British spelling stems, matched at the start of a word: "neighbourhood", "favourites", "travelled".
 STEMS = {
@@ -35,6 +37,11 @@ WORDS = {
 
 def american(data: dict | None) -> bool:
     return bool(data) and bool(AMERICAN.match((data.get('country') or '').strip()))
+
+
+def british(data: dict | None) -> bool:
+    """The city is in the United Kingdom, where a mother is 'mum' (companion/life/circle.py voice)."""
+    return bool(data) and bool(BRITISH.match((data.get('country') or '').strip()))
 
 
 def _either(items) -> str:

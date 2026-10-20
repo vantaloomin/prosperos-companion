@@ -510,18 +510,30 @@ def role_kind(role: str) -> str:
 # In the old eras (London 1895, Camelot) people say mother and father, not mom and dad.
 # In an older era (A/B 2026-10-19 for the sweetheart: a tie, no new failures).
 OLD_WORDS = {'mom': 'mother', 'dad': 'father', 'boyfriend': 'sweetheart', 'girlfriend': 'sweetheart'}
+# In a British city of today (London), mum (wording.british).
+BRITISH_WORDS = {'mom': 'mum', 'stepmom': 'stepmum'}
+VOICES = {'older': OLD_WORDS, 'british': BRITISH_WORDS}
+
+
+def voice(city: dict | None) -> str:
+    """How people in this city name their family: 'older' (mother, in 1895), 'british' (mum, in London today) or ''
+    (mom). None is a place the app doesn't know, which speaks as today."""
+    from companion.world import townsfolk, wording
+    if city and not townsfolk.modern(city):
+        return 'older'
+    return 'british' if wording.british(city) else ''
 
 
 def said(role: str, definition: dict) -> str:
-    """The role as the companion says it in their era: 'mom', or 'mother' in 1895."""
+    """The role as the companion says it in their era: 'mom', 'mother' in 1895, 'mum' in London today."""
     from companion.world import perception
-    return era_word(role, not perception.era_modern(definition))
+    return era_word(role, voice(perception.home_data(definition)))
 
 
-def era_word(role: str, older: bool) -> str:
-    """The role in an older era's words ('mother' for 'mom') when `older` (older_era), else as it is: what the
-    screens show, like the companion's own lines (said)."""
-    return OLD_WORDS.get(role, role) if older else role
+def era_word(role: str, older: bool | str) -> str:
+    """The role in the city's words (`voice`, or True for an older era as older_era reads it): 'mother' for 'mom'
+    in 1895, 'mum' in London today, else as it is. What the screens show, like the companion's own lines (said)."""
+    return VOICES.get('older' if older is True else older or '', {}).get(role, role)
 
 
 def room(connection, companion: dict) -> dict:
@@ -658,6 +670,15 @@ def city_of_timeline(connection, timeline_id: str) -> dict | None:
     row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
     companion = row and by_id(connection, row['companion_id'])
     return ages.city_of(connection, companion['version']['definition']) if companion else None
+
+
+def voice_of(connection, timeline_id: str) -> str:
+    """`voice` for the timeline's companion's city: 'older', 'british' or ''."""
+    from companion.characters import by_id
+    from companion.world import newcomers
+    row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    companion = row and by_id(connection, row['companion_id'])
+    return voice(newcomers.city_for(connection, companion['version']['definition'])) if companion else ''
 
 
 def older_era(connection, timeline_id: str) -> bool:

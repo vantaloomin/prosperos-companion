@@ -331,3 +331,41 @@ def test_errands_planned_at_an_old_price_are_priced_again_once(client, mira):
         assert admin.reprice_old(connection, companion, database.clock.now()) == 0
         costs = {row['key']: row['cost'] for row in connection.execute('SELECT key, cost FROM life_admin')}
     assert 0 < costs[old['key']] <= 20 and costs[fair['key']] == 9
+
+
+def test_before_women_had_the_vote_she_has_no_polling_station():
+    """London 1895: no parliamentary vote for a woman; a man there, and a woman in 1925 or today, vote."""
+    def sheet(city, words):
+        return {'name': 'Ada Hartley', 'home_city': city, 'identity': f'29. {words}'}
+    assert not admin.votes(sheet('london-1895', 'She/her. She works as a typist.'))
+    assert admin.votes(sheet('london-1895', 'He/him. He works as a clerk.'))
+    assert admin.votes(sheet('new-york-1925', 'She/her. She works as a typist.'))
+    assert admin.votes(sheet('london', 'She/her.')) and admin.votes(sheet('london-1895', 'They/them.'))
+    errands = {item['id'] for item in admin.bank('errands', 'industrial', set(), True)}
+    assert 'vote-at-polling-station' not in errands
+    assert 'vote-at-polling-station' in {item['id'] for item in admin.bank('errands', 'industrial', {'vote'}, True)}
+
+
+def test_a_life_admin_cost_says_what_they_did_not_its_title(client, mira, clock):
+    """The money line reads "you dropped the cracked phone at the repair counter", not "you drop phone for screen
+    repair" (an order after "you"; A/B 2026-10-20); a check-up of their own is "your" check-up to the companion."""
+    today = clock.now().date()
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        from companion.characters import require_current
+        companion = require_current(connection)
+        timeline_id = companion['active_timeline_id']
+        for key, source, title, done, day in (
+                ('test:phone', 'admin', 'Drop phone for screen repair',
+                 'dropped the cracked phone at the repair counter and got a ticket number', today),
+                ('test:checkup', 'health', 'Asthma review', 'went to their asthma review', today + timedelta(days=1))):
+            assert admin.add(connection, companion, key=key, source=source, kind='errand', title=title, done=done,
+                             day=day, cost=40.0, now=database.clock.now())
+        connection.execute("UPDATE life_admin SET status='done' WHERE key LIKE 'test:%'")
+        found = {item['shown']: item['text'] for item in admin.purchases(connection, timeline_id, today,
+                                                                           today + timedelta(days=1))}
+    assert found == {'dropped the cracked phone at the repair counter and got a ticket number':
+                     'dropped the cracked phone at the repair counter and got a ticket number',
+                     'went to their asthma review': 'went to your asthma review'}
+    from companion.life import money
+    assert money.SPENT_ON['admin'] == 'on errands and paperwork'

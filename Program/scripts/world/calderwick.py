@@ -36,11 +36,14 @@ WORKED_BY = {'tube-fitter': M, 'tube-drawer': M, 'boilermaker': M, 'iron-moulder
              'office-clerk': M, 'infirmary-nurse': W, 'institute-lecturer': M, 'union-organiser': M, 'compositor': M,
              'reporter': M}
 
+# The ages someone works it at, youngest to oldest (schema Career.ages): never a 55-year-old squire.
+AGES = {'typist': [18, 40]}
+
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
             'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')} | (
-        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {})
+        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {}) | ({'ages': AGES[id]} if id in AGES else {})
 
 
 def event(id, name, months, hood, summary):

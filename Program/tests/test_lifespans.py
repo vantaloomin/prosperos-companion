@@ -346,7 +346,8 @@ def test_a_grown_kid_of_an_elf_and_a_human_is_a_half_elf(client, clock, monkeypa
     clock.advance(timedelta(days=370))
     reconcile(client)
     [leo] = [person for person in client.get('/api/life/circle').json() if person['name'] == 'Leo']
-    assert leo['role'] == 'son' and leo['age'] == 18 and leo['kind']['kind'] == 'half-elf'
+    # 17 when first met and a year on is 18, or 19 if a seeded birthday falls within those few extra days.
+    assert leo['role'] == 'son' and leo['age'] in (18, 19) and leo['kind']['kind'] == 'half-elf'
 
 
 def test_a_child_of_two_of_a_citys_own_kind_is_that_kind(client, clock, monkeypatch):

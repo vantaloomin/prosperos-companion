@@ -27,7 +27,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, pronouns
-from companion.world import catalog, generators, townsfolk
+from companion.world import catalog, generators
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'traditions.json'
 MOST = 5
@@ -132,7 +132,7 @@ def teaser(connection, row: dict, holiday: str, their: str = 'their') -> str:
         return f'{holiday} at {their} own place'
     if 'friend' in host['role']:
         return f"{holiday} with {their} friend {host['name']}"
-    role = circle.era_word(host['role'], circle.older_era(connection, row['timeline_id']))  # 'mother' in 1895
+    role = circle.era_word(host['role'], circle.voice_of(connection, row['timeline_id']))  # 'mother' in 1895
     return f"{holiday} at {their} {role} {host['name']}'s{where(host)}"
 
 
@@ -151,7 +151,7 @@ def seeded(timeline_id: str, city: dict, people: list[dict]) -> list[dict]:
         host = host_for(entry['with'], people, pick, entry['main'])
         if entry['with'] in ('mom', 'dad') and not host:
             continue  # Mother's Day needs a mom in the circle.
-        said = host and {**host, 'role': circle.era_word(host['role'], not townsfolk.modern(city))}  # 'mother' in 1895
+        said = host and {**host, 'role': circle.era_word(host['role'], circle.voice(city))}  # 'mother' in 1895
         result.append({'holiday': entry['holiday'], 'host_id': host['id'] if host else None,
                        'text': compose(entry, said, pick, turn)})
         turn += 1
@@ -195,7 +195,7 @@ def on_dates(connection, companion: dict, city: dict | None, start: date, end: d
     rows = {row['holiday']: row for row in kept(connection, companion['active_timeline_id'])}
     if not rows or not city:
         return {}
-    found, older = {}, not townsfolk.modern(city)
+    found, older = {}, circle.voice(city)
     for item in dated(city, start, end):
         if row := rows.get(item['id']):
             host = optional(connection, "SELECT id, name, role, schedule FROM circle_people WHERE id=? AND "

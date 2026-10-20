@@ -453,7 +453,10 @@ def test_their_own_babys_odds_show_under_hidden_values(client, mira, clock, monk
     [story] = [item for item in client.get('/api/life/storylines').json() if item['story'] in ('expecting', 'adopting')]
     outcome = client.get(f"/api/life/consequences/{story['beats'][0]['consequence']}").json()
     assert outcome['label'].startswith('Whether Mira and ') and outcome['label'].endswith(' have a baby this year')
-    assert outcome['options'][0]['label'] == 'A baby on the way' and outcome['picked'] == 0
+    # The options name the couple, like a circle member's baby.
+    couple = outcome['label'].removeprefix('Whether ').removesuffix(' have a baby this year')
+    assert outcome['options'][0]['label'] == f'A baby on the way for {couple}' and outcome['picked'] == 0
+    assert outcome['options'][1]['label'] == f'No baby for {couple} this year'
     assert outcome['options'][0]['reasons'][1:] == ['Mira wants children']
     assert outcome['options'][0]['reasons'][0].endswith(' live together')
     assert outcome['options'][0]['moves'] == ['possible', 'more']

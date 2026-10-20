@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { howText } from '../../src/features/memories/pairText.ts'
+import { howText, modelHow } from '../../src/features/memories/pairText.ts'
 import { PROFILE_TABS, circleText, handle, placeFact, profileClass, profileTab, showsCard } from '../../src/features/profile/profileText.ts'
 
 test('the profile holds Messages, Posts, Memories and Character under their old addresses', () => {
@@ -66,4 +66,14 @@ test('how two companions know each other says you, not the user, on screen', () 
   assert.equal(howText("The user's old roommates"), 'Your old roommates')
   assert.equal(howText('Roommates in college'), 'Roommates in college')
   assert.equal(howText('Met at the username meetup'), 'Met at the username meetup')
+})
+
+test('the Groups backstory box shows you and saves the user, as the companions read it', () => {
+  const suggested = 'Both live in Baltimore, but only know each other through the user'
+  assert.equal(howText(suggested), 'Both live in Baltimore, but only know each other through you')
+  assert.equal(modelHow(howText(suggested)), suggested)
+  assert.equal(modelHow('Your old roommates, they met at your party'), "The user's old roommates, they met at the user's party")
+  assert.equal(modelHow("Friends of yours, and you're still in touch"), "Friends of the user's, and you're still in touch")
+  assert.equal(modelHow('Roommates in college'), 'Roommates in college')
+  assert.equal(modelHow('Met at a youth hostel in Lyon'), 'Met at a youth hostel in Lyon')
 })

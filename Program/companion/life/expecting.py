@@ -73,8 +73,8 @@ TOLD_PEOPLE = 3
 # fee everyone there pays alike), how many months of it by era group, and what it paid for. A nursery and baby things
 # come to a few thousand dollars in a modern US city; an agency adoption to about $40,000 in all, most of it at the
 # match; a surrogate to about $130,000. New York 1925 adopts through a charity, with a lawyer's and the court's fees;
-# fostering costs nothing (the training is free, and the state pays a foster carer); older times take a child in
-# without any fee.
+# fostering costs nothing but a baby's things (the training is free, and the state pays a foster carer), and an
+# adopted baby needs baby things beside the agency's fees; older times take a child in without any fee.
 FEES = {'nursery': ('own', {'modern': 0.45, 'jazz': 0.3, 'old': 0.2}, 'the nursery'),
         'things': ('own', {'modern': 0.4, 'jazz': 0.25, 'old': 0.15}, 'the baby things'),
         'adoption:agency': ('city', {'modern': 1.8}, "the adoption agency's sign-up and home study fees"),
@@ -268,12 +268,16 @@ def moments(low: date, high: date, seed: str, kind: str = 'pregnancy') -> list[d
 
 def adopting(connection, companion: dict, row: dict, start: date, seed: str, found: dict) -> tuple[list, dict]:
     """The agency, a home study, the wait, the match and the day they come home; fostering trains first and places a
-    child, who with family:fostered is adopted some months on."""
+    child, who with family:fostered is adopted some months on. A baby (family:match) needs baby things: bought
+    between the match and coming home, or in the first days of a placement, which comes at short notice."""
     agency = start + timedelta(days=span(seed, 'agency', (10, 30)))
     study = agency + timedelta(days=span(seed, 'study', (35, 70)))
+    baby = found['match']['picked'] == 0
     if row['route'] in FOSTERING:
         home = study + timedelta(days=span(seed, 'placement', (45, 150)))
         stages = [at(agency, 'training'), at(study, 'home_study'), at(home, 'home')]
+        if baby:
+            stages.append(at(home + timedelta(days=span(seed, 'things', (1, 4))), 'things'))
         if found['fostered']['picked'] == 0:
             stages.append(at(home + timedelta(days=span(seed, 'adopted', (180, 365))), 'adopted'))
         return stages + moments(agency, home, seed, 'waiting'), {}
@@ -281,6 +285,8 @@ def adopting(connection, companion: dict, row: dict, start: date, seed: str, fou
     matched = max(matched, study + timedelta(days=30))
     home = matched + timedelta(days=span(seed, 'home', (14, 42)))
     stages = [at(agency, 'agency'), at(study, 'home_study'), at(matched, 'match'), at(home, 'home')]
+    if baby:
+        stages.append(at(home - timedelta(days=span(seed, 'things', (3, 10))), 'things'))
     return stages + moments(agency, matched, seed, 'waiting'), {}
 
 
@@ -499,10 +505,19 @@ def calendar(connection, companion: dict, row: dict, today: date, now) -> None:
     for stage in row['stages']:
         day = date.fromisoformat(stage['on'])
         task = TASKS.get(stage['key'])
-        if task and today <= day <= today + timedelta(days=admin.AHEAD):
+        if task and today <= day <= today + timedelta(days=admin.AHEAD) and not before_the_news(row, stage, today):
             task(connection, companion, row, stage, now)
         if stage['key'] == 'nursery' and day <= today:
             make_room(connection, companion, row, today)
+
+
+def before_the_news(row: dict, stage: dict, today: date) -> bool:
+    """Baby things for a child not yet matched (an adoption) or placed (fostering): kept off the calendar and the
+    panel until then, which would give away the day the engine picked and that it is a baby."""
+    if stage['key'] != 'things' or row['route'] in PREGNANCY:
+        return False
+    news = next((item for item in row['stages'] if item['key'] in ('match', 'home')), None)
+    return not news or news['on'] > today.isoformat()
 
 
 def appointment(connection, companion: dict, row: dict, stage: dict, now) -> None:
@@ -586,7 +601,7 @@ def fee(connection, companion: dict, row: dict, key: str) -> tuple[float, str] |
     """(the companion's half, what it paid for) of a stage that costs money (FEES), in their city's money; None for
     one that costs nothing or where money does not apply. Seeded 80% to 120% of the usual price."""
     from companion.life import money
-    found = FEES.get(f"{row['route']}:{key}") or (FEES.get(key) if row['route'] in PREGNANCY else None)
+    found = FEES.get(f"{row['route']}:{key}") or (FEES.get(key) if row['route'] in PREGNANCY or key == 'things' else None)
     profile = money.profile(companion['version']['definition']) if found else None
     group = era_group(connection, companion)
     months = found[1].get(group) if found else None
@@ -1091,6 +1106,8 @@ def listed(stage: dict, done: dict, row: dict) -> bool:
         return True
     if row['status'] == 'planned' or key in ('bed_rest', 'soon', 'adopted'):
         return False
+    if key == 'things' and row['route'] not in PREGNANCY:
+        return 'match' in done or 'home' in done  # A baby's things once the baby is known of (before_the_news).
     return key != 'home' or 'match' in done or 'need' in done
 
 

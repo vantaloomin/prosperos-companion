@@ -40,7 +40,8 @@ of about 45 modern careers describes schedules and themes; a city whose `era` is
 careers. A career may say who did that work in its era (`worked_by`: `men` or `women`; left out, anyone). In a
 city that keeps work by gender, townsfolk, circles and a companion's job changes only get the work of their side
 (they/them people get any): `work_by_gender` turns it on or off, and left out the era decides (on for `victorian`,
-`medieval`, `steampunk` and `frontier`, off otherwise; Ellerbrück turns it on, Grandport and Oz leave it off).
+`medieval`, `steampunk`, `frontier` and `jazz-age`, off otherwise; Ellerbrück turns it on, Grandport and Oz leave it
+off). A career may also say the ages it is worked at (`ages`: `[18, 24]` for a squire; left out, any working age).
 Each city also names its `currency` and `rent_period` (`month` or `week`); rents and climate
 are optional, so a setting without money (Oz) or without weather data still works.
 

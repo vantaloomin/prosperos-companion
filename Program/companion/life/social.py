@@ -150,7 +150,7 @@ def write(connection, companion, now: datetime) -> int:
 
 def active_people(connection, timeline_id) -> dict[str, dict]:
     """The circle as the posts show them: the role in their era's words ('mother' in 1895, circle.era_word)."""
-    older = circle.older_era(connection, timeline_id)
+    older = circle.voice_of(connection, timeline_id)
     return {row['id']: {'id': row['id'], 'name': row['name'], 'role': circle.era_word(row['role'], older)}
             for row in many(connection, "SELECT id, name, role FROM circle_people WHERE timeline_id=? "
                             "AND status='active' ORDER BY ordinal", (timeline_id,))}

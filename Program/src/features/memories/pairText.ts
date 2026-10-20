@@ -23,6 +23,14 @@ export function howText(how: string): string {
     .replace(/\b([Tt])he user\b/g, (_, t: string) => (t === 'T' ? 'You' : 'you'))
 }
 
+/** The reverse of howText, for what the user types in the Groups "How they know each other" box: the line reaches
+ * the companions' prompts as "How you know Sam: ...", where "you" is the companion, so the user's "you" is saved as
+ * "the user" ("you're" and the like are left as typed). */
+export function modelHow(how: string): string {
+  return how.replace(/\b([Yy])our(s?)\b(?!['’])/g, (_, y: string) => (y === 'Y' ? "The user's" : "the user's"))
+    .replace(/\b([Yy])ou\b(?!['’])/g, (_, y: string) => (y === 'Y' ? 'The user' : 'the user'))
+}
+
 /** What their stage comes from, so it reads as history rather than a setting. */
 export function tieWhy(tie: PairTie): string {
   const parts = []

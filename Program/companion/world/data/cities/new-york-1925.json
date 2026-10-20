@@ -5627,7 +5627,8 @@
    ],
    "eras": [
     "jazz-age"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "bootblack",
@@ -5700,6 +5701,10 @@
    ],
    "eras": [
     "jazz-age"
+   ],
+   "ages": [
+    18,
+    32
    ]
   },
   {
@@ -5718,7 +5723,8 @@
    ],
    "eras": [
     "jazz-age"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "elevator-operator",

@@ -139,7 +139,7 @@ def _career_weights(offered: tuple, own: tuple, employers: tuple, sectors: tuple
 
 
 # Eras whose work custom kept to men or to women (a careers' `worked_by`), unless the city says otherwise.
-GENDERED_ERAS = {'victorian', 'medieval', 'steampunk', 'frontier'}
+GENDERED_ERAS = {'victorian', 'medieval', 'steampunk', 'frontier', 'jazz-age'}
 SIDES = {'she': 'women', 'he': 'men'}
 
 
@@ -166,12 +166,14 @@ def own_side(data: dict, pronouns: str | None, offered: dict[str, dict]) -> dict
     return {key: career for key, career in offered.items() if side(career)} or offered
 
 
-def town_career(data: dict, seed: str, label: str = 'career', fits=None, pronouns: str | None = None) -> dict | None:
+def town_career(data: dict, seed: str, label: str = 'career', fits=None, pronouns: str | None = None,
+                age: int | None = None) -> dict | None:
     """A career for someone living in this city, weighted towards the city's own industries (career_weights).
-    `fits(career_id)` keeps only careers that suit them (their age, say); `pronouns` keeps to the work their era
-    gave their side (fits_side)."""
+    `fits(career_id)` keeps only careers that suit them; `pronouns` keeps to the work their era gave their side
+    (fits_side), and `age` (in human terms) to the work done at that age (fits_age: never a 55-year-old squire)."""
     offered = own_side(data, pronouns, catalog.everyday(catalog.careers_for(data)))
-    weights = {key: weight for key, weight in career_weights(data, offered).items() if not fits or fits(key)}
+    weights = {key: weight for key, weight in career_weights(data, offered).items()
+               if (not fits or fits(key)) and (age is None or fits_age(offered[key], age))}
     chosen = rank_pick(seed, label, weights)
     return offered[chosen] if chosen else None
 
@@ -570,7 +572,6 @@ PRONOUNS = {'she': 'she/her', 'he': 'he/him', 'they': 'they/them'}
 GIVEN = {'she': 'feminine', 'he': 'masculine'}
 HAUNTS = ('cafe', 'bar', 'tavern', 'inn', 'restaurant', 'park', 'garden', 'fitness', 'library', 'market',
           'beach', 'square', 'trail')
-AGES = {'undergraduate': (18, 22), 'graduate-student': (23, 31), 'physician-resident': (26, 33)}
 RETIRED_AT = 67
 ROLES = {
     # Role: (closeness, age offset range from the companion, shares the family name)
@@ -683,13 +684,20 @@ def _given_for(seed: str, culture: str, born: int, pronouns: str) -> str:
     return pick(seed, 'given', pool, naming.rank_weights(pool))
 
 
-def _age(seed: str, career: str | None, around: int | None, role: str) -> int:
+def fits_age(career: dict | None, age: int) -> bool:
+    """Whether someone this age (in human terms) works this career: a squire is young (Career.ages)."""
+    low, high = (career or {}).get('ages') or (0, 999)
+    return low <= age <= high
+
+
+def _age(data: dict, seed: str, career: str | None, around: int | None, role: str) -> int:
     offsets = ROLES[role][1]
     if around is None and role in ('parent', 'sibling', 'cousin', 'mentor', 'old-classmate'):
         # Relatives and mentors are placed relative to someone; without an age, assume a companion of 33.
         around = 33
-    if career in AGES:
-        low, high = AGES[career]
+    ages = (catalog.careers_for(data, needs_met=False).get(career) or {}).get('ages') if career else None
+    if ages:
+        low, high = ages
     elif around is not None:
         low, high = max(18, around + offsets[0]), max(18, around + offsets[1])
     else:
@@ -707,9 +715,9 @@ def _career_for(data: dict, seed: str, age: int, employer: str | None, pronouns:
         options = [career for career in record['careers'] if career in offered]
         if (side := fits_side(data, pronouns)) and (fitting := [career for career in options if side(offered[career])]):
             options = fitting
+        options = [career for career in options if fits_age(offered[career], age)] or options
         return pick(seed, 'career', sorted(options)) if options else None
-    found = town_career(data, seed, pronouns=pronouns,
-                        fits=lambda career: AGES.get(career, (0, 99))[0] <= age <= AGES.get(career, (0, 99))[1])
+    found = town_career(data, seed, pronouns=pronouns, age=age)
     return found['id'] if found else None
 
 
@@ -745,7 +753,7 @@ def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None 
     """
     if role not in ROLES:
         raise DomainError(f'Role is one of {", ".join(ROLES)}.', 422)
-    life = age or _age(seed, career, around_age, role)
+    life = age or _age(data, seed, career, around_age, role)
     named = name(data, seed=seed, group=group, family=family, age=life)
     folk = folk or lifespans.of_group(data, named['group'])
     person = {'id': f'{role}-{hashlib.sha256(seed.encode()).hexdigest()[:8]}', 'role': role,

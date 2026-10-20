@@ -720,7 +720,7 @@ SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip',
             'gift': 'on gifts', 'school': 'on your course', 'deposit': 'from your savings',
             'business': 'from your savings', 'care': "on a parent's care", 'funeral': 'for a funeral',
             'family': 'from your savings', 'owed': 'on what you still owe', 'childcare': 'for the family',
-            'sitter': 'for the family', 'baby': 'for the family'}
+            'sitter': 'for the family', 'baby': 'for the family', 'admin': 'on errands and paperwork'}
 
 
 def payday_text(view: dict, local_date: str) -> str:
