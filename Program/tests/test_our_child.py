@@ -152,6 +152,11 @@ def test_family_life_sets_how_hard_the_nights_are(client, clock, monkeypatch):
         assert not any(our_child.sick_on(connection, child, day) for day in nights)
 
 
+def named(name: str, text: str) -> bool:
+    """Whether a name is in the text as a word ("Ren" is not in "Rent is about")."""
+    return bool(re.search(rf'\b{re.escape(name)}\b', text))
+
+
 def test_the_adult_side_and_the_family_never_share_a_reply(client, provider, clock, monkeypatch):
     row, child = born(client, clock, monkeypatch)
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
@@ -161,7 +166,7 @@ def test_the_adult_side_and_the_family_never_share_a_reply(client, provider, clo
     intimate(client)
     says(provider)
     send(client, 'come here you', 'client-ours-4')
-    assert child['name'] not in prompt(provider)
+    assert not named(child['name'], prompt(provider))
     with connect(client) as connection:
         assert families.pictured(connection, current(connection)['active_timeline_id'], [f"A day out with {child['name']}"])
 
@@ -324,7 +329,7 @@ def test_the_characters_own_words_count_toward_a_replys_side(client, provider, c
     row, child = born(client, clock, monkeypatch, background='Loves slow kisses and lazy mornings.')
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     send(client, 'how was the day?', 'client-ours-9')
-    assert child['name'].split()[0] not in prompt(provider)
+    assert not named(child['name'].split()[0], prompt(provider))
 
 
 def test_a_reply_without_the_family_lines_leaves_out_lines_about_a_child_however_named(client, provider, clock,
