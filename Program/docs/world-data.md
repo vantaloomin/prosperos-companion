@@ -13,7 +13,7 @@ Built-in cities come in three kinds (`setting`):
 | --- | --- |
 | `real` | Baltimore, Chicago, New York, Miami, New Orleans, San Diego, Los Angeles (written by a beta tester), Las Vegas, London, Jeju (South Korea, in won) and Osaka (Japan, in yen); New York, 1925 is the real city in the Jazz Age (`jazz-age`) |
 | `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Grandport, the merchant republic's capital in Oak's dark fantasy world Neokosmos, ships with Oak's permission (see Credits below). Other settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
-| `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, Calderwick, an industrial canal city with a steampunk lean, Haddon Harbor, a modern Maine harbour town where everyone knows everyone, and Pellmouth, a 1926 Massachusetts river-mouth town with a cosmic-horror lean (rumour and legend, never confirmed monsters; it names `category: fictional`). |
+| `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, Calderwick, an industrial canal city with a steampunk lean, Haddon Harbor, a modern Maine harbour town where everyone knows everyone, Pellmouth, a 1926 Massachusetts river-mouth town with a cosmic-horror lean (rumour and legend, never confirmed monsters; it names `category: fictional`), and The Long Meridian, a generation ship in the 188th year of its voyage, with Port Vesper, the trading station that flies beside it (both `future` and enclosed, three hours apart by shuttle; written by `scripts/world/long_meridian.py` and `port_vesper.py`). |
 
 City lists (Settings > Cities and every city picker) shelve cities as **Real / Modern**, **Other Eras**,
 **Fictional** and **Custom**. Custom holds the user's own cities. Any other city can name its shelf in
@@ -354,7 +354,9 @@ an id still fails.
 `enclosed`. Set `"enclosed": true` in the file, or leave it out and the app decides as the city loads:
 an era of `future` whose country, region or name says ship or station ("Generation ship", "Orbital
 station"), or with two or more neighbourhoods named as decks or rings, reads as one, and
-`import_notes` says so. `"enclosed": false` keeps a future city with a Ring Road on the ground.
+`import_notes` says so. `"enclosed": false` keeps a future city with a Ring Road on the ground. The
+built-in Long Meridian and Port Vesper are the examples; **Start from a ship** in Settings > Cities
+(`GET /api/world/template?kind=ship`) gives a small ship of three decks that docks at Port Vesper.
 Aboard there is no weather and no Earth seasons (no winter colds, no autumn coat shopping), a flat
 70°F climate stands in when the city gives none, cars, rideshares and horses are dropped from
 `speeds` (so nobody owns a car or pays car bills), summer barbecues are left out of friends'

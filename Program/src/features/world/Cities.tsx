@@ -1,7 +1,7 @@
 import { reducedMotion } from '../../motion'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, Download, FilePlus2, FolderSync, Pencil, Search, Trash2, Upload } from 'lucide-react'
+import { Copy, Download, FilePlus2, FolderSync, Pencil, Rocket, Search, Trash2, Upload } from 'lucide-react'
 import { api } from '../../api'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -16,7 +16,7 @@ const BROKEN_KEY = ['broken-cities']
 // `notes` lists what the server mended or added when it loaded a city (companion/world/mend.py).
 type Feedback = { tone: 'info' | 'error'; text: string; notes?: string[] } | null
 // What the editor is working on: a new city (from the template, a file or a copy) or one of the user's own.
-type Editing = { mode: 'create'; text: string } | { mode: 'update'; id: string; revision: number; text: string }
+type Editing = { mode: 'create'; text: string; ship?: boolean } | { mode: 'update'; id: string; revision: number; text: string }
 
 const pretty = (value: unknown) => JSON.stringify(value, null, 1)
 
@@ -70,8 +70,9 @@ export function Cities() {
   const refresh = () => Promise.all([client.invalidateQueries({ queryKey: CITIES_KEY }), client.invalidateQueries({ queryKey: BROKEN_KEY })])
   const fail = (error: unknown) => setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work.' })
 
-  const startNew = async () => {
-    try { setEditing({ mode: 'create', text: pretty(await api('/world/template')) }); setFeedback(null) } catch (error) { fail(error) }
+  // A city on the ground, or a small ship that docks at Port Vesper (companion/world/custom.py ship_template).
+  const startNew = async (kind: 'city' | 'ship' = 'city') => {
+    try { setEditing({ mode: 'create', text: pretty(await api(`/world/template?kind=${kind}`)), ship: kind === 'ship' }); setFeedback(null) } catch (error) { fail(error) }
   }
   const startEdit = async (city: CityListing) => {
     try {
@@ -116,8 +117,9 @@ export function Cities() {
         <h2 id="cities-heading">Cities</h2>
         <p className="subtle">A companion's days are built from their home city: its neighborhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared. A Marinara world map opens as a city straight away, with its places' notes as world lore.</p>
       </div>
-      <div className="form-actions">
+      <div className="form-actions wrap">
         <button type="button" className="button" onClick={() => void startNew()}><FilePlus2 aria-hidden="true" />New city</button>
+        <button type="button" className="button" onClick={() => void startNew('ship')}><Rocket aria-hidden="true" />Start from a ship</button>
         <button type="button" className="button" onClick={() => file.current?.click()}><Upload aria-hidden="true" />Open a city file</button>
         <input ref={file} type="file" accept=".json,application/json" hidden onChange={(event) => void importFile(event.target.files?.[0])} />
       </div>
@@ -257,8 +259,8 @@ function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: 
   }
   return (
     <div className="city-editor form-stack">
-      <h3>{editing.mode === 'create' ? 'New city' : `Editing ${editing.id}`}</h3>
-      <p className="subtle" id="city-json-hint">A city is a JSON file. Every place, college and employer names its neighborhood. New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
+      <h3>{editing.mode === 'create' ? (editing.ship ? 'New ship' : 'New city') : `Editing ${editing.id}`}</h3>
+      <p className="subtle" id="city-json-hint">{editing.mode === 'create' && editing.ship ? 'A ship is a city file with "enclosed": true, so it has no weather or cars. Its decks are its neighborhoods, and every place and employer names its deck.' : 'A city is a JSON file. Every place, college and employer names its neighborhood.'} New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
       <label htmlFor="city-json" className="visually-hidden">City definition</label>
       <textarea id="city-json" aria-describedby="city-json-hint" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
       <div aria-live="polite">{result && <FeedbackNotice feedback={result} />}</div>

@@ -89,8 +89,8 @@ def reload_packs():
 
 
 @router.get('/template')
-def read_template(request: Request):
-    return custom.template(request.app.state.database.now()[:10])
+def read_template(request: Request, kind: Literal['city', 'ship'] = 'city'):
+    return custom.template(request.app.state.database.now()[:10], kind)
 
 
 @router.post('/validate')

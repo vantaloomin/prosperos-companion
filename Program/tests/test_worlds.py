@@ -192,6 +192,6 @@ def test_a_new_persona_lives_in_the_city_the_user_picked(client, companion):
 def test_somewhere_new_is_a_featured_city_other_than_this_one(client, companion):
     made = ok(client.post('/api/worlds/personas', json={'name': 'Frankie', 'city_id': 'somewhere-new'}))
     world = made['worlds'][0]
-    assert world['city_id'] != 'baltimore' and world['city_id'] in {'grandport', 'pellmouth', 'osaka'}
+    assert world['city_id'] != 'baltimore' and world['city_id'] in {'grandport', 'long-meridian', 'osaka'}
     other = ok(client.post('/api/worlds', json={'city_id': 'somewhere-new'}))
-    assert other['city_id'] in {'grandport', 'pellmouth', 'osaka'}
+    assert other['city_id'] in {'grandport', 'long-meridian', 'osaka'}

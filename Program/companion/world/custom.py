@@ -159,8 +159,10 @@ def copy(database, source_id: str, new_id: str, name: str) -> dict:
     return create(database, _definition(source) | {'id': new_id, 'name': name, 'aliases': []})
 
 
-def template(today: str) -> dict:
-    """The smallest valid city, for the interface's "start from scratch"."""
+def template(today: str, kind: str = 'city') -> dict:
+    """The smallest valid city, for the interface's "start from scratch", or a small ship ("Start from a ship")."""
+    if kind == 'ship':
+        return ship_template(today)
     return {
         'schema_version': 1, 'id': 'my-city', 'name': 'My city', 'setting': 'original', 'era': 'modern',
         'region': 'Region', 'country': 'Country', 'timezone': 'UTC', 'summary': 'A few words about the city.',
@@ -174,6 +176,52 @@ def template(today: str) -> dict:
                     'summary': 'A small cafe on the main square.', 'cost': '$', 'setting': 'indoor',
                     'good_for': ['solo', 'friends'], 'day_parts': ['morning', 'afternoon'],
                     'source': TEMPLATE_SOURCE}],
+    }
+
+
+def ship_template(today: str) -> dict:
+    """A small generation ship to build on: future era and enclosed (no weather, Earth seasons or cars), three decks
+    with somewhere to eat, a lift, a holiday of its own, and the built-in Port Vesper as the station it docks at."""
+    def deck(key, name, summary, vibe, lon, housing):
+        return {'id': key, 'name': name, 'summary': summary, 'vibe': vibe, 'lat': 0.0, 'lon': lon,
+                'housing': housing, 'walkability': 'high', 'transit': ['lifts'], 'source': TEMPLATE_SOURCE}
+
+    def spot(key, name, kind, hood, summary, cost, good_for, day_parts):
+        return {'id': key, 'name': name, 'kind': kind, 'neighborhood': hood, 'summary': summary, 'cost': cost,
+                'setting': 'indoor', 'good_for': good_for, 'day_parts': day_parts, 'source': TEMPLATE_SOURCE}
+
+    return {
+        'schema_version': 1, 'id': 'my-ship', 'name': 'My ship', 'setting': 'original', 'era': 'future',
+        'region': 'Between the stars', 'country': 'Generation ship', 'timezone': 'UTC', 'enclosed': True,
+        'summary': 'A few words about the ship: how many aboard, how long it has been traveling and where to.',
+        'lat': 0.0, 'lon': -140.0, 'calendar': 'none',
+        'currency': {'code': 'CR', 'symbol': 'cr', 'name': 'credits'},
+        'speeds': {'walk': 4.5, 'lift': 18},
+        'sources': {TEMPLATE_SOURCE: {'kind': 'user', 'title': 'Written by the user', 'license': 'User content',
+                                      'retrieved': today}},
+        'neighbours': [{'city': 'port-vesper', 'hours': 3}],
+        'neighborhoods': [
+            deck('command-deck', 'Command Deck', 'The bridge and the offices that run the ship.', ['civic'],
+                 -139.99, ['cabin']),
+            deck('habitat-ring', 'Habitat Ring', 'Family cabins, the mess hall and the school.', ['family'],
+                 -140.0, ['cabin', 'family-berth']),
+            deck('green-deck', 'Green Deck', 'Hydroponic farms under purple light.', ['farming'], -140.01,
+                 ['crew-berth']),
+        ],
+        'places': [
+            spot('observation-lounge', 'The observation lounge', 'bar', 'command-deck',
+                 'A quiet lounge with a window onto the stars.', '$$', ['solo', 'date', 'friends'],
+                 ['evening', 'late']),
+            spot('mess-hall', 'The mess hall', 'restaurant', 'habitat-ring',
+                 'Long tables and a different stew every day.', '$', ['friends', 'family', 'coworkers'],
+                 ['morning', 'afternoon', 'evening']),
+            spot('green-deck-cafe', 'The growers\' cafe', 'cafe', 'green-deck',
+                 'Mint tea and toast before the farm shift.', '$', ['solo', 'friends'], ['morning', 'afternoon']),
+        ],
+        'transit': [{'id': 'lifts', 'name': 'Deck lifts', 'kind': 'lift',
+                     'summary': 'Lifts between the decks, every few minutes.', 'source': TEMPLATE_SOURCE}],
+        'holidays': [{'id': 'launch-day', 'name': 'Launch Day', 'kind': 'public', 'month': 4, 'day': 9,
+                      'summary': 'The day the ship set out.'}],
     }
 
 
