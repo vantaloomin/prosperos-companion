@@ -32,7 +32,8 @@ export function adminTags(item: AdminItem, inWorkPanel = false): string[] {
 
 /** What a stay moves by: 'weekend', 'week' or 'day' (companion/life/stays.py moves it a week on). */
 export function stayUnit(item: AdminItem): string {
-  if (!item.end_date || item.end_date === item.local_date) return 'day'
+  // A day with them moves to the same day next week, as a weekend does (companion/life/stays.py `move`).
+  if (!item.end_date || item.end_date === item.local_date) return 'week'
   const days = (Date.parse(item.end_date) - Date.parse(item.local_date)) / 86_400_000 + 1
   return days >= 6 ? 'week' : 'weekend'
 }

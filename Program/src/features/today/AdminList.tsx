@@ -5,6 +5,7 @@ import { api } from '../../api'
 import type { AdminItem } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { ADMIN_KEY, adminMoved, adminTags, adminWhen, stayUnit } from './adminText'
+import { dayText } from './outingText'
 
 /** Lists longer than this show their first few, with the rest a tap away (Iris's review). */
 export const FOLD = 3
@@ -36,7 +37,7 @@ export function AdminList({ items, done = false, fold = FOLD, inWorkPanel = fals
         {shown.map((item) => {
           const moved = adminMoved(item)
           return (
-            <li key={item.id} className="admin-item">
+            <li key={item.id} className={item.status === 'skipped' ? 'admin-item admin-skipped' : 'admin-item'}>
               <div className="admin-head">
                 <strong>{item.title}</strong>
                 {adminTags(item, inWorkPanel).map((tag) => <span key={tag} className="badge">{tag}</span>)}
@@ -49,6 +50,7 @@ export function AdminList({ items, done = false, fold = FOLD, inWorkPanel = fals
               {item.detail && <p className="subtle">{item.detail}</p>}
               {item.line && <p className="subtle">{item.line}.</p>}
               {moved && <p className="subtle">{moved}</p>}
+              <MadeUp item={item} />
             </li>
           )
         })}
@@ -65,8 +67,13 @@ function StayButtons({ item, busy, act }: { item: AdminItem; busy: boolean; act:
   if (!stay.can_change) return null
   return (
     <span className="admin-actions">
-      <button type="button" className="text-button" disabled={busy} aria-label={`Move ${item.title} to the next free ${stayUnit(item)}`} onClick={() => act('move')}><CalendarClock aria-hidden="true" />Move</button>
+      <button type="button" className="text-button" disabled={busy} aria-label={`Move ${item.title} to the next ${stayUnit(item)}`} onClick={() => act('move')}><CalendarClock aria-hidden="true" /><span className="desktop-only">Move to next {stayUnit(item)}</span><span className="phone-only">Move</span></button>
       <button type="button" className="text-button" disabled={busy} aria-label={`Skip ${item.title}`} onClick={() => act('skip')}><SkipForward aria-hidden="true" />Skip this one</button>
     </span>
   )
+}
+
+/** Under a skipped stay, when its make-up is (Iris: the child wasn't simply dropped). */
+function MadeUp({ item }: { item: AdminItem }) {
+  return item.stay?.made_up ? <p className="subtle">Made up on {dayText(item.stay.made_up)}</p> : null
 }

@@ -37,6 +37,7 @@ ACTIVE = True
 AHEAD = 21  # Days planned ahead, like the rest of the calendar (companion/life/admin.py).
 SHOWN = 14  # Days ahead Today shows.
 GROWN = 18
+DAYTIME_UNDER = 3  # Children this young have a day with the other parent, not a weekend away.
 # Across cities, weeks between stays by the Getting together slider (0 to 3).
 FAR_WEEKS = {0: 8, 1: 6, 2: 4, 3: 3}
 # What comes on top of the rhythm at each level of the Getting together slider.
@@ -63,6 +64,7 @@ class Case:
         self.family, self.subject, self.kids, self.host, self.other = family, subject, kids, host, other
         self.rhythm, self.far, self.city, self.since = rhythm, far, city, since
         self.level = 2  # The Getting together slider, set for a planning pass (`plan_ahead`).
+        self.home = None  # Across cities, the city the children live in.
 
 
 def level(connection) -> int:
@@ -102,8 +104,10 @@ def ours(connection, companion: dict, today: date) -> Case | None:
     city = (between.their_city if host == COMPANION else between.your_city) if between else None
     rhythm = None if between else (lambda day: custody.with_them(state, day) == (host == COMPANION))
     row = custody.ended(connection, companion)
-    return Case(OURS, row['id'], our_child.at_home(connection, companion['active_timeline_id'], today), host, 'the user',
-                rhythm, bool(between), city, state['since'])
+    case = Case(OURS, row['id'], our_child.at_home(connection, companion['active_timeline_id'], today), host,
+                'the user', rhythm, bool(between), city, state['since'])
+    case.home = (between.your_city if host == COMPANION else between.their_city) if between else None
+    return case
 
 
 def own_pattern(connection, companion: dict, person: dict) -> str:
@@ -167,8 +171,10 @@ def with_ex(connection, companion: dict, family: str, person: dict, children: li
     home = outings.city_data(connection, companion['version']['definition']) if away else None
     city = (trips.hometown(person['id'], home) if host == OTHER else home) if home else None
     seeded = shifts.monday_of(today) - timedelta(weeks=int(generators.unit(f"stays:{person['id']}", 'since') * 8))
-    return Case(family, person['id'], under_age(children, today), host, first(person['name']),
+    case = Case(family, person['id'], under_age(children, today), host, first(person['name']),
                 None if away else (lambda day: rhythm(day) == (host == COMPANION)), away, city, seeded)
+    case.home = (home if host == OTHER else trips.hometown(person['id'], home)) if home else None
+    return case
 
 
 # Where the children are -------------------------------------------------------------------------------------------------
@@ -287,7 +293,8 @@ def far_spans(case: Case, home: dict, today: date) -> list[dict]:
 def summer(case: Case, home: dict, today: date) -> list[dict]:
     """A week in summer with the host, Monday to Sunday, in a seeded week of July (January south of the equator); not
     when they already spend a week each."""
-    if 'summer' not in EXTRAS[case.level] or shared(case, today):
+    if 'summer' not in EXTRAS[case.level] or shared(case, today) or \
+            all(families.age_of(kid, today) < DAYTIME_UNDER for kid in case.kids):
         return []
     north = (home.get('lat') or 1) >= 0
     first_day, last_day = window(today)
@@ -357,18 +364,31 @@ def insert_all(connection, companion: dict, case: Case, wanted: list[dict], now:
     return written
 
 
+def daytime(case: Case, item: dict) -> bool:
+    """Children all under three spend a day with the host rather than a weekend away (Iris, 2026-10-20): a weekend
+    stay of the rhythm, a make-up or one asked for is its first day; the rest of it stays at home."""
+    days = (date.fromisoformat(item['end_date']) - date.fromisoformat(item['start_date'])).days + 1
+    start = date.fromisoformat(item['start_date'])
+    return 2 <= days <= 3 and item['reason'] in ('rota', 'far', 'make-up', 'asked') and bool(case.kids) and \
+        all(families.age_of(kid, start) < DAYTIME_UNDER for kid in case.kids)
+
+
 def insert(connection, companion: dict, case: Case, item: dict, now: datetime, message_id: str | None = None,
            host: str | None = None, travels: str | None = None, city: dict | None = None) -> int:
     """A stay, once per key. Across cities the child travels to the host, unless the stay says who does."""
     city = city or case.city
     travels = travels if travels is not None else ('child' if case.far else '')
+    end = item['start_date'] if daytime(case, item) else item['end_date']
+    if end != item['end_date'] and travels == 'child':
+        # Too young to travel for a day: the parent they don't live with comes to them.
+        travels, city = {YOU: 'you', COMPANION: 'companion'}.get(host or case.host, ''), case.home or city
     return connection.execute(
         'INSERT OR IGNORE INTO family_stays (id, timeline_id, key, family, subject, host, reason, extra, start_date, '
         'end_date, first_start, first_end, city_name, travels, message_id, created_at, updated_at) VALUES (?, ?, ?, ?, '
         '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (identifier(), companion['active_timeline_id'], item['key'], case.family, case.subject, host or case.host,
-         item['reason'], item.get('extra', ''), item['start_date'], item['end_date'], item['start_date'],
-         item['end_date'], (city or {}).get('name', '') if case.far or travels else '', travels, message_id,
+         item['reason'], item.get('extra', ''), item['start_date'], end, item['start_date'], item['end_date'],
+         (city or {}).get('name', '') if case.far or travels else '', travels, message_id,
          stamp(now), stamp(now))).rowcount
 
 
@@ -431,9 +451,9 @@ def skip(connection, companion: dict, stay_id: str, now: datetime) -> dict:
 
 def make_up(connection, companion: dict, row: dict, now: datetime) -> int:
     from companion.life import trips
-    end = date.fromisoformat(row['end_date'])
+    end = date.fromisoformat(max(row['end_date'], row['first_end']))  # A day's stay planned from a weekend.
     others = [other for other in rows_for(connection, row['timeline_id'], row['family'], row['subject'])
-              if other['status'] == 'planned' and other['start_date'] > row['end_date']]
+              if other['status'] == 'planned' and other['start_date'] > end.isoformat()]
     if others and (date.fromisoformat(others[0]['start_date']) - end).days <= MAKE_UP_AFTER or \
             rhythm_soon(connection, companion, row, end):
         return 0
@@ -445,7 +465,10 @@ def make_up(connection, companion: dict, row: dict, now: datetime) -> int:
         item = {'key': f"{row['family']}:{row['subject']}:make-up:{days[0].isoformat()}", 'reason': 'make-up',
                 'start_date': days[0].isoformat(), 'end_date': days[-1].isoformat(), 'extra': row['id']}
         if not overlaps(item, others):
-            case = Case(row['family'], row['subject'], [], row['host'], '', None, bool(row['travels']), None, end)
+            found = next((case for case in cases(connection, companion, end) if (case.family, case.subject) ==
+                          (row['family'], row['subject'])), None)
+            case = Case(row['family'], row['subject'], found.kids if found else [], row['host'], '', None,
+                        bool(row['travels']), None, end)
             return insert(connection, companion, case, item, now, host=row['host'], travels=row['travels'],
                           city={'name': row['city_name']} if row['city_name'] else None)
     return 0
@@ -507,6 +530,8 @@ def noun(row: dict) -> str:
     if row['reason'] == 'holiday' and row['extra']:
         return row['extra']
     days = (date.fromisoformat(row['end_date']) - date.fromisoformat(row['start_date'])).days + 1
+    if days == 1 and row['reason'] in ('rota', 'far', 'make-up', 'asked'):
+        return f"{date.fromisoformat(row['start_date']):%A}"  # A day with them: "Yedidya's Saturday with you".
     return 'day' if days == 1 else 'week' if days >= 6 else 'long weekend' if days >= 3 else 'weekend'
 
 
@@ -647,18 +672,18 @@ def shown_who(case: Case, host: str, companion: dict) -> str:
 
 def item_line(case: Case, row: dict, companion: dict) -> str:
     """Under the title: where it is and the handover, or why the app planned it."""
-    name = first(companion['version']['definition']['name'])
+    name, them = first(companion['version']['definition']['name']), child_word(children_of(case, row), 'them')
     if row['travels'] == 'child':
         return f"In {row['city_name']}, with a handover at the station" if row['city_name'] else \
             'A handover at the station'
     if row['travels'] == 'you':
-        return f"In {row['city_name']}: you go to see them"
+        return f"In {row['city_name']}: you go to see {them}"
     if row['travels'] == 'companion':
-        return f"In {row['city_name']}: {name} comes to see them"
+        return f"In {row['city_name']}: {name} comes to see {them}"
     return {'make-up': 'Making up for the one skipped', 'asked': 'You asked for it in the chat'}.get(row['reason'], '')
 
 
-def item_view(case: Case, row: dict, companion: dict, today: date) -> dict:
+def item_view(case: Case, row: dict, companion: dict, today: date, made_up: str | None = None) -> dict:
     """A stay in the shape of a calendar entry (companion/life/admin.py `item_view`), with what the user can do."""
     kids = children_of(case, row)
     moved = row['moved_reason'] == 'user' and row['first_start'] != row['start_date']
@@ -670,7 +695,7 @@ def item_view(case: Case, row: dict, companion: dict, today: date) -> dict:
             'moves': int(moved), 'deadline': None, 'cost_text': '', 'movable': False, 'detail': '',
             'stay': {'id': row['id'], 'status': row['status'],
                      'can_change': row['status'] == 'planned' and still_to_come(row, today),
-                     'undo': row['status'] == 'skipped' and still_to_come(row, today)}}
+                     'undo': row['status'] == 'skipped' and still_to_come(row, today), 'made_up': made_up}}
 
 
 def items(connection, companion: dict, now: datetime, days: int = AHEAD) -> list[dict]:
@@ -679,7 +704,10 @@ def items(connection, companion: dict, now: datetime, days: int = AHEAD) -> list
     until = (today + timedelta(days=days)).isoformat()
     result = []
     for case in cases(connection, companion, today):
-        for row in rows_for(connection, companion['active_timeline_id'], case.family, case.subject):
+        rows = rows_for(connection, companion['active_timeline_id'], case.family, case.subject)
+        made = {row['extra']: row['start_date'] for row in rows if row['reason'] == 'make-up' and
+                row['status'] == 'planned'}
+        for row in rows:
             if row['end_date'] >= today.isoformat() and row['start_date'] <= until:
-                result.append(item_view(case, row, companion, today))
+                result.append(item_view(case, row, companion, today, made.get(row['id'])))
     return sorted(result, key=lambda item: item['local_date'])

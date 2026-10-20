@@ -2112,7 +2112,14 @@ export interface AdminItem {
   stay?: StayActions
 }
 
-export interface StayActions { id: string; status: 'planned' | 'skipped'; can_change: boolean; undo: boolean }
+export interface StayActions {
+  id: string
+  status: 'planned' | 'skipped'
+  can_change: boolean
+  undo: boolean
+  /** The make-up's first day, on a skipped stay (shown under it, Iris). */
+  made_up?: string | null
+}
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
 

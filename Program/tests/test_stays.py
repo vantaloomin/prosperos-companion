@@ -20,7 +20,7 @@ def split(client, provider, clock, monkeypatch):
     """A child of the pair, two hundred days old, and the user ending it in the chat (as tests/test_custody.py)."""
     monkeypatch.setattr(breakups, 'ACTIVE', True)
     _row, child = born(client, clock, monkeypatch)
-    aged(client, child, 200)
+    aged(client, child, 1500)  # Past three: weekends away (a younger child has a day, `daytime`).
     says(provider)
     send(client, "I'm breaking up with you.", 'client-stays-split')
     return child
@@ -70,6 +70,20 @@ def test_every_other_weekend_with_the_user_is_planned_by_the_custody_pattern(cli
         assert not custody.with_them(state, start) and not custody.with_them(state, end)
     assert len({row['start_date'] for row in weekends}) == len(weekends)
     assert plan(client) == found  # Planned once.
+
+
+def test_a_child_under_three_has_a_day_with_the_other_parent_and_the_rest_at_home(client, split):
+    aged(client, split, 600)
+    ours(client, custody='with_them')
+    days = [row for row in plan(client) if row['reason'] == 'rota']
+    assert days and all(row['start_date'] == row['end_date'] and row['first_end'] > row['start_date'] for row in days)
+    with connect(client) as connection:
+        companion = current(connection)
+        assert not custody.here(connection, companion, date.fromisoformat(days[0]['start_date']))
+        assert custody.here(connection, companion, date.fromisoformat(days[0]['first_end']))
+    name = split['name'].split()[0]
+    titles = [item['title'] for item in client.get('/api/life/admin').json()['upcoming'] if item['source'] == 'family']
+    assert titles[0] == f"{name}'s Saturday with you"
 
 
 def test_half_and_half_is_a_week_at_a_time_and_has_no_summer_week(client, split):
@@ -127,6 +141,8 @@ def test_skipping_a_stay_plans_a_make_up_and_undo_takes_it_back(client, split, p
     [made] = [item for item in found if item['reason'] == 'make-up']
     assert made['extra'] == row['id'] and made['start_date'] == \
         (date.fromisoformat(row['start_date']) + timedelta(days=7)).isoformat()
+    item = next(item for item in client.get('/api/life/admin').json()['upcoming'] if item['id'] == f"stay:{row['id']}")
+    assert item['status'] == 'skipped' and item['stay']['undo'] and item['stay']['made_up'] == made['start_date']
     with connect(client) as connection:
         assert custody.here(connection, current(connection), date.fromisoformat(row['start_date']))
     says(provider)
