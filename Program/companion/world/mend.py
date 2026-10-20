@@ -110,6 +110,8 @@ class _Mender:
             return self.data
         for key in LOADER_KEYS:
             self.data.pop(key, None)
+        if 'neighbors' in self.data and 'neighbours' not in self.data:
+            self.data['neighbours'] = self.data.pop('neighbors')
         self.keyed_sources()
         self.open_words()
         for _ in range(40):

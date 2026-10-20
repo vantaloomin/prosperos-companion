@@ -4,8 +4,9 @@ Rules decide, seeded by the weekend, with no model. Two to three weeks ahead the
 a long weekend (a public holiday on the Friday or Monday) is likelier, there is a gap of several weeks between
 trips, work or classes on those days rule it out, and it has to fit their budget this pay period. Where they go is
 another city the app ships in the same era (a real city from a real one), within reach for the days they have and
-leaning toward what they are interested in, or the city a relative who lives out of town is in. They go alone, with
-someone from their circle, or to stay with that relative.
+leaning toward what they are interested in, or the city a relative who lives out of town is in. A city's
+`neighbours` (companion/world/ships.py) are in reach by their journey time, and a ship or station goes only to those,
+by shuttle. They go alone, with someone from their circle, or to stay with that relative.
 
 The destination's city pack fills the days: in the companion's agenda (companion/life/agenda.py) each waking slot of
 a trip day is spent at a real place there, with a landmark or two among them, the first slot is setting off and the
@@ -25,7 +26,7 @@ from datetime import date, datetime, timedelta
 from companion.clock import zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import money, routine
-from companion.world import catalog, generators
+from companion.world import catalog, generators, ships
 
 # Off in tests unless a test turns it on, so other tests' agendas stay as they were.
 ACTIVE = True
@@ -99,8 +100,13 @@ def free(definition: dict, days: list[date], holidays: set[str]) -> bool:
 
 def fits(home: dict, other: dict) -> bool:
     """Same era and the same world: real cities and towns invented in our world (Haddon Harbor in Maine, Pellmouth)
-    mix, as do the cities of a made-up world (Camelot, Oz, Grandport); a user's own city visits real ones."""
-    if other['id'] == home['id'] or other.get('era', 'modern') != home.get('era', 'modern'):
+    mix, as do the cities of a made-up world (Camelot, Oz, Grandport); a user's own city visits real ones. Cities that
+    list each other as neighbours always do, and a ship or station only those (companion/world/ships.py)."""
+    if other['id'] == home['id']:
+        return False
+    if ships.linked(home, other):
+        return True
+    if ships.enclosed(home) or ships.enclosed(other) or other.get('era', 'modern') != home.get('era', 'modern'):
         return False
     if 'lat' not in other or 'lat' not in home or other.get('distribution', 'public') != 'public':
         return False
@@ -117,9 +123,19 @@ def ours(city: dict) -> bool:
     return city.get('setting') in ('real', 'original')
 
 
-def destinations(home: dict, reach: float) -> list[dict]:
-    return sorted((city for city in catalog.cities().values() if fits(home, city)
-                   and catalog.distance_km(home, city) <= reach), key=lambda city: city['id'])
+def destinations(home: dict, nights: int, known: dict[str, dict] | None = None) -> list[dict]:
+    """Cities a weekend of `nights` nights reaches: others of its world within REACH_KM, and its neighbours (among
+    the `known` cities, the built-in ones by default) within their journey time (companion/world/ships.py)."""
+    known = known if known is not None else catalog.cities()
+    found = {city['id']: city for city in catalog.cities().values() if fits(home, city) and not ships.linked(home, city)
+             and catalog.distance_km(home, city) <= REACH_KM[nights]}
+    found |= {city['id']: city for city in ships.reachable(home, known, nights)}
+    return sorted(found.values(), key=lambda city: city['id'])
+
+
+def in_reach(home: dict, city: dict, nights: int) -> bool:
+    """Whether a weekend of `nights` nights gets from `home` to `city`."""
+    return any(item['id'] == city['id'] for item in destinations(home, nights, {city['id']: city}))
 
 
 def interest_weight(city: dict, definition: dict) -> float:
@@ -146,9 +162,9 @@ def local_people(connection, timeline_id: str) -> list[dict]:
     return [row for row in rows if decode(row['schedule'])]
 
 
-def hometown(person_id: str, home: dict) -> dict | None:
+def hometown(person_id: str, home: dict, known: dict[str, dict] | None = None) -> dict | None:
     """The city a relative who lives out of town is in, the same every time."""
-    options = destinations(home, REACH_KM[3])
+    options = destinations(home, 3, known)
     return generators.pick(f'{person_id}:hometown', 'city', options) if options else None
 
 
@@ -156,14 +172,15 @@ def where(connection, timeline_id: str, home: dict, definition: dict, nights: in
     """(destination, kind, company): a visit to a relative, or a getaway alone or with someone local."""
     from companion.life import circle
     relatives = away_people(connection, timeline_id)
+    known = ships.known_cities(connection)
     if relatives and generators.unit(seed, 'family') < FAMILY_SHARE:
         relative = generators.pick(seed, 'relative', relatives)
-        city = hometown(relative['id'], home)
-        if city and catalog.distance_km(home, city) <= REACH_KM[nights]:
+        city = hometown(relative['id'], home, known)
+        if city and in_reach(home, city, nights):
             # As they say it: 'mother' in 1895 (circle.said).
             return city, 'family', {'id': relative['id'], 'name': relative['name'],
                                     'role': circle.said(relative['role'], definition)}
-    options = destinations(home, REACH_KM[nights])
+    options = destinations(home, nights, known)
     if not options:
         return None
     city = generators.pick(seed, 'city', options, [interest_weight(item, definition) for item in options])
@@ -354,9 +371,33 @@ def outing_name(name: str) -> str:
     return re.sub(r'^the\s+', '', name, flags=re.IGNORECASE)
 
 
+def travel_by(trip: dict, definition: dict, world) -> str:
+    """How they travel on a trip: by shuttle to or from a ship or station, else the neighbour listing's own word, or
+    '' for the usual wording (companion/world/ships.py)."""
+    find = getattr(world, 'find', None)
+    if trip.get('visit') or not find:
+        return ''
+    from companion.life import circle
+    return ships.by(circle.city_data(definition, world), find(trip['city_id']))
+
+
+# Setting off and heading home by shuttle, or by the way a neighbour listing names ("the night train").
+SHUTTLE_LINES = {'first': ('{name} caught the shuttle and docked at {city}{company}.', 'Docking soon!'),
+                 'last': ('{name} caught the shuttle home from {city}{company}.', 'Docked and home.')}
+BY_LINES = {'first': ('{name} took the {by} to {city}{company}.', None),
+            'last': ('{name} took the {by} home from {city}{company}.', None)}
+
+
+def travel_line(ends: str, by: str, words: dict, post: str) -> tuple[str, str]:
+    """(summary, post) for setting off or heading home by `by`; `post` unless the way has its own."""
+    summary, own = (SHUTTLE_LINES if by == ships.SHUTTLE else BY_LINES)[ends]
+    return summary.format(**words, by=by), own or post
+
+
 def entry(trip: dict, slot_view: dict, definition: dict, world, seed: str, ends: str | None) -> dict:
     """What a waking slot of a trip day holds: setting off, heading home ('first' or 'last'), or a place there."""
     name, city, company = definition['name'], trip['city_name'], with_text(trip)
+    by = travel_by(trip, definition, world) if ends else ''
     common = {'mood': 'happy', 'with': None, 'trip': {'id': trip['id'], 'city': city, 'city_id': trip['city_id']},
               'composer_version': 'trip-1',
               'weather': (getattr(world, 'weather', None) or (lambda *_args: None))(
@@ -364,15 +405,20 @@ def entry(trip: dict, slot_view: dict, definition: dict, world, seed: str, ends:
     if ends == 'first':
         summary = {'to-you': f'{name} set off to see you in {city}.', 'host': f'{name} welcomed you to {city}.'}.get(
             trip.get('visit'), f'{name} set off for {city}{company}.')
-        return {**common, 'summary': summary, 'post': f'Off to {city}!' if trip.get('visit') != 'host' else
-                'Best kind of weekend.', 'activity': 'trip-travel', 'place': None, 'mood': 'excited'}
+        post = f'Off to {city}!' if trip.get('visit') != 'host' else 'Best kind of weekend.'
+        if by:
+            summary, post = travel_line('first', by, {'name': name, 'city': city, 'company': company}, post)
+        return {**common, 'summary': summary, 'post': post, 'activity': 'trip-travel', 'place': None,
+                'mood': 'excited'}
     if ends == 'last':
         summary = {'to-you': f'{name} said goodbye to you and headed home from {city}.',
                    'host': f'{name} saw you off home from {city}.'}.get(trip.get('visit'),
                                                                         f'{name} headed home from {city}{company}.')
-        return {**common, 'summary': summary, 'post': 'Home again.' if trip.get('visit') != 'host' else
-                'Already miss it.', 'activity': 'trip-home-sun' if trip['sunny'] else 'trip-home', 'place': None,
-                'mood': 'content'}
+        post = 'Home again.' if trip.get('visit') != 'host' else 'Already miss it.'
+        if by:
+            summary, post = travel_line('last', by, {'name': name, 'city': city, 'company': company}, post)
+        return {**common, 'summary': summary, 'post': post,
+                'activity': 'trip-home-sun' if trip['sunny'] else 'trip-home', 'place': None, 'mood': 'content'}
     from companion.life import composer
     part = composer.day_part(slot_view['block']['start'])
     places = world.places(trip['city_id'], BY_PART[part], day_part=part, day=date.fromisoformat(slot_view['local_date']))
@@ -469,12 +515,14 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
 
 def away_status(connection, block: dict, seed: str) -> dict | None:
     """The status line's away message while on a trip: where they are and when they are back."""
-    row = optional(connection, 'SELECT city_name, end_date, visit FROM trips WHERE id=?', (block.get('trip'),)) \
-        if block.get('trip') else None
+    row = optional(connection, 'SELECT city_id, city_name, end_date, visit FROM trips WHERE id=?',
+                   (block.get('trip'),)) if block.get('trip') else None
     if not row or row['visit'] == 'host':
         return None  # Home, with the user staying over.
     city, back = row['city_name'], date.fromisoformat(row['end_date'])
-    lines = (f'in {city} ✈️', f'away in {city} till {back:%A}', f'{city} mode, back {back:%A}')
+    # A ship or station is reached by shuttle (companion/world/ships.py).
+    flown = '🚀' if ships.enclosed(ships.known_cities(connection).get(row['city_id'])) else '✈️'
+    lines = (f'in {city} {flown}', f'away in {city} till {back:%A}', f'{city} mode, back {back:%A}')
     return {'text': generators.pick(seed, 'trip-away', list(lines)), 'glyph': 'pin'}
 
 

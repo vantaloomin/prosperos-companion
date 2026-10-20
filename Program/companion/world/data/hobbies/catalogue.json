@@ -3520,6 +3520,762 @@
    "fees": null,
    "picture": "at a table with a playmat and a deck of trading cards, mid-game",
    "event": null
+  },
+  {
+   "id": "low-gravity-ball",
+   "label": "Low-gravity ball",
+   "name": "low-gravity ball",
+   "kind": "sport",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "low-gravity ball",
+    "low gravity ball",
+    "zero-g ball"
+   ],
+   "session": "played a game of low-gravity ball",
+   "place": {
+    "kinds": [
+     "fitness"
+    ],
+    "tags": [
+     "gym",
+     "classes"
+    ]
+   },
+   "where": "at the low-gravity court",
+   "when": "evening",
+   "together": "a pickup game",
+   "ask": "come play a game with me",
+   "gear": [
+    "$",
+    "bought a pair of grip gloves"
+   ],
+   "fees": [
+    "$$",
+    "a season in the league"
+   ],
+   "picture": "mid-leap on an indoor court, reaching for a ball overhead",
+   "event": null
+  },
+  {
+   "id": "hydroponics",
+   "label": "Hydroponic growing",
+   "name": "hydroponic growing",
+   "kind": "growing",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "hydroponics",
+    "hydroponic",
+    "grow rack"
+   ],
+   "session": "tended their grow rack",
+   "place": null,
+   "where": "at home",
+   "when": "morning",
+   "together": "an afternoon at the grow racks",
+   "ask": "help me with my grow rack",
+   "gear": [
+    "$",
+    "bought a small grow rack and lamp"
+   ],
+   "fees": null,
+   "picture": "tending leafy greens in a small hydroponic rack under a grow lamp at home",
+   "event": null
+  },
+  {
+   "id": "sim-racing",
+   "label": "Sim racing",
+   "name": "sim racing",
+   "kind": "games",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "sim racing",
+    "racing sim",
+    "immersion racing"
+   ],
+   "session": "raced in the sim",
+   "place": {
+    "kinds": [
+     "venue",
+     "shopping"
+    ],
+    "tags": [
+     "games"
+    ]
+   },
+   "where": "at the immersion booths",
+   "when": "evening",
+   "together": "a few races",
+   "ask": "come race me",
+   "gear": [
+    "$$",
+    "bought a wheel and pedals"
+   ],
+   "fees": [
+    "$",
+    "booth time"
+   ],
+   "picture": "in a racing seat with a headset on, gripping a wheel",
+   "event": null
+  },
+  {
+   "id": "drone-racing",
+   "label": "Drone racing",
+   "name": "drone racing",
+   "kind": "games",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "drone racing",
+    "racing drone",
+    "fpv drone"
+   ],
+   "session": "flew their racing drone round the course",
+   "place": {
+    "kinds": [
+     "fitness",
+     "park"
+    ],
+    "tags": []
+   },
+   "where": "at the drone course",
+   "when": "evening",
+   "together": "a race night",
+   "ask": "come watch me race",
+   "gear": [
+    "$$",
+    "built a racing drone"
+   ],
+   "fees": null,
+   "picture": "holding a drone controller with goggles pushed up, eyes on a small drone in the air",
+   "event": null
+  },
+  {
+   "id": "model-printing",
+   "label": "Printing and painting models",
+   "name": "printing and painting models",
+   "kind": "crafts",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "3d printing",
+    "3d printer",
+    "printing models"
+   ],
+   "session": "printed and painted a model",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a painting night",
+   "ask": "paint some models with me",
+   "gear": [
+    "$$",
+    "bought a small printer"
+   ],
+   "fees": null,
+   "picture": "at a desk beside a small 3D printer, painting a printed figure with a fine brush",
+   "event": null
+  },
+  {
+   "id": "synth",
+   "label": "Synthesizer",
+   "name": "synthesizer",
+   "kind": "music",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "synth",
+    "synthesizer",
+    "synthesiser",
+    "modular synth"
+   ],
+   "session": "played the synth",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a jam session",
+   "ask": "come jam with me",
+   "gear": [
+    "$$",
+    "bought a secondhand synth"
+   ],
+   "fees": null,
+   "picture": "at a synthesizer keyboard with headphones on, turning a dial",
+   "event": null
+  },
+  {
+   "id": "theremin",
+   "label": "Theremin",
+   "name": "theremin",
+   "kind": "music",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "theremin"
+   ],
+   "session": "practised the theremin",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a strange little concert",
+   "ask": "come hear the theremin",
+   "gear": [
+    "$$",
+    "bought a theremin"
+   ],
+   "fees": null,
+   "picture": "playing a theremin, hands hovering in the air near its antennas",
+   "event": null
+  },
+  {
+   "id": "fishkeeping",
+   "label": "Fishkeeping",
+   "name": "fishkeeping",
+   "kind": "growing",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "fishkeeping",
+    "aquarium",
+    "fish tank"
+   ],
+   "session": "looked after the fish tank",
+   "place": null,
+   "where": "at home",
+   "when": "morning",
+   "together": "a look at the tank",
+   "ask": "come see my fish",
+   "gear": [
+    "$",
+    "bought a planted tank"
+   ],
+   "fees": null,
+   "picture": "leaning close to a planted aquarium at home, feeding the fish",
+   "event": null
+  },
+  {
+   "id": "terrariums",
+   "label": "Terrariums",
+   "name": "terrariums",
+   "kind": "growing",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "terrarium",
+    "terrariums"
+   ],
+   "session": "worked on a terrarium",
+   "place": null,
+   "where": "at home",
+   "when": "morning",
+   "together": "a terrarium afternoon",
+   "ask": "make a terrarium with me",
+   "gear": [
+    "$",
+    "bought jars and moss"
+   ],
+   "fees": null,
+   "picture": "arranging moss and tiny plants inside a glass terrarium",
+   "event": null
+  },
+  {
+   "id": "astrophotography",
+   "label": "Astrophotography",
+   "name": "astrophotography",
+   "kind": "art",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "astrophotography",
+    "astrophotographer"
+   ],
+   "session": "took photographs of the stars",
+   "place": null,
+   "where": "by the big windows",
+   "when": "evening",
+   "together": "a night of star photos",
+   "ask": "come take star photos with me",
+   "gear": [
+    "$$",
+    "bought a tracking mount for the camera"
+   ],
+   "fees": null,
+   "picture": "adjusting a camera on a tripod aimed at a sky full of stars",
+   "event": null
+  },
+  {
+   "id": "aerial-silks",
+   "label": "Aerial silks",
+   "name": "aerial silks",
+   "kind": "dance",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "aerial silks",
+    "aerial dance",
+    "aerial hoop"
+   ],
+   "session": "went to an aerial silks class",
+   "place": {
+    "kinds": [
+     "fitness"
+    ],
+    "tags": [
+     "classes",
+     "dancing"
+    ]
+   },
+   "where": "at the aerial studio",
+   "when": "evening",
+   "together": "an aerial class",
+   "ask": "try an aerial class with me",
+   "gear": [
+    "$",
+    "bought grip and a practice leotard"
+   ],
+   "fees": [
+    "$$",
+    "a month of aerial classes"
+   ],
+   "picture": "hanging from long fabric silks in an airy studio, mid-pose",
+   "event": null
+  },
+  {
+   "id": "parkour",
+   "label": "Parkour",
+   "name": "parkour",
+   "kind": "sport",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "parkour",
+    "free running",
+    "freerunning"
+   ],
+   "session": "went free running",
+   "place": {
+    "kinds": [
+     "fitness",
+     "park",
+     "square"
+    ],
+    "tags": []
+   },
+   "where": "around town",
+   "when": "morning",
+   "together": "a training run",
+   "ask": "come train with me",
+   "gear": [
+    "$",
+    "bought light grippy shoes"
+   ],
+   "fees": null,
+   "picture": "vaulting over a low rail mid-stride",
+   "event": null
+  },
+  {
+   "id": "light-sculpture",
+   "label": "Light sculpture",
+   "name": "light sculpture",
+   "kind": "art",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "light sculpture",
+    "holographic art",
+    "hologram art"
+   ],
+   "session": "worked on a light sculpture",
+   "place": {
+    "kinds": [
+     "workshop"
+    ],
+    "tags": [
+     "art"
+    ]
+   },
+   "where": "at the studio",
+   "when": "evening",
+   "together": "a studio night",
+   "ask": "come see what I am making",
+   "gear": [
+    "$$",
+    "bought a projector rig"
+   ],
+   "fees": null,
+   "picture": "shaping a glowing light sculpture with a stylus in a dim studio",
+   "event": null
+  },
+  {
+   "id": "old-earth-history",
+   "label": "Old Earth history",
+   "name": "Old Earth history",
+   "kind": "words",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "old earth",
+    "earth history"
+   ],
+   "session": "read up on Old Earth history",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a history evening",
+   "ask": "come to the history talk with me",
+   "gear": [
+    "$",
+    "bought an old paper atlas"
+   ],
+   "fees": null,
+   "picture": "reading an old paper atlas at a table with a cup of tea",
+   "event": null
+  },
+  {
+   "id": "celestial-navigation",
+   "label": "Celestial navigation",
+   "name": "celestial navigation",
+   "kind": "words",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "celestial navigation",
+    "star navigation"
+   ],
+   "session": "worked through a navigation problem",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a navigation puzzle night",
+   "ask": "work out a course with me",
+   "gear": [
+    "$",
+    "bought a set of star tables"
+   ],
+   "fees": null,
+   "picture": "working through a star chart with a pencil and a set of tables",
+   "event": null
+  },
+  {
+   "id": "spin-cycling",
+   "label": "Spin cycling",
+   "name": "spin cycling",
+   "kind": "sport",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "spin class",
+    "spin bike",
+    "spinning class"
+   ],
+   "session": "went to a spin class",
+   "place": {
+    "kinds": [
+     "fitness"
+    ],
+    "tags": [
+     "gym",
+     "classes"
+    ]
+   },
+   "where": "at the gym",
+   "when": "morning",
+   "together": "a spin class",
+   "ask": "come to spin with me",
+   "gear": [
+    "$",
+    "bought cycling shoes"
+   ],
+   "fees": [
+    "$$",
+    "a month of spin classes"
+   ],
+   "picture": "on a spin bike in a class, mid-sprint",
+   "event": null
+  },
+  {
+   "id": "acrobatics",
+   "label": "Acrobatics",
+   "name": "acrobatics",
+   "kind": "sport",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "acrobatics",
+    "tumbling",
+    "acrobat"
+   ],
+   "session": "went to acrobatics practice",
+   "place": {
+    "kinds": [
+     "fitness"
+    ],
+    "tags": [
+     "gym",
+     "classes"
+    ]
+   },
+   "where": "at the gym",
+   "when": "evening",
+   "together": "an open practice",
+   "ask": "come to practice with me",
+   "gear": [
+    "$",
+    "bought a practice mat"
+   ],
+   "fees": [
+    "$$",
+    "acrobatics classes"
+   ],
+   "picture": "mid-somersault above a padded floor in a high-ceilinged gym",
+   "event": null
+  },
+  {
+   "id": "conlang",
+   "label": "Invented languages",
+   "name": "invented languages",
+   "kind": "words",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "conlang",
+    "constructed language",
+    "invented language"
+   ],
+   "session": "worked on their invented language",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a word-building evening",
+   "ask": "help me name some words",
+   "gear": [
+    "$",
+    "bought a good notebook"
+   ],
+   "fees": null,
+   "picture": "writing out an invented alphabet in a notebook at a desk",
+   "event": null
+  },
+  {
+   "id": "ham-radio",
+   "label": "Amateur radio",
+   "name": "amateur radio",
+   "kind": "words",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "ham radio",
+    "amateur radio",
+    "shortwave"
+   ],
+   "session": "got on the radio",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a night on the radio",
+   "ask": "come listen in with me",
+   "gear": [
+    "$$",
+    "bought a secondhand radio set"
+   ],
+   "fees": null,
+   "picture": "at a desk of radio gear with a headset on, tuning a dial",
+   "event": null
+  },
+  {
+   "id": "robot-building",
+   "label": "Robot building",
+   "name": "robot building",
+   "kind": "crafts",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "robot building",
+    "building robots",
+    "hobby robotics"
+   ],
+   "session": "worked on their robot",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a build night",
+   "ask": "help me build my robot",
+   "gear": [
+    "$$",
+    "bought a box of servos and boards"
+   ],
+   "fees": null,
+   "picture": "soldering a small robot together on a cluttered desk",
+   "event": null
+  },
+  {
+   "id": "tea-blending",
+   "label": "Tea blending",
+   "name": "tea blending",
+   "kind": "crafts",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "tea blending",
+    "blending tea"
+   ],
+   "session": "blended a new tea",
+   "place": null,
+   "where": "at home",
+   "when": "any",
+   "together": "a tasting",
+   "ask": "come taste my new blend",
+   "gear": [
+    "$",
+    "bought a set of tins and dried leaves"
+   ],
+   "fees": null,
+   "picture": "measuring dried leaves into small tins at a kitchen counter",
+   "event": null
+  },
+  {
+   "id": "immersive-theatre",
+   "label": "Immersive theatre",
+   "name": "immersive theatre",
+   "kind": "stage",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "immersive theatre",
+    "immersive theater",
+    "larp",
+    "larping"
+   ],
+   "session": "played in an immersive theatre night",
+   "place": {
+    "kinds": [
+     "venue"
+    ],
+    "tags": [
+     "theater",
+     "theatre"
+    ]
+   },
+   "where": "at the theatre",
+   "when": "evening",
+   "together": "a play night",
+   "ask": "come play with us",
+   "gear": [
+    "$",
+    "put together a costume"
+   ],
+   "fees": [
+    "$",
+    "a ticket for the run"
+   ],
+   "picture": "in costume among other players on a dimly lit set",
+   "event": null
+  },
+  {
+   "id": "home-brewing",
+   "label": "Home brewing",
+   "name": "home brewing",
+   "kind": "crafts",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "home brewing",
+    "homebrew",
+    "brewing beer",
+    "kombucha"
+   ],
+   "session": "checked on their home brew",
+   "place": null,
+   "where": "at home",
+   "when": "any",
+   "together": "a tasting night",
+   "ask": "come try my brew",
+   "gear": [
+    "$",
+    "bought a brewing kit"
+   ],
+   "fees": null,
+   "picture": "checking a big glass jar of home brew on the kitchen counter",
+   "event": null
+  },
+  {
+   "id": "speedcubing",
+   "label": "Speedcubing",
+   "name": "speedcubing",
+   "kind": "games",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "speedcubing",
+    "speedcuber",
+    "rubik"
+   ],
+   "session": "practised speedcubing",
+   "place": null,
+   "where": "at home",
+   "when": "any",
+   "together": "a timed race",
+   "ask": "race me",
+   "gear": [
+    "$",
+    "bought a good speed cube"
+   ],
+   "fees": null,
+   "picture": "turning a puzzle cube in a blur of hands, a timer on the table",
+   "event": null
+  },
+  {
+   "id": "origami",
+   "label": "Origami",
+   "name": "origami",
+   "kind": "crafts",
+   "eras": [
+    "future"
+   ],
+   "words": [
+    "origami",
+    "paper folding"
+   ],
+   "session": "folded origami",
+   "place": null,
+   "where": "at home",
+   "when": "evening",
+   "together": "a folding evening",
+   "ask": "fold some cranes with me",
+   "gear": [
+    "$",
+    "bought a stack of good folding paper"
+   ],
+   "fees": null,
+   "picture": "folding a paper crane at a table covered in folded shapes",
+   "event": null
   }
  ]
 }

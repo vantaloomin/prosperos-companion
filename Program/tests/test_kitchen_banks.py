@@ -7,7 +7,7 @@ import pytest
 
 BANKS = Path(__file__).resolve().parents[1] / 'companion' / 'world' / 'data' / 'kitchen'
 IDS = ('modern-us', 'modern-uk', 'modern-japan', 'modern-korea', 'modern-world', 'jazz-age-us', 'victorian-uk',
-       'medieval', 'old-world', 'frontier-us')
+       'medieval', 'old-world', 'frontier-us', 'future')
 PROTEINS = {'vegan', 'veg', 'fish', 'shellfish', 'meat', 'pork'}
 ALLERGENS = {'dairy', 'egg', 'gluten', 'nuts'}
 OTHER = {'big', 'quick', 'bake', 'treat', 'cold', 'warm', 'breakfast'}

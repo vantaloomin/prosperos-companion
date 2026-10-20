@@ -2692,6 +2692,226 @@
    "eras": [
     "modern"
    ]
+  },
+  {
+   "text": "caught a pass in low gravity without sailing past it",
+   "post": "Caught it. Did not drift into the wall. Progress.",
+   "level": 0,
+   "for": [
+    "low-gravity-ball"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "learned to push off the wall at the right angle",
+   "post": "Wall push, perfect angle. Felt like flying.",
+   "level": 1,
+   "for": [
+    "low-gravity-ball"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "scored the winning point in a pickup game",
+   "post": "Winning point. The whole court yelled.",
+   "level": 2,
+   "for": [
+    "low-gravity-ball"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got picked for the league team",
+   "post": "League team. Actual kit with a number on it.",
+   "level": 3,
+   "for": [
+    "low-gravity-ball"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "was named player of the match in a league final",
+   "post": "Player of the match. In the final. Still floating.",
+   "level": 4,
+   "for": [
+    "low-gravity-ball"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "landed a first clean vault",
+   "post": "First clean vault.",
+   "level": 0,
+   "for": [
+    "parkour"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "linked three moves into a smooth run",
+   "post": "Three moves, one smooth line.",
+   "level": 1,
+   "for": [
+    "parkour"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "cleared a gap they had been eyeing for weeks",
+   "post": "Cleared the gap. Weeks of staring at it, done.",
+   "level": 2,
+   "for": [
+    "parkour"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "led a beginners' session for the group",
+   "post": "Led the beginners' session today.",
+   "level": 3,
+   "for": [
+    "parkour"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "filmed a full run that the group shared around",
+   "post": "Full run, one take.",
+   "level": 4,
+   "for": [
+    "parkour"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "made it through a whole spin class",
+   "post": "Whole spin class. Legs gone.",
+   "level": 0,
+   "for": [
+    "spin-cycling"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "moved up a row in the spin class",
+   "post": "Moved up a row in spin. Bold.",
+   "level": 1,
+   "for": [
+    "spin-cycling"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "kept up with the front row for a full class",
+   "post": "Kept pace with the front row.",
+   "level": 2,
+   "for": [
+    "spin-cycling"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "hit a personal best on the class leaderboard",
+   "post": "Personal best on the spin board.",
+   "level": 3,
+   "for": [
+    "spin-cycling"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "was asked to lead a spin class",
+   "post": "Leading a spin class next week.",
+   "level": 4,
+   "for": [
+    "spin-cycling"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "landed a first forward roll that felt right",
+   "post": "A forward roll that felt right.",
+   "level": 0,
+   "for": [
+    "acrobatics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "held a handstand for a slow count of ten",
+   "post": "Ten-second handstand.",
+   "level": 1,
+   "for": [
+    "acrobatics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "landed a first back somersault on the soft floor",
+   "post": "Back somersault. Soft floor. Still counts.",
+   "level": 2,
+   "for": [
+    "acrobatics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "performed a routine at the open practice",
+   "post": "Did my routine at open practice.",
+   "level": 3,
+   "for": [
+    "acrobatics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "joined the troupe for the season show",
+   "post": "In the troupe for the season show.",
+   "level": 4,
+   "for": [
+    "acrobatics"
+   ],
+   "eras": [
+    "future"
+   ]
   }
  ],
  "sessions": [

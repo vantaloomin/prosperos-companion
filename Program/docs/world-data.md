@@ -49,6 +49,7 @@ are optional, so a setting without money (Oz) or without weather data still work
 | Path | Holds |
 | --- | --- |
 | `companion/world/data/cities/<id>.json` | One city. Validated against `companion/world/schema.py` on load and in the tests. |
+| `companion/world/data/careers-future.json` | The future era's shared careers (126: hydroponics technician, shuttle pilot, quartermaster, clinic nurse…), read with `careers.json` by `catalog.careers()`. Ships, stations and future cities offer these and their own. |
 | `companion/world/data/careers.json` | Careers with sector, schedule pattern, pay band and themes. `adult: true` marks adult work: only chosen for adult companions (drafting, the character form with the adult side on), never rolled for townsfolk, circles or job changes (`catalog.everyday`). |
 | `companion/world/data/names.json` | Name banks for residents, written by `scripts/world/names.py`. |
 | `companion/world/data/given_names.json` | Popular given names by birth year, family names by culture and names that read as invented, written by `scripts/world/given_names.py` from `scripts/world/name_sources/`. |
@@ -348,6 +349,33 @@ Each change is a sentence in `import_notes` on the save, check and pack response
 `python -m companion.world.check` output as `adjusted:`), and Settings shows them after a save. The
 saved definition is the mended one. Only a file that is not JSON or lacks a neighbourhood, a place or
 an id still fails.
+
+**Ships and stations** (`companion/world/ships.py`). A city that is a ship or a station is
+`enclosed`. Set `"enclosed": true` in the file, or leave it out and the app decides as the city loads:
+an era of `future` whose country, region or name says ship or station ("Generation ship", "Orbital
+station"), or with two or more neighbourhoods named as decks or rings, reads as one, and
+`import_notes` says so. `"enclosed": false` keeps a future city with a Ring Road on the ground.
+Aboard there is no weather and no Earth seasons (no winter colds, no autumn coat shopping), a flat
+70°F climate stands in when the city gives none, cars, rideshares and horses are dropped from
+`speeds` (so nobody owns a car or pays car bills), summer barbecues are left out of friends'
+gatherings, and pictures are lit by the ship ("corridor lights dimmed for ship's night") with
+outdoor scenes said as indoor ones. Future cities also get their own dishes
+(`kitchen/future.json`), pastimes (the `future` entries in `hobbies/catalogue.json`, beside today's;
+aboard, never hiking, surfing or other pastimes that need open country or sea) and, aboard, their own
+savings goals (`ship_money.json`).
+
+**Travel within a made-up world.** A city can list `neighbours`: other built-in, pack or user cities
+it travels to, with the journey's `hours` each way and, optionally, how people go (`by`, such as
+`"night train"`; left out, a shuttle where a ship or station is at either end). A listing works both
+ways, so a station a ship lists can visit the ship. Weekend trips and postcards use neighbours within
+6 hours for two nights and 12 for three, beside the usual cities within reach; a ship or station
+travels only to its neighbours, and nobody visits one that does not list them. `neighbors` is read as
+`neighbours`; a neighbour that does not load is skipped.
+
+```json
+"enclosed": true,
+"neighbours": [{"city": "halcyon-station", "hours": 3}]
+```
 
 Built-in cities cannot be changed or deleted, only copied. A user city's `data_version` is a hash
 of its content, so editing it changes the version later events record.

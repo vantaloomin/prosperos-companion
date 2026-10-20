@@ -2358,6 +2358,226 @@
     "medieval",
     "fantasy"
    ]
+  },
+  {
+   "text": "read a first proper history of Old Earth",
+   "post": "First proper history book done.",
+   "level": 0,
+   "for": [
+    "old-earth-history"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "started keeping notes on a favourite century",
+   "post": "Picked a favourite century. Notes everywhere.",
+   "level": 1,
+   "for": [
+    "old-earth-history"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "traced a family line back to Old Earth",
+   "post": "Traced the family back to Old Earth.",
+   "level": 2,
+   "for": [
+    "old-earth-history"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "gave a talk at the history circle",
+   "post": "Gave a talk at the history circle. Questions after.",
+   "level": 3,
+   "for": [
+    "old-earth-history"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "wrote an article for the archive",
+   "post": "Wrote an article for the archive. Published.",
+   "level": 4,
+   "for": [
+    "old-earth-history"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "worked out a first course by hand",
+   "post": "Worked out a course by hand. Took forever. Worth it.",
+   "level": 0,
+   "for": [
+    "celestial-navigation"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "learned the main navigation stars by heart",
+   "post": "Know the main nav stars by heart now.",
+   "level": 1,
+   "for": [
+    "celestial-navigation"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "plotted a course that matched the computer's",
+   "post": "My course matched the computer's.",
+   "level": 2,
+   "for": [
+    "celestial-navigation"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "won the navigation puzzle night",
+   "post": "Won navigation night.",
+   "level": 3,
+   "for": [
+    "celestial-navigation"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "was asked to help teach a navigation class",
+   "post": "Helping teach the navigation class.",
+   "level": 4,
+   "for": [
+    "celestial-navigation"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "wrote the first hundred words of their invented language",
+   "post": "A hundred words of my own language.",
+   "level": 0,
+   "for": [
+    "conlang"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "worked out how verbs change in their language",
+   "post": "Verbs have tenses now. My language is growing up.",
+   "level": 1,
+   "for": [
+    "conlang"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "translated a short poem into their invented language",
+   "post": "Translated a poem into my language.",
+   "level": 2,
+   "for": [
+    "conlang"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "designed a whole alphabet for it",
+   "post": "It has its own alphabet now.",
+   "level": 3,
+   "for": [
+    "conlang"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "held a whole conversation in it with a friend who learned some",
+   "post": "Had a whole chat in my invented language.",
+   "level": 4,
+   "for": [
+    "conlang"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "made a first contact on the radio",
+   "post": "First contact on the radio. Someone answered.",
+   "level": 0,
+   "for": [
+    "ham-radio"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got their licence to transmit",
+   "post": "Licensed to transmit now.",
+   "level": 1,
+   "for": [
+    "ham-radio"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "reached someone a long way off",
+   "post": "Reached someone very far away tonight.",
+   "level": 2,
+   "for": [
+    "ham-radio"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "built an antenna of their own",
+   "post": "Built my own antenna. It works.",
+   "level": 3,
+   "for": [
+    "ham-radio"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "helped relay messages during an outage",
+   "post": "Relayed messages during the outage.",
+   "level": 4,
+   "for": [
+    "ham-radio"
+   ],
+   "eras": [
+    "future"
+   ]
   }
  ],
  "sessions": [

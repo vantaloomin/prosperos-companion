@@ -377,6 +377,17 @@ class Water(Record):
         return self
 
 
+class Neighbour(Record):
+    """Another city of the same made-up world that people travel to from this one (companion/world/ships.py), such
+    as the station a ship docks at. A listing works both ways."""
+    city: Id
+    # How long the journey takes, each way.
+    hours: float = Field(gt=0, le=72)
+    # How people get there ("shuttle", "ferry", "night train"); left out, a shuttle where a ship or station is at
+    # either end, else the trip's usual words.
+    by: str = Field(default='', max_length=40)
+
+
 class City(Record):
     """One city. Minimums are small so a user can start a city of their own with a neighborhood and a place."""
     schema_version: Literal[1]
@@ -436,6 +447,12 @@ class City(Record):
     # a kind of the city's own (label, lifespan and words). Checked when the city loads (lifespans.clean), which
     # drops a bad entry with a note rather than stopping the city loading.
     kinds: Any = None  # Any shape here: a wrong one is dropped with a note (lifespans.clean), not a failed load.
+    # A ship or station (companion/world/ships.py): no weather, Earth seasons or cars, ship lighting in pictures.
+    # Left out, the app reads it from the city (a future city named as a ship or station, or with decks for
+    # neighbourhoods); false keeps a city that only sounds like one on the ground.
+    enclosed: bool | None = None
+    # Other cities of the same made-up world, with the journey there (trips and postcards, life/trips.py).
+    neighbours: list[Neighbour] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode='after')
     def check(self):

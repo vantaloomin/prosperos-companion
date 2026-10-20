@@ -583,8 +583,7 @@ def travels(connection, companion: dict, row: dict) -> bool:
     from companion.life import long_distance, trips
     home = outings.city_data(connection, companion['version']['definition'])
     city = catalog.cities().get(row['details'].get('city_id') or '')
-    return bool(home and city) and not long_distance.far(connection, companion) and trips.fits(home, city) and \
-        catalog.distance_km(home, city) <= trips.REACH_KM[3]
+    return bool(home and city) and not long_distance.far(connection, companion) and trips.in_reach(home, city, 3)
 
 
 def invitable(connection, companion: dict, row: dict) -> bool:

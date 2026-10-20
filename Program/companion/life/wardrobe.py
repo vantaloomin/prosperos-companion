@@ -36,7 +36,7 @@ from companion.life.clothing import (
     SECTOR_CODES,
     STYLE_WORDS,
 )
-from companion.world import generators
+from companion.world import generators, ships
 
 COMPANION = 'companion'
 PERIOD_DAYS = 14
@@ -174,7 +174,7 @@ def profile(seed: str, definition: dict, data: dict | None) -> dict:
     return {'tier': tier, 'spending': spending, 'fashion': fashion, 'size': size, 'code': code,
             'career': career['name'] if career else '', 'styles': styles_for(seed, definition, code, breadth),
             'who': presentation(definition), 'coldest_f': coldest, 'rainy': rainy >= 8,
-            'era': 'modern' if era_modern else data['era']}
+            'era': 'modern' if era_modern else data['era']} | ({'aboard': True} if ships.enclosed(data) else {})
 
 
 # --- Assembly ---
@@ -604,7 +604,10 @@ def apply_change(connection, state, found, definition, period, day: date, now) -
 
 
 def season_need(found: dict, day: date) -> list[str]:
-    """What a shop trip leans toward: coats and scarves before winter, light things before summer."""
+    """What a shop trip leans toward: coats and scarves before winter, light things before summer; nothing in
+    particular aboard a ship or station, which has no seasons."""
+    if found.get('aboard'):
+        return []
     if found['coldest_f'] < 60 and day.month in (9, 10, 11):
         return ['outerwear', 'accessory', 'top']
     if day.month in (4, 5, 6):
