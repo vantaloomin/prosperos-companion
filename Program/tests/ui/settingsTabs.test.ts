@@ -87,7 +87,7 @@ test('everything that dials realism down is on the Realism tab, and search finds
 
 test('realism presets match the settings they set, and a new world starts on real life', async () => {
   const { REALISM_PRESETS, matchPreset } = await import('../../src/features/settings/presetChoices.ts')
-  const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2, work_realism: 2, guests_realism: 2, media_realism: 2, hobbies_realism: 2, together_realism: 2, rough_patches_realism: 2, steps_pace: 2, friends_fall: true, breakups: true, love_life: 2, life_turns: 2, growing_families: 2, people_pass_away: false, loss: 2 } as unknown as LifeSettings
+  const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2, work_realism: 2, guests_realism: 2, media_realism: 2, hobbies_realism: 2, together_realism: 2, rough_patches_realism: 2, steps_pace: 2, friends_fall: true, breakups: true, love_life: 2, life_turns: 2, growing_families: 2, family_life: 2, people_pass_away: false, loss: 2 } as unknown as LifeSettings
   const fresh = {} as WorkspaceSettings
   assert.equal(matchPreset(life, fresh)?.id, 'real')
   for (const preset of REALISM_PRESETS) {
@@ -96,6 +96,8 @@ test('realism presets match the settings they set, and a new world starts on rea
   assert.equal(matchPreset({ ...life, drama: 2 }, fresh), null)
   assert.equal(matchPreset({ ...life, pets_can_die: false }, fresh), null)
   assert.equal(new Set(REALISM_PRESETS.map((preset) => preset.label)).size, REALISM_PRESETS.length)
+  // The Loss slider (People can pass away stays off): rare on an easy life, often with the drama (v0.15).
+  assert.deepEqual(REALISM_PRESETS.map((preset) => [preset.id, preset.life.loss, preset.life.people_pass_away]), [['real', 2, false], ['drama', 3, false], ['easy', 0, false], ['strings', 2, false]])
 })
 
 test('your own mix names the preset it is closest to', async () => {
@@ -103,4 +105,10 @@ test('your own mix names the preset it is closest to', async () => {
   const life = { drama: 3, paced_replies: false, day_shifts: true, on_her_mind: true, upkeep_realism: 3, looks_realism: 3 } as unknown as LifeSettings
   assert.equal(nearestPreset(life, {} as WorkspaceSettings).id, 'drama')
   assert.equal(nearestPreset({ ...life, drama: 0, day_shifts: false }, {} as WorkspaceSettings).id, 'easy')
+})
+
+test('the People can pass away hint says who grieves and that a partner never dies (v0.15)', async () => {
+  const { PASS_AWAY_HINT } = await import('../../src/features/character/lossText.ts')
+  assert.match(PASS_AWAY_HINT, /The companion grieves for weeks/)
+  assert.match(PASS_AWAY_HINT, /never a partner/)
 })

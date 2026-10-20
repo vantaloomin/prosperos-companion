@@ -36,7 +36,11 @@ MINOR = re.compile(rf"(?:{STATED_YOUNG})|\b(?:teen(?:age[dr]?|s)?\b|"
                    r"minor\b|under-?age|high[- ]school(?:er|\s+student)|middle[- ]school|school ?(?:girl|boy)\b|"
                    r"\bin (?:the )?(?:(?:[1-9]|1[0-2])(?:st|nd|rd|th)|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) grade|"
                    r"(?:[1-9]|1[0-2])(?:st|nd|rd|th) grader|(?:sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) grader|"
-                   r"(?:freshman|sophomore|junior|senior) (?:at|in)\b[^.]{0,60}\bhigh\b(?!-))",
+                   r"(?:freshman|sophomore|junior|senior) (?:at|in)\b[^.]{0,60}\bhigh\b(?!-))|"
+                   # Said by how they look or by their own people's reckoning (companion/world/lifespans.py).
+                   rf"\blooks?\s+(?:about\s+|around\s+|barely\s+)?{YOUNG}\b(?!\s*(?:%|cm|kg|lb|feet|foot|ft|inches|years? (?:younger|older)))|"
+                   r"\b(?:child|youngling)\s+(?:among|by the reckoning of|in the eyes of)\s+(?:her|his|their|its|the)\s+"
+                   r"(?:own\s+)?(?:people|kind|folk|kin|elves|dwarves)\b|\bnot yet (?:come )?of age\b",
                    re.IGNORECASE)
 # "34-year-old", "34 yo", "Age: 34", and the age the app's own identities open with: "34. Works as" or
 # "Mia Lane, 34, a nurse".

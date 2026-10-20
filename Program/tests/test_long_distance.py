@@ -359,3 +359,22 @@ def test_beyond_reach_a_vacation_week_meets_a_weekend(client, monkeypatch):
     assert (after[0][0], after[0][-1]) == (date(2026, 10, 21), date(2026, 10, 25))  # Wednesday to Sunday.
     assert (long_weekend[0][0], long_weekend[0][-1]) == (date(2026, 10, 16), date(2026, 10, 19))  # Friday to Monday.
     assert working is None
+
+
+def test_exes_across_cities_do_not_come_to_stay(client, monkeypatch, visits, provider, clock):
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    monkeypatch.setattr(long_distance, 'turn', lambda *_args: long_distance.TO_YOU)
+    apart_from(client, monkeypatch, relationship='romance')
+    reconcile(client)
+    assert [trip['state'] for trip in planned(client)] == ['planned']
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-far-ex-1')
+    assert all(trip['state'] == 'cancelled' for trip in planned(client))
+    for _ in range(4):
+        clock.advance(timedelta(days=7))
+        reconcile(client)
+    assert all(trip['state'] == 'cancelled' for trip in planned(client))
+    says(provider)
+    send(client, 'hi', 'client-far-ex-2')
+    assert 'called off the weekend visit' not in notes(provider)

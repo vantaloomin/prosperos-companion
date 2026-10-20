@@ -13,9 +13,12 @@ import { WhyItWent } from './WhyItWent'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
-import { childLabel, childLine, expectingLine } from '../character/familiesText'
+import { childLabel, childLine, expectingLabel, expectingLine } from '../character/familiesText'
 import { lateText } from '../character/lossText'
 import { useLifeSettings } from '../settings/useLifeSettings'
+import { KindFields } from '../kinds/KindFields'
+import { useKindChoices } from '../kinds/useKindChoices'
+import { kindSummary } from '../kinds/kindText'
 
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
@@ -149,7 +152,26 @@ function PersonState({ person, companion, act }: { person: CirclePerson; compani
   return <>
     <PersonDetails person={person} work={personWork(person)} companion={companion} />
     <CanPassAway person={person} act={act} />
+    <PersonKind person={person} act={act} />
   </>
+}
+
+/** Their kind and How long they live, folded away: the app's pick (a relative shares the companion's kind) until the
+ * user picks another (companion/world/lifespans.py). */
+function PersonKind({ person, act }: { person: CirclePerson; act: Act }) {
+  const choices = useKindChoices()
+  if (!person.kind || (person.age ?? 0) < 18) return null
+  const found = person.kind.found ?? 'human'
+  const label = choices?.kinds.find((item) => item.id === found)?.label ?? 'Human'
+  const save = (change: { kind: string; lifespan: number | null }) => act(() => api(`/life/circle/${person.id}/kind`, change, 'PUT'),
+    `Saved how ${person.name} ages. Their age stays ${person.age}.`)
+  return (
+    <details className="our-child-more person-kind">
+      <summary>{kindSummary(person.kind)}</summary>
+      <KindFields id={`person-${person.id}`} shown={person.kind} found={{ kind: found, label, source: 'app' }} picked={person.own_kind ?? ''}
+        own={person.kind.own} age={person.age} choices={choices} onChange={(change) => void save(change)} />
+    </details>
+  )
 }
 
 function BringBack({ person, companion, onClose, onConfirm }: { person: CirclePerson; companion: string; onClose: () => void; onConfirm: () => void }) {
@@ -213,7 +235,7 @@ function PersonDetails({ person, work, companion }: { person: CirclePerson; work
 function ChildLines({ person, companion }: { person: CirclePerson; companion: string }) {
   const expecting = expectingLine(person)
   return <>
-    {expecting && <p className="subtle pet-line"><span className="pet-line-label">Expecting ·</span> {expecting}.</p>}
+    {expecting && <p className="subtle pet-line"><span className="pet-line-label">{expectingLabel(person)} ·</span> {expecting}.</p>}
     {(person.children ?? []).map((child) => (
       <p key={child.id} className="subtle pet-line"><span className="pet-line-label">{childLabel(child)} ·</span> {childLine(child, person.name, companion)}.</p>
     ))}

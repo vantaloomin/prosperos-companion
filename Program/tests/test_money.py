@@ -102,7 +102,8 @@ def test_historic_cities_use_their_own_currency_and_weekly_pay():
     costs = {'rent': 2, 'rent_period': 'week', 'currency': money.profile(ada).city['currency'], 'owned': True,
              'pets': [], 'vehicles': []}
     lines = dict(money.context_lines(ada, '2026-10-05', {'costs': costs, 'purchases': []}))
-    assert lines['money:2026-10-05:budget'].endswith('is about 2 d.')  # Never '2 d..'.
+    # Never '2 d..'; payments on a place, not a mortgage, in a medieval kingdom (v0.15).
+    assert lines['money:2026-10-05:budget'].endswith('payments on your home are about 2 d.')
 
 
 def test_no_money_or_no_city_leaves_everything_affordable():
@@ -220,3 +221,13 @@ def test_pay_in_a_modern_city_with_a_wage_spreads_like_real_pay():
     # Historic cities keep the wider spread over a labourer's day wage.
     camelot = money.city_for({'home_city': 'Camelot'})
     assert money.take_home(camelot, 2) / money.take_home(camelot, 0) == money.WAGE_MULTIPLE[2]
+
+
+def test_a_big_bill_comes_from_savings_then_month_by_month():
+    assert money.paying(1000, 5000, 4000) == {'saved': 1000, 'monthly': 0.0, 'months': 0}
+    found = money.paying(13000, 1000, 4000)
+    assert found['saved'] == 1000 and found['months'] == 25 and round(found['monthly'] * found['months']) == 12000
+    assert money.paying(50000, None, 2000)['months'] == money.OWED_MONTHS  # Paid off within five years.
+    assert money.paying(100, 0, 4000) == {'saved': 0.0, 'monthly': 100.0, 'months': 1}
+    city = money.city_for(NURSE)
+    assert 3500 < money.typical_month(city) < 5000  # A middle wage's month in Baltimore.

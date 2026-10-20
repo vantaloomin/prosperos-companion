@@ -25,19 +25,29 @@ export function howText(how: Reached['how'], name: string): string {
 }
 
 /** "Mira brought up being exclusive. You said yes." / "You brought up a key to their place. Mira said not yet." /
- * "Mira said “I love you.” You said it back." */
+ * "Mira said “I love you.” You said it back." / "Mira brought up whether you two stay as you are or separate. You chose to
+ * stay as you are." */
 export function askText(ask: Ask, name: string): string {
   const who = firstName(name)
   if (ask.step === 'confession') {
     if (ask.side === 'them') return `${who} told you how they feel. ${ask.status === 'yes' ? 'You said you feel the same.' : ask.status === 'no' ? 'You said you would rather stay friends.' : ask.status === 'open' ? 'Waiting on your answer.' : 'You let it pass.'}`
     return `You told ${who} how you feel. ${ask.status === 'yes' ? `${who} feels the same.` : `${who} would rather stay friends.`}`
   }
-  if (ask.step === 'love') return loveText(ask, who)
+  const own = ({ love: loveText, stay: stayText } as Record<string, (ask: Ask, who: string) => string>)[ask.step]
+  if (own) return own(ask, who)
   if (ask.side === 'them') {
     const answer = { open: 'Waiting on your answer.', yes: 'You said yes.', not_yet: 'You said not yet.', no: 'You said no.', lapsed: 'You let it pass for now.' }[ask.status]
     return `${who} brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${answer}`
   }
-  return `You brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${ask.status === 'yes' ? `${who} said yes.` : `${who} said not yet.`}`
+  const theirs = { yes: 'said yes.', no: 'said no.' }[ask.status as 'yes' | 'no'] ?? 'said not yet.'
+  return `You brought up ${ask.topic.replace(/\byour\b/, 'their')}. ${who} ${theirs}`
+}
+
+/** After two noes to starting a family: "Mira brought up whether you two stay as you are or separate. You chose to stay as
+ * you are." */
+function stayText(ask: Ask, who: string): string {
+  const chose = { open: 'Waiting on your answer.', yes: 'You chose to stay as you are.', no: 'You chose to separate.', lapsed: 'You let it pass, so you stay as you are.' }[ask.status as 'open' | 'yes' | 'no' | 'lapsed'] ?? ''
+  return `${who} brought up whether you two stay as you are or separate. ${chose}`.trim()
 }
 
 /** "I love you" is said, not brought up: "Mira said “I love you.” You said it back." */
@@ -58,6 +68,13 @@ export function plannedText(planned: NonNullable<StepsView['planned']>, name: st
   const who = firstName(name)
   const what = planned.step === 'confession' ? 'tell you how they feel' : `bring up ${planned.topic.replace(/\byour\b/, 'their')}`
   return `${who} plans to ${what} around ${stepDate(planned.due_on)}.`
+}
+
+/** Living apart again, under the steps like a breakup: "Living apart for now since Sep 19, 2026 · you moved". */
+export function apartStep(view: Pick<StepsView, 'apart'>, name: string): string {
+  if (!view.apart?.since) return ''
+  const who = view.apart.by === 'you' ? ' · you moved' : view.apart.by === 'them' ? ` · ${firstName(name)} moved` : ''
+  return `Living apart for now since ${stepDate(view.apart.since)}${who}`
 }
 
 /** Moving in together, in one line: "Mira is moving into your place on Oct 28, 2026.", "Living together since Nov 2,

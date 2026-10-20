@@ -70,10 +70,16 @@ FEELS = {
              'usual',
     'lifting': "it's lifting slowly: you're mostly yourself again, with the odd quiet moment",
 }
-CAUSES = {'illness': 'after an illness', 'old age': 'peacefully, of old age', 'sudden': 'suddenly'}
+# An illness on record (frail, or in treatment after a scare) was a long one; else it was short.
+CAUSES = {'illness': 'after a short illness', 'long illness': 'after a long illness', 'old age': 'peacefully, of old age',
+          'sudden': 'suddenly'}
 # The banks' lines that need a later era (texting, a phone, a radio, a photograph): the city's era as a rank, and the
 # rank each needs. Other lines fit any era.
 ERA_RANKS = {'modern': 3, 'future': 3, 'other': 3, 'jazz-age': 2, 'victorian': 1, 'steampunk': 1, 'frontier': 1}
+# Passing away is this much likelier in an older era (1895, Camelot), for the circle (`loss:passes`'s old_era); the
+# town's turnover (companion/world/turnover.py) uses the same factor.
+ERA_DEATHS = {'victorian': 2.0, 'steampunk': 2.0, 'frontier': 2.0, 'medieval': 2.0, 'fantasy': 2.0}
+GRAND = re.compile(r'\b(?:abbey|cathedral|minster)\b', re.IGNORECASE)
 ERA_NEEDS = ((re.compile(r'\btext', re.IGNORECASE), 3),
              (re.compile(r'\bcall|\bphone|\bradio\b|\bcrossword', re.IGNORECASE), 2),
              (re.compile(r'\bphotograph|\bcoffee\b|\bcocoa\b|\bpostcard|\bpocket watch', re.IGNORECASE), 1))
@@ -95,6 +101,11 @@ def fitting(lines: list[str], era: str) -> list[str]:
     """The lines that fit the era: no texting before phones, no radio in 1895, no photograph in Camelot."""
     rank = ERA_RANKS.get(era, 0)
     return [line for line in lines if all(rank >= need for pattern, need in ERA_NEEDS if pattern.search(line))] or lines
+
+
+def death_factor(era: str) -> float:
+    """How much likelier passing away is in this era than today (1.0 for modern and 1925)."""
+    return ERA_DEATHS.get(era, 1.0)
 
 
 def first(name: str) -> str:
@@ -122,11 +133,16 @@ def settings_changed(connection) -> None:
 
 # Who can pass away -------------------------------------------------------------------------------------------------
 
-def spared(connection, timeline_id: str, row: dict) -> bool:
+def spared(connection, timeline_id: str, row: dict, today: date | None = None) -> bool:
     """Never a child, the companion's own partner or anyone the user spared; someone the user wrote into the
-    character's description is spared until the user says otherwise."""
+    character's description is spared until the user says otherwise. Nor, by `today`, the pair's grown child or a
+    parent whose baby is under one or on the way, nor the other parent of a child under 18 the companion shares
+    (companion/life/custody.py)."""
+    from companion.life import custody
     details = decode(row['details']) or {}
     if (ages.stored_age(details) or 0) < ADULT or details.get('late'):
+        return True
+    if today is not None and custody.spared(connection, row, today):
         return True
     if details.get('spared', bool(details.get('sheet'))):
         return True
@@ -169,11 +185,15 @@ def health_turns(connection, timeline_id: str, today: date) -> dict[str, list[tu
     return found
 
 
-def facts_for(connection, row: dict, today: date, turn: str | None, loss: int) -> dict:
+def facts_for(connection, row: dict, today: date, turn: str | None, loss: int, era: str = 'modern',
+              definition: dict | None = None) -> dict:
+    """What `loss:passes` reads: their life age (companion/world/lifespans.py; an elf of 300 is 48 in human terms), so
+    a long-lived person seldom passes away."""
     details = decode(row['details']) or {}
-    age = ages.person_age(connection, 'circle', row['id'], today) or ages.stored_age(details) or 0
+    real = ages.person_age(connection, 'circle', row['id'], today) or ages.stored_age(details) or 0
+    age = ages.person_life_age(connection, details, real, definition) or 0
     return {'age': age, 'loss': loss, 'frail': int(turn == 'frail'), 'treatment': int(turn == TREATMENT),
-            'family': int(circle.role_kind(row['role']) in circle.FAMILY)}
+            'family': int(circle.role_kind(row['role']) in circle.FAMILY), 'old_era': int(death_factor(era) > 1)}
 
 
 def decide(connection, companion: dict, row: dict, subject: str, facts: dict, now) -> bool:
@@ -202,8 +222,8 @@ def plan(connection, companion: dict, row: dict, day: date, today: date, outcome
          window: str) -> None:
     """A death decided: on its day they pass away (`happen`)."""
     details = decode(row['details']) or {}
-    age = facts_for(connection, row, today, None, 0)['age']
-    cause = 'illness' if why in ('frail', TREATMENT) else 'old age' if age >= 80 else \
+    age = facts_for(connection, row, today, None, 0, definition=companion['version']['definition'])['age']
+    cause = 'long illness' if why in ('frail', TREATMENT) else 'old age' if age >= 80 else \
         generators.pick(f"loss:{row['id']}", 'cause', ['illness', 'sudden'])
     connection.execute(
         'INSERT OR IGNORE INTO losses (id, timeline_id, kind, person_id, name, role, details, died_on, consequence_id, '
@@ -218,10 +238,11 @@ def plan(connection, companion: dict, row: dict, day: date, today: date, outcome
 
 def consider(connection, companion: dict, row: dict, today: date, turns: list, loss: int, now) -> None:
     """This person's year, and any health turn of theirs: whether they pass away, decided once each."""
-    start = watch_from(connection, row, today, now)
+    start, era = watch_from(connection, row, today, now), era_of(connection, companion)
+    definition = companion['version']['definition']
     window = (today - start).days // YEAR
     found = decide(connection, companion, row, f"loss:{row['id']}:{window}",
-                   facts_for(connection, row, today, None, loss), now)
+                   facts_for(connection, row, today, None, loss, era, definition), now)
     if found:
         offset = int(generators.unit(row['id'], 'loss-day', window) * YEAR)
         ill = turns[-1][2] if turns else ''  # Someone already ill passes away of it.
@@ -230,7 +251,7 @@ def consider(connection, companion: dict, row: dict, today: date, turns: list, l
         return
     for key, since, fact in turns:
         found = decide(connection, companion, row, f"loss:{row['id']}:{key}",
-                       facts_for(connection, row, today, fact, loss), now)
+                       facts_for(connection, row, today, fact, loss, era, definition), now)
         if found:
             offset = 30 + int(generators.unit(row['id'], 'loss-turn', key) * 270)
             plan(connection, companion, row, date.fromisoformat(since) + timedelta(days=offset), today, found, fact,
@@ -249,12 +270,26 @@ def advance(connection, companion: dict, now: datetime) -> None:
                                                 (timeline_id,))}
     turns = health_turns(connection, timeline_id, today)
     for row in circle.people(connection, timeline_id):
-        if row['id'] not in planned and not spared(connection, timeline_id, row):
+        if row['id'] not in planned and not spared(connection, timeline_id, row, today):
             consider(connection, companion, row, today, turns.get(row['id'], []), loss, now)
     for row in many(connection, "SELECT * FROM losses WHERE timeline_id=? AND happened=0 AND died_on<=?",
                     (timeline_id, today.isoformat())):
+        if spared_now(connection, row, today):
+            continue
         happen(connection, companion, row, now)
     town(connection, companion, today, now)
+
+
+def spared_now(connection, row: dict, today: date) -> bool:
+    """A death decided before a baby came (or while a child they share with the companion is under 18): called off,
+    and decided afresh once they are no longer spared."""
+    from companion.life import custody
+    person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['person_id'],))
+    if person is None or not custody.spared(connection, person, today):
+        return False
+    connection.execute('DELETE FROM consequences WHERE id=?', (row['consequence_id'],))
+    connection.execute('DELETE FROM losses WHERE id=?', (row['id'],))
+    return True
 
 
 def happen(connection, companion: dict, row: dict, now) -> None:
@@ -312,6 +347,7 @@ def town(connection, companion: dict, today: date, now) -> None:
             "created_at, updated_at) VALUES (?, ?, 'town', ?, ?, ?, ?, ?, 1, ?, ?)",
             (identifier(), companion['active_timeline_id'], key, sheet['full'], f'{role}{where}',
              encode({'pronouns': sheet.get('pronouns', ''), 'local': True, 'depth': 1, 'cause': '',
+                     'notable': bool(sheet.get('notable')),
                      'age': ages.town_age(connection, sheet, date.fromisoformat(gone['day']))}),
              gone['day'], stamp(now), stamp(now)))
 
@@ -417,20 +453,39 @@ def grief_line(row: dict, name: str, today: date, definition: dict, era: str = '
             'things.')
 
 
-def remembered_line(row: dict, today: date, definition: dict) -> str:
-    """After grief lifts: the anniversary on its day, else a plain fact so they never come back to life."""
+def years_since(row: dict, today: date) -> int:
+    """How many years ago today they died, when today is the date it happened (else 0)."""
     died = date.fromisoformat(row['died_on'])
-    years = today.year - died.year
+    return today.year - died.year if (today.month, today.day) == (died.month, died.day) else 0
+
+
+def remembered_line(row: dict, today: date, definition: dict) -> str:
+    """After grief lifts: a plain fact so they never come back to life (the anniversary is an occasion)."""
+    died = date.fromisoformat(row['died_on'])
     them = pronouns.person(row['details'].get('pronouns'))['them']
-    if years >= 1 and (today.month, today.day) == (died.month, died.day):
-        span = 'a year' if years == 1 else f'{years} years'
-        return f"- Today it's {span} since {who(row, definition)} died. You're thinking of {them} today."
     return f"- {who(row, definition)[:1].upper()}{who(row, definition)[1:]} died in {died:%B} {died.year}. You still " \
         f'miss {them} now and then.'
 
 
+def anniversaries(connection, companion: dict, today: date) -> list[dict]:
+    """Someone in their circle died on this date a year or more ago: an occasion on Today and in the chat context
+    (companion/life/occasions.py), on the day."""
+    definition, result = companion['version']['definition'], []
+    for row in rows(connection, companion['active_timeline_id']):
+        years = years_since(row, today) if row['kind'] == 'circle' else 0
+        if years >= 1:
+            span = 'a year' if years == 1 else f'{years} years'
+            them = pronouns.person(row['details'].get('pronouns'))['them']
+            result.append({'id': row['id'], 'name': first(row['name']), 'role': circle.said(row['role'], definition),
+                           'span': span, 'what': f"{span} since {who(row, definition)} died "
+                                                 f"({long_date(row['died_on'])} {row['died_on'][:4]})",
+                           'hint': f"You're thinking of {them} today; if it fits, you can mention it, quietly."})
+    return result
+
+
 def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
-    """(identity, line) for the 'loss' section: the grief while it lasts, then anniversaries and the plain fact."""
+    """(identity, line) for the 'loss' section: the grief while it lasts, then the plain fact (but for the anniversary,
+    an occasion: `anniversaries`)."""
     today, definition = local_today(companion, now), companion['version']['definition']
     result, era = [], era_of(connection, companion)
     for row in rows(connection, companion['active_timeline_id']):
@@ -438,7 +493,7 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
         if name:
             result.append((f"loss:{row['id']}:{name}:{today.isoformat()}",
                            grief_line(row, name, today, definition, era)))
-        elif date.fromisoformat(row['died_on']) <= today and row['kind'] == 'circle':
+        elif date.fromisoformat(row['died_on']) <= today and row['kind'] == 'circle' and years_since(row, today) < 1:
             result.append((f"loss:{row['id']}:after:{today.isoformat()}", remembered_line(row, today, definition)))
     return result
 
@@ -462,6 +517,11 @@ def moods(connection, companion: dict, now) -> list[tuple[tuple[str, int], str]]
     return [(feeling, f"{first(companion['version']['name'])}'s {said} "
                       f"{first(row['name'])} died" if row['kind'] == 'circle' else
              f"{first(row['name'])} from town died")]
+
+
+def raw_or_heavy(connection, timeline_id: str, day: date) -> bool:
+    """Whether grief is raw or heavy on this day: their own feed posts only a quiet status (companion/life/social.py)."""
+    return ACTIVE and any(stage(row, day) in ('raw', 'heavy') for row in rows(connection, timeline_id))
 
 
 def holds_back(connection, companion: dict, now) -> bool:
@@ -522,7 +582,9 @@ def funerals(connection, companion: dict, today: date, now) -> list[dict]:
                                          town=row['town_key'] or '', local=row['details'].get('local', True),
                                          city=row['details'].get('city', ''), loss_id=row['id'], word=rules['word'],
                                          at=rules['at'], until=rules['until'], wear=rules['wear'],
-                                         service=rules['service'], after=rules['after'], flowers=flowers(row)))
+                                         service=rules['service'], after=rules['after'], flowers=flowers(row),
+                                         # Family is asked even with another big day near (big_days.invitable).
+                                         family=not flowers(row), notable=row['details'].get('notable', False)))
     return result
 
 
@@ -532,21 +594,33 @@ def flowers(row: dict) -> str:
     return '' if row['kind'] == 'circle' and circle.role_kind(row['role'] or '') in circle.FAMILY else 'flowers'
 
 
-def venue_for(connection, companion: dict, data: dict, seed: str, day: date) -> dict:
+def venue_for(connection, companion: dict, data: dict, seed: str, day: date, notable: bool = False) -> dict:
     """Where the funeral is held: a chapel, church or hall in their city named by its customs, else a temple, else the
-    customs' own unnamed place ("the funeral home"), never a lighthouse or a park."""
+    customs' own unnamed place ("the funeral home"), never a lighthouse or a park. An abbey or a cathedral only for
+    someone notable: an ordinary family's is at a parish church (or the customs' place); never where the customs say
+    no funeral is held (a Shinto shrine in Osaka)."""
     import re
 
     from companion.life import big_days, outings, wedding
     rules = customs(connection, companion)
     words = re.compile(rf"\b(?:{rules['words']})", re.IGNORECASE)
+    never = re.compile(rf"\b(?:{rules['never']})", re.IGNORECASE) if rules.get('never') else None
     places = [item for item in data['places'] if not any(word in item['name'].lower() for word in big_days.NOT_PARTY)
-              and item['kind'] not in wedding.OUTDOOR and not wedding.OUTDOOR_NAMES.search(item['name'])]
-    options = held_in(places, words) or [item for item in places if item['kind'] == 'temple']
+              and item['kind'] not in wedding.OUTDOOR and not wedding.OUTDOOR_NAMES.search(item['name'])
+              and not (never and never.search(' '.join([item['name'], *item.get('tags', ())])))]
+    named = held_in(places, words)
+    options = [item for item in named if notable or not grand(item)]
+    if not named:
+        options = [item for item in places if item['kind'] == 'temple' and (notable or not grand(item))]
     if options:
         return outings.place_view(generators.pick(seed, 'venue', options), data)
     return {'id': '~funeral', 'name': rules['venue'], 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
             'cuisine': '', 'city': data['name'], 'city_id': data['id'], 'spots': []}
+
+
+def grand(item: dict) -> bool:
+    """An abbey, a cathedral, a minster or a city's landmark (Westminster Abbey, St Paul's): for the notable only."""
+    return bool(GRAND.search(item['name'])) or 'iconic' in item.get('tags', ())
 
 
 def held_in(places: list[dict], words) -> list[dict]:

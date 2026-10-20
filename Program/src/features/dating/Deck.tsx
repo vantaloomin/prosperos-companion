@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, ty
 import { Heart, RotateCcw, X } from 'lucide-react'
 import type { Dating as DatingData, DatingCard } from '../../types'
 import { reducedMotion } from '../../motion'
-import { cardHeading } from './datingText'
+import { cardHeading, cardLabel, humanTerms } from './datingText'
 import { Photo } from './Photo'
 import { FLY_MS, answeredText, arrowWay, decide, hintText, nextHeard, pose, undoLabel, undoShown, type SwipeWay } from './swipe'
 
@@ -32,7 +32,7 @@ export function Deck({ data, onSwipe, onUndo, onPassedAgain }: DeckProps) {
     return done
   }
   const undo = said && (() => void onUndo(said.key).then((done) => { if (done) { refocus(); setBack(`${said.name.charAt(0).toUpperCase()}${said.name.slice(1)} is back.`); setSaid(null) } }))
-  const heard = <p className="visually-hidden" role="status">{back || (said ? answeredText(said.name, said.way, nextHeard(data.surface, card ? cardHeading(card) : null)) : '')}</p>
+  const heard = <p className="visually-hidden" role="status">{back || (said ? answeredText(said.name, said.way, nextHeard(data.surface, card ? cardLabel(card) : null)) : '')}</p>
   const takeBack = (busy: boolean) => said && undo && undoShown(said.key, data.undo, busy) ? <UndoButton said={said} onUndo={undo} /> : null
   if (!card) {
     return <div className="dating-empty">{heard}<p className="subtle">{data.words.empty} {takeBack(false)}</p>
@@ -68,7 +68,7 @@ function Notice({ data, card, onSwipe, takeBack }: CardProps) {
   }
   useArrowKeys(answer)
   return (
-    <article className={`dating-card dating-${data.surface}`} role="group" aria-label={data.surface === 'column' ? 'A notice in the personal column' : cardHeading(card)}>
+    <article className={`dating-card dating-${data.surface}`} role="group" aria-label={data.surface === 'column' ? 'A notice in the personal column' : cardLabel(card)}>
       {data.surface === 'column' ? <p className="dating-notice">{card.notice}</p> : <Details card={card} />}
       <Answers data={data} busy={busy} onAnswer={answer} takeBack={takeBack} />
     </article>
@@ -128,7 +128,7 @@ function Stack({ data, card, onSwipe, takeBack }: CardProps) {
         {next && <div className="dating-card dating-peek" aria-hidden="true" style={{ transform: `translateY(${10 - 10 * at.lift}px) scale(${0.96 + 0.04 * at.lift})` }}>
           <Details card={next} />
         </div>}
-        <article ref={top} className={`dating-card dating-app dating-top${dragging ? ' dragging' : ''}`} role="group" aria-label={cardHeading(card)}
+        <article ref={top} className={`dating-card dating-app dating-top${dragging ? ' dragging' : ''}`} role="group" aria-label={cardLabel(card)}
           style={{ transform: `translateX(${at.x}px) rotate(${at.rotate}deg)`, opacity: at.opacity }}
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel} onLostPointerCapture={() => { if (drag.current) cancel() }}>
           <span className="dating-stamp like" aria-hidden="true" style={{ opacity: at.like }}>{data.words.like}</span>
@@ -144,7 +144,7 @@ function Stack({ data, card, onSwipe, takeBack }: CardProps) {
 
 function Details({ card }: { card: DatingCard }) {
   return <>
-    <h2>{cardHeading(card)}</h2>
+    <h2>{cardHeading(card)}{humanTerms(card) && <span className="dating-human-terms"> · {humanTerms(card)}</span>}</h2>
     {card.job && <p>{card.job} · {card.neighborhood}</p>}
     <p className="subtle">{card.looks}</p>
     <p>{card.bio}</p>

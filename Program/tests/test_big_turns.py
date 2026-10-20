@@ -57,8 +57,10 @@ def next_stage(client, clock, chapter_id: str):
 
 
 def test_the_banks_have_a_hundred_of_each_for_every_era():
-    for bank in ('courses', 'retirement'):
-        for era in ('modern', 'jazz-age', 'other'):
+    # Courses split the older past into a medieval kingdom's and the Victorian age's (v0.15).
+    for bank, eras in (('courses', ('modern', 'jazz-age', 'medieval', 'victorian')),
+                       ('retirement', ('modern', 'jazz-age', 'other'))):
+        for era in eras:
             entries = big_turns.data()[bank][era]
             assert len(entries) >= 100 and len({json.dumps(entry) for entry in entries}) == len(entries)
     assert all(3 <= course['months'] <= 36 for era in big_turns.data()['courses'].values() for course in era)

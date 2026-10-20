@@ -585,6 +585,9 @@ def later_hours(outing: dict) -> list[str]:
 def doing(outing: dict) -> str:
     """'went to dinner at Lupa', 'went for a walk in Patterson Park'."""
     place, activity = outing['place']['name'], outing['activity']
+    if outing['place'].get('family'):  # A family day out (companion/life/our_child.py).
+        from companion.life import our_child
+        return our_child.doing(outing)
     if activity in (*MEETUPS, *LONG_DAYS):
         return planned_doing(outing)
     if activity == 'dinner-in':
@@ -741,6 +744,9 @@ def what(outing: dict) -> str:
         return f"{hobby.get('event') or hobby['together']} at {place['name']}"
     kind = f"{proper(place['cuisine'])} {place['kind']}".strip() if place.get('cuisine') else place['kind']
     area = f" in {place['neighborhood']}" if place['neighborhood'] else ''
+    if place.get('family'):  # A family day out (companion/life/our_child.py): the children in words only.
+        from companion.life import steps
+        return f"a family day out with {steps.names_text(place['family'])} at {place['name']} ({kind}{area})"
     return f"{ACTIVITIES[outing['activity']][5]} at {place['name']} ({kind}{area})"
 
 
@@ -1126,9 +1132,11 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     version = companion['version']
     since = (now.astimezone(zone(version['timezone'])).date() - timedelta(days=14)).isoformat()
     found = in_force(connection, companion['active_timeline_id'], since, include_cancelled=True)
+    from companion.life import our_child  # An evening out with a child at home: who watches them (screen only).
     return [{**outing, 'state': state(outing, version['timezone'], now),
              'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
-             'cost_text': money_text(companion, outing).strip()} for outing in found]
+             'cost_text': money_text(companion, outing).strip(),
+             'sitter': our_child.sitter_view(connection, companion, outing)} for outing in found]
 
 
 def photo_ready(connection, now: datetime) -> list[dict]:
@@ -1172,7 +1180,8 @@ def photograph(database) -> None:
         elif outing['activity'] == 'big-day':
             from companion.life import big_days
             found = {**found, 'wearing': big_days.photo_wearing(connection, outing),
-                     'label': f"At {outing['place'].get('title') or 'a big day'}"}
+                     'label': f"At {outing['place'].get('title') or 'a big day'}",
+                     **({'activity': big_days.PICTURED} if outing['place'].get('standing_up') else {})}
         inputs = prompts.build_moment(connection, found, jobs.image_settings(connection), 'moment')
         connection.execute('UPDATE outings SET photo_post_id=? WHERE id=?', (post_id, outing['id']))
     if jobs.routable(database, inputs):

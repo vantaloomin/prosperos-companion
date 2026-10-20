@@ -3,7 +3,7 @@
 Every record names a source from its file's `sources` table, so each fact can be traced to where it
 came from, under which license, and when it was gathered.
 """
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -189,6 +189,9 @@ class Career(Record):
     # Adult work (a cam model, say): only ever chosen for an adult, and only offered to people while Settings >
     # Realism > Adult side of life is on. Never rolled for townsfolk, circles or job changes.
     adult: bool = False
+    # Who did this work in its era where custom kept it to one side ('men' for a cabman in 1895, 'women' for a
+    # governess); left out, anyone. Read only in a city whose era keeps work by gender (City.work_by_gender).
+    worked_by: Literal['men', 'women'] | None = None
 
 
 class Currency(Record):
@@ -210,6 +213,9 @@ class NameGroup(Record):
     own_family: bool = False
     # Endings a woman's family name takes instead (Roman Cornelius becomes Cornelia): {"ius": "ia"}.
     feminine_family: dict[str, str] = Field(default_factory=dict)
+    # The kind of people this group's names belong to (companion/world/lifespans.py), built in or the city's own;
+    # empty for humans. An unknown kind is dropped when the city loads.
+    kind: str | None = Field(default=None, max_length=40)
 
     @model_validator(mode='after')
     def check(self):
@@ -410,6 +416,9 @@ class City(Record):
     annual_events: list[AnnualEvent] = Field(default_factory=list, max_length=200)
     # Careers particular to this city or its setting, beside the shared catalogue.
     careers: list[Career] = Field(default_factory=list, max_length=200)
+    # Whether townsfolk's jobs follow the careers' `worked_by`: left out, the era decides (on before about 1920 and
+    # in the Middle Ages, off today and in fantasy settings, which turn it on themselves; generators.by_gender).
+    work_by_gender: bool | None = None
     names: CityNames | None = None
     local_color: list[LocalColor] = Field(default_factory=list, max_length=100)
     prices: list[Price] = Field(default_factory=list, max_length=60)
@@ -423,6 +432,10 @@ class City(Record):
     notables: list[Notable] = Field(default_factory=list, max_length=200)
     # Quirks and goals of the city's own for its townsfolk (companion/world/townsfolk.py).
     townsfolk: Townsfolk | None = None
+    # Kinds of people (companion/world/lifespans.py): a built-in kind's lifespan here ({"elf": {"lifespan": 750}}) or
+    # a kind of the city's own (label, lifespan and words). Checked when the city loads (lifespans.clean), which
+    # drops a bad entry with a note rather than stopping the city loading.
+    kinds: Any = None  # Any shape here: a wrong one is dropped with a note (lifespans.clean), not a failed load.
 
     @model_validator(mode='after')
     def check(self):

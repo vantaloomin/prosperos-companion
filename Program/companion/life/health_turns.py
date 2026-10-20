@@ -26,7 +26,7 @@ from datetime import date, timedelta
 from companion import consequences
 from companion.clock import stamp
 from companion.database import decode, many, optional
-from companion.life import big_turns, circle, money
+from companion.life import ages, big_turns, circle, money
 from companion.memory import pairs
 
 OUTLOOK, HOW = 'health:outlook', 'caring:how'
@@ -59,13 +59,19 @@ def plan_health(connection, companion, world, day, seed) -> dict | None:
         return None
     condition = random.Random(f'{seed}:condition').choice(options)
     results = day + timedelta(days=random.Random(f'{seed}:results').randint(*TEST_DAYS))
-    name, when = big_turns.first(definition), big_turns.day_text(results)
+    name, when, soon = big_turns.first(definition), big_turns.day_text(results), big_turns.soon_text(results, day)
+    details = {'stage': 'tests', 'next_on': results.isoformat(), 'results_on': results.isoformat(),
+               'condition': condition, 'cost': checkup_cost(definition, city), **big_turns.old_words(city)}
+    if details.get('medieval'):  # No tests in a medieval kingdom: the healer watches how it goes.
+        return {'title': f"{name} is waiting on the healer's word",
+                'told': f"You haven't been feeling right lately, and the healer is keeping an eye on it; you will know "
+                        f'what it is by {when}.',
+                'share': f"Been to see the healer. Probably nothing, but I'll know by {soon}.", 'details': details}
     return {'title': f'{name} is waiting on test results',
             'told': f"You haven't been feeling right lately, and the doctor sent you for tests; the results come on "
                     f'{when}.',
-            'share': f"Doctor's sending me for some tests. Probably nothing, but I'll know on {when}.",
-            'details': {'stage': 'tests', 'next_on': results.isoformat(), 'results_on': results.isoformat(),
-                        'condition': condition, 'cost': checkup_cost(definition, city)}}
+            'share': f"Doctor's sending me for some tests. Probably nothing, but I'll know on {soon}.",
+            'details': details}
 
 
 def checkup_cost(definition: dict, city: dict | None) -> float:
@@ -79,7 +85,7 @@ def diagnosed(connection, companion, row, details, day, now) -> dict:
     name = big_turns.first(definition)
     outcome = consequences.decide(
         connection, timeline_id=row['timeline_id'], choice=OUTLOOK, subject=f"health:{row['id']}",
-        facts={'age': big_turns.age_of(connection, companion, day), 'drama': drama(connection)},
+        facts={'age': big_turns.life_age_of(connection, companion, day), 'drama': drama(connection)},
         names={'name': name, 'a': condition['condition'], 'b': ''},
         labels=[option['label'].format(name=name, a=condition['condition'])
                 for option in consequences.tables()[OUTLOOK]['options']],
@@ -87,15 +93,27 @@ def diagnosed(connection, companion, row, details, day, now) -> dict:
     harder = outcome['picked'] == 1
     every = max(2, condition['every'] // 2) if harder else condition['every']
     settles = day + timedelta(days=random.Random(f"{row['id']}:settles").randint(*SETTLE_DAYS))
-    told = (f"You were diagnosed with {condition['condition']} on {big_turns.day_text(day)}. It is something you will "
-            f"live with; the doctor wants you to {condition['advice']}, and you have a {condition['checkup'].lower()} "
-            f"every {weeks(every)}.") + (' It has been a harder road than you hoped.' if harder else '')
-    return {'title': f"{name} was diagnosed with {condition['condition']}", 'changes': changes(condition),
-            'told': told, 'share': f"Got my results. It's {condition['condition']}. Not the end of the world, but it's "
-                                   'a lot to take in.',
+    return {**news(name, details, condition, day, every, harder), 'changes': changes(condition),
             'undo': {'decided': [outcome['id']]},
             'details': {'stage': 'managing', 'diagnosed_on': day.isoformat(), 'every': every,
                         'outlook': 'harder' if harder else 'manageable', 'next_on': settles.isoformat()}}
+
+
+def news(name: str, details: dict, condition: dict, day: date, every: int, harder: bool) -> dict:
+    """Results day's title, told and share, weighed by how the condition looks: a light one (the bank's `light`) is
+    a nuisance, a harder road a lot to take in."""
+    what, old = condition['condition'], details.get('medieval')
+    told = (f'The healer told you on {big_turns.day_text(day)} that you have {what}.' if old else
+            f'You were diagnosed with {what} on {big_turns.day_text(day)}.') + \
+        (f" It is something you will live with; the {'healer' if old else 'doctor'} wants you to {condition['advice']}, "
+         f"and you have a {condition['checkup'].lower()} every {weeks(every)}.")
+    weight = 'harder' if harder else 'light' if condition.get('light') else 'usual'
+    told += {'harder': ' It has been a harder road than you hoped.', 'light': ' It is more of a nuisance than a worry.',
+             'usual': ''}[weight]
+    feeling = {'harder': "and it's a lot to take in.", 'light': 'Nothing serious, just something to keep on top of.',
+               'usual': "Not the end of the world, but it's a lot to take in."}[weight]
+    return {'title': f'{name} learned they have {what}' if old else f'{name} was diagnosed with {what}', 'told': told,
+            'share': f"{'Saw the healer' if old else 'Got my results'}. It's {what}" + (', ' if harder else '. ') + feeling}
 
 
 def weeks(count: int) -> str:
@@ -143,7 +161,9 @@ def parents(connection, companion: dict, day: date) -> list[tuple[dict, int, boo
     for person in circle.people(connection, timeline_id):
         if circle.role_kind(person['role']) != 'parent' or cared_for(connection, timeline_id, person['id']):
             continue
-        age = decode(person['details']).get('age') or 0
+        details = decode(person['details'])
+        # How far through life they are: a long-lived parent is seldom old enough to need care.
+        age = ages.person_life_age(connection, details, details.get('age') or 0, companion['version']['definition'])
         if age >= OLD_PARENT or person['id'] in ill:
             found.append((person, age, person['id'] in ill))
     return sorted(found, key=lambda item: (not item[2], -item[1], item[0]['ordinal']))
@@ -202,6 +222,13 @@ def care_begins(connection, companion, row, details, day, now) -> dict:
                         'next_on': (day + timedelta(days=CARE_CHECK)).isoformat()}}
 
 
+def parent_life_age(connection, companion: dict, person: dict | None) -> int | None:
+    if not person:
+        return None
+    details = decode(person['details'])
+    return ages.person_life_age(connection, details, details.get('age'), companion['version']['definition'])
+
+
 def care_check(connection, companion, row, details, day, now) -> dict:
     """Three months on: the engine says how it is going."""
     definition = companion['version']['definition']
@@ -210,7 +237,7 @@ def care_check(connection, companion, row, details, day, now) -> dict:
     names = {'name': name, 'a': details['name'], 'b': ''}
     outcome = consequences.decide(
         connection, timeline_id=row['timeline_id'], choice=HOW, subject=f"caring:{row['id']}:{details['checks']}",
-        facts={'age_a': decode(person['details']).get('age') if person else None, 'drama': drama(connection),
+        facts={'age_a': parent_life_age(connection, companion, person), 'drama': drama(connection),
                'turns': big_turns.level(connection), 'checks': details['checks']}, names=names,
         labels=[option['label'].format(**names) for option in consequences.tables()[HOW]['options']],
         day=day.isoformat(), timestamp=stamp(now), holders={'me': pairs.companion_key(companion['id'])}, now=now)
@@ -225,8 +252,11 @@ def care_check(connection, companion, row, details, day, now) -> dict:
                             'next_on': None}}
     harder = picked == 'harder' or details.get('outlook') == 'declining'
     settled = checks >= CARE_CHECKS
-    told = (f'Your {parent} needs more help than before, and it is wearing on you.' if picked == 'harder' else
-            f'Caring for your {parent} goes on much as before.') + \
+    # The routine stays in the line, so the chat context keeps it once the first stages are out of the history.
+    routine = (f"you spend {big_turns.days_text(details['caring']['days'])} at their place, take them to their "
+               'appointments and help with their bills')
+    told = (f'Your {parent} needs more help than before, and it is wearing on you; you still {routine.removeprefix("you ")}.'
+            if picked == 'harder' else f'Caring for your {parent} goes on much as before: {routine}.') + \
         (' It is part of your weeks now.' if settled else '')
     return {'title': f"{name} is caring for their {parent}", 'changes': {'caring': details['caring']},
             'undo': {'decided': [outcome['id']]}, 'told': told,
@@ -318,6 +348,8 @@ def entry(kind: str, details: dict) -> dict:
         return {'kind': 'care', 'title': f"{details['role'].capitalize()}'s appointment",
                 'done': f"took their {details['role']} to an appointment"}
     if details['stage'] == 'tests':
+        if details.get('medieval'):
+            return {'kind': 'results', 'title': "Healer's visit", 'done': 'heard what the healer made of it'}
         return {'kind': 'results', 'title': 'Test results', 'done': 'got their test results'}
     condition = details['condition']
     return {'kind': 'checkup', 'title': condition['checkup'], 'done': f"went to their {condition['checkup'].lower()}",
@@ -348,7 +380,8 @@ def purchases(connection, timeline_id: str, start: date, end: date) -> list[dict
 
 def health_line(row: dict, details: dict) -> str:
     if details['stage'] == 'tests':
-        return f"Waiting on test results; they come {big_turns.short_day(details['results_on'])}."
+        what = "the healer's word; it comes" if details.get('medieval') else 'test results; they come'
+        return f"Waiting on {what} {big_turns.short_day(details['results_on'])}."
     condition = details['condition']
     return f"Living with {condition['condition']}; a {condition['checkup'].lower()} every {weeks(details['every'])}."
 

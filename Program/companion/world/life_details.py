@@ -16,7 +16,7 @@ meeting after that. The bank is data (world/data/life_details.json), so it can g
 import json
 from functools import cache
 
-from companion.world import catalog, generators, perception, townsfolk, wording
+from companion.world import catalog, generators, lifespans, perception, townsfolk, wording
 
 STORIES = 4
 STRETCH = 6  # Stories set aside for each person in a group, so the young can skip some.
@@ -73,9 +73,17 @@ def origin(data: dict, sheet: dict, seed: str, modern: bool) -> str:
     return text.replace('{hood}', generators.pick(seed, 'details-hood', hoods) or '').replace('{city}', data['name'])
 
 
+def worked(data: dict, sheet: dict) -> list[str]:
+    """The careers (lowercase names) this townsperson could have worked: in an era that kept work by gender, those of
+    their side (generators.fits_side)."""
+    offered = catalog.everyday(catalog.careers_for(data)).values()
+    side = generators.fits_side(data, sheet.get('pronouns'))
+    return sorted(career['name'].lower() for career in offered if not side or side(career))
+
+
 def retired_from(data: dict, sheet: dict, seed: str) -> str | None:
     """The career (lowercase name) a retired townsperson retired from."""
-    careers = sorted(career['name'].lower() for career in catalog.everyday(catalog.careers_for(data)).values())
+    careers = worked(data, sheet)
     past = [career for career in careers if career != (sheet.get('occupation') or '').lower()]
     return generators.pick(seed, 'details-retired', past)
 
@@ -83,7 +91,7 @@ def retired_from(data: dict, sheet: dict, seed: str) -> str | None:
 def work(data: dict, sheet: dict, seed: str) -> list[str]:
     """How long at the current job (staff), or retirement, and the jobs before it, newest first."""
     span = max(sheet['age'] - WORK_FROM, 0)
-    careers = sorted(career['name'].lower() for career in catalog.everyday(catalog.careers_for(data)).values())
+    careers = worked(data, sheet)
     current = (sheet.get('occupation') or '').lower()
     past = [career for career in careers if career != current]
     lines, used = [], 0
@@ -173,9 +181,12 @@ def for_sheet(data: dict, sheet: dict) -> dict:
     if sheet.get('cast') or not sheet['key'].startswith('town:'):
         return {}
     seed, modern = townsfolk.drawn(sheet), townsfolk.modern(data)
+    # What fits their age reads it in human terms (companion/world/lifespans.py): an elf of 225 is in mid-life, not
+    # past every detail's age. How long they have worked keeps their real years.
+    aged = {**sheet, 'age': lifespans.life_age(sheet['age'], lifespans.lifespan_of(sheet.get('folk'), data))}
     return wording.regional_all(data, {
-        'origin': origin(data, sheet, seed, modern), 'work': work(data, sheet, seed), 'family': family(sheet, seed),
-        'pet': pet(seed, modern), 'likes': likes(seed, modern), 'stories': stories(data, sheet, seed, modern)})
+        'origin': origin(data, aged, seed, modern), 'work': work(data, sheet, seed), 'family': family(aged, seed),
+        'pet': pet(seed, modern), 'likes': likes(seed, modern), 'stories': stories(data, aged, seed, modern)})
 
 
 def revealed(data: dict, sheet: dict, times: int) -> dict:

@@ -29,10 +29,12 @@ from companion.life import (
     composer,
     disruptions,
     encounters,
+    expecting,
     families,
     grooming,
     hobbies,
     home,
+    kids,
     kitchen,
     long_distance,
     loss,
@@ -41,7 +43,9 @@ from companion.life import (
     moving_in,
     network,
     occasions,
+    our_child,
     outings,
+    own_family,
     own_plans,
     reactions,
     recommendations,
@@ -99,11 +103,11 @@ def milestones(connection, companion, now) -> dict[str, int]:
     birthday = occasions.own_birthday(companion)
     if not birthday:
         return {}
-    found = {}
+    found, span = {}, ages.companion_lifespan(connection, companion['version']['definition'])
     for year in range((now - BACKFILL).year, (now + HORIZON).year + 1):
         day = ages.birthday_in(year, birthday)
         age = ages.turns_on(connection, companion['id'], companion['version']['definition'], day)
-        if ages.milestone(age) and (now - BACKFILL - timedelta(days=1)).date() <= day <= (now + HORIZON).date():
+        if ages.milestone(age, span) and (now - BACKFILL - timedelta(days=1)).date() <= day <= (now + HORIZON).date():
             found[day.isoformat()] = age
     return found
 
@@ -173,6 +177,7 @@ def extend(connection, companion, world, now) -> dict:
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
     started += families.advance(connection, companion, world, now)
+    kids.settle(connection, companion, world, now)
     reactions.daily(connection, companion, now)
     rough_patches.daily(connection, companion, now)
     # Breaks and breakups (companion/life/breakups.py) read the rough patches just settled.
@@ -182,6 +187,8 @@ def extend(connection, companion, world, now) -> dict:
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)
     wedding.advance(connection, companion, now)
+    expecting.advance(connection, companion, world, now)  # Before the big days: a pregnancy brings a baby shower.
+    our_child.advance(connection, companion, world, now)
     loss.advance(connection, companion, now)  # Before the big days: a death brings a funeral.
     big_days.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
@@ -211,13 +218,10 @@ def catch_up_in_steps(database, companion_id, world, now):
 def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion=None) -> int:
     stale = connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
                                'AND basis!=?', (timeline_id, subject, basis)).rowcount
-    plans, away = {}, {}
+    plans, away, arrivals = {}, {}, {}
     if subject == COMPANION:
-        since = (now - BACKFILL).date().isoformat()
-        plans = pinned_plans(connection, timeline_id, since)
-        away = trips.by_date(connection, timeline_id, since)
-        plans = {local_date: found for local_date, found in plans.items() if local_date not in away}
-        stale += repin(connection, timeline_id, plans) + trips.repin(connection, timeline_id, away)
+        plans, away, arrivals, repinned = companion_days(connection, timeline_id, companion, now)
+        stale += repinned
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
                       (timeline_id, subject))
     # A timeline's days begin when it last became active: nothing is filled in for time it spent
@@ -250,18 +254,40 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         if local_date not in days:
             days[local_date] = day_facts(connection, timeline_id, subject, definition, world, slot.local_date,
                                          days_off.get(local_date))
-            if local_date in away:
-                days[local_date]['trip'] = away[local_date]
-            elif local_date in plans:
-                days[local_date]['plans'] = plans[local_date]
-                days[local_date]['pinned'] = own_plans.assign(plans[local_date], [
-                    holiday_block(block.view(), days_off.get(local_date)) for block in schedule
-                    if block.on(slot.local_date)])
+            days[local_date].update(day_extras(slot.local_date, arrivals, away, plans, schedule, days_off))
         written += write_slot(connection, scope, slot, days[local_date], recent)
     connection.execute('INSERT INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?) '
                        'ON CONFLICT (timeline_id, subject) DO UPDATE SET through=excluded.through',
                        (timeline_id, subject, stamp(end)))
     return written
+
+
+def day_extras(day, arrivals: dict, away: dict, plans: dict, schedule, days_off: dict) -> dict:
+    """What a day holds beyond its routine: their child's arrival, a trip, or plans pinned to its slots."""
+    local_date = day.isoformat()
+    if local_date in arrivals:
+        return {'arrival': arrivals[local_date]}
+    if local_date in away:
+        return {'trip': away[local_date]}
+    if local_date in plans:
+        return {'plans': plans[local_date], 'pinned': own_plans.assign(plans[local_date], [
+            holiday_block(block.view(), days_off.get(local_date)) for block in schedule if block.on(day)])}
+    return {}
+
+
+def companion_days(connection, timeline_id, companion, now) -> tuple[dict, dict, dict, int]:
+    """The companion's days that aren't the routine: plans pinned to slots, days away on a trip, and the day their
+    child is born or comes home, which takes the whole waking day (companion/life/expecting.py); with how many
+    upcoming entries were removed to be composed again."""
+    since = (now - BACKFILL).date().isoformat()
+    arrivals = expecting.arrival_days(connection, companion, since) if companion else {}
+    away = {local_date: trip for local_date, trip in trips.by_date(connection, timeline_id, since).items()
+            if local_date not in arrivals}
+    plans = {local_date: found for local_date, found in pinned_plans(connection, timeline_id, since).items()
+             if local_date not in away and local_date not in arrivals}
+    repinned = repin(connection, timeline_id, plans) + trips.repin(connection, timeline_id, away) + \
+        expecting.repin(connection, timeline_id, arrivals)
+    return plans, away, arrivals, repinned
 
 
 def pinned_plans(connection, timeline_id, since: str) -> dict[str, list[dict]]:
@@ -270,7 +296,7 @@ def pinned_plans(connection, timeline_id, since: str) -> dict[str, list[dict]]:
     nothing else is, and big days they go to on their own (companion/life/big_days.py)."""
     plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
     for extra in (outings.as_plans(connection, timeline_id, since), admin.as_plans(connection, timeline_id, since),
-                  big_days.as_plans(connection, timeline_id, since)):
+                  big_days.as_plans(connection, timeline_id, since), own_family.as_plans(connection, timeline_id, since)):
         for local_date, found in extra.items():
             plans[local_date] = plans.get(local_date, []) + found
     return plans
@@ -278,8 +304,8 @@ def pinned_plans(connection, timeline_id, since: str) -> dict[str, list[dict]]:
 
 def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
     """Compose one slot and write it, shifted when the day does not go to plan (companion/life/disruptions.py)."""
-    if facts.get('trip') and slot.block.kind not in routine.RESTING:
-        return write_trip_slot(connection, scope, slot, facts)
+    if whole := whole_day(slot, facts):
+        return whole(connection, scope, slot, facts)
     timeline_id, subject, definition = scope['timeline_id'], scope['subject'], scope['definition']
     block, entry, shift = day_block(slot.block.view(), facts), None, None
     seed = seed_for(timeline_id, subject, slot.key)
@@ -341,6 +367,8 @@ def plan_entry(plan: dict, block: dict, definition: dict) -> dict:
         return outings.entry(plan, block, definition)
     if 'admin' in plan:
         return admin.entry(plan, block, definition)
+    if 'babysit' in plan:  # An evening out while the user babysits (companion/life/own_family.py).
+        return own_family.entry(plan, block, definition)
     return big_days.entry(plan, block, definition) if 'big_day' in plan else own_plans.entry(plan, block, definition)
 
 
@@ -358,6 +386,25 @@ def write_trip_slot(connection, scope: dict, slot, facts: dict) -> int:
         'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
         'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (identifier(), timeline_id, COMPANION, slot.key, stamp(slot.starts_at), stamp(slot.ends_at),
+         slot.local_date.isoformat(), encode(block), encode(entry), scope['basis'], stamp(scope['now'])))
+    return 1
+
+
+def whole_day(slot, facts: dict):
+    """The writer for a waking slot of a day that isn't the routine one: their child's arrival, or a day away."""
+    if slot.block.kind in routine.RESTING:
+        return None
+    return write_arrival_slot if facts.get('arrival') else write_trip_slot if facts.get('trip') else None
+
+
+def write_arrival_slot(connection, scope: dict, slot, facts: dict) -> int:
+    """A waking slot of the day their child is born or comes home (companion/life/expecting.py)."""
+    block = expecting.arrival_block(day_block(slot.block.view(), facts), facts['arrival'])
+    entry = expecting.arrival_entry(facts['arrival'], block, scope['definition'])
+    connection.execute(
+        'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
+        'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (identifier(), scope['timeline_id'], COMPANION, slot.key, stamp(slot.starts_at), stamp(slot.ends_at),
          slot.local_date.isoformat(), encode(block), encode(entry), scope['basis'], stamp(scope['now'])))
     return 1
 
@@ -415,7 +462,11 @@ def day_facts(connection, timeline_id, subject, definition, world, day, holiday)
     return {'weather': composer.weather(world, definition, local_date),
             'happenings': composer.happenings(world, definition, local_date), 'holiday': holiday,
             'body': body.state_on(f'{timeline_id}:{subject}', day,
-                                  body.previous_entries(connection, timeline_id, subject, day), world, definition)}
+                                  body.previous_entries(connection, timeline_id, subject, day), world, definition)
+            # A broken night with the pair's little one (companion/life/our_child.py), or with their own
+            # (companion/life/own_family.py).
+            or (our_child.broken_night(connection, timeline_id, day) or own_family.broken_night(
+                connection, timeline_id, day) if subject == COMPANION else None)}
 
 
 def day_block(block: dict, facts: dict) -> dict:
@@ -591,14 +642,17 @@ def forget_person(connection, timeline_id, person_id, now):
 
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
-    result, known = [], circle.ties(circle.people(connection, timeline_id))
+    older = circle.older_era(connection, timeline_id)  # 'mother', not 'mom', in 1895 (circle.era_word).
+    result, known = [], circle.ties(circle.people(connection, timeline_id), older)
     # Not at work: at the wedding, or at their own big day (companion/life/big_days.py), as its scene says.
     at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
+    data = circle.city_of_timeline(connection, timeline_id)  # Its own kinds (companion/world/lifespans.py).
     for row in circle.people(connection, timeline_id, True):
         late = (decode(row['details']) or {}).get('late')
         if row['status'] != 'active' and not include_removed and not late:
             continue  # Someone late stays on the list (companion/life/loss.py); someone removed only when asked.
-        person = circle.view(row) | ({'loss': loss.of_person(connection, row['id'])} if late else {})
+        person = circle.view(row, data) | ({'loss': loss.of_person(connection, row['id'])} if late else {})
+        person['role'] = circle.era_word(person['role'], older)
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \
             row['id'] not in at_wedding else None
         result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),

@@ -618,6 +618,22 @@ def test_the_ring_and_the_wedding_share_draw_down_their_savings(client, clock, p
     assert on_hand == max(money.saved_since(found, day - timedelta(days=money.SAVED_DAYS), day) - row['ring_cost'], 0)
 
 
+def test_a_ring_from_before_the_upgrade_leaves_the_savings_goal_alone(client, clock, provider, invites):
+    proposed(client, clock, provider)
+    assert client.get('/api/life/home').status_code == 200
+    [row] = proposals(client)
+    day = date.fromisoformat(row['asked_on'])
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
+        later = day + timedelta(days=1)
+        assert money.household(connection, timeline_id, definition, later)['drawn'] == row['ring_cost']
+        # The world came to v0.14 the day after the ring (the town's start, companion/life/ages.py).
+        connection.execute("UPDATE birth_dates SET anchored_on=? WHERE kind='town' AND person_key=''",
+                           (later.isoformat(),))
+        assert money.household(connection, timeline_id, definition, later)['drawn'] == 0
+
+
 def test_old_era_church_weddings_keep_out_of_advent_and_lent():
     assert wedding.easter(2027) == date(2027, 3, 28) and wedding.easter(2026) == date(2026, 4, 5)
     victorian, medieval = wedding.customs('uk-victorian'), wedding.customs('medieval-england')

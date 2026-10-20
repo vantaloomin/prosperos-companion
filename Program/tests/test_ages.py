@@ -226,8 +226,10 @@ def test_looks_drift_with_age_only_after_their_date_and_never_over_what_the_user
         written = {**definition, 'appearance': 'Long black hair and laugh lines she earned.'}
         own = grooming.sheet(connection, companion['id'], written, clock.now().date() + timedelta(days=400))
     assert at_35['age'] == 35 and not at_35.get('age_signs')
-    # Reading glasses never come to someone whose seeded looks already have glasses.
-    kinds = ('grey', 'lines') if 'glasses' in (at_35.get('feature') or '') else ('grey', 'lines', 'reading')
+    # Reading glasses never come to someone whose seeded looks already have glasses, nor lines to seeded laugh lines.
+    feature = at_35.get('feature') or ''
+    kinds = ('grey',) + (() if grooming.LINES_WORDS.search(feature) else ('lines',)) + \
+        (() if 'glasses' in feature else ('reading',))
     # Bank lines can hold commas, so each kind is looked for rather than counted.
     assert at_36['age'] == 36 and all(any(entry['text'] in at_36['age_signs'] for entry in grooming.ageing_bank()[kind])
                                       for kind in kinds)

@@ -8,7 +8,7 @@ export const LOSS_LEVELS = [
   { label: 'Often', hint: 'More often than in real life, still mostly the old.' },
 ]
 
-export const PASS_AWAY_HINT = 'Someone in their life or their town can pass away, mostly the old. Their companion grieves for weeks, there is a funeral you can go to, and the date stays an anniversary. Never a companion, never a child, and never someone you wrote into a character unless you say they can on the people list.'
+export const PASS_AWAY_HINT = 'Someone in their life or their town can pass away, mostly the old. The companion grieves for weeks, there is a funeral you can go to, and the date stays an anniversary. Never a companion, never a partner, never a child, and never someone you wrote into a character unless you say they can on the people list.'
 
 export const PASS_AWAY_TIP = 'Bring anyone back from the people list on Today, or make it go another way under Hidden values.'
 

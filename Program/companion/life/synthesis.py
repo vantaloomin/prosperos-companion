@@ -13,14 +13,14 @@ from companion.memory.context import character_text
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import LIFE_SYNTHESIS, BackgroundInterrupted
 
-PROMPT_VERSION = 'life-phrase-2'
+PROMPT_VERSION = 'life-phrase-3'
 RULES = (
     "Rephrase one ordinary moment from {name}'s fictional life, described as facts in the user message. Reply "
     'with JSON only: {{"summary": "...", "post": "..."}}. "summary" is one or two plain past-tense sentences in '
     'the third person. "post" is a short private caption in {name}\'s own voice, as for a personal photo feed. '
     'Keep exactly the given facts: do not add or change places, people, prices, times or events, and keep any '
-    'place name exactly as written. The time is only context: never write clock times. Never include the user or '
-    'anything the user did.'
+    'place name exactly as written. Keep who they were with: when the facts say "with you", keep "with you" (the '
+    'reader). The time is only context: never write clock times. Never add the user or anything the user did.'
 )
 # A clock time ("17:30-19:30 on the medians") is the routine block's, never something a person would write.
 CLOCK = re.compile(r'\b\d{1,2}:\d{2}\b')

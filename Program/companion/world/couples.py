@@ -16,7 +16,7 @@ seeded status (who is single and looking stays the same pool).
 from datetime import date, timedelta
 from functools import lru_cache
 
-from companion.world import dating, generators, townsfolk, turnover
+from companion.world import dating, generators, lifespans, townsfolk, turnover
 
 # Each week's chance, from the epoch.
 ENGAGE = 1 / 90  # Seeing someone, after `ENGAGE_AFTER` weeks together: they get engaged.
@@ -56,24 +56,34 @@ def history(seed: str, start: str, weeks: int) -> tuple:
     return tuple(result)
 
 
+def companion_sheet(sheet: dict, data: dict) -> bool:
+    """A companion living in town (`cast`, or one of `data['companions']`, the townsfolk keys companions were made
+    from): their love life is their own, never the seeded townsperson's."""
+    return bool(sheet.get('cast')) or sheet.get('key') in data.get('companions', ())
+
+
 def details_of(sheet: dict, data: dict) -> dict | None:
-    if 'desire' not in sheet or 'age' not in sheet:
+    if 'desire' not in sheet or 'age' not in sheet or companion_sheet(sheet, data):
         return None
     return dating.details(sheet, data)
 
 
 def partner(sheet: dict, data: dict, number: int, found: dict) -> dict:
-    """Their partner: a seeded name, someone they are drawn to, near their age."""
+    """Their partner: a seeded name, someone they are drawn to, near their age in human terms (an elf of 300 and a
+    human of 48 are a match, companion/world/lifespans.py)."""
     seed = f'{townsfolk.drawn(sheet)}:partner:{number}'
     gender = generators.pick(seed, 'gender', sorted(found['drawn_to'])) or 'woman'
-    age = max(18, sheet['age'] + round(generators.unit(seed, 'age') * 10) - 5)
-    name = generators.name(data, seed=seed, pronouns=GENDER_PRONOUNS.get(gender, 'they'), age=age)
-    return {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age}
+    life = max(18, found.get('life', sheet['age']) + round(generators.unit(seed, 'age') * 10) - 5)
+    folk = townsfolk.folk_of(data, seed)
+    age = lifespans.real_age(life, lifespans.lifespan_of(folk, data))
+    name = generators.name(data, seed=seed, pronouns=GENDER_PRONOUNS.get(gender, 'they'), age=life)
+    made = {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age}
+    return made | ({'folk': folk} if folk != lifespans.HUMAN else {})
 
 
 def couple(sheet: dict, data: dict, day: date) -> dict | None:
     """Where their love life stands on `day`: {status, partner, since, ex}, or None for someone who started single
-    (or isn't a resident with dating details)."""
+    (or isn't a resident with dating details, or is a companion now)."""
     found = details_of(sheet, data)
     if not found or found['status'] not in PARTNERED:
         return None
@@ -106,14 +116,12 @@ def events(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
 
 def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]:
     """Babies born to them and their partner in a span of days: {partner, day}. Follows Growing families. Never for a
-    companion living in town (`cast`, or one of `data['companions']`, the townsfolk keys companions were made from):
-    a companion's own baby waits for v0.15."""
-    if not turnover.ACTIVE or sheet.get('cast') or sheet.get('key') in data.get('companions', ()):
+    companion living in town (`companion_sheet`): a companion's own baby waits for v0.15."""
+    if not turnover.ACTIVE or companion_sheet(sheet, data):
         return []
-    arrived = townsfolk.week_of(date.fromisoformat(sheet['arrived'])) if sheet.get('arrived') else turnover.START_WEEK
     result = []
     for week in range(max(townsfolk.week_of(week_range[0]), turnover.START_WEEK), townsfolk.week_of(week_range[1]) + 1):
-        age = sheet['age'] + max(week - arrived, 0) // turnover.YEAR
+        age = dating.life_of({**sheet, 'age': age_on(sheet, data, turnover.week_day(week, 3))}, data)
         chance = BABY * turnover.PACE[turnover.levels_at(week)[2]] / turnover.YEAR
         if generators.unit(townsfolk.drawn(sheet), 'baby', week) >= chance or not BABY_AGES[0] <= age <= BABY_AGES[1]:
             continue
@@ -122,6 +130,13 @@ def babies(sheet: dict, data: dict, week_range: tuple[date, date]) -> list[dict]
         if state and state['status'] in ('engaged', 'married') and week_range[0] <= day <= week_range[1]:
             result.append({'partner': state['partner'], 'day': day})
     return result
+
+
+def age_on(sheet: dict, data: dict, day: date) -> int:
+    """Their age on a day as Around town has it (companion/life/ages.py): from the day the town started getting older
+    (`data['began']`, the paper's; else when it started changing hands) and their seeded birthday."""
+    from companion.life import ages
+    return ages.aged(sheet, day, data.get('began') or turnover.START)
 
 
 def family_news(sheet: dict, data: dict, day: date) -> str | None:

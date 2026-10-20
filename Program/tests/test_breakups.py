@@ -137,6 +137,36 @@ def test_the_user_ends_it_and_asks_to_get_back_together(client, couple, provider
     assert {'You got divorced', 'You got back together', 'You got married'} <= {item['text'] for item in items}
 
 
+def test_a_marriage_that_ends_in_an_older_city_is_a_separation(client, couple, provider, monkeypatch):
+    from companion.world import newcomers
+    monkeypatch.setattr(newcomers, 'city_for', lambda *_args: {'era': 'victorian'})
+    client.put('/api/life/steps', json={'step': 'married'})
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-sep-1')
+    found = view(client)
+    assert found['text'] == 'Separated' and found['separated'] and found['summary'] == 'Separated'
+    says(provider)
+    send(client, 'hi', 'client-sep-2')
+    assert 'You and the user separated on' in notes(provider) and 'over in all but name' in notes(provider)
+    assert 'divorce' not in notes(provider)
+    with client.app.state.database.connect() as connection:
+        items = breakups.scrapbook_items(connection, current(connection), '2000-01-01', '2100-01-01')
+    assert 'You separated' in {item['text'] for item in items}
+
+
+def test_a_move_planned_when_it_ends_is_dropped_from_the_steps(client, couple, provider, clock):
+    client.put('/api/life/steps', json={'step': 'married'})
+    planned = client.get('/api/life/steps').json()['moving_in']
+    assert planned and planned['status'] == 'moving', planned
+    says(provider)
+    send(client, "I'm sorry but I'm breaking up with you.", 'client-plan-1')
+    assert view(client)['stage'] == 'ended'
+    assert client.get('/api/life/steps').json()['moving_in'] is None
+    clock.advance(timedelta(days=1, hours=1))
+    reconcile(client)  # The daily pass plans no new move while apart.
+    assert client.get('/api/life/steps').json()['moving_in'] is None
+
+
 def test_breaking_up_while_living_together_they_move_out(client, couple, provider, clock, monkeypatch):
     from test_moving_in import ask_to_move_in, moving_day
     monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[0]['option'])  # Yes, at your place.
@@ -312,6 +342,22 @@ def test_a_branch_from_after_a_breakup_keeps_it_and_one_from_before_does_not(cli
     for name, stage in (('after', 'ended'), ('before', None)):
         assert client.post(f'/api/timelines/{forks[name]}/activate').status_code == 200
         assert view(client)['stage'] == stage, name
+
+
+def test_a_branch_made_while_things_are_strained_keeps_it(client, couple, provider, clock):
+    set_life(client, rough_patches_realism=3)
+    says(provider)
+    send(client, 'shut up', 'client-strain-1')
+    tick(client)
+    clock.advance(timedelta(days=2, hours=1))
+    tick(client)
+    assert view(client)['stage'] == 'strained'
+    says(provider)
+    message = send(client, 'hi', 'client-strain-2')['message']
+    response = client.post('/api/timelines', json={'message_id': message['id']})
+    assert response.status_code == 200, response.text
+    assert client.post(f"/api/timelines/{response.json()['id']}/activate").status_code == 200
+    assert view(client)['stage'] == 'strained'
 
 
 def test_a_move_not_made_yet_waits_while_they_are_on_a_break(client, couple, provider, clock, monkeypatch):

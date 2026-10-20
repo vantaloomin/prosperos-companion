@@ -1,4 +1,5 @@
 """The social side of the feed: the circle's posts, likes and comments, and the companion's own non-event posts."""
+import re
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -58,7 +59,8 @@ def test_friends_post_from_their_diary_and_people_react(client, city, clock, mon
     # Each post says what happened in its writer's own words, never their name.
     for post in friends:
         first = post['author']['name'].split()[0]
-        assert first not in post['context'] and first not in post['text'], post
+        # As a word: a neighbor named Mark can browse the stalls at a Market.
+        assert not re.search(rf'\b{re.escape(first)}\b', post['context'] + ' ' + post['text']), post
     own = [event for post in posts if post['source'] == 'life' for event in post['events']]
     assert own and all('Mira' not in event['mine']['summary'] for event in own)
     assert all('Mira' in event['summary'] for event in own if event['summary'].startswith('Mira '))

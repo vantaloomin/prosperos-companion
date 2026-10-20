@@ -332,6 +332,28 @@ ADDED_COLUMNS = (
     # (companion/world/turnover.py).
     ('life_settings', 'people_pass_away', 'INTEGER NOT NULL DEFAULT 0 CHECK (people_pass_away IN (0, 1))'),
     ('life_settings', 'loss', 'INTEGER NOT NULL DEFAULT 2 CHECK (loss BETWEEN 0 AND 3)'),
+    # Added once (v0.15) to set the Loss slider by the world's preset (`UPGRADE_LOSS`); nothing reads it.
+    ('life_settings', 'loss_by_preset', 'INTEGER NOT NULL DEFAULT 1'),
+    # Companions' own babies (companion/life/own_family.py): whose child this is. '' someone in the circle's (v0.14),
+    # 'companion' the companion's own with their partner (`parent_id`).
+    ('circle_children', 'whose', "TEXT NOT NULL DEFAULT ''"),
+    # Our child (companion/life/our_child.py, Settings > Realism > Their days): how much family life shapes their
+    # days, 0 easy kids (only the good days), 1 gentle, 2 true to life, 3 true-to-life chaos.
+    ('life_settings', 'family_life', 'INTEGER NOT NULL DEFAULT 2 CHECK (family_life BETWEEN 0 AND 3)'),
+    # When families change (companion/life/custody.py): where the pair's children live after a breakup, when the user
+    # set it ('with_them', 'shared' or 'with_you'; NULL leaves it to the engine's family:custody).
+    ('our_family', 'custody', "TEXT CHECK (custody IS NULL OR custody IN ('with_them', 'shared', 'with_you'))"),
+    # The breakup that choice was made in: it holds only while that one stands (not after getting back together and
+    # splitting again).
+    ('our_family', 'custody_for', 'TEXT'),
+    # Lifespans (companion/world/lifespans.py): the kind and How long they live the user picked on a child's card ('' and
+    # NULL: the app's pick, from their parents' kinds; lifespan 0: they don't age).
+    ('circle_children', 'own_kind', "TEXT NOT NULL DEFAULT ''"),
+    ('circle_children', 'lifespan', 'INTEGER'),
+    # The user's kind and How long they live, picked on the Persona page (companion/worlds.py; '' and NULL: read from
+    # their own words; lifespan 0: they don't age).
+    ('persona', 'kind', "TEXT NOT NULL DEFAULT ''"),
+    ('persona', 'lifespan', 'INTEGER'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -345,6 +367,10 @@ WIDENED_CHECKS = (
     ('life_admin', "'work', 'school'"),
     # Check-ups for a long-term condition and a parent's appointments (companion/life/health_turns.py).
     ('life_admin', "'school', 'health')"),
+    # Starting a family, the step beside the romance ladder (companion/life/parenthood.py).
+    ('relationship_steps', "'friendship', 'parenthood')"),
+    # The pair's own child, born or home (companion/life/expecting.py).
+    ('circle_children', "'friend', 'ours')"),
 )
 
 
@@ -360,6 +386,9 @@ def initialize(connection, timestamp: str):
     widen_context_categories(connection)
     widen_checks(connection)
     connection.execute('CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date)')
+    connection.execute('CREATE INDEX IF NOT EXISTS relationship_steps_pair ON relationship_steps(timeline_id, other, ladder)')
+    connection.execute('CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on)')
+    connection.execute('CREATE INDEX IF NOT EXISTS circle_children_parent ON circle_children(parent_id)')
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     connection.execute('CREATE INDEX IF NOT EXISTS memories_person ON memories(person_id)')
     backfill_subject_keys(connection)
@@ -410,6 +439,11 @@ UPGRADE_REALISM = {0: {'rough_patches_realism': 1, 'steps_pace': 1, 'love_life':
 UPGRADE_TURNS = {0: {'life_turns': 1}, 3: {'life_turns': 3}}
 # Growing families (v0.14) the same way: an easy life has babies now and then, a dramatic one lots.
 UPGRADE_FAMILIES = {0: {'growing_families': 1}, 3: {'growing_families': 3}}
+# The Loss slider (v0.15) the same way: an easy life rare, a dramatic one often, only while the switch is off and the
+# slider still at its default, so a level the user chose stays.
+UPGRADE_LOSS = {0: {'loss': 0}, 3: {'loss': 3}}
+# Family life (v0.15) the same way: an easy life has easy kids, a dramatic one true-to-life chaos.
+UPGRADE_FAMILY_LIFE = {0: {'family_life': 0}, 3: {'family_life': 3}}
 
 
 def add_columns(connection):
@@ -420,13 +454,15 @@ def add_columns(connection):
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
             added.add((table, column))
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
-                           ('growing_families', UPGRADE_FAMILIES)):
+                           ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
+    if ('life_settings', 'loss_by_preset') in added:
+        preset_upgrade(connection, UPGRADE_LOSS, 'people_pass_away=0 AND loss=2')
 
 
-def preset_upgrade(connection, upgrade: dict):
-    row = connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()
+def preset_upgrade(connection, upgrade: dict, unless_moved: str = '1'):
+    row = connection.execute(f'SELECT drama FROM life_settings WHERE id=1 AND {unless_moved}').fetchone()  # noqa: S608
     picked = upgrade.get(row[0]) if row else None
     if picked:
         connection.execute(f"UPDATE life_settings SET {', '.join(f'{key}=?' for key in picked)} WHERE id=1",  # noqa: S608
@@ -455,6 +491,12 @@ def widen_checks(connection):
         definition = re.search(rf'CREATE TABLE IF NOT EXISTS {table} \((.*?)\n\);', SCHEMA, re.S).group(1)
         columns = ', '.join(item[1] for item in connection.execute(f'PRAGMA table_info({table})'))
         connection.execute(f'CREATE TABLE {table}_widened ({definition})')
+        # Columns added later (ADDED_COLUMNS, added above) are not in schema.sql's definition: add them here too, so
+        # the copy keeps them.
+        have = {item[1] for item in connection.execute(f'PRAGMA table_info({table}_widened)')}
+        for added_table, column, added in ADDED_COLUMNS:
+            if added_table == table and column not in have:
+                connection.execute(f'ALTER TABLE {table}_widened ADD COLUMN {column} {added}')
         connection.execute(f'INSERT INTO {table}_widened ({columns}) SELECT {columns} FROM {table}')
         connection.execute(f'DROP TABLE {table}')
         connection.execute(f'ALTER TABLE {table}_widened RENAME TO {table}')

@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause, closeness and stacked (for user:rough_patch: the Rough patches slider 0 to 3, what happened, how close the companion feels to the user 1 to 5, and how many rough patches over the same thing are already open or started that day), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The breakup choices (user:strained, user:thinking, user:break, user:falling_out, user:after_break, user:talk_round, user:back_together, user:reach_out; companion/life/breakups.py) read drama, level (the Rough patches slider), closeness, step (how far along the pair is, 0 dating to 7 married), patches (big rough patches of the user's making in the last 45 days, weighed: one over the same thing as another still open counts half, the next a quarter), stacked (how many of those counted for less), cause (the open rough patch's cause), talked (times the user reached out during a break), ended_by (them, you or break), days_apart and months since it ended. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama, pace and affords (the biggest wedding their savings cover: 0 small, 1 proper, 2 big). For chapter:next, age is the companion's age now (companion/life/ages.py) and together is 1 while they live with the user.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause, closeness and stacked (for user:rough_patch: the Rough patches slider 0 to 3, what happened, how close the companion feels to the user 1 to 5, and how many rough patches over the same thing are already open or started that day), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The breakup choices (user:strained, user:thinking, user:break, user:falling_out, user:after_break, user:talk_round, user:back_together, user:reach_out; companion/life/breakups.py) read drama, level (the Rough patches slider), closeness, step (how far along the pair is, 0 dating to 7 married), patches (big rough patches of the user's making in the last 45 days, weighed: one over the same thing as another still open counts half, the next a quarter), stacked (how many of those counted for less), cause (the open rough patch's cause), talked (times the user reached out during a break), ended_by (them, you or break), days_apart and months since it ended. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama, pace and affords (the biggest wedding their savings cover: 0 small, 1 proper, 2 big). For chapter:next, age is the companion's age now (companion/life/ages.py) and together is 1 while they live with the user. The family:* choices (companion/life/parenthood.py) read age (the companion's age), warmth (0 to 2), wants (yes, someday or no: whether the companion wants children), married (1 once you two are married), pace, mood, short_days and closeness_over (as for steps:*), and for family:route can_them and can_you (1 when that partner could carry a baby), can_carry (1 when either could), your_age (yours), tier (the companion's pay tier, 0 to 3) and old (1 in a city from an older era).",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -762,6 +762,12 @@
               "why": "you turned down {name}'s proposal"
             },
             {
+              "reader": "cause",
+              "is": "family_no",
+              "times": 2.5,
+              "why": "you said no to the family {name} wants"
+            },
+            {
               "reader": "minds",
               "at_least": 1,
               "times": 2,
@@ -865,7 +871,7 @@
               "reader": "can_new_job",
               "at_most": 0,
               "times": 0,
-              "why": "{name}'s city has no other job that fits"
+              "why": "{name} has retired, runs a business of their own or is in the middle of a big change, or {name}'s city has no other job that fits"
             },
             {
               "reader": "money",
@@ -1302,8 +1308,8 @@
             {
               "reader": "drama",
               "at_least": 3,
-              "times": 1.5,
-              "why": "the drama level is soap opera"
+              "times": 0.65,
+              "why": "even on soap opera drama, a health turn stays uncommon"
             }
           ],
           "marks": [
@@ -1597,6 +1603,541 @@
         }
       ]
     },
+    "family:wants": {
+      "label": "Whether {name} wants children",
+      "options": [
+        {
+          "label": "{name} wants children",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 30,
+              "times": 1.4,
+              "why": "{name} is past thirty"
+            },
+            {
+              "reader": "age",
+              "at_least": 45,
+              "times": 0.4,
+              "why": "{name} is past forty-five"
+            },
+            {
+              "reader": "age",
+              "at_least": 52,
+              "times": 0.3,
+              "why": "{name} is past fifty"
+            },
+            {
+              "reader": "warmth",
+              "at_least": 2,
+              "times": 1.4,
+              "why": "{name} is warm with people"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.4,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 0.7,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 0.6,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        },
+        {
+          "label": "{name} wants children someday",
+          "weight": 1.1,
+          "rules": [
+            {
+              "reader": "age",
+              "at_most": 27,
+              "times": 1.6,
+              "why": "{name} is still young"
+            },
+            {
+              "reader": "age",
+              "at_least": 40,
+              "times": 0.5,
+              "why": "{name} is past forty"
+            },
+            {
+              "reader": "age",
+              "at_least": 48,
+              "times": 0.2,
+              "why": "{name} is nearly fifty or past it"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        },
+        {
+          "label": "Children aren't for {name}",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 45,
+              "times": 2,
+              "why": "{name} is past forty-five"
+            },
+            {
+              "reader": "warmth",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "{name} keeps people at a distance"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.4,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 0.6,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        }
+      ]
+    },
+    "family:route": {
+      "label": "How a child would come for you and {name}",
+      "options": [
+        {
+          "label": "{name} carries the baby",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "can_them",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} isn't the one who could carry a baby"
+            },
+            {
+              "reader": "no_donor",
+              "at_least": 1,
+              "times": 0,
+              "why": "in these times there is no way for you two to have a baby yourselves"
+            },
+            {
+              "reader": "age",
+              "at_least": 40,
+              "times": 0.5,
+              "why": "{name} is past forty"
+            },
+            {
+              "reader": "age",
+              "at_least": 46,
+              "times": 0.1,
+              "why": "{name} is past forty-five"
+            },
+            {
+              "reader": "age",
+              "at_least": 50,
+              "times": 0,
+              "why": "{name} is past fifty"
+            }
+          ]
+        },
+        {
+          "label": "You carry the baby",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "can_you",
+              "at_most": 0,
+              "times": 0,
+              "why": "you aren't the one who could carry a baby"
+            },
+            {
+              "reader": "no_donor",
+              "at_least": 1,
+              "times": 0,
+              "why": "in these times there is no way for you two to have a baby yourselves"
+            },
+            {
+              "reader": "your_age",
+              "at_least": 40,
+              "times": 0.5,
+              "why": "you are past forty"
+            },
+            {
+              "reader": "your_age",
+              "at_least": 46,
+              "times": 0.1,
+              "why": "you are past forty-five"
+            },
+            {
+              "reader": "your_age",
+              "at_least": 50,
+              "times": 0,
+              "why": "you are past fifty"
+            }
+          ]
+        },
+        {
+          "label": "You adopt",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 0,
+              "why": "adoption agencies don't fit the times"
+            },
+            {
+              "reader": "can_carry",
+              "at_most": 0,
+              "times": 4,
+              "why": "neither of you could carry a baby"
+            },
+            {
+              "reader": "tier",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "you two can afford an agency"
+            }
+          ]
+        },
+        {
+          "label": "You foster, which can lead to adopting",
+          "weight": 0.6,
+          "rules": [
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 0,
+              "why": "fostering doesn't fit the times"
+            },
+            {
+              "reader": "can_carry",
+              "at_most": 0,
+              "times": 3,
+              "why": "neither of you could carry a baby"
+            },
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "money is tight, and fostering costs little"
+            }
+          ]
+        },
+        {
+          "label": "Through a surrogate",
+          "weight": 0.2,
+          "rules": [
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 0,
+              "why": "surrogacy doesn't fit the times"
+            },
+            {
+              "reader": "surrogate",
+              "at_most": 0,
+              "times": 0,
+              "why": "surrogacy doesn't fit the times"
+            },
+            {
+              "reader": "can_carry",
+              "at_most": 0,
+              "times": 5,
+              "why": "neither of you could carry a baby"
+            },
+            {
+              "reader": "tier",
+              "at_most": 1,
+              "times": 0.2,
+              "why": "a surrogate costs more than you two have"
+            },
+            {
+              "reader": "tier",
+              "at_least": 3,
+              "times": 2,
+              "why": "you two can afford it"
+            }
+          ]
+        },
+        {
+          "label": "You take in a ward",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "old",
+              "at_most": 0,
+              "times": 0,
+              "why": "taking in a ward belongs to older times"
+            },
+            {
+              "reader": "can_carry",
+              "at_most": 0,
+              "times": 3,
+              "why": "neither of you could carry a baby"
+            }
+          ]
+        },
+        {
+          "label": "You take in a foundling",
+          "weight": 0.4,
+          "rules": [
+            {
+              "reader": "old",
+              "at_most": 0,
+              "times": 0,
+              "why": "taking in a foundling belongs to older times"
+            },
+            {
+              "reader": "can_carry",
+              "at_most": 0,
+              "times": 2,
+              "why": "neither of you could carry a baby"
+            }
+          ]
+        },
+        {
+          "label": "You raise a relative's child",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "old",
+              "at_most": 0,
+              "times": 0,
+              "why": "raising a relative's child this way belongs to older times"
+            },
+            {
+              "reader": "can_carry",
+              "at_most": 0,
+              "times": 3,
+              "why": "neither of you could carry a baby"
+            }
+          ]
+        }
+      ]
+    },
+    "family:when": {
+      "label": "When {name} brings up starting a family",
+      "options": [
+        {
+          "label": "{name} brings it up soon",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "yes",
+              "times": 1.8,
+              "why": "{name} wants children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0.4,
+              "why": "{name} sees children as a someday thing"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "you two are married"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 2,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.4,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "age",
+              "at_least": 35,
+              "times": 1.4,
+              "why": "{name} is past thirty-five"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.4,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} brings it up in a few weeks",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "{name} waits a couple of months",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 2,
+              "why": "{name} sees children as a someday thing"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 0.7,
+              "why": "you two are married"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 2.5,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 0.3,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.8,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "family:answer": {
+      "label": "How {name} answers when you bring up starting a family",
+      "options": [
+        {
+          "label": "{name} says yes",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "no",
+              "times": 0,
+              "why": "{name} doesn't want children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0.5,
+              "why": "{name} sees children as a someday thing"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "you two are married"
+            },
+            {
+              "reader": "short_days",
+              "at_least": 1,
+              "times": 0.4,
+              "why": "it's sooner than {name} expected"
+            },
+            {
+              "reader": "closeness_over",
+              "at_most": -1,
+              "times": 0.3,
+              "why": "{name} doesn't feel close enough yet"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.5,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} isn't ready yet",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 1.5,
+              "why": "{name} sees children as a someday thing"
+            }
+          ]
+        },
+        {
+          "label": "{name} doesn't want children",
+          "weight": 0.05,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "no",
+              "times": 100,
+              "why": "{name} doesn't want children"
+            },
+            {
+              "reader": "wants",
+              "is": "yes",
+              "times": 0,
+              "why": "{name} wants children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0,
+              "why": "{name} wants children someday"
+            }
+          ]
+        }
+      ]
+    },
     "love:next": {
       "label": "How things go for {name} and {partner}",
       "options": [
@@ -1658,6 +2199,12 @@
           "label": "{name} and {partner} break up",
           "weight": 0.22,
           "rules": [
+            {
+              "reader": "breakups",
+              "at_most": 0,
+              "times": 0,
+              "why": "breakups are off (an easy life has none)"
+            },
             {
               "reader": "drama",
               "at_least": 2,
@@ -2937,8 +3484,8 @@
             {
               "reader": "turns",
               "at_most": 1,
-              "times": 0.5,
-              "why": "the big turns setting is on gentle"
+              "times": 0,
+              "why": "the big turns setting is on gentle, so only good turns come"
             },
             {
               "reader": "sheet",
@@ -3153,7 +3700,7 @@
         },
         {
           "label": "{a} passes away",
-          "weight": 0.0004,
+          "weight": 0.0012,
           "rules": [
             {
               "reader": "age",
@@ -3199,14 +3746,20 @@
             {
               "reader": "frail",
               "is": 1,
-              "times": 25,
+              "times": 12,
               "why": "caring for {a} has been getting harder"
             },
             {
               "reader": "treatment",
               "is": 1,
-              "times": 8,
+              "times": 6,
               "why": "{a} has been in treatment"
+            },
+            {
+              "reader": "old_era",
+              "is": 1,
+              "times": 2,
+              "why": "people die younger in these times"
             },
             {
               "reader": "loss",
@@ -3225,6 +3778,658 @@
               "is": 3,
               "times": 2,
               "why": "Loss is set to often"
+            }
+          ]
+        }
+      ]
+    },
+    "kids:has": {
+      "label": "Whether {name} already has children",
+      "options": [
+        {
+          "label": "{name} has no children",
+          "weight": 1,
+          "rules": []
+        },
+        {
+          "label": "{name} already has a child or two",
+          "weight": 0.08,
+          "rules": [
+            {
+              "reader": "growing",
+              "at_most": 0,
+              "times": 0,
+              "why": "Growing families is set to None"
+            },
+            {
+              "reader": "age",
+              "at_most": 26,
+              "times": 0,
+              "why": "{name} is still young"
+            },
+            {
+              "reader": "age",
+              "at_least": 33,
+              "times": 1.8,
+              "why": "{name} is past thirty-three"
+            },
+            {
+              "reader": "age",
+              "at_least": 40,
+              "times": 1.3,
+              "why": "{name} is past forty"
+            },
+            {
+              "reader": "said_no",
+              "at_least": 1,
+              "times": 0,
+              "why": "{name}'s description says children were never in the plan"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name}'s description says they're a homebody"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 0.6,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        }
+      ]
+    },
+    "kids:custody": {
+      "label": "Where {name}'s kids live",
+      "options": [
+        {
+          "label": "Mostly with {name}",
+          "weight": 1.4,
+          "rules": [
+            {
+              "reader": "away",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "the kids' other parent lives in another city"
+            }
+          ]
+        },
+        {
+          "label": "Half and half",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "away",
+              "at_least": 1,
+              "times": 0,
+              "why": "the kids' other parent lives in another city"
+            }
+          ]
+        },
+        {
+          "label": "Mostly with {other}",
+          "weight": 0.7,
+          "rules": []
+        }
+      ]
+    },
+    "family:soon": {
+      "label": "How soon {name} and you find out a baby is on the way",
+      "options": [
+        {
+          "label": "Within a couple of months",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 35,
+              "times": 0.6,
+              "why": "the one carrying is past thirty-five"
+            },
+            {
+              "reader": "age",
+              "at_least": 40,
+              "times": 0.5,
+              "why": "the one carrying is past forty"
+            }
+          ]
+        },
+        {
+          "label": "In a few months",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "It takes most of a year",
+          "weight": 0.6,
+          "rules": [
+            {
+              "reader": "age",
+              "at_least": 35,
+              "times": 1.6,
+              "why": "the one carrying is past thirty-five"
+            },
+            {
+              "reader": "age",
+              "at_least": 40,
+              "times": 1.6,
+              "why": "the one carrying is past forty"
+            },
+            {
+              "reader": "route",
+              "is": "surrogacy",
+              "times": 0.6,
+              "why": "a surrogate is part of it from the start"
+            }
+          ]
+        }
+      ]
+    },
+    "family:turn": {
+      "label": "Whether the pregnancy takes a hard turn",
+      "options": [
+        {
+          "label": "It goes smoothly",
+          "weight": 6,
+          "rules": []
+        },
+        {
+          "label": "Bed rest for the last weeks, to be safe",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "turns",
+              "at_most": 0,
+              "times": 0,
+              "why": "life is set to good turns only"
+            },
+            {
+              "reader": "age",
+              "at_least": 38,
+              "times": 1.6,
+              "why": "the one carrying is past thirty-eight"
+            }
+          ]
+        },
+        {
+          "label": "The baby comes a few weeks early",
+          "weight": 0.5,
+          "rules": [
+            {
+              "reader": "turns",
+              "at_most": 0,
+              "times": 0,
+              "why": "life is set to good turns only"
+            },
+            {
+              "reader": "age",
+              "at_least": 38,
+              "times": 1.4,
+              "why": "the one carrying is past thirty-eight"
+            }
+          ]
+        }
+      ]
+    },
+    "family:wait": {
+      "label": "How long {name} and you wait to be matched with a child",
+      "options": [
+        {
+          "label": "A few months",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "few families are waiting where you live"
+            }
+          ]
+        },
+        {
+          "label": "Most of a year",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "A long wait, over a year",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "money is tight, so the agency fees take longer"
+            }
+          ]
+        }
+      ]
+    },
+    "family:match": {
+      "label": "Who {name} and you are matched with",
+      "options": [
+        {
+          "label": "A baby",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "route",
+              "is": "fostering",
+              "times": 0.4,
+              "why": "fostering is mostly for children past babyhood"
+            }
+          ]
+        },
+        {
+          "label": "A young child, one to four",
+          "weight": 1,
+          "rules": []
+        },
+        {
+          "label": "An older child, five to eleven",
+          "weight": 0.7,
+          "rules": [
+            {
+              "reader": "route",
+              "is": "fostering",
+              "times": 1.8,
+              "why": "fostering is mostly for children past babyhood"
+            },
+            {
+              "reader": "age",
+              "at_least": 45,
+              "times": 1.5,
+              "why": "{name} is past forty-five"
+            }
+          ]
+        }
+      ]
+    },
+    "family:fostered": {
+      "label": "Whether fostering leads to adopting",
+      "options": [
+        {
+          "label": "You go on to adopt them",
+          "weight": 1.6,
+          "rules": []
+        },
+        {
+          "label": "They stay in your care as your foster child",
+          "weight": 1,
+          "rules": []
+        }
+      ]
+    },
+    "family:another": {
+      "label": "When {name} brings up having another child",
+      "options": [
+        {
+          "label": "{name} brings it up soon",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "yes",
+              "times": 1.8,
+              "why": "{name} wants children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0.4,
+              "why": "{name} was slow to want children"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "you two are married"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 2,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.4,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "age",
+              "at_least": 35,
+              "times": 1.4,
+              "why": "{name} is past thirty-five"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.4,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} brings it up in a few weeks",
+          "weight": 1.4,
+          "rules": []
+        },
+        {
+          "label": "{name} waits a couple of months",
+          "weight": 0.8,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 2,
+              "why": "{name} was slow to want children"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 0.7,
+              "why": "you two are married"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 2.5,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 0.3,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name}'s description says they're shy"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.8,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "family:another_answer": {
+      "label": "How {name} answers when you bring up another child",
+      "options": [
+        {
+          "label": "{name} says yes",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "no",
+              "times": 0,
+              "why": "{name} doesn't want children"
+            },
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 0.5,
+              "why": "{name} sees children as a someday thing"
+            },
+            {
+              "reader": "married",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "you two are married"
+            },
+            {
+              "reader": "closeness_over",
+              "at_most": -1,
+              "times": 0.3,
+              "why": "{name} doesn't feel close enough yet"
+            },
+            {
+              "reader": "pace",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the relationship pace is fast"
+            },
+            {
+              "reader": "pace",
+              "at_most": 1,
+              "times": 0.6,
+              "why": "the relationship pace is slow"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.5,
+              "why": "{name} has been low lately"
+            },
+            {
+              "reader": "youngest",
+              "at_most": 2,
+              "times": 0.6,
+              "why": "your youngest is still little"
+            }
+          ]
+        },
+        {
+          "label": "{name} isn't ready yet",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "someday",
+              "times": 1.5,
+              "why": "{name} sees children as a someday thing"
+            },
+            {
+              "reader": "youngest",
+              "at_most": 2,
+              "times": 1.5,
+              "why": "your youngest is still little"
+            }
+          ]
+        },
+        {
+          "label": "{name} doesn't want another child",
+          "weight": 0.05,
+          "rules": [
+            {
+              "reader": "wants",
+              "is": "no",
+              "times": 100,
+              "why": "{name} doesn't want children"
+            },
+            {
+              "reader": "level",
+              "at_least": 3,
+              "times": 2,
+              "why": "family life is true-to-life chaos already"
+            }
+          ]
+        }
+      ]
+    },
+    "family:care": {
+      "label": "Who stays home with the children",
+      "options": [
+        {
+          "label": "You both work",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 1.6,
+              "why": "money is tight, so you both need to work"
+            },
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 0.6,
+              "why": "in these times one parent usually stays home"
+            }
+          ]
+        },
+        {
+          "label": "{name} goes part-time",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "works",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} has no job to cut back"
+            },
+            {
+              "reader": "tier",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "you two can manage on less"
+            },
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 0.5,
+              "why": "part-time work is rare in these times"
+            }
+          ]
+        },
+        {
+          "label": "{name} stays home",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "works",
+              "at_most": 0,
+              "times": 3,
+              "why": "{name} isn't working"
+            },
+            {
+              "reader": "carried",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "{name} carried the baby"
+            },
+            {
+              "reader": "wants",
+              "is": "yes",
+              "times": 1.3,
+              "why": "{name} always wanted children"
+            },
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 0.4,
+              "why": "money is too tight for one wage"
+            }
+          ]
+        },
+        {
+          "label": "You stay home",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "works",
+              "at_most": 0,
+              "times": 0.2,
+              "why": "{name} isn't working, so it would be {name} at home"
+            },
+            {
+              "reader": "carried_you",
+              "at_least": 1,
+              "times": 1.5,
+              "why": "you carried the baby"
+            },
+            {
+              "reader": "tier",
+              "at_most": 0,
+              "times": 0.4,
+              "why": "money is too tight for one wage"
+            }
+          ]
+        }
+      ]
+    },
+    "family:custody": {
+      "label": "Where the children live after the breakup",
+      "options": [
+        {
+          "label": "Mostly with {name}",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "care",
+              "is": "them_home",
+              "times": 1.8,
+              "why": "{name} was the one at home with the children"
+            },
+            {
+              "reader": "care",
+              "is": "part_time",
+              "times": 1.3,
+              "why": "{name} went part-time to be with the children"
+            },
+            {
+              "reader": "carried",
+              "at_least": 1,
+              "times": 1.2,
+              "why": "{name} carried the baby"
+            },
+            {
+              "reader": "works",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "{name} isn't working, so has the time"
+            }
+          ]
+        },
+        {
+          "label": "Half and half",
+          "weight": 1.3,
+          "rules": [
+            {
+              "reader": "far",
+              "at_least": 1,
+              "times": 0,
+              "why": "you live in different cities now"
+            },
+            {
+              "reader": "care",
+              "is": "both_work",
+              "times": 1.3,
+              "why": "you both worked and shared the looking after"
+            },
+            {
+              "reader": "old",
+              "at_least": 1,
+              "times": 0.3,
+              "why": "in these times children stay with one parent"
+            }
+          ]
+        },
+        {
+          "label": "Mostly with you",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "care",
+              "is": "you_home",
+              "times": 1.8,
+              "why": "you were the one at home with the children"
+            },
+            {
+              "reader": "carried_you",
+              "at_least": 1,
+              "times": 1.2,
+              "why": "you carried the baby"
             }
           ]
         }

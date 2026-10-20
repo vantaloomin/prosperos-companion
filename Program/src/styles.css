@@ -211,6 +211,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .dating-bar svg { width: 16px; height: 16px; color: var(--accent); }
 .dating-card { max-width: 520px; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; overflow-wrap: anywhere; }
 .dating-card h2 { font-size: 1.25rem; }
+/* "· about 40 in human terms" beside a long-lived kind's real age (Lifespans, v0.15). */
+.dating-human-terms { color: var(--muted); font-size: 0.9375rem; font-weight: 400; }
 .dating-photo { width: 100%; max-height: 420px; object-fit: cover; border-radius: 12px; }
 .dating-photo-ask .text-button svg { width: 16px; height: 16px; }
 .dating-column .dating-notice { font-family: var(--read-font); line-height: 1.6; padding: 12px; border: 1px dashed var(--border); }
@@ -575,6 +577,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .home-panel { margin-top: 32px; max-width: 760px; border-top: 1px solid var(--border); padding-top: 18px; display: grid; gap: 12px; }
 .home-panel h2 { margin: 0; }
 .home-panel > .button { justify-self: start; }
+/* The last panel before a settings section (the steps, then Townsfolk on the Character page) keeps the panels' own
+ * 32px gap above that divider, not the list's last line against it. */
+.home-panel + .settings-section { margin-top: 32px; }
 /* Kitchen (src/features/character/Kitchen.tsx): the day sits in a fixed column so the dinners line up. */
 .kitchen-who p, .kitchen-pantry p { margin: 0; }
 .kitchen-who, .kitchen-pantry { display: grid; gap: 4px; }
@@ -2251,6 +2256,41 @@ p.breakup-line { align-items: center; }
   .steps-panel .why-it-went .text-button { min-height: 44px; }
 }
 .steps-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; }
+/* Wanting children (companion/life/parenthood.py): room under the last toggle, as under the steps list. */
+.family-panel .toggle { margin-bottom: 24px; }
+.family-panel { min-width: 0; }
+.family-panel select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.kids-block { display: grid; gap: 8px; margin-bottom: 24px; min-width: 0; }
+.kids-block h3 { margin: 0; font-size: 1rem; }
+.kids-block > p { margin: 0; }
+.kid-card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-block: 8px; }
+.kid-card p { margin: 0; }
+.kids-block .kids-standing { margin: 4px 0 0; }
+.family-subheading { margin: 0 0 8px; font-size: 1rem; }
+/* Expecting or adopting together: stages to come in regular weight, room above the next section's divider, and a
+ * readable Save while there is nothing to save. */
+.family-journey { display: grid; gap: 12px; margin-bottom: 24px; }
+.family-journey .steps-list strong.step-pending { font-weight: 400; }
+.family-journey .rename-row .button.primary:disabled { opacity: 1; background: var(--raised); border-color: var(--border); color: var(--muted); }
+.family-panel .field-label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+.family-panel .field-value { margin: 0; color: var(--text); }
+/* Our child (companion/life/our_child.py): one card per child, words only; milestones, how they came and Rename fold
+ * away under it. */
+.our-child-card { grid-template-columns: minmax(0, 1fr); align-items: start; gap: 6px; padding-block: 12px; }
+.our-child-card p { overflow-wrap: anywhere; }
+.our-child-more summary { cursor: pointer; color: var(--muted); font-size: 0.875rem; }
+.our-child-more[open] > summary { margin-bottom: 8px; }
+.our-child-more .family-journey { margin-bottom: 0; }
+.our-child-more .steps-list { font-size: 0.9375rem; }
+.ours-block { margin-bottom: 8px; }
+.ours-block .toggle { margin-bottom: 0; }
+.our-child-more .rename-row .button.primary:disabled { opacity: 1; background: var(--raised); border-color: var(--border); color: var(--muted); }
+@media (max-width: 720px) { .our-child-more summary { padding-block: 11px; } }
+/* Lifespans (v0.15): the human-terms line describes the person, so it spans both pickers; fold rows a full tap target. */
+.kind-fields .kind-human-terms { grid-column: 1 / -1; margin-top: -4px; }
+@media (max-width: 720px) { .person-kind > summary { min-height: 44px; padding-block: 12px; line-height: 20px; box-sizing: border-box; } }
+.ours-block .field { margin-top: 8px; }
+.our-family-item p { margin: 0; }
 /* Meeting their people: whether they have met you, on the circle list. */
 .met-you { display: flex; align-items: center; gap: 6px; }
 .met-you svg { width: 14px; height: 14px; flex: none; }

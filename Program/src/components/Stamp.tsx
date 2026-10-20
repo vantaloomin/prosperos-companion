@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { appNow } from '../appTime.ts'
-import { clockTime, exactTime, relativeTime } from '../when.ts'
+import { clockTime, exactTime, listTime, relativeTime } from '../when.ts'
 
 // One timer for every timestamp on screen: each re-renders only when its minute changes.
 const listeners = new Set<() => void>()
@@ -30,10 +30,12 @@ function useAppMinute(): number {
 
 /**
  * A timestamp: "5 minutes ago" and the like, with the exact date and time on hover. `clock` shows the clock
- * time instead, with the date once it is not today (Retro IM's "[9:14 PM]").
+ * time instead, with the date once it is not today (Retro IM's "[9:14 PM]"); `short` the time today and only the date
+ * before (a chat list).
  */
-export function Stamp({ value, clock = false, className }: { value: string; clock?: boolean; className?: string }) {
+export function Stamp({ value, clock = false, short = false, className }: { value: string; clock?: boolean; short?: boolean; className?: string }) {
   useAppMinute()
   const now = appNow()
-  return <time className={className} dateTime={value} title={exactTime(value)}>{clock ? clockTime(value, now) : relativeTime(value, now)}</time>
+  const shown = short ? listTime(value, now) : clock ? clockTime(value, now) : relativeTime(value, now)
+  return <time className={className} dateTime={value} title={exactTime(value)}>{shown}</time>
 }

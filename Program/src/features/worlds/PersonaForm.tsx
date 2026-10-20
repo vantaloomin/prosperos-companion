@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { api } from '../../api'
-import type { Persona, PersonaGender, World, Worlds } from '../../types'
+import type { KindChoices, Persona, PersonaGender, World, Worlds } from '../../types'
 import { Field, TextArea, TextInput } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
-import { GENDERS } from './worldsText'
+import { GENDERS, ageHint, ageText, personaAges } from './worldsText'
+import { KindFields } from '../kinds/KindFields'
+import { lifeAge, longLived, pickedLifespan } from '../kinds/kindText'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { PersonaPets } from './PersonaPets'
 import { PersonaHome } from './PersonaHome'
@@ -12,16 +14,18 @@ import { petDrafts, petsBody, type PetDraft } from './personaPetsText'
 
 const BIRTHDAY = /^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$/
 
-type Draft = { name: string; gender: PersonaGender; age: string; about: string; birthday: string; pets: PetDraft[] }
+type Draft = { name: string; gender: PersonaGender; age: string; about: string; birthday: string; pets: PetDraft[]; kind: string; lifespan: number | null }
 
 function draftOf(persona?: Persona): Draft {
-  if (!persona) return { name: '', gender: '', age: '', about: '', birthday: '', pets: [] }
-  return { name: persona.name, gender: persona.gender, age: persona.age ? String(persona.age) : '', about: persona.about, birthday: persona.birthday, pets: petDrafts(persona.pets) }
+  if (!persona) return { name: '', gender: '', age: '', about: '', birthday: '', pets: [], kind: '', lifespan: null }
+  return { name: persona.name, gender: persona.gender, age: persona.age ? String(persona.age) : '', about: persona.about, birthday: persona.birthday, pets: petDrafts(persona.pets),
+    kind: persona.kind ?? '', lifespan: persona.lifespan ?? null }
 }
 
-/** A new persona needs the name the user gives it; everything else may stay blank. */
-function validDraft(draft: Draft, age: number | null, isNew: boolean): boolean {
-  return (age === null || (age >= 18 && age <= 120)) && BIRTHDAY.test(draft.birthday) && (!isNew || !!draft.name.trim())
+/** A new persona needs the name the user gives it; everything else may stay blank. Past 120 only for a long-lived
+ * kind. */
+function validDraft(draft: Draft, age: number | null, isNew: boolean, long: boolean): boolean {
+  return (age === null || (age >= 18 && age <= (long ? 5000 : 120))) && BIRTHDAY.test(draft.birthday) && (!isNew || !!draft.name.trim())
 }
 
 const TEXT = {
@@ -43,11 +47,13 @@ async function saveAll(persona: Persona | undefined, body: Parameters<typeof sav
 
 /** `cityId` is the city the user is in now, listed in a new persona's city picker even before the cities load.
  * `world` is the world the persona is in now, where the form also says where they live. */
-interface PersonaFormProps { persona?: Persona; world?: World; cityId: string; onSaved: (data?: Worlds) => void; onCancel?: () => void }
+interface PersonaFormProps { persona?: Persona; world?: World; cityId: string; onSaved: (data?: Worlds) => void; onCancel?: () => void
+  /** What the Kind pickers offer, for a new persona (the one in use carries its own). */
+  kinds?: KindChoices }
 
 /** Who the user is: the one in use, or (without `persona`) a new one. Only the user says this; companions know
  * only what is written here, and nothing left blank is made up. */
-export function PersonaForm({ persona, world, cityId, onSaved, onCancel }: PersonaFormProps) {
+export function PersonaForm({ persona, world, cityId, onSaved, onCancel, kinds }: PersonaFormProps) {
   const [draft, setDraft] = useState(() => draftOf(persona))
   const home = useHomeDraft(world)
   const [city, setCity] = useState(SOMEWHERE_NEW)
@@ -57,7 +63,9 @@ export function PersonaForm({ persona, world, cityId, onSaved, onCancel }: Perso
   const [note, setNote] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const set = (change: Partial<typeof draft>) => { setDraft((old) => ({ ...old, ...change })); setNote(null) }
   const age = draft.age ? Number(draft.age) : null
-  const valid = validDraft(draft, age, !persona)
+  const { choices, span, found } = kindState(persona, kinds, draft)
+  const long = longLived(span)
+  const valid = validDraft(draft, age, !persona, long)
   const save = async () => {
     setSaving(true)
     try {
@@ -79,7 +87,8 @@ export function PersonaForm({ persona, world, cityId, onSaved, onCancel }: Perso
           {GENDERS.map(([value, label]) => <option key={value || 'none'} value={value}>{label}</option>)}
         </select>
       )}</Field>
-      <TextInput label="Age" type="number" value={draft.age} onChange={(value) => set({ age: value })} hint={age !== null && age < 18 ? 'You must be 18 or older.' : undefined} />
+      {choices && <PersonaKind found={found} choices={choices} draft={draft} age={age} span={span} set={set} />}
+      <AgeField value={draft.age} age={age} long={long} onChange={(value) => set({ age: value })} />
       <TextInput label="Birthday" value={draft.birthday} placeholder="MM-DD" maxLength={5} onChange={(birthday) => set({ birthday })}
         hint="Month and day, like 04-23. Companions remember it and wish you a happy birthday." />
       <TextArea label="About you" value={draft.about} rows={3} maxLength={2000} onChange={(about) => set({ about })}
@@ -94,4 +103,40 @@ export function PersonaForm({ persona, world, cityId, onSaved, onCancel }: Perso
       {note && <Notice tone={note.tone}>{note.text}</Notice>}
     </form>
   )
+}
+
+/** The choices the Kind pickers offer and how long the persona lives as the draft stands (null: they don't age). */
+function kindState(persona: Persona | undefined, kinds: KindChoices | undefined, draft: Draft) {
+  const choices = persona?.kind_shown ?? kinds
+  const found = foundKind(persona?.kind_shown)
+  return { choices, found, span: choices ? pickedLifespan(choices, draft.kind, draft.lifespan, found.years) : 80 }
+}
+
+/** The kind the app read from About you (as last saved), human for a new persona. */
+function foundKind(shown: Persona['kind_shown']) {
+  if (!shown) return { kind: 'human', label: 'Human', years: 80 }
+  const listed = shown.kinds.find((item) => item.id === shown.found)
+  return { kind: shown.found, label: shown.found_label, years: listed ? listed.lifespan : 80 }
+}
+
+interface PersonaKindProps { found: { kind: string; label: string; years: number | null }; choices: KindChoices; draft: Draft; age: number | null; span: number | null; set: (change: Partial<Draft>) => void }
+
+/** Kind and How long you live (companion/world/lifespans.py), as on the Character page: read from About you until
+ * the user picks. */
+function PersonaKind({ found, choices, draft, age, span, set }: PersonaKindProps) {
+  const life = age === null || span === 80 ? null : lifeAge(age, span)
+  return <KindFields id="persona" you choices={choices} age={age}
+    shown={{ kind: draft.kind || found.kind, label: '', own: draft.lifespan, years: span, kind_years: span, life_age: life }}
+    found={{ kind: found.kind, label: found.label, source: found.kind !== 'human' ? 'words' : 'app' }}
+    picked={draft.kind} own={draft.lifespan} onChange={({ kind, lifespan }) => set({ kind, lifespan })} />
+}
+
+/** Age from a list, never free text: up to 120, and on up to 5,000 for a long-lived kind. */
+function AgeField({ value, age, long, onChange }: { value: string; age: number | null; long: boolean; onChange: (value: string) => void }) {
+  return <Field label="Age" hint={ageHint(age, long)}>{(id, describedBy) => (
+    <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="">Not said</option>
+      {personaAges(long, age).map((item) => <option key={item} value={String(item)}>{ageText(item)}</option>)}
+    </select>
+  )}</Field>
 }

@@ -197,3 +197,14 @@ def test_a_she_companions_tradition_reads_her_on_today_and_in_the_feed(client, m
     assert shown and today
     for text in shown + today:
         assert 'their' not in text and 'they' not in text and ('her ' in text or 'she always does' in text), text
+
+
+def test_in_1895_a_tradition_is_at_their_mothers_not_their_moms():
+    city = CatalogWorld().find('london-1895')
+    people = [{'id': 'p1', 'name': 'Ruth', 'role': 'mom', 'details': json.dumps({'neighborhood': 'Marylebone'}),
+               'schedule': json.dumps([{'kind': 'work'}])}]
+    found = traditions.seeded('t1', city, people)
+    hosted = [row['text'] for row in found if row['host_id'] == 'p1']
+    assert hosted and all('{their} mother Ruth' in text and ' mom ' not in text for text in hosted), hosted
+    today = traditions.seeded('t1', CatalogWorld().find('baltimore'), people)
+    assert any('{their} mom Ruth' in row['text'] for row in today)

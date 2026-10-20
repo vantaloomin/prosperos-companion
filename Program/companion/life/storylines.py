@@ -28,6 +28,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import circle, pronouns
+from companion.world import lifespans
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
 # Per drama level: chance a storyline starts on a given day, and how many can run at once.
@@ -170,8 +171,8 @@ STORIES = (
 # day each storyline starts; the stages here only stand for them.
 STORIES += tuple(Story(key, 0, 'family', (beat('{name} heard some family news from {a}.', 'family news from {a}!', 'good'),),
                        own=True)
-                 for key in ('expecting', 'baby_update', 'babysat', 'first_birthday'))
-FAMILY = frozenset(('expecting', 'baby_update', 'babysat', 'first_birthday'))
+                 for key in ('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
+FAMILY = frozenset(('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
 OWN = frozenset(story.key for story in STORIES if story.own)
 
 
@@ -192,7 +193,9 @@ def kind(person: dict) -> str:
 
 def working(person: dict) -> bool:
     details = decode(person['details'])
-    return (details.get('age') or 40) < 67 and details.get('career') != 'Retired'
+    # Retiring follows their age in human terms (companion/world/lifespans.py; the city's own lifespans aside).
+    span = lifespans.lifespan_of(details.get('folk'), None, details.get('lifespan'))
+    return (lifespans.life_age(details.get('age'), span) or 40) < 67 and details.get('career') != 'Retired'
 
 
 FRIENDLY = {'friends', 'old friends', 'coworkers'}
@@ -356,6 +359,8 @@ def fork_stages(connection, row, copy_id: str, timeline_id: str, cutoff: str) ->
     from companion import consequences
     story, stages = find_story(row['story']), decode(row['stages'])
     for index, stage in enumerate(stages):
+        if stage.get('odds'):  # A baby's odds (families.keep_odds), on the news the fork already had.
+            stages[index] = {**stage, 'odds': consequences.copy(connection, stage['odds'], timeline_id, f'baby:{copy_id}')}
         if not stage.get('consequence'):
             continue
         if stage['on'] > cutoff:
@@ -446,7 +451,7 @@ def view(row: dict, names: dict, definition: dict, today: str, you=False) -> dic
     stages = decode(row['stages'])
     beats = [{'on': stage['on'], 'text': fill(stage['text'], row, names, definition, you),
               'share': fill(stage['share'], row, names, definition), 'tone': stage['tone'],
-              'consequence': stage.get('consequence')}
+              'consequence': stage.get('consequence') or stage.get('odds')}
              for stage in stages if stage['on'] <= today and not stage.get('pending')]
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
             'status': row['status'], 'cast': [{'id': person_id, **names[person_id]} for person_id in

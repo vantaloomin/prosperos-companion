@@ -23,18 +23,23 @@ from companion.life import (
     big_days,
     big_turns,
     breakups,
+    custody,
     encounters,
+    expecting,
     families,
     feed,
     grooming,
     hobbies,
     home,
+    kids,
     kitchen,
     loss,
     love_life,
     media,
     moving_in,
     network,
+    our_child,
+    own_family,
     shifts,
     social,
     steps,
@@ -222,14 +227,19 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
     families.copy(connection, parent_id, new_id, ids, cutoff[:10])
+    own_family.copy(connection, parent_id, new_id, ids)
+    kids.copy(connection, parent_id, new_id, ids)
     copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
     copy_steps(connection, parent_id, new_id, cutoff)
     wedding.copy_proposals(connection, steps.copy_open(connection, parent_id, new_id, cutoff, ids), new_id)
     love_life.copy(connection, parent_id, new_id, ids, cutoff[:10])
     wedding.copy(connection, parent_id, new_id, cutoff[:10])
+    expecting.copy(connection, parent_id, new_id, cutoff[:10])
+    our_child.copy(connection, parent_id, new_id)
     loss.copy(connection, parent_id, new_id, ids, cutoff[:10])
     big_days.copy(connection, parent_id, new_id, ids, cutoff)  # After what its sources name (loss.py's funerals).
     breakups.copy(connection, parent_id, new_id, ids, cutoff)
+    custody.copy(connection, parent_id, new_id, ids)  # After the breakups it names.
     copy_impressions(connection, parent_id, new_id, ids, cutoff[:10])
     copy_recall(connection, parent_id, new_id, ids, cutoff[:10])
     network.copy(connection, parent_id, new_id, cutoff)

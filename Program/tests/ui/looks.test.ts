@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { emptyLooks, emptyText, heightLabel, keepsAgeHint, numberChoices, weightLabel } from '../../src/features/character/looksText.ts'
+import { decadeHint, emptyLooks, emptyText, heightLabel, keepsAgeHint, numberChoices, weightLabel } from '../../src/features/character/looksText.ts'
 
 test('heights and weights read in both units', () => {
   assert.equal(heightLabel(170), `5'7" (170 cm)`)
@@ -32,4 +32,13 @@ test('the Keeps their age hint reads right for a named companion and one not nam
 test('an empty field before the first save says it is picked, short enough for a phone', () => {
   assert.equal(emptyText(false, false, null), 'Picked for them if left empty')
   assert.equal(emptyText(true, false, 'brown'), 'Left empty: brown')
+})
+
+test('an identity in a decade the age has left says so on the Character page', () => {
+  assert.equal(decadeHint('In her thirties, a translator.', 47), 'thirties')
+  assert.equal(keepsAgeHint({ name: 'Maya Ortiz' }, 35, 47, 'thirties'),
+    "Maya is 47 now, though their description says thirties, and turns a year older on each birthday. Turn this on for a character who shouldn't age.")
+  assert.equal(decadeHint('In her late Thirties.', 39), '')
+  assert.equal(decadeHint('34. A translator.', 47), '')
+  assert.equal(decadeHint('In his forties.', null), '')
 })

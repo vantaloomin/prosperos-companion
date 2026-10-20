@@ -5,7 +5,7 @@
   "title": "Life admin: appointments, deadlines, errands and paperwork written for Prospero Companion",
   "license": "CC0-1.0",
   "retrieved": "2026-10-13",
-  "note": "Calendars are keyed by holiday calendar id (world/data/holidays.json), with modern, industrial and old fallbacks. every_months repeats on a seeded phase; on is a yearly date (MM-DD); on_days are several yearly dates; lead plans it ahead of that date by the companion's habit. needs: car, horse, rent, glasses, work. regions / except_regions match the city's region."
+  "note": "Calendars are keyed by holiday calendar id (world/data/holidays.json), with modern, industrial and old fallbacks. every_months repeats on a seeded phase; on is a yearly date (MM-DD); on_days are several yearly dates; lead plans it ahead of that date by the companion's habit. needs: car, horse, rent, glasses, work, business. regions / except_regions match the city's region."
  },
  "calendars": {
   "us": [
@@ -3025,6 +3025,7 @@
    "eras": [
     "modern"
    ],
+   "needs": "business",
    "cost": "$",
    "minutes": 30,
    "where": "home",

@@ -143,3 +143,12 @@ def test_an_age_is_read_however_it_is_written():
     for text in ('Ashley is 20 and runs a page.', 'Her shift is 9-5.', "She's 5'4\" with dark hair."):
         assert not intimacy.reads_as_minor({'identity': text}), text
     assert intimacy.own_age({'identity': 'Dana is 41 and raising a 15-year-old.'}) == 41
+
+
+def test_a_few_more_sheet_wordings_read_the_same_way():
+    for text in ('An elf, 150, who looks about twelve.', 'A dwarf, 90, a youngling by the reckoning of her kin.',
+                 'An elf of 150 years, still a child among her people.', 'An elf, 120, not yet of age.'):
+        assert intimacy.reads_as_minor({'identity': text}), text
+    for text in ('Aerin is an elf, 312. Looks about 48.', 'She has an elf child of her own, 312.',
+                 'A 40-year-old who looks 5 years younger.', 'Mira, 29. Looks after a child among the refugees.'):
+        assert not intimacy.reads_as_minor({'identity': text}), text

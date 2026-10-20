@@ -37,7 +37,11 @@ housing), places (attractions, museums, parks, venues, food, bars, shopping), co
 employers, career hubs, transit, monthly climate and recurring annual events. A shared catalogue
 of about 45 modern careers describes schedules and themes; a city whose `era` is not `modern`
 (`victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `jazz-age`, `future`, `other`) defines its own
-careers. Each city also names its `currency` and `rent_period` (`month` or `week`); rents and climate
+careers. A career may say who did that work in its era (`worked_by`: `men` or `women`; left out, anyone). In a
+city that keeps work by gender, townsfolk, circles and a companion's job changes only get the work of their side
+(they/them people get any): `work_by_gender` turns it on or off, and left out the era decides (on for `victorian`,
+`medieval`, `steampunk` and `frontier`, off otherwise; Ellerbrück turns it on, Grandport and Oz leave it off).
+Each city also names its `currency` and `rent_period` (`month` or `week`); rents and climate
 are optional, so a setting without money (Oz) or without weather data still works.
 
 ## Where the data lives
@@ -88,7 +92,7 @@ generators.price(data, 'pint-of-beer', seed=...)  # one amount within the city's
 generators.circle(data, seed=..., size=6, home='canton', age=31, career='teacher', employer=None,
                   family=None, group=None)
 generators.resident(data, seed=..., role='friend', career=None, age=None, near=None, employer=None,
-                    family=None, group=None, local=True)
+                    family=None, group=None, local=True, pronouns=None)  # pronouns: whose side's work
 generators.name(data, seed=..., pronouns=None, group=None, family=None)
 ```
 
@@ -168,6 +172,16 @@ checks model-written text for them: character drafting retries once naming the p
 each one for an ordinary name; a name the user typed (or one in the world data) is always allowed. Chat
 gets a short "names for anyone new" context section of ready-made names for the companion's city and a
 spread of ages (`companion/world/newcomers.py`), so the model never has to invent one.
+
+**Kinds and lifespans.** A name group may tie its people to a kind with `"kind": "elf"` (Grandport's `elven`
+group does). Kinds and their average lifespans are in `lifespans.json` (Human 80, Elf 600, Half-elf 180, Dwarf 300,
+Halfling 110, Orc 55, Doesn't age); a city may add a `kinds` block that changes a built-in kind's lifespan there
+(`{"elf": {"lifespan": 750}}`) or adds a kind of its own (`{"tiefling": {"label": "Tiefling", "lifespan": 110,
+"words": ["tiefling"]}}`). A lifespan is a whole number from 40 to 5000, or null for a kind that doesn't age; a bad
+entry, or a group naming an unknown kind, is dropped with a note and the city still loads. Real ages stay as they
+are; rules about how far through life someone is read their life age (`companion/world/lifespans.py`): their real
+age through childhood, then adulthood stretched to their kind's lifespan, so an elf of 300 is 48 in human terms and
+is seeded, retires, dates and passes away like it. A city file can only change how long adulthood lasts.
 
 **Local colour.** Each city lists things locals eat, drink, say, root for and do (`local_color`, with
 `kind` dish, drink, saying, custom, team, shop, legend, rumor or other), with the places they are easiest to find and

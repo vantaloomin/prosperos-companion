@@ -1,0 +1,475 @@
+"""Wanting children and the family step (companion/life/parenthood.py): what a companion wants, how a child would come
+for the pair, starting a family brought up either way, and the limits children keep."""
+from datetime import timedelta
+
+import pytest
+from conftest import reconcile, send, set_life
+from test_steps import close, first_text, make, prompt, says, view
+
+from companion import consequences
+from companion.characters import current
+from companion.life import parenthood, rough_patches, steps
+
+
+@pytest.fixture
+def likeliest(monkeypatch):
+    """The engine lands on the likeliest option every time."""
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: max(found, key=lambda item: item['odds'])['option'])
+
+
+def family(client):
+    response = client.get('/api/life/steps/family')
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def set_family(client, **values):
+    response = client.put('/api/life/steps/family', json=values)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def living_together(client, monkeypatch, wants='yes', **values):
+    """A romance that has just decided to live together, close enough for the family step, wanting children."""
+    make(client, monkeypatch, **values)
+    monkeypatch.setattr(steps, 'FIRST_TEXTS', True)
+    assert client.put('/api/life/steps', json={'step': 'moving_in'}).status_code == 200
+    close(client, 4)
+    if wants:
+        set_family(client, wants=wants)
+
+
+def planned(client):
+    with client.app.state.database.connect() as connection:
+        return [row for row in steps.asks(connection, current(connection)['active_timeline_id'], ('planned', 'open'))
+                if row['ladder'] == parenthood.LADDER]
+
+
+def test_their_description_says_whether_they_want_children():
+    assert parenthood.described({'personality': 'Never wanted kids, and happy that way.'}) == 'no'
+    assert parenthood.described({'background': "She doesn't want children."}) == 'no'
+    assert parenthood.described({'identity': 'Child-free and proud of it.'}) == 'no'
+    assert parenthood.described({'background': 'Has always wanted a big family.'}) == 'yes'
+    assert parenthood.described({'personality': 'Warm, family-oriented.'}) == 'yes'
+    assert parenthood.described({'background': 'Wants kids someday, once the bakery is on its feet.'}) == 'someday'
+    assert parenthood.described({'personality': 'Driven and funny.'}) is None
+
+
+@pytest.mark.parametrize('text, wants', [
+    ('She never wanted to be a mother.', 'no'), ("He doesn't want to have kids.", 'no'), ('She doesn\u2019t want kids.', 'no'),
+    ('Kids aren\u2019t for her.', 'no'), ('She has decided against having children.', 'no'),
+    ('Not a kid person.', 'no'), ("They'd rather not have children.", 'no'), ('Never saw herself as a mom.', 'no'),
+    ("He can't wait to be a dad.", 'yes'), ('She wants to start a family.', 'yes'), ('Wants three kids.', 'yes'),
+    ('She hopes to have children.', 'yes'), ("She's always pictured herself with kids.", 'yes'),
+    ('Not ready for kids yet.', 'someday'), ('She never wanted kids to see her cry.', None),
+    ('She works with children at the hospital.', None),
+])
+def test_their_description_is_read_in_other_words_too(text, wants):
+    assert parenthood.described({'identity': text}) == wants
+
+
+def test_the_app_picks_what_they_want_and_the_user_can_change_it(client, monkeypatch):
+    make(client, monkeypatch, background='Has always wanted a big family.')
+    found = family(client)
+    assert found['wants'] == 'yes' and found['wants_how'] == 'description' and found['romance']
+    assert set_family(client, wants='no')['wants'] == 'no'
+    assert family(client)['wants_how'] == 'set'
+    back = set_family(client, wants='auto')
+    assert back['wants'] == 'yes' and back['wants_how'] == 'description'
+    assert client.put('/api/life/steps/family', json={'wants': 'maybe'}).status_code == 422
+
+
+def test_a_seeded_wish_has_its_odds_and_someday_turns_to_yes_when_a_baby_comes(client, clock, monkeypatch):
+    make(client, monkeypatch, relationship='friendship', identity='A 24-year-old barista.')
+    client.put('/api/settings', json={'show_odds': True})
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: 1)  # Someday.
+    found = family(client)
+    assert found['wants'] == 'someday' and found['wants_how'] == 'seeded' and found['wants_consequence_id']
+    assert not found['romance'] and 'route' not in found
+    outcome = client.get(f"/api/life/consequences/{found['wants_consequence_id']}").json()
+    assert outcome['label'] == 'Whether Mira wants children' and 'Mira is still young' in outcome['options'][1]['reasons']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        connection.execute("INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, "
+                           "born_on, status, created_at, updated_at) VALUES ('kid', ?, 'p', 's', 'Wren', 'she/her', "
+                           "'family', ?, 'born', ?, ?)", (companion['active_timeline_id'],
+                                                          (clock.now() + timedelta(days=3)).date().isoformat(),
+                                                          clock.now().isoformat(), clock.now().isoformat()))
+    found = family(client)
+    assert found['wants'] == 'yes' and found['wants_how'] == 'nudged' and found['nudged_by'] == 'Wren'
+    # Hidden values: making it go another way sticks.
+    assert client.post(f"/api/life/consequences/{found['wants_consequence_id']}/change",
+                       json={'option': 2}).status_code == 200
+    assert family(client)['wants'] == 'no'
+
+
+def test_past_fifty_wanting_children_someday_is_rare():
+    names = {'name': 'Mira', 'a': 'someone', 'b': ''}
+    odds = [item['odds'] for item in consequences.odds('family:wants', {'age': 62, 'warmth': 2, 'sheet': set()}, names)]
+    assert odds[2] > 0.7 and odds[1] < 0.1
+    odds = [item['odds'] for item in consequences.odds('family:wants', {'age': 33, 'warmth': 1, 'sheet': set()}, names)]
+    assert odds[2] < 0.2
+
+
+@pytest.mark.parametrize('wanted', ['yes', 'someday'])
+def test_one_who_wants_children_never_answers_that_they_dont(wanted):
+    facts = {'wants': wanted, 'married': 0, 'short_days': 30, 'closeness_over': -1, 'pace': 1, 'mood': -1}
+    odds = consequences.odds('family:answer', facts, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    assert odds[2]['odds'] == 0
+
+
+def test_how_a_child_comes_is_picked_from_the_pair(client, monkeypatch, likeliest):
+    make(client, monkeypatch, identity='She is a 31-year-old nurse.')
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': 'man', 'age': 33}).raise_for_status()
+    found = family(client)
+    assert found['route'] == 'expecting_them' and found['route_how'] == 'seeded'
+    assert [item['key'] for item in found['routes']] == list(parenthood.MODERN_ROUTES)
+    assert found['routes'][0]['label'] == 'Mira carries the baby'
+    assert set_family(client, route='adoption')['route'] == 'adoption'
+    assert set_family(client, route='auto')['route'] == 'expecting_them'
+
+
+def test_two_who_cannot_carry_adopt_or_foster_and_old_cities_take_in_a_ward(client, monkeypatch, likeliest):
+    make(client, monkeypatch, identity='He is a 35-year-old carpenter.')
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': 'man'}).raise_for_status()
+    assert family(client)['route'] in ('adoption', 'fostering', 'surrogacy')
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        facts = {**parenthood.route_facts(connection, companion, None), 'old': 1}
+    odds = consequences.odds('family:route', facts, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    possible = {parenthood.ROUTES[item['option']] for item in odds if item['odds'] > 0}
+    assert possible == {'ward', 'foundling', 'relative'}
+
+
+@pytest.mark.parametrize('identity, gender, about, can_them, can_you', [
+    ('She is a 34-year-old trans woman and a nurse.', 'man', '', 0, 0),
+    ('They are 30, a trans man and a baker.', 'man', '', 1, 0),
+    ('He is 33 and works at the docks.', 'nonbinary', 'Assigned female at birth; could carry a baby.', 0, 1),
+    ('She is 31 and a nurse.', 'woman', 'I can\u2019t have children.', 1, 0),
+])
+def test_who_could_carry_a_baby_follows_both_descriptions(client, monkeypatch, identity, gender, about, can_them,
+                                                          can_you):
+    make(client, monkeypatch, identity=identity)
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': gender, 'about': about}).raise_for_status()
+    with client.app.state.database.connect() as connection:
+        found = parenthood.route_facts(connection, current(connection), None)
+    assert (found['can_them'], found['can_you']) == (can_them, can_you)
+
+
+def test_past_fifty_neither_of_them_carries_the_baby():
+    names = {'name': 'Mira', 'a': 'someone', 'b': ''}
+    for old in (0, 1):
+        facts = {'can_them': 1, 'can_you': 1, 'can_carry': 1, 'age': 52, 'your_age': 55, 'tier': 2, 'old': old}
+        odds = {parenthood.ROUTES[item['option']]: item['odds'] for item in consequences.odds('family:route', facts, names)}
+        assert odds['expecting_them'] == odds['expecting_you'] == 0 and sum(odds.values()) > 0.99
+    facts = {**facts, 'age': 47, 'your_age': 30, 'old': 0}
+    odds = {parenthood.ROUTES[item['option']]: item['odds'] for item in consequences.odds('family:route', facts, names)}
+    assert odds['expecting_them'] < 0.1 < odds['expecting_you']
+
+
+@pytest.mark.parametrize('text, key', [
+    ('my friends are having a baby, can you believe it?', None),
+    ('Jess and Tom are trying for a baby, should we get them a gift?', None),
+    ("my sister's having a baby, should we visit?", None),
+    ('my sister is having another baby, want to come visit?', None),
+    ('should we try for a baby?', 'family'), ('I want a baby with you', 'family'),
+    ('are you ready to be parents?', 'family'), ('should we have another baby?', 'sibling'),
+])
+def test_someone_else_having_a_baby_is_not_bringing_up_your_own(text, key):
+    assert steps.raised(text, ['family', 'sibling']) == key
+
+
+def test_new_york_1925_adopts_or_fosters_but_never_through_a_surrogate(client, monkeypatch):
+    make(client, monkeypatch, identity='He is a 35-year-old carpenter.', home_city='new-york-1925')
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': 'man'}).raise_for_status()
+    found = family(client)
+    assert 'surrogacy' not in [item['key'] for item in found['routes']]
+    with client.app.state.database.connect() as connection:
+        facts = parenthood.route_facts(connection, current(connection), None)
+    odds = consequences.odds('family:route', {**facts, 'tier': 3}, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    possible = {parenthood.ROUTES[item['option']] for item in odds if item['odds'] > 0}
+    assert possible == {'adoption', 'fostering'}
+
+
+@pytest.mark.parametrize('city, possible', [
+    ('london-1895', {'ward', 'foundling', 'relative'}), ('new-york-1925', {'adoption', 'fostering'}),
+    ('baltimore', {'expecting_them', 'expecting_you', 'adoption', 'fostering', 'surrogacy'}),
+])
+def test_two_women_in_older_times_take_in_a_child(client, monkeypatch, city, possible):
+    make(client, monkeypatch, identity='She is a 30-year-old seamstress.', home_city=city)
+    persona = client.get('/api/worlds').json()['persona']
+    client.patch(f"/api/worlds/personas/{persona['id']}", json={'gender': 'woman', 'age': 31}).raise_for_status()
+    with client.app.state.database.connect() as connection:
+        facts = parenthood.route_facts(connection, current(connection), None)
+    odds = consequences.odds('family:route', {**facts, 'tier': 3}, {'name': 'Mira', 'a': 'someone', 'b': ''})
+    assert {parenthood.ROUTES[item['option']] for item in odds if item['odds'] > 0} == possible
+
+
+def test_they_bring_up_starting_a_family_after_living_together_and_yes_starts_it(client, provider, clock, monkeypatch,
+                                                                                 likeliest):
+    living_together(client, monkeypatch)
+    clock.advance(timedelta(days=100))
+    reconcile(client)
+    assert planned(client) == []  # Not yet: they have lived together for 100 days, and it takes 180.
+    clock.advance(timedelta(days=85))
+    reconcile(client)
+    [row] = planned(client)
+    assert row['step'] == 'family' and row['status'] == 'planned'
+    clock.advance(timedelta(days=8))
+    trigger = first_text(client, clock)
+    assert trigger and 'start a family' in trigger.reason and trigger.template in steps.bank()['family']
+    says(provider)
+    send(client, 'yes. I want that so much', 'client-family-1')
+    assert 'The user just said yes to starting a family.' in prompt(provider)
+    found = family(client)
+    assert found['decided_on'] and found['decided_how'] == 'them'
+    steps_view = view(client)
+    assert steps_view['steps'][-1]['step'] == 'family' and steps_view['step'] == 'moving_in'
+    assert steps_view['text'].endswith('living together, starting a family')
+    says(provider)
+    send(client, 'what are you thinking about tonight?', 'client-family-2')
+    assert 'You and the user have decided to start a family together' in prompt(provider)
+    assert 'On children: you would like to have children one day.' in prompt(provider)
+
+
+def test_not_for_them_they_never_bring_it_up_and_answer_no_when_you_do(client, provider, clock, monkeypatch,
+                                                                       likeliest):
+    living_together(client, monkeypatch, wants='no')
+    clock.advance(timedelta(days=400))
+    reconcile(client)
+    assert planned(client) == []
+    says(provider)
+    send(client, 'do you think we should start a family?', 'client-family-3')
+    assert "Your answer is no (you don't want children)" in prompt(provider)
+    assert family(client)['decided_on'] is None
+
+
+def test_you_bring_it_up_and_a_yes_starts_it(client, provider, clock, monkeypatch, likeliest):
+    living_together(client, monkeypatch)
+    clock.advance(timedelta(days=200))
+    says(provider)
+    send(client, "I've been thinking... can we start a family?", 'client-family-4')
+    assert 'Your answer is yes' in prompt(provider)
+    assert family(client)['decided_how'] == 'you'
+
+
+def test_before_living_together_asking_is_not_the_family_step(client, provider, monkeypatch):
+    make(client, monkeypatch)
+    says(provider)
+    send(client, 'should we start a family one day?', 'client-family-5')
+    assert 'starting a family' not in prompt(provider)
+
+
+def test_saying_no_to_one_who_wants_children_can_start_a_rough_patch_but_not_on_an_easy_life(
+        client, provider, clock, monkeypatch, likeliest):
+    monkeypatch.setattr(rough_patches, 'ACTIVE', True)
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: found[-1]['option'])
+    living_together(client, monkeypatch)
+    set_life(client, rough_patches_realism=1)
+    clock.advance(timedelta(days=185))
+    reconcile(client)
+    clock.advance(timedelta(days=80))
+    assert first_text(client, clock)
+    says(provider)
+    send(client, "no, I don't want kids", 'client-family-6')
+    with client.app.state.database.connect() as connection:
+        assert not connection.execute("SELECT id FROM rough_patches WHERE cause='family_no'").fetchall()
+        ask = connection.execute("SELECT * FROM step_asks WHERE step='family' AND status='no'").fetchone()
+        companion = current(connection)
+    set_life(client, rough_patches_realism=2)
+    with client.app.state.database.connect(write=True) as connection:
+        parenthood.answered(connection, companion, dict(ask), 'no', None, clock.now())
+        assert connection.execute("SELECT id FROM rough_patches WHERE cause='family_no'").fetchall()
+
+
+def test_after_two_noes_they_stop_bringing_it_up(client, provider, clock, monkeypatch, likeliest):
+    living_together(client, monkeypatch)
+    clock.advance(timedelta(days=185))
+    reconcile(client)
+    clock.advance(timedelta(days=80))
+    assert first_text(client, clock)
+    says(provider)
+    send(client, "no, I don't want kids", 'client-family-no-1')
+    assert 180 <= parenthood.NO_AGAIN_DAYS <= 184  # About six months (Vanta 2026-10-19).
+    clock.advance(timedelta(days=parenthood.NO_AGAIN_DAYS - 30))
+    reconcile(client)
+    assert planned(client) == []  # A no to children holds half a year.
+    clock.advance(timedelta(days=40))
+    reconcile(client)
+    [row] = planned(client)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE step_asks SET status='no', settled_at=? WHERE id=?",
+                           ((clock.now() - timedelta(days=200)).isoformat(), row['id']))
+    clock.advance(timedelta(days=30))
+    reconcile(client)
+    assert planned(client) == []  # Two noes settle it.
+    says(provider)
+    send(client, 'actually, could we start a family?', 'client-family-after')
+    assert family(client)['decided_on']
+
+
+def test_with_the_adult_side_on_none_of_it_is_in_the_chat(client, provider, clock, monkeypatch, likeliest):
+    living_together(client, monkeypatch)
+    client.put('/api/settings', json={'adult_side': True})
+    clock.advance(timedelta(days=200))
+    reconcile(client)
+    assert planned(client) == []
+    set_family(client, decided=True)
+    says(provider)
+    send(client, 'hey you', 'client-family-7')
+    assert 'start a family' not in prompt(provider) and 'On children' not in prompt(provider)
+    assert family(client)['decided_on']  # Still on the screens.
+
+
+def test_setting_the_romance_back_before_living_together_takes_the_family_step_back(client, monkeypatch):
+    living_together(client, monkeypatch)
+    assert set_family(client, decided=True)['decided_how'] == 'set'
+    client.put('/api/life/steps', json={'step': 'key'})
+    found = family(client)
+    assert found['decided_on'] is None and not found['can_decide']
+
+
+def test_one_who_reads_as_a_minor_has_no_family_panel(client, monkeypatch):
+    make(client, monkeypatch, relationship='friendship', identity='A 16-year-old student.')
+    assert family(client) == {'shown': False}
+
+
+def test_a_no_is_never_put_as_too_soon(client, monkeypatch):
+    make(client, monkeypatch)
+    with client.app.state.database.connect() as connection:
+        assert steps.reason(connection, {'status': 'no', 'consequence_id': None}) == "you don't want children"
+
+
+def two_noes(client, clock, monkeypatch, wants='yes', **values):
+    """Living together, and the user said no twice when they brought up starting a family; Breaks and breakups on."""
+    from companion.life import breakups
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    living_together(client, monkeypatch, wants=wants, **values)
+    clock.advance(timedelta(days=400))
+    with client.app.state.database.connect(write=True) as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        for days in (300, 2):
+            at = (clock.now() - timedelta(days=days)).isoformat()
+            steps.insert_ask(connection, timeline_id, parenthood.LADDER, steps.FAMILY.key, 'them', 'no', at)
+        connection.commit()
+
+
+def stay_text(client, clock):
+    """Their ask whether to stay as they are or separate, brought up today (only the model writes it)."""
+    from companion.life import openers
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        [trigger] = [item for item in openers.candidates(connection, companion, clock.now()) if item.kind == 'next_step']
+        connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, character_version_id, "
+                           "memory_revision, created_at, completed_at) VALUES ('stay-ask', ?, 99, 'companion', ?, "
+                           "'complete', 1, ?, 0, ?, ?)", (companion['active_timeline_id'], 'Can we talk about us?',
+                                                          companion['active_version_id'], clock.now().isoformat(),
+                                                          clock.now().isoformat()))
+        steps.settle(connection, companion, {'id': 'stay-ask'}, trigger, clock.now().isoformat())
+    return trigger
+
+
+def due_stay(client, clock):
+    reconcile(client)
+    [row] = planned(client)
+    assert row['step'] == steps.STAY.key
+    clock.advance(timedelta(days=parenthood.STAY_AFTER[1] + 1))
+    trigger = stay_text(client, clock)
+    assert 'stay together as you are' in trigger.reason and trigger.template is None
+    return row
+
+
+def test_after_two_noes_one_who_wants_children_asks_to_stay_as_you_are_or_separate(client, provider, clock,
+                                                                                  monkeypatch):
+    two_noes(client, clock, monkeypatch)
+    due_stay(client, clock)
+    says(provider)
+    send(client, "I don't want to lose you. Let's stay as we are.", 'client-stay-1')
+    assert steps.STAYED in prompt(provider)
+    with client.app.state.database.connect() as connection:
+        assert connection.execute("SELECT status FROM step_asks WHERE step='stay'").fetchone()[0] == 'yes'
+        assert not connection.execute("SELECT id FROM relationship_steps WHERE step='stay'").fetchall()
+    clock.advance(timedelta(days=500))
+    reconcile(client)
+    assert planned(client) == []  # Settled for good.
+    says(provider)
+    send(client, 'morning you', 'client-stay-2')
+    assert 'chose to stay together without children of your own' in prompt(provider)
+    assert view(client)['step'] == 'moving_in'
+
+
+def test_choosing_to_separate_ends_it(client, provider, clock, monkeypatch):
+    from companion.life import breakups
+    two_noes(client, clock, monkeypatch)
+    due_stay(client, clock)
+    says(provider)
+    send(client, 'I think we should separate. You deserve the family you want.', 'client-stay-3')
+    assert 'they just chose to separate' in prompt(provider)
+    with client.app.state.database.connect() as connection:
+        assert breakups.apart(connection, current(connection)) == 'ended'
+
+
+def test_someday_or_an_easy_life_lets_it_rest_after_two_noes(client, clock, monkeypatch):
+    two_noes(client, clock, monkeypatch, wants='someday')
+    reconcile(client)
+    assert planned(client) == []
+    set_family(client, wants='yes')
+    set_life(client, rough_patches_realism=1)
+    reconcile(client)
+    assert planned(client) == []
+    set_life(client, rough_patches_realism=2)
+    reconcile(client)
+    assert [row['step'] for row in planned(client)] == [steps.STAY.key]
+
+
+@pytest.mark.parametrize(('text', 'said'), [
+    ("I don't want to lose you. Let's stay as we are.", 'yes'), ('stay. obviously. you are enough for me', 'yes'),
+    ("I'm not going anywhere", 'yes'), ("i don't want to separate", 'yes'), ('I choose us', 'yes'),
+    ('I think we should separate', 'no'), ("maybe it's time we go our separate ways", 'no'),
+    ("we can't stay together if we want different things", 'no'), ('i think we should split up', 'no'),
+    ('yes', None), ('no', None), ("I don't know", None)])
+def test_staying_or_separating_is_read_from_the_answer(text, said):
+    assert steps.stay_answer(text) == said
+
+
+def preview(client) -> str:
+    return client.get('/api/context/preview').json()['prompt']
+
+
+def test_one_who_already_has_kids_is_asked_about_more(client, monkeypatch):
+    from companion.life import kids
+    monkeypatch.setattr(kids, 'ACTIVE', True)
+    make(client, monkeypatch, background='Her son Leo, 7, and her daughter Mia (4) are her whole world.')
+    assert client.get('/api/life/circle').status_code == 200
+    set_family(client, wants='no')
+    text = preview(client)
+    assert "On children: you don't want more children." in text and 'children of your own' not in text
+    set_family(client, wants='yes')
+    assert 'you would like another child one day' in preview(client)
+
+
+def test_after_a_not_yet_the_context_says_who_was_not_ready(client, clock, monkeypatch):
+    living_together(client, monkeypatch)
+    with client.app.state.database.connect(write=True) as connection:
+        timeline_id = current(connection)['active_timeline_id']
+        steps.insert_ask(connection, timeline_id, parenthood.LADDER, steps.FAMILY.key, 'them', 'not_yet',
+                         clock.now().isoformat())
+        connection.commit()
+    assert parenthood.NOT_YET_LINE in preview(client)
+    set_family(client, decided=True)
+    assert parenthood.NOT_YET_LINE in preview(client)  # Still true once decided, until a child is on the way.
+    clock.advance(timedelta(days=60))
+    with client.app.state.database.connect(write=True) as connection:
+        steps.insert_ask(connection, timeline_id, parenthood.LADDER, steps.FAMILY.key, 'them', 'yes',
+                         clock.now().isoformat())
+        connection.commit()
+    assert parenthood.NOT_YET_LINE not in preview(client)
+
+
+
+def test_their_family_ask_speaks_for_themselves():
+    assert not [line for line in steps.bank()['family'] if 'with us?' in line]

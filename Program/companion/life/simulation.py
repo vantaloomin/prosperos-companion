@@ -57,7 +57,7 @@ MAX_ATTEMPTS = 3
 CAST_PER_TURN = 3
 BACKGROUND_LOOKUP_DEADLINE = 20.0
 # Columns that record a one-time switch to a new default, not settings.
-MARKERS = ('texts_first_on_by_default', 'events_on_by_default')
+MARKERS = ('texts_first_on_by_default', 'events_on_by_default', 'loss_by_preset')
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts',
          'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups', 'people_pass_away')
 NEWS_EVERY = timedelta(minutes=10)

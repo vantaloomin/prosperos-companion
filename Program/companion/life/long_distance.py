@@ -9,7 +9,8 @@ when they can't afford the fare this pay period, the user comes to them. Cities 
 longer visits (Thursday to Monday, when they are off those days), and calls carry the rest (companion/life/calls.py
 rings more for them). How often follows the Getting together slider (life_settings.together_realism): never on their
 own at 0, and a visit asked for in the chat ("come visit me?", "can I come see you next weekend?") is settled the same
-way at any level: the weekend asked, or the next free one, and when none works the reply says why.
+way at any level: the weekend asked, or the next free one, and when none works the reply says why. Split up with a
+child under 18, it is settled as coming to see the child that weekend, not a stay with each other (`for_the_child`).
 
 They tell the user about a visit the app planned (a first text, companion/life/openers.py). While it is under way they
 are together in person (together.state, 'staying' or 'hosting'): the chat writes face to face, nothing is held, nobody
@@ -24,7 +25,7 @@ from datetime import date, datetime, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import encode, many, optional, settings
 from companion.errors import require
-from companion.life import money, own_plans, together, trips, where
+from companion.life import breakups, money, own_plans, together, trips, where
 from companion.world import catalog, generators
 
 ACTIVE = True
@@ -190,7 +191,8 @@ def decide(connection, companion: dict, home: dict, between: where.Between, satu
     """Whether they plan a weekend visit with the user that weekend (trips.plan_ahead asks, weekends 8 to 22 days
     ahead), and which way; the same answer for the same weekend."""
     chosen = together.level(connection)
-    if not ACTIVE or not chosen or recent(connection, companion, saturday, gap(chosen, between)):
+    if not ACTIVE or not chosen or recent(connection, companion, saturday, gap(chosen, between)) or \
+            breakups.apart(connection, companion):  # On a break or exes: they don't come to stay.
         return None
     found = weekend(connection, companion, home, between, saturday)
     if not found:
@@ -311,7 +313,26 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     local = now.astimezone(zone(companion['version']['timezone'])).date()
     day = visit_day(message['text'], local, own_plans.holiday_dates(connection, companion['version']['definition'],
                                                                     local))
+    if for_the_child(connection, companion, message, direction, weekends(local, day)[0], timestamp):
+        return True
     return request(connection, companion, message, direction, day, timestamp)
+
+
+def for_the_child(connection, companion: dict, message: dict, direction: str, saturday: date, timestamp: str) -> bool:
+    """Split up with a child under 18 (companion/life/custody.py): a visit asked for in the chat is settled as the
+    parent the child doesn't live with coming to see them that weekend, never a stay with each other (Vanta
+    2026-10-19). Nothing is booked: the reply says so (together_asks)."""
+    from companion.life import custody, our_child
+    state = custody.found(connection, companion)
+    kids = our_child.at_home(connection, companion['active_timeline_id'], saturday)
+    if not state or not state['split'] or not kids:
+        return False
+    theirs = custody.with_them(state, saturday)
+    city = (state['far'].their_city if theirs else state['far'].your_city) or {}
+    return together.record(connection, companion, message, f'weekend-{direction}',
+                           {'why': 'child', 'names': [custody.first(kid['name']) for kid in kids],
+                            'lives': 'them' if theirs else 'you', 'city': city.get('name') or '',
+                            'saturday': saturday.isoformat()}, timestamp)
 
 
 def visit_day(text: str, today: date, holidays: dict) -> date | None:
@@ -474,11 +495,14 @@ def visit_lines(trip: dict, today: date, now: datetime, fresh_ids: set[str]) -> 
 
 
 def distance_line(connection, companion: dict, between: where.Between, now: datetime) -> str:
-    """How far apart they live and the time difference."""
+    """How far apart they live and the time difference; while apart (a break, or exes) nothing about visits."""
     km = f", about {round(between.km):,} km apart" if between.km else ''
     hours = offset(connection, companion, now)
     clock = f' and you are {together.span_text(round(abs(hours) * 60))} {"ahead of" if hours > 0 else "behind"} ' \
         'the user, so mind what time of day it is for each of you' if hours else ''
+    if breakups.apart(connection, companion):  # No weekend visits while apart (`decide`); A/B 2026-10-19.
+        return f"- You live in {between.their_city['name']} and the user lives in {between.your_city['name']}{km}" + \
+            (f':{clock.removeprefix(" and")}.' if clock else '.')
     keep = "you see each other on weekend visits now and then, and talk on the phone in between" if reachable(between) \
         else 'and no trip reaches that far; you keep in touch by phone and letters'
     joint = '; ' if reachable(between) else ', '

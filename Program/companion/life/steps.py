@@ -121,6 +121,20 @@ FRIENDSHIP = (
          "other's wedding."),
 )
 LADDERS = {'romance': ROMANCE, 'friendship': FRIENDSHIP}
+# Starting a family (companion/life/parenthood.py): a step beside the romance ladder, from living together on, married
+# or not, so it is not one of the ladder's own (not in `state`'s steps, not set with the step picker).
+FAMILY_LADDER = 'parenthood'
+FAMILY = Step('family', 'Starting a family', 'starting a family', 'decided to start a family', 'starting a family',
+              (365, 180, 90), 4, True, '')
+# Another child (companion/life/our_child.py): the same side ladder, once a child of theirs has been home a year and a
+# half; at most one more.
+SIBLING = Step('sibling', 'Another child', 'thinking about another child', 'decided to have another child',
+               'having another child', (548, 548, 548), 4, True, '')
+# After the user said no twice to a companion who wants children (companion/life/parenthood.py): they ask whether the
+# two of them stay as they are or separate (Vanta 2026-10-19). Never reached as a step: the answer settles it.
+STAY = Step('stay', 'Staying as you are', 'staying as you are', 'decided to stay as you are',
+            'whether the two of you stay as you are or separate', (0, 0, 0), 4, True, '')
+SIDE = {FAMILY_LADDER: (FAMILY, SIBLING, STAY)}
 CONFESSION = 'confession'
 HOW = ('start', 'history', 'them', 'you', 'set', 'confession')
 
@@ -139,6 +153,15 @@ REASONS = {
     'best_friends': 'The user has become your best friend, and you want them to know. Say so in your own words.',
     'trip': "You'd love to take a first trip away with the user sometime, just the two of you. Suggest it in your own "
             'words; nothing is booked and no dates are set.',
+    'family': "You'd like to start a family with the user: you have been thinking about having children together. "
+              "Bring it up in your own words, gently, and leave them room to say they aren't ready or don't want "
+              "that. Don't settle how or when yet.",
+    'sibling': "You'd like to have another child with the user, a brother or sister for {names}. Bring it up in your "
+               "own words, gently, and leave them room to say they aren't ready or that one is enough. Don't settle "
+               'how or when yet.',
+    'stay': "You want children, and the user has told you twice that they don't. Ask them, gently and honestly, in your "
+            'own words, whether the two of you should stay together as you are, without children, or separate. Say '
+            "you love them; don't blame or pressure them, and leave the choice to them.",
     CONFESSION: "You've fallen for the user, your close friend, and you have decided to tell them. Say it in your own "
                 'words, nervous or brave as fits you, and make it easy for them to say they only see you as a friend.',
 }
@@ -183,12 +206,26 @@ RAISES = {
                           re.IGNORECASE),
     'best_friends': re.compile(r"\b(?:you'?re|you are|be) my best friend|best friends? (?:forever|now)|bff\b",
                                re.IGNORECASE),
+    'family': re.compile(r"\b(?:start(?:ing)? a family|(?:have|having) (?:a baby|a kid|a child|kids|children|babies)"
+                         r"(?: together| with (?:you|me))?|try(?:ing)? for a baby|(?:be|become|becoming) parents|"
+                         r"adopt(?:ing|ed)? (?:a (?:baby|child|kid)|together)|grow(?:ing)? our family|(?:our|a) (?:own )?"
+                         r"(?:baby|kid|child) together|(?:a baby|kids|children) with you)\b", re.IGNORECASE),
+    'sibling': re.compile(r"\b(?:(?:have|having|adopt(?:ing)?|try(?:ing)? for) (?:another|a second|one more) "
+                          r"(?:baby|kid|child|one)|another (?:baby|kid|child) (?:together|with (?:you|me))|(?:a )?(?:little "
+                          r")?(?:brother|sister|sibling) for (?:him|her|them|\w+)|grow(?:ing)? our family again|(?:our|a) "
+                          r"second (?:baby|kid|child))\b", re.IGNORECASE),
     'trip': re.compile(r"\b(?:take|go on|plan) a trip (?:together|with me|just us)|(?:go|travel|get) away (?:together|"
                        r"somewhere together|just us)|road ?trip together|(?:a )?(?:weekend|trip) away together\b",
                        re.IGNORECASE),
 }
 # A statement counts for these without a question: saying it is the step.
 SAID_IS_ENOUGH = {'love', 'best_friends'}
+# Someone else having a baby ("my sister is having a baby", "Jess and Tom are trying for a baby") isn't the user
+# bringing up a family of their own: the words just before say who.
+OTHERS = re.compile(r"(?:\b(?!(?:we|you|i)\b)[a-z]+ (?:is|are|was|were|has been|have been|had been|keeps?|kept|started|"
+                    r"just|might be|may be|will be|could be)|\b(?!(?:we|you)')[a-z]+'(?:s|re))\s+(?:\w+\s+)?$",
+                    re.IGNORECASE)
+ABOUT_OTHERS = {'family', 'sibling'}
 # The user telling a friend they have feelings for them.
 FEELINGS = re.compile(r"\b(?:i (?:have|'?ve got|'?ve had|have had|got) (?:feelings|a crush|a thing) (?:for|on) you|i'?m "
                       r"(?:falling for|into|crushing on|in love with) you|i like you (?:as more than|more than|like that)|"
@@ -215,11 +252,30 @@ MENTIONS = {
     'engaged': r"marry|married|engaged|propos(?:e|al)|fianc[ée]e?",
     'best_friends': r"best friends?|bff",
     'trip': r"trip|getaway|(?:go|get) away|travel|holiday|vacation",
+    'family': r"famil(?:y|ies)|bab(?:y|ies)|kids?|child(?:ren)?|parents?|adopt\w*",
+    'sibling': r"another|second|one more|siblings?|brother|sister|bab(?:y|ies)|kids?|child(?:ren)?|famil(?:y|ies)",
+    'stay': r"stay\w*|separat\w*|split\w*|break(?:ing)? up|part(?:ing)? ways|together|leav\w*|go(?:ing)? our (?:own|separate) "
+            r"ways",
     CONFESSION: r"feel(?:ings|s|ing)?|crush|fall(?:en|ing)? for|more than friends|(?:as|just) (?:a )?friends?|date|dating|"
                 r"love you",
 }
 # A clear answer: the yes, not yet or no comes first, in a short opening ("yes!", "not yet, sorry", "haha sure").
 CLEAR_WORDS = 4
+# The user's answer to staying as they are or separating: staying is 'yes', separating 'no'. Not wanting to part is
+# read first ("I don't want to separate"); a bare yes or no answers neither.
+KEEPS_US = re.compile(r"\b(?:i (?:don'?t|do not) want (?:to (?:separate|split|break up|lose you|leave|end (?:this|us|it))|"
+                      r"(?:a |to )?(?:separation|breakup))|i'?m not (?:leaving|going anywhere)|not going anywhere|(?:i|we) "
+                      r"(?:can'?t|couldn'?t) (?:lose|leave) (?:you|each other|this)|no (?:separating|splitting|breaking up))\b",
+                      re.IGNORECASE)
+PARTS_US = re.compile(r"\b(?:separat(?:e|ing|ion)|split(?:ting)? up|split|break(?:ing)? up|part(?:ing)? ways|go(?:ing)? "
+                      r"(?:our|your|my) (?:own|separate) ways?|end (?:this|it|things|us)|let (?:you|each other) go|we "
+                      r"(?:shouldn'?t|can'?t|cannot) (?:stay|be) together|(?:it'?s|its) (?:over|time (?:to|we) (?:part|"
+                      r"go))|i'?m leaving|i should (?:go|leave)|you deserve (?:to have|someone who)|find someone who)\b",
+                      re.IGNORECASE)
+STAYS = re.compile(r"\b(?:stay(?:ing)?(?: (?:as we are|together|with you|the way we are|like this|just us|us))?|let'?s stay|i "
+                   r"(?:want|choose|pick) (?:you|us|to stay)|i choose us|(?:you(?:'re| are)|we(?:'re| are)|this is|us is) "
+                   r"enough|keep (?:us|what we have|going)|just (?:the two of us|us)|(?:i )?want to be with you|as we are)\b",
+                   re.IGNORECASE)
 
 
 @cache
@@ -265,11 +321,12 @@ def ladder_of(definition: dict) -> str | None:
 
 
 def step_of(ladder: str, key: str) -> Step | None:
-    return next((step for step in LADDERS.get(ladder, ()) if step.key == key), None)
+    return next((step for step in LADDERS.get(ladder) or SIDE.get(ladder, ()) if step.key == key), None)
 
 
 def index_of(ladder: str, key: str) -> int:
-    return next((index for index, step in enumerate(LADDERS[ladder]) if step.key == key), -1)
+    found = LADDERS.get(ladder) or SIDE.get(ladder, ())
+    return next((index for index, step in enumerate(found) if step.key == key), -1)
 
 
 def local_today(companion: dict, now) -> date:
@@ -625,6 +682,9 @@ def advance(connection, companion: dict, now) -> None:
     lapse(connection, companion, now)
     falls(connection, companion, found, now)
     plan_next(connection, companion, found, now)
+    from companion.life import parenthood  # Imported here: parenthood reads this module.
+    parenthood.settle(connection, companion, now)
+    parenthood.plan(connection, companion, found, now)
 
 
 def lapse(connection, companion: dict, now) -> None:
@@ -633,7 +693,8 @@ def lapse(connection, companion: dict, now) -> None:
     for row in asks(connection, companion['active_timeline_id'], ('open', 'planned')):
         if row['status'] == 'open' and now - parse(row['created_at']) >= timedelta(days=OPEN_DAYS):
             connection.execute("UPDATE step_asks SET status='lapsed', settled_at=? WHERE id=?", (stamp(now), row['id']))
-        elif row['status'] == 'planned' and not still_next(found, row):
+        elif row['status'] == 'planned' and not still_due(connection, companion, found, row,
+                                                          local_today(companion, now)):
             connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?", (stamp(now), row['id']))
 
 
@@ -750,12 +811,14 @@ def ask_due(connection, companion: dict, now) -> list:
             continue  # They propose in person, on an evening out (companion/life/wedding.py).
         if not row['due_on'] or row['due_on'] > today.isoformat():
             continue
-        if not still_next(found, row):
+        if not still_due(connection, companion, found, row, today):
             continue  # Moved on meanwhile; the daily check drops it (`lapse`).
+        if row['ladder'] == FAMILY_LADDER and parenthood_quiet(connection):
+            continue  # Waits: not brought up with the adult side on (companion/life/parenthood.py).
         if consequences.total(connection, timeline_id, pairs.companion_key(companion['id']), 'mood', today.isoformat()) < 0:
             continue
-        lines = bank()[row['step']]
-        template = random.Random(f"{row['id']}:line").choice(lines)
+        lines = bank().get(row['step'])  # Staying or separating is only ever written by the model.
+        template = random.Random(f"{row['id']}:line").choice(lines) if lines else None
         result.append(Trigger(f"step-ask:{row['id']}", 'next_step', reason_for(connection, companion, row['step']),
                               template, (row['id'],)))
     return result
@@ -767,7 +830,23 @@ def reason_for(connection, companion: dict, step: str) -> str:
     if step == 'moving_in':
         from companion.life import moving_in  # Imported here: moving_in reads this module.
         return moving_in.ask_reason(connection, companion) or REASONS[step]
+    if step == SIBLING.key:
+        from companion.life import parenthood  # Imported here: parenthood reads this module.
+        return REASONS[step].format(names=parenthood.children_names(connection, companion))
     return REASONS[step]
+
+
+def still_due(connection, companion: dict, found: dict | None, row: dict, today: date | None = None) -> bool:
+    """Whether a planned ask still holds: the next step on the ladder, or starting a family while it can come up."""
+    if row['ladder'] == FAMILY_LADDER:
+        from companion.life import parenthood
+        return parenthood.still_due(connection, companion, found, row['step'], today)
+    return still_next(found, row)
+
+
+def parenthood_quiet(connection) -> bool:
+    from companion.life import parenthood
+    return parenthood.quiet(connection)
 
 
 def still_next(found: dict | None, row: dict) -> bool:
@@ -790,6 +869,16 @@ def plain(text: str) -> str:
     return own_plans.QUOTED.sub(' ', own_plans.ACTIONS.sub(' ', text)).replace('’', "'")
 
 
+def stay_answer(text: str) -> str | None:
+    """'yes' (staying as they are) or 'no' (separating) when a message answers which, else None."""
+    text = plain(text)
+    if KEEPS_US.search(text):
+        return 'yes'
+    if PARTS_US.search(text):
+        return 'no'
+    return 'yes' if STAYS.search(text) else None
+
+
 def answer(text: str) -> str | None:
     """'yes', 'not_yet' or 'no' when a message plainly answers something brought up, else None."""
     text = plain(text)
@@ -807,7 +896,8 @@ def answer_to(connection, row: dict, message: dict) -> str | None:
     it is a clear yes or no right after the companion brought it up again. So a "lol ok" about something else days
     later is not a yes."""
     text = message['text']
-    said = answer(text) or ('yes' if said_itself(row['step'], text) else None)
+    reader = stay_answer if row['step'] == STAY.key else answer
+    said = reader(text) or ('yes' if said_itself(row['step'], text) else None)
     if said is None:
         return None
     asked = ask_seq(connection, row, message)
@@ -816,7 +906,7 @@ def answer_to(connection, row: dict, message: dict) -> str | None:
     again = last_word(connection, message)
     if again and again['seq'] > asked and names_step(row['step'], again['text']) and \
             first_turn(connection, message, again['seq']):
-        return clear(text)
+        return clear(text, reader)
     return None
 
 
@@ -831,10 +921,10 @@ def names_step(step: str, text: str) -> bool:
     return bool(step in MENTIONS and re.search(rf"\b(?:{MENTIONS[step]})\b", plain(text), re.IGNORECASE))
 
 
-def clear(text: str) -> str | None:
+def clear(text: str, reader=answer) -> str | None:
     """'yes', 'not_yet' or 'no' when the message opens with it ("yes!", "not yet, sorry"), else None."""
     opening = re.split(r"[.!?,;:\n]|\s[-–—]\s", plain(text).strip(), maxsplit=1)[0]
-    return answer(opening) if len(opening.split()) <= CLEAR_WORDS else None
+    return reader(opening) if len(opening.split()) <= CLEAR_WORDS else None
 
 
 def ask_seq(connection, row: dict, message: dict) -> int:
@@ -877,7 +967,8 @@ def raised(text: str, keys: list[str]) -> str | None:
         for key in keys:
             found = RAISES[key].search(sentence)
             if found and meant(sentence, found) and (key in SAID_IS_ENOUGH or ASKS.search(sentence)) and not \
-                    re.search(r"\b(?:don'?t|do not|never|not)\b[^.!?]*$", sentence[:found.start()], re.IGNORECASE):
+                    re.search(r"\b(?:don'?t|do not|never|not)\b[^.!?]*$", sentence[:found.start()], re.IGNORECASE) \
+                    and not (key in ABOUT_OTHERS and OTHERS.search(sentence[:found.start()])):
                 return key
     return None
 
@@ -913,8 +1004,20 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     keys = upcoming(found)
     key = raised(message['text'], keys) if keys else None
     if key is None:
-        return False
+        return raised_family(connection, companion, found, message, now)
     return answers(connection, companion, found, key, message, now)
+
+
+def raised_family(connection, companion: dict, found: dict, message: dict, now) -> bool:
+    """The user brings up starting a family once they live together, or another child once one has been home a
+    while (companion/life/parenthood.py answers)."""
+    from companion.life import parenthood
+    for step in (FAMILY, SIBLING):
+        # Another child no sooner than a year and a half after the last came home, raised by either of them.
+        if parenthood.still_due(connection, companion, found, step.key, local_today(companion, now)) and \
+                raised(message['text'], [step.key]):
+            return parenthood.raised_by_user(connection, companion, found, message, now, step)
+    return False
 
 
 def upcoming(found: dict) -> list[str]:
@@ -930,6 +1033,11 @@ def settle_answer(connection, companion: dict, row: dict, said: str, message: di
     connection.execute('UPDATE step_asks SET status=?, answer_id=?, settled_at=? WHERE id=?',
                        (said, message['id'], timestamp, row['id']))
     day = local_today(companion, now)
+    if row['ladder'] == FAMILY_LADDER:
+        from companion.life import parenthood
+        parenthood.answered(connection, companion, row, said, message, now)
+        if row['step'] == STAY.key:
+            return  # Never a step reached: the answer settles it.
     if said != 'yes':
         if row['step'] == CONFESSION:
             awkward(connection, companion, row, now)
@@ -1032,6 +1140,7 @@ YOUR_ANSWER = {
     'yes': 'The user just brought up {topic}. Your answer is yes: say so in your own words and mean it.',
     'not_yet': "The user just brought up {topic}. You aren't ready for that yet ({why}): say so kindly in your own "
                'words, without closing the door.',
+    'no': 'The user just brought up {topic}. Your answer is no ({why}): say so kindly and honestly in your own words.',
 }
 CONFESSED = {
     'yes': 'You told the user you have feelings for them, and they just said they feel the same. You are dating now: '
@@ -1045,6 +1154,8 @@ TOLD = {
     'no': "The user just told you they have feelings for you. You don't feel that way about them: say so kindly and "
           'honestly in your own words, and that you want to keep the friendship.',
 }
+STAYED = ('The user just said they want to stay together as you are, without children. You accept it: say so in your '
+          'own words, warmly. This settles it; do not bring up children again.')
 WAITING = ('Earlier you brought up {topic} with the user and they have not answered yet. If they answer now, take it '
            'as they mean it; do not ask again.')
 
@@ -1061,6 +1172,8 @@ def fresh_lines(connection, companion: dict, now, turn: set[str]) -> list[tuple[
         topic = topic_of(row)
         if row['step'] == CONFESSION:
             text = (CONFESSED if row['side'] == 'them' else TOLD).get(row['status'], '')
+        elif row['step'] == STAY.key:  # Separating is said in the 'breakup' section (companion/life/breakups.py).
+            text = STAYED if row['status'] == 'yes' else ''
         elif row['side'] == 'them':
             text = ANSWERED.get(row['status'], '').format(topic=topic)
         else:
@@ -1076,19 +1189,24 @@ def topic_of(row: dict) -> str:
 
 
 def reason(connection, row: dict) -> str:
-    """Why they aren't ready, from the strongest reason the engine had against yes."""
+    """Why they aren't ready, from the strongest reason the engine had against yes. A no is only ever to starting a
+    family (companion/life/parenthood.py): they don't want children."""
     from companion.database import decode
+    if row['status'] == 'no':  # Another child: one is enough for them.
+        return 'one child feels like enough for you' if row.get('step') == SIBLING.key else REASON_WORDS["doesn't want children"]
     found = optional(connection, 'SELECT options FROM consequences WHERE id=?', (row['consequence_id'] or '',))
     reasons = decode(found['options'])[0]['reasons'] if found else []
     against = [text for text in reasons if any(word in text for word in ('sooner', 'close enough', 'slow', 'low lately',
-                                                                         'skips'))]
+                                                                         'skips', 'children', 'youngest'))]
     return 'it feels too soon' if not against else REASON_WORDS.get(next(
         (key for key in REASON_WORDS if key in against[0]), ''), 'it feels too soon')
 
 
 REASON_WORDS = {'sooner': 'it feels too soon', 'close enough': "you don't feel close enough yet",
                 'slow': 'you like to take things slowly', 'low lately': "you've been low lately",
-                'skips': "it's a big jump from where you are"}
+                'skips': "it's a big jump from where you are", "doesn't want children": "you don't want children",
+                'someday thing': 'you see children as a someday thing',
+                'youngest': 'your youngest is still little'}
 
 
 def context_lines(connection, companion: dict, now, turn: set[str], group: bool = False) -> list[tuple[str, str]]:
@@ -1096,11 +1214,15 @@ def context_lines(connection, companion: dict, now, turn: set[str], group: bool 
     answer, and an answer just given."""
     found = state(connection, companion, now, write=False)
     if found is None or apart(connection, companion) == 'ended':
-        return []  # Exes: the 'breakup' section says where they stand (companion/life/breakups.py).
+        # Exes: the 'breakup' section says where they stand (companion/life/breakups.py); a child on the way goes on.
+        from companion.life import parenthood
+        return parenthood.journey_lines(connection, companion, now)
     others = others_known(connection, companion, found, now)
     home = group_home(connection, companion) if group and found['step'] == 'moving_in' else ''
     result = [(f"steps:{found['ladder']}:{found['step']}:{others[0]}{':group' if home else ''}",
                context_line(found, others, home))]
+    from companion.life import parenthood  # Imported here: parenthood reads this module.
+    result += parenthood.context_lines(connection, companion, found, now)
     for row in asks(connection, companion['active_timeline_id'], ('open',)):
         if row['message_id'] and row['answer_id'] is None:
             result.append((f"step-ask:{row['id']}:open", '- ' + WAITING.format(
@@ -1163,7 +1285,7 @@ def now_for(day: date, companion: dict):
 def scrapbook_items(connection, companion: dict, low: str, high: str) -> list[dict]:
     """The steps reached in a stretch of time, for the scrapbook's "How you got closer" page."""
     result = []
-    for ladder in LADDERS:
+    for ladder in (*LADDERS, *SIDE):
         for row in reached(connection, companion['active_timeline_id'], ladder):
             if row['how'] in ('history', 'start') or not low <= row['reached_on'] <= high:
                 continue
@@ -1195,12 +1317,29 @@ def view(connection, companion: dict, now, show_odds: bool) -> dict:
         before = ROMANCE[index_of('romance', 'moving_in') - 1]
         found = {**found, 'text': not_moved_text(found['text'], moving['status']), 'step': before.key,
                  'label': before.label, 'next': 'moving_in', 'next_label': step_of('romance', 'moving_in').label}
-    return {**found, 'just_friends': lock, 'can_fall': found['ladder'] == 'friendship', 'planned': planned,
-            'moving_in': moving,
+    elif moving is None and found['step'] == 'moving_in' and moving_in.moved_apart(connection, companion):
+        # Living apart again (the user moved city, say).
+        found = apart_view(found, moving_in.latest(connection, companion['active_timeline_id']))
+    listed = with_family(connection, companion, found)
+    if len(listed) > len(found['steps']):  # Beside the ladder: the summary says it, the step picker stays on the ladder.
+        found = {**found, 'text': f"{found['text']}, {FAMILY.state}"}
+    return {**found, 'steps': listed, 'just_friends': lock,
+            'can_fall': found['ladder'] == 'friendship', 'planned': planned, 'moving_in': moving,
             'asks': [{'id': row['id'], 'step': row['step'], 'side': row['side'], 'status': row['status'],
                       'topic': 'how you feel' if row['step'] == CONFESSION else topic_of(row),
                       'on': parse(row['created_at']).astimezone(zone(companion['version']['timezone'])).date().isoformat(),
                       'consequence_id': row['consequence_id'] if show_odds else None} for row in recent]}
+
+
+def with_family(connection, companion: dict, found: dict) -> list[dict]:
+    """The steps so far, with starting a family (and another child) among them by date
+    (companion/life/parenthood.py)."""
+    rows = reached(connection, companion['active_timeline_id'], FAMILY_LADDER)
+    if not rows or found['ladder'] != 'romance':
+        return found['steps']
+    items = [{'step': row['step'], 'label': step_of(FAMILY_LADDER, row['step']).label, 'on': row['reached_on'],
+              'how': row['how']} for row in rows]
+    return sorted([*found['steps'], *items], key=lambda entry: entry['on'])
 
 
 def not_moved_text(text: str, status: str) -> str:
@@ -1209,6 +1348,24 @@ def not_moved_text(text: str, status: str) -> str:
     if text.endswith(', living together'):
         return text.removesuffix('living together') + words
     return words.capitalize()
+
+
+def apart_view(found: dict, row: dict | None) -> dict:
+    """The panel while living apart again: the line and the picker's Living together both read "Living apart for
+    now", with no step to set; `apart` says since when and who moved ('you' the user, 'them' the companion), for the
+    line under the steps."""
+    label = 'Living apart for now'
+    return {**found, 'text': apart_text(found['text']), 'label': label,
+            'apart': {'since': row['out_on'], 'by': row['out_who']} if row and row['out_on'] else None,
+            'ladder_steps': [{**item, 'label': label} if item['step'] == 'moving_in' else item
+                             for item in found['ladder_steps']]}
+
+
+def apart_text(text: str) -> str:
+    """Living together decided, but living apart again: "Together 2 years, living apart for now"."""
+    if text.endswith(', living together'):
+        return text.removesuffix('living together') + 'living apart for now'
+    return 'Living apart for now'
 
 
 def set_step(connection, companion: dict, key: str, now) -> None:
@@ -1230,6 +1387,8 @@ def set_step(connection, companion: dict, key: str, now) -> None:
             insert_step(connection, timeline_id, ladder, step.key, day, 'set', timestamp)
     for row in asks(connection, timeline_id, ('planned', 'open')):
         connection.execute("UPDATE step_asks SET status='dropped', settled_at=? WHERE id=?", (timestamp, row['id']))
+    from companion.life import parenthood  # Imported here: parenthood reads this module.
+    parenthood.follow_step(connection, companion, now)
 
 
 def copy_open(connection, parent_id: str, new_id: str, cutoff: str, ids: dict) -> dict[str, str]:

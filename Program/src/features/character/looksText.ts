@@ -32,13 +32,32 @@ export function numberChoices(kind: 'age' | 'height' | 'weight'): number[] {
 
 /** Everyone gets older (companion/life/ages.py): a year older on each birthday, unless they keep the age they are
  * now. On or off, the hint names the same age (Iris, v0.14). */
-export function keepsAgeHint(definition: Pick<CharacterDefinition, 'name' | 'keeps_age'>, written: number | null, now: number | null) {
+export function keepsAgeHint(definition: Pick<CharacterDefinition, 'name' | 'keeps_age'>, written: number | null, now: number | null, decade = '') {
   const who = definition.name.trim().split(/\s+/)[0] || 'They'
   const they = who === 'They'
-  const age = now ?? written
-  if (definition.keeps_age) return `${who} ${they ? 'stay' : 'stays'} ${age ?? 'the age they are now'}, however many birthdays pass.`
-  const lead = now ? `${who} ${they ? 'are' : 'is'} ${now} now and ${they ? 'turn' : 'turns'}` : `${who} ${they ? 'turn' : 'turns'}`
+  if (definition.keeps_age) return keptHint(who, they, now ?? written, decade)
+  const turns = they ? 'turn' : 'turns'
+  // One sentence with the decade their description gives, when the age has left it (Iris, v0.15).
+  const though = decade ? `, though their description says ${decade}, and` : ' and'
+  const lead = now ? `${who} ${they ? 'are' : 'is'} ${now} now${though} ${turns}` : `${who} ${turns}`
   return `${lead} a year older on each birthday. Turn this on for a character who shouldn't age.`
+}
+
+function keptHint(who: string, they: boolean, age: number | null, decade: string) {
+  const stays = `${who} ${they ? 'stay' : 'stays'} ${age ?? 'the age they are now'}, however many birthdays pass.`
+  return decade ? `${stays} Their description says ${decade}.` : stays
+}
+
+const DECADES: Record<string, number> = { twenties: 20, thirties: 30, forties: 40, fifties: 50, sixties: 60, seventies: 70, eighties: 80, nineties: 90 }
+
+/** Their identity's words stay as written (companion/life/ages.py), so "in her thirties" can sit beside an age that has
+ * moved on: said here, never in the prompt (v0.15). The decade's word ("thirties"), for `keepsAgeHint`; empty while the
+ * age is inside the decade the words give. */
+export function decadeHint(identity: string, now: number | null) {
+  const found = /\b(twenties|thirties|forties|fifties|sixties|seventies|eighties|nineties)\b/i.exec(identity)
+  if (!found || now === null) return ''
+  const decade = DECADES[found[1].toLowerCase()]
+  return now >= decade && now < decade + 10 ? '' : found[1].toLowerCase()
 }
 
 /** The "left empty" choice, short enough for a phone field (Iris, v0.14): what is drawn, or that Appearance says it; a field drawn as nothing (no facial hair) is none. */

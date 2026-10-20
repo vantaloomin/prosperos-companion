@@ -4292,7 +4292,8 @@
      "Quellarin",
      "Tuilëandor"
     ],
-    "own_family": true
+    "own_family": true,
+    "kind": "elf"
    }
   }
  },

@@ -12,7 +12,9 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    ages,
     big_days,
+    big_turns,
     breakups,
     calls,
     chapters,
@@ -22,6 +24,7 @@ from companion.life import (
     encounters,
     families,
     feed,
+    kids,
     long_distance,
     loss,
     love_life,
@@ -30,6 +33,7 @@ from companion.life import (
     moving_in,
     network,
     outings,
+    parenthood,
     pets,
     reactions,
     recommendations,
@@ -48,8 +52,8 @@ from companion.life import (
     wedding,
 )
 from companion.memory import pairs
-from companion.models import Input, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
-from companion.world import paper
+from companion.models import Input, KindChange, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
+from companion.world import lifespans, paper
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -245,6 +249,26 @@ def grow_circle(request: Request):
 def rename_person(request: Request, person_id: str, body: PersonUpdate):
     return circle_change(request, person_id,
                          lambda connection, now: circle.rename(connection, person_id, body.name, now))
+
+
+@router.put('/circle/{person_id}/kind')
+def set_person_kind(request: Request, person_id: str, body: KindChange):
+    return circle_change(request, person_id,
+                         lambda connection, now: circle.set_kind(connection, person_id, body.kind, body.lifespan, now,
+                                                                 kinds_city(connection)))
+
+
+def kinds_city(connection) -> dict | None:
+    """The open companion's city, whose own kinds the pickers offer (companion/world/lifespans.py)."""
+    return ages.city_of(connection, require_current(connection)['version']['definition'])
+
+
+@router.get('/kinds')
+def kinds(request: Request):
+    """What the Kind and How long they live pickers offer, where the open companion lives."""
+    with db(request).connect() as connection:
+        companion = require_current(connection)
+        return lifespans.choices(ages.city_of(connection, companion['version']['definition']))
 
 
 @router.post('/circle/{person_id}/remove')
@@ -522,14 +546,20 @@ def read_consequence(request: Request, consequence_id: str):
         # Sharing a home: the answer of one living there shows on the newcomer's page too (moving_in.py).
         require(found['timeline_id'] == companion['active_timeline_id'] or
                 moving_in.shown_with(connection, consequence_id, companion), 'That outcome is not on this timeline.', 404)
-        return found
+        # How a stage went, once a later stage followed: no "Make it go this way", and why (big_turns.py).
+        return {**found, 'settled': big_turns.settled_note(connection, found) or families.odds_settled(connection, found)}
 
 
 # "Change how it went" by subject prefix, for those that take (connection, companion, consequence_id, option, now).
 CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.change,
            'people:': lambda: their_people.change, 'breakup:': lambda: breakups.change,
            'bigday:': lambda: big_days.change, 'tense-ask:': lambda: rough_patches.change_ask,
-           'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change}
+           'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change,
+           'family:': lambda: parenthood.change,
+           # How a business, a health turn or a parent's care is going (big_turns.py).
+           'business:': lambda: big_turns.change_stage, 'health:': lambda: big_turns.change_stage,
+           'caring:': lambda: big_turns.change_stage, 'kids:': lambda: kids.change,
+           'baby:': lambda: families.change_baby}
 
 
 @router.post('/consequences/{consequence_id}/change')

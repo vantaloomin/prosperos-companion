@@ -48,7 +48,7 @@ function ConversationList({ chats, busy, here, current, style, onOpen }: ListPro
               aria-current={here(chat) ? 'true' : undefined} disabled={busy !== null} onClick={() => choose(chat)}>
               <ChatAvatar chat={chat} />
               <span className="chat-row-text">
-                <span className="chat-row-top"><strong>{chat.name}</strong>{chat.last && <Stamp className="chat-row-time" value={chat.last.at} />}</span>
+                <span className="chat-row-top"><strong>{chat.name}</strong>{chat.last && <Stamp className="chat-row-time" value={chat.last.at} short />}</span>
                 <span className="chat-row-preview">{busy === chat.id ? 'Opening…' : preview(chat)}</span>
                 <ChatWhere chat={chat} />
               </span>

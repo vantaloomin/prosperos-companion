@@ -2,14 +2,20 @@ import { calendarDay } from '../../when.ts'
 import type { Occasion } from '../../types'
 
 /** One line for Today: "Your birthday is in 3 days", "Tomorrow: Thanksgiving is always at their mom Ruth's…",
- * "It's been three months since you two started talking", "In 3 days it will be a year since you two swapped keys". */
+ * "It's been three months since you two started talking", "In 3 days it will be a year since you two swapped keys",
+ * "It's a year today since Lena's mom Tracy died." */
 export function occasionText(item: Occasion, name: string): string {
-  const when = item.days === 0 ? 'today' : item.days === 1 ? 'tomorrow' : `in ${item.days} days`
+  const when = whenText(item.days)
   if (item.kind === 'user_birthday') return item.days === 0 ? 'Happy birthday! It is your birthday today.' : `Your birthday is ${when}.`
   if (item.kind === 'own_birthday' || item.kind === 'circle_birthday') return birthdayText(item, name, when)
   if (item.kind === 'tradition') return `${when.charAt(0).toUpperCase()}${when.slice(1)}: ${item.teaser ? `${item.teaser}.` : item.tradition}`
   if (item.kind === 'step_anniversary') return stepAnniversaryText(item, when)
+  if (item.kind === 'death_anniversary') return `It's ${item.span} today since ${name}'s ${item.relation} ${item.person} died.`
   return `It's been ${item.span} since you two started talking.`
+}
+
+function whenText(days: number): string {
+  return days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`
 }
 
 /** Their birthday or a circle member's; a milestone (30, 40, 50 ...: companion/life/ages.py) says which: "It is

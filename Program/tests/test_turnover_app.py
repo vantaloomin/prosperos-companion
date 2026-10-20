@@ -160,7 +160,7 @@ def test_a_group_never_hears_from_a_townsperson_who_passed_away(monkeypatch):
               base | {'key': 'town:x:bar:2', 'left': {'why': 'passed', 'day': '2030-01-07', 'text': 'passed away'}}]
     monkeypatch.setattr(group_guests, 'circle_people', lambda *_args: [])
     monkeypatch.setattr(encounters, 'known', lambda *_args: people)
-    found = group_guests.known_by(None, {'id': 'c1', 'version': {'name': 'Mira Hale'}}, None)
+    found = group_guests.known_by(None, {'id': 'c1', 'version': {'name': 'Mira Hale', 'definition': {}}}, None)
     assert [person['key'] for person in found] == ['town:x:bar:0', 'town:x:bar:1']
     assert [person['tie'] for person in found] == ['the barkeep at The Bar', 'formerly the barkeep at The Bar']
 
@@ -171,3 +171,22 @@ def test_someone_who_left_is_spoken_of_in_the_worlds_terms():
     lines = [townsfolk.gone_line(sheet, data, {'why': why}) for why in ('moved', 'new job', 'retired', 'passed')]
     assert lines == ['Casey moved away from Baltimore', 'Casey left for a job elsewhere',
                      'Casey retired from Walters Art Museum', 'Casey passed away']
+
+
+def test_someone_known_well_who_left_lately_stays_in_the_context_for_four_weeks(monkeypatch):
+    now = datetime(2027, 6, 30, 12, tzinfo=UTC)
+    today = now.date()
+
+    def person(key, times, left_days_ago=None):
+        left = {'day': (today - timedelta(days=left_days_ago)).isoformat(), 'why': 'moved', 'text': 'moved away'} \
+            if left_days_ago is not None else None
+        return {'key': key, 'times': times, 'left': left}
+    seen = [person(f'recent:{index}', 1) for index in range(encounters.CONTEXT_LIMIT)]
+    older = [person('well:left-lately', 3, 10), person('slight:left-lately', 2, 10), person('well:left-long-ago', 5, 40),
+             person('well:still-here', 4)]
+    monkeypatch.setattr(encounters, 'ACTIVE', True)
+    monkeypatch.setattr(encounters, 'known', lambda *_args: seen + older)
+    monkeypatch.setattr(encounters, 'text', lambda found: found['key'])
+    companion = {'version': {'timezone': 'UTC'}}
+    keys = [key for key, _line in encounters.context_lines(None, companion, now)]
+    assert keys == [*(found['key'] for found in seen), 'well:left-lately']

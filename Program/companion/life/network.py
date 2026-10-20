@@ -82,7 +82,7 @@ def their_people(parent: dict, data: dict, taken=frozenset()) -> list[dict]:
                        'pronouns': person['pronouns'],
                        'age': age, 'relation': word, 'depth': parent['depth'] + 1, 'of': parent['name'],
                        'how': how, 'short': short, 'circle_id': parent['circle_id'],
-                       'occupation': occupation(data, key, age)})
+                       'occupation': occupation(data, key, age, person['pronouns'])})
     return result
 
 
@@ -105,11 +105,12 @@ def named(data: dict, key: str, age: int, family: str | None, used: set, theirs:
     return person
 
 
-def occupation(data: dict, key: str, age: int) -> str:
+def occupation(data: dict, key: str, age: int, pronouns: str | None = None) -> str:
     if age >= generators.RETIRED_AT:
         return 'retired'
-    # Weighted towards the city's own industries, like its townsfolk (generators.town_career).
-    career = generators.town_career(data, key) if data.get('places') else None
+    # Weighted towards the city's own industries, like its townsfolk (generators.town_career), and in an era that
+    # kept work by gender, the work of their side.
+    career = generators.town_career(data, key, pronouns=pronouns) if data.get('places') else None
     return career['name'].lower() if career else ''
 
 

@@ -2822,7 +2822,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "mill-hand",
@@ -2840,7 +2841,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "assayer",
@@ -2857,7 +2859,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "telegraph-operator",
@@ -2893,7 +2896,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "teamster",
@@ -2911,7 +2915,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "stage-driver",
@@ -2929,7 +2934,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "ranch-hand",
@@ -2948,7 +2954,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "blacksmith",
@@ -2965,7 +2972,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "store-clerk",
@@ -2999,7 +3007,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "typesetter",
@@ -3017,7 +3026,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "hotel-clerk",
@@ -3034,7 +3044,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "cook",
@@ -3068,7 +3079,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "dressmaker",
@@ -3085,7 +3097,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "schoolteacher",
@@ -3121,7 +3134,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "deputy",
@@ -3139,7 +3153,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "saloon-pianist",
@@ -3174,7 +3189,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "trooper",
@@ -3192,7 +3208,8 @@
    ],
    "eras": [
     "frontier"
-   ]
+   ],
+   "worked_by": "men"
   }
  ],
  "employers": [

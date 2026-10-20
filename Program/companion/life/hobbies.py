@@ -238,11 +238,20 @@ def as_of(connection, timeline_id: str, day: date) -> list[dict]:
             known = optional(connection, "SELECT details FROM hobby_log WHERE hobby_id=? AND kind IN ('mark', 'session') "
                              "AND local_date<=? AND json_extract(details, '$.skill') IS NOT NULL ORDER BY local_date "
                              "DESC, kind='session' DESC, created_at DESC LIMIT 1", (row['id'], day.isoformat()))
-            if known:
-                numbers = decode(known['details'])
-                row = {**row, **{key: numbers[key] for key in ('skill', 'best', 'sessions', 'next_at') if key in numbers}}
+            row = as_known(connection, row, known, day)
         result.append(row)
     return result
+
+
+def as_known(connection, row: dict, known: dict | None, day: date) -> dict:
+    """The numbers as of the last session or mark on or before this day; with none yet (the first mark comes later
+    in the week), the sessions walked ahead are taken off the count."""
+    if known:
+        numbers = decode(known['details'])
+        return {**row, **{key: numbers[key] for key in ('skill', 'best', 'sessions', 'next_at') if key in numbers}}
+    ahead = connection.execute("SELECT COUNT(*) AS n FROM hobby_log WHERE hobby_id=? AND kind='session' AND "
+                               'local_date>?', (row['id'], day.isoformat())).fetchone()['n']
+    return {**row, 'sessions': max(0, row['sessions'] - ahead)}
 
 
 def start_day(connection, timeline_id: str, timezone: str, now) -> date:

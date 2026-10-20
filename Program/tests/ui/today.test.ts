@@ -49,6 +49,8 @@ test('occasions read as a friend would say them', async () => {
   // A step's anniversary names the step, not the first talk (E2E v0.13).
   assert.equal(occasionText({ ...base, kind: 'step_anniversary', days: 0, span: 'a year', did: 'became exclusive' }, 'Mira'), "It's been a year since you two became exclusive.")
   assert.equal(occasionText({ ...base, kind: 'step_anniversary', days: 3, span: '2 years', did: 'swapped keys' }, 'Mira'), 'In 3 days it will be 2 years since you two swapped keys.')
+  // The day someone in their circle died, a year or more on (v0.15).
+  assert.equal(occasionText({ ...base, kind: 'death_anniversary', days: 0, span: 'a year', person: 'Ruth', relation: 'mom' }, 'Mira'), "It's a year today since Mira's mom Ruth died.")
 })
 
 test('the header shows one step anniversary and counts the rest (Iris, E2E v0.13)', async () => {
@@ -89,4 +91,23 @@ test('a time beside a label from their day is in their time zone', () => {
   // An outing shows its own time, not its block's start (6:00 PM · Evening).
   assert.match(eventWhen('2026-11-29T23:00:00Z', now, 'America/New_York', '18:30'), /6:30\sPM$/)
   assert.match(eventWhen('2026-11-29T23:00:00Z', now, 'America/New_York', undefined), /6:00\sPM$/)
+})
+
+test('a big turn names how its latest stage went for "Make it go this way"', async () => {
+  const { outcomeSummary } = await import('../../src/features/character/turnsText.ts')
+  assert.equal(outcomeSummary('business'), 'How the business is going')
+  assert.equal(outcomeSummary('health'), 'How it looks')
+  assert.equal(outcomeSummary('caring'), 'How the caring is going')
+})
+
+test('how a stage went names the business once and keeps each row short (Iris, v0.15)', async () => {
+  const { markLine, outcomeIntro, outcomeRow } = await import('../../src/features/character/turnsText.ts')
+  assert.equal(outcomeIntro('business:how', 'How the solar panel installation business is going', 'Maya Ortiz'),
+    "How Maya's solar panel installation business is going")
+  assert.equal(outcomeIntro('caring:how', 'How caring for their mom is going', 'Maya'), 'How caring for their mom is going')
+  assert.deepEqual([0, 1, 2, 3].map((option) => outcomeRow('business:how', option, 'x')), ['It grows', 'It ticks along', 'It stalls', 'It folds'])
+  assert.equal(outcomeRow('health:outlook', 1, 'x'), "It's a harder road")
+  assert.equal(outcomeRow('caring:how', 2, 'x'), 'They need more help')
+  assert.equal(outcomeRow('steps:ask', 0, 'They say yes'), 'They say yes')
+  assert.equal(markLine('the business is growing', 'Fri, Oct 30'), 'The business is growing, until Fri, Oct 30')
 })

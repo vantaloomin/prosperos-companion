@@ -47,7 +47,7 @@ export function Worlds() {
             onSwitchPersona={() => void switchTo(`/worlds/personas/${persona.id}/switch`, personaRef(persona))} />
         ))}
         {making
-          ? <PersonaForm cityId={data.world.city_id} onCancel={() => setMaking(false)} onSaved={() => { setMaking(false); void client.invalidateQueries({ queryKey: WORLDS_KEY }) }} />
+          ? <PersonaForm cityId={data.world.city_id} kinds={data.persona.kind_shown} onCancel={() => setMaking(false)} onSaved={() => { setMaking(false); void client.invalidateQueries({ queryKey: WORLDS_KEY }) }} />
           : <div className="form-actions">
               <button type="button" className="button" onClick={() => setMaking(true)}><UserRoundPlus aria-hidden="true" />New persona</button>
             </div>}

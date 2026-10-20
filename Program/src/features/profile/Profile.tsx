@@ -4,7 +4,7 @@ import { Check, Clock, CloudRain, MapPin, MessageCircle, Undo2, Users } from 'lu
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CirclePerson, Companion, PairTie } from '../../types'
-import { tieText, tieWhy } from '../memories/pairText'
+import { howText, tieText, tieWhy } from '../memories/pairText'
 import { usePortrait } from '../conversation/portrait'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
@@ -81,8 +81,8 @@ function ProfileTies({ name }: { name: string }) {
   return (
     <ul className="profile-facts profile-ties" aria-label={`${name} and your other companions`}>
       {ties.data.ties.map((tie) => (
-        <li key={tie.companion_id} title={[tie.how, tieWhy(tie)].filter(Boolean).join(' · ') || undefined}>
-          {tieText(name, tie)}{tie.how && <span className="subtle"> · {tie.how}</span>}
+        <li key={tie.companion_id} title={[howText(tie.how), tieWhy(tie)].filter(Boolean).join(' · ') || undefined}>
+          {tieText(name, tie)}{tie.how && <span className="subtle"> · {howText(tie.how)}</span>}
         </li>
       ))}
     </ul>

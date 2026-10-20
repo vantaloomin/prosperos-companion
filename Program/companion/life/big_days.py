@@ -20,7 +20,12 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
 - The invitation is a first text (companion/life/openers.py) naming whose day it is, the day, the time and the place;
   sending it books the day as an outing (companion/life/outings.py, activity 'big-day'), in person with the circle
   there. Long distance, the user's stay with them is planned around it by v0.12's rules (a 'host' visit,
-  companion/life/long_distance.py); when no visit can reach them, they go on their own.
+  companion/life/long_distance.py); when no visit can reach them, they go on their own. An out-of-town relative's
+  day is in the city they live in (trips.hometown): the user comes along when a trip from the city they share
+  reaches it, and either way the companion travels there (the fare from their money, a line saying so).
+- The invitation never lands on a day an outing with the user already has: a party or a wedding moves a week on, a
+  day that is its own (a graduation, a funeral) isn't asked to. Only days the user said yes to (or is still to
+  answer) keep another from being asked within INVITE_GAP; after a no, the next one is weighed again.
 - Saying no is fine and remembered: a no in the user's first reply to the invitation, or "Can't make it" on Today,
   and they go on their own with no hard feelings; the chat context keeps it.
 - In a modern city the days before and after carry a line of group chat buzz from the bank for them to pass on.
@@ -49,6 +54,8 @@ ACTIVE = True
 # The invitation as a first text; off in most tests (tests/conftest.py).
 FIRST_TEXTS = True
 ACTIVITY = 'big-day'
+# The photo of their own wedding (images/prompts.py PICTURES): them in wedding clothes, not a guest at a celebration.
+PICTURED = 'own-wedding-day'
 INVITE = 'bigday:invite'
 # Found this far ahead; one closer than SOONEST is too late to plan from now.
 AHEAD = 42
@@ -57,8 +64,13 @@ SOONEST = 3
 INVITE_BEFORE = (14, 28)
 GIFT_BEFORE = 7
 INVITE_HOURS = (10, 21)
-# No two big days the user is asked to within this many days of each other.
+# No two big days the user is asked to within this many days of each other: only days the user said yes to (or is
+# still to answer) count, so a no to one doesn't hide the next.
 INVITE_GAP = 14
+# Days whose date is the host's to pick: moved a week on (up to MOVE_WEEKS times) rather than asking the user to a day
+# an outing with them already has. A graduation, a send-off on their last day or a funeral keeps its day.
+MOVABLE = ('wedding', 'birthday', 'retirement', 'first_birthday', 'own_wedding')
+MOVE_WEEKS = 4
 # How long the chat hears about a big day before it (group chat buzz) and after it.
 BUZZ_BEFORE, BUZZ_AFTER, TOLD_DAYS = 7, 2, 30
 # A friend's chance of marrying in a given year, by the Their love life slider (0 nothing new ... 3 lots going on).
@@ -67,7 +79,8 @@ FRIEND_AGES = (24, 60)
 FRIENDS = {'close friend', 'longtime friend', 'old friend from school', 'old classmate', 'friend', 'new friend',
            'roommate from years ago'}
 # Whose milestone birthday is a party they go to, and who retires with a send-off.
-CLOSE = {'parent', 'sibling', 'cousin', 'aunt', 'uncle', 'grandmother', 'grandfather', *circle.OLD_FRIENDS}
+CLOSE = {'parent', 'sibling', 'cousin', 'aunt', 'uncle', 'grandmother', 'grandfather', 'grandparent',
+         *circle.OLD_FRIENDS}
 RELATIVES = {'parent', 'sibling', 'cousin', 'aunt', 'uncle'}
 RETIRE_AGES = (62, 67)
 STUDENTS = {'College student': 22, 'Graduate student': 26}
@@ -109,13 +122,18 @@ KINDS = {
     # A baby in their circle turning one (companion/life/families.py): at their parent's place.
     'first_birthday': Kind('first_birthday', "{name}'s first birthday", "{who}'s first birthday party", '14:00',
                            '17:00', (), 'first_birthday', 0.01),
+    # Their own baby's naming day at home (companion/life/own_family.py): a best friend is asked to be the godparent.
+    'naming': Kind('naming', "{name}'s naming day", "{who}'s naming day", '11:00', '14:00', (), None),
+    # The pair's baby shower (companion/life/expecting.py), thrown by someone close at their place: no photo, no buzz.
+    'own_shower': Kind('own_shower', 'Baby shower at {name}\'s', 'the baby shower {who} is throwing for you and the user',
+                       '14:00', '17:00', (), None, 0.0, True),
     # Someone in their circle or town who passed away (companion/life/loss.py): its word, times and place follow the
     # city's customs; a quiet day with no photo and no buzz.
     'funeral': Kind('funeral', "{name}'s {word}", "{who}'s {word}", '11:00', '15:00', ('temple', 'landmark', 'garden'),
                     None, 0.005),
 }
 # A child's day: the parent hosts, and it is never pictured or passed on as group chat buzz.
-CHILDS = ('first_birthday',)
+CHILDS = ('first_birthday', 'naming', 'own_shower')
 GRADUATION_PLACES = ('university', 'college', 'campus', 'school', 'academy', 'institute')
 NOT_PARTY = ('station', 'hospital', 'clinic', 'airport', 'prison', 'jail', 'court', 'police', 'parking', 'office')
 # Bank lines that only fit a modern city (texts, cars, photos): left out in an old one, by the place's `modern`.
@@ -164,6 +182,12 @@ def age_of(connection, row: dict, day: date) -> int | None:
     return ages.person_age(connection, 'circle', row['id'], day) or ages.stored_age(decode(row['details']) or {})
 
 
+def life_age_of(connection, row: dict, day: date, companion: dict) -> int | None:
+    """Their life age (companion/world/lifespans.py), for when someone marries, retires or graduates."""
+    return ages.person_life_age(connection, decode(row['details']) or {}, age_of(connection, row, day),
+                                companion['version']['definition'])
+
+
 # Where big days come from ----------------------------------------------------------------------------------------
 
 def candidate(kind: str, source: str, row: dict | None, day: date, **details) -> dict:
@@ -197,7 +221,7 @@ def friend_weddings(connection, companion: dict, today: date, people: dict, now)
         details = decode(row['details']) or {}
         if circle.role_kind(row['role']) not in FRIENDS or details.get('married') or details.get('love'):
             continue
-        age = age_of(connection, row, today) or 0
+        age = life_age_of(connection, row, today, companion) or 0
         for year in (today.year, today.year + 1):
             seed = f"bigday:friend:{row['id']}"
             if not FRIEND_AGES[0] <= age <= FRIEND_AGES[1] or generators.unit(seed, 'year', year) >= rate:
@@ -218,7 +242,8 @@ def milestone_birthdays(connection, companion: dict, today: date, people: dict, 
             continue
         birthday = next_birthday(row['id'], today)
         age = age_of(connection, row, birthday)
-        if ages.milestone(age):
+        if ages.milestone(age, ages.person_lifespan(connection, decode(row['details']) or {},
+                                                    companion['version']['definition'])):
             day = birthday if birthday.weekday() >= 4 else birthday + timedelta(days=5 - birthday.weekday())
             result.append(candidate('birthday', f"birthday:{row['id']}:{birthday.year}", row, day, age=age))
     return result
@@ -239,7 +264,7 @@ def retirements(connection, companion: dict, today: date, people: dict, now) -> 
         seed = f"bigday:retire:{row['id']}"
         retire_at = RETIRE_AGES[0] + int(generators.unit(seed, 'age') * (RETIRE_AGES[1] - RETIRE_AGES[0] + 1))
         birthday = next_birthday(row['id'], today)
-        if (age_of(connection, row, birthday) or 0) >= retire_at:
+        if (life_age_of(connection, row, birthday, companion) or 0) >= retire_at:
             day = birthday + timedelta(days=(4 - birthday.weekday()) % 7 or 7)
             result.append(candidate('retirement', f"retirement:{row['id']}", row, day))
     return result
@@ -251,7 +276,7 @@ def graduations(connection, companion: dict, today: date, people: dict, now) -> 
     for row in people.values():
         details = decode(row['details']) or {}
         old_enough = STUDENTS.get(details.get('career') or '')
-        if not old_enough or details.get('graduated') or (age_of(connection, row, today) or 0) < old_enough:
+        if not old_enough or details.get('graduated') or (life_age_of(connection, row, today, companion) or 0) < old_enough:
             continue
         day = saturday_in(today.year, f"bigday:graduate:{row['id']}", (5, 6))
         result.append(candidate('graduation', f"graduation:{row['id']}:{today.year}", row, day))
@@ -294,7 +319,10 @@ def first_birthdays(connection, companion: dict, today: date, people: dict, now)
     from companion.life import families
     if families.withheld(connection):
         return []
-    result = []
+    result, definition = [], companion['version']['definition']
+
+    def said_role(row):  # 'mother' in 1895 (circle.said).
+        return circle.said(row['role'], definition)
     for item in families.first_birthdays(connection, companion, today, today + timedelta(days=AHEAD)):
         row = people.get(item['parent_id'])
         if row is None:
@@ -302,9 +330,33 @@ def first_birthdays(connection, companion: dict, today: date, people: dict, now)
         birthday = date.fromisoformat(item['date'])
         child = {'she/her': 'daughter', 'he/him': 'son'}.get(item['pronouns'], 'child')
         result.append(candidate('first_birthday', item['key'], row, birthday + timedelta(days=(5 - birthday.weekday()) % 7),
-                                name=item['child'], role=item['relation'] or f"{row['role']} {first(row['name'])}'s {child}",
-                                host=row['name'], host_role=row['role']))
+                                name=item['child'], role=item['relation'] or f"{said_role(row)} {first(row['name'])}'s {child}",
+                                host=row['name'], host_role=said_role(row)))
     return result
+
+
+def namings(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
+    """Their own baby's naming day (companion/life/own_family.py), at home with their partner. None while the adult
+    side of life is on."""
+    from companion.life import families, own_family
+    if families.withheld(connection):
+        return []
+    result, name = [], first(companion['version']['definition']['name'])
+    for item in own_family.naming_days(connection, companion, today, today + timedelta(days=AHEAD)):
+        row = people.get(item['parent_id'])
+        if row is not None:
+            child = {'she/her': 'daughter', 'he/him': 'son'}.get(item['pronouns'], 'child')
+            result.append(candidate('naming', item['key'], row, date.fromisoformat(item['date']), name=item['child'],
+                                    role=child, pronouns=item['pronouns'], host=row['name'], host_role=row['role'],
+                                    partner=first(row['name']),
+                                    home=f"{name} and {first(row['name'])}'s place"))
+    return result
+
+
+def showers(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
+    """The pair's baby shower, while they are expecting (companion/life/expecting.py)."""
+    from companion.life import expecting
+    return expecting.showers(connection, companion, today, people, now)
 
 
 def funerals(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
@@ -315,14 +367,15 @@ def funerals(connection, companion: dict, today: date, people: dict, now) -> lis
 
 # In order; later features add their own.
 SOURCES = [sibling_weddings, friend_weddings, milestone_birthdays, retirements, graduations, town_weddings, chapters,
-           first_birthdays, funerals]
+           first_birthdays, namings, funerals, showers]
 # The companion's own days: the user is there for them, and there is no gift or buzz about someone else.
-OWN = ('own_wedding', 'own_graduation', 'own_retirement')
+OWN = ('own_wedding', 'own_graduation', 'own_retirement', 'own_shower')
 # Days with no group chat buzz and no photo.
 QUIET = ('funeral',)
 # What they mean to ask the user, before they have: a plus-one, unless it is their own day or a funeral.
 ASKING = {'own_wedding': 'to stand up with you at your wedding', 'own_graduation': 'to be there with you',
-          'own_retirement': 'to be there with you', 'funeral': 'to come with you'}
+          'own_retirement': 'to be there with you', 'funeral': 'to come with you', 'naming': 'to be the godparent',
+          'own_shower': 'to come with you'}
 
 
 # Planning a big day ----------------------------------------------------------------------------------------------
@@ -377,13 +430,13 @@ def place_for(connection, companion: dict, kind: Kind, day: date, seed: str, det
         return {'id': '~big-day', 'name': name, 'kind': 'venue', 'neighborhood': '', 'summary': '', 'cost': '',
                 'cuisine': '', 'city': away, 'city_id': '', 'spots': []}
     if kind.key in CHILDS:
-        return {'id': '~big-day', 'name': f"{first(details.get('host') or '')}'s place", 'kind': 'venue',
+        return {'id': '~big-day', 'name': details.get('home') or f"{first(details.get('host') or '')}'s place", 'kind': 'venue',
                 'neighborhood': '', 'summary': '', 'cost': '', 'cuisine': '', 'city': '', 'city_id': '', 'spots': []}
     if kind.key in ('wedding', 'own_wedding'):
         return wedding.venue_for(data, wedding.customs(wedding.culture_of(data)), 'proper', seed, day=day)
     if kind.key == 'funeral':
         from companion.life import loss
-        return loss.venue_for(connection, companion, data, seed, day)
+        return loss.venue_for(connection, companion, data, seed, day, bool(details.get('notable')))
     options = [item for item in data['places'] if item['kind'] in kind.places
                and not any(word in item['name'].lower() for word in NOT_PARTY)]
     if kind.key in ('graduation', 'own_graduation'):
@@ -405,10 +458,16 @@ def gift_for(connection, companion: dict, kind: Kind, seed: str, details: dict |
         flowers = (details or {}).get('flowers', '')
         return flowers, round(money.monthly_share(found) * kind.share, 2) if flowers and found else 0.0
     gifts = bank()['gifts']
-    key = f'{kind.gift}_modern' if f'{kind.gift}_modern' in gifts and modern_city(connection, companion) else kind.gift
-    gift = generators.pick(seed, 'gift', gifts[key])
+    gift = generators.pick(seed, 'gift', gifts.get(f'{kind.gift}_{gift_era(connection, companion)}') or gifts[kind.gift])
     found = money.profile(companion['version']['definition'])
     return gift, round(money.monthly_share(found) * kind.share, 2) if found else 0.0
+
+
+def gift_era(connection, companion: dict) -> str:
+    """Which gift bank: 'modern', 'old' in Camelot (medieval and fantasy cities), else the timeless one (1895, 1925:
+    admin.era_group's 'industrial')."""
+    from companion.life import admin
+    return admin.era_group(outings.city_data(connection, companion['version']['definition']))
 
 
 def outfit_for(connection, companion: dict, row_id: str, day: date, wear: str = '', kind: str = '') -> str:
@@ -453,9 +512,11 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
     if optional(connection, 'SELECT id FROM big_days WHERE timeline_id=? AND source=?', (timeline_id, found['source'])) \
             or day < today + timedelta(days=SOONEST) or kind.modern and not modern_city(connection, companion):
         return None
+    day = clear_day(connection, companion, kind.key, found['source'], day)
     row_id, timestamp = identifier(), stamp(now)
     if found['details'].get('role'):  # As they say it: 'mom' for a parent, 'mother' in 1895 (circle.said).
         found = {**found, 'details': {**found['details'], 'role': spoken(found['details'], companion)}}
+    found = {**found, 'details': {**found['details'], **away(connection, companion, found, day)}}
     seed = f"bigday:{timeline_id}:{found['source']}"
     place = {**place_for(connection, companion, kind, day, seed, found['details']),
              'modern': modern_city(connection, companion)}
@@ -476,28 +537,91 @@ def add(connection, companion: dict, found: dict, now: datetime) -> dict | None:
     return get(connection, row_id)
 
 
+def clear_day(connection, companion: dict, kind: str, source: str, day: date) -> date:
+    """The day, or when an outing with the user already has it and the host could pick another, the same weekday a
+    week on (up to MOVE_WEEKS times). A townsperson's wedding is the town's own date."""
+    if kind not in MOVABLE or source.startswith('town:'):
+        return day
+    for weeks in range(MOVE_WEEKS + 1):
+        if not with_user_on(connection, companion, day + timedelta(weeks=weeks)):
+            return day + timedelta(weeks=weeks)
+    return day
+
+
+def with_user_on(connection, companion: dict, day: date) -> bool:
+    """An outing with the user is booked for that day."""
+    return bool(optional(connection, "SELECT id FROM outings WHERE companion_id=? AND local_date=? AND "
+                         "status!='cancelled'", (companion['id'], day.isoformat())))
+
+
+def away(connection, companion: dict, found: dict, day: date) -> dict:
+    """An out-of-town relative's day is in the city they live in (trips.hometown, as a trip to see them goes): its
+    name and id, and the fare there and back that comes out of their money the day before (trips.price, a weekend
+    trip's share). {} for a day in town, or when no city can be told."""
+    from companion.life import trips
+    details = found['details']
+    person_id = found['person_id'] or loss_person(connection, details)
+    home = outings.city_data(connection, companion['version']['definition'])
+    if details.get('local') is not False or details.get('city') or not person_id or not home:
+        return {}
+    city = trips.hometown(person_id, home)
+    if city is None:
+        return {}
+    fare = trips.price(companion['version']['definition'], trips.COST_SHARE[2], day - timedelta(days=1), float('inf'))
+    return {'city': city['name'], 'city_id': city['id'], 'fare': fare or 0.0}
+
+
+def loss_person(connection, details: dict) -> str | None:
+    """The circle person a funeral is for (companion/life/loss.py)."""
+    found = optional(connection, 'SELECT person_id FROM losses WHERE id=?', (details.get('loss_id') or '',))
+    return found['person_id'] if found else None
+
+
+def travels(connection, companion: dict, row: dict) -> bool:
+    """The user can come along to a day out of town: both live in the companion's city (long distance, the user
+    can't come) and a trip from there reaches it (trips.fits, within a long weekend's reach)."""
+    from companion.life import long_distance, trips
+    home = outings.city_data(connection, companion['version']['definition'])
+    city = catalog.cities().get(row['details'].get('city_id') or '')
+    return bool(home and city) and not long_distance.far(connection, companion) and trips.fits(home, city) and \
+        catalog.distance_km(home, city) <= trips.REACH_KM[3]
+
+
 def invitable(connection, companion: dict, row: dict) -> bool:
-    """Whether the user could come at all: someone in town (or a visit can reach them), not apart from the companion,
-    and no other big day they are asked to that close."""
+    """Whether the user could come at all: someone in town or a trip they can make together (or a visit can reach
+    them), not apart from the companion, and no other big day they are asked to that close (their own wedding and the
+    pair's baby shower always ask them)."""
     from companion.life import long_distance
-    if row['details'].get('local') is False or steps.apart(connection, companion) == 'ended':
+    if row['details'].get('local') is False and not travels(connection, companion, row) or \
+            steps.apart(connection, companion) == 'ended':
         return False
     between = long_distance.far(connection, companion)
     if between and not long_distance.reachable(between):
         return False
+    return row['kind'] in ('own_wedding', 'own_shower') or not crowded(connection, row)
+
+
+def crowded(connection, row: dict) -> bool:
+    """Another big day within INVITE_GAP days that the user said yes to, went to, or is still to be asked to or
+    answer. One they said no to doesn't count, and a funeral in the family is never held back (loss.funerals)."""
+    if row['kind'] == 'funeral' and row['details'].get('family'):
+        return False
     low = (date.fromisoformat(row['local_date']) - timedelta(days=INVITE_GAP)).isoformat()
     high = (date.fromisoformat(row['local_date']) + timedelta(days=INVITE_GAP)).isoformat()
-    return not optional(connection, "SELECT id FROM big_days WHERE timeline_id=? AND id!=? AND invite=1 AND "
-                        "status IN ('planned', 'invited') AND local_date>=? AND local_date<=?",
-                        (row['timeline_id'], row['id'], low, high))
+    return bool(optional(connection, "SELECT id FROM big_days WHERE timeline_id=? AND id!=? AND invite=1 AND "
+                         "(status IN ('planned', 'invited') OR status='done' AND with_user=1) AND local_date>=? AND "
+                         'local_date<=?', (row['timeline_id'], row['id'], low, high)))
 
 
 def decide_invite(connection, companion: dict, row: dict, now: datetime) -> None:
-    """Whether they ask the user along: always to their own wedding, else the engine's `bigday:invite`."""
+    """Whether they ask the user along: always to their own wedding and to the pair's baby shower, else the engine's
+    `bigday:invite`."""
     if not invitable(connection, companion, row):
         return
-    if row['kind'] == 'own_wedding':
-        connection.execute('UPDATE big_days SET invite=1 WHERE id=?', (row['id'],))
+    if row['kind'] in ('own_wedding', 'naming', 'own_shower'):  # A naming day: godparent if best friends.
+        found = steps.state(connection, companion, now, write=False) if row['kind'] == 'naming' else None
+        if row['kind'] in ('own_wedding', 'own_shower') or found and found['ladder'] == 'friendship' and found['step'] != 'friends':
+            connection.execute('UPDATE big_days SET invite=1 WHERE id=?', (row['id'],))
         return
     from companion import group_guests
     from companion.memory import closeness
@@ -558,6 +682,7 @@ def advance(connection, companion: dict, now: datetime) -> None:
         return
     today = local_today(companion, now)
     follow(connection, companion, now)
+    reconsider(connection, companion, now)
     people = {row['id']: row for row in circle.people(connection, companion['active_timeline_id'])}
     for source in SOURCES:
         for found in source(connection, companion, today, people, now):
@@ -587,6 +712,23 @@ def follow(connection, companion: dict, now: datetime) -> None:
             finish(connection, companion, row, False, now)
 
 
+def reconsider(connection, companion: dict, now: datetime) -> None:
+    """Days still to be asked to: one left unasked while the user couldn't come (another big day close by they have
+    since said no to, a move) is weighed again, and one whose day an outing with the user has taken since is moved
+    a week on where the host could (`clear_day`)."""
+    for row in rows(connection, companion['active_timeline_id'], ('planned',)):
+        if not row['invite'] and not row['consequence_id']:
+            decide_invite(connection, companion, row, now)
+            row = get(connection, row['id'])
+        day = date.fromisoformat(row['local_date'])
+        moved = clear_day(connection, companion, row['kind'], row['source'], day) if row['invite'] and \
+            with_user_on(connection, companion, day) else day
+        if moved != day:
+            gift_on = max(row['gift_on'] or '', (moved - timedelta(days=GIFT_BEFORE)).isoformat())
+            connection.execute('UPDATE big_days SET local_date=?, gift_on=?, updated_at=? WHERE id=?',
+                               (moved.isoformat(), gift_on, stamp(now), row['id']))
+
+
 def moved_apart(connection, companion: dict, row: dict, outing: dict, now: datetime) -> str:
     """They live apart since the invitation (one of them moved): the user's stay with them is planned around the day,
     or, when no visit can reach them, the user can't come after all ('cancelled'). Else the outing stays 'planned'."""
@@ -595,6 +737,8 @@ def moved_apart(connection, companion: dict, row: dict, outing: dict, now: datet
     if not between or optional(connection, "SELECT id FROM trips WHERE id=? AND status='planned'",
                                (row['trip_id'] or '',)):
         return 'planned'
+    if row['details'].get('city_id'):  # Out of town: the trip there together was from the city they shared.
+        return 'cancelled'
     if long_distance.reachable(between):
         trip_id = stay(connection, companion, date.fromisoformat(row['local_date']), outing['message_id'], now)
         connection.execute('UPDATE big_days SET trip_id=? WHERE id=?', (trip_id or row['trip_id'], row['id']))
@@ -608,6 +752,9 @@ def gone(connection, row: dict) -> bool:
     if row['kind'] == 'funeral':
         from companion.life import loss
         return loss.gone(connection, row)
+    if row['kind'] == 'own_shower':
+        from companion.life import expecting
+        return expecting.shower_gone(connection, row)
     if row['person_id']:
         person = optional(connection, 'SELECT status FROM circle_people WHERE id=?', (row['person_id'],))
         if person is None or person['status'] == 'removed':
@@ -724,7 +871,8 @@ def invite_due(connection, companion: dict, now: datetime) -> list:
     hidden = CHILDS if withheld(connection) else ()  # Called off at the next pass; never asked to meanwhile.
     row = next((item for item in rows(connection, companion['active_timeline_id'], ('planned',))
                 if item['invite'] and item['invite_on'] <= today and item['local_date'] >= soonest
-                and item['kind'] not in hidden and invitable(connection, companion, item)), None)
+                and item['kind'] not in hidden and invitable(connection, companion, item)
+                and not with_user_on(connection, companion, date.fromisoformat(item['local_date']))), None)
     if row is None:
         return []
     day = date.fromisoformat(row['local_date'])
@@ -745,6 +893,14 @@ def reason_for(row: dict, day: date) -> str:
         return (f"You and {first(row['details']['name'])} are getting married on {when}, and you want the user, your "
                 'close friend, to stand up with you at the wedding. Ask them in your own words, naming the day and the '
                 'place, warmly; it means a lot to you.')
+    if row['kind'] == 'naming':
+        return (f"You and {row['details']['partner']} are holding {first(row['details']['name'])}'s naming day at home "
+                f"on {day:%A} {day.day} {day:%B} at {row['at_time']}, and you want the user, your close friend, to be "
+                f"{first(row['details']['name'])}'s godparent. Ask them in your own words, naming the day and the time, "
+                'warmly; it means a lot to you.')
+    if row['kind'] == 'own_shower':
+        return (f"{said(row)[:1].upper()}{said(row)[1:]} on {when}. You're both the guests of honour. Tell the user "
+                'about it in your own words, naming the day, the time and the place.')
     if row['kind'] in OWN:
         return (f"It's {said(row)} on {when}, and you'd love the user to be there with you. Ask them in your own "
                 "words, naming the day, the time and the place. If they can't come, that's fine.")
@@ -759,9 +915,15 @@ def reason_for(row: dict, day: date) -> str:
 
 def invitation(row: dict, day: str, time: str, era: str = 'modern') -> str:
     seed = random.Random(f"{row['id']}:line")
-    if row['kind'] == 'own_wedding':
+    if row['kind'] == 'naming':
+        line = seed.choice(fitting(bank()['godparent'], row['place'])).format(
+            child=first(row['details']['name']), partner=row['details']['partner'], day=day, time=time)
+    elif row['kind'] == 'own_wedding':
         line = seed.choice(fitting(bank()['stand_up'], row['place'])).format(
             partner=first(row['details']['name']), day=day, place=row['place']['name'])
+    elif row['kind'] == 'own_shower':
+        line = seed.choice(bank()['invite_shower']).format(host=first(row['details']['name']), day=day, time=time,
+                                                           place=row['place']['name'])
     else:
         event = said(row).replace('your ', 'my ', 1)
         lines = fitting(bank()['invite_funeral' if row['kind'] == 'funeral' else 'invite'], row['place'])
@@ -771,7 +933,12 @@ def invitation(row: dict, day: str, time: str, era: str = 'modern') -> str:
         line = seed.choice(lines).format(event=event, day=day, time=time, place=row['place']['name'])
         if row['kind'] == 'funeral':  # Those lines are written all in lower case.
             return line
-    return re.sub(r'(^|[.?!] )next ', r'\1Next ', line[:1].upper() + line[1:])
+    return re.sub(r'(^|[.?!] )next ', r'\1Next ', on_next(line[:1].upper() + line[1:]))
+
+
+def on_next(text: str) -> str:
+    """'on next Saturday' (a line's "on {day}" with `when_text`'s 'next Saturday') reads 'next Saturday'."""
+    return re.sub(r'\b[Oo]n (next \w+day)\b', r'\1', text)
 
 
 SETTLES = ('big_day',)
@@ -787,6 +954,7 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     day = date.fromisoformat(row['local_date'])
     place = {**row['place'], 'big_day': row['id'], 'title': title(row, companion['version']['definition']['name']),
              'event': row['kind'], 'gift': row['gift'], 'standing_up': row['kind'] == 'own_wedding',
+             'godparent': row['kind'] == 'naming',
              'own': row['kind'] in OWN, 'no_photo': row['kind'] in CHILDS, 'quiet': row['kind'] in QUIET,
              'people': [host(row)] if row['person_id'] else []}
     outing = together.insert(connection, companion, message['id'], ACTIVITY, place, day, row['at_time'],
@@ -851,6 +1019,8 @@ def doing(outing: dict) -> str:
     place = outing['place']
     if place.get('standing_up'):
         return f"got married at {place['name']}, with you standing up with them"
+    if place.get('godparent'):
+        return f"held {place.get('title') or 'a naming day'} at home, with you as godparent"
     if place.get('own'):
         did = 'graduated' if place.get('event') == 'own_graduation' else 'had their retirement party'
         return f"{did} at {place['name']}, with you there"
@@ -863,6 +1033,7 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None) -> st
     if row is None:
         return f"- Right now you and the user are at {what(outing)}, in person, until about {outing['until_time']}."
     role = ('standing up with you as your closest friend' if row['kind'] == 'own_wedding' else
+            f"there to be {first(row['details']['name'])}'s godparent" if row['kind'] == 'naming' else
             'there for you' if row['kind'] in OWN + QUIET else 'your plus-one')
     parts = [f"Right now you are at {said(row)}, in person, at {row['place']['name']}, from {row['at_time']} until "
              f"about {row['until_time']}. The user is here with you, {role}.",
@@ -893,6 +1064,9 @@ def memory_text(outing: dict, name: str) -> dict:
     if place.get('standing_up'):
         return {'subject': event, 'value': f"You stood up at {name}'s wedding at {place['name']} on {day:%A, %B} "
                                            f'{day.day}, {day.year}.'}
+    if place.get('godparent'):
+        return {'subject': event, 'value': f"You became the godparent at {event} on {day:%A, %B} {day.day}, "
+                                           f'{day.year}.'}
     if place.get('own'):
         return {'subject': event, 'value': f"You were there for {event} at {place['name']} on {day:%A, %B} {day.day}, "
                                            f'{day.year}.'}
@@ -955,9 +1129,11 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
 def alone_doing(row: dict) -> str:
     """'went to Leo's wedding at The Belvedere', 'graduated at Johns Hopkins University'."""
     place = row['place']['name']
+    if row['kind'] == 'naming':
+        return f'held {title(row)} at home'
     if row['kind'] in OWN:
         return {'own_graduation': 'graduated', 'own_retirement': 'had their retirement party',
-                'own_wedding': 'got married'}[row['kind']] + f' at {place}'
+                'own_wedding': 'got married', 'own_shower': 'had their baby shower'}[row['kind']] + f' at {place}'
     return f'went to {title(row)} at {place}'
 
 
@@ -1001,6 +1177,7 @@ def coming_line(row: dict, today: date) -> str:
     wear = f" You plan to wear {row['outfit']}." if row['outfit'] else ''
     if row['status'] == 'invited':
         company = (' The user is standing up with you.' if row['kind'] == 'own_wedding' else
+                   ' The user is coming, to be the godparent.' if row['kind'] == 'naming' else
                    ' The user is coming, there for you.' if row['kind'] in OWN + QUIET else
                    ' The user is coming with you as your plus-one.')
     elif row['status'] == 'declined':
@@ -1010,12 +1187,23 @@ def coming_line(row: dict, today: date) -> str:
         company = f" You mean to ask the user {ASKING.get(row['kind'], 'to come with you as your plus-one')}; you " \
             "haven't asked yet."
     else:
-        company = " You're going." if row['kind'] in OWN else " You're going on your own."
-    return head + company + gift + wear
+        company = " You're going." if row['kind'] in OWN else " You're holding it at home." \
+            if row['kind'] == 'naming' else " You're going on your own."
+    return head + company + travel_text(row) + gift + wear
+
+
+def travel_text(row: dict) -> str:
+    """A day out of town (`away`): they travel there for it, with the user when the user is coming."""
+    if not row['details'].get('city_id'):
+        return ''
+    return f" It's out of town, in {row['details']['city']}: you travel there for it" + (
+        ', the two of you together.' if row['status'] == 'invited' else '.')
 
 
 def past_line(row: dict, today: date) -> str:
     when = f"{long_date(row['local_date'])} ({days_ago(date.fromisoformat(row['local_date']), today)})"
+    if row['with_user'] and row['kind'] == 'naming':
+        return f"- On {when} you held {said(row)} at home, and the user became {first(row['details']['name'])}'s godparent."
     if row['with_user']:
         return f'- On {when} you and the user went to {said(row)} together.'
     alone = " on your own; the user couldn't make it, and that was fine" if row['answered_at'] else ''
@@ -1067,11 +1255,19 @@ def offer(packet, connection, companion: dict, now: datetime, group=None) -> Non
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
     """Gifts bought this pay period (a week before each big day they go to)."""
-    return [{'text': f"sent {row['gift']}" if row['kind'] in QUIET else f"bought {row['gift']} as a gift",
-             'date': row['gift_on'], 'spend': '', 'cost': row['gift_cost'], 'for': 'funeral' if row['kind'] in QUIET else 'gift'}
-            for row in many(connection, "SELECT * FROM big_days WHERE timeline_id=? AND status!='called_off' AND "
-                            'gift_cost>0 AND gift_on>=? AND gift_on<=?', (timeline_id, start.isoformat(),
-                                                                         day.isoformat()))]
+    gifts = [{'text': f"sent {row['gift']}" if row['kind'] in QUIET else f"bought {row['gift']} as a gift",
+              'date': row['gift_on'], 'spend': '', 'cost': row['gift_cost'], 'for': 'funeral' if row['kind'] in QUIET else 'gift'}
+             for row in many(connection, "SELECT * FROM big_days WHERE timeline_id=? AND status!='called_off' AND "
+                             'gift_cost>0 AND gift_on>=? AND gift_on<=?', (timeline_id, start.isoformat(),
+                                                                          day.isoformat()))]
+    # Out of town (`away`): the fare there and back, the day before.
+    fares = [{'text': f"travelled to {view(row)['details']['city']} for {title(view(row))}", 'date': row['set_off'],
+              'spend': '', 'cost': row['fare'], 'for': 'trip'}
+             for row in many(connection, "SELECT *, date(local_date, '-1 day') AS set_off, json_extract(details, "
+                             "'$.fare') AS fare FROM big_days WHERE timeline_id=? AND status!='called_off' AND "
+                             "json_extract(details, '$.fare')>0 AND date(local_date, '-1 day') BETWEEN ? AND ?",
+                             (timeline_id, start.isoformat(), day.isoformat()))]
+    return gifts + fares
 
 
 # Branches (companion/timelines.py) ---------------------------------------------------------------------------------

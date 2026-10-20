@@ -26,7 +26,7 @@ chapter's `told` and `share` lines, which change with each stage.
 Graduations and last days at work are the circle's big days to come (`big_days`, for Big days in the circle).
 Life's big turns (Settings > Realism > Their days, life_settings.life_turns) sets how often any chapter begins; on
 Gentle only good turns happen (Vanta 2026-10-18: "Good turns only" on an easy life), so the hard turns (`HARD`: a
-health turn and caring for a parent) never come on it, and a business never folds. Undo on Today takes a turn back at
+health turn and caring for a parent) never come on it, and a business never stalls or folds. Undo on Today takes a turn back at
 any stage, with the marks its outcomes left.
 """
 import json
@@ -37,12 +37,13 @@ from functools import cache
 
 from companion import consequences
 from companion.database import decode, encode, many, optional
+from companion.errors import require
 from companion.life import ages, home, money, moving_in, routine
-from companion.world import catalog, intimacy
+from companion.world import catalog, generators, intimacy, looks
 
 KINDS = ('school', 'career_change', 'buy_place', 'retire', 'business', 'health', 'caring')
-# Hard turns never happen on Gentle (good turns only); a business folding is ruled out there by its own odds
-# (business:how in world/data/consequences.json).
+# Hard turns never happen on Gentle (good turns only); a business stalling or folding is ruled out there by its own
+# odds (business:how in world/data/consequences.json).
 HARD = frozenset({'health', 'caring'})
 GENTLE = 1
 # Life's big turns (0..3): how often a chapter begins, as a multiplier on the drama level's monthly chance.
@@ -56,6 +57,9 @@ NOTICE_DAYS = (21, 60)  # From handing in their notice until their last day at w
 ADULT, BUY_AGE, SWITCH_BEFORE, RETIRE_AGE = 18, 25, 58, 60
 # A term's fees as a share of a month's take-home, by era; a deposit as months of take-home.
 FEES = {'modern': 0.35, 'jazz-age': 0.2, 'other': 0.1}
+# A medieval kingdom or a fairy-tale land (money.MEDIEVAL): its own courses and businesses (the bank's `medieval`; any
+# other older past takes `victorian`) and its own words for owning a place, retiring, exams, graduating and the healer.
+MEDIEVAL = money.MEDIEVAL
 DEPOSIT_MONTHS = 4
 MORTGAGE = (0.85, 1.15)  # The monthly payment against the rent of the same place.
 PENSION = {'modern': 0.6, 'jazz-age': 0.35, 'other': 0.25}  # A pension as a share of their pay.
@@ -72,6 +76,19 @@ def data() -> dict:
 
 def era(city: dict | None) -> str:
     return money.era_of(city) if city and city.get('era') else 'modern'
+
+
+def medieval(city: dict | None) -> bool:
+    return bool(city) and city.get('era') in MEDIEVAL
+
+
+def bank(name: str, city: dict | None) -> list[dict]:
+    """A bank's entries for the city's era; courses and businesses split the older past in two."""
+    found = data()[name]
+    key = era(city)
+    if key == 'other' and key not in found:
+        key = 'medieval' if medieval(city) else 'victorian'
+    return found[key]
 
 
 def first(definition: dict) -> str:
@@ -94,6 +111,12 @@ def day_text(day: str | date) -> str:
     return found.strftime('%B %d, %Y').replace(' 0', ' ')
 
 
+def soon_text(day: str | date, today: date) -> str:
+    """'February 5' within the next twelve months, as a friend would say it; 'February 5, 2028' further on."""
+    found = date.fromisoformat(day) if isinstance(day, str) else day
+    return day_text(found).rsplit(',', 1)[0] if found < later(today, 12) else day_text(found)
+
+
 def short_day(day: str) -> str:
     """'Feb 11, 2027', for the Character page."""
     return date.fromisoformat(day).strftime('%b %d, %Y').replace(' 0', ' ')
@@ -114,6 +137,15 @@ def age_of(connection, companion: dict, day: date) -> int | None:
     return ages.companion_age(connection, companion['id'], definition, day)
 
 
+def life_age_of(connection, companion: dict, day: date) -> int | None:
+    """How far through life they are in human terms (companion/world/lifespans.py), what the odds read; None like
+    `age_of`."""
+    definition = companion['version']['definition']
+    if intimacy.reads_as_minor(definition):
+        return None
+    return ages.companion_life_age(connection, companion['id'], definition, day)
+
+
 def running(connection, timeline_id: str) -> list[dict]:
     """Big turns still on their way (a stage to come), oldest first."""
     return many(connection, "SELECT * FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL AND "
@@ -126,16 +158,16 @@ def finished(connection, timeline_id: str, kind: str, stage: str) -> dict | None
 
 
 def free(connection, companion: dict, day: date) -> int | None:
-    """Their age when a big turn could start (one at a time, adults only), else None."""
+    """Their life age (`life_age_of`) when a big turn could start (one at a time, adults only), else None."""
     if running(connection, companion['active_timeline_id']):
         return None
     found = age_of(connection, companion, day)
-    return found if found is not None and found >= ADULT else None
+    return life_age_of(connection, companion, day) if found is not None and found >= ADULT else None
 
 
 def facts(connection, companion: dict, day: date) -> dict:
     """What the engine reads for big turns."""
-    return {'age': age_of(connection, companion, day), 'turns': level(connection),
+    return {'age': life_age_of(connection, companion, day), 'turns': level(connection),
             'together': int(bool(moving_in.living(connection, companion, day))),
             **health_turns.facts(connection, companion, day)}
 
@@ -215,7 +247,7 @@ def plan_school(connection, companion, world, day, seed) -> dict | None:
         return None
     definition = companion['version']['definition']
     city = city_of(definition, world)
-    course = random.Random(f'{seed}:course').choice(data()['courses'][era(city)])
+    course = random.Random(f'{seed}:course').choice(bank('courses', city))
     details = course_plan(definition, city, day, seed, course)
     if not details:
         return None
@@ -223,8 +255,14 @@ def plan_school(connection, companion, world, day, seed) -> dict | None:
     return {'title': f"{name} went back to school for {course['course']}",
             'told': f"You signed up for {course['course']}; classes start {start}, on "
                     f"{days_text(details['study']['days'])}.",
-            'share': f"Okay, I did it: I signed up for {course['course']}. Classes start {start}!",
-            'details': {**details, 'stage': 'enrolled'}}
+            'share': f"Okay, I did it: I signed up for {course['course']}. Classes start "
+                     f"{soon_text(details['starts_on'], day)}!",
+            'details': {**details, 'stage': 'enrolled', **old_words(city)}}
+
+
+def old_words(city: dict | None) -> dict:
+    """Kept on a turn's details so each stage and the Character page say it in the era's words."""
+    return {'medieval': True} if medieval(city) else {}
 
 
 def city_of(definition: dict, world) -> dict | None:
@@ -240,7 +278,9 @@ def new_line(definition: dict, seed: str) -> dict | None:
     current, _guessed = money.career_for(definition, city)
     if not current:
         return None
-    options = sorted(career['id'] for career in catalog.everyday(catalog.careers_for(city)).values()
+    # Work their era gives their side (1895: never a cabman for her; generators.own_side).
+    offered = generators.own_side(city, looks.pronouns_of(definition), catalog.everyday(catalog.careers_for(city)))
+    options = sorted(career['id'] for career in offered.values()
                      if career.get('sector') != current.get('sector') and career['schedule'] == current['schedule'])
     return catalog.careers_for(city)[random.Random(f'{seed}:career').choice(options)] if options else None
 
@@ -256,15 +296,18 @@ def plan_career(connection, companion, world, day, seed) -> dict | None:
     title = career['name'].lower()
     months = random.Random(f'{seed}:months').randint(*RETRAIN_MONTHS)
     course = {'course': f'retraining as {article(title)}', 'short': career['name'], 'months': months}
-    details = course_plan(definition, city_of(definition, world), day, seed, course)
+    city = city_of(definition, world)
+    details = course_plan(definition, city, day, seed, course)
     if not details:
         return None
     name, start = first(definition), day_text(details['starts_on'])
     return {'title': f'{name} decided to change careers and retrain as {article(title)}',
             'told': f'You decided to change careers and retrain as {article(title)}; the course starts {start}, on '
-                    f"{days_text(details['study']['days'])}, and you keep your job until it ends.",
-            'share': f"Big decision: I'm retraining as {article(title)}. Course starts {start}!",
-            'details': {**details, 'stage': 'enrolled', 'career': career['id'], 'job': title}}
+                    f"{days_text(details['study']['days'])}. You keep your current job until it ends, and then you "
+                    f'switch to working as {article(title)}.',
+            'share': f"Big decision: I'm retraining as {article(title)}. Course starts "
+                     f"{soon_text(details['starts_on'], day)}!",
+            'details': {**details, 'stage': 'enrolled', 'career': career['id'], 'job': title, **old_words(city)}}
 
 
 def job_free(connection, timeline_id: str) -> bool:
@@ -300,8 +343,9 @@ def plan_buy(connection, companion, world, day, seed) -> dict | None:
     keys = day + timedelta(days=random.Random(f'{seed}:keys').randint(*HUNT_DAYS))
     deposit = money.monthly_share(found) * DEPOSIT_MONTHS / (2 if together else 1)
     details = {'stage': 'hunting', 'next_on': keys.isoformat(), 'keys_on': keys.isoformat(), 'place': place,
-               'deposit': {'on': keys.isoformat(), 'cost': round(deposit, 2)}, 'shared': bool(together)}
-    return {**buy_words(definition, place, keys, bool(together)), 'details': details}
+               'deposit': {'on': keys.isoformat(), 'cost': round(deposit, 2)}, 'shared': bool(together),
+               **old_words(city)}
+    return {**buy_words(definition, place, keys, bool(together), day), 'details': details}
 
 
 def place_to_buy(companion: dict, city: dict, found, together: dict | None, seed: str) -> dict | None:
@@ -320,19 +364,21 @@ def place_to_buy(companion: dict, city: dict, found, together: dict | None, seed
     payment *= random.Random(f'{seed}:mortgage').uniform(*MORTGAGE)
     payment = int(round(payment, -1)) if payment >= 200 else max(1, round(payment))
     return {**place, 'details': {**place['details'], 'owned': True, 'shared': bool(together), 'rent': payment,
-                                 'rent_from': 'mortgage', 'estimate': True, 'city': city['name']}}
+                                 'rent_from': 'mortgage', 'estimate': True, 'city': city['name'],
+                                 **old_words(city)}}  # Payments on the place, not a mortgage, in a medieval city.
 
 
-def buy_words(definition: dict, place: dict, keys: date, together: bool) -> dict:
+def buy_words(definition: dict, place: dict, keys: date, together: bool, today: date) -> dict:
     name, where = first(definition), place['details']['description']
     if together:
         return {'title': f'{name} and you are buying a place together',
                 'told': f'You brought up buying a place together with the user, and you found {where}; you get the '
                         f'keys on {day_text(keys)}.',
                 'share': f"Hear me out: what if we stopped renting? I found a place, {where}. I think it's the one."}
+    offer = 'struck a bargain for a place' if place['details'].get('medieval') else 'put in an offer on a place'
     return {'title': f'{name} is buying a place of their own',
             'told': f'You decided to buy a place of your own and found {where}; you get the keys on {day_text(keys)}.',
-            'share': f'I put in an offer on a place, {where}, and they said yes! I get the keys {day_text(keys)}.'}
+            'share': f'I {offer}, {where}, and they said yes! I get the keys {soon_text(keys, today)}.'}
 
 
 def plan_retire(connection, companion, world, day, seed) -> dict | None:
@@ -343,13 +389,19 @@ def plan_retire(connection, companion, world, day, seed) -> dict | None:
     city = city_of(definition, world)
     pursuit = random.Random(f'{seed}:pursuit').choice(data()['retirement'][era(city)])
     last = day + timedelta(days=random.Random(f'{seed}:notice').randint(*NOTICE_DAYS))
-    job = job_of(definition)
-    name = first(definition)
+    job, name, when = job_of(definition), first(definition), soon_text(last, day)
+    details = {'stage': 'leaving', 'next_on': (last + timedelta(days=1)).isoformat(), 'last_day': last.isoformat(),
+               'pursuit': pursuit, 'pension': PENSION[era(city)], **old_words(city)}
+    if medieval(city):
+        work = job.replace(' from your job', '')
+        return {'title': f'{name} is giving up work', 'told': f'You have decided to give up your work{work} and rest; '
+                f'your last day at it is {day_text(last)}.',
+                'share': f"It's settled: {when} is my last day of work. After that I'm putting my feet up!",
+                'details': details}
     return {'title': f'{name} is retiring', 'told': f'You handed in your notice: you are retiring{job}, and your last '
             f'day at work is {day_text(last)}.',
-            'share': f"I did it, I handed in my notice. {day_text(last)} is my last day. I'm retiring!",
-            'details': {'stage': 'leaving', 'next_on': (last + timedelta(days=1)).isoformat(),
-                        'last_day': last.isoformat(), 'pursuit': pursuit, 'pension': PENSION[era(city)]}}
+            'share': f"I did it, I handed in my notice. {when} is my last day. I'm retiring!",
+            'details': details}
 
 
 def job_of(definition: dict) -> str:
@@ -404,7 +456,8 @@ def classes_start(connection, companion, row, details, day, now) -> dict:
     retrain = row['kind'] == 'career_change'
     return {'title': row['title'] if retrain else f'{name} is taking {what}', 'changes': {'study': study},
             'told': f"You started {what}: classes are on {days_text(study['days'])}, and you finish on "
-                    f"{day_text(details['ends_on'])}." + (' You keep your job until then.' if retrain else ''),
+                    f"{day_text(details['ends_on'])}." + (' You keep your current job until then, and then you switch '
+                                                          f"to working as {article(details['job'])}." if retrain else ''),
             'share': "First class done. I'm a student again!" if not retrain else
                      'First class of my retraining done. This is really happening.',
             'details': {'stage': 'retraining' if retrain else 'studying', 'next_on': details['ends_on']}}
@@ -412,6 +465,10 @@ def classes_start(connection, companion, row, details, day, now) -> dict:
 
 def graduate(connection, companion, row, details, day, now) -> dict:
     name = first(companion['version']['definition'])
+    if details.get('medieval'):  # Lessons end; nobody graduates in a medieval kingdom.
+        return {'title': f"{name} finished {details['course']}", 'changes': {},
+                'told': f"You finished {details['course']} on {day_text(day)}.",
+                'share': 'Done with my lessons!! It is actually done.', 'details': {'stage': 'graduated', 'next_on': None}}
     return {'title': f"{name} finished {details['course']} and graduated", 'changes': {},
             'told': f"You finished {details['course']} and graduated on {day_text(day)}.",
             'share': 'I graduated!! It is actually done.', 'details': {'stage': 'graduated', 'next_on': None}}
@@ -450,10 +507,11 @@ def keys_day(connection, companion, row, details, day, now) -> dict:
     place = details['place']['details']
     name = first(companion['version']['definition'])
     ours = 'you and the user own' if together else 'you own'
+    paying = 'paying it off month by month' if place.get('medieval') else 'with a mortgage'
     return {'title': f"{name} bought {place['description']}" + (' with you' if together else ''),
             'changes': {'location': f"{place['neighborhood']}, {place['city']}"},
-            'told': f"You got the keys and moved into {place['description']}, which {ours} now, with a mortgage "
-                    'instead of rent.',
+            'told': f"You got the keys and moved into {place['description']}, which {ours} now, {paying} instead of "
+                    'rent.',
             'share': 'We got the keys!! Our own place.' if together else 'I got the keys!! My own place.',
             'undo': undo, 'details': {'stage': 'moved', 'next_on': None, 'keys_on': day.isoformat(),
                                       'deposit': {**details['deposit'], 'on': day.isoformat()}}}
@@ -461,16 +519,27 @@ def keys_day(connection, companion, row, details, day, now) -> dict:
 
 def retire(connection, companion, row, details, day, now) -> dict:
     name, pursuit = first(companion['version']['definition']), details['pursuit']
-    return {'title': f'{name} retired', 'changes': {'retired': {'label': pursuit['label']},
-                                                    'interest': pursuit['pursuit']},
-            'told': f"You retired after your last day at work on {day_text(details['last_day'])}; your days are your own "
-                    f"now, and you spend a lot of them {pursuit['pursuit']}.",
-            'share': 'First morning of retirement. No alarm clock!', 'details': {'stage': 'retired', 'next_on': None}}
+    old = details.get('medieval')
+    return {'title': f'{name} gave up work' if old else f'{name} retired',
+            'changes': {'retired': {'label': pursuit['label']}, 'interest': pursuit['pursuit']},
+            'told': f"You {'gave up work' if old else 'retired'} after your last day at work on "
+                    f"{day_text(details['last_day'])}; your days are your own now, and you spend a lot of them "
+                    f"{pursuit['pursuit']}.",
+            'share': 'First morning with no work to go to!' if old else 'First morning of retirement. No alarm clock!',
+            'details': {'stage': 'retired', 'next_on': None}}
 
 
 STAGES = {('school', 'enrolled'): classes_start, ('school', 'studying'): graduate,
           ('career_change', 'enrolled'): classes_start, ('career_change', 'retraining'): switch,
           ('buy_place', 'hunting'): keys_day, ('retire', 'leaving'): retire}  # + part 2, below
+
+
+def back_one(found: dict, details: dict) -> tuple[dict, dict]:
+    """The row and its details as they stood before its latest stage (`save_stage` kept them)."""
+    snapshot = details['before'][-1]
+    found = {**found, 'title': snapshot['title'], 'told': snapshot['told'], 'share': snapshot['share'],
+             'changes': encode(snapshot['changes']), 'undo': encode(snapshot['undo'])}
+    return found, {**snapshot['details'], 'before': details['before'][:-1]}
 
 
 def fork_row(connection, row: dict, copy_id: str, timeline_id: str, cutoff: str) -> dict:
@@ -479,10 +548,7 @@ def fork_row(connection, row: dict, copy_id: str, timeline_id: str, cutoff: str)
     undo there never touches the timeline it came from."""
     found, details = dict(row), decode(row['details'])
     while details.get('before') and details.get('stage_on', '') > cutoff:
-        snapshot = details['before'][-1]
-        details = {**snapshot['details'], 'before': details['before'][:-1]}
-        found.update(title=snapshot['title'], told=snapshot['told'], share=snapshot['share'],
-                     changes=encode(snapshot['changes']), undo=encode(snapshot['undo']))
+        found, details = back_one(found, details)
     undo = decode(found['undo'])
     if undo.get('decided'):
         undo['decided'] = [forked_outcome(connection, consequence_id, row['id'], copy_id, timeline_id)
@@ -492,6 +558,59 @@ def fork_row(connection, row: dict, copy_id: str, timeline_id: str, cutoff: str)
         undo['moving_in'] = {**undo['moving_in'], 'timeline_id': timeline_id,
                              'origin': (home['origin'] or home['id']) if home else undo['moving_in']['id']}
     return {**found, 'id': copy_id, 'timeline_id': timeline_id, 'undo': encode(undo), 'details': encode(details)}
+
+
+LATEST_ONLY = 'Only how it went most recently can still be changed; this one already led to what came after.'
+
+
+def stage_settled(row: dict | None, consequence_id: str) -> bool:
+    """Whether how a stage went already led to a later stage, so it can no longer change."""
+    return bool(row) and decode(row['undo']).get('decided', [None])[-1] != consequence_id
+
+
+def settled_note(connection, found: dict) -> str:
+    """For "Why it went this way" on how a stage went: why it can no longer change, up front; else ''."""
+    kind, _, rest = found['subject'].partition(':')
+    if kind not in ('business', 'health', 'caring'):
+        return ''
+    row = optional(connection, 'SELECT undo FROM life_chapters WHERE id=? AND undone_at IS NULL', (rest.split(':')[0],))
+    return LATEST_ONLY if stage_settled(row, found['id']) else ''
+
+
+def change_stage(connection, companion: dict, consequence_id: str, option: int, now) -> dict:
+    """"Make it go this way" on how a stage went (business:how, health:outlook, caring:how): the stage that rolled it
+    and any that followed are taken back, it comes again on its own day the way the user picked, and the days since
+    bring what follows. Only the turn's latest outcome can change; the ones before it already led somewhere."""
+    found = consequences.by_id(connection, consequence_id)
+    row = optional(connection, 'SELECT * FROM life_chapters WHERE id=? AND timeline_id=? AND undone_at IS NULL',
+                   (found['subject'].split(':')[1], companion['active_timeline_id']))
+    require(row is not None, 'That turn is not on this timeline.', 404)
+    require(0 <= option < len(found['options']), 'There is no such way for it to go.', 422)
+    require(not stage_settled(row, consequence_id), LATEST_ONLY, 409)
+    rewound, details = dict(row), decode(row['details'])
+    while details.get('before'):
+        rewound, details = back_one(rewound, details)
+        if consequence_id not in decode(rewound['undo']).get('decided', ()):
+            break
+    connection.execute('UPDATE life_chapters SET title=?, told=?, share=?, changes=?, undo=?, details=? WHERE id=?',
+                       (rewound['title'], rewound['told'], rewound['share'], rewound['changes'], rewound['undo'],
+                        encode(details), row['id']))
+    day = date.fromisoformat(found['decided_on'])
+    consequences.redo(connection, consequence_id, option, now, day)
+    # Check-ups and a parent's appointments follow the new way it went (`calendar` plans them again).
+    connection.execute("UPDATE life_admin SET status='removed' WHERE timeline_id=? AND source='health' AND key LIKE ? "
+                       "AND status='planned'", (row['timeline_id'], f"health:{row['id']}:%"))
+    today = local_day(companion, now)
+    while day <= today:
+        progress(connection, companion, None, day, now)
+        day += timedelta(days=1)
+    calendar(connection, companion, today, now)
+    return consequences.by_id(connection, consequence_id)
+
+
+def local_day(companion: dict, now) -> date:
+    from companion.life import storylines
+    return storylines.local_today(companion, now)
 
 
 def decided_by(connection, consequence_id: str, cutoff: str) -> bool:
@@ -573,8 +692,11 @@ def calendar(connection, companion: dict, today: date, now) -> int:
         for day in details.get('exams', ()):
             when = date.fromisoformat(day)
             if today <= when <= today + timedelta(days=EXAMS_AHEAD):
+                old = details.get('medieval')  # A test of skill in a medieval kingdom.
                 added += bool(admin.add(connection, companion, key=f"school:{row['id']}:exam:{day}", source='school',
-                                        kind='exam', title='Exam', done=f"sat an exam for {details['course']}",
+                                        kind='exam', title='Test of skill' if old else 'Exam',
+                                        done=f"was put to the test in {details['course']}" if old else
+                                        f"sat an exam for {details['course']}",
                                         day=when, at=details['study']['start'], minutes=120, fixed=True, out=True,
                                         now=now, study=True))  # In the class's own time, on the day it says.
     return added + health_turns.calendar(connection, companion, today, now)
@@ -641,7 +763,8 @@ def line(row: dict) -> str:
         return f"Signed up for {details['course']}; classes start {short_day(details['starts_on'])}."
     if stage in ('studying', 'retraining'):
         upcoming = [day for day in details.get('exams', ()) if day >= details.get('stage_on', '')]
-        exam = f" Next exam {short_day(upcoming[0])}." if upcoming else ''
+        test = 'test of skill' if details.get('medieval') else 'exam'
+        exam = f" Next {test} {short_day(upcoming[0])}." if upcoming else ''
         what = f"Retraining as {article(details['job'])}" if stage == 'retraining' else f"Taking {details['course']}"
         return (f"{what} on {days_text(details['study']['days'])}.{exam} Finishes {short_day(details['ends_on'])}" +
                 (', then starts the new job.' if stage == 'retraining' else '.'))
@@ -649,11 +772,13 @@ def line(row: dict) -> str:
         place = details['place']['details']
         currency = place.get('currency') or {}
         mortgage = money.amount(place['rent'], currency) if currency and place.get('rent') else ''
+        loan = 'Payments on it' if place.get('medieval') else 'The mortgage'
         return (f"Buying {place['description']}" + (' with you' if details.get('shared') else '') +
                 f"; keys on {short_day(details['keys_on'])}." +
-                (f' The mortgage will be about {mortgage} a month.' if mortgage else ''))
+                (f' {loan} will be about {mortgage} a month.' if mortgage else ''))
     if stage == 'leaving':
-        return f"Retiring; their last day at work is {short_day(details['last_day'])}."
+        return f"{'Giving up work' if details.get('medieval') else 'Retiring'}; their last day at work is " \
+            f"{short_day(details['last_day'])}."
     if row['kind'] in LINES:
         return LINES[row['kind']](row, details)
     return row['title'] + '.'

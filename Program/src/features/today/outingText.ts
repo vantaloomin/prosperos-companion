@@ -9,11 +9,13 @@ export interface OutingHobby { id: string; label: string; session: string; toget
 /** Meeting their people (companion/life/their_people.py): who comes, and whether it is the first time you meet them. */
 export interface OutingPerson { id: string; name: string; role: string }
 /** A big day in their circle (companion/life/big_days.py): `title` names it ("Leo's wedding"), `gift` is what they bring, `own` marks their own day (their wedding, graduation or retirement party), and `standing_up` their own wedding, where the user stands up with them. */
-export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; first?: boolean; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean; quiet?: boolean }
+export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; kids?: Pick<OutingPerson, 'name' | 'role'>[]; first?: boolean; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean; quiet?: boolean }
 export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
   ended_at: string | null; undo: boolean
+  /** An evening out with a child of yours at home: who is watching them that night (companion/life/our_child.py). */
+  sitter?: { text: string; cost: number } | null
 }
 /** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; '' for a trip of their own. `undo` is true for a visit called off a little while ago. */
 export interface Trip {
@@ -89,10 +91,11 @@ export function outingPlace(outing: Pick<Outing, 'activity' | 'place'>): string 
   return outing.place.neighborhood ? `${name}, ${outing.place.neighborhood}` : name
 }
 
-/** "With Ana (mom), Rui (dad) and Leo (brother)", for meeting their people; '' for any other outing. Once the evening
- * is over, the first meeting is told as past. */
+/** "With Ana (mom), Rui (dad) and Leo (brother)", for meeting their people, the companion's own kids first ("With Leo
+ * (son, 6), Edward (close friend) and Tamika (friend)"); '' for any other outing. Once the evening is over, the first
+ * meeting is told as past. */
 export function peopleLine(place: OutingPlace, state?: OutingState): string {
-  const people = (place.people ?? []).map((person) => `${person.name} (${person.role})`)
+  const people = [...(place.kids ?? []), ...(place.people ?? [])].map((person) => `${person.name} (${person.role})`)
   if (!people.length) return ''
   const list = people.length === 1 ? people[0] : `${people.slice(0, -1).join(', ')} and ${people[people.length - 1]}`
   const first = state === 'done' ? ', the first time you met' : ', meeting you for the first time'

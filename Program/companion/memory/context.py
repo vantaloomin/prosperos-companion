@@ -35,6 +35,7 @@ from companion.life import (
     grooming,
     hobbies,
     home,
+    kids,
     kitchen,
     long_distance,
     loss,
@@ -44,6 +45,7 @@ from companion.life import (
     moving_in,
     network,
     occasions,
+    our_child,
     outings,
     own_plans,
     pacing,
@@ -67,7 +69,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, corrected, history, look_back, people, phrases, time_recall, vectors
+from companion.memory import closeness, corrected, history, look_back, people, phrases, sides, time_recall, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -190,6 +192,9 @@ HEADINGS = {
             'hobbies': 'Your pastimes (fictional, yours; when one comes up, keep to how far along you are and how '
                        'often you go, and never invent a big achievement that is not listed)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            # Companions who already have kids (companion/life/kids.py): changes with a birthday or a move.
+            'kids': 'Your children (decided by the app: they are yours and part of your days; keep to their names and '
+                    'ages, and never invent other children)',
             # Meeting their people (companion/life/their_people.py): changes when someone meets the user, and weekly.
             'their_people': 'What your people think of the user (decided by the app: pass it on now and then, the way '
                             'people do, like "my mom keeps asking when you\'re coming back", and never contradict it)',
@@ -321,12 +326,14 @@ FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
 
 
-def persona_text(connection, today: date | None = None) -> str | None:
-    """The user's persona in this world (companion/worlds.py): only what they filled in, never a placeholder."""
+def persona_text(connection, today: date | None = None, definition: dict | None = None) -> str | None:
+    """The user's persona in this world (companion/worlds.py): only what they filled in, never a placeholder. A
+    long-lived kind's age comes with their kind and their age in human terms (companion/life/ages.py)."""
     row = connection.execute('SELECT * FROM persona WHERE id=1').fetchone()
     if not row:
         return None
-    parts = [f"Name: {row['name']}" if row['name'].strip() else '', f"Age: {row['age']}" if row['age'] else '',
+    age = ages.persona_age_text(connection, dict(row), definition)
+    parts = [f"Name: {row['name']}" if row['name'].strip() else '', f'Age: {age}' if row['age'] else '',
              f"Gender: {row['gender']}" if row['gender'] else '',
              # Where they live in this world (companion/life/where.py): the app's pick until they change it.
              f'Lives in: {home}' if (home := where.home_text(connection)) else '', row['about'].strip()]
@@ -427,7 +434,9 @@ def person_text(person) -> str:
         text += f": {person['career']}" + (f" at {person['employer']}" if person['employer'] else '')
     if person.get('works_with_companion'):
         text = f"- {person['name']} ({person['role']}): works with you"
-    text += '.' if person.get('local', True) else '. Lives out of town.'
+    # An employer whose name ends in a full stop ("Coutts and Co.") already ends the sentence.
+    text += '' if text.endswith('.') else '.'
+    text += '' if person.get('local', True) else ' Lives out of town.'
     if person.get('married'):
         text += ' Married' + (f", goes by their married name (born {person['birth_family']})."
                               if person.get('birth_family') else '.')
@@ -754,6 +763,12 @@ def offer_people(packet, connection, companion, now, today):
             packet.offer('circle_now', person['id'], moment)
     for identity, text in families.context_lines(connection, companion, now):
         packet.offer('circle', identity, text)
+    for identity, text in [*kids.context_lines(connection, companion, now),
+                           *our_child.context_lines(connection, companion, now)]:
+        packet.offer('kids', identity, text)
+    found = kids.today_line(connection, companion, now)
+    for identity, text in [*([found] if found else []), *our_child.today_lines(connection, companion, now)]:
+        packet.offer('circle_now', identity, text)
     for identity, text in network.context_lines(connection, timeline_id, now):
         packet.offer('acquaintances', identity, text)
     for identity, text in encounters.context_lines(connection, companion, now):
@@ -920,20 +935,34 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     recallable with the group messages trimmed from the shared transcript (`older`), recall answers the group's
     latest message (`query`), and its `lines` are the group section.
     """
-    timeline_id, version = companion['active_timeline_id'], companion['version']
+    timeline_id = companion['active_timeline_id']
     groups = partition(told(eligible(connection, companion, timeline_id, stamp(now)), companion))
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     start = window_start(len(messages))
     recent, older = messages[start:], messages[:start]
     if group is not None:
         recent, older = [], messages + group['older']
-    packet = Packet(budget, hidden=families.hidden(connection, timeline_id))
+    # With the adult side on, the family lines or the adult side's, never both (companion/memory/sides.py).
+    family = sides.family_reply(connection, companion, recent, group, photo)
+    adult = sides.adult_lines(connection, companion, recent, group, photo, family)
+    packet = Packet(budget, hidden=sides.hidden(connection, timeline_id, family))
+    with families.family_reply(family):
+        built = fill(packet, connection, companion, now, (messages, recent, older, groups),
+                     {'semantic': semantic, 'outside': outside, 'photo': photo, 'group': group, 'adult': adult})
+    return {**built, 'family': family}
+
+
+def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict) -> dict:
+    """The rest of `build`: everything offered to the packet, in order, and the packet rendered."""
+    messages, recent, older, groups = turns
+    semantic, outside, photo, group = extra['semantic'], extra['outside'], extra['photo'], extra['group']
+    timeline_id, version = companion['active_timeline_id'], companion['version']
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     texts = group is not None or not (together.in_person(connection, companion, now)
                                        or calls.on_call(connection, companion, now))
-    packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today,
-                                                              texts=texts))
-    if who := persona_text(connection, date.fromisoformat(today)):
+    packet.require('character', version['id'], character_text(version, connection, intimate=extra['adult'],
+                                                              day=today, texts=texts))
+    if who := persona_text(connection, date.fromisoformat(today), version['definition']):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))
@@ -1024,9 +1053,10 @@ def widening(messages: list[dict]) -> list[str]:
 
 
 def looked_back(connection, companion, now: datetime, query: str, until_seq: int | None = None,
-                skip=frozenset()) -> list[str]:
+                skip=frozenset(), family: bool = False) -> list[str]:
     """What a second look through memory finds for the words the companion asked about (memory/look_back.py):
-    the same eligible pool as the reply's own recall, less what the reply was already given."""
+    the same eligible pool as the reply's own recall, less what the reply was already given, and none of what the
+    reply's own context leaves out (`family`, as `build` says)."""
     timeline_id = companion['active_timeline_id']
     recallable = partition(told(eligible(connection, companion, timeline_id, stamp(now)), companion))['recallable']
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
@@ -1036,7 +1066,9 @@ def looked_back(connection, companion, now: datetime, query: str, until_seq: int
     span = time_recall.query_span(query, now, timezone)
     found = recalled([memory for memory in recallable if not memory['pinned']], older, query, (), summaries,
                      frozenset(), (span, timezone) if span else None, storylines.recall_items(connection, companion, now))
-    return [text for identity, text in found if identity not in skip][:RECALL_LIMIT]
+    hidden = sides.hidden(connection, timeline_id, family)
+    return [text for identity, text in found if identity not in skip and not (hidden and hidden.search(text))
+            ][:RECALL_LIMIT]
 
 
 def section_text(packet, headings) -> list[str]:

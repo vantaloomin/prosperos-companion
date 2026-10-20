@@ -12,7 +12,9 @@ What opens one, all caught by rules from what the app already knows:
   on an easy life;
 - small everyday friction other features report through `friction` (a chore after moving in, or another of your
   partners wanting to move in when they aren't ready to share their home);
-- saying no when they ask you to marry them (`proposal_no`, from companion/life/wedding.py).
+- saying no when they ask you to marry them (`proposal_no`, from companion/life/wedding.py);
+- saying no when they bring up starting a family and want children (`family_no`, from companion/life/parenthood.py),
+  never on an easy life.
 
 Whether something you did starts a rough patch is a roll in the consequence engine (choice user:rough_patch in
 world/data/consequences.json): odds from the Rough patches slider (life_settings.rough_patches_realism: 0 off,
@@ -63,11 +65,15 @@ CAUSES = {
     'secret_told': ('big', 'user'), 'secret_kept': ('big', 'user'), 'promise': ('big', 'user'),
     'seeing_someone': ('big', 'user'), 'called_off': ('small', 'user'), 'chore': ('small', 'user'), 'sharing': ('small', 'user'),
     'stood_up': ('big', 'companion'), 'hidden_partner': ('big', 'companion'), 'proposal_no': ('big', 'user'),
+    'family_no': ('big', 'user'),
 }
 # What they did, for the lines about their own fault: (in the chat context, after "You let the user down: ", and
 # after "The user forgave you for "). `hidden_partner` comes from Their own love life (companion/life/love_life.py).
 THEIR_DEED = {'stood_up': ('you called off {about}', 'calling off {about}'),
               'hidden_partner': ('{about}', 'seeing someone behind their back')}
+# Never on an easy life: finding out about someone else, and saying no to the family they want
+# (companion/life/parenthood.py).
+NEVER_EASY = {'seeing_someone', 'family_no'}
 # On drama these need both an apology and a gesture.
 SERIOUS = {'secret_told', 'secret_kept', 'seeing_someone'}
 # Calm days before it mends by itself, by slider level, for (the user's fault, theirs). Level 1 fades overnight.
@@ -83,7 +89,8 @@ MINDS = {'words': r'sensitive|thin[- ]skinned|insecure|proud|need|lonely|sulk',
          'seeing_someone': r'jealous|possessive|insecure|loyal|trust|clingy|need',
          'called_off': reactions.MINDS['user:missed_plan'], 'chore': r'tidy|neat|clean|particular|fussy',
          'sharing': r'jealous|possessive|insecure|territorial|clingy|need',
-         'proposal_no': r'insecure|sensitive|need|lonely|reject|abandon|clingy|romantic'}
+         'proposal_no': r'insecure|sensitive|need|lonely|reject|abandon|clingy|romantic',
+         'family_no': r'insecure|sensitive|need|lonely|reject|abandon|family|maternal|paternal|nurtur'}
 
 # Words aimed at them that can start one: a narrower set than the mood nudge, and only said to them.
 STINGS = re.compile(r"\b(?:shut up|go away|leave me alone|you'?re (?:so )?(?:annoying|useless|boring|pathetic|"
@@ -185,7 +192,7 @@ def consider(connection, companion: dict, cause: str, subject: str, about: str, 
     if not ACTIVE or companion is None or not companion.get('active_timeline_id'):
         return None
     lvl = level(connection)
-    if lvl == 0 or (cause == 'seeing_someone' and lvl < 2):
+    if lvl == 0 or (cause in NEVER_EASY and lvl < 2):
         return None
     found = optional(connection, 'SELECT * FROM rough_patches WHERE subject=?', (subject,))
     if found:
@@ -513,13 +520,14 @@ def tension(connection, companion: dict, now: datetime) -> dict | None:
 def turned_down(connection, companion: dict, message: dict, kind: str, now: datetime) -> bool:
     """The user asks to get together (going out, or a visit) while things are tense: the engine decides whether they
     would rather not, for now. Then nothing is booked, and the reply says so (a visit turned down,
-    companion/life/together.py). True when they turned it down."""
+    companion/life/together.py). True when they turned it down. Never on an easy life (a turn-down is a hard turn):
+    there they say yes, even to a rough patch carried over from a real one."""
     if not ACTIVE or message['role'] != 'user' or not companion.get('active_timeline_id'):
         return False
     if optional(connection, 'SELECT id FROM together_asks WHERE message_id=?', (message['id'],)):
         return True
     found = tension(connection, companion, now)
-    if found is None:
+    if found is None or level(connection) < 2:
         return False
     definition = companion['version']['definition']
     names = {'name': first_name(companion), 'a': 'someone', 'b': ''}

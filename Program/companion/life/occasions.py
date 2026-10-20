@@ -14,6 +14,7 @@ Three kinds of day, all from saved state and the calendar, never from a model:
   on the day the companion may celebrate with them (companion/life/composer.py).
 - a family tradition (companion/life/traditions.py): a holiday their family keeps, with how they keep it.
 - a step in the relationship (companion/life/steps.py): a year since they became exclusive, two since moving in.
+- the day someone in their circle died, a year or more on (companion/life/loss.py): on the day only, with no first text.
 - how long the two have been talking: a month, three months, six months, a hundred days, then each
   year, counted from the timeline's first message. For a romance it is their anniversary.
 
@@ -25,8 +26,8 @@ from calendar import monthrange
 from datetime import date, timedelta
 
 from companion.clock import parse, zone
-from companion.database import optional, settings
-from companion.life import ages, circle, steps, traditions
+from companion.database import decode, optional, settings
+from companion.life import ages, circle, loss, steps, traditions
 from companion.world import generators
 
 SOON = 7
@@ -148,11 +149,15 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     ahead = days_until(own_today, mine) if mine else SOON + 1
     if ahead <= SOON:
         found.append(own_occasion(connection, companion, own_today + timedelta(days=ahead), ahead))
-    for person in circle.people(connection, companion['active_timeline_id']) if SEEDED else ():
+    for row in circle.people(connection, companion['active_timeline_id']) if SEEDED else ():
+        # As they say it: 'mother' in 1895, here and on Today (circle.said).
+        person = {**row, 'role': circle.said(row['role'], companion['version']['definition'])}
         ahead = days_until(own_today, circle.birthday(person['id']))
         if ahead <= SOON:
             day = own_today + timedelta(days=ahead)
-            turns = turning(ages.person_age(connection, 'circle', person['id'], day))
+            turns = turning(ages.person_age(connection, 'circle', person['id'], day),
+                            ages.person_lifespan(connection, decode(person['details']) or {},
+                                                 companion['version']['definition']))
             found.append(occasion('circle_birthday', day, ahead, f"your {person['role']} {person['name']}'s "
                                   f"{ages.ordinal(turns) + ' ' if turns else ''}birthday", '', person=person,
                                   turns=turns))
@@ -164,6 +169,9 @@ def occasions(connection, companion: dict, now) -> list[dict]:
         found.append(occasion('step_anniversary', item['date'], item['days'],
                               f"{years} since you and the user {item['did']} ({steps.long_date(item['on'])})",
                               '', span=years, did=item['did'], step=item['step']))
+    for item in loss.anniversaries(connection, companion, own_today):
+        found.append(occasion('death_anniversary', own_today, 0, item['what'], item['hint'], span=item['span'],
+                              person={'id': item['id'], 'name': item['name'], 'role': item['role']}))
     span = milestone(first, user_today) if first else None
     if span:
         from companion.life import breakups  # It reads this module's neighbours; imported when used.
@@ -179,7 +187,8 @@ def occasions(connection, companion: dict, now) -> list[dict]:
 def own_occasion(connection, companion: dict, day: date, ahead: int) -> dict:
     """Their own birthday; a milestone says which, and someone who keeps their age is not a year older."""
     definition = companion['version']['definition']
-    turns = turning(ages.turns_on(connection, companion['id'], definition, day))
+    turns = turning(ages.turns_on(connection, companion['id'], definition, day),
+                    ages.companion_lifespan(connection, definition))
     found = occasion('own_birthday', day, ahead, f'your {ages.ordinal(turns)} birthday, a big one' if turns
                      else 'your birthday', '', turns=turns)
     if found['template'] and definition.get('keeps_age'):
@@ -187,15 +196,16 @@ def own_occasion(connection, companion: dict, day: date, ahead: int) -> dict:
     return found
 
 
-def turning(age: int | None) -> int | None:
-    """The age a birthday turns them, when it is a milestone (30, 40, 50 ...: companion/life/ages.py)."""
-    return age if ages.milestone(age) else None
+def turning(age: int | None, lifespan: int | None = 80) -> int | None:
+    """The age a birthday turns them, when it is a milestone (30, 40, 50 ..., an elf's 100, 150 ...:
+    companion/life/ages.py)."""
+    return age if ages.milestone(age, lifespan) else None
 
 
 def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', person: dict | None = None,
              tradition: dict | None = None, did: str = '', step: str = '', turns: int | None = None) -> dict:
     when = 'Today' if ahead == 0 else 'Tomorrow' if ahead == 1 else f"In {ahead} days ({day:%A} {day.day} {day:%B})"
-    text = f"- {when} is {what}." if kind != 'anniversary' else f'- Today it has been {what}.'
+    text = f"- {when} is {what}." if kind not in ('anniversary', 'death_anniversary') else f'- Today it has been {what}.'
     if kind == 'step_anniversary':
         text = f"- {when} it will be {what}." if ahead else f'- Today it has been {what}.'
     if tradition:

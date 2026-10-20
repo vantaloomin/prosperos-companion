@@ -42,8 +42,8 @@ from companion import consequences
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, pronouns, steps
-from companion.world import catalog
+from companion.life import ages, breakups, circle, pronouns, steps
+from companion.world import catalog, lifespans
 
 # Off in tests unless a test turns it on (tests/conftest.py): a seeded partner adds circle people and first texts.
 ACTIVE = True
@@ -182,6 +182,8 @@ def new_person(connection, companion: dict, world, seed: str) -> dict:
     data = circle.city_data(definition, world)
     # Near the age they are now, birthdays and all (companion/life/ages.py).
     age = grooming.sheet(connection, companion['id'], definition).get('age') or looks.age_of(definition, companion['id'])
+    # Near it in human terms (companion/world/lifespans.py): an elf of 300 meets someone of about 48, of any kind.
+    age = lifespans.life_age(age, ages.companion_lifespan(connection, definition))
     wanted = drawn_to(connection, companion)
     taken = {row['name'] for row in circle.people(connection, timeline_id, include_removed=True)} | {definition['name']}
     used = first_names_in_use(connection, companion)
@@ -313,6 +315,8 @@ def begin(connection, companion: dict, world, day: date, found: dict, now) -> di
     row = one(connection, 'SELECT * FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))
     partner_id = insert(connection, companion, row['name'], {**person['details'], 'met': found['met']}, day, now,
                         person_id=row['id'])
+    from companion.life import kids  # Someone past their twenties may come with kids (companion/life/kids.py).
+    kids.partner_kids(connection, companion, world, row, now)
     return {'partner': partner_id}
 
 
@@ -430,7 +434,7 @@ def roll(connection, companion: dict, found: dict, top: int, following, topic: s
     from companion.memory import pairs
     definition = companion['version']['definition']
     facts = {'love_life': level(connection), 'drama': steps.drama(connection), 'step': top,
-             'can_up': int(following is not None),
+             'can_up': int(following is not None), 'breakups': int(breakups.switched_on(connection)),
              'mood': consequences.total(connection, companion['active_timeline_id'],
                                         pairs.companion_key(companion['id']), 'mood', day.isoformat()),
              'sheet': {group for group in consequences.WORDS if consequences.sheet_has(definition, group)}}
@@ -452,11 +456,13 @@ def step_up(connection, found: dict, key: str, day: date, timestamp: str) -> Non
 
 
 def end(connection, found: dict, how: str, day: date, **values) -> None:
-    """The pair is over: a breakup, the user removing them, or a secret that came out. An ex leaves the circle."""
+    """The pair is over: a breakup, the user removing them, or a secret that came out. An ex leaves the circle,
+    unless the two of them have a child (companion/life/custody.py)."""
     extra = ''.join(f', {column}=?' for column in values)
     connection.execute(f'UPDATE love_partners SET ended_on=?, ended_how=?{extra} WHERE id=? AND ended_on IS NULL',
                        (day.isoformat(), how, *values.values(), found['id']))
-    if found['person_id'] and how == 'split':
+    from companion.life import custody  # A partner they share a child with stays, as the child's other parent.
+    if found['person_id'] and how == 'split' and not custody.keep_coparent(connection, found['person_id'], day):
         connection.execute("UPDATE circle_people SET role='ex', status='removed', revision=revision+1 WHERE id=?",
                            (found['person_id'],))
 

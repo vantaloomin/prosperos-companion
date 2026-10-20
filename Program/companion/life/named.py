@@ -39,7 +39,8 @@ SLOTS = {'parent': ('parent', 'mom', 'dad'), 'sibling': ('sibling', 'sister', 'b
          'roommate': ('roommate from years ago',), 'neighbor': ('neighbor',), 'coworker': ('coworker',),
          'mentor': ('mentor',), 'boss': ('mentor',)}
 MODIFIER = (r'(?:(?:older|younger|little|big|baby|twin|oldest|youngest|eldest|late|ex-|childhood|new|old|'
-            r'elderly|kid|teenage|adult|grown|step)[ -]?)*')
+            r'elderly|kid|teenage|adult|grown|step|(?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|'
+            r'twelve|thirteen|fourteen|fifteen|sixteen|seventeen)[ -]years?[ -]old)[ -]?)*')
 RELATION_WORDS = '|'.join(re.escape(word) for word in sorted(RELATIONS, key=len, reverse=True))
 # How the circle lists them when the relation is not a parent or sibling (those follow their pronouns).
 ROLE_WORDS = {'best friend': 'close friend', 'flatmate': 'roommate', 'housemate': 'roommate', 'neighbour': 'neighbor',
@@ -78,6 +79,16 @@ LOOK = r"((?:[\w'’-]+ ){0,3}?)"
 PET = (re.compile(rf"\b(?:a|an|the|{OWNER}) {LOOK}{SPECIES_WORD}s?,? (?:(?:named|called) ){NAME}", re.IGNORECASE),
        re.compile(rf"\b{OWNER} {LOOK}{SPECIES_WORD},? {NAME}", re.IGNORECASE),
        re.compile(rf"{NAME}, {OWNER} {LOOK}{SPECIES_WORD}\b", re.IGNORECASE))
+# A child's age the sheet gives: "her son Leo, 7", "Leo (7)", "Leo is seven", "her 7-year-old son Leo".
+NUMBERS = {word: value for value, word in enumerate(
+    'zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen '
+    'eighteen nineteen twenty'.split())}
+_AGE = rf"(\d{{1,2}}|{'|'.join(NUMBERS)})"
+AGE_AFTER = rf"\b(?:NAME)\b(?:,? (?:who is |who's |aged |is )?| \(){_AGE}\)?(?:[ -]years?[ -]old)?(?![\w-])"
+AGE_BEFORE = re.compile(rf"\b{_AGE}[ -]years?[ -]old\b", re.IGNORECASE)
+# How old a child is likely to be from the word before them, when no age is given: (youngest, oldest).
+YOUNG_WORDS = {'baby': (0, 1), 'little': (2, 8), 'kid': (4, 11), 'teenage': (13, 17), 'young': (2, 9)}
+GROWN = re.compile(r'\b(?:grown|adult)\b', re.IGNORECASE)
 ELSEWHERE = r"\b{name}\b[^.;]*?\blives? (?:in|out in|over in|back in|down in|up in) (?-i:([A-Z][\w.'’-]*(?: [A-Z][\w.'’-]*)*))"
 
 
@@ -117,8 +128,32 @@ def people(definition: dict) -> list[dict]:
         local = not elsewhere or (bool(home) and home in elsewhere.group(1).casefold())
         found[name] = {'name': name, 'relation': relation, 'kind': kind, 'pronouns': pronouns,
                        'role': ROLE_WORDS.get(relation, relation),
-                       'generator_role': role, 'local': local}
+                       'generator_role': role, 'local': local, 'modifier': modifier.strip(' -').casefold()}
+        if kind == 'child':
+            found[name] |= child_age(text, name, modifier)
     return list(found.values())
+
+
+def child_age(text: str, name: str, modifier: str) -> dict:
+    """{age (None when the sheet gives none), grown} for a son or daughter the sheet names: grown when the sheet says
+    "grown" or "adult", or gives an age of 18 or more."""
+    for match in (AGE_BEFORE.search(modifier), re.search(AGE_AFTER.replace('NAME', re.escape(name)), text, re.IGNORECASE)):
+        if match:
+            value = match[1]
+            age = int(value) if value.isdigit() else NUMBERS[value.casefold()]
+            return {'age': age, 'grown': age >= 18}
+    return {'age': None, 'grown': bool(GROWN.search(modifier))}
+
+
+def in_circle(definition: dict) -> list[dict]:
+    """The people the sheet names who join the circle: everyone but a child (`minor`)."""
+    return [person for person in people(definition) if not minor(person)]
+
+
+def minor(person: dict) -> bool:
+    """A son or daughter the sheet names who isn't said to be grown: a child, so words only (companion/life/kids.py),
+    never someone in the circle. Unsure reads as a child."""
+    return person['kind'] == 'child' and not person.get('grown')
 
 
 def pets_of(definition: dict) -> list[dict]:

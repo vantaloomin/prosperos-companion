@@ -28,11 +28,19 @@ def employer(id, name, sector, hood, size, summary, careers):
 # How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
 EMPLOYMENT = {'telegraphist': 'rota', 'shop-assistant': 'rota', 'infirmary-nurse': 'rota', 'photographer': 'freelance',
               'barmaid': 'rota'}
+# Who did the work in this era where custom kept it to men or women (schema Career.worked_by): townsfolk's jobs
+# follow it, so a mother is never a cabman. Left out, anyone.
+M, W = 'men', 'women'
+WORKED_BY = {'tube-fitter': M, 'tube-drawer': M, 'boilermaker': M, 'iron-moulder': M, 'draughtsman': M,
+             'canal-boatman': M, 'lock-keeper': M, 'railway-signalman': M, 'airship-mail-rigger': M, 'typist': W,
+             'office-clerk': M, 'infirmary-nurse': W, 'institute-lecturer': M, 'union-organiser': M, 'compositor': M,
+             'reporter': M}
 
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')} | (
+        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {})
 
 
 def event(id, name, months, hood, summary):

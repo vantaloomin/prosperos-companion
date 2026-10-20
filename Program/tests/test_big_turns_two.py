@@ -57,8 +57,9 @@ def budget(client, clock) -> dict:
 
 
 def test_the_new_banks_have_a_hundred_of_each_for_every_era():
-    for bank in ('businesses', 'conditions'):
-        for era in ('modern', 'jazz-age', 'other'):
+    for bank, eras in (('businesses', ('modern', 'jazz-age', 'medieval', 'victorian')),
+                       ('conditions', ('modern', 'jazz-age', 'other'))):
+        for era in eras:
             entries = big_turns.data()[bank][era]
             assert len(entries) >= 100 and len({json.dumps(entry) for entry in entries}) == len(entries)
     for era in big_turns.data()['businesses'].values():

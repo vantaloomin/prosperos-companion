@@ -2213,7 +2213,7 @@ CREATE TABLE IF NOT EXISTS relationship_steps (
   id TEXT PRIMARY KEY,
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   other TEXT NOT NULL DEFAULT 'user',
-  ladder TEXT NOT NULL CHECK (ladder IN ('romance', 'friendship')),
+  ladder TEXT NOT NULL CHECK (ladder IN ('romance', 'friendship', 'parenthood')),
   step TEXT NOT NULL,
   reached_on TEXT NOT NULL,
   how TEXT NOT NULL CHECK (how IN ('start', 'history', 'them', 'you', 'set', 'confession')),
@@ -2509,7 +2509,7 @@ CREATE TABLE IF NOT EXISTS circle_children (
   storyline_id TEXT NOT NULL,
   name TEXT NOT NULL,
   pronouns TEXT NOT NULL CHECK (pronouns IN ('she/her', 'he/him', 'they/them')),
-  title TEXT NOT NULL CHECK (title IN ('family', 'godchild', 'friend')),
+  title TEXT NOT NULL CHECK (title IN ('family', 'godchild', 'friend', 'ours')),
   born_on TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('expected', 'born', 'ended')),
   created_at TEXT NOT NULL,
@@ -2550,4 +2550,91 @@ CREATE TABLE IF NOT EXISTS town_levels (
   loss INTEGER NOT NULL,
   families INTEGER NOT NULL,
   created_at TEXT NOT NULL
+);
+
+-- Wanting children (companion/life/parenthood.py): what the user set for a companion on the Character page, NULL
+-- while the app decides (from their description, else the consequence engine's family:wants and family:route).
+-- `wants` is yes, someday or no; `route` how a child would come for the user and a romance companion.
+CREATE TABLE IF NOT EXISTS family_wishes (
+  companion_id TEXT PRIMARY KEY REFERENCES companions(id),
+  wants TEXT CHECK (wants IN ('yes', 'someday', 'no')),
+  route TEXT CHECK (route IN ('expecting_them', 'expecting_you', 'adoption', 'fostering', 'surrogacy', 'ward',
+                              'foundling', 'relative')),
+  updated_at TEXT NOT NULL
+);
+
+-- Companions' own babies (companion/life/own_family.py): an evening the companion asks the user to babysit one of
+-- their own children (`child_id`, circle_children) while they and their partner go out. 'planned' until the ask goes
+-- out as a first text (`message_id`), 'asked' until the user's first reply says 'yes' or 'no'; 'done' once a yes
+-- evening has passed, 'called_off' when an unanswered one did (someone else watched them) or the child is withheld.
+CREATE TABLE IF NOT EXISTS babysitting (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  child_id TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  until_time TEXT NOT NULL,
+  ask_on TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('planned', 'asked', 'yes', 'no', 'done', 'called_off')),
+  message_id TEXT,
+  answered_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, child_id, local_date)
+);
+CREATE INDEX IF NOT EXISTS babysitting_timeline ON babysitting(timeline_id, status, local_date);
+
+-- Companions who already have kids (companion/life/kids.py), per timeline: how their own children came to be known
+-- (`how`: their description, their life as a townsperson, the consequence engine's kids:has, or none), the kids' other
+-- parent in their circle (`other_id`, NULL when widowed), where the kids live (`chosen` by the user, else kids:custody's
+-- pick when `pattern_consequence_id`, else `pattern` as the description or the household fixed it), the Monday alternate weeks count from (`since`)
+-- and the first names of children the user took out of their life (`removed`, JSON), so the description doesn't
+-- bring them back. The children themselves are in circle_children.
+CREATE TABLE IF NOT EXISTS companion_kids (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  how TEXT NOT NULL CHECK (how IN ('description', 'town', 'seeded', 'none')),
+  other_id TEXT,
+  pattern TEXT NOT NULL CHECK (pattern IN ('together', 'with_them', 'shared', 'weekends', 'sole')),
+  chosen TEXT CHECK (chosen IN ('together', 'with_them', 'shared', 'weekends', 'sole')),
+  consequence_id TEXT,
+  pattern_consequence_id TEXT,
+  since TEXT NOT NULL,
+  removed TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS companion_kids_consequence ON companion_kids(consequence_id);
+
+-- Expecting or adopting together (companion/life/expecting.py): how a child comes for the user and a romance companion
+-- once they decided to start a family, planned the day after by the route picked for them. `stages` holds each stage
+-- with its day ({key, on}), planned again from the engine's picks (`consequences`, by choice) when one is changed;
+-- `details` the child's name and pronouns (the user can rename them), their age when they come home, the due date and
+-- a hard turn. `child_id` is the circle_children row (title 'ours') once born or home.
+CREATE TABLE IF NOT EXISTS family_journeys (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  companion_id TEXT NOT NULL,
+  route TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('planned', 'running', 'home', 'called_off')),
+  decided_on TEXT NOT NULL,
+  started_on TEXT NOT NULL,
+  due_on TEXT,
+  arrived_on TEXT,
+  child_id TEXT,
+  stages TEXT NOT NULL DEFAULT '[]',
+  details TEXT NOT NULL DEFAULT '{}',
+  consequences TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS family_journeys_timeline ON family_journeys(timeline_id, status);
+
+-- Our child (companion/life/our_child.py): who looks after the pair's own children until the youngest is at school,
+-- when the user set it ('both_work', 'part_time', 'them_home' or 'you_home'; NULL leaves it to the engine's family:care).
+CREATE TABLE IF NOT EXISTS our_family (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  care TEXT CHECK (care IS NULL OR care IN ('both_work', 'part_time', 'them_home', 'you_home')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );

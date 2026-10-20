@@ -114,6 +114,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.wedding.FIRST_TEXTS', False)
     # Nor a text from the one you live with about another of your partners moving in (companion/life/moving_in.py).
     monkeypatch.setattr('companion.life.moving_in.FIRST_TEXTS', False)
+    # Nor the news of a baby on the way or a child coming home (companion/life/expecting.py).
+    monkeypatch.setattr('companion.life.expecting.FIRST_TEXTS', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.
@@ -128,10 +130,24 @@ def no_turnover(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_grandparents(monkeypatch):
+    """A companion under 40 has a grandparent on top of their circle's size (companion/life/circle.py), which would
+    change unrelated tests' circles; tests/test_social_circle.py turns it on."""
+    monkeypatch.setattr('companion.life.circle.ELDERS', False)
+
+
+@pytest.fixture(autouse=True)
 def no_new_babies(monkeypatch):
     """Pregnancies, updates and babysitting in the circle (companion/life/families.py) are seeded dice that would add
     storylines to unrelated tests; tests/test_families.py turns them on."""
     monkeypatch.setattr('companion.life.families.ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
+def no_kids(monkeypatch):
+    """Companions who already have kids (companion/life/kids.py): the engine may give a new companion kids and a
+    co-parent, which would add people to unrelated tests' circles; tests/test_kids.py turns it on."""
+    monkeypatch.setattr('companion.life.kids.ACTIVE', False)
 
 
 @pytest.fixture(autouse=True)
@@ -271,3 +287,12 @@ def set_life(client, **values):
     response = client.put('/api/life/settings', json=values)
     assert response.status_code == 200, response.text
     return response.json()
+
+
+def intimate(client):
+    """Makes the next reply read intimate (companion/memory/sides.py), through the chat's author's note: with the
+    adult side on it then carries the adult side and no child."""
+    companion = client.get('/api/companion').json()['companion']
+    response = client.put(f"/api/authors-notes/companion:{companion['id']}",
+                          json={'text': 'Slow, sensual, the two of you alone in the bedroom.'})
+    assert response.status_code == 200, response.text

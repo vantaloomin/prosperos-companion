@@ -17,13 +17,14 @@ person has heard. Secrets keep their own rules (companion/secrets.py) and never 
 Only life events travel, never anything from the user's chats, so no companion can seem to have read the user's
 chats with someone else; prompts also say they don't know whether the user has heard.
 """
+import re
 from datetime import date, time, timedelta
 
 from companion import consequences, secrets
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
 from companion.database import decode, identifier, many, settings
-from companion.life import circle, love_life, storylines
+from companion.life import circle, expecting, families, love_life, storylines
 from companion.memory import pairs
 
 CHOICE = 'news:pass_on'
@@ -56,8 +57,10 @@ def found(connection, companion: dict, now) -> list[dict]:
                     'AND started_on>=? AND started_on<=?', (companion['active_timeline_id'], since, today.isoformat())):
         result.append({'source': f"chapter:{row['id']}", 'text': row['title'].rstrip('.'),
                        'happened_on': row['started_on']})
-    # Their own love life (companion/life/love_life.py): steps and breakups, never a secret.
-    return result + love_life.news_items(connection, companion, since, today.isoformat())
+    # Their own love life (companion/life/love_life.py): steps and breakups, never a secret; a baby on the way or a
+    # child coming home with the user (companion/life/expecting.py).
+    return result + love_life.news_items(connection, companion, since, today.isoformat()) + \
+        expecting.news_items(connection, companion, since, today.isoformat())
 
 
 def register(connection, companion: dict, now) -> None:
@@ -180,9 +183,11 @@ ACTIVE = "JOIN companions c ON c.active_timeline_id=n.timeline_id WHERE n.status
 
 def heard(connection, holder: str, since: str, limit: int = CONTEXT_LIMIT) -> list[dict]:
     """News about someone else that this person heard since `since`, newest first, with who told them. Only news
-    on its companion's active timeline: a forked or abandoned timeline's news stays where it was."""
+    on its companion's active timeline: a forked or abandoned timeline's news stays where it was. With the adult side
+    of life on, none about a child on the way or come home (companion/life/expecting.py)."""
+    kept = " AND n.source NOT LIKE 'journey:%'" if families.withheld(connection) else ''
     return many(connection, 'SELECT n.*, h.told_by, h.heard_on, h.hop, h.via FROM news n JOIN news_holders h '
-                f'ON h.news_id=n.id AND h.holder=? {ACTIVE} AND n.about!=? AND h.heard_on>=? '
+                f'ON h.news_id=n.id AND h.holder=? {ACTIVE} AND n.about!=? AND h.heard_on>=?{kept} '
                 'ORDER BY h.heard_on DESC, n.id LIMIT ?', (holder, holder, since, limit))
 
 
@@ -268,11 +273,20 @@ def listing(connection, companion: dict, now) -> list[dict]:
                      'ORDER BY n.happened_on DESC, n.id', (key, since)):
         rows = many(connection, 'SELECT * FROM news_holders WHERE news_id=? AND holder!=? ORDER BY heard_on, hop, '
                     'holder', (item['id'], key))
-        result.append({'id': item['id'], 'text': item['text'], 'happened_on': item['happened_on'],
-                       'heard': [{'name': who(connection, row['holder'], key), 'heard_on': row['heard_on'],
-                                  'from': None if row['told_by'] == key else who(connection, row['told_by'], key),
+        result.append({'id': item['id'], 'text': on_screen(item['text']), 'happened_on': item['happened_on'],
+                       'heard': [{'name': on_screen(who(connection, row['holder'], key)), 'heard_on': row['heard_on'],
+                                  'from': None if row['told_by'] == key else on_screen(who(connection, row['told_by'],
+                                                                                           key)),
                                   'companion_id': pairs.companion_id(row['holder'])} for row in rows]})
     return result
+
+
+def on_screen(text: str) -> str:
+    """News as the user reads it on Today: "Dana and the user are expecting a baby" is "You and Dana are expecting a
+    baby" (the stored words stay as they are for the prompts that pass it on)."""
+    text = re.sub(r'^(.+?) and the user\b', r'You and \1', text)
+    text = re.sub(r'^the user\b', 'You', text)
+    return re.sub(r'\bthe user\b', 'you', text)
 
 
 def read(database) -> list[dict]:

@@ -131,6 +131,8 @@ export interface CharacterDefinition {
   birthday?: string
   /** On: they stay the age written instead of turning a year older on each birthday (companion/life/ages.py). */
   keeps_age?: boolean
+  kind?: string
+  lifespan?: number | null
   identity: string
   personality: string
   voice: string
@@ -209,7 +211,8 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral'; shown?: string }
+interface MoneyHappening { label: string; on: string; cost: number; for?: MoneyFor; shown?: string }
+export type MoneyFor = 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral' | 'admin' | 'family' | 'owed' | 'childcare' | 'sitter' | 'baby'
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -222,6 +225,8 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   rent_from: 'home' | 'budget'
   /** Living on a pension, and paying a mortgage on a place they bought (companion/life/big_turns.py). */
   retired?: boolean
+  /** A medieval kingdom or a fairy-tale land: payments on a place instead of a mortgage, and no pension. */
+  medieval?: boolean
   /** Their own business's short name ('bakery') while they run one (companion/life/business.py). */
   business?: string | null
   owned?: boolean
@@ -492,6 +497,8 @@ export interface LifeSettings {
   life_turns: number
   /** Births and growing families (companion/life/families.py): 0 none, 1 now and then, 2 true to life, 3 lots. */
   growing_families: number
+  /** Our child (companion/life/our_child.py): 0 easy kids ... 3 true-to-life chaos. */
+  family_life: number
   /** Loss and grief (companion/life/loss.py): whether people can pass away (off on every preset), and how often: 0 rare, 1 now and then, 2 true to life, 3 often. */
   people_pass_away: boolean
   loss: number
@@ -514,7 +521,124 @@ export interface StepsView {
   asks?: { id: string; step: string; side: 'them' | 'you'; status: 'open' | 'yes' | 'not_yet' | 'no' | 'lapsed'; topic: string; on: string; consequence_id: string | null }[]
   /** Moving in together (companion/life/moving_in.py), from the moving-in step on; `consequence_id` only with odds on. */
   moving_in?: MovingIn | null
+  /** Living apart again after living together: since when, and who moved out ('you' the user, 'them' the companion). */
+  apart?: { since: string; by: 'you' | 'them' | null } | null
 }
+
+/** Wanting children (GET /api/life/steps/family, companion/life/parenthood.py); `shown` false for one who reads as
+ * a minor. The route and the family step only for a romance; consequence ids only with Hidden values' odds on. */
+export interface FamilyView {
+  shown: boolean
+  wants: 'yes' | 'someday' | 'no'
+  wants_how: 'set' | 'description' | 'seeded' | 'nudged'
+  nudged_by: string | null
+  wants_consequence_id: string | null
+  wants_options: { key: string; label: string }[]
+  romance: boolean
+  route?: string; route_how?: 'set' | 'seeded'; route_consequence_id?: string | null
+  routes?: { key: string; label: string }[]
+  decided_on?: string | null; decided_how?: 'them' | 'you' | 'set' | null; can_decide?: boolean
+  /** Expecting or adopting together (companion/life/expecting.py), once you two have decided. */
+  journey?: Journey | null
+  /** Another child (companion/life/parenthood.py): when you two decided on one, and whether it can be set now. */
+  another_on?: string | null
+  can_decide_another?: boolean
+}
+
+/** The pair's own children (GET /api/life/steps/ours, companion/life/our_child.py); `shown` false with none. Who
+ * looks after them is the app's pick (`seeded`) or the user's (`set`); its consequence id only with Hidden values'
+ * odds on. */
+export interface OursView {
+  shown: boolean
+  children: OurChild[]
+  care?: 'both_work' | 'part_time' | 'them_home' | 'you_home'
+  care_how?: 'set' | 'seeded'
+  /** Whether it applies now: until the youngest starts school. */
+  care_now?: boolean
+  care_consequence_id?: string | null
+  cares?: { key: string; label: string }[]
+  /** Where they live while their parents live apart (companion/life/custody.py); null under one roof. */
+  custody?: Custody | null
+}
+
+/** Where the pair's children live after a breakup (`split`) or across cities (`far`, with the user's `city`):
+ * `patterns` to pick from only after a breakup; the consequence id only with Hidden values' odds on. */
+export interface Custody {
+  pattern: 'with_them' | 'shared' | 'with_you'
+  how: 'set' | 'seeded'
+  split: boolean
+  far: boolean
+  /** The day it ended, after a breakup. */
+  ended_on: string | null
+  city: string | null
+  detail: string
+  patterns: { key: string; label: string }[]
+  consequence_id: string | null
+}
+
+/** One child of the pair: their sheet for now (a newborn has only a temperament) and the milestones reached. Words
+ * only, never a picture. */
+export interface OurChild {
+  id: string
+  name: string
+  pronouns: string
+  born_on: string
+  arrived_on: string
+  journey_id: string
+  age: number
+  age_text: string
+  grown: boolean
+  relation: 'son' | 'daughter' | 'child'
+  temperament: string | null
+  likes: string | null
+  quirk: string | null
+  milestones: { key: string; label: string; date: string }[]
+  latest: { label: string; date: string } | null
+  kind?: KindShown
+}
+
+/** A child of the pair on Today. */
+export type TodayChild = Pick<OurChild, 'id' | 'name' | 'age_text' | 'relation' | 'likes' | 'latest'> & {
+  /** 'With Sam today', 'With you today', 'Lives with Sam' while their parents live apart. */
+  where_today?: string | null
+}
+
+/** How the child comes: the stages reached, and once it is under way those to come; the child's name once known;
+ * consequence ids only with Hidden values' odds on. */
+export interface Journey {
+  route: string
+  status: 'planned' | 'running' | 'home'
+  due_on: string | null
+  arrived_on: string | null
+  name: string | null
+  renamed: boolean
+  stages: { key: string; label: string; date: string | null; done: boolean }[]
+  consequences: string[]
+  /** The same outcomes with the engine's choice each is ('soon', 'turn', 'wait', 'match', 'fostered'). */
+  outcomes?: { key: string; id: string }[]
+}
+
+/** Companions who already have kids (GET /api/life/steps/kids, companion/life/kids.py); `shown` false with none. Where
+ * they live is the app's pick (`seeded`), fixed by the description or the household (`fixed`), or the user's (`set`);
+ * consequence ids only with Hidden values' odds on. */
+export interface KidsView {
+  shown: boolean
+  how?: 'description' | 'town' | 'seeded'
+  kids?: Kid[]
+  other?: { name: string; role: string } | null
+  pattern?: 'together' | 'with_them' | 'shared' | 'weekends' | 'sole'
+  pattern_how?: 'set' | 'seeded' | 'fixed'
+  patterns?: { key: string; label: string }[]
+  pattern_consequence_id?: string | null
+  consequence_id?: string | null
+  /** The arrangement spelled out: "with Dana, every other weekend at Mark's". */
+  detail?: string
+  step_parent?: boolean
+  /** For a romance not living together: whether you have met the kids. */
+  meeting?: 'met' | 'soon' | 'unmet' | null
+}
+
+export interface Kid { id: string; name: string; pronouns: string; born_on: string; age: number; age_text: string; relation: 'son' | 'daughter' | 'child' }
 
 /** Whose place in one city ('yours', 'theirs', 'new'), or who moves across the distance ('them' to your city; 'you',
  * which waits until you move to theirs). `place` is the neighbourhood, `city` the city, `home` the shared home once moved. */
@@ -606,6 +730,8 @@ export interface Today {
   mind?: { thoughts: Thought[] } | null
   moments: Moment[]
   dreams: Dream[]
+  /** The pair's own children (companion/life/our_child.py). */
+  family?: TodayChild[]
 }
 
 /** One day's thought on the companion's mind. */
@@ -665,7 +791,30 @@ export interface DiaryEntry {
   entry: { summary: string; activity?: string; place?: string | null; mood?: string | null; post?: unknown }
   status: string
 }
+/** Someone's kind and how long they live (companion/world/lifespans.py `described`). `own` is the user's pick of
+ * How long they live: null as their kind, 0 doesn't age. `years` is what applies (null: they don't age). */
+export interface KindShown {
+  kind: string
+  label: string
+  own: number | null
+  years: number | null
+  kind_years: number | null
+  life_age: number | null
+  /** The app's pick, and the user's ('' for none) where it can differ. */
+  found?: string
+  from_parents?: boolean
+  picked?: string
+}
+
+/** What the Kind and How long they live pickers offer (GET /life/kinds). */
+export interface KindChoices {
+  kinds: { id: string; label: string; lifespan: number | null }[]
+  spans: number[]
+}
+
 export interface CirclePerson {
+  kind?: KindShown
+  own_kind?: string
   id: string
   /** Where their own people are built from (GET /life/network?key=). */
   key: string
@@ -704,6 +853,8 @@ export interface CirclePerson {
   children?: CircleChild[]
   /** The month their baby is due while they are expecting: "March". */
   expecting?: string | null
+  /** The companion and this partner are adopting rather than expecting. */
+  adopting?: boolean
   /** Written into the character's description (companion/life/named.py): spared from passing away unless `spared` is false. */
   sheet?: string
   /** People can pass away (companion/life/loss.py): whether the user spared them, or let them pass away. */
@@ -725,6 +876,8 @@ export interface CircleChild {
   age_text: string
   relation: string | null
   title: 'family' | 'godchild' | 'friend'
+  /** The companion's own child with their partner (companion/life/own_family.py). */
+  own?: boolean
 }
 
 /** A circle person who has met the user, or is about to (companion/life/their_people.py). `before` is a couple who go
@@ -1250,6 +1403,16 @@ export interface NewsItem {
   heard: { name: string; heard_on: string; from: string | null; companion_id: string | null }[]
 }
 
+/** The pregnancy's hard turn once it has come (companion/life/expecting.py `turn_shown`), listed on Today with an
+ * Undo like a chapter: bed rest until the birth, an early arrival for two weeks after it. */
+export interface FamilyTurn {
+  /** The journey's id. */
+  id: string
+  kind: 'bed_rest' | 'early'
+  on: string
+  title: string
+  consequence: string | null
+}
 export interface LifeChapter {
   id: string
   kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves' | 'relationship' | 'move_in' | 'move_out' | 'school' | 'career_change' | 'buy_place' | 'retire' | 'business' | 'health' | 'caring'
@@ -1260,6 +1423,8 @@ export interface LifeChapter {
   /** The day its latest stage came (the day it began for other chapters), as Today shows it. */
   on: string
   consequence: string | null
+  /** How its latest stage went (a business's months, a health turn's outlook, a parent's care), still changeable. */
+  outcome?: string | null
   undone: boolean
 }
 
@@ -1280,6 +1445,10 @@ export interface Consequence {
   options: { option: number; label: string; odds: number; reasons: string[]; moves?: ReasonMove[] }[]
   picked: number
   picked_by: 'dice' | 'user'
+  /** The choice it answered ("business:how"). */
+  choice?: string
+  /** Set when it can no longer change (how a stage went that already led to a later one): why, shown as a hint. */
+  settled?: string
   /** What it left behind for a while, tilting later odds; a ripple reached a companion close to them. */
   marks: { kind: 'mood' | 'money' | 'avoid'; amount: number; note: string; until: string; ripple: boolean; holder: string; who: string | null }[]
 }
@@ -1295,7 +1464,7 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary' | 'death_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
 
 /** A holiday the companion's family keeps (companion/life/traditions.py). */
 export interface Tradition { id: string; holiday: string; name: string; text: string; origin: 'seeded' | 'user'; edited: boolean; next: string | null }
@@ -1316,7 +1485,7 @@ export type ScrapbookPage =
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
 /** Our history at a glance: one line a week lately, a month, then a year further back (companion/memory/history.py).
  * `corrected` is the user's own words, an empty string when they left the line out, or null for the app's line. */
-export interface HistoryLine { key: string; kind: 'week' | 'month' | 'year'; start: string; end: string; label: string; days: number; text: string; corrected: string | null }
+export interface HistoryLine { key: string; kind: 'week' | 'month' | 'year'; start: string; end: string; label: string; days: number; together?: number; text: string; corrected: string | null }
 export interface History { name: string; lines: HistoryLine[] }
 export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
 
@@ -1338,6 +1507,8 @@ export interface HomeItem {
   rent_period?: 'month' | 'week'
   /** A place they bought: `rent` is then the mortgage (companion/life/big_turns.py). */
   owned?: boolean
+  /** Bought in a medieval kingdom or a fairy-tale land: payments on it, not a mortgage. */
+  medieval?: boolean
   currency?: { code: string; symbol: string; name: string }
   /** The rent (or mortgage) as money.py says it, in the city's money: "$1,410", "8 d.", "15s.". */
   rent_text?: string
@@ -1649,6 +1820,8 @@ export interface DatingProfile {
 }
 export interface DatingCard {
   key: string; name: string; age: number; gender: DatingGender; pronouns: string; orientation: string
+  /** A long-lived kind's age in human terms (matching reads it); null when it is their age. */
+  life_age?: number | null
   looking: DatingAim; looking_text: string; looks: string; job: string; neighborhood: string; bio: string
   /** An older era's personal-column notice, with initials only; '' on a dating app. */
   notice: string
@@ -1872,6 +2045,10 @@ export interface PersonaPet { name: string; kind: string; looks: string; born?: 
 export interface Persona {
   id: string; name: string; gender: PersonaGender; age: number | null; about: string; birthday: string; created_at: string
   pets?: PersonaPet[]
+  /** Kind and How long they live as picked on the Persona page ('' and null: read from About you). */
+  kind?: string; lifespan?: number | null
+  /** What applies, the app's pick from their words, and what the pickers offer (companion/worlds.py `kind_shown`). */
+  kind_shown?: KindShown & KindChoices & { found: string; found_label: string; picked: string }
   active: boolean
   worlds: World[]
 }

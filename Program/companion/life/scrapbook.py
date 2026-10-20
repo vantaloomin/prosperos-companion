@@ -23,7 +23,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.errors import require
 from companion.images import photos
-from companion.life import ages, breakups, occasions, steps, wedding
+from companion.life import ages, breakups, occasions, our_child, steps, wedding
 from companion.memory import closeness
 
 QUOTE_LIMIT = 280
@@ -236,6 +236,8 @@ def their_year(connection, companion, period, name) -> dict | None:
         'local_date<=?', (timeline_id, low, high)) if row['kind'] in HOME_KINDS]
     # Milestone birthdays that have come round (companion/life/ages.py): theirs and their circle's.
     items += ages.milestones_between(connection, companion, period['start'], period['end'])
+    # The pair's own children's milestones (companion/life/our_child.py).
+    items += our_child.scrapbook_items(connection, companion, period['start'], period['end'])
     if not items:
         return None
     return {'kind': 'their-year', 'title': f"{name}'s year", 'items': sorted(items, key=lambda item: item['date'])}

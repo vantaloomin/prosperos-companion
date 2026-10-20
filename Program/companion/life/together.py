@@ -411,6 +411,9 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
             if reason['why'] == 'tense':
                 result.append((f"together-ask:{row['id']}", TENSE_LINE.format(asked=TENSE_ASKED[row['kind']])))
                 continue
+            if reason['why'] == 'child':
+                result.append((f"together-ask:{row['id']}", child_line(connection, row['kind'], reason)))
+                continue
             result.append((f"together-ask:{row['id']}",
                            f"- The user asked {ASKED[row['kind']]}. You can't: {reason_text(reason)}. Say so kindly in "
                            f"your own words, and suggest {'a weekend visit instead' if reason['why'] == 'far' else 'another time'}"
@@ -427,6 +430,26 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
             line = f"- {ENDED.get(outing['activity'], ENDED['out'])} You are apart again, texting."
         result.append((f"together-ended:{outing['id']}", line))
     return result
+
+
+# Split up with a child (companion/life/long_distance.py `for_the_child`): the visit is coming to see them.
+CHILD_LINE = ("- The user asked {asked}. You are not together any more, so it isn't a stay with you: it is settled as "
+              "{who} the weekend of {saturday} to see {names}. Say yes to that kindly in your own words, naming the "
+              "weekend. You are apart, texting.")
+CHILD_WHO = {'them': 'the user coming to {city}', 'you': 'you going to {city}'}
+# With the adult side on and this reply carrying it, nothing about a child (companion/life/families.py `withheld`).
+APART_LINE = ("- The user asked {asked}. You are not together any more, so it isn't a stay with you: say so kindly in "
+              "your own words. You are apart, texting.")
+
+
+def child_line(connection, kind: str, reason: dict) -> str:
+    from companion.life import families, steps
+    if families.withheld(connection):
+        return APART_LINE.format(asked=ASKED[kind])
+    saturday = date.fromisoformat(reason['saturday'])
+    return CHILD_LINE.format(asked=ASKED[kind], names=steps.names_text(reason['names']),
+                             who=CHILD_WHO[reason['lives']].format(city=reason['city'] or 'their city'),
+                             saturday=f'{saturday:%A %B} {saturday.day}')
 
 
 FAR_REASONS = {'money': "you can't afford the trip this pay period",

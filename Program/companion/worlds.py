@@ -29,9 +29,9 @@ from companion import backup, cast, characters, dating, lore, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
-from companion.life import pets, where
-from companion.models import CharacterDefinition
-from companion.world import catalog, changes, custom, generators, mix, townsfolk
+from companion.life import ages, pets, where
+from companion.models import PERSONA_AGES, CharacterDefinition
+from companion.world import catalog, changes, custom, generators, lifespans, mix, townsfolk
 
 REGISTRY = 'worlds.json'
 FOLDER = 'worlds'
@@ -186,11 +186,12 @@ def write_persona(connection, persona: dict, timestamp: str, home: dict | None =
     before = optional(connection, 'SELECT home_city_id FROM persona WHERE id=1')
     dating.follow_home(connection, before['home_city_id'] if before else '', home.get('city_id', ''))
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
-                       'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood) '
-                       'VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood, kind, lifespan) '
+                       'VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                        (persona['id'], persona['name'], persona['gender'], persona['age'], persona['about'],
                         timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', ''),
-                        json.dumps(persona.get('pets') or []), home.get('city_id', ''), home.get('neighbourhood', '')))
+                        json.dumps(persona.get('pets') or []), home.get('city_id', ''), home.get('neighbourhood', ''),
+                        persona.get('kind') or '', persona.get('lifespan')))
     connection.execute('UPDATE life_settings SET user_birthday=? WHERE id=1', (persona.get('birthday') or '',))
 
 
@@ -259,7 +260,8 @@ def view(database: Database) -> dict:
     active = found(data['worlds'], data['active'], 'world')
     with database.connect() as connection:
         cities = where.known_cities(connection)
-    personas = [{**persona, 'active': persona['id'] == active['persona_id'],
+        here = city_of(connection)
+    personas = [{**persona, 'active': persona['id'] == active['persona_id'], 'kind_shown': kind_shown(persona, here),
                  'worlds': [world_view(database, data, world, cities) for world in
                             sorted(data['worlds'], key=lambda item: item['used_at'], reverse=True)
                             if world['persona_id'] == persona['id']]}
@@ -498,7 +500,9 @@ def persona_for(data: dict, sheet: dict, today: date, timestamp: str) -> dict:
     definition = cast.profile(data, sheet, met, today)
     return {'id': identifier(), 'name': sheet['full'], 'gender': gender_of(sheet),
             'age': sheet['age'], 'about': sheet_text(definition)[:2000], 'birthday': '', 'created_at': timestamp,
-            'townsfolk_key': sheet['key'], 'town_seed': data.get('town', '')}
+            'townsfolk_key': sheet['key'], 'town_seed': data.get('town', ''),
+            # Their kind comes with them: an elven townsperson is an elf of their real age (companion/cast.py).
+            'kind': definition.get('kind') or '', 'lifespan': None}
 
 
 def become(state, key: str) -> dict:
@@ -512,8 +516,10 @@ def become(state, key: str) -> dict:
         require(not name, f"{name} is already one of your companions, so you can't become them.", 409)
         place_data, sheet, _meetings, _story = cast.townsperson(connection, focus, key, now)
         cast.still_here(place_data, sheet, now, "you can't become them")
+        today = now.astimezone(zone(place_data['timezone'])).date()
+        sheet = {**sheet, 'age': ages.town_age(connection, sheet, today)}  # Birthdays since the town began count.
     town = place_data.get('town', '')
-    persona = persona_for(place_data, sheet, now.astimezone(zone(place_data['timezone'])).date(), database.now())
+    persona = persona_for(place_data, sheet, today, database.now())
     data = registry(database)
     data['personas'].append(persona)
     save(database.root, data)
@@ -529,6 +535,25 @@ def become(state, key: str) -> dict:
 
 # Personas -------------------------------------------------------------------------------------------------
 
+def kind_shown(persona: dict, data: dict | None) -> dict:
+    """The Persona page's Kind and How long they live (companion/world/lifespans.py): what applies, the app's pick from
+    their words, and what the pickers offer where they are."""
+    found = lifespans.from_words(persona.get('about') or '', data)
+    shown = lifespans.described(lifespans.persona_kind(persona, data), persona.get('lifespan'), persona.get('age'), data)
+    return shown | {'found': found, 'found_label': lifespans.kinds(data)[found]['label'],
+                    'picked': persona.get('kind') or '', **lifespans.choices(data)}
+
+
+def check_kind(database: Database, persona: dict):
+    """A kind picked must be one listed where they are; an age past 120 is only for a long-lived kind, picked or read
+    from their words."""
+    with database.connect() as connection:
+        data = city_of(connection)
+    require(not persona.get('kind') or persona['kind'] in lifespans.kinds(data), 'Pick one of the kinds listed.', 422)
+    require((persona.get('age') or 0) <= PERSONA_AGES[0] or lifespans.long_lived(lifespans.persona_lifespan(persona, data)),
+            f'An age past {PERSONA_AGES[0]} is only for a long-lived kind: pick one under Kind.', 422)
+
+
 def create_persona(database: Database, body) -> dict:
     """A new persona with a world of their own. Who the user is stays theirs to say (Vanta, 2026-10-09): the name
     they typed, and nothing the app makes up; what they leave blank stays blank. Where they live is theirs to pick
@@ -540,7 +565,9 @@ def create_persona(database: Database, body) -> dict:
     persona = {'id': persona_id, 'name': name, 'gender': body.gender or '', 'age': body.age,
                'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now(),
                'pets': pets.persona_entries([], [pet.model_dump() for pet in body.pets or []],
-                                            database.clock.now().date())}
+                                            database.clock.now().date()),
+               'kind': body.kind or '', 'lifespan': body.lifespan}
+    check_kind(database, persona)
     data['personas'].append(persona)
     save(database.root, data)
     try:
@@ -562,7 +589,9 @@ def update_persona(database: Database, persona_id: str, body) -> dict:
     if 'pets' in changes:
         changes['pets'] = pets.persona_entries(persona.get('pets') or [], changes['pets'] or [],
                                                database.clock.now().date())
-    persona.update({key: '' if value is None and key != 'age' else value for key, value in changes.items()})
+    persona.update({key: '' if value is None and key not in ('age', 'lifespan') else value
+                    for key, value in changes.items()})
+    check_kind(database, persona)
     save(database.root, data)
     active = found(data['worlds'], data['active'], 'world')
     if active['persona_id'] == persona_id:

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PACE_LEVELS, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from '../../src/features/character/stepsText.ts'
+import { PACE_LEVELS, apartStep, askText, howText, movingText, newcomerText, ownAnswerLabel, pendingStepText, plannedText, rollLabel, stepDate } from '../../src/features/character/stepsText.ts'
 
 test('the Relationship pace slider has four steps', () => {
   assert.deepEqual(PACE_LEVELS.map((level) => level.label), ['Only when you bring it up', 'Slow', 'True to life', 'Fast'])
@@ -18,6 +18,10 @@ test('what came up lately says the answer', () => {
   assert.equal(askText({ ...ask, step: 'love', side: 'you', status: 'not_yet' }, 'Mira'), 'You said “I love you.” Mira wasn\'t ready to say it yet.')
   assert.equal(askText({ ...ask, side: 'you', status: 'not_yet', topic: 'a key to your place' }, 'Mira'), 'You brought up a key to their place. Mira said not yet.')
   assert.equal(askText({ ...ask, step: 'confession', status: 'no' }, 'Mira'), 'Mira told you how they feel. You said you would rather stay friends.')
+  const stay = { ...ask, step: 'stay', topic: 'whether the two of you stay as you are or separate' }
+  assert.equal(askText(stay, 'Mira'), 'Mira brought up whether you two stay as you are or separate. You chose to stay as you are.')
+  assert.equal(askText({ ...stay, status: 'no' }, 'Mira'), 'Mira brought up whether you two stay as you are or separate. You chose to separate.')
+  assert.equal(askText({ ...stay, status: 'lapsed' }, 'Mira'), 'Mira brought up whether you two stay as you are or separate. You let it pass, so you stay as you are.')
 })
 
 test('the planned note names the step, with a short date that never breaks', () => {
@@ -62,4 +66,11 @@ test('sharing a home labels each answer by name, and Living together waits for m
   const moving = { status: 'moving' as const, plan: 'yours' as const, city: 'Baltimore', place: 'Canton', home: '', move_on: '2026-11-01', moved_on: null, consequence_id: null, joins: true }
   assert.equal(pendingStepText(moving), `from ${stepDate('2026-11-01')}`)
   assert.equal(pendingStepText({ ...moving, status: 'waiting', move_on: null }), 'not yet')
+})
+
+test('living apart again ends the steps with since when and who moved (Iris, v0.15)', () => {
+  assert.match(apartStep({ apart: { since: '2026-09-19', by: 'you' } }, 'Mira Costa'), /^Living apart for now since .*2026 · you moved$/)
+  assert.match(apartStep({ apart: { since: '2026-09-19', by: 'them' } }, 'Mira Costa'), / · Mira moved$/)
+  assert.doesNotMatch(apartStep({ apart: { since: '2026-09-19', by: null } }, 'Mira'), /moved/)
+  assert.equal(apartStep({ apart: null }, 'Mira'), '')
 })

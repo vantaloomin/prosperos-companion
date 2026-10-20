@@ -34,7 +34,7 @@ from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import big_turns, circle, home, love_life, money, pets, storylines
 from companion.memory import pairs
-from companion.world import catalog
+from companion.world import catalog, generators, looks
 
 # A month's chance that a chapter begins, by drama level (quiet to soap opera).
 CHANCE = (0.12, 0.2, 0.3, 0.4)
@@ -164,7 +164,9 @@ def plan_job(connection, companion, world, day, seed) -> dict | None:
     tier = money.PAY_TIERS.get(current['pay'], money.DEFAULT_TIER) if current else money.DEFAULT_TIER
     tight = consequences.total(connection, companion['active_timeline_id'], pairs.companion_key(companion['id']),
                                'money', day.isoformat()) < 0
-    options = sorted(career['id'] for career in catalog.everyday(catalog.careers_for(city)).values()
+    # Work their era gives their side (1895: never a cabman for her; generators.own_side).
+    offered = generators.own_side(city, looks.pronouns_of(definition), catalog.everyday(catalog.careers_for(city)))
+    options = sorted(career['id'] for career in offered.values()
                      if (not current or (career['id'] != current['id'] and career['schedule'] == current['schedule']))
                      and money.PAY_TIERS.get(career['pay'], money.DEFAULT_TIER) >= tier + tight)
     if not options:
@@ -335,9 +337,18 @@ def change(database, world, consequence_id: str, option: int) -> dict:
         connection.execute("UPDATE life_chapters SET changes='{}', undo='{}', details='{}' WHERE id=?", (row['id'],))
         companion = require_current(connection)
         plan = PLANS[KINDS[option]](connection, companion, world, day, f"chapter:{row['timeline_id']}:{day}")
-        require(plan is not None, "That can't happen in their life right now.", 409)
+        require(plan is not None, why_not(connection, row, KINDS[option]), 409)
         make(connection, companion, world, row['id'], KINDS[option], plan, now)
         return consequences.redo(connection, consequence_id, option, now, day)
+
+
+def why_not(connection, row: dict, kind: str) -> str:
+    """Why the picked chapter can't happen: a big turn waits while another is under way (one at a time)."""
+    later = big_turns.running(connection, row['timeline_id'])
+    if kind in big_turns.KINDS and later:
+        return (f"That can't happen while another big turn is under way ({later[0]['title']}): one at a time. Undo that "
+                'one first, or let it finish.')
+    return "That can't happen in their life right now."
 
 
 def mine(connection, chapter_id: str) -> dict:
@@ -368,6 +379,9 @@ def view(row: dict) -> dict:
     return {'id': row['id'], 'kind': row['kind'], 'started_on': row['started_on'], 'title': row['title'],
             'stage': decode(row.get('details') or '{}').get('stage'), 'on': since(row),
             'consequence': row['consequence_id'],
+            # How its latest stage went (a business's months, a health turn's outlook, a parent's care), which
+            # "Make it go this way" can still change (big_turns.change_stage).
+            'outcome': (decode(row.get('undo') or '{}').get('decided') or [None])[-1],
             'undone': row['undone_at'] is not None}
 
 

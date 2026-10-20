@@ -454,6 +454,20 @@ def test_made_to_go_rather_not_on_today_another_reply_is_told_so(client, patches
     assert 'Things are still tense between you, and you would rather not, for now' in notes(provider)
 
 
+def test_on_an_easy_life_an_ask_during_a_rough_patch_gets_a_yes(client, patches, provider, monkeypatch):
+    show(client, show_moods=True, show_odds=True)
+    monkeypatch.setattr(consequences, 'roll', lambda seed, found: found[-1]['option'])  # Every roll its worst.
+    says(provider)
+    send(client, 'go away', 'client-patch-45')
+    assert patch(client)['open']
+    set_life(client, rough_patches_realism=1)  # Carried over to an easy life.
+    says(provider)
+    send(client, 'want to get dinner friday?', 'client-patch-46')
+    assert [item['activity'] for item in client.get('/api/life/outings').json()['outings']] == ['dinner']
+    assert not [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:ask_while_tense']
+    assert 'you would rather not, for now' not in notes(provider)
+
+
 def test_with_nothing_tense_an_ask_is_not_rolled(client, patches, provider):
     show(client, show_moods=True)
     says(provider)

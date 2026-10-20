@@ -79,7 +79,12 @@ def host_companion(connection, stay_or_candidate: dict) -> dict | None:
 
 
 def circle_people(connection, companion: dict) -> list[dict]:
-    return circle.people(connection, companion['active_timeline_id']) if companion.get('active_timeline_id') else []
+    """The circle, without the pair's own grown children while the adult side of life is on (a group chat always
+    carries its lines, companion/memory/sides.py)."""
+    from companion.life import our_child
+    from companion.world import intimacy
+    rows = circle.people(connection, companion['active_timeline_id']) if companion.get('active_timeline_id') else []
+    return [row for row in rows if not (our_child.grown_child(row) and intimacy.turned_on(connection))]
 
 
 def full_name(row: dict, details: dict) -> str:
@@ -92,10 +97,11 @@ def full_name(row: dict, details: dict) -> str:
     return full if given == shown else ' '.join(part for part in (shown, family) if part)
 
 
-def from_circle(row: dict, host: str, host_name: str) -> dict:
-    details = decode(row['details']) or {}
+def from_circle(row: dict, host: str, host_name: str, older: bool = False) -> dict:
+    """A circle member as a guest; `older`: the role in their era's words ("Mira's mother", circle.era_word)."""
+    details, role = decode(row['details']) or {}, circle.era_word(row['role'], older)
     return {'key': row['seed'], 'kind': 'circle', 'name': row['name'], 'full': full_name(row, details),
-            'host': host, 'relation': f"{host_name}'s {row['role']}", 'tie': f"their {row['role']}", 'person_id': row['id'],
+            'host': host, 'relation': f"{host_name}'s {role}", 'tie': f"their {role}", 'person_id': row['id'],
             'timeline_id': row['timeline_id']}
 
 
@@ -124,7 +130,8 @@ def from_town(person: dict, host: str, host_name: str) -> dict:
 def known_by(connection, companion: dict, now) -> list[dict]:
     """Everyone this companion could bring into a group: their circle, then townsfolk they know well."""
     host, host_name = f"{COMPANION}{companion['id']}", companion['version']['name'].split()[0]
-    found = [from_circle(row, host, host_name) for row in circle_people(connection, companion)]
+    older = not perception.era_modern(companion['version']['definition'])
+    found = [from_circle(row, host, host_name, older) for row in circle_people(connection, companion)]
     try:
         town = encounters.known(connection, companion, now)
     except Exception:  # noqa: BLE001 - no city to know anyone in: their circle is still there.
@@ -179,7 +186,7 @@ def who(connection, person: dict) -> str:
         details = decode(row['details']) if row else {}
         if details.get('career'):
             text += f", {details['career'].lower()}" + (f" at {details['employer']}" if details.get('employer') else '')
-    return text + '.'
+    return text if text.endswith('.') else text + '.'  # "at Coutts and Co." already ends it.
 
 
 def doing(connection, person: dict, companion: dict, now) -> str | None:

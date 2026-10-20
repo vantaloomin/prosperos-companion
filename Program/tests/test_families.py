@@ -5,12 +5,13 @@ import string
 from datetime import date, timedelta
 
 import pytest
-from conftest import reconcile, set_life
+from conftest import intimate, reconcile, send, set_life
+from test_steps import says
 
 from companion.characters import require_current
 from companion.database import decode, encode
 from companion.life import body, families, storylines
-from companion.world import couples
+from companion.world import couples, intimacy
 
 WORKDAY = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'start': '09:00', 'end': '17:00', 'days': [0, 1, 2, 3, 4]},
            {'key': 'evening', 'label': 'Evening', 'kind': 'social', 'start': '18:00', 'end': '22:00'},
@@ -120,7 +121,7 @@ def test_a_sister_expects_a_baby_who_joins_the_circle_as_a_niece(client, mira, c
         assert child['name'] not in {row['name'] for row in connection.execute('SELECT name FROM circle_people')}
 
 
-def test_with_the_adult_side_on_children_stay_out_of_the_chat_prompt(client, mira, clock, monkeypatch):
+def test_with_the_adult_side_on_children_stay_out_of_an_intimate_reply(client, mira, clock, monkeypatch, provider):
     sure(monkeypatch)
     sister(client)
     reconcile(client)
@@ -129,8 +130,14 @@ def test_with_the_adult_side_on_children_stay_out_of_the_chat_prompt(client, mir
     reconcile(client)
     assert child['name'] in prompt(client)
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    # An everyday reply carries the family and not the adult side.
     text = prompt(client)
-    assert child['name'] not in text and 'expecting a baby' not in text
+    assert child['name'] in text and intimacy.SETTING not in text and 'Your intimate side' not in text
+    # One that reads intimate carries the adult side and no child.
+    says(provider)
+    send(client, 'come back to bed, I want to kiss you all over', 'client-families-intimate')
+    text = prompt(client)
+    assert child['name'] not in text and 'expecting a baby' not in text and intimacy.SETTING in text
     # The screens still show them.
     assert any(item['story'] == 'expecting' for item in client.get('/api/life/storylines').json())
     assert any(person['children'] for person in client.get('/api/life/circle').json())
@@ -340,6 +347,7 @@ def test_with_the_adult_side_on_no_context_line_names_a_child_even_before_the_ne
     text = prompt(client)
     assert 'Ivy' in text and 'first birthday' in text
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    intimate(client)
     text = prompt(client)  # Before any reconcile has called the party off.
     assert 'Ivy' not in text and 'first birthday' not in text.lower()
 
@@ -360,7 +368,9 @@ def test_with_the_adult_side_on_a_childs_big_day_is_never_asked_to(client, mira,
 def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
     import re
     bank = families.bank()
-    assert families.fitting(bank['babysit_toddler'], 'modern') == bank['babysit_toddler']
+    older = set(bank['tags']['older'])
+    assert families.fitting(bank['babysit_toddler'], 'modern') == [
+        line for line in bank['babysit_toddler'] if line['text'] not in older]
     for era, words in (('jazz-age', r'\b(scan|daycare|television)\b'), ('victorian', r'\b(phones?|cars?|daycare)\b'),
                        ('medieval', r'\b(phones?|cars?|trains?|strollers?|bananas?)\b')):
         for key in ('pregnancy', 'baby_update', 'toddler_update', 'babysit_toddler', 'babysit_child'):
@@ -372,6 +382,39 @@ def test_bank_lines_fit_the_citys_era_and_who_is_carrying_the_baby():
     days = [date(2027, 1, 1) + timedelta(days=offset) for offset in range(730)]
     told = ' '.join(news[2] for day in days if (news := families.news_on(child, day, 1.7, True, 'medieval')))
     assert told and not re.search(r'\b(cars?|trains?|phones?|strollers?)\b', told, re.I)
+
+
+def test_older_cities_speak_in_their_own_voice_and_today_in_a_texting_one():
+    bank = families.bank()
+    texts = {line['text'] for key, lines in bank.items() if key not in ('names', 'tags', 'babysit_ask') for line in lines}
+    texts |= set(bank['babysit_ask'])  # Plain-text asks are tagged by themselves (companion/life/own_family.py).
+    assert set(bank['tags']['older']) <= texts and set(bank['tags']['modern']) <= texts
+    for key in ('pregnancy', 'baby_update', 'toddler_update', 'child_update', 'babysit_baby', 'babysit_toddler',
+                'babysit_child'):
+        old, new = families.fitting(bank[key], 'victorian'), families.fitting(bank[key], 'modern')
+        assert not {line['text'] for line in old} & set(bank['tags']['modern']), key
+        assert not {line['text'] for line in new} & set(bank['tags']['older']), key
+        assert {line['text'] for line in old} & set(bank['tags']['older']), key
+        assert not any('gonna' in line['share'] or 'honestly' in line['share'] for line in old), key
+    due = date(2027, 3, 1)
+    assert families.announced('friend', due, 'friend', {'name': 'Ada'}, True)[1].endswith('I confess I cried a little')
+    assert families.announced('friend', due, 'friend', {'name': 'Ada'})[1].endswith('not gonna lie')
+    assert families.announced('coworker', due, 'friend', {'name': 'Ada'}, True)[1].endswith(
+        'everyone at work is already knitting something')
+
+
+def test_a_they_them_companion_is_the_cool_relative_and_a_fathers_baby_is_here():
+    due = date(2027, 3, 1)
+    assert families.announced('sibling', due, 'family', {'name': 'Rowan', 'pronouns': 'they/them'})[1] == \
+        "{a} is having a baby!!! due in March. I'm going to be the cool relative"
+    assert families.announced('sibling', due, 'family', {'name': 'Mira', 'identity': 'She is 30.'})[1].endswith(
+        'I am going to be an aunt')
+    child = {'name': 'Nova', 'pronouns': 'she/her', 'title': 'friend'}
+    assert families.arrived(child, 'friend', {}, 'he/him') == (
+        '{a} had the baby: a girl named Nova.', "{a}'s baby is here! a girl, Nova. everyone's doing great")
+    assert families.arrived(child, 'friend', {}, 'she/her')[0] == '{a} had the baby: a girl named Nova.'
+    assert families.arrived(child, 'godchild', {}, 'he/him')[1].startswith("{a}'s baby is here! a girl, Nova, and {a} asked")
+    assert 'crying' not in families.arrived(child, 'family', {}, 'she/her', True)[1]
 
 
 def test_a_baby_is_never_given_the_companions_own_name(client, mira):
@@ -400,6 +443,23 @@ def test_a_companion_living_in_town_never_has_a_town_baby(monkeypatch):
     assert key not in {item['key'] for item in paper.comings_and_goings({**data, 'companions': (sheet['key'],)}, week)}
 
 
+def test_a_companion_made_from_a_townsperson_drops_their_town_love_life():
+    from companion.life import encounters
+    from companion.world import catalog, paper, townsfolk
+    data, span = catalog.city('baltimore'), (date(2026, 10, 19), date(2029, 10, 19))
+    sheet, found = next((sheet, found) for hood in data['neighborhoods'] for slot in range(12)
+                        if (found := couples.events(sheet := townsfolk.resident(data, hood['id'], slot), data, span)))
+    assert couples.couple(sheet, data, span[1]) is not None
+    stand_in = encounters.stand_in(data, 'c1', sheet['key'], {'name': 'Alex Moore', 'identity': '30.'})
+    assert couples.events(stand_in, data, span) == [] and couples.couple(stand_in, data, span[1]) is None
+    kept = {**data, 'companions': (sheet['key'],)}
+    assert couples.events(sheet, kept, span) == [] and couples.couple(sheet, kept, span[1]) is None
+    day = found[0]['day']
+    week = (day - timedelta(days=day.weekday()), day + timedelta(days=6 - day.weekday()))
+    keys = {f"{sheet['key']}:{item['what']}" for item in found if week[0] <= item['day'] <= week[1]}
+    assert not keys & {item['key'] for item in paper.couples_news(kept, week)}
+
+
 def test_a_baby_is_never_named_after_a_word_in_one_of_the_citys_places():
     from companion.world import catalog
     data = catalog.city('baltimore')
@@ -417,8 +477,8 @@ def test_a_first_birthday_gift_fits_an_older_city(monkeypatch):
     assert set(gifts['first_birthday']) < set(gifts['first_birthday_modern'])
     assert not any(re.search(r'\b(telephone|crayons?|cars?)\b', gift) for gift in gifts['first_birthday'])
     companion = {'version': {'definition': {'name': 'Mira'}}}
-    for modern, key in ((True, 'first_birthday_modern'), (False, 'first_birthday')):
-        monkeypatch.setattr(big_days, 'modern_city', lambda _connection, _companion, modern=modern: modern)
+    for era, key in (('modern', 'first_birthday_modern'), ('industrial', 'first_birthday'), ('old', 'first_birthday_old')):
+        monkeypatch.setattr(big_days, 'gift_era', lambda _connection, _companion, era=era: era)
         found = {big_days.gift_for(None, companion, big_days.KINDS['first_birthday'], f'seed-{n}')[0] for n in range(60)}
         assert found <= set(gifts[key])
 
@@ -430,3 +490,100 @@ def test_every_pregnancy_line_reads_right_told_to_the_companion():
               families.stage(date(2027, 5, 1), *families.arrived({'name': 'Ivy', 'pronouns': 'she/her'}, 'godchild', {}))]
     told = ' '.join(storylines.fill(stage['text'], row, names, {'name': 'Mira'}, True) for stage in stages)
     assert 'you keep checking' in told and 'you keeps' not in told and 'Mira' not in told
+
+
+def test_the_companion_keeps_knowing_someone_is_expecting_between_the_storyline_beats(client, mira, clock,
+                                                                                     monkeypatch):
+    """A pregnancy's beats are months apart, and each shows for three weeks: the due month stays in "People in your
+    life" all the while, and goes with the adult side on."""
+    sure(monkeypatch)
+    sister(client)
+    reconcile(client)
+    [story] = stories(client, 'expecting')
+    first, second = (date.fromisoformat(stage['on']) for stage in decode(story['stages'])[:2])
+    clock.advance(first + timedelta(days=storylines.RECENT_DAYS + 3) - clock.now().date())
+    assert clock.now().date() < second
+    due = decode(story['stages'])[0]['text'].rsplit('due in ', 1)[-1].rstrip('.')
+    with client.app.state.database.connect() as connection:
+        name = connection.execute('SELECT name FROM circle_people ORDER BY ordinal').fetchone()['name'].split()[0]
+    assert f'- Your sister {name} is expecting a baby, due in {due}.' in prompt(client)
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    intimate(client)
+    assert 'expecting a baby' not in prompt(client)
+
+
+def test_a_circle_baby_a_few_weeks_old_does_not_walk_sit_up_or_eat_yet():
+    from companion.life import our_child, own_family
+    child = {'id': 'c1', 'born_on': '2027-01-04', 'pronouns': 'she/her', 'name': 'Ivy', 'title': 'sister'}
+    for offset in range(1, 140):
+        found = families.news_on(child, date(2027, 1, 4) + timedelta(days=offset), 3.0, True, 'modern')
+        if found and found[0] in ('baby_update', 'babysat'):
+            said = f'{found[1]} {found[2]}'
+            assert not our_child.MOVING.search(said) and not our_child.FOOD.search(said) and \
+                not own_family.SITTING.search(said), (offset, said)
+
+
+def test_older_cities_get_no_science_fair_book_day_or_wall_stickers():
+    lines = [line for key, value in families.bank().items() if key != 'tags' and isinstance(value, list)
+             for line in value if isinstance(line, dict) and 'text' in line]
+    for era in ('jazz-age', 'victorian', 'medieval'):
+        said = ' '.join(f"{line['text']} {line['share']}" for line in families.fitting(lines, era)).lower()
+        assert 'science fair' not in said and 'book day' not in said and 'baking soda' not in said
+        assert 'sticker' not in said
+
+
+def test_a_babys_odds_show_under_hidden_values_and_no_baby_ends_it(client, mira, clock, monkeypatch):
+    usual = dict(families.YEARLY)
+    sure(monkeypatch)
+    person = sister(client)
+    reconcile(client)
+    [story] = stories(client, 'expecting')
+    [listed] = [item for item in client.get('/api/life/storylines').json() if item['id'] == story['id']]
+    odds_id = listed['beats'][0]['consequence']
+    outcome = client.get(f'/api/life/consequences/{odds_id}').json()
+    who = person['name'].split()[0]
+    assert outcome['label'] == f'Whether {who} has a baby this year' and outcome['picked'] == 0
+    assert outcome['options'][0]['label'] == f'{who} is expecting a baby' and not outcome['settled']
+    assert outcome['options'][0]['reasons'] == [f"{who} is Mira's sister", f'{who} is married']
+    assert outcome['options'][0]['moves'] == ['possible', 'more']
+    # At the usual pace a married sister's weekly chance comes to about a fifth over a year.
+    found = families.yearly_options(usual['married sibling'] / 52, [], ('yes', 'no'))
+    assert found[0]['odds'] == 0.2 and found[0]['odds'] + found[1]['odds'] == 1
+    changed = client.post(f'/api/life/consequences/{odds_id}/change', json={'option': 1}).json()
+    assert changed['picked'] == 1 and changed['picked_by'] == 'user'
+    assert stories(client, 'expecting')[0]['status'] == 'ended' and children(client)[0]['status'] == 'ended'
+    client.post(f'/api/life/consequences/{odds_id}/change', json={'option': 0}).raise_for_status()
+    assert stories(client, 'expecting')[0]['status'] == 'running' and children(client)[0]['status'] == 'expected'
+    clock.advance(date.fromisoformat(children(client)[0]['born_on']) - clock.now().date() + timedelta(days=1))
+    reconcile(client)
+    assert client.get(f'/api/life/consequences/{odds_id}').json()['settled'] == families.BORN_NOTE
+    assert client.post(f'/api/life/consequences/{odds_id}/change', json={'option': 1}).status_code == 409
+
+
+def test_the_slider_off_its_usual_step_is_a_reason_in_a_babys_odds(client, mira, monkeypatch):
+    sure(monkeypatch)
+    person = sister(client, role='cousin', married=False)
+    set_life(client, growing_families=3)
+    reconcile(client)
+    [listed] = [item for item in client.get('/api/life/storylines').json() if item['story'] == 'expecting']
+    outcome = client.get(f"/api/life/consequences/{listed['beats'][0]['consequence']}").json()
+    assert outcome['options'][0]['reasons'] == [f"{person['name'].split()[0]} is Mira's cousin",
+                                                'Growing families is set to Lots']
+    assert outcome['options'][0]['moves'] == ['possible', 'more']
+
+
+def test_a_fork_keeps_a_babys_odds_as_its_own(client, mira, clock, monkeypatch, provider):
+    sure(monkeypatch)
+    sister(client)
+    reconcile(client)
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    sent = send(client, 'How is your sister?', 'client-family-odds')['message']
+    response = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'How is everyone?'})
+    assert response.status_code == 200, response.text
+    original, copy = sorted(stories(client, 'expecting'), key=lambda row: row['timeline_id'] != sent['timeline_id'])
+    first, second = json.loads(original['stages'])[0]['odds'], json.loads(copy['stages'])[0]['odds']
+    assert first and second and first != second
+    with client.app.state.database.connect() as connection:
+        row = connection.execute('SELECT subject, timeline_id FROM consequences WHERE id=?', (second,)).fetchone()
+    assert row['subject'] == f"baby:{copy['id']}" and row['timeline_id'] == copy['timeline_id']

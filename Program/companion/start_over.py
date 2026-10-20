@@ -55,8 +55,8 @@ HISTORY = (
     'away_recaps', 'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
-    'birth_dates', 'closeness_jokes', 'closeness_settings', 'people_impressions', 'people_meetups', 'step_settings', 'proposals', 'weddings', 'big_days', 'losses', 'step_asks', 'relationship_steps', 'love_partners', 'moving_in_shares', 'moving_in', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'breakup_reaches', 'breakups', 'rough_patch_promises', 'rough_patches', 'calls', 'together_asks', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
-    'storyline_days', 'circle_children', 'family_traditions', 'scrapbook_seen', 'history_corrections', 'pet_log', 'pet_state', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'grooming_log', 'grooming_state', 'upkeep_days', 'upkeep_state', 'kitchen_state', 'media_items', 'media_state', 'hobby_log', 'hobbies', 'hobby_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_admin', 'work_weeks', 'work_events', 'work_life', 'life_agenda',
+    'birth_dates', 'closeness_jokes', 'closeness_settings', 'people_impressions', 'people_meetups', 'step_settings', 'family_wishes', 'family_journeys', 'our_family', 'proposals', 'weddings', 'big_days', 'losses', 'step_asks', 'relationship_steps', 'love_partners', 'moving_in_shares', 'moving_in', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'breakup_reaches', 'breakups', 'rough_patch_promises', 'rough_patches', 'calls', 'together_asks', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
+    'storyline_days', 'babysitting', 'companion_kids', 'circle_children', 'family_traditions', 'scrapbook_seen', 'history_corrections', 'pet_log', 'pet_state', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'grooming_log', 'grooming_state', 'upkeep_days', 'upkeep_state', 'kitchen_state', 'media_items', 'media_state', 'hobby_log', 'hobbies', 'hobby_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_admin', 'work_weeks', 'work_events', 'work_life', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
     'user_people', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'chat_imports', 'timelines',
 )
@@ -232,9 +232,11 @@ def wipe(database, keep_character: bool) -> tuple[list[str], list[str], list[str
             return wipe_own(database, connection, companion, others, keep_character)
         streaming = [row['id'] for row in many(connection, "SELECT id FROM messages WHERE status='streaming'")]
         files = image_files(connection)
+        wants = set_wants(connection, companion['id'])
         clear(connection, HISTORY)
         if keep_character:
             fresh_timeline(connection, database.now(), companion['id'])
+            keep_wants(connection, companion['id'], wants, database.now())
         else:
             clear(connection, CHARACTER)
         revalidate(connection, database.now())
@@ -250,13 +252,29 @@ def wipe_own(database, connection, companion: dict, others: list[dict], keep_cha
     if not keep_character:
         names, folders = lora_files(connection, companion['id'])
         files += names
+    wants = set_wants(connection, companion['id'])
     clear_own(connection, HISTORY + (() if keep_character else CHARACTER), companion['id'])
     if keep_character:
         fresh_timeline(connection, database.now(), companion['id'])
+        keep_wants(connection, companion['id'], wants, database.now())
     else:
         connection.execute('UPDATE companions SET slot=1, stepped_back_at=NULL WHERE id=?', (others[0]['id'],))
     revalidate(connection, database.now())
     return streaming, files, folders
+
+
+def set_wants(connection, companion_id: str) -> str | None:
+    """A "wants children" the user set on the Character page (companion/life/parenthood.py): part of who they are."""
+    row = connection.execute('SELECT wants FROM family_wishes WHERE companion_id=?', (companion_id,)).fetchone()
+    return row[0] if row else None
+
+
+def keep_wants(connection, companion_id: str, wants: str | None, timestamp: str):
+    """Starting over keeps that wish with the character (Vanta 2026-10-19); how a child would come, the step and the
+    family itself start again."""
+    if wants:
+        connection.execute('INSERT INTO family_wishes (companion_id, wants, route, updated_at) VALUES (?, ?, NULL, ?)',
+                           (companion_id, wants, timestamp))
 
 
 def fresh_timeline(connection, timestamp: str, companion_id: str):

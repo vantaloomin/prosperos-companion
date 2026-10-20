@@ -1077,7 +1077,8 @@ def offer(packet, connection, companion: dict, now: datetime, group=None) -> Non
     if group is not None or not companion.get('active_timeline_id'):
         return
     for identity, text in context_lines(connection, companion, now):
-        packet.offer('wedding', identity, text)
+        # Another companion's wedding with the user (`invited_lines`) is a big day they go to, not their own wedding.
+        packet.offer('big_days' if identity.startswith('wedding-guest:') else 'wedding', identity, text)
 
 
 # The feed, the scrapbook and the town paper ----------------------------------------------------------------------------

@@ -42,6 +42,9 @@ HOW_LIMIT = 300
 ROLE_DEFAULTS = {
     'close friend': (4, 0.0, 0.25), 'close-friend': (4, 0.0, 0.25),
     'parent': (3, 0.3, 0.3), 'sibling': (3, 0.3, 0.3),
+    # A grandparent (companion/life/circle.py add_grandparent) starts where the rest of the family does.
+    'grandparent': (3, 0.3, 0.3), 'grandmother': (3, 0.3, 0.3), 'grandfather': (3, 0.3, 0.3),
+    'grandma': (3, 0.3, 0.3), 'grandpa': (3, 0.3, 0.3),
     'longtime friend': (3, 0.25, 0.25), 'old friend from school': (3, 0.25, 0.25), 'friend': (3, 0.25, 0.25),
     'cousin': (2, 0.3, 0.0), 'roommate from years ago': (2, 0.3, 0.0),
     'coworker': (2, 0.2, 0.0), 'neighbor': (2, 0.2, 0.0), 'new friend': (2, 0.2, 0.0), 'mentor': (2, 0.2, 0.0),
@@ -49,9 +52,11 @@ ROLE_DEFAULTS = {
     'girlfriend': (4, 0.0, 0.3), 'boyfriend': (4, 0.0, 0.3), 'partner': (4, 0.0, 0.3),
     'fiancée': (4, 0.5, 0.0), 'fiancé': (4, 0.5, 0.0), 'wife': (5, 0.0, 0.2), 'husband': (5, 0.0, 0.2),
     'spouse': (5, 0.0, 0.2), 'ex': (2, 0.0, 0.3),
+    # Their kids' other parent (companion/life/kids.py): in touch every week or two, never a stranger.
+    'co-parent': (3, 0.2, 0.0),
 }
 UNKNOWN_ROLE = (1, 0.0, 0.0)
-# The lowest a parent or sibling ever stands with the companion (the role defaults never start them lower).
+# The lowest a parent, sibling or grandparent ever stands with the companion (the role defaults never start them lower).
 FAMILY_FLOOR = 2
 # Meetings around town -> the stage they start at, highest first (the same as companion/cast.py for the user).
 MEETINGS = ((6, 3), (3, 2), (0, 1))
@@ -320,14 +325,18 @@ def both_companions(connection, a: str, b: str, first: dict, second: dict, now, 
 def with_circle(connection, a: str, b: str, me: dict, person: dict, now) -> dict:
     """A companion and someone in their own circle; both directions start at the role's default."""
     from companion.life import circle
-    found = role_default(person['role'], person['seed'])
+    # Their kids' other parent starts where any co-parent does, whatever the description calls them (an ex-husband).
+    found = role_default('co-parent' if decode(person['details'] or '{}').get('co_parent') else person['role'],
+                         person['seed'])
     today = now.astimezone(zone(me['version']['timezone'])).date().isoformat()
     moved = story_moves(connection, me, person['id'], today)
     base = clamp(level_from(found['level'], moved['points']) + moved['steps'])
     mine = clamp(base - masked(me, b) - min(secrets_found(connection, a, b), MOST_SECRET_STEPS)
                  * reacts_to_secrets(me['version']['definition']))
-    # Their own parents and siblings are never someone they have "just met", whatever a mask or a secret does.
-    mine = max(mine, min(base, FAMILY_FLOOR)) if circle.role_kind(person['role']) in ('parent', 'sibling') else mine
+    # Their own parents, siblings and grandparents are never someone they have "just met", whatever a mask or a
+    # secret does.
+    close_family = circle.role_kind(person['role']) in ('parent', 'sibling') or person['role'] in circle.GRANDPARENTS
+    mine = max(mine, min(base, FAMILY_FLOOR)) if close_family else mine
     return {'start': found['level'], 'role': person['role'], 'nudge': found['nudge'], 'how': '', 'told': False,
             'storylines': moved['reasons'], 'ab': {'level': mine, 'cooled': False},
             'ba': {'level': base, 'cooled': False}}

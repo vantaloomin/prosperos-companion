@@ -8,7 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
+import { DATING_STATUS_KEY, cardHeading, humanTerms, interestText } from './datingText'
 import { Deck } from './Deck'
 import { formerly, townLeft } from '../today/townText'
 import { CityOptions } from '../world/CityOptions'
@@ -142,7 +142,7 @@ function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
       {error && <Notice tone="error">{error}</Notice>}
       <ul>
         {data.matches.map((match) => <li key={match.key}>
-          <p><strong>{cardHeading(match)}</strong>{matchJob(match)} · {match.city.name}</p>
+          <p><strong>{cardHeading(match)}</strong>{humanTerms(match) && <span className="subtle"> ({humanTerms(match)})</span>}{matchJob(match)} · {match.city.name}</p>
           {match.left ? <div className="form-actions">
             <p className="subtle">{townLeft(match.left)}</p>
             <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>
