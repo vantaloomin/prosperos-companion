@@ -151,6 +151,25 @@ def test_an_older_world_gets_the_new_realism_settings_of_its_preset(tmp_path, dr
     connection.close()
 
 
+@pytest.mark.parametrize(('drama', 'paced', 'expected'), [
+    (0, 0, (1, 1)),  # Easy: now and then, a few thoughts.
+    (1, 1, (2, 2)),  # Real life takes the defaults.
+    (3, 1, (3, 3)),  # Drama: often, everything on their mind.
+    (1, 0, (2, 3)),  # I pull the strings hears everything on their mind.
+])
+def test_a_v015_world_gets_memes_and_inner_voice_by_its_preset(tmp_path, drama, paced, expected):
+    """A world from before v0.16 keeps matching its preset on Settings > Realism (src/features/settings/presetChoices.ts)."""
+    from companion.database import add_columns, initialize
+    connection = sqlite3.connect(tmp_path / 'old.sqlite3')
+    initialize(connection, '2026-10-01T00:00:00Z')
+    for column in ('memes_realism', 'inner_voice'):
+        connection.execute(f'ALTER TABLE life_settings DROP COLUMN {column}')
+    connection.execute('UPDATE life_settings SET drama=?, paced_replies=?, day_shifts=?', (drama, paced, int(drama > 0)))
+    add_columns(connection)
+    assert connection.execute('SELECT memes_realism, inner_voice FROM life_settings').fetchone() == expected
+    connection.close()
+
+
 def test_a_new_world_starts_on_a_real_life(tmp_path):
     with Database(tmp_path / 'new.sqlite3').connect() as connection:
         row = connection.execute('SELECT drama, rough_patches_realism, steps_pace, love_life, friends_fall, breakups '
