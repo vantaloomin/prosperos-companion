@@ -323,7 +323,8 @@ def test_a_citys_own_kind_shows_on_a_persons_page_and_can_be_picked(client):
          location='Gran Porte, Tiefport')
     reconcile(client)
     people = client.get('/api/life/circle').json()
-    relatives = [person for person in people if person.get('folk')]
+    # Family are the sheet's kind; friends drawn from the town may be its elves, so only the tieflings count here.
+    relatives = [person for person in people if person.get('folk') == 'tiefling']
     assert relatives and all(person['kind']['label'] == 'Tiefling' and person['kind']['years'] == 200
                              for person in relatives)
     friend = next(person for person in people if not person.get('folk'))
