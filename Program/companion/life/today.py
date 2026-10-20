@@ -17,6 +17,7 @@ from companion.life import (
     our_child,
     routine,
     simulation,
+    stays,
     thoughts,
 )
 from companion.memory.records import OPEN_PLANS, eligible
@@ -109,7 +110,9 @@ def plans(connection, companion, now) -> dict:
     return {'shared': user_plans, 'companion': [event_view(row, definition) for row in shown],
             'threads': [event_view(row, definition) for row in threads],
             # Appointments, errands and chores in the week ahead (companion/life/admin.py).
-            'admin': admin.today_items(connection, companion, now)}
+            'admin': admin.today_items(connection, companion, now),
+            # Stays with the other parent in the next two weeks (companion/life/stays.py).
+            'stays': stays.items(connection, companion, now, stays.SHOWN)}
 
 
 def day(connection, timeline_id, local_date) -> dict:

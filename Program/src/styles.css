@@ -1879,6 +1879,11 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .admin-item .text-button, .admin-more { padding-left: 0; padding-right: 0; }
 .admin-more { color: var(--accent); min-height: 44px; margin-top: -11px; }
 .admin-when { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; width: 100%; }
+.admin-actions { display: inline-flex; flex-wrap: wrap; gap: 2px 16px; }
+/* A skipped stay reads as off at a glance: muted title and dates, the badge and Undo as they are (Iris). */
+.admin-skipped .admin-head strong, .admin-skipped .admin-when > p { color: var(--muted); font-weight: 500; }
+/* Stay actions are a 44px tap on the phone (Iris). */
+@media (max-width: 720px) { .admin-item .admin-when .text-button { min-height: 44px; display: inline-flex; align-items: center; } }
 .wedding-plan { display: grid; gap: 8px; margin: 12px 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--raised); }
 .wedding-plan h3 { margin: 0; }
 .wedding-plan p { margin: 0; }

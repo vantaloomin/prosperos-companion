@@ -33,7 +33,7 @@ from pathlib import Path
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import home, money, outings, own_plans, routine, traditions, trips
+from companion.life import home, money, outings, own_plans, routine, stays, traditions, trips
 from companion.world import catalog, generators
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'life_admin.json'
@@ -796,7 +796,8 @@ def overview(connection, companion: dict, now, show_meter: bool = False) -> dict
     definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
     today = local_now(companion, now).date()
     items = [item_view(item, definition) for item in upcoming(connection, timeline_id, today.isoformat())]
-    shown = by_day([*items, *home_items(connection, companion, today, today + timedelta(days=AHEAD), now)])
+    shown = by_day([*items, *home_items(connection, companion, today, today + timedelta(days=AHEAD), now),
+                    *stays.items(connection, companion, now)])  # Stays with the other parent (stays.py).
     done = many(connection, "SELECT * FROM life_admin WHERE timeline_id=? AND status='done' AND local_date>=? "
                 'ORDER BY local_date DESC, at_time DESC LIMIT 8', (timeline_id, (today - timedelta(days=30)).isoformat()))
     kind = habit(definition)

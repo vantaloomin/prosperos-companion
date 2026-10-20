@@ -713,7 +713,7 @@ export interface Today {
   routine: { default_schedule: boolean; current: RoutineSlot | null; next: RoutineSlot | null }
   changes: LifeEvent[]
   review: LifeEvent[]
-  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[]; admin?: AdminItem[] }
+  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[]; admin?: AdminItem[]; stays?: AdminItem[] }
   feed_unread: number
   last_run: LifeRun | null
   paused: boolean
@@ -2084,7 +2084,7 @@ export interface TownsfolkMix {
 export interface AdminItem {
   id: string
   key: string
-  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks' | 'work'
+  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks' | 'work' | 'family'
   kind: string
   title: string
   /** What just happened, for a surprise ("A parking ticket was tucked under the wiper"). */
@@ -2093,7 +2093,7 @@ export interface AdminItem {
   at_time: string
   until: string
   fixed: boolean
-  status: 'planned' | 'done' | 'removed'
+  status: 'planned' | 'done' | 'removed' | 'skipped'
   place: string
   moved_from: string | null
   /** "moved for a plan", "put off", "moved by you", "moved for a trip", or empty. */
@@ -2105,6 +2105,20 @@ export interface AdminItem {
   movable: boolean
   /** A late night's project, shown under its title (companion/life/work.py); empty otherwise. */
   detail?: string
+  /** The last day of a stay that runs several days (companion/life/stays.py). */
+  end_date?: string
+  /** A stay with the other parent (companion/life/stays.py): moved or skipped by the user while still to come, and a
+   * skip taken back. */
+  stay?: StayActions
+}
+
+export interface StayActions {
+  id: string
+  status: 'planned' | 'skipped'
+  can_change: boolean
+  undo: boolean
+  /** The make-up's first day, on a skipped stay (shown under it, Iris). */
+  made_up?: string | null
 }
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }

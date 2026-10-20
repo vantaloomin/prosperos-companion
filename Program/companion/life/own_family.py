@@ -315,18 +315,17 @@ def broken_night(connection, timeline_id: str, day: date) -> dict | None:
 
 
 def with_them(connection, timeline_id: str, child: dict, day: date) -> bool:
-    """Whether their child sleeps at theirs this night: always while together; after a split, by the pattern
-    (companion/life/custody.py `own_line`): every night but some weekends, every other week, or weekends only."""
-    from companion.life import custody, our_child
+    """Whether their child sleeps at theirs this night: always while together; after a split, as the stays with their
+    ex say (companion/life/stays.py), else by the pattern (companion/life/custody.py `own_line`): every night but every
+    other weekend, every other week, or every other weekend only."""
+    from companion.life import our_child, stays
     person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (child['parent_id'],))
     if person is None or person['role'] != EX or not (decode(person['details']) or {}).get('co_parent'):
         return True
     companion = our_child.companion_of(connection, timeline_id)
-    pattern = custody.OWN_PATTERNS[custody.own_outcome(connection, companion, person)['picked']] if companion else \
-        'with_them'
-    if pattern == 'shared':  # A week each, turn and turn about.
-        return day.isocalendar().week % 2 == 0
-    return pattern == 'with_them' or day.weekday() >= 5
+    pattern = stays.own_pattern(connection, companion, person) if companion else 'with_them'
+    return stays.with_companion(stays.rows_for(connection, timeline_id, stays.OWN, person['id']), day,
+                                stays.own_rhythm(pattern, day))
 
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
