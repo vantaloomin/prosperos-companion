@@ -49,6 +49,23 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.15.0 (2026-10-20)
+
+- **Wanting children:** every companion wants children, wants them someday or doesn't, shown on a new Family panel, and
+  a romance can reach Starting a family once you live together, asked and answered in chat.
+- **Expecting or adopting together:** a pregnancy, a surrogate, adoption, fostering or an older city's ward, with
+  appointments in Life admin, a nursery, a baby shower and a name the companion suggests.
+- **Our child:** a child who grows up in real time with milestones, care that changes work and money, family days out,
+  another child later, and a Family life slider.
+- **Companions' own babies:** friends start families with their partners, with a naming day, a godparent and babysitting.
+- **Companions who already have kids:** kids from descriptions or seeded, a co-parent with custody, and step-parenting
+  after moving in.
+- **When families change:** custody after a breakup, with whose week it is on Today and weekend visits across cities.
+- **Lifespans:** kinds such as Elf, Dwarf and Doesn't age with their own lifespans and ages in human terms, including
+  for your persona.
+- **Fixes:** truer death rates and a grandparent for younger companions, era words and jobs in older cities, mother and
+  father before about 1920, child costs that fit the city and era, and baby odds under Hidden values.
+
 ## v0.14.0 (2026-10-19)
 
 - **Everyone gets older:** companions, their circle and townsfolk age from today one birthday at a time, with milestone
