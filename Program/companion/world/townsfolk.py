@@ -295,7 +295,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         'role': title, 'kind': 'staff' if role[2] else 'regular', 'staff': role[2], 'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'],
                                                    'neighborhood': place['neighborhood']},
         'home': generators.pick(seed, 'home', hoods, [3, 1, 1, 1][:len(hoods)]),
-        'occupation': title if role[2] else _occupation(data, seed, life),
+        'occupation': title if role[2] else _occupation(data, seed, life, name['pronouns']),
         'temperament': generators.pick(seed, 'temperament', sorted(TEMPERAMENTS)),
         'quirk': quirk_for(data, seed),
         'flaw': generators.pick(seed, 'flaw', sorted(FLAWS)),
@@ -490,12 +490,15 @@ def _mentions(place: dict, words) -> bool:
     return any(f' {word} ' in found for word in words)
 
 
-def _occupation(data: dict, key: str, age: int) -> str:
+def _occupation(data: dict, key: str, age: int, pronouns: str | None = None) -> str:
     if age >= generators.RETIRED_AT:
         return 'retired'
     # Weighted towards the city's own industries, and stable per career: leaving one out of a city (a surf
-    # instructor in Baltimore) moves only the residents who had it, not everyone else.
-    chosen = generators.town_career(data, key)
+    # instructor in Baltimore) moves only the residents who had it, not everyone else. In an era that kept work
+    # by gender, the work of their side (generators.fits_side): their name's pronouns, named or not yet.
+    if pronouns is None and generators.by_gender(data):
+        pronouns = generators.seeded_pronouns(data, key)
+    chosen = generators.town_career(data, key, pronouns=pronouns)
     return chosen['name'].lower() if chosen else ''
 
 

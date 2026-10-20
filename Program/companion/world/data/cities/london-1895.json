@@ -3333,7 +3333,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "bank-clerk",
@@ -3351,7 +3352,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "typist",
@@ -3369,7 +3371,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "telegraph-operator",
@@ -3404,7 +3407,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "governess",
@@ -3422,7 +3426,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "schoolmistress",
@@ -3457,7 +3462,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "cook",
@@ -3474,7 +3480,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "cabman",
@@ -3492,7 +3499,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "railway-porter",
@@ -3509,7 +3517,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "constable",
@@ -3527,7 +3536,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "nurse",
@@ -3545,7 +3555,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "physician",
@@ -3563,7 +3574,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "retail-associate",
@@ -3598,7 +3610,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "performer",
@@ -3652,7 +3665,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "compositor",
@@ -3669,7 +3683,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "docker",
@@ -3687,7 +3702,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "bartender",
@@ -3721,7 +3737,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "undergraduate",
@@ -3757,7 +3774,8 @@
    ],
    "eras": [
     "victorian"
-   ]
+   ],
+   "worked_by": "men"
   }
  ],
  "employers": [

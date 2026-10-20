@@ -37,7 +37,11 @@ housing), places (attractions, museums, parks, venues, food, bars, shopping), co
 employers, career hubs, transit, monthly climate and recurring annual events. A shared catalogue
 of about 45 modern careers describes schedules and themes; a city whose `era` is not `modern`
 (`victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `jazz-age`, `future`, `other`) defines its own
-careers. Each city also names its `currency` and `rent_period` (`month` or `week`); rents and climate
+careers. A career may say who did that work in its era (`worked_by`: `men` or `women`; left out, anyone). In a
+city that keeps work by gender, townsfolk, circles and a companion's job changes only get the work of their side
+(they/them people get any): `work_by_gender` turns it on or off, and left out the era decides (on for `victorian`,
+`medieval`, `steampunk` and `frontier`, off otherwise; Ellerbrück turns it on, Grandport and Oz leave it off).
+Each city also names its `currency` and `rent_period` (`month` or `week`); rents and climate
 are optional, so a setting without money (Oz) or without weather data still works.
 
 ## Where the data lives
@@ -88,7 +92,7 @@ generators.price(data, 'pint-of-beer', seed=...)  # one amount within the city's
 generators.circle(data, seed=..., size=6, home='canton', age=31, career='teacher', employer=None,
                   family=None, group=None)
 generators.resident(data, seed=..., role='friend', career=None, age=None, near=None, employer=None,
-                    family=None, group=None, local=True)
+                    family=None, group=None, local=True, pronouns=None)  # pronouns: whose side's work
 generators.name(data, seed=..., pronouns=None, group=None, family=None)
 ```
 

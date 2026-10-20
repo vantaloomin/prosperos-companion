@@ -189,6 +189,9 @@ class Career(Record):
     # Adult work (a cam model, say): only ever chosen for an adult, and only offered to people while Settings >
     # Realism > Adult side of life is on. Never rolled for townsfolk, circles or job changes.
     adult: bool = False
+    # Who did this work in its era where custom kept it to one side ('men' for a cabman in 1895, 'women' for a
+    # governess); left out, anyone. Read only in a city whose era keeps work by gender (City.work_by_gender).
+    worked_by: Literal['men', 'women'] | None = None
 
 
 class Currency(Record):
@@ -413,6 +416,9 @@ class City(Record):
     annual_events: list[AnnualEvent] = Field(default_factory=list, max_length=200)
     # Careers particular to this city or its setting, beside the shared catalogue.
     careers: list[Career] = Field(default_factory=list, max_length=200)
+    # Whether townsfolk's jobs follow the careers' `worked_by`: left out, the era decides (on before about 1920 and
+    # in the Middle Ages, off today and in fantasy settings, which turn it on themselves; generators.by_gender).
+    work_by_gender: bool | None = None
     names: CityNames | None = None
     local_color: list[LocalColor] = Field(default_factory=list, max_length=100)
     prices: list[Price] = Field(default_factory=list, max_length=60)

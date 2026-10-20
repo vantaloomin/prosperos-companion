@@ -138,10 +138,39 @@ def _career_weights(offered: tuple, own: tuple, employers: tuple, sectors: tuple
     return tuple(weights.items())
 
 
-def town_career(data: dict, seed: str, label: str = 'career', fits=None) -> dict | None:
+# Eras whose work custom kept to men or to women (a careers' `worked_by`), unless the city says otherwise.
+GENDERED_ERAS = {'victorian', 'medieval', 'steampunk', 'frontier'}
+SIDES = {'she': 'women', 'he': 'men'}
+
+
+def by_gender(data: dict) -> bool:
+    """Whether this city's townsfolk work the jobs their era kept to their side (City.work_by_gender)."""
+    rule = data.get('work_by_gender')
+    return data.get('era', 'modern') in GENDERED_ERAS if rule is None else bool(rule)
+
+
+def fits_side(data: dict, pronouns: str | None):
+    """`fits(career)` for someone with these pronouns: in a city that keeps work by gender, a woman is never a
+    cabman nor a man a governess; anyone else (they/them, or a city that doesn't) fits every career."""
+    side = SIDES.get((pronouns or '').split('/')[0])
+    if not side or not by_gender(data):
+        return None
+    return lambda career: career.get('worked_by') in (None, side)
+
+
+def own_side(data: dict, pronouns: str | None, offered: dict[str, dict]) -> dict[str, dict]:
+    """The offered careers (by id) someone with these pronouns works in this city's era (fits_side); all of them when
+    the era leaves work open or none would fit."""
+    if not (side := fits_side(data, pronouns)):
+        return offered
+    return {key: career for key, career in offered.items() if side(career)} or offered
+
+
+def town_career(data: dict, seed: str, label: str = 'career', fits=None, pronouns: str | None = None) -> dict | None:
     """A career for someone living in this city, weighted towards the city's own industries (career_weights).
-    `fits(career_id)` keeps only careers that suit them (their age, say)."""
-    offered = catalog.everyday(catalog.careers_for(data))
+    `fits(career_id)` keeps only careers that suit them (their age, say); `pronouns` keeps to the work their era
+    gave their side (fits_side)."""
+    offered = own_side(data, pronouns, catalog.everyday(catalog.careers_for(data)))
     weights = {key: weight for key, weight in career_weights(data, offered).items() if not fits or fits(key)}
     chosen = rank_pick(seed, label, weights)
     return offered[chosen] if chosen else None
@@ -564,6 +593,12 @@ RETIRED_SCHEDULE = [
 ]
 
 
+def seeded_pronouns(data: dict, seed: str) -> str:
+    """The pronouns `name` gives this seed when none are asked for: 'she', 'he' or 'they'."""
+    modern = data['era'] in ('modern', 'future', 'other')
+    return pick(seed, 'pronouns', ['she', 'he', 'they'], town_mix.pronoun_weights(modern))
+
+
 def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | None = None,
          family: str | None = None, age: int | None = None, avoid=()) -> dict:
     """A resident's name from the city's name groups. `family` keeps a relative's family name.
@@ -580,8 +615,7 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
     group = group_of(data, seed, group)
     names = groups[group]
     if pronouns not in PRONOUNS:
-        modern = data['era'] in ('modern', 'future', 'other')
-        pronouns = pick(seed, 'pronouns', ['she', 'he', 'they'], town_mix.pronoun_weights(modern))
+        pronouns = seeded_pronouns(data, seed)
     links = naming.links(names, data)
     if family and not names.get('own_family'):
         # A relative's given name comes from a culture that fits the family name they share.
@@ -663,15 +697,18 @@ def _age(seed: str, career: str | None, around: int | None, role: str) -> int:
     return low + round((unit(seed, 'age-a') + unit(seed, 'age-b')) / 2 * (high - low))
 
 
-def _career_for(data: dict, seed: str, age: int, employer: str | None) -> str | None:
+def _career_for(data: dict, seed: str, age: int, employer: str | None, pronouns: str | None = None) -> str | None:
     if age >= RETIRED_AT:
         return None
     record = catalog.find(data, employer) if employer else None
     if record and record.get('careers'):
         offered = catalog.everyday(catalog.careers_for(data))
         options = [career for career in record['careers'] if career in offered]
+        if (side := fits_side(data, pronouns)) and (fitting := [career for career in options if side(offered[career])]):
+            options = fitting
         return pick(seed, 'career', sorted(options)) if options else None
-    found = town_career(data, seed, fits=lambda career: AGES.get(career, (0, 99))[0] <= age <= AGES.get(career, (0, 99))[1])
+    found = town_career(data, seed, pronouns=pronouns,
+                        fits=lambda career: AGES.get(career, (0, 99))[0] <= age <= AGES.get(career, (0, 99))[1])
     return found['id'] if found else None
 
 
@@ -691,7 +728,7 @@ def _haunts(data: dict, seed: str, hood: str, count: int = 3) -> list[dict]:
 def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None = None, age: int | None = None,
              near: str | None = None, employer: str | None = None, family: str | None = None,
              group: str | None = None, around_age: int | None = None, local: bool = True,
-             avoid: list[str] | tuple = (), folk: str | None = None) -> dict:
+             avoid: list[str] | tuple = (), folk: str | None = None, pronouns: str | None = None) -> dict:
     """One person in the city: name, age, home, job with commute, weekly schedule and regular haunts.
 
     `near` puts their home close to a neighborhood (a neighbor's is the same one); `employer` makes them
@@ -702,6 +739,8 @@ def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None 
     Ages are drawn in human terms (`age` and `around_age` too) and their real age follows their kind
     (companion/world/lifespans.py): `folk`, else their name group's, so a relative of an elf is an elf and an
     elven resident is often centuries old. Their job and retiring follow the age in human terms.
+
+    Their job fits the work their era gave their side (fits_side): `pronouns`, else their name's.
     """
     if role not in ROLES:
         raise DomainError(f'Role is one of {", ".join(ROLES)}.', 422)
@@ -716,7 +755,7 @@ def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None 
     if not local:
         return person | provenance(data, [])
     age = life
-    career = career or _career_for(data, seed, age, employer)
+    career = career or _career_for(data, seed, age, employer, pronouns or named['pronouns'])
     bedrooms = pick(seed, 'bedrooms', list(BEDROOMS), [3, 5, 2] if age < 35 else [1, 4, 5])
     if role == 'neighbor' and near:
         place = home(data, seed=seed, bedrooms=bedrooms, near=near)

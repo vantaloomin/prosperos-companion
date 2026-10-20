@@ -28,11 +28,18 @@ def place(id, name, kind, hood, summary, tags, cost, setting, good_for, day_part
 
 # How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
 EMPLOYMENT = {'baker': 'rota', 'spinner': 'freelance', 'ratcatcher': 'freelance'}
+# Who did the work in this era where custom kept it to men or women (schema Career.worked_by): townsfolk's jobs
+# follow it, so a mother is never a cabman. Left out, anyone.
+M, W = 'men', 'women'
+WORKED_BY = {'woodcutter': M, 'charcoal-burner': M, 'miller': M, 'goose-girl': W, 'shoemaker': M, 'tailor': M,
+             'spinner': W, 'huntsman': M, 'ferryman': M, 'fisher': M, 'apothecary': M, 'royal-gardener': M,
+             'tanner': M, 'ratcatcher': M, 'town-musician': M, 'carter': M, 'convent-teacher': W}
 
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')} | (
+        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {})
 
 
 def employer(id, name, sector, hood, size, summary, careers):
@@ -466,6 +473,8 @@ CITY = {
                'boys to read, count and sew at the convent of St. Clare.', ['the schoolroom', 'the sisters',
                'letters', 'pupils']),
     ],
+    # Its fairy-tale customs keep work by gender, unlike most fantasy settings (schema City.work_by_gender).
+    'work_by_gender': True,
     'employers': [
         employer('grafliche-hof', 'the Count\'s household', 'court', 'schlossberg', 'medium', 'The steward\'s '
                  'household that runs the castle\'s kitchens, laundry, chambers and stables.', ['castle-servant',

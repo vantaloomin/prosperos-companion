@@ -21,11 +21,18 @@ def place(id, name, kind, hood, summary, tags, cost, setting, good_for, day_part
 
 # How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
 EMPLOYMENT = {'baker': 'rota', 'minstrel': 'freelance'}
+# Who did the work in this era where custom kept it to men or women (schema Career.worked_by): townsfolk's jobs
+# follow it, so a mother is never a cabman. Left out, anyone.
+M, W = 'men', 'women'
+WORKED_BY = {'groom': M, 'falconer': M, 'squire': M, 'man-at-arms': M, 'court-clerk': M, 'scribe': M, 'armourer': M,
+             'blacksmith': M, 'alewife': W, 'tanner': M, 'mason': M, 'minstrel': M, 'merchant': M, 'boatman': M,
+             'miller': M, 'chaplain': M}
 
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': ['medieval'], 'employment': EMPLOYMENT.get(id, 'staff')}
+            'themes': themes, 'eras': ['medieval'], 'employment': EMPLOYMENT.get(id, 'staff')} | (
+        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {})
 
 
 def employer(id, name, sector, hood, size, summary, careers):

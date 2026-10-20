@@ -681,3 +681,16 @@ def test_us_cities_read_in_american_spelling(city_id):
 
 def test_every_shipped_us_city_is_checked_for_spelling():
     assert {'baltimore', 'haddon-harbor', 'new-orleans', 'new-york-1925', 'pellmouth', 'whitlock'} <= set(US_CITIES)
+
+
+def test_a_city_without_work_rules_keeps_its_data_and_one_with_them_reads_them():
+    open_city = catalog.city('grandport')
+    assert 'work_by_gender' not in open_city and not any('worked_by' in career for career in open_city['careers'])
+    old = catalog.city('london-1895')
+    assert old.get('work_by_gender') is None and catalog.city('ellerbruck')['work_by_gender'] is True
+    assert {career['id']: career.get('worked_by') for career in old['careers']}['cabman'] == 'men'
+    raw = plain(baltimore())
+    raw['careers'] = [{'id': 'lamplighter', 'name': 'Lamplighter', 'sector': 'transport', 'schedule': 'evening',
+                       'pay': '$', 'summary': 'Lighting the gas lamps.', 'themes': ['dusk'], 'worked_by': 'boys'}]
+    with pytest.raises(ValidationError, match='worked_by'):
+        City.model_validate(raw)

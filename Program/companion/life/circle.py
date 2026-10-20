@@ -158,7 +158,7 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
         member = generators.resident(data, seed=f'{base}:named:{index}', role=role, local=person['local'],
                                      near=home if role in ('neighbor', 'parent', 'sibling') else None,
                                      family=family if related else None, group=group if related else None,
-                                     folk=folk if related else None)
+                                     folk=folk if related else None, pronouns=person['pronouns'])
         pronouns = person['pronouns'] or 'they/them'
         given = person['name'].split()[0]
         full = person['name'] if ' ' in person['name'] else given

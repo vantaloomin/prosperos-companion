@@ -37,11 +37,18 @@ def employer(id, name, sector, hood, size, summary, careers):
 EMPLOYMENT = {'telegraph-operator': 'rota', 'cabman': 'rota', 'railway-porter': 'rota', 'constable': 'rota',
               'nurse': 'rota', 'retail-associate': 'rota', 'performer': 'freelance', 'actor': 'freelance',
               'bartender': 'rota', 'waiter': 'rota', 'detective': 'freelance'}
+# Who did the work in this era where custom kept it to men or women (schema Career.worked_by): townsfolk's jobs
+# follow it, so a mother is never a cabman. Left out, anyone.
+M, W = 'men', 'women'
+WORKED_BY = {'clerk': M, 'bank-clerk': M, 'typist': W, 'postman': M, 'governess': W, 'housemaid': W, 'cook': W,
+             'cabman': M, 'railway-porter': M, 'constable': M, 'nurse': W, 'physician': M, 'seamstress': W,
+             'journalist': M, 'compositor': M, 'docker': M, 'waiter': M, 'detective': M}
 
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')} | (
+        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {})
 
 
 def line(id, name, kind, summary):

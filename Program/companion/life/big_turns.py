@@ -39,7 +39,7 @@ from companion import consequences
 from companion.database import decode, encode, many, optional
 from companion.errors import require
 from companion.life import ages, home, money, moving_in, routine
-from companion.world import catalog, intimacy
+from companion.world import catalog, generators, intimacy, looks
 
 KINDS = ('school', 'career_change', 'buy_place', 'retire', 'business', 'health', 'caring')
 # Hard turns never happen on Gentle (good turns only); a business stalling or folding is ruled out there by its own
@@ -278,7 +278,9 @@ def new_line(definition: dict, seed: str) -> dict | None:
     current, _guessed = money.career_for(definition, city)
     if not current:
         return None
-    options = sorted(career['id'] for career in catalog.everyday(catalog.careers_for(city)).values()
+    # Work their era gives their side (1895: never a cabman for her; generators.own_side).
+    offered = generators.own_side(city, looks.pronouns_of(definition), catalog.everyday(catalog.careers_for(city)))
+    options = sorted(career['id'] for career in offered.values()
                      if career.get('sector') != current.get('sector') and career['schedule'] == current['schedule'])
     return catalog.careers_for(city)[random.Random(f'{seed}:career').choice(options)] if options else None
 

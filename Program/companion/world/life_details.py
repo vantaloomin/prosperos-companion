@@ -73,9 +73,17 @@ def origin(data: dict, sheet: dict, seed: str, modern: bool) -> str:
     return text.replace('{hood}', generators.pick(seed, 'details-hood', hoods) or '').replace('{city}', data['name'])
 
 
+def worked(data: dict, sheet: dict) -> list[str]:
+    """The careers (lowercase names) this townsperson could have worked: in an era that kept work by gender, those of
+    their side (generators.fits_side)."""
+    offered = catalog.everyday(catalog.careers_for(data)).values()
+    side = generators.fits_side(data, sheet.get('pronouns'))
+    return sorted(career['name'].lower() for career in offered if not side or side(career))
+
+
 def retired_from(data: dict, sheet: dict, seed: str) -> str | None:
     """The career (lowercase name) a retired townsperson retired from."""
-    careers = sorted(career['name'].lower() for career in catalog.everyday(catalog.careers_for(data)).values())
+    careers = worked(data, sheet)
     past = [career for career in careers if career != (sheet.get('occupation') or '').lower()]
     return generators.pick(seed, 'details-retired', past)
 
@@ -83,7 +91,7 @@ def retired_from(data: dict, sheet: dict, seed: str) -> str | None:
 def work(data: dict, sheet: dict, seed: str) -> list[str]:
     """How long at the current job (staff), or retirement, and the jobs before it, newest first."""
     span = max(sheet['age'] - WORK_FROM, 0)
-    careers = sorted(career['name'].lower() for career in catalog.everyday(catalog.careers_for(data)).values())
+    careers = worked(data, sheet)
     current = (sheet.get('occupation') or '').lower()
     past = [career for career in careers if career != current]
     lines, used = [], 0

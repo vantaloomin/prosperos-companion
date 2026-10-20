@@ -436,3 +436,23 @@ def test_everyday_places_are_near_home():
     away = {'name': 'Dana', 'location': 'Fells Point, Baltimore', 'near': 'Hampden'}
     theirs = composer.find_places(world, away, slot, ('cafe',))
     assert theirs and {place.id for place in theirs} != {place.id for place in fells}
+
+
+@pytest.mark.parametrize('city, location', [('london-1895', 'Marylebone, London'), ('camelot', 'Camelot'),
+                                            ('whitlock', 'Whitlock')])
+def test_an_older_citys_circle_works_the_jobs_of_its_era(client, city, location):
+    """In 1895 a mother is never a cabman, nor a brother a governess; the sheet's own people too."""
+    from companion.world import catalog
+    careers = {career['name']: career for career in catalog.careers_for(catalog.city(city)).values()}
+    response = client.post('/api/companion', json={
+        'name': 'Ada Hartley', 'timezone': 'Europe/London', 'home_city': city, 'location': location,
+        'identity': '29. She/her. Her brother Tom and her mother Edith live nearby.', 'relationship': 'friendship',
+        'schedule': EVENING_OUT})
+    assert response.status_code == 200, response.text
+    assert client.put('/api/life/settings', json={'circle_size': 12}).status_code == 200
+    people = client.get('/api/life/circle').json()
+    assert {'Tom', 'Edith'} <= {person['name'] for person in people} and len(people) >= 10
+    for person in people:
+        side = {'she/her': 'women', 'he/him': 'men'}.get(person['pronouns'])
+        worked_by = (careers.get(person['career']) or {}).get('worked_by')
+        assert not side or worked_by in (None, side), (person['name'], person['role'], person['career'])
