@@ -25,6 +25,7 @@ import { RAIL_IDS, fromToday } from './features/nav/navText'
 import { useAppColors } from './features/settings/useAppColors'
 import { useObserver } from './features/watch/useObserver'
 import { WatchBanner } from './features/watch/WatchBanner'
+import { inChat } from './features/watch/watchText'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
@@ -92,7 +93,7 @@ export default function App() {
       <main id="main" className="app-main" tabIndex={-1}>
         <DebugBanner onOpen={() => go('settings/debug')} />
         <ReadyNotice openModels={() => go('settings/models')} />
-        <WatchBanner onWatch={shown === 'watch'} onOpen={() => go('watch')} />
+        <WatchBanner inChat={inChat(shown)} onOpen={() => go('watch')} />
         {companion.isPending ? <Loading label="Opening your companion" />
           : companion.isError ? <ErrorNotice error={companion.error} />
             : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={shown} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}

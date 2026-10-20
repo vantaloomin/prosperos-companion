@@ -42,7 +42,7 @@ function WatchHeader({ data, focus, onChange, go }: HeaderProps) {
   return (
     <header className="page-header watch-header">
       <div className="watch-title">
-        <p className="eyebrow">{data.watching ? 'Just watching' : 'Watch'}</p>
+        <p className="eyebrow">{data.watching ? 'Just watching' : 'Just watch'}</p>
         <h1 id="watch-heading">{focus.name}</h1>
         <p className="subtle">{focus.line}</p>
       </div>

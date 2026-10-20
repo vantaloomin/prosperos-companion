@@ -288,8 +288,8 @@
    "needs": [],
    "drama": 0,
    "weight": 4,
-   "text": "{first} had the strongest deja vu standing in line at the shop.",
-   "told": "You had the strongest deja vu standing in line at the shop.",
+   "text": "{first} had the strongest déjà vu standing in line at the shop.",
+   "told": "You had the strongest déjà vu standing in line at the shop.",
    "on": true
   },
   {

@@ -1,3 +1,4 @@
+import type { View } from '../../companion.ts'
 import type { WatchFocus, WatchLine } from '../../types.ts'
 
 /** Inner voice (Settings > Realism > Their days, companion/life/narrator.py): how much of their mind the Watching page tells. */
@@ -41,4 +42,9 @@ export function lineTime(line: WatchLine, timezone: string): string {
 export const LINE_LABELS: Partial<Record<WatchLine['kind'], string>> = {
   dream: 'Dream', thought: 'On their mind', news: 'Heard', story: 'Unfolding', chapter: 'New chapter', mood: 'Feeling',
   moment: 'A small moment', met: 'Crossed paths',
+}
+
+/** Where the "Just watching" banner shows: a chat with a companion or a group, where writing would step them back in. */
+export function inChat(view: View): boolean {
+  return view === 'conversation' || view.startsWith('group/')
 }

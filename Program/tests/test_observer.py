@@ -94,7 +94,7 @@ def test_inner_voice_sets_how_much_of_their_mind_is_told(client, watching, voice
     inner = [line for line in found if line['inner']]
     thoughts = [line for line in found if line['kind'] == 'thought']
     if voice == 0:
-        assert not inner and not thoughts
+        assert not inner and not thoughts and not [line for line in found if line['kind'] in ('mood', 'dream')]
     if voice == 3:
         assert all(line['inner'] for line in found if line['kind'] == 'day')
     if voice < 3:
@@ -194,3 +194,16 @@ def test_a_thought_already_told_or_kept_all_week_shows_once():
     thoughts = [narrator.item(f'thought:{day}', f'2026-10-{day}T21:00:00Z', 'thought', text) for day, text in
                 ((18, 'Mira had something come up (the laundry).'), (19, 'Money is tight.'), (20, 'Money is tight.'))]
     assert [line['id'] for line in narrator.fresh(thoughts, told)] == ['thought:20']
+
+
+def test_true_to_life_only_follows_a_line_that_stirred_something():
+    assert narrator.thought_after(2, True, 'k', None, 'Mira') is None  # Nothing to say: no filler.
+    assert narrator.thought_after(2, True, 'k', 'good', 'Mira')
+    assert narrator.thought_after(2, False, 'k', 'good', 'Mira') is None
+    assert narrator.thought_after(3, False, 'k', None, 'Mira')
+
+
+def test_a_townsperson_routine_does_not_read_word_for_word_each_day(client):
+    client.put('/api/observer', json={'watching': True})
+    found = [line['text'] for line in lines(feed(client)) if line['id'].startswith('where:')]
+    assert found and len(set(found)) > len(found) // 2

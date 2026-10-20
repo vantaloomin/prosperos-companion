@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { WatchFocus, WatchLine } from '../../src/types.ts'
-import { firstName, focusGroups, INNER_VOICE_LEVELS, lineTime, stepInLabel } from '../../src/features/watch/watchText.ts'
+import { firstName, focusGroups, inChat, INNER_VOICE_LEVELS, lineTime, stepInLabel } from '../../src/features/watch/watchText.ts'
 
 const person = (key: string, name: string, kind: WatchFocus['kind']) => ({ key, name, kind, line: '' }) as unknown as WatchFocus
 
@@ -26,4 +26,9 @@ test('line times read in the town clock, how they feel reads Now, and a bad zone
 
 test('the Inner voice slider has four steps, from just what happened to everything on their mind', () => {
   assert.deepEqual(INNER_VOICE_LEVELS.map((level) => level.label), ['Just what happened', 'A few thoughts', 'True to life', 'Everything on their mind'])
+})
+
+test('the Just watching banner shows only in chats, where writing would step you back in', () => {
+  assert.ok(inChat('conversation') && inChat('group/abc'))
+  assert.ok(!inChat('worlds') && !inChat('dating') && !inChat('settings/realism') && !inChat('watch'))
 })

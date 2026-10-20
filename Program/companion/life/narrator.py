@@ -160,9 +160,11 @@ def safe(connection, entries: list[dict], first: str, pronoun: str) -> list[dict
 # A companion's days --------------------------------------------------------------------------------------------------
 
 def thought_after(voice: int, notable: bool, key: str, feeling: str | None, first: str) -> str | None:
-    """A thought after a line: after what stood out from true to life (2), after every line on everything (3)."""
-    if voice >= 3 or voice == 2 and notable:
-        return pick(tone(feeling), key).format(first=first)
+    """A thought after a line: after what stood out and stirred a feeling on true to life (2), after every line on
+    everything (3)."""
+    kind = tone(feeling)
+    if voice >= 3 or voice == 2 and notable and kind != 'calm':
+        return pick(kind, key).format(first=first)
     return None
 
 
@@ -202,8 +204,11 @@ def moments(connection, companion, now, voice: int, odds: bool, first: str) -> l
             for found in deck.week(connection, companion, now, odds=odds)]
 
 
-def dreamed(connection, companion, now) -> list[dict]:
+def dreamed(connection, companion, now, voice: int) -> list[dict]:
+    """Dreams are their inner world: told from a few thoughts (1) on."""
     from companion.life import dreams
+    if voice < 1:
+        return []
     dreams.catch_up(connection, companion, now)
     timezone = companion['version']['timezone']
     return [item(f"dream:{found['day']}", at(date.fromisoformat(found['day']), WAKING, timezone), 'dream',
@@ -319,7 +324,7 @@ def companion_lines(connection, companion, now) -> list[dict]:
     days = [since + timedelta(days=offset) for offset in range(DAYS)]
     lines = (day_events(connection, companion, at(since, time(0), timezone), now, voice, first)
              + moments(connection, companion, now, voice, bool(workspace['show_odds']), first)
-             + dreamed(connection, companion, now) + beats(connection, companion, now, since, voice, first)
+             + dreamed(connection, companion, now, voice) + beats(connection, companion, now, since, voice, first)
              + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since))
     lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
     lines += fresh(on_their_mind(connection, companion, now, voice), lines)
@@ -339,6 +344,11 @@ def doing_text(found: dict) -> str:
     return doing
 
 
+# The same part of the day as the day before, told so a routine does not read word for word each day.
+AGAIN = ('{first} was {text} again that {part}.', 'The {part} found {first} {text} once more.',
+         'As on most days, {first} spent the {part} {text}.', '{first} was back {text} in the {part}.')
+
+
 def whereabouts(sheet: dict, data: dict, day: date, now) -> list[dict]:
     from companion.world import townsfolk
     timezone, first = town_zone(data), first_name(sheet['name'])
@@ -350,8 +360,10 @@ def whereabouts(sheet: dict, data: dict, day: date, now) -> list[dict]:
         found = townsfolk.whereabouts(sheet, data, local)
         text = doing_text(found)
         if found['doing'] != 'asleep' and text != last:
-            result.append(item(f"where:{sheet['key']}:{day.isoformat()}:{part}", stamp(local), 'day',
-                               f'In the {part}, {first} was {text}.'))
+            key = f"where:{sheet['key']}:{day.isoformat()}:{part}"
+            usual = doing_text(townsfolk.whereabouts(sheet, data, local - timedelta(days=1))) == text
+            words = random.Random(key).choice(AGAIN) if usual else 'In the {part}, {first} was {text}.'
+            result.append(item(key, stamp(local), 'day', words.format(part=part, first=first, text=text)))
         last = text
     return result
 
