@@ -28,11 +28,14 @@ WORKED_BY = {'groom': M, 'falconer': M, 'squire': M, 'man-at-arms': M, 'court-cl
              'blacksmith': M, 'alewife': W, 'tanner': M, 'mason': M, 'minstrel': M, 'merchant': M, 'boatman': M,
              'miller': M, 'chaplain': M}
 
+# The ages someone works it at, youngest to oldest (schema Career.ages): never a 55-year-old squire.
+AGES = {'squire': [18, 24]}
+
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
             'themes': themes, 'eras': ['medieval'], 'employment': EMPLOYMENT.get(id, 'staff')} | (
-        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {})
+        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {}) | ({'ages': AGES[id]} if id in AGES else {})
 
 
 def employer(id, name, sector, hood, size, summary, careers):

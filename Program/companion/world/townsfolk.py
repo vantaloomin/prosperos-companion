@@ -498,7 +498,7 @@ def _occupation(data: dict, key: str, age: int, pronouns: str | None = None) -> 
     # by gender, the work of their side (generators.fits_side): their name's pronouns, named or not yet.
     if pronouns is None and generators.by_gender(data):
         pronouns = generators.seeded_pronouns(data, key)
-    chosen = generators.town_career(data, key, pronouns=pronouns)
+    chosen = generators.town_career(data, key, pronouns=pronouns, age=age)
     return chosen['name'].lower() if chosen else ''
 
 

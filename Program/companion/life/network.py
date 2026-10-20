@@ -110,7 +110,7 @@ def occupation(data: dict, key: str, age: int, pronouns: str | None = None) -> s
         return 'retired'
     # Weighted towards the city's own industries, like its townsfolk (generators.town_career), and in an era that
     # kept work by gender, the work of their side.
-    career = generators.town_career(data, key, pronouns=pronouns) if data.get('places') else None
+    career = generators.town_career(data, key, pronouns=pronouns, age=age) if data.get('places') else None
     return career['name'].lower() if career else ''
 
 

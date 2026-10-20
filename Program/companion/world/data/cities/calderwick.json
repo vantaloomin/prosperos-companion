@@ -2876,7 +2876,11 @@
    "eras": [
     "steampunk"
    ],
-   "worked_by": "women"
+   "worked_by": "women",
+   "ages": [
+    18,
+    40
+   ]
   },
   {
    "id": "office-clerk",

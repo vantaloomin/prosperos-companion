@@ -2768,7 +2768,11 @@
    "eras": [
     "fantasy"
    ],
-   "worked_by": "women"
+   "worked_by": "women",
+   "ages": [
+    18,
+    25
+   ]
   },
   {
    "id": "shoemaker",

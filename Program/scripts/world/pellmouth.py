@@ -34,10 +34,16 @@ def college(id, name, type, hood, size, known_for):
 EMPLOYMENT = {'asylum-attendant': 'rota', 'spiritualist-medium': 'freelance', 'dowser': 'freelance',
               'wireless-operator': 'rota', 'ferry-deckhand': 'rota'}
 
+# Work in 1925 was open to women but for a few jobs still kept to men (schema Career.worked_by): a woman is never
+# a riveter here. Left out, anyone.
+M = 'men'
+WORKED_BY = {'quarry-worker': M, 'ferry-deckhand': M}
+
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')} | (
+        {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {})
 
 
 def employer(id, name, sector, hood, size, summary, careers):
