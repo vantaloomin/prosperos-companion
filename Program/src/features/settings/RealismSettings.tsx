@@ -43,6 +43,14 @@ const GUEST_LEVELS = [
   { label: 'Often', hint: 'Friends, family and familiar faces get pulled into group chats often, a few times a day at most.' },
 ]
 
+/** Memes and GIFs (companion/images/photos.py MEME_LEVELS): how often memes come unasked. Pictures nobody asked for stay a few a day. */
+const MEME_LEVELS = [
+  { label: 'Never', hint: 'No memes or GIFs, even when you ask. They answer in words.' },
+  { label: 'Now and then', hint: 'A meme when you ask, and once in a while one to cheer you up when you sound down.' },
+  { label: 'True to life', hint: 'A meme or a GIF when you ask, and often one when you sound bored or down. A few pictures a day at most.' },
+  { label: 'Often', hint: 'Memes come often when you sound down, and now and then out of the blue. Still a few pictures a day at most.' },
+]
+
 /** The top of Settings > Realism: Iris's opening line and one-tap presets for the world-wide settings below. */
 export function RealismIntro() {
   return (
@@ -63,6 +71,7 @@ export function PaceSettings() {
   const guests = step(GUEST_LEVELS, data.guests_realism, 2)
   const media = step(MEDIA_LEVELS, data.media_realism, 2)
   const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
+  const memes = step(MEME_LEVELS, data.memes_realism, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
   const families = step(FAMILY_LEVELS, data.growing_families, 2)
   const familyLife = step(FAMILY_LIFE_LEVELS, data.family_life, 2)
@@ -119,6 +128,10 @@ export function PaceSettings() {
       <Field label={`Reading, watching, listening: ${media.label}`} hint={media.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.media_realism} label={media.label}
           onChange={(media_realism) => void save({ media_realism })} />}
+      </Field>
+      <Field label={`Memes and GIFs: ${memes.label}`} hint={memes.hint} tip="Memes need no image backend. Reaction GIFs need your own GIPHY key, in Settings > Images.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.memes_realism} label={memes.label}
+          onChange={(memes_realism) => void save({ memes_realism })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />

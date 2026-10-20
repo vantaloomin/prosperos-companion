@@ -185,6 +185,9 @@ def no_life_admin(monkeypatch):
 def no_unasked_pictures(monkeypatch):
     """Unasked chat pictures are a seeded chance; test_chat_photos turns them on where it needs them."""
     monkeypatch.setattr('companion.images.photos.UNASKED', False)
+    # Classic meme formats and reaction GIFs come from the network; tests never reach it (test_memes.py fakes it).
+    monkeypatch.setattr('companion.images.meme_pictures.FETCH', False)
+    monkeypatch.setattr('companion.images.gifs.FETCH', False)
 
 
 @pytest.fixture(autouse=True)

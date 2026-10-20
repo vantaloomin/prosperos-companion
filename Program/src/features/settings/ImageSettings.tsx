@@ -13,6 +13,7 @@ import { HardwareWarnings } from './models/HardwareCheck'
 import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
+import { MemeSettings } from './MemeSettings'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
 import { SliderField, SliderNumber } from '../../components/NumberFields'
@@ -53,6 +54,7 @@ export function ImageSettings() {
       <Backends list={list} refresh={refresh} setResult={setResult} phone={onPhone} />
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
+      <MemeSettings data={data} save={save} phone={onPhone} />
     </section>
   )
 }
@@ -82,7 +84,7 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
       <Toggle label="Make images for new posts automatically" checked={data.automatic_images} onChange={(value) => void save({ automatic_images: value })}
         hint="Needs background activity on. Only covers posts written from now on, never catch-up summaries, and stops at the daily limit." />
       <Toggle label="Send photos, selfies and memes in chat" checked={data.chat_photos} onChange={(value) => void save({ chat_photos: value })}
-        hint="Ask what they're up to, or for a selfie or a meme, and they can answer with a picture. A photo of the moment is also that moment's feed picture. Made by the backends above under the same content rules." />
+        hint="Ask what they're up to, or for a selfie or a meme, and they can answer with a picture. A photo of the moment is also that moment's feed picture. Photos and selfies are made by the backends above under the same content rules; memes and GIFs work without one (below)." />
       <Toggle label="Let them send pictures without being asked" checked={data.unprompted_photos} disabled={!data.chat_photos} onChange={(value) => void save({ unprompted_photos: value })}
         hint="Now and then a reply comes with a photo or a meme, a few a day at most. If they may message you first (Life & cities), they sometimes text a photo of what they're out doing, once a day at most." />
       <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
@@ -90,7 +92,7 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
       <div className="form-grid">
         <SliderField label="Most automatic images a day" value={data.daily_limit} min={0} max={24} format={(value) => countText(value, 'image', 'images', 'None')}
           onChange={(value) => void save({ daily_limit: value }, 'Saved.')} />
-        <Field label="Shape" hint="For post pictures and photos in chat. Memes are always square.">{(id, hint) => (
+        <Field label="Shape" hint="For post pictures and photos in chat. Memes a backend makes are square; the rest keep their picture's shape.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={data.aspect} onChange={(event) => void save({ aspect: event.target.value as Limits['aspect'] })}>
             <option value="landscape">Landscape</option><option value="square">Square</option><option value="portrait">Portrait</option>
           </select>

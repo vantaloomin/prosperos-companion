@@ -220,7 +220,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
     app.state.conversation.photos = ChatPhotos(app.state.database, app.state.images, app.state.life,
-                                               app.state.openers)
+                                               app.state.openers, app.state.vault)
     app.state.images.share = app.state.conversation.photos.share
     app.state.dating_photos = DatingPhotos(app.state.database, app.state.vault, app.state.images)
     # The photo of a finished outing with the user and the picture on a postcard from a trip.

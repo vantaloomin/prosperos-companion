@@ -229,7 +229,10 @@ def test_a_view_leaves_the_companion_out(client, life, adapters):
     assert 'red scarf' not in adapters['comfyui'].requests[-1].prompt
 
 
-def test_a_meme_is_a_joke_that_never_reaches_the_feed(client, life, clock, provider, adapters):
+def test_a_meme_is_a_joke_that_never_reaches_the_feed(client, life, clock, provider, adapters, monkeypatch):
+    # With an image model set up, memes are made by it a share of the time; here, every time.
+    monkeypatch.setattr('companion.images.photos.MODEL_SHARE', 1)
+    monkeypatch.setattr('companion.images.memes.CHOICE_SHARE', 0)
     local_comfy(client)
     reply = ask(client, 'send me a meme', 'ask-0001')
     photo = reply['photo']
@@ -248,7 +251,8 @@ def test_a_meme_is_a_joke_that_never_reaches_the_feed(client, life, clock, provi
     assert other['post_id'] != photo['post_id'] and other['top_text'] != photo['top_text']
 
 
-def test_memes_are_classified_like_any_picture(client, life, adapters):
+def test_memes_are_classified_like_any_picture(client, life, adapters, monkeypatch):
+    monkeypatch.setattr('companion.images.photos.MODEL_SHARE', 1)
     set_appearance(client, 'Tall, in lingerie')
     add_backend(client, kind='hosted', provider='google', base_url='https://example.test/v1', model='image',
                 api_key='key')
@@ -264,9 +268,12 @@ def test_memes_are_classified_like_any_picture(client, life, adapters):
 def test_meme_templates_fit_the_day_and_vary():
     work = {'kind': 'work', 'label': 'Work', 'place': 'the office', 'rain': False}
     chosen = {memes.choose(work, 14, f'seed-{index}')['top'] for index in range(30)}
-    assert len(chosen) > 3
+    assert len(chosen) > 20
+    work_lines = {row[0].format(where='the office') for row in memes.bank()['situations']['work']}
+    assert len(chosen & work_lines) > 10  # Mostly from their situation, now and then one for any time.
     assert memes.choose(None, 3, 'x')['top']
-    recent = [template.top for template in memes.SITUATIONS['work'] + memes.ANYTIME]
+    bank = memes.bank()['situations']
+    recent = [row[0] for row in bank['work'] + bank['anytime']]
     assert memes.choose(work, 14, 'y', recent)['top']
 
 

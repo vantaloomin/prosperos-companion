@@ -82,6 +82,7 @@ class ImageSettingsUpdate(Input):
     fallback: bool | None = None
     chat_photos: bool | None = None
     unprompted_photos: bool | None = None
+    meme_formats: bool | None = None
     aspect: Aspect | None = None
     style: str | None = Field(default=None, max_length=500)
 
@@ -101,3 +102,8 @@ class JobRetry(Input):
 class Preview(Input):
     post_id: str
     marked_nsfw: bool = False
+
+
+class GifKey(Input):
+    # Empty removes the saved key.
+    key: str = Field(default='', max_length=200, pattern=r'^[A-Za-z0-9]*$')

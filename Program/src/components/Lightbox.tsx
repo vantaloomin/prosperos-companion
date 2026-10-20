@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react'
 import { appNow } from '../appTime'
 import { clockTime } from '../when'
 import { saveName, stepTo, swipeAction, type Shown } from './lightboxState'
+import { MemeLines } from './MemeLines'
 
 export type { Shown } from './lightboxState'
 
@@ -46,8 +47,7 @@ export function Lightbox({ pictures, start = 0, onClose }: { pictures: Shown[]; 
       <div className="lightbox-stage">
         <figure className="lightbox-picture">
           <img key={shown.src} src={shown.src} alt={shown.alt} />
-          {shown.top && <span className="meme-text meme-top">{shown.top}</span>}
-          {shown.bottom && <span className="meme-text meme-bottom">{shown.bottom}</span>}
+          <MemeLines top={shown.top} bottom={shown.bottom} boxes={shown.boxes} />
         </figure>
         {pictures.length > 1 && <Arrows index={index} count={pictures.length} step={step} />}
       </div>
