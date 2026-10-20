@@ -434,7 +434,9 @@ def person_text(person) -> str:
         text += f": {person['career']}" + (f" at {person['employer']}" if person['employer'] else '')
     if person.get('works_with_companion'):
         text = f"- {person['name']} ({person['role']}): works with you"
-    text += '.' if person.get('local', True) else '. Lives out of town.'
+    # An employer whose name ends in a full stop ("Coutts and Co.") already ends the sentence.
+    text += '' if text.endswith('.') else '.'
+    text += '' if person.get('local', True) else ' Lives out of town.'
     if person.get('married'):
         text += ' Married' + (f", goes by their married name (born {person['birth_family']})."
                               if person.get('birth_family') else '.')

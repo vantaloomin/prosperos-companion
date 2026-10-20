@@ -547,7 +547,7 @@ def read_consequence(request: Request, consequence_id: str):
         require(found['timeline_id'] == companion['active_timeline_id'] or
                 moving_in.shown_with(connection, consequence_id, companion), 'That outcome is not on this timeline.', 404)
         # How a stage went, once a later stage followed: no "Make it go this way", and why (big_turns.py).
-        return {**found, 'settled': big_turns.settled_note(connection, found)}
+        return {**found, 'settled': big_turns.settled_note(connection, found) or families.odds_settled(connection, found)}
 
 
 # "Change how it went" by subject prefix, for those that take (connection, companion, consequence_id, option, now).
@@ -558,7 +558,8 @@ CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.chang
            'family:': lambda: parenthood.change,
            # How a business, a health turn or a parent's care is going (big_turns.py).
            'business:': lambda: big_turns.change_stage, 'health:': lambda: big_turns.change_stage,
-           'caring:': lambda: big_turns.change_stage, 'kids:': lambda: kids.change}
+           'caring:': lambda: big_turns.change_stage, 'kids:': lambda: kids.change,
+           'baby:': lambda: families.change_baby}
 
 
 @router.post('/consequences/{consequence_id}/change')

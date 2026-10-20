@@ -204,3 +204,12 @@ def test_the_grandparent_never_shares_a_first_name_with_someone_in_the_circle(cl
     given = first['details']['full_name'].split()[0]
     again = circle.grandparent(definition, world, timeline_id, 30, {given, 'Someone Else'})
     assert again['details']['full_name'].split()[0] != given and again['name'] != first['name']
+
+
+def test_an_employer_ending_in_a_full_stop_ends_the_line_once():
+    from companion.memory.context import person_text
+    person = {'name': 'Jane Hart', 'role': 'mother', 'career': 'Bank clerk', 'employer': 'Coutts and Co.'}
+    assert person_text(person) == '- Jane Hart (mother): Bank clerk at Coutts and Co.'
+    assert person_text({**person, 'local': False}) == \
+        '- Jane Hart (mother): Bank clerk at Coutts and Co. Lives out of town.'
+    assert person_text({**person, 'employer': 'Guy\'s Hospital'}) == "- Jane Hart (mother): Bank clerk at Guy's Hospital."

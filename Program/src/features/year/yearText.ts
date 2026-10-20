@@ -94,7 +94,9 @@ export function rememberMode(mode: ScrapbookMode) {
   try { localStorage.setItem(MODE_KEY, mode) } catch { /* private window: it is only a convenience */ }
 }
 
-/** The days talked beside a history line: "3 days", "1 day", or "No talking". */
-export function daysText(days: number): string {
+/** The days talked beside a history line: "3 days", "1 day", or "No talking"; with no talking but a day out together
+ * (a naming day, dinner at their place), "1 day together". */
+export function daysText(days: number, together = 0): string {
+  if (!days && together) return `${together} ${together === 1 ? 'day' : 'days'} together`
   return days ? `${days} ${days === 1 ? 'day' : 'days'}` : 'No talking'
 }

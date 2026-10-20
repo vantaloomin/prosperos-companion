@@ -359,6 +359,8 @@ def fork_stages(connection, row, copy_id: str, timeline_id: str, cutoff: str) ->
     from companion import consequences
     story, stages = find_story(row['story']), decode(row['stages'])
     for index, stage in enumerate(stages):
+        if stage.get('odds'):  # A baby's odds (families.keep_odds), on the news the fork already had.
+            stages[index] = {**stage, 'odds': consequences.copy(connection, stage['odds'], timeline_id, f'baby:{copy_id}')}
         if not stage.get('consequence'):
             continue
         if stage['on'] > cutoff:
@@ -449,7 +451,7 @@ def view(row: dict, names: dict, definition: dict, today: str, you=False) -> dic
     stages = decode(row['stages'])
     beats = [{'on': stage['on'], 'text': fill(stage['text'], row, names, definition, you),
               'share': fill(stage['share'], row, names, definition), 'tone': stage['tone'],
-              'consequence': stage.get('consequence')}
+              'consequence': stage.get('consequence') or stage.get('odds')}
              for stage in stages if stage['on'] <= today and not stage.get('pending')]
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
             'status': row['status'], 'cast': [{'id': person_id, **names[person_id]} for person_id in

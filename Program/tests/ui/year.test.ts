@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { dayText, featuredCard, firstKey, pageAt, spanText } from '../../src/features/year/yearText.ts'
+import { dayText, daysText, featuredCard, firstKey, pageAt, spanText } from '../../src/features/year/yearText.ts'
 import { decorationsText, nextText } from '../../src/features/character/traditionsText.ts'
 import { occasionText } from '../../src/features/today/storyText.ts'
 
@@ -54,4 +54,13 @@ test('history lines name their stretch and come newest first by year', async () 
   assert.match(stretchText({ key: 'm2026-06', kind: 'month', start: '2026-06-01', end: '2026-07-31' }), / to /)
   const groups = byYear([{ start: '2025-12-01' }, { start: '2026-01-01' }, { start: '2026-02-01' }])
   assert.deepEqual(groups.map((group) => [group.year, group.lines.map((line) => line.start)]), [['2026', ['2026-02-01', '2026-01-01']], ['2025', ['2025-12-01']]])
+})
+
+test('a line with no talking but a day out together says so beside it', () => {
+  assert.equal(daysText(3), '3 days')
+  assert.equal(daysText(1), '1 day')
+  assert.equal(daysText(0), 'No talking')
+  assert.equal(daysText(0, 1), '1 day together')
+  assert.equal(daysText(0, 2), '2 days together')
+  assert.equal(daysText(2, 1), '2 days')
 })

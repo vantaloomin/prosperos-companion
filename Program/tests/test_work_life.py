@@ -365,3 +365,15 @@ def test_a_storyline_promotion_raises_pay(client, nell):
         companion = require_current(connection)
         found = work.advance(connection, companion, database.clock.now())
     assert found['pay'] > 1.07
+
+
+def test_a_new_job_at_an_employer_ending_in_a_full_stop_ends_its_line_once(client, nell, clock):
+    reconcile(client)
+    with connect(client) as connection:
+        companion = require_current(connection)
+        today = clock.now().date()
+        work.record(connection, nell['active_timeline_id'], 'job:test', 'new-job', today,
+                    'started a new job at Coutts and Co.', 1000, 5, clock.now())
+        lines = [text for _key, text in work.context_lines(connection, companion, clock.now())]
+    [line] = [text for text in lines if 'Coutts' in text]
+    assert line.endswith('you started a new job at Coutts and Co.'), line

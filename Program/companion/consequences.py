@@ -136,6 +136,22 @@ def decide(connection, *, timeline_id: str, choice: str, subject: str, facts: di
     return recorded(connection, subject, choice)
 
 
+def record(connection, *, timeline_id: str, choice: str, subject: str, label: str, options: list[dict], picked: int,
+           day: str, timestamp: str, names: dict | None = None) -> dict:
+    """A seeded chance the app rolled on its own (a baby in the circle, companion/life/families.py), kept with the odds
+    it had and why, so Hidden values shows it the way it shows the engine's outcomes; a second call returns the
+    recorded one. `options` are [{option, odds, reasons, moves, label}]."""
+    found = recorded(connection, subject, choice)
+    if found:
+        return found
+    connection.execute(
+        'INSERT INTO consequences (id, timeline_id, choice, subject, label, decided_on, options, picked, '
+        "picked_by, created_at, names, holders) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'dice', ?, ?, ?)",
+        (identifier(), timeline_id, choice, subject, label, day, encode(options), picked, timestamp, encode(names or {}),
+         encode({})))
+    return recorded(connection, subject, choice)
+
+
 # Phrases about the companion in the tables' reasons, said with their own pronouns when those are known
 # (companion/life/pronouns.py). A "them" about someone in the story stays ("can talk them round").
 OWN = (('would bother them', 'would bother {them}'), ("says they're ", 'says {they} {are} '),

@@ -885,9 +885,10 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
                                  + vacation_days(connection, companion, today.year + 1, found), today):
             lines.append(('vacation', line))
     for event in recent_events(connection, timeline_id, (today - timedelta(days=RECENT_DAYS)).isoformat())[-3:]:
-        lines.append((f"event:{event['id']}",
-                      EVENT_LINES[event['kind']].format(day=short_day(event['local_date']), text=event['text'],
-                                                        change=round(event['change'], 1))))
+        line = EVENT_LINES[event['kind']].format(day=short_day(event['local_date']), text=event['text'],
+                                                 change=round(event['change'], 1))
+        # "a new job at Coutts and Co." already ends the sentence.
+        lines.append((f"event:{event['id']}", line[:-1] if line.endswith('..') and not line.endswith('...') else line))
     return [(f'work:{today.isoformat()}:{key}', f'- {line}') for key, line in lines]
 
 
