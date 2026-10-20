@@ -355,6 +355,12 @@ def test_a_jazz_age_city_has_no_scans_car_seats_or_surrogates(client, monkeypatc
         options = consequences.odds('family:route', {**facts, 'can_carry': 0}, {'name': 'Mira', 'a': '', 'b': ''})
         assert options[parenthood.ROUTES.index('surrogacy')]['odds'] == 0
         assert expecting.era_group(connection, companion) == 'jazz'
+        # Adopting through a charity: no agency fee, only a lawyer's and the court's, well under a month's pay.
+        adopting = {'id': 'j1', 'route': 'adoption'}
+        assert expecting.fee(connection, companion, adopting, 'agency') is None
+        cost, what = expecting.fee(connection, companion, adopting, 'match')
+        assert 0 < cost < money.typical_month(money.city_for(companion['version']['definition'])) / 2
+        assert what == "the lawyer's and the court's fees for the adoption"
         words = expecting.ERA_WORDS['jazz']
         assert 'scan' not in words['appointment'] + words['halfway']
         assert not {'a car seat', 'a stroller', 'a baby monitor'} & set(words['things'])
