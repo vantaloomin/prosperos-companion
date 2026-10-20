@@ -149,7 +149,9 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     ahead = days_until(own_today, mine) if mine else SOON + 1
     if ahead <= SOON:
         found.append(own_occasion(connection, companion, own_today + timedelta(days=ahead), ahead))
-    for person in circle.people(connection, companion['active_timeline_id']) if SEEDED else ():
+    for row in circle.people(connection, companion['active_timeline_id']) if SEEDED else ():
+        # As they say it: 'mother' in 1895, here and on Today (circle.said).
+        person = {**row, 'role': circle.said(row['role'], companion['version']['definition'])}
         ahead = days_until(own_today, circle.birthday(person['id']))
         if ahead <= SOON:
             day = own_today + timedelta(days=ahead)

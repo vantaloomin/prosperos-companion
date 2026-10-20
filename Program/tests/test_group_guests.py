@@ -263,3 +263,10 @@ def test_their_people_stop_dropping_in_once_you_have_split(monkeypatch):
     assert group_guests.dropping_in(None, [], None) == [person]
     monkeypatch.setattr(breakups, 'ended', lambda *_args: True)
     assert group_guests.dropping_in(None, [], None) == []
+
+
+def test_in_an_older_era_a_guest_is_their_mother_not_their_mom():
+    row = {'seed': 's', 'name': 'Edith', 'role': 'mom', 'details': '{}', 'id': 'p1', 'timeline_id': 't'}
+    older = group_guests.from_circle(row, 'companion:x', 'Ada', older=True)
+    assert older['relation'] == "Ada's mother" and older['tie'] == 'their mother'
+    assert group_guests.from_circle(row, 'companion:x', 'Ada')['relation'] == "Ada's mom"

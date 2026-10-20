@@ -368,7 +368,7 @@ def milestones_between(connection, companion: dict, low: date, high: date) -> li
                lambda day: turns_on(connection, companion['id'], definition, day), low,
                companion_lifespan(connection, definition))]
     # Someone who joined the circle later (a grandparent added in v0.15) has no milestones from before they did.
-    people += [(circle.birthday(person['id']), f"{name}'s {person['role']} {person['name']}",
+    people += [(circle.birthday(person['id']), f"{name}'s {circle.said(person['role'], definition)} {person['name']}",
                 lambda day, key=person['id']: person_age(connection, 'circle', key, day),
                 max(low, date.fromisoformat(person['created_at'][:10])) if person['created_at'] else low,
                 person_lifespan(connection, decode(person['details']) or {}, definition))

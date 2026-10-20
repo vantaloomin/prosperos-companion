@@ -1,5 +1,6 @@
 """The social circle and precomputed agenda (PRD T8, T9)."""
 import asyncio
+import re
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -456,3 +457,22 @@ def test_an_older_citys_circle_works_the_jobs_of_its_era(client, city, location)
         side = {'she/her': 'women', 'he/him': 'men'}.get(person['pronouns'])
         worked_by = (careers.get(person['career']) or {}).get('worked_by')
         assert not side or worked_by in (None, side), (person['name'], person['role'], person['career'])
+
+
+def test_in_1895_the_circle_lists_a_mother_and_father_never_a_mom_or_dad(client):
+    """The screens say it the way the companion does (circle.said): 'mother' in an older era, 'mom' today."""
+    response = client.post('/api/companion', json={
+        'name': 'Ada Hartley', 'timezone': 'Europe/London', 'home_city': 'london-1895', 'location': 'Marylebone, London',
+        'identity': '29. She/her. Her mother Edith and her father Albert live nearby.', 'relationship': 'friendship',
+        'schedule': EVENING_OUT})
+    assert response.status_code == 200, response.text
+    people = client.get('/api/life/circle').json()
+    roles = {person['name']: person['role'] for person in people}
+    assert roles['Edith'] == 'mother' and roles['Albert'] == 'father'
+    assert not {'mom', 'dad', 'boyfriend', 'girlfriend'} & set(roles.values()), roles
+    with client.app.state.database.connect() as connection:  # Stored as before: the rules still read 'mom'.
+        stored = {row['name']: row['role'] for row in connection.execute('SELECT name, role FROM circle_people')}
+    assert stored['Edith'] == 'mom'
+    web = client.get('/api/life/web')
+    assert web.status_code == 200 and not re.search(r'"(mom|dad)"', web.text), web.text[:400]
+    assert '"mother"' in web.text

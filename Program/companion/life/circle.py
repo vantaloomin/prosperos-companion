@@ -515,7 +515,13 @@ OLD_WORDS = {'mom': 'mother', 'dad': 'father', 'boyfriend': 'sweetheart', 'girlf
 def said(role: str, definition: dict) -> str:
     """The role as the companion says it in their era: 'mom', or 'mother' in 1895."""
     from companion.world import perception
-    return role if role not in OLD_WORDS or perception.era_modern(definition) else OLD_WORDS[role]
+    return era_word(role, not perception.era_modern(definition))
+
+
+def era_word(role: str, older: bool) -> str:
+    """The role in an older era's words ('mother' for 'mom') when `older` (older_era), else as it is: what the
+    screens show, like the companion's own lines (said)."""
+    return OLD_WORDS.get(role, role) if older else role
 
 
 def room(connection, companion: dict) -> dict:

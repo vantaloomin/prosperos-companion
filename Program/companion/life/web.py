@@ -97,8 +97,9 @@ def add_companion(connection, web: Web, companion: dict, now):
 def add_circle(web: Web, key: str, rows: list[dict], older: bool = False):
     for row in rows:
         person = circle.view(row)
-        web.add(person['key'], person.get('full_name') or person['name'], 'circle', person['role'])
-        web.link(key, person['key'], person['role'])
+        role = circle.era_word(person['role'], older)  # 'mother' in 1895.
+        web.add(person['key'], person.get('full_name') or person['name'], 'circle', role)
+        web.link(key, person['key'], role)
     by_id = {row['id']: row['seed'] for row in rows}
     for person_id, known in circle.ties(rows, older).items():
         for other in known:
