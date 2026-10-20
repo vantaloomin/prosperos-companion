@@ -60,7 +60,10 @@ def test_an_elf_of_300_has_the_odds_of_a_human_of_48(client):
         assert loss.facts_for(connection, elf, today, None, 2, definition=definition) == \
             loss.facts_for(connection, human, today, None, 2, definition=definition)
         assert loss.facts_for(connection, elf, today, None, 2)['age'] == 48
-        # The companion's own: an elf of 90 is 26 in human terms, for big turns and the family odds alike.
+        # The companion's own: an elf of 90 is 26 in human terms, for big turns and the family odds alike. Read on
+        # the day their date was stored, so a seeded birthday never makes them a year older or younger.
+        row = ages.stored(connection, 'companion', companion['id'])
+        today = date.fromisoformat(row['anchored_on']) if row else today
         assert ages.companion_age(connection, companion['id'], definition, today) == 90
         assert big_turns.life_age_of(connection, companion, today) == 26
         assert big_turns.facts(connection, companion, today)['age'] == 26
