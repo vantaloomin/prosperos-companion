@@ -319,7 +319,10 @@ def first_birthdays(connection, companion: dict, today: date, people: dict, now)
     from companion.life import families
     if families.withheld(connection):
         return []
-    result = []
+    result, definition = [], companion['version']['definition']
+
+    def said_role(row):  # 'mother' in 1895 (circle.said).
+        return circle.said(row['role'], definition)
     for item in families.first_birthdays(connection, companion, today, today + timedelta(days=AHEAD)):
         row = people.get(item['parent_id'])
         if row is None:
@@ -327,8 +330,8 @@ def first_birthdays(connection, companion: dict, today: date, people: dict, now)
         birthday = date.fromisoformat(item['date'])
         child = {'she/her': 'daughter', 'he/him': 'son'}.get(item['pronouns'], 'child')
         result.append(candidate('first_birthday', item['key'], row, birthday + timedelta(days=(5 - birthday.weekday()) % 7),
-                                name=item['child'], role=item['relation'] or f"{row['role']} {first(row['name'])}'s {child}",
-                                host=row['name'], host_role=row['role']))
+                                name=item['child'], role=item['relation'] or f"{said_role(row)} {first(row['name'])}'s {child}",
+                                host=row['name'], host_role=said_role(row)))
     return result
 
 

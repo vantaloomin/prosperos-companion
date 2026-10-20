@@ -45,7 +45,7 @@ function Line({ line }: { line: HistoryLine }) {
   const left = line.corrected === ''
   return (
     <li className={`history-line${left ? ' history-left-out' : ''}`}>
-      <p className="history-when"><span>{when}</span><span className="subtle">{daysText(line.days)}</span>{left && !line.text && <span className="subtle">Left out</span>}</p>
+      <p className="history-when"><span>{when}</span><span className="subtle">{daysText(line.days, line.together)}</span>{left && !line.text && <span className="subtle">Left out</span>}</p>
       {draft === null
         ? <Shown line={line} when={when} left={left} busy={save.isPending} onEdit={() => setDraft(line.corrected || line.text)} onRestore={() => save.mutate(null)} />
         : <Editing line={line} when={when} draft={draft} setDraft={setDraft} save={save} />}

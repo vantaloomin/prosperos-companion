@@ -265,3 +265,12 @@ def test_a_big_turn_for_an_older_chapter_says_why_it_cannot_happen(client, mira,
     response = change(client, hobby['consequence'], chapters.KINDS.index('school'))
     assert response.status_code == 409
     assert 'another big turn is under way' in response.json()['detail'] and 'starting' in response.json()['detail']
+
+
+def test_in_1895_a_new_line_of_work_is_one_their_era_gave_them():
+    careers = catalog.careers_for(catalog.city('london-1895'))
+    for pronouns, other, start in (('She/her', 'men', 'retail-associate'), ('He/him', 'women', 'journalist')):
+        definition = {'name': 'Ada Hartley', 'identity': f'29. {pronouns}.', 'home_city': 'london-1895',
+                      'location': 'Marylebone, London', 'money': {'career': start}}
+        found = {(big_turns.new_line(definition, f'line-{n}') or {}).get('id') for n in range(80)} - {None}
+        assert found and not [career for career in found if careers[career].get('worked_by') == other], found

@@ -107,3 +107,19 @@ def test_circle_birthdays_reach_the_context_but_open_no_conversation(client, con
     assert [(item['person'], item['days']) for item in found] == [(first['name'], 0), (second['name'], 3)]
     set_life(client, texts_first=True)
     assert client.post('/api/life/texts/check').json()['state'] == 'nothing'
+
+
+def test_in_1895_a_birthday_is_their_mothers_on_today_and_in_the_context(client, clock, monkeypatch):
+    response = client.post('/api/companion', json={
+        'name': 'Ada Hartley', 'timezone': 'Europe/London', 'home_city': 'london-1895', 'location': 'Marylebone, London',
+        'identity': '29. She/her. Her mother Edith lives nearby.', 'relationship': 'friendship'})
+    assert response.status_code == 200, response.text
+    edith = next(person for person in client.get('/api/life/circle').json() if person['name'] == 'Edith')
+    tomorrow = clock.now().astimezone(zone('Europe/London')).date() + timedelta(days=1)
+    monkeypatch.setattr(occasions, 'SEEDED', True)
+    monkeypatch.setattr(occasions, 'own_birthday', lambda _companion: None)
+    monkeypatch.setattr(circle, 'birthday', lambda person_id: tomorrow.strftime('%m-%d') if person_id == edith['id']
+                        else (tomorrow + timedelta(days=60)).strftime('%m-%d'))
+    assert "- Tomorrow is your mother Edith's birthday." in client.get('/api/context/preview').json()['system']
+    found = [item for item in client.get('/api/today').json()['occasions'] if item['kind'] == 'circle_birthday']
+    assert [(item['person'], item['relation']) for item in found] == [('Edith', 'mother')]

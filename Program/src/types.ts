@@ -211,7 +211,8 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral'; shown?: string }
+interface MoneyHappening { label: string; on: string; cost: number; for?: MoneyFor; shown?: string }
+export type MoneyFor = 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral' | 'admin' | 'family' | 'owed' | 'childcare' | 'sitter' | 'baby'
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -1484,7 +1485,7 @@ export type ScrapbookPage =
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
 /** Our history at a glance: one line a week lately, a month, then a year further back (companion/memory/history.py).
  * `corrected` is the user's own words, an empty string when they left the line out, or null for the app's line. */
-export interface HistoryLine { key: string; kind: 'week' | 'month' | 'year'; start: string; end: string; label: string; days: number; text: string; corrected: string | null }
+export interface HistoryLine { key: string; kind: 'week' | 'month' | 'year'; start: string; end: string; label: string; days: number; together?: number; text: string; corrected: string | null }
 export interface History { name: string; lines: HistoryLine[] }
 export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
 

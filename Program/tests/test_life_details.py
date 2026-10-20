@@ -68,6 +68,21 @@ def test_work_history_fits_their_age_and_job():
             assert lines == [], (sheet['age'], lines)
 
 
+def test_in_1895_nobodys_past_jobs_are_the_other_sides():
+    data = catalog.city('london-1895')
+    men = {career['name'].lower() for career in catalog.careers_for(data).values() if career.get('worked_by') == 'men'}
+    women = {career['name'].lower() for career in catalog.careers_for(data).values() if career.get('worked_by') == 'women'}
+    people = [sheet for hood in data['neighborhoods'][:8] for sheet in townsfolk.residents(data, hood['id'])]
+    said = Counter()
+    for sheet in people:
+        other = {'she/her': men, 'he/him': women}.get(sheet['pronouns'], set())
+        for line in life_details.work(data, sheet, townsfolk.drawn(sheet)):
+            jobs = re.findall(r' as an? (.+?)(?: for |$)', line)
+            assert not set(jobs) & other, (sheet['full'], line)
+            said[sheet['pronouns']] += len(jobs)
+    assert said['she/her'] and said['he/him'], said
+
+
 def test_a_companion_learns_their_life_meeting_by_meeting():
     data = catalog.city('baltimore')
     sheet = townsfolk.at_place(data, data['places'][0]['id'])[0]

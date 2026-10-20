@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { careersFor, todayIso } from '../../src/features/character/money.ts'
 import { completeDefinition } from '../../src/features/character/definition.ts'
-import { costsText, goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
+import { boughtFor, costsText, goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
 import type { MoneyView } from '../../src/types.ts'
 
 type Budget = Extract<MoneyView, { available: true }>
@@ -64,4 +64,13 @@ test('adult work is listed only with the adult side on, and a current pick alway
 test('older saved characters get a default money setup', () => {
   assert.deepEqual(completeDefinition({ name: 'Mira' }).money, { career: '', style: 'balanced', saving_for: '', goal: 0, goal_since: '', employment: '' })
   assert.equal(completeDefinition({ name: 'Mira', money: { career: 'teacher', style: 'careful', saving_for: '', goal: 0, goal_since: '', employment: '' } }).money.career, 'teacher')
+})
+
+test('every purchase on the Money panel says where the money went, family costs included', () => {
+  assert.equal(boughtFor('family'), 'From their savings')
+  assert.equal(boughtFor('owed'), 'Toward what they owe')
+  assert.equal(boughtFor('childcare'), 'For the family')
+  assert.equal(boughtFor('admin'), 'At home')
+  assert.equal(boughtFor(undefined), 'At home')
+  assert.equal(boughtFor('something new' as never), 'At home')
 })

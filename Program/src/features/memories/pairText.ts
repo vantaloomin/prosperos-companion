@@ -16,6 +16,13 @@ export function tieText(name: string, tie: PairTie): string {
   return `${first} feels ${tie.feels.name} with ${other}; ${other} feels ${tie.they_feel.name}`
 }
 
+/** How they know each other, as the user reads it: the app's suggestion is written for the model ("only know each
+ * other through the user", companion/memory/pairs.py), so on screen "the user" is you. */
+export function howText(how: string): string {
+  return how.replace(/\b([Tt])he user's\b/g, (_, t: string) => (t === 'T' ? 'Your' : 'your'))
+    .replace(/\b([Tt])he user\b/g, (_, t: string) => (t === 'T' ? 'You' : 'you'))
+}
+
 /** What their stage comes from, so it reads as history rather than a setting. */
 export function tieWhy(tie: PairTie): string {
   const parts = []

@@ -232,6 +232,50 @@ def test_no_baltimore_resident_teaches_surfing():
     assert 'surf instructor' not in jobs and len(jobs) > 20
 
 
+OLD_WORK = ('london-1895', 'camelot', 'calderwick', 'whitlock', 'ellerbruck')
+
+
+def test_the_old_eras_keep_work_by_gender_and_fantasy_and_today_leave_it_open():
+    assert all(generators.by_gender(catalog.city(city)) for city in OLD_WORK)
+    # Ellerbruck's fairy-tale customs turn it on; Grandport's republic and Oz leave it open, like today.
+    for city in ('grandport', 'emerald-city', 'new-york-1925', 'baltimore', 'london'):
+        assert not generators.by_gender(catalog.city(city)), city
+    assert not generators.by_gender(catalog.city('london-1895') | {'work_by_gender': False})
+
+
+@pytest.mark.parametrize('city_id', OLD_WORK)
+def test_in_an_older_era_nobody_works_the_other_sides_job(city_id):
+    data = catalog.city(city_id)
+    careers = catalog.careers_for(data)
+    by_name = {career['name'].lower(): career for career in careers.values()}
+    seen = Counter()
+    for n in range(300):
+        person = generators.resident(data, seed=f'era-{n}', role='friend', age=40)
+        side = generators.SIDES.get(person['name']['pronouns'].split('/')[0])
+        if person['job'] and side:
+            worked_by = careers[person['job']['career']['id']].get('worked_by')
+            assert worked_by in (None, side), (person['name']['full'], person['job']['career']['name'])
+            seen[side, worked_by] += 1
+        # The town's own people at home and on its streets, named or not yet, the same.
+        resident = townsfolk.resident(data, data['neighborhoods'][n % len(data['neighborhoods'])]['id'], n)
+        found, job = generators.SIDES.get(resident['pronouns'].split('/')[0]), by_name.get(resident['occupation'])
+        if found and job:
+            assert job.get('worked_by') in (None, found), (resident['full'], resident['occupation'])
+        unnamed = townsfolk.resident(data, data['neighborhoods'][n % len(data['neighborhoods'])]['id'], n, named=False)
+        assert unnamed['occupation'] == resident['occupation']
+    # Both sides still have work of their own and work anyone does.
+    assert seen['men', 'men'] and seen['women', 'women'] and seen['men', None] and seen['women', None], seen
+
+
+def test_a_they_them_resident_and_a_city_of_today_pick_from_every_job():
+    data = catalog.city('london-1895')
+    assert generators.fits_side(data, 'they/them') is None and generators.fits_side(catalog.city('london'), 'she') is None
+    women = {generators.town_career(data, f'w-{n}', pronouns='she/her')['id'] for n in range(400)}
+    assert 'cabman' not in women and 'docker' not in women and {'governess', 'typist'} & women
+    men = {generators.town_career(data, f'm-{n}', pronouns='he')['id'] for n in range(400)}
+    assert 'governess' not in men and 'typist' not in men and 'cabman' in men
+
+
 def with_notables(city_id: str = 'baltimore') -> dict:
     """A built-in city with two named people added, the way a pack lists its characters."""
     raw = copy.deepcopy(catalog.city(city_id))

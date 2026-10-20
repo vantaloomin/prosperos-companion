@@ -158,7 +158,7 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
         member = generators.resident(data, seed=f'{base}:named:{index}', role=role, local=person['local'],
                                      near=home if role in ('neighbor', 'parent', 'sibling') else None,
                                      family=family if related else None, group=group if related else None,
-                                     folk=folk if related else None)
+                                     folk=folk if related else None, pronouns=person['pronouns'])
         pronouns = person['pronouns'] or 'they/them'
         given = person['name'].split()[0]
         full = person['name'] if ' ' in person['name'] else given
@@ -515,7 +515,13 @@ OLD_WORDS = {'mom': 'mother', 'dad': 'father', 'boyfriend': 'sweetheart', 'girlf
 def said(role: str, definition: dict) -> str:
     """The role as the companion says it in their era: 'mom', or 'mother' in 1895."""
     from companion.world import perception
-    return role if role not in OLD_WORDS or perception.era_modern(definition) else OLD_WORDS[role]
+    return era_word(role, not perception.era_modern(definition))
+
+
+def era_word(role: str, older: bool) -> str:
+    """The role in an older era's words ('mother' for 'mom') when `older` (older_era), else as it is: what the
+    screens show, like the companion's own lines (said)."""
+    return OLD_WORDS.get(role, role) if older else role
 
 
 def room(connection, companion: dict) -> dict:

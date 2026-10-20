@@ -244,6 +244,8 @@ def start(connection, companion: dict, world, person: dict, how: str, day: date,
     found, timeline_id = plan(connection, companion, world, person, how, day), companion['active_timeline_id']
     story = 'adopting' if how == 'adopting' else 'expecting'
     storyline_id = families.insert_story(connection, timeline_id, story, person['id'], found['stages'], day, now)
+    families.keep_odds(connection, timeline_id, storyline_id, families.OWN_BABY, *own_odds(connection, companion, person),
+                       day, now)
     child = found['child']
     connection.execute(
         'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, born_on, status, '
@@ -251,6 +253,22 @@ def start(connection, companion: dict, world, person: dict, how: str, day: date,
         (identifier(), timeline_id, person['id'], storyline_id, child['name'], child['pronouns'],
          found['born'].isoformat(), WHOSE, stamp(now), stamp(now)))
     return found
+
+
+def own_odds(connection, companion: dict, person: dict) -> tuple[str, list[dict], dict]:
+    """(label, options, names) for their own baby with their partner: married or living together, whether they want
+    children, and the slider (`expect`'s chance)."""
+    theirs, partner = companion['version']['definition']['name'].split()[0], person['name'].split()[0]
+    found = pair(connection, companion) or {'how': 'together'}
+    want = wants(connection, companion)
+    reasons = [(f'{theirs} and {partner} are married', 'more') if found['how'] == 'married' else
+               (f'{theirs} and {partner} live together', 'possible'),
+               *{'yes': [(f'{theirs} wants children', 'more')],
+                 'someday': [(f'{theirs} wants children someday, not yet', 'less')]}.get(want, []),
+               *families.pace_reasons(connection)]
+    weekly = YEARLY[found['how']] * families.PACE[families.level(connection)] * WANTING[want] / 52
+    options = families.yearly_options(weekly, reasons, ('A baby on the way', 'No baby this year'))
+    return f'Whether {theirs} and {partner} have a baby this year', options, {'name': theirs, 'partner': partner}
 
 
 def how_of(connection, child: dict) -> str:
@@ -329,7 +347,8 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
         care = born + timedelta(weeks=LEAVE_WEEKS[how_of(connection, child)])
         while care <= min(day, ages.birthday_in(born.year + SCHOOL, born.strftime('%m-%d'))):
             if care >= start and child['status'] == 'born':
-                result.append({'text': f"paid their half of {child['name']}'s childcare", 'date': care.isoformat(),
+                result.append({'text': f"paid your half of {child['name']}'s childcare",
+                               'shown': f"paid their half of {child['name']}'s childcare", 'date': care.isoformat(),
                                'spend': '', 'cost': round(month * CHILDCARE, 2), 'for': 'childcare'})
             care += timedelta(days=30)
     return result

@@ -1,5 +1,5 @@
 import { calendarDay } from '../../when.ts'
-import type { MoneyView } from '../../types'
+import type { MoneyFor, MoneyView } from '../../types'
 
 type Budget = Extract<MoneyView, { available: true }>
 
@@ -8,8 +8,11 @@ function days(from: string, to: string): number {
 }
 
 /** Where a purchase this pay period went: "At home, they …", "Out with you, they paid for dinner at …". */
-export function boughtFor(kind?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral'): string {
-  return { ring: 'From their savings', wedding: 'From their savings', hobby: 'For their pastimes', clothes: 'For their wardrobe', looks: 'For their looks', outing: 'Out with you', trip: 'Away', food: 'For dinner', media: 'For their downtime', home: 'At home', school: 'For their course', deposit: 'From their savings', business: 'From their savings', care: 'For family', gift: 'For a big day', funeral: 'For a funeral' }[kind ?? 'home']
+const BOUGHT_FOR: Record<MoneyFor, string> = { ring: 'From their savings', wedding: 'From their savings', hobby: 'For their pastimes', clothes: 'For their wardrobe', looks: 'For their looks', outing: 'Out with you', trip: 'Away', food: 'For dinner', media: 'For their downtime', home: 'At home', school: 'For their course', deposit: 'From their savings', business: 'From their savings', care: 'For family', gift: 'For a big day', funeral: 'For a funeral', admin: 'At home', family: 'From their savings', owed: 'Toward what they owe', childcare: 'For the family', sitter: 'For the family', baby: 'For the family' }
+
+/** Where a purchase's money went, before "they …"; a kind this screen doesn't know yet reads as at home. */
+export function boughtFor(kind?: MoneyFor): string {
+  return BOUGHT_FOR[kind ?? 'home'] ?? BOUGHT_FOR.home
 }
 
 export function shortDate(iso: string): string {

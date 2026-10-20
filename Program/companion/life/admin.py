@@ -680,9 +680,11 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
 # --- Money ---
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
-    """Done entries this pay period with a cost, as money.household purchases."""
+    """Done entries this pay period with a cost, as money.household purchases. What a child's coming costs (the
+    nursery, an agency: "journey:" keys) is shown here but paid through companion/life/expecting.py `purchases`."""
     rows = many(connection, "SELECT * FROM life_admin WHERE timeline_id=? AND status='done' AND local_date>=? AND "
-                "local_date<=? AND (cost>0 OR spend!='')", (timeline_id, start.isoformat(), day.isoformat()))
+                "local_date<=? AND (cost>0 OR spend!='') AND key NOT LIKE 'journey:%'",
+                (timeline_id, start.isoformat(), day.isoformat()))
     return [{'text': row['title'][:1].lower() + row['title'][1:], 'date': row['local_date'], 'spend': row['spend'],
              'cost': row['cost'] or None, 'for': 'admin'} for row in rows]
 

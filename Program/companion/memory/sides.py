@@ -95,7 +95,8 @@ CHILD = re.compile(r"\b(?:(?:our|the|my|your|his|her|their) (?:daughters?|sons?|
 # A context line about a child without their name, left out of a reply that doesn't carry the family lines.
 CHILD_WORDS = (r'(?i:\b(?:daughters?|sons?|kids?|kiddos?|child|children|childcare|toddlers?|newborns?|infants?|'
                r'bab(?:y|ies)|nursery|daycare|bedtimes?|school run|(?:grand|step|god)(?:child\w*|daughters?|sons?)|'
-               r'nieces?|nephews?)\b)')
+               r'nieces?|nephews?|adopt(?:s|ed|ing|ions?)?|fostering|foster (?:care|carers?|child|children|parents?|homes?)|'
+               r'surroga\w*|pregnan\w*)\b)')
 
 
 def own_words(companion: dict) -> list[str]:

@@ -476,7 +476,8 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
         share = CHILDCARE.get(caring(connection, companion, paid, apart) or '', 0)
         if share and paid.day == 1 and not any(on_leave(connection, child, paid) for child in
                                                 at_home(connection, timeline_id, paid)):
-            result.append({'text': 'paid their half of the childcare', 'date': paid.isoformat(), 'spend': '',
+            result.append({'text': 'paid your half of the childcare', 'shown': 'paid their half of the childcare',
+                           'date': paid.isoformat(), 'spend': '',
                            'cost': round(month * share * old, 2), 'for': 'childcare'})
         paid += timedelta(days=1)
     for outing in evenings_out(connection, companion, start, day):

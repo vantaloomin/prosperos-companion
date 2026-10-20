@@ -154,12 +154,15 @@ def hometown(person_id: str, home: dict) -> dict | None:
 
 def where(connection, timeline_id: str, home: dict, definition: dict, nights: int, seed: str):
     """(destination, kind, company): a visit to a relative, or a getaway alone or with someone local."""
+    from companion.life import circle
     relatives = away_people(connection, timeline_id)
     if relatives and generators.unit(seed, 'family') < FAMILY_SHARE:
         relative = generators.pick(seed, 'relative', relatives)
         city = hometown(relative['id'], home)
         if city and catalog.distance_km(home, city) <= REACH_KM[nights]:
-            return city, 'family', {'id': relative['id'], 'name': relative['name'], 'role': relative['role']}
+            # As they say it: 'mother' in 1895 (circle.said).
+            return city, 'family', {'id': relative['id'], 'name': relative['name'],
+                                    'role': circle.said(relative['role'], definition)}
     options = destinations(home, REACH_KM[nights])
     if not options:
         return None
@@ -168,7 +171,7 @@ def where(connection, timeline_id: str, home: dict, definition: dict, nights: in
     company = None
     if people and generators.unit(seed, 'alone') >= ALONE_SHARE:
         person = generators.pick(seed, 'company', people)
-        company = {'id': person['id'], 'name': person['name'], 'role': person['role']}
+        company = {'id': person['id'], 'name': person['name'], 'role': circle.said(person['role'], definition)}
     return city, 'getaway', company
 
 

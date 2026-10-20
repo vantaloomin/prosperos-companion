@@ -2710,7 +2710,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "charcoal-burner",
@@ -2728,7 +2729,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "miller",
@@ -2746,7 +2748,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "goose-girl",
@@ -2764,7 +2767,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "shoemaker",
@@ -2782,7 +2786,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "tailor",
@@ -2800,7 +2805,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "baker",
@@ -2836,7 +2842,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "women"
   },
   {
    "id": "weaver",
@@ -2872,7 +2879,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "ferryman",
@@ -2890,7 +2898,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "fisher",
@@ -2908,7 +2917,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "innkeeper",
@@ -2944,7 +2954,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "royal-gardener",
@@ -2962,7 +2973,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "castle-servant",
@@ -2998,7 +3010,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "ratcatcher",
@@ -3016,7 +3029,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "town-musician",
@@ -3034,7 +3048,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "carter",
@@ -3052,7 +3067,8 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "market-gardener",
@@ -3088,9 +3104,11 @@
    ],
    "eras": [
     "fantasy"
-   ]
+   ],
+   "worked_by": "women"
   }
  ],
+ "work_by_gender": true,
  "employers": [
   {
    "id": "grafliche-hof",

@@ -108,6 +108,16 @@ def calendar_id(data: dict) -> str | None:
 OMIT_WHEN_EMPTY = {'townsfolk', 'kinds'}
 
 
+def unset_work_rules(data: dict):
+    """Who worked a job in its era (schema Career.worked_by, City.work_by_gender) is newer than most cities: left
+    out when unset, so their data_version stays the same."""
+    if data.get('work_by_gender') is None:
+        data.pop('work_by_gender', None)
+    for career in data['careers']:
+        if career.get('worked_by') is None:
+            career.pop('worked_by', None)
+
+
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError.
 
@@ -120,6 +130,7 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     # The townsfolk block is optional and newer than most cities: left out when absent, so their data_version
     # stays the same.
     data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
+    unset_work_rules(data)
     from companion.world import lifespans
     notes += lifespans.clean(data)
     known = careers_for(data)

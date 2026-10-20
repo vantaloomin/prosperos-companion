@@ -642,7 +642,8 @@ def forget_person(connection, timeline_id, person_id, now):
 
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
-    result, known = [], circle.ties(circle.people(connection, timeline_id), circle.older_era(connection, timeline_id))
+    older = circle.older_era(connection, timeline_id)  # 'mother', not 'mom', in 1895 (circle.era_word).
+    result, known = [], circle.ties(circle.people(connection, timeline_id), older)
     # Not at work: at the wedding, or at their own big day (companion/life/big_days.py), as its scene says.
     at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
     data = circle.city_of_timeline(connection, timeline_id)  # Its own kinds (companion/world/lifespans.py).
@@ -651,6 +652,7 @@ def circle_view(connection, timeline_id, now, include_removed=False) -> list[dic
         if row['status'] != 'active' and not include_removed and not late:
             continue  # Someone late stays on the list (companion/life/loss.py); someone removed only when asked.
         person = circle.view(row, data) | ({'loss': loss.of_person(connection, row['id'])} if late else {})
+        person['role'] = circle.era_word(person['role'], older)
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \
             row['id'] not in at_wedding else None
         result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),

@@ -34,7 +34,7 @@ from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import big_turns, circle, home, love_life, money, pets, storylines
 from companion.memory import pairs
-from companion.world import catalog
+from companion.world import catalog, generators, looks
 
 # A month's chance that a chapter begins, by drama level (quiet to soap opera).
 CHANCE = (0.12, 0.2, 0.3, 0.4)
@@ -164,7 +164,9 @@ def plan_job(connection, companion, world, day, seed) -> dict | None:
     tier = money.PAY_TIERS.get(current['pay'], money.DEFAULT_TIER) if current else money.DEFAULT_TIER
     tight = consequences.total(connection, companion['active_timeline_id'], pairs.companion_key(companion['id']),
                                'money', day.isoformat()) < 0
-    options = sorted(career['id'] for career in catalog.everyday(catalog.careers_for(city)).values()
+    # Work their era gives their side (1895: never a cabman for her; generators.own_side).
+    offered = generators.own_side(city, looks.pronouns_of(definition), catalog.everyday(catalog.careers_for(city)))
+    options = sorted(career['id'] for career in offered.values()
                      if (not current or (career['id'] != current['id'] and career['schedule'] == current['schedule']))
                      and money.PAY_TIERS.get(career['pay'], money.DEFAULT_TIER) >= tier + tight)
     if not options:

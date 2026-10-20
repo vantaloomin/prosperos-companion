@@ -11,7 +11,7 @@ from test_steps import prompt, says
 from companion import consequences
 from companion.characters import current
 from companion.database import decode
-from companion.life import big_days, breakups, expecting, families, openers, parenthood, rough_patches
+from companion.life import big_days, breakups, expecting, families, money, openers, parenthood, rough_patches
 
 
 @pytest.fixture
@@ -355,6 +355,12 @@ def test_a_jazz_age_city_has_no_scans_car_seats_or_surrogates(client, monkeypatc
         options = consequences.odds('family:route', {**facts, 'can_carry': 0}, {'name': 'Mira', 'a': '', 'b': ''})
         assert options[parenthood.ROUTES.index('surrogacy')]['odds'] == 0
         assert expecting.era_group(connection, companion) == 'jazz'
+        # Adopting through a charity: no agency fee, only a lawyer's and the court's, well under a month's pay.
+        adopting = {'id': 'j1', 'route': 'adoption'}
+        assert expecting.fee(connection, companion, adopting, 'agency') is None
+        cost, what = expecting.fee(connection, companion, adopting, 'match')
+        assert 0 < cost < money.typical_month(money.city_for(companion['version']['definition'])) / 2
+        assert what == "the lawyer's and the court's fees for the adoption"
         words = expecting.ERA_WORDS['jazz']
         assert 'scan' not in words['appointment'] + words['halfway']
         assert not {'a car seat', 'a stroller', 'a baby monitor'} & set(words['things'])
@@ -607,3 +613,69 @@ def test_their_people_react_with_their_own_pronouns():
     assert expecting.reaction(questions, 'your sister Kim', 'she/her').endswith('write them down.')
     he = [expecting.reaction(line, 'your dad Johnny', 'he/him') for line in lines]
     assert not any(re.search(r'\b(?:they|their|themself|themselves)\b', said) for said in he)
+
+
+def money_view(client):
+    response = client.get('/api/today/money')
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_a_child_costs_what_it_would_in_a_modern_us_city(client, monkeypatch, likeliest):
+    """Vanta 2026-10-20: a nursery and baby things come to a few thousand dollars, an agency adoption to tens of
+    thousands; the companion pays half of each (the pair's), as other big costs are paid."""
+    row = started(client, monkeypatch, route='adoption', identity='She is a 31-year-old nurse.', home_city='Baltimore')
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        adopting = sum(expecting.fee(connection, companion, row, key)[0] for key in ('agency', 'match')) * 2
+        assert 25000 <= adopting <= 55000
+        assert expecting.fee(connection, companion, row, 'home_study') is None
+        assert expecting.fee(connection, companion, row, 'nursery') is None  # Only when expecting.
+        expecting_row = {**row, 'route': 'expecting_them'}
+        baby = sum(expecting.fee(connection, companion, expecting_row, key)[0] for key in ('nursery', 'things')) * 2
+        assert 2000 <= baby <= 6000
+        surrogate = {**row, 'route': 'surrogacy'}
+        assert sum(expecting.fee(connection, companion, surrogate, key)[0] for key in ('agency', 'news')) * 2 > 90000
+        for route in ('fostering', 'ward', 'foundling', 'relative'):
+            assert not any(expecting.fee(connection, companion, {**row, 'route': route}, key) for key in
+                           ('training', 'agency', 'match', 'home', 'need', 'adopted', 'nursery'))
+
+
+def test_an_adoption_is_paid_from_savings_then_month_by_month(client, provider, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, route='adoption', identity='She is a 31-year-old nurse.', home_city='Baltimore')
+    to(client, clock, stage(row, 'agency')['on'])
+    with client.app.state.database.connect() as connection:
+        entry = connection.execute("SELECT cost FROM life_admin WHERE key LIKE 'journey:%:agency'").fetchone()
+    paid = journey(client)['details']['paid']['agency']
+    assert entry['cost'] == paid['cost'] > 1000  # The calendar shows their half; savings pay what they cover.
+    assert paid['saved'] + paid['monthly'] * paid['months'] == pytest.approx(paid['cost'], abs=1)
+    bought = [item for item in money_view(client)['bought'] if item['for'] in ('family', 'admin')]
+    assert [item['for'] for item in bought] == (['family'] if paid['saved'] else [])
+    to(client, clock, stage(row, 'match')['on'])
+    paid = journey(client)['details']['paid']['match']
+    assert paid['months'] >= 1  # A placement fee their savings can't cover all at once.
+    first = date.fromisoformat(paid['on']) + timedelta(days=30)
+    to(client, clock, first.isoformat())
+    owed = [item for item in money_view(client)['bought'] if item['for'] == 'owed']
+    assert owed and owed[0]['cost'] == paid['monthly']
+    assert owed[0]['shown'] == "paid an installment on their share of the adoption agency's placement fee"
+    says(provider)
+    send(client, 'how are we doing for money?', 'client-expecting-money')
+    assert ("you spent money on what you still owe: you paid an installment on your share of the adoption "
+            "agency's placement fee.") in prompt(provider)
+    # Savings went to it, so a big buy now finds less put by.
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        drawn = money.drawn_since(connection, companion['active_timeline_id'], date(2000, 1, 1), first)
+    assert drawn == pytest.approx(sum(item['saved'] for item in journey(client)['details']['paid'].values()))
+
+
+def test_a_withheld_family_bill_reads_plainly(client, clock, monkeypatch, likeliest):
+    row = started(client, monkeypatch, route='adoption', identity='She is a 31-year-old nurse.', home_city='Baltimore')
+    to(client, clock, stage(row, 'match')['on'])
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        found = expecting.purchases(connection, current(connection)['active_timeline_id'], date(2000, 1, 1),
+                                    date(2100, 1, 1))
+    assert found and all(item['text'] in ('paid a big bill', 'paid an installment on a big bill') for item in found)
+    assert all('adoption' in item['shown'] for item in found)  # The screen still says what for.

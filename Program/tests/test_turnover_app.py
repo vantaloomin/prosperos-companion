@@ -160,7 +160,7 @@ def test_a_group_never_hears_from_a_townsperson_who_passed_away(monkeypatch):
               base | {'key': 'town:x:bar:2', 'left': {'why': 'passed', 'day': '2030-01-07', 'text': 'passed away'}}]
     monkeypatch.setattr(group_guests, 'circle_people', lambda *_args: [])
     monkeypatch.setattr(encounters, 'known', lambda *_args: people)
-    found = group_guests.known_by(None, {'id': 'c1', 'version': {'name': 'Mira Hale'}}, None)
+    found = group_guests.known_by(None, {'id': 'c1', 'version': {'name': 'Mira Hale', 'definition': {}}}, None)
     assert [person['key'] for person in found] == ['town:x:bar:0', 'town:x:bar:1']
     assert [person['tie'] for person in found] == ['the barkeep at The Bar', 'formerly the barkeep at The Bar']
 
