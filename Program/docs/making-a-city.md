@@ -2,7 +2,7 @@
 
 A companion's days are built from their home city: where they live, where they eat, drink and go out, where they work and study, and what the weather is doing. This guide covers what a city file needs, what makes one feel lived in, and how to ask a chatbot to write one. [world-data.md](world-data.md) is the full field reference for developers.
 
-To add a finished file, open **Settings > Cities > Open a city file**. The [README](../../README.md#adding-your-own-cities) says where to drop files by hand.
+To add a finished file, open **Settings > Cities > Open a city file**. **Start from a ship** opens a small generation ship to build on instead: three decks, no weather or cars, and the built-in station Port Vesper to visit by shuttle. The built-in ship, The Long Meridian, shows a full one. The [README](../../README.md#adding-your-own-cities) says where to drop files by hand.
 
 ## What a city needs to load
 

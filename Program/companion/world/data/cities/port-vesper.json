@@ -1,0 +1,2294 @@
+{
+ "schema_version": 1,
+ "id": "port-vesper",
+ "name": "Port Vesper",
+ "setting": "original",
+ "era": "future",
+ "category": "fictional",
+ "basis": "Original setting written for Prospero Companion: an orbital trading station that flies beside the Long Meridian, the built-in generation ship. Nothing is taken from any published setting.",
+ "region": "Beside the Long Meridian",
+ "country": "Orbital station",
+ "timezone": "UTC",
+ "aliases": [
+  "Vesper",
+  "Vesper Station"
+ ],
+ "summary": "A station of about seven thousand people that left Earth after the Meridian, caught up with it thirty-seven years ago and now flies alongside: a trading port, a shipyard, coffee terraces, a sheep deck and a great window onto the ship three hours away by shuttle.",
+ "lat": 0.0,
+ "lon": -139.5,
+ "currency": {
+  "code": "CR",
+  "symbol": "cr",
+  "name": "credits"
+ },
+ "rent_period": "month",
+ "speeds": {
+  "walk": 4.5,
+  "shuttle": 28,
+  "lift": 18
+ },
+ "enclosed": true,
+ "calendar": "none",
+ "sources": {
+  "curated-2026-10": {
+   "kind": "curated",
+   "title": "Port Vesper, written for Prospero Companion",
+   "license": "CC0-1.0",
+   "retrieved": "2026-10-20",
+   "note": "An invented station. Its rings, trades, prices and calendar are written for it; every business, family and person named is fictional. Prices and rents are in credits, monthly. Coordinates sit far out in the Pacific for distance estimates only."
+  }
+ },
+ "neighborhoods": [
+  {
+   "id": "the-concourse",
+   "name": "The Concourse",
+   "summary": "The docking hub at the centre of the station: shuttle gates, customs, hotels for traders and the departures board everyone checks twice.",
+   "vibe": [
+    "travel",
+    "busy",
+    "trade"
+   ],
+   "lat": 0.0,
+   "lon": -139.5,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     850,
+     1150
+    ],
+    "one_bedroom": [
+     1150,
+     1550
+    ],
+    "two_bedroom": [
+     1600,
+     2100
+    ]
+   },
+   "housing": [
+    "hotel-cabin",
+    "cabin"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "ring-shuttle",
+    "spoke-lifts"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "market-ring",
+   "name": "Market Ring",
+   "summary": "The station's shopping and eating ring: coffee houses, tailors, spice stalls, restaurants and the noise of a place that trades for a living.",
+   "vibe": [
+    "shopping",
+    "food",
+    "lively"
+   ],
+   "lat": 0.008,
+   "lon": -139.49,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     850,
+     1150
+    ],
+    "one_bedroom": [
+     1150,
+     1550
+    ],
+    "two_bedroom": [
+     1600,
+     2100
+    ]
+   },
+   "housing": [
+    "cabin",
+    "apartment-cabin",
+    "shared-berth"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "ring-shuttle",
+    "spoke-lifts"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spinward-terraces",
+   "name": "Spinward Terraces",
+   "summary": "Terraced homes with wide windows on the spinward side, where the yard owners, captains and old Earth families live.",
+   "vibe": [
+    "wealthy",
+    "quiet",
+    "views"
+   ],
+   "lat": -0.004,
+   "lon": -139.48,
+   "rent_tier": "very-high",
+   "rent": {
+    "studio": [
+     1250,
+     1650
+    ],
+    "one_bedroom": [
+     1650,
+     2200
+    ],
+    "two_bedroom": [
+     2300,
+     3100
+    ]
+   },
+   "housing": [
+    "terrace-home",
+    "apartment-cabin"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "ring-shuttle"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-yards",
+   "name": "The Yards",
+   "summary": "The shipyard and foundry, building shuttles, drones and spare rings for the Meridian, with welders' bunks and a canteen that never closes.",
+   "vibe": [
+    "industrial",
+    "working",
+    "loud"
+   ],
+   "lat": -0.008,
+   "lon": -139.51,
+   "rent_tier": "low",
+   "rent": {
+    "studio": [
+     560,
+     760
+    ],
+    "one_bedroom": [
+     780,
+     1050
+    ],
+    "two_bedroom": [
+     1080,
+     1450
+    ]
+   },
+   "housing": [
+    "crew-berth",
+    "shared-berth"
+   ],
+   "walkability": "medium",
+   "transit": [
+    "on-foot",
+    "ring-shuttle",
+    "spoke-lifts"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "garden-ring",
+   "name": "Garden Ring",
+   "summary": "The station's farm ring: a coffee plantation under lamps, a sheep deck for the wool everyone on the Meridian wants and a green park in the middle.",
+   "vibe": [
+    "green",
+    "farming",
+    "calm"
+   ],
+   "lat": -0.012,
+   "lon": -139.49,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     850,
+     1150
+    ],
+    "one_bedroom": [
+     1150,
+     1550
+    ],
+    "two_bedroom": [
+     1600,
+     2100
+    ]
+   },
+   "housing": [
+    "garden-cabin",
+    "cabin"
+   ],
+   "walkability": "medium",
+   "transit": [
+    "on-foot",
+    "ring-shuttle"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "low-ring",
+   "name": "Low Ring",
+   "summary": "The cheapest ring, half a gravity and full of young crews, music bars, late kitchens and cabins three to a room.",
+   "vibe": [
+    "young",
+    "nightlife",
+    "cheap"
+   ],
+   "lat": 0.012,
+   "lon": -139.51,
+   "rent_tier": "low",
+   "rent": {
+    "studio": [
+     560,
+     760
+    ],
+    "one_bedroom": [
+     780,
+     1050
+    ],
+    "two_bedroom": [
+     1080,
+     1450
+    ]
+   },
+   "housing": [
+    "shared-berth",
+    "bunkroom",
+    "cabin"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "ring-shuttle",
+    "spoke-lifts"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "observation-spoke",
+   "name": "Observation Spoke",
+   "summary": "A long spoke reaching out to the station's great window, with the school, a gallery and the best view of the Meridian turning in the dark.",
+   "vibe": [
+    "views",
+    "family",
+    "quiet"
+   ],
+   "lat": 0.004,
+   "lon": -139.47,
+   "rent_tier": "high",
+   "rent": {
+    "studio": [
+     1250,
+     1650
+    ],
+    "one_bedroom": [
+     1650,
+     2200
+    ],
+    "two_bedroom": [
+     2300,
+     3100
+    ]
+   },
+   "housing": [
+    "apartment-cabin",
+    "family-berth"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "spoke-lifts"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "old-hull",
+   "name": "Old Hull",
+   "summary": "The original Earth-built core of the station, all scuffed panels and stencilled deck numbers, with the arrival museum, the chapel and the oldest bar aboard.",
+   "vibe": [
+    "historic",
+    "characterful",
+    "quiet"
+   ],
+   "lat": 0.0,
+   "lon": -139.52,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     850,
+     1150
+    ],
+    "one_bedroom": [
+     1150,
+     1550
+    ],
+    "two_bedroom": [
+     1600,
+     2100
+    ]
+   },
+   "housing": [
+    "cabin",
+    "family-berth"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "spoke-lifts"
+   ],
+   "source": "curated-2026-10"
+  }
+ ],
+ "places": [
+  {
+   "id": "departures-hall",
+   "name": "The Departures Hall",
+   "kind": "landmark",
+   "neighborhood": "the-concourse",
+   "summary": "A bright hall under the great board, where shuttles to the Meridian leave on the hour and families wave from the rail.",
+   "tags": [
+    "shuttles",
+    "departures",
+    "people-watching"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gatehouse-hotel",
+   "name": "The Gatehouse",
+   "kind": "inn",
+   "neighborhood": "the-concourse",
+   "summary": "A traders' hotel by the gates with real beds, a quiet bar and breakfast served until the last shuttle.",
+   "tags": [
+    "hotel",
+    "traders",
+    "breakfast"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gate-six-coffee",
+   "name": "Gate Six Coffee",
+   "kind": "cafe",
+   "neighborhood": "the-concourse",
+   "summary": "The station's most famous coffee bar, roasting beans from the Garden Ring and selling them by the tin to Meridian visitors.",
+   "tags": [
+    "coffee",
+    "roastery",
+    "souvenirs"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "customs-canteen",
+   "name": "Customs Canteen",
+   "kind": "restaurant",
+   "neighborhood": "the-concourse",
+   "summary": "A plain canteen behind the customs desks, with the cheapest hot lunch on the station and the best gossip.",
+   "tags": [
+    "canteen",
+    "cheap",
+    "gossip"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "last-shuttle",
+   "name": "The Last Shuttle",
+   "kind": "bar",
+   "neighborhood": "the-concourse",
+   "summary": "A bar named for everyone who has missed it, with a clock showing the next launch and a crowd that does not care.",
+   "tags": [
+    "travellers",
+    "cocktails",
+    "late"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spice-arcade",
+   "name": "The Spice Arcade",
+   "kind": "market",
+   "neighborhood": "market-ring",
+   "summary": "A covered arcade of spice merchants, pickles and dried fruit, smelling of cardamom from one end to the other.",
+   "tags": [
+    "spices",
+    "stalls",
+    "smells"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wool-and-weft",
+   "name": "Wool & Weft",
+   "kind": "shopping",
+   "neighborhood": "market-ring",
+   "summary": "A knitwear shop selling real station wool, the most wanted present on the Meridian.",
+   "tags": [
+    "wool",
+    "knitwear",
+    "gifts"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "copper-pan",
+   "name": "The Copper Pan",
+   "kind": "restaurant",
+   "neighborhood": "market-ring",
+   "summary": "A bustling bistro with a menu that changes with each supply run: braised greens, fresh pasta and real cheese.",
+   "tags": [
+    "bistro",
+    "pasta",
+    "date-night"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "station-bistro",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ring-bakehouse",
+   "name": "Ring Bakehouse",
+   "kind": "cafe",
+   "neighborhood": "market-ring",
+   "summary": "A bakery that fills the ring with the smell of rye and cinnamon at the morning bell.",
+   "tags": [
+    "bakery",
+    "bread",
+    "morning"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "market-ring-theatre",
+   "name": "The Little Ring Theatre",
+   "kind": "venue",
+   "neighborhood": "market-ring",
+   "summary": "A hundred-seat theatre over the shops, with comedy, cabaret and touring players from the Meridian.",
+   "tags": [
+    "comedy",
+    "cabaret",
+    "theatre"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "noodle-lane",
+   "name": "Noodle Lane",
+   "kind": "restaurant",
+   "neighborhood": "market-ring",
+   "summary": "Six noodle counters in a row, each claiming to be the original.",
+   "tags": [
+    "noodles",
+    "cheap",
+    "quick"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "station-street-food",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "terrace-wine-bar",
+   "name": "The Terrace Wine Bar",
+   "kind": "bar",
+   "neighborhood": "spinward-terraces",
+   "summary": "A wine bar pouring the station's own vintages from the Garden Ring vines, with a window wall onto the stars.",
+   "tags": [
+    "wine",
+    "views",
+    "romantic"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends",
+    "solo"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spinward-promenade",
+   "name": "The Spinward Promenade",
+   "kind": "park",
+   "neighborhood": "spinward-terraces",
+   "summary": "A planted promenade along the terraces, where nannies push prams and captains walk their dogs.",
+   "tags": [
+    "promenade",
+    "dogs",
+    "planters"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "captains-table",
+   "name": "The Captains' Table",
+   "kind": "restaurant",
+   "neighborhood": "spinward-terraces",
+   "summary": "A formal dining room where yard owners close deals over station lamb and too much wine.",
+   "tags": [
+    "fine-dining",
+    "deals",
+    "lamb"
+   ],
+   "cost": "$$$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "station-bistro",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "terrace-salon",
+   "name": "Terrace Salon",
+   "kind": "shopping",
+   "neighborhood": "spinward-terraces",
+   "summary": "A hairdresser and beauty salon where the Terraces get their news before the feed does.",
+   "tags": [
+    "salon",
+    "gossip",
+    "grooming"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "terrace-tea-room",
+   "name": "The Tea Room",
+   "kind": "cafe",
+   "neighborhood": "spinward-terraces",
+   "summary": "A genteel tea room with tiered cakes and a pianist on rest-day afternoons.",
+   "tags": [
+    "tea",
+    "cakes",
+    "piano"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "foundry-canteen",
+   "name": "Foundry Canteen",
+   "kind": "restaurant",
+   "neighborhood": "the-yards",
+   "summary": "A twenty-four-hour canteen for welders and fitters: pies, fried rice and tea strong enough to weld with.",
+   "tags": [
+    "canteen",
+    "all-hours",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "station-street-food",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "slipway-gallery",
+   "name": "The Slipway Gallery",
+   "kind": "attraction",
+   "neighborhood": "the-yards",
+   "summary": "A viewing gallery over the slipway where a new shuttle is always half built.",
+   "tags": [
+    "shipyard",
+    "views",
+    "engineering"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rivet-bar",
+   "name": "The Rivet",
+   "kind": "bar",
+   "neighborhood": "the-yards",
+   "summary": "A loud yard bar with arm-wrestling on Fridays and a ceiling covered in signed welding masks.",
+   "tags": [
+    "yard-crews",
+    "loud",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "yards-fitness",
+   "name": "Yard Gym",
+   "kind": "fitness",
+   "neighborhood": "the-yards",
+   "summary": "A no-frills gym with heavy weights and a boxing ring the yard crews fight charity bouts in.",
+   "tags": [
+    "weights",
+    "boxing",
+    "gym"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "makers-bench",
+   "name": "The Makers' Bench",
+   "kind": "workshop",
+   "neighborhood": "the-yards",
+   "summary": "A public workshop with offcuts from the yard, where anyone can learn to weld on rest days.",
+   "tags": [
+    "welding",
+    "makers",
+    "classes"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coffee-terraces",
+   "name": "The Coffee Terraces",
+   "kind": "attraction",
+   "neighborhood": "garden-ring",
+   "summary": "Stepped rows of coffee bushes under warm lamps, with tours, tastings and pickers in wide hats.",
+   "tags": [
+    "coffee",
+    "tours",
+    "tastings"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sheep-deck",
+   "name": "The Sheep Deck",
+   "kind": "attraction",
+   "neighborhood": "garden-ring",
+   "summary": "A grassy deck of sheep kept for their wool, with shearing days that draw a crowd from the Meridian.",
+   "tags": [
+    "sheep",
+    "animals",
+    "family-friendly"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "green-commons",
+   "name": "Green Commons",
+   "kind": "park",
+   "neighborhood": "garden-ring",
+   "summary": "The station's central lawn, with picnic tables, a bandstand and the only grass you can lie on for three hours' flight.",
+   "tags": [
+    "lawn",
+    "picnics",
+    "bandstand"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-vineyard-house",
+   "name": "The Vineyard House",
+   "kind": "restaurant",
+   "neighborhood": "garden-ring",
+   "summary": "A farm restaurant among the vines with long lunches of lamb, bread and the house red.",
+   "tags": [
+    "farm-to-table",
+    "wine",
+    "long-lunch"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "station-bistro",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "garden-ring-cafe",
+   "name": "The Potting Shed",
+   "kind": "cafe",
+   "neighborhood": "garden-ring",
+   "summary": "A cafe in a former potting shed, serving lamp-grown coffee and scones to farm hands.",
+   "tags": [
+    "coffee",
+    "scones",
+    "farm"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "low-ring-night-kitchen",
+   "name": "Night Kitchen",
+   "kind": "restaurant",
+   "neighborhood": "low-ring",
+   "summary": "A late kitchen of skewers, flatbreads and hot sauce, busiest after the bars close.",
+   "tags": [
+    "late-night",
+    "skewers",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "station-street-food",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "half-g-club",
+   "name": "Half-G",
+   "kind": "nightlife",
+   "neighborhood": "low-ring",
+   "summary": "A club in half gravity where the dancing is mostly jumping, and the jumps are very high.",
+   "tags": [
+    "dancing",
+    "low-gravity",
+    "djs"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-bunkhouse",
+   "name": "The Bunkhouse",
+   "kind": "bar",
+   "neighborhood": "low-ring",
+   "summary": "A crowded bar of young crews, open-mic nights and cheap shots named after shuttle routes.",
+   "tags": [
+    "open-mic",
+    "young",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "low-ring-laundrette",
+   "name": "Spin Cycle",
+   "kind": "cafe",
+   "neighborhood": "low-ring",
+   "summary": "A laundrette and cafe where half the ring meets on a rest-day morning.",
+   "tags": [
+    "laundrette",
+    "coffee",
+    "neighbours"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "low-ring-records",
+   "name": "Groove Bay",
+   "kind": "shopping",
+   "neighborhood": "low-ring",
+   "summary": "A record shop of Earth music, station bands and the odd Meridian folk recording.",
+   "tags": [
+    "records",
+    "music",
+    "browsing"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-great-window",
+   "name": "The Great Window",
+   "kind": "landmark",
+   "neighborhood": "observation-spoke",
+   "summary": "A window forty metres wide at the end of the spoke, with the Meridian turning slowly in the dark beyond it.",
+   "tags": [
+    "viewport",
+    "the-meridian",
+    "romantic"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spoke-school-library",
+   "name": "Spoke Library",
+   "kind": "library",
+   "neighborhood": "observation-spoke",
+   "summary": "The station library, shared with the school, with a corner of real paper books shipped from Earth.",
+   "tags": [
+    "books",
+    "study",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "window-cafe",
+   "name": "The Window Cafe",
+   "kind": "cafe",
+   "neighborhood": "observation-spoke",
+   "summary": "A cafe right under the Great Window, where the coffee is ordinary and the view is not.",
+   "tags": [
+    "coffee",
+    "views",
+    "quiet"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spoke-gallery",
+   "name": "Spoke Gallery",
+   "kind": "museum",
+   "neighborhood": "observation-spoke",
+   "summary": "A small art gallery of station painters and photographs of the Meridian across thirty-seven years alongside.",
+   "tags": [
+    "art",
+    "photography",
+    "exhibitions"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spoke-pool",
+   "name": "The Spoke Pool",
+   "kind": "fitness",
+   "neighborhood": "observation-spoke",
+   "summary": "A long swimming pool lit from below, with lane swimming at dawn and family swims after school.",
+   "tags": [
+    "swimming",
+    "lanes",
+    "family"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "arrival-museum",
+   "name": "Museum of the Arrival",
+   "kind": "museum",
+   "neighborhood": "old-hull",
+   "summary": "The story of the station's chase across the dark and the day it caught up with the Meridian, with the first handshake on film.",
+   "tags": [
+    "history",
+    "exhibits",
+    "family-friendly"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hull-chapel",
+   "name": "The Hull Chapel",
+   "kind": "temple",
+   "neighborhood": "old-hull",
+   "summary": "A small chapel in a storage bay, with candles in jars and a wall of photos from Earth.",
+   "tags": [
+    "chapel",
+    "candles",
+    "memorial"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-first-pour",
+   "name": "The First Pour",
+   "kind": "bar",
+   "neighborhood": "old-hull",
+   "summary": "The oldest bar on the station, where the founding crew drank the first beer brewed aboard and the tap still says so.",
+   "tags": [
+    "history",
+    "regulars",
+    "beer"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stencil-diner",
+   "name": "Stencil Diner",
+   "kind": "restaurant",
+   "neighborhood": "old-hull",
+   "summary": "A diner under stencilled deck numbers, serving pancakes and coffee from the first shift to the last.",
+   "tags": [
+    "diner",
+    "pancakes",
+    "breakfast"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "station-bistro",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hull-market",
+   "name": "Old Hull Market",
+   "kind": "market",
+   "neighborhood": "old-hull",
+   "summary": "A rest-day market of secondhand tools, heirlooms from Earth and old station uniforms.",
+   "tags": [
+    "secondhand",
+    "heirlooms",
+    "bargains"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  }
+ ],
+ "colleges": [
+  {
+   "id": "vesper-yards-institute",
+   "name": "Yards Institute",
+   "type": "technical-institute",
+   "neighborhood": "the-yards",
+   "size": "small",
+   "known_for": [
+    "welding",
+    "shipbuilding",
+    "robotics"
+   ],
+   "source": "curated-2026-10"
+  }
+ ],
+ "employers": [
+  {
+   "id": "vesper-port-authority",
+   "name": "Vesper Port Authority",
+   "sector": "aerospace",
+   "neighborhood": "the-concourse",
+   "size": "large",
+   "summary": "Runs the gates, the shuttle schedule to the Meridian and customs.",
+   "careers": [
+    "docking-controller",
+    "shuttle-pilot",
+    "customs-inspector",
+    "traffic-controller",
+    "cargo-handler"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-yards",
+   "name": "Vesper Yards",
+   "sector": "manufacturing",
+   "neighborhood": "the-yards",
+   "size": "large",
+   "summary": "Builds shuttles, drones and spare ring sections for the station and the Meridian.",
+   "careers": [
+    "pressure-welder",
+    "habitat-builder",
+    "fabrication-technician",
+    "machinist",
+    "robotics-technician",
+    "drone-operator"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-trading-house",
+   "name": "Vesper Trading House",
+   "sector": "commerce",
+   "neighborhood": "market-ring",
+   "size": "medium",
+   "summary": "The station's biggest trading firm, buying and selling with the Meridian.",
+   "careers": [
+    "trade-negotiator",
+    "freight-scheduler",
+    "supply-chain-manager",
+    "ledger-accountant",
+    "credit-broker"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "garden-ring-estates",
+   "name": "Garden Ring Estates",
+   "sector": "agriculture",
+   "neighborhood": "garden-ring",
+   "size": "medium",
+   "summary": "Grows the station's coffee and vines and keeps the sheep.",
+   "careers": [
+    "crop-scientist",
+    "hydroponics-technician",
+    "pollination-technician",
+    "shepherd",
+    "coffee-roaster"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-infirmary",
+   "name": "Vesper Infirmary",
+   "sector": "healthcare",
+   "neighborhood": "observation-spoke",
+   "size": "medium",
+   "summary": "The station hospital and clinic.",
+   "careers": [
+    "general-practitioner",
+    "clinic-nurse",
+    "emergency-medic",
+    "midwife",
+    "dispensary-pharmacist"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spoke-school",
+   "name": "Spoke School",
+   "sector": "education",
+   "neighborhood": "observation-spoke",
+   "size": "medium",
+   "summary": "The station's school and nursery.",
+   "careers": [
+    "schoolteacher",
+    "nursery-worker",
+    "tutor"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-station-ops",
+   "name": "Station Operations",
+   "sector": "engineering",
+   "neighborhood": "old-hull",
+   "size": "large",
+   "summary": "Keeps the air, water, power and spin running.",
+   "careers": [
+    "life-support-engineer",
+    "reactor-technician",
+    "power-grid-technician",
+    "air-systems-technician",
+    "water-reclamation-technician",
+    "hull-technician"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "market-ring-hospitality",
+   "name": "Market Ring Hospitality",
+   "sector": "hospitality",
+   "neighborhood": "market-ring",
+   "size": "medium",
+   "summary": "The station's hotels, restaurants and coffee bars.",
+   "careers": [
+    "head-chef",
+    "galley-cook",
+    "concierge",
+    "guesthouse-manager",
+    "coffee-bar-attendant",
+    "lounge-bartender"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-feed",
+   "name": "Vesper Feed",
+   "sector": "media",
+   "neighborhood": "old-hull",
+   "size": "small",
+   "summary": "The station's news and music broadcast, with a weekly show for the Meridian.",
+   "careers": [
+    "feed-reporter",
+    "broadcaster",
+    "photographer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-watch",
+   "name": "Vesper Watch",
+   "sector": "security",
+   "neighborhood": "the-concourse",
+   "size": "small",
+   "summary": "The station's security and rescue crews.",
+   "careers": [
+    "security-officer",
+    "investigator",
+    "rescue-specialist",
+    "fire-and-pressure-crew"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-council",
+   "name": "Station Council",
+   "sector": "government",
+   "neighborhood": "old-hull",
+   "size": "small",
+   "summary": "The station's council and the offices that talk to the Meridian's Voyage Council.",
+   "careers": [
+    "council-clerk",
+    "district-administrator",
+    "housing-officer",
+    "mediator"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "low-ring-venues",
+   "name": "Low Ring Venues",
+   "sector": "entertainment",
+   "neighborhood": "low-ring",
+   "size": "small",
+   "summary": "The clubs, bars and stages of the Low Ring.",
+   "careers": [
+    "club-dj",
+    "session-musician",
+    "lounge-bartender",
+    "event-coordinator"
+   ],
+   "source": "curated-2026-10"
+  }
+ ],
+ "career_hubs": [
+  {
+   "id": "hub-port",
+   "name": "The port",
+   "neighborhoods": [
+    "the-concourse",
+    "market-ring"
+   ],
+   "sectors": [
+    "aerospace",
+    "commerce",
+    "logistics",
+    "hospitality",
+    "retail"
+   ],
+   "summary": "Gates, customs, traders and the shops and hotels that live off them.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hub-yards",
+   "name": "The yards",
+   "neighborhoods": [
+    "the-yards",
+    "old-hull"
+   ],
+   "sectors": [
+    "manufacturing",
+    "engineering",
+    "construction"
+   ],
+   "summary": "The shipyard, the foundry and station operations.",
+   "source": "curated-2026-10"
+  }
+ ],
+ "transit": [
+  {
+   "id": "on-foot",
+   "name": "On foot",
+   "kind": "walk",
+   "summary": "Each ring walks round in twenty minutes; the spokes are long, and most people take the lifts.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ring-shuttle",
+   "name": "Ring shuttle",
+   "kind": "shuttle",
+   "summary": "Little carts that run round each ring and across to the Concourse every few minutes.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spoke-lifts",
+   "name": "Spoke lifts",
+   "kind": "lift",
+   "summary": "Lifts up and down the spokes, from full gravity on the rings to none at the Concourse.",
+   "source": "curated-2026-10"
+  }
+ ],
+ "climate": {
+  "summary": "Climate-controlled rings: mild all year, warm on the Garden Ring, cool in the Yards.",
+  "months": [
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled rings"
+   }
+  ],
+  "source": "curated-2026-10"
+ },
+ "annual_events": [
+  {
+   "id": "shearing-days",
+   "name": "Shearing Days",
+   "months": [
+    5
+   ],
+   "neighborhood": "garden-ring",
+   "summary": "The flock is sheared on the Sheep Deck, with a fair, a knitting race and visitors from the Meridian.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "arrival-week",
+   "name": "Arrival Week",
+   "months": [
+    7
+   ],
+   "neighborhood": "old-hull",
+   "summary": "A week of parties for the day the station caught up with the Meridian, ending with a shuttle parade.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "yards-launch",
+   "name": "Shuttle Launch",
+   "months": [
+    3,
+    9
+   ],
+   "neighborhood": "the-yards",
+   "summary": "A new shuttle rolls off the slipway and is christened with a bottle of the house red.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coffee-harvest",
+   "name": "Coffee Harvest",
+   "months": [
+    11
+   ],
+   "neighborhood": "garden-ring",
+   "summary": "The coffee terraces are picked and the whole station smells of roasting for a week.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "window-nights",
+   "name": "Window Nights",
+   "months": [
+    1
+   ],
+   "neighborhood": "observation-spoke",
+   "summary": "The spoke goes dark so everyone can watch the Meridian's lights turning past the Great Window.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "low-ring-music-week",
+   "name": "Low Ring Music Week",
+   "months": [
+    8
+   ],
+   "neighborhood": "low-ring",
+   "summary": "Bands from both ships play every bar on the ring, and nobody sleeps.",
+   "source": "curated-2026-10"
+  }
+ ],
+ "careers": [
+  {
+   "id": "shepherd",
+   "name": "Shepherd",
+   "sector": "agriculture",
+   "schedule": "early",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Keeps the Sheep Deck's flock fed, sheared and out of the coffee bushes.",
+   "themes": [
+    "the flock",
+    "shearing days",
+    "the Sheep Deck",
+    "wool"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "coffee-roaster",
+   "name": "Coffee roaster",
+   "sector": "food",
+   "schedule": "early",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Roasts the Garden Ring's beans for the station and the tins that go over to the Meridian.",
+   "themes": [
+    "roasting",
+    "beans",
+    "tins",
+    "the smell"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "gate-announcer",
+   "name": "Gate announcer",
+   "sector": "aerospace",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Calls every shuttle departure and arrival on the Concourse, and every name of every passenger who is late.",
+   "themes": [
+    "the board",
+    "late passengers",
+    "the Concourse",
+    "the microphone"
+   ],
+   "eras": [
+    "future"
+   ]
+  }
+ ],
+ "names": {
+  "mix": {
+   "anglo": 1.5,
+   "hispanic": 1.5,
+   "east-asian": 1.5,
+   "south-asian": 1.2,
+   "west-african": 1,
+   "slavic": 0.8,
+   "arabic": 0.8,
+   "italian": 0.4,
+   "irish": 0.4
+  }
+ },
+ "local_color": [
+  {
+   "id": "station-red",
+   "name": "Station red",
+   "kind": "drink",
+   "summary": "The house red from the Garden Ring vines, rough when young and much better than anyone on the Meridian admits.",
+   "places": [
+    "terrace-wine-bar",
+    "the-vineyard-house"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gate-six-blend",
+   "name": "Gate Six blend",
+   "kind": "drink",
+   "summary": "The station's own roast, sold by the tin to every visitor from the Meridian.",
+   "places": [
+    "gate-six-coffee"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "station-lamb",
+   "name": "Station lamb",
+   "kind": "dish",
+   "summary": "Lamb from the Sheep Deck, rare and dear, roasted for Midwinter and big deals.",
+   "places": [
+    "captains-table",
+    "the-vineyard-house"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cardamom-buns",
+   "name": "Cardamom buns",
+   "kind": "dish",
+   "summary": "Sticky cardamom buns from the Ring Bakehouse, carried back to the Meridian by the boxful.",
+   "places": [
+    "ring-bakehouse"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "yard-pie",
+   "name": "Yard pie",
+   "kind": "dish",
+   "summary": "A pie the size of a welding mask, filled with whatever the canteen had left.",
+   "places": [
+    "foundry-canteen"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mind-the-gate",
+   "name": "\"Mind the gate\"",
+   "kind": "saying",
+   "summary": "Goodbye on Port Vesper, said to anyone heading for a shuttle.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "caught-up",
+   "name": "\"We caught up, didn't we?\"",
+   "kind": "saying",
+   "summary": "Said when something hard finally works out, after the station's long chase.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "meridian-cousins",
+   "name": "Meridian cousins",
+   "kind": "custom",
+   "summary": "Station families keep up with a family on the Meridian, swapping wool for honey cake and visiting on Arrival Day.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "window-proposals",
+   "name": "Proposals at the Great Window",
+   "kind": "custom",
+   "summary": "Proposing at the Great Window with the Meridian passing behind is the station's favourite romantic cliche.",
+   "places": [
+    "the-great-window"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "yard-masks",
+   "name": "Signed masks",
+   "kind": "custom",
+   "summary": "Every welder signs their first mask and hangs it on the ceiling of the Rivet.",
+   "places": [
+    "rivet-bar"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-rovers",
+   "name": "Vesper Rovers",
+   "kind": "team",
+   "summary": "The station's hoopball team, who travel to the Meridian for away games and lose most of them.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fifteenth-crew",
+   "name": "The fifteenth crew member",
+   "kind": "legend",
+   "summary": "The founding crew was fourteen, but every photo of them shows fifteen, and nobody can say who the last one is.",
+   "places": [
+    "arrival-museum"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "chase-rumour",
+   "name": "The other station",
+   "kind": "rumor",
+   "summary": "Some say a second station left Earth after Vesper and is still chasing the Meridian. The Port Authority says nothing.",
+   "places": [
+    "departures-hall"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "earth-time",
+   "name": "Earth time",
+   "kind": "other",
+   "summary": "The station still counts years by the Earth calendar, which makes every meeting with the Meridian's voyage years a small argument.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shuttle-hours",
+   "name": "The hourly shuttle",
+   "kind": "other",
+   "summary": "Shuttles leave for the Meridian on the hour from the Departures Hall; the flight takes about three hours.",
+   "places": [
+    "departures-hall"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  }
+ ],
+ "prices": [
+  {
+   "id": "coffee",
+   "item": "Gate Six coffee",
+   "low": 4,
+   "high": 7,
+   "per": "a cup",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cheap-lunch",
+   "item": "Canteen lunch",
+   "low": 7,
+   "high": 12,
+   "per": "a tray",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "takeout",
+   "item": "Noodles to go",
+   "low": 8,
+   "high": 14,
+   "per": "a bowl",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dinner",
+   "item": "Dinner out",
+   "low": 32,
+   "high": 65,
+   "per": "for one, with a glass of station red",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "beer",
+   "item": "Beer at the First Pour",
+   "low": 6,
+   "high": 9,
+   "per": "a glass",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cocktail",
+   "item": "Cocktail at the Last Shuttle",
+   "low": 13,
+   "high": 20,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "groceries",
+   "item": "A week of groceries",
+   "low": 80,
+   "high": 125,
+   "per": "for one",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "transit",
+   "item": "Ring shuttle",
+   "low": 1,
+   "high": 2,
+   "per": "one way",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "show",
+   "item": "Little Ring Theatre seat",
+   "low": 18,
+   "high": 35,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gym",
+   "item": "Yard Gym month",
+   "low": 30,
+   "high": 50,
+   "per": "a month",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "haircut",
+   "item": "Haircut at the Terrace Salon",
+   "low": 25,
+   "high": 60,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wool-jumper",
+   "item": "Station wool jumper",
+   "low": 90,
+   "high": 180,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shuttle-fare",
+   "item": "Shuttle to the Meridian",
+   "low": 60,
+   "high": 110,
+   "per": "one way",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wage",
+   "item": "Day's pay",
+   "low": 150,
+   "high": 230,
+   "per": "a day's take-home for an ordinary job",
+   "source": "curated-2026-10"
+  }
+ ],
+ "holidays": [
+  {
+   "id": "arrival-day",
+   "name": "Arrival Day",
+   "kind": "public",
+   "month": 7,
+   "day": 30,
+   "summary": "The day Port Vesper caught up with the Meridian after a fourteen-year chase, with a toast at the Departures Hall."
+  },
+  {
+   "id": "station-new-year",
+   "name": "Station New Year",
+   "kind": "public",
+   "month": 1,
+   "day": 1,
+   "summary": "New year by the Earth calendar the station still keeps, with a countdown on the great board."
+  },
+  {
+   "id": "earth-day-vesper",
+   "name": "Earth Remembrance",
+   "kind": "observance",
+   "month": 4,
+   "day": 22,
+   "summary": "People share photos and stories of Earth at the Hull Chapel and the Window Cafe."
+  },
+  {
+   "id": "yards-day",
+   "name": "Yards Day",
+   "kind": "public",
+   "month": 9,
+   "weekday": 0,
+   "nth": 1,
+   "summary": "A day off for the yard crews, with a parade of drones down the Concourse."
+  },
+  {
+   "id": "midwinter-vesper",
+   "name": "Midwinter",
+   "kind": "feast",
+   "month": 12,
+   "day": 21,
+   "summary": "Candles in every window, mulled wine from the Garden Ring and presents swapped with Meridian friends."
+  }
+ ],
+ "townsfolk": {
+  "quirks": [
+   {
+    "text": "checks the departures board even when not travelling",
+    "bio": "I check the board. I am not going anywhere. I just like to know."
+   },
+   {
+    "text": "keeps a photo of Earth by the bed",
+    "bio": "There is a photo of Earth by my bed. My grandmother took it."
+   },
+   {
+    "text": "calls everyone from the Meridian \"cousin\"",
+    "bio": "Meridian folk are all cousins to me."
+   },
+   {
+    "text": "can tell a coffee bean's terrace by the smell",
+    "bio": "Give me a bean and I will tell you which terrace it grew on."
+   },
+   {
+    "text": "has a signed welding mask on the Rivet's ceiling",
+    "bio": "My mask is on the Rivet ceiling, third row from the bar."
+   },
+   {
+    "text": "watches the Meridian turn past the Great Window every evening",
+    "bio": "Every evening, the Great Window. It is cheaper than the cinema."
+   },
+   {
+    "text": "knits on every shuttle ride",
+    "bio": "One shuttle ride, one sleeve."
+   },
+   {
+    "text": "argues about Earth years and voyage years",
+    "bio": "It is the Earth year that counts. Fight me."
+   }
+  ],
+  "goals": [
+   {
+    "id": "vesper-jumper",
+    "text": "knit a jumper from their own station wool",
+    "steps": 6,
+    "practice": [
+     "market",
+     "afternoon"
+    ],
+    "progress": "{name} finished another panel of the jumper",
+    "done": "{name} wore their station-wool jumper on the Concourse",
+    "interest": "knitting",
+    "bio": "Knitting a jumper from wool I sheared myself."
+   },
+   {
+    "id": "vesper-pilot",
+    "text": "fly the hourly shuttle to the Meridian",
+    "steps": 8,
+    "practice": [
+     "library",
+     "evening"
+    ],
+    "progress": "{name} passed another simulator flight",
+    "done": "{name} flew the hourly shuttle over to the Meridian",
+    "interest": "flying",
+    "bio": "Training to fly the Meridian shuttle."
+   },
+   {
+    "id": "vesper-welding",
+    "text": "learn to weld well enough to sign a mask",
+    "steps": 5,
+    "practice": [
+     "workshop",
+     "evening"
+    ],
+    "progress": "{name} laid a cleaner bead at the Makers' Bench",
+    "done": "{name} signed their first mask and hung it in the Rivet",
+    "interest": "welding",
+    "bio": "Learning to weld at the Makers' Bench."
+   },
+   {
+    "id": "vesper-band",
+    "text": "play a set at Low Ring Music Week",
+    "steps": 5,
+    "practice": [
+     "venue",
+     "evening"
+    ],
+    "progress": "{name} got through a whole set at the Bunkhouse open mic",
+    "done": "{name} played their set at Music Week to a packed bar",
+    "interest": "music",
+    "bio": "Getting my band ready for Music Week."
+   },
+   {
+    "id": "vesper-roast",
+    "text": "roast their own blend at Gate Six",
+    "steps": 5,
+    "practice": [
+     "cafe",
+     "morning"
+    ],
+    "progress": "{name} roasted another test batch at Gate Six",
+    "done": "{name} saw their own blend on the Gate Six board",
+    "interest": "coffee",
+    "bio": "Working on my own coffee blend."
+   }
+  ]
+ }
+}

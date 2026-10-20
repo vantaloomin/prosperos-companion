@@ -1,0 +1,4766 @@
+{
+ "schema_version": 1,
+ "id": "long-meridian",
+ "name": "The Long Meridian",
+ "setting": "original",
+ "era": "future",
+ "category": "fictional",
+ "basis": "Original setting written for Prospero Companion: a generation ship in the 188th year of its voyage, with spun habitat rings, a forest deck and a station flying alongside. Nothing is taken from any published setting.",
+ "region": "Between the stars",
+ "country": "Generation ship",
+ "timezone": "UTC",
+ "aliases": [
+  "Long Meridian",
+  "Meridian",
+  "The Meridian"
+ ],
+ "summary": "A generation ship of about twenty-six thousand people, 188 years out from Earth and a little past halfway: spun rings of family cabins, a forest deck, a night market under paper lanterns, a weightless core for sport and Port Vesper three hours away by shuttle.",
+ "lat": 0.0,
+ "lon": -140.0,
+ "currency": {
+  "code": "CR",
+  "symbol": "cr",
+  "name": "credits"
+ },
+ "rent_period": "month",
+ "speeds": {
+  "walk": 4.5,
+  "tram": 26,
+  "lift": 18,
+  "pod": 30
+ },
+ "enclosed": true,
+ "neighbours": [
+  {
+   "city": "port-vesper",
+   "hours": 3
+  }
+ ],
+ "calendar": "none",
+ "sources": {
+  "curated-2026-10": {
+   "kind": "curated",
+   "title": "The Long Meridian, written for Prospero Companion",
+   "license": "CC0-1.0",
+   "retrieved": "2026-10-20",
+   "note": "An invented generation ship. Its decks, trades, prices and calendar are written for it; every business, family and person named is fictional. Prices and berth fees are in ship credits, monthly. Coordinates sit far out in the Pacific for distance estimates only, along the ship's spine from bow to stern."
+  }
+ },
+ "neighborhoods": [
+  {
+   "id": "the-bow",
+   "name": "The Bow",
+   "summary": "The forward end of the ship: the great observation dome, the observatory, navigation and a few prized cabins with the stars ahead in the window.",
+   "vibe": [
+    "views",
+    "quiet",
+    "stargazing"
+   ],
+   "lat": 0.0,
+   "lon": -139.952,
+   "rent_tier": "very-high",
+   "rent": {
+    "studio": [
+     1500,
+     1950
+    ],
+    "one_bedroom": [
+     1950,
+     2600
+    ],
+    "two_bedroom": [
+     2700,
+     3600
+    ]
+   },
+   "housing": [
+    "view-cabin",
+    "cabin"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "spine-tram"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "command-deck",
+   "name": "Command Deck",
+   "summary": "The bridge, the Voyage Council chamber, the Archive and the offices that keep twenty-six thousand people fed, housed and counted.",
+   "vibe": [
+    "civic",
+    "offices",
+    "formal"
+   ],
+   "lat": 0.004,
+   "lon": -139.962,
+   "rent_tier": "high",
+   "rent": {
+    "studio": [
+     1100,
+     1450
+    ],
+    "one_bedroom": [
+     1450,
+     1950
+    ],
+    "two_bedroom": [
+     2000,
+     2700
+    ]
+   },
+   "housing": [
+    "cabin",
+    "officers-quarters"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "spine-tram",
+    "ring-lifts"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "founders-ring",
+   "name": "Founders' Ring",
+   "summary": "The oldest habitat ring, spun up in the first year of the voyage: terraced family berths, the Founders' Hall, worn handrails and the quietest corridors aboard.",
+   "vibe": [
+    "historic",
+    "family",
+    "quiet"
+   ],
+   "lat": 0.012,
+   "lon": -139.972,
+   "rent_tier": "high",
+   "rent": {
+    "studio": [
+     1100,
+     1450
+    ],
+    "one_bedroom": [
+     1450,
+     1950
+    ],
+    "two_bedroom": [
+     2000,
+     2700
+    ]
+   },
+   "housing": [
+    "family-berth",
+    "terrace-berth",
+    "cabin"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "ring-lifts",
+    "pod-line"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lantern-ring",
+   "name": "Lantern Ring",
+   "summary": "The ring that never sleeps: noodle bars, the theatre, the night market, paper lanterns strung along the curve and music from every other hatch.",
+   "vibe": [
+    "nightlife",
+    "food",
+    "lively"
+   ],
+   "lat": -0.012,
+   "lon": -139.972,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     780,
+     1050
+    ],
+    "one_bedroom": [
+     1050,
+     1400
+    ],
+    "two_bedroom": [
+     1450,
+     1900
+    ]
+   },
+   "housing": [
+    "cabin",
+    "shared-berth",
+    "loft-cabin"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "ring-lifts",
+    "pod-line"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "arboretum",
+   "name": "The Arboretum",
+   "summary": "Four hundred metres of forest under a painted sky: oaks and fruit trees grown from the founders' seeds, a stream, a pond and paths worn by six generations.",
+   "vibe": [
+    "green",
+    "calm",
+    "outdoorsy"
+   ],
+   "lat": 0.0,
+   "lon": -139.982,
+   "rent_tier": "high",
+   "rent": {
+    "studio": [
+     1100,
+     1450
+    ],
+    "one_bedroom": [
+     1450,
+     1950
+    ],
+    "two_bedroom": [
+     2000,
+     2700
+    ]
+   },
+   "housing": [
+    "garden-cabin",
+    "cabin"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "spine-tram"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "green-decks",
+   "name": "Green Decks",
+   "summary": "Stacked hydroponic farms, algae vats, mushroom caves and the seed vault, lit purple and pink, with growers' berths along the service corridors.",
+   "vibe": [
+    "farming",
+    "working",
+    "humid"
+   ],
+   "lat": 0.01,
+   "lon": -139.992,
+   "rent_tier": "low",
+   "rent": {
+    "studio": [
+     520,
+     700
+    ],
+    "one_bedroom": [
+     720,
+     980
+    ],
+    "two_bedroom": [
+     1000,
+     1350
+    ]
+   },
+   "housing": [
+    "crew-berth",
+    "cabin",
+    "shared-berth"
+   ],
+   "walkability": "medium",
+   "transit": [
+    "on-foot",
+    "spine-tram",
+    "pod-line"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "commons-ring",
+   "name": "Commons Ring",
+   "summary": "The everyday ring: the clinic, schools, the big mess hall, shops, playrooms and the family cabins most people grow up in.",
+   "vibe": [
+    "family",
+    "everyday",
+    "neighbourly"
+   ],
+   "lat": -0.012,
+   "lon": -139.992,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     780,
+     1050
+    ],
+    "one_bedroom": [
+     1050,
+     1400
+    ],
+    "two_bedroom": [
+     1450,
+     1900
+    ]
+   },
+   "housing": [
+    "family-berth",
+    "cabin",
+    "shared-berth"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "ring-lifts",
+    "pod-line"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "academy-deck",
+   "name": "Academy Deck",
+   "summary": "The Meridian Academy and the Conservatory, the long library, study lounges that stay lit all night and students' bunkrooms above the lecture halls.",
+   "vibe": [
+    "students",
+    "studious",
+    "young"
+   ],
+   "lat": 0.008,
+   "lon": -140.002,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     780,
+     1050
+    ],
+    "one_bedroom": [
+     1050,
+     1400
+    ],
+    "two_bedroom": [
+     1450,
+     1900
+    ]
+   },
+   "housing": [
+    "bunkroom",
+    "shared-berth",
+    "cabin"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "spine-tram",
+    "ring-lifts"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-spindle",
+   "name": "The Spindle",
+   "summary": "The weightless core the rings turn around: the zero-g gym, the flight hall, the drop pool and the long low-gravity running track.",
+   "vibe": [
+    "sport",
+    "zero-g",
+    "energetic"
+   ],
+   "lat": 0.0,
+   "lon": -140.012,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     780,
+     1050
+    ],
+    "one_bedroom": [
+     1050,
+     1400
+    ],
+    "two_bedroom": [
+     1450,
+     1900
+    ]
+   },
+   "housing": [
+    "cabin",
+    "crew-berth"
+   ],
+   "walkability": "medium",
+   "transit": [
+    "on-foot",
+    "spine-tram",
+    "ring-lifts"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tidewater-deck",
+   "name": "Tidewater Deck",
+   "summary": "The ship's great water tank, with a warm swimming lagoon on top, the reclamation plant below and cabins along the lido rail.",
+   "vibe": [
+    "water",
+    "leisure",
+    "relaxed"
+   ],
+   "lat": -0.01,
+   "lon": -140.022,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     780,
+     1050
+    ],
+    "one_bedroom": [
+     1050,
+     1400
+    ],
+    "two_bedroom": [
+     1450,
+     1900
+    ]
+   },
+   "housing": [
+    "cabin",
+    "family-berth"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "spine-tram",
+    "pod-line"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cargo-holds",
+   "name": "Cargo Holds",
+   "summary": "Cavernous holds of crates and spares, the fabrication shops, the Quartermaster's stores and the Swap, the ship's sprawling trading floor.",
+   "vibe": [
+    "industrial",
+    "trade",
+    "busy"
+   ],
+   "lat": 0.01,
+   "lon": -140.032,
+   "rent_tier": "low",
+   "rent": {
+    "studio": [
+     520,
+     700
+    ],
+    "one_bedroom": [
+     720,
+     980
+    ],
+    "two_bedroom": [
+     1000,
+     1350
+    ]
+   },
+   "housing": [
+    "crew-berth",
+    "loft-cabin",
+    "shared-berth"
+   ],
+   "walkability": "medium",
+   "transit": [
+    "on-foot",
+    "spine-tram",
+    "pod-line"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dockside",
+   "name": "Dockside",
+   "summary": "The shuttle bays and docking ring: customs, the traders from Port Vesper, travellers' bunks and the bars where crews wait out a delayed launch.",
+   "vibe": [
+    "travel",
+    "trade",
+    "transient"
+   ],
+   "lat": -0.006,
+   "lon": -140.042,
+   "rent_tier": "mid",
+   "rent": {
+    "studio": [
+     780,
+     1050
+    ],
+    "one_bedroom": [
+     1050,
+     1400
+    ],
+    "two_bedroom": [
+     1450,
+     1900
+    ]
+   },
+   "housing": [
+    "cabin",
+    "shared-berth",
+    "bunkroom"
+   ],
+   "walkability": "medium",
+   "transit": [
+    "on-foot",
+    "spine-tram",
+    "pod-line"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "engine-decks",
+   "name": "Engine Decks",
+   "summary": "Reactor halls, the drive and the engineers who keep them: warm decks, loud bars, steady shifts and the best cheap food on the ship.",
+   "vibe": [
+    "working",
+    "loud",
+    "tight-knit"
+   ],
+   "lat": 0.006,
+   "lon": -140.052,
+   "rent_tier": "low",
+   "rent": {
+    "studio": [
+     520,
+     700
+    ],
+    "one_bedroom": [
+     720,
+     980
+    ],
+    "two_bedroom": [
+     1000,
+     1350
+    ]
+   },
+   "housing": [
+    "crew-berth",
+    "shared-berth",
+    "cabin"
+   ],
+   "walkability": "medium",
+   "transit": [
+    "on-foot",
+    "spine-tram",
+    "pod-line"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stern-gallery",
+   "name": "Stern Gallery",
+   "summary": "The aft end, old crew quarters turned into studios and cheap cabins, with the stern viewport where the Sun is one bright star among thousands.",
+   "vibe": [
+    "artsy",
+    "bohemian",
+    "quiet"
+   ],
+   "lat": 0.0,
+   "lon": -140.062,
+   "rent_tier": "low",
+   "rent": {
+    "studio": [
+     520,
+     700
+    ],
+    "one_bedroom": [
+     720,
+     980
+    ],
+    "two_bedroom": [
+     1000,
+     1350
+    ]
+   },
+   "housing": [
+    "loft-cabin",
+    "cabin",
+    "shared-berth"
+   ],
+   "walkability": "high",
+   "transit": [
+    "on-foot",
+    "spine-tram"
+   ],
+   "source": "curated-2026-10"
+  }
+ ],
+ "places": [
+  {
+   "id": "bow-dome",
+   "name": "The Bow Dome",
+   "kind": "landmark",
+   "neighborhood": "the-bow",
+   "summary": "The great clear dome at the very front of the ship, where the stars ahead seem to stand still and people come to sit in silence.",
+   "tags": [
+    "viewport",
+    "stars",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "spots": [
+    "the front rail",
+    "the dark benches at the back",
+    "the star chart table"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "meridian-observatory",
+   "name": "Meridian Observatory",
+   "kind": "museum",
+   "neighborhood": "the-bow",
+   "summary": "The ship's working observatory, open to visitors in the afternoons, with a gallery of the first star charts made aboard.",
+   "tags": [
+    "astronomy",
+    "telescopes",
+    "history"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "forward-lounge",
+   "name": "The Forward Lounge",
+   "kind": "bar",
+   "neighborhood": "the-bow",
+   "summary": "A hushed cocktail lounge under the dome, all low lights and deep chairs, where couples book a window table for anniversaries.",
+   "tags": [
+    "cocktails",
+    "romantic",
+    "views"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "spots": [
+    "a window table",
+    "the long bar",
+    "the corner booth"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "starward-cafe",
+   "name": "Starward Cafe",
+   "kind": "cafe",
+   "neighborhood": "the-bow",
+   "summary": "A small, bright cafe by the dome stairs, with pastries from the Commons bakery and a board of what the navigators saw this week.",
+   "tags": [
+    "coffee",
+    "pastries",
+    "views"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "ship-fusion",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-chart-room",
+   "name": "The Chart Room",
+   "kind": "restaurant",
+   "neighborhood": "the-bow",
+   "summary": "The ship's finest restaurant, a tasting menu built from whatever the Green Decks harvested that morning, served under the star charts.",
+   "tags": [
+    "tasting-menu",
+    "fine-dining",
+    "special-occasion"
+   ],
+   "cost": "$$$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "ship-fusion",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "quiet-chapel",
+   "name": "The Quiet Chapel",
+   "kind": "temple",
+   "neighborhood": "the-bow",
+   "summary": "A plain room open to every faith and none, with a single viewport and a book where people write the names of those they have lost.",
+   "tags": [
+    "chapel",
+    "reflection",
+    "memorial"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "council-chamber",
+   "name": "The Council Chamber",
+   "kind": "landmark",
+   "neighborhood": "command-deck",
+   "summary": "The round chamber where the Voyage Council meets in the open, with a public gallery that fills up for any vote about rations.",
+   "tags": [
+    "civic",
+    "debates",
+    "history"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ship-archive",
+   "name": "The Archive",
+   "kind": "library",
+   "neighborhood": "command-deck",
+   "summary": "Every log, letter, birth and recipe since launch, with reading booths, an archivist on duty and a waiting list for the founders' diaries.",
+   "tags": [
+    "archive",
+    "records",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bridge-mess",
+   "name": "Bridge Mess",
+   "kind": "restaurant",
+   "neighborhood": "command-deck",
+   "summary": "The officers' canteen, open to all, known for its strong coffee, cheap set lunches and loud arguments about course corrections.",
+   "tags": [
+    "canteen",
+    "set-lunch",
+    "officers"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "ship-fusion",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "log-and-ledger",
+   "name": "Log & Ledger",
+   "kind": "bar",
+   "neighborhood": "command-deck",
+   "summary": "A wood-panelled bar for clerks and officers after shift, with a brass bell rung whenever someone retires.",
+   "tags": [
+    "after-work",
+    "quiet",
+    "officers"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "voyage-museum",
+   "name": "Museum of the Voyage",
+   "kind": "museum",
+   "neighborhood": "command-deck",
+   "summary": "The story of the Meridian from the shipyards of Earth to today, with the launch bell, a founder's cabin kept as it was and the patched panel from the Breach.",
+   "tags": [
+    "history",
+    "exhibits",
+    "family-friendly"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "signal-tea-house",
+   "name": "Signal Tea House",
+   "kind": "cafe",
+   "neighborhood": "command-deck",
+   "summary": "A narrow tea house beside the comms office, with leaf teas grown on the Green Decks and a back room for quiet meetings.",
+   "tags": [
+    "tea",
+    "quiet",
+    "meetings"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "founders-hall",
+   "name": "Founders' Hall",
+   "kind": "landmark",
+   "neighborhood": "founders-ring",
+   "summary": "The ring's meeting hall, with the names of the first four thousand aboard carved into the walls and dances on rest days.",
+   "tags": [
+    "history",
+    "dances",
+    "community"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "old-galley",
+   "name": "The Old Galley",
+   "kind": "restaurant",
+   "neighborhood": "founders-ring",
+   "summary": "A family restaurant in the ring's first kitchen, cooking the founders' recipes: long-simmered bean stew, flatbread and rice pudding.",
+   "tags": [
+    "comfort-food",
+    "family",
+    "history"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "ship-heritage",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "terrace-steps",
+   "name": "The Terrace Steps",
+   "kind": "park",
+   "neighborhood": "founders-ring",
+   "summary": "Planted steps climbing the curve of the ring, where children race the handrails and older people sit with tea in the long evenings.",
+   "tags": [
+    "terraces",
+    "planters",
+    "benches"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rivet-and-thread",
+   "name": "Rivet & Thread",
+   "kind": "shopping",
+   "neighborhood": "founders-ring",
+   "summary": "A tailor and mender who can turn a grandparent's jacket into something new, and still sells the plain grey ship-wool.",
+   "tags": [
+    "tailor",
+    "mending",
+    "clothes"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "first-light-bakery",
+   "name": "First Light Bakery",
+   "kind": "cafe",
+   "neighborhood": "founders-ring",
+   "summary": "The ring's bakery since year one, with a queue at the morning bell for seed loaves and honey buns.",
+   "tags": [
+    "bakery",
+    "bread",
+    "morning"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-handrail",
+   "name": "The Handrail",
+   "kind": "bar",
+   "neighborhood": "founders-ring",
+   "summary": "A tiny old bar with eight stools and a handrail polished by two hundred years of elbows; the landlord knows everyone's grandparents.",
+   "tags": [
+    "local",
+    "cosy",
+    "regulars"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "founders-garden",
+   "name": "Founders' Garden",
+   "kind": "garden",
+   "neighborhood": "founders-ring",
+   "summary": "A walled garden of herbs and roses kept by volunteers, with a sundial that works off the ring's lamps.",
+   "tags": [
+    "herbs",
+    "roses",
+    "volunteers"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lantern-night-market",
+   "name": "Lantern Night Market",
+   "kind": "market",
+   "neighborhood": "lantern-ring",
+   "summary": "Two hundred stalls under paper lanterns along the curve: dumplings, cricket skewers, secondhand screens, charms and haircuts.",
+   "tags": [
+    "street-food",
+    "stalls",
+    "lanterns"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "ship-street-food",
+   "spots": [
+    "the dumpling row",
+    "the charm stalls",
+    "the long tables by the lift"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "red-hatch-noodles",
+   "name": "Red Hatch Noodles",
+   "kind": "restaurant",
+   "neighborhood": "lantern-ring",
+   "summary": "A steamy noodle bar behind a red-painted hatch, open until the small hours, with broth that has been on the go for decades.",
+   "tags": [
+    "noodles",
+    "late-night",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "ship-street-food",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lantern-theatre",
+   "name": "The Lantern Theatre",
+   "kind": "venue",
+   "neighborhood": "lantern-ring",
+   "summary": "The ship's main stage: new plays by ship-born writers, old Earth classics and a winter pantomime the whole ship argues about.",
+   "tags": [
+    "theatre",
+    "plays",
+    "shows"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-loop",
+   "name": "The Loop",
+   "kind": "nightlife",
+   "neighborhood": "lantern-ring",
+   "summary": "A dance club in a disused cargo lift, where the floor turns slowly with the ring and the DJs play until the morning lights come up.",
+   "tags": [
+    "dancing",
+    "djs",
+    "late-night"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "copper-kettle",
+   "name": "The Copper Kettle",
+   "kind": "bar",
+   "neighborhood": "lantern-ring",
+   "summary": "A loud, friendly bar with ship-brewed ales, quiz nights and a corner stage for anyone brave enough with a fiddle.",
+   "tags": [
+    "ales",
+    "quiz",
+    "live-music"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "paper-moon-cafe",
+   "name": "Paper Moon Cafe",
+   "kind": "cafe",
+   "neighborhood": "lantern-ring",
+   "summary": "A cafe full of mismatched chairs and paper lanterns, where writers and night-shift workers share the long table.",
+   "tags": [
+    "coffee",
+    "writers",
+    "all-night"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sweet-orbit",
+   "name": "Sweet Orbit",
+   "kind": "shopping",
+   "neighborhood": "lantern-ring",
+   "summary": "A sweet shop of jars and hand-pulled sugar, famous for the moon drops children save their credits for.",
+   "tags": [
+    "sweets",
+    "treats",
+    "kids"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ring-cinema",
+   "name": "Ring Cinema",
+   "kind": "venue",
+   "neighborhood": "lantern-ring",
+   "summary": "A two-screen cinema showing films from the Earth archive and the ship's own studios, with a midnight double bill on rest days.",
+   "tags": [
+    "films",
+    "cinema",
+    "date-night"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "arboretum-paths",
+   "name": "The Arboretum Paths",
+   "kind": "park",
+   "neighborhood": "arboretum",
+   "summary": "Winding paths under oak, beech and fruit trees, with a stream fed from the tank and a painted sky that turns to dusk on schedule.",
+   "tags": [
+    "forest",
+    "walking",
+    "trees"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "spots": [
+    "the old oak",
+    "the stream bridge",
+    "the fern hollow",
+    "the orchard walk"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lily-pond",
+   "name": "The Lily Pond",
+   "kind": "park",
+   "neighborhood": "arboretum",
+   "summary": "A still pond at the heart of the forest, with ducks descended from the founders' six and a jetty where couples sit at dusk.",
+   "tags": [
+    "pond",
+    "ducks",
+    "romantic"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "orchard-kitchen",
+   "name": "Orchard Kitchen",
+   "kind": "restaurant",
+   "neighborhood": "arboretum",
+   "summary": "A glass-walled restaurant among the apple trees, serving whatever is ripe, with cider pressed on the spot.",
+   "tags": [
+    "seasonal",
+    "cider",
+    "views"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "ship-heritage",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ranger-hut",
+   "name": "The Rangers' Hut",
+   "kind": "cafe",
+   "neighborhood": "arboretum",
+   "summary": "A wooden kiosk run by the arboretum rangers, selling tea, flapjacks and nature trail maps for children.",
+   "tags": [
+    "tea",
+    "snacks",
+    "family-friendly"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "canopy-walk",
+   "name": "The Canopy Walk",
+   "kind": "attraction",
+   "neighborhood": "arboretum",
+   "summary": "A rope bridge strung through the tops of the tallest trees, close enough to touch the painted sky.",
+   "tags": [
+    "treetops",
+    "bridges",
+    "views"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "seed-library",
+   "name": "The Seed Library",
+   "kind": "library",
+   "neighborhood": "arboretum",
+   "summary": "Drawers of seeds anyone can borrow and return as next year's harvest, with growing classes on rest-day mornings.",
+   "tags": [
+    "seeds",
+    "gardening",
+    "classes"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "green-deck-canteen",
+   "name": "The Green Canteen",
+   "kind": "restaurant",
+   "neighborhood": "green-decks",
+   "summary": "A long canteen where growers eat at shared tables: big bowls of greens, mushroom broth and bread still warm.",
+   "tags": [
+    "canteen",
+    "fresh",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "ship-heritage",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mushroom-caves",
+   "name": "The Mushroom Caves",
+   "kind": "attraction",
+   "neighborhood": "green-decks",
+   "summary": "Dim, damp racks of oyster and shiitake under red light, with tours on rest days and a stall selling the day's pick.",
+   "tags": [
+    "mushrooms",
+    "tours",
+    "farms"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pink-light-bar",
+   "name": "Pink Light",
+   "kind": "bar",
+   "neighborhood": "green-decks",
+   "summary": "A grower's bar bathed in the farms' pink grow light, pouring sour beer brewed from the algae vats, which tastes better than it sounds.",
+   "tags": [
+    "algae-beer",
+    "growers",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "seed-vault-gallery",
+   "name": "Seed Vault Gallery",
+   "kind": "museum",
+   "neighborhood": "green-decks",
+   "summary": "A viewing gallery over the frozen seed vault, with the story of every crop the ship carries.",
+   "tags": [
+    "seeds",
+    "science",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "greens-market",
+   "name": "Greens Market",
+   "kind": "market",
+   "neighborhood": "green-decks",
+   "summary": "The morning market at the farm gate: herbs, tomatoes, mushrooms and the odd strawberry, sold off the harvest trolleys.",
+   "tags": [
+    "produce",
+    "market",
+    "morning"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sprout-cafe",
+   "name": "Sprout",
+   "kind": "cafe",
+   "neighborhood": "green-decks",
+   "summary": "A cafe in an old pump room, with sprouted-grain toast, fresh mint tea and growers swapping gossip before shift.",
+   "tags": [
+    "tea",
+    "toast",
+    "growers"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "commons-mess-hall",
+   "name": "Commons Mess Hall",
+   "kind": "restaurant",
+   "neighborhood": "commons-ring",
+   "summary": "The ship's biggest mess hall, loud and warm, with long tables, a different stew every day and a pudding queue that never shortens.",
+   "tags": [
+    "mess-hall",
+    "family",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "ship-heritage",
+   "spots": [
+    "the long tables",
+    "the pudding queue",
+    "the family corner"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "commons-playdeck",
+   "name": "The Playdeck",
+   "kind": "park",
+   "neighborhood": "commons-ring",
+   "summary": "A padded play deck with climbing nets, a sandpit and benches where every parent on the ring meets every other.",
+   "tags": [
+    "playground",
+    "kids",
+    "parents"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "commons-baths",
+   "name": "Commons Baths",
+   "kind": "fitness",
+   "neighborhood": "commons-ring",
+   "summary": "Public baths with a hot pool, a cold plunge and a steam room, busiest after the day shift.",
+   "tags": [
+    "baths",
+    "steam",
+    "relaxing"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ring-stores",
+   "name": "Ring Stores",
+   "kind": "shopping",
+   "neighborhood": "commons-ring",
+   "summary": "The ring's general store: rations, soap, socks, batteries and a noticeboard thick with lost cats and spare cabins.",
+   "tags": [
+    "groceries",
+    "everyday",
+    "noticeboard"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "two-moons-cafe",
+   "name": "Two Moons",
+   "kind": "cafe",
+   "neighborhood": "commons-ring",
+   "summary": "A family-run cafe by the school lift, with proper coffee for parents and hot chocolate for whoever survived the school run.",
+   "tags": [
+    "coffee",
+    "family",
+    "cosy"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "commons-pet-clinic",
+   "name": "Commons Pet Clinic",
+   "kind": "vet",
+   "neighborhood": "commons-ring",
+   "summary": "The ship's animal clinic for cats, rabbits, birds and the odd lizard, with a waiting room full of carriers.",
+   "tags": [
+    "pets",
+    "vet",
+    "animals"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-gathering",
+   "name": "The Gathering",
+   "kind": "bar",
+   "neighborhood": "commons-ring",
+   "summary": "The ring's family pub, with a games corner, cheap pies and darts that every child is warned about.",
+   "tags": [
+    "pub",
+    "games",
+    "family-friendly"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "family",
+    "coworkers"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ring-library",
+   "name": "Commons Library",
+   "kind": "library",
+   "neighborhood": "commons-ring",
+   "summary": "A friendly lending library with story hours, game nights and the ship's best collection of old Earth picture books.",
+   "tags": [
+    "books",
+    "story-time",
+    "games"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "long-library",
+   "name": "The Long Library",
+   "kind": "library",
+   "neighborhood": "academy-deck",
+   "summary": "A library that runs the full length of the deck, open all night, with study pods, a reading room and the ship's rare printed books.",
+   "tags": [
+    "books",
+    "study",
+    "all-night"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "spots": [
+    "a study pod",
+    "the reading room",
+    "the rare books desk"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lecture-steps",
+   "name": "The Lecture Steps",
+   "kind": "square",
+   "neighborhood": "academy-deck",
+   "summary": "Wide steps outside the main hall where students eat lunch, argue and hold impromptu concerts.",
+   "tags": [
+    "students",
+    "lunch",
+    "gathering"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ink-and-orbit",
+   "name": "Ink & Orbit",
+   "kind": "cafe",
+   "neighborhood": "academy-deck",
+   "summary": "A cramped student cafe with cheap coffee, sticky tables and a wall of notes offering tutoring, bands and spare bunks.",
+   "tags": [
+    "coffee",
+    "students",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-thesis",
+   "name": "The Thesis",
+   "kind": "bar",
+   "neighborhood": "academy-deck",
+   "summary": "The students' bar, with cheap ale, a debating night and a pool table older than anyone's grandparents.",
+   "tags": [
+    "students",
+    "debates",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "conservatory-hall",
+   "name": "Conservatory Hall",
+   "kind": "venue",
+   "neighborhood": "academy-deck",
+   "summary": "The Conservatory's concert hall, with free lunchtime recitals and a full orchestra season.",
+   "tags": [
+    "concerts",
+    "classical",
+    "recitals"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dumpling-desk",
+   "name": "The Dumpling Desk",
+   "kind": "restaurant",
+   "neighborhood": "academy-deck",
+   "summary": "A counter of steamed dumplings sold by the dozen to students who should be studying.",
+   "tags": [
+    "dumplings",
+    "cheap",
+    "quick"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "ship-street-food",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "zero-g-gym",
+   "name": "Zero-G Gym",
+   "kind": "fitness",
+   "neighborhood": "the-spindle",
+   "summary": "A weightless gym of nets and handholds, where the workout is mostly not drifting into someone else.",
+   "tags": [
+    "zero-g",
+    "fitness",
+    "classes"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "flight-hall",
+   "name": "The Flight Hall",
+   "kind": "stadium",
+   "neighborhood": "the-spindle",
+   "summary": "A weightless arena for the ship's favourite sport, hoopball, with rival deck teams and a roaring crowd strapped into the stands.",
+   "tags": [
+    "hoopball",
+    "sport",
+    "crowds"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "drop-pool",
+   "name": "The Drop Pool",
+   "kind": "attraction",
+   "neighborhood": "the-spindle",
+   "summary": "A sphere of water held in low gravity, which swimmers fall into slowly from the gallery above.",
+   "tags": [
+    "swimming",
+    "low-gravity",
+    "thrills"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "core-track",
+   "name": "The Core Track",
+   "kind": "fitness",
+   "neighborhood": "the-spindle",
+   "summary": "A running track around the core at a third of a gravity, where every stride feels like a leap.",
+   "tags": [
+    "running",
+    "low-gravity",
+    "fitness"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hub-juice-bar",
+   "name": "Hub Juice",
+   "kind": "cafe",
+   "neighborhood": "the-spindle",
+   "summary": "A juice bar at the core lift with squeeze bulbs for the weightless side, and real cups for everyone else.",
+   "tags": [
+    "juice",
+    "smoothies",
+    "sport"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-tether",
+   "name": "The Tether",
+   "kind": "bar",
+   "neighborhood": "the-spindle",
+   "summary": "A sports bar at the edge of the core where hoopball fans watch the replays and drink from bulbs because the glasses kept floating off.",
+   "tags": [
+    "sport",
+    "replays",
+    "fans"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tidewater-lagoon",
+   "name": "Tidewater Lagoon",
+   "kind": "park",
+   "neighborhood": "tidewater-deck",
+   "summary": "A warm swimming lagoon on top of the great tank, with sand made from crushed glass and a painted horizon.",
+   "tags": [
+    "swimming",
+    "lido",
+    "sunlamps"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "spots": [
+    "the shallow end",
+    "the sunlamp loungers",
+    "the diving board"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lido-kiosk",
+   "name": "The Lido Kiosk",
+   "kind": "cafe",
+   "neighborhood": "tidewater-deck",
+   "summary": "A striped kiosk selling ices, tea and fried algae crisps to swimmers on the lagoon steps.",
+   "tags": [
+    "ices",
+    "snacks",
+    "family-friendly"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "reclamation-tour",
+   "name": "Reclamation Works Tour",
+   "kind": "attraction",
+   "neighborhood": "tidewater-deck",
+   "summary": "A guided walk through the plant that cleans every drop of water aboard, ending with a glass of it.",
+   "tags": [
+    "tours",
+    "engineering",
+    "water"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shell-and-salt",
+   "name": "Shell & Salt",
+   "kind": "restaurant",
+   "neighborhood": "tidewater-deck",
+   "summary": "A lagoon-side restaurant serving tank-farmed prawns and mussels with ship-grown lemon.",
+   "tags": [
+    "seafood",
+    "views",
+    "date-night"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "ship-fusion",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tank-view-bar",
+   "name": "The Tank Window",
+   "kind": "bar",
+   "neighborhood": "tidewater-deck",
+   "summary": "A bar built against the tank wall, with a great window into the blue where fish drift past the bottles.",
+   "tags": [
+    "aquarium",
+    "cocktails",
+    "views"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-wave-room",
+   "name": "The Wave Room",
+   "kind": "fitness",
+   "neighborhood": "tidewater-deck",
+   "summary": "A wave pool for surf lessons on machine-made breakers, with the ship's best-tanned instructors.",
+   "tags": [
+    "surfing",
+    "lessons",
+    "waves"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-swap",
+   "name": "The Swap",
+   "kind": "market",
+   "neighborhood": "cargo-holds",
+   "summary": "A trading floor the size of a field, where anything aboard can be bartered: tools, clothes, seeds, old screens and favours.",
+   "tags": [
+    "barter",
+    "secondhand",
+    "bargains"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "spots": [
+    "the tool tables",
+    "the clothes rails",
+    "the favour board"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hold-nine-diner",
+   "name": "Hold Nine Diner",
+   "kind": "restaurant",
+   "neighborhood": "cargo-holds",
+   "summary": "A diner in a shipping container, serving fry-ups and strong tea to loaders on every shift.",
+   "tags": [
+    "diner",
+    "fry-up",
+    "all-hours"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "ship-heritage",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fab-shop",
+   "name": "The Fab Shop",
+   "kind": "workshop",
+   "neighborhood": "cargo-holds",
+   "summary": "A public fabrication workshop with printers, lathes and looms, and a volunteer who will show anyone how.",
+   "tags": [
+    "makers",
+    "printers",
+    "classes"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "crate-and-barrel",
+   "name": "Crate & Barrel",
+   "kind": "bar",
+   "neighborhood": "cargo-holds",
+   "summary": "A bar built from cargo crates, run by a retired loader who pours the strongest still-spirit aboard.",
+   "tags": [
+    "spirits",
+    "loaders",
+    "rough"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "quartermasters-stores",
+   "name": "The Quartermaster's Stores",
+   "kind": "shopping",
+   "neighborhood": "cargo-holds",
+   "summary": "Where every new cabin is kitted out: bedding, pans, lamps and the dreaded ration book.",
+   "tags": [
+    "supplies",
+    "homeware",
+    "rations"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hold-climbing-wall",
+   "name": "The Hold Wall",
+   "kind": "fitness",
+   "neighborhood": "cargo-holds",
+   "summary": "A climbing wall on the side of a stack of crates sixty metres high, with a cafe at the top.",
+   "tags": [
+    "climbing",
+    "fitness",
+    "views"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shuttle-concourse",
+   "name": "Shuttle Concourse",
+   "kind": "landmark",
+   "neighborhood": "dockside",
+   "summary": "The bright hall where the shuttles from Port Vesper dock, with a board of arrivals and a wall of reunion photos.",
+   "tags": [
+    "shuttles",
+    "arrivals",
+    "travel"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "waiting-room-bar",
+   "name": "The Waiting Room",
+   "kind": "bar",
+   "neighborhood": "dockside",
+   "summary": "A bar for crews and passengers waiting on a launch window, with the departures board over the taps.",
+   "tags": [
+    "travellers",
+    "crews",
+    "departures"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "docking-ring-noodles",
+   "name": "Docking Ring Noodles",
+   "kind": "restaurant",
+   "neighborhood": "dockside",
+   "summary": "A noodle counter by the airlocks feeding pilots, traders and customs officers at all hours.",
+   "tags": [
+    "noodles",
+    "quick",
+    "all-hours"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "ship-street-food",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-traders-row",
+   "name": "Vesper Traders' Row",
+   "kind": "market",
+   "neighborhood": "dockside",
+   "summary": "Stalls of goods brought over from Port Vesper: station spices, real wool, new music and gadgets nobody aboard can make yet.",
+   "tags": [
+    "imports",
+    "traders",
+    "gadgets"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "berth-inn",
+   "name": "The Berth Inn",
+   "kind": "inn",
+   "neighborhood": "dockside",
+   "summary": "A travellers' inn of pod bunks and a few proper rooms, with a breakfast room that smells of station coffee.",
+   "tags": [
+    "inn",
+    "travellers",
+    "breakfast"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "airlock-cafe",
+   "name": "The Airlock",
+   "kind": "cafe",
+   "neighborhood": "dockside",
+   "summary": "A tiny cafe between the customs desks where pilots drink coffee before launch and swap gossip from the station.",
+   "tags": [
+    "coffee",
+    "pilots",
+    "gossip"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "reactor-gallery",
+   "name": "Reactor Gallery",
+   "kind": "attraction",
+   "neighborhood": "engine-decks",
+   "summary": "A shielded viewing gallery over the reactor hall, with a guide from the engine crew on open days.",
+   "tags": [
+    "engineering",
+    "tours",
+    "glow"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-coolant",
+   "name": "The Coolant",
+   "kind": "bar",
+   "neighborhood": "engine-decks",
+   "summary": "The engineers' bar: warm, loud, cheap, with shift bells on the wall and a jukebox nobody admits to filling.",
+   "tags": [
+    "engineers",
+    "loud",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pressure-pot",
+   "name": "The Pressure Pot",
+   "kind": "restaurant",
+   "neighborhood": "engine-decks",
+   "summary": "A spicy one-pot kitchen beloved by engine crews, where the chilli is graded by reactor output.",
+   "tags": [
+    "spicy",
+    "cheap",
+    "hearty"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "ship-street-food",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shift-change-cafe",
+   "name": "Shift Change",
+   "kind": "cafe",
+   "neighborhood": "engine-decks",
+   "summary": "A cafe that opens at every shift bell, with breakfast for the night crew and bedtime tea for the day crew.",
+   "tags": [
+    "coffee",
+    "breakfast",
+    "crews"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "engine-boxing-club",
+   "name": "Engine Deck Boxing Club",
+   "kind": "fitness",
+   "neighborhood": "engine-decks",
+   "summary": "A sweaty boxing gym where engineers settle arguments with gloves on and buy each other a drink after.",
+   "tags": [
+    "boxing",
+    "gym",
+    "community"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "drive-hall-museum",
+   "name": "The Drive Hall",
+   "kind": "museum",
+   "neighborhood": "engine-decks",
+   "summary": "The old drive housing, now a museum of engines with a model of the ship's path and a button children are allowed to press.",
+   "tags": [
+    "engineering",
+    "history",
+    "kids"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stern-viewport",
+   "name": "The Stern Viewport",
+   "kind": "landmark",
+   "neighborhood": "stern-gallery",
+   "summary": "A long window looking back the way the ship came, where the Sun is one bright star among thousands.",
+   "tags": [
+    "viewport",
+    "sun",
+    "reflection"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "spots": [
+    "the Sun bench",
+    "the window seat",
+    "the guest book"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "studio-row",
+   "name": "Studio Row",
+   "kind": "shopping",
+   "neighborhood": "stern-gallery",
+   "summary": "A corridor of open studios: potters, printmakers, jewellers and a glassblower who works off the ship's scrap glass.",
+   "tags": [
+    "art",
+    "studios",
+    "crafts"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-wake",
+   "name": "The Wake",
+   "kind": "bar",
+   "neighborhood": "stern-gallery",
+   "summary": "An artists' bar with poetry on rest-day evenings and walls covered in two hundred years of sketches.",
+   "tags": [
+    "poetry",
+    "artists",
+    "bohemian"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "aft-gallery",
+   "name": "The Aft Gallery",
+   "kind": "museum",
+   "neighborhood": "stern-gallery",
+   "summary": "The ship's gallery of art made aboard, from the founders' first paintings to this year's graduates.",
+   "tags": [
+    "art",
+    "exhibitions",
+    "free"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "slow-kettle",
+   "name": "The Slow Kettle",
+   "kind": "cafe",
+   "neighborhood": "stern-gallery",
+   "summary": "A cafe that brews every pot by hand and refuses to hurry, with board games and a cat called Ballast.",
+   "tags": [
+    "tea",
+    "board-games",
+    "cat"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stern-kitchen",
+   "name": "Stern Kitchen",
+   "kind": "restaurant",
+   "neighborhood": "stern-gallery",
+   "summary": "A pay-what-you-can kitchen run by the artists' co-op, with one dish a night and long shared tables.",
+   "tags": [
+    "co-op",
+    "shared-tables",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "ship-heritage",
+   "source": "curated-2026-10"
+  }
+ ],
+ "colleges": [
+  {
+   "id": "meridian-academy",
+   "name": "The Meridian Academy",
+   "type": "academy",
+   "neighborhood": "academy-deck",
+   "size": "medium",
+   "known_for": [
+    "engineering",
+    "medicine",
+    "agronomy",
+    "navigation",
+    "life-support"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "founders-conservatory",
+   "name": "The Founders' Conservatory",
+   "type": "music-school",
+   "neighborhood": "academy-deck",
+   "size": "small",
+   "known_for": [
+    "strings",
+    "composition",
+    "theatre"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dockside-flight-school",
+   "name": "Dockside Flight School",
+   "type": "technical-institute",
+   "neighborhood": "dockside",
+   "size": "small",
+   "known_for": [
+    "piloting",
+    "docking",
+    "navigation"
+   ],
+   "source": "curated-2026-10"
+  }
+ ],
+ "employers": [
+  {
+   "id": "navigation-office",
+   "name": "Navigation Office",
+   "sector": "aerospace",
+   "neighborhood": "the-bow",
+   "size": "medium",
+   "summary": "Keeps the ship on course: navigators, star cartographers and the astronomers at the observatory.",
+   "careers": [
+    "navigator",
+    "star-cartographer",
+    "observatory-astronomer",
+    "astrophysicist"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-bridge",
+   "name": "The Bridge",
+   "sector": "aerospace",
+   "neighborhood": "command-deck",
+   "size": "medium",
+   "summary": "The officers who fly the ship, keep watch around the clock and talk to Port Vesper.",
+   "careers": [
+    "bridge-officer",
+    "comms-officer",
+    "traffic-controller",
+    "navigator"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "voyage-council",
+   "name": "The Voyage Council",
+   "sector": "government",
+   "neighborhood": "command-deck",
+   "size": "large",
+   "summary": "The elected council and the offices behind it: housing, the census, rations and every form aboard.",
+   "careers": [
+    "council-clerk",
+    "district-administrator",
+    "census-officer",
+    "housing-officer",
+    "rations-planner",
+    "mediator"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-archive-office",
+   "name": "The Archive",
+   "sector": "learning",
+   "neighborhood": "command-deck",
+   "size": "small",
+   "summary": "Keeps the ship's records, the founders' papers and the museum.",
+   "careers": [
+    "archivist",
+    "heritage-curator"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "meridian-clinic",
+   "name": "Meridian Clinic",
+   "sector": "healthcare",
+   "neighborhood": "commons-ring",
+   "size": "large",
+   "summary": "The ship's hospital and clinics, from births to bad backs.",
+   "careers": [
+    "general-practitioner",
+    "clinic-nurse",
+    "night-ward-nurse",
+    "surgeon",
+    "midwife",
+    "dispensary-pharmacist",
+    "medical-lab-technician",
+    "physiotherapist",
+    "dentist"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "commons-schools",
+   "name": "Commons Schools",
+   "sector": "education",
+   "neighborhood": "commons-ring",
+   "size": "large",
+   "summary": "The ship's nurseries and schools, one on every ring.",
+   "careers": [
+    "schoolteacher",
+    "nursery-worker",
+    "tutor",
+    "counsellor"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "meridian-academy-employer",
+   "name": "The Meridian Academy",
+   "sector": "education",
+   "neighborhood": "academy-deck",
+   "size": "large",
+   "summary": "The ship's academy, training engineers, medics, growers and the odd poet.",
+   "careers": [
+    "academy-lecturer",
+    "academy-student",
+    "archivist",
+    "software-developer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "green-deck-farms",
+   "name": "Green Deck Farms",
+   "sector": "agriculture",
+   "neighborhood": "green-decks",
+   "size": "large",
+   "summary": "Grows almost everything the ship eats, in stacked hydroponic racks, vats and caves.",
+   "careers": [
+    "hydroponics-technician",
+    "crop-scientist",
+    "algae-farm-worker",
+    "mushroom-grower",
+    "pollination-technician",
+    "ecosystem-biologist"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "arboretum-trust",
+   "name": "The Arboretum Trust",
+   "sector": "gardens",
+   "neighborhood": "arboretum",
+   "size": "medium",
+   "summary": "Keeps the forest, the pond and the seed library alive.",
+   "careers": [
+    "arboretum-keeper",
+    "arboretum-ranger",
+    "ecosystem-biologist"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "life-support-division",
+   "name": "Life Support",
+   "sector": "engineering",
+   "neighborhood": "tidewater-deck",
+   "size": "large",
+   "summary": "Air, water and warmth for every cabin: the reclamation plant, the scrubbers and the tank.",
+   "careers": [
+    "life-support-engineer",
+    "water-reclamation-technician",
+    "air-systems-technician",
+    "environmental-controller",
+    "tank-diver"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "engine-crew",
+   "name": "Engine Crew",
+   "sector": "engineering",
+   "neighborhood": "engine-decks",
+   "size": "large",
+   "summary": "Runs the reactor and the drive on round-the-clock shifts.",
+   "careers": [
+    "reactor-technician",
+    "propulsion-engineer",
+    "power-grid-technician",
+    "radiation-safety-officer",
+    "drive-watch-engineer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hull-works",
+   "name": "Hull Works",
+   "sector": "engineering",
+   "neighborhood": "cargo-holds",
+   "size": "medium",
+   "summary": "Patches, inspects and rebuilds the hull and the rings.",
+   "careers": [
+    "hull-technician",
+    "pressure-welder",
+    "habitat-builder",
+    "drone-operator",
+    "robotics-technician"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "quartermasters-office",
+   "name": "Quartermaster's Office",
+   "sector": "logistics",
+   "neighborhood": "cargo-holds",
+   "size": "large",
+   "summary": "Every crate, spare part and ration aboard, counted, stored and handed out.",
+   "careers": [
+    "quartermaster",
+    "cargo-handler",
+    "freight-scheduler",
+    "supply-chain-manager",
+    "corridor-courier"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fabrication-guild",
+   "name": "Fabrication Guild",
+   "sector": "manufacturing",
+   "neighborhood": "cargo-holds",
+   "size": "medium",
+   "summary": "Makes what the ship cannot get from the station: parts, tools, furniture and clothes.",
+   "careers": [
+    "fabrication-technician",
+    "machinist",
+    "cabin-fitter",
+    "tailor"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dock-control",
+   "name": "Dock Control",
+   "sector": "aerospace",
+   "neighborhood": "dockside",
+   "size": "medium",
+   "summary": "Runs the shuttle bays, the launch windows and the customs desks.",
+   "careers": [
+    "docking-controller",
+    "shuttle-pilot",
+    "customs-inspector",
+    "flight-instructor",
+    "cargo-handler"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ship-galleys",
+   "name": "Ship Galleys",
+   "sector": "food",
+   "neighborhood": "commons-ring",
+   "size": "large",
+   "summary": "Runs the mess halls and the canteens, and the cultured-meat and food-printer plants behind them.",
+   "careers": [
+    "galley-cook",
+    "head-chef",
+    "canteen-baker",
+    "cultured-meat-technician",
+    "food-printer-technician",
+    "nutritionist"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lantern-ring-traders",
+   "name": "Lantern Ring Traders",
+   "sector": "hospitality",
+   "neighborhood": "lantern-ring",
+   "size": "medium",
+   "summary": "The association of the ring's bars, stalls and noodle shops.",
+   "careers": [
+    "noodle-bar-owner",
+    "lounge-bartender",
+    "coffee-bar-attendant",
+    "market-trader",
+    "brewer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lantern-theatre-company",
+   "name": "Lantern Theatre Company",
+   "sector": "entertainment",
+   "neighborhood": "lantern-ring",
+   "size": "small",
+   "summary": "The ship's theatre company, with a resident troupe and a winter pantomime.",
+   "careers": [
+    "stage-actor",
+    "session-musician",
+    "immersive-designer",
+    "event-coordinator"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ship-feed",
+   "name": "The Ship Feed",
+   "sector": "media",
+   "neighborhood": "command-deck",
+   "size": "small",
+   "summary": "The ship's news feed and broadcast, read in every mess hall at breakfast.",
+   "careers": [
+    "feed-reporter",
+    "broadcaster",
+    "photographer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "watch-and-safety",
+   "name": "Watch and Safety",
+   "sector": "public-safety",
+   "neighborhood": "commons-ring",
+   "size": "medium",
+   "summary": "The ship's watch officers, investigators and the fire-and-pressure crews.",
+   "careers": [
+    "security-officer",
+    "investigator",
+    "fire-and-pressure-crew",
+    "rescue-specialist",
+    "emergency-medic"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spindle-sports",
+   "name": "Spindle Sports",
+   "sector": "recreation",
+   "neighborhood": "the-spindle",
+   "size": "small",
+   "summary": "Runs the zero-g gym, the drop pool and the hoopball league.",
+   "careers": [
+    "zero-g-coach",
+    "fitness-coach",
+    "pool-attendant",
+    "hoopball-player"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ship-transit",
+   "name": "Ship Transit",
+   "sector": "transit",
+   "neighborhood": "dockside",
+   "size": "medium",
+   "summary": "Runs the spine tram, the ring lifts and the pod line.",
+   "careers": [
+    "transit-pod-operator",
+    "transit-dispatcher",
+    "lift-mechanic"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ship-trades-pool",
+   "name": "Trades Pool",
+   "sector": "trades",
+   "neighborhood": "engine-decks",
+   "size": "medium",
+   "summary": "Electricians, plumbers and fitters sent wherever something breaks.",
+   "careers": [
+    "electrician",
+    "plumber",
+    "lift-mechanic",
+    "recycling-worker",
+    "waste-processing-technician"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stern-artists-coop",
+   "name": "Stern Artists' Co-op",
+   "sector": "arts",
+   "neighborhood": "stern-gallery",
+   "size": "small",
+   "summary": "The studios and gallery of the stern, run by the artists themselves.",
+   "careers": [
+    "muralist",
+    "heritage-curator",
+    "photographer",
+    "novelist",
+    "glassblower"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ship-credit-office",
+   "name": "Ship Credit Office",
+   "sector": "finance",
+   "neighborhood": "command-deck",
+   "size": "small",
+   "summary": "Keeps the credit ledger and the trade accounts with Port Vesper.",
+   "careers": [
+    "ledger-accountant",
+    "credit-broker",
+    "trade-negotiator",
+    "insurance-assessor"
+   ],
+   "source": "curated-2026-10"
+  }
+ ],
+ "career_hubs": [
+  {
+   "id": "hub-engineering",
+   "name": "The engineering decks",
+   "neighborhoods": [
+    "engine-decks",
+    "tidewater-deck",
+    "cargo-holds"
+   ],
+   "sectors": [
+    "engineering",
+    "manufacturing",
+    "construction",
+    "trades",
+    "city-works"
+   ],
+   "summary": "The reactor, the drive, life support and the hull: the work that keeps everyone breathing.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hub-farms",
+   "name": "The farms",
+   "neighborhoods": [
+    "green-decks",
+    "arboretum"
+   ],
+   "sectors": [
+    "agriculture",
+    "gardens",
+    "science",
+    "food"
+   ],
+   "summary": "Racks, vats, caves and the forest, growing almost everything aboard.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hub-command",
+   "name": "Command and council",
+   "neighborhoods": [
+    "command-deck",
+    "the-bow"
+   ],
+   "sectors": [
+    "aerospace",
+    "government",
+    "communications",
+    "learning",
+    "finance",
+    "media"
+   ],
+   "summary": "The bridge, the council offices, the Archive and the observatory.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hub-docks",
+   "name": "The docks",
+   "neighborhoods": [
+    "dockside",
+    "cargo-holds"
+   ],
+   "sectors": [
+    "aerospace",
+    "logistics",
+    "transit",
+    "commerce",
+    "hospitality"
+   ],
+   "summary": "Shuttles, customs, cargo and the traders from Port Vesper.",
+   "source": "curated-2026-10"
+  }
+ ],
+ "transit": [
+  {
+   "id": "on-foot",
+   "name": "On foot",
+   "kind": "walk",
+   "summary": "Corridors, ramps and stairs run bow to stern; a ring walks round in half an hour and the whole spine in an afternoon.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spine-tram",
+   "name": "Spine tram",
+   "kind": "tram",
+   "summary": "A tram up and down the ship's spine from the Bow to the Stern Gallery, every four minutes by day, every twenty at ship's night.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ring-lifts",
+   "name": "Ring lifts",
+   "kind": "lift",
+   "summary": "Big passenger lifts on the spokes between the rings and the weightless core; the ride up makes children giggle as gravity fades.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pod-line",
+   "name": "Pod line",
+   "kind": "pod",
+   "summary": "Four-seat transit pods on rails around and between the rings, booked from any hatch panel.",
+   "source": "curated-2026-10"
+  }
+ ],
+ "climate": {
+  "summary": "Climate-controlled decks: the same mild air all year, warmer on the Engine Decks and humid on the farms.",
+  "months": [
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   },
+   {
+    "high_f": 70,
+    "low_f": 66,
+    "rain_days": 0,
+    "note": "Climate-controlled decks"
+   }
+  ],
+  "source": "curated-2026-10"
+ },
+ "annual_events": [
+  {
+   "id": "bloom-week",
+   "name": "Bloom Week",
+   "months": [
+    4
+   ],
+   "neighborhood": "arboretum",
+   "summary": "The arboretum's fruit trees blossom on the ship's spring schedule and the whole ship comes to picnic under them.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lantern-fair",
+   "name": "The Lantern Fair",
+   "months": [
+    10
+   ],
+   "neighborhood": "lantern-ring",
+   "summary": "A week when every hatch on the Lantern Ring hangs a new lantern and the night market stays open until the morning bell.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spindle-games",
+   "name": "The Spindle Games",
+   "months": [
+    7
+   ],
+   "neighborhood": "the-spindle",
+   "summary": "The deck teams' hoopball finals and the weightless races, with every ring painting its colours on its cheeks.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "harvest-rotation",
+   "name": "Harvest Rotation",
+   "months": [
+    9
+   ],
+   "neighborhood": "green-decks",
+   "summary": "The big replanting of the farm racks, with volunteers, a harvest supper in the canteen and the first strawberries handed round.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "academy-commencement",
+   "name": "Academy Commencement",
+   "months": [
+    6
+   ],
+   "neighborhood": "academy-deck",
+   "summary": "Graduates throw their caps into the low gravity of the lecture hall, where they float for a very long time.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "engine-open-day",
+   "name": "Engine Open Day",
+   "months": [
+    5
+   ],
+   "neighborhood": "engine-decks",
+   "summary": "The engine crew open the reactor gallery and the drive hall to everyone, with tours, food stalls and a tug-of-war.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "swap-fair",
+   "name": "The Great Swap",
+   "months": [
+    3
+   ],
+   "neighborhood": "cargo-holds",
+   "summary": "The year's biggest barter fair, when people clear out their cabins and the Swap spills over every hold.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stargazing-nights",
+   "name": "Stargazing Nights",
+   "months": [
+    1,
+    2
+   ],
+   "neighborhood": "the-bow",
+   "summary": "The dome lights go fully dark for a fortnight so everyone can see the stars ahead at their clearest.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stern-open-studios",
+   "name": "Open Studios",
+   "months": [
+    11
+   ],
+   "neighborhood": "stern-gallery",
+   "summary": "Every studio on Studio Row opens its doors, with music in the corridors and the year's graduates showing in the Aft Gallery.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lagoon-regatta",
+   "name": "Lagoon Regatta",
+   "months": [
+    8
+   ],
+   "neighborhood": "tidewater-deck",
+   "summary": "Home-made boats raced across the lagoon, most of which sink, to loud applause.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "founders-dance",
+   "name": "The Founders' Dance",
+   "months": [
+    12
+   ],
+   "neighborhood": "founders-ring",
+   "summary": "The old ring's winter dance in the Founders' Hall, with the founders' tunes and three generations on the floor.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pantomime-season",
+   "name": "Pantomime Season",
+   "months": [
+    12,
+    1
+   ],
+   "neighborhood": "lantern-ring",
+   "summary": "The Lantern Theatre's pantomime, full of jokes about the Voyage Council and the ration book.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-trade-week",
+   "name": "Vesper Trade Week",
+   "months": [
+    6
+   ],
+   "neighborhood": "dockside",
+   "summary": "Port Vesper's traders bring extra shuttles of goods and the dockside turns into a fair.",
+   "source": "curated-2026-10"
+  }
+ ],
+ "careers": [
+  {
+   "id": "arboretum-ranger",
+   "name": "Arboretum ranger",
+   "sector": "gardens",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Walks the arboretum paths, prunes, guides school groups and stops teenagers climbing the old oak.",
+   "themes": [
+    "the old oak",
+    "school groups",
+    "pruning",
+    "the ducks"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "tank-diver",
+   "name": "Tank diver",
+   "sector": "engineering",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Dives the great water tank to clean the filters, check the seals and count the fish.",
+   "themes": [
+    "the tank",
+    "filters",
+    "dive shifts",
+    "the fish"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "drive-watch-engineer",
+   "name": "Drive watch engineer",
+   "sector": "engineering",
+   "schedule": "shift-night",
+   "employment": "rota",
+   "pay": "$$",
+   "summary": "Sits the long night watch over the drive, reading gauges and logging every hum.",
+   "themes": [
+    "the night watch",
+    "the drive",
+    "gauges",
+    "the logbook"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "hoopball-player",
+   "name": "Hoopball player",
+   "sector": "recreation",
+   "schedule": "evening",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Plays weightless hoopball for a deck team, training in the Flight Hall and signing autographs after.",
+   "themes": [
+    "the team",
+    "training",
+    "match nights",
+    "fans"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "glassblower",
+   "name": "Glassblower",
+   "sector": "arts",
+   "schedule": "flexible",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Blows cups, lamps and commissions from the ship's scrap glass in a studio on Studio Row.",
+   "themes": [
+    "the furnace",
+    "commissions",
+    "scrap glass",
+    "Studio Row"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "voyage-registrar",
+   "name": "Voyage registrar",
+   "sector": "government",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Records births, partnerships and deaths in the ship's register, and gets invited to a lot of parties.",
+   "themes": [
+    "the register",
+    "new parents",
+    "partnerships",
+    "paperwork"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "lantern-maker",
+   "name": "Lantern maker",
+   "sector": "arts",
+   "schedule": "flexible",
+   "employment": "freelance",
+   "pay": "$",
+   "summary": "Makes the paper lanterns that hang along the Lantern Ring and sells them before every festival.",
+   "themes": [
+    "paper",
+    "festivals",
+    "the night market",
+    "orders"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "seed-vault-keeper",
+   "name": "Seed vault keeper",
+   "sector": "agriculture",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$$",
+   "summary": "Tends the frozen seed vault, tests old seeds and decides which crops grow next year.",
+   "themes": [
+    "the vault",
+    "old seeds",
+    "planting plans",
+    "the growers"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "ring-steward",
+   "name": "Ring steward",
+   "sector": "government",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Looks after one ring's corridors and cabins: sorting complaints, welcoming new families and fixing what nobody else will.",
+   "themes": [
+    "neighbours",
+    "complaints",
+    "new families",
+    "the noticeboard"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "id": "star-guide",
+   "name": "Star guide",
+   "sector": "tourism",
+   "schedule": "evening",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Leads stargazing evenings at the Bow Dome, naming the stars ahead to families and couples.",
+   "themes": [
+    "the dome",
+    "the stars ahead",
+    "families",
+    "couples"
+   ],
+   "eras": [
+    "future"
+   ]
+  }
+ ],
+ "names": {
+  "mix": {
+   "shipborn": 4,
+   "anglo": 1,
+   "hispanic": 1,
+   "east-asian": 1,
+   "south-asian": 0.8,
+   "west-african": 0.7,
+   "slavic": 0.5,
+   "arabic": 0.4
+  },
+  "groups": {
+   "shipborn": {
+    "feminine": [
+     "Wren",
+     "Juniper",
+     "Linnea",
+     "Tamsin",
+     "Marisol",
+     "Ines",
+     "Hazel",
+     "Ada",
+     "Iris",
+     "Clementine",
+     "Rosalind",
+     "Mae",
+     "Noor",
+     "Talia",
+     "Priya",
+     "Saoirse",
+     "Mira",
+     "Ingrid",
+     "Delphine",
+     "Yara",
+     "Esme",
+     "Imogen",
+     "Selma",
+     "Freya",
+     "Opal",
+     "Pearl",
+     "Ruth",
+     "Beatrix",
+     "Odette",
+     "Lucia",
+     "Paloma",
+     "Signe",
+     "Thea",
+     "Willa",
+     "Zadie",
+     "Aurelia",
+     "Celeste",
+     "Maren",
+     "Nell",
+     "Hester"
+    ],
+    "masculine": [
+     "Orrin",
+     "Soren",
+     "Tobias",
+     "Ezra",
+     "Felix",
+     "Rafael",
+     "Anselm",
+     "Bram",
+     "Caspian",
+     "Dashiell",
+     "Emil",
+     "Gideon",
+     "Hugo",
+     "Idris",
+     "Jonah",
+     "Kasimir",
+     "Leander",
+     "Mateo",
+     "Nico",
+     "Osric",
+     "Pavel",
+     "Quentin",
+     "Rafferty",
+     "Silas",
+     "Teodor",
+     "Ulric",
+     "Viktor",
+     "Wendell",
+     "Yusuf",
+     "Zeno",
+     "Arlo",
+     "Booker",
+     "Cyrus",
+     "Dov",
+     "Elias",
+     "Florian",
+     "Jasper",
+     "Lorcan",
+     "Magnus"
+    ],
+    "neutral": [
+     "Sol",
+     "Lark",
+     "Rowan",
+     "Sage",
+     "Ash",
+     "River",
+     "Quinn",
+     "Ellis",
+     "Marlowe",
+     "Robin",
+     "Sasha",
+     "Indigo",
+     "Jules",
+     "Reese",
+     "Emery",
+     "Hollis",
+     "Linden",
+     "Perry",
+     "Shay",
+     "Teagan"
+    ],
+    "family": [
+     "Keel",
+     "Hollis",
+     "Marchetti",
+     "Okafor",
+     "Lindqvist",
+     "Tanaka-Reyes",
+     "Abernathy",
+     "Castell",
+     "Osei",
+     "Brandt",
+     "Ferreira",
+     "Nakamura",
+     "Halvorsen",
+     "Delacroix",
+     "Mbeki",
+     "Quist",
+     "Sato",
+     "Varga",
+     "Whitlow",
+     "Achterberg",
+     "Bellamy",
+     "Corrigan",
+     "Dunmore",
+     "Eskildsen",
+     "Farrow",
+     "Galloway",
+     "Harrow",
+     "Ibarra",
+     "Jansen",
+     "Kowalczyk",
+     "Larkin",
+     "Moreau",
+     "Novak",
+     "Oyelaran",
+     "Pereira",
+     "Rasmussen",
+     "Sandoval",
+     "Thorsen",
+     "Ueda",
+     "Vance",
+     "Winslow",
+     "Yilmaz",
+     "Zielinski",
+     "Ashby",
+     "Brennan",
+     "Calloway",
+     "Devereux",
+     "Ellery",
+     "Fairweather",
+     "Greaves",
+     "Hargreave",
+     "Iwasaki",
+     "Joubert",
+     "Kincaid",
+     "Lomax",
+     "Mallory",
+     "Nwosu",
+     "Ortega",
+     "Pemberton",
+     "Ravel"
+    ]
+   }
+  }
+ },
+ "local_color": [
+  {
+   "id": "bean-stew",
+   "name": "Founders' bean stew",
+   "kind": "dish",
+   "summary": "The ship's oldest dish: beans, barley and greens simmered all day, made from the founders' recipe on Launch Day and whenever someone is ill.",
+   "places": [
+    "old-galley",
+    "commons-mess-hall"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "moon-drops",
+   "name": "Moon drops",
+   "kind": "dish",
+   "summary": "Round boiled sweets in pale lemon, sold by weight at Sweet Orbit; children are paid in them for chores.",
+   "places": [
+    "sweet-orbit"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "algae-crisps",
+   "name": "Algae crisps",
+   "kind": "dish",
+   "summary": "Salty green crisps fried from the vats, eaten by the bag at the lido and argued over by everyone else.",
+   "places": [
+    "lido-kiosk",
+    "lantern-night-market"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "honey-cake",
+   "name": "Launch honey cake",
+   "kind": "dish",
+   "summary": "A dense honey cake from the ship's bees, baked for Launch Day and birthdays.",
+   "places": [
+    "first-light-bakery"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mushroom-broth",
+   "name": "Cave broth",
+   "kind": "dish",
+   "summary": "A dark mushroom broth from the caves, the grower's cure for everything.",
+   "places": [
+    "green-deck-canteen"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pink-ale",
+   "name": "Pink ale",
+   "kind": "drink",
+   "summary": "Sour algae beer brewed on the Green Decks, pink from the grow lights it is drunk under.",
+   "places": [
+    "pink-light-bar"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "still-spirit",
+   "name": "Still-spirit",
+   "kind": "drink",
+   "summary": "A clear and dangerous spirit distilled in the holds from whatever is going spare.",
+   "places": [
+    "crate-and-barrel"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mint-tea",
+   "name": "Deck mint tea",
+   "kind": "drink",
+   "summary": "Fresh mint tea, the ship's everyday drink; offering someone a cup is how you say sorry.",
+   "places": [
+    "sprout-cafe",
+    "signal-tea-house"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "station-coffee",
+   "name": "Station coffee",
+   "kind": "drink",
+   "summary": "Real coffee from Port Vesper, expensive and much boasted about.",
+   "places": [
+    "airlock-cafe",
+    "starward-cafe"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "steady-as-she-turns",
+   "name": "\"Steady as she turns\"",
+   "kind": "saying",
+   "summary": "Said for \"take it easy\" or \"don't worry\", after the rings that never stop turning.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "see-you-at-the-bell",
+   "name": "\"See you at the bell\"",
+   "kind": "saying",
+   "summary": "A goodbye, after the shift bells that ring three times a day.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spacer-breath",
+   "name": "\"Hold your breath\"",
+   "kind": "saying",
+   "summary": "What people say when someone is about to do something foolish; an old airlock joke.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "not-on-my-ration",
+   "name": "\"Not on my ration\"",
+   "kind": "saying",
+   "summary": "A firm no, from the days when the ration book decided everything.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bell-greeting",
+   "name": "Bell greetings",
+   "kind": "custom",
+   "summary": "At each shift bell, people in a corridor nod to whoever is passing; not nodding is a small insult.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "naming-the-lamp",
+   "name": "Naming the lamp",
+   "kind": "custom",
+   "summary": "A new baby's family hangs a lamp outside their cabin with the child's name on it for their first month.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cabin-swap",
+   "name": "Cabin swaps",
+   "kind": "custom",
+   "summary": "Families swap cabins as children come and go, and the ring steward keeps a waiting list that is the subject of endless gossip.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "handmade-gifts",
+   "name": "Handmade gifts",
+   "kind": "custom",
+   "summary": "Presents are made, not bought: a printed cup, a knitted scarf, a lantern. Buying one from the Swap is fine if you pretend you made it.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stern-goodbye",
+   "name": "Saying goodbye at the stern",
+   "kind": "custom",
+   "summary": "When someone dies, their family scatters a pinch of soil from the arboretum at the Stern Viewport.",
+   "places": [
+    "stern-viewport"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lantern-rings-team",
+   "name": "Lantern Ring Lamplighters",
+   "kind": "team",
+   "summary": "The Lantern Ring's hoopball team, loud and loved, who win almost nothing.",
+   "places": [
+    "flight-hall"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "engine-sparks-team",
+   "name": "Engine Deck Sparks",
+   "kind": "team",
+   "summary": "The engine crews' hoopball team, champions six years running and not modest about it.",
+   "places": [
+    "flight-hall",
+    "the-tether"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "founders-oaks-team",
+   "name": "Founders' Oaks",
+   "kind": "team",
+   "summary": "The oldest hoopball team aboard, in green, supported by grandparents and nobody else.",
+   "places": [
+    "flight-hall"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ghost-of-deck-nine",
+   "name": "The engineer on Deck Nine",
+   "kind": "legend",
+   "summary": "Night-shift crews say a founder in old overalls still checks the valves on Deck Nine and leaves them a little tighter.",
+   "places": [
+    "reactor-gallery"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "second-ship",
+   "name": "The second ship",
+   "kind": "rumor",
+   "summary": "Some say the Meridian was one of two ships launched and the other one is still out there, a few light years off. The Archive says otherwise.",
+   "places": [
+    "ship-archive"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lost-cat-colony",
+   "name": "The cats of the holds",
+   "kind": "legend",
+   "summary": "A colony of cats has lived in the cargo holds for a hundred years; the loaders feed them and give them ranks.",
+   "places": [
+    "the-swap"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "oak-wishes",
+   "name": "Wishes on the old oak",
+   "kind": "custom",
+   "summary": "Couples tie a ribbon to the oldest oak in the arboretum when they partner, and the rangers pretend not to mind.",
+   "places": [
+    "arboretum-paths"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ration-book",
+   "name": "The ration book",
+   "kind": "other",
+   "summary": "Most things are paid for in credits now, but every cabin still has a ration book for water and the rare foods, and nobody loses theirs.",
+   "places": [
+    "quartermasters-stores"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ships-night",
+   "name": "Ship's night",
+   "kind": "other",
+   "summary": "At 22:00 the corridor lights dim to amber and the painted sky in the arboretum turns to stars; the ship keeps quiet until the morning bell at 06:00.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "voyage-year",
+   "name": "Voyage years",
+   "kind": "other",
+   "summary": "People count years from launch, not by the Earth calendar: this is the 188th year of the voyage, and the Meridian is a little past halfway.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vesper-traders",
+   "name": "The Vesper traders",
+   "kind": "other",
+   "summary": "Station traders who shuttle over every week with coffee, wool and gossip, and are treated like visiting cousins.",
+   "places": [
+    "vesper-traders-row"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-swap-rules",
+   "name": "Swap rules",
+   "kind": "custom",
+   "summary": "At the Swap, a handshake closes a trade and a favour owed is written on the favour board for everyone to see.",
+   "places": [
+    "the-swap"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  }
+ ],
+ "prices": [
+  {
+   "id": "coffee",
+   "item": "Mint tea or ship coffee",
+   "low": 3,
+   "high": 5,
+   "per": "a cup",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "latte",
+   "item": "Station coffee",
+   "low": 7,
+   "high": 11,
+   "per": "a cup",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cheap-lunch",
+   "item": "Mess hall lunch",
+   "low": 6,
+   "high": 10,
+   "per": "a tray",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "takeout",
+   "item": "Noodles to go",
+   "low": 8,
+   "high": 13,
+   "per": "a bowl",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dinner",
+   "item": "Dinner out",
+   "low": 28,
+   "high": 55,
+   "per": "for one, with a drink",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "beer",
+   "item": "Pink ale",
+   "low": 5,
+   "high": 8,
+   "per": "a glass",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cocktail",
+   "item": "Cocktail at the Forward Lounge",
+   "low": 14,
+   "high": 22,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "groceries",
+   "item": "A week of groceries",
+   "low": 70,
+   "high": 110,
+   "per": "for one, after the ration book",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "transit",
+   "item": "Spine tram or pod ride",
+   "low": 0,
+   "high": 2,
+   "per": "one way",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "movie",
+   "item": "Ring Cinema ticket",
+   "low": 9,
+   "high": 14,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "show",
+   "item": "Lantern Theatre seat",
+   "low": 20,
+   "high": 45,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gym",
+   "item": "Zero-G Gym month",
+   "low": 35,
+   "high": 60,
+   "per": "a month",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "haircut",
+   "item": "Haircut at the night market",
+   "low": 12,
+   "high": 25,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "water-ration",
+   "item": "Extra water ration",
+   "low": 4,
+   "high": 9,
+   "per": "a week",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shuttle-fare",
+   "item": "Shuttle to Port Vesper",
+   "low": 60,
+   "high": 110,
+   "per": "one way",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wage",
+   "item": "Day's pay",
+   "low": 140,
+   "high": 210,
+   "per": "a day's take-home for an ordinary job",
+   "source": "curated-2026-10"
+  }
+ ],
+ "holidays": [
+  {
+   "id": "launch-day",
+   "name": "Launch Day",
+   "kind": "public",
+   "month": 4,
+   "day": 9,
+   "summary": "The day the Meridian left Earth orbit: the launch bell is rung, the founders' names are read and every mess hall serves bean stew and honey cake."
+  },
+  {
+   "id": "turning-of-the-year",
+   "name": "Turning of the Year",
+   "kind": "public",
+   "month": 1,
+   "day": 1,
+   "summary": "The ship's new year, counted in voyage years; people stay up to watch the year counter turn over on the Command Deck."
+  },
+  {
+   "id": "firstborn-day",
+   "name": "Firstborn Day",
+   "kind": "observance",
+   "month": 2,
+   "day": 3,
+   "summary": "For the first child born aboard; children get a sweet from Sweet Orbit and the registrar reads the year's births."
+  },
+  {
+   "id": "breach-remembrance",
+   "name": "Breach Remembrance",
+   "kind": "observance",
+   "month": 6,
+   "day": 17,
+   "summary": "For the forty-one lost when a hull panel failed in voyage year 71; a minute's silence at the shift bell and lights left on at the Quiet Chapel."
+  },
+  {
+   "id": "crew-day",
+   "name": "Crew Day",
+   "kind": "public",
+   "month": 8,
+   "weekday": 0,
+   "nth": 1,
+   "summary": "A day off for everyone who keeps the ship running, with the officers serving breakfast in the mess halls."
+  },
+  {
+   "id": "sunfall",
+   "name": "Sunfall",
+   "kind": "observance",
+   "month": 11,
+   "day": 2,
+   "summary": "The day the Sun shrank to a star in the stern window; families visit the Stern Viewport and say goodbye to Earth again."
+  },
+  {
+   "id": "long-night",
+   "name": "The Long Night",
+   "kind": "feast",
+   "month": 12,
+   "day": 21,
+   "summary": "The ship's midwinter: the lights stay low all day, lanterns are lit on every ring and people give small presents made by hand."
+  },
+  {
+   "id": "harvest-supper",
+   "name": "Harvest Supper",
+   "kind": "feast",
+   "month": 9,
+   "weekday": 6,
+   "nth": -1,
+   "summary": "The end of Harvest Rotation, with long tables down the Green Decks and the first fruit shared out."
+  },
+  {
+   "id": "council-day",
+   "name": "Council Day",
+   "kind": "observance",
+   "month": 5,
+   "weekday": 1,
+   "nth": 2,
+   "summary": "The Voyage Council elections, with debates in the Council Chamber and voting at every mess hall."
+  },
+  {
+   "id": "vesper-day",
+   "name": "Vesper Day",
+   "kind": "observance",
+   "month": 7,
+   "day": 30,
+   "summary": "The day Port Vesper joined the voyage, with a shuttle of station visitors and a toast on the concourse."
+  }
+ ],
+ "townsfolk": {
+  "quirks": [
+   {
+    "text": "nods at every shift bell, even alone",
+    "bio": "I nod at the bell. Everybody does. Well, everybody should."
+   },
+   {
+    "text": "keeps a jar of arboretum soil on the shelf",
+    "bio": "There is a jar of soil from the old oak on my shelf, for luck."
+   },
+   {
+    "text": "counts the voyage years out loud on their birthday",
+    "bio": "Born in voyage year 158, and I will tell you so."
+   },
+   {
+    "text": "can name every star ahead of the Bow",
+    "bio": "Ask me which star we are heading for. Go on."
+   },
+   {
+    "text": "still carries their grandparent's ration book",
+    "bio": "I carry my gran's old ration book. It is not sentimental. It is a bit sentimental."
+   },
+   {
+    "text": "swims the lagoon every morning before the bell",
+    "bio": "Lagoon at 05:45, every single day."
+   },
+   {
+    "text": "talks to the cats in the cargo holds",
+    "bio": "The hold cats know me by name. Two of them, anyway."
+   },
+   {
+    "text": "refuses to drink pink ale",
+    "bio": "I will not drink pink ale. I have tried. Twice."
+   },
+   {
+    "text": "trades favours on the Swap board",
+    "bio": "I owe half the Swap a favour and the other half owes me."
+   },
+   {
+    "text": "never misses a Lamplighters match",
+    "bio": "Lamplighters till I die. We will win one day."
+   },
+   {
+    "text": "keeps a station coffee tin for special occasions",
+    "bio": "I have one tin of real station coffee and you would have to earn a cup."
+   },
+   {
+    "text": "sleeps with the cabin window shutter open to the stars",
+    "bio": "I sleep with the shutter open. The stars are better than any lamp."
+   },
+   {
+    "text": "makes all their gifts by hand",
+    "bio": "Every present I give, I made. Some of them even work."
+   },
+   {
+    "text": "has been to Port Vesper exactly once and talks about it constantly",
+    "bio": "I have been to Port Vesper. Once. Ask me about it."
+   },
+   {
+    "text": "checks the hatch seal twice before bed",
+    "bio": "I double-check the hatch seal every night. Old habit from Engine Deck."
+   }
+  ],
+  "goals": [
+   {
+    "id": "meridian-hoopball",
+    "text": "make the reserve squad of a hoopball team",
+    "steps": 6,
+    "practice": [
+     "gym",
+     "evening"
+    ],
+    "progress": "{name} lasted a full scrimmage in the Flight Hall without drifting off course",
+    "done": "{name} made the reserve squad and got their first team shirt",
+    "interest": "hoopball",
+    "bio": "Training for the hoopball reserves. Do not laugh at my turns."
+   },
+   {
+    "id": "meridian-orchard-tree",
+    "text": "grow a fruit tree from a seed-library seed",
+    "steps": 6,
+    "practice": [
+     "park",
+     "morning"
+    ],
+    "progress": "{name} repotted their little apple tree and it grew a new leaf",
+    "done": "{name} planted their apple tree in the arboretum with the rangers watching",
+    "interest": "gardening",
+    "bio": "Growing an apple tree from a seed. It is slow. So am I."
+   },
+   {
+    "id": "meridian-family-log",
+    "text": "trace their family back to the founders in the Archive",
+    "steps": 5,
+    "practice": [
+     "library",
+     "afternoon"
+    ],
+    "progress": "{name} found another great-grandparent in the Archive's birth logs",
+    "done": "{name} traced the family to a founder's name on the Founders' Hall wall",
+    "interest": "family history",
+    "bio": "Hunting for my founder in the Archive logs."
+   },
+   {
+    "id": "meridian-lantern",
+    "text": "make a lantern for the Lantern Fair",
+    "steps": 4,
+    "practice": [
+     "workshop",
+     "evening"
+    ],
+    "progress": "{name} got another panel of the lantern glued and painted",
+    "done": "{name} hung their lantern on the Lantern Ring for the fair",
+    "interest": "lantern making",
+    "bio": "Making my first lantern for the fair."
+   },
+   {
+    "id": "meridian-drop-dive",
+    "text": "learn to dive into the Drop Pool from the top gallery",
+    "steps": 5,
+    "practice": [
+     "gym",
+     "afternoon"
+    ],
+    "progress": "{name} jumped from one gallery higher at the Drop Pool",
+    "done": "{name} dived from the top gallery and fell slowly all the way in",
+    "interest": "swimming",
+    "bio": "Working up to the top gallery at the Drop Pool."
+   },
+   {
+    "id": "meridian-shuttle-licence",
+    "text": "earn a shuttle pilot's licence",
+    "steps": 8,
+    "practice": [
+     "library",
+     "evening"
+    ],
+    "progress": "{name} passed another flight test in the dockside simulator",
+    "done": "{name} flew a shuttle solo round the docking ring and got their licence",
+    "interest": "flying",
+    "bio": "Studying for my shuttle licence. Wish me steady hands."
+   },
+   {
+    "id": "meridian-glass",
+    "text": "blow a set of glasses on Studio Row",
+    "steps": 5,
+    "practice": [
+     "workshop",
+     "afternoon"
+    ],
+    "progress": "{name} blew a glass that was nearly round",
+    "done": "{name} blew a matching set of four glasses and kept them all",
+    "interest": "glassblowing",
+    "bio": "Learning to blow glass. Most of it is broken glass."
+   },
+   {
+    "id": "meridian-theatre",
+    "text": "get a part in the winter pantomime",
+    "steps": 5,
+    "practice": [
+     "venue",
+     "evening"
+    ],
+    "progress": "{name} got through another rehearsal at the Lantern Theatre",
+    "done": "{name} played their part in the pantomime and got the biggest laugh of the night",
+    "interest": "acting",
+    "bio": "Auditioning for the panto. I will be a very good back half of a cow."
+   },
+   {
+    "id": "meridian-stars",
+    "text": "map the stars ahead for the observatory's public chart",
+    "steps": 5,
+    "practice": [
+     "museum",
+     "evening"
+    ],
+    "progress": "{name} logged another night of stars at the Bow Dome",
+    "done": "{name} saw their own star chart pinned up in the observatory",
+    "interest": "astronomy",
+    "bio": "Mapping stars at the Bow on clear nights. They are all clear nights."
+   },
+   {
+    "id": "meridian-swap-trade",
+    "text": "trade their way from a spare screw to a bicycle on the Swap",
+    "steps": 6,
+    "practice": [
+     "market",
+     "morning"
+    ],
+    "progress": "{name} traded up again on the Swap floor",
+    "done": "{name} rode the bicycle home from the Swap, three hundred trades later",
+    "interest": "trading",
+    "bio": "Trading a single screw up to a bicycle on the Swap. Going well."
+   }
+  ]
+ }
+}

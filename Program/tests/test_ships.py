@@ -9,7 +9,10 @@ import pytest
 
 from companion.images import prompts
 from companion.life import body, hobbies, home, kitchen, money, network, trips, wardrobe
-from companion.world import catalog, generators, mend, ships
+from companion.world import catalog, check, generators, mend, ships
+
+# The built-in ship and the station it flies beside: the only built-in cities that are enclosed.
+BUILT_IN_AFLOAT = {'long-meridian', 'port-vesper'}
 
 
 def city_from(city_id: str, **extra) -> dict:
@@ -36,7 +39,7 @@ def test_a_future_city_named_as_a_ship_is_enclosed_and_says_so():
     # The city's own word wins, and today's cities never read as one.
     assert not ships.enclosed(ship(enclosed=False))
     assert not ships.enclosed(city_from('station-town', country='Station'))
-    assert all(not ships.enclosed(data) for data in catalog.cities().values())
+    assert {key for key, data in catalog.cities().items() if ships.enclosed(data)} == BUILT_IN_AFLOAT
 
 
 def test_aboard_there_is_no_weather_season_or_car():
@@ -207,3 +210,46 @@ def test_a_companion_aboard_a_users_ship_visits_its_station(client, monkeypatch)
     assert found and {trip['city_id'] for trip in found} == {'halcyon-station'}
     preview = client.get('/api/context/preview').json()['prompt']
     assert 'typical weather' not in preview.lower()
+
+
+def test_the_built_in_ship_flies_beside_its_station_and_is_featured():
+    ship_data, station = catalog.city('long-meridian'), catalog.city('port-vesper')
+    for data in (ship_data, station):
+        assert ships.enclosed(data) and data['era'] == 'future' and catalog.category(data) == 'fictional'
+        assert generators.conditions(data, date(2027, 1, 15)) is None
+        assert not set(data['speeds']) & set(ships.GROUNDED)
+        # Built to the size of the other built-in cities, with somewhere to eat on every deck.
+        assert not check.warnings(data)
+    assert len(ship_data['places']) >= 80 and len(ship_data['neighborhoods']) >= 12
+    # The ship and the station visit each other by shuttle, and nobody else.
+    assert [city['id'] for city in trips.destinations(ship_data, 2)] == ['port-vesper']
+    assert [city['id'] for city in trips.destinations(station, 2)] == ['long-meridian']
+    assert ships.by(ship_data, station) == 'shuttle' and ships.by(station, ship_data) == 'shuttle'
+    # Its own work beside the shared future careers, and pastimes and food of the future.
+    offered = catalog.careers_for(ship_data, needs_met=False)
+    assert {'arboretum-ranger', 'tank-diver', 'hydroponics-technician'} <= set(offered)
+    assert kitchen.bank_for(ship_data) == 'future'
+    featured = catalog._featured()
+    assert featured['cities'][0] == 'long-meridian' and featured['new_cities'] == ['long-meridian']
+    assert 'port-vesper' not in featured['cities'] and 'pellmouth' not in featured['cities']
+
+
+def test_start_from_a_ship_saves_a_ship_that_docks_at_port_vesper(app, client):
+    from companion.world import custom
+    template = client.get('/api/world/template', params={'kind': 'ship'}).json()
+    assert template['enclosed'] is True and template['era'] == 'future'
+    checked = client.post('/api/world/validate', json=template).json()
+    assert checked['valid'] and not checked['summary'].get('import_notes')
+    saved = client.post('/api/world/cities', json=template)
+    assert saved.status_code == 200, saved.text
+    with app.state.database.connect() as connection:
+        known = catalog.cities() | custom.all_cities(connection)
+    mine = known['my-ship']
+    assert ships.enclosed(mine) and generators.conditions(mine, date(2027, 1, 15)) is None
+    assert [city['id'] for city in trips.destinations(mine, 2, known)] == ['port-vesper']
+    assert 'my-ship' in {city['id'] for city in trips.destinations(known['port-vesper'], 2, known)}
+    listed = {item['id']: item for item in client.get('/api/world/cities').json()}
+    assert listed['my-ship']['category'] == 'custom'
+    # The plain template stays a city on the ground.
+    assert 'enclosed' not in client.get('/api/world/template').json()
+    assert client.get('/api/world/template', params={'kind': 'castle'}).status_code == 422
