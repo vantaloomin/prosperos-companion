@@ -4,16 +4,26 @@ from datetime import date, timedelta
 
 import pytest
 from conftest import intimate, send
-from test_custody import split  # noqa: F401 - a fixture
 from test_expecting import likeliest  # noqa: F401 - a fixture
 from test_kids import make
-from test_our_child import connect, ours
+from test_our_child import aged, born, connect, ours
 from test_steps import prompt, says
 
 from companion.characters import current
-from companion.life import custody, kids, stays, steps, together
+from companion.life import breakups, custody, kids, stays, steps, together
 
 pytestmark = pytest.mark.usefixtures('likeliest')
+
+
+@pytest.fixture
+def split(client, provider, clock, monkeypatch):
+    """A child of the pair, two hundred days old, and the user ending it in the chat (as tests/test_custody.py)."""
+    monkeypatch.setattr(breakups, 'ACTIVE', True)
+    _row, child = born(client, clock, monkeypatch)
+    aged(client, child, 200)
+    says(provider)
+    send(client, "I'm breaking up with you.", 'client-stays-split')
+    return child
 
 
 def plan(client) -> list[dict]:
