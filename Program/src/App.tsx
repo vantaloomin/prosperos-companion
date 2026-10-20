@@ -23,6 +23,8 @@ import { unreadOf } from './features/chats/chatText'
 import { AppNav } from './features/nav/AppNav'
 import { RAIL_IDS, fromToday } from './features/nav/navText'
 import { useAppColors } from './features/settings/useAppColors'
+import { useObserver } from './features/watch/useObserver'
+import { WatchBanner } from './features/watch/WatchBanner'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
@@ -44,9 +46,10 @@ const WhoKnowsWho = lazy(() => import('./features/web/WhoKnowsWho').then((m) => 
 const CityMap = lazy(() => import('./features/map/CityMap').then((m) => ({ default: m.CityMap })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 const ChatsHome = lazy(() => import('./features/chats/ChatsHome').then((m) => ({ default: m.ChatsHome })))
+const Watch = lazy(() => import('./features/watch/Watch').then((m) => ({ default: m.Watch })))
 
 // Views outside the side rail: the phone's Chats list, worlds, and the map and Who knows who opened from Today.
-const OTHER_VIEWS = new Set(['chats', 'worlds', 'people', 'map'])
+const OTHER_VIEWS = new Set(['chats', 'worlds', 'people', 'map', 'watch'])
 const LINKED = ['settings/', 'match/', 'chat/', 'group/', 'map/']
 
 function viewFromHash(): View {
@@ -81,16 +84,18 @@ export default function App() {
   const sidecarWaiting = useSidecarWaiting()
   // The dating app shows a download badge until the user has set it up (src/features/dating).
   const datingInstalled = useQuery({ queryKey: ['dating-status'], queryFn: () => api<{ installed: boolean }>('/dating/status') }).data?.installed ?? true
+  const { watching, shown } = useWatchView(view)
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
-      <AppNav view={view} go={go} storyOn={storyOn} datingInstalled={datingInstalled} unread={unread} sidecarOpen={sidecarOpen} sidecarWaiting={sidecarWaiting} />
+      <AppNav view={shown} go={go} storyOn={storyOn} datingInstalled={datingInstalled} unread={unread} sidecarOpen={sidecarOpen} sidecarWaiting={sidecarWaiting} watching={watching} />
       <main id="main" className="app-main" tabIndex={-1}>
         <DebugBanner onOpen={() => go('settings/debug')} />
         <ReadyNotice openModels={() => go('settings/models')} />
+        <WatchBanner onWatch={shown === 'watch'} onOpen={() => go('watch')} />
         {companion.isPending ? <Loading label="Opening your companion" />
           : companion.isError ? <ErrorNotice error={companion.error} />
-            : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}
+            : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={shown} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}
       </main>
       {sidecarOpen && <SidecarHost view={view} go={go} />}
       <AiNotice />
@@ -106,6 +111,12 @@ function SidecarHost({ view, go }: { view: View; go: (view: View) => void }) {
       {mode === 'window' ? <SidecarWindow><Sidecar view={view} go={go} windowed /></SidecarWindow> : <Sidecar view={view} go={go} />}
     </Suspense>
   )
+}
+
+/** Just watching (src/features/watch): the app opens on the Watching page, and the nav has it in Matchlight's place. */
+function useWatchView(view: View): { watching: boolean; shown: View } {
+  const watching = !!useObserver().data?.watching
+  return { watching, shown: watching && view === 'conversation' && !window.location.hash.slice(1) ? 'watch' : view }
 }
 
 /** #chat/<id>, from a notification tapped while the app was closed: open that companion's chat. */
@@ -145,16 +156,15 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
 }
 
 function inWorkspace(view: View) {
-  return view === 'chats' || view === 'worlds' || view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
+  return view === 'chats' || view === 'worlds' || view === 'watch' || view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
     || view === 'groups' || view.startsWith('group/')
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
   const storyOn = useWorkspaceSettings().data?.story_mode
-  if (view === 'chats') return <ChatsHome go={go} />
-  if (view === 'worlds') return <Worlds />
-  if (view === 'dating') return <Dating go={go} />
-  if (view === 'groups') return <Groups go={go} />
+  const page = { chats: <ChatsHome go={go} />, worlds: <Worlds />, watch: <Watch go={go} />, dating: <Dating go={go} />,
+    groups: <Groups go={go} /> }[view as string]
+  if (page) return page
   if (view.startsWith('group/')) return <GroupChat key={view} id={decodeURIComponent(view.slice(6))} go={go} />
   if (view.startsWith('match/')) return <SwitchTo townKey={decodeURIComponent(view.slice(6))} go={go} />
   if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} onCreate={() => go('character')} />

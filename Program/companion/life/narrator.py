@@ -77,7 +77,8 @@ SELF = {'she': 'herself', 'he': 'himself'}
 ENTRY = (
     "Write the day these lines tell for {name}, as a narrator would: two or three short sentences in the third person, "
     'past tense. Use only what the lines say: keep every name and fact, add no people, places, events or feelings, '
-    'and leave out anything about the user. Reply with the sentences only.'
+    'and leave out anything about the user. When not using their name, call {name} {pronouns}. '
+    'Reply with the sentences only.'
 )
 ENTRY_LIMIT = 500
 CLOCK = re.compile(r'\b\d{1,2}:\d{2}\b')
@@ -423,7 +424,7 @@ def lines_for(connection, focus: dict, now) -> tuple[list[dict], str]:
 def feed(connection, focus: dict, now) -> dict:
     lines, timezone = lines_for(connection, focus, now)
     workspace = settings(connection)
-    return {'focus': public(focus), 'voice': voice_level(connection),
+    return {'focus': public(focus), 'voice': voice_level(connection), 'timezone': timezone,
             'shown': {'moods': bool(workspace['show_moods']), 'odds': bool(workspace['show_odds'])},
             'days': grouped(lines, timezone, written(connection, focus['key']))}
 
@@ -583,7 +584,13 @@ def due_entry(connection, now) -> dict | None:
              and line['kind'] not in ('private', 'mood')]
     if not texts:
         return None
-    return {'focus': focus['key'], 'day': day, 'name': focus['name'], 'lines': texts[:20]}
+    return {'focus': focus['key'], 'day': day, 'name': focus['name'], 'pronouns': pronouns_of(focus), 'lines': texts[:20]}
+
+
+def pronouns_of(focus: dict) -> str:
+    """'she/her', or they/them when the sheet does not say (companions are they/them unless their sheet says)."""
+    sheet = focus['companion']['version']['definition'] if focus['kind'] == 'companion' else focus['sheet']
+    return (sheet.get('pronouns') or '').strip() or 'they/them'
 
 
 def usable(text: str, name: str) -> str | None:
@@ -599,7 +606,7 @@ async def write(provider, scheduler, config, key, due: dict) -> str | None:
     """The model's few lines for the day, or None when they are not usable (the rule-built lines stand alone)."""
     pieces = []
     async with scheduler.reserve(config, LIFE_SYNTHESIS) as lease:
-        async for chunk in provider.stream(config, key, ENTRY.format(name=due['name']),
+        async for chunk in provider.stream(config, key, ENTRY.format(name=due['name'], pronouns=due.get('pronouns') or 'they/them'),
                                            [{'role': 'user', 'content': '\n'.join(due['lines'])}]):
             if lease.stop.is_set():
                 raise BackgroundInterrupted()

@@ -8,7 +8,7 @@ import { arrive } from '../worlds/arrival'
 
 /** Become a townsperson (companion/worlds.py): start a new world as this person, in the same town with the same
  * people. The world the user is in now waits as it is. */
-export function BecomeThem({ person }: { person: Townsperson }) {
+export function BecomeThem({ person }: { person: Pick<Townsperson, 'key' | 'name'> }) {
   const [asking, setAsking] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')

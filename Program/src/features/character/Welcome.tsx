@@ -14,6 +14,7 @@ import { isActive, modelOf, offered, type ReadyView } from '../ready/readyText'
 import { useReady } from '../ready/useReady'
 import { BackTo, FeelsLike } from './WorldArrival'
 import { arrivalLede, useArrival, type Arrival } from './arrivalText'
+import { useWatchActions } from '../watch/useObserver'
 
 /** The first screen with no companion: connect the model they think with, then create them. */
 export function Welcome({ go }: { go: (view: View) => void }) {
@@ -34,6 +35,7 @@ export function Welcome({ go }: { go: (view: View) => void }) {
         {steps.map((step) => <Step key={step.id} step={step} setUp={step.id === 'model' ? setUp : null} ready={ready} go={go} />)}
       </ol>
       <Feel arrival={arrival} go={go} />
+      <WatchInstead go={go} />
       {!remote && !arrival && <HardwareNote />}
     </section>
   )
@@ -103,3 +105,18 @@ function Step({ step, setUp, ready, go }: { step: WelcomeStep; setUp: SetUp; rea
 /** The built-in model's name once it does the chat job, so step 1 can say it runs on this computer. */
 const builtinName = (ready?: ReadyView) => ready?.status === 'ready' && ready.in_use ? modelOf(ready).name : ''
 const showsProgress = (setUp: SetUp, ready?: ReadyView) => !!setUp && setUp !== 'offer' && isActive(ready)
+
+/** Observer mode (companion/observer.py): no companion is needed to watch the town go on. */
+function WatchInstead({ go }: { go: (view: View) => void }) {
+  const { change } = useWatchActions()
+  const [error, setError] = useState('')
+  const watch = async () => {
+    try { await change({ watching: true }); go('watch') } catch (failure) { setError(failure instanceof Error ? failure.message : 'That did not work. Try again.') }
+  }
+  return (
+    <div className="welcome-watch">
+      <p className="subtle">Or <button type="button" className="text-button inline" onClick={() => void watch()}>just watch this city</button> for a while, following whoever you like, and step in when you want.</p>
+      {error && <p className="error-text" role="alert">{error}</p>}
+    </div>
+  )
+}

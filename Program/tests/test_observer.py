@@ -165,6 +165,7 @@ def test_the_model_writes_yesterday_in_a_few_lines_in_the_background(client, con
     assert len(entries(provider)) == 1
     sent = entries(provider)[0]['messages'][-1]['content']
     assert 'Mira' in sent and 'the user' not in sent
+    assert 'call Mira they/them' in entries(provider)[0]['system']  # No pronouns on the sheet: they/them.
     yesterday = next(day for day in feed(client)['days'] if day['entry'])
     assert yesterday['entry'] == 'Mira kept busy all day and took the long way home.'
     asyncio.run(client.app.state.life.quietly_narrate())
