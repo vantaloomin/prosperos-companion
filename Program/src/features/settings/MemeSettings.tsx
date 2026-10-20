@@ -26,15 +26,15 @@ export function MemeSettings({ data, save, phone }: { data: Limits; save: (chang
       </div>
       <Toggle label="Download classic meme formats" checked={data.meme_formats} onChange={(value) => void save({ meme_formats: value })}
         hint={formatsHint(found)} />
+      {found && (found.key_here ? <GifKey hasKey={found.gif_key} /> : <GifKeyOnPc hasKey={found.gif_key} />)}
       {!phone && found && <OwnTemplates sources={found} />}
-      {found && <GifKey hasKey={found.gif_key} />}
     </div>
   )
 }
 
 function formatsHint(found?: MemeSources) {
-  const here = found && found.formats_on ? ` ${found.formats_here} of ${found.formats_total} are on this computer.` : ''
-  return `Formats like the This is Fine dog, downloaded from memegen.link the first time they send a meme and kept on this computer. Only the format's name is sent. Off: memes use the starter pack and your own pictures.${here}`
+  const here = found?.formats_on ? ` ${found.formats_here} of ${found.formats_total} here so far.` : ''
+  return `Formats like the This is Fine dog, from memegen.link, kept on this computer. Only the format's name is sent. Off: the starter pack and your own pictures.${here}`
 }
 
 /** The user's own folder of pictures, opened on the PC. */
@@ -50,9 +50,19 @@ function OwnTemplates({ sources }: { sources: MemeSources }) {
       <p className="subtle">Put JPEG, PNG, WebP or GIF pictures in this folder and they're used for memes too, with the captions at the top and bottom. Memes also use a starter pack of {sources.pack} public-domain pictures that comes with the app.</p>
       <div className="form-actions">
         <button type="button" className="button" onClick={() => void open()}><FolderOpen size={15} aria-hidden="true" />Open folder</button>
-        <small className="subtle">{shownPath(sources.folder)}</small>
+        <small className="subtle meme-folder-path">{shownPath(sources.folder)}</small>
       </div>
       {problem && <Notice tone="error">{problem}</Notice>}
+    </div>
+  )
+}
+
+/** Over home Wi-Fi, which is not encrypted, the key is added on the PC instead (companion/images/routes.py). */
+function GifKeyOnPc({ hasKey }: { hasKey: boolean }) {
+  return (
+    <div className="form-stack">
+      <p className="meme-folder-line"><strong>Reaction GIFs</strong> <span className="subtle">{hasKey ? 'On' : 'Off'}</span></p>
+      <p className="subtle">Your GIPHY key is added on your PC, in Settings &gt; Images, or on this phone over Tailscale. Home Wi-Fi is not encrypted, so keys are never sent over it.</p>
     </div>
   )
 }

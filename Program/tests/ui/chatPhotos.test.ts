@@ -34,7 +34,7 @@ test('the Visual novel stage uses the newest photo sent', () => {
 test('memes and selfies are named for what they are, and memes stay off the stage', () => {
   const meme: ChatPhoto = { ...photo, kind: 'meme', summary: 'a cat staring at a laptop', top_text: 'Me at work', bottom_text: 'Loading...' }
   assert.equal(photoLine(meme), 'The meme is on its way.')
-  assert.equal(photoAlt('Mira', meme), 'Meme picture from Mira: a cat staring at a laptop')
+  assert.equal(photoAlt('Mira', meme), 'Meme from Mira (a cat staring at a laptop): Me at work / Loading...')
   assert.equal(photoAlt('Mira', { ...photo, kind: 'selfie' }), 'Selfie from Mira: Mira painted by the river.')
   assert.equal(latestPhotoId([message('a', 'companion', 1, photo), message('b', 'companion', 2, meme)]), 'a')
 })
@@ -55,8 +55,9 @@ test('a meme on a template or a GIF loads from its own address and keeps its own
   assert.equal(photoSource(photo, file), null)
   const template: ChatPhoto = { ...photo, kind: 'meme', job_id: null, status: 'completed', source: 'template', src: '/api/images/memes/pictures/pack:cat', width: 600, height: 400 }
   assert.equal(photoSource(template, file), '/api/images/memes/pictures/pack:cat')
-  assert.deepEqual(fittedSize(template), { aspectRatio: '600 / 400', width: 'min(100%, 340px)' })
-  assert.deepEqual(fittedSize({ ...template, width: 300, height: 600 }), { aspectRatio: '300 / 600', width: 'min(100%, 200px)' })
+  assert.deepEqual(fittedSize(template), { aspectRatio: '600 / 400', '--fit-ratio': '1.5000' })
+  assert.deepEqual(fittedSize({ ...template, width: 300, height: 600 }), { aspectRatio: '300 / 600', '--fit-ratio': '0.5000' })
   assert.equal(fittedSize(photo), null)
-  assert.equal(photoAlt('Mira', { ...template, source: 'gif' }), 'Reaction GIF from Mira')
+  assert.equal(photoAlt('Mira', { ...template, summary: 'the This is Fine dog', top_text: 'Me', bottom_text: 'Fine' }), 'Meme from Mira (the This is Fine dog): Me / Fine')
+  assert.equal(photoAlt('Mira', { ...template, source: 'gif', summary: 'Happy Cat GIF' }), 'Reaction GIF from Mira: Happy Cat GIF')
 })

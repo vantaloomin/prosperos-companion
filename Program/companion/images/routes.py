@@ -308,7 +308,7 @@ def read_memes(request: Request):
     return {'folder': str(meme_pictures.folder(root)), 'mine': len(meme_pictures.mine(root)),
             'pack': len(meme_pictures.pack()), 'formats_on': classics,
             'formats_here': len(meme_pictures.classic(root)), 'formats_total': len(meme_pictures.formats()['formats']),
-            'gif_key': gifs.key(request.app.state.vault) is not None}
+            'gif_key': gifs.key(request.app.state.vault) is not None, 'key_here': not via_lan(request)}
 
 
 @router.post('/memes/folder/open')

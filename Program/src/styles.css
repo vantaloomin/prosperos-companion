@@ -734,10 +734,18 @@ textarea { resize: vertical; line-height: 1.6; }
 .meme-bottom { bottom: 8px; }
 /* A template's own text boxes: the line centred in its box. */
 .meme-box { right: auto; display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; }
-/* A meme on a template or a GIF keeps the picture's own shape; its width is set inline. */
-.chat-photo-frame.photo-fitted { max-height: none; }
+/* A meme on a template or a GIF keeps the picture's own shape: as wide as fits under the most height it may take. */
+.chat-photo-frame.photo-fitted { --fit-tall: 400px; max-height: none; width: min(100%, 340px, calc(var(--fit-tall) * var(--fit-ratio, 1))); }
+.chat-novel .chat-photo-frame.photo-fitted { --fit-tall: min(300px, 26dvh); }
+@media (max-width: 720px) { .chat-photo-frame.photo-fitted { --fit-tall: 300px; } .chat-novel .chat-photo-frame.photo-fitted { --fit-tall: min(300px, 26dvh); } }
 .gif-credit { margin: 0; font-size: .75rem; }
+.meme-folder-path { overflow-wrap: anywhere; min-width: 0; }
 .gif-credit a { color: inherit; }
+@media (max-width: 720px) { .gif-credit a { display: inline-flex; align-items: center; min-height: 44px; } }
+/* Reduced motion: a GIF waits on its first frame until played. */
+.gif-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%;
+  background: rgb(0 0 0 / .6); color: #ffffff; cursor: pointer; }
+.gif-play svg { width: 20px; height: 20px; }
 .post-image { display: grid; gap: 6px; }
 /* The picture in its own shape; a tall one is cut at the bottom, never through the face at the top. */
 .post-image .photo-open-inline > img { display: block; width: 100%; height: auto; max-height: min(80vh, 760px); object-fit: cover; object-position: center top; border-radius: 10px; background: var(--accent-tint); }

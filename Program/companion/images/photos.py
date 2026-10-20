@@ -369,7 +369,7 @@ class Memes:
 
     def send_gif(self, attempt_id, meme, gif, timeline_id, unasked) -> dict:
         post = self.photos.post_for(timeline_id, f'meme:{attempt_id}', self.database.now())
-        summary = f"a reaction GIF ({gif['tag']})"
+        summary = (gif.get('title') or '')[:200] or f"a reaction GIF ({gif['tag']})"
         self.photos.record(attempt_id, post['id'], None, 'meme', '', summary, unasked=unasked, source='gif', gif=gif)
         lead = 'A reaction GIF you decided to send, unasked' if unasked else 'A reaction GIF you sent'
         return {'post_id': post['id'], 'text': f"- {lead} (a joke, not something that happened): "
@@ -461,7 +461,7 @@ def ready_meme(row) -> dict:
     if row['meme_source'] == 'gif' and row['gif']:
         gif = decode(row['gif'])
         return {'status': 'completed', 'src': gif['url'], 'width': gif['width'], 'height': gif['height'],
-                'page': gif.get('page') or ''}
+                'page': gif.get('page') or '', 'still': gif.get('still') or ''}
     return {}
 
 

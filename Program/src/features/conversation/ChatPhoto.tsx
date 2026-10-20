@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ImageOff, RotateCcw } from 'lucide-react'
+import { ImageOff, Play, RotateCcw } from 'lucide-react'
 import { Lightbox } from '../../components/Lightbox'
 import { api } from '../../api'
 import type { ChatPhoto as Photo, Message } from '../../types'
 import { imageFile } from '../feed/imageState'
 import { MemeLines } from '../../components/MemeLines'
+import { reducedMotion } from '../../motion'
 import { canRetry, fittedSize, photoAlt, photoLine, photoShape, photoSource } from './photoState'
 import { usePhoto } from './usePhoto'
 
@@ -31,15 +32,17 @@ export function ChatPhoto({ message, name }: { message: Message; name: string })
  * or a GIF under a meme keeps its own shape. */
 function PhotoFrame({ photo, name, when }: { photo: Photo; name: string; when: string }) {
   const [loaded, setLoaded] = useState<string | null>(null)
+  const [playing, setPlaying] = useState(false)
   const failed = canRetry(photo)
-  const src = photoSource(photo, imageFile)
+  const held = heldStill(photo, playing)
+  const src = held ?? photoSource(photo, imageFile)
   const landed = !!src && loaded === src
-  const fitted = fittedSize(photo)
   return (
-    <div className={`chat-photo-frame photo-${fitted ? 'fitted' : photoShape(photo)}${landed ? ' landed' : ''}`} style={fitted ?? undefined}>
+    <div {...frameLook(photo, landed)}>
       <span className={failed ? 'chat-photo-loading failed' : 'chat-photo-loading'} aria-hidden="true">{failed && <ImageOff />}</span>
       {src && <img src={src} alt={photoAlt(name, photo)} onLoad={() => setLoaded(src)} onError={() => setLoaded(src)} />}
       {landed && src && <Landed photo={photo} src={src} name={name} when={when} />}
+      {!!held && <button type="button" className="gif-play" aria-label="Play GIF" onClick={() => setPlaying(true)}><Play aria-hidden="true" /></button>}
     </div>
   )
 }
@@ -51,6 +54,15 @@ function Landed({ photo, src, name, when }: { photo: Photo; src: string; name: s
     {photo.source !== 'gif' && <OpenFullSize photo={photo} src={src} name={name} when={when} />}
   </>
 }
+
+/** The frame's class and, for a template or GIF, its own shape. */
+function frameLook(photo: Photo, landed: boolean): { className: string; style?: CSSProperties } {
+  const fitted = fittedSize(photo)
+  return { className: `chat-photo-frame photo-${fitted ? 'fitted' : photoShape(photo)}${landed ? ' landed' : ''}`, style: (fitted as CSSProperties) ?? undefined }
+}
+
+/** With motion reduced, a GIF shows its first frame until played. */
+const heldStill = (photo: Photo, playing: boolean) => photo.still && !playing && reducedMotion() ? photo.still : null
 
 /** GIPHY's terms ask for its credit wherever its GIFs show. */
 function GiphyCredit({ page }: { page?: string }) {

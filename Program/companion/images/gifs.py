@@ -70,18 +70,23 @@ def save_key(vault, value: str):
 
 def fits(gif: dict) -> bool:
     words = content.normalize(' '.join(str(gif.get(field) or '') for field in ('title', 'slug', 'alt')))
-    host = urlsplit(gif.get('url') or '').hostname or ''
-    return gif.get('rating') in RATINGS and not content.matches(words) & NOT_SHOWN and \
-        gif['url'].startswith('https://') and (host == 'giphy.com' or host.endswith('.giphy.com'))
+    return gif.get('rating') in RATINGS and not content.matches(words) & NOT_SHOWN and giphy(gif['url']) and \
+        (not gif.get('still') or giphy(gif['still']))
+
+
+def giphy(url: str) -> bool:
+    host = urlsplit(url).hostname or ''
+    return url.startswith('https://') and (host == 'giphy.com' or host.endswith('.giphy.com'))
 
 
 def shown(item: dict) -> dict | None:
     """What a chat needs of one search result: the fixed-width rendition, its size and GIPHY's page."""
     try:
         image = item['images']['fixed_width']
+        still = (item['images'].get('fixed_width_still') or {}).get('url') or ''
         gif = {'url': image['url'], 'width': int(image['width']), 'height': int(image['height']),
                'page': item.get('url') or '', 'rating': item.get('rating'), 'title': item.get('title') or '',
-               'slug': item.get('slug') or '', 'alt': item.get('alt_text') or ''}
+               'slug': item.get('slug') or '', 'alt': item.get('alt_text') or '', 'still': still}
     except (KeyError, TypeError, ValueError):
         return None
     return gif if fits(gif) else None
@@ -133,7 +138,7 @@ def pick(vault, mood: str, seed: str, asked: bool = False) -> dict | None:
     if not found:
         return None
     gif = random.Random(seed + ':which').choice(found)
-    return {**{field: gif[field] for field in ('url', 'width', 'height', 'page')}, 'tag': tag}
+    return {**{field: gif.get(field) or '' for field in ('url', 'width', 'height', 'page', 'still', 'title')}, 'tag': tag}
 
 
 GIF_ASK = re.compile(r'\bgifs?\b', re.IGNORECASE)

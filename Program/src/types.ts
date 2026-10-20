@@ -73,12 +73,14 @@ export interface ChatPhoto {
   boxes?: MemeBox[]
   /** A GIF's page on GIPHY. */
   page?: string
+  /** A GIF's first frame, shown instead while motion is reduced. */
+  still?: string
 }
 
 export interface MemeBox { x: number; y: number; w: number; h: number }
 
 /** Where meme pictures come from (Settings > Images > Memes and GIFs). */
-export interface MemeSources { folder: string; mine: number; pack: number; formats_on: boolean; formats_here: number; formats_total: number; gif_key: boolean }
+export interface MemeSources { folder: string; mine: number; pack: number; formats_on: boolean; formats_here: number; formats_total: number; gif_key: boolean; key_here: boolean }
 
 export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean }
 

@@ -200,7 +200,7 @@ def test_a_failed_download_is_kept_out_and_tried_later(tmp_path, monkeypatch):
     assert meme_pictures.classic(tmp_path) == [] and meme_pictures.missing(tmp_path) == []
 
 
-def test_the_users_own_templates_are_used_with_their_boxes(client, life):
+def test_the_users_own_templates_are_used_with_their_boxes(client, life, monkeypatch):
     folder = meme_pictures.folder(root(client))
     folder.mkdir(parents=True, exist_ok=True)
     shutil.copy(DATA / 'pack' / 'cat-statue.jpg', folder / 'my cat.jpg')
@@ -209,7 +209,11 @@ def test_the_users_own_templates_are_used_with_their_boxes(client, life):
                                                               {'x': 0.5, 'y': 0.7, 'w': 0.5, 'h': 0.2}]}))
     pictures = [picture for picture in meme_pictures.mine(root(client))]
     assert [picture.id for picture in pictures] == ['mine:my cat.jpg'] and len(pictures[0].boxes) == 2
-    sent = [meme(client, client_id=f'ask-{index:04}') for index in range(12)]
+    # Only the user's picture to pick from, so the test does not hang on a seeded draw.
+    monkeypatch.setattr(meme_pictures, 'pack', lambda: ())
+    monkeypatch.setattr(memes, 'CHOICE_SHARE', 0)
+    monkeypatch.setattr(photos, 'MODEL_SHARE', 0)
+    sent = [meme(client, client_id=f'ask-{index:04}') for index in range(2)]
     own = [photo for photo in sent if photo['src'].endswith('mine:my%20cat.jpg')]
     assert own and own[0]['boxes'][1] == {'x': 0.5, 'y': 0.7, 'w': 0.5, 'h': 0.2}
     assert own[0]['summary'] == 'my cat looking regal'
@@ -233,7 +237,8 @@ def test_classic_formats_can_be_turned_off(client):
 def giphy_item(index, rating='g', title='Happy Cat GIF', url=None):
     return {'rating': rating, 'title': title, 'slug': title.lower().replace(' ', '-'), 'url': f'https://giphy.com/gifs/{index}',
             'images': {'fixed_width': {'url': url or f'https://media1.giphy.com/media/{index}/200w.gif',
-                                       'width': '200', 'height': '150'}}}
+                                       'width': '200', 'height': '150'},
+                       'fixed_width_still': {'url': f'https://media1.giphy.com/media/{index}/200w_s.gif'}}}
 
 
 @pytest.fixture
@@ -260,6 +265,8 @@ def test_gifs_need_the_users_own_key(client, life, giphy):
     photo = meme(client, 'send me a gif', 'ask-0002')
     assert photo['source'] == 'gif' and photo['src'].startswith('https://media1.giphy.com/')
     assert photo['page'].startswith('https://giphy.com/') and photo['top_text'] == ''
+    # A still frame for reduced motion, and GIPHY's title to describe it.
+    assert photo['still'].endswith('200w_s.gif') and photo['summary'] == 'Happy Cat GIF'
     # Only a word from the fixed list went to GIPHY.
     assert giphy and set(giphy) <= {tag for tags in gifs.TAGS.values() for tag in tags}
     assert client.put('/api/images/memes/gif-key', json={'key': ''}).json()['gif_key'] is False
@@ -285,7 +292,14 @@ def test_a_good_gif_is_kept():
     assert gifs.shown(giphy_item(1))['url'] == 'https://media1.giphy.com/media/1/200w.gif'
 
 
+def test_a_still_frame_from_anywhere_but_giphy_drops_the_gif():
+    item = giphy_item(1)
+    item['images']['fixed_width_still']['url'] = 'https://example.com/still.gif'
+    assert gifs.shown(item) is None
+
+
 def test_the_gif_key_is_never_sent_over_home_wifi(client, monkeypatch):
     monkeypatch.setattr('companion.images.routes.via_lan', lambda _request: True)
     response = client.put('/api/images/memes/gif-key', json={'key': 'abc123'})
     assert response.status_code == 403 and 'Wi-Fi' in response.json()['detail']
+    assert client.get('/api/images/memes').json()['key_here'] is False
