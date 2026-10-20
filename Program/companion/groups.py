@@ -42,6 +42,7 @@ from companion import (
     in_character,
     moods,
     news,
+    observer,
     prompt_library,
     safety,
     secrets,
@@ -790,6 +791,7 @@ def record(database, group_id: str, text: str, client_id: str) -> dict:
         row = add_line(connection, group_id, database.now(), 'user', USER, text, client_id=client_id)
         secrets.witness(connection, row)  # The user can tell them; then they know.
         news.witness(connection, row)
+        observer.step_in(connection, database.now())  # Writing to anyone ends just watching (companion/observer.py).
         return row
 
 

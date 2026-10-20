@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Globe, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
+import { Eye, Globe, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
 import { api } from '../../api'
 import type { Persona, World, Worlds as WorldsData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -10,6 +10,8 @@ import { PersonaForm } from './PersonaForm'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { enter, useWorlds, WORLDS_KEY } from './useWorlds'
 import { companionsLine, initial, personaName, personaRef, personaTitle } from './worldsText'
+import { Toggle } from '../../components/Fields'
+import { useWatchActions } from '../watch/useObserver'
 
 type Run = (action: () => Promise<unknown>) => Promise<void>
 
@@ -103,20 +105,23 @@ function PersonaWorlds({ persona, cityId, run, store, onSwitch, onSwitchPersona 
 function NewWorld({ persona, cityId, run, onDone }: { persona: Persona; cityId: string; run: Run; onDone: () => void }) {
   const client = useQueryClient()
   const [city, setCity] = useState(SOMEWHERE_NEW)
-  const [making, setMaking] = useState(false)
-  const make = () => { setMaking(true); return run(async () => {
-    await api('/worlds', { persona_id: persona.id, city_id: city })
+  const [making, setMaking] = useState<'' | 'make' | 'watch'>('')
+  // "Watch a city": the new world starts just watching (companion/observer.py).
+  const make = (watch = false) => { setMaking(watch ? 'watch' : 'make'); return run(async () => {
+    await api('/worlds', { persona_id: persona.id, city_id: city, watch })
     await client.invalidateQueries({ queryKey: WORLDS_KEY })
     onDone()
-  }).finally(() => setMaking(false)) }
+  }).finally(() => setMaking('')) }
   return (
     <form className="new-world form-stack" aria-label={`New world for ${personaRef(persona)}`} onSubmit={(event) => { event.preventDefault(); void make() }}
       onKeyDown={(event) => { if (event.key === 'Escape' && !making) onDone() }}>
-      <CityPick value={city} currentId={cityId} disabled={making} autoFocus onChange={setCity} />
-      <div className="form-actions">
-        <button type="submit" className="button primary" disabled={making}>{making ? 'Making the world…' : 'Make this world'}</button>
-        <button type="button" className="text-button" disabled={making} onClick={onDone}>Cancel</button>
+      <CityPick value={city} currentId={cityId} disabled={!!making} autoFocus onChange={setCity} />
+      <div className="form-actions wrap">
+        <button type="submit" className="button primary" disabled={!!making}>{making === 'make' ? 'Making the world…' : 'Make this world'}</button>
+        <button type="button" className="button" disabled={!!making} onClick={() => void make(true)}><Eye aria-hidden="true" />{making === 'watch' ? 'Making the world…' : 'Watch a city'}</button>
+        <button type="button" className="text-button" disabled={!!making} onClick={onDone}>Cancel</button>
       </div>
+      <p className="subtle">Watch a city: see the town go on without you, following whoever you like. Step in whenever you want.</p>
     </form>
   )
 }
@@ -149,12 +154,13 @@ function WorldRow({ world, run, store, onSwitch }: { world: World; run: Run; sto
             <button type="submit" className="button">Save</button>
             <button type="button" className="text-button" onClick={() => { setRenaming(false); setName(world.name) }}>Cancel</button>
           </form>
-        : <span className="world-row-text"><strong>{world.name}</strong><span className="subtle">{companionsLine(world)}</span></span>}
+        : <span className="world-row-text"><strong>{world.name}</strong><span className="subtle">{companionsLine(world)}{world.watching ? ' · Just watching' : ''}</span></span>}
       <span className="world-row-actions">
         {world.active ? <span className="subtle">You are here</span> : <button type="button" className="button" onClick={onSwitch}>Go there</button>}
         {!renaming && <button type="button" className="text-button" onClick={() => setRenaming(true)}>Rename</button>}
         {!world.active && !world.first && <button type="button" className="text-button" aria-label={`Delete ${world.name}`} onClick={() => setDeleting(true)}><Trash2 aria-hidden="true" /></button>}
       </span>
+      {world.active && <JustWatch world={world} run={run} />}
       {deleting && <ConfirmDialog title={`Delete ${world.name}?`} onClose={() => setDeleting(false)} actions={<>
         <button type="button" className="button" onClick={() => setDeleting(false)}>Keep it</button>
         <button type="button" className="button danger" onClick={() => void run(async () => { store(await api<WorldsData>(`/worlds/${world.id}`, undefined, 'DELETE')); setDeleting(false) })}>Delete</button>
@@ -162,5 +168,21 @@ function WorldRow({ world, run, store, onSwitch }: { world: World; run: Run; sto
         <p>{companionsLine(world)} and everything that happened there go with it. A backup is kept in the data folder, under backups/deleted-worlds.</p>
       </ConfirmDialog>}
     </li>
+  )
+}
+
+/** "Just watch" (companion/observer.py) for the world the user is in: their persona sits out while everyone else's
+ * life goes on, and the Watching page opens. */
+function JustWatch({ world, run }: { world: World; run: Run }) {
+  const { change } = useWatchActions()
+  const toggle = (on: boolean) => run(async () => {
+    await change({ watching: on })
+    if (on) window.location.hash = '#watch'
+  })
+  return (
+    <div className="world-watch">
+      <Toggle label="Just watch" checked={!!world.watching} onChange={(on) => void toggle(on)}
+        hint="Sit back and watch this world go on without you. Nobody texts you or asks you along meanwhile. Writing to anyone steps you back in." />
+    </div>
   )
 }

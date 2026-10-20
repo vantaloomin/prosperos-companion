@@ -1,7 +1,7 @@
 import { profileTab } from '../profile/profileText.ts'
 
 /** Every view with a side rail button (AppNav.tsx). */
-export const RAIL_IDS = new Set(['conversation', 'groups', 'dating', 'story', 'today', 'memories', 'settings'])
+export const RAIL_IDS = new Set(['conversation', 'groups', 'dating', 'story', 'today', 'memories', 'settings', 'watch'])
 
 /**
  * The phone's tab bar (Iris's spec, companion-design/phone-tab-bar.md): Chats, Today, Story, Matchlight and

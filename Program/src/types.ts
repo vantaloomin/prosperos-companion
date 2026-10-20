@@ -500,6 +500,8 @@ export interface LifeSettings {
   hobbies_realism: number
   /** Memes and GIFs (companion/images/photos.py): how often memes come unasked, 0 never (none at all) to 3 often. */
   memes_realism: number
+  /** Inner voice (companion/life/narrator.py): how much of what is on their mind the Watching page tells, 0 to 3. */
+  inner_voice: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
@@ -1864,6 +1866,8 @@ export interface Dating {
   profile: DatingProfile | null
   /** Settings > Debug > 100% Matchlight matches is on. */
   all_matches?: boolean
+  /** Just watching (companion/observer.py): Matchlight waits until the user steps back in. */
+  watching?: boolean
   /** Who the user is in this world, so a new profile starts filled in. */
   persona?: { name: string; gender: string; age: number | null; about: string } | null
   /** Whether Story mode is on, so a match can be met there. */
@@ -2055,6 +2059,8 @@ export interface World {
   first: boolean
   /** Its companions' names, main character first. */
   companions: string[]
+  /** Whether the user is just watching it (Observer mode, companion/observer.py). */
+  watching?: boolean
   /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
   home: WorldHome | null
 }
@@ -2214,3 +2220,21 @@ export interface MediaView {
   numbers?: { reader: number; watcher: number; library: boolean; drop: number; recommend: number
     items: Record<string, { along: number; days_left: number; ends: 'finish' | 'put down' }> }
 }
+
+/** Someone the Watching page can follow (companion/life/narrator.py): a companion or a townsperson. */
+export interface WatchFocus {
+  key: string
+  kind: 'companion' | 'townsperson'
+  name: string
+  /** Who they are in a few words: "Your companion, nurse", "Line cook at Blue Moon Cafe". */
+  line: string
+  companion_id?: string
+  town_key?: string
+}
+/** Observer mode (companion/observer.py): whether the user is just watching, who the page follows and who else it could. */
+export interface Observer { watching: boolean; started_at: string | null; focus: WatchFocus | null; choices: WatchFocus[] }
+export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chapter' | 'news' | 'mood' | 'met' | 'private'
+/** One line of a watched day: what happened, with a thought after it and, under Hidden values, its numbers. */
+export interface WatchLine { id: string; at: string; kind: WatchKind; text: string; inner: string | null; numbers: string[] }
+export interface WatchDay { date: string; entry: string | null; items: WatchLine[] }
+export interface WatchFeed { focus: WatchFocus; voice: number; timezone: string; shown: { moods: boolean; odds: boolean }; days: WatchDay[] }

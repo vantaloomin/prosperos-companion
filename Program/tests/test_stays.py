@@ -1,5 +1,6 @@
 """Visits with the other parent (companion/life/stays.py): planned stays for every co-parenting case, on the calendar
 and Today with Move and Skip, in the chat context, across cities and asked for in the chat."""
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -183,7 +184,8 @@ def test_with_the_adult_side_on_an_intimate_reply_says_nothing_of_a_stay(client,
     says(provider)
     send(client, 'come here you', 'client-stays-2')
     text = prompt(provider)
-    assert "weekend with the user" not in text and split['name'].split()[0] not in text
+    # As a word: a child called Jack is not in "Jackets and layers" from the wardrobe.
+    assert "weekend with the user" not in text and not re.search(rf"\b{re.escape(split['name'].split()[0])}\b", text)
     with connect(client) as connection:
         assert stays.context_lines(connection, current(connection), client.app.state.database.clock.now()) == []
 

@@ -25,11 +25,11 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 
-from companion import backup, cast, characters, dating, lore, restore, story
+from companion import backup, cast, characters, dating, lore, observer, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
-from companion.life import ages, pets, where
+from companion.life import ages, narrator, pets, where
 from companion.models import PERSONA_AGES, CharacterDefinition
 from companion.world import catalog, changes, custom, generators, lifespans, mix, townsfolk
 
@@ -230,20 +230,29 @@ def read_back(database: Database, data: dict):
 
 # Views ----------------------------------------------------------------------------------------------------
 
-def companions_in(path: Path) -> list[str]:
-    """The names of a world's companions, main character first, read without opening it for writing."""
+def read_only(path: Path, query: str) -> list[tuple]:
+    """Rows from a world's database, read without opening it for writing; none when it can't be read."""
     if not path.exists():
         return []
     try:
         connection = sqlite3.connect(f'{path.resolve().as_uri()}?mode=ro', uri=True)
         try:
-            rows = connection.execute('SELECT v.name FROM companions c JOIN character_versions v '
-                                      'ON v.id=c.active_version_id ORDER BY c.slot IS NULL, c.stepped_back_at DESC')
-            return [row[0] for row in rows]
+            return connection.execute(query).fetchall()
         finally:
             connection.close()
     except sqlite3.DatabaseError:
         return []
+
+
+def companions_in(path: Path) -> list[str]:
+    """The names of a world's companions, main character first."""
+    return [row[0] for row in read_only(path, 'SELECT v.name FROM companions c JOIN character_versions v ON '
+                                              'v.id=c.active_version_id ORDER BY c.slot IS NULL, c.stepped_back_at DESC')]
+
+
+def watching_in(path: Path) -> bool:
+    """Whether the user is just watching that world (companion/observer.py)."""
+    return bool(read_only(path, 'SELECT watching FROM observer WHERE id=1 AND watching=1'))
 
 
 def world_view(database: Database, data: dict, world: dict, cities: dict[str, dict] | None = None) -> dict:
@@ -252,6 +261,7 @@ def world_view(database: Database, data: dict, world: dict, cities: dict[str, di
             cities = where.known_cities(connection)
     return {**world, 'active': world['id'] == data['active'], 'first': not world['folder'],
             'companions': companions_in(world_path(database.home, world)),
+            'watching': watching_in(world_path(database.home, world)),
             'home': where.view(world.get('home'), cities)}
 
 
@@ -386,7 +396,7 @@ def starter(connection, data: dict, seed: str, timestamp: str, today: date, pers
 
 
 def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None,
-          town_mix: dict | None = None, home: dict | None = None):
+          town_mix: dict | None = None, home: dict | None = None, watch: bool = False):
     """A new world's database: the user's settings and the persona; when the user became one of a town's people
     (`town`), also a starter companion from that person's circle. Its townsfolk mix (companion/world/mix.py) is
     `town_mix`, else the one of the world it was made from."""
@@ -400,6 +410,7 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
         if town_mix != mix.DEFAULTS:
             mix.write(connection, town_mix, made.now())
         write_persona(connection, persona, made.now(), home)
+        observer.watch(connection, watch, made.now())  # "Watch a city": the new world starts just watching.
         data = dating.city_for(connection, city_id, seed[:16] if town is None else town)
         if town is not None:
             today = made.clock.now().astimezone(zone(data['timezone'])).date()
@@ -421,10 +432,12 @@ def unique_name(data: dict, wanted: str) -> str:
 
 
 def create_world(database: Database, persona_id: str | None = None, name: str | None = None,
-                 city_id: str | None = None, town: str | None = None, town_mix: dict | None = None) -> dict:
+                 city_id: str | None = None, town: str | None = None, town_mix: dict | None = None,
+                 watch: bool = False) -> dict:
     """A new world for a persona (the active one by default), in the current city unless another is named. `town`
     reuses a town's people instead of seeding new ones (Become a townsperson). `SOMEWHERE_NEW` lets the app pick.
-    `town_mix` is its townsfolk mix (Settings > Debug), else the current world's."""
+    `town_mix` is its townsfolk mix (Settings > Debug), else the current world's. `watch` starts it just watching
+    (Watch a city, companion/observer.py)."""
     data = registry(database)
     active = found(data['worlds'], data['active'], 'world')
     persona = found(data['personas'], persona_id or active['persona_id'], 'persona')
@@ -437,7 +450,7 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
     path = database.root / folder / DATABASE
     home = where.picked(city, world_id)
     try:
-        build(database, path, persona, city['id'], world_id, town, town_mix, home)
+        build(database, path, persona, city['id'], world_id, town, town_mix, home, watch)
     except BaseException:
         shutil.rmtree(path.parent, ignore_errors=True)
         raise
@@ -510,11 +523,12 @@ def become(state, key: str) -> dict:
     database = state.database
     now = database.clock.now()
     with database.connect() as connection:
-        focus = characters.require_current(connection)
         already = optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (key,))
         name = already and characters.by_id(connection, already['id'])['version']['name']
         require(not name, f"{name} is already one of your companions, so you can't become them.", 409)
-        place_data, sheet, _meetings, _story = cast.townsperson(connection, focus, key, now)
+        # Someone the user is just watching (companion/observer.py) can be stepped into without having been met.
+        place_data, sheet = narrator.watched_person(connection, key) or \
+            cast.townsperson(connection, characters.require_current(connection), key, now)[:2]
         cast.still_here(place_data, sheet, now, "you can't become them")
         today = now.astimezone(zone(place_data['timezone'])).date()
         sheet = {**sheet, 'age': ages.town_age(connection, sheet, today)}  # Birthdays since the town began count.

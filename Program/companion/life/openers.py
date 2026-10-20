@@ -25,7 +25,7 @@ import re
 from dataclasses import dataclass
 from datetime import time, timedelta
 
-from companion import away, in_character, notifications, prompt_library, self_facts, texting
+from companion import away, in_character, notifications, observer, prompt_library, self_facts, texting
 from companion import news as word
 from companion.characters import by_id, current
 from companion.clock import parse, stamp, zone
@@ -480,14 +480,21 @@ def candidates(connection, companion, now) -> list[Trigger]:
             and apart_allows(held_back, trigger)]
 
 
+def sitting_out(connection, workspace) -> str | None:
+    """Paused, or the user is just watching (companion/observer.py): either way their persona sits out."""
+    if workspace['paused_at'] is not None:
+        return 'paused'
+    return 'watching' if observer.watching(connection) else None
+
+
 def held(connection, companion, life, now, occasion: bool = False) -> str | None:
     """Why the companion should not text right now, or None. An unanswered first message holds back the next
     one, except on an occasion: a friend still says happy birthday when the last text went unanswered."""
     workspace, timeline_id = settings(connection), companion['active_timeline_id']
     if not life['texts_first']:
         return 'off'
-    if workspace['paused_at'] is not None:
-        return 'paused'
+    if off := sitting_out(connection, workspace):
+        return off
     quiet = notifications.notification_settings(connection)
     if notifications.in_quiet_hours(now.astimezone(notifications.zone(workspace['user_timezone'])),
                                     quiet['quiet_start'], quiet['quiet_end']):

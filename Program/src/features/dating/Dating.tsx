@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MapPin } from 'lucide-react'
 import { api } from '../../api'
@@ -6,6 +6,7 @@ import type { View } from '../../companion'
 import type { CitySummary, Dating as DatingData, DatingCard, DatingMatch, DatingProfile } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
+import { useWatchActions } from '../watch/useObserver'
 import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, humanTerms, interestText } from './datingText'
@@ -60,6 +61,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
         {data.all_matches && <p className="subtle dating-debug">Debug: everyone you like matches back. Turn off in <a className="text-button inline" href="#settings/debug" onClick={(event) => { event.preventDefault(); go('settings/debug') }}>Settings &gt; Debug</a>.</p>}
       </div></header>
       {error && <Notice tone="error">{error}</Notice>}
+      <WhileWatching data={data} run={run} />
       {!data.profile ? <Setup words={data.words} surface={data.surface} persona={data.persona} onSave={async (profile) => { await save(profile) }} />
         : editing ? <ProfileForm profile={data.profile} onCancel={() => setEditing(false)} onSave={async (profile) => { if (await save(profile)) setEditing(false) }}
           onDelete={() => void run(() => api<DatingData>('/dating/profile', undefined, 'DELETE')).then(() => { setEditing(false); void client.invalidateQueries({ queryKey: DATING_STATUS_KEY }) })} />
@@ -69,7 +71,9 @@ export function Dating({ go }: { go: (view: View) => void }) {
             You are on a date with {data.date.name} in your story.</Notice>}
           {matched && <Notice action={<StartTalking name={matched.name} matchKey={matched.key} go={go} />}>
             {data.words.matched}: {matched.name} likes you too.</Notice>}
-          <Deck data={data} onSwipe={swipe} onUndo={undo} onPassedAgain={() => void run(() => api<DatingData>('/dating/swipes/passed', undefined, 'DELETE'))} />
+          <DeckOrWaiting data={data}>
+            <Deck data={data} onSwipe={swipe} onUndo={undo} onPassedAgain={() => void run(() => api<DatingData>('/dating/swipes/passed', undefined, 'DELETE'))} />
+          </DeckOrWaiting>
           <Matches data={data} go={go} onUnmatch={(key) => void run(() => api<DatingData>(`/dating/matches/${encodeURIComponent(key)}`, undefined, 'DELETE')).then(() => setMatched((shown) => shown?.key === key ? null : shown))}
             onDate={async (key, placeId) => { await run(async () => { await api('/dating/dates', { key, place_id: placeId }); return api<DatingData>('/dating') }); go('story') }} />
         </>}
@@ -180,4 +184,18 @@ function MeetInStory({ match, onDate }: { match: DatingMatch; onDate: (key: stri
       <button type="button" className="text-button" onClick={() => setOpen(false)}>Not now</button>
     </span>
   )
+}
+
+/** While the user is just watching (companion/observer.py) the app waits, with a way to stop watching here. */
+function WhileWatching({ data, run }: { data: DatingData; run: (request: () => Promise<DatingData>) => Promise<unknown> }) {
+  const { change } = useWatchActions()
+  if (!data.watching) return null
+  const stop = () => void run(async () => { await change({ watching: false }); return api<DatingData>('/dating') })
+  return <Notice action={<button type="button" className="text-button" onClick={stop}>Stop watching</button>}>
+    {data.words.title} waits while you&apos;re just watching. Stop watching to swipe again.</Notice>
+}
+
+/** The deck, put away while the user is just watching. */
+function DeckOrWaiting({ data, children }: { data: DatingData; children: ReactNode }) {
+  return data.watching ? null : <>{children}</>
 }

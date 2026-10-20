@@ -364,6 +364,9 @@ ADDED_COLUMNS = (
     ('image_settings', 'meme_formats', 'INTEGER NOT NULL DEFAULT 1 CHECK (meme_formats IN (0, 1))'),
     # Memes and GIFs (Settings > Realism > Their days): 0 never, 1 now and then, 2 true to life, 3 often.
     ('life_settings', 'memes_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (memes_realism BETWEEN 0 AND 3)'),
+    # Inner voice (Settings > Realism > Their days, companion/life/narrator.py): how much of what is on their mind
+    # the Watching page tells, 0 just what happened, 1 a few thoughts, 2 true to life, 3 everything on their mind.
+    ('life_settings', 'inner_voice', 'INTEGER NOT NULL DEFAULT 2 CHECK (inner_voice BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

@@ -43,7 +43,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from functools import cache
 
-from companion import consequences
+from companion import consequences, observer
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import ages, circle, money, outings, steps
@@ -591,6 +591,8 @@ def invitable(connection, companion: dict, row: dict) -> bool:
     them), not apart from the companion, and no other big day they are asked to that close (their own wedding and the
     pair's baby shower always ask them)."""
     from companion.life import long_distance
+    if observer.watching(connection):
+        return False  # Just watching (companion/observer.py): the user isn't asked along to anything meanwhile.
     if row['details'].get('local') is False and not travels(connection, companion, row) or \
             steps.apart(connection, companion) == 'ended':
         return False

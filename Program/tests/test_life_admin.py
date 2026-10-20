@@ -78,8 +78,9 @@ def mira(client, monkeypatch, provider):
     assert response.status_code == 200, response.text
     client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
                                         'api_key': 'secret-key'})
+    # No pet's seeded checkup (companion/life/pets.py) joining an evening these tests look at.
     set_life(client, automatic_events=True, phrase_with_model=False, catch_up_max_events=6,
-             catch_up_lookback_hours=168)
+             catch_up_lookback_hours=168, pets_realism=0)
     return response.json()
 
 

@@ -20,6 +20,7 @@ import { LOVE_LIFE_LEVELS } from '../character/loveLifeText'
 import { FAMILY_LEVELS, FAMILY_LIFE_LEVELS } from '../character/familiesText'
 import { TURN_LEVELS } from '../character/turnsText'
 import { LOSS_LEVELS, PASS_AWAY_HINT, PASS_AWAY_TIP } from '../character/lossText'
+import { INNER_VOICE_LEVELS } from '../watch/watchText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -72,6 +73,7 @@ export function PaceSettings() {
   const media = step(MEDIA_LEVELS, data.media_realism, 2)
   const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
   const memes = step(MEME_LEVELS, data.memes_realism, 2)
+  const voice = step(INNER_VOICE_LEVELS, data.inner_voice, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
   const families = step(FAMILY_LEVELS, data.growing_families, 2)
   const familyLife = step(FAMILY_LIFE_LEVELS, data.family_life, 2)
@@ -132,6 +134,10 @@ export function PaceSettings() {
       <Field label={`Memes and GIFs: ${memes.label}`} hint={memes.hint} tip="Memes need no image backend. Reaction GIFs need your own GIPHY key, in Settings > Images.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.memes_realism} label={memes.label}
           onChange={(memes_realism) => void save({ memes_realism })} />}
+      </Field>
+      <Field label={`Inner voice: ${voice.label}`} hint={voice.hint} tip="What the Watching page tells while you just watch a world. Feelings come through in words; numbers show only with Hidden values on.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.inner_voice} label={voice.label}
+          onChange={(inner_voice) => void save({ inner_voice })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
