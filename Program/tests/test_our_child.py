@@ -12,7 +12,7 @@ from test_steps import prompt, says
 
 from companion import group_guests
 from companion.characters import current
-from companion.life import families, our_child, work
+from companion.life import families, money, our_child, work
 from companion.memory import context, sides
 from companion.world import intimacy
 
@@ -124,7 +124,14 @@ def test_who_stays_home_shapes_their_workdays_and_money(client, clock, monkeypat
     with connect(client) as connection:
         companion = current(connection)
         bought = our_child.purchases(connection, companion['active_timeline_id'], today, today + timedelta(days=40))
-        assert any(item['for'] == 'childcare' for item in bought)
+        care = next(item for item in bought if item['for'] == 'childcare')
+        assert care['text'] == 'paid your half of the childcare' and care['shown'] == 'paid their half of the childcare'
+        definition = companion['version']['definition']
+        found = money.snapshot(definition, today.isoformat(), {'costs': {}, 'purchases': [care]})
+        assert ('- This pay period you spent money for the family: you paid your half of the childcare.' in
+                [line for _key, line in money.context_lines(definition, today.isoformat(),
+                                                            {'costs': {}, 'purchases': [care]})])
+        assert found['bought'][0]['shown'] == 'paid their half of the childcare'
         assert our_child.pay(connection, companion['active_timeline_id'], today) == 1.0
     assert ours(client, care='auto')['care_how'] == 'seeded'
 
@@ -145,6 +152,11 @@ def test_family_life_sets_how_hard_the_nights_are(client, clock, monkeypatch):
         assert not any(our_child.sick_on(connection, child, day) for day in nights)
 
 
+def named(name: str, text: str) -> bool:
+    """Whether a name is in the text as a word ("Ren" is not in "Rent is about")."""
+    return bool(re.search(rf'\b{re.escape(name)}\b', text))
+
+
 def test_the_adult_side_and_the_family_never_share_a_reply(client, provider, clock, monkeypatch):
     row, child = born(client, clock, monkeypatch)
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
@@ -154,7 +166,7 @@ def test_the_adult_side_and_the_family_never_share_a_reply(client, provider, clo
     intimate(client)
     says(provider)
     send(client, 'come here you', 'client-ours-4')
-    assert child['name'] not in prompt(provider)
+    assert not named(child['name'], prompt(provider))
     with connect(client) as connection:
         assert families.pictured(connection, current(connection)['active_timeline_id'], [f"A day out with {child['name']}"])
 
@@ -317,7 +329,7 @@ def test_the_characters_own_words_count_toward_a_replys_side(client, provider, c
     row, child = born(client, clock, monkeypatch, background='Loves slow kisses and lazy mornings.')
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     send(client, 'how was the day?', 'client-ours-9')
-    assert child['name'].split()[0] not in prompt(provider)
+    assert not named(child['name'].split()[0], prompt(provider))
 
 
 def test_a_reply_without_the_family_lines_leaves_out_lines_about_a_child_however_named(client, provider, clock,

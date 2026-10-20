@@ -67,6 +67,21 @@ ERA_WORDS = {'modern': {'appointment': 'First scan', 'halfway': '20-week scan', 
              'old': {'appointment': "The midwife's visit", 'halfway': "The midwife's visit", 'birth': 'at home, with the '
                      'midwife', 'things': ('a cradle', 'linens and swaddling', 'a woollen blanket', 'a little cap')}}
 TOLD_PEOPLE = 3
+# What a child costs (Vanta 2026-10-20: real for the era and the city). Each is the pair's, so the companion pays half,
+# from their savings as far as those go and the rest month by month (money.paying, like a ring or a wedding from
+# savings). By stage (or route:stage): whose month it is reckoned in ('own' take-home, or the 'city' middle wage, for a
+# fee everyone there pays alike), how many months of it by era group, and what it paid for. A nursery and baby things
+# come to a few thousand dollars in a modern US city; an agency adoption to about $40,000 in all, most of it at the
+# match; a surrogate to about $130,000. New York 1925 adopts through a charity, with a lawyer's and the court's fees;
+# fostering costs nothing (the training is free, and the state pays a foster carer); older times take a child in
+# without any fee.
+FEES = {'nursery': ('own', {'modern': 0.45, 'jazz': 0.3, 'old': 0.2}, 'the nursery'),
+        'things': ('own', {'modern': 0.4, 'jazz': 0.25, 'old': 0.15}, 'the baby things'),
+        'adoption:agency': ('city', {'modern': 1.8}, "the adoption agency's sign-up and home study fees"),
+        'adoption:match': ('city', {'modern': 7.2, 'jazz': 0.4}, "the adoption agency's placement fee"),
+        'surrogacy:agency': ('city', {'modern': 9}, "the surrogacy agency's fees"),
+        'surrogacy:news': ('city', {'modern': 21}, "the surrogate's fees and medical bills")}
+FEE_WORDS = {'adoption:match:jazz': "the lawyer's and the court's fees for the adoption"}
 # The baby shower is at least this many days before the birth, even an early one.
 SHOWER_BEFORE = 7
 
@@ -473,8 +488,10 @@ def repin(connection, timeline_id: str, days: dict[str, dict]) -> int:
 
 def calendar(connection, companion: dict, row: dict, today: date, now) -> None:
     """Appointments, the home study and buying for the baby go on the Life admin calendar as they come within its
-    three weeks; with the adult side on, what is still to come is taken off."""
+    three weeks; with the adult side on, what is still to come is taken off. What a stage costs is paid on its day
+    either way (`pay_fees`)."""
     key = f"journey:{row['id']}:"
+    pay_fees(connection, companion, row, today)
     if quiet(connection):
         connection.execute("UPDATE life_admin SET status='removed', updated_at=? WHERE timeline_id=? AND key LIKE ? AND "
                            "status='planned'", (stamp(now), row['timeline_id'], f'{key}%'))
@@ -505,8 +522,8 @@ def home_study(connection, companion: dict, row: dict, stage: dict, now) -> None
 
 
 def buying(connection, companion: dict, row: dict, stage: dict, now) -> None:
-    """The nursery, then baby things: from their money (a share of a month's pay, admin.priced)."""
-    definition, key = companion['version']['definition'], f"journey:{row['id']}:{stage['key']}"
+    """The nursery, then baby things, with their half of the cost beside it (paid as `pay_fees` settles)."""
+    key = f"journey:{row['id']}:{stage['key']}"
     things = ERA_WORDS[era_group(connection, companion)]['things']
     if stage['key'] == 'nursery':
         title, done = 'Set up the nursery', 'set up the nursery with the user'
@@ -515,11 +532,11 @@ def buying(connection, companion: dict, row: dict, stage: dict, now) -> None:
         title, done = 'Buy baby things', f'bought {first} and {second} for the baby'
     admin.add(connection, companion, key=key, source='admin', kind='family', title=title, done=done,
               day=date.fromisoformat(stage['on']), minutes=180, out=stage['key'] == 'things',
-              cost=admin.priced(definition, '$$$', key), now=now)
+              cost=cost_of(connection, companion, row, stage['key']), now=now)
 
 
 def agency(connection, companion: dict, row: dict, stage: dict, now) -> None:
-    """Signing on with the agency (or the fostering training), with its fees."""
+    """Signing on with the agency (or the fostering training, which is free), with their half of its fees."""
     words = {'agency': ('Meet the adoption agency', 'signed on with the adoption agency with the user'),
              'training': ('Foster carer training', 'went to the foster carer training with the user')}
     if row['route'] == 'surrogacy':
@@ -528,8 +545,13 @@ def agency(connection, companion: dict, row: dict, stage: dict, now) -> None:
     key = f"journey:{row['id']}:{stage['key']}"
     admin.add(connection, companion, key=key, source='admin', kind='family', title=title, done=done,
               day=date.fromisoformat(stage['on']), minutes=120, fixed=True, out=True,
-              cost=admin.priced(companion['version']['definition'], '$$$' if stage['key'] == 'agency' else '$', key),
-              now=now)
+              cost=cost_of(connection, companion, row, stage['key']), now=now)
+
+
+def cost_of(connection, companion: dict, row: dict, key: str) -> float:
+    """Their half of a stage's cost, shown on the Life admin calendar (`purchases` counts it, not admin.py)."""
+    found = fee(connection, companion, row, key)
+    return found[0] if found else 0.0
 
 
 TASKS = {'appointment': appointment, 'halfway': appointment, 'home_study': home_study, 'nursery': buying,
@@ -548,8 +570,78 @@ def make_room(connection, companion: dict, row: dict, today: date) -> None:
             city = moving_in.city_of(connection, house[0])
             moving_in.grow(connection, house, city, moving_in.hood_named(city, house[0]['neighbourhood']), today,
                            len(house) + 2)
+    set_details(connection, row['id'], room=today.isoformat())
+
+
+def set_details(connection, journey_id: str, **values) -> None:
+    """Adds to a journey's details as they are now (another step this day may have added to them)."""
+    found = optional(connection, 'SELECT details FROM family_journeys WHERE id=?', (journey_id,))
     connection.execute('UPDATE family_journeys SET details=? WHERE id=?',
-                       (encode({**row['details'], 'room': today.isoformat()}), row['id']))
+                       (encode({**(decode(found['details']) or {}), **values}), journey_id))
+
+
+# What it costs (money.household reads `purchases`) ------------------------------------------------------------------
+
+def fee(connection, companion: dict, row: dict, key: str) -> tuple[float, str] | None:
+    """(the companion's half, what it paid for) of a stage that costs money (FEES), in their city's money; None for
+    one that costs nothing or where money does not apply. Seeded 80% to 120% of the usual price."""
+    from companion.life import money
+    found = FEES.get(f"{row['route']}:{key}") or (FEES.get(key) if row['route'] in PREGNANCY else None)
+    profile = money.profile(companion['version']['definition']) if found else None
+    group = era_group(connection, companion)
+    months = found[1].get(group) if found else None
+    if not months or not profile:
+        return None
+    month = money.monthly_share(profile) if found[0] == 'own' else money.typical_month(profile.city)
+    cost = month * months / 2 * (0.8 + 0.4 * generators.unit(f"journey:{row['id']}:{key}", 'price'))
+    return round(cost, 0 if cost >= 20 else 2), FEE_WORDS.get(f"{row['route']}:{key}:{group}", found[2])
+
+
+def pay_fees(connection, companion: dict, row: dict, today: date) -> None:
+    """On the day of a stage that costs money (or the first day after it the world runs), how it is paid is settled:
+    from their savings on hand then, and what those don't cover month by month (money.paying). Kept in the journey's
+    details (`paid`), so a later stage sees the savings this one took."""
+    from companion.life import money
+    definition = companion['version']['definition']
+    paid = dict(row['details'].get('paid') or {})
+    for stage in row['stages']:
+        found = None if stage['key'] in paid or stage['on'] > today.isoformat() else \
+            fee(connection, companion, row, stage['key'])
+        if not found:
+            continue
+        day = date.fromisoformat(stage['on'])
+        saved = money.on_hand(connection, row['timeline_id'], definition, day)
+        paid[stage['key']] = {'on': stage['on'], 'cost': found[0], 'what': found[1],
+                              **money.paying(found[0], saved, money.monthly_share(money.profile(definition)))}
+        set_details(connection, row['id'], paid=paid)
+
+
+def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
+    """What the child's coming cost the companion between two local dates (money.household purchases): their half
+    of each fee from savings on its day, then a payment each month on what savings didn't cover. While family lines
+    are withheld (`quiet`), the chat hears only that a big bill was paid; the screen still says what for (`shown`)."""
+    from companion.life import money
+    result, plain = [], quiet(connection)
+    for row in many(connection, 'SELECT details FROM family_journeys WHERE timeline_id=?', (timeline_id,)):
+        for item in (decode(row['details']) or {}).get('paid', {}).values():
+            first = date.fromisoformat(item['on'])
+            payments = [(first, item['saved'], 'family')] + [
+                (first + timedelta(days=money.OWED_DAYS * number), item['monthly'], 'owed')
+                for number in range(1, item['months'] + 1)]
+            for when, cost, kind in payments:
+                if cost and start <= when <= day:
+                    result.append({**paid_words(item['what'], kind, plain), 'date': when.isoformat(), 'spend': '',
+                                   'cost': cost, 'for': kind, **({'savings': True} if kind == 'family' else {})})
+    return result
+
+
+def paid_words(what: str, kind: str, plain: bool) -> dict:
+    """{text (the chat's, after "you"), shown (the screen's, after "they")} for one payment."""
+    words = {'family': 'paid {whose} share of {what}', 'owed': 'paid an installment on {whose} share of {what}'}[kind]
+    shown = words.format(whose='their', what=what)
+    if plain:
+        return {'text': 'paid a big bill' if kind == 'family' else 'paid an installment on a big bill', 'shown': shown}
+    return {'text': words.format(whose='your', what=what), 'shown': shown}
 
 
 def showers(connection, companion: dict, today: date, people: dict, now) -> list[dict]:

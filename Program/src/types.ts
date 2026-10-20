@@ -211,7 +211,8 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral'; shown?: string }
+interface MoneyHappening { label: string; on: string; cost: number; for?: MoneyFor; shown?: string }
+export type MoneyFor = 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' | 'hobby' | 'ring' | 'wedding' | 'school' | 'deposit' | 'business' | 'care' | 'gift' | 'funeral' | 'admin' | 'family' | 'owed' | 'childcare' | 'sitter' | 'baby'
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
