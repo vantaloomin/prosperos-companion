@@ -267,7 +267,8 @@ def own_odds(connection, companion: dict, person: dict) -> tuple[str, list[dict]
                  'someday': [(f'{theirs} wants children someday, not yet', 'less')]}.get(want, []),
                *families.pace_reasons(connection)]
     weekly = YEARLY[found['how']] * families.PACE[families.level(connection)] * WANTING[want] / 52
-    options = families.yearly_options(weekly, reasons, ('A baby on the way', 'No baby this year'))
+    couple = f'{theirs} and {partner}'  # Named, like a circle member's baby ("No baby for Samantha this year").
+    options = families.yearly_options(weekly, reasons, (f'A baby on the way for {couple}', f'No baby for {couple} this year'))
     return f'Whether {theirs} and {partner} have a baby this year', options, {'name': theirs, 'partner': partner}
 
 
