@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { howText } from '../../src/features/memories/pairText.ts'
 import { PROFILE_TABS, circleText, handle, placeFact, profileClass, profileTab, showsCard } from '../../src/features/profile/profileText.ts'
 
 test('the profile holds Messages, Posts, Memories and Character under their old addresses', () => {
@@ -57,4 +58,12 @@ test('a rough patch says things are tense, and what about only with moods shown'
   assert.equal(roughPatchLine({ ...tense, about: 'they called off dinner at the last minute' }), 'Things are a bit tense: they called off dinner at the last minute')
   assert.equal(ROUGH_PATCH_LEVELS.length, 4)
   for (const level of ROUGH_PATCH_LEVELS) assert.doesNotMatch(level.hint, /\b(?:she|he|her|him|his)\b/i)
+})
+
+test('how two companions know each other says you, not the user, on screen', () => {
+  assert.equal(howText('Both live in Baltimore, but only know each other through the user'), 'Both live in Baltimore, but only know each other through you')
+  assert.equal(howText('Only know each other through the user'), 'Only know each other through you')
+  assert.equal(howText("The user's old roommates"), 'Your old roommates')
+  assert.equal(howText('Roommates in college'), 'Roommates in college')
+  assert.equal(howText('Met at the username meetup'), 'Met at the username meetup')
 })
