@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { Backstory, UntoldPair } from '../../types'
-import { PAIR_STAGES } from '../memories/pairText'
+import { PAIR_STAGES, howText, modelHow } from '../memories/pairText'
 
 /**
  * How two companions know each other, told once, the first time they share a group: a starting stage and a line
@@ -33,8 +33,9 @@ export function Backstories({ companionIds, value, onChange }: { companionIds: s
                 {PAIR_STAGES.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
               </select>
             </label>
-            <input aria-label={`How ${label} know each other`} value={current.how} maxLength={300} placeholder="e.g. Roommates in college"
-              onChange={(event) => set(pair, { how: event.target.value })} />
+            {/* Shown with "you" for "the user", saved as the companions' prompts read it (pairText.howText). */}
+            <input aria-label={`How ${label} know each other`} value={howText(current.how)} maxLength={300} placeholder="e.g. Roommates in college"
+              onChange={(event) => set(pair, { how: modelHow(event.target.value).slice(0, 300) })} />
           </div>
         )
       })}
