@@ -59,6 +59,7 @@ class Stretch:
     start: date
     end: date
     days: int = 0
+    met: set[str] = field(default_factory=set)  # Days they saw each other in person (an outing), as the scrapbook dates them.
     said: list[tuple[str, str]] = field(default_factory=list)  # (day, the user's sentence)
     moments: list[str] = field(default_factory=list)
     closer: list[str] = field(default_factory=list)
@@ -143,9 +144,7 @@ def gather(connection, companion: dict, now, found: list[Stretch], timezone, ski
     for step in current['history']:
         if step.get('on') and (item := holding(found, step['on'], skip)):
             item.closer.append(current['stages'][step['level'] - 1])
-    for memory in closeness.shared_moments(connection, companion, timeline_id, now, None):
-        if item := holding(found, happened(memory, timezone), skip):
-            item.moments.append(memory['subject'])
+    moments(connection, companion, now, found, timezone, skip)
     for day, told, title in chapter_stages(connection, timeline_id, low, high):
         if item := holding(found, day, skip):
             item.life.append((told.rstrip('.'), title))
@@ -164,6 +163,22 @@ def chapter_stages(connection, timeline_id: str, low, high) -> list[tuple[str, s
                 'undone_at IS NULL AND started_on<=? ORDER BY started_on', (timeline_id, high.isoformat()))
     return [found for row in rows for found in big_turns.told_by_day(row)
             if low.isoformat() <= found[0] <= high.isoformat()]
+
+
+def moments(connection, companion: dict, now, found: list[Stretch], timezone, skip: tuple = ()):
+    """The shared moments remembered in each stretch, and the days of those that were outings together."""
+    outings = in_person(connection, companion['id'])
+    for memory in closeness.shared_moments(connection, companion, companion['active_timeline_id'], now, None):
+        if item := holding(found, happened(memory, timezone), skip):
+            item.moments.append(memory['subject'])
+            if memory['id'] in outings:
+                item.met.add(happened(memory, timezone))
+
+
+def in_person(connection, companion_id: str) -> set[str]:
+    """The memories of outings with the user that went ahead: days they were together in person."""
+    return {row['memory_id'] for row in many(connection, "SELECT memory_id FROM outings WHERE companion_id=? AND "
+                                             "status='done' AND memory_id IS NOT NULL", (companion_id,))}
 
 
 def talked_days(connection, timeline_id, found, low, high, timezone):
@@ -230,6 +245,10 @@ def label(item: Stretch, american: bool = False) -> str:
 
 
 def days_text(item: Stretch) -> str:
+    """The days they talked; with none but a day out together (a naming day, dinner at their place), that they saw
+    each other, never "You didn't talk"."""
+    if not item.days and item.met:
+        return f"You saw each other on {len(item.met)} {'day' if len(item.met) == 1 else 'days'}"
     if not item.days:
         return "You didn't talk"
     return f"You talked on {item.days} {'day' if item.days == 1 else 'days'}"
@@ -313,6 +332,7 @@ def lines(connection, companion: dict, now) -> list[dict]:
         # The user sees the days talked beside the line, so their line starts with what happened (Iris).
         result.append({'key': item.key, 'kind': item.kind, 'start': item.start.isoformat(),
                        'end': (item.until or item.end).isoformat(), 'label': label(item, american), 'days': item.days,
+                       'together': len(item.met),
                        'count': own[0], 'prompt': joined([*own[:1], *extra, *own[1:]], LINE_LIMIT[item.kind]),
                        'text': joined([*mine, *theirs[1:]], LINE_LIMIT[item.kind]) if len(theirs) > 1 or mine else '',
                        'corrected': fixed.get(item.key)})
@@ -345,7 +365,8 @@ def offer(packet, connection, companion, now):
 
 def view(connection, companion: dict, now) -> dict:
     return {'name': companion['version']['name'],
-            'lines': [{key: line[key] for key in ('key', 'kind', 'start', 'end', 'label', 'days', 'text', 'corrected')}
+            'lines': [{key: line[key] for key in ('key', 'kind', 'start', 'end', 'label', 'days', 'together', 'text',
+                                                  'corrected')}
                       for line in lines(connection, companion, now)]}
 
 

@@ -192,3 +192,36 @@ def test_the_same_shared_moment_twice_reads_once():
     item = history.Stretch('m2026-01', 'month', date(2026, 1, 1), date(2026, 1, 31), days=4,
                            moments=['Dinner together at Mira’s place'] * 2 + ['Drinks together at Bertha’s'])
     assert history.parts(item, True, 'Mira')[1:] == ['Dinner together at Mira’s place', 'Drinks together at Bertha’s']
+
+
+def test_a_week_they_saw_each_other_but_never_texted_is_not_a_week_they_didnt_talk(client, app, connected, clock):
+    from companion.life import outings, together
+    chat_day(client, 'one')
+    clock.advance(timedelta(days=7))
+    database = app.state.database
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        day = clock.now().astimezone(history.zone(companion['version']['timezone'])).date()
+        connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, character_version_id, "
+                           "memory_revision, created_at, completed_at) VALUES ('m-naming', ?, 90, 'companion', "
+                           "'Come to the naming day?', 'complete', 1, ?, 0, ?, ?)",
+                           (companion['active_timeline_id'], companion['active_version_id'], clock.now().isoformat(),
+                            clock.now().isoformat()))
+        together.insert(connection, companion, 'm-naming', 'big-day',
+                        {'name': 'their place', 'title': "Willow's naming day", 'godparent': True}, day, '11:00',
+                        '14:00', None, clock.now().isoformat())
+    clock.advance(timedelta(days=1))
+    with database.connect(write=True) as connection:
+        assert outings.finish_due(connection, require_current(connection), clock.now()) == 1
+    clock.advance(timedelta(days=14))
+    send(client, 'Back again!', 'two-0001')
+    found = {line['key']: line for line in lines(client)}
+    week = f'w{(day - timedelta(days=day.weekday())).isoformat()}'
+    assert found[week]['days'] == 0 and found[week]['together'] == 1, 'the screen says "1 day together"'
+    assert found[week]['text'] == "Willow's naming day."
+    prompt = system(app)
+    assert "You saw each other on 1 day. Willow's naming day." in prompt
+    assert "You didn't talk. Willow's naming day." not in prompt
+    quiet = [line for key, line in found.items() if key > week]
+    assert quiet and all(line['together'] == 0 for line in quiet)
+    assert "You didn't talk." in prompt, 'a week with neither still says so'
