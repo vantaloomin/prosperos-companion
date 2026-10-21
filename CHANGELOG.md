@@ -49,6 +49,21 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.16.0 (2026-10-21)
+
+- **Just watch:** a switch on any world and a Watch a city option, where your persona sits out and a Watching feed
+  tells the day of whoever you follow, with a Focus picker, Step in and an Inner voice slider.
+- **Ships and stations:** a city can be a ship or a station, with no weather or Earth seasons, ship lighting in
+  pictures, more than 120 future-era jobs and travel by shuttle between made-up places.
+- **The Long Meridian:** a built-in generation ship with its station Port Vesper, Start from a ship in Settings >
+  Cities, and Featured in v0.16 with Baltimore, Grandport and Osaka.
+- **Memes and GIFs:** memes without a picture model from a starter pack, classic formats and your own folder,
+  reaction GIFs with your own GIPHY key, and a Memes and GIFs slider.
+- **Visits with the other parent:** planned stays on the calendar and Today with Move and Skip this one, and stays in
+  another city that work like trips.
+- **Fixes:** mum in UK cities, jobs that fit the era and age, the 1895 polling station, baby things when adopting or
+  fostering, and "you" in the Backstories box.
+
 ## v0.15.0 (2026-10-20)
 
 - **Wanting children:** every companion wants children, wants them someday or doesn't, shown on a new Family panel, and

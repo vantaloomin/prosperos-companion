@@ -1,5 +1,7 @@
+import type { MemeBox } from '../types'
+
 /** One picture the lightbox can show: its full-size file, what it shows, who sent it and when, and any captions drawn over it. */
-export type Shown = { src: string; alt: string; from: string; when: string; top?: string; bottom?: string }
+export type Shown = { src: string; alt: string; from: string; when: string; top?: string; bottom?: string; boxes?: MemeBox[] }
 
 /** The picture after stepping by `by` from `index`, staying put at either end rather than wrapping round. */
 export const stepTo = (index: number, by: number, count: number) => Math.min(Math.max(index + by, 0), Math.max(count - 1, 0))

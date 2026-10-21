@@ -9,6 +9,7 @@ trait stops it from the next reply. The user can reset it at any time.
 """
 from datetime import timedelta
 
+from companion import observer
 from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, one, optional
@@ -40,6 +41,8 @@ def note_return(connection, now) -> dict | None:
         return None
     if one(connection, 'SELECT paused_at FROM workspace_settings WHERE id=1')['paused_at']:
         return None
+    if observer.watched_since(connection, since):
+        return None  # Time spent just watching (companion/observer.py) is not time away.
     timestamp = stamp(now)
     connection.execute(
         'INSERT OR IGNORE INTO relationship_moods (id, timeline_id, kind, away_from, away_until, intensity, traits, '

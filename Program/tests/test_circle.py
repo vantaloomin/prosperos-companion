@@ -9,6 +9,7 @@ from conftest import life_reply, reconcile, set_life
 from companion.clock import parse, stamp, zone
 from companion.database import decode
 from companion.life import agenda, body, circle, composer
+from companion.world import catalog
 from companion.world.source import CatalogWorld
 
 EVENING_OUT = [{'key': 'day', 'label': 'Day', 'kind': 'leisure', 'start': '09:00', 'end': '17:00'},
@@ -443,7 +444,6 @@ def test_everyday_places_are_near_home():
                                             ('whitlock', 'Whitlock')])
 def test_an_older_citys_circle_works_the_jobs_of_its_era(client, city, location):
     """In 1895 a mother is never a cabman, nor a brother a governess; the sheet's own people too."""
-    from companion.world import catalog
     careers = {career['name']: career for career in catalog.careers_for(catalog.city(city)).values()}
     response = client.post('/api/companion', json={
         'name': 'Ada Hartley', 'timezone': 'Europe/London', 'home_city': city, 'location': location,
@@ -476,3 +476,24 @@ def test_in_1895_the_circle_lists_a_mother_and_father_never_a_mom_or_dad(client)
     web = client.get('/api/life/web')
     assert web.status_code == 200 and not re.search(r'"(mom|dad)"', web.text), web.text[:400]
     assert '"mother"' in web.text
+
+
+def test_in_london_today_a_mother_is_mum_and_in_baltimore_mom(client):
+    """A British city of today says 'mum' on screen and to the companion (circle.voice); stored as before."""
+    response = client.post('/api/companion', json={
+        'name': 'Ada Hartley', 'timezone': 'Europe/London', 'home_city': 'london', 'location': 'Bloomsbury, London',
+        'identity': '29. She/her. Her mother Edith and her father Albert live nearby.', 'relationship': 'friendship',
+        'schedule': EVENING_OUT})
+    assert response.status_code == 200, response.text
+    roles = {person['name']: person['role'] for person in client.get('/api/life/circle').json()}
+    assert roles['Edith'] == 'mum' and roles['Albert'] == 'dad'
+    with client.app.state.database.connect() as connection:
+        stored = {row['name']: row['role'] for row in connection.execute('SELECT name, role FROM circle_people')}
+    assert stored['Edith'] == 'mom'
+    web = client.get('/api/life/web')
+    assert web.status_code == 200 and '"mum"' in web.text and '"mom"' not in web.text
+    london, baltimore = (catalog.city(city) for city in ('london', 'baltimore'))
+    assert circle.voice(london) == 'british' and circle.voice(baltimore) == ''
+    assert circle.voice(catalog.city('london-1895')) == 'older' and circle.voice(None) == ''
+    assert circle.said('mom', {'home_city': 'london'}) == 'mum' and circle.said('mom', {'home_city': 'baltimore'}) == 'mom'
+    assert circle.era_word('stepmom', 'british') == 'stepmum' and circle.era_word('mom', True) == 'mother'

@@ -50,6 +50,10 @@
     "call nights",
     "attendings",
     "exhaustion and small wins"
+   ],
+   "ages": [
+    26,
+    33
    ]
   },
   {
@@ -220,6 +224,10 @@
     "thesis",
     "teaching sections",
     "library"
+   ],
+   "ages": [
+    23,
+    31
    ]
   },
   {
@@ -239,6 +247,10 @@
    "eras": [
     "modern",
     "jazz-age"
+   ],
+   "ages": [
+    18,
+    22
    ]
   },
   {
@@ -756,6 +768,11 @@
    ],
    "eras": [
     "jazz-age"
+   ],
+   "worked_by": "men",
+   "ages": [
+    18,
+    22
    ]
   },
   {
@@ -846,6 +863,10 @@
    ],
    "eras": [
     "jazz-age"
+   ],
+   "ages": [
+    18,
+    32
    ]
   },
   {
@@ -885,7 +906,8 @@
    ],
    "needs": [
     "docks"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "fisherman",
@@ -924,7 +946,8 @@
    ],
    "eras": [
     "jazz-age"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "taxi-driver",
@@ -978,7 +1001,8 @@
    ],
    "eras": [
     "jazz-age"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "department-store-clerk",
@@ -1050,7 +1074,8 @@
    ],
    "eras": [
     "jazz-age"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "milkman",
@@ -1068,7 +1093,8 @@
    ],
    "eras": [
     "jazz-age"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "factory-hand",
@@ -1176,7 +1202,8 @@
    ],
    "eras": [
     "jazz-age"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "telegraph-operator",
@@ -1230,7 +1257,8 @@
    ],
    "eras": [
     "jazz-age"
-   ]
+   ],
+   "worked_by": "men"
   },
   {
    "id": "private-detective",
@@ -1682,7 +1710,11 @@
    "eras": [
     "jazz-age"
    ],
-   "adult": true
+   "adult": true,
+   "ages": [
+    18,
+    38
+   ]
   },
   {
    "id": "art-model",

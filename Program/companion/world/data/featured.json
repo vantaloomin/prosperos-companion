@@ -1,8 +1,8 @@
 {
  "schema_version": 1,
- "release": "0.8",
- "title": "Featured in v0.8 · Out on the Town",
- "note": "An old favorite and three new places to call home.",
- "cities": ["baltimore", "grandport", "pellmouth", "osaka"],
- "new_cities": ["grandport", "pellmouth", "osaka"]
+ "release": "0.16",
+ "title": "Featured in v0.16 · Such Stuff as Dreams",
+ "note": "A generation ship to call home, and three favorites back on the ground.",
+ "cities": ["long-meridian", "baltimore", "grandport", "osaka"],
+ "new_cities": ["long-meridian"]
 }

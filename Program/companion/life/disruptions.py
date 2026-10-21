@@ -56,6 +56,8 @@ TABLES = {
                            'a friend needed a favor', 'the laundry could not wait any longer',
                            'a bill turned out to be overdue'),
 }
+# Aboard a ship or station (companion/world/ships.py) there are no buses or traffic.
+AFLOAT = {'missed the bus': 'missed the tram', 'traffic was a mess': 'the lifts were packed'}
 CHANGES = {'cancelled': {'kind': 'leisure', 'label': 'Quiet night in'},
            'came_up': {'kind': 'errand', 'label': 'Something came up'},
            'drop_by': {'kind': 'social', 'label': 'Company'}}
@@ -66,9 +68,9 @@ def enabled(connection) -> bool:
     return ACTIVE and bool(row and row['day_shifts'])
 
 
-def roll(seed: str, block: dict, company=(), tilt: dict | None = None) -> dict | None:
+def roll(seed: str, block: dict, company=(), tilt: dict | None = None, aboard: bool = False) -> dict | None:
     """The shift for one slot ({key, minutes, reason, friend, text}), or None for a day as planned. `tilt`
-    multiplies rows' weights (see `tilts`)."""
+    multiplies rows' weights (see `tilts`); `aboard` a ship or station, the reasons fit it."""
     if block['kind'] not in TABLES or block.get('holiday') or block.get('sick_day'):
         return None
     draws = Draws(seed)
@@ -81,6 +83,7 @@ def roll(seed: str, block: dict, company=(), tilt: dict | None = None) -> dict |
     minutes = low + draws.die(high - low + 1, 'shift', 'minutes') - 1 if key in MINUTES else 0
     friend = company[draws.die(len(company), 'shift', 'friend') - 1] if key == 'drop_by' else None
     reason = chain[1]['text'] if len(chain) > 1 else ''
+    reason = AFLOAT.get(reason, reason) if aboard else reason
     text = chain[0]['text'].format(minutes=minutes, reason=reason, friend=friend['name'] if friend else '')
     return {'key': key, 'minutes': minutes, 'reason': reason, 'friend': friend, 'text': text}
 

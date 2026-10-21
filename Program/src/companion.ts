@@ -23,6 +23,8 @@ export type View = 'conversation' | 'chats' | 'dating' | 'story' | 'today' | 'fe
   | 'map' | `map/${string}`
   /** Our year so far (src/features/year), opened from Memories and from Today on an anniversary. */
   | 'year'
+  /** Observer mode (src/features/watch): just watching the world go on. */
+  | 'watch'
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

@@ -51,6 +51,7 @@ from companion.life import (
     recommendations,
     rough_patches,
     routine,
+    stays,
     steps,
     storylines,
     their_people,
@@ -63,7 +64,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
-from companion.world import generators, inside
+from companion.world import generators, inside, ships
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
@@ -189,6 +190,7 @@ def extend(connection, companion, world, now) -> dict:
     wedding.advance(connection, companion, now)
     expecting.advance(connection, companion, world, now)  # Before the big days: a pregnancy brings a baby shower.
     our_child.advance(connection, companion, world, now)
+    stays.plan_ahead(connection, companion, now)  # After the breakups and custody: stays with the other parent.
     loss.advance(connection, companion, now)  # Before the big days: a death brings a funeral.
     big_days.advance(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
@@ -245,7 +247,8 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     written = 0
     scope = {'timeline_id': timeline_id, 'subject': subject, 'definition': definition, 'basis': basis, 'world': world,
              'shifting': disruptions.enabled(connection), 'now': now, 'companion': companion, 'timezone': timezone,
-             'era': (circle.city_data(definition, world) or {}).get('era')}
+             'era': (circle.city_data(definition, world) or {}).get('era'),
+             'aboard': ships.enclosed(circle.city_data(definition, world))}
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
                     (timeline_id, subject, slot.key)):
@@ -319,7 +322,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                                  slot.local_date.isoformat()) if subject == COMPANION else None
         if subject == COMPANION and block['kind'] == 'work':
             tilt = work.tilt(connection, scope['companion'], slot.local_date, tilt)
-        shift = disruptions.roll(f'{seed}:shift', block, company, tilt)
+        shift = disruptions.roll(f'{seed}:shift', block, company, tilt, scope['aboard'])
     starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
     block = disruptions.shifted(block, shift)
     if shift and shift['friend']:
@@ -642,8 +645,8 @@ def forget_person(connection, timeline_id, person_id, now):
 
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
-    older = circle.older_era(connection, timeline_id)  # 'mother', not 'mom', in 1895 (circle.era_word).
-    result, known = [], circle.ties(circle.people(connection, timeline_id), older)
+    said = circle.voice_of(connection, timeline_id)  # 'mother', not 'mom', in 1895; 'mum' in London (circle.era_word).
+    result, known = [], circle.ties(circle.people(connection, timeline_id), said == 'older')
     # Not at work: at the wedding, or at their own big day (companion/life/big_days.py), as its scene says.
     at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
     data = circle.city_of_timeline(connection, timeline_id)  # Its own kinds (companion/world/lifespans.py).
@@ -652,7 +655,7 @@ def circle_view(connection, timeline_id, now, include_removed=False) -> list[dic
         if row['status'] != 'active' and not include_removed and not late:
             continue  # Someone late stays on the list (companion/life/loss.py); someone removed only when asked.
         person = circle.view(row, data) | ({'loss': loss.of_person(connection, row['id'])} if late else {})
-        person['role'] = circle.era_word(person['role'], older)
+        person['role'] = circle.era_word(person['role'], said)
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \
             row['id'] not in at_wedding else None
         result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),

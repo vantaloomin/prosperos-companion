@@ -467,6 +467,9 @@ class LifeSettingsUpdate(Input):
     guests_realism: int | None = Field(default=None, ge=0, le=3)
     # Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic.
     hobbies_realism: int | None = Field(default=None, ge=0, le=3)
+    memes_realism: int | None = Field(default=None, ge=0, le=3)
+    # Inner voice (companion/life/narrator.py): 0 just what happened, 1 a few thoughts, 2 true to life, 3 everything.
+    inner_voice: int | None = Field(default=None, ge=0, le=3)
     # Getting together (companion/life/together.py): 0 never on their own, 1 light, 2 true to life, 3 often.
     together_realism: int | None = Field(default=None, ge=0, le=3)
     # Rough patches (companion/life/rough_patches.py): 0 off, 1 easy, 2 true to life, 3 dramatic.
@@ -663,6 +666,8 @@ class NewWorld(Input):
     persona_id: str | None = Field(None, min_length=1, max_length=100)
     name: str | None = Field(None, max_length=80)
     city_id: str | None = Field(None, min_length=1, max_length=120)
+    # Watch a city: the world starts just watching (companion/observer.py).
+    watch: bool = False
 
 
 class RecapRead(Input):

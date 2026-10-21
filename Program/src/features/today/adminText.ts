@@ -8,6 +8,8 @@ export const ADMIN_KEY = ['life-admin']
 export function adminWhen(item: AdminItem): string {
   // A late night at work shows how long it runs: "3:30 PM" alone reads as an afternoon (Iris).
   if (item.source === 'work' && item.at_time && item.until) return `${dayText(item.local_date)}, ${timeText(item.at_time)} to ${timeText(item.until)}`
+  // A stay with the other parent runs from its first day to its last (companion/life/stays.py).
+  if (item.end_date && item.end_date !== item.local_date) return `${dayText(item.local_date)} to ${dayText(item.end_date)}`
   const at = item.at_time ? `${dayText(item.local_date)}, ${timeText(item.at_time)}` : dayText(item.local_date)
   return item.place ? `${at} at ${item.place}` : at
 }
@@ -24,5 +26,14 @@ export function adminTags(item: AdminItem, inWorkPanel = false): string[] {
   // Work life's late nights, in Life admin's words for who gives way (Iris): the panel already says it is work.
   if (item.source === 'work' && inWorkPanel) return item.fixed ? ["Won't give way"] : []
   if (item.source === 'work') return [item.fixed ? "Work · won't give way" : 'Work']
+  if (item.source === 'family') return item.status === 'skipped' ? ['Skipped'] : []
   return [item.fixed ? 'Booked' : '', item.cost_text].filter(Boolean)
+}
+
+/** What a stay moves by: 'weekend', 'week' or 'day' (companion/life/stays.py moves it a week on). */
+export function stayUnit(item: AdminItem): string {
+  // A day with them moves to the same day next week, as a weekend does (companion/life/stays.py `move`).
+  if (!item.end_date || item.end_date === item.local_date) return 'week'
+  const days = (Date.parse(item.end_date) - Date.parse(item.local_date)) / 86_400_000 + 1
+  return days >= 6 ? 'week' : 'weekend'
 }

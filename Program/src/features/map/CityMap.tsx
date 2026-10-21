@@ -61,8 +61,10 @@ interface ViewProps { data: CityMapData; street: boolean; failed: boolean; selec
 
 function MapView({ data, street, failed, selected, onSelect, onFail }: ViewProps) {
   if (street) return <Suspense fallback={<Loading label="Loading the street map" />}><StreetMap data={data} selected={selected} onSelect={onSelect} onFail={onFail} /></Suspense>
-  const caption = failed ? `Couldn't load the street map, so this is a drawn map of ${data.city.name}. Neighbourhoods are placed by how they connect, not to scale.`
-    : 'Drawn map. Neighbourhoods are placed by how they connect, not to scale.'
+  // A ship or station's neighborhoods are its decks (companion/world/ships.py).
+  const parts = data.city.enclosed ? 'Decks' : 'Neighborhoods'
+  const caption = failed ? `Couldn't load the street map, so this is a drawn map of ${data.city.name}. ${parts} are placed by how they connect, not to scale.`
+    : `Drawn map. ${parts} are placed by how they connect, not to scale.`
   return <SketchMap data={data} selected={selected} onSelect={onSelect} caption={caption} />
 }
 

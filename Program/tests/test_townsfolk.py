@@ -233,12 +233,13 @@ def test_no_baltimore_resident_teaches_surfing():
 
 
 OLD_WORK = ('london-1895', 'camelot', 'calderwick', 'whitlock', 'ellerbruck')
+JAZZ_AGE = ('new-york-1925', 'pellmouth')
 
 
 def test_the_old_eras_keep_work_by_gender_and_fantasy_and_today_leave_it_open():
-    assert all(generators.by_gender(catalog.city(city)) for city in OLD_WORK)
+    assert all(generators.by_gender(catalog.city(city)) for city in (*OLD_WORK, *JAZZ_AGE))
     # Ellerbruck's fairy-tale customs turn it on; Grandport's republic and Oz leave it open, like today.
-    for city in ('grandport', 'emerald-city', 'new-york-1925', 'baltimore', 'london'):
+    for city in ('grandport', 'emerald-city', 'baltimore', 'london'):
         assert not generators.by_gender(catalog.city(city)), city
     assert not generators.by_gender(catalog.city('london-1895') | {'work_by_gender': False})
 
@@ -265,6 +266,35 @@ def test_in_an_older_era_nobody_works_the_other_sides_job(city_id):
         assert unnamed['occupation'] == resident['occupation']
     # Both sides still have work of their own and work anyone does.
     assert seen['men', 'men'] and seen['women', 'women'] and seen['men', None] and seen['women', None], seen
+
+
+@pytest.mark.parametrize('city_id', JAZZ_AGE)
+def test_in_the_jazz_age_the_few_jobs_still_kept_to_men_go_to_men(city_id):
+    """1925: a riveter, a motorman or a subway guard is a man; the rest of the work is open to anyone."""
+    data = catalog.city(city_id)
+    careers = catalog.careers_for(data)
+    men_only = {key for key, career in careers.items() if career.get('worked_by') == 'men'}
+    assert {'streetcar-motorman', 'longshoreman'} <= men_only or city_id == 'pellmouth'
+    assert not any(career.get('worked_by') == 'women' for career in careers.values())
+    women = {generators.town_career(data, f'w-{n}', pronouns='she/her')['id'] for n in range(400)}
+    assert not women & men_only and len(women) > 20
+    men = {generators.town_career(data, f'm-{n}', pronouns='he/him')['id'] for n in range(400)}
+    assert men & men_only
+
+
+def test_a_job_kept_to_an_age_goes_to_someone_that_age():
+    """A squire is young, a governess not past fifty, a student 18 to 22 (Career.ages)."""
+    camelot, london = catalog.city('camelot'), catalog.city('london-1895')
+    assert list(catalog.careers_for(camelot)['squire']['ages']) == [18, 24]
+    for n in range(300):
+        older = generators.resident(camelot, seed=f'age-{n}', role='friend', age=55, pronouns='he/him')
+        assert not older['job'] or older['job']['career']['id'] != 'squire'
+        assert townsfolk._occupation(camelot, f'old-{n}', 55, 'he/him') != 'squire'
+        assert townsfolk._occupation(london, f'old-{n}', 60, 'she/her') not in ('typist', 'governess')
+    young = {generators.town_career(camelot, f'y-{n}', pronouns='he/him', age=20)['id'] for n in range(400)}
+    assert 'squire' in young
+    assert generators.fits_age({'ages': (18, 24)}, 24) and not generators.fits_age({'ages': (18, 24)}, 25)
+    assert generators.fits_age({'name': 'Baker'}, 64) and generators.fits_age(None, 30)
 
 
 def test_a_they_them_resident_and_a_city_of_today_pick_from_every_job():

@@ -1906,6 +1906,171 @@
     "medieval",
     "fantasy"
    ]
+  },
+  {
+   "text": "harvested the first handful of lettuce from their own grow rack",
+   "post": "First lettuce from my own rack. Tiny. Perfect.",
+   "level": 0,
+   "for": [
+    "hydroponics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got the nutrient mix right for the first time",
+   "post": "Nutrient mix finally balanced. The basil approves.",
+   "level": 1,
+   "for": [
+    "hydroponics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "grew enough greens to cook dinner from the rack",
+   "post": "Dinner straight from the grow rack tonight.",
+   "level": 2,
+   "for": [
+    "hydroponics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got tomatoes to fruit under the lamp",
+   "post": "Tomatoes. Under a lamp. In a cupboard. Unreal.",
+   "level": 3,
+   "for": [
+    "hydroponics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "was asked to help set up the neighbours' racks",
+   "post": "Setting up racks for the whole corridor now.",
+   "level": 4,
+   "for": [
+    "hydroponics"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got the tank cycled and added the first fish",
+   "post": "Tank cycled. First fish moved in.",
+   "level": 0,
+   "for": [
+    "fishkeeping"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "kept the water steady for a whole month",
+   "post": "A whole month of steady water. The fish seem smug.",
+   "level": 1,
+   "for": [
+    "fishkeeping"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got the plants in the tank growing properly",
+   "post": "Plants growing in the tank. It looks like a tiny forest.",
+   "level": 2,
+   "for": [
+    "fishkeeping"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "had fish spawn in the tank",
+   "post": "The fish spawned. Tiny fry everywhere.",
+   "level": 3,
+   "for": [
+    "fishkeeping"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "set up a second tank from cuttings and fry of their own",
+   "post": "Second tank, all grown from the first.",
+   "level": 4,
+   "for": [
+    "fishkeeping"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "made a first terrarium that did not mist over completely",
+   "post": "First terrarium. Mostly see-through.",
+   "level": 0,
+   "for": [
+    "terrariums"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got the moss in a terrarium to spread",
+   "post": "The moss is spreading. Tiny green carpet.",
+   "level": 1,
+   "for": [
+    "terrariums"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "made a sealed terrarium that kept itself going",
+   "post": "Sealed it a month ago. Still thriving.",
+   "level": 2,
+   "for": [
+    "terrariums"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "gave terrariums as gifts to friends",
+   "post": "Gave out terrariums. Everyone wants another.",
+   "level": 3,
+   "for": [
+    "terrariums"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "sold terrariums at the market",
+   "post": "Sold out of terrariums at the market.",
+   "level": 4,
+   "for": [
+    "terrariums"
+   ],
+   "eras": [
+    "future"
+   ]
   }
  ],
  "sessions": [

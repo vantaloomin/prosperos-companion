@@ -23,10 +23,29 @@ export function photoLine(photo: ChatPhoto): string | null {
   return LINES[photo.status]?.(photo) ?? null
 }
 
-const KINDS: Record<ChatPhoto['kind'], string> = { moment: 'Photo', selfie: 'Selfie', view: 'Photo of the view', meme: 'Meme picture' }
+const KINDS: Record<Exclude<ChatPhoto['kind'], 'meme'>, string> = { moment: 'Photo', selfie: 'Selfie', view: 'Photo of the view' }
 
 /** Alt text for the picture itself; a meme's captions are real text drawn over it. */
-export const photoAlt = (name: string, photo: ChatPhoto) => `${KINDS[photo.kind]} from ${name}: ${photo.summary}`
+export const photoAlt = (name: string, photo: ChatPhoto) => photo.kind === 'meme' ? memeAlt(name, photo) : `${KINDS[photo.kind]} from ${name}: ${photo.summary}`
+
+/** Where the picture loads from: a template's or GIF's own address, else the image job's file once it is made. */
+export const photoSource = (photo: ChatPhoto, jobFile: (ref: string) => string) => photo.src ?? (photo.ref ? jobFile(photo.ref) : null)
+
+/**
+ * A template's or GIF's own shape, so the chat holds exactly its space. Its width follows from its shape and the most
+ * height it may take, which the stylesheet sets per screen and style (styles.css, .photo-fitted).
+ */
+export function fittedSize(photo: ChatPhoto): Record<string, string> | null {
+  if (!photo.src || !photo.width || !photo.height) return null
+  return { aspectRatio: `${photo.width} / ${photo.height}`, '--fit-ratio': (photo.width / photo.height).toFixed(4) }
+}
+
+/** What a screen reader hears for a meme: its format and its captions, or the GIF's own title. */
+export function memeAlt(name: string, photo: ChatPhoto): string {
+  if (photo.source === 'gif') return `Reaction GIF from ${name}: ${photo.summary}`
+  const captions = [photo.top_text, photo.bottom_text].filter(Boolean).join(' / ')
+  return `Meme from ${name} (${photo.summary})${captions ? `: ${captions}` : ''}`
+}
 
 /** The newest reply that sent a photo of their moment (not a meme), for the Visual novel stage's backdrop. */
 export function latestPhotoId(messages: Message[]): string | null {

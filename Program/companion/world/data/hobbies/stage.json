@@ -1830,6 +1830,61 @@
     "medieval",
     "fantasy"
    ]
+  },
+  {
+   "text": "played a first small part in an immersive night",
+   "post": "Played a small part. Stayed in character.",
+   "level": 0,
+   "for": [
+    "immersive-theatre"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got a speaking part in the next run",
+   "post": "Speaking part in the next run.",
+   "level": 1,
+   "for": [
+    "immersive-theatre"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "improvised through a scene that went off script",
+   "post": "The scene went off script. I kept going.",
+   "level": 2,
+   "for": [
+    "immersive-theatre"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "played a lead in a full run",
+   "post": "Played a lead for the whole run.",
+   "level": 3,
+   "for": [
+    "immersive-theatre"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "wrote a story for the company to play",
+   "post": "The company is playing my story.",
+   "level": 4,
+   "for": [
+    "immersive-theatre"
+   ],
+   "eras": [
+    "future"
+   ]
   }
  ],
  "sessions": [

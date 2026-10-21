@@ -26,6 +26,7 @@ an entry is done (`purchases`). The Realism tab's Life admin slider (on the home
 is: off, light (only what comes due), true to life, or dramatic (more errands, and surprises).
 """
 import json
+import re
 from datetime import date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
@@ -33,8 +34,8 @@ from pathlib import Path
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import home, money, outings, own_plans, routine, traditions, trips
-from companion.world import catalog, generators
+from companion.life import home, money, outings, own_plans, routine, stays, traditions, trips
+from companion.world import catalog, generators, looks
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'life_admin.json'
 # Seeded appointments, errands and surprises; their tests turn them on (tests/conftest.py turns them off).
@@ -67,6 +68,8 @@ CAPTIONS = ('One less thing.', 'Crossed off the list.', 'Adulting.', 'Done and d
             'That was the boring part of the week.', 'Finally.')
 ERA_GROUPS = {'modern': 'modern', 'future': 'modern', 'other': 'modern', 'jazz-age': 'industrial',
               'victorian': 'industrial', 'steampunk': 'industrial', 'frontier': 'industrial'}
+# Eras before women had the vote (London 1895: no polling station for her); from the jazz age on, everyone has it.
+VOTELESS_ERAS = {'victorian', 'steampunk', 'frontier', 'medieval'}
 # Place kinds an entry can name a real place of; a shop or workshop could be any kind, so those stay unnamed.
 NAMED_PLACES = {'library', 'market', 'guildhall', 'temple', 'docks', 'fitness', 'park', 'cafe'}
 REASONS = {'clash': 'moved for a plan', 'put-off': 'put off', 'user': 'moved by you', 'away': 'moved for a trip'}
@@ -357,10 +360,17 @@ def user_move(connection, companion: dict, entry_id: str, now: datetime) -> dict
 
 # --- Seeded appointments, deadlines, errands and surprises ---
 
+def votes(definition: dict) -> bool:
+    """Whether they have a vote at the polling station: not a woman in an era before women's votes (VOTELESS_ERAS)."""
+    city = money.city_for(definition)
+    side = generators.SIDES.get(looks.pronouns_of(definition).split('/')[0])
+    return side != 'women' or not city or city.get('era', 'modern') not in VOTELESS_ERAS
+
+
 def owns(definition: dict, connection, timeline_id: str, day: date) -> set[str]:
     """What the companion has that some admin needs: a car, a horse, a rented home (not one they own), glasses, a
-    job, a business they run (companion/life/business.py)."""
-    found = set()
+    job, a business they run (companion/life/business.py), a vote."""
+    found = {'vote'} if votes(definition) else set()
     for item in home.items_on(connection, timeline_id, day):
         if item['kind'] == 'vehicle' and item['variety'] in ('car', 'motorcar', 'horse'):
             found.add('horse' if item['variety'] == 'horse' else 'car')
@@ -681,12 +691,19 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
     """Done entries this pay period with a cost, as money.household purchases. What a child's coming costs (the
-    nursery, an agency: "journey:" keys) is shown here but paid through companion/life/expecting.py `purchases`."""
+    nursery, an agency: "journey:" keys) is shown here but paid through companion/life/expecting.py `purchases`.
+    Each says what they did ("dropped the cracked phone at the repair counter"), not its title, which read as an
+    order after "you" (A/B 2026-10-20); a check-up of their own is "your" check-up to the companion."""
     rows = many(connection, "SELECT * FROM life_admin WHERE timeline_id=? AND status='done' AND local_date>=? AND "
                 "local_date<=? AND (cost>0 OR spend!='') AND key NOT LIKE 'journey:%'",
                 (timeline_id, start.isoformat(), day.isoformat()))
-    return [{'text': row['title'][:1].lower() + row['title'][1:], 'date': row['local_date'], 'spend': row['spend'],
-             'cost': row['cost'] or None, 'for': 'admin'} for row in rows]
+    result = []
+    for row in rows:
+        done = row['done_text'] or row['title'][:1].lower() + row['title'][1:]
+        said = re.sub(r'\btheir\b', 'your', done) if row['source'] == 'health' else done
+        result.append({'text': said, 'shown': done, 'date': row['local_date'], 'spend': row['spend'],
+                       'cost': row['cost'] or None, 'for': 'admin'})
+    return result
 
 
 # --- What Today and the Character page show ---
@@ -796,7 +813,8 @@ def overview(connection, companion: dict, now, show_meter: bool = False) -> dict
     definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
     today = local_now(companion, now).date()
     items = [item_view(item, definition) for item in upcoming(connection, timeline_id, today.isoformat())]
-    shown = by_day([*items, *home_items(connection, companion, today, today + timedelta(days=AHEAD), now)])
+    shown = by_day([*items, *home_items(connection, companion, today, today + timedelta(days=AHEAD), now),
+                    *stays.items(connection, companion, now)])  # Stays with the other parent (stays.py).
     done = many(connection, "SELECT * FROM life_admin WHERE timeline_id=? AND status='done' AND local_date>=? "
                 'ORDER BY local_date DESC, at_time DESC LIMIT 8', (timeline_id, (today - timedelta(days=30)).isoformat()))
     kind = habit(definition)

@@ -209,7 +209,8 @@ function PausedTime({ name, onDone }: { name: string; onDone: (text: string) => 
 function Plans({ data, name, go }: { data: TodayData; name: string; go: (view: View) => void }) {
   const { shared, companion, threads } = data.plans
   const admin = data.plans.admin ?? []
-  if (!shared.length && !companion.length && !threads.length && !admin.length) return null
+  const stays = data.plans.stays ?? []
+  if (![shared, companion, threads, admin, stays].some((list) => list.length)) return null
   return (
     <section className="today-section" aria-labelledby="plans-heading">
       <h2 id="plans-heading">Plans</h2>
@@ -218,6 +219,10 @@ function Plans({ data, name, go }: { data: TodayData; name: string; go: (view: V
         <ul className="plain-list">{shared.map((plan) => <li key={plan.id}><strong>{plan.subject}</strong>: {plan.value} <span className="badge">{plan.status}</span></li>)}</ul>
       </>}
       {companion.length > 0 && <><h3>{name}'s</h3><ul className="event-list">{companion.map((event) => <EventItem key={event.id} event={event} />)}</ul></>}
+      {stays.length > 0 && <>
+        <h3>Stays with the other parent</h3>
+        <AdminList items={stays} />
+      </>}
       {admin.length > 0 && <>
         <h3>Errands and appointments</h3>
         <AdminList items={admin.slice(0, FOLD)} fold={null} />

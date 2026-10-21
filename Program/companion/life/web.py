@@ -83,7 +83,7 @@ def add_companion(connection, web: Web, companion: dict, now):
     for tie in pairs.ties(connection, companion, now):
         web.link(key, pairs.companion_key(tie['companion_id']), tie['how'] or 'know each other', 'friend')
     timeline_id = companion['active_timeline_id']
-    add_circle(web, key, circle.people(connection, timeline_id), circle.older_era(connection, timeline_id))
+    add_circle(web, key, circle.people(connection, timeline_id), circle.voice_of(connection, timeline_id))
     met = network.acquaintances(connection, timeline_id, now)
     # Everyone first, then the ties: newest come first, so a friend of a friend can be listed before the friend.
     for person in met:
@@ -94,14 +94,14 @@ def add_companion(connection, web: Web, companion: dict, now):
     add_townsfolk(web, key, encounters.known(connection, companion, now))
 
 
-def add_circle(web: Web, key: str, rows: list[dict], older: bool = False):
+def add_circle(web: Web, key: str, rows: list[dict], said: bool | str = False):
     for row in rows:
         person = circle.view(row)
-        role = circle.era_word(person['role'], older)  # 'mother' in 1895.
+        role = circle.era_word(person['role'], said)  # 'mother' in 1895, 'mum' in London (circle.voice).
         web.add(person['key'], person.get('full_name') or person['name'], 'circle', role)
         web.link(key, person['key'], role)
     by_id = {row['id']: row['seed'] for row in rows}
-    for person_id, known in circle.ties(rows, older).items():
+    for person_id, known in circle.ties(rows, said in (True, 'older')).items():
         for other in known:
             web.link(by_id[person_id], by_id[other['id']], other['how'])
 

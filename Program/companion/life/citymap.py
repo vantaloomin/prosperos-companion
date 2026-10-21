@@ -135,7 +135,8 @@ def build(connection, companion: dict, now, story_on: bool) -> dict:
             places.append(place_view(place, hood, pins, by_place.get(place['id'], []), people.get(place['id'], []), data.get('era')))
     found = home_pin(connection, companion, data, hoods, now)
     next_to = neighbours(list(hoods.values()))
-    return {'city': {'id': data['id'], 'name': data['name'], 'lat': data['lat'], 'lon': data['lon'], 'real': real(data)},
+    return {'city': {'id': data['id'], 'name': data['name'], 'lat': data['lat'], 'lon': data['lon'], 'real': real(data),
+                     'enclosed': data.get('enclosed') is True},
             'hoods': [{'id': hood['id'], 'name': hood['name'], 'lat': hood['lat'], 'lon': hood['lon'],
                        'next': next_to[hood['id']]} for hood in hoods.values()],
             'places': ([found] if found else []) + places, 'water': data.get('water') or [], 'story': story_on}

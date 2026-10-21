@@ -644,7 +644,8 @@ def other_text(connection, companion: dict, row: dict) -> tuple[str, str]:
     other = circle.person(connection, row['other_id'])
     found = decode(other['details']).get('pronouns', '')
     words = OLD_OTHER_WORDS if not modern(companion) else OTHER_WORDS
-    return f"their {words.get(found, 'other parent')} {other['name']}", first(other['name'])
+    word = circle.said(words.get(found, 'other parent'), companion['version']['definition'])  # 'mum' in London.
+    return f"their {word} {other['name']}", first(other['name'])
 
 
 def modern(companion: dict) -> bool:
@@ -799,10 +800,11 @@ def today_line(connection, companion: dict, now) -> tuple[str, str] | None:
     them, _name = other_text(connection, companion, row)
     who = 'the kids' if len(kids) > 1 else first(kids[0]['name'])
     since = date.fromisoformat(row['since'])
-    here = with_them(pattern, since, today) or at_dinner_on(connection, companion, today)
+    here = here_on(connection, row, pattern, since, today) or at_dinner_on(connection, companion, today)
     where = 'with you' if here else f'with {them}'
     line = f"- Today {who} {'are' if len(kids) > 1 else 'is'} {where}."
-    if not here and (coming := next_weekend(pattern, since, today)):
+    if not here and (coming := next_weekend(pattern, since, today,
+                                            lambda day: here_on(connection, row, pattern, since, day))):
         _them, name = other_text(connection, companion, row)
         whom = 'them' if len(kids) > 1 else first(kids[0]['name'])
         has = 'them' if len(kids) > 1 else families.fill_child('{them}', kids[0])
@@ -810,15 +812,22 @@ def today_line(connection, companion: dict, now) -> tuple[str, str] | None:
     return f'kids:today:{here}', line
 
 
-def next_weekend(pattern: str, since: date, today: date) -> str | None:
+def here_on(connection, row: dict, pattern: str, since: date, day: date) -> bool:
+    """Whether the kids are with the companion on this day: as the stays with their other parent say
+    (companion/life/stays.py), else by the pattern."""
+    from companion.life import stays
+    return stays.with_companion(stays.rows_for(connection, row['timeline_id'], stays.KIDS, row['other_id']), day,
+                                with_them(pattern, since, day))
+
+
+def next_weekend(pattern: str, since: date, today: date, here=None) -> str | None:
     """'This Saturday and Sunday (10 and 11 October)': the next weekend the kids spend with them, when they live with
     the other parent (A/B 2026-10-19: 6/6 said whose weekend it is, 0/6 without)."""
     if pattern != 'weekends':
         return None
-    saturday = next((today + timedelta(days=offset) for offset in range(1, 15)
-                     if (today + timedelta(days=offset)).weekday() == 5 and with_them(pattern, since,
-                                                                                     today + timedelta(days=offset))),
-                    None)
+    here = here or (lambda day: with_them(pattern, since, day))
+    saturday = next((day for day in (today + timedelta(days=offset) for offset in range(1, 15))
+                     if day.weekday() == 5 and here(day)), None)
     if saturday is None:
         return None
     sunday = saturday + timedelta(days=1)

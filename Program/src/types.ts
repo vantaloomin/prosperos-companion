@@ -63,7 +63,24 @@ export interface ChatPhoto {
   unasked: boolean
   /** The shape it is made in; the chat holds that space while it loads. Older servers leave it out. */
   aspect?: 'square' | 'landscape' | 'portrait'
+  /** A meme's picture: made by an image model, a template on this computer, or a reaction GIF (companion/images/gifs.py). */
+  source?: 'model' | 'template' | 'gif'
+  /** A template's or GIF's own address and size, there from the start; null for a picture an image model makes. */
+  src?: string | null
+  width?: number | null
+  height?: number | null
+  /** A template's text boxes as fractions of the picture, top to bottom; empty for the classic top and bottom lines. */
+  boxes?: MemeBox[]
+  /** A GIF's page on GIPHY. */
+  page?: string
+  /** A GIF's first frame, shown instead while motion is reduced. */
+  still?: string
 }
+
+export interface MemeBox { x: number; y: number; w: number; h: number }
+
+/** Where meme pictures come from (Settings > Images > Memes and GIFs). */
+export interface MemeSources { folder: string; mine: number; pack: number; formats_on: boolean; formats_here: number; formats_total: number; gif_key: boolean; key_here: boolean }
 
 export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean }
 
@@ -481,6 +498,10 @@ export interface LifeSettings {
   media_realism: number
   /** Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   hobbies_realism: number
+  /** Memes and GIFs (companion/images/photos.py): how often memes come unasked, 0 never (none at all) to 3 often. */
+  memes_realism: number
+  /** Inner voice (companion/life/narrator.py): how much of what is on their mind the Watching page tells, 0 to 3. */
+  inner_voice: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
@@ -713,7 +734,7 @@ export interface Today {
   routine: { default_schedule: boolean; current: RoutineSlot | null; next: RoutineSlot | null }
   changes: LifeEvent[]
   review: LifeEvent[]
-  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[]; admin?: AdminItem[] }
+  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[]; admin?: AdminItem[]; stays?: AdminItem[] }
   feed_unread: number
   last_run: LifeRun | null
   paused: boolean
@@ -961,7 +982,7 @@ export interface ImageBackend {
   experimental: boolean
 }
 
-export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
@@ -1845,6 +1866,8 @@ export interface Dating {
   profile: DatingProfile | null
   /** Settings > Debug > 100% Matchlight matches is on. */
   all_matches?: boolean
+  /** Just watching (companion/observer.py): Matchlight waits until the user steps back in. */
+  watching?: boolean
   /** Who the user is in this world, so a new profile starts filled in. */
   persona?: { name: string; gender: string; age: number | null; about: string } | null
   /** Whether Story mode is on, so a match can be met there. */
@@ -2036,6 +2059,8 @@ export interface World {
   first: boolean
   /** Its companions' names, main character first. */
   companions: string[]
+  /** Whether the user is just watching it (Observer mode, companion/observer.py). */
+  watching?: boolean
   /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
   home: WorldHome | null
 }
@@ -2084,7 +2109,7 @@ export interface TownsfolkMix {
 export interface AdminItem {
   id: string
   key: string
-  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks' | 'work'
+  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks' | 'work' | 'family'
   kind: string
   title: string
   /** What just happened, for a surprise ("A parking ticket was tucked under the wiper"). */
@@ -2093,7 +2118,7 @@ export interface AdminItem {
   at_time: string
   until: string
   fixed: boolean
-  status: 'planned' | 'done' | 'removed'
+  status: 'planned' | 'done' | 'removed' | 'skipped'
   place: string
   moved_from: string | null
   /** "moved for a plan", "put off", "moved by you", "moved for a trip", or empty. */
@@ -2105,6 +2130,20 @@ export interface AdminItem {
   movable: boolean
   /** A late night's project, shown under its title (companion/life/work.py); empty otherwise. */
   detail?: string
+  /** The last day of a stay that runs several days (companion/life/stays.py). */
+  end_date?: string
+  /** A stay with the other parent (companion/life/stays.py): moved or skipped by the user while still to come, and a
+   * skip taken back. */
+  stay?: StayActions
+}
+
+export interface StayActions {
+  id: string
+  status: 'planned' | 'skipped'
+  can_change: boolean
+  undo: boolean
+  /** The make-up's first day, on a skipped stay (shown under it, Iris). */
+  made_up?: string | null
 }
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
@@ -2181,3 +2220,21 @@ export interface MediaView {
   numbers?: { reader: number; watcher: number; library: boolean; drop: number; recommend: number
     items: Record<string, { along: number; days_left: number; ends: 'finish' | 'put down' }> }
 }
+
+/** Someone the Watching page can follow (companion/life/narrator.py): a companion or a townsperson. */
+export interface WatchFocus {
+  key: string
+  kind: 'companion' | 'townsperson'
+  name: string
+  /** Who they are in a few words: "Your companion, nurse", "Line cook at Blue Moon Cafe". */
+  line: string
+  companion_id?: string
+  town_key?: string
+}
+/** Observer mode (companion/observer.py): whether the user is just watching, who the page follows and who else it could. */
+export interface Observer { watching: boolean; started_at: string | null; focus: WatchFocus | null; choices: WatchFocus[] }
+export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chapter' | 'news' | 'mood' | 'met' | 'family' | 'loss' | 'private'
+/** One line of a watched day: what happened, with a thought after it and, under Hidden values, its numbers. */
+export interface WatchLine { id: string; at: string; kind: WatchKind; text: string; inner: string | null; numbers: string[] }
+export interface WatchDay { date: string; entry: string | null; items: WatchLine[] }
+export interface WatchFeed { focus: WatchFocus; voice: number; timezone: string; shown: { moods: boolean; odds: boolean }; days: WatchDay[] }

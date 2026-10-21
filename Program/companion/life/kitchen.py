@@ -127,10 +127,13 @@ ERA_BANKS = {'jazz-age': 'jazz-age-us', 'victorian': 'victorian-uk', 'steampunk'
 
 
 def bank_for(data: dict | None) -> str:
-    """The bank for the city's era and country: modern cities by country, past ones by era."""
+    """The bank for the city's era and country: modern cities by country, past ones by era, and the future its own
+    (grown, printed and tank-farmed food, for future cities, ships and stations)."""
     if not data:
         return 'modern-us'
     era, country = (data.get('era') or 'modern'), (data.get('country') or '').casefold()
+    if era == 'future':
+        return 'future'
     if era not in MODERN:
         return ERA_BANKS.get(era, 'old-world')
     return next((bank_id for bank_id, names in COUNTRY_BANKS
@@ -138,7 +141,7 @@ def bank_for(data: dict | None) -> str:
 
 
 def modern_bank(bank_id: str) -> bool:
-    return bank_id.startswith('modern')
+    return bank_id.startswith('modern') or bank_id == 'future'
 
 
 # --- Who they are in the kitchen ---

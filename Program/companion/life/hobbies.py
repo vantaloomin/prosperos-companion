@@ -33,11 +33,14 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, routine
-from companion.world import generators, wording
+from companion.world import generators, ships, wording
 
 COMPANION = 'companion'
 BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'hobbies'
 MODERN = {'modern', 'future'}
+# Pastimes that need open country, sea or snow.
+EARTHBOUND = {'surfing', 'rowing', 'hiking', 'birdwatching', 'fishing', 'camping', 'foraging', 'kayaking', 'golf',
+              'skiing'}
 # Practice sessions are woven into the companion's agenda, and now and then a milestone or an invitation opens a
 # conversation; tests turn these off.
 WEAVE = True
@@ -98,12 +101,19 @@ def by_id() -> dict[str, dict]:
 
 
 def in_era(eras, era: str) -> bool:
-    return 'any' in eras or era in eras
+    """Whether a pastime or line belongs to the era; the future keeps today's as well as its own."""
+    return 'any' in eras or era in eras or era == 'future' and 'modern' in eras
 
 
 def era_of(data: dict | None) -> str:
     era = (data or {}).get('era') or 'modern'
-    return 'modern' if era in MODERN else era
+    return era if era == 'future' else 'modern' if era in MODERN else era
+
+
+def fits_city(item: dict, data: dict | None) -> bool:
+    """Aboard a ship or station (companion/world/ships.py) the app never hands out a pastime that needs open
+    country, sea or snow."""
+    return item['id'] not in EARTHBOUND or not ships.enclosed(data)
 
 
 @cache
@@ -198,7 +208,7 @@ def choose_new(seed: str, label: str, definition: dict, data: dict | None, have:
     kinds_had = {row['kind'] for row in have if row['status'] != 'dropped'}
     leaning = natures(definition)
     options = [item for item in catalogue()['hobbies'] if in_era(item['eras'], era) and item['id'] not in taken
-               and available(item, data)]
+               and available(item, data) and fits_city(item, data)]
     weights = [(3.0 if catalogue()['kinds'][item['kind']]['nature'] in leaning else 1.0) *
                (0.4 if item['kind'] in kinds_had else 1.0) for item in options]
     return generators.pick(seed, label, options, weights)

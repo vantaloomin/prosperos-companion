@@ -1503,6 +1503,116 @@
    "eras": [
     "modern"
    ]
+  },
+  {
+   "text": "made a sound on the synth that they actually liked",
+   "post": "Made a sound I like. Saving that patch forever.",
+   "level": 0,
+   "for": [
+    "synth"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "built a patch from scratch without a guide",
+   "post": "First patch from scratch. It bloops beautifully.",
+   "level": 1,
+   "for": [
+    "synth"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "recorded a full track on the synth",
+   "post": "A whole track. Start to finish.",
+   "level": 2,
+   "for": [
+    "synth"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "played a short synth set at an open night",
+   "post": "Played a synth set in front of people.",
+   "level": 3,
+   "for": [
+    "synth"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "had a track picked up for a local broadcast",
+   "post": "My track is on the local broadcast tonight.",
+   "level": 4,
+   "for": [
+    "synth"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "played a scale on the theremin that sounded like a scale",
+   "post": "A scale. On a theremin. Recognisably.",
+   "level": 0,
+   "for": [
+    "theremin"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "learned to hold a note steady in the air",
+   "post": "Held a note steady. Hands of stone.",
+   "level": 1,
+   "for": [
+    "theremin"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "played a whole tune from start to finish",
+   "post": "A whole tune. Eerie and lovely.",
+   "level": 2,
+   "for": [
+    "theremin"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "played the theremin at an open night",
+   "post": "Played the theremin at open night. People went quiet.",
+   "level": 3,
+   "for": [
+    "theremin"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "was asked to play for a theatre production",
+   "post": "Playing theremin for the theatre run.",
+   "level": 4,
+   "for": [
+    "theremin"
+   ],
+   "eras": [
+    "future"
+   ]
   }
  ],
  "sessions": [

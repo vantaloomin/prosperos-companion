@@ -6,8 +6,10 @@ simulation will compose it (the same agenda entry, plan and seed), so the reply,
 event that slot becomes all tell one account. It is made on a feed post keyed to that future event
 (`feed.PHOTO_KEY`); when the simulation writes the event it joins that post, so the feed shows the
 same picture and the event exists once. Until then the post has no event and stays out of the feed.
-A meme is a joke, not an event: its captions come from templates (`memes.py`) and its picture is
-made on a post of its own that never reaches the feed.
+A meme is a joke, not an event: its captions come from templates (`memes.py`) and its picture is a
+template on this computer (`meme_pictures.py`), a reaction GIF with the user's own GIPHY key (`gifs.py`),
+or, now and then when an image model is set up, made on a post of its own that never reaches the feed.
+How often memes come unasked follows Realism > Their days > "Memes and GIFs".
 
 The companion also sends pictures nobody asked for, like a person would: now and then with a reply
 (a seeded chance, a meme more likely when the user sounds bored or down), and, when they may text
@@ -21,13 +23,14 @@ with nowhere to go sends nothing, and nothing here ever holds up the reply.
 import random
 import re
 from datetime import timedelta
+from urllib.parse import quote
 
 from companion import events
 from companion.characters import current, require_current
 from companion.clock import parse, stamp, zone
-from companion.database import decode, many, one, optional, settings
+from companion.database import decode, encode, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.images import jobs, memes, prompts
+from companion.images import content, gifs, jobs, meme_pictures, memes, prompts
 from companion.life import agenda, composer, families, feed, routine, simulation
 from companion.life.openers import Trigger, held
 from companion.life.synthesis import PROMPT_VERSION as WORDING_VERSION
@@ -45,7 +48,7 @@ SELFIE = re.compile(r"\bselfies?\b|\b(?:pic|picture|photo)s? of (?:you|u|yoursel
                     r"|\bsee (?:your face|you)\b", re.IGNORECASE)
 VIEW = re.compile(r"\b(?:pic|picture|photo|show me)\b.{0,20}\b(?:the view|your view|what you(?:'re| are)? see"
                   r"(?:ing)?|where you are|around you)\b", re.IGNORECASE)
-MEME = re.compile(r"\bmemes?\b|\bmake me (?:laugh|smile)\b|\bcheer me up\b|\bi need a laugh\b",
+MEME = re.compile(r"\bmemes?\b|\bgifs?\b|\bmake me (?:laugh|smile)\b|\bcheer me up\b|\bi need a laugh\b",
                   re.IGNORECASE)
 # Asking about another time is not asking what they are doing now.
 ELSEWHEN = re.compile(r"\b(?:tomorrow|tonight|later|yesterday|last (?:night|week|weekend)|earlier|next|this "
@@ -58,6 +61,18 @@ DOWN = re.compile(r"\b(?:bored|boring|bad day|rough day|long day|ugh+|stress(?:e
 UNASKED = True
 UNASKED_CHANCE = 0.15
 UNASKED_MEME_CHANCE = 0.5
+# Memes and GIFs (life_settings.memes_realism): never, now and then, true to life, often. Scales the chance
+# above; at "often" any reply may come with one.
+MEME_LEVELS = (0, 0.5, 1, 1.4)
+OFTEN_CHANCE = 0.05
+# With a GIPHY key, a meme is a reaction GIF this often; with an image model, its picture is made by the model
+# this often. Otherwise it is a template on this computer.
+GIF_SHARE = 1 / 3
+MODEL_SHARE = 1 / 3
+# Memes belong to cities of today and of the future, not to 1895 or Camelot.
+MEME_ERAS = {'modern', 'future'}
+# A meme never goes with words about anyone young or anything adult (content.py's lists).
+NOT_FOR_MEMES = {'minor', 'sexual', 'nudity', 'sexual_violence', 'uncertain'}
 UNASKED_SELFIE_SHARE = 1 / 3
 UNASKED_DAILY = 3
 UNASKED_GAP = timedelta(hours=2)
@@ -72,7 +87,7 @@ def asked_kind(text: str) -> str | None:
     """Which picture a message asks for: 'meme', 'selfie', 'view', 'moment', or None."""
     text = text or ''
     if MEME.search(text):
-        return 'meme'
+        return 'gif' if gifs.GIF_ASK.search(text) else 'meme'
     if ELSEWHEN.search(text):
         return None
     if SELFIE.search(text):
@@ -98,6 +113,15 @@ def wording(connection, composed, prepared) -> dict:
     return {'summary': composed['summary'], 'post': composed['post']}
 
 
+def memes_level(connection) -> int:
+    row = optional(connection, 'SELECT memes_realism FROM life_settings WHERE id=1')
+    return row['memes_realism'] if row and row['memes_realism'] in range(4) else 2
+
+
+def memes_fit(text: str) -> bool:
+    return not content.matches(content.normalize(text or '')) & NOT_FOR_MEMES
+
+
 def place_text(place) -> str:
     return place.get('name', '') if isinstance(place, dict) else ''
 
@@ -108,23 +132,37 @@ def place_area(place) -> str | None:
 
 
 class ChatPhotos:
-    def __init__(self, database, images, life, openers=None):
+    def __init__(self, database, images, life, openers=None, vault=None):
         self.database = database
         self.images = images
         self.life = life
         # Writes photo texts as first messages (companion/life/openers.py); set by the app.
         self.openers = openers
+        # Holds the user's GIPHY key, if any (gifs.py).
+        self.vault = vault
 
     def for_message(self, user, attempt_id) -> dict | None:
         """The picture this reply sends, recorded against the reply, or None. Never raises."""
         try:
             kind = asked_kind(user['text'])
+            if kind in MEME_KINDS and not self.memes_fit(user['text']):
+                return None
             if kind is not None:
                 return self.send(kind, attempt_id)
             kind = self.unasked_kind(user['text'], attempt_id)
+            if kind in MEME_KINDS and not self.memes_fit(user['text']):
+                return None
             return self.send(kind, attempt_id, unasked=True) if kind else None
         except Exception:  # noqa: BLE001 - the reply goes ahead without a picture.
             return None
+
+    def memes_fit(self, text) -> bool:
+        """The words fit a meme, and name nobody young in anyone's life (companion/life/families.py)."""
+        if not memes_fit(text):
+            return False
+        with self.database.connect() as connection:
+            names = families.every_name(connection)
+        return not any(re.search(rf'\b{re.escape(name)}\b', text or '', re.IGNORECASE) for name in names)
 
     def unasked_kind(self, text, attempt_id) -> str | None:
         """Whether this reply comes with a picture nobody asked for, and which: a seeded chance."""
@@ -133,9 +171,12 @@ class ChatPhotos:
             if not UNASKED or companion is None or not jobs.image_settings(connection)['unprompted_photos'] or \
                     not unasked_room(connection, companion['active_timeline_id'], self.database.clock.now()):
                 return None
+            level = memes_level(connection)
         rng = random.Random(attempt_id)
         if DOWN.search(text or ''):
-            return 'meme' if rng.random() < UNASKED_MEME_CHANCE else None
+            return 'meme' if rng.random() < UNASKED_MEME_CHANCE * MEME_LEVELS[level] else None
+        if level == 3 and rng.random() < OFTEN_CHANCE:
+            return 'meme'
         if rng.random() >= UNASKED_CHANCE:
             return None
         return 'selfie' if rng.random() < UNASKED_SELFIE_SHARE else 'moment'
@@ -152,9 +193,8 @@ class ChatPhotos:
             moment = self.moment(connection, companion, now)
             local_hour = now.astimezone(zone(companion['version']['timezone'])).hour
             recent = recent_memes(connection, companion['active_timeline_id'])
-        if kind == 'meme':
-            return self.send_meme(attempt_id, moment, memes.choose(moment, local_hour, attempt_id, recent),
-                                  companion['active_timeline_id'], unasked)
+        if kind in MEME_KINDS:
+            return self.memes.send(attempt_id, moment, local_hour, recent, companion, unasked, asked_gif=kind == 'gif')
         if moment is None or unasked and self.in_chat(moment['event_key']):
             return None  # Unasked pictures are of something new.
         return self.send_moment(attempt_id, moment, kind, unasked)
@@ -211,19 +251,9 @@ class ChatPhotos:
                     unasked=True)
         return {**sent['message'], 'photo': get(self.database, sent['message']['id'])}
 
-    def send_meme(self, attempt_id, moment, meme, timeline_id, unasked=False) -> dict | None:
-        with self.database.connect() as connection:
-            inputs = prompts.build_meme(connection, meme, jobs.image_settings(connection))
-        post = self.post_for(timeline_id, f'meme:{attempt_id}', self.database.now())
-        job_id = self.make(post['id'], inputs)
-        if job_id is None:
-            return None
-        summary = meme['subject'] or f"you, looking {meme['expression']}"
-        self.record(attempt_id, post['id'], job_id, 'meme', '', summary, meme['top'], meme['bottom'], unasked)
-        lead = 'A meme you decided to send, unasked, to cheer them up' if unasked else 'A meme you made to share'
-        return {'post_id': post['id'], 'text': f"- {lead} (a joke, not something that happened): "
-                                               f"a picture of {summary}, captioned «{meme['top']}» / "
-                                               f"«{meme['bottom']}»."}
+    @property
+    def memes(self):
+        return Memes(self)
 
     def shown_job(self, post_id, kind) -> str | None:
         """A picture of this moment already made or on its way that answers the ask: any for a plain
@@ -243,13 +273,15 @@ class ChatPhotos:
         self.images.wake()
         return job['id']
 
-    def record(self, attempt_id, post_id, job_id, kind, event_key, summary, top='', bottom='', unasked=False):
+    def record(self, attempt_id, post_id, job_id, kind, event_key, summary, top='', bottom='', unasked=False,
+               source='', picture=None, gif=None):
         with self.database.connect(write=True) as connection:
             connection.execute('INSERT OR REPLACE INTO chat_photos (message_id, post_id, job_id, kind, event_key, '
-                               'summary, top_text, bottom_text, unasked, created_at) '
-                               'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                               'summary, top_text, bottom_text, unasked, created_at, meme_source, meme_picture, gif) '
+                               'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                                (attempt_id, post_id, job_id, kind, event_key, summary, top, bottom, int(unasked),
-                                self.database.now()))
+                                self.database.now(), source, encode(picture) if picture else None,
+                                encode(gif) if gif else None))
 
     def moment(self, connection, companion, now) -> dict | None:
         """What the companion is doing right now, if anything worth a photo: the current slot,
@@ -289,6 +321,72 @@ class ChatPhotos:
         with self.database.connect(write=True) as connection:
             post_id = feed.create(connection, timeline_id, 'event', key, [], occurs_at, self.database.now())
             return one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
+
+
+MEME_KINDS = ('meme', 'gif')
+
+
+class Memes:
+    """One meme: its captions, then its picture. A reaction GIF when there is a GIPHY key (asked for, or
+    a seeded share), a model picture now and then when one is set up, else a template on this computer."""
+
+    def __init__(self, photos: ChatPhotos):
+        self.photos = photos
+        self.database = photos.database
+
+    def allowed(self, connection, companion) -> bool:
+        """Memes are on (Realism > Their days) and fit the city's time."""
+        return memes_level(connection) > 0 and families.era_of(connection, companion['version']['definition']) in MEME_ERAS
+
+    def send(self, attempt_id, moment, local_hour, recent, companion, unasked=False, asked_gif=False) -> dict | None:
+        with self.database.connect() as connection:
+            if not self.allowed(connection, companion):
+                return None
+            classics = bool(jobs.image_settings(connection)['meme_formats'])
+        root = self.database.root
+        if classics:
+            meme_pictures.warm(root)
+        meme = memes.choose(moment, local_hour, attempt_id, recent, choice=meme_pictures.has_choice(root, classics))
+        rng = random.Random(attempt_id + ':source')
+        timeline_id = companion['active_timeline_id']
+        if asked_gif or rng.random() < GIF_SHARE:
+            gif = gifs.pick(self.photos.vault, meme['mood'], attempt_id, asked=asked_gif) if self.photos.vault else None
+            if gif:
+                return self.send_gif(attempt_id, meme, gif, timeline_id, unasked)
+        if meme['mood'] != 'choice' and rng.random() < MODEL_SHARE and (sent := self.send_model(attempt_id, meme, timeline_id, unasked)):
+            return sent
+        picture = meme_pictures.pick(meme, attempt_id, root, classics)
+        return self.send_template(attempt_id, meme, picture, timeline_id, unasked) if picture else None
+
+    def send_model(self, attempt_id, meme, timeline_id, unasked) -> dict | None:
+        with self.database.connect() as connection:
+            inputs = prompts.build_meme(connection, meme, jobs.image_settings(connection))
+        post = self.photos.post_for(timeline_id, f'meme:{attempt_id}', self.database.now())
+        job_id = self.photos.make(post['id'], inputs)
+        if job_id is None:
+            return None
+        summary = meme['subject'] or f"you, looking {meme['expression']}"
+        self.photos.record(attempt_id, post['id'], job_id, 'meme', '', summary, meme['top'], meme['bottom'], unasked)
+        return {'post_id': post['id'], 'text': meme_text(summary, meme, unasked)}
+
+    def send_template(self, attempt_id, meme, picture, timeline_id, unasked) -> dict:
+        post = self.photos.post_for(timeline_id, f'meme:{attempt_id}', self.database.now())
+        self.photos.record(attempt_id, post['id'], None, 'meme', '', picture.about, meme['top'], meme['bottom'], unasked,
+                           'template', picture.view())
+        return {'post_id': post['id'], 'text': meme_text(picture.about, meme, unasked)}
+
+    def send_gif(self, attempt_id, meme, gif, timeline_id, unasked) -> dict:
+        post = self.photos.post_for(timeline_id, f'meme:{attempt_id}', self.database.now())
+        summary = (gif.get('title') or '')[:200] or f"a reaction GIF ({gif['tag']})"
+        self.photos.record(attempt_id, post['id'], None, 'meme', '', summary, unasked=unasked, source='gif', gif=gif)
+        lead = 'A reaction GIF you decided to send, unasked' if unasked else 'A reaction GIF you sent'
+        return {'post_id': post['id'], 'text': f"- {lead} (a joke, not something that happened): "
+                                               f"a GIF found by searching «{gif['tag']}»."}
+
+
+def meme_text(summary, meme, unasked) -> str:
+    lead = 'A meme you decided to send, unasked, to cheer them up' if unasked else 'A meme you made to share'
+    return f"- {lead} (a joke, not something that happened): a picture of {summary}, captioned «{meme['top']}» / «{meme['bottom']}»."
 
 
 def unasked_room(connection, timeline_id, now) -> bool:
@@ -354,7 +452,25 @@ def view(row) -> dict:
             'status': row['job_status'] or 'failed', 'job_id': row['job_id'], 'ref': row['job_id'] if done else None,
             'error': row['job_error'], 'in_feed': row['in_feed'] > 0, 'unasked': bool(row['unasked']),
             # The shape it is made in, so the chat holds its space while it loads and nothing moves when it lands.
-            'aspect': decode(row['job_inputs']).get('aspect', 'landscape') if row['job_inputs'] else 'landscape'}
+            'aspect': decode(row['job_inputs']).get('aspect', 'landscape') if row['job_inputs'] else 'landscape',
+            'source': row['meme_source'] or 'model', 'src': None, 'width': None, 'height': None, 'boxes': [],
+            **ready_meme(row)}
+
+
+PICTURES = '/api/images/memes/pictures/'
+
+
+def ready_meme(row) -> dict:
+    """A meme with a template or a GIF under it: there from the start, no image job behind it."""
+    if row['meme_source'] == 'template' and row['meme_picture']:
+        picture = decode(row['meme_picture'])
+        return {'status': 'completed', 'src': PICTURES + quote(picture['id'], safe=':'), 'width': picture['width'],
+                'height': picture['height'], 'boxes': picture.get('boxes') or []}
+    if row['meme_source'] == 'gif' and row['gif']:
+        gif = decode(row['gif'])
+        return {'status': 'completed', 'src': gif['url'], 'width': gif['width'], 'height': gif['height'],
+                'page': gif.get('page') or '', 'still': gif.get('still') or ''}
+    return {}
 
 
 SELECT = ('SELECT photo.*, job.status AS job_status, job.output_file, job.error AS job_error, job.inputs AS job_inputs, '

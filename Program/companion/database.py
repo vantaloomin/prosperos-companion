@@ -354,6 +354,19 @@ ADDED_COLUMNS = (
     # their own words; lifespan 0: they don't age).
     ('persona', 'kind', "TEXT NOT NULL DEFAULT ''"),
     ('persona', 'lifespan', 'INTEGER'),
+    # Memes without a picture model (companion/images/meme_pictures.py, gifs.py): where a meme's picture came from
+    # ('' an image model, 'template' a picture on this computer, 'gif' a reaction GIF), the template picture
+    # ({id, width, height, boxes}) and the GIF ({url, width, height, page, tag}).
+    ('chat_photos', 'meme_source', "TEXT NOT NULL DEFAULT ''"),
+    ('chat_photos', 'meme_picture', 'TEXT'),
+    ('chat_photos', 'gif', 'TEXT'),
+    # Whether classic meme formats are downloaded from memegen.link the first time memes are sent (Settings > Images).
+    ('image_settings', 'meme_formats', 'INTEGER NOT NULL DEFAULT 1 CHECK (meme_formats IN (0, 1))'),
+    # Memes and GIFs (Settings > Realism > Their days): 0 never, 1 now and then, 2 true to life, 3 often.
+    ('life_settings', 'memes_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (memes_realism BETWEEN 0 AND 3)'),
+    # Inner voice (Settings > Realism > Their days, companion/life/narrator.py): how much of what is on their mind
+    # the Watching page tells, 0 just what happened, 1 a few thoughts, 2 true to life, 3 everything on their mind.
+    ('life_settings', 'inner_voice', 'INTEGER NOT NULL DEFAULT 2 CHECK (inner_voice BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -444,6 +457,11 @@ UPGRADE_FAMILIES = {0: {'growing_families': 1}, 3: {'growing_families': 3}}
 UPGRADE_LOSS = {0: {'loss': 0}, 3: {'loss': 3}}
 # Family life (v0.15) the same way: an easy life has easy kids, a dramatic one true-to-life chaos.
 UPGRADE_FAMILY_LIFE = {0: {'family_life': 0}, 3: {'family_life': 3}}
+# Memes and GIFs and Inner voice (v0.16) the same way: an easy life now and then and a few thoughts, a dramatic one
+# often and everything on their mind.
+UPGRADE_DREAMS = {0: {'memes_realism': 1, 'inner_voice': 1}, 3: {'memes_realism': 3, 'inner_voice': 3}}
+# "I pull the strings" has a real life's drama but no paced replies, and hears everything on their mind.
+STRINGS_VOICE = {1: {'inner_voice': 3}}
 
 
 def add_columns(connection):
@@ -454,9 +472,12 @@ def add_columns(connection):
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
             added.add((table, column))
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
-                           ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE)):
+                           ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE),
+                           ('inner_voice', UPGRADE_DREAMS)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
+    if ('life_settings', 'inner_voice') in added:
+        preset_upgrade(connection, STRINGS_VOICE, 'paced_replies=0 AND day_shifts=1')
     if ('life_settings', 'loss_by_preset') in added:
         preset_upgrade(connection, UPGRADE_LOSS, 'people_pass_away=0 AND loss=2')
 

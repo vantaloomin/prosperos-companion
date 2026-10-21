@@ -8,7 +8,7 @@ export interface MapPlace {
 export interface MapHood { id: string; name: string; lat: number; lon: number; next: string[] }
 /** Sea, a river or a lake from the city data, for the drawn map: a sea by the side the city faces, a river or lake by points. */
 export interface MapWater { kind: 'sea' | 'river' | 'lake'; name: string; side: 'north' | 'south' | 'east' | 'west' | null; points: [number, number][]; width_km: number }
-export interface CityMapData { city: { id: string; name: string; lat: number; lon: number; real: boolean }; hoods: MapHood[]; places: MapPlace[]; water?: MapWater[]; story: boolean }
+export interface CityMapData { city: { id: string; name: string; lat: number; lon: number; real: boolean; enclosed?: boolean }; hoods: MapHood[]; places: MapPlace[]; water?: MapWater[]; story: boolean }
 
 /** Which glyph a place gets: the most telling of its pins, else a plain dot. */
 const ORDER: Pin[] = ['scene', 'home', 'work', 'usual', 'recent']

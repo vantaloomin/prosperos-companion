@@ -270,8 +270,9 @@ def city_of(definition: dict, world) -> dict | None:
     return circle.city_data(definition, world)
 
 
-def new_line(definition: dict, seed: str) -> dict | None:
-    """Another line of work in their city: another sector, the same kind of hours, an everyday job."""
+def new_line(definition: dict, seed: str, age: int | None = None) -> dict | None:
+    """Another line of work in their city: another sector, the same kind of hours, an everyday job, one done at
+    their life age (generators.fits_age)."""
     city = money.city_for(definition)
     if not city or not money.has_money(city):
         return None
@@ -281,7 +282,8 @@ def new_line(definition: dict, seed: str) -> dict | None:
     # Work their era gives their side (1895: never a cabman for her; generators.own_side).
     offered = generators.own_side(city, looks.pronouns_of(definition), catalog.everyday(catalog.careers_for(city)))
     options = sorted(career['id'] for career in offered.values()
-                     if career.get('sector') != current.get('sector') and career['schedule'] == current['schedule'])
+                     if career.get('sector') != current.get('sector') and career['schedule'] == current['schedule']
+                     and (age is None or generators.fits_age(career, age)))
     return catalog.careers_for(city)[random.Random(f'{seed}:career').choice(options)] if options else None
 
 
@@ -290,7 +292,7 @@ def plan_career(connection, companion, world, day, seed) -> dict | None:
     definition = companion['version']['definition']
     if age is None or age >= SWITCH_BEFORE or not works(definition):
         return None
-    career = new_line(definition, seed)
+    career = new_line(definition, seed, age)
     if not career:
         return None
     title = career['name'].lower()

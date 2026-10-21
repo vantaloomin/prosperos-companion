@@ -2045,6 +2045,281 @@
     "medieval",
     "fantasy"
    ]
+  },
+  {
+   "text": "printed a first model that came out in one piece",
+   "post": "First print in one piece. Framing it. Not really.",
+   "level": 0,
+   "for": [
+    "model-printing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "painted a model with a proper wash and highlights",
+   "post": "Wash and highlights. It looks real now.",
+   "level": 1,
+   "for": [
+    "model-printing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "designed and printed a part of their own",
+   "post": "Designed my own part. It printed. It fits.",
+   "level": 2,
+   "for": [
+    "model-printing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "finished a whole painted set for a game night",
+   "post": "Whole painted set, ready for game night.",
+   "level": 3,
+   "for": [
+    "model-printing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "sold a commission of printed and painted figures",
+   "post": "Sold my first commission. Someone paid for my models.",
+   "level": 4,
+   "for": [
+    "model-printing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "got a first little robot to roll across the table",
+   "post": "It rolls. Already fond of it.",
+   "level": 0,
+   "for": [
+    "robot-building"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "taught the robot to follow a line",
+   "post": "It follows a line. Mostly.",
+   "level": 1,
+   "for": [
+    "robot-building"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "built a robot arm that picks things up",
+   "post": "Robot arm picks things up. Small things. Carefully.",
+   "level": 2,
+   "for": [
+    "robot-building"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "entered a robot in the build contest",
+   "post": "Entered the build contest.",
+   "level": 3,
+   "for": [
+    "robot-building"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "won the build contest",
+   "post": "Won the build contest.",
+   "level": 4,
+   "for": [
+    "robot-building"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "made a first blend worth drinking twice",
+   "post": "First blend worth a second cup.",
+   "level": 0,
+   "for": [
+    "tea-blending"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "worked out how long each tea wants to steep",
+   "post": "Steep times sorted. No more bitter cups.",
+   "level": 1,
+   "for": [
+    "tea-blending"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "made a blend friends keep asking for",
+   "post": "Friends keep asking for my blend.",
+   "level": 2,
+   "for": [
+    "tea-blending"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "sold a few tins at the market",
+   "post": "Sold my tea at the market.",
+   "level": 3,
+   "for": [
+    "tea-blending"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "had a blend served at a café",
+   "post": "A café is serving my blend.",
+   "level": 4,
+   "for": [
+    "tea-blending"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "made a first batch that tasted the way it should",
+   "post": "First batch tastes right.",
+   "level": 0,
+   "for": [
+    "home-brewing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "kept a brewing log and got the timing right",
+   "post": "Brewing log working. Timing right.",
+   "level": 1,
+   "for": [
+    "home-brewing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "brewed a batch friends asked for again",
+   "post": "Friends asked for another batch.",
+   "level": 2,
+   "for": [
+    "home-brewing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "took a brew to a tasting and placed",
+   "post": "Placed at the tasting.",
+   "level": 3,
+   "for": [
+    "home-brewing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "had a brew poured at a local bar",
+   "post": "A bar is pouring my brew.",
+   "level": 4,
+   "for": [
+    "home-brewing"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "folded a first crane that stood up",
+   "post": "First crane that stands up.",
+   "level": 0,
+   "for": [
+    "origami"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "folded a model from diagrams alone",
+   "post": "Folded from diagrams alone.",
+   "level": 1,
+   "for": [
+    "origami"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "folded a hundred cranes for a friend's birthday",
+   "post": "A hundred cranes for a birthday.",
+   "level": 2,
+   "for": [
+    "origami"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "designed a fold of their own",
+   "post": "Designed my own fold.",
+   "level": 3,
+   "for": [
+    "origami"
+   ],
+   "eras": [
+    "future"
+   ]
+  },
+  {
+   "text": "had their folds shown in a window display",
+   "post": "My folds are in a shop window.",
+   "level": 4,
+   "for": [
+    "origami"
+   ],
+   "eras": [
+    "future"
+   ]
   }
  ],
  "sessions": [

@@ -19,7 +19,7 @@ from datetime import date
 from companion.clock import parse, stamp
 from companion.database import decode, encode, many, optional
 from companion.life import circle, composer
-from companion.world import generators, newcomers
+from companion.world import generators, newcomers, ships
 
 MAX_DEPTH = 4
 SIZE = (4, 7)
@@ -110,7 +110,7 @@ def occupation(data: dict, key: str, age: int, pronouns: str | None = None) -> s
         return 'retired'
     # Weighted towards the city's own industries, like its townsfolk (generators.town_career), and in an era that
     # kept work by gender, the work of their side.
-    career = generators.town_career(data, key, pronouns=pronouns) if data.get('places') else None
+    career = generators.town_career(data, key, pronouns=pronouns, age=age) if data.get('places') else None
     return career['name'].lower() if career else ''
 
 
@@ -180,9 +180,11 @@ def people_of(connection, companion: dict, key: str) -> list[dict]:
 
 # Gatherings and run-ins ------------------------------------------------------------------------
 
-def occasion_for(seed: str, day: date) -> tuple[str, str]:
-    fitting = [(key, text) for key, text, months in OCCASIONS if months is None or day.month in months]
-    seasonal = [(key, text) for key, text, months in OCCASIONS if months and day.month in months]
+def occasion_for(seed: str, day: date, aboard: bool = False) -> tuple[str, str]:
+    """What a friend is hosting: now and then one for the time of year, except aboard a ship or station, which has
+    no summer barbecues or Friendsgiving (companion/world/ships.py)."""
+    fitting = [(key, text) for key, text, months in OCCASIONS if months is None or day.month in months and not aboard]
+    seasonal = [(key, text) for key, text, months in OCCASIONS if months and day.month in months and not aboard]
     if seasonal and generators.unit(seed, 'seasonal') < 0.6:
         return generators.pick(seed, 'occasion', seasonal)
     return generators.pick(seed, 'occasion', fitting)
@@ -219,7 +221,7 @@ def gathering(connection, companion: dict, slot: dict, block: dict, company: lis
         further = their_people(picked[0], data, taken)
         if further:
             picked.append(generators.pick(seed, 'further-guest', further))
-    _key, text = occasion_for(seed, date.fromisoformat(slot['local_date']))
+    _key, text = occasion_for(seed, date.fromisoformat(slot['local_date']), ships.enclosed(data))
     occasion = text.format(host=row['name'])
     for person in picked:
         meet(connection, timeline_id, person, slot, occasion)

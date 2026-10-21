@@ -1,6 +1,6 @@
 import type { LifeSettings, WorkspaceSettings } from '../../types'
 
-type LifePart = Pick<LifeSettings, 'drama' | 'paced_replies' | 'day_shifts' | 'on_her_mind' | 'upkeep_realism' | 'kitchen_realism' | 'looks_realism' | 'pets_realism' | 'pets_can_die' | 'admin_realism' | 'work_realism' | 'guests_realism' | 'media_realism' | 'hobbies_realism' | 'together_realism' | 'rough_patches_realism' | 'steps_pace' | 'friends_fall' | 'breakups' | 'love_life' | 'life_turns' | 'growing_families' | 'family_life' | 'people_pass_away' | 'loss'>
+type LifePart = Pick<LifeSettings, 'drama' | 'paced_replies' | 'day_shifts' | 'on_her_mind' | 'upkeep_realism' | 'kitchen_realism' | 'looks_realism' | 'pets_realism' | 'pets_can_die' | 'admin_realism' | 'work_realism' | 'guests_realism' | 'media_realism' | 'memes_realism' | 'inner_voice' | 'hobbies_realism' | 'together_realism' | 'rough_patches_realism' | 'steps_pace' | 'friends_fall' | 'breakups' | 'love_life' | 'life_turns' | 'growing_families' | 'family_life' | 'people_pass_away' | 'loss'>
 type ShownPart = Required<Pick<WorkspaceSettings, 'show_moods' | 'show_news' | 'show_odds' | 'show_secret_slips' | 'show_home_meters'>>
 
 export interface RealismPreset {
@@ -20,19 +20,19 @@ const HIDDEN: ShownPart = { show_moods: false, show_news: false, show_odds: fals
 export const REALISM_PRESETS: RealismPreset[] = [
   {
     id: 'real', label: 'I want real life', description: 'They answer when they can, plans go wrong now and then, and you read feelings from how they talk.',
-    life: { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2, work_realism: 2, guests_realism: 2, media_realism: 2, hobbies_realism: 2, together_realism: 2, rough_patches_realism: 2, steps_pace: 2, friends_fall: true, breakups: true, love_life: 2, life_turns: 2, growing_families: 2, family_life: 2, people_pass_away: false, loss: 2 }, shown: HIDDEN,
+    life: { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2, work_realism: 2, guests_realism: 2, media_realism: 2, memes_realism: 2, inner_voice: 2, hobbies_realism: 2, together_realism: 2, rough_patches_realism: 2, steps_pace: 2, friends_fall: true, breakups: true, love_life: 2, life_turns: 2, growing_families: 2, family_life: 2, people_pass_away: false, loss: 2 }, shown: HIDDEN,
   },
   {
     id: 'drama', label: 'Bring on the drama', description: 'Soap opera storylines, plans falling through and secrets everywhere. You still find out the hard way.',
-    life: { drama: 3, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 3, kitchen_realism: 3, looks_realism: 3, pets_realism: 3, pets_can_die: true, admin_realism: 3, work_realism: 3, guests_realism: 3, media_realism: 3, hobbies_realism: 3, together_realism: 3, rough_patches_realism: 3, steps_pace: 3, friends_fall: true, breakups: true, love_life: 3, life_turns: 3, growing_families: 3, family_life: 3, people_pass_away: false, loss: 3 }, shown: HIDDEN,
+    life: { drama: 3, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 3, kitchen_realism: 3, looks_realism: 3, pets_realism: 3, pets_can_die: true, admin_realism: 3, work_realism: 3, guests_realism: 3, media_realism: 3, memes_realism: 3, inner_voice: 3, hobbies_realism: 3, together_realism: 3, rough_patches_realism: 3, steps_pace: 3, friends_fall: true, breakups: true, love_life: 3, life_turns: 3, growing_families: 3, family_life: 3, people_pass_away: false, loss: 3 }, shown: HIDDEN,
   },
   {
     id: 'easy', label: 'I want an easy life', description: 'Quiet days that go to plan, and replies right away.',
-    life: { drama: 0, paced_replies: false, day_shifts: false, on_her_mind: true, upkeep_realism: 1, kitchen_realism: 1, looks_realism: 1, pets_realism: 1, pets_can_die: false, admin_realism: 1, work_realism: 1, guests_realism: 1, media_realism: 1, hobbies_realism: 1, together_realism: 1, rough_patches_realism: 1, steps_pace: 1, friends_fall: false, breakups: false, love_life: 1, life_turns: 1, growing_families: 1, family_life: 0, people_pass_away: false, loss: 0 }, shown: HIDDEN,
+    life: { drama: 0, paced_replies: false, day_shifts: false, on_her_mind: true, upkeep_realism: 1, kitchen_realism: 1, looks_realism: 1, pets_realism: 1, pets_can_die: false, admin_realism: 1, work_realism: 1, guests_realism: 1, media_realism: 1, memes_realism: 1, inner_voice: 1, hobbies_realism: 1, together_realism: 1, rough_patches_realism: 1, steps_pace: 1, friends_fall: false, breakups: false, love_life: 1, life_turns: 1, growing_families: 1, family_life: 0, people_pass_away: false, loss: 0 }, shown: HIDDEN,
   },
   {
     id: 'strings', label: 'I pull the strings', description: 'Everyday drama and plans that sometimes go wrong, as in real life, but replies right away and every hidden value on show: moods, who has heard what, and the odds, with a way to make things go another way.',
-    life: { drama: 1, paced_replies: false, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2, work_realism: 2, guests_realism: 2, media_realism: 2, hobbies_realism: 2, together_realism: 2, rough_patches_realism: 2, steps_pace: 2, friends_fall: true, breakups: true, love_life: 2, life_turns: 2, growing_families: 2, family_life: 2, people_pass_away: false, loss: 2 },
+    life: { drama: 1, paced_replies: false, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2, work_realism: 2, guests_realism: 2, media_realism: 2, memes_realism: 2, inner_voice: 3, hobbies_realism: 2, together_realism: 2, rough_patches_realism: 2, steps_pace: 2, friends_fall: true, breakups: true, love_life: 2, life_turns: 2, growing_families: 2, family_life: 2, people_pass_away: false, loss: 2 },
     shown: { show_moods: true, show_news: true, show_odds: true, show_secret_slips: true, show_home_meters: true },
   },
 ]

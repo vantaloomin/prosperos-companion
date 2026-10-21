@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Heart, MessageCircle, MessageSquareText, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
+import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, MessageSquareText, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
@@ -10,9 +10,12 @@ import { useReady, useReadyActions } from '../ready/useReady'
 
 /**
  * The views. The desktop side rail shows all of them; the phone's tab bar (`rail-only` hidden) keeps Today, Story,
- * Matchlight and Settings, with Chats in place of Profile, Groups and Memories (navText.ts).
+ * Matchlight and Settings, with Chats in place of Profile, Groups and Memories (navText.ts). While the user is just
+ * watching, Watching takes Matchlight's place (Matchlight waits meanwhile), so the phone still has five tabs.
  */
-const VIEWS: { id: View; label: string; icon: typeof UserRound; railOnly?: boolean }[] = [
+type NavView = { id: View; label: string; icon: typeof UserRound; railOnly?: boolean }
+const WATCHING: NavView = { id: 'watch', label: 'Watching', icon: Eye }
+const VIEWS: NavView[] = [
   { id: 'conversation', label: 'Profile', icon: UserRound, railOnly: true },
   { id: 'groups', label: 'Groups', icon: UsersRound, railOnly: true },
   { id: 'dating', label: 'Matchlight', icon: Heart },
@@ -30,16 +33,17 @@ interface Props {
   unread: { companion: number; group: number }
   sidecarOpen: boolean
   sidecarWaiting: boolean
+  watching?: boolean
 }
 
-export function AppNav({ view, go, storyOn, datingInstalled, unread, sidecarOpen, sidecarWaiting }: Props) {
+export function AppNav({ view, go, storyOn, datingInstalled, unread, sidecarOpen, sidecarWaiting, watching }: Props) {
   const counts: Partial<Record<string, number>> = { conversation: unread.companion, groups: unread.group }
   const ready = useSettingsMark(view)
   return (
     <nav className="app-nav" aria-label="Views">
       <WorldButton current={view === 'worlds'} onOpen={() => go('worlds')} />
       <ChatsTab view={view} go={go} unread={unread.companion + unread.group} />
-      {VIEWS.filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon, railOnly }) => (
+      {VIEWS.map((item) => watching && item.id === 'dating' ? WATCHING : item).filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon, railOnly }) => (
         <Fragment key={id}>
           {/* The sidecar opens beside any view, so it is a toggle rather than a view. On a phone it is in the chat header. */}
           {id === 'settings' && <button type="button" className="nav-sidecar rail-only" aria-pressed={sidecarOpen} onClick={() => toggleSidecar(sidecarOpen)}>

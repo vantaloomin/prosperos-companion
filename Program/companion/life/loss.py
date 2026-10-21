@@ -37,7 +37,7 @@ from functools import cache
 from companion import consequences
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import ages, circle, pronouns
+from companion.life import ages, circle, families, pronouns
 from companion.world import catalog, generators
 
 ACTIVE = True
@@ -99,8 +99,9 @@ def era_of(connection, companion: dict) -> str:
 
 def fitting(lines: list[str], era: str) -> list[str]:
     """The lines that fit the era: no texting before phones, no radio in 1895, no photograph in Camelot."""
-    rank = ERA_RANKS.get(era, 0)
-    return [line for line in lines if all(rank >= need for pattern, need in ERA_NEEDS if pattern.search(line))] or lines
+    rank, afloat = ERA_RANKS.get(era, 0), families.UNFIT.get('future') if era == 'future' else None
+    return [line for line in lines if all(rank >= need for pattern, need in ERA_NEEDS if pattern.search(line))
+            and not (afloat and afloat.search(line))] or lines
 
 
 def death_factor(era: str) -> float:
@@ -559,9 +560,13 @@ def news_due(connection, companion: dict, now) -> list:
 # Funerals (big days, companion/life/big_days.py) --------------------------------------------------------------------
 
 def customs(connection, companion: dict) -> dict:
+    """The city's funeral customs; aboard a ship or a station, the ship's own (no burial, no cremation)."""
     from companion.life import outings, wedding
+    from companion.world import ships
     data = outings.city_data(connection, companion['version']['definition'])
     found = bank()['customs']
+    if ships.enclosed(data):
+        return found['ship']
     return found.get(wedding.culture_of(data)) or found['modern']
 
 

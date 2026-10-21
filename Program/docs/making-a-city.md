@@ -2,7 +2,7 @@
 
 A companion's days are built from their home city: where they live, where they eat, drink and go out, where they work and study, and what the weather is doing. This guide covers what a city file needs, what makes one feel lived in, and how to ask a chatbot to write one. [world-data.md](world-data.md) is the full field reference for developers.
 
-To add a finished file, open **Settings > Cities > Open a city file**. The [README](../../README.md#adding-your-own-cities) says where to drop files by hand.
+To add a finished file, open **Settings > Cities > Open a city file**. **Start from a ship** opens a small generation ship to build on instead: three decks, no weather or cars, and the built-in station Port Vesper to visit by shuttle. The built-in ship, The Long Meridian, shows a full one. The [README](../../README.md#adding-your-own-cities) says where to drop files by hand.
 
 ## What a city needs to load
 
@@ -38,6 +38,8 @@ None of these are required, but each one gives the life sim and the companion mo
 | `transit` | Lines that neighbourhoods name, for getting around. |
 | `water` | Sea, rivers and lakes for the drawn map of a city without a street map (fictional, original and private cities). A sea gives the `side` its coast faces (`north`, `south`, `east`, `west`); a river gives two or more `[lat, lon]` `points` in order; a lake gives one point, its centre. Each may have a `name` and a `width_km`. |
 | `kinds` | Long-lived (or short-lived) people. A name group with `"kind": "elf"` gives elves; a `kinds` block changes a kind's lifespan here or adds your own, such as `"tiefling": {"label": "Tiefling", "lifespan": 110, "words": ["tiefling"]}`. Lifespans are whole years from 40 to 5000, or null for people who don't age. |
+| `enclosed` | A ship or a station: no weather, Earth seasons or cars, and pictures lit by the ship. Left out, a `future` city whose country or name says ship or station, or whose neighbourhoods are decks or rings, is read as one; `false` keeps it on the ground. Future cities get their own jobs, dishes and pastimes either way. |
+| `neighbours` | Other cities of your world that people travel to for a weekend, such as the station a ship docks at: `[{"city": "halcyon-station", "hours": 3}]`, with `"by": "night train"` to say how (a shuttle when a ship or station is at either end). It works both ways. |
 | `setting` and `era` | `real`, `fictional` or `original`, and `modern`, `victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `jazz-age` (the 1920s), `future` or `other`. Real-world lookups only run for real, modern cities. |
 
 Aim for 8 to 25 neighbourhoods with three or more places each, including somewhere to eat or drink in every one. The built-in cities have about 80 to 170 places.

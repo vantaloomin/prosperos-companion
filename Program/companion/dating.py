@@ -9,7 +9,7 @@ companion. No companion prompt reads the app itself: a companion never knows who
 Modern and future cities have a dating app. Older eras have the same thing in period form: a personal
 column in the paper (Victorian, steampunk, frontier, the 1920s) or the town matchmaker (medieval and fantasy).
 """
-from companion import story, story_people
+from companion import observer, story, story_people
 from companion.characters import current
 from companion.database import decode, encode, identifier, many, optional, settings
 from companion.errors import DomainError, require
@@ -19,6 +19,7 @@ from companion.world import catalog, dating, mix, townsfolk, turnover
 
 # The app's name in modern and future cities: made up, so it is nobody's real app.
 APP_NAME = 'Matchlight'
+PAUSED = "Matchlight waits while you're just watching. Step in to use it."
 DECK_SIZE = 5
 DATE_KINDS = ('cafe', 'restaurant', 'bar', 'tavern', 'nightlife', 'park', 'garden', 'museum', 'venue', 'beach',
               'market', 'landmark', 'attraction', 'square', 'trail', 'inn')
@@ -208,6 +209,7 @@ def swipe(database, key: str, like: bool) -> dict:
     Settings > Debug > 100% Matchlight matches); a like that is not returned simply never comes back, as on a real
     app."""
     with database.connect(write=True) as connection:
+        require(not observer.watching(connection), PAUSED, 409)
         mine = profile(connection)
         require(mine is not None, 'Set up your profile first.', 409)
         require(optional(connection, 'SELECT 1 FROM dating_swipes WHERE person_key=?', (key,)) is None,
@@ -326,6 +328,7 @@ def go_on_date(database, key: str, place_id: str) -> dict:
     with database.connect() as connection:
         row = optional(connection, 'SELECT * FROM dating_swipes WHERE person_key=? AND matched=1', (key,))
         require(row is not None, 'You can only ask out someone you matched with.', 409)
+        require(not observer.watching(connection), PAUSED, 409)
         require(story_on(connection), 'Turn on Story mode in Settings to meet them in a story.', 409)
         sheet, data = person(connection, key, row['town'])
         gone = left(sheet, data)
@@ -407,4 +410,6 @@ def state(database) -> dict:
                 'deck': [dating.card(sheet, data, database.clock.now().date(), found) for sheet, found in shown],
                 'remaining': left, 'matches': matches(connection, database), 'date': date,
                 'undo': (mine or {}).get('last_answer') or None,
-                'all_matches': bool(settings(connection).get('debug_all_matches'))}
+                'all_matches': bool(settings(connection).get('debug_all_matches')),
+                # Just watching (companion/observer.py): Matchlight waits until the user steps back in.
+                'watching': observer.watching(connection)}

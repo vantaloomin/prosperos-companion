@@ -2910,7 +2910,11 @@
    "eras": [
     "medieval"
    ],
-   "worked_by": "men"
+   "worked_by": "men",
+   "ages": [
+    18,
+    24
+   ]
   },
   {
    "id": "man-at-arms",

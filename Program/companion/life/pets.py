@@ -471,16 +471,25 @@ def show_numbers(connection) -> bool:
 
 # --- For other modules ---
 
+# Aboard a ship or station (companion/world/ships.py) there is no sun, sky, weather or wildlife outside.
+EARTHBOUND = re.compile(r'\b(?:sun\w*|bird\w*|squirrels?|rain\w*|puddles?|snow\w*|mud\w*|leaves|fire|frost\w*|storms?|'
+                        r'thunder\w*|fence post|dandelions?|outside)\b', re.IGNORECASE)
+
+
+def fits_home(item: dict, found: dict, text: str) -> bool:
+    return fits(item, found['kind'], found['era']) and not (found.get('aboard') and EARTHBOUND.search(text))
+
+
 def moment(found: dict, seed: str, walking=False) -> str | None:
     """A sentence about the pet for an agenda entry at home or on a walk."""
-    lines = [item['text'] for item in bank()['walks' if walking else 'home'] if fits(item, found['kind'], found['era'])]
+    lines = [item['text'] for item in bank()['walks' if walking else 'home'] if fits_home(item, found, item['text'])]
     line = generators.pick(seed, 'pet-moment', lines)
     return line.format(pet=found['name']) if line else None
 
 
 def photo(found: dict, seed: str) -> dict | None:
     """A pet-only photo for the owner's feed, taken at home: what it shows and their caption."""
-    shots = [item for item in bank()['photos'] if fits(item, found['kind'], found['era']) and not item.get('out')]
+    shots = [item for item in bank()['photos'] if fits_home(item, found, item['shows']) and not item.get('out')]
     shot = generators.pick(seed, 'pet-photo', shots)
     if shot is None:
         return None
@@ -531,6 +540,7 @@ def of_home(connection, timeline_id: str, day: date | None = None) -> list[dict]
     if not state:
         return []
     era, started = era_of({'era': state['era']}), date.fromisoformat(state['started'])
+    aboard = state['era'] == 'future' and afloat(connection, timeline_id)
     result = []
     for row in home_rows(connection, timeline_id):
         if day and not (row['since'] <= day.isoformat() and (row['until'] is None or row['until'] > day.isoformat())):
@@ -540,8 +550,15 @@ def of_home(connection, timeline_id: str, day: date | None = None) -> list[dict]
         # remembered, not one of the pets they have now.
         if day and (died := died_on(connection, found['key'])) and died <= day:
             continue
-        result.append({**found, 'until': row['until'], 'edited': row['edited']})
+        result.append({**found, 'until': row['until'], 'edited': row['edited'], 'aboard': aboard})
     return result
+
+
+def afloat(connection, timeline_id: str) -> bool:
+    from companion.characters import for_timeline
+    from companion.world import ships
+    companion = for_timeline(connection, timeline_id)
+    return bool(companion) and ships.aboard(connection, companion['version']['definition'])
 
 
 def evolve_home(connection, timeline_id: str, through: date, now) -> None:

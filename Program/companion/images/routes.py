@@ -6,9 +6,10 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
+from companion.data_folder import open_folder
 from companion.database import decode
 from companion.errors import DomainError
-from companion.images import backends, jobs, node_packs, photos, storage
+from companion.images import backends, gifs, jobs, meme_pictures, node_packs, photos, storage
 from companion.images.adapters.base import AdapterError
 from companion.images.adapters.comfyui import (
     FAMILIES,
@@ -24,6 +25,7 @@ from companion.images.models import (
     BackendCreate,
     BackendFields,
     BackendMove,
+    GifKey,
     ImageSettingsUpdate,
     JobCreate,
     JobRetry,
@@ -292,3 +294,41 @@ def retry_photo(request: Request, message_id: str):
     photo = photos.retry(db(request), message_id)
     runner(request).wake()
     return photo
+
+
+# Memes without a picture model (companion/images/meme_pictures.py, gifs.py) ----------------------------
+
+@router.get('/memes')
+def read_memes(request: Request):
+    """Where meme pictures come from: the user's own templates folder, the classic formats on this computer
+    and whether a GIPHY key is saved (never the key itself)."""
+    root = db(request).root
+    with db(request).connect() as connection:
+        classics = bool(jobs.image_settings(connection)['meme_formats'])
+    return {'folder': str(meme_pictures.folder(root)), 'mine': len(meme_pictures.mine(root)),
+            'pack': len(meme_pictures.pack()), 'formats_on': classics,
+            'formats_here': len(meme_pictures.classic(root)), 'formats_total': len(meme_pictures.formats()['formats']),
+            'gif_key': gifs.key(request.app.state.vault) is not None, 'key_here': not via_lan(request)}
+
+
+@router.post('/memes/folder/open')
+def open_memes_folder(request: Request):
+    """Open the user's meme templates folder on the PC (phones are refused in companion/phone/access.py)."""
+    return open_folder(meme_pictures.folder(db(request).root))
+
+
+@router.put('/memes/gif-key')
+def save_gif_key(request: Request, body: GifKey):
+    if body.key and via_lan(request):
+        raise DomainError('Home Wi-Fi access is not encrypted, so API keys are not sent over it. Add the key over '
+                          f'Tailscale, or {ON_THE_PC}.', 403)
+    gifs.save_key(request.app.state.vault, body.key)
+    return read_memes(request)
+
+
+@router.get('/memes/pictures/{picture_id}')
+def meme_picture(request: Request, picture_id: str):
+    path = meme_pictures.path_of(db(request).root, picture_id)
+    if path is None:
+        raise DomainError('This meme picture could not be found.', 404)
+    return FileResponse(path, media_type=meme_pictures.media_type(path), headers={'Cache-Control': 'private, max-age=86400'})

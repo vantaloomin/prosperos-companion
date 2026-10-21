@@ -313,21 +313,25 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     local = now.astimezone(zone(companion['version']['timezone'])).date()
     day = visit_day(message['text'], local, own_plans.holiday_dates(connection, companion['version']['definition'],
                                                                     local))
-    if for_the_child(connection, companion, message, direction, weekends(local, day)[0], timestamp):
+    if for_the_child(connection, companion, message, direction, weekends(local, day), timestamp):
         return True
     return request(connection, companion, message, direction, day, timestamp)
 
 
-def for_the_child(connection, companion: dict, message: dict, direction: str, saturday: date, timestamp: str) -> bool:
+def for_the_child(connection, companion: dict, message: dict, direction: str, saturdays: list[date],
+                  timestamp: str) -> bool:
     """Split up with a child under 18 (companion/life/custody.py): a visit asked for in the chat is settled as the
-    parent the child doesn't live with coming to see them that weekend, never a stay with each other (Vanta
-    2026-10-19). Nothing is booked: the reply says so (together_asks)."""
-    from companion.life import custody, our_child
+    parent the child doesn't live with coming to see them, never a stay with each other (Vanta 2026-10-19). It books
+    a stay with that parent (companion/life/stays.py) the first of these weekends free of other stays, and the reply
+    says so (together_asks)."""
+    from companion.life import custody, our_child, stays
     state = custody.found(connection, companion)
-    kids = our_child.at_home(connection, companion['active_timeline_id'], saturday)
+    kids = our_child.at_home(connection, companion['active_timeline_id'], saturdays[0])
     if not state or not state['split'] or not kids:
         return False
-    theirs = custody.with_them(state, saturday)
+    theirs = state['pattern'] != 'with_you'  # Where they live, whatever stays are planned.
+    saturday = stays.book_asked(connection, companion, saturdays, 'them' if theirs else 'you', message['id'],
+                                parse(timestamp)) or saturdays[0]
     city = (state['far'].their_city if theirs else state['far'].your_city) or {}
     return together.record(connection, companion, message, f'weekend-{direction}',
                            {'why': 'child', 'names': [custody.first(kid['name']) for kid in kids],
@@ -494,9 +498,19 @@ def visit_lines(trip: dict, today: date, now: datetime, fresh_ids: set[str]) -> 
     return lines
 
 
+def apart_text(between: where.Between) -> str:
+    """', about 340 km apart', or how long the shuttle takes between a ship and a station (companion/world/ships.py)."""
+    from companion.world import ships
+    if ships.by(between.their_city, between.your_city) == ships.SHUTTLE:
+        hours = next((link['hours'] for _city, link in ships.links(between.their_city, {
+            between.your_city['id']: between.your_city})), None)
+        return f', about {hours:g} hours apart by shuttle' if hours else ', a shuttle ride apart'
+    return f", about {round(between.km):,} km apart" if between.km else ''
+
+
 def distance_line(connection, companion: dict, between: where.Between, now: datetime) -> str:
     """How far apart they live and the time difference; while apart (a break, or exes) nothing about visits."""
-    km = f", about {round(between.km):,} km apart" if between.km else ''
+    km = apart_text(between)
     hours = offset(connection, companion, now)
     clock = f' and you are {together.span_text(round(abs(hours) * 60))} {"ahead of" if hours > 0 else "behind"} ' \
         'the user, so mind what time of day it is for each of you' if hours else ''

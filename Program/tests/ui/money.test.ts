@@ -70,7 +70,7 @@ test('every purchase on the Money panel says where the money went, family costs 
   assert.equal(boughtFor('family'), 'From their savings')
   assert.equal(boughtFor('owed'), 'Toward what they owe')
   assert.equal(boughtFor('childcare'), 'For the family')
-  assert.equal(boughtFor('admin'), 'At home')
+  assert.equal(boughtFor('admin'), 'On errands and paperwork')
   assert.equal(boughtFor(undefined), 'At home')
   assert.equal(boughtFor('something new' as never), 'At home')
 })

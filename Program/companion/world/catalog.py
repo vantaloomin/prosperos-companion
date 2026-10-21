@@ -18,13 +18,18 @@ from companion.world.schema import Career, Careers, City, Featured, Holidays, Na
 DATA = Path(__file__).parent / 'data'
 LOG = logging.getLogger(__name__)
 BUILTIN_CITIES = DATA / 'cities'
+CAREER_FILES = ('careers.json', 'careers-future.json')
 
 
 @cache
 def careers() -> dict[str, dict]:
-    """The shared career catalogue, across every era."""
-    catalogue = Careers.model_validate_json((DATA / 'careers.json').read_text(encoding='utf-8'))
-    return {career.id: career.model_dump() for career in catalogue.careers}
+    """The shared career catalogue, across every era: careers.json, then the future era's own file (ships, stations
+    and future cities, companion/world/ships.py)."""
+    found = {}
+    for name in CAREER_FILES:
+        catalogue = Careers.model_validate_json((DATA / name).read_text(encoding='utf-8'))
+        found |= {career.id: career.model_dump() for career in catalogue.careers}
+    return found
 
 
 def careers_for(data: dict, *, needs_met: bool = True) -> dict[str, dict]:
@@ -105,17 +110,18 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
-OMIT_WHEN_EMPTY = {'townsfolk', 'kinds'}
+OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours'}
 
 
 def unset_work_rules(data: dict):
-    """Who worked a job in its era (schema Career.worked_by, City.work_by_gender) is newer than most cities: left
-    out when unset, so their data_version stays the same."""
+    """Who worked a job in its era and at what ages (schema Career.worked_by and ages, City.work_by_gender) are
+    newer than most cities: left out when unset, so their data_version stays the same."""
     if data.get('work_by_gender') is None:
         data.pop('work_by_gender', None)
     for career in data['careers']:
-        if career.get('worked_by') is None:
-            career.pop('worked_by', None)
+        for key in ('worked_by', 'ages'):
+            if career.get(key) is None:
+                career.pop(key, None)
 
 
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
@@ -131,8 +137,9 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     # stays the same.
     data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
     unset_work_rules(data)
-    from companion.world import lifespans
+    from companion.world import lifespans, ships
     notes += lifespans.clean(data)
+    notes += ships.settle(data)
     known = careers_for(data)
     for employer in data['employers']:
         unknown = set(employer['careers']) - set(known)
@@ -277,6 +284,7 @@ def summary(data: dict) -> dict:
         'counts': {key: len(data[key]) for key in ('neighborhoods', 'places', 'colleges', 'employers',
                                                    'annual_events')}, 'builtin': data.get('builtin', False),
         'origin': data.get('origin', 'user'), 'category': category(data), 'distribution': data['distribution'],
+        'enclosed': data.get('enclosed') is True,
         'import_notes': data.get('import_notes', [])}
 
 

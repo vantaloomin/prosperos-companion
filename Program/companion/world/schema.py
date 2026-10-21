@@ -31,7 +31,9 @@ CollegeType = Id
 Size = Literal['small', 'medium', 'large']
 TRANSIT_KINDS = ('subway', 'light-rail', 'commuter-rail', 'bus', 'ferry', 'water-taxi', 'monorail',
                       'streetcar', 'bike-share', 'car', 'rideshare', 'walk',
-                      'carriage', 'horse', 'tram', 'airship', 'boat', 'stagecoach')
+                      'carriage', 'horse', 'tram', 'airship', 'boat', 'stagecoach',
+                      # Ships and stations (companion/world/ships.py).
+                      'lift', 'shuttle')
 TransitKind = Id
 # What a city is: a real place, a well-known fictional setting, or an original one (built in or the user's own).
 Setting = Literal['real', 'fictional', 'original']
@@ -192,6 +194,15 @@ class Career(Record):
     # Who did this work in its era where custom kept it to one side ('men' for a cabman in 1895, 'women' for a
     # governess); left out, anyone. Read only in a city whose era keeps work by gender (City.work_by_gender).
     worked_by: Literal['men', 'women'] | None = None
+    # The ages (in human terms) someone works it at, [youngest, oldest]: a squire is young, a student 18 to 22.
+    # Left out, any working age.
+    ages: tuple[Annotated[int, Field(ge=16, le=99)], Annotated[int, Field(ge=16, le=99)]] | None = None
+
+    @model_validator(mode='after')
+    def check_ages(self):
+        if self.ages and self.ages[0] > self.ages[1]:
+            raise ValueError('A career\'s ages run from the youngest to the oldest.')
+        return self
 
 
 class Currency(Record):
@@ -377,6 +388,17 @@ class Water(Record):
         return self
 
 
+class Neighbour(Record):
+    """Another city of the same made-up world that people travel to from this one (companion/world/ships.py), such
+    as the station a ship docks at. A listing works both ways."""
+    city: Id
+    # How long the journey takes, each way.
+    hours: float = Field(gt=0, le=72)
+    # How people get there ("shuttle", "ferry", "night train"); left out, a shuttle where a ship or station is at
+    # either end, else the trip's usual words.
+    by: str = Field(default='', max_length=40)
+
+
 class City(Record):
     """One city. Minimums are small so a user can start a city of their own with a neighborhood and a place."""
     schema_version: Literal[1]
@@ -416,8 +438,9 @@ class City(Record):
     annual_events: list[AnnualEvent] = Field(default_factory=list, max_length=200)
     # Careers particular to this city or its setting, beside the shared catalogue.
     careers: list[Career] = Field(default_factory=list, max_length=200)
-    # Whether townsfolk's jobs follow the careers' `worked_by`: left out, the era decides (on before about 1920 and
-    # in the Middle Ages, off today and in fantasy settings, which turn it on themselves; generators.by_gender).
+    # Whether townsfolk's jobs follow the careers' `worked_by`: left out, the era decides (on before about 1920, in
+    # the jazz age and in the Middle Ages, off today and in fantasy settings, which turn it on themselves;
+    # generators.by_gender).
     work_by_gender: bool | None = None
     names: CityNames | None = None
     local_color: list[LocalColor] = Field(default_factory=list, max_length=100)
@@ -436,6 +459,12 @@ class City(Record):
     # a kind of the city's own (label, lifespan and words). Checked when the city loads (lifespans.clean), which
     # drops a bad entry with a note rather than stopping the city loading.
     kinds: Any = None  # Any shape here: a wrong one is dropped with a note (lifespans.clean), not a failed load.
+    # A ship or station (companion/world/ships.py): no weather, Earth seasons or cars, ship lighting in pictures.
+    # Left out, the app reads it from the city (a future city named as a ship or station, or with decks for
+    # neighbourhoods); false keeps a city that only sounds like one on the ground.
+    enclosed: bool | None = None
+    # Other cities of the same made-up world, with the journey there (trips and postcards, life/trips.py).
+    neighbours: list[Neighbour] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode='after')
     def check(self):

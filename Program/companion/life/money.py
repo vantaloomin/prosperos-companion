@@ -9,15 +9,16 @@ surprise bill and savings progress. The model only phrases what is listed here.
 outing that costs money gives way to a free one. Settings with no money (Oz) or no known city
 leave every activity affordable.
 """
+import json
 import random
 import re
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
-from functools import lru_cache
+from functools import cache, lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog, intimacy
+from companion.world import catalog, intimacy, ships
 from companion.world.source import CatalogWorld
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
@@ -114,6 +115,27 @@ GOALS = {
     'other': (('a good winter coat', 'new boots', 'a little nest egg', 'a trip to visit family'),
               ('a good winter coat', 'a trip to the seaside', 'a nest egg', 'a better room')),
 }
+
+
+# Surprise bills that need a car, which nobody has aboard a ship or station (companion/world/ships.py).
+CAR_BILLS = {'a parking ticket', 'new tyres'}
+
+
+@cache
+def ship_goals() -> list[list[str]]:
+    """What people save for aboard a ship or station, by pay tier (world/data/ship_money.json)."""
+    return json.loads((catalog.DATA / 'ship_money.json').read_text(encoding='utf-8'))['goals']
+
+
+def goals(found: 'Profile') -> list[str]:
+    """The savings goals to seed one from: the era's for their pay tier, or a ship's aboard one."""
+    bank = ship_goals() if ships.enclosed(found.city) else GOALS[found.era]
+    return bank[min(found.tier, len(bank) - 1)]
+
+
+def surprises(found: 'Profile') -> list[str]:
+    bills = SURPRISES[found.era]
+    return [bill for bill in bills if bill not in CAR_BILLS] if ships.enclosed(found.city) else list(bills)
 
 
 @dataclass(frozen=True)
@@ -317,7 +339,7 @@ def cycle(found: Profile, start: date) -> Cycle:
         splurge = (rng.choice(SPLURGES[found.era]), start + timedelta(days=rng.randint(0, 1)),
                    found.fun_cycle * SPLURGE_SHARE)
     if rng.random() < SURPRISE_CHANCE:
-        surprise = (rng.choice(SURPRISES[found.era]), start + timedelta(days=rng.randint(0, found.cycle_days - 1)),
+        surprise = (rng.choice(surprises(found)), start + timedelta(days=rng.randint(0, found.cycle_days - 1)),
                     found.income * found.per_cycle * SURPRISE_SHARE)
     return Cycle(start, splurge, surprise)
 
@@ -369,7 +391,7 @@ def goal(found: Profile, setup: dict, day: date, drawn: float = 0.0) -> dict:
     custom = bool(setup.get('saving_for'))
     since = goal_since(setup, day)
     rng = random.Random(f'{found.seed}:goal:{half.isoformat()}')
-    options = GOALS[found.era][min(found.tier, len(GOALS[found.era]) - 1)]
+    options = goals(found)
     label = setup['saving_for'] if custom else rng.choice(options)
     cycles = 26 if found.cycle_days == 14 else 52
     amount = float(setup.get('goal') or 0) if custom else 0
@@ -698,7 +720,7 @@ SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip',
             'gift': 'on gifts', 'school': 'on your course', 'deposit': 'from your savings',
             'business': 'from your savings', 'care': "on a parent's care", 'funeral': 'for a funeral',
             'family': 'from your savings', 'owed': 'on what you still owe', 'childcare': 'for the family',
-            'sitter': 'for the family', 'baby': 'for the family'}
+            'sitter': 'for the family', 'baby': 'for the family', 'admin': 'on errands and paperwork'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

@@ -13,7 +13,7 @@ Built-in cities come in three kinds (`setting`):
 | --- | --- |
 | `real` | Baltimore, Chicago, New York, Miami, New Orleans, San Diego, Los Angeles (written by a beta tester), Las Vegas, London, Jeju (South Korea, in won) and Osaka (Japan, in yen); New York, 1925 is the real city in the Jazz Age (`jazz-age`) |
 | `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Grandport, the merchant republic's capital in Oak's dark fantasy world Neokosmos, ships with Oak's permission (see Credits below). Other settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
-| `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, Calderwick, an industrial canal city with a steampunk lean, Haddon Harbor, a modern Maine harbour town where everyone knows everyone, and Pellmouth, a 1926 Massachusetts river-mouth town with a cosmic-horror lean (rumour and legend, never confirmed monsters; it names `category: fictional`). |
+| `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, Calderwick, an industrial canal city with a steampunk lean, Haddon Harbor, a modern Maine harbour town where everyone knows everyone, Pellmouth, a 1926 Massachusetts river-mouth town with a cosmic-horror lean (rumour and legend, never confirmed monsters; it names `category: fictional`), and The Long Meridian, a generation ship in the 188th year of its voyage, with Port Vesper, the trading station that flies beside it (both `future` and enclosed, three hours apart by shuttle; written by `scripts/world/long_meridian.py` and `port_vesper.py`). |
 
 City lists (Settings > Cities and every city picker) shelve cities as **Real / Modern**, **Other Eras**,
 **Fictional** and **Custom**. Custom holds the user's own cities. Any other city can name its shelf in
@@ -40,7 +40,8 @@ of about 45 modern careers describes schedules and themes; a city whose `era` is
 careers. A career may say who did that work in its era (`worked_by`: `men` or `women`; left out, anyone). In a
 city that keeps work by gender, townsfolk, circles and a companion's job changes only get the work of their side
 (they/them people get any): `work_by_gender` turns it on or off, and left out the era decides (on for `victorian`,
-`medieval`, `steampunk` and `frontier`, off otherwise; Ellerbrück turns it on, Grandport and Oz leave it off).
+`medieval`, `steampunk`, `frontier` and `jazz-age`, off otherwise; Ellerbrück turns it on, Grandport and Oz leave it
+off). A career may also say the ages it is worked at (`ages`: `[18, 24]` for a squire; left out, any working age).
 Each city also names its `currency` and `rent_period` (`month` or `week`); rents and climate
 are optional, so a setting without money (Oz) or without weather data still works.
 
@@ -49,6 +50,7 @@ are optional, so a setting without money (Oz) or without weather data still work
 | Path | Holds |
 | --- | --- |
 | `companion/world/data/cities/<id>.json` | One city. Validated against `companion/world/schema.py` on load and in the tests. |
+| `companion/world/data/careers-future.json` | The future era's shared careers (126: hydroponics technician, shuttle pilot, quartermaster, clinic nurse…), read with `careers.json` by `catalog.careers()`. Ships, stations and future cities offer these and their own. |
 | `companion/world/data/careers.json` | Careers with sector, schedule pattern, pay band and themes. `adult: true` marks adult work: only chosen for adult companions (drafting, the character form with the adult side on), never rolled for townsfolk, circles or job changes (`catalog.everyday`). |
 | `companion/world/data/names.json` | Name banks for residents, written by `scripts/world/names.py`. |
 | `companion/world/data/given_names.json` | Popular given names by birth year, family names by culture and names that read as invented, written by `scripts/world/given_names.py` from `scripts/world/name_sources/`. |
@@ -348,6 +350,35 @@ Each change is a sentence in `import_notes` on the save, check and pack response
 `python -m companion.world.check` output as `adjusted:`), and Settings shows them after a save. The
 saved definition is the mended one. Only a file that is not JSON or lacks a neighbourhood, a place or
 an id still fails.
+
+**Ships and stations** (`companion/world/ships.py`). A city that is a ship or a station is
+`enclosed`. Set `"enclosed": true` in the file, or leave it out and the app decides as the city loads:
+an era of `future` whose country, region or name says ship or station ("Generation ship", "Orbital
+station"), or with two or more neighbourhoods named as decks or rings, reads as one, and
+`import_notes` says so. `"enclosed": false` keeps a future city with a Ring Road on the ground. The
+built-in Long Meridian and Port Vesper are the examples; **Start from a ship** in Settings > Cities
+(`GET /api/world/template?kind=ship`) gives a small ship of three decks that docks at Port Vesper.
+Aboard there is no weather and no Earth seasons (no winter colds, no autumn coat shopping), a flat
+70°F climate stands in when the city gives none, cars, rideshares and horses are dropped from
+`speeds` (so nobody owns a car or pays car bills), summer barbecues are left out of friends'
+gatherings, and pictures are lit by the ship ("corridor lights dimmed for ship's night") with
+outdoor scenes said as indoor ones. Future cities also get their own dishes
+(`kitchen/future.json`), pastimes (the `future` entries in `hobbies/catalogue.json`, beside today's;
+aboard, never hiking, surfing or other pastimes that need open country or sea) and, aboard, their own
+savings goals (`ship_money.json`).
+
+**Travel within a made-up world.** A city can list `neighbours`: other built-in, pack or user cities
+it travels to, with the journey's `hours` each way and, optionally, how people go (`by`, such as
+`"night train"`; left out, a shuttle where a ship or station is at either end). A listing works both
+ways, so a station a ship lists can visit the ship. Weekend trips and postcards use neighbours within
+6 hours for two nights and 12 for three, beside the usual cities within reach; a ship or station
+travels only to its neighbours, and nobody visits one that does not list them. `neighbors` is read as
+`neighbours`; a neighbour that does not load is skipped.
+
+```json
+"enclosed": true,
+"neighbours": [{"city": "halcyon-station", "hours": 3}]
+```
 
 Built-in cities cannot be changed or deleted, only copied. A user city's `data_version` is a hash
 of its content, so editing it changes the version later events record.

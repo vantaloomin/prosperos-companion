@@ -13,7 +13,7 @@ group's last message, never twice without the user answering, and at most once e
 import random
 from datetime import timedelta
 
-from companion import away, notifications, secrets
+from companion import away, notifications, observer, secrets
 from companion.characters import by_id
 from companion.clock import parse, stamp
 from companion.database import many, one, optional, settings
@@ -50,6 +50,8 @@ def workspace_held(connection, life, now) -> str | None:
         return 'off'
     if workspace['paused_at'] is not None:
         return 'paused'
+    if observer.watching(connection):
+        return 'watching'  # Just watching (companion/observer.py): nobody starts a chat with the user.
     quiet = notifications.notification_settings(connection)
     if notifications.in_quiet_hours(now.astimezone(notifications.zone(workspace['user_timezone'])),
                                     quiet['quiet_start'], quiet['quiet_end']):

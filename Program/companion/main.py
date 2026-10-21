@@ -18,6 +18,7 @@ from companion import (
     groups,
     local_zone,
     logs,
+    observer_routes,
     story_routes,
     troubleshoot,
     workspace,
@@ -220,7 +221,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
     app.state.conversation.photos = ChatPhotos(app.state.database, app.state.images, app.state.life,
-                                               app.state.openers)
+                                               app.state.openers, app.state.vault)
     app.state.images.share = app.state.conversation.photos.share
     app.state.dating_photos = DatingPhotos(app.state.database, app.state.vault, app.state.images)
     # The photo of a finished outing with the user and the picture on a postcard from a trip.
@@ -282,6 +283,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(context_routes.router)
     app.include_router(story_routes.router)
     app.include_router(authors_note_routes.router)
+    app.include_router(observer_routes.router)
     app.include_router(group_routes.router)
     app.include_router(group_routes.secrets_router)
     app.include_router(dating_routes.router)

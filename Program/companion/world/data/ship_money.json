@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "about": "What people save for aboard a ship or station (companion/world/ships.py, companion/life/money.py goal), by pay tier from the bottom: four lists, each at least 25. Written for Prospero Companion, CC0-1.0.",
+  "goals": [
+    [
+      "an emergency fund", "a new handset", "a better mattress for the bunk", "a weekend at the station", "a proper pair of mag boots",
+      "a nicer set of cookware", "a month of good coffee", "a secondhand bike for the long corridors", "a ticket to the season finale",
+      "a sun-lamp for the cabin", "a decent jacket for the cold decks", "a few hours in the immersion booths", "a new set of headphones",
+      "a second-hand instrument", "a quilt for the bunk", "a little fund for birthdays", "a better chair for the desk",
+      "a few nights at a guesthouse", "a cooking class", "a trip to the arboretum spa", "a nicer pair of shoes",
+      "a fish tank for the cabin", "a shelf of real paper books", "a gift for a friend's wedding", "a set of good knives",
+      "a class at the flight school"
+    ],
+    [
+      "a shuttle trip to the next station", "a bigger cabin deposit", "a new terminal", "a good bike", "a week at the resort ring",
+      "a share in a community garden plot", "a proper camera", "a better home cooking setup", "a course at the academy",
+      "a new sofa", "a holiday on the pleasure deck", "a gravity-gym membership for a year", "a deposit on a nicer flat",
+      "a family visit across the system", "a new wardrobe for work", "a pilot's licence", "a set of real wooden furniture",
+      "a fund for a rainy day", "a viewport cabin upgrade", "a good telescope", "an immersion rig for the cabin",
+      "a pet's first year", "a long weekend at the station spa", "a new instrument", "a share in a friend's noodle bar",
+      "a week of shore leave somewhere new"
+    ],
+    [
+      "a down payment on a viewport flat", "a long trip to the inner stations", "a small shuttle share", "a sabbatical fund",
+      "a family holiday on the resort ring", "a renovation of the cabin", "a share in the hydroponics co-op",
+      "a year of evening classes", "a fund for a child's academy years", "a good investment account", "a cabin with a garden nook",
+      "a new set of furniture for the whole flat", "a trip to see Earth from orbit", "a private pilot's licence",
+      "a bigger flat on a quieter deck", "a share in a small business", "a pension top-up", "a month-long cruise between stations",
+      "a studio of their own", "a fund for a wedding", "a home brewing rig", "a well-equipped workshop", "a second home berth on the station",
+      "a gap year of travel", "a really good telescope and mount"
+    ],
+    [
+      "a flat with a full-wall viewport", "a share in a freighter", "a private shuttle", "a long tour of the outer system",
+      "an investment portfolio", "a business of their own", "a second home on the station", "a renovation of the whole flat",
+      "a year off to travel", "a trust fund for family", "a seat on the next colony expedition", "a vineyard share on the farm ring",
+      "a collection of real Earth art", "a well-appointed guest suite", "a big family reunion across the system",
+      "a share in the arboretum restoration", "a sailing season on the pleasure ring's lake", "a custom-built telescope dome",
+      "a fund for an endowed academy prize", "a garden flat on the top deck", "a stake in a new station module",
+      "a long stay at the inner-system resorts", "a fully equipped music studio", "a private dining club membership",
+      "an early retirement fund"
+    ]
+  ]
+}

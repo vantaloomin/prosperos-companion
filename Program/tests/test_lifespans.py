@@ -60,7 +60,10 @@ def test_an_elf_of_300_has_the_odds_of_a_human_of_48(client):
         assert loss.facts_for(connection, elf, today, None, 2, definition=definition) == \
             loss.facts_for(connection, human, today, None, 2, definition=definition)
         assert loss.facts_for(connection, elf, today, None, 2)['age'] == 48
-        # The companion's own: an elf of 90 is 26 in human terms, for big turns and the family odds alike.
+        # The companion's own: an elf of 90 is 26 in human terms, for big turns and the family odds alike. Read on
+        # the day their date was stored, so a seeded birthday never makes them a year older or younger.
+        row = ages.stored(connection, 'companion', companion['id'])
+        today = date.fromisoformat(row['anchored_on']) if row else today
         assert ages.companion_age(connection, companion['id'], definition, today) == 90
         assert big_turns.life_age_of(connection, companion, today) == 26
         assert big_turns.facts(connection, companion, today)['age'] == 26
@@ -320,7 +323,8 @@ def test_a_citys_own_kind_shows_on_a_persons_page_and_can_be_picked(client):
          location='Gran Porte, Tiefport')
     reconcile(client)
     people = client.get('/api/life/circle').json()
-    relatives = [person for person in people if person.get('folk')]
+    # Family are the sheet's kind; friends drawn from the town may be its elves, so only the tieflings count here.
+    relatives = [person for person in people if person.get('folk') == 'tiefling']
     assert relatives and all(person['kind']['label'] == 'Tiefling' and person['kind']['years'] == 200
                              for person in relatives)
     friend = next(person for person in people if not person.get('folk'))
@@ -342,7 +346,8 @@ def test_a_grown_kid_of_an_elf_and_a_human_is_a_half_elf(client, clock, monkeypa
     clock.advance(timedelta(days=370))
     reconcile(client)
     [leo] = [person for person in client.get('/api/life/circle').json() if person['name'] == 'Leo']
-    assert leo['role'] == 'son' and leo['age'] == 18 and leo['kind']['kind'] == 'half-elf'
+    # 17 when first met and a year on is 18, or 19 if a seeded birthday falls within those few extra days.
+    assert leo['role'] == 'son' and leo['age'] in (18, 19) and leo['kind']['kind'] == 'half-elf'
 
 
 def test_a_child_of_two_of_a_citys_own_kind_is_that_kind(client, clock, monkeypatch):
