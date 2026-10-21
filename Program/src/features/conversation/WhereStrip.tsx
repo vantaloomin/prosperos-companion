@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { DoorOpen, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
+import { DoorOpen, EyeOff, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { TOGETHER_KEY } from '../today/outingText'
 import { HomeStrip } from './HomeStrip'
@@ -11,6 +11,8 @@ import { WHERE_KEY, callActions, callClock, stripAction, stripLine, type CallAct
 
 const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
 const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Phone } as Record<CallAction['action'], typeof Home>
+// In a fantasy town a call is a scrying glass or a speaking stone, so no handsets (Iris, 2026-10-21).
+const MAGIC_GLYPHS = { answer: Sparkles, decline: EyeOff, end: EyeOff, call: Sparkles } as Record<CallAction['action'], typeof Home>
 
 /**
  * The "where you are" strip above the composer, in every chat style: while they are together (out somewhere, at
@@ -81,7 +83,7 @@ function CallStrip({ call, lead, short, tail, name, words, onDone }: { call: Whe
       {/* Only the state is announced; the ticking length sits outside the live region. */}
       <span><span aria-live="polite"><CallLead lead={lead} short={short} />{tail}</span>{call.status === 'on' && call.started_at && <> · <CallLength since={call.started_at} /></>}</span>
       {callActions(call, words).map((item) => {
-        const Icon = magic && item.action !== 'decline' && item.action !== 'end' ? Sparkles : CALL_GLYPHS[item.action]
+        const Icon = magic ? MAGIC_GLYPHS[item.action] : CALL_GLYPHS[item.action]
         return <button key={item.action} type="button" className={item.action === 'answer' ? 'button primary call-answer' : `text-button call-${item.action}`} onClick={() => void act(item.action)}><Icon aria-hidden="true" />{item.label}</button>
       })}
     </aside>
