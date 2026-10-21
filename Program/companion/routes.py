@@ -37,7 +37,7 @@ from companion.identity import APP_ID, VERSION
 from companion.images.prompts import in_photos
 from companion.imports import cards
 from companion.life import ages, grooming, status
-from companion.memory import consolidation, formation, pairs, records
+from companion.memory import consolidation, formation, pairs, records, voice
 from companion.models import (
     CastDraftRequest,
     CastFocus,
@@ -70,6 +70,7 @@ from companion.models import (
     TimelineFork,
     TimelineUpdate,
     TownSeed,
+    VoicePin,
 )
 from companion.world import intimacy, lifespans, looks, perception, personality
 
@@ -257,6 +258,19 @@ async def sidecar_message(request: Request, body: SidecarRequest):
 def edit_message(request: Request, message_id: str, body: MessageEdit):
     """New wording for one of the companion's replies, keeping the old wording for Undo."""
     return message_edits.edit(db(request), message_id, body.text, body.expected_text)
+
+
+@router.post('/conversation/messages/{message_id}/voice')
+def pin_voice(request: Request, message_id: str, body: VoicePin):
+    """"Pin their voice": pin one of their replies for the 'voice' section of every chat reply, or unpin it."""
+    return voice.pin(db(request), message_id, body.pinned)
+
+
+@router.get('/conversation/voice')
+def voice_pins(request: Request):
+    """The current companion's pinned replies, for the reply menu and the Character page."""
+    with db(request).connect() as connection:
+        return voice.view(connection, characters.require_current(connection)['id'])
 
 
 @router.get('/companion/cast')

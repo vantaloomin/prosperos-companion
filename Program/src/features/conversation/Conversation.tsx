@@ -41,6 +41,7 @@ import { ChatSidebar } from '../chats/ChatSidebar'
 import { readThrough } from '../chats/chatText'
 import { useMarkRead } from '../chats/useChats'
 import { takeArrival } from '../worlds/arrival'
+import { pinnedIn, useSetVoicePin, useVoicePins, VoiceActions } from './voicePins'
 
 const PAGE = 100
 
@@ -175,6 +176,15 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     try { sessionStorage.setItem(REMEMBER_KEY, JSON.stringify(request)) } catch { /* The form opens empty. */ }
     go('memories')
   }
+  const voicePins = useVoicePins()
+  const setVoicePin = useSetVoicePin()
+  const toggleVoice = async (message: Message) => {
+    const pinned = !pinnedIn(voicePins.data?.pins, message)
+    try {
+      await setVoicePin(message, pinned)
+      setNotice({ tone: 'info', text: pinned ? `Pinned. ${name}'s replies will keep sounding like this one.` : 'Unpinned. The app picks from replies you kept instead.' })
+    } catch (error) { fail(error) }
+  }
   const decline = async (message: Message) => {
     setDeclining(null)
     try {
@@ -206,8 +216,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }
 
   // Stable handlers and turns, so a streaming reply re-renders its own turn rather than the whole transcript.
-  const handlers = useRef({ retry, stop, remember, moment })
-  useEffect(() => { handlers.current = { retry, stop, remember, moment } })
+  const handlers = useRef({ retry, stop, remember, moment, toggleVoice })
+  useEffect(() => { handlers.current = { retry, stop, remember, moment, toggleVoice } })
   const turnActions = useMemo(() => ({
     retry: (id: string) => void handlers.current.retry(id),
     stop: (id: string) => void handlers.current.stop(id),
@@ -217,6 +227,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     edit: setEditing,
     branch: setBranching,
   }), [])
+  const voice = useMemo(() => ({ pins: voicePins.data?.pins, toggle: (message: Message) => void handlers.current.toggleVoice(message) }), [voicePins.data])
   const turns = useMemo(() => groupTurns(messages), [messages])
   const following = streamingIds(messages)
   const latestUserId = latestUser(turns)
@@ -238,12 +249,14 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             {history.isError && <ErrorNotice error={history.error} />}
             {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
             {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
+            <VoiceActions.Provider value={voice}>
             {turns.map((turn, index) => (
               <Fragment key={turnKey(turn)}>
                 <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts && !together} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
                 {endsOlderHistory(turns, index) && <p className="history-end subtle">Older history from an old chat ends here</p>}
               </Fragment>
             ))}
+            </VoiceActions.Provider>
           </div>
           {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
         </div>
