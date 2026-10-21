@@ -365,11 +365,25 @@ def companion_lines(connection, companion, now) -> list[dict]:
 
 # A townsperson's days ------------------------------------------------------------------------------------------------
 
-def doing_text(found: dict) -> str:
+# The town's words for what someone is doing (companion/world/townsfolk.py), as a narrator tells them afterwards.
+AT_WORK = re.compile(r'\bat work \((?P<job>[^)]+)\)')
+TOLD_AFTER = (('whoever passes', 'whoever passed'),)
+
+
+def doing_text(found: dict, pronouns: str | None = None) -> str:
+    from companion.life.pronouns import person
     doing, place = found['doing'], found.get('place')
+    doing = AT_WORK.sub(lambda match: f"at work as {article(match['job'])} {match['job']}", doing)
+    for now_, then in TOLD_AFTER:
+        doing = doing.replace(now_, then)
+    doing = re.sub(r'\btheir\b', person(pronouns)['their'], doing)
     if place and place.get('name') and place['name'] not in doing:
         return f"{doing} at {place['name']}"
     return doing
+
+
+def article(word: str) -> str:
+    return 'an' if word[:1].casefold() in 'aeiou' else 'a'
 
 
 # The same part of the day as the day before, told so a routine does not read word for word each day.
@@ -386,10 +400,10 @@ def whereabouts(sheet: dict, data: dict, day: date, now) -> list[dict]:
         if local > now:
             break
         found = townsfolk.whereabouts(sheet, data, local)
-        text = doing_text(found)
+        text = doing_text(found, sheet.get('pronouns'))
         if found['doing'] != 'asleep' and text != last:
             key = f"where:{sheet['key']}:{day.isoformat()}:{part}"
-            usual = doing_text(townsfolk.whereabouts(sheet, data, local - timedelta(days=1))) == text
+            usual = doing_text(townsfolk.whereabouts(sheet, data, local - timedelta(days=1)), sheet.get('pronouns')) == text
             # Turned by the day, so the same part never reads the same two days running.
             turn = (day.toordinal() + random.Random(f"{sheet['key']}:{part}").randrange(len(AGAIN))) % len(AGAIN)
             words = AGAIN[turn] if usual else 'In the {part}, {first} was {text}.'
@@ -416,7 +430,10 @@ def goal_lines(sheet: dict, data: dict, day: date, now, voice: int, shown: bool)
         result.append(item(seed, when, 'thought', pick('goal', seed).format(first=first, goal=state['goal']['text'])))
     if voice >= 2 and day == now.astimezone(zone(timezone)).date():
         mood = townsfolk.mood_for(sheet, state)
-        result.append(item(f"mood:{sheet['key']}", stamp(now), 'mood', f'{first} is {mood} today.',
+        # With nothing new on their goal, their mood is just their temperament.
+        words = f'{first} is {mood} today.' if state['beat'] in ('achieved', 'setback', 'progress') else \
+            f'{first} is as {mood} as ever.'
+        result.append(item(f"mood:{sheet['key']}", stamp(now), 'mood', words,
                            inner=pick(tone(mood), f"mood:{sheet['key']}:{day.isoformat()}").format(first=first)
                            if voice >= 3 else None, numbers=numbers))
     return result

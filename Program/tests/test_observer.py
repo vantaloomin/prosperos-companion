@@ -239,3 +239,13 @@ def test_the_narrator_reads_their_pronouns_from_the_description():
     assert narrator.companion_pronouns({'name': 'Dana', 'identity': '34. Works as an ER nurse. She/her.'}) == 'she/her'
     assert narrator.companion_pronouns({'name': 'Sam', 'pronouns': 'he/him'}) == 'he/him'
     assert narrator.companion_pronouns({'name': 'Rue'}) == 'they/them'
+
+
+def test_a_townspersons_day_is_told_in_the_past_with_their_own_pronouns():
+    assert narrator.doing_text({'doing': 'at work (biomedical researcher)'}) == 'at work as a biomedical researcher'
+    assert narrator.doing_text({'doing': 'at work (archivist)'}) == 'at work as an archivist'
+    place = {'name': 'Remington'}
+    assert narrator.doing_text({'doing': 'out front, chatting with whoever passes', 'place': place}) == \
+        'out front, chatting with whoever passed at Remington'
+    assert narrator.doing_text({'doing': 'at their usual spot at Remington', 'place': place}, 'she/her') == \
+        'at her usual spot at Remington'
