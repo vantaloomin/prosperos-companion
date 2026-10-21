@@ -852,14 +852,20 @@ textarea { resize: vertical; line-height: 1.6; }
 @media (max-width: 720px) { .eval-table thead { display: none; } .eval-table tr, .eval-table th, .eval-table td { display: block; } }
 .lora-strength { max-width: 7rem; }
 .city-filters { display: grid; gap: 10px; min-width: 0; }
-.city-filters .search-field { position: relative; display: flex; align-items: center; max-width: 360px; }
-.city-filters .search-field svg { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
-.city-filters .search-field input { flex: 1; min-width: 0; padding-left: 36px; }
+.city-filters .search-field, .library-passages .search-field { position: relative; display: flex; align-items: center; max-width: 360px; }
+.city-filters .search-field svg, .library-passages .search-field svg { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+.city-filters .search-field input, .library-passages .search-field input { flex: 1; min-width: 0; padding-left: 36px; }
+/* The reference library (src/features/character/Library.tsx): a book's credit and its passages, like a lorebook's. */
+.library-credit { margin: 6px 0 0; }
+.library-types { margin: 6px 0 0; }
+.library-passages { display: grid; gap: 8px; margin-top: 10px; }
+.library-passages > p { margin: 0; }
+.city-card .notice { margin-top: 10px; }
 .city-chips .subtle { margin-left: 2px; }
 @media (max-width: 720px) {
   .vibe-picks.city-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; padding-right: 24px; mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
   .city-chips .vibe-pick { flex: 0 0 auto; }
-  .city-filters .search-field { max-width: none; }
+  .city-filters .search-field, .library-passages .search-field { max-width: none; }
 }
 .featured-cities h3 { margin: 4px 0 2px; font-size: 1rem; }
 .featured-cities > p { margin: 0; }

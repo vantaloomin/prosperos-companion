@@ -21,6 +21,7 @@ import { PromptSettings } from './PromptSettings'
 import { Toggle } from '../../components/Fields'
 import { BackgroundSettings, MemorySettings, OocSettings, PauseSettings, RestoredReview, TimezoneSettings } from './WorkspaceSettings'
 import { Cities } from '../world/Cities'
+import { Library } from '../character/Library'
 import { BuiltinRecall } from './models/BuiltinRecall'
 import { VoiceSettings } from './models/VoiceSettings'
 import { HardwareCheck } from './models/HardwareCheck'
@@ -97,7 +98,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   const content: Record<SettingsTab, ReactNode> = {
     general: <><TimezoneSettings /><ChatStyleSettings /><OocSettings /><PauseSettings /><BackgroundSettings /></>,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
-    life: <><LifeSettings name={name} /><Cities /></>,
+    life: <><LifeSettings name={name} /><Cities /><Library world /></>,
     realism: <><RealismIntro /><PaceSettings /><LoveSettings /><HomeLifeSettings /><ClosenessSettings name={name} /><AdultSideSettings /><HiddenValues name="" /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,

@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import consequences, lore, news, pictures, prompt_library, secrets, self_facts, texting
+from companion import consequences, library, lore, news, pictures, prompt_library, secrets, self_facts, texting
 from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.characters import definition_for_timeline
@@ -229,6 +229,9 @@ HEADINGS = {
                          'listed here, so never invent more about them or claim to know them better)',
             'city_news': 'Changes around your city (fictional unless marked as a real listing; you know them as a '
                          'local would, they are not things you did)'}
+# The 'library' heading (A/B 2026-10-21, /mnt/project-files/companion-library/ab/report.md).
+LIBRARY_HEADING = ('What you know that bears on this (passages from your library; true in your world. Use them as your own '
+                   'knowledge, in your own words: never quote them or say where they come from)')
 # Changes with every message: sent with the message being answered instead of in the system prompt, so the system
 # prompt and the conversation stay cacheable, and a small model reads them right next to what it answers.
 NOW = {
@@ -275,6 +278,8 @@ NOW = {
                 'only what is listed here)',
        # Lorebook entries whose keywords came up in the last few messages (companion/lore.py).
        'lore_now': 'Lore that fits what is being talked about (from your lorebook; true in your world)',
+       # Passages of their reference library that match the last few messages (companion/library.py).
+       'library': LIBRARY_HEADING,
        'wearing': 'What you have on',
        'wording': 'Your wording lately',
        'time': 'Right now'}
@@ -1007,6 +1012,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
                                                   f"{events['retrieved_at'][11:16]} UTC: «{events['content']}»")
     query = latest['text'] if latest else (group or {}).get('query', '')
     lore.offer(packet, connection, companion, recent, query)
+    library.offer(packet, connection, companion, recent, query, semantic)
     offer_recalled(packet, connection, companion, now, groups['recallable'], (messages, older), query, semantic)
     return render(packet, conversation)
 
