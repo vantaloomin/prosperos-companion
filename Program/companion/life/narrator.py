@@ -287,6 +287,22 @@ def news_heard(connection, companion, since: date) -> list[dict]:
     return result
 
 
+def family(connection, companion, since: date, today: date, voice: int, first: str) -> list[dict]:
+    """Their child's milestones (companion/life/our_child.py), told on the day, in words only."""
+    from companion.life import our_child
+    timezone = companion['version']['timezone']
+    result = []
+    for child in our_child.at_home(connection, companion['active_timeline_id'], today):
+        for found in our_child.reached(connection, companion, child, today):
+            day = date.fromisoformat(found['on'])
+            if day >= since and found['key'] != 'grown':
+                key = f"milestone:{child['id']}:{found['key']}"
+                text = f"{our_child.first(child['name'])} {our_child.did(connection, companion, child, found['key'])}."
+                result.append(item(key, at(day, MIDDAY, timezone), 'family', text,
+                                   inner=thought_after(voice, True, key, 'good', first)))
+    return result
+
+
 def lowered(text: str) -> str:
     text = text.strip().rstrip('.')
     return text[:1].lower() + text[1:] if text[1:2].islower() else text
@@ -334,13 +350,16 @@ def companion_lines(connection, companion, now) -> list[dict]:
     lines = (day_events(connection, companion, at(since, time(0), timezone), now, voice, first)
              + moments(connection, companion, now, voice, bool(workspace['show_odds']), first)
              + dreamed(connection, companion, now, voice) + beats(connection, companion, now, since, voice, first)
-             + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since))
+             + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since)
+             + family(connection, companion, since, today, voice, first))
     lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
     lines += fresh(on_their_mind(connection, companion, now, voice), lines)
     lines += feeling(connection, companion, now, voice, bool(workspace['show_moods']), first)
     lines += wandering([day for day in days if day in lived], timezone, now, voice, f"companion:{companion['id']}",
                        first)
     pronoun = (companion['version']['definition'].get('pronouns') or '').split('/')[0].strip().casefold()
+    name = companion['version']['definition']['name']
+    lines = [{**line, 'text': line['text'].replace(name, first)} if name != first else line for line in lines]
     return safe(connection, lines, first, pronoun)
 
 
@@ -614,11 +633,17 @@ def due_entry(connection, now) -> dict | None:
     day = (now.astimezone(zone(timezone)).date() - timedelta(days=1)).isoformat()
     if optional(connection, 'SELECT day FROM observer_entries WHERE focus=? AND day=?', (focus['key'], day)):
         return None
+    young = named_young(connection) if families_withheld(connection) else None
     texts = [line['text'] for line in lines if parse(line['at']).astimezone(zone(timezone)).date().isoformat() == day
-             and line['kind'] not in ('private', 'mood')]
+             and line['kind'] not in ('private', 'mood') and not (young and young.search(line['text']))]
     if not texts:
         return None
     return {'focus': focus['key'], 'day': day, 'name': focus['name'], 'pronouns': pronouns_of(focus), 'lines': texts[:20]}
+
+
+def families_withheld(connection) -> bool:
+    from companion.life import families
+    return families.withheld(connection)
 
 
 def pronouns_of(focus: dict) -> str:

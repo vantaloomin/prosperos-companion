@@ -6,10 +6,12 @@ from datetime import timedelta
 
 import pytest
 from conftest import reconcile, send, set_life, show
+from test_expecting import likeliest, to  # noqa: F401 - likeliest is a fixture
+from test_our_child import born
 
 from companion import moods, observer
 from companion.characters import require_current
-from companion.life import big_days, deck, narrator, openers
+from companion.life import big_days, deck, narrator, openers, our_child
 from companion.providers.chat import Chunk
 
 
@@ -217,3 +219,17 @@ def test_a_townsperson_routine_does_not_read_word_for_word_each_day(client):
     assert found and len(set(found)) > len(found) // 2
     for day, before in zip(feed(client)['days'], feed(client)['days'][1:]):
         assert not {line['text'] for line in day['items']} & {line['text'] for line in before['items']}
+
+
+@pytest.mark.usefixtures('likeliest')
+def test_their_childs_milestones_are_told_on_the_day(client, clock, monkeypatch):
+    _row, child = born(client, clock, monkeypatch)
+    with client.app.state.database.connect() as connection:
+        planned = our_child.milestones(connection, require_current(connection), child)
+    smile = next(found for found in planned if found['key'] == 'smile')
+    to(client, clock, smile['on'])
+    assert client.put('/api/observer', json={'watching': True}).status_code == 200
+    first = child['name'].split()[0]
+    told = [line for line in lines(feed(client)) if line['kind'] == 'family']
+    assert [line['text'] for line in told] == [f'{first} smiled for the first time.']
+
