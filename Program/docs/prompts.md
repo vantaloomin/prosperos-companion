@@ -13,6 +13,7 @@ for comparison.
 | Who the companion is | The opening of every chat reply and first text, before the character sheet | `GUIDANCE` in `companion/memory/context.py` |
 | How the companion acts | After the character sheet: one behaviour line per personality slider away from the middle ([character-drafting.md](character-drafting.md#personality-sliders)) | `PERSONALITY` in `companion/memory/context.py` |
 | Your history together | Opens the line-a-week (then month, then year) record of the whole relationship in every chat reply, built from what happened and the user's corrections in the scrapbook's "All of it" view | `INTRO` in `companion/memory/history.py` |
+| How they sound | Opens up to three short excerpts of the companion's own earlier replies in every chat reply (two each in a group chat), so they keep their voice when the model changes. The app picks them from replies the user kept; "Pin their voice" in a reply's menu pins one | `INTRO` in `companion/memory/voice.py` |
 | Texting first | Added when the companion writes first | `INSTRUCTION` in `companion/life/openers.py` |
 | Voice notes | Added to a first text the app sends as a voice note ([voice-notes.md](voice-notes.md)) | `INSTRUCTION` in `companion/voice/notes.py` |
 | Phrasing life events | Life sim moments into a sentence and a caption | `RULES` in `companion/life/synthesis.py` |
@@ -41,7 +42,9 @@ small local models, which follow facts best when they sit right next to the mess
    Adult side of life is on and they read as an adult, followed by the adults-only setting line `SETTING` in
    `companion/world/intimacy.py`), then the sections that change rarely, in
    `HEADINGS` in `companion/memory/context.py`: the user's persona, always-on lore, home, the circle, how close you are and your history together (a line a week lately, a month or a year further back; it changes once a week), today's calendar, weather, money and housework, then what
-   grows during a chat (memories, what they have said about themselves, plans, recent life).
+   grows during a chat: a few lines of their own earlier replies, from before the conversation sent with the reply
+   (`companion/memory/voice.py`; the pick only changes when the conversation's first message moves or a pin
+   changes), then memories, what they have said about themselves, plans, recent life.
 2. **The conversation**: at least the last 20 messages. Its first message moves forward 12 messages at a time,
    not one, so the start of the conversation stays the same for several replies; older messages stay recallable.
 3. **The notes for this reply**, in front of the latest message (`NOW` in `context.py`), between two lines in

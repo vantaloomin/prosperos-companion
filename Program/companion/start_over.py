@@ -58,7 +58,7 @@ HISTORY = (
     'birth_dates', 'closeness_jokes', 'closeness_settings', 'people_impressions', 'people_meetups', 'step_settings', 'family_wishes', 'family_journeys', 'our_family', 'proposals', 'weddings', 'big_days', 'losses', 'step_asks', 'relationship_steps', 'love_partners', 'moving_in_shares', 'moving_in', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'breakup_reaches', 'breakups', 'rough_patch_promises', 'rough_patches', 'calls', 'together_asks', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
     'storyline_days', 'family_stays', 'babysitting', 'companion_kids', 'circle_children', 'family_traditions', 'scrapbook_seen', 'history_corrections', 'pet_log', 'pet_state', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'grooming_log', 'grooming_state', 'upkeep_days', 'upkeep_state', 'kitchen_state', 'media_items', 'media_state', 'hobby_log', 'hobbies', 'hobby_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_admin', 'work_weeks', 'work_events', 'work_life', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
-    'user_people', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'chat_imports', 'timelines',
+    'user_people', 'voice_pins', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'chat_imports', 'timelines',
 )
 # LoRA folders the backup does not carry: training runs and the test and prepared pictures.
 UNBACKED_LORA = ('runs', 'evaluations', 'generated')
