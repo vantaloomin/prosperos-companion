@@ -136,13 +136,15 @@ def reads(text: str) -> set[str] | None:
         return None
 
 
-def told(entry: dict, first: str, pronoun: str, adult_side: bool) -> dict | None:
+def told(entry: dict, first: str, pronoun: str, adult_side: bool, young: re.Pattern | None = None) -> dict | None:
     """The line as the page may show it: intimate lines never are, and fail closed (see the module notes)."""
     found = reads(entry['text'])
     inner = reads(entry['inner']) if entry.get('inner') else set()
     if found is None or inner is None:
         return None
     found |= inner
+    if young and young.search(f"{entry['text']} {entry.get('inner') or ''}"):
+        found.add('minor')
     if not found & (INTIMATE | {'close'}):
         return entry
     if adult_side and 'minor' not in found:
@@ -151,9 +153,16 @@ def told(entry: dict, first: str, pronoun: str, adult_side: bool) -> dict | None
     return None
 
 
+def named_young(connection) -> re.Pattern | None:
+    """The names of the children in anyone's circle (companion/life/families.py)."""
+    from companion.life import families
+    found = sorted(families.every_name(connection))
+    return re.compile('|'.join(rf'\b{re.escape(name)}\b' for name in found)) if found else None
+
+
 def safe(connection, entries: list[dict], first: str, pronoun: str) -> list[dict]:
-    adult_side = bool(settings(connection)['adult_side'])
-    kept = [told(entry, first, pronoun, adult_side) for entry in entries]
+    adult_side, young = bool(settings(connection)['adult_side']), named_young(connection)
+    kept = [told(entry, first, pronoun, adult_side, young) for entry in entries]
     return [entry for entry in kept if entry is not None]
 
 

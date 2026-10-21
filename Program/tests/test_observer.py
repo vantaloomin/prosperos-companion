@@ -126,6 +126,14 @@ def test_intimate_lines_are_never_told_and_fail_closed(client, companion):
     assert narrator.told({**plain, 'text': None}, 'Mira', 'she', True) is None  # Can't be checked: not told.
 
 
+def test_a_line_naming_someone_in_the_family_is_held_to_the_stricter_check(client, companion):
+    close = narrator.item('d', '2026-10-05T22:00:00Z', 'day', 'Mira and Theo had sex after Ivy fell asleep.')
+    plain = narrator.item('e', '2026-10-05T12:00:00Z', 'day', 'Mira took Ivy to the park.')
+    names = re.compile(r'\bIvy\b')
+    assert narrator.told(close, 'Mira', 'she', True, names) is None
+    assert narrator.told(plain, 'Mira', 'she', True, names) == plain
+
+
 def test_the_inner_voice_banks():
     found = narrator.bank()
     for category in ('good', 'bad', 'mixed', 'calm', 'wander', 'goal'):
