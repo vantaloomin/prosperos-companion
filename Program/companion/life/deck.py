@@ -19,6 +19,7 @@ under "Why it went this way" (with Hidden values > odds on), where the user can 
 card, or nothing at all. Names are filled in when shown, so renaming someone carries over.
 """
 import json
+import re
 from datetime import date, timedelta
 from functools import cache
 
@@ -28,7 +29,7 @@ from companion.database import many, optional
 from companion.errors import require
 from companion.life import chance, circle, love_life, pronouns, storylines
 from companion.memory import pairs
-from companion.world import catalog
+from companion.world import catalog, ships
 
 # Off in tests unless a test turns it on: a seeded moment would add context lines and first messages.
 ACTIVE = True
@@ -68,9 +69,18 @@ def table_cards() -> list[dict]:
     return found
 
 
+# Moments under an open sky, which a ship or station (companion/world/ships.py) has none of: they need 'earth'.
+SKY = re.compile(r'\b(?:sunset|sunny|umbrella|poured|puddles?|hail|rain\w*|snow\w*)\b', re.IGNORECASE)
+
+
+def grounded(card: dict) -> dict:
+    return {**card, 'needs': [*card['needs'], 'earth']} if SKY.search(card['text']) else card
+
+
 @cache
 def cards() -> tuple[dict, ...]:
-    return tuple([{**card, 'source': 'Life deck'} for card in deck()['cards']] + table_cards())
+    return tuple(grounded(card) for card in [{**card, 'source': 'Life deck', 'needs': card.get('needs', [])}
+                                             for card in deck()['cards']] + table_cards())
 
 
 def card(card_id: str | None) -> dict | None:
@@ -120,6 +130,8 @@ def needs_met(connection, companion) -> set[str]:
         has.add('work')
     if love_life.may_catch_eye(connection, companion):
         has.add('love')
+    if not ships.aboard(connection, companion['version']['definition']):
+        has.add('earth')
     return has
 
 

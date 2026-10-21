@@ -280,3 +280,11 @@ def test_a_family_aboard_hears_nothing_of_snow_beaches_or_car_seats():
         kept = families.fitting(families.bank()[key], 'future')
         assert len(kept) >= 100 and not any(unfit.search(f"{line['text']} {line['share']}") for line in kept), key
     assert unfit.search('built a snowman in the yard') and not unfit.search('played in the arboretum')
+
+
+def test_no_rain_or_sunsets_in_the_life_deck_aboard():
+    from companion.life import deck
+    skyward = {card['id'] for card in deck.cards() if 'earth' in card['needs']}
+    assert {'sunset', 'forgot-umbrella'} <= skyward
+    assert not {card['id'] for card in deck.eligible(3, {'friend', 'work', 'love'}, set())} & skyward
+    assert skyward <= {card['id'] for card in deck.eligible(3, {'friend', 'work', 'love', 'earth'}, set())}
