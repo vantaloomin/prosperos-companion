@@ -2,11 +2,12 @@
 import asyncio
 import json
 import re
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from conftest import reconcile, send, set_life, show
 from test_expecting import likeliest, to  # noqa: F401 - likeliest is a fixture
+from test_loss import advance, dies, losses, make, person, switch
 from test_our_child import born
 
 from companion import moods, observer
@@ -249,3 +250,19 @@ def test_a_townspersons_day_is_told_in_the_past_with_their_own_pronouns():
         'out front, chatting with whoever passed at Remington'
     assert narrator.doing_text({'doing': 'at their usual spot at Remington', 'place': place}, 'she/her') == \
         'at her usual spot at Remington'
+
+
+def test_a_death_in_their_family_is_told_on_the_day(client, clock, monkeypatch):
+    monkeypatch.setattr(big_days, 'ACTIVE', True)
+    make(client)
+    switch(client)
+    dad = person(client, 'dad')
+    dies(monkeypatch, dad['id'])
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['person_id'] == dad['id'])
+    assert client.put('/api/observer', json={'watching': True}).status_code == 200
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=14))
+    advance(client, clock)
+    told = [line for line in lines(feed(client)) if line['kind'] == 'loss']
+    assert [line['text'] for line in told] == [f"Mira's dad {dad['name'].split()[0]} died."]
+

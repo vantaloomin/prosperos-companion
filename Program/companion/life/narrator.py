@@ -303,6 +303,23 @@ def family(connection, companion, since: date, today: date, voice: int, first: s
     return result
 
 
+def losses(connection, companion, since: date, today: date, voice: int, first: str) -> list[dict]:
+    """Someone in their life who died (companion/life/loss.py), told on the day."""
+    from companion.life import circle, loss
+    definition, timezone = companion['version']['definition'], companion['version']['timezone']
+    result = []
+    for row in loss.rows(connection, companion['active_timeline_id']):
+        day = date.fromisoformat(row['died_on'])
+        if not row['happened'] or not since <= day <= today:
+            continue
+        who = f"{loss.first(row['name'])} ({row['role']})" if row['kind'] == 'town' else \
+            f"{first}'s {circle.said(row['role'], definition)} {loss.first(row['name'])}"
+        key = f"loss:{row['id']}"
+        result.append(item(key, at(day, MIDDAY, timezone), 'loss', f'{who} died.',
+                           inner=thought_after(voice, True, key, 'sad', first)))
+    return result
+
+
 def lowered(text: str) -> str:
     text = text.strip().rstrip('.')
     return text[:1].lower() + text[1:] if text[1:2].islower() else text
@@ -351,7 +368,8 @@ def companion_lines(connection, companion, now) -> list[dict]:
              + moments(connection, companion, now, voice, bool(workspace['show_odds']), first)
              + dreamed(connection, companion, now, voice) + beats(connection, companion, now, since, voice, first)
              + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since)
-             + family(connection, companion, since, today, voice, first))
+             + family(connection, companion, since, today, voice, first)
+             + losses(connection, companion, since, today, voice, first))
     lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
     lines += fresh(on_their_mind(connection, companion, now, voice), lines)
     lines += feeling(connection, companion, now, voice, bool(workspace['show_moods']), first)
