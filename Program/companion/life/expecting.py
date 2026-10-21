@@ -120,16 +120,17 @@ def era_group(connection, companion: dict) -> str:
 
 
 def modern(connection, companion: dict) -> bool:
-    return era_group(connection, companion) == 'modern' and families.era_of(
-        connection, companion['version']['definition']) not in families.UNFIT
+    era = families.era_of(connection, companion['version']['definition'])
+    return era_group(connection, companion) == 'modern' and (era not in families.UNFIT or not families.older(era))
 
 
 def fitting(lines: list[dict], connection, companion: dict) -> list[dict]:
-    """The bank lines for their city: every line in a modern one, only those for any era elsewhere, and none naming
-    something the era lacks (families.UNFIT: no tea in Camelot)."""
-    if modern(connection, companion):
-        return lines
+    """The bank lines for their city: every line in a modern one (aboard a ship, none naming Earth's weather or
+    roads), only those for any era elsewhere, and none naming something the era lacks (families.UNFIT: no tea in
+    Camelot)."""
     unfit = families.UNFIT.get(families.era_of(connection, companion['version']['definition']))
+    if modern(connection, companion):
+        return [line for line in lines if not (unfit and unfit.search(line['text']))] or lines
     return [line for line in lines if line.get('era') == 'any' and not (unfit and unfit.search(line['text']))] or lines
 
 

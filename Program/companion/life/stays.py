@@ -76,6 +76,13 @@ def first(name: str) -> str:
     return name.split()[0] if name.split() else name
 
 
+def handover(case: Case) -> str:
+    """Where the children are handed over across cities: the station, or the shuttle dock to or from a ship or station
+    (companion/world/ships.py)."""
+    from companion.world import ships
+    return 'the shuttle dock' if ships.by(case.home, case.city) == ships.SHUTTLE else 'the station'
+
+
 def under_age(kids: list[dict], day: date) -> list[dict]:
     return [kid for kid in kids if kid['status'] == 'born' and families.age_of(kid, day) < GROWN]
 
@@ -614,7 +621,7 @@ def under_way(case: Case, row: dict, kids: list[dict], today: date) -> str:
     who, them = told_who(case, row['host']), child_word(kids, 'them')
     if row['travels'] == 'child' and row['host'] != COMPANION:
         text = (f"- {names(kids)} {child_word(kids, 'is')} staying with {who} in {row['city_name']} until {end}, when "
-                f"you meet {them} at the station.")
+                f"you meet {them} at {handover(case)}.")
         if row['start_date'] < today.isoformat():
             text += f" {child_word(kids, 'they').capitalize()} sent you a postcard from {row['city_name']}."
         return text
@@ -633,9 +640,9 @@ def travel_text(case: Case, row: dict, kids: list[dict], ahead: bool) -> str:
     if row['travels'] != 'child':
         return ''
     if row['host'] == COMPANION:
-        return f" {they} {verb(kids, 'comes', 'come')} to you; you meet {them} at the station." if ahead else \
-            f' You see {them} off at the station on the last day.'
-    return f" {they} {verb(kids, 'goes', 'go')} to {city}; you hand {them} over at the station."
+        return f" {they} {verb(kids, 'comes', 'come')} to you; you meet {them} at {handover(case)}." if ahead else \
+            f' You see {them} off at {handover(case)} on the last day.'
+    return f" {they} {verb(kids, 'goes', 'go')} to {city}; you hand {them} over at {handover(case)}."
 
 
 def verb(kids: list[dict], one: str, more: str) -> str:
@@ -674,8 +681,8 @@ def item_line(case: Case, row: dict, companion: dict) -> str:
     """Under the title: where it is and the handover, or why the app planned it."""
     name, them = first(companion['version']['definition']['name']), child_word(children_of(case, row), 'them')
     if row['travels'] == 'child':
-        return f"In {row['city_name']}, with a handover at the station" if row['city_name'] else \
-            'A handover at the station'
+        return f"In {row['city_name']}, with a handover at {handover(case)}" if row['city_name'] else \
+            f'A handover at {handover(case)}'
     if row['travels'] == 'you':
         return f"In {row['city_name']}: you go to see {them}"
     if row['travels'] == 'companion':

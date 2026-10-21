@@ -253,3 +253,60 @@ def test_start_from_a_ship_saves_a_ship_that_docks_at_port_vesper(app, client):
     # The plain template stays a city on the ground.
     assert 'enclosed' not in client.get('/api/world/template').json()
     assert client.get('/api/world/template', params={'kind': 'castle'}).status_code == 422
+
+
+def test_aboard_nobody_misses_the_bus():
+    from companion.life import disruptions
+    block = {'kind': 'work'}
+    found = [disruptions.roll(f'late:{number}', block, aboard=True) for number in range(400)]
+    reasons = {shift['reason'] for shift in found if shift and shift['key'] == 'late'}
+    assert 'missed the tram' in reasons and not reasons & {'missed the bus', 'traffic was a mess'}
+
+
+def test_a_pet_aboard_never_sits_in_the_sun_or_by_the_fire():
+    from companion.life import pets
+    found = {'kind': 'dog', 'era': 'modern', 'name': 'Radish', 'aboard': True}
+    told = {pets.moment(found, f'pet:{n}', walking=n % 2 == 0) for n in range(300)}
+    told |= {(pets.photo(found, f'pet:{n}') or {}).get('shows') for n in range(300)}
+    assert told and not any(pets.EARTHBOUND.search(text or '') for text in told)
+    assert any(pets.EARTHBOUND.search(pets.moment({**found, 'aboard': False}, f'pet:{n}', walking=True) or '')
+               for n in range(300))
+
+
+def test_a_family_aboard_hears_nothing_of_snow_beaches_or_car_seats():
+    from companion.life import families
+    unfit = families.UNFIT['future']
+    for key in ('baby_update', 'toddler_update', 'child_update', 'babysit_toddler', 'own_toddler'):
+        kept = families.fitting(families.bank()[key], 'future')
+        assert len(kept) >= 100 and not any(unfit.search(f"{line['text']} {line['share']}") for line in kept), key
+    assert unfit.search('built a snowman in the yard') and not unfit.search('played in the arboretum')
+
+
+def test_no_rain_or_sunsets_in_the_life_deck_aboard():
+    from companion.life import deck
+    skyward = {card['id'] for card in deck.cards() if 'earth' in card['needs']}
+    assert {'sunset', 'forgot-umbrella'} <= skyward
+    assert not {card['id'] for card in deck.eligible(3, {'friend', 'work', 'love'}, set())} & skyward
+    assert skyward <= {card['id'] for card in deck.eligible(3, {'friend', 'work', 'love', 'earth'}, set())}
+
+
+def test_remembering_someone_aboard_is_never_their_garden_or_autumn():
+    from companion.life import families, loss
+    for name in ('memories', 'obituaries'):
+        kept = loss.fitting(loss.bank()[name], 'future')
+        assert len(kept) >= 100 and not any(families.UNFIT['future'].search(line) for line in kept), name
+
+
+def test_a_ship_and_its_station_are_a_shuttle_ride_apart_and_its_works_are_not_on_roads():
+    from datetime import date
+
+    from companion.life import long_distance, where
+    from companion.world import changes
+    ship_data, station = catalog.city('long-meridian'), catalog.city('port-vesper')
+    apart = where.Between(True, False, station, ship_data, 56.0, True)
+    assert long_distance.apart_text(apart) == ', about 3 hours apart by shuttle'
+    works = {'kind': 'roadworks', 'neighborhood': ship_data['neighborhoods'][0]['id'], 'name': 'Works',
+             'summary': 'a water main replacement', 'starts': '2026-10-01', 'ends': '2026-11-16'}
+    assert changes.change_text(works, ship_data, date(2026, 10, 20)).endswith('; getting through there takes longer')
+    assert 'by road' in changes.change_text(works, catalog.city('baltimore') | {'neighborhoods': ship_data[
+        'neighborhoods']}, date(2026, 10, 20))

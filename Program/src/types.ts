@@ -2233,7 +2233,7 @@ export interface WatchFocus {
 }
 /** Observer mode (companion/observer.py): whether the user is just watching, who the page follows and who else it could. */
 export interface Observer { watching: boolean; started_at: string | null; focus: WatchFocus | null; choices: WatchFocus[] }
-export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chapter' | 'news' | 'mood' | 'met' | 'private'
+export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chapter' | 'news' | 'mood' | 'met' | 'family' | 'loss' | 'private'
 /** One line of a watched day: what happened, with a thought after it and, under Hidden values, its numbers. */
 export interface WatchLine { id: string; at: string; kind: WatchKind; text: string; inner: string | null; numbers: string[] }
 export interface WatchDay { date: string; entry: string | null; items: WatchLine[] }

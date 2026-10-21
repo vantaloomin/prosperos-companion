@@ -257,8 +257,9 @@ def test_the_bank_has_enough_lines_for_every_era():
     bank = expecting.bank()
     for key in ('reactions', 'pregnancy', 'waiting', 'names_talk'):
         assert len(bank[key]) >= 100 and len({line['text'] for line in bank[key]}) == len(bank[key]), key
-        for era, unfit in families.UNFIT.items():  # What an older city keeps (expecting.fitting): 100 still.
-            assert sum(line['era'] == 'any' and not unfit.search(line['text']) for line in bank[key]) >= 100, (key, era)
+        for era, unfit in families.UNFIT.items():  # What an older city or a ship keeps (expecting.fitting): 100 still.
+            assert sum((line['era'] == 'any' or not families.older(era)) and not unfit.search(line['text'])
+                       for line in bank[key]) >= 100, (key, era)
     assert len(expecting.suggested()) >= 100
     assert all(line['text'].startswith('{who}') for line in bank['reactions'])
     assert all('{name}' in line['text'] for line in bank['names_talk'])

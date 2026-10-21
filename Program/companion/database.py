@@ -457,6 +457,11 @@ UPGRADE_FAMILIES = {0: {'growing_families': 1}, 3: {'growing_families': 3}}
 UPGRADE_LOSS = {0: {'loss': 0}, 3: {'loss': 3}}
 # Family life (v0.15) the same way: an easy life has easy kids, a dramatic one true-to-life chaos.
 UPGRADE_FAMILY_LIFE = {0: {'family_life': 0}, 3: {'family_life': 3}}
+# Memes and GIFs and Inner voice (v0.16) the same way: an easy life now and then and a few thoughts, a dramatic one
+# often and everything on their mind.
+UPGRADE_DREAMS = {0: {'memes_realism': 1, 'inner_voice': 1}, 3: {'memes_realism': 3, 'inner_voice': 3}}
+# "I pull the strings" has a real life's drama but no paced replies, and hears everything on their mind.
+STRINGS_VOICE = {1: {'inner_voice': 3}}
 
 
 def add_columns(connection):
@@ -467,9 +472,12 @@ def add_columns(connection):
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
             added.add((table, column))
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
-                           ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE)):
+                           ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE),
+                           ('inner_voice', UPGRADE_DREAMS)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
+    if ('life_settings', 'inner_voice') in added:
+        preset_upgrade(connection, STRINGS_VOICE, 'paced_replies=0 AND day_shifts=1')
     if ('life_settings', 'loss_by_preset') in added:
         preset_upgrade(connection, UPGRADE_LOSS, 'people_pass_away=0 AND loss=2')
 

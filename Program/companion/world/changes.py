@@ -378,8 +378,9 @@ def change_text(change: dict, data: dict, day: date) -> str:
     if kind == 'roadworks' and ended:
         return f'- {where}: {summary} finished {ends}'
     if kind == 'roadworks':
-        return f'- {where}: {summary} ' + (f'from {starts} to {ends}' if soon else f'until {ends}') + \
-            '; trips by road through there take longer'
+        slower = 'getting through there takes longer' if data.get('enclosed') is True else \
+            'trips by road through there take longer'  # No roads aboard a ship or station (world/ships.py).
+        return f'- {where}: {summary} ' + (f'from {starts} to {ends}' if soon else f'until {ends}') + f'; {slower}'
     if kind == 'closing':
         return f'- {name} ({where}) ' + (f'closes {starts}: {summary}' if soon else f'{summary} on {starts}')
     if ended:

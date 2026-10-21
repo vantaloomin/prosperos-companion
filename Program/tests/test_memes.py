@@ -140,7 +140,7 @@ def test_some_words_never_get_a_meme(client, life, text):
 
 def test_how_often_memes_come_unasked_follows_the_slider(client, life, unasked, monkeypatch):
     monkeypatch.setattr(unasked, 'UNASKED_CHANCE', 0)
-    monkeypatch.setattr(unasked, 'UNASKED_MEME_CHANCE', 0.9)
+    monkeypatch.setattr(unasked, 'UNASKED_MEME_CHANCE', 1)  # Each reply has its own dice: 0.9 missed one run in ten.
     set_life(client, memes_realism=0)
     assert ask(client, 'ugh, such a rough day', 'say-0001')['photo'] is None
     set_life(client, memes_realism=2)
@@ -303,3 +303,9 @@ def test_the_gif_key_is_never_sent_over_home_wifi(client, monkeypatch):
     response = client.put('/api/images/memes/gif-key', json={'key': 'abc123'})
     assert response.status_code == 403 and 'Wi-Fi' in response.json()['detail']
     assert client.get('/api/images/memes').json()['key_here'] is False
+
+
+def test_a_meme_asked_for_by_someones_name_is_held_to_the_stricter_check(client, life, monkeypatch):
+    monkeypatch.setattr('companion.life.families.every_name', lambda _connection: {'Ivy'})
+    assert meme(client, 'send me a meme about ivy') is None
+    assert meme(client, 'send me a meme', client_id='ask-0002')['kind'] == 'meme'

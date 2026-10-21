@@ -2,14 +2,18 @@
 import asyncio
 import json
 import re
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from conftest import reconcile, send, set_life, show
+from test_expecting import likeliest, to  # noqa: F401 - likeliest is a fixture
+from test_loss import advance, dies, losses, make, person, switch
+from test_our_child import born
 
 from companion import moods, observer
 from companion.characters import require_current
-from companion.life import big_days, deck, narrator, openers
+from companion.clock import stamp
+from companion.life import big_days, deck, narrator, openers, our_child
 from companion.providers.chat import Chunk
 
 
@@ -126,6 +130,14 @@ def test_intimate_lines_are_never_told_and_fail_closed(client, companion):
     assert narrator.told({**plain, 'text': None}, 'Mira', 'she', True) is None  # Can't be checked: not told.
 
 
+def test_a_line_naming_someone_in_the_family_is_held_to_the_stricter_check(client, companion):
+    close = narrator.item('d', '2026-10-05T22:00:00Z', 'day', 'Mira and Theo had sex after Ivy fell asleep.')
+    plain = narrator.item('e', '2026-10-05T12:00:00Z', 'day', 'Mira took Ivy to the park.')
+    names = re.compile(r'\bIvy\b')
+    assert narrator.told(close, 'Mira', 'she', True, names) is None
+    assert narrator.told(plain, 'Mira', 'she', True, names) == plain
+
+
 def test_the_inner_voice_banks():
     found = narrator.bank()
     for category in ('good', 'bad', 'mixed', 'calm', 'wander', 'goal'):
@@ -209,3 +221,70 @@ def test_a_townsperson_routine_does_not_read_word_for_word_each_day(client):
     assert found and len(set(found)) > len(found) // 2
     for day, before in zip(feed(client)['days'], feed(client)['days'][1:]):
         assert not {line['text'] for line in day['items']} & {line['text'] for line in before['items']}
+
+
+@pytest.mark.usefixtures('likeliest')
+def test_their_childs_milestones_are_told_on_the_day(client, clock, monkeypatch):
+    _row, child = born(client, clock, monkeypatch)
+    with client.app.state.database.connect() as connection:
+        planned = our_child.milestones(connection, require_current(connection), child)
+    smile = next(found for found in planned if found['key'] == 'smile')
+    to(client, clock, smile['on'])
+    assert client.put('/api/observer', json={'watching': True}).status_code == 200
+    first = child['name'].split()[0]
+    told = [line for line in lines(feed(client)) if line['kind'] == 'family']
+    assert [line['text'] for line in told] == [f'{first} smiled for the first time.']
+
+
+
+def test_the_narrator_reads_their_pronouns_from_the_description():
+    assert narrator.companion_pronouns({'name': 'Dana', 'identity': '34. Works as an ER nurse. She/her.'}) == 'she/her'
+    assert narrator.companion_pronouns({'name': 'Sam', 'pronouns': 'he/him'}) == 'he/him'
+    assert narrator.companion_pronouns({'name': 'Rue'}) == 'they/them'
+
+
+def test_a_townspersons_day_is_told_in_the_past_with_their_own_pronouns():
+    assert narrator.doing_text({'doing': 'at work (biomedical researcher)'}) == 'at work as a biomedical researcher'
+    assert narrator.doing_text({'doing': 'at work (archivist)'}) == 'at work as an archivist'
+    place = {'name': 'Remington'}
+    assert narrator.doing_text({'doing': 'out front, chatting with whoever passes', 'place': place}) == \
+        'out front, chatting with whoever passed at Remington'
+    assert narrator.doing_text({'doing': 'at their usual spot at Remington', 'place': place}, 'she/her') == \
+        'at her usual spot at Remington'
+
+
+def test_a_death_in_their_family_is_told_on_the_day(client, clock, monkeypatch):
+    monkeypatch.setattr(big_days, 'ACTIVE', True)
+    make(client)
+    switch(client)
+    dad = person(client, 'dad')
+    dies(monkeypatch, dad['id'])
+    advance(client, clock)
+    row = next(row for row in losses(client) if row['person_id'] == dad['id'])
+    assert client.put('/api/observer', json={'watching': True}).status_code == 200
+    clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=14))
+    advance(client, clock)
+    told = [line for line in lines(feed(client)) if line['kind'] == 'loss']
+    assert [line['text'] for line in told] == [f"Mira's dad, {dad['name'].split()[0]}, died."]
+    assert not told[0].get('inner')  # No inner voice bank is written for grief.
+
+
+def test_a_line_set_later_today_is_told_as_of_now(clock):
+    now = clock.now()
+    later = {'key': 'moment:x', 'at': stamp(now + timedelta(hours=3)), 'text': 'A jar lid would not open.'}
+    earlier = {**later, 'at': stamp(now - timedelta(hours=3))}
+    assert narrator.told_by(later, now)['at'] == stamp(now - timedelta(seconds=1))  # Just under how they feel now.
+    assert narrator.told_by(earlier, now) == earlier
+
+
+def test_the_day_of_a_death_is_told_quietly_from_then_on():
+    def line(key, hour, kind, inner=None):
+        return {'id': key, 'at': f'2026-10-20T{hour:02d}:00:00.000000+00:00', 'kind': kind, 'text': key, 'inner': inner,
+                'numbers': []}
+    lines = [line('morning', 13, 'moment', 'Mira is still smiling about it.'), line('died', 16, 'loss'),
+             line('joke', 16, 'moment', 'Mira wants to tell someone.'), line('plan', 18, 'thought'), line('museum', 17, 'day', 'Mira grins.'),
+             line('next day', 16, 'day', 'Mira grins.') | {'at': '2026-10-21T16:00:00.000000+00:00'}]
+    told = {found['id']: found for found in narrator.hushed(lines, 'America/New_York')}
+    assert list(told) == ['morning', 'died', 'museum', 'next day']
+    assert told['museum']['inner'] is None and told['morning']['inner'] and told['next day']['inner']
+

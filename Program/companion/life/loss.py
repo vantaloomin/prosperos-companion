@@ -37,7 +37,7 @@ from functools import cache
 from companion import consequences
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import ages, circle, pronouns
+from companion.life import ages, circle, families, pronouns
 from companion.world import catalog, generators
 
 ACTIVE = True
@@ -99,8 +99,9 @@ def era_of(connection, companion: dict) -> str:
 
 def fitting(lines: list[str], era: str) -> list[str]:
     """The lines that fit the era: no texting before phones, no radio in 1895, no photograph in Camelot."""
-    rank = ERA_RANKS.get(era, 0)
-    return [line for line in lines if all(rank >= need for pattern, need in ERA_NEEDS if pattern.search(line))] or lines
+    rank, afloat = ERA_RANKS.get(era, 0), families.UNFIT.get('future') if era == 'future' else None
+    return [line for line in lines if all(rank >= need for pattern, need in ERA_NEEDS if pattern.search(line))
+            and not (afloat and afloat.search(line))] or lines
 
 
 def death_factor(era: str) -> float:

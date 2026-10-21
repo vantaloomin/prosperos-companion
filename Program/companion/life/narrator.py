@@ -136,13 +136,15 @@ def reads(text: str) -> set[str] | None:
         return None
 
 
-def told(entry: dict, first: str, pronoun: str, adult_side: bool) -> dict | None:
+def told(entry: dict, first: str, pronoun: str, adult_side: bool, young: re.Pattern | None = None) -> dict | None:
     """The line as the page may show it: intimate lines never are, and fail closed (see the module notes)."""
     found = reads(entry['text'])
     inner = reads(entry['inner']) if entry.get('inner') else set()
     if found is None or inner is None:
         return None
     found |= inner
+    if young and young.search(f"{entry['text']} {entry.get('inner') or ''}"):
+        found.add('minor')
     if not found & (INTIMATE | {'close'}):
         return entry
     if adult_side and 'minor' not in found:
@@ -151,9 +153,16 @@ def told(entry: dict, first: str, pronoun: str, adult_side: bool) -> dict | None
     return None
 
 
+def named_young(connection) -> re.Pattern | None:
+    """The names of the children in anyone's circle (companion/life/families.py)."""
+    from companion.life import families
+    found = sorted(families.every_name(connection))
+    return re.compile('|'.join(rf'\b{re.escape(name)}\b' for name in found)) if found else None
+
+
 def safe(connection, entries: list[dict], first: str, pronoun: str) -> list[dict]:
-    adult_side = bool(settings(connection)['adult_side'])
-    kept = [told(entry, first, pronoun, adult_side) for entry in entries]
+    adult_side, young = bool(settings(connection)['adult_side']), named_young(connection)
+    kept = [told(entry, first, pronoun, adult_side, young) for entry in entries]
     return [entry for entry in kept if entry is not None]
 
 
@@ -278,6 +287,62 @@ def news_heard(connection, companion, since: date) -> list[dict]:
     return result
 
 
+def family(connection, companion, since: date, today: date, voice: int, first: str) -> list[dict]:
+    """Their child's milestones (companion/life/our_child.py), told on the day, in words only."""
+    from companion.life import our_child
+    timezone = companion['version']['timezone']
+    result = []
+    for child in our_child.at_home(connection, companion['active_timeline_id'], today):
+        for found in our_child.reached(connection, companion, child, today):
+            day = date.fromisoformat(found['on'])
+            if day >= since and found['key'] != 'grown':
+                key = f"milestone:{child['id']}:{found['key']}"
+                text = f"{our_child.first(child['name'])} {our_child.did(connection, companion, child, found['key'])}."
+                result.append(item(key, at(day, MIDDAY, timezone), 'family', text,
+                                   inner=thought_after(voice, True, key, 'good', first)))
+    return result
+
+
+ONLY_ONE = {'mom', 'dad', 'mother', 'father', 'stepmom', 'stepdad', 'wife', 'husband', 'grandfather'}
+
+
+def hushed(lines: list[dict], timezone: str) -> list[dict]:
+    """From a death on: no small moments or passing thoughts that day, and no thought after a line (Loss and grief keeps the day quiet)."""
+    deaths = {}
+    for line in lines:
+        if line['kind'] == 'loss':
+            day = parse(line['at']).astimezone(zone(timezone)).date()
+            deaths[day] = min(deaths.get(day, parse(line['at'])), parse(line['at']))
+    result = []
+    for line in lines:
+        since = deaths.get(parse(line['at']).astimezone(zone(timezone)).date())
+        if since is None or line['kind'] == 'loss' or parse(line['at']) < since:
+            result.append(line)
+        elif line['kind'] not in ('moment', 'thought'):
+            result.append({**line, 'inner': None})
+    return result
+
+
+def losses(connection, companion, since: date, today: date, first: str) -> list[dict]:
+    """Someone in their life who died (companion/life/loss.py), told on the day."""
+    from companion.life import circle, loss
+    definition, timezone = companion['version']['definition'], companion['version']['timezone']
+    result = []
+    for row in loss.rows(connection, companion['active_timeline_id']):
+        day = date.fromisoformat(row['died_on'])
+        if not row['happened'] or not since <= day <= today:
+            continue
+        name = loss.first(row['name'])
+        # With only one of them (a mom, a husband), the name is an aside: "Mira's dad, James, died."
+        aside = f', {name},' if row['role'] in ONLY_ONE else f' {name}'
+        who = f"{name} ({row['role']})" if row['kind'] == 'town' else \
+            f"{first}'s {circle.said(row['role'], definition)}{aside}"
+        key = f"loss:{row['id']}"
+        # No thought from the inner voice banks: none of them is written for grief.
+        result.append(item(key, at(day, MIDDAY, timezone), 'loss', f'{who} died.'))
+    return result
+
+
 def lowered(text: str) -> str:
     text = text.strip().rstrip('.')
     return text[:1].lower() + text[1:] if text[1:2].islower() else text
@@ -325,23 +390,47 @@ def companion_lines(connection, companion, now) -> list[dict]:
     lines = (day_events(connection, companion, at(since, time(0), timezone), now, voice, first)
              + moments(connection, companion, now, voice, bool(workspace['show_odds']), first)
              + dreamed(connection, companion, now, voice) + beats(connection, companion, now, since, voice, first)
-             + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since))
+             + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since)
+             + family(connection, companion, since, today, voice, first)
+             + losses(connection, companion, since, today, first))
     lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
     lines += fresh(on_their_mind(connection, companion, now, voice), lines)
     lines += feeling(connection, companion, now, voice, bool(workspace['show_moods']), first)
     lines += wandering([day for day in days if day in lived], timezone, now, voice, f"companion:{companion['id']}",
                        first)
-    pronoun = (companion['version']['definition'].get('pronouns') or '').split('/')[0].strip().casefold()
-    return safe(connection, lines, first, pronoun)
+    pronoun = companion_pronouns(companion['version']['definition']).split('/')[0]
+    name = companion['version']['definition']['name']
+    lines = [{**line, 'text': line['text'].replace(name, first)} if name != first else line for line in lines]
+    return safe(connection, [told_by(line, now) for line in hushed(lines, timezone)], first, pronoun)
+
+
+def told_by(line: dict, now) -> dict:
+    """A line set later in the day than now (today's Life deck moment is set at midday) is told as of now, just under
+    how they feel now, which tops the day."""
+    return {**line, 'at': stamp(now - timedelta(seconds=1))} if parse(line['at']) > now else line
 
 
 # A townsperson's days ------------------------------------------------------------------------------------------------
 
-def doing_text(found: dict) -> str:
+# The town's words for what someone is doing (companion/world/townsfolk.py), as a narrator tells them afterwards.
+AT_WORK = re.compile(r'\bat work \((?P<job>[^)]+)\)')
+TOLD_AFTER = (('whoever passes', 'whoever passed'),)
+
+
+def doing_text(found: dict, pronouns: str | None = None) -> str:
+    from companion.life.pronouns import person
     doing, place = found['doing'], found.get('place')
+    doing = AT_WORK.sub(lambda match: f"at work as {article(match['job'])} {match['job']}", doing)
+    for now_, then in TOLD_AFTER:
+        doing = doing.replace(now_, then)
+    doing = re.sub(r'\btheir\b', person(pronouns)['their'], doing)
     if place and place.get('name') and place['name'] not in doing:
         return f"{doing} at {place['name']}"
     return doing
+
+
+def article(word: str) -> str:
+    return 'an' if word[:1].casefold() in 'aeiou' else 'a'
 
 
 # The same part of the day as the day before, told so a routine does not read word for word each day.
@@ -358,10 +447,10 @@ def whereabouts(sheet: dict, data: dict, day: date, now) -> list[dict]:
         if local > now:
             break
         found = townsfolk.whereabouts(sheet, data, local)
-        text = doing_text(found)
+        text = doing_text(found, sheet.get('pronouns'))
         if found['doing'] != 'asleep' and text != last:
             key = f"where:{sheet['key']}:{day.isoformat()}:{part}"
-            usual = doing_text(townsfolk.whereabouts(sheet, data, local - timedelta(days=1))) == text
+            usual = doing_text(townsfolk.whereabouts(sheet, data, local - timedelta(days=1)), sheet.get('pronouns')) == text
             # Turned by the day, so the same part never reads the same two days running.
             turn = (day.toordinal() + random.Random(f"{sheet['key']}:{part}").randrange(len(AGAIN))) % len(AGAIN)
             words = AGAIN[turn] if usual else 'In the {part}, {first} was {text}.'
@@ -388,7 +477,10 @@ def goal_lines(sheet: dict, data: dict, day: date, now, voice: int, shown: bool)
         result.append(item(seed, when, 'thought', pick('goal', seed).format(first=first, goal=state['goal']['text'])))
     if voice >= 2 and day == now.astimezone(zone(timezone)).date():
         mood = townsfolk.mood_for(sheet, state)
-        result.append(item(f"mood:{sheet['key']}", stamp(now), 'mood', f'{first} is {mood} today.',
+        # With nothing new on their goal, their mood is just their temperament.
+        words = f'{first} is {mood} today.' if state['beat'] in ('achieved', 'setback', 'progress') else \
+            f'{first} is as {mood} as ever.'
+        result.append(item(f"mood:{sheet['key']}", stamp(now), 'mood', words,
                            inner=pick(tone(mood), f"mood:{sheet['key']}:{day.isoformat()}").format(first=first)
                            if voice >= 3 else None, numbers=numbers))
     return result
@@ -605,17 +697,30 @@ def due_entry(connection, now) -> dict | None:
     day = (now.astimezone(zone(timezone)).date() - timedelta(days=1)).isoformat()
     if optional(connection, 'SELECT day FROM observer_entries WHERE focus=? AND day=?', (focus['key'], day)):
         return None
+    young = named_young(connection) if families_withheld(connection) else None
     texts = [line['text'] for line in lines if parse(line['at']).astimezone(zone(timezone)).date().isoformat() == day
-             and line['kind'] not in ('private', 'mood')]
+             and line['kind'] not in ('private', 'mood') and not (young and young.search(line['text']))]
     if not texts:
         return None
     return {'focus': focus['key'], 'day': day, 'name': focus['name'], 'pronouns': pronouns_of(focus), 'lines': texts[:20]}
 
 
+def families_withheld(connection) -> bool:
+    from companion.life import families
+    return families.withheld(connection)
+
+
+def companion_pronouns(definition: dict) -> str:
+    """'she/her', 'he/him', or they/them when the description does not say (companion/world/looks.py)."""
+    from companion.world import looks
+    return (definition.get('pronouns') or '').strip().casefold() or looks.pronouns_of(definition)
+
+
 def pronouns_of(focus: dict) -> str:
     """'she/her', or they/them when the sheet does not say (companions are they/them unless their sheet says)."""
-    sheet = focus['companion']['version']['definition'] if focus['kind'] == 'companion' else focus['sheet']
-    return (sheet.get('pronouns') or '').strip() or 'they/them'
+    if focus['kind'] == 'companion':
+        return companion_pronouns(focus['companion']['version']['definition'])
+    return (focus['sheet'].get('pronouns') or '').strip() or 'they/them'
 
 
 def usable(text: str, name: str) -> str | None:

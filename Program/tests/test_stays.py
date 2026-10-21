@@ -283,3 +283,12 @@ def test_a_visit_asked_for_across_cities_books_a_stay(client, split, provider, m
     assert len(asked) == 1 and asked[0]['message_id'] and asked[0]['travels'] in ('you', 'companion')
     assert date.fromisoformat(asked[0]['start_date']).weekday() == 5
     assert 'it is settled as' in prompt(provider)
+
+
+def test_across_a_ship_and_its_station_the_handover_is_at_the_shuttle_dock():
+    from companion.world import catalog
+    case = stays.Case('ours', 'b1', [], stays.OTHER, 'Dana', None, True, catalog.city('port-vesper'), date(2026, 10, 5))
+    case.home = catalog.city('long-meridian')
+    assert stays.handover(case) == 'the shuttle dock'
+    case.city, case.home = catalog.city('chicago'), catalog.city('baltimore')
+    assert stays.handover(case) == 'the station'
