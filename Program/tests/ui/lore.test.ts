@@ -25,7 +25,7 @@ test('a picture that was left out says why', () => {
 })
 
 test('entries say when they come up', () => {
-  assert.equal(entryWhen(entry), 'When someone mentions Mike, brother')
+  assert.equal(entryWhen(entry), 'When someone mentions "Mike", "brother"')
   assert.equal(entryWhen({ ...entry, always: true }), 'Always')
   assert.match(entryWhen({ ...entry, pattern: true }), /stays off/)
 })
@@ -41,11 +41,13 @@ test('an entry that fits the moment says when, in words', () => {
   const rain = { key: 'weather:rain', label: 'Rain' }
   const snow = { key: 'weather:snow', label: 'Snow' }
   const night = { key: 'time:night', label: 'Night' }
-  assert.equal(momentText([rain, snow, night]), 'on rainy days or on snowy days, at night')
+  assert.equal(momentText([rain, snow, night]), 'on rainy days or snowy days, at night')
   assert.equal(momentText([{ key: 'holiday:Christmas Day', label: 'Christmas Day' }, { key: 'place:hampden', label: 'Hampden' }]),
     'on Christmas Day, in Hampden')
   assert.equal(momentText([{ key: 'season:fall', label: 'Fall' }, { key: 'work:yes', label: 'At work' }]), 'in fall, at work')
+  assert.equal(momentText(['Fall', 'Winter', 'Spring'].map((label) => ({ key: `season:${label.toLowerCase()}`, label }))),
+    'in fall, winter or spring')
   assert.equal(entryWhen({ ...entry, keywords: [], when: [rain, night] }), 'On rainy days, at night')
-  assert.equal(entryWhen({ ...entry, when: [night] }), 'When someone mentions Mike, brother. Also at night')
+  assert.equal(entryWhen({ ...entry, when: [night] }), 'When someone mentions "Mike", "brother". Also at night')
   assert.equal(entryWhen({ ...entry, keywords: [], when: [] }), 'Never: it has no words or moment')
 })

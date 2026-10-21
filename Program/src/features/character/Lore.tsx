@@ -9,12 +9,16 @@ import { bookSummary, entryWhen, MOMENT_KINDS, type LoreBook, type LoreEntry, ty
 const LORE_KEY = ['lore']
 interface Listing { books: LoreBook[]; choices: MomentChoices }
 
-/** The moments an entry comes up in besides its words (companion/lore_moments.py): chips to take off, and a picker
- * to add another, with no free text. */
+/** The moments an entry comes up in besides its words (companion/lore_moments.py), behind "Change when": chips to
+ * take off, and a picker to add another, with no free text. */
 function MomentPicker({ entry, choices, disabled, onChange }: {
   entry: LoreEntry; choices: MomentChoices; disabled: boolean; onChange: (keys: string[]) => void
 }) {
+  const [open, setOpen] = useState(false)
   const keys = entry.when.map((moment) => moment.key)
+  const toggle = <button type="button" className="text-button lore-change" disabled={disabled} aria-expanded={open}
+    onClick={() => setOpen(!open)}>{open ? 'Done' : entry.when.length ? 'Change when' : 'Add a moment'}</button>
+  if (!open) return <div className="lore-moments">{toggle}{entry.when_guessed && <span className="subtle">Read from its keywords</span>}</div>
   return (
     <div className="lore-moments" role="group" aria-label={`When ${entry.title} comes up`}>
       {entry.when.length > 0 && <ul className="moment-chips">
@@ -36,6 +40,7 @@ function MomentPicker({ entry, choices, disabled, onChange }: {
           </optgroup> : null
         })}
       </select>
+      {toggle}
       {entry.when_guessed && <span className="subtle">Read from its keywords</span>}
     </div>
   )

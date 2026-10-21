@@ -576,6 +576,11 @@ textarea { resize: vertical; line-height: 1.6; }
 .moment-remove { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; color: var(--muted); }
 .moment-remove:hover:not(:disabled) { background: var(--raised); color: var(--text); }
 .moment-remove svg { width: 14px; height: 14px; }
+.lore-change { min-height: 32px; }
+@media (max-width: 720px) {
+  .moment-remove, .lore-change { min-height: 44px; }
+  .moment-remove { width: 44px; height: 44px; margin: -10px -6px -10px -8px; }
+}
 .moment-add { width: 12rem; max-width: 100%; min-height: 32px; padding: 4px 8px; font-size: .875rem; }
 .lore-book .network-list > li { min-width: 0; }
 .town-detail p { margin: 0; }

@@ -86,14 +86,26 @@ function phrase(moment: Moment): string {
   return kind === 'holiday' || kind === 'place' ? `${kind === 'holiday' ? 'on' : 'in'} ${moment.label}` : moment.label
 }
 
-/** An entry's "when" in words: one kind or another ("on rainy days or on snowy days"), and every kind it names. */
+/** "a", "a or b", "a, b or c". */
+function alternatives(items: string[]): string {
+  return items.length < 3 ? items.join(' or ') : `${items.slice(0, -1).join(', ')} or ${items[items.length - 1]}`
+}
+
+/** One kind's phrases, sharing their opening word once: "in fall, winter or spring". */
+function oneKind(phrases: string[]): string {
+  const lead = phrases[0].split(' ')[0]
+  const shared = phrases.length > 1 && phrases.every((item) => item.startsWith(`${lead} `))
+  return alternatives(shared ? phrases.map((item, index) => (index ? item.slice(lead.length + 1) : item)) : phrases)
+}
+
+/** An entry's "when" in words: one kind or another ("on rainy days or snowy days"), and every kind it names. */
 export function momentText(when: Moment[]): string {
   const kinds = new Map<string, string[]>()
   for (const moment of when) {
     const kind = moment.key.split(':')[0]
     kinds.set(kind, [...(kinds.get(kind) ?? []), phrase(moment)])
   }
-  return [...kinds.values()].map((phrases) => phrases.join(' or ')).join(', ')
+  return [...kinds.values()].map(oneKind).join(', ')
 }
 
 /** When an entry joins a reply. */
@@ -102,7 +114,7 @@ export function entryWhen(entry: LoreEntry): string {
   if (entry.always) return 'Always'
   const moment = momentText(entry.when ?? [])
   if (!entry.keywords.length) return moment ? `${moment[0].toUpperCase()}${moment.slice(1)}` : 'Never: it has no words or moment'
-  const words = `When someone mentions ${entry.keywords.slice(0, 6).join(', ')}${entry.keywords.length > 6 ? '…' : ''}`
+  const words = `When someone mentions ${entry.keywords.slice(0, 6).map((word) => `"${word}"`).join(', ')}${entry.keywords.length > 6 ? '…' : ''}`
   return moment ? `${words}. Also ${moment}` : words
 }
 
