@@ -143,8 +143,8 @@ export function Cities() {
         </Notice>
       ))}
       {cities.data && <CityShelves cities={cities.data} featured={featured.data} actions={(city) => <>
-        {city.origin === 'user' && <button type="button" className="text-button" onClick={() => void startEdit(city)}><Pencil aria-hidden="true" />Edit</button>}
         {online.data?.filter((book) => book.city_id === city.id).map((book) => <GetLatest key={book.key} online={book} onResult={(note) => setCardNote(note && { city: city.id, note })} />)}
+        {city.origin === 'user' && <button type="button" className="text-button" onClick={() => void startEdit(city)}><Pencil aria-hidden="true" />Edit</button>}
         <button type="button" className="text-button" onClick={() => setCopying(city)}><Copy aria-hidden="true" />Copy</button>
         {city.distribution === 'public' && <button type="button" className="text-button" onClick={() => void exportCity(city)}><Download aria-hidden="true" />Save as file</button>}
         {city.origin === 'user' && <button type="button" className="text-button" onClick={() => setDeleting(city)}><Trash2 aria-hidden="true" />Delete</button>}

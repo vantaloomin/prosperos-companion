@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { addedText, creditText, downloadedText, libraryIntro, librarySummary, shelfName, shownText, type LibraryBook, type OnlineBook } from '../../src/features/character/libraryText.ts'
+import { addedText, creditText, downloadedText, highlighted, libraryIntro, librarySummary, shelfName, shownText, type LibraryBook, type OnlineBook } from '../../src/features/character/libraryText.ts'
 
 const book: LibraryBook = { id: 'b', name: 'The Keeper', world: false, source_format: 'EPUB book', source_file: 'keeper.epub', online: '',
   city_id: null, enabled: true, passages: 1432, created_at: '', updated_at: '' }
@@ -40,4 +40,10 @@ test('the passage list says how much it shows', () => {
   assert.equal(shownText(0, 3, true), 'No passages match.')
   assert.equal(shownText(1, 3, true), 'The one passage that matches.')
   assert.equal(shownText(2, 3, true), 'The 2 passages that match best.')
+})
+
+test('searched words are marked where they start a word', () => {
+  assert.deepEqual(highlighted("Edgar's tower and Edgarton", 'edgar'), [["Edgar", true], ["'s tower and ", false], ['Edgar', true], ['ton', false]])
+  assert.deepEqual(highlighted('A wedgar', 'edgar'), [['A wedgar', false]])
+  assert.deepEqual(highlighted('Plain text', ''), [['Plain text', false]])
 })

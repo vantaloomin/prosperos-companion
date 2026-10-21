@@ -860,6 +860,20 @@ textarea { resize: vertical; line-height: 1.6; }
 .library-types { margin: 6px 0 0; }
 .library-passages { display: grid; gap: 8px; margin-top: 10px; }
 .library-passages > p { margin: 0; }
+.library-book > summary { min-height: 44px; }
+.library-book > summary::before { content: '▸'; color: var(--muted); width: 1em; }
+.library-book[open] > summary::before { content: '▾'; }
+.library-list { gap: 0; }
+.library-list li { padding: 12px 0; border-top: 1px solid var(--border); }
+.library-list li:first-child { border-top: 0; padding-top: 0; }
+.library-list p.clamped { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.library-list mark { background: none; color: inherit; font-weight: 700; }
+.library-list .text-button { margin: 4px 0 0; min-height: 44px; }
+@media (max-width: 720px) {
+  .library-actions { flex-wrap: wrap; }
+  .library-actions .check-row { flex: 1 0 100%; min-height: 44px; }
+  .library-actions .text-button { min-height: 44px; }
+}
 .city-card .notice { margin-top: 10px; }
 .city-chips .subtle { margin-left: 2px; }
 @media (max-width: 720px) {

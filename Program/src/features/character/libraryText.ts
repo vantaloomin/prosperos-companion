@@ -56,3 +56,20 @@ export function downloadedText(added: { name: string; passages: number; replaced
 export function creditText(online: OnlineBook): string {
   return `By ${online.author}, shared under ${online.licence}. Downloaded from ${online.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}.`
 }
+
+/** A passage split so the searched words can be bold: [text, matched] pieces in order. Words match at their start,
+ * in any letter case ("edgar" finds "Edgar's"). */
+export function highlighted(text: string, query: string): [string, boolean][] {
+  const words = query.toLowerCase().match(/[\p{L}\p{N}]+/gu)?.filter((word) => word.length > 1) ?? []
+  if (!words.length) return [[text, false]]
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(${words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'giu')
+  const pieces: [string, boolean][] = []
+  let last = 0
+  for (const match of text.matchAll(pattern)) {
+    if (match.index > last) pieces.push([text.slice(last, match.index), false])
+    pieces.push([match[0], true])
+    last = match.index + match[0].length
+  }
+  if (last < text.length) pieces.push([text.slice(last), false])
+  return pieces
+}

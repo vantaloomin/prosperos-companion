@@ -5,7 +5,7 @@ import { api } from '../../api'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Notice } from '../../components/Feedback'
 import { fileData } from './helper'
-import { LIBRARY_KEY, LIBRARY_MAX_BYTES, LIBRARY_TYPES, ONLINE_KEY, addedText, creditText, downloadedText, libraryIntro, librarySummary, shelfName, shownText, type LibraryBook, type OnlineBook, type Passage } from './libraryText'
+import { LIBRARY_KEY, LIBRARY_MAX_BYTES, LIBRARY_TYPES, ONLINE_KEY, addedText, creditText, downloadedText, highlighted, libraryIntro, librarySummary, shelfName, shownText, type LibraryBook, type OnlineBook, type Passage } from './libraryText'
 
 type Result = { tone: 'info' | 'error'; text: string } | null
 type Books = { books: LibraryBook[] }
@@ -101,8 +101,8 @@ function LibraryShelf({ book, online, change, onRemove, onResult }: ShelfProps) 
   return (
     <details className="lore-book library-book" onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary><strong>{book.name}</strong> <span className="subtle">{librarySummary(book, online?.city_name)}</span></summary>
-      {online && <p className="subtle library-credit">{creditText(online)} <a href={online.licence_url} target="_blank" rel="noreferrer">About the licence</a></p>}
-      <div className="form-actions">
+      {online && <p className="subtle library-credit">{creditText(online)} <a href={online.licence_url} target="_blank" rel="noreferrer">About the license</a></p>}
+      <div className="form-actions library-actions">
         <label className="check-row"><input type="checkbox" checked={book.enabled} onChange={(event) => void change(`/library/books/${book.id}`, { enabled: event.target.checked }, 'PUT')} /> Use this book</label>
         {online && <GetLatest online={online} onResult={onResult} />}
         <button type="button" className="text-button" onClick={onRemove}>Remove…</button>
@@ -129,16 +129,26 @@ function Passages({ book }: { book: LibraryBook }) {
       </form>
       {found.data && <>
         <p className="subtle" aria-live="polite">{shownText(found.data.passages.length, found.data.total, Boolean(asked))}</p>
-        <ul className="network-list">
-          {found.data.passages.map((passage) => (
-            <li key={passage.id}>
-              {passage.title && <strong>{passage.title}</strong>}
-              <p>{passage.text}</p>
-            </li>
-          ))}
+        <ul className="network-list library-list">
+          {found.data.passages.map((passage) => <PassageItem key={passage.id} passage={passage} query={asked} />)}
         </ul>
       </>}
     </div>
+  )
+}
+
+/** One passage, cut to a few lines until "Show more", with the searched words in bold. */
+function PassageItem({ passage, query }: { passage: Passage; query: string }) {
+  const [whole, setWhole] = useState(false)
+  const long = passage.text.length > 240
+  return (
+    <li>
+      {passage.title && <strong>{passage.title}</strong>}
+      <p className={long && !whole ? 'clamped' : undefined}>
+        {highlighted(passage.text, query).map(([text, matched], index) => matched ? <mark key={index}>{text}</mark> : text)}
+      </p>
+      {long && <button type="button" className="text-button" aria-expanded={whole} onClick={() => setWhole(!whole)}>{whole ? 'Show less' : 'Show more'}</button>}
+    </li>
   )
 }
 
