@@ -365,3 +365,16 @@ def test_memories_saved_in_the_old_wording_read_the_new_way_after_an_upgrade(cli
 def test_a_cuisine_named_after_a_place_is_capitalized():
     assert [outings.proper(cuisine) for cuisine in ('spanish', 'tex-mex', 'modern-british', 'soul-food', 'southern')] \
         == ['Spanish', 'Tex-Mex', 'modern-British', 'soul-food', 'southern']
+
+
+def test_a_plan_said_yes_to_goes_ahead_while_just_watching_and_is_told(client, mira, provider, clock):
+    send(client, 'Want to go to Ouzo Bay Wednesday?', 'client-out-watch')
+    assert client.put('/api/observer', json={'watching': True}).status_code == 200
+    clock.advance(timedelta(days=2, hours=10))  # Wednesday, after dinner.
+    reconcile(client)
+    [done] = listing(client)['outings']
+    assert done['status'] == 'done' and done['memory_id']
+    told = [line for day in client.get('/api/observer/feed').json()['days'] for line in day['items']
+            if line['id'] == f"outing:{done['id']}"]
+    assert [line['text'][:47] for line in told] == ['You and Mira went out together for dinner at Ou']
+    assert not told[0]['text'].endswith(('October 7.', '2026.')) and 'the user' not in told[0]['text']

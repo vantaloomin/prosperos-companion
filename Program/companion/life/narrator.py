@@ -303,6 +303,24 @@ def family(connection, companion, since: date, today: date, voice: int, first: s
     return result
 
 
+def together(connection, companion, since: date, today: date, first: str) -> list[dict]:
+    """Plans made with the user that went ahead (companion/life/outings.py), told as the memory they left: they still
+    happen while the user is just watching (Vanta, v0.16 E2E)."""
+    from companion.life import outings
+    timezone, result = companion['version']['timezone'], []
+    for outing in outings.in_force(connection, companion['active_timeline_id'], since.isoformat()):
+        day = date.fromisoformat(outing['local_date'])
+        if outing['status'] != 'done' or day > today:
+            continue
+        said = outings.memory_text(outing, first)['value'].rstrip('.')
+        said = re.sub(r' on \w+day, \w+ \d{1,2}(?:, \d{4})?$', '', said)
+        if not said.startswith(('You ', first)):
+            said = f'You and {first} {said[:1].lower()}{said[1:]}'
+        hour, minute = (int(part) for part in outing['at_time'].split(':')[:2])
+        result.append(item(f"outing:{outing['id']}", at(day, time(hour, minute), timezone), 'day', f'{said}.'))
+    return result
+
+
 ONLY_ONE = {'mom', 'dad', 'mother', 'father', 'stepmom', 'stepdad', 'wife', 'husband', 'grandfather'}
 
 
@@ -392,7 +410,8 @@ def companion_lines(connection, companion, now) -> list[dict]:
              + dreamed(connection, companion, now, voice) + beats(connection, companion, now, since, voice, first)
              + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since)
              + family(connection, companion, since, today, voice, first)
-             + losses(connection, companion, since, today, first))
+             + losses(connection, companion, since, today, first)
+             + together(connection, companion, since, today, first))
     lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
     lines += fresh(on_their_mind(connection, companion, now, voice), lines)
     lines += feeling(connection, companion, now, voice, bool(workspace['show_moods']), first)
