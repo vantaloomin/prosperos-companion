@@ -2226,14 +2226,14 @@ export interface WatchFocus {
   key: string
   kind: 'companion' | 'townsperson'
   name: string
-  /** Who they are in a few words: "Your companion, nurse", "Line cook at Blue Moon Cafe". */
+  /** Who they are in a few words: "Your companion · nurse", "Line cook at Blue Moon Cafe". */
   line: string
   companion_id?: string
   town_key?: string
 }
 /** Observer mode (companion/observer.py): whether the user is just watching, who the page follows and who else it could. */
 export interface Observer { watching: boolean; started_at: string | null; focus: WatchFocus | null; choices: WatchFocus[] }
-export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chapter' | 'news' | 'mood' | 'met' | 'family' | 'loss' | 'private'
+export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chapter' | 'news' | 'mood' | 'met' | 'family' | 'loss' | 'love' | 'private'
 /** One line of a watched day: what happened, with a thought after it and, under Hidden values, its numbers. */
 export interface WatchLine { id: string; at: string; kind: WatchKind; text: string; inner: string | null; numbers: string[] }
 export interface WatchDay { date: string; entry: string | null; items: WatchLine[] }
