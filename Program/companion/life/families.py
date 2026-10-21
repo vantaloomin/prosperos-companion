@@ -71,7 +71,7 @@ _MEDIEVAL = _VICTORIAN + (r'|trains?|bus|buses|strollers?|prams?|photos?|zoo|mus
 _AFLOAT = (r'snow\w*|sledg\w*|sleds?|sledding|beach\w*|seaside|the sea|sandcastles?|rain\w*|puddles?|wellies|'
            r'(?:autumn |fall )?leaves|sunshine|sunny|sunburn\w*|sunscreen|sunset|car seats?|in the car|drive|drove|driving|'
            r'school bus|backyard|yard|campfire|fireplace|by the fire|bonfire|frost\w*|thunder\w*|storms?|mittens?|'
-           r'winter coats?|autumn|winter|summer|birds?|squirrels?')
+           r'winter coats?|autumn|winter|summer|birds?|squirrels?|church bells')
 UNFIT = {era: re.compile(rf'\b(?:{words})\b', re.IGNORECASE) for era, words in (
     ('jazz-age', _JAZZ), ('victorian', _VICTORIAN), ('steampunk', _VICTORIAN), ('frontier', _VICTORIAN),
     ('medieval', _MEDIEVAL), ('fantasy', _MEDIEVAL), ('future', _AFLOAT))}

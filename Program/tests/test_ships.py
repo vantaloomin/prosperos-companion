@@ -2,6 +2,7 @@
 cars, its pictures are lit by the ship, the future era has its own work, food, pastimes and savings, and made-up
 places travel to each other."""
 import copy
+import re
 from datetime import date
 from types import SimpleNamespace
 
@@ -295,6 +296,23 @@ def test_remembering_someone_aboard_is_never_their_garden_or_autumn():
     for name in ('memories', 'obituaries'):
         kept = loss.fitting(loss.bank()[name], 'future')
         assert len(kept) >= 100 and not any(families.UNFIT['future'].search(line) for line in kept), name
+
+
+def test_a_funeral_aboard_follows_the_ships_customs_in_its_chapel(monkeypatch):
+    from companion.life import big_days, loss, outings
+    meridian = catalog.city('long-meridian')
+    monkeypatch.setattr(outings, 'city_data', lambda _connection, _definition: meridian)
+    companion = {'version': {'definition': {}}}
+    rules = loss.customs(None, companion)
+    assert rules == loss.bank()['customs']['ship']
+    words = ' '.join(str(value) for value in rules.values())
+    assert not re.search(r'burial|cremat|grave|cemetery|church', words, re.I)
+    assert not [line for line in loss.fitting(loss.bank()['memories'], 'future') if 'church bells' in line]
+    assert loss.venue_for(None, companion, meridian, 's', date(2026, 10, 20))['name'] == 'The Quiet Chapel'
+    row = {'kind': 'funeral', 'details': {'service': rules['service'], 'after': rules['after']}}
+    assert 'growing decks' in big_days.day_text(row) and 'mess hall' in big_days.day_text(row)
+    monkeypatch.setattr(outings, 'city_data', lambda _connection, _definition: catalog.city('baltimore'))
+    assert loss.customs(None, companion) != rules
 
 
 def test_a_ship_and_its_station_are_a_shuttle_ride_apart_and_its_works_are_not_on_roads():
