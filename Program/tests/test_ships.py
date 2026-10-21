@@ -288,3 +288,10 @@ def test_no_rain_or_sunsets_in_the_life_deck_aboard():
     assert {'sunset', 'forgot-umbrella'} <= skyward
     assert not {card['id'] for card in deck.eligible(3, {'friend', 'work', 'love'}, set())} & skyward
     assert skyward <= {card['id'] for card in deck.eligible(3, {'friend', 'work', 'love', 'earth'}, set())}
+
+
+def test_remembering_someone_aboard_is_never_their_garden_or_autumn():
+    from companion.life import families, loss
+    for name in ('memories', 'obituaries'):
+        kept = loss.fitting(loss.bank()[name], 'future')
+        assert len(kept) >= 100 and not any(families.UNFIT['future'].search(line) for line in kept), name
