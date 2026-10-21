@@ -1,0 +1,256 @@
+{
+ "credit": "Written for the app from the Baltimore city data.",
+ "entries": [
+  {
+   "id": "summer-thunderstorms",
+   "title": "Summer storms",
+   "text": "Baltimore summer rain comes as late-afternoon thunderstorms off the Bay: the sky goes green-gray over the harbor, it pours for twenty minutes, the streets steam, and the crab houses fill up again once it passes.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ],
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "cold-rain",
+   "title": "A raw wet day",
+   "text": "On a cold rainy day the city goes gray brick and wet marble steps; people duck into Lexington Market or a corner carryout, and the Light Rail runs half empty.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ],
+    "season": [
+     "fall",
+     "winter",
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "snow-day",
+   "title": "Snow in Baltimore",
+   "text": "A couple of inches of snow shuts Baltimore down: schools close, grocery stores run out of milk, bread and toilet paper, and kids sled down the hill in Patterson Park and at Federal Hill.",
+   "keywords": [
+    "snow day"
+   ],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "heat",
+   "title": "Baltimore heat",
+   "text": "In a heat wave the air off the harbor is thick and sticky, rowhouse window units hum on every block, the city opens cooling centers, and a snowball with egg custard and marshmallow is the only sensible lunch.",
+   "keywords": [
+    "heat wave"
+   ],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "spring",
+   "title": "Spring in town",
+   "text": "Spring means the Flower Mart around the Washington Monument, Orioles Opening Day turning downtown orange, patios reopening in Fells Point and Canton, and pollen on every car.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Crab season",
+   "text": "Summer is crab season: paper on the tables, mallets, Old Bay on everything, and a dozen jumbos priced by size and day. Everyone who can goes \"downy ocean\" to Ocean City at least once.",
+   "keywords": [
+    "crab season"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "fall",
+   "title": "Fall in Baltimore",
+   "text": "Fall brings Ravens Sundays and Purple Fridays, crisp sunny days in Druid Hill and Patterson Parks, and the leaves turning on the old trees of Roland Park.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter lights",
+   "text": "In winter the 34th Street lights in Hampden blaze from late November, the Washington Monument is lit in Mount Vernon, and the wind off the harbor cuts straight through a coat.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "saturday-steps",
+   "title": "Saturday mornings",
+   "text": "On a weekend morning older rowhouse neighbors still scrub their white marble front steps, the farmers market sets up under the JFX downtown on Sundays, and brunch lines form in Hampden and Fells Point.",
+   "keywords": [],
+   "when": {
+    "day": [
+     "weekend"
+    ],
+    "time": [
+     "morning"
+    ]
+   }
+  },
+  {
+   "id": "weeknight",
+   "title": "A weeknight",
+   "text": "On a weeknight evening Baltimore is quiet outside the bar strips: carryouts doing a steady trade, rowhouse porches with a few neighbors out, and the Domino Sugars sign glowing red over the harbor.",
+   "keywords": [],
+   "when": {
+    "day": [
+     "weekday"
+    ],
+    "time": [
+     "evening"
+    ]
+   }
+  },
+  {
+   "id": "night",
+   "title": "Baltimore after dark",
+   "text": "Late at night Fells Point and Federal Hill are the loud parts of town, the water taxis have stopped, and the harbor is lights on black water.",
+   "keywords": [],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "fells-point",
+   "title": "Fells Point",
+   "text": "Fells Point is cobblestones, eighteenth-century rowhouses and old waterfront pubs with live music; on a weekend the Broadway square fills with people walking off brunch or starting the night.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "fells-point"
+    ]
+   }
+  },
+  {
+   "id": "hampden",
+   "title": "Hampden",
+   "text": "Hampden is the old mill village on 36th Street, \"The Avenue\": thrift shops, cafes and the famous block of Christmas lights, and a \"hon\" from the waitress at a diner.",
+   "keywords": [
+    "the avenue"
+   ],
+   "when": {
+    "place": [
+     "hampden"
+    ]
+   }
+  },
+  {
+   "id": "inner-harbor",
+   "title": "The Inner Harbor",
+   "text": "The Inner Harbor is the tourist waterfront: the brick promenade, the aquarium, paddle boats and street performers, busy on summer weekends and windy and empty on winter nights.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "inner-harbor"
+    ]
+   }
+  },
+  {
+   "id": "orioles-day",
+   "title": "Game day",
+   "text": "When the Orioles play at Camden Yards, downtown fills with orange and black, the crowd shouts \"O!\" in the anthem, and the bars around Federal Hill are full before first pitch.",
+   "keywords": [
+    "orioles",
+    "camden yards"
+   ],
+   "when": {
+    "season": [
+     "spring",
+     "summer"
+    ],
+    "place": [
+     "downtown",
+     "federal-hill"
+    ]
+   }
+  },
+  {
+   "id": "fourth-of-july",
+   "title": "Fourth of July",
+   "text": "On the Fourth of July Baltimore watches fireworks over the Inner Harbor from Federal Hill, the promenade and rowhouse rooftops, and every backyard has a grill going.",
+   "keywords": [
+    "fourth of july"
+   ],
+   "when": {
+    "holiday": [
+     "independence-day"
+    ]
+   }
+  },
+  {
+   "id": "halloween",
+   "title": "Halloween",
+   "text": "On Halloween the rowhouse stoops get carved pumpkins and fake cobwebs, kids go door to door down the blocks, and the bars of Fells Point fill with costumes.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "halloween"
+    ]
+   }
+  },
+  {
+   "id": "thanksgiving",
+   "title": "Thanksgiving",
+   "text": "Thanksgiving in Baltimore often has sauerkraut beside the turkey, an old local habit from the city's German families, and the Ravens on TV if they are playing.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "thanksgiving"
+    ]
+   }
+  },
+  {
+   "id": "christmas",
+   "title": "Christmas",
+   "text": "At Christmas the city goes to see the lights on 34th Street in Hampden, the Monument lighting in Mount Vernon and the German Christmas Village at the harbor.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "christmas-eve",
+     "christmas"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "At work in Baltimore",
+   "text": "A Baltimore workday runs on half-and-half and a Berger cookie from the office tray, with someone always talking about the Orioles or the Ravens, depending on the season.",
+   "keywords": [],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

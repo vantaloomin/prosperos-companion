@@ -1,0 +1,246 @@
+{
+ "credit": "Written for the app from the New York, 1925 city data.",
+ "entries": [
+  {
+   "id": "rain",
+   "title": "Rain in the city",
+   "text": "In the rain the el trains drip on the avenues below, newsboys shelter in doorways crying the late editions, and everyone with a nickel takes the subway or ducks into an Automat for coffee and pie.",
+   "keywords": [
+    "automat"
+   ],
+   "when": {
+    "weather": [
+     "rain"
+    ]
+   }
+  },
+  {
+   "id": "snow",
+   "title": "Snow",
+   "text": "When it snows the city sends out men with shovels and horse-drawn carts to clear the avenues, the snow piles up black in the gutters, and coal stoves burn all day in the tenements.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "heat-wave",
+   "title": "A heat wave",
+   "text": "In a heat wave tenement families carry mattresses onto the roofs and fire escapes, children open the hydrants, and the beaches at Coney Island are packed shoulder to shoulder.",
+   "keywords": [
+    "fire escape",
+    "heat wave"
+   ],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "spring",
+   "title": "Spring",
+   "text": "Spring means the baseball season opening at the Polo Grounds, Yankee Stadium and Ebbets Field, the Easter Parade on Fifth Avenue, and straw boaters coming out on the fifteenth of May.",
+   "keywords": [
+    "easter parade",
+    "straw hat"
+   ],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Summer",
+   "text": "In summer Coney Island is open, the Nathan's hot dog costs a nickel, and anyone who can afford it leaves town for the shore or the mountains.",
+   "keywords": [
+    "coney island"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "fall",
+   "title": "Fall",
+   "text": "Fall is the best month in the city: crisp and bright, felt hats replace straw on the fifteenth of September, and college football fills the Polo Grounds on Saturdays.",
+   "keywords": [
+    "felt hat"
+   ],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter",
+   "text": "In winter the department store windows on Fifth Avenue are dressed for Christmas, people skate in Central Park when the ponds freeze, and the steam heat clanks in the apartment radiators.",
+   "keywords": [
+    "skating"
+   ],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "speakeasy-night",
+   "title": "After dark",
+   "text": "At night the speakeasies open behind ordinary doors: you knock, a slot opens, and you say who sent you. Most pour bathtub gin; the good Scotch comes in from Rum Row.",
+   "keywords": [
+    "speakeasy",
+    "speak",
+    "hooch"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "evening-broadway",
+   "title": "Evening on Broadway",
+   "text": "In the evening Times Square lights up, the theatre crowds pour out of the Broadway houses at eleven, and the restaurants fill up for cheesecake after the show.",
+   "keywords": [
+    "broadway",
+    "times square"
+   ],
+   "when": {
+    "time": [
+     "evening"
+    ],
+    "place": [
+     "times-square"
+    ]
+   }
+  },
+  {
+   "id": "harlem-saturday",
+   "title": "Saturday night in Harlem",
+   "text": "On Saturday nights Harlem tenants throw rent parties with a piano player, fried chicken and a jug, a quarter at the door to make the rent, and on Sunday afternoon Harlem promenades up Seventh Avenue in its best.",
+   "keywords": [
+    "rent party"
+   ],
+   "when": {
+    "day": [
+     "weekend"
+    ],
+    "place": [
+     "harlem",
+     "sugar-hill"
+    ]
+   }
+  },
+  {
+   "id": "wall-street",
+   "title": "Wall Street",
+   "text": "On weekdays Wall Street is crowded with brokers and runners; the market is booming in 1925 and everyone from bootblacks to bankers has a tip.",
+   "keywords": [
+    "wall street",
+    "stock market"
+   ],
+   "when": {
+    "day": [
+     "weekday"
+    ],
+    "place": [
+     "financial-district"
+    ]
+   }
+  },
+  {
+   "id": "lower-east-side",
+   "title": "The Lower East Side",
+   "text": "On the Lower East Side pushcarts line Orchard and Hester Streets selling anything at prices that start a haggle, and the delicatessens pile hot pastrami on rye.",
+   "keywords": [
+    "pushcart"
+   ],
+   "when": {
+    "place": [
+     "lower-east-side"
+    ]
+   }
+  },
+  {
+   "id": "greenwich-village",
+   "title": "Greenwich Village",
+   "text": "Greenwich Village is the bohemian quarter: tearooms, little theatres, poets in borrowed rooms and girls with bobbed hair arguing about art until the small hours.",
+   "keywords": [
+    "bohemian"
+   ],
+   "when": {
+    "place": [
+     "greenwich-village"
+    ]
+   }
+  },
+  {
+   "id": "new-years-eve",
+   "title": "New Year's Eve",
+   "text": "On New Year's Eve the crowds pack Times Square with noisemakers, the hotel ballrooms dance until dawn, and Prohibition does very little to keep anyone dry.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "new-years-eve"
+    ]
+   }
+  },
+  {
+   "id": "st-patricks",
+   "title": "St. Patrick's Day",
+   "text": "On St. Patrick's Day the parade marches up Fifth Avenue, everyone wears a green carnation, and the speakeasies in Irish neighbourhoods do their best night of the year.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "st-patricks-day"
+    ]
+   }
+  },
+  {
+   "id": "thanksgiving",
+   "title": "Thanksgiving",
+   "text": "On Thanksgiving there is turkey and family, the big college football games, and the department-store parade with its floats and costumed employees.",
+   "keywords": [
+    "parade"
+   ],
+   "when": {
+    "holiday": [
+     "thanksgiving"
+    ]
+   }
+  },
+  {
+   "id": "christmas",
+   "title": "Christmas",
+   "text": "At Christmas the department stores are mobbed for last shopping, carols are sung on the steps, the tree is lit with electric lights, and the churches are full for midnight Mass.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "christmas-eve",
+     "christmas"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "Work in 1925",
+   "text": "Work in 1925 runs five and a half days a week, with Saturday afternoon off; the boss is \"the chief\", payday comes in a brown envelope, and lunch is a nickel at the Automat.",
+   "keywords": [
+    "payday"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

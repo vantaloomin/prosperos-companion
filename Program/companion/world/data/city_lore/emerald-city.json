@@ -1,0 +1,195 @@
+{
+ "credit": "Written for the app from the Emerald City data, drawn only from L. Frank Baum's Oz books, which are public domain in the US.",
+ "entries": [
+  {
+   "id": "spring-showers",
+   "title": "Soft rain",
+   "text": "Rain in the Emerald City is soft and warm and never lasts long; the green marble streets shine, the emeralds set in them glitter, and children splash in the gutters until the sun comes out.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ]
+   }
+  },
+  {
+   "id": "light-snow",
+   "title": "A dusting of snow",
+   "text": "A rare light snow on a winter morning makes the green city white for an hour, and people come out just to look before it melts.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "warm-days",
+   "title": "A warm day",
+   "text": "On a warm day people take their afternoon tea in the gardens, the fountains in the palace grounds are crowded, and the green lemonade carts have queues.",
+   "keywords": [
+    "green lemonade"
+   ],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "spring",
+   "title": "Spring in Oz",
+   "text": "In spring the orchards along the yellow brick road blossom, the gardens of the city come into flower, and the Gillikin families plant their purple-trimmed allotments.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Summer in Oz",
+   "text": "In summer the long warm evenings are spent outdoors, puppet shows play Dorothy's adventures on Market Square, and the first fruit comes in from the farms.",
+   "keywords": [
+    "puppet show"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "autumn",
+   "title": "Autumn in Oz",
+   "text": "In autumn the cider barns press apples for sweet new cider, sold by the jug from the taverns, and fires are lit in the tavern hearths on the cool evenings.",
+   "keywords": [
+    "cider"
+   ],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter in Oz",
+   "text": "Winter in the city is short cool days and cosy evenings, and since nobody in Oz grows old or falls ill, nobody minds the cold much.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "morning-ovens",
+   "title": "Early morning",
+   "text": "Before sunrise Oven Street smells of bread from the bakehouses and dairies, and the wagons from all four countries roll in to Market Square.",
+   "keywords": [],
+   "when": {
+    "time": [
+     "morning"
+    ]
+   }
+  },
+  {
+   "id": "afternoon-tea",
+   "title": "Afternoon tea",
+   "text": "In the afternoon many people stop work for tea, cakes and bread and butter, often in a garden or by the window. In Oz people work half the time and play half the time.",
+   "keywords": [
+    "afternoon tea"
+   ],
+   "when": {
+    "time": [
+     "afternoon"
+    ]
+   }
+  },
+  {
+   "id": "evening-lamps",
+   "title": "Evening in the city",
+   "text": "In the evening the city glows green under its lamps, families stroll around Pump Square's bandstand, and homesick travellers are told \"there is no place like home\".",
+   "keywords": [],
+   "when": {
+    "time": [
+     "evening",
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "gate-quarter",
+   "title": "The Gate Quarter",
+   "text": "At the great gate the Guardian of the Gates still keeps a box of green spectacles from the Wizard's day, though under Ozma nobody has to wear them.",
+   "keywords": [
+    "green spectacles",
+    "guardian of the gates"
+   ],
+   "when": {
+    "place": [
+     "gate-quarter"
+    ]
+   }
+  },
+  {
+   "id": "palace",
+   "title": "The palace",
+   "text": "At the Royal Palace the soldier with the long green whiskers keeps the door, and he is the one to ask for anything.",
+   "keywords": [
+    "soldier with the green whiskers"
+   ],
+   "when": {
+    "place": [
+     "palace-grounds"
+    ]
+   }
+  },
+  {
+   "id": "market-square",
+   "title": "Market Square",
+   "text": "On Market Square wagons from all four countries unload fruit, grain and cloth, everyone takes what they need without money, and children buy green popcorn from the carts.",
+   "keywords": [
+    "green popcorn"
+   ],
+   "when": {
+    "place": [
+     "market-square"
+    ]
+   }
+  },
+  {
+   "id": "winkie-street",
+   "title": "Winkie Street",
+   "text": "On Winkie Street the yellow Winkie tinsmiths who once mended the Tin Woodman still make and mend kettles, lanterns and oil-cans.",
+   "keywords": [
+    "tinsmith"
+   ],
+   "when": {
+    "place": [
+     "winkie-street"
+    ]
+   }
+  },
+  {
+   "id": "no-money",
+   "title": "No money in Oz",
+   "text": "There is no money in Oz: people work for the good of all and take what they need from the shops and storehouses without paying.",
+   "keywords": [
+    "money"
+   ],
+   "when": {}
+  },
+  {
+   "id": "at-work",
+   "title": "Work in the Emerald City",
+   "text": "Work in the Emerald City is done for the good of all and never all day: half the time is for play, and nobody is scolded for stopping to watch a puppet show.",
+   "keywords": [],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

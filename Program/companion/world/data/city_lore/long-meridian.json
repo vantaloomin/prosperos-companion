@@ -1,0 +1,201 @@
+{
+ "credit": "Written for the app from The Long Meridian city data, an original setting.",
+ "entries": [
+  {
+   "id": "ships-night",
+   "title": "Ship's night",
+   "text": "At 22:00 the corridor lights dim to amber, the painted sky in the Arboretum turns to stars, and the ship keeps quiet until the morning bell at 06:00. Night-shift crews nod to each other in the low light; talking loudly in a ring corridor after the dimming is rude.",
+   "keywords": [
+    "ship's night",
+    "dimming"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "morning-bell",
+   "title": "The morning bell",
+   "text": "The morning bell at 06:00 brings the corridor lights up to white. The mess halls open with mint tea and porridge, the first shuttle of the day leaves Dockside for Port Vesper, and the rings fill with people nodding at each other on the way to shift.",
+   "keywords": [
+    "morning bell"
+   ],
+   "when": {
+    "time": [
+     "morning"
+    ]
+   }
+  },
+  {
+   "id": "evening-rings",
+   "title": "Evenings aboard",
+   "text": "After the evening shift bell the Lantern Ring fills up: noodle bars, music from every other hatch, paper lanterns along the curve and the night market opening its stalls.",
+   "keywords": [
+    "shift bell"
+   ],
+   "when": {
+    "time": [
+     "evening"
+    ]
+   }
+  },
+  {
+   "id": "no-weather",
+   "title": "No weather aboard",
+   "text": "There is no weather aboard the Meridian: the decks are climate-controlled, warmer on the Engine Decks and humid on the farms. People raised aboard know rain and snow from the Archive and from Port Vesper's misting gardens.",
+   "keywords": [
+    "weather",
+    "rain",
+    "snow"
+   ],
+   "when": {}
+  },
+  {
+   "id": "rest-day",
+   "title": "Rest days",
+   "text": "On rest days families go up to the Arboretum to picnic under the oaks, children race in the Spindle, and the Swap in the Cargo Holds is busiest.",
+   "keywords": [
+    "rest day"
+   ],
+   "when": {
+    "day": [
+     "weekend"
+    ]
+   }
+  },
+  {
+   "id": "lantern-ring",
+   "title": "The Lantern Ring",
+   "text": "The Lantern Ring never sleeps: noodle bars, the Lantern Theatre, the night market under paper lanterns and the ring's hoopball team, who are loud, loved and win almost nothing.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "lantern-ring"
+    ]
+   }
+  },
+  {
+   "id": "arboretum",
+   "title": "The Arboretum",
+   "text": "The Arboretum is four hundred metres of forest under a painted sky, grown from the founders' seeds. Couples tie a ribbon to the oldest oak when they partner, and the rangers pretend not to mind.",
+   "keywords": [
+    "oak"
+   ],
+   "when": {
+    "place": [
+     "arboretum"
+    ]
+   }
+  },
+  {
+   "id": "engine-decks",
+   "title": "The Engine Decks",
+   "text": "The Engine Decks are warm and loud, with the best cheap food on the ship. Night crews say a founder in old overalls still checks the valves on Deck Nine and leaves them a little tighter.",
+   "keywords": [
+    "deck nine"
+   ],
+   "when": {
+    "place": [
+     "engine-decks"
+    ]
+   }
+  },
+  {
+   "id": "stern",
+   "title": "The Stern Gallery",
+   "text": "At the Stern Gallery the viewport shows the Sun as one bright star among thousands. When someone dies, their family scatters a pinch of Arboretum soil there.",
+   "keywords": [
+    "stern viewport"
+   ],
+   "when": {
+    "place": [
+     "stern-gallery"
+    ]
+   }
+  },
+  {
+   "id": "cargo-holds",
+   "title": "The Cargo Holds",
+   "text": "In the Cargo Holds a colony of cats has lived for a hundred years; the loaders feed them and give them ranks. At the Swap a handshake closes a trade and a favour owed goes on the favour board.",
+   "keywords": [
+    "the swap",
+    "favour board"
+   ],
+   "when": {
+    "place": [
+     "cargo-holds"
+    ]
+   }
+  },
+  {
+   "id": "launch-day",
+   "title": "Launch Day",
+   "text": "On Launch Day the launch bell is rung, the founders' names are read aloud and every mess hall serves bean stew from the founders' recipe, with honey cake after.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "launch-day"
+    ]
+   }
+  },
+  {
+   "id": "breach-remembrance",
+   "title": "Breach Remembrance",
+   "text": "Breach Remembrance is for the forty-one lost when a hull panel failed in voyage year 71: a minute's silence at the shift bell, and the lights left on at the Quiet Chapel all day.",
+   "keywords": [
+    "the breach"
+   ],
+   "when": {
+    "holiday": [
+     "breach-remembrance"
+    ]
+   }
+  },
+  {
+   "id": "long-night",
+   "title": "The Long Night",
+   "text": "The Long Night is the ship's midwinter: the lights stay low all day, lanterns are lit on every ring, and people give small presents they made by hand, or bought at the Swap and pretend they made.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "long-night"
+    ]
+   }
+  },
+  {
+   "id": "turning",
+   "title": "Turning of the Year",
+   "text": "At the Turning of the Year people stay up to watch the voyage-year counter turn over on the Command Deck, and say \"steady as she turns\" to each other at midnight.",
+   "keywords": [
+    "voyage year"
+   ],
+   "when": {
+    "holiday": [
+     "turning-of-the-year"
+    ]
+   }
+  },
+  {
+   "id": "sunfall",
+   "title": "Sunfall",
+   "text": "On Sunfall, the day the Sun shrank to a star in the stern window, families visit the Stern Viewport and say goodbye to Earth again.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "sunfall"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "On shift",
+   "text": "On shift aboard everyone works to the bells, three a day. Asked for something unreasonable, people say \"not on my ration\", and \"see you at the bell\" is how a shift says goodbye.",
+   "keywords": [],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

@@ -1,0 +1,229 @@
+{
+ "credit": "Written for the app from the Calderwick city data, an original setting.",
+ "entries": [
+  {
+   "id": "smoke-fog",
+   "title": "Smoke fog",
+   "text": "When the smoke fog settles on Lowfield it can sit for days: the tube mills' chimneys vanish, the gas lamps burn at noon, and the pneumatic post is the only thing in town that keeps to time.",
+   "keywords": [
+    "smog",
+    "smoke fog"
+   ],
+   "when": {
+    "weather": [
+     "fog"
+    ]
+   }
+  },
+  {
+   "id": "rain",
+   "title": "Pennine rain",
+   "text": "Pennine rain comes in grey and steady: the setts shine in the Market Place, clogs clatter on the wet flags, and the canal boats on Saltergate Basin go under tarpaulins.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ]
+   }
+  },
+  {
+   "id": "snow",
+   "title": "Snow on the moor",
+   "text": "Snow on Ridley Moor closes the moor road, the airship mail stays tied to its mast, and the children of Hobcroft sledge down the ginnels.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "heat",
+   "title": "A warm day",
+   "text": "On a warm day the whole town goes up to Calder Holme: the lido, the velodrome, the pier on the old mill dam and ice-cream carts from Paradise.",
+   "keywords": [
+    "lido"
+   ],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "spring",
+   "title": "Spring",
+   "text": "In spring the curlews come back to the moor, washing dries outside again, and the light evenings bring the first brass band concert in Ackroyd Park.",
+   "keywords": [
+    "brass band"
+   ],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Wakes week",
+   "text": "In summer the smoke lifts, and in wakes week the mills shut, half the town takes the train to the seaside and the other half has the fair at Calder Holme.",
+   "keywords": [
+    "wakes week"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "autumn",
+   "title": "Autumn",
+   "text": "In autumn fires are lit again, the children go chumping for wood for their street's bonfire, and slabs of parkin are baked to be better a week later.",
+   "keywords": [
+    "chumping",
+    "parkin"
+   ],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter",
+   "text": "In winter it is dark by half past four, forced rhubarb comes pink from the dark sheds, and the worst smog of the year sits in the valley in December.",
+   "keywords": [
+    "forced rhubarb"
+   ],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "knocker-up",
+   "title": "Before the hooter",
+   "text": "Before the six o'clock hooter the knocker-up goes along the terraces tapping on bedroom windows with a long pole, and the streets fill with the clatter of clogs heading down to Lowfield.",
+   "keywords": [
+    "knocker-up",
+    "hooter"
+   ],
+   "when": {
+    "time": [
+     "morning"
+    ],
+    "day": [
+     "weekday"
+    ]
+   }
+  },
+  {
+   "id": "saturday",
+   "title": "Saturday",
+   "text": "Saturday is payday and market day: stalls on the setts, tripe shops and pie-and-peas, the Sunday suit redeemed from Uncle's, and the Theatre Royal full at night.",
+   "keywords": [
+    "uncle's",
+    "pawnshop"
+   ],
+   "when": {
+    "day": [
+     "weekend"
+    ]
+   }
+  },
+  {
+   "id": "pneumatic-post",
+   "title": "The pneumatic post",
+   "text": "Calderwick tubes its notes across town by pneumatic post: a quick answer is \"back down the tube\" and a lost one has \"gone up the pipe\".",
+   "keywords": [
+    "tube it",
+    "pneumatic post"
+   ],
+   "when": {
+    "place": [
+     "exchange-quarter"
+    ]
+   }
+  },
+  {
+   "id": "lowfield",
+   "title": "Lowfield",
+   "text": "Lowfield is chimneys in every direction, the tube mills' hiss and the foundries' glow; where there is muck, the town says, there is brass.",
+   "keywords": [
+    "where there's muck"
+   ],
+   "when": {
+    "place": [
+     "lowfield"
+    ]
+   }
+  },
+  {
+   "id": "ridley-moor",
+   "title": "Ridley Moor",
+   "text": "On Ridley Moor the wind never stops, the reservoirs shine, and the mail airship ties up at its mooring mast above the town.",
+   "keywords": [
+    "airship"
+   ],
+   "when": {
+    "place": [
+     "ridley-moor"
+    ]
+   }
+  },
+  {
+   "id": "bonfire-night",
+   "title": "Bonfire Night",
+   "text": "On Bonfire Night every street lights the bonfire its children have guarded for weeks, there is parkin and treacle toffee, and the fire brigade spends the night on call.",
+   "keywords": [
+    "bonfire night",
+    "guy fawkes"
+   ],
+   "when": {
+    "holiday": [
+     "bonfire-night"
+    ]
+   }
+  },
+  {
+   "id": "whit-walks",
+   "title": "Whit Monday",
+   "text": "On Whit Monday the chapels and Sunday schools walk through the town behind their banners and brass bands, the children in new clothes, then have tea and races in a field.",
+   "keywords": [
+    "whit walk"
+   ],
+   "when": {
+    "holiday": [
+     "whit-monday"
+    ]
+   }
+  },
+  {
+   "id": "christmas",
+   "title": "Christmas",
+   "text": "At Christmas the Co-op windows are dressed, carols ring out from the chapels, and the works shut for two whole days, which some still think an extravagance.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "christmas",
+     "boxing-day"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "At the works",
+   "text": "At the works the day runs from hooter to hooter: tea is mashed strong in a brown pot at break, and the mild ale flows at the pub by the gate after the shift.",
+   "keywords": [
+    "mash the tea",
+    "mild"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

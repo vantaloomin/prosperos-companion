@@ -241,6 +241,11 @@ class LoreSwitch(Input):
     enabled: bool
 
 
+class LoreWhen(Input):
+    """When a lore entry applies besides its keywords (companion/lore_moments.py): conditions such as "weather:rain"."""
+    when: list[Annotated[str, Field(max_length=160)]] = Field(max_length=40)
+
+
 class SidecarTurn(Input):
     role: Literal['user', 'assistant']
     content: str = Field(min_length=1, max_length=40000)

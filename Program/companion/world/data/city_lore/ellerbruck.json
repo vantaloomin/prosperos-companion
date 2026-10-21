@@ -1,0 +1,218 @@
+{
+ "credit": "Written for the app from the Ellerbrück city data, drawn only from public-domain folk and fairy tales (the Brothers Grimm, Perrault, Andersen and older European folklore).",
+ "entries": [
+  {
+   "id": "rain",
+   "title": "Rain over the Eller",
+   "text": "When it rains the cobbles of the market square run like a stream, the river Eller rises under the stone bridge, and the ferryman at the Fahrhaus will not cross until it drops.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ]
+   }
+  },
+  {
+   "id": "frau-holle",
+   "title": "Mother Holle's feathers",
+   "text": "When it snows people say Mother Holle is shaking out her feather beds; the forest goes silent and white, and nobody sends a child through the wood until the paths are clear.",
+   "keywords": [
+    "mother holle",
+    "frau holle"
+   ],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "heat",
+   "title": "A hot day",
+   "text": "On a hot day the geese crowd into the shade on the Gänseanger, the garden taverns fill with beer drinkers, and children paddle in the mill pond at Mühlbach.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "forest-mist",
+   "title": "Mist in the forest",
+   "text": "When mist lies along the edge of the great forest the woodcutters at Waldrand wait for it to lift, and every child is told again to keep to the path.",
+   "keywords": [
+    "mist",
+    "keep to the path"
+   ],
+   "when": {
+    "weather": [
+     "fog"
+    ]
+   }
+  },
+  {
+   "id": "spring",
+   "title": "Spring",
+   "text": "In spring the thaw turns the roads to mud, the first ploughing starts in the strip fields at Eichdorf, the orchards blossom and the geese go out on the meadow.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Summer",
+   "text": "Summer is haymaking, the cattle up at summer grazing, the marksmen shooting for the king's title on their field, and long evenings under the linden at Eichdorf.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "autumn",
+   "title": "Autumn",
+   "text": "In autumn the harvest crown hangs in St. Martin's, the pigs go into the forest for acorns and beechnuts, and the spinning rooms of the Weberviertel start up again for the winter nights.",
+   "keywords": [
+    "harvest crown"
+   ],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter",
+   "text": "Winter is spinning-room evenings, honey gingerbread from Advent on (the baker will not make cottages), and snow lying deep in the forest long after it melts in town.",
+   "keywords": [
+    "spinning room",
+    "gingerbread"
+   ],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "morning",
+   "title": "Morning in Ellerbrück",
+   "text": "Before dawn the Bäckergasse smells of bread from the common bakehouse, and the goose girls say good morning to the carved horse's head over the dark gate on their way out.",
+   "keywords": [
+    "falada"
+   ],
+   "when": {
+    "time": [
+     "morning"
+    ]
+   }
+  },
+  {
+   "id": "night",
+   "title": "Night",
+   "text": "At night the town gates are shut, the watchman calls the hours, and people say the old tales come closer to the walls. Children are taught to say \"show me your paw\" before opening the door to a stranger.",
+   "keywords": [
+    "show me your paw"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "market-day",
+   "title": "Market day",
+   "text": "On market days Am Markt fills with stalls round the fountain, the town band of four old players strikes up, and everyone says they will leave for Bremen any day now.",
+   "keywords": [
+    "bremen"
+   ],
+   "when": {
+    "place": [
+     "am-markt"
+    ]
+   }
+  },
+  {
+   "id": "gerberviertel",
+   "title": "The tanners' quarter",
+   "text": "In the Gerberviertel the ratcatcher still reminds anyone who listens that the council owes him, and mothers keep their children in whenever he takes out his pipe.",
+   "keywords": [
+    "ratcatcher"
+   ],
+   "when": {
+    "place": [
+     "gerberviertel"
+    ]
+   }
+  },
+  {
+   "id": "the-tower",
+   "title": "The tower in the fields",
+   "text": "Out past the kitchen gardens stands a tower with no door that nobody knows who built; children dare each other to call up to its window.",
+   "keywords": [
+    "the tower"
+   ],
+   "when": {
+    "place": [
+     "gartenvorstadt"
+    ]
+   }
+  },
+  {
+   "id": "walpurgis",
+   "title": "Walpurgis night",
+   "text": "On Walpurgis night bonfires and noise drive off the witches on the eve of May, and the forest road is empty.",
+   "keywords": [
+    "walpurgis"
+   ],
+   "when": {
+    "holiday": [
+     "walpurgis-night"
+    ]
+   }
+  },
+  {
+   "id": "martinmas",
+   "title": "Martinmas",
+   "text": "At Martinmas children carry lanterns through the streets, rents and wages fall due, and families who can manage it have their one roast goose of the year with red cabbage and dumplings.",
+   "keywords": [
+    "lantern procession"
+   ],
+   "when": {
+    "holiday": [
+     "martinmas"
+    ]
+   }
+  },
+  {
+   "id": "st-nicholas",
+   "title": "St. Nicholas's Day",
+   "text": "On St. Nicholas's Day children find nuts and gingerbread in the shoes they left out, and the shoemakers leave a small suit of clothes out at Christmas just in case the elves come.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "st-nicholas"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "Work in Ellerbrück",
+   "text": "Work in Ellerbrück follows the guilds and the church bells. A boast that turns out smaller than it sounds is \"seven at a blow\", and an apprentice oversold by their master is told to mind they are not asked to spin straw into gold.",
+   "keywords": [
+    "seven at a blow",
+    "straw into gold"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

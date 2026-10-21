@@ -1,0 +1,250 @@
+{
+ "credit": "Written for the app from the Osaka city data.",
+ "entries": [
+  {
+   "id": "tsuyu",
+   "title": "Rainy season",
+   "text": "In the June rainy season Osaka is damp and muggy for weeks: clear umbrellas by the hundred at every station, hydrangeas at the shrines, and the covered shotengai arcades fuller than ever because you can shop all afternoon without getting wet.",
+   "keywords": [
+    "tsuyu",
+    "rainy season"
+   ],
+   "when": {
+    "weather": [
+     "rain"
+    ],
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "rain",
+   "title": "A wet day",
+   "text": "On a rainy day Osakans live underground: the malls under Umeda and Namba connect the stations, and the rental umbrella stands and convenience-store umbrellas sell out by noon.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ],
+    "season": [
+     "spring",
+     "fall",
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "snow",
+   "title": "Snow in Osaka",
+   "text": "Snow almost never settles in Osaka, so when a few flakes fall people stop on the street to film it, and the trains run late anyway.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "heat",
+   "title": "Osaka summer heat",
+   "text": "In the heat the city runs on cold barley tea and vending-machine drinks, everyone carries a small towel and a hand fan, cicadas shrill in every tree, and heatstroke warnings play on the train screens.",
+   "keywords": [
+    "heatstroke"
+   ],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "spring",
+   "title": "Cherry blossom season",
+   "text": "Late March and early April are cherry blossom season: blue tarps staked out under the trees at the castle park and along the river at Sakuranomiya from early morning, and hanami parties with beer and bento until dark.",
+   "keywords": [
+    "hanami",
+    "cherry blossoms"
+   ],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Festival summer",
+   "text": "Summer is festival season: yukata on the trains, yatai stalls of yakisoba and kakigori, the Tenjin Matsuri boat procession and fireworks on the river in late July.",
+   "keywords": [
+    "matsuri",
+    "tenjin matsuri"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "fall",
+   "title": "Autumn leaves",
+   "text": "In autumn the air turns clear and dry, the ginkgo trees along Midosuji go yellow, and people take the train out to Minoo to walk to the waterfall and eat maple leaf tempura.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Osaka winter",
+   "text": "Winter is cold and dry: oden simmering at every convenience store counter, kotatsu at home, and the illuminations lighting up Midosuji and Nakanoshima in the evenings.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "morning",
+   "title": "Osaka mornings",
+   "text": "In the morning rush the escalators stand on the right, salarymen eat onigiri on the platform, and the standing bars in Kyobashi are already open for the night-shift crowd.",
+   "keywords": [],
+   "when": {
+    "time": [
+     "morning"
+    ],
+    "day": [
+     "weekday"
+    ]
+   }
+  },
+  {
+   "id": "weekend",
+   "title": "A weekend in Osaka",
+   "text": "On a weekend the crowds move south to Minami: shopping in Shinsaibashi, a show at Namba Grand Kagetsu, and a queue for takoyaki in Dotonbori.",
+   "keywords": [],
+   "when": {
+    "day": [
+     "weekend"
+    ]
+   }
+  },
+  {
+   "id": "night",
+   "title": "Osaka at night",
+   "text": "Late at night Dotonbori's neon is still bright, the last trains run just after midnight, and anyone who misses one ends up in a karaoke box, a manga cafe or an izakaya until the first train.",
+   "keywords": [
+    "last train"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "dotonbori",
+   "title": "Dotonbori",
+   "text": "Dotonbori is the canal strip of giant food signs and the Glico running man, packed until late; just behind it is the quiet stone alley of Hozenji, where people splash water on the moss-covered Fudo statue for luck.",
+   "keywords": [
+    "glico"
+   ],
+   "when": {
+    "place": [
+     "dotonbori"
+    ]
+   }
+  },
+  {
+   "id": "shinsekai",
+   "title": "Shinsekai",
+   "text": "Shinsekai is the retro district under Tsutenkaku tower: kushikatsu counters where nobody double-dips, shogi parlours, and the grinning Billiken whose feet people rub for luck.",
+   "keywords": [
+    "tsutenkaku",
+    "billiken"
+   ],
+   "when": {
+    "place": [
+     "shinsekai"
+    ]
+   }
+  },
+  {
+   "id": "tenma",
+   "title": "Tenjinbashisuji",
+   "text": "Tenjinbashisuji is the longest shopping street in Japan, running past Osaka Tenmangu shrine; the alleys around JR Tenma are packed with cheap izakaya from early evening.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "tenma"
+    ]
+   }
+  },
+  {
+   "id": "new-year",
+   "title": "New Year",
+   "text": "For the New Year Osaka empties as people go home to their families: the first shrine visit at Sumiyoshi Taisha draws millions, there are osechi boxes and nengajo cards, and the department stores open on the second with lucky bags.",
+   "keywords": [
+    "hatsumode",
+    "shogatsu"
+   ],
+   "when": {
+    "holiday": [
+     "new-years-day",
+     "new-year-2",
+     "new-year-3"
+    ]
+   }
+  },
+  {
+   "id": "setsubun",
+   "title": "Setsubun",
+   "text": "On Setsubun people throw roasted beans to drive out demons and eat a whole ehomaki roll in silence, facing the year's lucky direction, a custom that started in Osaka.",
+   "keywords": [
+    "ehomaki"
+   ],
+   "when": {
+    "holiday": [
+     "setsubun"
+    ]
+   }
+  },
+  {
+   "id": "obon",
+   "title": "Obon",
+   "text": "At Obon many businesses close for the week while families visit hometowns and family graves, and neighbourhoods hold bon odori dances under lanterns.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "obon"
+    ]
+   }
+  },
+  {
+   "id": "christmas-eve",
+   "title": "Christmas Eve",
+   "text": "In Japan Christmas Eve is a date night: illuminations, restaurants booked weeks ahead, a strawberry Christmas cake and fried chicken ordered in advance.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "christmas-eve"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "At work in Osaka",
+   "text": "At an Osaka workplace people greet each other with \"otsukaresama\", the joke \"mokarimakka\" still gets a \"bochi bochi\", and after work there is often a nomikai at an izakaya nearby.",
+   "keywords": [
+    "nomikai"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

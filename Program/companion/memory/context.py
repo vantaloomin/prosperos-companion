@@ -287,8 +287,8 @@ NOW = {
                      'never as done, and they may change)',
        'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
                 'only what is listed here)',
-       # Lorebook entries whose keywords came up in the last few messages (companion/lore.py).
-       'lore_now': 'Lore that fits what is being talked about (from your lorebook; true in your world)',
+       # Lorebook entries whose keywords came up in the last few messages, or whose "when" fits (companion/lore.py).
+       'lore_now': 'Lore that fits the moment or what is being talked about (from your lorebook; true in your world)',
        'wearing': 'What you have on',
        'wording': 'Your wording lately',
        'time': 'Right now'}
@@ -1020,7 +1020,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
         packet.offer('real_events', events['id'], f"- From {events['service_name']}, retrieved "
                                                   f"{events['retrieved_at'][11:16]} UTC: «{events['content']}»")
     query = latest['text'] if latest else (group or {}).get('query', '')
-    lore.offer(packet, connection, companion, recent, query)
+    lore.offer(packet, connection, companion, recent, query, now)
     voice.offer(packet, connection, companion, messages, messages[:window_start(len(messages))], group)
     offer_recalled(packet, connection, companion, now, groups['recallable'], (messages, older), query, semantic)
     return render(packet, conversation)

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request
 
 from companion import lore
 from companion.imports import characters, chats
-from companion.models import CharacterCardFile, ChatFile, LoreSwitch
+from companion.models import CharacterCardFile, ChatFile, LoreSwitch, LoreWhen
 
 router = APIRouter(prefix='/api')
 
@@ -43,3 +43,8 @@ def delete_book(request: Request, book_id: str):
 @router.put('/lore/entries/{entry_id}')
 def switch_entry(request: Request, entry_id: str, body: LoreSwitch):
     return lore.set_entry(db(request), entry_id, body.enabled)
+
+
+@router.put('/lore/entries/{entry_id}/when')
+def entry_when(request: Request, entry_id: str, body: LoreWhen):
+    return lore.set_when(db(request), entry_id, body.when)

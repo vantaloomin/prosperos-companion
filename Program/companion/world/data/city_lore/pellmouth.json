@@ -1,0 +1,240 @@
+{
+ "credit": "Written for the app from the Pellmouth city data, an original setting.",
+ "entries": [
+  {
+   "id": "fog",
+   "title": "Fog in Pellmouth",
+   "text": "When the fog comes in off the harbor the fog horn on Gannet Point sounds half the night, the far end of the wharf disappears, and if the lighthouse is lit before sunset the boats stay in and parents call the children home. The Courier blames the fog.",
+   "keywords": [
+    "fog horn",
+    "the lights early"
+   ],
+   "when": {
+    "weather": [
+     "fog"
+    ]
+   }
+  },
+  {
+   "id": "rain",
+   "title": "Rain",
+   "text": "Rain in Pellmouth is cold and comes sideways off the sea; the Narrows streets run with water down to the river, and the College Spa fills with students waiting it out over frappes.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ]
+   }
+  },
+  {
+   "id": "noreaster",
+   "title": "A nor'easter",
+   "text": "In a nor'easter the snow blows in sideways, the tide comes over the wharves, the boats stay tied up and the shoe mills send everyone home early. Old-timers measure winters by them.",
+   "keywords": [
+    "nor'easter",
+    "noreaster"
+   ],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "summer-heat",
+   "title": "A hot day",
+   "text": "On the hottest days the summer people crowd the beach and the dance pavilion at Gannet Point, and thunderstorms build over the flats in the afternoon.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "spring",
+   "title": "Spring",
+   "text": "Spring comes late: cold rain and mud, the first fog banks in April, lilacs on Meetinghouse Hill in May, and the Haskett crew out rowing the river at dawn.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Summer",
+   "text": "In summer the shingled cottages at Gannet Point fill with summer people, the clam shacks on the causeway fry whole-belly clams in paper boats, and the twilight league plays seven innings after supper at Riverside Oval.",
+   "keywords": [
+    "twilight league",
+    "fried clams"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "fall",
+   "title": "Fall",
+   "text": "In fall the leaves turn bright, frost comes first in West Parish, the cider mill runs, and under the Harvest Moon the Narrows families go quiet in a way uptown never asks about.",
+   "keywords": [
+    "harvest moon",
+    "cider"
+   ],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter",
+   "text": "Winter is short dark days, kale soup on every Narrows stove, skating on Pratt's Pond, and ice creeping out from the shore. Somebody always says the quarry water at Number Four is warm in January.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "saturday-beans",
+   "title": "Saturday supper",
+   "text": "Saturday supper in nearly every Pellmouth kitchen is baked beans with salt pork and molasses and steamed brown bread.",
+   "keywords": [
+    "baked beans"
+   ],
+   "when": {
+    "day": [
+     "weekend"
+    ],
+    "time": [
+     "evening"
+    ]
+   }
+  },
+  {
+   "id": "night",
+   "title": "Pellmouth at night",
+   "text": "After dark Pellmouth keeps its doors shut. Nobody whistles on a wharf, lamps burn in the river windows of the Narrows on spring-tide nights, and a light is on in the top floor of the State Hospital tower though nobody is ever assigned there.",
+   "keywords": [
+    "tide lamps"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "whitcomb-room",
+   "title": "The Whitcomb Room",
+   "text": "By the terms of the bequest the Whitcomb Room at the university library is locked at sundown, and the librarians clear it ten minutes early, every day, without exception.",
+   "keywords": [
+    "whitcomb"
+   ],
+   "when": {
+    "place": [
+     "college-hill"
+    ],
+    "time": [
+     "afternoon",
+     "evening"
+    ]
+   }
+  },
+  {
+   "id": "the-narrows",
+   "title": "The Narrows",
+   "text": "In the Narrows \"mind the tide\" is both a goodbye and a way of saying mind your own business, and strangers rarely know which is meant.",
+   "keywords": [
+    "mind the tide"
+   ],
+   "when": {
+    "place": [
+     "the-narrows"
+    ]
+   }
+  },
+  {
+   "id": "quarry-village",
+   "title": "Quarry Village",
+   "text": "Quarry Village says nobody has ever sounded the bottom of Number Four, and that what goes into the water does not come up.",
+   "keywords": [
+    "number four"
+   ],
+   "when": {
+    "place": [
+     "quarry-village"
+    ]
+   }
+  },
+  {
+   "id": "west-parish",
+   "title": "West Parish",
+   "text": "West Parish is farms, orchards and stone walls, and Sayer's Rock, where the widow Annis Sayer was examined for witchcraft in 1692. The court papers stop mid-page.",
+   "keywords": [
+    "sayer's rock",
+    "annis sayer"
+   ],
+   "when": {
+    "place": [
+     "west-parish"
+    ]
+   }
+  },
+  {
+   "id": "halloween",
+   "title": "Hallowe'en",
+   "text": "On Hallowe'en the college holds masquerade parties and the boys go out on pranks, but nobody in the Narrows lets their children past the end of the street after dark.",
+   "keywords": [
+    "halloween"
+   ],
+   "when": {
+    "holiday": [
+     "halloween"
+    ]
+   }
+  },
+  {
+   "id": "christmas-eve",
+   "title": "Christmas Eve",
+   "text": "On Christmas Eve the Falls families go to midnight mass and come home to tourtière, spiced pork pie, after.",
+   "keywords": [
+    "tourtiere",
+    "tourtière"
+   ],
+   "when": {
+    "holiday": [
+     "christmas-eve"
+    ]
+   }
+  },
+  {
+   "id": "fourth-of-july",
+   "title": "The Fourth",
+   "text": "On the Fourth there is a parade around Market Square, a band concert, a ball game at Riverside Oval and fireworks over the harbor, if the fog allows.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "independence-day"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "Work in Pellmouth",
+   "text": "Work in Pellmouth means the shoe mills' whistles, the cannery shifts that follow the boats, and the quarry blasting at noon, with the fog horn keeping time over all of it.",
+   "keywords": [
+    "mill whistle"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}
