@@ -232,6 +232,27 @@
       "mourning": "",
       "year": "the anniversary",
       "venue": "the old chapel"
+    },
+    "ship": {
+      "word": "funeral",
+      "service": "a farewell where their name is read out and those who knew them speak, then the committal, when they are returned to the growing decks",
+      "after": "a meal together in the mess hall to share stories",
+      "days": [
+        3,
+        7
+      ],
+      "at": "10:00",
+      "until": "14:00",
+      "wear": "plain clothes with a white band on the sleeve",
+      "words": "chapel|memorial|viewport|window",
+      "moments": [
+        "the reading of their name",
+        "the lights dimmed for them at the viewport",
+        "sharing stories in the mess hall afterward"
+      ],
+      "mourning": "",
+      "year": "the anniversary",
+      "venue": "the memorial room"
     }
   },
   "news": [

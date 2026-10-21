@@ -560,9 +560,13 @@ def news_due(connection, companion: dict, now) -> list:
 # Funerals (big days, companion/life/big_days.py) --------------------------------------------------------------------
 
 def customs(connection, companion: dict) -> dict:
+    """The city's funeral customs; aboard a ship or a station, the ship's own (no burial, no cremation)."""
     from companion.life import outings, wedding
+    from companion.world import ships
     data = outings.city_data(connection, companion['version']['definition'])
     found = bank()['customs']
+    if ships.enclosed(data):
+        return found['ship']
     return found.get(wedding.culture_of(data)) or found['modern']
 
 
