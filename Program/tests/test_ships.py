@@ -295,3 +295,18 @@ def test_remembering_someone_aboard_is_never_their_garden_or_autumn():
     for name in ('memories', 'obituaries'):
         kept = loss.fitting(loss.bank()[name], 'future')
         assert len(kept) >= 100 and not any(families.UNFIT['future'].search(line) for line in kept), name
+
+
+def test_a_ship_and_its_station_are_a_shuttle_ride_apart_and_its_works_are_not_on_roads():
+    from datetime import date
+
+    from companion.life import long_distance, where
+    from companion.world import changes
+    ship_data, station = catalog.city('long-meridian'), catalog.city('port-vesper')
+    apart = where.Between(True, False, station, ship_data, 56.0, True)
+    assert long_distance.apart_text(apart) == ', about 3 hours apart by shuttle'
+    works = {'kind': 'roadworks', 'neighborhood': ship_data['neighborhoods'][0]['id'], 'name': 'Works',
+             'summary': 'a water main replacement', 'starts': '2026-10-01', 'ends': '2026-11-16'}
+    assert changes.change_text(works, ship_data, date(2026, 10, 20)).endswith('; getting through there takes longer')
+    assert 'by road' in changes.change_text(works, catalog.city('baltimore') | {'neighborhoods': ship_data[
+        'neighborhoods']}, date(2026, 10, 20))

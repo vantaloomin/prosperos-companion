@@ -498,9 +498,19 @@ def visit_lines(trip: dict, today: date, now: datetime, fresh_ids: set[str]) -> 
     return lines
 
 
+def apart_text(between: where.Between) -> str:
+    """', about 340 km apart', or how long the shuttle takes between a ship and a station (companion/world/ships.py)."""
+    from companion.world import ships
+    if ships.by(between.their_city, between.your_city) == ships.SHUTTLE:
+        hours = next((link['hours'] for _city, link in ships.links(between.their_city, {
+            between.your_city['id']: between.your_city})), None)
+        return f', about {hours:g} hours apart by shuttle' if hours else ', a shuttle ride apart'
+    return f", about {round(between.km):,} km apart" if between.km else ''
+
+
 def distance_line(connection, companion: dict, between: where.Between, now: datetime) -> str:
     """How far apart they live and the time difference; while apart (a break, or exes) nothing about visits."""
-    km = f", about {round(between.km):,} km apart" if between.km else ''
+    km = apart_text(between)
     hours = offset(connection, companion, now)
     clock = f' and you are {together.span_text(round(abs(hours) * 60))} {"ahead of" if hours > 0 else "behind"} ' \
         'the user, so mind what time of day it is for each of you' if hours else ''
