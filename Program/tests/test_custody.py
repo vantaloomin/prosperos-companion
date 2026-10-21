@@ -1,5 +1,6 @@
 """When families change (companion/life/custody.py): custody after a breakup with children shared, long distance with
 a child, a companion's own child after they split from their partner, and the parents loss spares."""
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -111,7 +112,8 @@ def test_with_the_adult_side_on_an_intimate_reply_carries_no_child(client, split
     says(provider)
     send(client, 'come here you', 'client-custody-3')
     text = prompt(provider)
-    assert split['name'].split()[0] not in text and 'split up, ' not in text.split('kids')[-1]
+    first = split['name'].split()[0]
+    assert not re.search(rf'\b{re.escape(first)}\b', text) and 'split up, ' not in text.split('kids')[-1]
 
 
 def test_setting_where_they_live_needs_a_breakup(client, clock, monkeypatch):
