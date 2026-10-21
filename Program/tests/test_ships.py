@@ -271,3 +271,12 @@ def test_a_pet_aboard_never_sits_in_the_sun_or_by_the_fire():
     assert told and not any(pets.EARTHBOUND.search(text or '') for text in told)
     assert any(pets.EARTHBOUND.search(pets.moment({**found, 'aboard': False}, f'pet:{n}', walking=True) or '')
                for n in range(300))
+
+
+def test_a_family_aboard_hears_nothing_of_snow_beaches_or_car_seats():
+    from companion.life import families
+    unfit = families.UNFIT['future']
+    for key in ('baby_update', 'toddler_update', 'child_update', 'babysit_toddler', 'own_toddler'):
+        kept = families.fitting(families.bank()[key], 'future')
+        assert len(kept) >= 100 and not any(unfit.search(f"{line['text']} {line['share']}") for line in kept), key
+    assert unfit.search('built a snowman in the yard') and not unfit.search('played in the arboretum')

@@ -67,9 +67,14 @@ _VICTORIAN = _JAZZ + r'|cars?|car seat|drive|drove|driving|taxi|phones?|fridge|v
 _MEDIEVAL = _VICTORIAN + (r'|trains?|bus|buses|strollers?|prams?|photos?|zoo|museums?|chocolate|coffee|tea|bananas?|'
                           r'pasta|peanut butter|cereal|ice cream|crayons?|playground|puzzles?|dinosaurs?|library|'
                           r'libraries|yoghurt|yogurt|noodles|hot air balloons?')
+# The future's cities are ships and stations (companion/world/ships.py): no weather, Earth seasons, sea or cars.
+_AFLOAT = (r'snow\w*|sledg\w*|sleds?|sledding|beach\w*|seaside|the sea|sandcastles?|rain\w*|puddles?|wellies|'
+           r'(?:autumn |fall )?leaves|sunshine|sunny|sunburn\w*|sunscreen|sunset|car seats?|in the car|drive|drove|driving|'
+           r'school bus|backyard|yard|campfire|fireplace|by the fire|bonfire|frost\w*|thunder\w*|storms?|mittens?|'
+           r'winter coats?|autumn|winter|summer|birds?|squirrels?')
 UNFIT = {era: re.compile(rf'\b(?:{words})\b', re.IGNORECASE) for era, words in (
     ('jazz-age', _JAZZ), ('victorian', _VICTORIAN), ('steampunk', _VICTORIAN), ('frontier', _VICTORIAN),
-    ('medieval', _MEDIEVAL), ('fantasy', _MEDIEVAL))}
+    ('medieval', _MEDIEVAL), ('fantasy', _MEDIEVAL), ('future', _AFLOAT))}
 # Lines about carrying the baby, for a parent-to-be who is (as far as anyone knows) the one expecting.
 CARRYING = re.compile(r'\bcrav\w*', re.IGNORECASE)
 FIELDS = ('they', 'them', 'their', "they're", 'are', 'were', 'They', 'Their')
