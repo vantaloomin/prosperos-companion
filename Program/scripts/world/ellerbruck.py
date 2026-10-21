@@ -710,6 +710,7 @@ CITY = {
     'words': {
         'call_to': 'Speak with {name} through the mirror',
         'call_on': 'Speaking with {name} through the mirror',
+        'call_on_short': '{name}, in the mirror',
         'call_ringing': '{name} is in the mirror',
         'call_ended': 'The mirror went quiet',
         'call_declined': 'You let {name} fade from the mirror.',

@@ -40,8 +40,10 @@ export function ChatStyleSettings() {
         </div>
         <p className="chat-style-extras-panel subtle" hidden={retro}>No extra options for this style.</p>
       </div>
-      <Toggle label="Period words in period cities" checked={chat.periodWords} onChange={(checked) => void save({ period_words: checked })}
-        hint="In a city of another era, the chat, posts and calls use its words: letters in Camelot, the telephone in 1925 New York, comms aboard a ship. Settings and help keep today's words." />
+      <div className="period-words">
+        <Toggle label="Period words in period cities" checked={chat.periodWords} onChange={(checked) => void save({ period_words: checked })}
+          hint="In cities of another time, chats, posts and calls use that era's words. Settings always use today's." />
+      </div>
       <ColorSchemeSettings theme={chat.theme} scheme={chat.scheme} palette={chat.palette} save={save} />
       <DeviceLookSettings />
     </section>

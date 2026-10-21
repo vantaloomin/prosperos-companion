@@ -16,6 +16,7 @@ export const MODERN_WORDS = {
   nobody_writes: 'Nobody texts you',
   call_to: 'Call {name}',
   call_on: 'On a call with {name}',
+  call_on_short: 'On a call with {name}',
   call_ringing: '{name} is calling',
   call_ended: 'Call ended',
   call_declined: "You declined {name}'s call.",

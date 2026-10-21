@@ -10,6 +10,15 @@ import { AuthorsNote } from './AuthorsNote'
 import { useEraWords } from '../world/useEraWords'
 import { say } from '../world/eraWords'
 
+/** On a phone the box shows only their first name, so a period line like "Write a letter to Wren" stays on one line. */
+const onPhone = () => !!window.matchMedia?.('(max-width: 720px)').matches
+const firstName = (name: string) => name.trim().split(/\s+/)[0] || name
+
+/** "Message Sam", or the era's line: "Write a letter to Wren" in Camelot (eraWords.ts). */
+function usePlaceholder(name: string): string {
+  return say(useEraWords(), 'message_to', onPhone() ? firstName(name) : name)
+}
+
 const OUT_OF_CHARACTER = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)) for a plain, honest answer.'
 
 /** `compact` while the reader scrolls up through the history: on a phone the box keeps one line until they come back
@@ -20,7 +29,7 @@ export function Composer({ name, chat, draft, streaming, compact, onSend, onStop
   const pictures = usePictureAdder(draft, withPictures !== false)
   const canSend = ready(draft.value.text, draft.value.pictures?.length ?? 0, draft.sending || streaming || pictures.busy)
   const onKeyDown = keyHandler(canSend, streaming, onSend, onStop)
-  const placeholder = say(useEraWords(), 'message_to', name)
+  const placeholder = usePlaceholder(name)
   return (<>
     {/* Sending with the button disables it; keep the keyboard in the message box for the next message. */}
     <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) onSend() }}

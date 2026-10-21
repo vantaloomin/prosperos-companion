@@ -17,7 +17,7 @@ export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereK
 export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string }
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
-export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string }
+export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string; /** A shorter lead for the phone, when there is one. */ short?: string }
 /** The strip's one button: Head home (Call it a night at your own wedding), Say goodbye, Not now, or Undo just after
  * one of those. */
 export interface StripAction { action: 'home' | 'undo'; label: string }
@@ -89,7 +89,7 @@ export function homeLine(where: WhereState | undefined, name: string): { lead: s
  * it has been on is ticked by the strip itself (callClock). */
 export function callLine(call: WhereCall, name: string, words: EraWords = MODERN_WORDS): StripLine {
   const line = (lead: string, tail = '') => ({ lead, place: null, tail })
-  if (call.status === 'on') return line(say(words, 'call_on', name))
+  if (call.status === 'on') return { ...line(say(words, 'call_on', name)), short: say(words, 'call_on_short', name) }
   if (call.status === 'ringing') return line(say(words, 'call_ringing', name))
   if (call.status === 'ended') return line(say(words, 'call_ended'), call.started_at && call.ended_at ? ` after ${minutesText(Date.parse(call.ended_at) - Date.parse(call.started_at))}.` : '.')
   if (call.status === 'declined') return line(say(words, 'call_declined', name))

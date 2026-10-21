@@ -70,3 +70,13 @@ def test_a_notification_says_letter_in_camelot():
                                         words)
     assert both['body'] == '2 new letters from Gwen and Bors.'
     assert notifications.message_notice(config, 'Sam', [{'text': 'hi'}])['body'] == 'Sam sent you a message.'
+
+
+def test_the_four_profile_tabs_fit_a_phone_in_every_era_and_city():
+    """Messages, Posts, Memories and Character share one row at 390px: 'Notes · Society pages · Memories · Character'
+    pushed Character off the edge (Iris, 2026-10-21), while 'Letters · Chronicle · …' fits."""
+    cities = [None, *catalog.cities().values()]
+    groups = [{'era': era} for era in era_words.table()['groups']]
+    for city in [*cities, *groups]:
+        found = era_words.words(city)
+        assert len(found['messages_tab'] + found['posts_tab'] + 'MemoriesCharacter') <= 34, city and city.get('id')

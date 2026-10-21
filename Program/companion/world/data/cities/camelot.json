@@ -4124,12 +4124,13 @@
  "words": {
   "call_to": "Seek {name} in the scrying glass",
   "call_on": "Speaking with {name} in the scrying glass",
+  "call_on_short": "{name}, in the glass",
   "call_ringing": "{name} is in the scrying glass",
   "call_ended": "The glass went dark",
   "call_declined": "You let {name}'s face fade from the glass.",
   "call_unanswered": "{name} didn't come to the glass.",
   "call_missed": "{name} sought you in the glass, and you missed it.",
-  "call_end": "Let the glass go dark",
+  "call_end": "Let it go dark",
   "call_back": "Seek them back",
   "on_call": "In the scrying glass",
   "calling_you": "Seeking you in the glass"

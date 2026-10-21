@@ -3987,6 +3987,7 @@
  "words": {
   "call_to": "Ring {name} on the aetherphone",
   "call_on": "On the aetherphone with {name}",
+  "call_on_short": "{name}, on the aetherphone",
   "call_ringing": "{name} is ringing on the aetherphone",
   "call_ended": "The aetherphone went quiet",
   "call_declined": "You let {name}'s aetherphone ring out.",

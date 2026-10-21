@@ -1126,7 +1126,7 @@ CITY = {
     ],
     # What this city calls things on the in-world screens (companion/world/era_words.py).
     'words': {
-        'posts_tab': 'Society pages',
+        'posts_tab': 'Society',
         'post': 'item',
         'posts': 'items',
     }

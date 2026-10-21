@@ -3388,6 +3388,7 @@
  "words": {
   "call_to": "Speak with {name} through the Magic Picture",
   "call_on": "Speaking with {name} through the Magic Picture",
+  "call_on_short": "{name}, in the Magic Picture",
   "call_ringing": "{name} is in the Magic Picture",
   "call_ended": "The Magic Picture went still",
   "call_declined": "You let {name} fade from the Magic Picture.",
