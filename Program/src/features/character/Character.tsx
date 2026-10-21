@@ -44,6 +44,7 @@ import { BringCharacter } from './BringCharacter'
 import { BringChat } from './BringChat'
 import { Lore } from './Lore'
 import { Library } from './Library'
+import { Voice } from './Voice'
 import { Steps } from './Steps'
 import { Family } from './Family'
 import { LifeLately } from './LifeLately'
@@ -205,6 +206,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
       <LifeAdmin name={name} />
       <SelfFacts name={name} />
     </>}
+    <Voice name={name} />
     <Lore />
     <Library name={name} />
     <TownSeed companion={companion} />

@@ -268,6 +268,10 @@ class MessageEdit(Input):
     expected_text: str = Field(max_length=40000)
 
 
+class VoicePin(Input):
+    pinned: bool = True
+
+
 class PromptUpdate(Input):
     text: str = Field(min_length=1, max_length=20000)
 

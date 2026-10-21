@@ -70,7 +70,18 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, corrected, history, look_back, people, phrases, sides, time_recall, vectors
+from companion.memory import (
+    closeness,
+    corrected,
+    history,
+    look_back,
+    people,
+    phrases,
+    sides,
+    time_recall,
+    vectors,
+    voice,
+)
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -199,6 +210,9 @@ HEADINGS = {
             # Meeting their people (companion/life/their_people.py): changes when someone meets the user, and weekly.
             'their_people': 'What your people think of the user (decided by the app: pass it on now and then, the way '
                             'people do, like "my mom keeps asking when you\'re coming back", and never contradict it)',
+            # A few of their own earlier replies (companion/memory/voice.py): changes when the conversation's window
+            # steps, as the sections after it do, or when the user pins a reply.
+            'voice': 'How you sound',
             # Grows during a chat as memories are saved and the companion's life moves on.
             'boundaries': "The user's boundaries",
             'profile': 'What you know about the user',
@@ -1013,6 +1027,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     query = latest['text'] if latest else (group or {}).get('query', '')
     lore.offer(packet, connection, companion, recent, query)
     library.offer(packet, connection, companion, recent, query, semantic)
+    voice.offer(packet, connection, companion, messages, messages[:window_start(len(messages))], group)
     offer_recalled(packet, connection, companion, now, groups['recallable'], (messages, older), query, semantic)
     return render(packet, conversation)
 

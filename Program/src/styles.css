@@ -2378,3 +2378,4 @@ p.breakup-line { align-items: center; }
   .watch-buttons .button, .watch-buttons .text-button { min-height: 44px; }
   .watch-line { grid-template-columns: 1fr; gap: 2px; }
 }
+.voice-unpin { min-height: 44px; }

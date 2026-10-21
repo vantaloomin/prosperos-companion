@@ -2694,6 +2694,17 @@ CREATE TABLE IF NOT EXISTS observer_entries (
   PRIMARY KEY (focus, day)
 );
 
+-- "Pin their voice" (companion/memory/voice.py): up to three of the companion's replies the user pinned, so the
+-- 'voice' section of every chat reply shows them first. `message_id` is the reply as first written (its origin_id
+-- when it was copied into a fork), so the pin follows it into forks.
+CREATE TABLE IF NOT EXISTS voice_pins (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (companion_id, message_id)
+);
+
 -- A reference library (companion/library.py): long texts the user adds to a companion or to the world (a novel, a
 -- script, transcripts, a wiki export), split into passages; the few that fit the conversation join a reply's notes.
 -- `companion_id` NULL is the world's. `online` names a book the app downloads from its author's site
