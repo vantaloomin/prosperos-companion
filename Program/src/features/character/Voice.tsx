@@ -17,7 +17,7 @@ export function Voice({ name }: { name: string }) {
   return (
     <section className="settings-section form-stack" aria-labelledby="voice-heading">
       <h2 id="voice-heading">How {first} sounds</h2>
-      <p className="subtle">Every reply shows the model a few lines {first} said before, so {first} keeps sounding like themselves even if you change models. The app picks them from replies you kept. To choose one yourself, pick "Sounds like them" in a reply's menu (up to {pins.data?.limit ?? 3}).</p>
+      <p className="subtle">To keep {first} sounding like {first}, even if you change models, each reply is shown a few lines {first} said before. The app picks them from replies you kept, or pin up to {pins.data?.limit ?? 3} yourself with "Pin their voice" in a reply's menu.</p>
       {error && <Notice tone="error">{error}</Notice>}
       {list.length === 0 ? <p className="subtle">No pinned replies. The app is picking for now.</p> : (
         <ul className="plain-list">
@@ -25,7 +25,7 @@ export function Voice({ name }: { name: string }) {
             <li key={pin.message_id}>
               <q>{pin.text}</q>
               <span className="form-actions">
-                <button type="button" className="text-button" onClick={() => void unpin(pin.message_id)}><PinOff aria-hidden="true" />Unpin</button>
+                <button type="button" className="text-button voice-unpin" onClick={() => void unpin(pin.message_id)}><PinOff aria-hidden="true" />Unpin</button>
               </span>
             </li>
           ))}

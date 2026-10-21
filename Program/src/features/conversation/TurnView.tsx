@@ -193,13 +193,13 @@ function replyActions(message: Message, streaming: boolean, { onRemember, onEdit
   return unfinished(message) ? [edit, branch] : [branch]
 }
 
-/** "Sounds like them" after Remember this on a finished reply: pins it for their voice in every reply
+/** "Pin their voice" after Remember this on a finished reply: pins it for their voice in every reply
  * (companion/memory/voice.py), or unpins it. */
 function withVoice(actions: Action[], message: Message, voice: ContextType<typeof VoiceActions>): Action[] {
   if (!voice || message.status !== 'complete' || message.redacted || !actions.length) return actions
   const action: Action = pinnedIn(voice.pins, message)
     ? ['Unpin their voice', <PinOff key="icon" aria-hidden="true" />, voice.toggle]
-    : ['Sounds like them', <Pin key="icon" aria-hidden="true" />, voice.toggle]
+    : ['Pin their voice', <Pin key="icon" aria-hidden="true" />, voice.toggle]
   return [actions[0], action, ...actions.slice(1)]
 }
 

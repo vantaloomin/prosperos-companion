@@ -67,7 +67,7 @@ PROMPTS = {prompt.name: prompt for prompt in (
     Prompt('voice', CHAT, 'How they sound',
            "Opens the few short excerpts of the companion's own earlier replies in every chat reply, so they keep "
            'sounding like themselves when the model changes. The app picks the excerpts from replies you kept, and '
-           '"Sounds like them" in a reply\'s menu pins one.',
+           '"Pin their voice" in a reply\'s menu pins one.',
            constant('companion.memory.voice', 'INTRO')),
     Prompt('first-texts', CHAT, 'Texting first',
            'Added when the companion writes to you first, such as a check-in. The app picks the reason.',

@@ -5,7 +5,7 @@ The app picks the excerpts by rule from replies the user kept: finished, never e
 turn (not a regenerate), not an answer to an out-of-character message, and from before the conversation sent with
 the reply, so they are not already in it. It mixes days and lengths, and leaves out anything that reads intimate or
 names a child (companion/memory/sides.py), whatever the settings, so it fails closed. The user can pin up to three
-replies with "Sounds like them" in a reply's menu; pins come first. The pick only changes when the conversation's
+replies with "Pin their voice" in a reply's menu; pins come first. The pick only changes when the conversation's
 window steps or a pin changes, so prompt caching holds. A character with no kept replies yet has their example
 messages in their sheet already ('Voice'), so nothing more is added. Rules only, no model call.
 """
@@ -133,7 +133,7 @@ def offer(packet, connection, companion, messages: list[dict], older: list[dict]
         packet.offer('voice', 'voice', '\n'.join(lines))
 
 
-# "Sounds like them" ---------------------------------------------------------------------------------------------------
+# "Pin their voice" ---------------------------------------------------------------------------------------------------
 
 def pin(database, message_id: str, pinned_now: bool = True) -> dict:
     """Pin a reply as sounding like them, or unpin it. Up to PINS each; the newest pin past that is refused."""

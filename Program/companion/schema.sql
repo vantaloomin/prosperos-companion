@@ -2694,7 +2694,7 @@ CREATE TABLE IF NOT EXISTS observer_entries (
   PRIMARY KEY (focus, day)
 );
 
--- "Sounds like them" (companion/memory/voice.py): up to three of the companion's replies the user pinned, so the
+-- "Pin their voice" (companion/memory/voice.py): up to three of the companion's replies the user pinned, so the
 -- 'voice' section of every chat reply shows them first. `message_id` is the reply as first written (its origin_id
 -- when it was copied into a fork), so the pin follows it into forks.
 CREATE TABLE IF NOT EXISTS voice_pins (

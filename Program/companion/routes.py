@@ -262,7 +262,7 @@ def edit_message(request: Request, message_id: str, body: MessageEdit):
 
 @router.post('/conversation/messages/{message_id}/voice')
 def pin_voice(request: Request, message_id: str, body: VoicePin):
-    """"Sounds like them": pin one of their replies for the 'voice' section of every chat reply, or unpin it."""
+    """"Pin their voice": pin one of their replies for the 'voice' section of every chat reply, or unpin it."""
     return voice.pin(db(request), message_id, body.pinned)
 
 

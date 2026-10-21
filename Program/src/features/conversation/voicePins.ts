@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { Message } from '../../types'
 
-/** "Sounds like them" (companion/memory/voice.py): up to `limit` of their replies the user pinned, shown to the
+/** "Pin their voice" (companion/memory/voice.py): up to `limit` of their replies the user pinned, shown to the
  * model first in every chat reply so they keep their voice when the model changes. The app picks the rest. */
 export interface VoicePin { message_id: string; text: string; created_at: string }
 export interface VoicePins { pins: VoicePin[]; limit: number }
@@ -27,5 +27,5 @@ export function useSetVoicePin() {
   }
 }
 
-/** The reply menu's "Sounds like them", given by the conversation so each reply can show whether it is pinned. */
+/** The reply menu's "Pin their voice", given by the conversation so each reply can show whether it is pinned. */
 export const VoiceActions = createContext<{ pins: VoicePin[] | undefined; toggle: (message: Message) => void } | null>(null)
