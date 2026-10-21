@@ -299,6 +299,8 @@ export interface WorkspaceSettings {
   /** Retro IM message sounds; off unless turned on. */
   chat_sounds?: boolean
   chat_retro_dark?: boolean
+  /** Period words in period cities: letters in Camelot, comms aboard a ship (companion/world/era_words.py). On unless turned off. */
+  period_words?: boolean
   /** The app's colors (Prospero's Study's palettes); Retro IM keeps its own. */
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */

@@ -673,6 +673,20 @@ CITY = {
     # Drawn on the map, since the city has no street map (src/features/map/drawn.ts).
     'water': [{'kind': 'river', 'name': 'Cam', 'width_km': 0.12, 'points': [
         [51.034, -2.552], [51.024, -2.545], [51.012, -2.538], [51.006, -2.526], [51.007, -2.508]]}],
+    # What this city calls things on the in-world screens (companion/world/era_words.py).
+    'words': {
+        'call_to': 'Seek {name} in the scrying glass',
+        'call_on': 'Speaking with {name} in the scrying glass',
+        'call_ringing': '{name} is in the scrying glass',
+        'call_ended': 'The glass went dark',
+        'call_declined': "You let {name}'s face fade from the glass.",
+        'call_unanswered': "{name} didn't come to the glass.",
+        'call_missed': '{name} sought you in the glass, and you missed it.',
+        'call_end': 'Let the glass go dark',
+        'call_back': 'Seek them back',
+        'on_call': 'In the scrying glass',
+        'calling_you': 'Seeking you in the glass',
+    }
 }
 
 if __name__ == '__main__':

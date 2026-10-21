@@ -706,6 +706,20 @@ CITY = {
     # Drawn on the map, since the city has no street map (src/features/map/drawn.ts).
     'water': [{'kind': 'river', 'name': 'Eller', 'width_km': 0.1, 'points': [
         [51.296, 9.525], [51.292, 9.540], [51.292, 9.555], [51.290, 9.570]]}],
+    # What this city calls things on the in-world screens (companion/world/era_words.py).
+    'words': {
+        'call_to': 'Speak with {name} through the mirror',
+        'call_on': 'Speaking with {name} through the mirror',
+        'call_ringing': '{name} is in the mirror',
+        'call_ended': 'The mirror went quiet',
+        'call_declined': 'You let {name} fade from the mirror.',
+        'call_unanswered': "{name} didn't come to the mirror.",
+        'call_missed': '{name} called from the mirror, and you missed it.',
+        'call_end': 'Let the mirror go quiet',
+        'call_back': 'Answer through the mirror',
+        'on_call': 'At the speaking mirror',
+        'calling_you': 'Calling from the mirror',
+    }
 }
 
 if __name__ == '__main__':

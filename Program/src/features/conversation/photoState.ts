@@ -1,15 +1,17 @@
 import type { ChatPhoto, ImageStatus, Message } from '../../types'
+import { MODERN_WORDS, capital, type EraWords } from '../world/eraWords.ts'
 
 export const isTaking = (status?: ImageStatus) => status === 'queued' || status === 'running'
 
-const noun = (photo: ChatPhoto) => photo.kind === 'meme' ? 'meme' : photo.kind === 'selfie' ? 'selfie' : 'photo'
+/** "photo", or in the era's words a "photograph" in 1895 and a "likeness" in Camelot (eraWords.ts). */
+const noun = (photo: ChatPhoto, words: EraWords) => photo.kind === 'meme' ? 'meme' : photo.kind === 'selfie' ? words.selfie : words.photo
 
-const LINES: Partial<Record<ImageStatus, (photo: ChatPhoto) => string>> = {
-  queued: (photo) => `The ${noun(photo)} is on its way.`,
-  running: (photo) => `The ${noun(photo)} is on its way…`,
-  failed: (photo) => `The ${noun(photo)} couldn't be made. ${photo.error ?? ''}`.trim(),
-  cancelled: (photo) => `The ${noun(photo)} was cancelled.`,
-  interrupted: (photo) => `The app closed before the ${noun(photo)} was made.`,
+const LINES: Partial<Record<ImageStatus, (photo: ChatPhoto, words: EraWords) => string>> = {
+  queued: (photo, words) => `The ${noun(photo, words)} is on its way.`,
+  running: (photo, words) => `The ${noun(photo, words)} is on its way…`,
+  failed: (photo, words) => `The ${noun(photo, words)} couldn't be made. ${photo.error ?? ''}`.trim(),
+  cancelled: (photo, words) => `The ${noun(photo, words)} was cancelled.`,
+  interrupted: (photo, words) => `The app closed before the ${noun(photo, words)} was made.`,
 }
 
 /** A photo that ended without a picture: it can be made again. */
@@ -19,14 +21,16 @@ export const canRetry = (photo: ChatPhoto) => !photo.ref && (photo.status === 'f
 export const photoShape = (photo: ChatPhoto) => photo.kind === 'meme' ? 'square' : photo.aspect ?? 'landscape'
 
 /** One plain line about a photo still coming or one that could not be made, else null. */
-export function photoLine(photo: ChatPhoto): string | null {
-  return LINES[photo.status]?.(photo) ?? null
+export function photoLine(photo: ChatPhoto, words: EraWords = MODERN_WORDS): string | null {
+  return LINES[photo.status]?.(photo, words) ?? null
 }
 
-const KINDS: Record<Exclude<ChatPhoto['kind'], 'meme'>, string> = { moment: 'Photo', selfie: 'Selfie', view: 'Photo of the view' }
+const KINDS: Record<Exclude<ChatPhoto['kind'], 'meme'>, (words: EraWords) => string> = {
+  moment: (words) => capital(words.photo), selfie: (words) => capital(words.selfie), view: (words) => `${capital(words.photo)} of the view`,
+}
 
 /** Alt text for the picture itself; a meme's captions are real text drawn over it. */
-export const photoAlt = (name: string, photo: ChatPhoto) => photo.kind === 'meme' ? memeAlt(name, photo) : `${KINDS[photo.kind]} from ${name}: ${photo.summary}`
+export const photoAlt = (name: string, photo: ChatPhoto, words: EraWords = MODERN_WORDS) => photo.kind === 'meme' ? memeAlt(name, photo) : `${KINDS[photo.kind](words)} from ${name}: ${photo.summary}`
 
 /** Where the picture loads from: a template's or GIF's own address, else the image job's file once it is made. */
 export const photoSource = (photo: ChatPhoto, jobFile: (ref: string) => string) => photo.src ?? (photo.ref ? jobFile(photo.ref) : null)

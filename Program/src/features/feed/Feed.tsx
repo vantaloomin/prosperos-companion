@@ -10,12 +10,15 @@ import { Toggle } from '../../components/Fields'
 import { PostCard, type PostActions } from './PostCard'
 import { ReadBatcher, joinPages, nextReaction } from './feedState'
 import { isActive } from './imageState'
+import { useEraWords } from '../world/useEraWords'
+import type { EraWords } from '../world/eraWords'
 
 export function Feed({ companion, go }: { companion: Companion; go: (view: View) => void }) {
   const client = useQueryClient()
   const [hidden, setHidden] = useState(false)
   const [source, setSource] = useState<FeedSource>('all')
   const [error, setError] = useState<string | null>(null)
+  const words = useEraWords()
   const key = useMemo(() => ['feed', hidden, source], [hidden, source])
   const feed = useInfiniteQuery({
     queryKey: key,
@@ -72,19 +75,19 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
     <section className="page feed">
       <header className="page-header">
         <div>
-          <h2>Posts</h2>
-          <p className="subtle">{name}'s posts, and what their friends are up to{unreadText(unread)}. Only you see them.</p>
+          <h2>{words.posts_tab}</h2>
+          <p className="subtle">{name}'s {words.posts}, and what their friends are up to{unreadText(unread)}. Only you see them.</p>
         </div>
         <button type="button" className="button" onClick={() => void exportFeed()}><Download aria-hidden="true" />Export</button>
       </header>
       <div className="memory-toolbar">
         <SourcePicker source={source} name={name} onChange={setSource} />
-        <Toggle label="Show hidden posts" checked={hidden} onChange={setHidden} />
+        <Toggle label={`Show hidden ${words.posts}`} checked={hidden} onChange={setHidden} />
       </div>
       {error && <Notice tone="error">{error}</Notice>}
-      <FeedStatus pending={feed.isPending} error={feed.isError ? feed.error : null} retrying={feed.isFetching} retry={() => void feed.refetch()} empty={feed.isSuccess && posts.length === 0} name={name} />
+      <FeedStatus pending={feed.isPending} error={feed.isError ? feed.error : null} retrying={feed.isFetching} retry={() => void feed.refetch()} empty={feed.isSuccess && posts.length === 0} name={name} words={words} />
       <div className="post-list">{posts.map((post) => <PostCard key={post.id} post={post} name={name} actions={actions} />)}</div>
-      {feed.hasNextPage && <button type="button" className="button load-more" disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>Show older posts</button>}
+      {feed.hasNextPage && <button type="button" className="button load-more" disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>Show older {words.posts}</button>}
     </section>
   )
 }
@@ -100,13 +103,13 @@ function SourcePicker({ source, name, onChange }: { source: FeedSource; name: st
 
 const unreadText = (count: number) => count ? `. ${count} new` : ''
 
-function FeedStatus({ pending, error, retrying, retry, empty, name }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; name: string }) {
+function FeedStatus({ pending, error, retrying, retry, empty, name, words }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; name: string; words: EraWords }) {
   if (error) {
     const again = <button type="button" className="text-button" disabled={retrying} onClick={retry}>{retrying ? 'Trying again…' : 'Try again'}</button>
     return <ErrorNotice error={error} action={again}>The posts could not load. </ErrorNotice>
   }
   if (pending) return <Loading label="Loading the feed" />
-  return empty ? <p className="subtle">No posts yet. When something happens in {name}'s life or their friends', it shows up here.</p> : null
+  return empty ? <p className="subtle">No {words.posts} yet. When something happens in {name}'s life or their friends', it shows up here.</p> : null
 }
 
 /** Posts on screen are marked read as soon as they are seen, so the header keeps the count the

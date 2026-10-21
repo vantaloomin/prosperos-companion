@@ -5,6 +5,8 @@ import { api } from '../../api'
 import { TOGETHER_KEY } from '../today/outingText'
 import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
+import { useEraWords } from '../world/useEraWords'
+import { say, type EraWords } from '../world/eraWords'
 import { WHERE_KEY, callActions, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
 const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
@@ -20,7 +22,8 @@ const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Pho
 export function WhereStrip({ name }: { name: string }) {
   const client = useQueryClient()
   const where = useWhere()
-  const line = stripLine(where.data, name)
+  const words = useEraWords()
+  const line = stripLine(where.data, name, words)
   const call = where.data?.call
   const refresh = (found?: WhereState) => {
     if (found) client.setQueryData(WHERE_KEY, found)
@@ -29,7 +32,7 @@ export function WhereStrip({ name }: { name: string }) {
   }
   if (where.data?.home && !line) return <HomeStrip where={where.data} name={name} onDone={refresh} />
   if (!line || !where.data) return null
-  if (call) return <CallStrip call={call} lead={line.lead} tail={line.tail} name={name} onDone={refresh} />
+  if (call) return <CallStrip call={call} lead={line.lead} tail={line.tail} name={name} words={words} onDone={refresh} />
   if (where.data.visit) return (
     <aside className="where-strip" aria-label="Where you are" aria-live="polite">
       <Luggage aria-hidden="true" />
@@ -66,18 +69,18 @@ function StripButton({ action, onClick }: { action: StripAction; onClick: () => 
 }
 
 /** A call on the strip: who and how long, with its buttons. Call back starts a new call (POST /api/life/calls). */
-function CallStrip({ call, lead, tail, name, onDone }: { call: WhereCall; lead: string; tail: string; name: string; onDone: (found?: WhereState) => void }) {
+function CallStrip({ call, lead, tail, name, words, onDone }: { call: WhereCall; lead: string; tail: string; name: string; words: EraWords; onDone: (found?: WhereState) => void }) {
   const act = async (verb: CallAction['action']) => {
     const path = verb === 'call' ? '/life/calls' : `/life/calls/${call.id}/${verb}`
     onDone(await api<WhereState>(path, {}).catch(() => undefined))
   }
   const Glyph = call.status === 'ringing' ? PhoneIncoming : call.status === 'on' ? Phone : call.status === 'missed' ? PhoneMissed : PhoneOff
   return (
-    <aside className={`where-strip${call.status === 'ringing' ? ' ringing' : ''}`} aria-label={call.status === 'ringing' ? `${name} is calling` : 'Call'}>
+    <aside className={`where-strip${call.status === 'ringing' ? ' ringing' : ''}`} aria-label={call.status === 'ringing' ? say(words, 'call_ringing', name) : say(words, 'on_call')}>
       <Glyph aria-hidden="true" />
       {/* Only the state is announced; the ticking length sits outside the live region. */}
       <span><span aria-live="polite">{lead}{tail}</span>{call.status === 'on' && call.started_at && <> · <CallLength since={call.started_at} /></>}</span>
-      {callActions(call).map((item) => {
+      {callActions(call, words).map((item) => {
         const Icon = CALL_GLYPHS[item.action]
         return <button key={item.action} type="button" className={item.action === 'answer' ? 'button primary call-answer' : `text-button call-${item.action}`} onClick={() => void act(item.action)}><Icon aria-hidden="true" />{item.label}</button>
       })}

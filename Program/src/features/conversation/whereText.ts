@@ -1,5 +1,6 @@
 /** Together or apart (companion/life/together.py): the "where you are" strip's state and wording, kept apart from the component for tests. */
 import { dayText, timeText, type Outing } from '../today/outingText.ts'
+import { MODERN_WORDS, say, type EraWords } from '../world/eraWords.ts'
 
 export const WHERE_KEY = ['where']
 
@@ -24,8 +25,8 @@ export interface StripAction { action: 'home' | 'undo'; label: string }
 export interface CallAction { action: 'answer' | 'decline' | 'end' | 'call'; label: string }
 
 /** Null while apart: the strip shows only time together, or a call. */
-export function stripLine(where: WhereState | undefined, name: string): StripLine | null {
-  if (where?.call) return callLine(where.call, name)
+export function stripLine(where: WhereState | undefined, name: string, words: EraWords = MODERN_WORDS): StripLine | null {
+  if (where?.call) return callLine(where.call, name, words)
   if (where?.visit) return visitLine(where.visit, name)
   const outing = where?.outing
   if (!where || !outing) return null
@@ -84,22 +85,23 @@ export function homeLine(where: WhereState | undefined, name: string): { lead: s
   return { lead: `Home together with ${name}`, action: 'out', label: 'Heading out' }
 }
 
-/** What the strip says about a call; how long it has been on is ticked by the strip itself (callClock). */
-export function callLine(call: WhereCall, name: string): StripLine {
+/** What the strip says about a call, in the era's words (the telephone in 1925, a scrying glass in Camelot); how long
+ * it has been on is ticked by the strip itself (callClock). */
+export function callLine(call: WhereCall, name: string, words: EraWords = MODERN_WORDS): StripLine {
   const line = (lead: string, tail = '') => ({ lead, place: null, tail })
-  if (call.status === 'on') return line(`On a call with ${name}`)
-  if (call.status === 'ringing') return line(`${name} is calling`)
-  if (call.status === 'ended') return line('Call ended', call.started_at && call.ended_at ? ` after ${minutesText(Date.parse(call.ended_at) - Date.parse(call.started_at))}.` : '.')
-  if (call.status === 'declined') return line(`You declined ${name}'s call.`)
-  return line(call.direction === 'you' ? `${name} didn't pick up.` : `Missed call from ${name}.`)
+  if (call.status === 'on') return line(say(words, 'call_on', name))
+  if (call.status === 'ringing') return line(say(words, 'call_ringing', name))
+  if (call.status === 'ended') return line(say(words, 'call_ended'), call.started_at && call.ended_at ? ` after ${minutesText(Date.parse(call.ended_at) - Date.parse(call.started_at))}.` : '.')
+  if (call.status === 'declined') return line(say(words, 'call_declined', name))
+  return line(say(words, call.direction === 'you' ? 'call_unanswered' : 'call_missed', name))
 }
 
-export function callActions(call: WhereCall | null | undefined): CallAction[] {
+export function callActions(call: WhereCall | null | undefined, words: EraWords = MODERN_WORDS): CallAction[] {
   if (!call) return []
   // Answer last, nearest the thumb, as phones do.
   if (call.status === 'ringing') return [{ action: 'decline', label: 'Decline' }, { action: 'answer', label: 'Answer' }]
-  if (call.status === 'on') return [{ action: 'end', label: 'End call' }]
-  if (call.status === 'missed' && call.direction === 'them') return [{ action: 'call', label: 'Call back' }]
+  if (call.status === 'on') return [{ action: 'end', label: say(words, 'call_end') }]
+  if (call.status === 'missed' && call.direction === 'them') return [{ action: 'call', label: say(words, 'call_back') }]
   return []
 }
 

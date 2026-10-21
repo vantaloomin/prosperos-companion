@@ -543,6 +543,23 @@ CITY = {
               'adventures of Dorothy, the Scarecrow and the Tin Woodman, and children shout warnings at the wicked '
               'witch.', ['market-square-puppets']),
     ],
+    # What this city calls things on the in-world screens (companion/world/era_words.py).
+    'words': {
+        'call_to': 'Speak with {name} through the Magic Picture',
+        'call_on': 'Speaking with {name} through the Magic Picture',
+        'call_ringing': '{name} is in the Magic Picture',
+        'call_ended': 'The Magic Picture went still',
+        'call_declined': 'You let {name} fade from the Magic Picture.',
+        'call_unanswered': "{name} didn't come to the Magic Picture.",
+        'call_missed': '{name} looked for you in the Magic Picture, and you missed it.',
+        'call_end': 'Let the picture go still',
+        'call_back': 'Look for them back',
+        'on_call': 'In the Magic Picture',
+        'calling_you': 'In the Magic Picture',
+        'posts_tab': 'Gazette',
+        'post': 'item',
+        'posts': 'items',
+    }
 }
 
 if __name__ == '__main__':

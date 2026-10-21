@@ -3983,5 +3983,18 @@
     ]
    ]
   }
- ]
+ ],
+ "words": {
+  "call_to": "Ring {name} on the aetherphone",
+  "call_on": "On the aetherphone with {name}",
+  "call_ringing": "{name} is ringing on the aetherphone",
+  "call_ended": "The aetherphone went quiet",
+  "call_declined": "You let {name}'s aetherphone ring out.",
+  "call_unanswered": "{name} didn't come to the aetherphone.",
+  "call_missed": "Missed {name} on the aetherphone.",
+  "call_end": "Hang up",
+  "call_back": "Ring back",
+  "on_call": "On the aetherphone",
+  "calling_you": "Ringing on the aetherphone"
+ }
 }

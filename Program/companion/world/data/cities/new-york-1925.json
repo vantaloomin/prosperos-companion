@@ -6847,5 +6847,10 @@
     ]
    ]
   }
- ]
+ ],
+ "words": {
+  "posts_tab": "Society pages",
+  "post": "item",
+  "posts": "items"
+ }
 }

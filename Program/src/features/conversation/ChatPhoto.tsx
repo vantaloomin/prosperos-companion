@@ -8,6 +8,7 @@ import { imageFile } from '../feed/imageState'
 import { MemeLines } from '../../components/MemeLines'
 import { reducedMotion } from '../../motion'
 import { canRetry, fittedSize, photoAlt, photoLine, photoShape, photoSource } from './photoState'
+import { useEraWords } from '../world/useEraWords'
 import { usePhoto } from './usePhoto'
 
 /**
@@ -17,8 +18,9 @@ import { usePhoto } from './usePhoto'
  */
 export function ChatPhoto({ message, name }: { message: Message; name: string }) {
   const photo = usePhoto(message.id, message.photo).data
+  const words = useEraWords()
   if (!photo) return null
-  const line = photoLine(photo)
+  const line = photoLine(photo, words)
   return (
     <figure className={photo.kind === 'meme' ? 'chat-photo chat-meme' : 'chat-photo'}>
       <PhotoFrame photo={photo} name={name} when={message.created_at} />
@@ -33,6 +35,7 @@ export function ChatPhoto({ message, name }: { message: Message; name: string })
 function PhotoFrame({ photo, name, when }: { photo: Photo; name: string; when: string }) {
   const [loaded, setLoaded] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
+  const words = useEraWords()
   const failed = canRetry(photo)
   const held = heldStill(photo, playing)
   const src = held ?? photoSource(photo, imageFile)
@@ -40,7 +43,7 @@ function PhotoFrame({ photo, name, when }: { photo: Photo; name: string; when: s
   return (
     <div {...frameLook(photo, landed)}>
       <span className={failed ? 'chat-photo-loading failed' : 'chat-photo-loading'} aria-hidden="true">{failed && <ImageOff />}</span>
-      {src && <img src={src} alt={photoAlt(name, photo)} onLoad={() => setLoaded(src)} onError={() => setLoaded(src)} />}
+      {src && <img src={src} alt={photoAlt(name, photo, words)} onLoad={() => setLoaded(src)} onError={() => setLoaded(src)} />}
       {landed && src && <Landed photo={photo} src={src} name={name} when={when} />}
       {!!held && <button type="button" className="gif-play" aria-label="Play GIF" onClick={() => setPlaying(true)}><Play aria-hidden="true" /></button>}
     </div>
@@ -72,10 +75,11 @@ function GiphyCredit({ page }: { page?: string }) {
 /** Clicking a landed photo opens it at full size, a meme with its captions. */
 function OpenFullSize({ photo, src, name, when }: { photo: Photo; src: string; name: string; when: string }) {
   const [open, setOpen] = useState(false)
+  const words = useEraWords()
   const captions = photo.kind === 'meme' ? { top: photo.top_text, bottom: photo.bottom_text, boxes: photo.boxes } : {}
   return <>
     <button type="button" className="photo-open" aria-label="View full size" onClick={() => setOpen(true)} />
-    {open && <Lightbox pictures={[{ src, alt: photoAlt(name, photo), from: name, when, ...captions }]} onClose={() => setOpen(false)} />}
+    {open && <Lightbox pictures={[{ src, alt: photoAlt(name, photo, words), from: name, when, ...captions }]} onClose={() => setOpen(false)} />}
   </>
 }
 

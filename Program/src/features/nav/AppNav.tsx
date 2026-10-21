@@ -5,6 +5,7 @@ import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
 import { toggleSidecar } from '../sidecar/toggle'
 import { chatsTarget, inChats, railCurrent } from './navText'
+import { useEraWords } from '../world/useEraWords'
 import { isActive, navLabel, percent, type ReadyView } from '../ready/readyText'
 import { useReady, useReadyActions } from '../ready/useReady'
 
@@ -39,6 +40,8 @@ interface Props {
 export function AppNav({ view, go, storyOn, datingInstalled, unread, sidecarOpen, sidecarWaiting, watching }: Props) {
   const counts: Partial<Record<string, number>> = { conversation: unread.companion, groups: unread.group }
   const ready = useSettingsMark(view)
+  // Matchlight goes by the era's name: the Personals in 1895, the Matchmaker in Camelot (eraWords.ts).
+  const dating = useEraWords().dating_tab
   return (
     <nav className="app-nav" aria-label="Views">
       <WorldButton current={view === 'worlds'} onOpen={() => go('worlds')} />
@@ -53,7 +56,7 @@ export function AppNav({ view, go, storyOn, datingInstalled, unread, sidecarOpen
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>
             <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}
             {id === 'settings' && <SettingsMark view={ready} />}
-            <Count count={counts[id]} /><span>{label}</span>
+            <Count count={counts[id]} /><span>{id === 'dating' ? dating : label}</span>
           </button>
         </Fragment>
       ))}

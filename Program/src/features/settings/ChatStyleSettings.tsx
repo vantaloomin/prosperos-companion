@@ -6,8 +6,8 @@ import { useChatStyle } from '../conversation/useChatStyle'
 import { ColorSchemeSettings } from './ColorSchemeSettings'
 import { DeviceLookSettings } from './DeviceLookSettings'
 
-/** General > Appearance: how the chat looks, Retro IM's optional sounds and dark mode, the app's colors, and this
- * device's text size, reading font and motion. */
+/** General > Appearance: how the chat looks, Retro IM's optional sounds and dark mode, period words, the app's colors,
+ * and this device's text size, reading font and motion. */
 export function ChatStyleSettings() {
   const chat = useChatStyle()
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +40,8 @@ export function ChatStyleSettings() {
         </div>
         <p className="chat-style-extras-panel subtle" hidden={retro}>No extra options for this style.</p>
       </div>
+      <Toggle label="Period words in period cities" checked={chat.periodWords} onChange={(checked) => void save({ period_words: checked })}
+        hint="In a city of another era, the chat, posts and calls use its words: letters in Camelot, the telephone in 1925 New York, comms aboard a ship. Settings and help keep today's words." />
       <ColorSchemeSettings theme={chat.theme} scheme={chat.scheme} palette={chat.palette} save={save} />
       <DeviceLookSettings />
     </section>

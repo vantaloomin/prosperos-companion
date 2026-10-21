@@ -691,6 +691,17 @@ CITY = {
         price('boots', 'Boots', 5, 10, 'a pair'),
         price('wage', "Miner's wage", 3.5, 4, 'a day; laborers $2-$3'),
     ],
+    # What this city calls things on the in-world screens (companion/world/era_words.py).
+    'words': {
+        'messages_tab': 'Letters',
+        'message_button': 'Write',
+        'message': 'letter',
+        'messages': 'letters',
+        'message_to': 'Write to {name}',
+        'message_about': 'Write to {name} about this',
+        'sent_you': '{name} sent you a letter.',
+        'nobody_writes': 'Nobody writes to you',
+    }
 }
 
 if __name__ == '__main__':
