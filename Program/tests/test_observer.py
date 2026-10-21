@@ -265,7 +265,7 @@ def test_a_death_in_their_family_is_told_on_the_day(client, clock, monkeypatch):
     clock.advance(date.fromisoformat(row['died_on']) - clock.now().date() + timedelta(hours=14))
     advance(client, clock)
     told = [line for line in lines(feed(client)) if line['kind'] == 'loss']
-    assert [line['text'] for line in told] == [f"Mira's dad {dad['name'].split()[0]} died."]
+    assert [line['text'] for line in told] == [f"Mira's dad, {dad['name'].split()[0]}, died."]
     assert not told[0].get('inner')  # No inner voice bank is written for grief.
 
 
@@ -273,6 +273,18 @@ def test_a_line_set_later_today_is_told_as_of_now(clock):
     now = clock.now()
     later = {'key': 'moment:x', 'at': stamp(now + timedelta(hours=3)), 'text': 'A jar lid would not open.'}
     earlier = {**later, 'at': stamp(now - timedelta(hours=3))}
-    assert narrator.told_by(later, now)['at'] == stamp(now)
+    assert narrator.told_by(later, now)['at'] == stamp(now - timedelta(seconds=1))  # Just under how they feel now.
     assert narrator.told_by(earlier, now) == earlier
+
+
+def test_the_day_of_a_death_is_told_quietly_from_then_on():
+    def line(key, hour, kind, inner=None):
+        return {'id': key, 'at': f'2026-10-20T{hour:02d}:00:00.000000+00:00', 'kind': kind, 'text': key, 'inner': inner,
+                'numbers': []}
+    lines = [line('morning', 13, 'moment', 'Mira is still smiling about it.'), line('died', 16, 'loss'),
+             line('joke', 16, 'moment', 'Mira wants to tell someone.'), line('plan', 18, 'thought'), line('museum', 17, 'day', 'Mira grins.'),
+             line('next day', 16, 'day', 'Mira grins.') | {'at': '2026-10-21T16:00:00.000000+00:00'}]
+    told = {found['id']: found for found in narrator.hushed(lines, 'America/New_York')}
+    assert list(told) == ['morning', 'died', 'museum', 'next day']
+    assert told['museum']['inner'] is None and told['morning']['inner'] and told['next day']['inner']
 

@@ -303,6 +303,26 @@ def family(connection, companion, since: date, today: date, voice: int, first: s
     return result
 
 
+ONLY_ONE = {'mom', 'dad', 'mother', 'father', 'stepmom', 'stepdad', 'wife', 'husband', 'grandfather'}
+
+
+def hushed(lines: list[dict], timezone: str) -> list[dict]:
+    """From a death on: no small moments or passing thoughts that day, and no thought after a line (Loss and grief keeps the day quiet)."""
+    deaths = {}
+    for line in lines:
+        if line['kind'] == 'loss':
+            day = parse(line['at']).astimezone(zone(timezone)).date()
+            deaths[day] = min(deaths.get(day, parse(line['at'])), parse(line['at']))
+    result = []
+    for line in lines:
+        since = deaths.get(parse(line['at']).astimezone(zone(timezone)).date())
+        if since is None or line['kind'] == 'loss' or parse(line['at']) < since:
+            result.append(line)
+        elif line['kind'] not in ('moment', 'thought'):
+            result.append({**line, 'inner': None})
+    return result
+
+
 def losses(connection, companion, since: date, today: date, first: str) -> list[dict]:
     """Someone in their life who died (companion/life/loss.py), told on the day."""
     from companion.life import circle, loss
@@ -312,8 +332,11 @@ def losses(connection, companion, since: date, today: date, first: str) -> list[
         day = date.fromisoformat(row['died_on'])
         if not row['happened'] or not since <= day <= today:
             continue
-        who = f"{loss.first(row['name'])} ({row['role']})" if row['kind'] == 'town' else \
-            f"{first}'s {circle.said(row['role'], definition)} {loss.first(row['name'])}"
+        name = loss.first(row['name'])
+        # With only one of them (a mom, a husband), the name is an aside: "Mira's dad, James, died."
+        aside = f', {name},' if row['role'] in ONLY_ONE else f' {name}'
+        who = f"{name} ({row['role']})" if row['kind'] == 'town' else \
+            f"{first}'s {circle.said(row['role'], definition)}{aside}"
         key = f"loss:{row['id']}"
         # No thought from the inner voice banks: none of them is written for grief.
         result.append(item(key, at(day, MIDDAY, timezone), 'loss', f'{who} died.'))
@@ -378,12 +401,13 @@ def companion_lines(connection, companion, now) -> list[dict]:
     pronoun = companion_pronouns(companion['version']['definition']).split('/')[0]
     name = companion['version']['definition']['name']
     lines = [{**line, 'text': line['text'].replace(name, first)} if name != first else line for line in lines]
-    return safe(connection, [told_by(line, now) for line in lines], first, pronoun)
+    return safe(connection, [told_by(line, now) for line in hushed(lines, timezone)], first, pronoun)
 
 
 def told_by(line: dict, now) -> dict:
-    """A line set later in the day than now (today's Life deck moment is set at midday) is told as of now."""
-    return {**line, 'at': stamp(now)} if parse(line['at']) > now else line
+    """A line set later in the day than now (today's Life deck moment is set at midday) is told as of now, just under
+    how they feel now, which tops the day."""
+    return {**line, 'at': stamp(now - timedelta(seconds=1))} if parse(line['at']) > now else line
 
 
 # A townsperson's days ------------------------------------------------------------------------------------------------
