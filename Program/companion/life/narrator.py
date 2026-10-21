@@ -303,7 +303,7 @@ def family(connection, companion, since: date, today: date, voice: int, first: s
     return result
 
 
-def losses(connection, companion, since: date, today: date, voice: int, first: str) -> list[dict]:
+def losses(connection, companion, since: date, today: date, first: str) -> list[dict]:
     """Someone in their life who died (companion/life/loss.py), told on the day."""
     from companion.life import circle, loss
     definition, timezone = companion['version']['definition'], companion['version']['timezone']
@@ -315,8 +315,8 @@ def losses(connection, companion, since: date, today: date, voice: int, first: s
         who = f"{loss.first(row['name'])} ({row['role']})" if row['kind'] == 'town' else \
             f"{first}'s {circle.said(row['role'], definition)} {loss.first(row['name'])}"
         key = f"loss:{row['id']}"
-        result.append(item(key, at(day, MIDDAY, timezone), 'loss', f'{who} died.',
-                           inner=thought_after(voice, True, key, 'sad', first)))
+        # No thought from the inner voice banks: none of them is written for grief.
+        result.append(item(key, at(day, MIDDAY, timezone), 'loss', f'{who} died.'))
     return result
 
 
@@ -369,7 +369,7 @@ def companion_lines(connection, companion, now) -> list[dict]:
              + dreamed(connection, companion, now, voice) + beats(connection, companion, now, since, voice, first)
              + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since)
              + family(connection, companion, since, today, voice, first)
-             + losses(connection, companion, since, today, voice, first))
+             + losses(connection, companion, since, today, first))
     lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
     lines += fresh(on_their_mind(connection, companion, now, voice), lines)
     lines += feeling(connection, companion, now, voice, bool(workspace['show_moods']), first)
@@ -378,7 +378,12 @@ def companion_lines(connection, companion, now) -> list[dict]:
     pronoun = companion_pronouns(companion['version']['definition']).split('/')[0]
     name = companion['version']['definition']['name']
     lines = [{**line, 'text': line['text'].replace(name, first)} if name != first else line for line in lines]
-    return safe(connection, lines, first, pronoun)
+    return safe(connection, [told_by(line, now) for line in lines], first, pronoun)
+
+
+def told_by(line: dict, now) -> dict:
+    """A line set later in the day than now (today's Life deck moment is set at midday) is told as of now."""
+    return {**line, 'at': stamp(now)} if parse(line['at']) > now else line
 
 
 # A townsperson's days ------------------------------------------------------------------------------------------------

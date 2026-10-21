@@ -12,6 +12,7 @@ from test_our_child import born
 
 from companion import moods, observer
 from companion.characters import require_current
+from companion.clock import stamp
 from companion.life import big_days, deck, narrator, openers, our_child
 from companion.providers.chat import Chunk
 
@@ -265,4 +266,13 @@ def test_a_death_in_their_family_is_told_on_the_day(client, clock, monkeypatch):
     advance(client, clock)
     told = [line for line in lines(feed(client)) if line['kind'] == 'loss']
     assert [line['text'] for line in told] == [f"Mira's dad {dad['name'].split()[0]} died."]
+    assert not told[0].get('inner')  # No inner voice bank is written for grief.
+
+
+def test_a_line_set_later_today_is_told_as_of_now(clock):
+    now = clock.now()
+    later = {'key': 'moment:x', 'at': stamp(now + timedelta(hours=3)), 'text': 'A jar lid would not open.'}
+    earlier = {**later, 'at': stamp(now - timedelta(hours=3))}
+    assert narrator.told_by(later, now)['at'] == stamp(now)
+    assert narrator.told_by(earlier, now) == earlier
 
