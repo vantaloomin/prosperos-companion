@@ -1,0 +1,54 @@
+{
+ "about": "Observer mode (companion/life/narrator_love.py): the Watching feed's lines for a love life or a friendship, told on the day from the rows that already exist. {first} is the watched companion's first name, {other} their own partner's; the user is \"you\". One line per moment, picked by seeded dice, so a day reads the same every time. Never odds: the feeling comes through in words.",
+ "steps": {
+  "romance": {
+   "dating": ["You and {first} started dating.", "{first} and you went from maybe to dating.", "You and {first} are seeing each other now."],
+   "exclusive": ["You and {first} became exclusive.", "{first} and you agreed to see only each other.", "You and {first} made it official: just the two of you now."],
+   "love": ["You and {first} said \"I love you\".", "{first} said \"I love you\", and you said it back.", "The words came out at last: you and {first} said \"I love you\"."],
+   "their_people": ["You and {first} agreed it was time to meet each other's people.", "{first} decided it was time you met the people who matter.", "You and {first} agreed to meet each other's family and friends."],
+   "key": ["You and {first} swapped keys.", "{first} gave you a key, and you gave one back.", "Keys changed hands: you and {first} can let yourselves in now."],
+   "moving_in": ["You and {first} decided to live together.", "{first} and you agreed to move in together.", "You and {first} chose one home for the two of you."],
+   "engaged": ["You and {first} got engaged.", "{first} and you are engaged now.", "You and {first} decided to marry."],
+   "married": ["You and {first} got married.", "{first} and you are married now.", "You and {first} said your vows."]
+  },
+  "friendship": {
+   "friends": ["You and {first} became friends.", "{first} and you are friends now.", "You and {first} hit it off as friends."],
+   "best_friends": ["You and {first} became best friends.", "{first} and you are best friends now, and both of you said so.", "You and {first} said it out loud: best friends."],
+   "trip": ["You and {first} agreed on a first trip together.", "{first} and you started dreaming up a first trip away together.", "You and {first} decided to go away together sometime."],
+   "wedding_party": ["You and {first} stood up at a wedding together.", "{first} stood beside you at a wedding.", "You and {first} stood up for each other at a wedding."]
+  }
+ },
+ "theirs": {
+  "met": ["{first} started seeing {other}.", "{first} and {other} went on a first date.", "{first} has someone new: {other}."],
+  "exclusive": ["{first} and {other} became exclusive.", "{first} and {other} agreed to see only each other.", "{first} and {other} made it official."],
+  "love": ["{first} and {other} said \"I love you\".", "{first} told {other} \"I love you\", and heard it back.", "{first} and {other} said the words at last: \"I love you\"."],
+  "their_people": ["{first} and {other} met each other's people.", "{first} introduced {other} to the people who matter.", "{first} and {other} met each other's family and friends."],
+  "key": ["{first} and {other} swapped keys.", "{first} gave {other} a key.", "{first} and {other} can let themselves into each other's places now."],
+  "moving_in": ["{first} and {other} decided to live together.", "{first} and {other} agreed to move in together.", "{first} and {other} chose one home for the two of them."],
+  "engaged": ["{first} and {other} got engaged.", "{first} and {other} are engaged now.", "{first} and {other} decided to marry."],
+  "married": ["{first} and {other} got married.", "{first} and {other} are married now.", "{first} and {other} said their vows."],
+  "split": ["{first} and {other} broke up.", "It's over between {first} and {other}.", "{first} and {other} went their separate ways."],
+  "faded": ["{first} and {other} drifted apart.", "Things with {other} fizzled out for {first}.", "{first} and {other} stopped seeing each other."]
+ },
+ "patch": {
+  "over": ["Things got tense between you and {first} {over}.", "A rough patch began between you and {first}, {over}.", "{first} went cool on you, {over}."],
+  "plain": ["Things got tense between you and {first}.", "A rough patch began between you and {first}.", "{first} went cool on you."],
+  "called_off": ["{first} called off {plan} at the last minute.", "{first} cancelled {plan} on you at short notice.", "{first} pulled out of {plan} at the last minute."]
+ },
+ "break": {
+  "you": ["You asked {first} for a break.", "You told {first} you needed some time apart.", "You and {first} went on a break, at your asking."],
+  "them": ["{first} asked you for a break.", "{first} wanted some time apart.", "You and {first} went on a break, at {first}'s asking."]
+ },
+ "ended": {
+  "you": ["You broke up with {first}.", "You ended things with {first}.", "You told {first} it was over."],
+  "them": ["{first} broke up with you.", "{first} ended things with you.", "{first} told you it was over."],
+  "break": ["At the end of the break, {first} decided it was over.", "The break ended, and so did you and {first}.", "{first} chose not to come back after the break."],
+  "divorced": ["You and {first} divorced.", "Your marriage to {first} ended in divorce.", "You and {first} went your separate ways for good."],
+  "separated": ["You and {first} separated.", "Your marriage to {first} ended in a separation.", "You and {first} parted, and the marriage with it."],
+  "fell_out": ["You and {first} had a falling out.", "You and {first} fell out.", "Things between you and {first} broke down."]
+ },
+ "together": {
+  "romance": ["You and {first} got back together.", "{first} and you decided to try again.", "You and {first} are back together."],
+  "friendship": ["You and {first} made up.", "{first} and you put the falling out behind you.", "You and {first} are friends again."]
+ }
+}

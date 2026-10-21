@@ -36,6 +36,7 @@ from companion.characters import by_id, current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.images import content
+from companion.life import narrator_love
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import LIFE_SYNTHESIS, BackgroundInterrupted
 
@@ -405,19 +406,21 @@ def companion_lines(connection, companion, now) -> list[dict]:
     since = today - timedelta(days=DAYS - 1)
     timezone = companion['version']['timezone']
     days = [since + timedelta(days=offset) for offset in range(DAYS)]
+    pronouns = companion_pronouns(companion['version']['definition'])
     lines = (day_events(connection, companion, at(since, time(0), timezone), now, voice, first)
              + moments(connection, companion, now, voice, bool(workspace['show_odds']), first)
              + dreamed(connection, companion, now, voice) + beats(connection, companion, now, since, voice, first)
              + chapters(connection, companion, since, voice, first) + news_heard(connection, companion, since)
              + family(connection, companion, since, today, voice, first)
              + losses(connection, companion, since, today, first)
-             + together(connection, companion, since, today, first))
+             + together(connection, companion, since, today, first)
+             + narrator_love.told(connection, companion, since, today, voice, first, pronouns))
     lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
     lines += fresh(on_their_mind(connection, companion, now, voice), lines)
     lines += feeling(connection, companion, now, voice, bool(workspace['show_moods']), first)
     lines += wandering([day for day in days if day in lived], timezone, now, voice, f"companion:{companion['id']}",
                        first)
-    pronoun = companion_pronouns(companion['version']['definition']).split('/')[0]
+    pronoun = pronouns.split('/')[0]
     name = companion['version']['definition']['name']
     lines = [{**line, 'text': line['text'].replace(name, first)} if name != first else line for line in lines]
     return safe(connection, [told_by(line, now) for line in hushed(lines, timezone)], first, pronoun)
@@ -590,8 +593,8 @@ def companion_focus(connection, companion_id: str) -> dict | None:
     definition = companion['version']['definition']
     job = ((definition.get('money') or {}).get('career') or '').replace('-', ' ')
     return {'key': f'companion:{companion_id}', 'kind': 'companion', 'name': definition['name'],
-            'line': 'Your companion' + (f', {job}' if job else ''), 'companion_id': companion_id,
-            'companion': companion}
+            'line': narrator_love.standing(connection, companion) + (f', {job}' if job else ''),
+            'companion_id': companion_id, 'companion': companion}
 
 
 def town_focus(connection, key: str, data: dict | None = None) -> dict | None:
