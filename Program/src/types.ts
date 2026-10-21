@@ -2226,7 +2226,7 @@ export interface WatchFocus {
   key: string
   kind: 'companion' | 'townsperson'
   name: string
-  /** Who they are in a few words: "Your companion, nurse", "Line cook at Blue Moon Cafe". */
+  /** Who they are in a few words: "Your companion · nurse", "Line cook at Blue Moon Cafe". */
   line: string
   companion_id?: string
   town_key?: string

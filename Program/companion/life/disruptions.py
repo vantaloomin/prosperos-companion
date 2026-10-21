@@ -52,7 +52,7 @@ TABLES = {
                         'a deadline moved up', 'the system went down right before the end'),
     'cancel-why': reasons('a friend cancelled last minute', 'the reservation got lost', 'everyone was too tired',
                           'the place was unexpectedly closed', 'the plan never quite came together'),
-    'came-up-why': reasons('a leaky tap needed fixing', 'a package had to be picked up', 'the phone screen cracked',
+    'came-up-why': reasons('a leak under the sink needed fixing', 'a package had to be picked up', 'the phone screen cracked',
                            'a friend needed a favor', 'the laundry could not wait any longer',
                            'a bill turned out to be overdue'),
 }

@@ -16,12 +16,16 @@ feeling is in the words, never the odds. A thought after a parting comes only fr
 (world/data/inner_voice.json), never from the bad-luck lines; a step or making up takes a happy one.
 
 The line under the companion's name follows where the two of them stand: "Your companion" while together, "On a
-break", "Your ex", or "Your old friend" after a falling out.
+break", "Your ex", or "Not speaking" after a falling out (Iris).
+
+The day of a break, a breakup or a split and the day after read without cheer (`cooled`): no passing thoughts or On
+their mind, no thought after other lines except heartache, and a dream does not wake up smiling. It is not the quiet
+of a death (companion/life/narrator.py `hushed`): what happened is still told.
 """
 import json
 import random
 import re
-from datetime import date, time
+from datetime import date, datetime, time, timedelta
 from functools import cache
 from pathlib import Path
 
@@ -36,7 +40,11 @@ LADDERS = ('romance', 'friendship')
 # Partners whose story is not the narrator's to tell: a secret that came out, one the user took out of the circle,
 # or one the app took back.
 UNTOLD = ('came_out', 'removed', 'undone')
-STANDING = {'break': 'On a break', 'ended': 'Your ex', 'fell_out': 'Your old friend'}
+STANDING = {'break': 'On a break', 'ended': 'Your ex', 'fell_out': 'Not speaking'}
+# Lines that end a love: from one, that day and the next read without cheer (`cooled`).
+PARTINGS = ('break:', 'ended:', 'split:')
+# A dream's waking line that smiles (world/data/dreams.json "woke up ..."), left off while cooled.
+CHEERFUL = re.compile(r'\s*[^.]*\bwoke up (?:smiling|in a good mood|laughing|happy)[^.]*\.')
 PRONOUNS = re.compile(r"\b(they|them|their|theirs|themself)\b")
 
 
@@ -144,7 +152,8 @@ def patch_text(row: dict, key: str, first: str, pronouns: str) -> str:
         words, quote, rest = shown.partition('"')
         forms = person(pronouns)
         over = PRONOUNS.sub(lambda match: forms.get(match[1], match[1]), words) + quote + rest
-        return said(texts['over'], key, first=first, over=over)
+        # US style: the full stop goes inside the closing quote.
+        return said(texts['over'], key, first=first, over=over).replace('".', '."')
     if row['cause'] == 'stood_up':
         plan = row['about'].rpartition(' (')[0] or row['about']
         return said(texts['called_off'], key, first=first, plan=plan)
@@ -239,9 +248,45 @@ def theirs(connection, teller: Teller) -> list[dict]:
 # The line under their name ---------------------------------------------------------------------------------------------
 
 def standing(connection, companion: dict) -> str:
-    """"Your companion" while together; "On a break", "Your ex", or "Your old friend" after a falling out."""
+    """"Your companion" while together; "On a break", "Your ex", or "Not speaking" after a falling out."""
     from companion.life import breakups
     row, found = breakups.current(connection, companion)
     if found == 'ended' and row['ladder'] == 'friendship':
         found = 'fell_out'
     return STANDING.get(found, 'Your companion')
+
+
+# The day after -----------------------------------------------------------------------------------------------------------
+
+def cool_until(lines: list[dict], timezone: str) -> list[tuple]:
+    """(from, until) for each parting: from its moment to the end of the next local day."""
+    spans = []
+    for line in lines:
+        if line['kind'] == KIND and line['id'].startswith(PARTINGS):
+            day = local_day(line['at'], timezone) + timedelta(days=2)
+            spans.append((parse(line['at']), datetime.combine(day, time(0), tzinfo=zone(timezone))))
+    return spans
+
+
+def cooled_line(line: dict, hurt: set[str]) -> dict | None:
+    if line['kind'] == 'thought':
+        return None
+    if line['kind'] == 'dream':
+        return {**line, 'text': CHEERFUL.sub('', line['text']).strip(), 'inner': None}
+    return {**line, 'inner': line['inner'] if line['inner'] in hurt else None}
+
+
+def cooled(lines: list[dict], timezone: str, first: str) -> list[dict]:
+    """From a parting to the end of the next day: no cheer (see the module notes)."""
+    from companion.life.narrator import bank as voices
+    spans = cool_until(lines, timezone)
+    if not spans:
+        return lines
+    hurt = {text.format(first=first) for text in voices()[HURT]}
+    result = []
+    for line in lines:
+        when = parse(line['at'])
+        found = cooled_line(line, hurt) if any(start <= when < end for start, end in spans) else line
+        if found is not None:
+            result.append(found)
+    return result

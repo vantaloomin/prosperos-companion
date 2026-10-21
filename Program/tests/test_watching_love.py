@@ -85,7 +85,7 @@ def test_a_falling_out_between_friends(client, monkeypatch, provider):
     send(client, "I don't want to be friends anymore", 'client-watch-5')
     found = watch(client)
     assert [line['text'] for line in love(found)] in [[text] for text in bank_of('ended', 'fell_out')]
-    assert found['focus']['line'].startswith('Your old friend')
+    assert found['focus']['line'].startswith('Not speaking')
 
 
 def test_a_big_rough_patch_starting_is_told_with_their_pronouns(client, couple, provider):  # noqa: F811
@@ -105,7 +105,7 @@ def test_the_rough_patch_says_the_companion_with_their_own_pronouns_but_never_ch
            'about': ''}
     assert "she'd been seeing Theo" in narrator_love.patch_text(row, 'patch:1', 'Mira', 'she/her')
     row = {'shown': 'over what you said: "leave them alone"', 'cause': 'words', 'about': ''}
-    assert '"leave them alone"' in narrator_love.patch_text(row, 'patch:1', 'Mira', 'he/him')
+    assert '"leave them alone' in narrator_love.patch_text(row, 'patch:1', 'Mira', 'he/him')
     row = {'shown': 'dinner (a work thing came up)', 'cause': 'stood_up', 'about': 'dinner (a work thing came up)'}
     assert narrator_love.patch_text(row, 'patch:1', 'Mira', '') in bank_of('patch', 'called_off')
 
@@ -149,3 +149,38 @@ def test_every_feed_line_reads_cleanly(path):
         for line in bank_of(*path, key):
             assert chr(0x2014) not in line and '{' not in line, line
             assert narrator.reads(line) == set(), line
+
+
+def test_the_line_under_the_name_joins_the_job_with_a_dot(client, couple, provider, monkeypatch):  # noqa: F811
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        companion['version']['definition']['money'] = {'career': 'florist'}
+        monkeypatch.setattr(narrator, 'by_id', lambda _connection, _id: companion)
+        assert narrator.companion_focus(connection, companion['id'])['line'] == 'Your companion · florist'
+
+
+def test_the_user_comes_first_and_a_quote_keeps_its_full_stop_inside():
+    for options in [*narrator_love.bank()['steps'].values(), narrator_love.bank()['together']]:
+        for lines in (options.values() if isinstance(options, dict) else [options]):
+            assert not any('{first} and you' in line for line in lines)
+    row = {'shown': 'over what you said: "go away"', 'cause': 'words', 'about': ''}
+    text = narrator_love.patch_text(row, 'patch:2', 'Mira', '')
+    assert text.endswith('"go away."') or '"go away",' in text, text
+
+
+def test_the_day_after_a_parting_has_no_cheer():
+    def line(key, at, kind, text='x', inner=None):
+        return {'id': key, 'at': at, 'kind': kind, 'text': text, 'inner': inner, 'numbers': []}
+    hurt = narrator.bank()['heartache'][0].format(first='Mira')
+    lines = [line('event:before', '2026-10-20T14:00:00+00:00', 'day', inner='Mira grins.'),
+             line('ended:1', '2026-10-20T18:00:00+00:00', 'love', 'You broke up with Mira.', hurt),
+             line('thought:1', '2026-10-20T23:00:00+00:00', 'thought'),
+             line('dream:1', '2026-10-21T11:30:00+00:00', 'dream',
+                  'Mira dreamed of a lighthouse. Mira woke up smiling about it.', 'Mumbles a name.'),
+             line('event:after', '2026-10-21T16:00:00+00:00', 'day', inner='Mira grins.'),
+             line('event:later', '2026-10-22T16:00:00+00:00', 'day', inner='Mira grins.')]
+    told = {found['id']: found for found in narrator_love.cooled(lines, 'America/New_York', 'Mira')}
+    assert 'thought:1' not in told
+    assert told['dream:1']['text'] == 'Mira dreamed of a lighthouse.' and told['dream:1']['inner'] is None
+    assert told['event:after']['inner'] is None and told['ended:1']['inner'] == hurt
+    assert told['event:before']['inner'] and told['event:later']['inner']  # Before it, and two days on.

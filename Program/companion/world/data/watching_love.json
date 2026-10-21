@@ -2,19 +2,19 @@
  "about": "Observer mode (companion/life/narrator_love.py): the Watching feed's lines for a love life or a friendship, told on the day from the rows that already exist. {first} is the watched companion's first name, {other} their own partner's; the user is \"you\". One line per moment, picked by seeded dice, so a day reads the same every time. Never odds: the feeling comes through in words.",
  "steps": {
   "romance": {
-   "dating": ["You and {first} started dating.", "{first} and you went from maybe to dating.", "You and {first} are seeing each other now."],
-   "exclusive": ["You and {first} became exclusive.", "{first} and you agreed to see only each other.", "You and {first} made it official: just the two of you now."],
+   "dating": ["You and {first} started dating.", "You and {first} went from maybe to dating.", "You and {first} are seeing each other now."],
+   "exclusive": ["You and {first} became exclusive.", "You and {first} agreed to see only each other.", "You and {first} made it official: just the two of you now."],
    "love": ["You and {first} said \"I love you\".", "{first} said \"I love you\", and you said it back.", "The words came out at last: you and {first} said \"I love you\"."],
    "their_people": ["You and {first} agreed it was time to meet each other's people.", "{first} decided it was time you met the people who matter.", "You and {first} agreed to meet each other's family and friends."],
    "key": ["You and {first} swapped keys.", "{first} gave you a key, and you gave one back.", "Keys changed hands: you and {first} can let yourselves in now."],
-   "moving_in": ["You and {first} decided to live together.", "{first} and you agreed to move in together.", "You and {first} chose one home for the two of you."],
-   "engaged": ["You and {first} got engaged.", "{first} and you are engaged now.", "You and {first} decided to marry."],
-   "married": ["You and {first} got married.", "{first} and you are married now.", "You and {first} said your vows."]
+   "moving_in": ["You and {first} decided to live together.", "You and {first} agreed to move in together.", "You and {first} chose one home for the two of you."],
+   "engaged": ["You and {first} got engaged.", "You and {first} are engaged now.", "You and {first} decided to marry."],
+   "married": ["You and {first} got married.", "You and {first} are married now.", "You and {first} said your vows."]
   },
   "friendship": {
-   "friends": ["You and {first} became friends.", "{first} and you are friends now.", "You and {first} hit it off as friends."],
-   "best_friends": ["You and {first} became best friends.", "{first} and you are best friends now, and both of you said so.", "You and {first} said it out loud: best friends."],
-   "trip": ["You and {first} agreed on a first trip together.", "{first} and you started dreaming up a first trip away together.", "You and {first} decided to go away together sometime."],
+   "friends": ["You and {first} became friends.", "You and {first} are friends now.", "You and {first} hit it off as friends."],
+   "best_friends": ["You and {first} became best friends.", "You and {first} are best friends now, and both of you said so.", "You and {first} said it out loud: best friends."],
+   "trip": ["You and {first} agreed on a first trip together.", "You and {first} started dreaming up a first trip away together.", "You and {first} decided to go away together sometime."],
    "wedding_party": ["You and {first} stood up at a wedding together.", "{first} stood beside you at a wedding.", "You and {first} stood up for each other at a wedding."]
   }
  },
@@ -48,7 +48,7 @@
   "fell_out": ["You and {first} had a falling out.", "You and {first} fell out.", "Things between you and {first} broke down."]
  },
  "together": {
-  "romance": ["You and {first} got back together.", "{first} and you decided to try again.", "You and {first} are back together."],
-  "friendship": ["You and {first} made up.", "{first} and you put the falling out behind you.", "You and {first} are friends again."]
+  "romance": ["You and {first} got back together.", "You and {first} decided to try again.", "You and {first} are back together."],
+  "friendship": ["You and {first} made up.", "You and {first} put the falling out behind you.", "You and {first} are friends again."]
  }
 }

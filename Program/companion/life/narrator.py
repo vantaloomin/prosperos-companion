@@ -423,7 +423,8 @@ def companion_lines(connection, companion, now) -> list[dict]:
     pronoun = pronouns.split('/')[0]
     name = companion['version']['definition']['name']
     lines = [{**line, 'text': line['text'].replace(name, first)} if name != first else line for line in lines]
-    return safe(connection, [told_by(line, now) for line in hushed(lines, timezone)], first, pronoun)
+    lines = narrator_love.cooled(hushed(lines, timezone), timezone, first)
+    return safe(connection, [told_by(line, now) for line in lines], first, pronoun)
 
 
 def told_by(line: dict, now) -> dict:
@@ -593,7 +594,7 @@ def companion_focus(connection, companion_id: str) -> dict | None:
     definition = companion['version']['definition']
     job = ((definition.get('money') or {}).get('career') or '').replace('-', ' ')
     return {'key': f'companion:{companion_id}', 'kind': 'companion', 'name': definition['name'],
-            'line': narrator_love.standing(connection, companion) + (f', {job}' if job else ''),
+            'line': narrator_love.standing(connection, companion) + (f' · {job}' if job else ''),
             'companion_id': companion_id, 'companion': companion}
 
 
