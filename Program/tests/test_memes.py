@@ -140,7 +140,7 @@ def test_some_words_never_get_a_meme(client, life, text):
 
 def test_how_often_memes_come_unasked_follows_the_slider(client, life, unasked, monkeypatch):
     monkeypatch.setattr(unasked, 'UNASKED_CHANCE', 0)
-    monkeypatch.setattr(unasked, 'UNASKED_MEME_CHANCE', 0.9)
+    monkeypatch.setattr(unasked, 'UNASKED_MEME_CHANCE', 1)  # Each reply has its own dice: 0.9 missed one run in ten.
     set_life(client, memes_realism=0)
     assert ask(client, 'ugh, such a rough day', 'say-0001')['photo'] is None
     set_life(client, memes_realism=2)
