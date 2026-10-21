@@ -357,7 +357,7 @@ def companion_lines(connection, companion, now) -> list[dict]:
     lines += feeling(connection, companion, now, voice, bool(workspace['show_moods']), first)
     lines += wandering([day for day in days if day in lived], timezone, now, voice, f"companion:{companion['id']}",
                        first)
-    pronoun = (companion['version']['definition'].get('pronouns') or '').split('/')[0].strip().casefold()
+    pronoun = companion_pronouns(companion['version']['definition']).split('/')[0]
     name = companion['version']['definition']['name']
     lines = [{**line, 'text': line['text'].replace(name, first)} if name != first else line for line in lines]
     return safe(connection, lines, first, pronoun)
@@ -646,10 +646,17 @@ def families_withheld(connection) -> bool:
     return families.withheld(connection)
 
 
+def companion_pronouns(definition: dict) -> str:
+    """'she/her', 'he/him', or they/them when the description does not say (companion/world/looks.py)."""
+    from companion.world import looks
+    return (definition.get('pronouns') or '').strip().casefold() or looks.pronouns_of(definition)
+
+
 def pronouns_of(focus: dict) -> str:
     """'she/her', or they/them when the sheet does not say (companions are they/them unless their sheet says)."""
-    sheet = focus['companion']['version']['definition'] if focus['kind'] == 'companion' else focus['sheet']
-    return (sheet.get('pronouns') or '').strip() or 'they/them'
+    if focus['kind'] == 'companion':
+        return companion_pronouns(focus['companion']['version']['definition'])
+    return (focus['sheet'].get('pronouns') or '').strip() or 'they/them'
 
 
 def usable(text: str, name: str) -> str | None:

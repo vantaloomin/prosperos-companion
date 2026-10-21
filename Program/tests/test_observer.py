@@ -233,3 +233,9 @@ def test_their_childs_milestones_are_told_on_the_day(client, clock, monkeypatch)
     told = [line for line in lines(feed(client)) if line['kind'] == 'family']
     assert [line['text'] for line in told] == [f'{first} smiled for the first time.']
 
+
+
+def test_the_narrator_reads_their_pronouns_from_the_description():
+    assert narrator.companion_pronouns({'name': 'Dana', 'identity': '34. Works as an ER nurse. She/her.'}) == 'she/her'
+    assert narrator.companion_pronouns({'name': 'Sam', 'pronouns': 'he/him'}) == 'he/him'
+    assert narrator.companion_pronouns({'name': 'Rue'}) == 'they/them'
