@@ -253,3 +253,21 @@ def test_start_from_a_ship_saves_a_ship_that_docks_at_port_vesper(app, client):
     # The plain template stays a city on the ground.
     assert 'enclosed' not in client.get('/api/world/template').json()
     assert client.get('/api/world/template', params={'kind': 'castle'}).status_code == 422
+
+
+def test_aboard_nobody_misses_the_bus():
+    from companion.life import disruptions
+    block = {'kind': 'work'}
+    found = [disruptions.roll(f'late:{number}', block, aboard=True) for number in range(400)]
+    reasons = {shift['reason'] for shift in found if shift and shift['key'] == 'late'}
+    assert 'missed the tram' in reasons and not reasons & {'missed the bus', 'traffic was a mess'}
+
+
+def test_a_pet_aboard_never_sits_in_the_sun_or_by_the_fire():
+    from companion.life import pets
+    found = {'kind': 'dog', 'era': 'modern', 'name': 'Radish', 'aboard': True}
+    told = {pets.moment(found, f'pet:{n}', walking=n % 2 == 0) for n in range(300)}
+    told |= {(pets.photo(found, f'pet:{n}') or {}).get('shows') for n in range(300)}
+    assert told and not any(pets.EARTHBOUND.search(text or '') for text in told)
+    assert any(pets.EARTHBOUND.search(pets.moment({**found, 'aboard': False}, f'pet:{n}', walking=True) or '')
+               for n in range(300))

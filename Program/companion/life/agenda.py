@@ -64,7 +64,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
-from companion.world import generators, inside
+from companion.world import generators, inside, ships
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
@@ -247,7 +247,8 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     written = 0
     scope = {'timeline_id': timeline_id, 'subject': subject, 'definition': definition, 'basis': basis, 'world': world,
              'shifting': disruptions.enabled(connection), 'now': now, 'companion': companion, 'timezone': timezone,
-             'era': (circle.city_data(definition, world) or {}).get('era')}
+             'era': (circle.city_data(definition, world) or {}).get('era'),
+             'aboard': ships.enclosed(circle.city_data(definition, world))}
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
                     (timeline_id, subject, slot.key)):
@@ -321,7 +322,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                                  slot.local_date.isoformat()) if subject == COMPANION else None
         if subject == COMPANION and block['kind'] == 'work':
             tilt = work.tilt(connection, scope['companion'], slot.local_date, tilt)
-        shift = disruptions.roll(f'{seed}:shift', block, company, tilt)
+        shift = disruptions.roll(f'{seed}:shift', block, company, tilt, scope['aboard'])
     starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
     block = disruptions.shifted(block, shift)
     if shift and shift['friend']:
