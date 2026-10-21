@@ -1,6 +1,6 @@
 import { appNow, realDelay } from '../../appTime.ts'
-import { memo, useEffect, useState, type ReactNode } from 'react'
-import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, MessageSquareText, Pencil, RotateCcw, Square } from 'lucide-react'
+import { memo, useContext, useEffect, useState, type ContextType, type ReactNode } from 'react'
+import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, MessageSquareText, Pencil, Pin, PinOff, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { VoiceNote } from './VoiceNote'
@@ -13,6 +13,7 @@ import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
 import { shownAttempt, statusDetail, unfinished, type Turn } from './turns'
+import { pinnedIn, VoiceActions } from './voicePins'
 
 interface Props {
   turn: Turn
@@ -140,7 +141,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, onRemembe
   const held = useHeld(message)
   // A reply being written while they are away stays out of sight: no typing dots, no Stop.
   const streaming = message.status === 'streaming' && !held
-  const actions = replyActions(message, streaming, { onRemember, onEdit, onBranch, onMoment })
+  const actions = withVoice(replyActions(message, streaming, { onRemember, onEdit, onBranch, onMoment }), message, useContext(VoiceActions))
   // On a phone the sidecar is one more entry in the sheet rather than a small icon on every reply.
   const sheet = useMessageSheet(message, message.status === 'complete' && actions.length
     ? [...actions, ['Ask the sidecar', <MessageSquareText key="icon" aria-hidden="true" />, (item) => sidecar.ask(item)]] : actions)
@@ -190,6 +191,16 @@ function replyActions(message: Message, streaming: boolean, { onRemember, onEdit
   const edit: Action = ['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit]
   if (message.status === 'complete') return [['Remember this', <BookmarkPlus key="icon" aria-hidden="true" />, onRemember], edit, [MOMENT, <HeartHandshake key="icon" aria-hidden="true" />, onMoment], branch]
   return unfinished(message) ? [edit, branch] : [branch]
+}
+
+/** "Sounds like them" after Remember this on a finished reply: pins it for their voice in every reply
+ * (companion/memory/voice.py), or unpins it. */
+function withVoice(actions: Action[], message: Message, voice: ContextType<typeof VoiceActions>): Action[] {
+  if (!voice || message.status !== 'complete' || message.redacted || !actions.length) return actions
+  const action: Action = pinnedIn(voice.pins, message)
+    ? ['Unpin their voice', <PinOff key="icon" aria-hidden="true" />, voice.toggle]
+    : ['Sounds like them', <Pin key="icon" aria-hidden="true" />, voice.toggle]
+  return [actions[0], action, ...actions.slice(1)]
 }
 
 /** What follows a reply once it shows: the picture it sent and a note on how it ended. The note is the app speaking,

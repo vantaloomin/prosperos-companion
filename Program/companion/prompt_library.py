@@ -64,6 +64,11 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'Opens the line-a-week (then a month, then a year) record of your whole time together in every chat reply. '
            'The lines come from what happened and your corrections in the scrapbook\'s "All of it" view.',
            constant('companion.memory.history', 'INTRO')),
+    Prompt('voice', CHAT, 'How they sound',
+           "Opens the few short excerpts of the companion's own earlier replies in every chat reply, so they keep "
+           'sounding like themselves when the model changes. The app picks the excerpts from replies you kept, and '
+           '"Sounds like them" in a reply\'s menu pins one.',
+           constant('companion.memory.voice', 'INTRO')),
     Prompt('first-texts', CHAT, 'Texting first',
            'Added when the companion writes to you first, such as a check-in. The app picks the reason.',
            constant('companion.life.openers', 'INSTRUCTION'),
