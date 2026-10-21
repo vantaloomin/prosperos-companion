@@ -145,16 +145,24 @@ class ChatPhotos:
         """The picture this reply sends, recorded against the reply, or None. Never raises."""
         try:
             kind = asked_kind(user['text'])
-            if kind in MEME_KINDS and not memes_fit(user['text']):
+            if kind in MEME_KINDS and not self.memes_fit(user['text']):
                 return None
             if kind is not None:
                 return self.send(kind, attempt_id)
             kind = self.unasked_kind(user['text'], attempt_id)
-            if kind in MEME_KINDS and not memes_fit(user['text']):
+            if kind in MEME_KINDS and not self.memes_fit(user['text']):
                 return None
             return self.send(kind, attempt_id, unasked=True) if kind else None
         except Exception:  # noqa: BLE001 - the reply goes ahead without a picture.
             return None
+
+    def memes_fit(self, text) -> bool:
+        """The words fit a meme, and name nobody young in anyone's life (companion/life/families.py)."""
+        if not memes_fit(text):
+            return False
+        with self.database.connect() as connection:
+            names = families.every_name(connection)
+        return not any(re.search(rf'\b{re.escape(name)}\b', text or '', re.IGNORECASE) for name in names)
 
     def unasked_kind(self, text, attempt_id) -> str | None:
         """Whether this reply comes with a picture nobody asked for, and which: a seeded chance."""
