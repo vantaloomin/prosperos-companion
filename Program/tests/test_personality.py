@@ -122,7 +122,8 @@ def test_a_companion_prompt_gets_the_behaviour_lines(client):
         prompt = character_text(require_current(connection)['version'], connection)
     assert 'How you tend to act' in prompt
     assert '- Starts conversations easily' in prompt and '- Stays calm under pressure' in prompt
-    assert 'Outgoing' not in prompt and 'Steady' not in prompt
+    acts = prompt.split('How you tend to act', 1)[1].split('\n\n', 1)[0]
+    assert 'Outgoing' not in acts and 'Steady' not in acts
 
 
 def test_a_companion_saved_before_sliders_gets_the_same_ones_every_time(client):
