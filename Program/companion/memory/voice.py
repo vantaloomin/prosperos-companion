@@ -49,6 +49,11 @@ def excerpt(text: str) -> str | None:
     return found if len(found) >= MIN_CHARS and len(found.split()) >= MIN_WORDS else None
 
 
+def same(text: str) -> str:
+    """An excerpt as compared with the others: two replies with the same words are one excerpt."""
+    return ' '.join(re.findall(r"[\w']+", text.casefold()))
+
+
 def length_kind(text: str) -> str:
     return 'short' if len(text) < SHORT else 'long' if len(text) > LONG else 'medium'
 
@@ -119,8 +124,14 @@ def excerpts(connection, companion: dict, messages: list[dict], older: list[dict
               if message['role'] == 'companion' and message.get('origin_id')}
     chosen = [found for pin in pins if pin in by_id and (found := candidate(by_id[pin], children))][:limit]
     taken = {item['origin'] for item in chosen}
-    pool = [found for message in kept(connection, older) if (found := candidate(message, children))
-            and found['origin'] not in taken]
+    said = {same(item['text']) for item in chosen}
+    pool = []
+    for message in kept(connection, older):
+        # The same words said twice show one voice once.
+        found = candidate(message, children)
+        if found and found['origin'] not in taken and same(found['text']) not in said:
+            said.add(same(found['text']))
+            pool.append(found)
     chosen += choose(pool, f"{companion['id']}:{len(older)}", limit - len(chosen))
     return [item['text'] for item in chosen]
 
@@ -149,7 +160,11 @@ def pin(database, message_id: str, pinned_now: bool = True) -> dict:
                                (companion_id, key, message['id']))
         elif not optional(connection, 'SELECT 1 FROM voice_pins WHERE companion_id=? AND message_id=?',
                           (companion_id, key)):
-            if len(pinned(connection, companion_id)) >= PINS:
+            # A reply deleted since it was pinned no longer counts: it is gone from the menu and the prompt.
+            live = [found['message_id'] for found in view(connection, companion_id)['pins']]
+            connection.executemany('DELETE FROM voice_pins WHERE companion_id=? AND message_id=?',
+                                   [(companion_id, gone) for gone in pinned(connection, companion_id) if gone not in live])
+            if len(live) >= PINS:
                 raise DomainError(f'Up to {PINS} replies can be pinned. Unpin one first.', 409, 'voice_pins_full')
             connection.execute('INSERT INTO voice_pins (id, companion_id, message_id, created_at) VALUES (?, ?, ?, ?)',
                                (identifier(), companion_id, key, database.now()))
@@ -162,8 +177,8 @@ def view(connection, companion_id: str) -> dict:
     rows = {}
     if keys:
         marks = ','.join('?' * len(keys))
-        for row in many(connection, f'SELECT id, origin_id, text, created_at FROM messages WHERE id IN ({marks}) '
-                                    f'OR origin_id IN ({marks})', (*keys, *keys)):
+        for row in many(connection, f'SELECT id, origin_id, text, created_at FROM messages WHERE (id IN ({marks}) '
+                                    f'OR origin_id IN ({marks})) AND redacted_at IS NULL', (*keys, *keys)):
             rows.setdefault(row['origin_id'] or row['id'], row)
     pins = [{'message_id': key, 'text': excerpt(rows[key]['text']) or rows[key]['text'][:EXCERPT_CHARS],
              'created_at': rows[key]['created_at']} for key in keys if key in rows]

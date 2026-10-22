@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from companion.life import body, money, occasions, pronouns
+from companion.world import perception
 
 COMPOSER_VERSION = 'compose-7'
 QUIET_SHARE = 0.2
@@ -174,6 +175,9 @@ BIRTHDAY = activity('birthday', ('restaurant', 'bar'), [],
                                             "{name} took {friend} out{at} for their birthday."])
 CALL = ("{name} called {friend} to wish them a happy birthday.",
         "{name} spent a while on the phone with {friend}, who turned a year older today.")
+# The same from a city of another era, where nobody picks up a phone (companion/world/perception.py `era_modern`).
+LETTER = ("{name} wrote to {friend} to wish them a happy birthday.",
+          "{name} sent {friend} a long letter for their birthday.")
 BIRTHDAY_KINDS = {'leisure', 'social'}
 
 
@@ -228,7 +232,8 @@ def birthday(slot: dict, definition: dict, world, seed: str, recent_activities, 
     friend = celebrants[0]
     who = {'id': friend['id'], 'name': friend['name']}
     if not friend.get('local', True):
-        summary, place = rng.choice(CALL).format(name=definition['name'], friend=friend['name']), None
+        lines = CALL if perception.era_modern(definition) else LETTER
+        summary, place = rng.choice(lines).format(name=definition['name'], friend=friend['name']), None
     else:
         places = find_places(world, definition, slot, BIRTHDAY.place_kinds)
         place = rng.choice(places) if places else None

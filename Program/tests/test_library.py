@@ -115,9 +115,17 @@ def test_other_files_are_turned_down():
 def test_passages_are_short_and_keep_every_word():
     text = ' '.join(f'Sentence number {index} is about the harbour.' for index in range(200))
     found = library.passages([('Book', text)])
-    assert all(len(piece) <= library.PASSAGE_CHARS for _title, piece in found)
+    assert all(len(piece) <= library.PASSAGE_CHARS + library.SCRAP_CHARS for _title, piece in found)
     assert ' '.join(piece for _title, piece in found).split() == text.split()
     assert all(piece.endswith('.') for _title, piece in found)
+
+
+def test_a_scrap_at_the_end_of_a_section_joins_the_passage_before_it():
+    chapter = ' '.join(f'Sentence number {index} is about the harbour.' for index in range(11))
+    found = library.passages([('Chapter I', f'{chapter}\n\nContinue to Chapter II'), ('Chapter II', 'Short.')])
+    assert [title for title, _piece in found] == ['Chapter I', 'Chapter II']
+    assert found[0][1].endswith('harbour.\n\nContinue to Chapter II'), 'no passage of its own'
+    assert found[1] == ('Chapter II', 'Short.'), 'a short section is still a passage'
 
 
 def test_everyday_chat_picks_out_no_passage():

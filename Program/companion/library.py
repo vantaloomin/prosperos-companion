@@ -24,6 +24,8 @@ from companion.world import newcomers
 
 # A passage is a few sentences: cut at a paragraph, else a sentence, else a word, near this many characters.
 PASSAGE_CHARS = 480
+# A piece shorter than this at the end of a section joins the passage before it.
+SCRAP_CHARS = 120
 MOST_BOOK_PASSAGES = 30_000
 # Per reply: at most this many passages, this many characters in all.
 MOST_PASSAGES = 3
@@ -86,10 +88,14 @@ def passages(sections: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """(title, text) passages of a book's sections, in order; every word kept once."""
     found = []
     for title, body in sections:
-        text, start = tidy(body), 0
+        text, start, first = tidy(body), 0, len(found)
         while start < len(text):
             stop = cut(text, start, PASSAGE_CHARS)
-            if piece := text[start:stop].strip():
+            if (piece := text[start:stop].strip()) and len(piece) < SCRAP_CHARS and len(found) > first:
+                # A scrap, such as a wiki's "Continue to Chapter II" link, goes with the passage before it, so it
+                # never takes one of a reply's few places by itself.
+                found[-1] = (found[-1][0], f'{found[-1][1]}\n\n{piece}')
+            elif piece:
                 found.append((title[:200], piece))
             start = stop
     require(found, 'There are no words to read in this file.', 422)

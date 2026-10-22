@@ -4,7 +4,7 @@ from datetime import timedelta
 from conftest import send
 
 from companion.characters import require_current
-from companion.memory import context, voice
+from companion.memory import context, records, voice
 from companion.providers.chat import Chunk
 
 
@@ -112,3 +112,25 @@ def test_sounds_like_them_pins_come_first_up_to_three(client, app, connected, pr
     with app.state.database.connect() as connection:
         user = connection.execute("SELECT id FROM messages WHERE role='user' LIMIT 1").fetchone()['id']
     assert client.post(f'/api/conversation/messages/{user}/voice', json={}).status_code == 422
+
+
+def test_the_same_words_said_twice_are_one_excerpt(client, app, connected, provider, clock):
+    provider.respond = lambda system, messages: [Chunk('Ha, you caught me mid-yawn. The kettle is on.'), Chunk('', 'stop')]
+    chat(client, clock, 24)
+    assert section(system(app)) == ['Ha, you caught me mid-yawn. The kettle is on.']
+
+
+def test_a_pinned_reply_deleted_later_leaves_the_pins_and_frees_its_place(client, app, connected, provider, clock):
+    provider.respond = echo
+    chat(client, clock, 5)
+    with app.state.database.connect() as connection:
+        replies = [row['id'] for row in connection.execute(
+            "SELECT id FROM messages WHERE role='companion' ORDER BY seq").fetchall()]
+    for message in replies[:3]:
+        assert client.post(f'/api/conversation/messages/{message}/voice', json={}).status_code == 200
+    with app.state.database.connect(write=True) as connection:
+        records.redact_messages(connection, [replies[0]], app.state.database.now())
+    assert sorted(pin['message_id'] for pin in client.get('/api/conversation/voice').json()['pins']) == sorted(replies[1:3])
+    response = client.post(f'/api/conversation/messages/{replies[3]}/voice', json={})
+    assert response.status_code == 200, 'the deleted reply no longer takes one of the three places'
+    assert sorted(pin['message_id'] for pin in response.json()['pins']) == sorted(replies[1:4])
