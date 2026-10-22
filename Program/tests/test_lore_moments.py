@@ -186,3 +186,10 @@ def test_holidays_of_the_city_are_part_of_the_moment():
     city = catalog.cities()['grandport']
     assert moments.holiday_keys(city, date(2026, 10, 9)) == {'holiday:ash day'}
     assert "Chryseon's Night" in moments.holiday_names(city)
+
+
+def test_a_city_that_was_loaded_once_keeps_its_lore_when_checked_again():
+    raw = {key: value for key, value in catalog.cities()['baltimore'].items() if key not in ('data_version', 'builtin',
+                                                                                              'origin')}
+    again = catalog.prepare(raw, mend=True)
+    assert again['lore'] == catalog.cities()['baltimore']['lore'] and not again.get('import_notes')

@@ -220,11 +220,26 @@ def city_when(raw: dict, city: dict) -> tuple[list[str], list[str]]:
     return tidy(found), notes
 
 
+def as_written(when) -> dict:
+    """A `when` as a city file writes it ({"weather": ["rain"], "work": true}), also from the checked form
+    (["weather:rain", "work:yes"]) a city that was loaded once carries, so a city can be checked again."""
+    if isinstance(when, dict):
+        return when
+    written: dict = {}
+    for key in when if isinstance(when, list) else []:
+        kind, _, value = str(key).partition(':')
+        if kind == 'work':
+            written['work'] = value == 'yes'
+        else:
+            written.setdefault(kind, []).append(value)
+    return written
+
+
 def clean_entry(item, city: dict) -> tuple[dict | None, list[str]]:
     if not isinstance(item, dict) or not ID.fullmatch(str(item.get('id', ''))) or not str(item.get('text', '')).strip():
         return None, ['Dropped a lore entry: it needs a lowercase id and some text.']
     keywords = [str(word).strip()[:200] for word in item.get('keywords') or [] if str(word).strip()][:MAX_KEYWORDS]
-    when, unknown = city_when(item.get('when') or {}, city) if isinstance(item.get('when') or {}, dict) else ([], [])
+    when, unknown = city_when(as_written(item.get('when')), city)
     notes = [f"The lore entry \"{item['id']}\" left out {', '.join(unknown)}, which the city doesn't have."] \
         if unknown else []
     if not keywords and not when:
