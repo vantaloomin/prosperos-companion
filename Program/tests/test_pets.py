@@ -148,8 +148,8 @@ def test_vet_visits_cost_money_and_feed_life_admin(client, mira, clock):
     tid = timeline(client)
     with connect(client) as connection:
         found = pets.of_home(connection, tid)[0]
-        # Their own seeded vet visits can fall in the same week; only this one is wanted here.
-        connection.execute("DELETE FROM pet_log WHERE pet_key=? AND kind='vet'", (found['key'],))
+        # Their own seeded vet visits and yearly checkup can fall in the same week; only this one is wanted here.
+        connection.execute("DELETE FROM pet_log WHERE pet_key=? AND kind IN ('vet', 'checkup')", (found['key'],))
         connection.execute("INSERT INTO pet_log (id, pet_key, local_date, kind, text, spend, created_at) VALUES "
                            "('v1', ?, '2026-10-06', 'vet', 'an ear infection', '$$', '2026-10-05')", (found['key'],))
         visits = pets.vet_visits(connection, tid, NOW, NOW + timedelta(days=7))
