@@ -19,7 +19,7 @@ from companion.errors import require
 from companion.library_readers import read
 from companion.memory import vectors
 from companion.memory.chunks import Chunk
-from companion.memory.retrieval import Corpus, terms
+from companion.memory.retrieval import STOP, Corpus, terms
 from companion.world import newcomers
 
 # A passage is a few sentences: cut at a paragraph, else a sentence, else a word, near this many characters.
@@ -40,6 +40,8 @@ MEANING_FLOOR = 0.5
 CANDIDATES = 12
 RANK_OFFSET = 60
 SHOWN_PASSAGES = 20
+# A run of capitalized words: a name, a place, a title.
+NAME = re.compile(r"(?<![\w'’-])[A-Z][\w'’-]*(?: [A-Z][\w'’-]*)*")
 SENTENCE = re.compile(r'[.!?…]["\')\]’”]*\s')
 # Everyday chat words, which would match any long text: a passage has to match something more particular, like a
 # name, a place or a subject. A word also counts in these forms: -s, -es, -ed, -d, -ing, -ly, -er.
@@ -253,10 +255,47 @@ def particular(text: str, known=None) -> str:
     return ' '.join(word for word in terms(text) if not everyday(word) and (known is None or word in known))
 
 
-def ranked(corpus: Corpus, queries: list[str], meaning: list[str]) -> list[str]:
-    """Passage ids that match the conversation by keywords or by meaning, fused by rank, best first."""
-    rankings = [[hit.chunk.id for hit in corpus.search(words, limit=CANDIDATES, threshold=KEYWORD_FLOOR)]
-                for query in queries if (words := particular(query, corpus.df))] + [meaning]
+def plain(word: str) -> bool:
+    return word.casefold() in STOP or everyday(word.casefold())
+
+
+def names(text: str) -> list[str]:
+    """What the text calls by name, as the user capitalized it: "Old Quarter", "Lady Corrow", "Picts". A capital at
+    the start of a sentence counts only when the word is not an everyday one ("Is", "Tell")."""
+    found = []
+    for match in NAME.finditer(text):
+        words = match.group().split()
+        if plain(words[0]) and (match.start() == 0 or re.search(r'[.!?…]\s*$', text[:match.start()])):
+            words = words[1:]
+        if len(words) > 1 or (words and not plain(words[0])):
+            found.append(' '.join(words))
+    return found
+
+
+def named(called: list[str], passage: str) -> bool:
+    """Whether the passage has one of these names whole, in any letter case."""
+    return any(re.search(r'(?<!\w)' + r'\s+'.join(map(re.escape, name.split())) + r'(?!\w)', passage, re.I)
+               for name in called)
+
+
+def fits(hit, called: list[str], words: str, texts: dict[str, str]) -> bool:
+    """Whether a keyword match is close enough: it has two of the words, or one when that is all there was; and when
+    the message names something (`called`), a passage matched on one word must name it whole, so "the Old Quarter"
+    never brings back "an unlikely quarter"."""
+    if len(set(hit.matched)) >= 2:
+        return True
+    return named(called, texts[hit.chunk.id]) if called else len(set(words.split())) == 1
+
+
+def ranked(corpus: Corpus, queries: list[str], meaning: list[str], texts: dict[str, str]) -> list[str]:
+    """Passage ids that match the conversation by keywords or by meaning, fused by rank, best first. `texts` (each
+    passage with its title) holds keyword matches to `fits`."""
+    rankings = [meaning]
+    for query in queries:
+        if words := particular(query, corpus.df):
+            called = names(query)
+            rankings.append([hit.chunk.id for hit in corpus.search(words, limit=CANDIDATES, threshold=KEYWORD_FLOOR)
+                             if fits(hit, called, words, texts)])
     totals = {}
     for ranking in rankings:
         for rank, identity in enumerate(ranking, 1):
@@ -275,7 +314,9 @@ def offer(packet, connection, companion: dict, recent: list[dict], query: str, s
     texts = {row['id']: row for row in rows}
     skip = recently_given(connection, companion['active_timeline_id'])
     used = given = 0
-    for identity in ranked(corpus, [query, latest], by_meaning(connection, semantic, rows)):
+    found = ranked(corpus, [query, latest], by_meaning(connection, semantic, rows),
+                   {row['id']: passage_text(row) for row in rows})
+    for identity in found:
         row = texts[identity]
         if identity in skip or used + len(row['text']) > MOST_CHARS:
             continue

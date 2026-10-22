@@ -253,3 +253,25 @@ def test_passages_get_vectors_and_match_by_meaning(client, companion):
         rows = library.passage_rows(connection, library.usable_books(connection, mira))
         found = library.by_meaning(connection, {'model': 'embed', 'vector': [0.0, 1.0]}, rows)
     assert found == [items[1][1], items[2][1]]
+
+
+def test_names_are_what_the_user_capitalized():
+    assert library.names('Have you been to the Old Quarter lately?') == ['Old Quarter']
+    assert library.names('Is Old Marigold still by the window? Did Lady Corrow collect it?') == [
+        'Old Marigold', 'Lady Corrow']
+    assert library.names('Tell me about the Picts. I keep hearing stories.') == ['Picts']
+
+
+def test_a_one_word_match_on_a_name_needs_the_whole_name(client, connected, provider):
+    text = ('Chapter 1\n\nThe Academic Quarter climbs toward the citadel, where scholars argue all night.\n\n'
+            'Chapter 2\n\nHelp came from an unlikely quarter: a fisherman who knew the tides.\n\n'
+            'Chapter 3\n\nIn the Old Quarter the lanterns burn green and the tanners work by the river.\n\n'
+            + ''.join(f'Chapter {index}\n\nThe ferry crossed the estuary for the {index}th time that week.\n\n'
+                      for index in range(4, 12)))
+    add(client, 'city.txt', text.encode())
+    send(client, 'Have you been to the Old Quarter lately?', 'message-one')
+    notes = provider.requests[-1]['prompt'].split(LIBRARY_HEADING)[1]
+    assert 'lanterns burn green' in notes
+    assert 'unlikely quarter' not in notes and 'Academic Quarter' not in notes
+    send(client, 'What about the Glass Quarter?', 'message-two')
+    assert LIBRARY_HEADING not in provider.requests[-1]['prompt'], 'no passage names it'
