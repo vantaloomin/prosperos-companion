@@ -1,0 +1,222 @@
+{
+ "credit": "Written for the app from Grandport's city data. Grandport is from Neokosmos, a dark fantasy world by Oak (https://quietoak.github.io/NeokosmosWiki/), CC BY-NC-SA 4.0.",
+ "entries": [
+  {
+   "id": "wet-and-windy",
+   "title": "Rain in Grandport",
+   "text": "Rain in Grandport comes in sideways off the estuary. The steep gables shed it into the alleys of the Lower Stairs, the quays slow to a crawl, and the barley-ale houses of the Ledger Quarter fill with clerks waiting for it to pass.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ]
+   }
+  },
+  {
+   "id": "snow",
+   "title": "Snow on the estuary",
+   "text": "Snow is rare and short-lived on the estuary, but when it settles the tide-wet piles freeze white, the ropewalks stop, and the poor of the Lower Stairs burn whatever they can find.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "fire-weather",
+   "title": "Fire weather",
+   "text": "In hot dry weather the whole timber city fears fire: the fire-watch doubles in Ashrow, neighbours report each other for careless candles and ovens, and nobody shames them for it.",
+   "keywords": [
+    "fire-watch",
+    "fire watch"
+   ],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "winter-gales",
+   "title": "Winter gales",
+   "text": "In winter the gales lay the ships up at their moorings, the harbour is quiet, and Grandport lives on fish stew, barley bread and the gossip of sailors with nothing to do.",
+   "keywords": [
+    "gales"
+   ],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "shipping-season",
+   "title": "The shipping season",
+   "text": "Spring opens the shipping season. After Thalassar's Blessing the convoys sail, the Two Houses sit, and the settling surveyors go from house to house chalking new marks on every corner.",
+   "keywords": [
+    "settling survey",
+    "settling marks"
+   ],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Summer in the port",
+   "text": "Summer is the busiest time on the Quays: fur boats from the Pictish north, long light evenings, and the Longbow Fair, where the district militia companies settle a year of boasting.",
+   "keywords": [
+    "longbow fair"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "autumn",
+   "title": "Autumn squalls",
+   "text": "In autumn the grain fleet comes in from Ruestria and the Quays measure, tax and insure it day and night, until the squalls begin and the yards start laying ships up for winter.",
+   "keywords": [
+    "grain fleet"
+   ],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "signal-tower",
+   "title": "The signal tower",
+   "text": "In daylight harbour children and idle clerks watch the signal tower on Admiralty Point and try to read its flags before the news reaches the Exchange.",
+   "keywords": [
+    "signal tower"
+   ],
+   "when": {
+    "time": [
+     "morning",
+     "afternoon"
+    ]
+   }
+  },
+  {
+   "id": "lamplit-evenings",
+   "title": "Lamplit evenings",
+   "text": "In the evening the counting houses close, the lamps come on along the gables, and the city drinks barley ale and argues about whose district brews it best.",
+   "keywords": [],
+   "when": {
+    "time": [
+     "evening"
+    ]
+   }
+  },
+  {
+   "id": "night",
+   "title": "Grandport at night",
+   "text": "At night the fire-watch bell in Ashrow is the loudest thing in the city. Royalists whisper about the exiled prince in back rooms, and a crowned horse on blue cloth is something nobody shows openly.",
+   "keywords": [
+    "royalists"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "lower-stairs",
+   "title": "The Lower Stairs",
+   "text": "In the Lower Stairs hunger outlasted the siege. The Republic's slogan from the siege is still said there, usually with a twist.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "lower-stairs"
+    ]
+   }
+  },
+  {
+   "id": "strangers-wharf",
+   "title": "Strangers' Wharf",
+   "text": "Strangers' Wharf is for foreign ships and foreign people: Ruestrian grain factors, Fresnian relic dealers, Pictish fur traders, and the small chapel of Sol Eternel kept by travelling missionaries.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "strangers-wharf"
+    ]
+   }
+  },
+  {
+   "id": "raft-palaces",
+   "title": "The Raft Palaces",
+   "text": "The Raft Palaces float on stone rafts laid in the drained marsh, with Lord Edgar Grandeholm's tower above them all. Ruestrian red is cheap on the wharf and dear here.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "raft-palaces"
+    ]
+   }
+  },
+  {
+   "id": "relief-day",
+   "title": "Relief Day",
+   "text": "On Relief Day, when Republican grain reached the besieged city, bread is handed out at the Relief Hall and the hard dark siege loaf is baked; old people eat it in silence.",
+   "keywords": [
+    "siege loaf"
+   ],
+   "when": {
+    "holiday": [
+     "relief-day"
+    ]
+   }
+  },
+  {
+   "id": "ash-day",
+   "title": "Ash Day",
+   "text": "On Ash Day every fire-watch bell rings at noon for the last great fire, and hearths are inspected across the city.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "ash-day"
+    ]
+   }
+  },
+  {
+   "id": "harbour-day",
+   "title": "Harbour Day",
+   "text": "On Harbour Day there are boat races and fish suppers on Aelfred's Quay. Royalists drink to Aelfred, Republicans to the harbour, and everyone pretends not to notice.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "harbour-day"
+    ]
+   }
+  },
+  {
+   "id": "chryseons-night",
+   "title": "Chryseon's Night",
+   "text": "On Chryseon's Night a coin is weighed and given away for luck in the coming year, Chryseon's name is spoken over every scale, and the counting houses close early.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "chryseons-night"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "At work in Grandport",
+   "text": "A Grandport workday answers to the guilds: their surveyors, their fire rules, and the yard bells. A job done promptly is praised with Eadric Wyrmscraft's old line about sooner.",
+   "keywords": [
+    "guild"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

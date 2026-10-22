@@ -8,7 +8,7 @@ from fastapi import APIRouter, Request
 from companion import library, library_online, lore
 from companion.errors import DomainError
 from companion.imports import characters, chats
-from companion.models import CharacterCardFile, ChatFile, LibraryFile, LoreSwitch
+from companion.models import CharacterCardFile, ChatFile, LibraryFile, LoreSwitch, LoreWhen
 
 router = APIRouter(prefix='/api')
 
@@ -47,6 +47,11 @@ def delete_book(request: Request, book_id: str):
 @router.put('/lore/entries/{entry_id}')
 def switch_entry(request: Request, entry_id: str, body: LoreSwitch):
     return lore.set_entry(db(request), entry_id, body.enabled)
+
+
+@router.put('/lore/entries/{entry_id}/when')
+def entry_when(request: Request, entry_id: str, body: LoreWhen):
+    return lore.set_when(db(request), entry_id, body.when)
 
 
 @router.get('/library')

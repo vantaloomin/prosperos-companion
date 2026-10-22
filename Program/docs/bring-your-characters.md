@@ -62,16 +62,48 @@ An entry joins a reply (`companion/lore.py`):
 
 - **always**, when the source marked it always on (`constant`, NovelAI `forceActivation`, RisuAI
   `alwaysActive`). These sit in the system prompt (`lore` in `HEADINGS`), so they stay cacheable;
-- **when one of its keywords comes up** in the last four messages, as a whole word in any letter case. These
-  go in the notes for that reply (`lore_now` in `NOW`, [prompts.md](prompts.md)), at most eight per reply.
+- **when one of its keywords comes up** in the last four messages, as a whole word in any letter case, or
+  **when the moment fits its "when"** (below). These go in the notes for that reply (`lore_now` in `NOW`,
+  [prompts.md](prompts.md)), keyword entries first, at most eight per reply.
+
+### Lore that fits the moment
+
+An entry can also say when it applies (`companion/lore_moments.py`), as conditions `kind:value`: the weather
+(`weather:rain`, `snow`, `heat`, `fog`), the season (`season:spring` ... `season:winter`), the time of day
+(`time:morning` from 5:00, `afternoon` from 12:00, `evening` from 17:00, `night` from 21:00), `day:weekday` or
+`day:weekend`, one of the city's holidays or observances (`holiday:Christmas Day`), a neighbourhood or place of the
+city (`place:hampden`) and being on a work shift (`work:yes`). Conditions of one kind are alternatives; different
+kinds all have to hold, so rain and night means rainy nights. An entry with keywords and a "when" joins a reply
+when either holds. Always-on entries have no "when".
+
+The app reads the moment as Today does: the day's weather (observed when looked up, else typical; snow is a wet day
+at or below 30°F at night, heat a high of 88°F or more, fog a dry day in a month whose climate note names fog or
+mist), the city's calendar, and where the companion is in their day (their current agenda entry's place and
+neighbourhood, or their home's neighbourhood). Aboard a ship or station there is no weather or Earth season, so
+those never hold there and the pickers leave them out; night is ship's night. Rules only: no model picks anything.
+
+An imported entry gets a "when" by rule only from keywords that are themselves a moment: a season (not "fall",
+which is a verb too), a weather word, a part of the day, weekend or weekday, or one of the city's holidays by name.
+Only one kind is read, the first found, so "winter" and "rain" means winter, not rainy winter days. While the user
+has not changed it, this is read again each time (`lore_entries.moment` is NULL), so it follows a move to a city
+with other holidays; the Lore screen marks it "Read from its keywords". Changing it stores the user's own.
+
+### Lore that comes with a city
+
+A city file can carry a `lore` block ([making-a-city.md](making-a-city.md)). Its entries are the world's lore
+while the companion lives in that city: read from the city each time, so they follow it into every world, and
+`city_lore_choices` keeps what the user switched off or changed in this world. The book is listed as "<City> lore"
+("Comes with the city") and can be switched off but not removed. The built-in moment lore lives beside the city
+files in `world/data/city_lore/<id>.json`, one file per city, merged when the city loads.
 
 Only plain primary keywords carry over, as in the Study. An entry whose keywords are search patterns (regex,
 `use_regex`, or NovelAI's `&`) keeps its text but stays off: the Companion matches literal words only. Secondary
 keys, insertion order and depth, probability, timed effects and recursion are not translated. Entries that were
 off in the source stay off.
 
-**Lore** on the Character page lists the open companion's books and the world's, with a switch for each book
-and entry and a way to remove a book.
+**Lore** on the Character page lists the open companion's books, the world's and their city's, with a switch for
+each book and entry, a way to remove an imported book, and each entry's moments: chips to take one off and a picker
+to add one (no free text). An entry whose moment holds right now says "Fits right now".
 
 ## API
 

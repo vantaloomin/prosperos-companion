@@ -2705,6 +2705,16 @@ CREATE TABLE IF NOT EXISTS voice_pins (
   UNIQUE (companion_id, message_id)
 );
 
+-- Lore that comes with a city file (companion/lore.py, companion/lore_moments.py): the user's changes to it in this
+-- world. `entry_id` '' is the whole book's switch; `moment` is the entry's "when" as a JSON list, NULL for the city's.
+CREATE TABLE IF NOT EXISTS city_lore_choices (
+  city_id TEXT NOT NULL,
+  entry_id TEXT NOT NULL,
+  enabled INTEGER CHECK (enabled IN (0, 1)),
+  moment TEXT,
+  PRIMARY KEY (city_id, entry_id)
+);
+
 -- A reference library (companion/library.py): long texts the user adds to a companion or to the world (a novel, a
 -- script, transcripts, a wiki export), split into passages; the few that fit the conversation join a reply's notes.
 -- `companion_id` NULL is the world's. `online` names a book the app downloads from its author's site
