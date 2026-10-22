@@ -207,6 +207,9 @@ def test_haircuts_cost_money_and_are_appointments(client, rosa):
 def test_an_appointment_takes_a_free_slot_and_a_bold_one_is_posted(client, rosa, monkeypatch):
     monkeypatch.setattr(grooming, 'WEAVE', True)
     monkeypatch.setattr(body, 'sick', lambda *args: False)
+    # Birthdays are seeded from random ids: one in the circle on the day would take the free slot first.
+    monkeypatch.setattr(composer, 'birthday', lambda *args: None)
+    monkeypatch.setattr(composer, 'own_birthday', lambda *args: None)
     client.get('/api/life/grooming')
     _, tid = ids(client)
     with connect(client) as connection:
