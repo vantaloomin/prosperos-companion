@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { DoorOpen, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Undo2 } from 'lucide-react'
+import { DoorOpen, EyeOff, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { TOGETHER_KEY } from '../today/outingText'
 import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
+import { useEraWords, useMagicCalls } from '../world/useEraWords'
+import { say, type EraWords } from '../world/eraWords'
 import { WHERE_KEY, callActions, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
 const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
 const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Phone } as Record<CallAction['action'], typeof Home>
+// In a fantasy town a call is a scrying glass or a speaking stone, so no handsets (Iris, 2026-10-21).
+const MAGIC_GLYPHS = { answer: Sparkles, decline: EyeOff, end: EyeOff, call: Sparkles } as Record<CallAction['action'], typeof Home>
 
 /**
  * The "where you are" strip above the composer, in every chat style: while they are together (out somewhere, at
@@ -20,7 +24,8 @@ const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Pho
 export function WhereStrip({ name }: { name: string }) {
   const client = useQueryClient()
   const where = useWhere()
-  const line = stripLine(where.data, name)
+  const words = useEraWords()
+  const line = stripLine(where.data, name, words)
   const call = where.data?.call
   const refresh = (found?: WhereState) => {
     if (found) client.setQueryData(WHERE_KEY, found)
@@ -29,7 +34,7 @@ export function WhereStrip({ name }: { name: string }) {
   }
   if (where.data?.home && !line) return <HomeStrip where={where.data} name={name} onDone={refresh} />
   if (!line || !where.data) return null
-  if (call) return <CallStrip call={call} lead={line.lead} tail={line.tail} name={name} onDone={refresh} />
+  if (call) return <CallStrip call={call} lead={line.lead} short={line.short} tail={line.tail} name={name} words={words} onDone={refresh} />
   if (where.data.visit) return (
     <aside className="where-strip" aria-label="Where you are" aria-live="polite">
       <Luggage aria-hidden="true" />
@@ -66,23 +71,37 @@ function StripButton({ action, onClick }: { action: StripAction; onClick: () => 
 }
 
 /** A call on the strip: who and how long, with its buttons. Call back starts a new call (POST /api/life/calls). */
-function CallStrip({ call, lead, tail, name, onDone }: { call: WhereCall; lead: string; tail: string; name: string; onDone: (found?: WhereState) => void }) {
+function CallStrip({ call, lead, short, tail, name, words, onDone }: { call: WhereCall; lead: string; short?: string; tail: string; name: string; words: EraWords; onDone: (found?: WhereState) => void }) {
+  const magic = useMagicCalls()
   const act = async (verb: CallAction['action']) => {
     const path = verb === 'call' ? '/life/calls' : `/life/calls/${call.id}/${verb}`
     onDone(await api<WhereState>(path, {}).catch(() => undefined))
   }
-  const Glyph = call.status === 'ringing' ? PhoneIncoming : call.status === 'on' ? Phone : call.status === 'missed' ? PhoneMissed : PhoneOff
   return (
-    <aside className={`where-strip${call.status === 'ringing' ? ' ringing' : ''}`} aria-label={call.status === 'ringing' ? `${name} is calling` : 'Call'}>
-      <Glyph aria-hidden="true" />
+    <aside className={`where-strip${call.status === 'ringing' ? ' ringing' : ''}`} aria-label={call.status === 'ringing' ? say(words, 'call_ringing', name) : say(words, 'on_call')}>
+      <CallIcon call={call} magic={magic} />
       {/* Only the state is announced; the ticking length sits outside the live region. */}
-      <span><span aria-live="polite">{lead}{tail}</span>{call.status === 'on' && call.started_at && <> · <CallLength since={call.started_at} /></>}</span>
-      {callActions(call).map((item) => {
-        const Icon = CALL_GLYPHS[item.action]
+      <span><span aria-live="polite"><CallLead lead={lead} short={short} />{tail}</span>{call.status === 'on' && call.started_at && <> · <CallLength since={call.started_at} /></>}</span>
+      {callActions(call, words).map((item) => {
+        const Icon = magic ? MAGIC_GLYPHS[item.action] : CALL_GLYPHS[item.action]
         return <button key={item.action} type="button" className={item.action === 'answer' ? 'button primary call-answer' : `text-button call-${item.action}`} onClick={() => void act(item.action)}><Icon aria-hidden="true" />{item.label}</button>
       })}
     </aside>
   )
+}
+
+/** The handset for the call's state, or a glint of magic for every state in a fantasy town (useMagicCalls). */
+function CallIcon({ call, magic }: { call: WhereCall; magic: boolean }) {
+  if (magic) return <Sparkles aria-hidden="true" />
+  if (call.status === 'ringing') return <PhoneIncoming aria-hidden="true" />
+  if (call.status === 'on') return <Phone aria-hidden="true" />
+  return call.status === 'missed' ? <PhoneMissed aria-hidden="true" /> : <PhoneOff aria-hidden="true" />
+}
+
+/** The lead, with a shorter one on the phone where the era has one ("Wren Ashby, in the glass"). */
+function CallLead({ lead, short }: { lead: string; short?: string }) {
+  if (!short || short === lead) return <>{lead}</>
+  return <><span className="desktop-only">{lead}</span><span className="phone-only">{short}</span></>
 }
 
 /** How long the call has been on, ticking each second; screen readers are not told every tick. */

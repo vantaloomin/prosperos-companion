@@ -422,6 +422,10 @@ CITY = {
                       'slavic': 0.8, 'arabic': 0.8, 'italian': 0.4, 'irish': 0.4}},
     'local_color': LOCAL, 'prices': PRICES, 'holidays': HOLIDAYS,
     'townsfolk': {'quirks': QUIRKS, 'goals': GOALS},
+    # What this city calls things on the in-world screens (companion/world/era_words.py).
+    'words': {
+        'posts_tab': 'Stationnet',
+    }
 }
 
 if __name__ == '__main__':

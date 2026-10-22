@@ -1124,6 +1124,12 @@ CITY = {
         {'kind': 'river', 'name': 'Harlem River', 'width_km': 0.2, 'points': [
             [40.800, -73.927], [40.820, -73.933], [40.845, -73.930], [40.872, -73.912]]},
     ],
+    # What this city calls things on the in-world screens (companion/world/era_words.py).
+    'words': {
+        'posts_tab': 'Society',
+        'post': 'item',
+        'posts': 'items',
+    }
 }
 
 if __name__ == '__main__':
