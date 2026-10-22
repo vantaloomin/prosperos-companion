@@ -2704,3 +2704,13 @@ CREATE TABLE IF NOT EXISTS voice_pins (
   created_at TEXT NOT NULL,
   UNIQUE (companion_id, message_id)
 );
+
+-- Lore that comes with a city file (companion/lore.py, companion/lore_moments.py): the user's changes to it in this
+-- world. `entry_id` '' is the whole book's switch; `moment` is the entry's "when" as a JSON list, NULL for the city's.
+CREATE TABLE IF NOT EXISTS city_lore_choices (
+  city_id TEXT NOT NULL,
+  entry_id TEXT NOT NULL,
+  enabled INTEGER CHECK (enabled IN (0, 1)),
+  moment TEXT,
+  PRIMARY KEY (city_id, entry_id)
+);

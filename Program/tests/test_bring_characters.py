@@ -109,7 +109,7 @@ def test_lore_can_be_switched_off_and_removed(client, companion):
     listed = client.put(f"/api/lore/entries/{first['id']}", json={'enabled': False}).json()
     assert listed['books'][0]['entries'][0]['enabled'] is False
     assert client.put(f"/api/lore/books/{book['id']}", json={'enabled': False}).json()['books'][0]['enabled'] is False
-    assert client.delete(f"/api/lore/books/{book['id']}").json() == {'books': []}
+    assert [book for book in client.delete(f"/api/lore/books/{book['id']}").json()['books'] if not book['city']] == []
 
 
 def test_a_png_card_brings_its_picture(client, companion):
@@ -129,7 +129,7 @@ def test_a_lorebook_on_its_own_belongs_to_the_world(client, companion):
     assert made['book']['world'] is True and made['book']['entries'] == 2 and made['book']['off'] == 1
     bring(client, 'dana.json', as_json(CARD))
     books = client.get('/api/lore').json()['books']
-    assert [book['name'] for book in books] == ['Dana lore', 'Harbor Town']
+    assert [book['name'] for book in books if not book['city']] == ['Dana lore', 'Harbor Town']
 
 
 @pytest.mark.parametrize(('value', 'label', 'entries'), [

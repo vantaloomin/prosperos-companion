@@ -1,0 +1,163 @@
+{
+ "credit": "Written for the app from the Port Vesper city data, an original setting.",
+ "entries": [
+  {
+   "id": "station-night",
+   "title": "Station night",
+   "text": "On station night the rings dim, the Low Ring's music bars and late kitchens are the only loud places aboard, and the Meridian slides past the Great Window like a lit city.",
+   "keywords": [
+    "station night"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "morning",
+   "title": "Morning on the station",
+   "text": "In the morning the Ring Bakehouse sells out of cardamom buns, the first shuttle of the day leaves the Departures Hall on the hour, and everyone checks the departures board twice.",
+   "keywords": [
+    "cardamom buns",
+    "departures board"
+   ],
+   "when": {
+    "time": [
+     "morning"
+    ]
+   }
+  },
+  {
+   "id": "no-weather",
+   "title": "No weather aboard",
+   "text": "Port Vesper has no weather: the rings are climate-controlled, and the nearest thing to rain is the misting in the Garden Ring's coffee plantation.",
+   "keywords": [
+    "weather",
+    "rain"
+   ],
+   "when": {}
+  },
+  {
+   "id": "earth-time",
+   "title": "Earth time",
+   "text": "The station still counts years by the Earth calendar, so every meeting with the Meridian's voyage years starts a small argument.",
+   "keywords": [
+    "earth calendar",
+    "voyage year"
+   ],
+   "when": {}
+  },
+  {
+   "id": "market-evening",
+   "title": "Evenings on the Market Ring",
+   "text": "In the evening the Market Ring is all noise: coffee houses pouring the Gate Six blend, spice stalls, tailors haggling, and station red that is better than anyone on the Meridian admits.",
+   "keywords": [
+    "station red",
+    "gate six"
+   ],
+   "when": {
+    "time": [
+     "evening"
+    ]
+   }
+  },
+  {
+   "id": "concourse",
+   "title": "The Concourse",
+   "text": "On the Concourse the traders' hotels and customs desks never close, and \"mind the gate\" is how the station says goodbye to anyone heading for a shuttle.",
+   "keywords": [
+    "mind the gate"
+   ],
+   "when": {
+    "place": [
+     "the-concourse"
+    ]
+   }
+  },
+  {
+   "id": "the-yards",
+   "title": "The Yards",
+   "text": "In the Yards every welder signs their first mask and hangs it from the ceiling of the Rivet, and the canteen's yard pie is the size of a welding mask.",
+   "keywords": [
+    "yard pie",
+    "the rivet"
+   ],
+   "when": {
+    "place": [
+     "the-yards"
+    ]
+   }
+  },
+  {
+   "id": "observation-spoke",
+   "title": "The Great Window",
+   "text": "At the Great Window the Meridian turns in the dark, and proposing there with the ship passing behind is the station's favourite romantic cliche.",
+   "keywords": [
+    "great window"
+   ],
+   "when": {
+    "place": [
+     "observation-spoke"
+    ]
+   }
+  },
+  {
+   "id": "old-hull",
+   "title": "The Old Hull",
+   "text": "In the Old Hull, all scuffed panels and stencilled deck numbers, every photo of the founding crew of fourteen shows fifteen people, and nobody can say who the last one is.",
+   "keywords": [
+    "founding crew"
+   ],
+   "when": {
+    "place": [
+     "old-hull"
+    ]
+   }
+  },
+  {
+   "id": "arrival-day",
+   "title": "Arrival Day",
+   "text": "Arrival Day marks the day Port Vesper caught up with the Meridian after a fourteen-year chase: a toast at the Departures Hall, and station families visiting their Meridian cousins.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "arrival-day"
+    ]
+   }
+  },
+  {
+   "id": "midwinter",
+   "title": "Midwinter",
+   "text": "At Midwinter there are candles in every window, mulled wine from the Garden Ring, Sheep Deck lamb for those who can afford it, and presents swapped with Meridian friends.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "midwinter-vesper"
+    ]
+   }
+  },
+  {
+   "id": "yards-day",
+   "title": "Yards Day",
+   "text": "On Yards Day the yard crews have the day off and a parade of drones flies down the Concourse.",
+   "keywords": [],
+   "when": {
+    "holiday": [
+     "yards-day"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "At work on the station",
+   "text": "Port Vesper trades for a living, and every shift ends with somebody saying \"caught up\" about a deal that finally came through.",
+   "keywords": [
+    "caught up"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}
