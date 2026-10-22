@@ -16,6 +16,7 @@ from companion.errors import require
 from companion.life import feed
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.traits import NAMES, absence_traits, strongest
+from companion.world import era_words
 
 PREVIEWS = ('full', 'name', 'private')
 # A queued notification whose post never became visible (an event still waiting for review, then
@@ -188,16 +189,18 @@ def ready_held(connection, companion, now) -> list[dict]:
                                                              stamp(now - STALE)))
 
 
-def message_notice(config, name, ready) -> dict:
-    """One message, or several from one or more companions as a single notice."""
+def message_notice(config, name, ready, words: dict | None = None) -> dict:
+    """One message, or several from one or more companions as a single notice, in the era's words (a letter in
+    Camelot: companion/world/era_words.py)."""
+    words = words or era_words.words(None)
     text, names = ready[-1]['text'], list(dict.fromkeys(item.get('name') or name for item in ready))
     if config['preview'] == 'private':
         return {'title': APP_TITLE, 'body': 'Something new is waiting.'}
     if len(names) > 1:
-        return {'title': APP_TITLE, 'body': f"{len(ready)} new messages from {', '.join(names[:-1])} and {names[-1]}."}
+        return {'title': APP_TITLE, 'body': f"{len(ready)} new {words['messages']} from {', '.join(names[:-1])} and {names[-1]}."}
     name = names[0]
     if config['preview'] == 'name':
-        return {'title': name, 'body': f'{name} sent you a message.'}
+        return {'title': name, 'body': era_words.say(words, 'sent_you', name=name)}
     return {'title': name, 'body': text if len(text) <= CAPTION_LIMIT else text[:CAPTION_LIMIT - 1].rstrip() + '…'}
 
 
@@ -212,7 +215,8 @@ def deliver_message(connection, config, companion, ready, timestamp) -> dict:
     return {'notification': {'id': delivery_id, 'kind': 'message', 'post_ids': [],
                              'message_id': ready[-1]['message_id'],
                              'companion_id': ready[-1].get('companion_id') or companion['id'],
-                             **message_notice(config, companion['version']['name'], ready)}, 'held': None}
+                             **message_notice(config, companion['version']['name'], ready,
+                                             era_words.for_world(connection)['words'])}, 'held': None}
 
 
 def deliver(database, focused=False) -> dict:

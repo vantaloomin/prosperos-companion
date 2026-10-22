@@ -7,6 +7,8 @@ import { PostImage } from './PostImage'
 import { Audience, SocialBody } from './SocialPost'
 import { usePortrait } from '../conversation/portrait'
 import { Stamp } from '../../components/Stamp'
+import { useEraWords } from '../world/useEraWords'
+import { say } from '../world/eraWords'
 
 export interface PostActions {
   react: (post: FeedPost, reaction: Reaction) => void
@@ -108,6 +110,7 @@ function PostAvatar({ post }: { post: FeedPost }) {
 function DiscussForm({ post, name, discuss, onDone }: { post: FeedPost; name: string; discuss: PostActions['discuss']; onDone: () => void }) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
+  const words = useEraWords()
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setBusy(true)
@@ -116,8 +119,8 @@ function DiscussForm({ post, name, discuss, onDone }: { post: FeedPost; name: st
   }
   return (
     <form className="discuss-form" onSubmit={submit}>
-      <label className="visually-hidden" htmlFor={`discuss-${post.id}`}>Message {name} about this post</label>
-      <textarea id={`discuss-${post.id}`} rows={2} value={text} maxLength={40000} autoFocus placeholder={`Message ${name} about this`} onChange={(event) => setText(event.target.value)} />
+      <label className="visually-hidden" htmlFor={`discuss-${post.id}`}>{say(words, 'message_about', name)}</label>
+      <textarea id={`discuss-${post.id}`} rows={2} value={text} maxLength={40000} autoFocus placeholder={say(words, 'message_about', name)} onChange={(event) => setText(event.target.value)} />
       <div className="form-actions"><button type="submit" className="button primary" disabled={busy || !text.trim()}>Send in Chat</button></div>
     </form>
   )

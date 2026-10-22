@@ -10,7 +10,7 @@ from companion.clock import zone
 from companion.errors import require
 from companion.life import network
 from companion.models import Input
-from companion.world import catalog, changes, custom, generators, marinara, townsfolk
+from companion.world import catalog, changes, custom, era_words, generators, marinara, townsfolk
 from companion.world.schema import PlaceKind
 from companion.world.source import CatalogWorld
 
@@ -60,6 +60,13 @@ def list_cities(request: Request):
 @router.get('/featured')
 def read_featured(request: Request):
     return catalog.featured(user_cities(request))
+
+
+@router.get('/words')
+def read_words(request: Request):
+    """What the in-world screens call things where the user lives (companion/world/era_words.py)."""
+    with request.app.state.database.connect() as connection:
+        return era_words.for_world(connection)
 
 
 @router.get('/broken-cities')

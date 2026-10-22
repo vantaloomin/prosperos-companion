@@ -4077,5 +4077,15 @@
    "per": "a day; laborers $2-$3",
    "source": "curated-2026-10"
   }
- ]
+ ],
+ "words": {
+  "messages_tab": "Letters",
+  "message_button": "Write",
+  "message": "letter",
+  "messages": "letters",
+  "message_to": "Write to {name}",
+  "message_about": "Write to {name} about this",
+  "sent_you": "{name} sent you a letter.",
+  "nobody_writes": "Nobody writes to you"
+ }
 }

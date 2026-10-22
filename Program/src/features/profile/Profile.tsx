@@ -9,7 +9,8 @@ import { usePortrait } from '../conversation/portrait'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
 import { StatusEditor } from '../status/StatusLine'
-import { PROFILE_TABS, circleText, handle, placeFact, profileClass, profileTab, showsCard } from './profileText'
+import { profileTabs, circleText, handle, placeFact, profileClass, profileTab, showsCard } from './profileText'
+import { useEraWords } from '../world/useEraWords'
 import { ROUGH_PATCH_KEY, UNDO_MS, roughPatchLine, type RoughPatch } from './roughPatchText'
 
 /**
@@ -36,13 +37,20 @@ export function Profile({ companion, view, go, children }: { companion: Companio
 
 function ProfileTabs({ view, go }: { view: View; go: (view: View) => void }) {
   const current = profileTab(view)
+  const words = useEraWords()
   return (
     <nav className="profile-tabs" aria-label="Profile">
-      {PROFILE_TABS.map((tab) => (
+      {profileTabs(words).map((tab) => (
         <button key={tab.id} type="button" aria-current={current === tab.id ? 'page' : undefined} onClick={() => go(tab.id)}>{tab.label}</button>
       ))}
     </nav>
   )
+}
+
+/** Message, or "Write" in Camelot (the era's words, eraWords.ts). */
+function MessageButton({ onClick }: { onClick: () => void }) {
+  const label = useEraWords().message_button
+  return <button type="button" className="button primary profile-message" aria-label={label} onClick={onClick}><MessageCircle aria-hidden="true" /><span>{label}</span></button>
 }
 
 function ProfileCard({ companion, message }: { companion: Companion; message: () => void }) {
@@ -60,7 +68,7 @@ function ProfileCard({ companion, message }: { companion: Companion; message: ()
           {handle(name) && <p className="profile-handle">{handle(name)}</p>}
           <StatusEditor id={companion.id} name={name} status={companion.status} />
         </div>
-        <button type="button" className="button primary profile-message" aria-label="Message" onClick={message}><MessageCircle aria-hidden="true" /><span>Message</span></button>
+        <MessageButton onClick={message} />
       </div>
       {identity.trim() && <p className="profile-bio">{identity.trim()}</p>}
       <ProfileFacts companion={companion} />

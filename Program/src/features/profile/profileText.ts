@@ -1,15 +1,19 @@
 import type { ChatStyle } from '../../types'
 import type { StatusWhere } from '../status/statusText'
+import { MODERN_WORDS, type EraWords } from '../world/eraWords.ts'
 
 /** The companion's profile holds four views; the address keeps the older names so every link still works. */
 export type ProfileTab = 'conversation' | 'feed' | 'memories' | 'character'
 
-export const PROFILE_TABS: { id: ProfileTab; label: string }[] = [
-  { id: 'conversation', label: 'Messages' },
-  { id: 'feed', label: 'Posts' },
-  { id: 'memories', label: 'Memories' },
-  { id: 'character', label: 'Character' },
-]
+/** The four tabs, Messages and Posts in the era's words ("Letters" and "Chronicle" in Camelot). */
+export function profileTabs(words: EraWords = MODERN_WORDS): { id: ProfileTab; label: string }[] {
+  return [
+    { id: 'conversation', label: words.messages_tab },
+    { id: 'feed', label: words.posts_tab },
+    { id: 'memories', label: 'Memories' },
+    { id: 'character', label: 'Character' },
+  ]
+}
 
 /** Which profile tab a view sits under, or null when the view is not part of the profile. */
 export function profileTab(view: string): ProfileTab | null {

@@ -369,13 +369,16 @@ def said_since(connection, found: dict, role: str) -> bool:
 # --- The state, in plain words ------------------------------------------------------------------------------------
 
 def state(connection, companion: dict, now: datetime) -> dict | None:
-    """{state, kind, text} while a call is on or ringing, else None (together.state reads this first)."""
+    """{state, kind, text} while a call is on or ringing, else None (together.state reads this first). The text is in
+    the era's words: "On the telephone" in 1925 (companion/world/era_words.py)."""
     found = now_for(connection, companion, now)
-    if found and found['status'] == 'on':
-        return {'state': 'call', 'kind': 'call', 'text': 'On a call'}
-    if found and found['status'] == 'ringing':
-        return {'state': 'apart', 'kind': 'ringing', 'text': 'Calling you'}
-    return None
+    if not found or found['status'] not in ('on', 'ringing'):
+        return None
+    from companion.world import era_words
+    words = era_words.for_world(connection)['words']
+    if found['status'] == 'on':
+        return {'state': 'call', 'kind': 'call', 'text': words['on_call']}
+    return {'state': 'apart', 'kind': 'ringing', 'text': words['calling_you']}
 
 
 def view(connection, companion: dict, now: datetime) -> dict | None:

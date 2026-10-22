@@ -465,6 +465,9 @@ class City(Record):
     enclosed: bool | None = None
     # Other cities of the same made-up world, with the journey there (trips and postcards, life/trips.py).
     neighbours: list[Neighbour] = Field(default_factory=list, max_length=20)
+    # What this city calls things on the in-world screens (companion/world/era_words.py): {"message": "letter"}
+    # over its era's words. Checked when the city loads (era_words.clean), which drops an unknown word with a note.
+    words: Any = None
 
     @model_validator(mode='after')
     def check(self):

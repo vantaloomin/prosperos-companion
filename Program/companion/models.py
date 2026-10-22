@@ -348,6 +348,8 @@ class SettingsUpdate(Input):
     chat_style: Literal['feed', 'bubbles', 'community', 'retro', 'novel'] | None = None
     chat_sounds: bool | None = None
     chat_retro_dark: bool | None = None
+    # Period words in period cities (companion/world/era_words.py).
+    period_words: bool | None = None
     color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
     custom_palette: Palette | None = None
     # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.

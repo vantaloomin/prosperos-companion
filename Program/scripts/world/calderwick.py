@@ -663,6 +663,21 @@ CITY = {
     # Drawn on the map, since the city has no street map (src/features/map/drawn.ts).
     'water': [{'kind': 'river', 'name': 'River Calder', 'width_km': 0.15, 'points': [
         [53.724, -1.975], [53.725, -1.955], [53.729, -1.943], [53.726, -1.928], [53.720, -1.910]]}],
+    # What this city calls things on the in-world screens (companion/world/era_words.py).
+    'words': {
+        'call_to': 'Ring {name} on the aetherphone',
+        'call_on': 'On the aetherphone with {name}',
+        'call_on_short': '{name}, on the aetherphone',
+        'call_ringing': '{name} is ringing on the aetherphone',
+        'call_ended': 'The aetherphone went quiet',
+        'call_declined': "You let {name}'s aetherphone ring out.",
+        'call_unanswered': "{name} didn't come to the aetherphone.",
+        'call_missed': 'Missed {name} on the aetherphone.',
+        'call_end': 'Hang up',
+        'call_back': 'Ring back',
+        'on_call': 'On the aetherphone',
+        'calling_you': 'Ringing on the aetherphone',
+    }
 }
 
 if __name__ == '__main__':

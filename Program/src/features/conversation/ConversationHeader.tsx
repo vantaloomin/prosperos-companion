@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Ellipsis, GitBranch, MessageSquareText, MessagesSquare, Phone, Search, UsersRound } from 'lucide-react'
+import { ChevronLeft, Ellipsis, GitBranch, MessageSquareText, MessagesSquare, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
 import { api } from '../../api'
 import type { ChatStyle, Companion } from '../../types'
 import { CHAT_STYLES } from './chatStyles'
@@ -13,6 +13,8 @@ import { badge, chatsButtonLabel, othersUnread, type OpenChat } from '../chats/c
 import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
 import { toggleSidecar } from '../sidecar/toggle'
 import { ExportLinks } from '../chats/ExportLinks'
+import { useEraWords, useMagicCalls } from '../world/useEraWords'
+import { say } from '../world/eraWords'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, canCall, type WhereState } from './whereText'
 
@@ -52,6 +54,8 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
 function CallButton({ name }: { name: string }) {
   const client = useQueryClient()
   const where = useWhere().data
+  const label = say(useEraWords(), 'call_to', name)
+  const magic = useMagicCalls()
   if (!canCall(where)) return null
   const call = async () => {
     const found = await api<WhereState>('/life/calls', {}).catch(() => undefined)
@@ -59,7 +63,7 @@ function CallButton({ name }: { name: string }) {
     void client.invalidateQueries({ queryKey: WHERE_KEY })
     void client.invalidateQueries({ queryKey: ['chats'] })
   }
-  return <button type="button" className="icon-button" aria-label={`Call ${name}`} title={`Call ${name}`} onClick={() => void call()}><Phone aria-hidden="true" /></button>
+  return <button type="button" className="icon-button" aria-label={label} title={label} onClick={() => void call()}>{magic ? <Sparkles aria-hidden="true" /> : <Phone aria-hidden="true" />}</button>
 }
 
 /** The way to the other chats, with how many messages wait there; shown once there is more than one chat. */

@@ -832,6 +832,10 @@ CITY = {
               'groups': {'shipborn': SHIPBORN}},
     'local_color': LOCAL, 'prices': PRICES, 'holidays': HOLIDAYS,
     'townsfolk': {'quirks': QUIRKS, 'goals': GOALS},
+    # What this city calls things on the in-world screens (companion/world/era_words.py).
+    'words': {
+        'posts_tab': 'Shipnet',
+    }
 }
 
 if __name__ == '__main__':
