@@ -466,7 +466,7 @@ def test_the_birth_takes_the_whole_day_with_the_user_there(client, provider, clo
     found = day_of(client, born)
     assert found and all(block['arrival'] == row['id'] and block['with_user'] for block, _entry in found)
     assert {block['label'] for block, _entry in found} == {'Having the baby at the hospital, together'}
-    name = row['details']['name']
+    name = expecting.first_name(row['details']['name'])  # a two-word given name (An Nhien) reads as its first word
     summaries = [entry['summary'] for _block, entry in found]
     assert f'Mira gave birth to {name} at the hospital, with you there.' in summaries
     assert all('the user' not in text for text in summaries)
