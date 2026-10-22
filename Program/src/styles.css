@@ -439,6 +439,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .settings-tabs [role='tab']:hover { background: var(--raised); color: var(--text); }
 .settings-tabs [role='tab'][aria-selected='true'] { background: var(--accent-tint); color: var(--accent); font-weight: 500; }
 .settings-panel { flex: 1; min-width: 0; }
+.community-link { align-self: flex-start; padding: 0 12px; min-height: 44px; line-height: 1.35; }
+.community-link svg { width: 16px; height: 16px; flex: 0 0 auto; }
 .settings-section { padding: 24px 0; border-top: 1px solid var(--border); }
 .settings-panel > .settings-section:first-child, .settings-panel > .notice:first-child + .settings-section { border-top: 0; padding-top: 0; }
 @media (max-width: 720px) {
@@ -447,6 +449,10 @@ textarea { resize: vertical; line-height: 1.6; }
   .settings-panel { width: 100%; }
   .settings-tabs { flex-direction: row; width: 100%; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
   .advanced-switch { padding: 0; border-top: 0; }
+  /* The link drops to the foot of the page, below the open tab, so the tabs stay first. */
+  .settings-nav { display: contents; }
+  .settings-nav > * { width: 100%; }
+  .settings-nav > .community-link { width: auto; order: 1; padding: 0; }
   .settings-tabs [role='tab'] { white-space: nowrap; flex: 0 0 auto; }
 }
 .settings-section h2 { margin-bottom: 6px; }

@@ -29,6 +29,7 @@ import { LocalPrograms } from './models/LocalPrograms'
 import { ModelSettings } from './models/ModelSettings'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { NextStep } from './NextStep'
+import { CommunityLink } from './CommunityLink'
 import { availableTabs, pickTab, searchSettings, type SettingsMatch, type SettingsTab } from './sections'
 
 interface Props {
@@ -62,6 +63,7 @@ export function Settings({ companion, tab, onTab, onCreate }: Props) {
             <Toggle label="Show advanced settings" checked={advanced} onChange={setAdvanced}
               hint={advanced ? 'The Advanced tab is now in the list of tabs.' : 'Adds an Advanced tab for power users, where you can reword the prompts sent to your models.'} />
           </div>
+          <CommunityLink />
         </div>
         <div className="settings-panel" role="tabpanel" id={`settings-panel-${current}`} aria-labelledby={`settings-tab-${current}`}>
           <TabContent tab={current} companion={companion} />
