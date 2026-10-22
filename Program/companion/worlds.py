@@ -25,7 +25,7 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 
-from companion import backup, cast, characters, dating, lore, observer, restore, story
+from companion import backup, cast, characters, dating, library, lore, observer, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
@@ -416,6 +416,7 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
             today = made.clock.now().astimezone(zone(data['timezone'])).date()
             starter(connection, data, seed, made.now(), today, persona)
     lore.carry_city_lore(path, database.path, data)
+    library.carry_city_books(path, database.path, data)
 
 
 def somewhere_new(connection, here: str, seed: str) -> str:

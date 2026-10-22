@@ -236,6 +236,14 @@ class ChatFile(Input):
     companion_id: str | None = Field(default=None, max_length=100)
 
 
+class LibraryFile(Input):
+    """A long text for the reference library (companion/library.py), base64 encoded: the open companion's book, or
+    the world's."""
+    filename: str = Field(min_length=1, max_length=260)
+    data: str = Field(min_length=1, max_length=14_000_000)
+    world: bool = False
+
+
 class LoreSwitch(Input):
     """Turn an imported lorebook, or one of its entries, on or off (companion/lore.py)."""
     enabled: bool

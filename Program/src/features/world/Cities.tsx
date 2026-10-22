@@ -9,6 +9,8 @@ import { TextInput } from '../../components/Fields'
 import { shownPath } from '../../paths'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { isWorldMap, readWorldMap } from './worldMap'
+import { GetLatest } from '../character/Library'
+import { ONLINE_KEY, type OnlineBook } from '../character/libraryText'
 import { cityFacts, definitionOf, exportName, groupNotes, matchesCity, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
 
 const CITIES_KEY = ['cities']
@@ -62,10 +64,14 @@ export function Cities() {
   const cities = useQuery({ queryKey: CITIES_KEY, queryFn: () => api<CityListing[]>('/world/cities') })
   const featured = useQuery({ queryKey: ['featured-cities'], queryFn: () => api<FeaturedCities>('/world/featured') })
   const broken = useQuery({ queryKey: BROKEN_KEY, queryFn: () => api<BrokenCity[]>('/world/broken-cities') })
+  // Books the app can download into the library for a city (the Neokosmos wiki on Grandport's card).
+  const online = useQuery({ queryKey: ONLINE_KEY, queryFn: () => api<{ books: OnlineBook[] }>('/library/online').then((data) => data.books) })
   const [feedback, setFeedback] = useState<Feedback>(null)
   const [editing, setEditing] = useState<Editing | null>(null)
   const [copying, setCopying] = useState<CityListing | null>(null)
   const [deleting, setDeleting] = useState<Pick<CityListing, 'id' | 'name'> | null>(null)
+  // What adding or updating a city's book did, shown on that city's card, where the button was.
+  const [cardNote, setCardNote] = useState<{ city: string; note: NonNullable<Feedback> } | null>(null)
   const file = useRef<HTMLInputElement>(null)
   const refresh = () => Promise.all([client.invalidateQueries({ queryKey: CITIES_KEY }), client.invalidateQueries({ queryKey: BROKEN_KEY })])
   const fail = (error: unknown) => setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work.' })
@@ -137,11 +143,12 @@ export function Cities() {
         </Notice>
       ))}
       {cities.data && <CityShelves cities={cities.data} featured={featured.data} actions={(city) => <>
+        {online.data?.filter((book) => book.city_id === city.id).map((book) => <GetLatest key={book.key} online={book} onResult={(note) => setCardNote(note && { city: city.id, note })} />)}
         {city.origin === 'user' && <button type="button" className="text-button" onClick={() => void startEdit(city)}><Pencil aria-hidden="true" />Edit</button>}
         <button type="button" className="text-button" onClick={() => setCopying(city)}><Copy aria-hidden="true" />Copy</button>
         {city.distribution === 'public' && <button type="button" className="text-button" onClick={() => void exportCity(city)}><Download aria-hidden="true" />Save as file</button>}
         {city.origin === 'user' && <button type="button" className="text-button" onClick={() => setDeleting(city)}><Trash2 aria-hidden="true" />Delete</button>}
-      </>} />}
+      </>} extra={(city) => cardNote?.city === city.id && <FeedbackNotice feedback={cardNote.note} />} />}
       <Packs onReloaded={() => void refresh()} />
       {copying && <CopyDialog city={copying} onClose={() => setCopying(null)}
         onCopied={(name) => { setCopying(null); setFeedback({ tone: 'info', text: `Copied as ${name}. It is under Custom.` }); void refresh() }} />}
@@ -158,7 +165,7 @@ export function Cities() {
 }
 
 /** The city list: a filter chip per shelf with its count, a search box, then a headed section per shelf (PRD W5). */
-function CityShelves({ cities, featured, actions }: { cities: CityListing[]; featured?: FeaturedCities; actions: (city: CityListing) => ReactNode }) {
+function CityShelves({ cities, featured, actions, extra }: { cities: CityListing[]; featured?: FeaturedCities; actions: (city: CityListing) => ReactNode; extra?: (city: CityListing) => ReactNode }) {
   const [shown, setShown] = useState<CityCategory | 'all'>('all')
   const [query, setQuery] = useState('')
   const shelves = shelveCities(cities)
@@ -198,6 +205,7 @@ function CityShelves({ cities, featured, actions }: { cities: CityListing[]; fea
               </header>
               <p>{city.summary}</p>
               <div className="person-actions">{actions(city)}</div>
+              <div aria-live="polite">{extra?.(city)}</div>
             </li>
           ))}
         </ul>

@@ -44,6 +44,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
     id: 'life', label: 'Life & cities', sections: [
       { heading: 'life-heading', title: 'Life', keywords: 'life events pace themes days routine' },
       { heading: 'cities-heading', title: 'Cities', keywords: 'city cities places home world pack' },
+      { heading: 'world-library-heading', title: 'Library', keywords: 'library book books novel script transcript wiki tiddlywiki epub reference passages lore neokosmos' },
     ],
   },
   {
