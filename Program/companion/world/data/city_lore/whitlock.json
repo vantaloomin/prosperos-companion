@@ -1,0 +1,240 @@
+{
+ "credit": "Written for the app from the Whitlock city data, an original setting.",
+ "entries": [
+  {
+   "id": "the-rains",
+   "title": "The rains",
+   "text": "In monsoon season the whole town watches the thunderheads build over the mountains every afternoon; when the rain breaks the heat people stand out in it, the washes run with flash floods, and the creek at Ash Creek comes up brown and fast.",
+   "keywords": [
+    "monsoon",
+    "the rains"
+   ],
+   "when": {
+    "weather": [
+     "rain"
+    ],
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "winter-rain",
+   "title": "A winter rain",
+   "text": "A winter rain turns Main Street to adobe mud that sticks to boots and wagon wheels, and the saloons fill with miners who cannot get up the hill.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "rain"
+    ],
+    "season": [
+     "fall",
+     "winter",
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "snow",
+   "title": "Snow on the range",
+   "text": "Now and then snow dusts the range above town and even Main Street; it is gone by noon, but the Cousin Jacks swear it is colder than any winter in Cornwall.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "heat",
+   "title": "The heat",
+   "text": "In the heat of the day the town goes quiet: shopkeepers sit under the wooden awnings, mules stand in whatever shade there is, and the barrio rests until the evening paseo. Ice from the railroad is worth its weight.",
+   "keywords": [
+    "siesta"
+   ],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "spring-wind",
+   "title": "Spring wind",
+   "text": "Spring brings wind and dust down Main Street, then wildflowers on the flats after a wet winter, and the cattle drives from the Turkey Creek ranches.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "fall",
+   "title": "Fall",
+   "text": "Fall is the best season in the valley: clear, mild and dry, the county fair at Fairground Flat, horse races and the chile harvest drying in red strings on the adobe walls.",
+   "keywords": [
+    "county fair",
+    "ristra"
+   ],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter",
+   "text": "Winter nights are cold under a sky thick with stars, and families in the barrio spend whole days making red-chile pork tamales for Las Posadas.",
+   "keywords": [
+    "las posadas"
+   ],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "stamps",
+   "title": "The stamp mill",
+   "text": "Day and night the Sarah Ann stamp mill pounds on the hill; newcomers lie awake for a week and then stop hearing it. When the stamps stop, the whole town looks up.",
+   "keywords": [
+    "stamp mill"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "evening-paseo",
+   "title": "The evening paseo",
+   "text": "When the heat breaks in the evening, families walk slowly round the plaza in their good clothes, the young people one way and their elders the other, and the cantina strikes up.",
+   "keywords": [
+    "paseo"
+   ],
+   "when": {
+    "time": [
+     "evening"
+    ],
+    "place": [
+     "la-plaza"
+    ]
+   }
+  },
+  {
+   "id": "saturday-night",
+   "title": "Saturday night",
+   "text": "On Saturday night Main Street is loud: faro games where men \"buck the tiger\", the brass rail crowded, and the deputies reminding newcomers to check their guns with the bartender.",
+   "keywords": [
+    "faro",
+    "bucking the tiger"
+   ],
+   "when": {
+    "day": [
+     "weekend"
+    ],
+    "time": [
+     "evening",
+     "night"
+    ],
+    "place": [
+     "main-street",
+     "depot"
+    ]
+   }
+  },
+  {
+   "id": "sunday-morning",
+   "title": "Sunday morning",
+   "text": "Sunday morning brings church bells from the Methodist church and San Ysidro, a pot of menudo for anyone who spent Saturday night on Main Street, and buggies heading out to Kuhn's Hot Springs.",
+   "keywords": [
+    "menudo"
+   ],
+   "when": {
+    "day": [
+     "weekend"
+    ],
+    "time": [
+     "morning"
+    ]
+   }
+  },
+  {
+   "id": "china-alley",
+   "title": "China Alley",
+   "text": "China Alley is adobe laundries, a herb shop, a Chinese grocery and a joss house, and the vegetable gardeners who sell door to door all over town.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "china-alley"
+    ]
+   }
+  },
+  {
+   "id": "mill-hill",
+   "title": "Mill Hill",
+   "text": "On Mill Hill the Sarah Ann's hoisting works and company offices sit above the town, and the assayer's figures on Main Street start or end most arguments about it.",
+   "keywords": [
+    "assay"
+   ],
+   "when": {
+    "place": [
+     "mill-hill",
+     "sarah-ann-gulch"
+    ]
+   }
+  },
+  {
+   "id": "fourth-of-july",
+   "title": "The Fourth of July",
+   "text": "On the Fourth there are horse races at Fairground Flat, a baseball game against Fort Merritt, speeches from the courthouse steps and anvils fired off in place of cannon.",
+   "keywords": [
+    "the fourth"
+   ],
+   "when": {
+    "holiday": [
+     "independence-day"
+    ]
+   }
+  },
+  {
+   "id": "christmas",
+   "title": "Christmas",
+   "text": "At Christmas the plaza is lit with luminarias, the barrio walks Las Posadas from door to door, and the Cornish miners sing carols in the saloons.",
+   "keywords": [
+    "luminarias"
+   ],
+   "when": {
+    "holiday": [
+     "christmas"
+    ]
+   }
+  },
+  {
+   "id": "payday",
+   "title": "Payday",
+   "text": "The company pays at the barred window on the tenth of the month, and by evening the saloons, the stores and the pawnshop all do a month's business in one night.",
+   "keywords": [
+    "payday",
+    "pay day"
+   ],
+   "when": {}
+  },
+  {
+   "id": "at-work",
+   "title": "Work in Whitlock",
+   "text": "Underground the Cousin Jacks eat their pasties at noon and leave a crust for the tommyknockers; above ground the shift whistle and the stamps rule the day.",
+   "keywords": [
+    "tommyknockers",
+    "pasty"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

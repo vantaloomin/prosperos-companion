@@ -7,6 +7,7 @@ proposals. Every step yields to the conversation.
 import asyncio
 import time
 
+from companion import library
 from companion.characters import require_current
 from companion.database import settings
 from companion.life import storylines
@@ -98,7 +99,8 @@ class MemoryWorker:
         await asyncio.to_thread(consolidation.run, self.database)
 
     async def index(self) -> int:
-        """Embed one batch of memories, messages and old storylines without a current vector. Returns how many were saved."""
+        """Embed one batch of memories, messages, old storylines and library passages without a current vector. Returns
+        how many were saved."""
         with self.database.connect() as connection:
             config = config_for(connection, 'recall')
             if not config or not config.get('embedding_model'):
@@ -106,10 +108,15 @@ class MemoryWorker:
             companion = require_current(connection)
             stories = storylines.recall_items(connection, companion, self.database.clock.now())
             items = vectors.missing(connection, vector_model(config), companion['active_timeline_id'], stories=stories)
-        if not items:
+            # Then passages of their reference library (companion/library.py), once the rest have vectors.
+            shelf = library.unindexed(connection, vector_model(config), companion, vectors.INDEX_BATCH - len(items))
+        if not items + shelf:
             return 0
         key = key_for(self.vault, config)
         async with self.scheduler.reserve(config, MAINTENANCE):
-            found = await self.embedder.embed(config, key, as_documents(config, [text for _kind, _id, text in items]))
+            found = await self.embedder.embed(config, key, as_documents(config, [text for _kind, _id, text in
+                                                                                 items + shelf]))
         with self.database.connect(write=True) as connection:
-            return vectors.store(connection, vector_model(config), items, found, self.database.now())
+            now, model = self.database.now(), vector_model(config)
+            return (vectors.store(connection, model, items, found[:len(items)], now)
+                    + library.store_vectors(connection, model, shelf, found[len(items):], now))

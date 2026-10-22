@@ -10,6 +10,7 @@ import { BecomeThem } from '../today/BecomeThem'
 import { reach } from '../notifications/useNotifications'
 import { useObserver, useWatchActions, useWatchFeed } from './useObserver'
 import { focusGroups, LINE_LABELS, lineTime, stepInLabel } from './watchText'
+import { useEraWords } from '../world/useEraWords'
 
 /**
  * Observer mode (companion/observer.py): just watch the world go on. The page follows one person, the focus, and
@@ -84,9 +85,10 @@ function StepIn({ focus, onStop, go }: { focus: WatchFocus; onStop: () => Promis
 }
 
 function NotWatching({ onStart }: { onStart: () => void }) {
+  const words = useEraWords()
   return (
     <div className="watch-start">
-      <p>Sit back and watch this world go on without you. Nobody texts you or asks you along while you watch, and everyone&apos;s days carry on at their usual pace. Writing to anyone steps you back in.</p>
+      <p>Sit back and watch this world go on without you. {words.nobody_writes} or asks you along while you watch, and everyone&apos;s days carry on at their usual pace. Writing to anyone steps you back in.</p>
       <button type="button" className="button primary" onClick={onStart}><Eye aria-hidden="true" />Just watch</button>
     </div>
   )

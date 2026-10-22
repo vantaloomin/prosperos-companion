@@ -248,6 +248,9 @@ ADDED_COLUMNS = (
     # A world lorebook that belongs to one of the user's cities (a Marinara world map's notes, companion/lore.py):
     # it comes along into new worlds in that city and goes when the city is deleted.
     ('lore_books', 'city_id', 'TEXT'),
+    # When a lore entry applies besides its keywords (companion/lore_moments.py), as a JSON list of conditions; NULL
+    # until the user sets one, while the app reads one from its keywords.
+    ('lore_entries', 'moment', 'TEXT'),
     # Home upkeep (companion/life/upkeep.py, Settings > Realism > Home life): 0 off, 1 light, 2 true to life, 3 messy.
     ('life_settings', 'upkeep_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (upkeep_realism BETWEEN 0 AND 3)'),
     # Looks that change (companion/life/grooming.py): how often, from never (0) to often (3), set on the Realism tab.
@@ -367,6 +370,8 @@ ADDED_COLUMNS = (
     # Inner voice (Settings > Realism > Their days, companion/life/narrator.py): how much of what is on their mind
     # the Watching page tells, 0 just what happened, 1 a few thoughts, 2 true to life, 3 everything on their mind.
     ('life_settings', 'inner_voice', 'INTEGER NOT NULL DEFAULT 2 CHECK (inner_voice BETWEEN 0 AND 3)'),
+    # Words that fit the era (companion/world/era_words.py, Settings > General > Appearance): on unless turned off.
+    ('workspace_settings', 'period_words', 'INTEGER NOT NULL DEFAULT 1 CHECK (period_words IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

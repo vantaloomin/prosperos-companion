@@ -2693,3 +2693,62 @@ CREATE TABLE IF NOT EXISTS observer_entries (
   created_at TEXT NOT NULL,
   PRIMARY KEY (focus, day)
 );
+
+-- "Pin their voice" (companion/memory/voice.py): up to three of the companion's replies the user pinned, so the
+-- 'voice' section of every chat reply shows them first. `message_id` is the reply as first written (its origin_id
+-- when it was copied into a fork), so the pin follows it into forks.
+CREATE TABLE IF NOT EXISTS voice_pins (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (companion_id, message_id)
+);
+
+-- Lore that comes with a city file (companion/lore.py, companion/lore_moments.py): the user's changes to it in this
+-- world. `entry_id` '' is the whole book's switch; `moment` is the entry's "when" as a JSON list, NULL for the city's.
+CREATE TABLE IF NOT EXISTS city_lore_choices (
+  city_id TEXT NOT NULL,
+  entry_id TEXT NOT NULL,
+  enabled INTEGER CHECK (enabled IN (0, 1)),
+  moment TEXT,
+  PRIMARY KEY (city_id, entry_id)
+);
+
+-- A reference library (companion/library.py): long texts the user adds to a companion or to the world (a novel, a
+-- script, transcripts, a wiki export), split into passages; the few that fit the conversation join a reply's notes.
+-- `companion_id` NULL is the world's. `online` names a book the app downloads from its author's site
+-- (companion/library_online.py) and `city_id` the city it belongs to: it joins replies only where the companion
+-- lives in that city, and comes along into new worlds there.
+CREATE TABLE IF NOT EXISTS library_books (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT REFERENCES companions(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  source_format TEXT NOT NULL DEFAULT '',
+  source_file TEXT NOT NULL DEFAULT '',
+  online TEXT NOT NULL DEFAULT '',
+  city_id TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS library_passages (
+  id TEXT PRIMARY KEY,
+  book_id TEXT NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  text TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS library_passages_book ON library_passages(book_id, position);
+
+-- Embeddings of library passages (companion/library.py), keyed by model and the digest of the text embedded, like
+-- memory_vectors.
+CREATE TABLE IF NOT EXISTS library_vectors (
+  passage_id TEXT NOT NULL REFERENCES library_passages(id) ON DELETE CASCADE,
+  model TEXT NOT NULL,
+  digest TEXT NOT NULL,
+  vector BLOB NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (passage_id, model)
+);

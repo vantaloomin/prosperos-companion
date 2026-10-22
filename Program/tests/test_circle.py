@@ -415,6 +415,14 @@ def test_a_relative_out_of_town_gets_a_call():
                              [{'id': 'p1', 'name': 'Aunt Rosa', 'local': False}], None) is None
 
 
+def test_in_a_city_of_another_era_a_relative_out_of_town_gets_a_letter():
+    slot = {'key': 'out@2026-10-05', 'local_date': '2026-10-05', 'block': EVENING_OUT[1]}
+    for seed in ('seed', 'other', 'third'):
+        composed = composer.birthday(slot, {'name': 'Wren', 'home_city': 'camelot'}, CatalogWorld(), seed, (),
+                                     [{'id': 'p1', 'name': 'Aunt Rosa', 'local': False}], None)
+        assert composed['summary'] in [line.format(name='Wren', friend='Aunt Rosa') for line in composer.LETTER]
+
+
 def test_today_shows_the_companions_day(client, baltimore, clock, monkeypatch):
     local = clock.now().astimezone(zone('America/New_York')).date()
     monkeypatch.setattr(circle, 'birthday', lambda _person_id: local.strftime('%m-%d'))

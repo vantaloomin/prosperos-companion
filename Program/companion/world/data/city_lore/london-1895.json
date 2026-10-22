@@ -1,0 +1,267 @@
+{
+ "credit": "Written for the app from the London, 1895 city data.",
+ "entries": [
+  {
+   "id": "pea-souper",
+   "title": "A London particular",
+   "text": "In a pea-souper the coal-smoke fog is thick and yellow: you cannot see across the street, the traffic crawls, link-boys light people home with torches for a penny, and soot settles on every collar and windowsill.",
+   "keywords": [
+    "pea-souper",
+    "london particular",
+    "fog"
+   ],
+   "when": {
+    "weather": [
+     "fog"
+    ]
+   }
+  },
+  {
+   "id": "rain",
+   "title": "A wet day in town",
+   "text": "On a wet day the streets turn to black mud and horse dung, crossing-sweepers earn their pennies clearing a path, umbrellas jostle on the Strand, and every hansom cab is taken.",
+   "keywords": [
+    "crossing-sweeper"
+   ],
+   "when": {
+    "weather": [
+     "rain"
+    ]
+   }
+  },
+  {
+   "id": "snow",
+   "title": "Snow and ice",
+   "text": "In snow the omnibus horses slip on the setts, boys slide on the frozen gutters, and the poor of the East End queue for coal. In the hard frost of 1895 there were ice floes on the Thames.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "heat",
+   "title": "A close summer day",
+   "text": "In hot weather the river smells, the water carts go round to lay the dust, and those who can afford it leave for the seaside or the country.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "the-season",
+   "title": "The Season",
+   "text": "From May to July it is the Season: Society is in town, the Royal Academy opens, there are balls and garden parties, Derby Day, and fashionable London parades in Hyde Park after church on Sunday.",
+   "keywords": [
+    "the season",
+    "derby day"
+   ],
+   "when": {
+    "season": [
+     "spring",
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "summer-cricket",
+   "title": "Cricket summer",
+   "text": "In summer county cricket draws big crowds at the Oval and Lord's, and W. G. Grace's run-making is the talk of every public house.",
+   "keywords": [
+    "cricket",
+    "w. g. grace"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "autumn",
+   "title": "Autumn in London",
+   "text": "In autumn London fills up again after the seaside, the theatres reopen, and the mists along the river thicken week by week into the fog season.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter streets",
+   "text": "In winter it is dark by four, the gas lamps are lit by mid-afternoon, chestnut sellers warm their hands at glowing cans, and the muffin man rings his bell along the residential streets.",
+   "keywords": [
+    "muffin man",
+    "chestnuts"
+   ],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "dawn-market",
+   "title": "Before dawn",
+   "text": "Before dawn Covent Garden is already busy with carts of fruit, flowers and vegetables, and the porters carry towers of baskets on their heads through the crush.",
+   "keywords": [
+    "covent garden"
+   ],
+   "when": {
+    "time": [
+     "morning"
+    ],
+    "place": [
+     "strand-covent-garden"
+    ]
+   }
+  },
+  {
+   "id": "city-clerks",
+   "title": "A weekday in the City",
+   "text": "On a weekday the City is crowded with clerks in top hats walking in from the stations; at midday they eat a chop and a pint of porter in a sawdust-floored chop house. By evening the square mile is nearly empty.",
+   "keywords": [
+    "clerks"
+   ],
+   "when": {
+    "day": [
+     "weekday"
+    ],
+    "place": [
+     "the-city"
+    ]
+   }
+  },
+  {
+   "id": "saturday-night",
+   "title": "Saturday night",
+   "text": "On Saturday night the market streets are lit by naphtha flares, the costers cry their goods, whelks and cockles are sold outside the pubs, and the music halls are full.",
+   "keywords": [
+    "music hall"
+   ],
+   "when": {
+    "day": [
+     "weekend"
+    ],
+    "time": [
+     "evening",
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "night",
+   "title": "London at night",
+   "text": "At night the gaslit main streets stay busy with cabs and theatre crowds, but the back streets are dark, and a constable walks his beat trying every door.",
+   "keywords": [
+    "bobby",
+    "constable"
+   ],
+   "when": {
+    "time": [
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "baker-street",
+   "title": "Baker Street",
+   "text": "Marylebone is respectable terraces of lodging houses and doctors' consulting rooms, with Baker Street station on the Metropolitan line underground.",
+   "keywords": [
+    "baker street"
+   ],
+   "when": {
+    "place": [
+     "marylebone"
+    ]
+   }
+  },
+  {
+   "id": "east-end",
+   "title": "Whitechapel",
+   "text": "Whitechapel is crowded streets of tailoring workshops, common lodging houses and street markets; fried fish shops sell fish in batter with chipped potatoes wrapped in paper.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "whitechapel"
+    ]
+   }
+  },
+  {
+   "id": "bank-holiday",
+   "title": "Bank holidays",
+   "text": "On a bank holiday East Enders crowd onto Hampstead Heath for donkey rides, swings and coconut shies, and the excursion trains to the seaside are packed.",
+   "keywords": [
+    "'appy 'ampstead",
+    "bank holiday"
+   ],
+   "when": {
+    "holiday": [
+     "easter-monday",
+     "whit-monday",
+     "august-bank-holiday"
+    ]
+   }
+  },
+  {
+   "id": "bonfire-night",
+   "title": "Guy Fawkes Night",
+   "text": "On Guy Fawkes Night boys carry stuffed guys through the streets begging \"a penny for the guy\", and bonfires and fireworks burn on every bit of waste ground.",
+   "keywords": [
+    "penny for the guy"
+   ],
+   "when": {
+    "holiday": [
+     "bonfire-night"
+    ]
+   }
+  },
+  {
+   "id": "christmas",
+   "title": "Christmas",
+   "text": "At Christmas there is a goose or a joint and a flaming plum pudding stirred weeks before on Stir-up Sunday; on Boxing Day tradesmen and servants get their Christmas boxes and the pantomimes open.",
+   "keywords": [
+    "plum pudding",
+    "pantomime"
+   ],
+   "when": {
+    "holiday": [
+     "christmas",
+     "boxing-day"
+    ]
+   }
+  },
+  {
+   "id": "quarter-day",
+   "title": "Quarter day",
+   "text": "On a quarter day rents fall due and servants' terms change, so the streets are full of carts moving lodgers' belongings and landladies are in a mood.",
+   "keywords": [
+    "quarter day",
+    "rent day"
+   ],
+   "when": {
+    "holiday": [
+     "lady-day",
+     "midsummer-day",
+     "michaelmas"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "At work in 1895",
+   "text": "Work in 1895 means long hours six days a week, with Saturday afternoon off for the lucky. Clerks fear the governor, shop assistants live in above the shop, and nobody can afford to be ill.",
+   "keywords": [
+    "the governor"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

@@ -25,7 +25,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   {
     id: 'general', label: 'General', sections: [
       { heading: 'time-heading', title: 'Your time', keywords: 'timezone time zone clock date quiet hours pc' },
-      { heading: 'appearance-heading', title: 'Appearance', keywords: 'appearance chat style look feed bubbles texting community avatars retro im messenger visual novel portrait sounds' },
+      { heading: 'appearance-heading', title: 'Appearance', keywords: 'appearance chat style look feed bubbles texting community avatars retro im messenger visual novel portrait sounds period words era letters telephone old-fashioned' },
       { heading: 'activity-heading', title: 'Pause', keywords: 'pause resume stop freeze' },
       { heading: 'background-heading', title: 'Background activity', keywords: 'background running open simulation' },
     ],
@@ -44,6 +44,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
     id: 'life', label: 'Life & cities', sections: [
       { heading: 'life-heading', title: 'Life', keywords: 'life events pace themes days routine' },
       { heading: 'cities-heading', title: 'Cities', keywords: 'city cities places home world pack' },
+      { heading: 'world-library-heading', title: 'Library', keywords: 'library book books novel script transcript wiki tiddlywiki epub reference passages lore neokosmos' },
     ],
   },
   {

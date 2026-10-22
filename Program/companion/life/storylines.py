@@ -28,7 +28,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import circle, pronouns
-from companion.world import lifespans
+from companion.world import lifespans, perception
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
 # Per drama level: chance a storyline starts on a given day, and how many can run at once.
@@ -434,7 +434,17 @@ def second_person(text: str) -> str:
 
 # Views --------------------------------------------------------------------------------------------
 
+# What a beat (and what they tell the user of it) says in a city of another era instead of today's phone or internet (companion/world/perception.py).
+PERIOD = {'spent the evening on the phone with them': 'spent the evening sitting up with them',
+          'I was on the phone with them for hours': 'I sat up with them for hours',
+          'looked the half-sibling up online': 'asked around about the half-sibling',
+          "found my half-sibling online. haven't messaged": "found out where my half-sibling lives. haven't written"}
+
+
 def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
+    if not perception.era_modern(definition):
+        for today, then in PERIOD.items():
+            text = text.replace(today, then)
     text = second_person(text) if you else text
     cast = decode(row['cast_ids'])
     people = [names.get(person_id, {'name': 'someone', 'role': 'friend'}) for person_id in cast]

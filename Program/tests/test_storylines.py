@@ -238,3 +238,19 @@ def test_a_drunk_kiss_never_comes_to_someone_seeing_someone():
     assert storylines.casts(single, [people[0], people[2]], {}) == [('bf',)]
     for role in ('wife', 'fiancé', 'partner'):
         assert storylines.casts(single, [people[0], {**people[1], 'role': role}], {}) == []
+
+
+def test_a_city_of_another_era_has_no_phones_or_internet_in_its_storylines():
+    row = {'cast_ids': json.dumps(['p1'])}
+    names = {'p1': {'name': 'Eunice', 'role': 'friend'}}
+    beat_text = storylines.find_story('friend_breakup').stages[0][0].text
+    modern = storylines.fill(beat_text, row, names, {'name': 'Wren', 'home_city': 'baltimore'})
+    camelot = storylines.fill(beat_text, row, names, {'name': 'Wren', 'home_city': 'camelot'})
+    assert 'on the phone' in modern
+    assert camelot == 'Eunice went through a breakup, and Wren spent the evening sitting up with them.'
+    for story in storylines.STORIES:
+        for stage in story.stages:
+            for found in stage:
+                for said in (found.text, found.share):
+                    period = storylines.fill(said, row, names, {'name': 'Wren', 'home_city': 'camelot'})
+                    assert not re.search(r'\b(phone|online|texted|internet|messaged)\b', period), period

@@ -49,6 +49,20 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.0.0 (2026-10-22)
+
+- **Words that fit the era:** period cities use period words in the chat, Today, Watching, the circle, the matchmaker,
+  the feed and notifications, with each city's own words and a switch in Settings > Appearance.
+- **Their voice stays theirs:** companions hear a few lines they said before, picked from kept replies, and Pin their
+  voice keeps up to three.
+- **A reference library:** books, scripts, transcripts and wikis for a companion or the world, with up to three
+  matching passages per reply, and Oak's Neokosmos wiki one click away in Grandport.
+- **Lore that fits the moment:** lore entries for weather, seasons, times of day, holidays, places and work, rule-read
+  from imported lorebooks, and in thirteen built-in cities.
+- **Love life in the Watching feed:** steps, breaks, breakups and making up told on the day, with the line under a
+  name following how things stand.
+- **Fixes:** no phones in period cities, and a link to the Discord in Settings.
+
 ## v0.16.0 (2026-10-21)
 
 - **Just watch:** a switch on any world and a Watch a city option, where your persona sits out and a Watching feed

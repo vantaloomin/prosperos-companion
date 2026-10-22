@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Briefcase, Home, Luggage, MapPin, Moon, Pencil, Phone } from 'lucide-react'
+import { Briefcase, Home, Luggage, MapPin, Moon, Pencil, Phone, Sparkles } from 'lucide-react'
 import { api } from '../../api'
 import { COMPANION_KEY } from '../../companion'
 import { shown, statusLabel, stickHint, type AwayGlyph, type CompanionStatus } from './statusText'
+import { useMagicCalls } from '../world/useEraWords'
 
 const GLYPHS: Record<AwayGlyph, typeof Moon> = { moon: Moon, briefcase: Briefcase, pin: MapPin, phone: Phone, luggage: Luggage, home: Home }
 
@@ -13,8 +14,9 @@ const GLYPHS: Record<AwayGlyph, typeof Moon> = { moon: Moon, briefcase: Briefcas
  */
 export function StatusText({ name, status, className = '' }: { name: string; status: CompanionStatus | null | undefined; className?: string }) {
   const line = shown(status)
+  const magic = useMagicCalls()
   if (!line) return null
-  const Glyph = line.away ? GLYPHS[line.away] : null
+  const Glyph = line.away === 'phone' && magic ? Sparkles : line.away ? GLYPHS[line.away] : null
   return (
     <span className={`status-line${line.away ? ' away' : ''} ${className}`} title={line.text} aria-label={statusLabel(name, status)}>
       {Glyph && <Glyph aria-hidden="true" />}<span aria-hidden="true">{line.text}</span>

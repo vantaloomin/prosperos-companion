@@ -236,9 +236,22 @@ class ChatFile(Input):
     companion_id: str | None = Field(default=None, max_length=100)
 
 
+class LibraryFile(Input):
+    """A long text for the reference library (companion/library.py), base64 encoded: the open companion's book, or
+    the world's."""
+    filename: str = Field(min_length=1, max_length=260)
+    data: str = Field(min_length=1, max_length=14_000_000)
+    world: bool = False
+
+
 class LoreSwitch(Input):
     """Turn an imported lorebook, or one of its entries, on or off (companion/lore.py)."""
     enabled: bool
+
+
+class LoreWhen(Input):
+    """When a lore entry applies besides its keywords (companion/lore_moments.py): conditions such as "weather:rain"."""
+    when: list[Annotated[str, Field(max_length=160)]] = Field(max_length=40)
 
 
 class SidecarTurn(Input):
@@ -258,6 +271,10 @@ class SidecarRequest(Input):
 class MessageEdit(Input):
     text: str = Field(min_length=1, max_length=8000)
     expected_text: str = Field(max_length=40000)
+
+
+class VoicePin(Input):
+    pinned: bool = True
 
 
 class PromptUpdate(Input):
@@ -336,6 +353,8 @@ class SettingsUpdate(Input):
     chat_style: Literal['feed', 'bubbles', 'community', 'retro', 'novel'] | None = None
     chat_sounds: bool | None = None
     chat_retro_dark: bool | None = None
+    # Period words in period cities (companion/world/era_words.py).
+    period_words: bool | None = None
     color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
     custom_palette: Palette | None = None
     # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.

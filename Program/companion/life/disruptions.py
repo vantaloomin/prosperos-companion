@@ -52,12 +52,22 @@ TABLES = {
                         'a deadline moved up', 'the system went down right before the end'),
     'cancel-why': reasons('a friend cancelled last minute', 'the reservation got lost', 'everyone was too tired',
                           'the place was unexpectedly closed', 'the plan never quite came together'),
-    'came-up-why': reasons('a leaky tap needed fixing', 'a package had to be picked up', 'the phone screen cracked',
+    'came-up-why': reasons('a leak under the sink needed fixing', 'a package had to be picked up', 'the phone screen cracked',
                            'a friend needed a favor', 'the laundry could not wait any longer',
                            'a bill turned out to be overdue'),
 }
 # Aboard a ship or station (companion/world/ships.py) there are no buses or traffic.
 AFLOAT = {'missed the bus': 'missed the tram', 'traffic was a mess': 'the lifts were packed'}
+# Before phones in every pocket (the 1920s on), and before buses, phones and plumbing (the older eras).
+BEFORE_SCREENS = {'the phone screen cracked': 'a boot heel came off',
+                  'the system went down right before the end': 'the ledgers would not balance right before the end'}
+BEFORE_PHONES = BEFORE_SCREENS | {
+    'missed the bus': 'the road was blocked', 'traffic was a mess': 'the streets were jammed with carts',
+    'got stuck on a long phone call': 'got caught in a long conversation',
+    'a leak under the sink needed fixing': 'the roof started leaking',
+    'the reservation got lost': 'the innkeeper gave the table away'}
+ERAS = {'jazz-age': BEFORE_SCREENS, **{era: BEFORE_PHONES for era in ('medieval', 'fantasy', 'frontier', 'victorian',
+                                                                       'steampunk')}}
 CHANGES = {'cancelled': {'kind': 'leisure', 'label': 'Quiet night in'},
            'came_up': {'kind': 'errand', 'label': 'Something came up'},
            'drop_by': {'kind': 'social', 'label': 'Company'}}
@@ -68,9 +78,11 @@ def enabled(connection) -> bool:
     return ACTIVE and bool(row and row['day_shifts'])
 
 
-def roll(seed: str, block: dict, company=(), tilt: dict | None = None, aboard: bool = False) -> dict | None:
+def roll(seed: str, block: dict, company=(), tilt: dict | None = None, aboard: bool = False,
+         era: str = 'modern') -> dict | None:
     """The shift for one slot ({key, minutes, reason, friend, text}), or None for a day as planned. `tilt`
-    multiplies rows' weights (see `tilts`); `aboard` a ship or station, the reasons fit it."""
+    multiplies rows' weights (see `tilts`); `aboard` a ship or station, or in a city of another `era`, the reasons
+    fit it."""
     if block['kind'] not in TABLES or block.get('holiday') or block.get('sick_day'):
         return None
     draws = Draws(seed)
@@ -83,7 +95,7 @@ def roll(seed: str, block: dict, company=(), tilt: dict | None = None, aboard: b
     minutes = low + draws.die(high - low + 1, 'shift', 'minutes') - 1 if key in MINUTES else 0
     friend = company[draws.die(len(company), 'shift', 'friend') - 1] if key == 'drop_by' else None
     reason = chain[1]['text'] if len(chain) > 1 else ''
-    reason = AFLOAT.get(reason, reason) if aboard else reason
+    reason = AFLOAT.get(reason, reason) if aboard else ERAS.get(era, {}).get(reason, reason)
     text = chain[0]['text'].format(minutes=minutes, reason=reason, friend=friend['name'] if friend else '')
     return {'key': key, 'minutes': minutes, 'reason': reason, 'friend': friend, 'text': text}
 

@@ -18,6 +18,7 @@ from companion.world.schema import Career, Careers, City, Featured, Holidays, Na
 DATA = Path(__file__).parent / 'data'
 LOG = logging.getLogger(__name__)
 BUILTIN_CITIES = DATA / 'cities'
+BUILTIN_LORE = DATA / 'city_lore'
 CAREER_FILES = ('careers.json', 'careers-future.json')
 
 
@@ -110,7 +111,7 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
-OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours'}
+OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours', 'words', 'lore'}
 
 
 def unset_work_rules(data: dict):
@@ -137,8 +138,11 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     # stays the same.
     data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
     unset_work_rules(data)
-    from companion.world import lifespans, ships
+    from companion import lore_moments
+    from companion.world import era_words, lifespans, ships
     notes += lifespans.clean(data)
+    notes += era_words.clean(data)
+    notes += lore_moments.clean(data)
     notes += ships.settle(data)
     known = careers_for(data)
     for employer in data['employers']:
@@ -208,6 +212,15 @@ def _add_pack(path: Path, result: dict, errors: list) -> None:
     result[data['id']] = data | {'builtin': False, 'origin': 'pack', 'pack_file': str(path)}
 
 
+def with_lore(path: Path) -> bytes | dict:
+    """A built-in city file, with the moment lore written for it (world/data/city_lore/<id>.json, companion/
+    lore_moments.py) kept beside it so the city files stay as they are."""
+    lore = BUILTIN_LORE / path.name
+    if not lore.is_file():
+        return path.read_bytes()
+    return json.loads(path.read_bytes()) | {'lore': json.loads(lore.read_bytes())}
+
+
 @cache
 def _library() -> tuple[dict[str, dict], tuple[dict, ...]]:
     """Every city that loads, and what went wrong with each file that did not. One bad file must never take every
@@ -219,7 +232,7 @@ def _library() -> tuple[dict[str, dict], tuple[dict, ...]]:
     result, errors, strays = {}, [], []
     for path in city_files(BUILTIN_CITIES):
         try:
-            data = prepare(path.read_bytes())
+            data = prepare(with_lore(path))
         except (ValidationError, ValueError, OSError):
             strays.append(path)
             continue

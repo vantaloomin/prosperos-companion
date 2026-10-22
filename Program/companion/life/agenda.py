@@ -322,7 +322,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                                  slot.local_date.isoformat()) if subject == COMPANION else None
         if subject == COMPANION and block['kind'] == 'work':
             tilt = work.tilt(connection, scope['companion'], slot.local_date, tilt)
-        shift = disruptions.roll(f'{seed}:shift', block, company, tilt, scope['aboard'])
+        shift = disruptions.roll(f'{seed}:shift', block, company, tilt, scope['aboard'],
+                                 scope['era'] or 'modern')
     starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
     block = disruptions.shifted(block, shift)
     if shift and shift['friend']:

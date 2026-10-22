@@ -4676,5 +4676,9 @@
     ]
    ]
   }
- ]
+ ],
+ "words": {
+  "sent_you": "{name} sent a note round.",
+  "nobody_writes": "Nobody sends a note round"
+ }
 }

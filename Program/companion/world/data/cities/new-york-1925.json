@@ -6847,5 +6847,10 @@
     ]
    ]
   }
- ]
+ ],
+ "words": {
+  "posts_tab": "Society",
+  "post": "item",
+  "posts": "items"
+ }
 }

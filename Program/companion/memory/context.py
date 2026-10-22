@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import consequences, lore, news, pictures, prompt_library, secrets, self_facts, texting
+from companion import consequences, library, lore, news, pictures, prompt_library, secrets, self_facts, texting
 from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.characters import definition_for_timeline
@@ -70,7 +70,18 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, corrected, history, look_back, people, phrases, sides, time_recall, vectors
+from companion.memory import (
+    closeness,
+    corrected,
+    history,
+    look_back,
+    people,
+    phrases,
+    sides,
+    time_recall,
+    vectors,
+    voice,
+)
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -199,6 +210,9 @@ HEADINGS = {
             # Meeting their people (companion/life/their_people.py): changes when someone meets the user, and weekly.
             'their_people': 'What your people think of the user (decided by the app: pass it on now and then, the way '
                             'people do, like "my mom keeps asking when you\'re coming back", and never contradict it)',
+            # A few of their own earlier replies (companion/memory/voice.py): changes when the conversation's window
+            # steps, as the sections after it do, or when the user pins a reply.
+            'voice': 'How you sound',
             # Grows during a chat as memories are saved and the companion's life moves on.
             'boundaries': "The user's boundaries",
             'profile': 'What you know about the user',
@@ -229,6 +243,9 @@ HEADINGS = {
                          'listed here, so never invent more about them or claim to know them better)',
             'city_news': 'Changes around your city (fictional unless marked as a real listing; you know them as a '
                          'local would, they are not things you did)'}
+# The 'library' heading (A/B 2026-10-21, /mnt/project-files/companion-library/ab/report.md).
+LIBRARY_HEADING = ('What you know that bears on this (passages from your library; true in your world. Use them as your own '
+                   'knowledge, in your own words: never quote them or say where they come from)')
 # Changes with every message: sent with the message being answered instead of in the system prompt, so the system
 # prompt and the conversation stay cacheable, and a small model reads them right next to what it answers.
 NOW = {
@@ -273,8 +290,10 @@ NOW = {
                      'never as done, and they may change)',
        'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
                 'only what is listed here)',
-       # Lorebook entries whose keywords came up in the last few messages (companion/lore.py).
-       'lore_now': 'Lore that fits what is being talked about (from your lorebook; true in your world)',
+       # Lorebook entries whose keywords came up in the last few messages, or whose "when" fits (companion/lore.py).
+       'lore_now': 'Lore that fits the moment or what is being talked about (from your lorebook; true in your world)',
+       # Passages of their reference library that match the last few messages (companion/library.py).
+       'library': LIBRARY_HEADING,
        'wearing': 'What you have on',
        'wording': 'Your wording lately',
        'time': 'Right now'}
@@ -1006,7 +1025,9 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
         packet.offer('real_events', events['id'], f"- From {events['service_name']}, retrieved "
                                                   f"{events['retrieved_at'][11:16]} UTC: «{events['content']}»")
     query = latest['text'] if latest else (group or {}).get('query', '')
-    lore.offer(packet, connection, companion, recent, query)
+    lore.offer(packet, connection, companion, recent, query, now)
+    library.offer(packet, connection, companion, recent, query, semantic)
+    voice.offer(packet, connection, companion, messages, messages[:window_start(len(messages))], group)
     offer_recalled(packet, connection, companion, now, groups['recallable'], (messages, older), query, semantic)
     return render(packet, conversation)
 

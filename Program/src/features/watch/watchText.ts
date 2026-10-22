@@ -41,7 +41,7 @@ export function lineTime(line: WatchLine, timezone: string): string {
 /** What kind of line it is, for screen readers and the small label beside a dream or a thought. */
 export const LINE_LABELS: Partial<Record<WatchLine['kind'], string>> = {
   dream: 'Dream', thought: 'On their mind', news: 'Heard', story: 'Unfolding', chapter: 'New chapter', mood: 'Feeling',
-  moment: 'A small moment', met: 'Crossed paths', family: 'Family',
+  moment: 'A small moment', met: 'Crossed paths', family: 'Family', love: 'Love life',
 }
 
 /** Where the "Just watching" banner shows: a chat with a companion or a group, where writing would step them back in. */

@@ -1,4 +1,6 @@
 """Days that do not go to plan: seeded shifts rolled with Prospero's Study's dice."""
+import re
+
 import pytest
 from conftest import set_life
 
@@ -59,6 +61,21 @@ def test_most_slots_go_to_plan_and_each_roll_is_fixed():
     assert 10 <= late['minutes'] <= 45 and late['text'].startswith(f"ran {late['minutes']} minutes late (")
     assert disruptions.roll('slot:1', {'kind': 'sleep', 'label': 'Asleep'}) is None
     assert disruptions.roll('slot:1', {**block, 'holiday': 'Labor Day'}) is None
+
+
+def test_in_a_city_of_another_era_the_reasons_fit_it():
+    modern = re.compile(r'\b(bus|traffic|phone|screen|system|sink|reservation)\b')
+    for kind in ('work', 'social', 'leisure'):
+        block = {'kind': kind, 'label': 'Out'}
+        for era in ('medieval', 'victorian', 'frontier'):
+            reasons = {shift['reason'] for index in range(3000)
+                       if (shift := disruptions.roll(f'slot:{index}', block, era=era)) and shift['reason']}
+            assert reasons and not any(modern.search(reason) for reason in reasons), (era, reasons)
+        twenties = {shift['reason'] for index in range(3000)
+                    if (shift := disruptions.roll(f'slot:{index}', {'kind': 'social', 'label': 'Out'}, era='jazz-age'))}
+        assert 'the phone screen cracked' not in twenties
+    assert disruptions.BEFORE_PHONES.keys() <= {row['text'] for name, rows in disruptions.TABLES.items()
+                                                 if name.endswith('-why') for row in rows}, 'every swap matches a reason'
 
 
 def test_a_friend_drops_by_only_when_one_is_free(monkeypatch):

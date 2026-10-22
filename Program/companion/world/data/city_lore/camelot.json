@@ -1,0 +1,244 @@
+{
+ "credit": "Written for the app from the Camelot city data, drawn from public-domain Arthurian tellings (Malory, Chretien de Troyes, Tennyson, Howard Pyle).",
+ "entries": [
+  {
+   "id": "rain-and-mud",
+   "title": "Rain and mud",
+   "text": "In the rain the roads into Camelot turn to deep mud, carts stick at the Southgate, the market traders cover their stalls with oiled cloth, and the alehouses at Bridgefoot do a fine trade.",
+   "keywords": [
+    "mud"
+   ],
+   "when": {
+    "weather": [
+     "rain"
+    ]
+   }
+  },
+  {
+   "id": "snow",
+   "title": "Snow on the hill",
+   "text": "When snow lies on the castle hill the town keeps close to its hearths, the river carts stop, and boys slide down Cheapside on boards until the watch chases them off.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "snow"
+    ]
+   }
+  },
+  {
+   "id": "heat",
+   "title": "A hot day",
+   "text": "On a hot day the young folk swim at the shallows below Mill End, the tanneries at Barkers End can be smelled from the castle, and the minster is the coolest place in town.",
+   "keywords": [],
+   "when": {
+    "weather": [
+     "heat"
+    ]
+   }
+  },
+  {
+   "id": "river-mist",
+   "title": "Mist on the Cam",
+   "text": "Mist rises off the Cam on still mornings and lies in the meadows below the castle; the watermen say no good comes of crossing the river while it hides the far bank.",
+   "keywords": [
+    "mist"
+   ],
+   "when": {
+    "weather": [
+     "fog"
+    ]
+   }
+  },
+  {
+   "id": "spring",
+   "title": "Spring in Camelot",
+   "text": "In spring the ploughing and sowing begin in Woolston's strips, lambs are born on the downs, and on May morning the court and the townsfolk go a-maying in the woods for green boughs and flowers.",
+   "keywords": [
+    "a-maying"
+   ],
+   "when": {
+    "season": [
+     "spring"
+    ]
+   }
+  },
+  {
+   "id": "summer",
+   "title": "Summer and haymaking",
+   "text": "Summer is haymaking and long light evenings, tournaments in the Tiltyard Meads, and then harvest in the fields, when everyone who can hold a sickle is needed.",
+   "keywords": [
+    "harvest",
+    "haymaking"
+   ],
+   "when": {
+    "season": [
+     "summer"
+    ]
+   }
+  },
+  {
+   "id": "autumn",
+   "title": "Autumn",
+   "text": "In autumn the apples are picked and pressed, hops are dried, pigs are driven to the forest to fatten on acorns, and at Martinmas the beasts that cannot be fed through the winter are slaughtered and salted.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "fall"
+    ]
+   }
+  },
+  {
+   "id": "winter",
+   "title": "Winter",
+   "text": "Winter means short days, rain and frost, pottage kept going on the hearth, and the long wait for the twelve days of Christmas.",
+   "keywords": [],
+   "when": {
+    "season": [
+     "winter"
+    ]
+   }
+  },
+  {
+   "id": "curfew",
+   "title": "Curfew",
+   "text": "At dusk the minster bell rings curfew: hearth fires are covered, the town gates are shut, and anyone abroad without a light may be questioned by the watch.",
+   "keywords": [
+    "curfew"
+   ],
+   "when": {
+    "time": [
+     "evening",
+     "night"
+    ]
+   }
+  },
+  {
+   "id": "morning-bells",
+   "title": "Morning in Camelot",
+   "text": "At dawn the minster bells ring for prime, the forges of Smithgate start their hammering, and the cookshops in the Shambles cry their hot pies.",
+   "keywords": [
+    "prime"
+   ],
+   "when": {
+    "time": [
+     "morning"
+    ]
+   }
+  },
+  {
+   "id": "fish-day",
+   "title": "Fish days",
+   "text": "No meat is eaten on Fridays, through Lent or on other fast days, so the town lives on herring, eels and river fish from Fishergate.",
+   "keywords": [
+    "fish day",
+    "fast day"
+   ],
+   "when": {}
+  },
+  {
+   "id": "market-day",
+   "title": "Market day",
+   "text": "On market days Cheapside is crowded around the market cross, the ale-taster tries the new ale before it can be sold, and an ale-stake over a door means a house has a fresh brew.",
+   "keywords": [
+    "market day",
+    "ale-stake"
+   ],
+   "when": {
+    "place": [
+     "cheapside"
+    ]
+   }
+  },
+  {
+   "id": "castle-ward",
+   "title": "The castle",
+   "text": "In the great hall of the castle every seat at the Round Table bears its knight's name in letters of gold, except the Siege Perilous, which is kept empty.",
+   "keywords": [
+    "round table",
+    "siege perilous"
+   ],
+   "when": {
+    "place": [
+     "castle-ward"
+    ]
+   }
+  },
+  {
+   "id": "smithgate",
+   "title": "Smithgate",
+   "text": "Smithgate is loud with hammers from dawn, and loudest before a tournament, when every knight in Camelot wants his harness mended at once.",
+   "keywords": [],
+   "when": {
+    "place": [
+     "smithgate"
+    ]
+   }
+  },
+  {
+   "id": "pentecost",
+   "title": "Pentecost",
+   "text": "At the feast of Pentecost the king holds court and will not sit down to eat until he has seen or heard of some marvel, and the knights of the Round Table renew their oath.",
+   "keywords": [
+    "pentecost",
+    "whitsun"
+   ],
+   "when": {
+    "holiday": [
+     "whitsun"
+    ]
+   }
+  },
+  {
+   "id": "may-day",
+   "title": "May Day",
+   "text": "On May Day the town brings in the may at dawn, sets up the maypole on the green and dances until dark.",
+   "keywords": [
+    "maypole"
+   ],
+   "when": {
+    "holiday": [
+     "may-day"
+    ]
+   }
+  },
+  {
+   "id": "st-johns-eve",
+   "title": "St John's Eve",
+   "text": "On St John's Eve bonfires burn on the hills around Camelot and the watch keeps fires lit in the town all night.",
+   "keywords": [
+    "midsummer"
+   ],
+   "when": {
+    "holiday": [
+     "midsummer-eve"
+    ]
+   }
+  },
+  {
+   "id": "christmas",
+   "title": "Christmas",
+   "text": "At Christmas there are twelve days of feasting with no work in the fields, and the wassail bowl of hot spiced ale with roasted apples goes round with \"wassail\" and the answer \"drinkhail\".",
+   "keywords": [
+    "wassail",
+    "yule"
+   ],
+   "when": {
+    "holiday": [
+     "christmas",
+     "twelfth-night"
+    ]
+   }
+  },
+  {
+   "id": "at-work",
+   "title": "Work in Camelot",
+   "text": "Work in Camelot follows the bells and the light: guild rules set the hours, nobody works by candle for fear of fire, and a master's word decides most things.",
+   "keywords": [
+    "guild"
+   ],
+   "when": {
+    "work": true
+   }
+  }
+ ]
+}

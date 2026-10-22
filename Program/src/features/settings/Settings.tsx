@@ -21,6 +21,7 @@ import { PromptSettings } from './PromptSettings'
 import { Toggle } from '../../components/Fields'
 import { BackgroundSettings, MemorySettings, OocSettings, PauseSettings, RestoredReview, TimezoneSettings } from './WorkspaceSettings'
 import { Cities } from '../world/Cities'
+import { Library } from '../character/Library'
 import { BuiltinRecall } from './models/BuiltinRecall'
 import { VoiceSettings } from './models/VoiceSettings'
 import { HardwareCheck } from './models/HardwareCheck'
@@ -28,6 +29,7 @@ import { LocalPrograms } from './models/LocalPrograms'
 import { ModelSettings } from './models/ModelSettings'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { NextStep } from './NextStep'
+import { CommunityLink } from './CommunityLink'
 import { availableTabs, pickTab, searchSettings, type SettingsMatch, type SettingsTab } from './sections'
 
 interface Props {
@@ -61,6 +63,7 @@ export function Settings({ companion, tab, onTab, onCreate }: Props) {
             <Toggle label="Show advanced settings" checked={advanced} onChange={setAdvanced}
               hint={advanced ? 'The Advanced tab is now in the list of tabs.' : 'Adds an Advanced tab for power users, where you can reword the prompts sent to your models.'} />
           </div>
+          <CommunityLink />
         </div>
         <div className="settings-panel" role="tabpanel" id={`settings-panel-${current}`} aria-labelledby={`settings-tab-${current}`}>
           <TabContent tab={current} companion={companion} />
@@ -97,7 +100,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   const content: Record<SettingsTab, ReactNode> = {
     general: <><TimezoneSettings /><ChatStyleSettings /><OocSettings /><PauseSettings /><BackgroundSettings /></>,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
-    life: <><LifeSettings name={name} /><Cities /></>,
+    life: <><LifeSettings name={name} /><Cities /><Library world /></>,
     realism: <><RealismIntro /><PaceSettings /><LoveSettings /><HomeLifeSettings /><ClosenessSettings name={name} /><AdultSideSettings /><HiddenValues name="" /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,
