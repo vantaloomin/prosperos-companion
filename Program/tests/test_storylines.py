@@ -251,5 +251,6 @@ def test_a_city_of_another_era_has_no_phones_or_internet_in_its_storylines():
     for story in storylines.STORIES:
         for stage in story.stages:
             for found in stage:
-                period = storylines.fill(found.text, row, names, {'name': 'Wren', 'home_city': 'camelot'})
-                assert not re.search(r'\b(phone|online|texted|internet)\b', period), period
+                for said in (found.text, found.share):
+                    period = storylines.fill(said, row, names, {'name': 'Wren', 'home_city': 'camelot'})
+                    assert not re.search(r'\b(phone|online|texted|internet|messaged)\b', period), period

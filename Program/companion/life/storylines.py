@@ -434,9 +434,11 @@ def second_person(text: str) -> str:
 
 # Views --------------------------------------------------------------------------------------------
 
-# What a beat says in a city of another era instead of today's phone or internet (companion/world/perception.py).
+# What a beat (and what they tell the user of it) says in a city of another era instead of today's phone or internet (companion/world/perception.py).
 PERIOD = {'spent the evening on the phone with them': 'spent the evening sitting up with them',
-          'looked the half-sibling up online': 'asked around about the half-sibling'}
+          'I was on the phone with them for hours': 'I sat up with them for hours',
+          'looked the half-sibling up online': 'asked around about the half-sibling',
+          "found my half-sibling online. haven't messaged": "found out where my half-sibling lives. haven't written"}
 
 
 def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
