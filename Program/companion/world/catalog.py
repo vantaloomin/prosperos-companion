@@ -212,7 +212,6 @@ def _add_pack(path: Path, result: dict, errors: list) -> None:
     result[data['id']] = data | {'builtin': False, 'origin': 'pack', 'pack_file': str(path)}
 
 
-@cache
 def with_lore(path: Path) -> bytes | dict:
     """A built-in city file, with the moment lore written for it (world/data/city_lore/<id>.json, companion/
     lore_moments.py) kept beside it so the city files stay as they are."""
@@ -222,6 +221,7 @@ def with_lore(path: Path) -> bytes | dict:
     return json.loads(path.read_bytes()) | {'lore': json.loads(lore.read_bytes())}
 
 
+@cache
 def _library() -> tuple[dict[str, dict], tuple[dict, ...]]:
     """Every city that loads, and what went wrong with each file that did not. One bad file must never take every
     city list, and everything built on them (lookups, Matchlight, the life sim), down with it.
