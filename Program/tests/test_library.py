@@ -115,9 +115,17 @@ def test_other_files_are_turned_down():
 def test_passages_are_short_and_keep_every_word():
     text = ' '.join(f'Sentence number {index} is about the harbour.' for index in range(200))
     found = library.passages([('Book', text)])
-    assert all(len(piece) <= library.PASSAGE_CHARS for _title, piece in found)
+    assert all(len(piece) <= library.PASSAGE_CHARS + library.SCRAP_CHARS for _title, piece in found)
     assert ' '.join(piece for _title, piece in found).split() == text.split()
     assert all(piece.endswith('.') for _title, piece in found)
+
+
+def test_a_scrap_at_the_end_of_a_section_joins_the_passage_before_it():
+    chapter = ' '.join(f'Sentence number {index} is about the harbour.' for index in range(11))
+    found = library.passages([('Chapter I', f'{chapter}\n\nContinue to Chapter II'), ('Chapter II', 'Short.')])
+    assert [title for title, _piece in found] == ['Chapter I', 'Chapter II']
+    assert found[0][1].endswith('harbour.\n\nContinue to Chapter II'), 'no passage of its own'
+    assert found[1] == ('Chapter II', 'Short.'), 'a short section is still a passage'
 
 
 def test_everyday_chat_picks_out_no_passage():
@@ -245,3 +253,25 @@ def test_passages_get_vectors_and_match_by_meaning(client, companion):
         rows = library.passage_rows(connection, library.usable_books(connection, mira))
         found = library.by_meaning(connection, {'model': 'embed', 'vector': [0.0, 1.0]}, rows)
     assert found == [items[1][1], items[2][1]]
+
+
+def test_names_are_what_the_user_capitalized():
+    assert library.names('Have you been to the Old Quarter lately?') == ['Old Quarter']
+    assert library.names('Is Old Marigold still by the window? Did Lady Corrow collect it?') == [
+        'Old Marigold', 'Lady Corrow']
+    assert library.names('Tell me about the Picts. I keep hearing stories.') == ['Picts']
+
+
+def test_a_one_word_match_on_a_name_needs_the_whole_name(client, connected, provider):
+    text = ('Chapter 1\n\nThe Academic Quarter climbs toward the citadel, where scholars argue all night.\n\n'
+            'Chapter 2\n\nHelp came from an unlikely quarter: a fisherman who knew the tides.\n\n'
+            'Chapter 3\n\nIn the Old Quarter the lanterns burn green and the tanners work by the river.\n\n'
+            + ''.join(f'Chapter {index}\n\nThe ferry crossed the estuary for the {index}th time that week.\n\n'
+                      for index in range(4, 12)))
+    add(client, 'city.txt', text.encode())
+    send(client, 'Have you been to the Old Quarter lately?', 'message-one')
+    notes = provider.requests[-1]['prompt'].split(LIBRARY_HEADING)[1]
+    assert 'lanterns burn green' in notes
+    assert 'unlikely quarter' not in notes and 'Academic Quarter' not in notes
+    send(client, 'What about the Glass Quarter?', 'message-two')
+    assert LIBRARY_HEADING not in provider.requests[-1]['prompt'], 'no passage names it'
