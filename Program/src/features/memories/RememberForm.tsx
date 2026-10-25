@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react'
 import type { Layer, Memory, PlanStatus } from '../../types'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
-import { LAYERS, titleFrom, type RememberRequest } from './memoryGroups'
+import { todayIso } from '../character/money'
+import { LAYERS, PAST_LAYERS, happenedAt, titleFrom, type RememberRequest } from './memoryGroups'
 
 export interface NewMemory {
   layer: Layer
@@ -12,6 +13,7 @@ export interface NewMemory {
   boundary: boolean
   sensitive: boolean
   plan_status: PlanStatus | null
+  applies_from: string | null
   applies_until: string | null
   source_message_ids: string[]
 }
@@ -24,6 +26,7 @@ export function RememberForm({ name, request, onSave, onCancel }: { name: string
   const [sensitive, setSensitive] = useState(false)
   const [planStatus, setPlanStatus] = useState<PlanStatus>('proposed')
   const [until, setUntil] = useState('')
+  const [happened, setHappened] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // Never a silently greyed-out button: a missing value says so here, and a refusal is shown under the form.
@@ -31,7 +34,7 @@ export function RememberForm({ name, request, onSave, onCancel }: { name: string
     event.preventDefault()
     if (!value.trim()) { setError('Write what to remember first.'); return }
     setSaving(true)
-    const saved = await onSave(newMemory({ layer, subject, value, boundary, sensitive, planStatus, until, request }))
+    const saved = await onSave(newMemory({ layer, subject, value, boundary, sensitive, planStatus, until, happened, request }))
     setSaving(false)
     if (typeof saved === 'string') setError(saved)
     else onCancel()
@@ -48,6 +51,11 @@ export function RememberForm({ name, request, onSave, onCancel }: { name: string
       </div>
       <TextArea label="What to remember" value={value} onChange={setValue} maxLength={4000} rows={2} hint="Write it as a plain fact, such as Lives in Chicago." />
       <TimingFields layer={layer} planStatus={planStatus} setPlanStatus={setPlanStatus} until={until} setUntil={setUntil} />
+      {PAST_LAYERS.includes(layer) && (
+        <Field label="When it happened (optional)" hint="Leave it empty for today. Set a day for backstory, such as when you first met.">
+          {(id, hint) => <input id={id} type="date" aria-describedby={hint} value={happened} max={todayIso()} onChange={(event) => setHappened(event.target.value)} />}
+        </Field>
+      )}
       {layer !== 'companion_life' && <>
         <Toggle label="This is a boundary" hint="Always respected, however old it is." checked={boundary} onChange={setBoundary} />
         <Toggle label="Sensitive" hint="Health, relationships, money and similar personal details." checked={sensitive} onChange={setSensitive} />
@@ -61,11 +69,11 @@ export function RememberForm({ name, request, onSave, onCancel }: { name: string
   )
 }
 
-function newMemory({ layer, subject, value, boundary, sensitive, planStatus, until, request }: { layer: Layer; subject: string; value: string; boundary: boolean; sensitive: boolean; planStatus: PlanStatus; until: string; request: RememberRequest | null }): NewMemory {
+function newMemory({ layer, subject, value, boundary, sensitive, planStatus, until, happened, request }: { layer: Layer; subject: string; value: string; boundary: boolean; sensitive: boolean; planStatus: PlanStatus; until: string; happened: string; request: RememberRequest | null }): NewMemory {
   const fiction = layer === 'companion_life'
   return {
     layer, subject: subject.trim() || titleFrom(value), value: value.trim(), reality: fiction ? 'fiction' : 'real', boundary: boundary && !fiction, sensitive: sensitive && !fiction,
-    plan_status: layer === 'plan' ? planStatus : null, applies_until: until ? new Date(`${until}T23:59:59`).toISOString() : null,
+    plan_status: layer === 'plan' ? planStatus : null, applies_from: PAST_LAYERS.includes(layer) ? happenedAt(happened) : null, applies_until: until ? new Date(`${until}T23:59:59`).toISOString() : null,
     source_message_ids: request ? [request.messageId] : [],
   }
 }

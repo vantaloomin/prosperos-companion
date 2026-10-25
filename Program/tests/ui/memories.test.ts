@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { addedLine, appliesText, correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
+import { addedLine, appliesText, happenedAt, correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory, Person } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
@@ -123,4 +123,12 @@ test('a memory with no end date applies from its start, not "to …"', () => {
   assert.equal(appliesText('Oct 6', null, show), 'Applies from Oct 6')
   assert.equal(appliesText(null, 'Oct 9', show), 'Applies until Oct 9')
   assert.equal(appliesText('Oct 6', 'Oct 9', show), 'Applies Oct 6 to Oct 9')
+})
+
+test('a moment with only a start happened then, and a hand-written one is dated the chosen day or today', () => {
+  const show = (value: string) => value
+  assert.equal(appliesText('May 3', null, show, true), 'Happened May 3')
+  assert.equal(appliesText('May 3', 'May 9', show, true), 'Applies May 3 to May 9')
+  assert.equal(happenedAt(''), null)
+  assert.equal(happenedAt('2026-05-03'), new Date('2026-05-03T00:00').toISOString())
 })

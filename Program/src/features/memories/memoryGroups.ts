@@ -77,9 +77,10 @@ export function addedLine(memory: Memory): string | null {
   return memory.source_message_ids.length || memory.origin === 'automatic' ? null : 'Added by you directly.'
 }
 
-/** When a memory holds: "Applies from Oct 6, 2026" with no end, "Applies until …" with no start, else both ends. */
-export function appliesText(from: string | null, until: string | null, show: (value: string) => string): string {
-  if (!until) return `Applies from ${show(from!)}`
+/** When a memory holds: "Applies from Oct 6, 2026" with no end, "Applies until …" with no start, else both ends.
+ * A moment with only a start just happened then. */
+export function appliesText(from: string | null, until: string | null, show: (value: string) => string, moment = false): string {
+  if (!until) return `${moment ? 'Happened' : 'Applies from'} ${show(from!)}`
   if (!from) return `Applies until ${show(until)}`
   return `Applies ${show(from)} to ${show(until)}`
 }
@@ -152,6 +153,17 @@ export function dayInput(value: string | null): string {
 /** A date input's day as local midnight, the way the server stores spans. */
 function dayStamp(day: string): string | undefined {
   return day ? new Date(`${day}T00:00`).toISOString() : undefined
+}
+
+/** Kinds that describe what already happened, so a hand-written one (backstory too) can say when. */
+export const PAST_LAYERS: Layer[] = ['user_fact', 'shared_experience', 'relationship', 'companion_life']
+
+/** Kinds that are moments rather than facts that hold for a while. */
+export const MOMENT_LAYERS: Layer[] = ['shared_experience', 'companion_life']
+
+/** When a hand-written memory happened: the chosen day, or null for today. */
+export function happenedAt(day: string): string | null {
+  return dayStamp(day) ?? null
 }
 
 export interface CorrectionDraft { value: string; plan_status: PlanStatus | null; from: string; until: string }

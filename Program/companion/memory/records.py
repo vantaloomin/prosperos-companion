@@ -144,11 +144,14 @@ def remember(database, body) -> dict:
     require((body.layer == 'companion_life') == (body.reality == 'fiction'),
             'Only companion-life memories are fictional; personal memories describe real life.', 422)
     require(body.plan_status is None or body.layer == 'plan', 'Only plans have a plan status.', 422)
+    now = database.now()
+    require(body.layer in ('plan', 'temporary') or body.applies_from is None or normalized_time(body.applies_from) <= now,
+            'Something that already happened cannot start after today.', 422)
     with database.connect(write=True) as connection:
         companion = owner(connection, body)
         validate_sources(connection, companion['active_timeline_id'], body.source_message_ids)
         fields = body.model_dump(exclude={'source_message_ids', 'tentative', 'companion_id'})
-        memory, _created = insert(connection, companion, fields, now=database.now(),
+        memory, _created = insert(connection, companion, fields, now=now,
                                   authority='tentative' if body.tentative else 'stated',
                                   sources=body.source_message_ids)
         return memory
