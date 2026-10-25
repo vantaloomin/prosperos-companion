@@ -196,6 +196,8 @@ export interface PersonalityView { sliders: Required<PersonalitySliders>; chips:
 
 export interface IntimacySetup {
   orientation: string; level: string; drive: string; interests: string[]
+  /** The user chose the interests, so an empty list means none rather than the roll. */
+  interests_picked?: boolean
   /** Their own turn-ons and turn-offs, in the user's words. */
   own_into: string[]; not_into: string[]; note: string
 }

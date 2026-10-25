@@ -173,7 +173,7 @@ def merged(rolled: dict | None, chosen: dict | None) -> dict | None:
     for key in ('orientation', 'level', 'drive', 'note'):
         if chosen.get(key):
             found[key] = chosen[key]
-    if chosen.get('interests'):
+    if chosen.get('interests') or chosen.get('interests_picked'):
         found['interests'] = [entry for entry in chosen['interests'] if entry in bank()['interests_by_id']]
     # Their own words add to what they're into (rolled or picked) and say what isn't for them.
     for key in ('own_into', 'not_into'):

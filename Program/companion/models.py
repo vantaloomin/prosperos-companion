@@ -55,6 +55,8 @@ class IntimacySetup(Input):
     level: Literal['', 'reserved', 'conventional', 'curious', 'adventurous', 'wild'] = ''
     drive: Literal['', 'low', 'average', 'high'] = ''
     interests: list[Annotated[str, Field(max_length=40)]] = Field(default_factory=list, max_length=24)
+    # The user chose the interests themselves, so an empty list means none rather than the roll.
+    interests_picked: bool = False
     # Their own turn-ons and turn-offs, in the user's words, beyond the bank.
     own_into: list[Annotated[str, Field(max_length=80)]] = Field(default_factory=list, max_length=8)
     not_into: list[Annotated[str, Field(max_length=80)]] = Field(default_factory=list, max_length=8)

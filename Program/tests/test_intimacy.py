@@ -150,6 +150,19 @@ def test_their_own_turn_ons_and_turn_offs_go_in_their_prompt(client, companion):
     assert 'reads to them' not in preview(client) and 'being rushed' not in preview(client)
 
 
+def test_the_user_can_pick_none_of_the_listed_interests(client, companion):
+    client.put('/api/settings', json={'adult_side': True})
+    revise(client, identity='32, a librarian.')
+    assert '- Into: ' in preview(client)
+    revise(client, intimacy={'interests': [], 'interests_picked': True})
+    assert '- Into: ' not in preview(client)
+    revise(client, intimacy={'interests': [], 'interests_picked': True, 'own_into': ['a sharp mind']})
+    assert '- Into: a sharp mind.' in preview(client)
+    # Back to as rolled, the roll fills it again.
+    revise(client, intimacy={'interests': [], 'interests_picked': False})
+    assert '- Into: ' in preview(client)
+
+
 def test_their_own_words_stay_between_consenting_adults(client, companion):
     current = client.get('/api/companion').json()['companion']
     for words in ('a teen', 'their step-sister', 'being forced', 'when they are asleep', 'a 16-year-old'):
