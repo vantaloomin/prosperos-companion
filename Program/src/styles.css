@@ -2435,3 +2435,6 @@ p.breakup-line { align-items: center; }
   .import-picks .checkbox-row { min-height: 44px; }
   .import-picks .form-actions .button { flex: 1 1 auto; min-height: 44px; }
 }
+
+/* Character > Who they know: the add form's heading sits under the section's h2, not beside it. */
+.who-they-know h3 { margin: 4px 0 0; font-size: 1rem; }

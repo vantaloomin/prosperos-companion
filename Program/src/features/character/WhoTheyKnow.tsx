@@ -5,7 +5,7 @@ import type { PairTie, UntoldTie } from '../../types'
 import { Field } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { PAIR_STAGES, howText, modelHow, tieText } from '../memories/pairText'
+import { PAIR_STAGES, howText, listedHow, modelHow, tieText } from '../memories/pairText'
 import { firstName } from './panelText'
 
 type TiesView = { ties: PairTie[]; untold: UntoldTie[] }
@@ -27,7 +27,7 @@ export function WhoTheyKnow({ name }: { name: string }) {
     setSaved(other)
   }
   return (
-    <section className="settings-section form-stack" aria-labelledby="who-they-know-heading">
+    <section className="settings-section form-stack who-they-know" aria-labelledby="who-they-know-heading">
       <div>
         <h2 id="who-they-know-heading">Who {first} knows</h2>
         <p className="subtle">Your other companions {first} knows, and how close they feel. Time they spend together, in group chats or around town, changes it.</p>
@@ -41,10 +41,10 @@ export function WhoTheyKnow({ name }: { name: string }) {
 
 /** The companions they already know: "Mira and Billy: Close · Old bandmates". */
 function Known({ name, ties }: { name: string; ties: PairTie[] }) {
-  if (!ties.length) return null
+  if (!ties.length) return <p className="subtle">{firstName(name)} doesn't know any of your other companions yet.</p>
   return (
     <ul className="network-list" aria-label={`Companions ${firstName(name)} knows`}>
-      {ties.map((tie) => <li key={tie.companion_id}>{tieText(name, tie)}{tie.how && <span className="subtle"> · {howText(tie.how)}</span>}</li>)}
+      {ties.map((tie) => <li key={tie.companion_id}>{tieText(name, tie)}{tie.how && <span className="subtle"> · {listedHow(tie.how)}</span>}</li>)}
     </ul>
   )
 }
@@ -71,7 +71,7 @@ function TellTie({ name, untold, onTold }: { name: string; untold: UntoldTie[]; 
   }
   return (
     <div className="form-stack">
-      <h3>Someone {first} should know</h3>
+      <h3>Add someone {first} knows</h3>
       <div className="form-grid">
         <Field label="Who">
           {(id) => (
