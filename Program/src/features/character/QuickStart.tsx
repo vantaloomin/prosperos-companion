@@ -33,30 +33,41 @@ async function saveForLater(client: QueryClient, body: Omit<DraftRequest, 'start
 }
 
 /** Where they live unless the user picks: a new world's own city (Worlds), else a city near the user. */
-function startingCity(world: World | undefined, cities: CitySummary[], timezone: string): string {
+function startingCity(world: World | undefined, cities: CitySummary[], timezone: string, another?: Props['another']): string {
+  if (another) return another.city
   return world && !world.first ? world.city_id : defaultCity(cities, timezone)
 }
 
-interface Props { onDraft: (definition: CharacterDefinition) => void; onSplit: (result: SplitResult) => void; onManual: () => void; go: (view: View) => void }
+/** Saving now and writing the rest later is only for a first companion, while "Set it up for me" downloads. */
+function savesForLater(connected: boolean, ready: ReturnType<typeof useReady>['data'], another?: Props['another']): boolean {
+  return !another && !connected && isActive(ready)
+}
+
+interface Props {
+  onDraft: (definition: CharacterDefinition) => void; onSplit: (result: SplitResult) => void; onManual: () => void; go: (view: View) => void
+  /** Another companion beside the main character (AnotherCompanion.tsx): they start in the main character's city and
+   * time zone, the picks are not kept, and nothing is saved before the form. */
+  another?: { name: string; city: string; timezone: string }
+}
 
 /** Three picks (name, age, where and when); the configured model drafts the rest for the form to review.
  * The idea, relationship, vibe and emotional edges wait under "More options". */
-export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
+export function QuickStart({ onDraft, onSplit, onManual, go, another }: Props) {
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
   // Kept while they step away, to Settings say, and come back (keptDraft.ts).
-  const [picks, setPicks] = useKept('picks', () => ({ request: emptyRequest(guessTimezone()), cityPicked: false }))
+  const [picks, setPicks] = useKept('picks', () => ({ request: emptyRequest(another ? another.timezone : guessTimezone()), cityPicked: false }), !another)
   // The app picks where they live until the user picks somewhere else (or "Anywhere"): in a new world, its city.
   const { request, cityPicked } = picks
   const world = useWorlds().data?.world
-  const homeCity = cityPicked ? request.home_city : startingCity(world, cities.data ?? [], request.timezone)
+  const homeCity = cityPicked ? request.home_city : startingCity(world, cities.data ?? [], request.timezone, another)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ text: string; settings: boolean } | null>(null)
   const set = (change: Partial<DraftRequest>) => setPicks((current) => ({ ...current, request: { ...current.request, ...change } }))
   const connected = !!connection.data
   // While "Set it up for me" downloads, they can save them now and the model writes the rest when it is ready.
   const ready = useReady().data
-  const downloading = !connected && isActive(ready)
+  const downloading = savesForLater(connected, ready, another)
   const client = useQueryClient()
 
   const submit = async (event: FormEvent) => {
@@ -78,7 +89,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
       <p className="subtle">Your text model writes the rest: their job, week, skills, flaws and how they talk. You see the whole character before anything is saved.</p>
       <ModelNotice shown={connection.isSuccess && !connected} downloading={downloading} go={go} />
       <form className="form-stack" onSubmit={submit}>
-        <Picks request={request} set={set} cities={cities} homeCity={homeCity} pickCity={(home_city) => setPicks((current) => ({ cityPicked: true, request: { ...current.request, home_city } }))} />
+        <Picks request={request} set={set} cities={cities} homeCity={homeCity} near={another ? `Where ${another.name} lives` : 'Picked near you'} pickCity={(home_city) => setPicks((current) => ({ cityPicked: true, request: { ...current.request, home_city } }))} />
         <details className="advanced more-options">
           <summary>More options</summary>
           <div className="form-stack">
@@ -118,9 +129,11 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
 interface PicksProps {
   request: DraftRequest; set: (change: Partial<DraftRequest>) => void
   cities: UseQueryResult<CitySummary[]>; homeCity: string; pickCity: (id: string) => void
+  /** Where the city comes from unless they choose. */
+  near: string
 }
 
-function Picks({ request, set, cities, homeCity, pickCity }: PicksProps) {
+function Picks({ request, set, cities, homeCity, near, pickCity }: PicksProps) {
   const featured = useQuery({ queryKey: ['featured-cities'], queryFn: () => api<FeaturedCities<CitySummary>>('/world/featured'), staleTime: Infinity })
   return (<>
     <div className="form-grid three">
@@ -132,7 +145,7 @@ function Picks({ request, set, cities, homeCity, pickCity }: PicksProps) {
           </select>
         )}
       </Field>
-      <Field label="Where and when" hint="Picked near you unless you choose. Their days use its real places, and its era.">
+      <Field label="Where and when" hint={`${near} unless you choose. Their days use its real places, and its era.`}>
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={homeCity} onChange={(event) => pickCity(event.target.value)}>
             <option value="">Anywhere, today</option>

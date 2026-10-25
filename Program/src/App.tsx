@@ -29,6 +29,7 @@ import { inChat } from './features/watch/watchText'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
+const AnotherCompanion = lazy(() => import('./features/character/AnotherCompanion').then((m) => ({ default: m.AnotherCompanion })))
 const SwitchTo = lazy(() => import('./features/character/SwitchTo').then((m) => ({ default: m.SwitchTo })))
 const Appearance = lazy(() => import('./features/appearance/Appearance').then((m) => ({ default: m.Appearance })))
 const Portraits = lazy(() => import('./features/appearance/Portraits').then((m) => ({ default: m.Portraits })))
@@ -49,8 +50,9 @@ const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m
 const ChatsHome = lazy(() => import('./features/chats/ChatsHome').then((m) => ({ default: m.ChatsHome })))
 const Watch = lazy(() => import('./features/watch/Watch').then((m) => ({ default: m.Watch })))
 
-// Views outside the side rail: the phone's Chats list, worlds, and the map and Who knows who opened from Today.
-const OTHER_VIEWS = new Set(['chats', 'worlds', 'people', 'map', 'watch'])
+// Views outside the side rail: the phone's Chats list, worlds, the map and Who knows who opened from Today, and
+// another companion made from the Character page.
+const OTHER_VIEWS = new Set(['chats', 'worlds', 'people', 'map', 'watch', 'another'])
 const LINKED = ['settings/', 'match/', 'chat/', 'group/', 'map/']
 
 function viewFromHash(): View {
@@ -178,8 +180,17 @@ function MemoriesView({ view, companion, go }: { view: View; companion: Companio
   return view === 'year' ? <OurYear companion={companion} go={go} /> : <Memories companion={companion} go={go} />
 }
 
+function isNewMain(view: View) {
+  return view.startsWith('cast/') || view === 'another'
+}
+
+/** Someone new becoming the main character: a townsperson, or another companion made from scratch. */
+function NewMain({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {
+  return view === 'another' ? <AnotherCompanion companion={companion} go={go} /> : <SwitchTo townKey={decodeURIComponent(view.slice(5))} go={go} />
+}
+
 function CompanionView({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {
-  if (view.startsWith('cast/')) return <SwitchTo townKey={decodeURIComponent(view.slice(5))} go={go} />
+  if (isNewMain(view)) return <NewMain view={view} companion={companion} go={go} />
   if (view === 'appearance') return <Appearance companion={companion} go={go} />
   if (view === 'portraits') return <Portraits companion={companion} go={go} />
   if (view === 'today') return <Today companion={companion} go={go} />

@@ -155,6 +155,15 @@ def create_companion(request: Request, body: CharacterDefinition):
     return made
 
 
+@router.post('/companion/another')
+def another_companion(request: Request, body: CharacterDefinition):
+    """A companion made from scratch beside the ones here; the current one steps back with their history."""
+    made = cast.add(db(request), body)
+    with db(request).connect(write=True) as connection:  # Their birth date from the age written today.
+        ages.sync(connection, db(request).clock.now())
+    return made
+
+
 @router.post('/companion/draft')
 async def draft_companion(request: Request, body: CharacterDraftRequest):
     """A drafted definition for the form to review; nothing is saved."""

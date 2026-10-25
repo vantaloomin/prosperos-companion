@@ -103,6 +103,31 @@ def test_switching_keeps_both_histories_and_they_meet_in_town(client, clock, cha
     assert client.post('/api/companion/cast/focus', json={'companion_id': 'missing'}).status_code == 404
 
 
+def test_another_companion_can_be_made_from_scratch_beside_the_first(client, clock):
+    mira = make(client, 'Warm and curious.')
+    send(client, 'Morning, Mira!', 'client-0001')
+    made = ok(client.post('/api/companion/another', json={
+        'name': 'Theo', 'timezone': 'America/New_York', 'personality': 'Dry and patient.', 'identity': '34, a luthier.'}))
+    assert made['version']['name'] == 'Theo' and made['id'] != mira['id']
+    assert ok(client.get('/api/companion'))['companion']['id'] == made['id']
+    assert made['town_seed'] == mira['town_seed']
+    members = ok(client.get('/api/companion/cast'))['members']
+    assert [(member['name'], member['main']) for member in members] == [('Theo', True), ('Mira', False)]
+    assert ok(client.get('/api/conversation'))['messages'] == []
+    back = ok(client.post('/api/companion/cast/focus', json={'companion_id': mira['id']}))
+    assert back['active_timeline_id'] == mira['active_timeline_id']
+
+    # Left without a name, they get one that fits, as a first companion does.
+    unnamed = ok(client.post('/api/companion/another', json={'timezone': 'America/New_York', 'personality': 'She hums.'}))
+    assert unnamed['version']['name'].strip()
+
+
+def test_another_companion_with_nobody_here_is_simply_the_first(client):
+    made = ok(client.post('/api/companion/another', json={'name': 'Ada', 'timezone': 'America/New_York'}))
+    assert [member['name'] for member in ok(client.get('/api/companion/cast'))['members']] == ['Ada']
+    assert made['version']['name'] == 'Ada'
+
+
 def test_start_over_and_delete_only_touch_the_main_character(client, clock, chatty):
     mira, person = met_someone(client, clock)
     send(client, 'Morning, Mira!', 'client-0001')
