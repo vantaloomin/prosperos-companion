@@ -918,7 +918,7 @@ class LifeEngine:
 
     async def quietly_plan_week(self):
         """The open companion's week in the model's few lines (companion/life/planned_week.py), once a week, when
-        "Let the model plan their week" is on. Lines that break the week's facts are dropped before they are kept."""
+        "Let the model add what's on their mind" is on. Lines that break the week's facts are dropped before they are kept."""
         try:
             due = await asyncio.to_thread(self.due_week)
             if due is None:

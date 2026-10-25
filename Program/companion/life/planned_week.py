@@ -1,8 +1,8 @@
 """Their week, planned by the model: a few lines on what is on the main companion's mind (Settings > Life, off by
 default; tester feedback 2026-10-25, A/B /mnt/project-files/companion-routines-ab/report.md).
 
-The rules still decide the week: their routine, work or classes, plans and the people in it. With "Let the model plan
-their week" on, the life model reads who they are and what the rules decided, once a week, and writes 3 to 5 lines
+The rules still decide the week: their routine, work or classes, plans and the people in it. With "Let the model add
+what's on their mind" on, the life model reads who they are and what the rules decided, once a week, and writes 3 to 5 lines
 about what a person like them would be busy with or thinking about (a photography major's contact sheets, a
 bartender's new menu). The chat reads them as their own section. A line that names a day, a time or a person the
 week does not have, or a big life event, is dropped by `checked` before it is kept; when none is left, the week goes

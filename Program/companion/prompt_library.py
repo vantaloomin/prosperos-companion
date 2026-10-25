@@ -82,9 +82,9 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'breaks the JSON shape is thrown away and the template wording kept.',
            constant('companion.life.synthesis', 'RULES'),
            {'name': "the companion's name"}),
-    Prompt('planned-week', CHAT, 'Planning their week',
-           'With "Let the model plan their week" on (Settings > Life), asks the life model once a week for a few lines '
-           "on what is on the open companion's mind. The app checks each line and drops any that names a day, a time "
+    Prompt('planned-week', CHAT, "What's on their mind this week",
+           'With "Let the model add what\'s on their mind" on (Settings > Life), asks the life model once a week for a '
+           "few lines on what is on the open companion's mind. The app checks each line and drops any that names a day, a time "
            'or a person the week does not have, or a big life event.',
            constant('companion.life.planned_week', 'FILL'),
            {'name': "the companion's name", 'card': 'who they are, from the character sheet',
