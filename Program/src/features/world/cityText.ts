@@ -52,6 +52,25 @@ export function parseDefinition(text: string): Parsed {
   return { ok: true, value: value as Record<string, unknown> }
 }
 
+/** The city a city file has the id of, if any. One of the user's own opens as an update of it in place, so the
+ * worlds there keep their companions and every bit of history; a pack city is updated in its pack folder instead. */
+export function cityFor<T extends Pick<CityListing, 'id'>>(text: string, cities: T[]): T | null {
+  const parsed = parseDefinition(text)
+  if (!parsed.ok || typeof parsed.value.id !== 'string') return null
+  return cities.find((city) => city.id === parsed.value.id) ?? null
+}
+
+/** "Keep both instead": the same file as a new city, with the first free id after its own (`-2`, `-3`, ...). */
+export function keptBoth(text: string, cities: Pick<CityListing, 'id'>[]): string {
+  const parsed = parseDefinition(text)
+  if (!parsed.ok || typeof parsed.value.id !== 'string') return text
+  const taken = new Set(cities.map((city) => city.id))
+  let number = 2
+  while (taken.has(`${parsed.value.id}-${number}`)) number += 1
+  const name = typeof parsed.value.name === 'string' ? `${parsed.value.name} ${number}` : parsed.value.name
+  return JSON.stringify({ ...parsed.value, id: `${parsed.value.id}-${number}`, name }, null, 1)
+}
+
 /** A release's featured cities (GET /world/featured); `new` while the app is on that release. */
 export interface FeaturedCities<T = CityListing> { release: string; title: string; note: string; new: boolean; cities: (T & { new?: boolean })[] }
 
