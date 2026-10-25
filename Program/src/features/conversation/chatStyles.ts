@@ -23,3 +23,8 @@ export function soundsOn(settings: Pick<WorkspaceSettings, 'chat_style' | 'chat_
 export function retroDarkOn(settings: Pick<WorkspaceSettings, 'chat_style' | 'chat_retro_dark'> | undefined) {
   return chatStyleOf(settings) === 'retro' && !!settings?.chat_retro_dark
 }
+
+/** Keep my colours everywhere (companion/their_look.py): no companion's own colours or name font. Off unless turned on. */
+export function keepsMyColours(settings: Pick<WorkspaceSettings, 'keep_my_colours'> | undefined) {
+  return !!settings?.keep_my_colours
+}

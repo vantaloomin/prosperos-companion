@@ -398,6 +398,8 @@ class SettingsUpdate(Input):
     chat_retro_dark: bool | None = None
     # Period words in period cities (companion/world/era_words.py).
     period_words: bool | None = None
+    # Keep my colours everywhere (companion/their_look.py): no companion's own colours or name font anywhere.
+    keep_my_colours: bool | None = None
     color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
     custom_palette: Palette | None = None
     # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
@@ -532,6 +534,8 @@ class LifeSettingsUpdate(Input):
     memes_realism: int | None = Field(default=None, ge=0, le=3)
     # Inner voice (companion/life/narrator.py): 0 just what happened, 1 a few thoughts, 2 true to life, 3 everything.
     inner_voice: int | None = Field(default=None, ge=0, le=3)
+    # Their look in chat (companion/their_look.py): 0 off, 1 steady, 2 true to life, 3 expressive.
+    their_look: int | None = Field(default=None, ge=0, le=3)
     # Getting together (companion/life/together.py): 0 never on their own, 1 light, 2 true to life, 3 often.
     together_realism: int | None = Field(default=None, ge=0, le=3)
     # Rough patches (companion/life/rough_patches.py): 0 off, 1 easy, 2 true to life, 3 dramatic.

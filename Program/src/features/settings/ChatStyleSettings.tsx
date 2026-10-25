@@ -43,6 +43,8 @@ export function ChatStyleSettings() {
       <div className="period-words">
         <Toggle label="Period words in period cities" checked={chat.periodWords} onChange={(checked) => void save({ period_words: checked })}
           hint="In cities of another time, chats, posts and calls use that era's words. Settings always use today's." />
+        <Toggle label="Keep my colours everywhere" checked={chat.keepMyColours} onChange={(checked) => void save({ keep_my_colours: checked })}
+          hint="Companions' own colours and name fonts stay out of every chat. Your colours and reading font are used everywhere." />
       </div>
       <ColorSchemeSettings theme={chat.theme} scheme={chat.scheme} palette={chat.palette} save={save} />
       <DeviceLookSettings />

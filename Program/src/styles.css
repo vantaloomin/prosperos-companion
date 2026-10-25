@@ -1232,7 +1232,7 @@ input[type='range'], input[type='checkbox'], input[type='radio'] { accent-color:
 .chat-style-extras { display: grid; }
 .chat-style-extras-panel { grid-area: 1 / 1; display: flex; flex-direction: column; gap: 20px; margin: 0; }
 .chat-style-extras-panel[hidden] { display: flex; visibility: hidden; }
-.period-words { margin-top: 20px; } /* Its own subsection under the style options (Iris, 2026-10-21). */
+.period-words { display: flex; flex-direction: column; gap: 20px; margin-top: 20px; } /* Its own subsection under the style options (Iris, 2026-10-21). */
 
 /* Bubbles: texting-style. Names are read from each message's label, so they are only hidden visually. */
 .chat-bubbles .reading-column { display: flex; flex-direction: column; }
@@ -2435,3 +2435,31 @@ p.breakup-line { align-items: center; }
   .import-picks .checkbox-row { min-height: 44px; }
   .import-picks .form-actions .button { flex: 1 1 auto; min-height: 44px; }
 }
+
+/* Their look in chat (companion/their_look.py, src/features/conversation/theirLook.ts): in their own chat, their name
+   and a light accent in their colour, the header tinted and their name in their font. Never message text, never your
+   own messages. On a phone only the header and their name (Iris). Retro IM keeps its title bar; Atkinson Hyperlegible
+   and OpenDyslexic win over their font. */
+.conversation.their-look:not(.chat-retro) .conversation-header { background: var(--their-header); }
+.conversation.their-look:not(.chat-retro) .conversation-header h1 { color: var(--their-name); font-family: var(--their-font); font-weight: var(--their-weight); }
+.conversation.their-look .message-companion .speaker { color: var(--their-name); font-family: var(--their-font); font-weight: var(--their-weight); }
+.conversation.their-look.chat-novel .message-companion .speaker { background: var(--their-plate); border-color: var(--their-plate); color: var(--their-on-plate); }
+.conversation.their-look[data-their-font='handwritten'] .message-companion .speaker { font-size: 1.0625rem; line-height: 1.3; }
+.conversation.their-look.chat-retro[data-their-font='handwritten'] .message-companion .speaker { font-size: 1rem; }
+@media (min-width: 721px) {
+  .conversation.their-look.chat-bubbles .message-companion .prose:not(.bursts),
+  .conversation.their-look.chat-bubbles .message-companion .prose.bursts p.burst { background: var(--their-bubble); }
+  .conversation.their-look.chat-community .message-companion .avatar { box-shadow: 0 0 0 2px var(--their-accent); }
+}
+:root:is([data-font='atkinson'], [data-font='opendyslexic']) .conversation.their-look :is(.message-companion .speaker, .conversation-header h1) {
+  font-family: var(--chosen-font) !important; font-weight: 600; }
+:root:is([data-font='atkinson'], [data-font='opendyslexic']) .conversation.their-look[data-their-font='handwritten'] .message-companion .speaker { font-size: inherit; }
+/* A group chat keeps the app's colours: only each member's name is in theirs. */
+.group-chat .message-companion.their-name .speaker { color: var(--their-name); font-family: var(--their-font); font-weight: var(--their-weight); }
+.group-chat.chat-novel .message-companion.their-name .speaker { background: var(--their-plate); border-color: var(--their-plate); color: var(--their-on-plate); }
+:root:is([data-font='atkinson'], [data-font='opendyslexic']) .group-chat .message-companion.their-name .speaker { font-family: var(--chosen-font) !important; font-weight: 600; }
+/* The Character page's preview of their name, in their colour and font on the page's own colours. */
+.their-look-preview { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+.their-look-swatch { width: 22px; height: 22px; border-radius: 50%; background: var(--their-accent, var(--accent)); flex-shrink: 0; }
+.their-look-sample { font-size: 1.125rem; color: var(--their-name, var(--text)); font-family: var(--their-font, var(--read-font)); font-weight: var(--their-weight, 400); overflow-wrap: anywhere; }
+:root:is([data-font='atkinson'], [data-font='opendyslexic']) .their-look-sample { font-family: var(--chosen-font) !important; font-weight: 600; }
