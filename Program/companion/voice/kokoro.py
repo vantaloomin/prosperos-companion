@@ -186,7 +186,8 @@ class Kokoro:
             async with httpx.AsyncClient(transport=self.transport, timeout=DOWNLOAD_SECONDS, follow_redirects=True,
                                          trust_env=True) as client:
                 async with client.stream('GET', f'{RELEASES}/{path}') as response:
-                    require(response.status_code == 200, f'The voice download failed ({response.status_code}).', 502)
+                    require(response.status_code == 200, 'The built-in voice did not download. Check your internet '
+                            f'connection, then try again (error {response.status_code}).', 502)
                     with target.open('wb') as file:
                         async for chunk in response.aiter_bytes():
                             received += len(chunk)
