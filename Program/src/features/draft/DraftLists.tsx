@@ -154,7 +154,7 @@ export function HoodList({ definition, open, onOpen, onChange, onRemove, onRoll,
 export function WorkList({ definition, open, onOpen, onChange, onRemove, onRoll }: ListProps) {
   const hoods = hoodNames(definition)
   return (
-    <section className="draft-list" aria-labelledby="draft-employers">
+    <section className="draft-list draft-list-work" aria-labelledby="draft-employers">
       <ListHead title="Work" count={definition.employers.length} section="employers" onRoll={onRoll} hint="Employers, and the jobs of the era they hire for. A companion who lives here can work at one." />
       <ul className="draft-items">
         {definition.employers.map((item) => (

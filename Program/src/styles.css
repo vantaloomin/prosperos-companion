@@ -2644,3 +2644,9 @@ p.breakup-line { align-items: center; }
 :root[data-motion='reduce'] :is(.spin, .draft-chip-checking svg) { animation: none; }
 /* A nearby place's journey wraps under itself rather than cutting off "by the coast steamer". */
 .draft-neighbours .draft-item-meta { white-space: normal; text-align: right; max-width: 60%; }
+/* On a phone an employer's neighborhood goes under its name, so neither is cut short. */
+@media (max-width: 720px) {
+  .draft-list-work .draft-item-head { flex-wrap: wrap; row-gap: 2px; }
+  .draft-list-work .draft-item-name { flex: 1 1 calc(100% - 40px); }
+  .draft-list-work .draft-item-meta { order: 3; flex-basis: 100%; margin-left: 0; max-width: none; }
+}

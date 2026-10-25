@@ -7,6 +7,7 @@ from test_drafting import connect, replying
 from companion.providers.chat import Chunk
 from companion.world import draft
 from companion.world.draft import polish
+from companion.world.draft.naming import Namer
 from tests.test_marinara_world import sample
 
 LINE = 'a cold fishing town on a northern coast, 1920s'
@@ -139,3 +140,9 @@ def test_an_unusable_polish_reply_is_said_plainly(client, provider):
     provider.respond = replying('Sorry, I cannot do that.', 'Still no.')
     response = client.post('/api/world/draft/polish', json={'definition': built(), 'section': 'events'})
     assert response.status_code == 502 and response.json()['detail'] == polish.UNUSABLE
+
+
+def test_a_name_put_mid_sentence_reads_lowercase_the():
+    namer = Namer('the', 'jazz-age', None)
+    assert namer.fill('The houses on {hood}', hood='The Estates') == 'The houses on the Estates'
+    assert namer.fill('{hood} Market', hood='The Docks') == 'The Docks Market'
