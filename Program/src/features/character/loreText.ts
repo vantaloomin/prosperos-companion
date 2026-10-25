@@ -1,6 +1,7 @@
 /** Words for Bring your characters and the lore it brings (companion/imports/characters.py, companion/lore.py). */
 
-export interface BroughtBook { id: string; name: string; world: boolean; entries: number; off: number }
+/** `owner` names the companion whose lore it became, when it is not the world's. */
+export interface BroughtBook { id: string; name: string; world: boolean; entries: number; off: number; owner?: string | null }
 export interface Brought {
   format: string
   companion: { version: { name: string; definition: { identity: string } } } | null
@@ -58,15 +59,23 @@ function bookLine(book: BroughtBook): string {
   return `${entries(book.entries, 'lore entry')}${off}`
 }
 
+function bookOnly(book: BroughtBook): string {
+  return book.world || !book.owner ? `${book.name} is now part of this world: ${bookLine(book)}.` : `${book.name} is now ${book.owner}'s lore: ${bookLine(book)}.`
+}
+
+function theirBook(book: BroughtBook, name: string): string {
+  if (book.world) return `Their lorebook is now part of this world: ${bookLine(book)}.`
+  if (book.owner && book.owner !== name) return `Their lorebook went to ${book.owner}: ${bookLine(book)}.`
+  return `Their lorebook came too: ${bookLine(book)}.`
+}
+
 /** What an import made, in one or two sentences. */
 export function broughtText(result: Brought): string {
-  if (!result.companion) {
-    return result.book ? `${result.book.name} is now part of this world: ${bookLine(result.book)}.` : 'Nothing was imported.'
-  }
+  if (!result.companion) return result.book ? bookOnly(result.book) : 'Nothing was imported.'
   const name = result.companion.version.name
   const life = result.companion.version.definition.identity.trim()
   const parts = [`${name} is here (from a ${result.format}).${life ? ` ${life}` : ''}`]
-  if (result.book) parts.push(`Their lorebook came too: ${bookLine(result.book)}.`)
+  if (result.book) parts.push(theirBook(result.book, name))
   if (result.picture) parts.push(result.portrait ? 'Their picture is their profile picture.' : 'Their picture is with their reference pictures.')
   else if (result.picture_note) parts.push(result.picture_note)
   if (result.stepped_back) parts.push(`${result.stepped_back} stepped back and keeps everything.`)

@@ -3,10 +3,27 @@
 [Back to the README](../../README.md)
 
 **Import a character or lorebook** on the Character page brings a character from another app into this
-world in one step. There is no review screen and no model call: the character arrives, moves into town and
-becomes the companion the app is about. Whoever was the main companion steps back and keeps every chat and
-memory (as when a townsperson takes over, [life-api.md](life-api.md)). Everything can be changed on the
-Character page afterwards.
+world. No model is asked: the character arrives, moves into town and becomes the companion the app is about.
+Whoever was the main companion steps back and keeps every chat and memory (as when a townsperson takes over,
+[life-api.md](life-api.md)). Everything can be changed on the Character page afterwards.
+
+## Choosing what to import
+
+Before anything is saved, the page lists what the file holds (`POST /api/import/character/inspect`): the
+character, their picture, their lorebook entry by entry, and the parts left out. Everything starts ticked, so
+**Import** brings it all in one click. Unticking a part leaves it out (`pick` on `POST /api/import/character`):
+
+- **Only the lorebook**: untick the character. The lorebook goes to everyone in this world, or to a companion
+  you already have, chosen under **Whose lore**.
+- **Some entries**: **Choose entries** lists them with when each comes up; the unticked ones are left out.
+- **The character without their lorebook or picture**: untick those.
+- **Whose lore**: the new character by default; a character's lorebook can go to the whole world or to another
+  companion instead. What did not fit their background (below) stays theirs either way.
+
+A character who is already one of your companions (by name) starts unticked, and their lorebook goes to them,
+so importing the same file again adds lore rather than a second copy. A Marinara world map picked here lists its
+city and its places' notes the same way (`/api/world/import/marinara/inspect` and `/picked`); notes brought
+without their city are lore for the whole world, and a map that already came in has its city unticked.
 
 ## What it reads
 

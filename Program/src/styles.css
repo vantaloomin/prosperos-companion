@@ -2404,3 +2404,25 @@ p.breakup-line { align-items: center; }
   .watch-line { grid-template-columns: 1fr; gap: 2px; }
 }
 .voice-unpin { min-height: 44px; }
+
+/* Bring your characters: what a file holds, every part ticked (src/features/character/ImportPicks.tsx). */
+.import-picks { display: flex; flex-direction: column; gap: 14px; max-width: 760px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.import-picks h3 { margin: 0 0 2px; font-size: 1rem; overflow-wrap: anywhere; }
+.import-parts, .import-entries ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.import-parts > li + li { padding-top: 12px; border-top: 1px solid var(--border); }
+.import-picks .checkbox-row > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.import-picks .checkbox-row small { color: var(--muted); font-size: 0.8125rem; overflow-wrap: anywhere; }
+.import-part-name { font-weight: 500; overflow-wrap: anywhere; }
+.import-about { margin: 6px 0 0 35px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.import-nested { margin: 10px 0 0 35px; display: flex; flex-direction: column; gap: 10px; }
+.import-owner { max-width: 320px; }
+.import-entries > summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); padding: 6px 0; }
+.import-entries > .form-actions { margin: 4px 0 8px; }
+.import-entries ul { gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
+@media (max-width: 720px) {
+  .import-picks { padding: 12px; }
+  .import-about, .import-nested { margin-left: 0; }
+  .import-owner { max-width: none; }
+  .import-picks .checkbox-row { min-height: 44px; }
+  .import-picks .form-actions .button { flex: 1 1 auto; min-height: 44px; }
+}

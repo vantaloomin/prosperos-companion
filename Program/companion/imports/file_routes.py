@@ -8,7 +8,7 @@ from fastapi import APIRouter, Request
 from companion import library, library_online, lore
 from companion.errors import DomainError
 from companion.imports import characters, chats
-from companion.models import CharacterCardFile, ChatFile, LibraryFile, LoreSwitch, LoreWhen
+from companion.models import CharacterCardFile, CharacterImportFile, ChatFile, LibraryFile, LoreSwitch, LoreWhen
 
 router = APIRouter(prefix='/api')
 
@@ -17,10 +17,16 @@ def db(request: Request):
     return request.app.state.database
 
 
+@router.post('/import/character/inspect')
+def inspect_character(request: Request, body: CharacterCardFile):
+    """What a character card, CHARX, BYAF or lorebook file holds, for the page to tick; nothing is saved."""
+    return characters.inspect(db(request), body.filename, body.data)
+
+
 @router.post('/import/character')
-def import_character(request: Request, body: CharacterCardFile):
-    """A character card, CHARX, BYAF or lorebook file, imported straight away."""
-    return characters.bring(db(request), body.filename, body.data)
+def import_character(request: Request, body: CharacterImportFile):
+    """The ticked parts of a character card, CHARX, BYAF or lorebook file (all of it by default)."""
+    return characters.bring(db(request), body.filename, body.data, body.pick)
 
 
 @router.post('/import/chat')

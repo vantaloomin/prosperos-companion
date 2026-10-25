@@ -36,11 +36,23 @@ NATIVE = (
       'personality': ('personality',)}),
 )
 IMAGES = ('.png', '.jpg', '.jpeg', '.webp')
+# The parts of a card that set up someone else's story, named on the import's preview as not brought over.
+UNUSED = (('scenario', 'Scenario'), ('first_mes', 'First message'), ('alternate_greetings', 'Other greetings'),
+          ('creator_notes', "Creator's notes"), ('system_prompt', 'System prompt'),
+          ('post_history_instructions', 'Instructions after the chat'))
 
 
 def text(value, key) -> str:
     found = value.get(key)
     return found if isinstance(found, str) else ''
+
+
+def unused(fields: dict) -> list[str]:
+    """The names of the parts a file has that the import leaves out."""
+    def filled(value) -> bool:
+        return bool(value.strip()) if isinstance(value, str) else isinstance(value, list) and any(
+            isinstance(item, str) and item.strip() for item in value)
+    return [label for key, label in UNUSED if filled(fields.get(key))]
 
 
 def decoded(encoded: str) -> bytes:
@@ -54,7 +66,8 @@ def decoded(encoded: str) -> bytes:
 
 
 def read(filename: str, encoded: str) -> dict:
-    """{format, character (card fields) or None, book or None, picture bytes or None} from one file."""
+    """{format, character (card fields) or None, book or None, picture bytes or None, unused part names} from one
+    file."""
     source = decoded(encoded)
     suffix = PureWindowsPath(filename).suffix.lower()
     stem = PureWindowsPath(filename).stem or 'Lorebook'
@@ -90,8 +103,10 @@ def from_json(source: bytes, stem: str) -> dict:
         return card(value)
     for label, matches, fields in NATIVE:
         if matches(value):
-            return {'format': label, 'character': {key: next((text(value, name) for name in names if name in value), '')
-                                                   for key, names in fields.items()}, 'book': None, 'picture': None}
+            character = {key: next((text(value, name) for name in names if name in value), '')
+                         for key, names in fields.items()}
+            return {'format': label, 'character': character, 'book': None, 'picture': None,
+                    'unused': unused(character)}
     kind = lorebooks.kind_of(value)
     if kind is None and value.get('format') == 'marinara-hierarchical-map':
         raise problem('This is a Marinara world map. Open it in Settings, Life & cities, with "Open a city file", and it '
@@ -109,7 +124,7 @@ def card(value: dict) -> dict:
     if not character['name'].strip() and not character['description'].strip():
         raise problem('This character card has no name or description.')
     return {'format': f'Character Card {version}', 'character': character, 'book': card_book(data, character),
-            'picture': None}
+            'picture': None, 'unused': unused(data)}
 
 
 def marinara(value: dict, stem: str) -> dict:
@@ -264,4 +279,4 @@ def byaf(found: dict) -> dict:
     images = [str(folder / item['path']) for item in person.get('images') or []
               if isinstance(item, dict) and isinstance(item.get('path'), str)]
     return {'format': 'Backyard Archive (BYAF)', 'character': character, 'book': book,
-            'picture': picture(found, images)}
+            'picture': picture(found, images), 'unused': unused(character)}

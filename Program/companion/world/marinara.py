@@ -22,7 +22,8 @@ from zoneinfo import available_timezones
 from companion import lore
 from companion.errors import DomainError, require
 from companion.imports import lorebooks
-from companion.imports.characters import add_book
+from companion.imports.characters import add_book, book_view
+from companion.models import WorldMapPick
 from companion.world import catalog, custom, mend, naming
 from companion.world.mend import slug
 from companion.world.schema import PLACE_KINDS, TRANSIT_KINDS
@@ -516,9 +517,30 @@ def already_in(database, city: dict) -> str | None:
     return None
 
 
-def bring(database, value: dict) -> dict:
-    """Import a world map straight away: the city joins the user's cities and its lore the world's books."""
+def inspect(database, value: dict) -> dict:
+    """What a world map holds, for the page to tick; nothing is saved. `already` names the city it came in as before,
+    which can't come in twice."""
     made = convert(value, database.now()[:10])
+    city = made['city']
+    counts = {key: len(city[key]) for key in ('neighborhoods', 'places', 'employers')}
+    return {'format': 'Marinara world map', 'city': {'name': city['name'], 'counts': counts},
+            'book': book_view(made['book']), 'already': already_in(database, city)}
+
+
+def bring(database, value: dict, pick: WorldMapPick | None = None) -> dict:
+    """Import a world map's ticked parts (all of it by default): the city joins the user's cities and its places'
+    notes the world's books, following the city. Notes brought without their city are lore for the whole world."""
+    pick = pick or WorldMapPick()
+    made = convert(value, database.now()[:10])
+    book = made['book'] if pick.book else None
+    if book and pick.entries is not None:
+        wanted = sorted({number for number in pick.entries if 0 <= number < len(book['entries'])})
+        book = {**book, 'entries': [book['entries'][number] for number in wanted]} if wanted else None
+    if not pick.city:
+        require(book is not None, 'Tick something to import.', 422)
+        with database.connect(write=True) as connection:
+            added = add_book(connection, database.now(), book, None, f"{book['name']}.world-map.json")
+        return {'name': None, 'import_notes': [], 'book': added}
     same = already_in(database, made['city'])
     require(same is None, f'This world map already came in as {same}. Delete that city first to bring it in again.',
             409)
@@ -526,8 +548,8 @@ def bring(database, value: dict) -> dict:
     added = {}
 
     def with_book(connection, timestamp: str) -> None:
-        if made['book']:
-            added['book'] = add_book(connection, timestamp, made['book'], None, f"{made['book']['name']}.world-map.json")
+        if book:
+            added['book'] = add_book(connection, timestamp, book, None, f"{book['name']}.world-map.json")
             # The notes follow the city into new worlds there and go when it is deleted (companion/lore.py).
             connection.execute('UPDATE lore_books SET city_id=? WHERE id=?', (city['id'], added['book']['id']))
 
