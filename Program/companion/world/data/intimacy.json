@@ -1,5 +1,5 @@
 {
-  "_about": "The adult side of life (companion/world/intimacy.py): only ever for adults, only ever consensual between adults. Tier 1 is mild, 3 is bold. `text` goes in the person's own prompt after 'Into:'. tests/test_intimacy.py checks every entry against a list of banned themes.",
+  "_about": "The adult side of life (companion/world/intimacy.py): only ever for adults, only ever consensual between adults. Tier 1 is mild, 3 is bold. `text` goes in the person's own prompt after 'Into:'.  The 'qualities' group is who someone is drawn to rather than what they do: rolled on its own, never read as an intimate word in a chat. tests/test_intimacy.py checks every entry against a list of banned themes.",
   "levels": [
     {
       "id": "reserved",
@@ -613,9 +613,83 @@
       "group": "styles",
       "label": "Play parties",
       "text": "invitation-only play parties at a private club, with strict consent rules"
+    },
+    {
+      "id": "sharp-mind",
+      "tier": 1,
+      "group": "qualities",
+      "label": "A sharp mind",
+      "text": "a sharp mind; clever conversation is half the attraction"
+    },
+    {
+      "id": "quick-wit",
+      "tier": 1,
+      "group": "qualities",
+      "label": "A quick wit",
+      "text": "someone who can make them laugh"
+    },
+    {
+      "id": "confidence",
+      "tier": 1,
+      "group": "qualities",
+      "label": "Quiet confidence",
+      "text": "quiet confidence in a partner"
+    },
+    {
+      "id": "kindness",
+      "tier": 1,
+      "group": "qualities",
+      "label": "Kindness",
+      "text": "kindness, and seeing a partner be good to people"
+    },
+    {
+      "id": "passion",
+      "tier": 1,
+      "group": "qualities",
+      "label": "Talking about what they love",
+      "text": "hearing a partner talk about something they love"
+    },
+    {
+      "id": "competence",
+      "tier": 1,
+      "group": "qualities",
+      "label": "Being good at something",
+      "text": "watching a partner be very good at what they do"
+    },
+    {
+      "id": "late-talks",
+      "tier": 1,
+      "group": "qualities",
+      "label": "Late-night talks",
+      "text": "long late-night talks that drift somewhere closer"
+    },
+    {
+      "id": "listened-to",
+      "tier": 1,
+      "group": "qualities",
+      "label": "Being listened to",
+      "text": "being really listened to"
+    },
+    {
+      "id": "ambition",
+      "tier": 1,
+      "group": "qualities",
+      "label": "Ambition",
+      "text": "a partner with a plan and the drive to see it through"
+    },
+    {
+      "id": "gentle-hands",
+      "tier": 1,
+      "group": "qualities",
+      "label": "Gentleness",
+      "text": "gentleness, and a partner who takes their time"
     }
   ],
   "groups": [
+    {
+      "id": "qualities",
+      "label": "What draws them in"
+    },
     {
       "id": "romance",
       "label": "Romance and touch"

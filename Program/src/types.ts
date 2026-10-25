@@ -194,7 +194,11 @@ export interface PersonalityTrait { key: PersonalityKey; name: string; low: stri
 /** The sliders as profiles show them: summary chips and the four-letter type they read as. */
 export interface PersonalityView { sliders: Required<PersonalitySliders>; chips: string[]; type: string | null; traits?: PersonalityTrait[] }
 
-export interface IntimacySetup { orientation: string; level: string; drive: string; interests: string[]; note: string }
+export interface IntimacySetup {
+  orientation: string; level: string; drive: string; interests: string[]
+  /** Their own turn-ons and turn-offs, in the user's words. */
+  own_into: string[]; not_into: string[]; note: string
+}
 
 /** An adult side with labels for showing it (companion/world/intimacy.py view). */
 export interface AdultSide extends IntimacySetup { level_label: string; drive_label: string; interest_labels: string[] }

@@ -3,9 +3,10 @@ import { api } from '../../api'
 import { useWorkspaceSettings } from '../../companion'
 import type { AdultSide, AdultSideChoices, CharacterDefinition, IntimacySetup } from '../../types'
 import { Field, TextArea } from '../../components/Fields'
+import { OwnWords } from './OwnWords'
 import { useSettled } from './useSettled'
 
-const EMPTY: IntimacySetup = { orientation: '', level: '', drive: '', interests: [], note: '' }
+const EMPTY: IntimacySetup = { orientation: '', level: '', drive: '', interests: [], own_into: [], not_into: [], note: '' }
 
 interface Props { definition: () => CharacterDefinition; value: IntimacySetup | null | undefined; set: (change: Partial<CharacterDefinition>) => void }
 
@@ -27,7 +28,7 @@ function AdultSideChoicesFor({ definition, value, set }: Props) {
   const current = { ...EMPTY, ...(value ?? {}) }
   const update = (change: Partial<IntimacySetup>) => {
     const next = { ...current, ...change }
-    set({ intimacy: picked(next) || next.note.trim() ? next : null })
+    set({ intimacy: picked(next) || own(next) || next.note.trim() ? next : null })
   }
   return <AdultSideForm choices={found.data} rolled={found.data.rolled} current={current} update={update} romance={definition().relationship === 'romance'} />
 }
@@ -44,10 +45,15 @@ function AdultSideForm({ choices, rolled, current, update, romance }: FormProps)
         <p className="subtle">Private to them: it only shapes how they act when romance or intimacy comes up. Left as rolled, the app decides.</p>
         <Selects choices={choices} rolled={rolled} current={current} update={update} romance={romance} />
         <Interests choices={choices} rolled={rolled} current={current} update={update} />
+        <OwnWords label="Also into" value={current.own_into} onChange={(own_into) => update({ own_into })} placeholder="Add one, like old films"
+          hint="Your own turn-ons, beyond the lists above. They add to what was rolled or ticked."
+          other={{ label: 'Not into', value: current.not_into }} boxes={choices.interests} onBox={(id) => update({ interests: tick(current, rolled, id) })} />
+        <OwnWords label="Not into" value={current.not_into} onChange={(not_into) => update({ not_into })} placeholder="Add one, like bad manners"
+          hint="Their turn-offs, in your words." other={{ label: 'Also into', value: current.own_into }} outlined />
         <TextArea label="Anything else" value={current.note} onChange={(note) => update({ note })} maxLength={600} rows={2}
           hint="Optional, in your words. Keep it between consenting adults." />
         {picked(current) && (
-          <p><button type="button" className="text-button" onClick={() => update({ ...EMPTY, note: current.note })}>Go back to what was rolled</button></p>
+          <p><button type="button" className="text-button" onClick={() => update({ ...EMPTY, own_into: current.own_into, not_into: current.not_into, note: current.note })}>Go back to what was rolled</button></p>
         )}
       </div>
     </details>
@@ -80,11 +86,12 @@ function Interests({ choices, rolled, current, update }: Omit<FormProps, 'romanc
   const own = current.interests.length > 0
   const into = own ? current.interests : rolled?.interests ?? []
   const toggle = (id: string, on: boolean) => update({ interests: on ? [...new Set([...into, id])] : into.filter((entry) => entry !== id) })
-  const labels = choices.interests.filter((entry) => into.includes(entry.id)).map((entry) => entry.label.toLowerCase())
+  const labels = [...choices.interests.filter((entry) => into.includes(entry.id)).map((entry) => entry.label.toLowerCase()), ...current.own_into]
   return (
     <div className="form-stack">
       <div>
         <strong>Into: {labels.length ? labels.join(', ') : 'Nothing yet'}</strong>
+        {current.not_into.length > 0 && <p className="subtle">Not into: {current.not_into.join(', ')}</p>}
         <p className="subtle">
           {own ? 'Picked by you.' : 'Rolled by the app. Tick or untick to choose your own.'}
           {own && <>{' '}<button type="button" className="text-button" onClick={() => update({ interests: [] })}>Back to as rolled</button></>}
@@ -110,13 +117,23 @@ function Interests({ choices, rolled, current, update }: Omit<FormProps, 'romanc
   )
 }
 
+/** What they're into with one more box ticked, starting from the roll until the user has picked their own. */
+function tick(current: IntimacySetup, rolled: AdultSide | null, id: string): string[] {
+  const into = current.interests.length ? current.interests : rolled?.interests ?? []
+  return [...new Set([...into, id])]
+}
+
+function own(setup: IntimacySetup): boolean {
+  return setup.own_into.length > 0 || setup.not_into.length > 0
+}
+
 function picked(setup: IntimacySetup): boolean {
   return Boolean(setup.orientation || setup.level || setup.drive || setup.interests.length)
 }
 
 /** How many things the user set rather than left as rolled. */
 function changed(setup: IntimacySetup): number {
-  return [setup.orientation, setup.level, setup.drive, setup.interests.length, setup.note.trim()].filter(Boolean).length
+  return [setup.orientation, setup.level, setup.drive, setup.interests.length, setup.own_into.length, setup.not_into.length, setup.note.trim()].filter(Boolean).length
 }
 
 function capital(text: string): string {

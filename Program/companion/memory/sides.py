@@ -58,7 +58,9 @@ LEET = str.maketrans({'3': 'e', '0': 'o', '1': 'i', '4': 'a', '5': 's', '@': 'a'
 def pattern() -> re.Pattern:
     """Every word that makes a reply read intimate: the plain ones and the adult side's interests
     (companion/world/data/intimacy.json)."""
-    terms = [*plain_terms(), *(re.escape(content.normalize(entry['label'])) for entry in intimacy.bank()['interests'])]
+    terms = [*plain_terms(), *(re.escape(content.normalize(entry['label'])) for entry in intimacy.bank()['interests']
+               # "A sharp mind" or "Kindness" is who someone is drawn to, not an intimate word in a chat.
+               if entry['group'] != intimacy.QUALITIES)]
     return re.compile(r'\b(?:' + '|'.join(terms) + r')\b')
 
 
