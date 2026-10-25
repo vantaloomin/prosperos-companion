@@ -122,7 +122,7 @@ def check_draft(definition: dict):
     """The Draft Table's check panel: what loading a changed draft would mend, and its thin spots."""
     loaded = custom.check(definition)
     return {'summary': catalog.summary(loaded), 'notes': loaded.get('import_notes', []),
-            'warnings': check.warnings(loaded)}
+            'warnings': check.plain_warnings(loaded)}
 
 
 @router.post('/validate')

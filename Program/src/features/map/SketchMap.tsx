@@ -1,18 +1,20 @@
-import { useEffect, useId, useMemo, useRef, useState, type RefObject } from 'react'
+import { useEffect, useId, useMemo, useRef } from 'react'
+import { Maximize, Minus, Plus } from 'lucide-react'
 import { mainPin, narrow, type CityMapData, type MapPlace } from './mapText'
 import { drawn, GROUNDS, labels, lakeOutline, pathOf, type District, type Drawn, type MapLabel } from './drawn'
+import { useZoom } from './useZoom'
 
-/** `fit` shrinks the map to show the whole city where it can, as on the Draft Table, down to a size its names stay readable at. */
-interface Props { data: CityMapData; selected: string | null; onSelect: (id: string) => void; caption: string; fit?: boolean }
+/** `zoomable` (the Draft Table) fits the whole place in view, with zoom buttons, the wheel and a pinch; it fits again when `refit` changes. */
+interface Props { data: CityMapData; selected: string | null; onSelect: (id: string) => void; caption: string; zoomable?: boolean; refit?: string }
 
 /** Fictional, original and private cities, or a street map that cannot load: a map drawn from the city data (drawn.ts). */
-export function SketchMap({ data, selected, onSelect, caption, fit = false }: Props) {
+export function SketchMap({ data, selected, onSelect, caption, zoomable = false, refit = '' }: Props) {
   const map = useMemo(() => drawn(data), [data])
   // Names placed so they do not run into each other (drawn.ts); a place's that does not fit shows on hover.
   const names = useMemo(() => new Map(labels(map).map((label) => [label.key, label])), [map])
   const box = useRef<HTMLDivElement>(null)
   const prefix = useId().replace(/:/g, '')
-  const scale = useFit(box, map, fit)
+  const zoom = useZoom(box, map, zoomable, refit)
   // Opens on the picked place, else their home, since the map is often bigger than the screen.
   useEffect(() => {
     const target = box.current?.querySelector('.sketch-pin.selected') ?? box.current?.querySelector('.sketch-pin.pin-home')
@@ -20,10 +22,10 @@ export function SketchMap({ data, selected, onSelect, caption, fit = false }: Pr
     // On a phone the card is a sheet over the lower part, so the picked place moves up above it.
     if (selected && narrow() && box.current) box.current.scrollBy({ top: box.current.clientHeight * 0.28 })
   }, [selected])
-  return (
-    <div ref={box} className={`sketch-map${fit ? ' fit' : ''}`}>
+  const sketch = (
+    <div ref={box} className={`sketch-map${zoomable ? ' zoomable' : ''}`}>
       <p className="sketch-caption">{caption}</p>
-      <svg viewBox={`0 0 ${map.width} ${map.height}`} style={{ width: map.width * scale, height: map.height * scale }} role="group" aria-label={`Map of ${data.city.name}`}>
+      <svg viewBox={`0 0 ${map.width} ${map.height}`} style={{ width: map.width * zoom.scale, height: map.height * zoom.scale }} role="group" aria-label={`Map of ${data.city.name}`}>
         <Ground map={map} prefix={prefix} names={names} />
         {map.districts.map((district) => district.places.map(({ place, x, y }) => (
           <PlacePin key={place.id} place={place} x={x} y={y} named={names.get(`${place.id}-name`)?.shown ?? false} selected={place.id === selected} onSelect={onSelect} />
@@ -32,23 +34,17 @@ export function SketchMap({ data, selected, onSelect, caption, fit = false }: Pr
       </svg>
     </div>
   )
-}
-
-const SMALLEST = 0.7
-const CAPTION = 34
-
-/** How much to shrink the map to fit its box, kept up to date as the window changes. */
-function useFit(box: RefObject<HTMLDivElement | null>, map: { width: number; height: number }, fit: boolean): number {
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
-  useEffect(() => {
-    const element = box.current
-    if (!fit || !element || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(() => setSize({ width: element.clientWidth, height: element.clientHeight - CAPTION }))
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [box, fit])
-  if (!fit || !size) return 1
-  return Math.min(1, Math.max(SMALLEST, Math.min(size.width / map.width, size.height / map.height)))
+  if (!zoomable) return sketch
+  return (
+    <div className="sketch-frame">
+      {sketch}
+      <div className="sketch-zoom" role="group" aria-label="Zoom">
+        <button type="button" className="sketch-zoom-button" aria-label="Zoom in" title="Zoom in" disabled={zoom.atMost} onClick={zoom.zoomIn}><Plus aria-hidden="true" /></button>
+        <button type="button" className="sketch-zoom-button" aria-label="Zoom out" title="Zoom out" disabled={zoom.atLeast} onClick={zoom.zoomOut}><Minus aria-hidden="true" /></button>
+        <button type="button" className="sketch-zoom-button" aria-label="Fit the whole place" title="Fit the whole place" aria-pressed={zoom.fitted} onClick={zoom.fit}><Maximize aria-hidden="true" /></button>
+      </div>
+    </div>
+  )
 }
 
 /** Everything but the pins, dimmed like the street map's tiles. */

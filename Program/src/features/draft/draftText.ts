@@ -23,8 +23,13 @@ export type Section = typeof SECTIONS[number]
 export type Rolls = Partial<Record<Section, number>>
 
 /** Everything open on the table, kept on this device between visits. A city file opened on the table has no brief,
- * so nothing to redraw from. `saved` is the city it was saved as. */
-export interface Work { line: string; seed: string; rolls: Rolls; definition: Definition; brief: Brief | null; edited: boolean; saved?: { id: string; revision: number } }
+ * so nothing to redraw from. `saved` is the city it was saved as. Until the user types in the place's summary
+ * (`summaryEdited`), it is written again after every change; `gone` names the parts removed since, which a summary
+ * they wrote may still mention. */
+export interface Work {
+  line: string; seed: string; rolls: Rolls; definition: Definition; brief: Brief | null; edited: boolean
+  saved?: { id: string; revision: number }; summaryEdited?: boolean; gone?: string[]
+}
 
 /** The lists the table edits, by the key they have in the city file. */
 export type ListKey = 'neighborhoods' | 'places' | 'employers' | 'transit' | 'annual_events' | 'local_color'
@@ -114,6 +119,39 @@ export function uniqueId(name: string, taken: Iterable<string>): string {
   let id = base
   for (let count = 2; used.has(id); count++) id = `${base}-${count}`
   return id
+}
+
+/** A change made on the table: the summary follows it unless the user wrote their own. */
+export function settle(work: Work, definition: Definition, removed?: string): Work {
+  const gone = removed ? [...(work.gone ?? []), removed] : work.gone
+  const summary = work.brief && !work.summaryEdited ? summaryFor(definition, work.brief) : definition.summary
+  return { ...work, definition: { ...definition, summary }, edited: true, gone }
+}
+
+const BIOME_WORDS: Record<string, string> = { temperate: '', cold: 'cold, northern ', desert: 'dry, sun-baked ', tropical: 'tropical ', warm: 'sunny southern ', highland: 'mountain ' }
+const SIZE_WORDS: Record<string, string> = { tiny: 'village', small: 'small town', town: 'town', large: 'city', huge: 'great city' }
+
+/** "Ridgemouth is a cold, northern town on the sea, with Main Street at its heart and …", as the engine writes it
+ * (companion/world/draft summary). */
+export function summaryFor(definition: Definition, brief: Brief): string {
+  const kind = definition.country.toLowerCase()
+  const start = brief.aboard ? `${definition.name} is ${/^[aeiou]/.test(kind) ? 'an' : 'a'} ${kind} of ${definition.neighborhoods.length} decks`
+    : `${definition.name} is a ${BIOME_WORDS[brief.biome] ?? ''}${SIZE_WORDS[brief.size] ?? 'town'}${brief.water ? ` ${WATERS[brief.water] ?? ''}` : ''}`
+  const names = definition.neighborhoods.slice(0, 4).map((hood) => running(hood.name))
+  if (names.length < 2) return names.length ? `${start}, with ${names[0]} at its heart.` : `${start}.`
+  const others = names.length > 2 ? `${names.slice(1, -1).join(', ')} and ${names[names.length - 1]}` : names[1]
+  return `${start}, with ${names[0]} at its heart and ${others} round about.`
+}
+
+/** A name as it reads mid-sentence: "the Waterfront", not "The Waterfront". */
+function running(name: string): string {
+  return name.startsWith('The ') ? `the${name.slice(3)}` : name
+}
+
+/** Parts the user removed that the summary they wrote still names. */
+export function staleNames(work: Work): string[] {
+  const text = work.definition.summary.toLowerCase()
+  return [...new Set(work.gone ?? [])].filter((name) => name && text.includes(running(name).toLowerCase().replace(/^the /, '')))
 }
 
 /** A new place in a neighbourhood, like the others there (or the first in the city) until the user changes it. */

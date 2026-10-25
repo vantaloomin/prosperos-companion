@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, Dices, Download, FilePlus2, LoaderCircle, Save, Upload, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Dices, Download, FilePlus2, LoaderCircle, Pencil, Save, Upload, X, XCircle } from 'lucide-react'
 import { api, ApiError } from '../../api'
 import { Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -10,13 +10,13 @@ import { definitionOf, exportName, groupNotes, parseDefinition, type CityListing
 import { isWorldMap } from '../world/worldMap'
 import { ColourList, EventList, HoodList, PlaceList, TransitList, WorkList, type ListProps } from './DraftLists'
 import {
-  addHood, addPlace, briefLine, CITIES_CHANNEL, changeCity, changeItem, EXAMPLES, inHood, keepWork, loadWork, mapData, newSeed, redrawsAll,
-  removeItem, takeSection, uniqueId, type Checked, type Definition, type Drafted, type Item, type ListKey, type Rolls, type Section, type Work,
+  addHood, addPlace, briefLine, CITIES_CHANNEL, PLACE_KINDS, changeCity, changeItem, EXAMPLES, inHood, keepWork, loadWork, mapData, newSeed, redrawsAll,
+  removeItem, settle, staleNames, takeSection, uniqueId, type Checked, type Definition, type Drafted, type Item, type ListKey, type Rolls, type Section, type Work,
 } from './draftText'
 
 type Tab = 'map' | 'overview' | 'hoods' | 'places' | 'work' | 'transit' | 'events' | 'colour' | 'check'
 type CheckState = { state: 'checking' } | { state: 'done'; checked: Checked } | { state: 'failed'; message: string }
-type Feedback = { tone: 'success' | 'error' | 'info'; text: string; saveAsNew?: boolean } | null
+type Feedback = { tone: 'success' | 'error'; text: string; saveAsNew?: boolean } | null
 /** A step that would throw away the user's changes waits for a yes. */
 type Asking = { title: string; text: string; yes: string; go: () => void } | null
 
@@ -73,7 +73,7 @@ function Start({ busy, error, onDraw, onOpen, onError }: { busy: boolean; error:
       <form className="draft-line" onSubmit={submit}>
         <label htmlFor="draft-line">Your place, in a line</label>
         <div className="draft-line-row">
-          <input id="draft-line" value={line} maxLength={400} placeholder={`For example: ${EXAMPLES[0]}`} onChange={(event) => setLine(event.target.value)} />
+          <input id="draft-line" value={line} maxLength={400} placeholder="e.g. a cold fishing town, 1920s" onChange={(event) => setLine(event.target.value)} />
           <button type="submit" className="button primary" aria-disabled={busy}>{busy ? <LoaderCircle aria-hidden="true" className="spin" /> : <FilePlus2 aria-hidden="true" />}Draw it up</button>
         </div>
         <div className="draft-examples">
@@ -120,8 +120,9 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
   const [tab, setTab] = useState<Tab>('overview')
   const [open, setOpen] = useState<string | null>(null)
   const [removing, setRemoving] = useState<{ key: ListKey; item: Item } | null>(null)
-  const check = useCheck(work.definition)
-  const edit = (change: (definition: Definition) => Definition) => setWork((current) => current && { ...current, definition: change(current.definition), edited: true })
+  const check = useCheck(work)
+  useAutoGrow()
+  const edit = (change: (definition: Definition) => Definition, removed?: string) => setWork((current) => current && settle(current, change(current.definition), removed))
   const roll = (section: Section) => {
     const rolls = { ...work.rolls, [section]: (work.rolls[section] ?? 0) + 1 }
     const go = () => void draw(work.line, work.seed, rolls, section)
@@ -130,13 +131,14 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
   }
   const remove = (key: ListKey, item: Item) => {
     if (key === 'neighborhoods') { setRemoving({ key, item }); return }
-    edit((definition) => removeItem(definition, key, item.id))
+    edit((definition) => removeItem(definition, key, item.id), key === 'places' ? undefined : item.name)
   }
   const list: ListProps = {
     definition: work.definition, open, onOpen: setOpen, onRemove: remove, onRoll: work.brief ? roll : undefined,
     onChange: (key, id, change) => edit((definition) => changeItem(definition, key, id, change)),
   }
-  const pick = (id: string) => { setTab('places'); setOpen(id) }
+  // On a phone a picked place shows a card over the map first; beside the lists, its row opens straight away.
+  const pick = (id: string) => { if (tab !== 'map') setTab('places'); setOpen(id) }
   const add = (made: { definition: Definition; id: string }, to: Tab) => { edit(() => made.definition); setTab(to); setOpen(made.id) }
   // On a phone the map is a tab; beside it on a wider screen, the overview shows instead.
   const overview = <Overview work={work} busy={busy} setWork={setWork} draw={draw} careful={careful} onRoll={roll} />
@@ -145,7 +147,7 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
       <TableBar work={work} setWork={setWork} check={check} onCheck={() => setTab('check')} careful={careful} />
       <div aria-live="polite">{error && <Notice tone="error">{error}</Notice>}</div>
       <div className={`draft-body${busy ? ' busy' : ''}`} data-tab={tab} aria-busy={busy}>
-        <DraftMap definition={work.definition} selected={open} onSelect={pick} />
+        <DraftMap definition={work.definition} selected={open} onSelect={pick} mapTab={tab === 'map'} onEdit={() => setTab('places')} onClose={() => setOpen(null)} />
         <section className="draft-panel" aria-label="The place, part by part">
           <Tabs tab={tab} onTab={(next) => { setTab(next); setOpen(null) }} definition={work.definition} check={check} />
           <div className="draft-panel-body" role="tabpanel" id="draft-tabpanel" aria-labelledby={`draft-tab-${tab === 'map' ? 'overview' : tab}`}>
@@ -159,7 +161,7 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
         </section>
       </div>
       {removing && <RemoveHood definition={work.definition} hood={removing.item} onClose={() => setRemoving(null)}
-        onRemove={() => { edit((definition) => removeItem(definition, 'neighborhoods', removing.item.id)); setRemoving(null) }} />}
+        onRemove={() => { edit((definition) => removeItem(definition, 'neighborhoods', removing.item.id), removing.item.name); setRemoving(null) }} />}
     </div>
   )
 }
@@ -176,7 +178,8 @@ function RemoveHood({ definition, hood, onClose, onRemove }: { definition: Defin
 }
 
 /** Checks the place the way Companion loads a city, a moment after the last change. */
-function useCheck(definition: Definition): CheckState {
+function useCheck(work: Work): CheckState {
+  const definition = work.definition
   const [result, setResult] = useState<CheckState>({ state: 'checking' })
   useEffect(() => {
     let live = true
@@ -187,21 +190,57 @@ function useCheck(definition: Definition): CheckState {
     }, 450)
     return () => { live = false; window.clearTimeout(timer) }
   }, [definition])
-  return result
+  // A summary the user wrote that still names a part they removed is a thin spot of its own.
+  const stale = staleNames(work).map((name) => `"What it is like" names ${name}, which is gone.`)
+  return result.state === 'done' && stale.length ? { ...result, checked: { ...result.checked, warnings: [...stale, ...result.checked.warnings] } } : result
+}
+
+/** Text boxes grow with their text, where the browser cannot do it with CSS alone (field-sizing). */
+function useAutoGrow() {
+  useLayoutEffect(() => {
+    if (typeof CSS !== 'undefined' && CSS.supports('field-sizing', 'content')) return
+    const grow = (box: HTMLTextAreaElement) => { box.style.height = 'auto'; box.style.height = `${box.scrollHeight + 2}px` }
+    document.querySelectorAll<HTMLTextAreaElement>('.draft-page textarea').forEach(grow)
+    const typed = (event: Event) => { if (event.target instanceof HTMLTextAreaElement) grow(event.target) }
+    document.addEventListener('input', typed)
+    return () => document.removeEventListener('input', typed)
+  })
 }
 
 /** The map is drawn again only when what it shows changes, not on every letter of a summary. */
-function DraftMap({ definition, selected, onSelect }: { definition: Definition; selected: string | null; onSelect: (id: string) => void }) {
+interface MapProps { definition: Definition; selected: string | null; onSelect: (id: string) => void; mapTab: boolean; onEdit: () => void; onClose: () => void }
+
+function DraftMap({ definition, selected, onSelect, mapTab, onEdit, onClose }: MapProps) {
   const shape = JSON.stringify([definition.name, definition.water, definition.neighborhoods.map((hood) => [hood.id, hood.name, hood.lat, hood.lon]),
     definition.places.map((item) => [item.id, item.name, item.kind, item.neighborhood])])
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `shape` is everything the map draws.
   const data = useMemo(() => mapData(definition), [shape])
   const parts = definition.enclosed ? 'Decks' : 'Neighborhoods'
+  // The whole place fits again after it changes shape, and when the phone's Map tab opens.
+  const refit = `${definition.neighborhoods.map((hood) => hood.id).join()}|${definition.places.length}|${mapTab}`
   return (
     <section className="draft-map" aria-label={`Map of ${definition.name}`}>
-      <SketchMap fit data={data} selected={data.places.some((item) => item.id === selected) ? selected : null} onSelect={onSelect}
+      <SketchMap zoomable refit={refit} data={data} selected={data.places.some((item) => item.id === selected) ? selected : null} onSelect={onSelect}
         caption={`Drawn map. ${parts} are placed by how they connect, not to scale. Pick a place to change it.`} />
+      {mapTab && <PickedCard definition={definition} id={selected} onEdit={onEdit} onClose={onClose} />}
     </section>
+  )
+}
+
+/** On a phone's Map tab: the picked place, and a way to its row. */
+function PickedCard({ definition, id, onEdit, onClose }: { definition: Definition; id: string | null; onEdit: () => void; onClose: () => void }) {
+  const place = definition.places.find((item) => item.id === id)
+  if (!place) return null
+  const hood = definition.neighborhoods.find((item) => item.id === place.neighborhood)
+  return (
+    <div className="draft-picked" role="region" aria-label={place.name}>
+      <div className="draft-picked-text">
+        <p className="draft-picked-name">{place.name}</p>
+        <p className="subtle">{[PLACE_KINDS[place.kind ?? ''] ?? place.kind, hood?.name].filter(Boolean).join(' · ')}</p>
+      </div>
+      <button type="button" className="button primary" onClick={onEdit}><Pencil aria-hidden="true" />Change it</button>
+      <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
+    </div>
   )
 }
 
@@ -217,17 +256,31 @@ function count(tab: Tab, definition: Definition): number | null {
 
 /** The parts as tabs, scrolling sideways on a phone, where the map is a tab of its own. */
 function Tabs({ tab, onTab, definition, check }: { tab: Tab; onTab: (tab: Tab) => void; definition: Definition; check: CheckState }) {
-  // A tab picked from elsewhere (a place on the map) scrolls into the strip on a phone.
-  useEffect(() => { document.getElementById(`draft-tab-${tab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [tab])
+  const strip = useRef<HTMLDivElement>(null)
+  const [more, setMore] = useState({ left: false, right: false })
+  // The row scrolls sideways, fading at an edge with more beyond it; the chosen tab always scrolls into view.
+  useEffect(() => {
+    const row = strip.current
+    if (!row) return
+    const edges = () => setMore({ left: row.scrollLeft > 2, right: row.scrollLeft + row.clientWidth < row.scrollWidth - 2 })
+    document.getElementById(`draft-tab-${tab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    edges()
+    row.addEventListener('scroll', edges, { passive: true })
+    window.addEventListener('resize', edges)
+    return () => { row.removeEventListener('scroll', edges); window.removeEventListener('resize', edges) }
+  }, [tab])
   const move = (event: KeyboardEvent, index: number) => {
     const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
     if (!step) return
-    const next = TABS[(index + step + TABS.length) % TABS.length]
+    // The Map tab is only there on a phone.
+    const shown = TABS.filter((item) => document.getElementById(`draft-tab-${item.id}`)?.offsetParent)
+    const at = Math.max(0, shown.findIndex((item) => item.id === TABS[index].id))
+    const next = shown[(at + step + shown.length) % shown.length]
     onTab(next.id)
     document.getElementById(`draft-tab-${next.id}`)?.focus()
   }
   return (
-    <div className="draft-tabs" role="tablist" aria-label="Parts of the place">
+    <div ref={strip} className={`draft-tabs${more.left ? ' more-left' : ''}${more.right ? ' more-right' : ''}`} role="tablist" aria-label="Parts of the place">
       {TABS.map((item, index) => {
         const number = count(item.id, definition)
         const label = item.id === 'hoods' && definition.enclosed ? 'Decks' : item.label
@@ -257,24 +310,28 @@ function checkState(check: CheckState): 'checking' | 'ready' | 'thin' | 'broken'
 
 /** The name of the place, what it says on its tin, and Save. */
 function TableBar({ work, setWork, check, onCheck, careful }: { work: Work; setWork: TableProps['setWork']; check: CheckState; onCheck: () => void; careful: TableProps['careful'] }) {
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [toast, setToast] = useState<Feedback>(null)
   const [saving, setSaving] = useState(false)
+  // The draft as last saved: Save rests as "Saved" until something changes.
+  const [savedAs, setSavedAs] = useState<Definition | null>(null)
   const save = async (asNew: boolean) => {
     setSaving(true)
-    setFeedback(null)
+    setToast(null)
     try {
       const definition = asNew ? { ...work.definition, id: uniqueId(work.definition.name, (await api<CityListing[]>('/world/cities')).map((city) => city.id)) } : work.definition
       const saved = work.saved && !asNew
         ? await api<CityListing & { revision: number }>(`/world/cities/${work.saved.id}`, { definition, expected_revision: work.saved.revision }, 'PUT')
         : await api<CityListing & { revision: number }>('/world/cities', definition)
-      setWork((current) => current && { ...current, definition: { ...current.definition, id: saved.id }, saved: { id: saved.id, revision: saved.revision } })
-      setFeedback({ tone: 'success', text: `Saved ${saved.name}. It is in Companion now, under Custom in Settings > Cities.` })
+      const kept = { ...definition, id: saved.id }
+      setWork((current) => current && { ...current, definition: kept, saved: { id: saved.id, revision: saved.revision } })
+      setSavedAs(kept)
+      setToast({ tone: 'success', text: `Saved ${saved.name}. It is in Companion now, under Custom in Settings > Cities.` })
       announceSaved()
     } catch (failure) {
-      setFeedback({ tone: 'error', text: message(failure, 'Not saved.'), saveAsNew: failure instanceof ApiError && failure.status === 409 })
+      setToast({ tone: 'error', text: message(failure, 'Not saved.'), saveAsNew: failure instanceof ApiError && failure.status === 409 })
     } finally { setSaving(false) }
   }
-  const broken = check.state === 'failed'
+  const unchanged = savedAs === work.definition
   return (
     <header className="draft-bar">
       <div className="draft-title">
@@ -284,21 +341,43 @@ function TableBar({ work, setWork, check, onCheck, careful }: { work: Work; setW
       </div>
       <CheckChip check={check} onClick={onCheck} />
       <div className="draft-bar-actions">
-        <button type="button" className="button primary" disabled={saving || broken} onClick={() => void save(false)}><Save aria-hidden="true" />{work.saved ? 'Save changes' : 'Save to my cities'}</button>
+        <button type="button" className="button primary" disabled={saving || unchanged || check.state === 'failed'} onClick={() => void save(false)}>
+          {unchanged ? <CheckCircle2 aria-hidden="true" /> : <Save aria-hidden="true" />}{unchanged ? 'Saved' : work.saved ? 'Save changes' : 'Save to my cities'}
+        </button>
         <button type="button" className="button" aria-label="Save as file" title="Save as file" onClick={() => saveFile(work.definition)}><Download aria-hidden="true" /><span className="draft-bar-label">Save as file</span></button>
         <button type="button" className="button" aria-label="New place" title="New place" onClick={() => careful(() => setWork(() => null), 'Start a new place?', 'Start again')}><FilePlus2 aria-hidden="true" /><span className="draft-bar-label">New place</span></button>
       </div>
-      <div className="draft-bar-feedback" aria-live="polite">{feedback && <Notice tone={feedback.tone} action={feedback.saveAsNew ? <button type="button" className="text-button notice-link" onClick={() => void save(true)}>Save as a new city</button> : undefined}>{feedback.text}</Notice>}</div>
+      <Toast toast={toast} onClose={() => setToast(null)} onSaveAsNew={() => void save(true)} />
     </header>
   )
 }
 
+/** A note over the bottom of the window that moves nothing: a save goes after a few seconds, a problem stays. */
+function Toast({ toast, onClose, onSaveAsNew }: { toast: Feedback; onClose: () => void; onSaveAsNew: () => void }) {
+  useEffect(() => {
+    if (toast?.tone !== 'success') return
+    const timer = window.setTimeout(onClose, 5000)
+    return () => window.clearTimeout(timer)
+  }, [toast, onClose])
+  return (
+    <div className="draft-toast-area" aria-live="polite">
+      {toast && <div className={`draft-toast draft-toast-${toast.tone}`} role={toast.tone === 'error' ? 'alert' : 'status'}>
+        {toast.tone === 'error' ? <XCircle aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
+        <span>{toast.text}</span>
+        {toast.saveAsNew && <button type="button" className="text-button draft-toast-action" onClick={onSaveAsNew}>Save as a new city</button>}
+        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
+      </div>}
+    </div>
+  )
+}
+
+/** Ready, or how many things to fix: a status that opens the Check tab, not a button to press. */
 function CheckChip({ check, onClick }: { check: CheckState; onClick: () => void }) {
   const state = checkState(check)
   const warnings = check.state === 'done' ? check.checked.warnings.length : 0
-  const text = { checking: 'Checking…', ready: 'Ready', thin: `${warnings} to look at`, broken: 'Will not load yet' }[state]
+  const text = { checking: 'Checking…', ready: 'Ready', thin: `${warnings} to fix`, broken: 'Will not load yet' }[state]
   const Icon = { checking: LoaderCircle, ready: CheckCircle2, thin: AlertTriangle, broken: XCircle }[state]
-  return <button type="button" className={`draft-chip draft-chip-${state}`} onClick={onClick}><Icon aria-hidden="true" />{text}</button>
+  return <button type="button" className={`draft-chip draft-chip-${state}`} aria-label={`${text}. Open Check`} onClick={onClick}><Icon aria-hidden="true" />{text}</button>
 }
 
 /** Companion's own window, if open, lists the city straight away (features/world/Cities.tsx). */
@@ -319,7 +398,9 @@ function Overview({ work, busy, setWork, draw, careful, onRoll }: Pick<TableProp
   const [line, setLine] = useState(work.line)
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CityListing[]>('/world/cities') })
   const anchor = work.brief && cities.data?.find((city) => city.id === work.brief?.anchor)
-  const change = (patch: Parameters<typeof changeCity>[1]) => setWork((current) => current && { ...current, definition: changeCity(current, patch), edited: true })
+  // Typing in the summary keeps it as written; otherwise it follows the name and the parts of town.
+  const change = (patch: Parameters<typeof changeCity>[1]) => setWork((current) => current && settle({ ...current, summaryEdited: current.summaryEdited || patch.summary !== undefined }, changeCity(current, patch)))
+  const rewrite = () => setWork((current) => current && settle({ ...current, summaryEdited: false }, current.definition))
   const redraw = (event: FormEvent) => {
     event.preventDefault()
     if (!busy) careful(() => void draw(line, newSeed(), {}), 'Draw up a new place?', 'Draw it up')
@@ -330,7 +411,7 @@ function Overview({ work, busy, setWork, draw, careful, onRoll }: Pick<TableProp
       <form className="draft-line" onSubmit={redraw}>
         <label htmlFor="draft-line-again">{work.brief ? 'Drawn from' : 'Draw up a new place'}</label>
         <div className="draft-line-row">
-          <input id="draft-line-again" value={line} maxLength={400} placeholder={EXAMPLES[0]} onChange={(event) => setLine(event.target.value)} />
+          <input id="draft-line-again" value={line} maxLength={400} placeholder="e.g. a cold fishing town, 1920s" onChange={(event) => setLine(event.target.value)} />
           <button type="submit" className="button" aria-disabled={busy}><FilePlus2 aria-hidden="true" />Draw it up</button>
         </div>
         {work.brief && <div className="form-actions wrap">
@@ -340,13 +421,25 @@ function Overview({ work, busy, setWork, draw, careful, onRoll }: Pick<TableProp
       </form>
       {!work.brief && <p className="subtle">Opened from a file. Roll again needs the line a place was drawn from, so it is off for this one.</p>}
       <TextInput label="Name" value={work.definition.name} maxLength={120} onChange={(name) => change({ name })} hint={work.saved ? 'Saved with your cities, so its id stays as it is.' : undefined} />
-      <TextArea label="What it is like" value={work.definition.summary} maxLength={400} rows={3} onChange={(summary) => change({ summary })} />
+      <SummaryField work={work} onChange={(summary) => change({ summary })} onRewrite={rewrite} />
       <div className="draft-pair">
         <TextInput label="Region" value={work.definition.region} maxLength={120} onChange={(region) => change({ region })} />
         <TextInput label={work.definition.enclosed ? 'Kind of ship' : 'Country or realm'} value={work.definition.country} maxLength={120} onChange={(country) => change({ country })} />
       </div>
       {anchor && <p className="subtle">Money, prices, holidays and names follow {anchor.name}, which ships with Companion, so a day here costs what a day there does.</p>}
     </section>
+  )
+}
+
+/** The place's summary: written from the place until the user writes their own, and back again on request. */
+function SummaryField({ work, onChange, onRewrite }: { work: Work; onChange: (summary: string) => void; onRewrite: () => void }) {
+  const follows = work.brief !== null && !work.summaryEdited
+  return (
+    <div className="draft-summary">
+      <TextArea label="What it is like" value={work.definition.summary} maxLength={400} rows={3} onChange={onChange}
+        hint={follows ? 'Follows the name and the parts of town until you write your own.' : undefined} />
+      {work.brief && !follows && <button type="button" className="text-button" onClick={onRewrite}>Write it from the place again</button>}
+    </div>
   )
 }
 
@@ -360,7 +453,7 @@ function CheckPanel({ check }: { check: CheckState }) {
     <section className="draft-list form-stack" aria-labelledby="draft-check">
       <h2 id="draft-check">Check</h2>
       {!warnings.length && !notes.length && <Notice tone="success">Ready. Companion loads it as it is, with nothing to fix.</Notice>}
-      {warnings.map((warning) => <Notice key={warning} tone="warning">{warning} Days there repeat sooner.</Notice>)}
+      {warnings.map((warning) => <Notice key={warning} tone="warning">{warning}</Notice>)}
       {notes.length > 0 && <div><p>Companion tidies these on the way in:</p><ul className="city-notes">{groupNotes(notes).map((note) => <li key={note}>{note}</li>)}</ul></div>}
       <p className="subtle">{counts.neighborhoods} {summary.enclosed ? 'decks' : 'neighborhoods'}, {counts.places} places, {counts.employers} employers, {counts.annual_events} yearly events.</p>
     </section>

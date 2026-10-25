@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { addHood, addPlace, briefLine, changeCity, changeItem, inHood, mapData, redrawsAll, removeItem, takeSection, uniqueId, type Brief, type Definition, type Work } from '../../src/features/draft/draftText.ts'
+import { addHood, addPlace, briefLine, changeCity, changeItem, inHood, mapData, redrawsAll, removeItem, settle, staleNames, summaryFor, takeSection, uniqueId, type Brief, type Definition, type Work } from '../../src/features/draft/draftText.ts'
 
 const item = (id: string, neighborhood?: string, extra: Record<string, unknown> = {}) => ({ id, name: id, summary: `${id}.`, ...(neighborhood ? { neighborhood } : {}), ...extra })
 const hood = (id: string, lat: number, transit: string[] = ['walk']) => ({ ...item(id), lat, lon: 0, transit })
@@ -81,4 +81,18 @@ test('the map shows every place in its part of town and the facts read plainly',
   assert.deepEqual(data.hoods.map((entry) => entry.next), [['hill'], ['docks']])
   assert.equal(briefLine(brief, town()), '1920s · Town on the sea · Cold')
   assert.equal(briefLine(null, town()), '1920s · 2 neighborhoods')
+})
+
+test('the summary follows the parts of town until the user writes their own, and Check names what it lost', () => {
+  const work: Work = { line: brief.line, seed: '1', rolls: {}, definition: town(), brief, edited: false }
+  assert.equal(summaryFor(town(), brief), 'Ridgemouth is a cold, northern town on the sea, with docks at its heart and hill round about.')
+  const removed = settle(work, removeItem(work.definition, 'neighborhoods', 'hill'), 'hill')
+  assert.equal(removed.definition.summary, 'Ridgemouth is a cold, northern town on the sea, with docks at its heart.')
+  assert.deepEqual(staleNames(removed), [])
+  const written = { ...work, summaryEdited: true, definition: { ...work.definition, summary: 'Fog over the docks and the hill.' } }
+  const kept = settle(written, removeItem(written.definition, 'neighborhoods', 'hill'), 'hill')
+  assert.equal(kept.definition.summary, 'Fog over the docks and the hill.')
+  assert.deepEqual(staleNames(kept), ['hill'])
+  const ship = { ...brief, aboard: true }
+  assert.equal(summaryFor({ ...town(), country: 'Orbital station' }, ship), 'Ridgemouth is an orbital station of 2 decks, with docks at its heart and hill round about.')
 })

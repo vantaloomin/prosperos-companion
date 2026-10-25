@@ -150,7 +150,8 @@ def test_the_check_panel_says_what_loading_a_changed_draft_would_mend_and_where_
     definition['places'] = [place for place in definition['places'] if place['neighborhood'] != hood]
     definition['places'][0].pop('cost')
     thin = client.post('/api/world/draft/check', json=definition).json()
-    assert any('fewer than two places' in warning and hood in warning for warning in thin['warnings'])
+    name = definition['neighborhoods'][0]['name']
+    assert thin['warnings'] == [f'{name} has no places yet. Add one or two so days there do not repeat.']
     assert thin['notes']
     definition['neighborhoods'] = []
     assert client.post('/api/world/draft/check', json=definition).status_code in (400, 422)
