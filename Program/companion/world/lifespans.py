@@ -236,14 +236,7 @@ def clean(data: dict) -> list[str]:
     else:
         data.pop('kinds', None)
     known = set(table()['kinds']) | set(own)
-    named = set(catalog.name_groups(data)[0]) if own else set()
-    for key, value in own.items():
-        if 'groups' in value and not set(value['groups']) <= named:
-            notes.append(f'The kind "{key}" takes names from groups the city doesn\'t have '
-                         f'({", ".join(sorted(set(value["groups"]) - named))}), so those are left out.')
-            value['groups'] = [group for group in value['groups'] if group in named]
-            if not value['groups']:
-                value.pop('groups')
+    notes += clean_kind_groups(data, own)
     for key, group in ((data.get('names') or {}).get('groups') or {}).items():
         if group.get('kind') and group['kind'] not in known:
             notes.append(f'The name group "{key}" names the kind "{group["kind"]}", which isn\'t known, so its people '
@@ -255,6 +248,19 @@ def clean(data: dict) -> list[str]:
             notes.append(f'{notable["name"]} names the kind "{notable["kind"]}", which isn\'t known, so they are '
                          'human.')
             notable.pop('kind')
+    return notes
+
+
+def clean_kind_groups(data: dict, own: dict) -> list[str]:
+    """Leave out the name groups a kind takes names from (`groups`) that the city doesn't have, with a note."""
+    notes, named = [], set(catalog.name_groups(data)[0]) if own else set()
+    for key, value in own.items():
+        if 'groups' in value and not set(value['groups']) <= named:
+            notes.append(f'The kind "{key}" takes names from groups the city doesn\'t have '
+                         f'({", ".join(sorted(set(value["groups"]) - named))}), so those are left out.')
+            value['groups'] = [group for group in value['groups'] if group in named]
+            if not value['groups']:
+                value.pop('groups')
     return notes
 
 
