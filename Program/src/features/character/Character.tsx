@@ -50,6 +50,7 @@ import { Voice } from './Voice'
 import { Steps } from './Steps'
 import { Family } from './Family'
 import { LifeLately } from './LifeLately'
+import { TheirLook } from './TheirLook'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
 
@@ -211,6 +212,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
       <LifeAdmin name={name} />
       <SelfFacts name={name} />
     </>}
+    <TheirLook name={name} />
     <Voice name={name} />
     <Lore />
     <Library name={name} />

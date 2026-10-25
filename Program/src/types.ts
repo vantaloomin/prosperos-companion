@@ -307,6 +307,8 @@ export interface WorkspaceSettings {
   chat_retro_dark?: boolean
   /** Period words in period cities: letters in Camelot, comms aboard a ship (companion/world/era_words.py). On unless turned off. */
   period_words?: boolean
+  /** Keep my colours everywhere: no companion's own colours or name font (companion/their_look.py). */
+  keep_my_colours?: boolean
   /** The app's colors (Prospero's Study's palettes); Retro IM keeps its own. */
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */
@@ -510,6 +512,8 @@ export interface LifeSettings {
   memes_realism: number
   /** Inner voice (companion/life/narrator.py): how much of what is on their mind the Watching page tells, 0 to 3. */
   inner_voice: number
+  /** Their look in chat (companion/their_look.py): 0 off, 1 steady, 2 true to life, 3 expressive. */
+  their_look: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
