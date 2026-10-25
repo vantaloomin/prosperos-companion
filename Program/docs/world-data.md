@@ -407,8 +407,16 @@ of its content, so editing it changes the version later events record.
 
 `companion/world/draft` builds a whole place from one line, such as "a cold fishing town on a northern coast,
 1920s", "an elven forest city" or "a generation ship". It is the engine of Prospero's Draft Table, the location
-builder; its own window comes later, and until then the files it makes open through **Settings > Cities > Open a
-city file** like any other.
+builder, which has a window of its own: `draft.html` on the same server (`src/features/draft`), opened from **Settings
+> Cities > Prospero's Draft Table**, the Start menu entry the installer adds, `Windows\draft-table.bat`,
+`Mac/draft-table.command` or `python -m companion.launch --draft`. The window draws the place on the same drawn map
+as Companion's city map, with a tab for each part (neighbourhoods, places, work, getting about, events, local colour)
+to rename, move, add or remove anything. **Roll again** redraws one list and keeps the user's changes everywhere else
+(rolling the neighbourhoods or the name draws up the whole place again, after asking if anything was changed). The
+**Check** tab shows what Companion would mend on loading it and its thin spots (`POST /api/world/draft/check` with a
+definition), and **Save to my cities** saves it with the user's own cities; Companion's window, if open, lists it
+straight away. The table keeps the work in progress on that device between visits, and can open any city file to
+change it (without Roll again, since a file has no line).
 
     python -m companion.world.draft "a cold fishing town, 1920s" --seed 3 -o wareholme.json
 

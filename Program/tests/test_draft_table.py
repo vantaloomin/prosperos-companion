@@ -140,3 +140,37 @@ def test_the_app_drafts_a_place_and_saves_it_like_any_other_city(client):
     assert saved.status_code == 200, saved.text
     assert client.get(f'/api/world/cities/{body["definition"]["id"]}').status_code == 200
     assert client.post('/api/world/draft', json={'line': 'x', 'rolls': {'nonsense': 1}}).status_code == 422
+
+
+def test_the_check_panel_says_what_loading_a_changed_draft_would_mend_and_where_it_is_thin(client):
+    definition = client.post('/api/world/draft', json={'line': 'a cold fishing town, 1920s', 'seed': '4'}).json()['definition']
+    clean = client.post('/api/world/draft/check', json=definition).json()
+    assert clean['notes'] == [] and clean['warnings'] == [] and clean['summary']['name'] == definition['name']
+    hood = definition['neighborhoods'][0]['id']
+    definition['places'] = [place for place in definition['places'] if place['neighborhood'] != hood]
+    definition['places'][0].pop('cost')
+    thin = client.post('/api/world/draft/check', json=definition).json()
+    name = definition['neighborhoods'][0]['name']
+    assert thin['warnings'] == [f'{name} has no places yet. Add one or two so days there do not repeat.']
+    assert thin['notes']
+    definition['neighborhoods'] = []
+    assert client.post('/api/world/draft/check', json=definition).status_code in (400, 422)
+
+
+def test_the_draft_table_page_is_served_with_the_app():
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    page = (root / 'draft.html').read_text(encoding='utf-8')
+    assert '/src/draft.tsx' in page and "Prospero's Draft Table" in page
+    assert "draft: 'draft.html'" in (root / 'vite.config.ts').read_text(encoding='utf-8')
+
+
+def test_getting_about_names_every_way_the_app_knows_in_plain_words():
+    import re
+    from pathlib import Path
+
+    from companion.world.schema import TRANSIT_KINDS
+    text = (Path(__file__).resolve().parent.parent / 'src/features/draft/draftText.ts').read_text(encoding='utf-8')
+    block = text.split('export const TRANSIT_KINDS', 1)[1].split('}', 1)[0]
+    named = {key.strip("'") for key in re.findall(r"([\w'-]+): '", block)}
+    assert named == set(TRANSIT_KINDS)

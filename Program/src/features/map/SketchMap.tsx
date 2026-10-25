@@ -1,16 +1,23 @@
-import { useEffect, useId, useMemo, useRef } from 'react'
+import { useEffect, useId, useMemo, useRef, type CSSProperties } from 'react'
+import { Maximize, Minus, Plus } from 'lucide-react'
 import { mainPin, narrow, type CityMapData, type MapPlace } from './mapText'
 import { drawn, GROUNDS, labels, lakeOutline, pathOf, type District, type Drawn, type MapLabel } from './drawn'
+import { useZoom } from './useZoom'
 
-interface Props { data: CityMapData; selected: string | null; onSelect: (id: string) => void; caption: string }
+/** `zoomable` (the Draft Table) fits the whole place in view, with zoom buttons, the wheel and a pinch; it fits again when `refit` changes. */
+interface Props { data: CityMapData; selected: string | null; onSelect: (id: string) => void; caption: string; zoomable?: boolean; refit?: string }
 
 /** Fictional, original and private cities, or a street map that cannot load: a map drawn from the city data (drawn.ts). */
-export function SketchMap({ data, selected, onSelect, caption }: Props) {
+export function SketchMap({ data, selected, onSelect, caption, zoomable = false, refit = '' }: Props) {
   const map = useMemo(() => drawn(data), [data])
-  // Names placed so they do not run into each other (drawn.ts); a place's that does not fit shows on hover.
-  const names = useMemo(() => new Map(labels(map).map((label) => [label.key, label])), [map])
   const box = useRef<HTMLDivElement>(null)
   const prefix = useId().replace(/:/g, '')
+  const zoom = useZoom(box, map, zoomable, refit)
+  // A zoomable map keeps its names and pins one size on screen (a touch bigger on a phone) however far it is zoomed.
+  const grow = zoomable ? Math.round(((narrow() ? 12 / 11 : 1) / zoom.scale) * 20) / 20 : 1
+  // Names placed so they do not run into each other (drawn.ts); a place's that does not fit shows on hover.
+  const names = useMemo(() => new Map(labels(map, grow).map((label) => [label.key, label])), [map, grow])
+  const view = viewOf(map, zoomable ? zoom : null)
   // Opens on the picked place, else their home, since the map is often bigger than the screen.
   useEffect(() => {
     const target = box.current?.querySelector('.sketch-pin.selected') ?? box.current?.querySelector('.sketch-pin.pin-home')
@@ -18,25 +25,46 @@ export function SketchMap({ data, selected, onSelect, caption }: Props) {
     // On a phone the card is a sheet over the lower part, so the picked place moves up above it.
     if (selected && narrow() && box.current) box.current.scrollBy({ top: box.current.clientHeight * 0.28 })
   }, [selected])
-  return (
-    <div ref={box} className="sketch-map">
+  const sketch = (
+    <div ref={box} className={`sketch-map${zoomable ? ' zoomable' : ''}`}>
       <p className="sketch-caption">{caption}</p>
-      <svg viewBox={`0 0 ${map.width} ${map.height}`} style={{ width: map.width, height: map.height }} role="group" aria-label={`Map of ${data.city.name}`}>
+      <svg viewBox={view.box} style={{ width: view.width, height: view.height, '--grow': grow } as CSSProperties} role="group" aria-label={`Map of ${data.city.name}`}>
         <Ground map={map} prefix={prefix} names={names} />
         {map.districts.map((district) => district.places.map(({ place, x, y }) => (
-          <PlacePin key={place.id} place={place} x={x} y={y} named={names.get(`${place.id}-name`)?.shown ?? false} selected={place.id === selected} onSelect={onSelect} />
+          <PlacePin key={place.id} place={place} x={x} y={y} grow={grow} hit={zoomable && narrow() ? 20.5 : 14}
+            named={names.get(`${place.id}-name`)?.shown ?? false} selected={place.id === selected} onSelect={onSelect} />
         )))}
         {[...names.values()].filter((label) => label.kind === 'place' && label.shown).map((label) => <Name key={label.key} label={label} className="sketch-label" />)}
       </svg>
     </div>
   )
+  if (!zoomable) return sketch
+  return (
+    <div className="sketch-frame">
+      {sketch}
+      <div className="sketch-zoom" role="group" aria-label="Zoom">
+        <button type="button" className="sketch-zoom-button" aria-label="Zoom in" title="Zoom in" disabled={zoom.atMost} onClick={zoom.zoomIn}><Plus aria-hidden="true" /></button>
+        <button type="button" className="sketch-zoom-button" aria-label="Zoom out" title="Zoom out" disabled={zoom.atLeast} onClick={zoom.zoomOut}><Minus aria-hidden="true" /></button>
+        <button type="button" className="sketch-zoom-button" aria-label="Fit the whole place" title="Fit the whole place" aria-pressed={zoom.fitted} onClick={zoom.fit}><Maximize aria-hidden="true" /></button>
+      </div>
+    </div>
+  )
+}
+
+/** What the svg shows: the map, and on a zoomable map that is smaller than its box, the country around it to the box's edges. */
+function viewOf(map: Drawn, zoom: { scale: number; size: { width: number; height: number } | null } | null) {
+  const scale = zoom?.scale ?? 1
+  const width = Math.max(map.width, zoom?.size ? Math.floor(zoom.size.width) / scale : 0)
+  const height = Math.max(map.height, zoom?.size ? Math.floor(zoom.size.height) / scale : 0)
+  const x = (map.width - width) / 2, y = (map.height - height) / 2
+  return { box: `${x} ${y} ${width} ${height}`, width: Math.floor(width * scale), height: Math.floor(height * scale) }
 }
 
 /** Everything but the pins, dimmed like the street map's tiles. */
 function Ground({ map, prefix, names }: { map: Drawn; prefix: string; names: Map<string, MapLabel> }) {
   return (
     <g className="drawn-ground" aria-hidden="true">
-      <rect className="drawn-country" width={map.width} height={map.height} />
+      <rect className="drawn-country" x={-4000} y={-4000} width={map.width + 8000} height={map.height + 8000} />
       {map.water.filter((water) => water.kind === 'sea').map((water) => <path key={water.name} className="drawn-water" d={pathOf(water.path, true)} />)}
       {map.outskirts.map((outline, index) => <path key={index} className="drawn-outskirts" d={pathOf(outline, true)} />)}
       {map.districts.map((district, index) => <DistrictShape key={district.id} district={district} tint={index % 4} clip={`${prefix}-${district.id}`} />)}
@@ -74,16 +102,17 @@ function Name({ label, className }: { label: MapLabel; className: string }) {
   return <text className={className} x={label.x} y={label.y} style={{ textAnchor: label.anchor }} aria-hidden="true">{label.text}</text>
 }
 
-interface PinProps { place: MapPlace; x: number; y: number; named: boolean; selected: boolean; onSelect: (id: string) => void }
+interface PinProps { place: MapPlace; x: number; y: number; grow: number; hit: number; named: boolean; selected: boolean; onSelect: (id: string) => void }
 
 /** The same pins as the street map: a small dot for most places, a round badge with a glyph for theirs. */
-function PlacePin({ place, x, y, named, selected, onSelect }: PinProps) {
+function PlacePin({ place, x, y, grow, hit, named, selected, onSelect }: PinProps) {
   const pin = mainPin(place)
   return (
-    <g className={`sketch-pin map-pin pin-${pin}${selected ? ' selected' : ''}`} transform={`translate(${x} ${y})`}
+    <g className={`sketch-pin map-pin pin-${pin}${selected ? ' selected' : ''}`} transform={`translate(${x} ${y})${grow === 1 ? '' : ` scale(${grow})`}`}
       role="button" tabIndex={0} aria-label={place.name} onClick={() => onSelect(place.id)}
       onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(place.id) } }}>
-      <circle className="sketch-hit" r={14} />
+      <circle className="sketch-hit" r={hit} />
+      {selected && <circle className="sketch-ring" r={pin === 'place' ? 9 : 16} />}
       {pin === 'place' ? <><circle className="sketch-dot" r={4.5} /><text className="sketch-label sketch-hover-label" x={9} y={4}>{place.name}</text></> : <>
         <circle className="sketch-badge" r={13} />
         <g className="sketch-glyph" transform="translate(-8 -8) scale(0.667)"><PinShape pin={pin} /></g>

@@ -10,6 +10,8 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
+      // Prospero's Draft Table is a second page of the same app (draft.html).
+      input: { main: 'index.html', draft: 'draft.html' },
       output: {
         manualChunks(id) {
           const match = id.match(/node_modules[\\/]((?:@[^\\/]+[\\/])?[^\\/]+)[\\/]/)

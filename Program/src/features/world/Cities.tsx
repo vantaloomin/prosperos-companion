@@ -1,7 +1,7 @@
 import { reducedMotion } from '../../motion'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, Download, FilePlus2, FolderSync, Pencil, Rocket, Search, Trash2, Upload } from 'lucide-react'
+import { Copy, Download, FilePlus2, FolderSync, Pencil, PencilRuler, Rocket, Search, Trash2, Upload } from 'lucide-react'
 import { api } from '../../api'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -9,6 +9,7 @@ import { TextInput } from '../../components/Fields'
 import { shownPath } from '../../paths'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { isWorldMap, readWorldMap } from './worldMap'
+import { CITIES_CHANNEL } from '../draft/draftText'
 import { GetLatest } from '../character/Library'
 import { ONLINE_KEY, type OnlineBook } from '../character/libraryText'
 import { cityFacts, definitionOf, exportName, groupNotes, matchesCity, cityFor, keptBoth, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
@@ -74,6 +75,13 @@ export function Cities() {
   const [cardNote, setCardNote] = useState<{ city: string; note: NonNullable<Feedback> } | null>(null)
   const file = useRef<HTMLInputElement>(null)
   const refresh = () => Promise.all([client.invalidateQueries({ queryKey: CITIES_KEY }), client.invalidateQueries({ queryKey: BROKEN_KEY })])
+  // A place saved on Prospero's Draft Table, in its own window, shows up here straight away.
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return
+    const channel = new BroadcastChannel(CITIES_CHANNEL)
+    channel.onmessage = () => void client.invalidateQueries({ queryKey: CITIES_KEY })
+    return () => channel.close()
+  }, [client])
   const fail = (error: unknown) => setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work.' })
 
   // A city on the ground, or a small ship that docks at Port Vesper (companion/world/custom.py ship_template).
@@ -137,12 +145,13 @@ export function Cities() {
     <section className="settings-section form-stack" aria-labelledby="cities-heading">
       <div>
         <h2 id="cities-heading">Cities</h2>
-        <p className="subtle">A companion's days are built from their home city: its neighborhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared. A Marinara world map opens as a city straight away, with its places' notes as world lore.</p>
+        <p className="subtle">A companion's days are built from their home city: its neighborhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared. Prospero's Draft Table draws up a whole place from one line, in a window of its own. A Marinara world map opens as a city straight away, with its places' notes as world lore.</p>
       </div>
       <div className="form-actions wrap">
         <button type="button" className="button" onClick={() => void startNew()}><FilePlus2 aria-hidden="true" />New city</button>
         <button type="button" className="button" onClick={() => void startNew('ship')}><Rocket aria-hidden="true" />Start from a ship</button>
         <button type="button" className="button" onClick={() => file.current?.click()}><Upload aria-hidden="true" />Open a city file</button>
+        <a className="button" href="/draft.html" target="prospero-draft-table" rel="opener"><PencilRuler aria-hidden="true" />Prospero's Draft Table</a>
         <input ref={file} type="file" accept=".json,application/json" hidden onChange={(event) => void importFile(event.target.files?.[0])} />
       </div>
       <div aria-live="polite">{feedback && <FeedbackNotice feedback={feedback} />}</div>
