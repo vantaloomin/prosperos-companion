@@ -898,6 +898,10 @@ export interface CirclePerson {
   adopting?: boolean
   /** Written into the character's description (companion/life/named.py): spared from passing away unless `spared` is false. */
   sheet?: string
+  /** Added by the user on the circle list (companion/life/circle_edit.py): spared from passing away like `sheet`. */
+  by_hand?: boolean
+  /** The user's own words about them, which the chat reads. */
+  note?: string
   /** People can pass away (companion/life/loss.py): whether the user spared them, or let them pass away. */
   spared?: boolean
   /** The day they passed away, when they have. */

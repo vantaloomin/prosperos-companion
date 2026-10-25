@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { displayName, personFacts, personNow, personTies, personWork } from '../../src/features/today/circleText.ts'
+import { AGE_CHOICES, aboutChange, aboutForm, displayName, personFacts, personNow, personTies, personWork } from '../../src/features/today/circleText.ts'
 import type { CirclePerson } from '../../src/types.ts'
 
 const person = (extra: Partial<CirclePerson> = {}): CirclePerson => ({
@@ -39,4 +39,25 @@ test('parents who parted in an older city read separated, not divorced', () => {
   assert.equal(personTies(person({ knows: [{ id: 'r', name: 'Rui', how: 'separated' }, { id: 'a', name: 'Ana', how: 'family' }] })),
     'Separated from Rui. Knows Ana (family).')
   assert.equal(personTies(person({ knows: [{ id: 'r', name: 'Rui', how: 'divorced' }] })), 'Divorced from Rui.')
+})
+
+test('the edit form starts from the person and sends only what changed', () => {
+  const form = aboutForm(person({ pronouns: 'she/her', age: 40, employer: 'Mercy' }))
+  assert.deepEqual(form.values, { name: 'Ebony', role: 'friend', pronouns: 'she/her', job: 'Nurse', employer: 'Mercy', age: '40', local: 'here', note: '' })
+  assert.deepEqual(aboutChange(form.values, { ...form.values }, false), {})
+  assert.deepEqual(aboutChange(form.values, { ...form.values, job: ' ER nurse ', age: '41', local: 'away', name: '' }, false),
+    { job: 'ER nurse', age: 41, local: false })
+  // A coworker's "Works with Dana" is not offered as a job to edit.
+  assert.equal(aboutForm(person({ career: 'Works with Dana', works_with_companion: true })).values.job, '')
+})
+
+test('adding someone sends only what was filled in', () => {
+  const empty = aboutForm().values
+  assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', job: 'barista' }, true), { name: 'Mo', job: 'barista' })
+  assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', local: 'away', age: '30' }, true), { name: 'Mo', age: 30, local: false })
+})
+
+test('the age picker keeps an age outside its range', () => {
+  assert.equal(AGE_CHOICES('').length, 95)
+  assert.equal(AGE_CHOICES('300').at(-1), '300')
 })

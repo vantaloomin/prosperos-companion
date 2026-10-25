@@ -89,6 +89,16 @@ AGE_BEFORE = re.compile(rf"\b{_AGE}[ -]years?[ -]old\b", re.IGNORECASE)
 # How old a child is likely to be from the word before them, when no age is given: (youngest, oldest).
 YOUNG_WORDS = {'baby': (0, 1), 'little': (2, 8), 'kid': (4, 11), 'teenage': (13, 17), 'young': (2, 9)}
 GROWN = re.compile(r'\b(?:grown|adult)\b', re.IGNORECASE)
+# A job the sheet gives someone: "Tunde, a nurse at Mercy", "Tunde works as a paralegal", "Tunde is a teacher".
+# `sure` patterns say it is a job; the others count only when the words name a career the app knows
+# (companion/life/circle_edit.py `career_match`), so "Tunde, a quiet man" gives Tunde no job.
+_JOB = r"(?P<job>[a-z][a-z'’ -]{1,40}?)"
+_AT = r"(?: (?:at|for) (?-i:(?P<at>(?:the )?[A-Z][\w&'’.-]*(?: (?:of |and |& )?[A-Z][\w&'’.-]*)*)))?"
+_STOP = r"(?=[,.;:!?)]|$| (?:who|and|but|in|on|with|since|for|at|from|there|now|again|downtown|nearby)\b)"
+JOBS = ((True, r"\bNAME(?: [A-Z][\w'’-]+)?,? (?:who )?(?:works|worked|is working|is employed|has a job) as (?:a |an )?"
+         + _JOB + _AT + _STOP),
+        (False, r"\bNAME(?: [A-Z][\w'’-]+)?(?:, | \()(?:a |an )" + _JOB + _AT + _STOP),
+        (False, r"\bNAME(?: [A-Z][\w'’-]+)?(?: who)? (?:is|was) (?:now )?(?:a |an )" + _JOB + _AT + _STOP))
 ELSEWHERE = r"\b{name}\b[^.;]*?\blives? (?:in|out in|over in|back in|down in|up in) (?-i:([A-Z][\w.'’-]*(?: [A-Z][\w.'’-]*)*))"
 
 
@@ -131,7 +141,28 @@ def people(definition: dict) -> list[dict]:
                        'generator_role': role, 'local': local, 'modifier': modifier.strip(' -').casefold()}
         if kind == 'child':
             found[name] |= child_age(text, name, modifier)
+        else:
+            found[name] |= job_of(text, name) | adult_age(text, name, modifier)
     return list(found.values())
+
+
+def job_of(text: str, name: str) -> dict:
+    """{job, employer, sure} for a grown-up the sheet gives a job, the first way it says it; {} for none."""
+    hits = []
+    for sure, pattern in JOBS:
+        match = re.search(pattern.replace("NAME", re.escape(name)), text, re.IGNORECASE)
+        if match:
+            hits.append((match.start(), not sure, match))
+    if not hits:
+        return {}
+    _start, unsure, match = min(hits, key=lambda hit: (hit[0], hit[1]))
+    return {'job': match['job'].strip(" -'’"), 'employer': (match['at'] or '').strip(), 'sure': not unsure}
+
+
+def adult_age(text: str, name: str, modifier: str) -> dict:
+    """{age} for a grown-up the sheet gives an age ("her 61-year-old mom Ana", "Ana, 61"); {} for none."""
+    found = child_age(text, name, modifier)['age']
+    return {'age': found} if found is not None and found >= 16 else {}
 
 
 def child_age(text: str, name: str, modifier: str) -> dict:
