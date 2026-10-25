@@ -1,4 +1,4 @@
-import type { Custody, FamilyView, Journey, Kid, KidsView, OurChild, OursView } from '../../types'
+import type { Custody, FamilyView, Journey, Kid, KidsParent, KidsView, OurChild, OursView } from '../../types'
 import { firstName } from './panelText.ts'
 import { stepDate } from './stepsText.ts'
 
@@ -43,20 +43,90 @@ export function kidLine(kid: Kid): string {
 /** Where their kids came from, under the list. */
 export function kidsHint(view: KidsView, name: string): string {
   const who = firstName(name)
+  const kids = view.kids ?? []
+  if (kids.length && kids.every((kid) => kid.by_hand)) return `You added ${kids.length === 1 ? 'them' : 'these'}. Edit a child, or take them out of ${who}'s life.`
   if (view.how === 'town') return `${who} had them while living in town, before they were a companion.`
-  if (view.how === 'seeded') return `Picked by the app for ${who}. Take a child out of their life if they shouldn't be there.`
-  return `Read from ${who}'s description. Take a child out of their life if they shouldn't be there.`
+  if (view.how === 'seeded') return `Picked by the app for ${who}. Edit a child, or take them out of their life if they shouldn't be there.`
+  return `Read from ${who}'s description. Edit a child, or take them out of their life if they shouldn't be there.`
 }
 
-/** Under "Where the kids live": who decided it, the arrangement spelled out, and the other parent. */
+/** Under "Where the kids live": who decided it, and the arrangement spelled out. */
 export function whereHint(view: KidsView, name: string): string {
   const who = firstName(name)
-  const other = view.other ? ` ${firstName(view.other.name)}, their other parent, is ${who}'s ${view.other.role}.` : ''
   const detail = view.detail ? `: ${view.detail}.` : '.'
-  if (view.pattern_how === 'set') return `You set this${detail}${other}`
-  if (view.pattern_how === 'fixed') return `Read from ${who}'s description${detail}${other}`
-  return `Picked by the app${detail}${other}`
+  if (view.pattern_how === 'set') return `You set this${detail}`
+  if (view.pattern_how === 'fixed') return `Read from ${who}'s description${detail}`
+  return `Picked by the app${detail}`
 }
+
+/** One choice of "Their other parent": "Mark (ex-husband)". */
+export function parentChoice(person: KidsParent): string {
+  return `${person.name} (${person.role})`
+}
+
+/** Under "Their other parent": who they are to the companion, or that the kids are being raised alone. */
+export function otherHint(view: KidsView, name: string): string {
+  const who = firstName(name)
+  if (!view.other) return `${who} is raising ${(view.kids?.length ?? 0) === 1 ? 'them' : 'the kids'} on their own.`
+  const made = view.other.made_up ? ' Picked by the app. Pick "Someone else" to name who it really is.' : ''
+  return `${firstName(view.other.name)} is ${who}'s ${view.other.role}.${made}`
+}
+
+/** A child's age on the add and edit forms: "Picked for you", "Under a year", "5 years old". */
+export function kidAgeChoice(years: number): string {
+  if (years < 0) return 'Let the app pick'
+  if (years === 0) return 'Under a year'
+  return `${years} year${years === 1 ? '' : 's'} old`
+}
+
+/** "Where Spock lives" for one child, "Where the kids live" for more. */
+export function whereLabel(view: KidsView): string {
+  const kids = view.kids ?? []
+  return kids.length === 1 ? `Where ${firstName(kids[0].name)} lives` : 'Where the kids live'
+}
+
+/** The Undo notice after taking a child out: "Spock is out of Sarek's life." */
+export function removedLine(kid: string, name = ''): string {
+  return name ? `${kid} is out of ${firstName(name)}'s life.` : `${kid} is out of their life.`
+}
+
+/** Over the "Someone else" form when the app made up the other parent: they become who the user names. */
+export function madeUpLine(other: string): string {
+  const who = firstName(other)
+  return `The app made up ${who}. ${who} becomes the person you name here.`
+}
+
+/** Son, daughter or child, as the forms offer them, by pronouns. */
+export const KID_RELATIONS = [{ pronouns: 'he/him', label: 'Son' }, { pronouns: 'she/her', label: 'Daughter' }, { pronouns: 'they/them', label: 'Child' }] as const
+
+/** The add form (`kid` undefined) or a child's edit form: what it starts with, says and sends to. */
+export function kidForm(kid: Kid | undefined) {
+  if (!kid) {
+    return { adding: true, prefix: 'kid-add', title: 'Add a child', submit: 'Add', placeholder: 'Let the app pick', name: '', pronouns: '', age: -1,
+      youngest: -1, path: '/life/steps/kids', method: 'POST' }
+  }
+  return { adding: false, prefix: `kid-${kid.id}`, title: `Edit ${kid.name}`, submit: 'Save', placeholder: undefined, name: kid.name,
+    pronouns: kid.pronouns, age: Math.min(kid.age, MAX_KID_AGE), youngest: 0, path: `/life/steps/kids/${kid.id}`, method: 'PATCH' }
+}
+
+/** What the add or edit form sends: only what the user filled in or changed (the app picks or keeps the rest). */
+export function kidChange(kid: Kid | undefined, name: string, pronouns: string, age: number): { name?: string; age?: number; pronouns?: string } {
+  const change: { name?: string; age?: number; pronouns?: string } = {}
+  if (name.trim() && name.trim() !== kid?.name) change.name = name.trim()
+  if (pronouns && pronouns !== kid?.pronouns) change.pronouns = pronouns
+  if (age >= 0 && age !== kid?.age) change.age = age
+  return change
+}
+
+/** "Saved." after an edit; "Added Spock." after adding (the newest child, when the app picked the name). */
+export function kidSaved(kid: Kid | undefined, view: KidsView): string {
+  if (kid) return 'Saved.'
+  const added = [...(view.kids ?? [])].filter((item) => item.by_hand).pop()
+  return added ? `Added ${added.name}.` : 'Added.'
+}
+
+/** The oldest a child of theirs can be (a grown son or daughter goes in their circle). */
+export const MAX_KID_AGE = 17
 
 /** The first choice of "Where the kids live": the description's arrangement or the app's pick, named. */
 export function wherePick(view: KidsView, name: string, label: string): string {

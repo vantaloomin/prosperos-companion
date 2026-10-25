@@ -166,7 +166,8 @@ def test_a_widowed_parent_has_no_other_parent(client):
 def test_the_ex_the_description_names_is_the_other_parent(client, clock):
     make(client, background='Her ex-husband Mark Lowe has their son Leo, 7, every other weekend.')
     view = panel(client)
-    assert view['other'] == {'name': 'Mark', 'role': 'ex-husband'} and view['pattern'] == 'with_them'
+    assert {key: view['other'][key] for key in ('name', 'role')} == {'name': 'Mark', 'role': 'ex-husband'}
+    assert view['pattern'] == 'with_them'
     assert 'every other weekend with his dad Mark' in prompt(client)
     assert view['detail'] == "with Dana, every other weekend at Mark's"
     assert [item['label'] for item in view['patterns']] == ['Mostly with Dana', 'Half and half', 'Mostly with Mark']
@@ -568,3 +569,89 @@ def test_one_child_is_named_in_where_they_live(client):
         assert kids.where_line(connection, companion, {**row, 'other_id': None}, 'sole', [
             {'name': 'Rowan Ashby', 'pronouns': 'they/them'}]) == \
             '- Rowan lives with you; their other parent is not in the picture.'
+
+
+# By hand (tester feedback, 2026-10-25) ----------------------------------------------------------------------------
+
+def add_kid(client, status=200, **values):
+    response = client.post('/api/life/steps/kids', json=values)
+    assert response.status_code == status, response.text
+    return response.json()
+
+
+def edit_kid(client, kid_id, status=200, **values):
+    response = client.patch(f'/api/life/steps/kids/{kid_id}', json=values)
+    assert response.status_code == status, response.text
+    return response.json()
+
+
+def test_a_child_can_be_added_by_hand_to_someone_with_none(client, monkeypatch):
+    forced(monkeypatch, 'kids:has', 0)
+    make(client, identity='38. He/him. Ambassador.', name='Sarek')
+    view = panel(client)
+    assert not view['shown'] and view['can_add']
+    view = add_kid(client, name='Spock', age=5, pronouns='he/him')
+    assert view['shown'] and [(kid['name'], kid['age'], kid['relation'], kid['by_hand']) for kid in view['kids']] == \
+        [('Spock', 5, 'son', True)]
+    # The app gives them an other parent and decides where Spock lives, as for any child of theirs.
+    assert view['other'] and view['other']['made'] and view['pattern'] in kids.CUSTODY
+    assert 'Spock (5, your son)' in prompt(client)
+    # Whatever is left out, the app picks.
+    view = add_kid(client)
+    picked = next(kid for kid in view['kids'] if kid['name'] != 'Spock')
+    assert picked['name'] and 0 <= picked['age'] < kids.GROWN
+    add_kid(client, 409, name='spock')
+    add_kid(client, 422, age=18)
+    add_kid(client, 422, age=30)  # Older than a child of a 38-year-old could be.
+
+
+def test_a_child_can_be_renamed_and_aged_and_the_description_does_not_bring_back_the_old_name(client):
+    make(client, background='Single dad. His son Leo, 7, loves trains.')
+    leo = panel(client)['kids'][0]
+    view = edit_kid(client, leo['id'], name='Spock', age=5)
+    kid = view['kids'][0]
+    assert (kid['name'], kid['age'], kid['born_on'][5:]) == ('Spock', 5, leo['born_on'][5:])
+    reconcile(client)
+    assert [kid['name'] for kid in panel(client)['kids']] == ['Spock']
+    assert 'Spock (5, your son)' in prompt(client) and 'Leo (7' not in prompt(client)
+    assert edit_kid(client, leo['id'], pronouns='she/her')['kids'][0]['relation'] == 'daughter'
+    edit_kid(client, 'abc123', 404, name='Mia')
+    edit_kid(client, leo['id'], 422, age=40)
+
+
+def test_the_other_parent_can_be_renamed_changed_or_taken_away(client):
+    make(client, background='Single mom of two: Theo (6) and Ivy (3).')
+    view = panel(client)
+    made = view['other']
+    assert made['made'] and made['role'] == 'co-parent'
+    # Naming someone else renames the co-parent the app made rather than adding a second one.
+    view = set_kids(client, other='new', other_name='Amanda Grayson', other_pronouns='she/her')
+    assert view['other']['id'] == made['id'] and view['other']['name'] == 'Amanda'
+    assert 'their mom Amanda' in prompt(client)
+    view = set_kids(client, other='none')
+    assert view['other'] is None and view['pattern'] == 'sole'
+    assert 'other parent is not in the picture' in prompt(client)
+    assert not [person for person in circle(client) if person['id'] == made['id']]
+    view = set_kids(client, other='new', other_name='Sam', other_pronouns='he/him')
+    assert view['other']['name'] == 'Sam' and view['other']['id'] != made['id'] and view['pattern'] in kids.CUSTODY
+    set_kids(client, 422, other='abc123')
+
+
+def test_kids_added_by_hand_stay_when_the_engines_pick_is_changed(client, monkeypatch):
+    forced(monkeypatch, 'kids:has', 1)
+    make(client)
+    view = panel(client)
+    seeded = len(view['kids'])
+    view = add_kid(client, name='Spock', age=5)
+    assert len(view['kids']) == seeded + 1
+    assert client.put('/api/settings', json={'show_odds': True}).status_code == 200
+    response = client.post(f"/api/life/consequences/{panel(client)['consequence_id']}/change", json={'option': 0})
+    assert response.status_code == 200, response.text
+    assert [kid['name'] for kid in panel(client)['kids']] == ['Spock']
+
+
+def test_a_companion_who_reads_as_under_18_cannot_be_given_kids_by_hand(client, monkeypatch):
+    forced(monkeypatch, 'kids:has', 0)
+    make(client, identity='16. She/her. High school junior.', relationship='friendship')
+    assert not panel(client)['can_add']
+    add_kid(client, 422, name='Leo')

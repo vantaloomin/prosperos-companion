@@ -376,6 +376,9 @@ ADDED_COLUMNS = (
     # 3 expressive; and Settings > General > Appearance's "Keep my colours everywhere".
     ('life_settings', 'their_look', 'INTEGER NOT NULL DEFAULT 2 CHECK (their_look BETWEEN 0 AND 3)'),
     ('workspace_settings', 'keep_my_colours', 'INTEGER NOT NULL DEFAULT 0 CHECK (keep_my_colours IN (0, 1))'),
+    # Companions who already have kids (companion/life/kids.py): a child of theirs the user added by hand, kept when
+    # the engine's kids:has is changed.
+    ('circle_children', 'by_hand', 'INTEGER NOT NULL DEFAULT 0 CHECK (by_hand IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
