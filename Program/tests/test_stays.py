@@ -251,7 +251,8 @@ def test_kids_who_live_with_their_other_parent_come_for_every_other_weekend(clie
         since = date.fromisoformat(row['since'])
         assert all(kids.with_them('weekends', since, date.fromisoformat(item['start_date'])) for item in weekends)
     items = [item for item in client.get('/api/life/admin').json()['upcoming'] if item['source'] == 'family']
-    assert items[0]['title'].startswith("Leo's weekend with ")
+    # Leo's birthday is seeded and can come before his first weekend.
+    assert any(item['title'].startswith("Leo's weekend with ") for item in items)
     act(client, weekends[0]['id'], 'skip')
     with connect(client) as connection:
         companion = current(connection)
