@@ -6,6 +6,11 @@
   when Windows loaded its own older copy of onnxruntime instead of the voice's. The voice now puts its own copy
   back beside its program before each note and runs from its own folder, and if it still happens, Settings >
   Models > Voice notes explains it and offers Repair the built-in voice, which downloads only the program again.
+- **Take a companion to another world:** the Character page can save a companion to a file with everything that
+  happened between you: chats, memories, Closeness, kids, home, look and voice. Open it under Bring your
+  characters in another world and they arrive there with all of it, moving to that world's city if it is another
+  one. Opening an updated city file for one of your own cities now updates it in place, so a world in it keeps
+  its companions.
 - **Memories stay in the right chat:** a memory found in one companion's chat could be saved to whichever
   companion was open when the app got round to it, for example after you switched chats or opened another one
   on your phone. Memories, things they say about themselves, and Remember this now always go to the companion

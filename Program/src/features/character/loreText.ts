@@ -33,7 +33,7 @@ export const MOMENT_KINDS: { kind: MomentKind; label: string }[] = [
   { kind: 'work', label: 'Work' },
 ]
 
-export const IMPORT_TYPES = '.png,.json,.charx,.byaf,.lorebook'
+export const IMPORT_TYPES = '.png,.json,.charx,.byaf,.lorebook,.companion'
 /** Above this the server turns a file down (companion/imports/cards.py MAX_SOURCE_BYTES). */
 export const MAX_BYTES = 10 * 1024 * 1024
 
@@ -78,6 +78,30 @@ export function broughtText(result: Brought): string {
   if (result.book) parts.push(theirBook(result.book, name))
   if (result.picture) parts.push(result.portrait ? 'Their picture is their profile picture.' : 'Their picture is with their reference pictures.')
   else if (result.picture_note) parts.push(result.picture_note)
+  if (result.stepped_back) parts.push(`${result.stepped_back} stepped back and keeps everything.`)
+  return parts.join(' ')
+}
+
+/** A companion saved in another world (companion/carry.py), opened here with their history. */
+export interface Carried {
+  name: string
+  companion: { version: { name: string } } | null
+  moved_to: string | null
+  stepped_back: string | null
+  counts: { messages?: number; memories?: number }
+}
+
+/** A saved companion's file goes to the server whole: it carries their history, not just a card. */
+export const isSavedCompanion = (name: string) => /\.companion$/i.test(name)
+
+const counted = (count: number | undefined, word: string) => count ? `${count.toLocaleString('en-US')} ${count === 1 ? word : `${word}s`}` : ''
+
+/** What opening a saved companion did, in a sentence or three. */
+export function carriedText(result: Carried): string {
+  const name = result.companion?.version.name ?? result.name
+  const history = [counted(result.counts.messages, 'message'), counted(result.counts.memories, 'memory').replace('memorys', 'memories')].filter(Boolean)
+  const parts = [`${name} is here with everything that happened between you${history.length ? `, including ${history.join(' and ')}` : ''}.`]
+  if (result.moved_to) parts.push(`They moved to ${result.moved_to}, with a home and the same kind of work there. Their friends and family stayed where they were.`)
   if (result.stepped_back) parts.push(`${result.stepped_back} stepped back and keeps everything.`)
   return parts.join(' ')
 }

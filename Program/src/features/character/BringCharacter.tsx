@@ -1,15 +1,16 @@
 import { useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { FileUp } from 'lucide-react'
-import { api } from '../../api'
+import { api, upload } from '../../api'
 import { COMPANION_KEY } from '../../companion'
 import type { Companion } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { fileData } from './helper'
-import { IMPORT_TYPES, MAX_BYTES, broughtText, slimmed, type Brought, type BroughtBook } from './loreText'
+import { IMPORT_TYPES, MAX_BYTES, broughtText, carriedText, isSavedCompanion, slimmed, type Brought, type BroughtBook, type Carried } from './loreText'
 import { ImportPicks } from './ImportPicks'
 import { pickBody, type CharacterFile, type FileContents, type MapFile, type Picks } from './importPicksText'
 import { isWorldMap, readWorldMap } from '../world/worldMap'
+import { refocus } from './refocus'
 
 type Result = { tone: 'info' | 'error'; text: string }
 /** A file read and listed, waiting for Import: what is sent again with the picks. */
@@ -65,8 +66,15 @@ export function BringCharacter() {
   const choose = (file: File | undefined) => {
     if (!file) return
     setOpened(null)
+    if (isSavedCompanion(file.name)) { carry(file); return }
     void run(async () => setOpened(await open(file)), 'That file could not be read.')
   }
+  // A companion saved in another world arrives straight away with their history (companion/carry.py): nothing to pick.
+  const carry = (file: File) => void run(async () => {
+    const made = await upload<Carried & { companion: Companion | null }>('/export/companion', file, { name: file.name })
+    setResult({ tone: 'info', text: carriedText(made) })  // Before the page remounts for them.
+    await refocus(client)
+  }, 'That companion could not be opened here.')
   const bring = (picks: Picks) => void run(async () => {
     if (!opened) return
     const pick = pickBody(opened.found, picks)
@@ -87,7 +95,7 @@ export function BringCharacter() {
     <section className="settings-section form-stack" aria-labelledby="bring-heading">
       <div>
         <h2 id="bring-heading">Bring your characters</h2>
-        <p className="subtle">A character from SillyTavern, Chub, Agnai, RisuAI, NovelAI, Backyard or Marinara Engine moves into town with a job, a home and a routine of their own, and their lorebook comes along. A lorebook on its own becomes part of this world. You see what a file holds before anything is imported.</p>
+        <p className="subtle">A character from SillyTavern, Chub, Agnai, RisuAI, NovelAI, Backyard or Marinara Engine moves into town with a job, a home and a routine of their own, and their lorebook comes along. A lorebook on its own becomes part of this world. You see what a file holds before anything is imported. A companion saved from another world arrives straight away, with all their history.</p>
       </div>
       <input ref={input} type="file" accept={IMPORT_TYPES} hidden onChange={(event) => choose(event.target.files?.[0])} />
       {!opened && <div className="form-actions">

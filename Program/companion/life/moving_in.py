@@ -501,14 +501,17 @@ def shared_place(seed: str, companion: dict, city: dict | None, hood: dict | Non
 
 def city_changes(connection, companion: dict, row: dict) -> dict:
     """Moving to the user's city: that city, its clock, and the same job there if it has one, else one like it."""
-    from companion.world import catalog
     city = city_of(connection, row)
-    if not city:
-        return {}
+    return moved_to(companion['version']['definition'], city) if city else {}
+
+
+def moved_to(definition: dict, city: dict) -> dict:
+    """Living in `city` from now on: that city, its clock, and the same job there if it has one, else one like it.
+    Also how a companion taken to another world settles there (companion/carry.py)."""
+    from companion.world import catalog
     changes = {'home_city': city['name']}
     if city.get('timezone'):
         changes['timezone'] = city['timezone']
-    definition = companion['version']['definition']
     old_city = money.city_for(definition)
     career, _guessed = money.career_for(definition, old_city) if old_city else (None, False)
     offered = catalog.everyday(catalog.careers_for(city)) if city.get('neighborhoods') else {}
