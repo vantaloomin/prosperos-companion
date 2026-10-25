@@ -80,6 +80,12 @@ async def download(request: Request):
     return overview(request)
 
 
+@router.post('/builtin/repair')
+async def repair(request: Request):
+    await request.app.state.voice.kokoro.repair()
+    return overview(request)
+
+
 @router.get('/companions')
 async def companion_voices(request: Request, engine: Engine | None = None):
     """Each companion's voice on an engine (the current one by default) and the voices to choose from."""

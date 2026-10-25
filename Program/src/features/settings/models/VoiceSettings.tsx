@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Play } from 'lucide-react'
+import { Download, Play, Wrench } from 'lucide-react'
 import { api, ApiError } from '../../../api'
 import { Notice } from '../../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../../components/Fields'
@@ -14,7 +14,7 @@ interface VoiceView {
   ready: boolean
   /** Where each hosted engine's key comes from, or null without one. Keys themselves never come back. */
   keys: Record<Hosted, 'saved' | 'profile' | 'environment' | null>
-  builtin: { ready: boolean; available: boolean; download_mb: number | null; downloading: boolean; error: string }
+  builtin: { ready: boolean; repair: boolean; available: boolean; download_mb: number | null; downloading: boolean; error: string }
 }
 interface VoiceOption { id: string; label: string }
 interface CompanionVoice { id: string; name: string; voice: string; chosen_by: 'app' | 'user' }
@@ -81,6 +81,17 @@ function BuiltinVoice({ view, onChange }: { view: VoiceView; onChange: (view: Vo
     setError('')
     try { onChange(await api<VoiceView>('/voice/builtin/download', {})) } catch (failed) { setError(failure(failed)) }
   }
+  const repair = async () => {
+    setError('')
+    try { onChange(await api<VoiceView>('/voice/builtin/repair', {})) } catch (failed) { setError(failure(failed)) }
+  }
+  if (builtin.repair) return <div className="form-stack">
+    <Notice tone="error">{error || builtin.error}</Notice>
+    <div className="form-actions">
+      <button type="button" className="button" onClick={() => void repair()} disabled={builtin.downloading}><Wrench size={15} aria-hidden="true" />{builtin.downloading ? 'Repairing…' : 'Repair the built-in voice'}</button>
+      <small>Downloads the voice program again (about 25 MB). The voice itself stays.</small>
+    </div>
+  </div>
   if (builtin.ready) return <p className="subtle">The built-in voice is ready. It runs on this PC's processor, so notes take a few seconds to record and nothing leaves the PC.</p>
   if (!builtin.available) return <p className="subtle">There is no built-in voice download for this computer. Choose OpenAI, ElevenLabs or Google.</p>
   return <div className="form-stack">
@@ -132,10 +143,12 @@ function CompanionVoiceList({ engine, ready }: { engine: Engine; ready: boolean 
 interface RowProps { companion: CompanionVoice; engine: Engine; voices: VoiceOption[]; ready: boolean; onChoose: (voice: string) => void; onError: (message: string) => void }
 
 function CompanionVoiceRow({ companion, engine, voices, ready, onChoose, onError }: RowProps) {
+  const client = useQueryClient()
   const [playing, setPlaying] = useState(false)
   const preview = async () => {
     setPlaying(true); onError('')
-    try { await playPreview(companion.id, engine, companion.voice) } catch (failed) { onError(failure(failed)) } finally { setPlaying(false) }
+    // A failed preview can mean the built-in voice needs repairing, which the voice settings then offer.
+    try { await playPreview(companion.id, engine, companion.voice) } catch (failed) { onError(failure(failed)); void client.invalidateQueries({ queryKey: KEY }) } finally { setPlaying(false) }
   }
   return <div className="form-actions">
     <Field label={companion.name} hint={companion.chosen_by === 'app' ? 'Picked by the app.' : 'Your choice.'}>{(id, hint) => (
