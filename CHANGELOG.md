@@ -49,6 +49,15 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.0.1 (2026-10-25)
+
+- **Choose what to import from a file:** a preview of a character, lorebook or world map file with every part ticked;
+  untick to bring in only the lorebook, some entries, or the character without their lore or picture.
+- **Remember something, back when it happened:** a memory added by hand can carry the day it happened.
+- **Your own words on the adult side:** Also into and Not into in your own words, and What draws them in.
+- **Fixes:** your own cities and packs in Where you live, an imported character lives in the world's city, a new
+  companion's picks survive a trip to Settings, and a refused reasoning level falls back to the nearest one.
+
 ## v1.0.0 (2026-10-22)
 
 - **Words that fit the era:** period cities use period words in the chat, Today, Watching, the circle, the matchmaker,
