@@ -152,7 +152,9 @@ def test_their_own_turn_ons_and_turn_offs_go_in_their_prompt(client, companion):
 
 def test_the_user_can_pick_none_of_the_listed_interests(client, companion):
     client.put('/api/settings', json={'adult_side': True})
-    revise(client, identity='32, a librarian.')
+    # Some rolls list nothing (a conventional companion half the time), so start from one listed interest.
+    listed = next(entry['id'] for entry in intimacy.bank()['interests'] if entry['group'] != intimacy.QUALITIES)
+    revise(client, identity='32, a librarian.', intimacy={'interests': [listed]})
     assert '- Into: ' in preview(client)
     revise(client, intimacy={'interests': [], 'interests_picked': True})
     assert '- Into: ' not in preview(client)
