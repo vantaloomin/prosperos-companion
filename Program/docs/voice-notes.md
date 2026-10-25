@@ -60,6 +60,13 @@ The program runs once per note in its own process, on the processor with at most
 A note takes a few seconds. British voices read with British pronunciation. `COMPANION_SHERPA_TTS` and
 `COMPANION_KOKORO_MODEL` point at a program and model folder of your own, for a computer without a pinned build.
 
+The program runs from its own folder, with that folder first on its PATH. On Windows it needs its own onnxruntime.dll
+beside it: Windows looks there first and then in System32, where Windows 11 keeps an older onnxruntime for its own AI
+features. So before each note the Companion copies any DLL missing beside the program back from the download's `lib`
+folder. If the program still reports an older onnxruntime ("The requested API version ... is not available"), the
+built-in voice stops being ready (notes stay texts) and Voice notes offers Repair the built-in voice, which downloads
+the program again and keeps the model.
+
 ## Storage
 
 - `voice_settings`: on or off, the engine and the daily limit. Kept by a restore, like other settings.
