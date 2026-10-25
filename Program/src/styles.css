@@ -1100,6 +1100,12 @@ textarea { resize: vertical; line-height: 1.6; }
 .model-profile { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
 .model-profile h3 { margin: 2px 0 4px; }
 .model-profile .form-actions { flex-wrap: wrap; }
+/* Voice notes: on a phone, Preview drops under its voice and a hint under its button. */
+.voice-settings .form-actions { flex-wrap: wrap; }
+.voice-settings .form-actions > .field { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.voice-settings .form-actions > .field select { max-width: 100%; }
+.voice-settings .form-actions > .button { flex: none; }
+.voice-settings .form-actions > small { flex: 1 1 240px; }
 .model-jobs { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: 0.8125rem; margin-top: 6px; }
 .model-usage { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 8px 0 0; font-size: 0.8125rem; animation: usage-in 0.25s ease-out; }
 .model-usage dt { color: var(--muted); }
