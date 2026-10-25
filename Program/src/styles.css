@@ -2674,3 +2674,6 @@ p.breakup-line { align-items: center; }
 .person-note.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 @media (max-width: 720px) { .person-note.clamped { -webkit-line-clamp: 2; } }
 .person-note-more { padding-left: 0; }
+.person-card > h3 + .circle-form { margin-top: 6px; }
+.person-note-more { color: var(--accent); }
+@media (max-width: 720px) { .person-note-more { min-height: 44px; } }

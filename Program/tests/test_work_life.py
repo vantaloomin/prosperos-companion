@@ -434,3 +434,14 @@ def test_a_student_on_an_old_teachers_project_gets_coursework_and_the_user_can_w
     assert client.get('/api/life/work').json()['work']['project']['title'] == 'a darkroom series of the harbor at night'
     view = client.put('/api/life/work/project', json={'title': ''}).json()['work']
     assert not view['own_project'] and view['project']['title'] != 'a darkroom series of the harbor at night'
+
+
+def test_a_students_days_off_and_own_project_read_as_a_students():
+    today = date(2026, 10, 26)
+    assert work.vacation_line(['2026-11-06'], today, studying=True) == 'You have no classes Friday, November 6.'
+    assert work.vacation_line(['2026-10-26', '2026-10-27'], today, studying=True) == \
+        'You have no classes from today through Tuesday, October 27.'
+    assert work.phrased({'title': 'Reading list for upper-level photography', 'own': True}) == \
+        'the reading list for upper-level photography'
+    assert work.phrased({'title': 'a darkroom series', 'own': True}) == 'a darkroom series'
+    assert work.phrased({'title': 'the fall show'}) == 'the fall show'

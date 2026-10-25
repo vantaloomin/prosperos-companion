@@ -21,6 +21,7 @@ before starting at a new place in the same line of work. Easy life's Light level
 the budget through money.household (`pay`). Only the companion is tracked; coworkers in the circle stay as they are.
 """
 import json
+import re
 from datetime import date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
@@ -71,6 +72,8 @@ LABELS = {'Vacation': 'Vacation day', 'Job hunt': 'Job hunting', 'Parental leave
           'Home day': 'A day at home', 'Family sick day': 'A day off to look after family',
           'Bed rest': 'On bed rest at home'}
 LATE_TITLE = 'Staying late at work'
+STUDY_LATE_TITLE = 'Late night studying'
+STUDY_LATE_DONE = 'stayed up late studying for '
 LATE_DONE = 'stayed late at work on '
 WORKLOAD_WORDS = {'slammed': 'Slammed this week', 'normal': 'An ordinary week at work', 'slow': 'A slow week at work'}
 STUDY_WORKLOAD = {'slammed': 'Slammed this week', 'normal': 'An ordinary week of classes', 'slow': 'A light week of classes'}
@@ -735,7 +738,8 @@ def plan_late_nights(connection, companion: dict, found: dict, today: date, chos
                                "AND status='removed' AND local_date>=?", (stamp(now), timeline_id, key, today.isoformat()))
             added += bool(admin.add(
                 connection, companion, key=key, source='work', kind='late-night',
-                title=LATE_TITLE, done=f'{LATE_DONE}{title}', day=day,
+                title=STUDY_LATE_TITLE if found['kind'] == STUDY else LATE_TITLE,
+                done=f"{STUDY_LATE_DONE if found['kind'] == STUDY else LATE_DONE}{title}", day=day,
                 at=after_work(definition, day, block), minutes=min(minutes, 180),
                 fixed=chosen >= 2, deadline=last, out=False, now=now))
     return added
@@ -900,8 +904,11 @@ def study_year(found: dict, today: date, field: str) -> str:
     return f"You are in your {year} year {program}" + (f", studying {field}." if field else '.')
 
 
-def vacation_line(days: list[str], today: date) -> str:
-    """'You are off work Friday, October 30 (a vacation day).' or a run of days as one stretch."""
+def vacation_line(days: list[str], today: date, studying: bool = False) -> str:
+    """'You are off work Friday, October 30 (a vacation day).' or a run of days as one stretch; for a student, days
+    with no classes."""
+    if studying:
+        return study_break_line(days, today)
     upcoming = sorted({day for day in days if today.isoformat() <= day <= (today + timedelta(days=21)).isoformat()})
     if not upcoming:
         return ''
@@ -915,6 +922,31 @@ def vacation_line(days: list[str], today: date) -> str:
     if len(run) == 1:
         return f'You have {day_text(run[0])} off work (a vacation day).'
     return f'You are off work from {day_text(run[0])} through {day_text(run[-1])} (vacation).'
+
+
+def study_break_line(days: list[str], today: date) -> str:
+    """'You have no classes Friday, November 6.' or a break from one day through another."""
+    upcoming = sorted({day for day in days if today.isoformat() <= day <= (today + timedelta(days=21)).isoformat()})
+    if not upcoming:
+        return ''
+    run = [upcoming[0]]
+    for day in upcoming[1:]:
+        if (date.fromisoformat(day) - date.fromisoformat(run[-1])).days <= 3:
+            run.append(day)
+    first = 'today' if run[0] == today.isoformat() else day_text(run[0])
+    return f'You have no classes {first}.' if len(run) == 1 else \
+        f'You have no classes from {first} through {day_text(run[-1])}.'
+
+
+def phrased(project: dict) -> str:
+    """The project as the sentences say it: "the reading list for ..." for one the user wrote without an article."""
+    title = project['title']
+    if not project.get('own') or OWN_ARTICLE.match(title):
+        return title
+    return 'the ' + (title[:1].lower() + title[1:] if title[1:2].islower() else title)
+
+
+OWN_ARTICLE = re.compile(r"^(?:a|an|the|my|your|their|his|her|our|some|one|two|three|four|five)\b", re.IGNORECASE)
 
 
 EVENT_LINES = {
@@ -947,13 +979,13 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         studying = found['kind'] == STUDY
         lines.append(('week', (STUDY_WEEK_LINES if studying else WEEK_LINES)[week]))
         lines.append(('project', f"{'For your classes' if studying else 'At work'} you are in the middle of "
-                                 f"{project['title']}.{due_text}"))
+                                 f"{phrased(project)}.{due_text}"))
         lines.append(('tenure', study_year(found, today, project.get('field', '')) if studying else
                       f"You have been at this job for {tenure(found['started_on'], today)}."))
         if shifts.ACTIVE and (line := shifts.context_line(connection, companion, today)):
             lines.append(('shifts', line[2:]))
         if line := vacation_line(vacation_days(connection, companion, today.year, found)
-                                 + vacation_days(connection, companion, today.year + 1, found), today):
+                                 + vacation_days(connection, companion, today.year + 1, found), today, studying):
             lines.append(('vacation', line))
     for event in recent_events(connection, timeline_id, (today - timedelta(days=RECENT_DAYS)).isoformat())[-3:]:
         line = EVENT_LINES[event['kind']].format(day=short_day(event['local_date']), text=event['text'],
@@ -995,8 +1027,9 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
             words = STUDY_WORKLOAD if found['kind'] == STUDY else WORKLOAD_WORDS
             state_lines += [words[week] + '.', *([gigs] if gigs else [])]
         if hours != 'freelance' or not gigs.startswith('No gigs'):
-            state_lines.append(f"Working on {found['project']['title']}, due {day_text(found['project']['due'])}.")
-        if line := vacation_line(days + vacation_days(connection, companion, today.year + 1, found), today):
+            state_lines.append(f"Working on {phrased(found['project'])}, due {day_text(found['project']['due'])}.")
+        if line := vacation_line(days + vacation_days(connection, companion, today.year + 1, found), today,
+                                 found['kind'] == STUDY):
             state_lines.append(line.replace('You are', 'They are').replace('You have', 'They have')
                                .replace('your', 'their'))
     events = recent_events(connection, timeline_id, (today - timedelta(days=365)).isoformat())
