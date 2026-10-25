@@ -7,7 +7,8 @@ or two circle people, are never computed, so the thousands of townsfolk in a cit
 
 Where a pair starts:
 - two companions: "Just met", or higher the more often they have run into each other around town, unless the
-  user wrote how they know each other when they were first put together (a group, or becoming a companion);
+  user wrote how they know each other when they were first put together (a group, or becoming a companion),
+  or told it from the Character page's "Who they know" without a group;
 - a companion and someone in their circle: a default by the circle role, nudged one step up or down by the
   person's seed (some families are tight, some distant; not every close friend is the closest);
 - a companion and a townsperson: higher the more often they have met (#204's rule for the user).
@@ -416,6 +417,18 @@ def ties(connection, companion: dict, now) -> list[dict]:
             result.append({'companion_id': other_companion['id'], 'name': other_companion['version']['name'],
                            'feels': found['ab'], 'they_feel': found['ba'], 'how': found['how'],
                            'group_days': found['group_days'], 'meetings': found['meetings']})
+    return result
+
+
+def untold_for(connection, companion: dict, now) -> list[dict]:
+    """The other companions whose backstory with this one can still be told, for the Character page's "Who they
+    know": each at the stage and with the line the app works out, so telling it is one click (Vanta 2026-10-25)."""
+    others = [row['id'] for row in many(connection, 'SELECT id FROM companions WHERE id!=? AND active_version_id IS NOT NULL '
+                                        'ORDER BY created_at', (companion['id'],))]
+    result = []
+    for other in others:
+        for found in untold(connection, [companion['id'], other], now):
+            result.append({'companion_id': other, 'name': found['b_name'], 'level': found['level'], 'how': found['how']})
     return result
 
 

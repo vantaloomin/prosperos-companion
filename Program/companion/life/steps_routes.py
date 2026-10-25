@@ -1,5 +1,7 @@
 """Next steps API (companion/life/steps.py): where the user and the open companion stand, setting the step and the
 "just friends" lock, and the Family panel (companion/life/parenthood.py)."""
+from typing import Literal
+
 from fastapi import APIRouter, Request
 from pydantic import Field
 
@@ -108,6 +110,17 @@ class KidsUpdate(Input):
     pattern: str | None = Field(default=None, max_length=20, pattern=r'^[a-z_]+$')
     remove: str | None = Field(default=None, max_length=64, pattern=r'^[0-9a-f]+$')
     restore: str | None = Field(default=None, max_length=64, pattern=r'^[0-9a-f]+$')
+    # Their other parent: a circle person's id, 'new' (named by other_name) or 'none'.
+    other: str | None = Field(default=None, max_length=64, pattern=r'^(?:[0-9a-f]+|new|none)$')
+    other_name: str | None = Field(default=None, max_length=80)
+    other_pronouns: Literal['she/her', 'he/him', 'they/them'] | None = None
+
+
+class KidChange(Input):
+    """A child of theirs added by hand or changed: anything left out the app picks (or keeps)."""
+    name: str | None = Field(default=None, max_length=60)
+    age: int | None = Field(default=None, ge=0, le=17)
+    pronouns: Literal['she/her', 'he/him', 'they/them'] | None = None
 
 
 def read_kids_view(connection, companion, world, now) -> dict:
@@ -130,7 +143,33 @@ def update_kids(request: Request, body: KidsUpdate):
     now = database.clock.now()
     with database.connect(write=True) as connection:
         companion = require_current(connection)
+        if body.other is not None:
+            kids.set_other(connection, companion, request.app.state.life.world, now, body.other, body.other_name,
+                           body.other_pronouns)
         kids.update(connection, companion, now, body.pattern, body.remove, body.restore)
+        return read_kids_view(connection, companion, request.app.state.life.world, now)
+
+
+@router.post('/kids')
+def add_kid(request: Request, body: KidChange):
+    """Add a child of theirs by hand, the way a pet is added."""
+    database = request.app.state.database
+    now = database.clock.now()
+    world = request.app.state.life.world
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        kids.add(connection, companion, world, now, body.name, body.age, body.pronouns)
+        return read_kids_view(connection, companion, world, now)
+
+
+@router.patch('/kids/{kid_id}')
+def edit_kid(request: Request, kid_id: str, body: KidChange):
+    """Change a child's name, age or whether they're a son or daughter."""
+    database = request.app.state.database
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        kids.edit(connection, companion, kid_id, now, body.name, body.age, body.pronouns)
         return read_kids_view(connection, companion, request.app.state.life.world, now)
 
 

@@ -185,6 +185,19 @@ are; rules about how far through life someone is read their life age (`companion
 age through childhood, then adulthood stretched to their kind's lifespan, so an elf of 300 is 48 in human terms and
 is seeded, retires, dates and passes away like it. A city file can only change how long adulthood lasts.
 
+**How many people of each kind.** A kind in the city's `kinds` block can carry a `share`: the fraction of the
+town's seeded townsfolk and residents of that kind, from 0 to 1 (`{"vulcan": {..., "share": 0.12}}`; a built-in kind
+can be listed with only a share, `{"elf": {"share": 0.04}}`). Humans are the rest; shares that add up past 1 are
+scaled down, so nobody is human. A kind listed without a share gets 10% when no kind in the block has one (never
+more than 30% for all of them together), and none when another kind there does, so `"share": 0` and a missing share
+both mean none in a block that sets shares. Each person's kind is rolled from their seed first, then their name
+group is drawn by `names.mix` weights from the groups tied to that kind (`"kind": "vulcan"`), or from the kind's own
+`groups` list (Camelot's fae take Welsh names), else from the human groups. A city with no `kinds` block draws from
+the whole mix as before. Townsfolk of another kind are named as such when the companion meets them ("Got talking
+with Thalion Mossfall, the barkeep there, an Elf, who ...") and in Around town ("Elf, about 253, industrious; ..."). Built in: Grandport's city elves
+(4%), Camelot's fae (3%), Ellerbrück's dwarves and elves, and the Munchkins, Winkies, Quadlings and Gillikins in the
+Emerald City; real and modern cities stay human.
+
 **Local colour.** Each city lists things locals eat, drink, say, root for and do (`local_color`, with
 `kind` dish, drink, saying, custom, team, shop, legend, rumor or other), with the places they are easiest to find and
 the seasons they belong to. `local_color` picks a few for a seed, in season on `day`, so the model can
@@ -224,7 +237,12 @@ same way, and live by the same rules: days, goals, quirks and flaws are drawn fr
 name, age, role and temperament are the city's. The companion meets them like anyone else, and what it
 knows of them always includes `about`. Notables are never on the dating app. A pack's notable placed
 somewhere the city lacks is left out with a note. Notables stay in town for good unless `can_leave` is true, when
-they can move away or retire like anyone else and a newcomer takes over their role.
+they can move away or retire like anyone else and a newcomer takes over their role. A notable may name their
+`kind` (a built-in kind or one in the city's `kinds` block, see lifespans), which lets their `age` run past 120 (up to
+5000) and counts their life stage in their kind's years; an unknown kind makes them human, with a note. With
+`love_life: false` they get no seeded partner, engagement, wedding or baby, so their love life is only what `about`
+says. A character brought in from another app never borrows a notable's life (their job, home and routine come from
+a seeded townsperson). Older versions ignore both fields and hold the age to 120.
 
 **The town changes hands** (`companion/world/turnover.py`). Each spot a townsperson fills is held by one person
 after another: from 19 October 2026 on, people move away, take other jobs, retire (staff, from their sixties) and,

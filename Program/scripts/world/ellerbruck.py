@@ -707,6 +707,9 @@ CITY = {
     'water': [{'kind': 'river', 'name': 'Eller', 'width_km': 0.1, 'points': [
         [51.296, 9.525], [51.292, 9.540], [51.292, 9.555], [51.290, 9.570]]}],
     # What this city calls things on the in-world screens (companion/world/era_words.py).
+    # The tales' little folk live in town too: dwarves (Snow White's seven) and elves (the shoemaker's), named like
+    # everyone else in Ellerbrück; they live long (companion/world/lifespans.py).
+    'kinds': {'dwarf': {'share': 0.04}, 'elf': {'share': 0.02}},
     'words': {
         'call_to': 'Speak with {name} through the mirror',
         'call_on': 'Speaking with {name} through the mirror',

@@ -283,7 +283,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     notable = None if generation else held
     role = (held['role'], held['role'], held['staff']) if held else _slot_role(data, place, slot)
     title = held['role'] if held else role_title(data, role, place)
-    folk = lifespans.HUMAN if notable else folk_of(data, seed)
+    folk = notable_kind(data, notable) if notable else folk_of(data, seed)
     age = notable['age'] if notable else seeded_real_age(data, seed, False)
     life = lifespans.life_age(age, lifespans.lifespan_of(folk, data))
     name = _named(notable) if notable else generators.name(data, seed=seed, age=life)
@@ -309,6 +309,8 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         sheet['arrived'] = arrival(data, place['id'], slot, generation)
     if notable:
         sheet |= {'notable': notable['id'], 'about': notable['about'], 'occupation': notable['role']}
+        if not notable.get('love_life', True):
+            sheet['love_life'] = False
         if notable.get('temperament') in TEMPERAMENTS:
             sheet['temperament'] = notable['temperament']
     parts = place.get('day_parts') or ['afternoon']
@@ -322,6 +324,12 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         part = generators.pick(seed, 'visit', parts)
         sheet['visits'] = {'days': days, 'part': part, 'window': list(VISITS[part])}
     return sheet
+
+
+def notable_kind(data: dict, notable: dict) -> str:
+    """A notable's kind, as the pack names it, if it is one known where they are; else human."""
+    kind = notable.get('kind')
+    return kind if kind and kind in lifespans.kinds(data) else lifespans.HUMAN
 
 
 def _notable(data: dict, place: dict, slot: int) -> dict | None:
@@ -342,8 +350,9 @@ def seeded_age(seed: str, resident: bool) -> int:
 
 
 def folk_of(data: dict, seed: str) -> str:
-    """Their kind, from the name group their name comes from (Grandport's elves): human for most."""
-    return lifespans.of_group(data, generators.group_of(data, seed))
+    """Their kind, from the city's share of each kind or the name group their name comes from (Grandport's elves):
+    human for most."""
+    return generators.kind_of(data, seed)
 
 
 def seeded_real_age(data: dict, seed: str, resident: bool) -> int:
@@ -355,7 +364,7 @@ def seeded_real_age(data: dict, seed: str, resident: bool) -> int:
 def lifespan_of_seed(data: dict):
     """How long whoever a seed draws lives, for turnover; None when the city has no long-lived people at all."""
     groups, mix = catalog.name_groups(data)
-    if not any(groups[key].get('kind') for key in mix):
+    if not lifespans.shares(data) and not any(groups[key].get('kind') for key in mix):
         return None
     return lambda seed: lifespans.lifespan_of(folk_of(data, seed), data)
 
@@ -699,6 +708,19 @@ def present(data: dict, place_id: str, moment: datetime) -> list[dict]:
 
 def first_impression(sheet: dict) -> str:
     return TEMPERAMENTS[sheet['temperament']][1]
+
+
+def folk_label(data: dict, sheet: dict) -> str | None:
+    """Their kind's name ("Vulcan", "Elf") when they aren't human (companion/world/lifespans.py), else None."""
+    folk = sheet.get('folk')
+    found = lifespans.kinds(data).get(folk) if folk and folk != lifespans.HUMAN else None
+    return found['label'] if found and found.get('label') else None
+
+
+def folk_words(data: dict, sheet: dict) -> str:
+    """', a Vulcan' or ', an Elf' for a line about someone who isn't human; '' for a human."""
+    label = folk_label(data, sheet)
+    return f", {'an' if label[0].lower() in 'aeiou' else 'a'} {label}" if label else ''
 
 
 def neighborhood_name(data: dict, hood_id: str) -> str:

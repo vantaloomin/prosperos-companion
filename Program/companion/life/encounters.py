@@ -178,7 +178,8 @@ def line(sheet: dict, data: dict, times: int, place: dict, day: date, home: str 
     """What the companion's diary says about this meeting, more as they get to know them."""
     said = who(sheet, place, data, home, doing)
     if times == 0:
-        return f"Got talking with {sheet['full']}, {said}, who {townsfolk.first_impression(sheet)}."
+        return f"Got talking with {sheet['full']}, {said}{townsfolk.folk_words(data, sheet)}, who " \
+               f"{townsfolk.first_impression(sheet)}."
     state = townsfolk.story(sheet, data, day)
     if times + 1 == KNOWS_GOAL:
         lately = f" {state['line']}." if state['line'] else ''
@@ -252,6 +253,7 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
     times, last = len(meetings), meetings[-1]
     person = {'key': sheet['key'], 'name': sheet['name'], 'full': sheet['full'], 'pronouns': sheet['pronouns'],
               'age': sheet['age'], 'role': sheet['role'], 'kind': sheet['kind'], 'staff': sheet['staff'],
+              'folk': townsfolk.folk_label(data, sheet),
               'place': sheet['place'],
               'neighborhood': townsfolk.neighborhood_name(data, sheet['home'] if sheet['kind'] == 'resident'
                                                           else sheet['place']['neighborhood']),

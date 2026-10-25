@@ -143,7 +143,9 @@ def person_line(person: dict, place: dict, data: dict, known: dict | None = None
     job = sheet.get('occupation') or sheet['role']
     # "working as the owner" already says the job: no "working as the owner, owner."
     job = '' if f' {job}' in f" {person['doing']}" else f', {job}'
-    return (f"- {seen[0].upper()}{seen[1:]}: {sheet['full']}{pronouns}, {sheet['age']}, {person['doing']}{job}. "
+    folk = townsfolk.folk_label(data, sheet)
+    folk = f', {folk}' if folk else ''
+    return (f"- {seen[0].upper()}{seen[1:]}: {sheet['full']}{pronouns}, {sheet['age']}{folk}, {person['doing']}{job}. "
             f"{townsfolk.first_impression(sheet).capitalize()}; "
             f"{sheet['quirk']}.{life_text(data, sheet)} Mood: {person['mood']}.{story_people.remembered(known)}"
             f"{person.get('note', '')}")

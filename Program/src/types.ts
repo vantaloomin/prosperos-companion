@@ -658,7 +658,11 @@ export interface KidsView {
   shown: boolean
   how?: 'description' | 'town' | 'seeded'
   kids?: Kid[]
-  other?: { name: string; role: string } | null
+  /** Whether the user can add a child of theirs by hand (never for a companion who reads as under 18). */
+  can_add?: boolean
+  other?: KidsParent | null
+  /** Who in their circle could be the kids' other parent, the one who is first. */
+  others?: KidsParent[]
   pattern?: 'together' | 'with_them' | 'shared' | 'weekends' | 'sole'
   pattern_how?: 'set' | 'seeded' | 'fixed'
   patterns?: { key: string; label: string }[]
@@ -671,7 +675,11 @@ export interface KidsView {
   meeting?: 'met' | 'soon' | 'unmet' | null
 }
 
-export interface Kid { id: string; name: string; pronouns: string; born_on: string; age: number; age_text: string; relation: 'son' | 'daughter' | 'child' }
+export interface Kid { id: string; name: string; pronouns: string; born_on: string; age: number; age_text: string; relation: 'son' | 'daughter' | 'child'; by_hand?: boolean }
+
+/** The kids' other parent, or someone in their circle who could be: `made` when the app made them for the kids (naming
+ * someone else renames them), `made_up` when nobody named them either. */
+export interface KidsParent { id: string; name: string; role: string; made: boolean; made_up: boolean }
 
 /** Whose place in one city ('yours', 'theirs', 'new'), or who moves across the distance ('them' to your city; 'you',
  * which waits until you move to theirs). `place` is the neighbourhood, `city` the city, `home` the shared home once moved. */
@@ -1727,6 +1735,8 @@ export interface Townsperson {
   full: string
   pronouns: string
   age: number
+  /** Their kind's name when they aren't human ("Vulcan", "Elf"), else null (companion/world/lifespans.py). */
+  folk?: string | null
   role: string
   /** Staff at their place, a regular there, or an ordinary resident of `neighborhood`. */
   kind: 'staff' | 'regular' | 'resident'
@@ -1782,6 +1792,8 @@ export interface PairTie {
   group_days: number
   meetings: number
 }
+/** Another companion the current one doesn't know yet, as the app would start them (Character > Who they know). */
+export interface UntoldTie { companion_id: string; name: string; level: number; how: string }
 /** Two companions about to share a group for the first time: their backstory can be told, once. */
 export interface UntoldPair { a: string; b: string; a_name: string; b_name: string; level: number; how: string }
 /** What the user tells about two companions: a starting stage and a line, both optional. */

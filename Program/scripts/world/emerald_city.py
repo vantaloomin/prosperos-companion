@@ -544,6 +544,15 @@ CITY = {
               'witch.', ['market-square-puppets']),
     ],
     # What this city calls things on the in-world screens (companion/world/era_words.py).
+    # People from the four countries of Oz come to the city, each with their own colour and ways (Baum): Munchkins
+    # (blue, east), Winkies (yellow, west), Quadlings (red, south) and Gillikins (purple, north). They live as long
+    # as anyone (companion/world/lifespans.py), so only the kind changes.
+    'kinds': {
+        'munchkin': {'label': 'Munchkin', 'lifespan': 80, 'words': ['munchkin'], 'share': 0.12},
+        'winkie': {'label': 'Winkie', 'lifespan': 80, 'words': ['winkie'], 'share': 0.08},
+        'quadling': {'label': 'Quadling', 'lifespan': 80, 'words': ['quadling'], 'share': 0.08},
+        'gillikin': {'label': 'Gillikin', 'lifespan': 80, 'words': ['gillikin'], 'share': 0.08},
+    },
     'words': {
         'call_to': 'Speak with {name} through the Magic Picture',
         'call_on': 'Speaking with {name} through the Magic Picture',

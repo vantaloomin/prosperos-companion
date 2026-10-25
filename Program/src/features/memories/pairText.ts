@@ -23,6 +23,11 @@ export function howText(how: string): string {
     .replace(/\b([Tt])he user\b/g, (_, t: string) => (t === 'T' ? 'You' : 'you'))
 }
 
+/** howText as a list item, without the full stop the user may have typed, so every item in a list ends alike. */
+export function listedHow(how: string): string {
+  return howText(how).replace(/[.\s]+$/, '')
+}
+
 /** The reverse of howText, for what the user types in the Groups "How they know each other" box: the line reaches
  * the companions' prompts as "How you know Sam: ...", where "you" is the companion, so the user's "you" is saved as
  * "the user" ("you're" and the like are left as typed). */
