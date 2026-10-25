@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ChevronLeft, HeartHandshake, Pencil, RotateCcw, UsersRound } from 'lucide-react'
 import { api, ApiError } from '../../api'
@@ -20,6 +20,7 @@ import { useDraft } from '../conversation/useDraft'
 import { useOoc } from '../conversation/useOoc'
 import { AsideText } from '../conversation/ActivityLine'
 import { useScrollAway } from '../conversation/useScrollAway'
+import { useGroupLookStyles } from '../conversation/useTheirLook'
 import { Backstories } from './Backstories'
 import { NewGroup } from './Groups'
 import { chatKey, GROUPS_KEY, useCast } from './groupState'
@@ -68,6 +69,8 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
   const { group } = data
   const id = group.id
   const style = useChatStyle()
+  const section = useRef<HTMLElement>(null)
+  const lookFor = useGroupLookStyles(section, group.members)
   const draft = useDraft(`companion:group-draft:${id}`)
   const ooc = useOoc()
   const shown = shownMessages(data.messages, data.live)
@@ -87,12 +90,12 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
   return (
     <div className={`chat-shell shell-${style.style}`}>
     <ChatSidebar style={style.style} retroDark={style.retroDark} go={go} current={{ kind: 'group', id }} />
-    <section className={`conversation group-chat chat-${style.style}${style.retroDark ? ' retro-dark' : ''}`} aria-label={`Group chat: ${group.title}`}>
+    <section ref={section} className={`conversation group-chat chat-${style.style}${style.retroDark ? ' retro-dark' : ''}`} aria-label={`Group chat: ${group.title}`}>
       <GroupHeader group={group} go={go} onChange={act} />
       <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
           {shown.map((message) => <Fragment key={message.id}>
-            <GroupLine message={message} onKeep={(kept) => void act(() => api(`/groups/${id}/messages/${message.id}/moment`, { kept }))} />
+            <GroupLine message={message} look={lookFor(message.companion_id)} onKeep={(kept) => void act(() => api(`/groups/${id}/messages/${message.id}/moment`, { kept }))} />
             {message.crisis_help && <CrisisNote />}
           </Fragment>)}
           <TryAgain shown={canRetry(data)} onRetry={() => void act(() => api(`/groups/${id}/retry?wait=false`, {}))} />
@@ -154,14 +157,16 @@ function Paragraphs({ text }: { text: string }) {
 
 /** A message from you or a member, or the app's own line about who joined or left. A member's finished message
  * can be kept as a shared moment, which brings everyone who was there a little closer. */
-function GroupLine({ message, onKeep }: { message: GroupMessage; onKeep: (kept: boolean) => void }) {
+const nameClass = (look?: CSSProperties) => look ? ' their-name' : ''
+
+function GroupLine({ message, look, onKeep }: { message: GroupMessage; look?: CSSProperties; onKeep: (kept: boolean) => void }) {
   if (message.kind === 'app') return <p className="group-note" role="note">{message.text}</p>
   const mine = message.kind === 'user'
   const name = mine ? 'You' : message.name
   const failure = failureText(message)
   if (failure && !message.text) return <p className="reply-status group-failure" role="note">{failure}</p>
   return (
-    <article id={`message-${message.id}`} className={`message ${mine ? 'message-user' : 'message-companion'}`} aria-label={name}>
+    <article id={`message-${message.id}`} className={`message ${mine ? 'message-user' : 'message-companion'}${nameClass(look)}`} style={look} aria-label={name}>
       <span className="avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
       <header>
         <Stamp value={message.created_at} clock className="stamp-lead" />

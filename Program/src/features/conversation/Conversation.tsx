@@ -42,6 +42,9 @@ import { readThrough } from '../chats/chatText'
 import { useMarkRead } from '../chats/useChats'
 import { takeArrival } from '../worlds/arrival'
 import { pinnedIn, useSetVoicePin, useVoicePins, VoiceActions } from './voicePins'
+import { useChatLook } from './useTheirLook'
+import { notesBefore, notesAfter } from './lookNotes'
+import { THEIR_LOOK_KEY } from './theirLook'
 
 const PAGE = 100
 
@@ -50,6 +53,11 @@ function arrival() {
   return text ? { tone: 'info' as const, text } : null
 }
 const JUMP_PAGE = 500
+
+/** "Dana changed their colors.": a muted line where the app changed their look, never a message. */
+function LookNotes({ notes }: { notes: { text: string; at: string }[] }) {
+  return <>{notes.map((note) => <p key={note.at} className="group-note look-note" role="note">{note.text}</p>)}</>
+}
 
 function ReplyFollower({ id, onText, onPhase, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onPhase: (id: string, phase: Phase) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
   useReplyStream(id, { onText, onPhase, onDone, onLost })
@@ -103,6 +111,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
     if (held) return
     void client.invalidateQueries({ queryKey: WHERE_KEY })
+    void client.invalidateQueries({ queryKey: THEIR_LOOK_KEY })  // A reply can move their mood, and so their shade.
     setAnnouncement(replyAnnouncement(name, reply))
     if (sounds.current && reply.status === 'complete') playCue('message')
   }, [update, name, client])
@@ -236,11 +245,15 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const writing = messages.filter((message) => following.includes(message.id) && !waitsUntilLater(message, appNow())).map((message) => message.id)
   const streaming = writing.length > 0
   const hasEarlier = !exhausted && messages.length >= PAGE
+  // Their own colour and name font (companion/their_look.py), and the lines where the app changed them.
+  const section = useRef<HTMLElement>(null)
+  const look = useChatLook(section)
 
   return (
     <div className={`chat-shell shell-${chat.style}`}>
       <ChatSidebar style={chat.style} retroDark={chat.retroDark} go={go} />
-      <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
+      <section ref={section} className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}${look.className}`} style={look.style}
+        data-their-font={look.font} aria-label={`Conversation with ${name}`}>
         <ConversationTop companion={companion} go={go} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
         {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
         <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
@@ -252,10 +265,12 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             <VoiceActions.Provider value={voice}>
             {turns.map((turn, index) => (
               <Fragment key={turnKey(turn)}>
+                <LookNotes notes={notesBefore(look.changes, turns, index)} />
                 <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts && !together} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
                 {endsOlderHistory(turns, index) && <p className="history-end subtle">Older history from an old chat ends here</p>}
               </Fragment>
             ))}
+            <LookNotes notes={notesAfter(look.changes, turns)} />
             </VoiceActions.Provider>
           </div>
           {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}

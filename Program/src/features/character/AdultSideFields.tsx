@@ -6,7 +6,7 @@ import { Field, TextArea } from '../../components/Fields'
 import { OwnWords } from './OwnWords'
 import { useSettled } from './useSettled'
 
-const EMPTY: IntimacySetup = { orientation: '', level: '', drive: '', interests: [], own_into: [], not_into: [], note: '' }
+const EMPTY: IntimacySetup = { orientation: '', level: '', drive: '', interests: [], interests_picked: false, own_into: [], not_into: [], note: '' }
 
 interface Props { definition: () => CharacterDefinition; value: IntimacySetup | null | undefined; set: (change: Partial<CharacterDefinition>) => void }
 
@@ -47,7 +47,7 @@ function AdultSideForm({ choices, rolled, current, update, romance }: FormProps)
         <Interests choices={choices} rolled={rolled} current={current} update={update} />
         <OwnWords label="Also into" value={current.own_into} onChange={(own_into) => update({ own_into })} placeholder="Add one, like old films"
           hint="Your own turn-ons, beyond the lists above. They add to what was rolled or ticked."
-          other={{ label: 'Not into', value: current.not_into }} boxes={choices.interests} onBox={(id) => update({ interests: tick(current, rolled, id) })} />
+          other={{ label: 'Not into', value: current.not_into }} boxes={choices.interests} onBox={(id) => update({ interests: tick(current, rolled, id), interests_picked: true })} />
         <OwnWords label="Not into" value={current.not_into} onChange={(not_into) => update({ not_into })} placeholder="Add one, like bad manners"
           hint="Their turn-offs, in your words." other={{ label: 'Also into', value: current.own_into }} outlined />
         <TextArea label="Anything else" value={current.note} onChange={(note) => update({ note })} maxLength={600} rows={2}
@@ -80,12 +80,13 @@ function changesText(count: number): string {
   return `${count} ${count === 1 ? 'change' : 'changes'}`
 }
 
-/** What they're into: the roll until the user ticks or unticks one, then the user's picks. One line says what they
- * are into; each group folds, open when it holds a pick. */
+/** What they're into: the roll until the user ticks or unticks one, then the user's picks (even none). One line says
+ * what they are into; each group folds, open when it holds a pick. */
 function Interests({ choices, rolled, current, update }: Omit<FormProps, 'romance'>) {
-  const own = current.interests.length > 0
+  const own = choseInterests(current)
   const into = own ? current.interests : rolled?.interests ?? []
-  const toggle = (id: string, on: boolean) => update({ interests: on ? [...new Set([...into, id])] : into.filter((entry) => entry !== id) })
+  const toggle = (id: string, on: boolean) =>
+    update({ interests: on ? [...new Set([...into, id])] : into.filter((entry) => entry !== id), interests_picked: true })
   const labels = [...choices.interests.filter((entry) => into.includes(entry.id)).map((entry) => entry.label.toLowerCase()), ...current.own_into]
   return (
     <div className="form-stack">
@@ -94,7 +95,7 @@ function Interests({ choices, rolled, current, update }: Omit<FormProps, 'romanc
         {current.not_into.length > 0 && <p className="subtle">Not into: {current.not_into.join(', ')}</p>}
         <p className="subtle">
           {own ? 'Picked by you.' : 'Rolled by the app. Tick or untick to choose your own.'}
-          {own && <>{' '}<button type="button" className="text-button" onClick={() => update({ interests: [] })}>Back to as rolled</button></>}
+          {own && <>{' '}<button type="button" className="text-button" onClick={() => update({ interests: [], interests_picked: false })}>Back to as rolled</button></>}
         </p>
       </div>
       {choices.groups.map((group) => {
@@ -119,8 +120,13 @@ function Interests({ choices, rolled, current, update }: Omit<FormProps, 'romanc
 
 /** What they're into with one more box ticked, starting from the roll until the user has picked their own. */
 function tick(current: IntimacySetup, rolled: AdultSide | null, id: string): string[] {
-  const into = current.interests.length ? current.interests : rolled?.interests ?? []
+  const into = choseInterests(current) ? current.interests : rolled?.interests ?? []
   return [...new Set([...into, id])]
+}
+
+/** Older saves only had the list, so a non-empty one counts as chosen too. */
+function choseInterests(setup: IntimacySetup): boolean {
+  return Boolean(setup.interests_picked) || setup.interests.length > 0
 }
 
 function own(setup: IntimacySetup): boolean {
@@ -128,12 +134,12 @@ function own(setup: IntimacySetup): boolean {
 }
 
 function picked(setup: IntimacySetup): boolean {
-  return Boolean(setup.orientation || setup.level || setup.drive || setup.interests.length)
+  return Boolean(setup.orientation || setup.level || setup.drive || choseInterests(setup))
 }
 
 /** How many things the user set rather than left as rolled. */
 function changed(setup: IntimacySetup): number {
-  return [setup.orientation, setup.level, setup.drive, setup.interests.length, setup.own_into.length, setup.not_into.length, setup.note.trim()].filter(Boolean).length
+  return [setup.orientation, setup.level, setup.drive, choseInterests(setup), setup.own_into.length, setup.not_into.length, setup.note.trim()].filter(Boolean).length
 }
 
 function capital(text: string): string {

@@ -88,6 +88,7 @@ from companion.ready_routes import router as ready_router
 from companion.recall_routes import router as recall_router
 from companion.routes import router
 from companion.text_model_routes import router as model_router
+from companion.their_look_routes import router as their_look_router
 from companion.voice.notes import VoiceNotes
 from companion.voice_routes import router as voice_router
 from companion.world import changes as city_changes
@@ -270,6 +271,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(wardrobe_routes.router)
     app.include_router(upkeep_routes.router)
     app.include_router(grooming_routes.router)
+    app.include_router(their_look_router)
     app.include_router(kitchen_routes.router)
     app.include_router(media_routes.router)
     app.include_router(hobbies_routes.router)
