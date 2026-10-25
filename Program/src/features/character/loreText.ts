@@ -60,7 +60,7 @@ function bookLine(book: BroughtBook): string {
 }
 
 function bookOnly(book: BroughtBook): string {
-  return book.world || !book.owner ? `${book.name} is now part of this world: ${bookLine(book)}.` : `${book.name} is now ${book.owner}'s lore: ${bookLine(book)}.`
+  return book.world || !book.owner ? `${book.name} is now part of this world, with ${bookLine(book)}.` : `${book.name} is now ${book.owner}'s lore, with ${bookLine(book)}.`
 }
 
 function theirBook(book: BroughtBook, name: string): string {

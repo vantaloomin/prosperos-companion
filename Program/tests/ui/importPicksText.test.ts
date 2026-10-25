@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { anythingTicked, entryCount, owners, pickBody, startingPicks, type CharacterFile, type MapFile } from '../../src/features/character/importPicksText.ts'
+import { anythingTicked, entryCount, owners, pickBody, startingPicks, tickBook, type CharacterFile, type MapFile } from '../../src/features/character/importPicksText.ts'
 import { broughtText } from '../../src/features/character/loreText.ts'
 
 const entry = { title: 'Sarek', keywords: ['Sarek'], always: false, enabled: true, pattern: false, text: 'His father.' }
@@ -45,8 +45,15 @@ test('a world map that already came in starts with only its lore ticked', () => 
 
 test('lore brought for someone else says whose it is', () => {
   const book = { id: 'b', name: 'Spock lore', world: false, entries: 8, off: 0, owner: 'Spock' }
-  assert.equal(broughtText({ format: 'x', picture: false, companion: null, book }), "Spock lore is now Spock's lore: 8 lore entries.")
+  assert.equal(broughtText({ format: 'x', picture: false, companion: null, book }), "Spock lore is now Spock's lore, with 8 lore entries.")
   const made = broughtText({ format: 'Card', picture: false, companion: { version: { name: 'Dana', definition: { identity: '' } } },
     book: { ...book, world: true, owner: null } })
   assert.equal(made, 'Dana is here (from a Card). Their lorebook is now part of this world: 8 lore entries.')
+})
+
+test('ticking the lorebook again after unticking every entry brings them all back', () => {
+  const picks = { ...startingPicks(spock), book: false, entries: new Set<number>() }
+  assert.deepEqual([...(tickBook(true, picks, spock.book!).entries ?? [])], [0, 1])
+  assert.deepEqual(tickBook(false, startingPicks(spock), spock.book!), { book: false })
+  assert.deepEqual(owners(spock, { ...picks, main: true }).chosen, 'new')
 })

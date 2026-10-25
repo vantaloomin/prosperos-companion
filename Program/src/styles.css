@@ -2418,10 +2418,9 @@ p.breakup-line { align-items: center; }
 .import-owner { max-width: 320px; }
 .import-entries > summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); padding: 6px 0; }
 .import-entries > .form-actions { margin: 4px 0 8px; }
-.import-entries ul { gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
+.import-entries ul { gap: 8px; }
 @media (max-width: 720px) {
   .import-picks { padding: 12px; }
-  .import-about, .import-nested { margin-left: 0; }
   .import-owner { max-width: none; }
   .import-picks .checkbox-row { min-height: 44px; }
   .import-picks .form-actions .button { flex: 1 1 auto; min-height: 44px; }

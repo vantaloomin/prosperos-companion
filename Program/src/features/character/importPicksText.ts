@@ -99,3 +99,9 @@ export function pictureHint(picture: NonNullable<CharacterFile['picture']>): str
   if (!picture.usable) return picture.note ?? "It can't be used."
   return picture.portrait ? 'Becomes their profile picture.' : 'Goes with their reference pictures.'
 }
+
+/** Ticking the lorebook with no entries ticked brings them all back. */
+export function tickBook(ticked: boolean, picks: Picks, book: PreviewBook): Partial<Picks> {
+  if (ticked && picks.entries.size === 0) return { book: true, entries: new Set(book.entries.map((_, index) => index)) }
+  return { book: ticked }
+}
