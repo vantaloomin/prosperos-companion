@@ -52,7 +52,7 @@ export function RememberForm({ name, request, onSave, onCancel }: { name: string
       <TextArea label="What to remember" value={value} onChange={setValue} maxLength={4000} rows={2} hint="Write it as a plain fact, such as Lives in Chicago." />
       <TimingFields layer={layer} planStatus={planStatus} setPlanStatus={setPlanStatus} until={until} setUntil={setUntil} />
       {PAST_LAYERS.includes(layer) && (
-        <Field label="When it happened (optional)" hint="Leave it empty for today. Set a day for backstory, such as when you first met.">
+        <Field label="When it happened (optional)" hint="Left empty, it's today. Set a day for backstory, such as when you first met.">
           {(id, hint) => <input id={id} type="date" aria-describedby={hint} value={happened} max={todayIso()} onChange={(event) => setHappened(event.target.value)} />}
         </Field>
       )}

@@ -2,7 +2,7 @@ import type { DeletePreview, Layer, Memory, Person, PlanStatus } from '../../typ
 
 export const LAYERS: { id: Layer; title: (name: string) => string; hint: string }[] = [
   { id: 'user_fact', title: () => 'About you', hint: 'Facts, preferences and boundaries. They last until you correct them.' },
-  { id: 'plan', title: () => 'Plans and commitments', hint: 'A plan stays open until it is marked done or cancelled; a date passing does not finish it.' },
+  { id: 'plan', title: () => 'Plans and commitments', hint: "Things either of you said you'd do." },
   { id: 'temporary', title: () => 'Right now', hint: 'Passing circumstances, used only while they apply.' },
   { id: 'shared_experience', title: () => 'Shared moments', hint: 'Conversations and moments recalled when they become relevant.' },
   { id: 'relationship', title: () => 'Your relationship', hint: 'Agreements, boundaries and how things were resolved.' },
@@ -77,10 +77,9 @@ export function addedLine(memory: Memory): string | null {
   return memory.source_message_ids.length || memory.origin === 'automatic' ? null : 'Added by you directly.'
 }
 
-/** When a memory holds: "Applies from Oct 6, 2026" with no end, "Applies until …" with no start, else both ends.
- * A moment with only a start just happened then. */
-export function appliesText(from: string | null, until: string | null, show: (value: string) => string, moment = false): string {
-  if (!until) return `${moment ? 'Happened' : 'Applies from'} ${show(from!)}`
+/** When a memory holds: "Applies from Oct 6, 2026" with no end, "Applies until …" with no start, else both ends. */
+export function appliesText(from: string | null, until: string | null, show: (value: string) => string): string {
+  if (!until) return `Applies from ${show(from!)}`
   if (!from) return `Applies until ${show(until)}`
   return `Applies ${show(from)} to ${show(until)}`
 }
@@ -159,7 +158,14 @@ function dayStamp(day: string): string | undefined {
 export const PAST_LAYERS: Layer[] = ['user_fact', 'shared_experience', 'relationship', 'companion_life']
 
 /** Kinds that are moments rather than facts that hold for a while. */
-export const MOMENT_LAYERS: Layer[] = ['shared_experience', 'companion_life']
+const MOMENT_LAYERS: Layer[] = ['shared_experience', 'companion_life']
+
+/** A card's date line. A moment with only a start leads with when it happened (Iris), else when it was said. */
+export function dateParts(memory: Memory, show: (value: string) => string): string[] {
+  const { applies_from: from, applies_until: until } = memory
+  if (from && !until && MOMENT_LAYERS.includes(memory.layer)) return [`Happened ${show(from)} · said ${show(memory.stated_at)}`]
+  return [`Said ${show(memory.stated_at)}`, ...(from || until ? [appliesText(from, until, show)] : [])]
+}
 
 /** When a hand-written memory happened: the chosen day, or null for today. */
 export function happenedAt(day: string): string | null {

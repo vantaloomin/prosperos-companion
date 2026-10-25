@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { addedLine, appliesText, happenedAt, correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
+import { addedLine, appliesText, dateParts, happenedAt, correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory, Person } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
@@ -127,8 +127,10 @@ test('a memory with no end date applies from its start, not "to …"', () => {
 
 test('a moment with only a start happened then, and a hand-written one is dated the chosen day or today', () => {
   const show = (value: string) => value
-  assert.equal(appliesText('May 3', null, show, true), 'Happened May 3')
-  assert.equal(appliesText('May 3', 'May 9', show, true), 'Applies May 3 to May 9')
+  const met = memory('met', { layer: 'shared_experience', applies_from: 'May 3', stated_at: 'Oct 25' })
+  assert.deepEqual(dateParts(met, show), ['Happened May 3 · said Oct 25'])
+  assert.deepEqual(dateParts({ ...met, applies_until: 'May 9' }, show), ['Said Oct 25', 'Applies May 3 to May 9'])
+  assert.deepEqual(dateParts({ ...met, layer: 'user_fact' }, show), ['Said Oct 25', 'Applies from May 3'])
   assert.equal(happenedAt(''), null)
   assert.equal(happenedAt('2026-05-03'), new Date('2026-05-03T00:00').toISOString())
 })
