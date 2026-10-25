@@ -210,3 +210,13 @@ def test_delete_preview_lists_what_would_go_and_what_stays(client, connected):
     assert preview['source_message_ids'] == [message['id']]
     assert [item['subject'] for item in preview['other_memories']] == ["Sister's city"]
     assert len(client.get('/api/memories?history=true').json()) == 3, 'a preview changes nothing'
+
+
+def test_backstory_written_by_hand_keeps_the_day_it_happened(client, companion, clock):
+    met = (clock.now() - timedelta(days=200)).isoformat()
+    memory = remember(client, layer='shared_experience', subject='How we met', value='We met at the harbor festival',
+                      applies_from=met)
+    assert memory['applies_from'][:10] == met[:10] and memory['stated_at'] > memory['applies_from']
+    later = client.post('/api/memories', json={'layer': 'shared_experience', 'subject': 'Next week', 'value': 'A picnic',
+                                               'applies_from': (clock.now() + timedelta(days=7)).isoformat()})
+    assert later.status_code == 422
