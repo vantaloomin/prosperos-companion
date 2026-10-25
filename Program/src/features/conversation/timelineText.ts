@@ -19,8 +19,10 @@ export function forkNote(timeline: Timeline, all: Timeline[]): string | null {
   return `Branched from ${parent ? parent.label : 'an earlier timeline'} at a message from ${day(timeline.forked_at)}.`
 }
 
-/** The edited words to place in the message box after switching, when the box is free for them. */
-export function waitingDraft(timeline: Timeline | undefined, composerText: string): string | null {
-  if (!timeline?.active || !timeline.draft) return null
+/** The edited words to place in the message box after switching, when the box is free for them. They are
+ * placed once per arrival on the timeline (`placedFor` is the timeline they were last placed for), so
+ * clearing the box afterwards keeps it clear instead of bringing the words back. */
+export function waitingDraft(timeline: Timeline | undefined, composerText: string, placedFor: string | null = null): string | null {
+  if (!timeline?.active || !timeline.draft || timeline.id === placedFor) return null
   return composerText.trim() ? null : timeline.draft
 }

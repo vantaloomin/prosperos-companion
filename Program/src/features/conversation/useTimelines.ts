@@ -22,13 +22,18 @@ export function useSwitchTimeline() {
 }
 
 /** The current timeline's name when it is an alternate one. A historical edit's waiting words are
- * placed in the message box, and taken out again, unsent, if the user switches away. */
+ * placed in the message box once, and taken out again, unsent, if the user switches away. */
 export function useCurrentTimeline(draft: DraftState, onSwitch: () => void) {
   const timelines = useTimelines()
   const current = timelines.data?.timelines.find((timeline) => timeline.active)
-  const waiting = waitingDraft(current, draft.value.text)
+  const placedFor = useRef<string | null>(null)
   const previous = useRef(current)
-  useEffect(() => { if (waiting) draft.edit(waiting) }, [waiting]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!current?.active) return
+    const waiting = waitingDraft(current, draft.value.text, placedFor.current)
+    placedFor.current = current.id
+    if (waiting) draft.edit(waiting)
+  }, [current?.id, current?.active, current?.draft]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const left = previous.current
     previous.current = current
