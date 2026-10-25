@@ -172,3 +172,27 @@ def test_a_restored_world_keeps_the_home_it_remembers(client, companion, app):
         connection.execute("UPDATE persona SET home_city_id='london' WHERE id=1")
     worlds.start(database)
     assert listing(client)['world']['home']['city_id'] == 'chicago'
+
+
+def test_the_users_own_cities_are_always_theirs_to_live_in(client, companion):
+    world = listing(client)['world']
+    town = client.get('/api/world/template').json() | {'id': 'quiet-cove', 'name': 'Quiet Cove', 'era': 'medieval'}
+    del town['lat'], town['lon']  # No trip reaches it, and it is another era: it is still the user's own.
+    assert client.post('/api/world/cities', json=town).status_code == 200
+    ship = client.get('/api/world/template', params={'kind': 'ship'}).json() | {'id': 'little-ark', 'name': 'Little Ark'}
+    assert client.post('/api/world/cities', json=ship).status_code == 200
+    choices = ok(client.get(f"/api/worlds/{world['id']}/home"))
+    listed = {city['id']: city for city in choices['cities']}
+    assert {'quiet-cove', 'little-ark'} <= set(listed) and listed['quiet-cove']['category'] == 'custom'
+    assert 'grandport' not in listed  # Built-in cities still follow the trip rules.
+    moved = ok(client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'quiet-cove'}))['world']['home']
+    assert moved['city_id'] == 'quiet-cove' and moved['set_by'] == 'you'
+    # It stays when the world starts again.
+    assert listing(client)['world']['home']['city_id'] == 'quiet-cove'
+
+
+def test_a_city_pack_is_the_users_own():
+    cities = catalog.cities()
+    pack = cities['grandport'] | {'id': 'pack-town', 'builtin': False, 'origin': 'pack'}
+    assert where.allowed(cities['baltimore'], pack)
+    assert not where.allowed(cities['baltimore'], cities['grandport'])
