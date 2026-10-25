@@ -54,8 +54,19 @@ class IntimacySetup(Input):
     orientation: Literal['', 'straight', 'gay', 'lesbian', 'bisexual', 'pansexual', 'queer', 'asexual'] = ''
     level: Literal['', 'reserved', 'conventional', 'curious', 'adventurous', 'wild'] = ''
     drive: Literal['', 'low', 'average', 'high'] = ''
-    interests: list[Annotated[str, Field(max_length=40)]] = Field(default_factory=list, max_length=12)
+    interests: list[Annotated[str, Field(max_length=40)]] = Field(default_factory=list, max_length=24)
+    # Their own turn-ons and turn-offs, in the user's words, beyond the bank.
+    own_into: list[Annotated[str, Field(max_length=80)]] = Field(default_factory=list, max_length=8)
+    not_into: list[Annotated[str, Field(max_length=80)]] = Field(default_factory=list, max_length=8)
     note: str = Field(default='', max_length=600)
+
+    @field_validator('own_into', 'not_into')
+    @classmethod
+    def between_adults(cls, value: list[str]) -> list[str]:
+        from companion.world import intimacy
+        if not all(intimacy.allowed(entry) for entry in value):
+            raise ValueError('Keep it to things between consenting adults.')
+        return value
 
 
 class MoneySetup(Input):

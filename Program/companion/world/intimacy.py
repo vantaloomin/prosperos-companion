@@ -26,6 +26,19 @@ ADULT_AT = 18
 # How many interests each level draws, and the boldest tier it reaches.
 DRAWS = {'reserved': (0, 0), 'conventional': (1, 1), 'curious': (2, 2), 'adventurous': (3, 3), 'wild': (4, 3)}
 DRIVES = {'low': 1, 'average': 2, 'high': 1}
+# Who someone is drawn to rather than what they do ("a sharp mind"): rolled on its own, after the draw above, so
+# adding them changed nobody's earlier picks, and how adventurous someone is has no say in it.
+QUALITIES = 'qualities'
+DRAWN_BY = 0.4
+# What the user writes in their own words (their own turn-ons and turn-offs) is checked like the bank: nothing
+# young, family, animal or without consent. A line that trips it is refused on the form and left out of prompts.
+OFF_LIMITS = re.compile(r"\b(?:minors?|child(?:ren)?|kids?|teens?|teenag\w*|underage|students?|loli\w*|"
+                        r"shota\w*|age ?play|little ?(?:girl|boy|one)s?|daddy|mommy|incest\w*|step ?(?:sis\w*|bro\w*|"
+                        r"mom|mum|dad|daughter|son|father|mother)|sisters?|brothers?|mother|father|daughters?|sons?|"
+                        r"nieces?|nephews?|cousins?|family|animals?|beast\w*|bestial\w*|dogs?|horses?|non-?con\w*|"
+                        r"dub-?con\w*|rape\w*|forc(?:e|ed|ing)|coerc\w*|blackmail\w*|drugg?\w*|drunk|asleep|"
+                        r"sleeping|unconscious|passed out|without (?:asking|consent)|against (?:their|her|his) will)\b",
+                        re.IGNORECASE)
 # A companion whose own words say they're under 18 never gets an adult side (fail closed). Background is left
 # out: "as a teen" there is a memory, not their age now.
 YOUNG = r'(?:1[0-7]|[1-9]|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)'
@@ -81,10 +94,15 @@ def roll(seed: str, age: int, who: str) -> dict | None:
     count, boldest = DRAWS[level]
     if level == 'conventional' and generators.unit(seed, 'intimacy-count') < 0.5:
         count = 0
-    options = sorted(entry['id'] for entry in bank()['interests'] if entry['tier'] <= boldest)
+    options = sorted(entry['id'] for entry in bank()['interests']
+                     if entry['tier'] <= boldest and entry['group'] != QUALITIES)
     interests = sorted(options, key=lambda entry: generators.unit(seed, 'intimacy-into', entry))[:count]
+    if generators.unit(seed, 'intimacy-drawn') < DRAWN_BY:
+        qualities = [entry['id'] for entry in bank()['interests'] if entry['group'] == QUALITIES]
+        interests.append(min(qualities, key=lambda entry: generators.unit(seed, 'intimacy-quality', entry)))
     return {'orientation': dating.orientation(seed, age, who)[0], 'level': level,
-            'drive': dating.weighted(seed, 'intimacy-drive', mix.drive_weights(DRIVES)), 'interests': sorted(interests), 'note': ''}
+            'drive': dating.weighted(seed, 'intimacy-drive', mix.drive_weights(DRIVES)), 'interests': sorted(interests), 'note': '',
+            'own_into': [], 'not_into': []}
 
 
 def for_sheet(sheet: dict) -> dict | None:
@@ -157,6 +175,23 @@ def merged(rolled: dict | None, chosen: dict | None) -> dict | None:
             found[key] = chosen[key]
     if chosen.get('interests'):
         found['interests'] = [entry for entry in chosen['interests'] if entry in bank()['interests_by_id']]
+    # Their own words add to what they're into (rolled or picked) and say what isn't for them.
+    for key in ('own_into', 'not_into'):
+        found[key] = own_words(chosen.get(key))
+    return found
+
+
+def allowed(text: str) -> bool:
+    return not OFF_LIMITS.search(text) and not MINOR.search(text)
+
+
+def own_words(entries) -> list[str]:
+    """The user's own entries, trimmed, without repeats or anything off limits (fail closed)."""
+    found = []
+    for entry in entries or []:
+        text = ' '.join(str(entry).split()).rstrip('.;,')
+        if text and allowed(text) and text.lower() not in (seen.lower() for seen in found):
+            found.append(text)
     return found
 
 
@@ -185,8 +220,11 @@ def own_text(found: dict | None) -> str:
     if found.get('drive') in drives:
         lines.append(f"- Drive: {drives[found['drive']]['label'].lower()}; {drives[found['drive']]['text']}.")
     into = [interests[entry]['text'] for entry in found.get('interests') or [] if entry in interests]
+    into += own_words(found.get('own_into'))
     if into:
         lines.append('- Into: ' + '; '.join(into) + '.')
+    if not_into := own_words(found.get('not_into')):
+        lines.append('- Not into: ' + '; '.join(not_into) + '.')
     if found.get('note'):
         lines.append(f"- {found['note'].strip()}")
     return '\n'.join(lines)
@@ -214,7 +252,7 @@ def view(found: dict | None) -> dict | None:
     return {**found, 'level_label': levels.get(found.get('level'), {}).get('label', ''),
             'drive_label': drives.get(found.get('drive'), {}).get('label', ''),
             'interest_labels': [interests[entry]['label'] for entry in found.get('interests') or []
-                                if entry in interests]}
+                                if entry in interests] + own_words(found.get('own_into'))}
 
 
 def options() -> dict:

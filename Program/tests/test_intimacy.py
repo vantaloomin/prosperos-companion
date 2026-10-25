@@ -5,6 +5,7 @@ from collections import Counter
 
 from companion.characters import require_current
 from companion.life import encounters
+from companion.memory import sides
 from companion.memory.context import character_text
 from companion.world import catalog, dating, intimacy, townsfolk
 
@@ -82,10 +83,26 @@ def test_most_people_are_in_the_middle_and_the_level_caps_what_they_are_into():
     assert set(levels) == set(intimacy.DRAWS)
     assert levels['curious'] > levels['adventurous'] > levels['wild']
     assert levels['conventional'] > levels['reserved']
+    qualities = {entry['id'] for entry in intimacy.bank()['interests'] if entry['group'] == intimacy.QUALITIES}
     for found in rolls:
         count, boldest = intimacy.DRAWS[found['level']]
-        assert len(found['interests']) <= count and all(tiers[entry] <= boldest for entry in found['interests'])
-    assert all(not found['interests'] for found in rolls if found['level'] == 'reserved')
+        doing = [entry for entry in found['interests'] if entry not in qualities]
+        assert len(doing) <= count and all(tiers[entry] <= boldest for entry in doing)
+        # At most one thing that draws them in ("a sharp mind"), whatever the level.
+        assert len(found['interests']) - len(doing) <= 1
+    assert all(not set(found['interests']) - qualities for found in rolls if found['level'] == 'reserved')
+    drawn = sum(bool(set(found['interests']) & qualities) for found in rolls) / len(rolls)
+    assert 0.3 < drawn < 0.5
+
+
+def test_adding_what_draws_them_in_left_everyone_s_earlier_picks_alone():
+    qualities = {entry['id'] for entry in intimacy.bank()['interests'] if entry['group'] == intimacy.QUALITIES}
+    assert {'sharp-mind', 'quick-wit', 'kindness'} <= qualities
+    # The draw before the qualities were added, pinned for a few seeds.
+    assert {seed: sorted(set(intimacy.roll(seed, 35, 'woman')['interests']) - qualities) for seed in ('a', 'b', 'c')} \
+        == {'a': ['deep-voice', 'strong-arms'], 'b': ['hair-stroking', 'quickies'], 'c': ['deep-voice', 'paddle', 'sex-dice']}
+    # A sharp mind is not an intimate word in a chat.
+    assert not sides.reads_intimate(['She has a sharp mind and real kindness.'])
 
 
 def test_it_is_off_by_default_and_only_their_own_prompt_has_it(client, companion):
@@ -117,6 +134,33 @@ def test_what_the_user_sets_wins_and_a_young_sheet_gets_nothing(client, companio
     assert 'Orientation: bisexual.' in preview(client)
     revise(client, identity='A 17-year-old skater.')
     assert 'Your intimate side' not in preview(client) and intimacy.SETTING not in preview(client)
+
+
+def test_their_own_turn_ons_and_turn_offs_go_in_their_prompt(client, companion):
+    client.put('/api/settings', json={'adult_side': True})
+    revise(client, identity='32, a librarian.',
+           intimacy={'own_into': ['someone who reads to them', 'Someone who reads to them '], 'not_into': ['being rushed']})
+    prompt = preview(client)
+    assert 'someone who reads to them' in prompt and prompt.count('reads to them') == 1
+    assert '- Not into: being rushed.' in prompt
+    found = client.post('/api/companion/adult-side', json={'definition': {'identity': '32, a librarian.'}}).json()
+    assert found['rolled']['own_into'] == [] and found['rolled']['not_into'] == []
+    # Switched off, none of it is anywhere.
+    client.put('/api/settings', json={'adult_side': False})
+    assert 'reads to them' not in preview(client) and 'being rushed' not in preview(client)
+
+
+def test_their_own_words_stay_between_consenting_adults(client, companion):
+    current = client.get('/api/companion').json()['companion']
+    for words in ('a teen', 'their step-sister', 'being forced', 'when they are asleep', 'a 16-year-old'):
+        response = client.post('/api/companion/versions', json={
+            'definition': {**current['version']['definition'], 'intimacy': {'own_into': [words]}},
+            'expected_version_id': current['active_version_id']})
+        assert response.status_code == 422, words
+    # Even one that slipped into a stored definition never reaches a prompt (fail closed).
+    assert intimacy.own_words(['a teen', 'a sharp suit', 'their cousin']) == ['a sharp suit']
+    for words in ('a sharp mind', 'being held down, gently', 'a partner who takes charge', 'old-school romance'):
+        assert intimacy.allowed(words), words
 
 
 def test_the_form_gets_the_roll_and_the_choices(client, companion):
