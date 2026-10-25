@@ -38,6 +38,7 @@ import { forgetDraft, useKept } from './keptDraft'
 import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
+import { TakeAlong } from './TakeAlong'
 import { StartOver } from './StartOver'
 import { Cast } from './Cast'
 import { WhoTheyKnow } from './WhoTheyKnow'
@@ -226,6 +227,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
     <AnotherSection name={name} go={go} />
     <BringCharacter />
     <BringChat companion={companion} />
+    <TakeAlong id={companion.id} name={name} />
     <StartOver name={name} go={go} />
   </>)
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { bookSummary, broughtText, entryWhen, momentText, type LoreBook, type LoreEntry } from '../../src/features/character/loreText.ts'
+import { bookSummary, broughtText, carriedText, isSavedCompanion, entryWhen, momentText, type LoreBook, type LoreEntry } from '../../src/features/character/loreText.ts'
 
 const entry: LoreEntry = { id: 'e', title: 'Brother', text: 'x', keywords: ['Mike', 'brother'], always: false, pattern: false, enabled: true,
   when: [], when_guessed: false, fits_now: false }
@@ -50,4 +50,11 @@ test('an entry that fits the moment says when, in words', () => {
   assert.equal(entryWhen({ ...entry, keywords: [], when: [rain, night] }), 'On rainy days, at night')
   assert.equal(entryWhen({ ...entry, when: [night] }), 'When someone mentions "Mike", "brother". Also at night')
   assert.equal(entryWhen({ ...entry, keywords: [], when: [] }), 'Never: it has no words or moment')
+})
+
+test('a saved companion says what came along and where they moved', () => {
+  assert.ok(isSavedCompanion('Spock.companion') && isSavedCompanion('SPOCK.COMPANION') && !isSavedCompanion('spock.json'))
+  const result = { name: 'Spock', companion: { version: { name: 'Spock' } }, moved_to: 'USS Enterprise', stepped_back: 'Kirk', counts: { messages: 1204, memories: 1 } }
+  assert.equal(carriedText(result), 'Spock is here with everything that happened between you, including 1,204 messages and 1 memory. They moved to USS Enterprise, with a home and the same kind of work there. Their friends and family stayed where they were. Kirk stepped back and keeps everything.')
+  assert.equal(carriedText({ ...result, moved_to: null, stepped_back: null, counts: { memories: 3 } }), 'Spock is here with everything that happened between you, including 3 memories.')
 })
