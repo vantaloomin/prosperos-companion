@@ -57,7 +57,7 @@ export function VoiceSettings() {
     setError('')
     try { client.setQueryData(KEY, await api<VoiceView>('/voice', change, 'PUT')) } catch (failed) { setError(failure(failed)) }
   }
-  return <section className="settings-section form-stack" aria-labelledby="voice-heading">
+  return <section className="settings-section form-stack voice-settings" aria-labelledby="voice-heading">
     <div>
       <h2 id="voice-heading">Voice notes</h2>
       <p className="subtle">Now and then a companion sends a short voice note instead of a text, a few a day at most, in a voice the app picks to suit them. The model writes the words as usual; a voice engine only reads them aloud.</p>
@@ -70,7 +70,8 @@ export function VoiceSettings() {
     )}</Field>
     {data.engine === 'builtin' ? <BuiltinVoice view={data} onChange={(view) => client.setQueryData(KEY, view)} /> : <VoiceKey engine={data.engine} source={data.keys[data.engine]} onChange={(view) => { client.setQueryData(KEY, view); void client.invalidateQueries({ queryKey: ['voice-companions'] }) }} />}
     {error && <Notice tone="error">{error}</Notice>}
-    <CompanionVoiceList engine={data.engine} ready={data.ready} />
+    {/* Remounted when a repair is offered, so a failed Preview's error does not repeat the repair notice. */}
+    <CompanionVoiceList key={String(data.builtin.repair)} engine={data.engine} ready={data.ready} />
   </section>
 }
 
@@ -81,17 +82,7 @@ function BuiltinVoice({ view, onChange }: { view: VoiceView; onChange: (view: Vo
     setError('')
     try { onChange(await api<VoiceView>('/voice/builtin/download', {})) } catch (failed) { setError(failure(failed)) }
   }
-  const repair = async () => {
-    setError('')
-    try { onChange(await api<VoiceView>('/voice/builtin/repair', {})) } catch (failed) { setError(failure(failed)) }
-  }
-  if (builtin.repair) return <div className="form-stack">
-    <Notice tone="error">{error || builtin.error}</Notice>
-    <div className="form-actions">
-      <button type="button" className="button" onClick={() => void repair()} disabled={builtin.downloading}><Wrench size={15} aria-hidden="true" />{builtin.downloading ? 'Repairing…' : 'Repair the built-in voice'}</button>
-      <small>Downloads the voice program again (about 25 MB). The voice itself stays.</small>
-    </div>
-  </div>
+  if (builtin.repair) return <RepairVoice view={view} onChange={onChange} />
   if (builtin.ready) return <p className="subtle">The built-in voice is ready. It runs on this PC's processor, so notes take a few seconds to record and nothing leaves the PC.</p>
   if (!builtin.available) return <p className="subtle">There is no built-in voice download for this computer. Choose OpenAI, ElevenLabs or Google.</p>
   return <div className="form-stack">
@@ -100,6 +91,23 @@ function BuiltinVoice({ view, onChange }: { view: VoiceView; onChange: (view: Vo
       <small>Kokoro and sherpa-onnx from sherpa-onnx's official releases, checked against pinned checksums. Apache 2.0.</small>
     </div>
     {(error || builtin.error) && <Notice tone="error">{error || builtin.error}</Notice>}
+  </div>
+}
+
+/** Shown when the program loaded someone else's onnxruntime: downloads the program again, keeping the model. */
+function RepairVoice({ view, onChange }: { view: VoiceView; onChange: (view: VoiceView) => void }) {
+  const [error, setError] = useState('')
+  const [repairing, setRepairing] = useState(false)
+  const repair = async () => {
+    setError(''); setRepairing(true)
+    try { onChange(await api<VoiceView>('/voice/builtin/repair', {})) } catch (failed) { setError(failure(failed)) } finally { setRepairing(false) }
+  }
+  return <div className="form-stack">
+    <Notice tone="error">{error || view.builtin.error}</Notice>
+    <div className="form-actions">
+      <button type="button" className="button" onClick={() => void repair()} disabled={repairing || view.builtin.downloading}><Wrench size={15} aria-hidden="true" />{repairing ? 'Repairing…' : 'Repair the built-in voice'}</button>
+      <small>Downloads the voice program again (about 25 MB). Your voices and picks are kept.</small>
+    </div>
   </div>
 }
 
