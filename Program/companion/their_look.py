@@ -9,21 +9,23 @@ their own colours for them on the Character page (`their_looks`), and Settings c
 How it moves (Settings > Realism > Their days, life_settings.their_look):
 - 0 Off: the app's colours everywhere.
 - 1 Steady: their own colour and font, and nothing moves.
-- 2 True to life: the shade drifts within the family at visible life moments (a new season, their birthday), a strong
-  mood (2 or more) moves the shade when Moods are shown, and now and then, about one season in six, their taste moves
-  to another family that suits them.
+- 2 True to life: the shade drifts within the family at visible life moments (a new season, their birthday), a mood
+  of 2 or more moves the shade when Moods are shown, and now and then, about one season in six, their taste moves to
+  another family that suits them.
 - 3 Expressive: any mood moves the shade, and their taste changes about one season in three.
-Mood never moves anything while Moods are hidden (the default), so the colour never gives a hidden value away. Mood
-moves the shade at most `MOOD_CHANGES` times a day.
+With Moods hidden (the default) a mood is only a fuzzy hint, the way you can read someone a little without being told
+(Vanta, 2026-10-25): only a strong one, half the shift, a while after it starts, and about one in three never shows,
+so the colour never reads out a hidden value. Mood moves the shade quietly, with no line, at most `MOOD_CHANGES` times
+a day.
 
-Each change the app makes leaves one muted line in their chat ("Dana changed their colours."), kept in
+Each other change the app makes leaves one muted line in their chat ("Dana changed their colors."), kept in
 `their_look_changes`; what the user changes leaves none. Only ids leave here: the chat works out the colours against its
 own background (src/features/conversation/theirLook.ts), so the name always reads at 4.5:1 or more.
 """
 import json
 import random
 import re
-from datetime import date
+from datetime import date, timedelta
 from functools import cache
 
 from companion.clock import parse, stamp
@@ -39,6 +41,10 @@ TASTE_CHANCE = {2: 1 / 6, 3: 1 / 3}
 # The lowest mood intensity that moves the shade, by level.
 MOOD_FROM = {2: 2, 3: 1}
 MOOD_CHANGES = 2
+# With Moods hidden a strong mood only hints: from this intensity, after this long, and one in HINT_SKIP never shows.
+HINT_FROM = {2: 3, 3: 2}
+HINT_LAG = timedelta(hours=2)
+HINT_SKIP = 3
 # Happy or excited is brighter and warmer, sad or hurt muted and cooler, annoyed or angry deeper, anxious paler.
 MOOD_SHADES = {'happy': 'bright', 'excited': 'bright', 'sad': 'muted', 'hurt': 'muted', 'annoyed': 'deep',
                'angry': 'deep', 'anxious': 'pale'}
@@ -159,15 +165,26 @@ def everywhere_off(connection) -> bool:
 
 # The look now ----------------------------------------------------------------------------------------------
 
-def mood_shade(connection, companion: dict, level: int, now) -> str | None:
-    """The shade a mood moves to, only with Moods shown and only from the level's intensity."""
-    if level < 2 or not settings(connection)['show_moods']:
-        return None
+def mood_shade(connection, companion: dict, level: int, now) -> tuple[str | None, bool]:
+    """The shade a mood moves to, and whether it is only a hint. With Moods shown, from the level's intensity. With
+    them hidden (Vanta, 2026-10-25: you can read someone's mood a little without being told), a fuzzy hint: only a
+    strong mood (HINT_FROM), half the shift (the chat halves it), once it has lasted HINT_LAG, and a seeded one in
+    HINT_SKIP strong moods never shows at all."""
+    if level < 2:
+        return None, False
     from companion import moods
-    found = moods.current(connection, f"companion:{companion['id']}", now)
-    if not found or found['intensity'] < MOOD_FROM[level]:
-        return None
-    return MOOD_SHADES.get(found['feeling'])
+    key = f"companion:{companion['id']}"
+    if settings(connection)['show_moods']:
+        found = moods.current(connection, key, now)
+        if not found or found['intensity'] < MOOD_FROM[level]:
+            return None, False
+        return MOOD_SHADES.get(found['feeling']), False
+    row = optional(connection, 'SELECT * FROM moods WHERE holder=?', (key,))
+    if (row is None or row['intensity'] < HINT_FROM[level] or moods.stored(connection, key, now) is None
+            or now - parse(row['updated_at']) < HINT_LAG
+            or random.Random(f"{key}:hint:{row['updated_at']}").randrange(HINT_SKIP) == 0):
+        return None, False
+    return MOOD_SHADES.get(row['feeling']), True
 
 
 def worked_out(connection, companion: dict, now, with_mood: bool = True) -> dict | None:
@@ -180,8 +197,9 @@ def worked_out(connection, companion: dict, now, with_mood: bool = True) -> dict
     moving = level >= 2 and not mine['steady']
     family = mine['family'] or (family_for(companion, picked['families'], level, today)[0] if moving
                                 else picked['families'][0])
+    mood, hint = mood_shade(connection, companion, level, now) if moving and with_mood else (None, False)
     return {'family': family, 'font': mine['font'] or picked['font'], 'shade': drift(companion, today) if moving else 0,
-            'mood': mood_shade(connection, companion, level, now) if moving and with_mood else None, 'level': level}
+            'mood': mood, 'hint': hint and mood is not None, 'level': level}
 
 
 def first_of(companion: dict) -> str:
@@ -191,13 +209,13 @@ def first_of(companion: dict) -> str:
 def change_text(companion: dict, before: dict, after: dict) -> str:
     name = first_of(companion)
     if before['family'] != after['family']:
-        return f"{name} changed their colours to {label(after['family'])}."
-    return f'{name} changed their colours.'
+        return f"{name} changed their colors to {label(after['family'])}."
+    return f'{name} changed their colors.'
 
 
 def settle(connection, companion: dict, now) -> dict | None:
-    """The look now, after noting what changed since it was last shown: a change the app made leaves its line, and
-    mood moves the shade at most MOOD_CHANGES times a day (past that it stays as it was)."""
+    """The look now, after noting what changed since it was last shown: a change the app made leaves its line, except
+    a mood's, which moves the shade quietly and at most MOOD_CHANGES times a day (past that it stays as it was)."""
     look = worked_out(connection, companion, now)
     mine = own(connection, companion['id'])
     shown = json.loads(mine['shown']) if mine['shown'] else None
@@ -207,15 +225,17 @@ def settle(connection, companion: dict, now) -> dict | None:
         return None
     today = storylines.local_today(companion, now).isoformat()
     used = mine['mood_changes'] if mine['mood_day'] == today else 0
-    if shown and look['mood'] != shown.get('mood') and {**look, 'mood': None} == {**shown, 'mood': None}:
+    moodless = {**look, 'mood': None, 'hint': False}
+    mood_only = bool(shown) and moodless == {**shown, 'mood': None, 'hint': False}
+    if mood_only and (look['mood'], look['hint']) != (shown.get('mood'), shown.get('hint', False)):
         if used >= MOOD_CHANGES:
-            look = {**look, 'mood': shown.get('mood')}
+            look = {**look, 'mood': shown.get('mood'), 'hint': shown.get('hint', False)}
         else:
             used += 1
     if shown == look:
         return look
-    # The first look, or one after the user moved the Realism slider, is taken quietly.
-    if shown is not None and shown.get('level') == look['level']:
+    # The first look, one after the user moved the Realism slider, and a mood's are taken quietly.
+    if shown is not None and shown.get('level') == look['level'] and not mood_only:
         connection.execute('INSERT INTO their_look_changes (id, companion_id, text, created_at) VALUES (?, ?, ?, ?)',
                            (identifier(), companion['id'], change_text(companion, shown, look), stamp(now)))
     keep(connection, companion['id'], now, shown=json.dumps(look, sort_keys=True), mood_day=today, mood_changes=used)
@@ -238,7 +258,7 @@ def change(connection, companion: dict, now, family: str | None = None, font: st
     taken as already seen, so the user's own change leaves no line in the chat."""
     values = {}
     if family is not None:
-        require(family == '' or family in family_ids(), 'That colour is not one of theirs to pick.', 422)
+        require(family == '' or family in family_ids(), 'That color is not one of theirs to pick.', 422)
         values['family'] = family or None
     if font is not None:
         require(font == '' or font in font_ids(), 'That font is not one of theirs to pick.', 422)

@@ -54,7 +54,7 @@ function arrival() {
 }
 const JUMP_PAGE = 500
 
-/** "Dana changed their colours.": a muted line where the app changed their look, never a message. */
+/** "Dana changed their colors.": a muted line where the app changed their look, never a message. */
 function LookNotes({ notes }: { notes: { text: string; at: string }[] }) {
   return <>{notes.map((note) => <p key={note.at} className="group-note look-note" role="note">{note.text}</p>)}</>
 }

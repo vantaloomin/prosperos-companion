@@ -5,7 +5,8 @@ import bank from '../../../companion/world/data/their_looks.json' with { type: '
 import { contrast } from '../settings/palette.ts'
 
 export type Mood = 'bright' | 'muted' | 'deep' | 'pale'
-export interface TheirLook { family: string; font: string; shade: number; mood: Mood | null }
+/** `hint`: Moods are hidden and a strong mood shows only as half the shift (companion/their_look.py mood_shade). */
+export interface TheirLook { family: string; font: string; shade: number; mood: Mood | null; hint?: boolean }
 export interface LookView {
   level: number
   everywhere_off: boolean
@@ -70,11 +71,35 @@ function standing(hue: number, sat: number, target: number, grounds: string[], l
 /** Their name's colour in this chat. */
 export function nameColour(look: TheirLook, ground: Ground) {
   const family = FAMILIES.find((item) => item.id === look.family) ?? FAMILIES[0]
-  const mood = look.mood ? MOODS[look.mood] : null
-  const hue = mood?.toward != null ? toward(family.hue, mood.toward, 10) : family.hue
+  const mood = moodOf(look)
+  const hue = hueIn(family.hue, mood, ground)
   const sat = Math.max(8, Math.min(90, family.sat + (mood?.sat ?? 0)))
   const target = mood?.target ?? DRIFT[look.shade] ?? DRIFT[0]
   return standing(hue, sat, target, namesSitOn(ground), lightGround(ground), ground.text)
+}
+
+/** Retro IM tells speakers apart by the screen name's colour alone, and yours is red: theirs keeps at least this far
+ * from it (Iris), so a magenta or rose turns toward purple and a rust toward amber. */
+const RETRO_YOU = 0, RETRO_GAP = 60
+
+/** A mood's shift, halved when it is only a hint, with its standing-out halfway from the everyday shade's. */
+function moodOf(look: TheirLook) {
+  const mood = look.mood ? MOODS[look.mood] : null
+  if (!mood || !look.hint) return mood
+  const everyday = DRIFT[look.shade] ?? DRIFT[0]
+  return { sat: mood.sat / 2, toward: mood.toward, step: 5, target: mood.target == null ? null : (everyday + mood.target) / 2 }
+}
+
+/** The family's hue, turned a little by a mood, and in Retro IM kept clear of your red. */
+function hueIn(hue: number, mood: { toward: number | null; step?: number } | null, ground: Ground) {
+  const moved = mood?.toward != null ? toward(hue, mood.toward, mood.step ?? 10) : hue
+  return ground.retro ? clearOf(moved, RETRO_YOU, RETRO_GAP) : moved
+}
+
+function clearOf(hue: number, taken: number, gap: number) {
+  const apart = ((hue - taken + 540) % 360) - 180
+  if (Math.abs(apart) >= gap) return hue
+  return (taken + (apart < 0 ? -gap : gap) + 360) % 360
 }
 
 /** Retro IM's names sit on its white (or dark) window; every other style's on the canvas, the surface and, in a
@@ -97,12 +122,16 @@ const inkOn = (colour: string) => contrast(colour, '#ffffff') > contrast(colour,
 export function lookStyles(look: TheirLook, ground: Ground): Record<string, string> {
   const name = nameColour(look, ground)
   const font = FONTS.find((item) => item.id === look.font) ?? FONTS[0]
+  const light = lightGround(ground)
   return {
     '--their-name': name, '--their-accent': name,
-    '--their-header': tint(ground.canvas, name, [ground.text, ground.muted, name], .12),
-    '--their-bubble': tint(ground.raised, name, [ground.text], .14),
+    // A light chat shows a tint more than a dark one, so it takes less; a bubble never more than the header (Iris).
+    '--their-header': tint(ground.canvas, name, [ground.text, ground.muted, name], light ? .08 : .12),
+    '--their-bubble': tint(ground.raised, name, [ground.text], light ? .06 : .1),
     '--their-plate': name, '--their-on-plate': inkOn(name),
     '--their-font': font.family, '--their-weight': String(font.weight),
+    // Small names (group chats) keep the UI font for a handwritten taste, where it would stop being legible.
+    '--their-small-font': font.id === 'handwritten' ? 'var(--ui-font)' : font.family,
   }
 }
 

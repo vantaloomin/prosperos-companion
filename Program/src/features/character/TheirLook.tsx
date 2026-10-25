@@ -25,7 +25,7 @@ export function TheirLook({ name }: { name: string }) {
   return (
     <section className="home-panel their-look-panel" aria-labelledby="their-look-heading">
       <h2 id="their-look-heading">{firstName(name)}&apos;s look in chat</h2>
-      <p className="subtle">Their own colour and a font for their name, picked to suit them. Only their name, the chat&apos;s header and a light accent change, never message text.</p>
+      <p className="subtle">Their own color and a font for their name, picked to suit them. Only their name, the chat&apos;s header and a light accent change, never message text.</p>
       {look.isPending && <Loading label="Loading their look" />}
       {look.isError && <ErrorNotice error={look.error} />}
       {look.data && <LookBody view={look.data} name={name} save={save} />}
@@ -39,7 +39,7 @@ function LookBody({ view, name, save }: { view: LookView; name: string; save: (c
   return <>
     <OffNotice view={view} />
     {view.level > 0 && !view.everywhere_off && <Preview view={view} name={name} />}
-    <Field label="Their colour" hint={pickedHint(view.own.family, first, ' It can change with them over time.')}>
+    <Field label="Their color" hint={pickedHint(view.own.family, first, ' It can change with them over time.')}>
       {(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={view.own.family ?? ''} onChange={(event) => void save({ family: event.target.value })}>
           <option value="">Picked for them ({familyLabel(view.picked.family)})</option>
@@ -56,22 +56,22 @@ function LookBody({ view, name, save }: { view: LookView; name: string; save: (c
       )}
     </Field>
     <Toggle label="Keep it steady" checked={view.steady} onChange={(checked) => void save({ steady: checked })} hint={steadyHint(view, first)} />
-    <Toggle label="Use my colours here" checked={view.use_mine} onChange={(checked) => void save({ use_mine: checked })}
-      hint="Their chat keeps your colours and fonts. Other companions keep theirs." />
+    <Toggle label="Use my colors here" checked={view.use_mine} onChange={(checked) => void save({ use_mine: checked })}
+      hint="Their chat keeps your colors and fonts. Other companions keep theirs." />
     <RecentChanges changes={view.changes} />
   </>
 }
 
 function OffNotice({ view }: { view: LookView }) {
-  if (view.level === 0) return <Notice tone="info">Companions use the app&apos;s colours in this world. You can turn their look back on in <a href="#settings/realism">Settings &gt; Realism</a>.</Notice>
-  if (view.everywhere_off) return <Notice tone="info">&ldquo;Keep my colours everywhere&rdquo; is on in <a href="#settings/general">Settings &gt; General</a>, so every chat keeps your colours.</Notice>
+  if (view.level === 0) return <Notice tone="info">Companions use the app&apos;s colors in this world. You can turn their look back on in <a href="#settings/realism">Settings &gt; Realism</a>.</Notice>
+  if (view.everywhere_off) return <Notice tone="info">&ldquo;Keep my colors everywhere&rdquo; is on in <a href="#settings/general">Settings &gt; General &gt; Colors</a>, so every chat keeps your colors.</Notice>
   return null
 }
 
 const pickedHint = (own: string | null, first: string, more: string) => own ? 'You picked it, so it stays.' : `Picked to suit ${first}.${more}`
 
 function steadyHint(view: LookView, first: string) {
-  if (!view.steady) return 'Off: it moves a little with the seasons, their birthday and, with Moods shown, their mood.'
+  if (!view.steady) return 'Their shade moves a little with the seasons, their birthday and a strong mood. Tick to keep it as it is.'
   const family = view.own.family ?? view.look?.family ?? view.picked.family
   const font = view.own.font ?? view.look?.font ?? view.picked.font
   return `${first} keeps ${familyLabel(family)} and ${fontLabel(font).toLowerCase()}, whatever the season or their mood.`

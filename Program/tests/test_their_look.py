@@ -107,11 +107,11 @@ def feel(client, feeling, intensity):
         connection, f"companion:{companion['id']}", feeling, intensity, None, 'a test', now))
 
 
-def test_mood_moves_the_shade_only_when_moods_are_shown(client, companion):
+def test_mood_moves_the_shade_when_moods_are_shown(client, companion):
     feel(client, 'sad', 2)
-    assert look(client)['look']['mood'] is None  # Hidden values stay hidden.
+    assert look(client)['look']['mood'] is None  # Hidden, a mood of 2 never shows.
     client.put('/api/settings', json={'show_moods': True})
-    assert look(client)['look']['mood'] == 'muted'
+    assert look(client)['look']['mood'] == 'muted' and look(client)['look']['hint'] is False
     feel(client, 'happy', 1)
     assert look(client)['look']['mood'] is None  # True to life needs a strong mood.
     set_life(client, their_look=3)
@@ -128,18 +128,49 @@ def test_mood_moves_the_shade_at_most_twice_a_day(client, companion):
         feel(client, feeling, 3)
         shades.append(look(client)['look']['mood'])
     assert shades == ['muted', 'deep', 'deep', 'deep']
-    assert len(look(client)['changes']) == 2
+    assert look(client)['changes'] == []  # A mood moves the shade quietly.
+
+
+# With Moods hidden, a strong mood only hints ---------------------------------------------------------------------
+
+def test_with_moods_hidden_a_strong_mood_hints_after_a_while(client, companion, clock, monkeypatch):
+    monkeypatch.setattr(their_look, 'HINT_SKIP', 10 ** 9)  # Never skipped here; the skip has its own test.
+    feel(client, 'sad', 3)
+    assert look(client)['look']['mood'] is None  # Not at once: it lands a little later.
+    clock.advance(their_look.HINT_LAG)
+    shown = look(client)['look']
+    assert shown['mood'] == 'muted' and shown['hint'] is True
+    assert look(client)['changes'] == []
+    feel(client, 'sad', 2)
+    clock.advance(their_look.HINT_LAG)
+    assert look(client)['look']['mood'] is None  # True to life needs a strong mood to show.
+    set_life(client, their_look=3)
+    assert look(client)['look']['mood'] == 'muted'
+    change(client, steady=True)
+    assert look(client)['look']['mood'] is None
+
+
+def test_about_one_strong_mood_in_three_never_shows(client, companion, clock):
+    client.put('/api/settings', json={'show_moods': False})
+    shown = 0
+    for _ in range(300):
+        feel(client, 'sad', 3)
+        clock.advance(their_look.HINT_LAG)
+        shown += with_connection(client, lambda connection, companion, now: their_look.mood_shade(
+            connection, companion, 2, now))[0] == 'muted'
+    assert 160 <= shown <= 240  # About two in three.
 
 
 # Changes the app makes leave a line ---------------------------------------------------------------------------
 
 def test_a_new_season_can_change_the_shade_and_leaves_a_line(client, companion, clock, monkeypatch):
     monkeypatch.setattr(their_look, 'drift', lambda companion, today: 2 if today.month >= 12 else 0)
+    monkeypatch.setattr(their_look, 'family_for', lambda companion, picks, level, today: (picks[0], 0))
     assert look(client)['look']['shade'] == 0
     clock.advance(timedelta(days=60))
     after = look(client)
     assert after['look']['shade'] == 2
-    assert [line['text'] for line in after['changes']] == ['Mira changed their colours.']
+    assert [line['text'] for line in after['changes']] == ['Mira changed their colors.']
 
 
 def test_a_change_of_taste_names_the_new_colour(client, companion, monkeypatch):
@@ -147,7 +178,7 @@ def test_a_change_of_taste_names_the_new_colour(client, companion, monkeypatch):
     other = next(family for family in their_look.family_ids() if family != before['family'])
     monkeypatch.setattr(their_look, 'family_for', lambda companion, picks, level, today: (other, 1))
     lines = look(client)['changes']
-    assert lines[-1]['text'] == f'Mira changed their colours to {their_look.label(other)}.'
+    assert lines[-1]['text'] == f'Mira changed their colors to {their_look.label(other)}.'
 
 
 def test_changes_of_taste_are_rare_and_seeded(client, companion):
