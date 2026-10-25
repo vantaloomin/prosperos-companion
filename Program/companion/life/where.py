@@ -4,7 +4,8 @@ Every persona has a home in each of their worlds: a city and a neighbourhood, ke
 (companion/worlds.py) and copied into the world's persona row for the prompt. The app picks it and the user can change
 it on the persona form: a world's home starts in the world's city, in a neighbourhood picked the way a companion's is
 (seeded, from the rent tiers, companion/life/money.py), and a city the user picks follows the same travel rules as
-trips (companion/life/trips.py fits: a made-up world's persona lives in that world).
+trips (companion/life/trips.py fits: a made-up world's persona lives in that world), except that the user's own cities
+and packs are always theirs to pick.
 
 `between` is the helper the rest of Where you are builds on (together or apart, calls, long distance): whether a
 companion lives in the user's city or is long distance, and how far apart the two of them are. A companion whose city
@@ -50,8 +51,14 @@ def hood_named(city: dict, hood_id: str) -> dict | None:
 
 
 def allowed(world_city: dict, city: dict) -> bool:
-    """A home in the world's own city, or in one a trip from it could reach (same era and the same world)."""
-    return city['id'] == world_city['id'] or trips.fits(world_city, city)
+    """A home in the world's own city, in one a trip from it could reach (same era and the same world), or in a city
+    the user made or brought in from a pack, which is theirs to live in from any world."""
+    return city['id'] == world_city['id'] or yours(city) or trips.fits(world_city, city)
+
+
+def yours(city: dict) -> bool:
+    """A city the user made (Settings > Cities) or a city pack they added, rather than one that ships with the app."""
+    return city.get('origin') in ('user', 'pack')
 
 
 def choices(world_city: dict, cities: dict[str, dict]) -> list[dict]:
