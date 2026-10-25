@@ -75,6 +75,7 @@ from companion.memory import (
     corrected,
     history,
     look_back,
+    pairs,
     people,
     phrases,
     sides,
@@ -204,6 +205,9 @@ HEADINGS = {
             'hobbies': 'Your pastimes (fictional, yours; when one comes up, keep to how far along you are and how '
                        'often you go, and never invent a big achievement that is not listed)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            # The other companions they know (companion/memory/pairs.py): changes when a stage does.
+            'known_companions': 'People you know who also know the user (fictional, with their own lives; you know '
+                                'only what is listed, so never invent more history with them)',
             # Companions who already have kids (companion/life/kids.py): changes with a birthday or a move.
             'kids': 'Your children (decided by the app: they are yours and part of your days; keep to their names and '
                     'ages, and never invent other children)',
@@ -771,6 +775,11 @@ def offer_day(packet, connection, timeline_id, version, now, today):
         packet.offer('dream', identity, text)
 
 
+def offer_all(packet, section: str, lines: list[tuple[str, str]]):
+    for identity, text in lines:
+        packet.offer(section, identity, text)
+
+
 def offer_people(packet, connection, companion, now, today):
     """The circle, and the storylines going on in their lives and the companion's."""
     timeline_id = companion['active_timeline_id']
@@ -781,8 +790,8 @@ def offer_people(packet, connection, companion, now, today):
         packet.offer('circle', person['id'], person_text({**person, 'role': said}))
         if moment := person_now_text({**person, 'birthday_today': person['birthday'] == today[5:]}):
             packet.offer('circle_now', person['id'], moment)
-    for identity, text in families.context_lines(connection, companion, now):
-        packet.offer('circle', identity, text)
+    offer_all(packet, 'circle', families.context_lines(connection, companion, now))
+    offer_all(packet, 'known_companions', pairs.context_lines(connection, companion, now))
     for identity, text in [*kids.context_lines(connection, companion, now),
                            *our_child.context_lines(connection, companion, now)]:
         packet.offer('kids', identity, text)
