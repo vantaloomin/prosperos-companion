@@ -1792,6 +1792,8 @@ export interface PairTie {
   group_days: number
   meetings: number
 }
+/** Another companion the current one doesn't know yet, as the app would start them (Character > Who they know). */
+export interface UntoldTie { companion_id: string; name: string; level: number; how: string }
 /** Two companions about to share a group for the first time: their backstory can be told, once. */
 export interface UntoldPair { a: string; b: string; a_name: string; b_name: string; level: number; how: string }
 /** What the user tells about two companions: a starting stage and a line, both optional. */

@@ -67,6 +67,7 @@ from companion.models import (
     SidecarRequest,
     StartOverConfirm,
     StatusUpdate,
+    Tie,
     TimelineFork,
     TimelineUpdate,
     TownSeed,
@@ -312,7 +313,26 @@ def companion_ties(request: Request):
     (companion/memory/pairs.py). Read-only: only what happens between them moves it."""
     database = db(request)
     with database.connect() as connection:
-        return {'ties': pairs.ties(connection, characters.require_current(connection), database.clock.now())}
+        return ties_of(connection, characters.require_current(connection), database.clock.now())
+
+
+@router.post('/companion/ties')
+def companion_tell_tie(request: Request, body: Tie):
+    """How the current companion and another one know each other, told from the Character page instead of a group,
+    once, like the group form (companion/memory/pairs.py `tell`)."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        current = characters.require_current(connection)
+        told = pairs.tell(connection, pairs.companion_key(current['id']), pairs.companion_key(body.companion_id),
+                          body.level, body.how, database.now())
+        if not told:
+            raise DomainError('How they know each other was already told. From here, what happens between them '
+                              'changes it.', 409)
+        return ties_of(connection, current, database.clock.now())
+
+
+def ties_of(connection, companion: dict, now) -> dict:
+    return {'ties': pairs.ties(connection, companion, now), 'untold': pairs.untold_for(connection, companion, now)}
 
 
 @router.post('/companion/town')
