@@ -75,7 +75,8 @@ def test_a_world_map_opens_as_a_city_file_to_change_and_nothing_is_saved(client)
     assert response.status_code == 200, response.text
     body = response.json()
     assert body['definition']['neighborhoods'] and body['definition']['places']
-    assert any('Settings > Cities' in note for note in body['notes'])
+    assert any('Settings > Life & cities' in note for note in body['notes'])
+    assert not any('editor' in note for note in body['notes'])
     # The app picks the weather itself (Mild when nothing in the map says otherwise) and says so.
     assert body['definition']['climate']['months'] and 'Weather set to Mild; change it on Overview.' in body['notes']
     assert not any('neighbourhood' in note for note in body['notes'])
@@ -131,3 +132,10 @@ def test_the_weather_choices_are_the_drawn_climates(client):
     assert draft.weather_for({'name': 'Dry Gulch', 'era': 'frontier'})[1] == 'Dry'
     assert draft.weather_for({'name': 'Hollow', 'era': 'frontier'})[1] == 'Dry'
     assert draft.weather_for({'name': 'Hollow', 'era': 'fantasy'})[1] == 'Mild'
+
+
+def test_an_unusable_polish_reply_is_said_plainly(client, provider):
+    connect(client)
+    provider.respond = replying('Sorry, I cannot do that.', 'Still no.')
+    response = client.post('/api/world/draft/polish', json={'definition': built(), 'section': 'events'})
+    assert response.status_code == 502 and response.json()['detail'] == polish.UNUSABLE

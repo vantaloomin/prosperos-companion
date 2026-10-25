@@ -100,7 +100,7 @@ def test_labelled_links_between_places_become_transit(made):
     assert [(line['name'], line['kind']) for line in lines] == [('Tram 4', 'tram')]
     hoods = by_name(made['city']['neighborhoods'])
     assert hoods['Alder Quarter']['transit'] == hoods['Brightwater']['transit'] == ['tram-4']
-    assert any('links without a label, hidden, blocked or between rooms' in note for note in made['notes'])
+    assert any('paths on the map were left out (hidden, blocked, unnamed or between rooms)' in note for note in made['notes'])
 
 
 def test_map_positions_become_small_offsets_from_the_centre(made):
@@ -147,7 +147,7 @@ def test_importing_adds_the_city_and_its_lore_at_once(client, companion):
     assert (made['id'], made['origin'], made['category']) == ('lisbon', 'user', 'custom')
     assert made['book']['world'] is True and made['book']['entries'] == len(marinara.convert(sample(), TODAY)['book']
                                                                             ['entries'])
-    assert any('Timezone set to Europe/Lisbon.' == note for note in made['import_notes'])
+    assert any('Time zone set to Lisbon.' == note for note in made['import_notes'])
     assert 'lisbon' in {city['id'] for city in client.get('/api/world/cities').json()}
     books = client.get('/api/lore').json()['books']
     books = [book for book in books if not book['city']]
@@ -233,5 +233,5 @@ def test_a_city_with_no_country_takes_it_from_its_time_zone_so_names_are_local()
     value['definition']['locations'][0]['name'] = 'Seoul'
     made = marinara.convert(value, TODAY)
     assert (made['city']['country'], made['city']['timezone']) == ('South Korea', 'Asia/Seoul')
-    assert any('so it is South Korea' in note for note in made['notes'])
+    assert any("so it's set to South Korea" in note for note in made['notes'])
     assert naming.local_culture(made['city']['country']) == 'korea'

@@ -156,11 +156,11 @@ def draft_weathers():
 @router.post('/draft/marinara')
 def draft_from_world_map(request: Request, value: dict):
     """A Marinara world map as a city file for the Draft Table to change before saving; nothing is saved here."""
-    made = marinara.convert(value, request.app.state.database.now()[:10])
+    made = marinara.convert(value, request.app.state.database.now()[:10], marinara.DRAFT_TABLE)
     notes = made['notes'][:-1] if made['book'] else made['notes']
     if made['book']:
-        notes.append("Its places' notes are not brought in here. Open the map in Companion under Settings > Cities "
-                     'to bring them in as world lore.')
+        notes.append("Its places' notes are not brought in here. Open the map in Companion under Settings > Life & "
+                     'cities to bring them in as world lore.')
     city, weather = draft.weather_for(made['city'])
     notes.append(f'Weather set to {weather}; change it on Overview.')
     return {'definition': city, 'notes': notes}

@@ -5,11 +5,15 @@ that item, so the place always still loads. Rows the user changed by hand (`keep
 (/mnt/project-files/companion-draft-table/polish-ab/report.md).
 """
 import json
+import logging
 
 from companion.errors import DomainError
 from companion.world import ships
 
+LOG = logging.getLogger(__name__)
 PROMPT_VERSION = 'draft-polish-1'
+UNUSABLE = ("Your text model's answer didn't come back in a form the table can use. Nothing was changed. Try again, "
+            'or pick another model in Settings > Models.')
 # A long list goes over in parts: thinking models run out of room on sixty places at once (the A/B).
 CHUNK = 12
 # Section (as the Draft Table names it) -> the city file's list.
@@ -144,7 +148,14 @@ async def polish(state, definition: dict, section: str, line: str = '', keep: fr
     polished, changed = definition, []
     for start in range(0, len(items), CHUNK):
         messages = [{'role': 'user', 'content': prompt(definition, section, line, items[start:start + CHUNK])}]
-        reply = await drafting.ask(state, config, system, TOKENS, shape, messages)
+        try:
+            reply = await drafting.ask(state, config, system, TOKENS, shape, messages)
+        except DomainError as problem:
+            if problem.code != 'draft_unusable':
+                raise
+            # The reason stays in the log; the table says it plainly.
+            LOG.warning('Polish reply unusable: %s', problem)
+            raise DomainError(UNUSABLE, problem.status, problem.code) from problem
         polished, ids = apply(polished, section, reply)
         changed += [found for found in ids if found not in keep]
     # A reply naming a kept row changes nothing: the user's own wording stays.

@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react'
 import { CITIES_CHANNEL, SHOW_CITY_KEY } from '../draft/draftText'
 import { reducedMotion } from '../../motion'
 
-/** A city's card in Settings > Cities scrolls into view and lights up for a moment. */
+/** A city's card in Settings > Life & cities scrolls into view and lights up for a moment. */
 export function jumpToCity(id: string): boolean {
   const card = document.getElementById(`city-${id}`)
   if (!card) return false
   card.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' })
   card.focus({ preventScroll: true })
+  // Sections above it can still be filling in as Settings opens; once they have, it comes back into view.
+  window.setTimeout(() => {
+    const box = card.getBoundingClientRect()
+    if (box.bottom < 0 || box.top > window.innerHeight) card.scrollIntoView({ block: 'center' })
+  }, 900)
   card.classList.add('jumped')
   window.setTimeout(() => card.classList.remove('jumped'), 6000)
   return true
@@ -17,7 +22,7 @@ function waiting(): string | null {
   try { return localStorage.getItem(SHOW_CITY_KEY) } catch { return null }
 }
 
-/** Show in Companion on the Draft Table: Companion's window turns to Settings > Cities (App.tsx). */
+/** Show in Companion on the Draft Table: Companion's window turns to Settings > Life & cities (App.tsx). */
 export function useShowCityLink(go: (view: 'settings/life') => void) {
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return

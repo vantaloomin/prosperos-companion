@@ -36,6 +36,10 @@ ROOMS = ('room', 'floor')
 # One step on a parent's 0-100 grid, so a whole map spans about 20 km, a city's width.
 STEP_KM = 0.2
 TEXT = 400
+# Where the user changes the country, and the time zone, of a city brought in here: Settings > Life & cities edits
+# it after import; the Draft Table changes the country on Overview, and the time zone once it is saved.
+EDITOR = ('in the editor', 'in the editor')
+DRAFT_TABLE = ('on Overview', "with Edit on its card in Companion once it's saved")
 LIMITS = {'neighborhoods': 200, 'places': 2000, 'employers': 500, 'transit': 100}
 # "Name's Apartment": a home, kept as lore and never a public place.
 POSSESSIVE = re.compile(r"^\s*[^\W\d_][\w-]*['’]s\s", re.UNICODE)
@@ -434,7 +438,8 @@ class _Map:
         self.entries += made
         return len(made)
 
-    def notes(self, zone: str, carried: int, country: str | None = None) -> list[str]:
+    def notes(self, zone: str, carried: int, country: str | None = None, fix: tuple[str, str] = EDITOR) -> list[str]:
+        """What was folded, defaulted or skipped. `fix` says where the user changes the country, and the time zone."""
         roots, counts = self.kids(None), self.counts
         pictures = self.value.get('artwork')
         read = len(set(self.roles) | {root['id'] for root in roots})
@@ -452,16 +457,17 @@ class _Map:
                'building.'] if counts['home_rooms'] + counts['rooms'] else []),
             *([f"{counted(self.archived, 'archived place', 'archived places')} left out."] if self.archived else []),
             *([f"{counted(len(pictures), 'picture', 'pictures')} not imported."] if isinstance(pictures, list) and pictures else []),
-            *([f"{counted(counts['links'], 'link', 'links')} without a label, hidden, blocked or between rooms left out; travel is worked "
-               'out from distance.'] if counts['links'] else []),
+            *([f"{counted(counts['links'], 'path on the map was', 'paths on the map were')} left out (hidden, blocked, unnamed or "
+               'between rooms). Travel times come from distance instead.'] if counts['links'] else []),
             *([f"{counted(counts['over'], 'place', 'places')} past the city's limits left out."] if counts['over'] else []),
-            f'Timezone set to {zone}.' if zone != 'UTC' else
-            "No time zone matched the city's name, so it uses UTC; change it in the editor.",
-            "Neighborhood positions are fictional, worked out from the map's layout."
-            + (f" Placed at the center, with no spot on the map: {counts['unplaced']}." if counts['unplaced'] else ''),
-            f"The map does not say which country it is in, so it is {country}, from the city's time zone; change it "
-            'in the editor.' if country else
-            'The map does not say which country it is in; set it in the editor for local holidays.',
+            f"Time zone set to {zone.split('/')[-1].replace('_', ' ')}." if zone != 'UTC' else
+            f"No time zone matched the city's name, so it uses UTC; change it {fix[1]}.",
+            "Neighborhoods are placed from the map's layout."
+            + (f" {counts['unplaced']} had no spot on the map, so "
+               f"{'it sits' if counts['unplaced'] == 1 else 'they sit'} in the middle." if counts['unplaced'] else ''),
+            f"The map does not say which country it is in, so it's set to {country} from the city's time zone; change "
+            f'it {fix[0]}.' if country else
+            f'The map does not say which country it is in; set it {fix[0]} for local holidays.',
         ]
         if carried:
             said.append(f"{counted(carried, 'lorebook entry', 'lorebook entries')} came along with the map.")
@@ -478,7 +484,7 @@ def counted(number: int, one: str, many: str) -> str:
     return f'{number} {one if number == 1 else many}'
 
 
-def convert(value: dict, today: str) -> dict:
+def convert(value: dict, today: str, fix: tuple[str, str] = EDITOR) -> dict:
     """{city, book, notes} from a world map: a city definition for the forgiving loader, the world lorebook (or
     None when no location has notes), and what was folded, defaulted or skipped."""
     if not detect(value):
@@ -497,7 +503,7 @@ def convert(value: dict, today: str) -> dict:
     entries = found.entries[:lorebooks.MAX_ENTRIES]
     book = {'name': found.map_name(), 'description': f'Places in {city["name"]}, from a Marinara world map.',
             'format': BOOK_FORMAT, 'entries': entries} if entries else None
-    notes = found.notes(city['timezone'], carried, None if city['country'] == 'Unknown' else city['country'])
+    notes = found.notes(city['timezone'], carried, None if city['country'] == 'Unknown' else city['country'], fix)
     if book:
         notes.append(f"{counted(len(entries), 'lore entry', 'lore entries')} went into the world lorebook \"{book['name']}\".")
     return {'city': city, 'book': book, 'notes': notes}

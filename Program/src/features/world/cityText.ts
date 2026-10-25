@@ -107,9 +107,12 @@ export function matchesCity(city: Pick<CityListing, 'name' | 'region' | 'country
 const SETTINGS: Record<CityListing['setting'], string> = { real: 'Real city', fictional: 'Fictional setting', original: 'Original setting' }
 
 /** "Real city · modern · 21 neighborhoods, 124 places" */
+/** Eras as people say them, for a city's facts here and the Draft Table's subtitle. */
+export const ERA_NAMES: Record<string, string> = { medieval: 'Medieval', fantasy: 'Fantasy', victorian: 'Victorian', steampunk: 'Steampunk', frontier: 'Frontier', 'jazz-age': '1920s', modern: 'Today', future: 'The future' }
+
 export function cityFacts(city: CityListing): string {
   const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
-  return [SETTINGS[city.setting], city.era,
+  return [SETTINGS[city.setting], ERA_NAMES[city.era] ?? city.era,
     `${city.enclosed ? plural(city.counts.neighborhoods, 'deck', 'decks') : plural(city.counts.neighborhoods, 'neighborhood', 'neighborhoods')}, ${plural(city.counts.places, 'place', 'places')}`].join(' · ')
 }
 

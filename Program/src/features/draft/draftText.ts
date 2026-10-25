@@ -1,7 +1,7 @@
 /** Prospero's Draft Table (companion/world/draft): the draft's shape and the pure edits on it, tested directly. */
 import { unit } from '../map/drawn.ts'
 import type { CityMapData, MapPlace } from '../map/mapText.ts'
-import { slugify, type CityListing } from '../world/cityText.ts'
+import { ERA_NAMES, slugify, type CityListing } from '../world/cityText.ts'
 
 export interface Item { id: string; name: string; summary: string; neighborhood?: string | null; kind?: string; [key: string]: unknown }
 export interface Hood extends Item { lat: number; lon: number; transit?: string[] }
@@ -228,12 +228,12 @@ export function briefLine(brief: Brief | null, definition: Definition, weather?:
 /** "Today · 3 neighborhoods · Mild" for a place opened from a file, which has no brief. */
 function openedLine(definition: Definition, weather?: string): string {
   const hoods = definition.neighborhoods.length
-  return [ERAS[definition.era] ?? definition.era, `${hoods} ${plural(hoods, definition.enclosed ? 'deck' : 'neighborhood')}`, weather].filter(Boolean).join(' · ')
+  return [ERA_NAMES[definition.era] ?? definition.era, `${hoods} ${plural(hoods, definition.enclosed ? 'deck' : 'neighborhood')}`, weather].filter(Boolean).join(' · ')
 }
 
 function drawnLine(brief: Brief, definition: Definition, weather?: string): string {
   const hoods = definition.neighborhoods.length
-  const era = ERAS[brief.era] ?? brief.era
+  const era = ERA_NAMES[brief.era] ?? brief.era
   const size = brief.aboard ? `${definition.country.toLowerCase()} of ${hoods} decks` : `${SIZES[brief.size] ?? 'town'}${brief.water ? ` ${WATERS[brief.water] ?? ''}` : ''}`
   return [era, size, brief.aboard ? '' : weather ?? CLIMATES[brief.biome]].filter(Boolean).join(' · ')
 }
@@ -243,7 +243,6 @@ export function plural(count: number, one: string, many = `${one}s`): string {
   return count === 1 ? one : many
 }
 
-const ERAS: Record<string, string> = { medieval: 'Medieval', fantasy: 'Fantasy', victorian: 'Victorian', steampunk: 'Steampunk', frontier: 'Frontier', 'jazz-age': '1920s', modern: 'Today', future: 'The future' }
 const SIZES: Record<string, string> = { tiny: 'Village', small: 'Small town', town: 'Town', large: 'City', huge: 'Great city' }
 const WATERS: Record<string, string> = { sea: 'on the sea', river: 'on a river', lake: 'by a lake' }
 const CLIMATES: Record<string, string> = { temperate: 'Mild', cold: 'Cold', desert: 'Dry', tropical: 'Tropical', warm: 'Warm', highland: 'Mountains' }
@@ -273,7 +272,7 @@ export const MONTHS = Array.from({ length: 12 }, (_, index) => new Date(Date.UTC
 const KEY = 'draft-table-work'
 /** Saving a place tells Companion's window, which lists the user's cities, to look again. */
 export const CITIES_CHANNEL = 'companion-cities'
-/** The city Companion's window shows when it next opens Settings > Cities (Show in Companion). */
+/** The city Companion's window shows when it next opens Settings > Life & cities (Show in Companion). */
 export const SHOW_CITY_KEY = 'companion-show-city'
 
 /** Journey times a neighbour can be, in hours (the city file takes up to 72). */
