@@ -16,7 +16,10 @@ picked otherwise), a few vibe words, and whether the character may have emotiona
 **Create my companion** sends this to
 `POST /api/companion/draft`; **Fill in the form myself** skips drafting entirely. Drafting uses the
 profile assigned to Character drafting in Settings > Models, or the conversation profile. Without
-one the quick start says so, links to Settings, and the form still works.
+one the quick start says so, links to Settings, and the form still works. When the service turns the request
+down, the error links to Settings too. The picks, and the drafted form once there is one, stay put while the user
+is away (in Settings, say) and through a reload, for that tab and world, until the companion is created
+(`src/features/character/keptDraft.ts`).
 
 The draft fills every part of the definition the app uses, including the weekly routine and the
 themes the life simulation draws on, so a drafted companion has a working life without

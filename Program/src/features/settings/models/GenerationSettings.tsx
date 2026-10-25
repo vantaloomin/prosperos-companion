@@ -60,6 +60,7 @@ function BudgetControls({ config, patch, model }: Props) {
 function ThinkingControls(props: Props) {
   const { config } = props, provider = config.provider
   const compatible = provider === 'compatible' || provider === 'local'
+  if (thinksNot(config)) return <p className="subtle">This model does not report thinking controls, so none are sent.</p>
   return <>
     {provider !== 'kobold' && <EffortControl {...props} />}
     {['anthropic', 'google', 'openrouter'].includes(provider) && <ModeControl {...props} />}
@@ -68,11 +69,19 @@ function ThinkingControls(props: Props) {
   </>
 }
 
+/** OpenRouter lists each model's parameters: one without reasoning gets no thinking controls (a saved one still shows,
+ * so it can be cleared). */
+function thinksNot(config: ProfileConfig): boolean {
+  const listed = config.reported_capabilities?.supported_parameters
+  if (config.provider !== 'openrouter' || !listed || config.reasoning_effort || config.thinking_mode) return false
+  return !listed.includes('reasoning') && !listed.includes('reasoning_effort')
+}
+
 function EffortControl({ config, patch, model }: Props) {
   const efforts = config.provider === 'google' ? ['minimal', 'low', 'medium', 'high'] : config.provider === 'anthropic' || config.provider === 'claude_code' ? ['low', 'medium', 'high', 'xhigh', 'max'] : ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
   const reported = model?.supported_efforts ?? config.reported_capabilities?.supported_efforts
   const available = reported ? efforts.filter(value => reported.includes(value)) : efforts
-  return <Choice label="Reasoning effort" value={config.reasoning_effort} options={available} onChange={value => patch({ reasoning_effort: value, ...(config.provider === 'google' ? { thinking_mode: null, thinking_budget_tokens: null } : {}) })} hint={reported ? 'Options the selected model reports.' : 'The model does not report its options. Choose only one it supports.'} />
+  return <Choice label="Reasoning effort" value={config.reasoning_effort} options={available} onChange={value => patch({ reasoning_effort: value, ...(config.provider === 'google' ? { thinking_mode: null, thinking_budget_tokens: null } : {}) })} hint={reported ? 'Only the levels this model takes.' : 'The model does not list its levels. If it turns one down, the app switches to the nearest it takes.'} />
 }
 
 function ModeControl({ config, patch }: Props) {

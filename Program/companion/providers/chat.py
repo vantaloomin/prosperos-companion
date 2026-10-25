@@ -13,7 +13,7 @@ from dataclasses import dataclass
 import httpx
 
 from companion.errors import DomainError, require
-from companion.providers import balance
+from companion.providers import balance, efforts
 from companion.providers.builtin_chat import RESOURCE_GROUP as BUILTIN_CHAT
 from companion.providers.claude_code import ClaudeCodeProvider
 from companion.providers.codex import CodexProvider
@@ -54,9 +54,17 @@ def retry_delay(response: httpx.Response) -> float:
     return min(max(wanted, shortest), longest)
 
 
-def provider_message(response: httpx.Response) -> str:
-    """The service's own short explanation from an error reply, when it gave one (OpenAI-style
-    `{"error": {"message": ...}}`, or a plain `message` or `detail`)."""
+class Rejected(DomainError):
+    """The service turned the request down as malformed (HTTP 400 or 422); `said` is its whole explanation."""
+
+    def __init__(self, message: str, said: str):
+        super().__init__(message, 502, 'provider')
+        self.said = said
+
+
+def provider_message(response: httpx.Response, limit: int = 200) -> str:
+    """The service's own explanation from an error reply, when it gave one (OpenAI-style
+    `{"error": {"message": ...}}`, or a plain `message` or `detail`), cut to `limit` characters."""
     try:
         data = json.loads(response.text)
     except (httpx.ResponseNotRead, ValueError):
@@ -67,7 +75,7 @@ def provider_message(response: httpx.Response) -> str:
     for value in (error.get('message') if isinstance(error, dict) else error, data.get('message'), data.get('detail')):
         if isinstance(value, str) and value.strip():
             text = ' '.join(value.split())
-            return text if len(text) <= 200 else text[:199] + '…'
+            return text if len(text) <= limit else text[:limit - 1] + '…'
     return ''
 
 
@@ -91,6 +99,7 @@ def check_status(response: httpx.Response, model: str | None = None):
         text = descriptions[code]
     elif code in (400, 422):
         text = f'The service turned down the request (HTTP {code}).'
+        raise Rejected(f'{text} It said: "{said}"' if said else text, provider_message(response, 2000))
     elif code >= 500:
         text = f'The service had a problem on its side (HTTP {code}). Try again in a moment.'
     else:
@@ -163,6 +172,8 @@ class ChatProvider:
         self.prompts = PromptCache()
         # The built-in chat model's server (builtin_chat.py), set by the app.
         self.builtin_chat = None
+        # Told when a model turns down the profile's reasoning effort (efforts.py): (config, instead, levels).
+        self.learned_effort = None
 
     async def builtin_address(self, config: dict) -> dict:
         """The built-in chat profile asks the server where it runs now, starting it on the first reply."""
@@ -181,15 +192,14 @@ class ChatProvider:
             async for chunk in cli.stream(config, key, system, messages):
                 yield chunk
             return
-        config = {**await self.builtin_address(config), 'provider': provider}
+        config = efforts.known({**await self.builtin_address(config), 'provider': provider})
         validate_key(provider, key)
-        path, body = REQUESTS[provider](config, system, messages)
+        REQUESTS[provider](config, system, messages)  # A broken setting fails before anything is sent.
         try:
             async with asyncio.timeout(config['timeout_seconds']):
                 async with httpx.AsyncClient(transport=self.transport, timeout=config['timeout_seconds'],
                                              follow_redirects=False, **network(config['base_url'])) as client:
-                    body = {**body, **await self.prompts.prepare(client, config, system)}
-                    async for chunk in self.request(client, config, key, path, body):
+                    async for chunk in self.send(client, config, key, system, messages):
                         yield chunk
         except (httpx.TimeoutException, TimeoutError) as error:
             raise DomainError('The reply reached the configured time limit. Partial text is saved.', 504,
@@ -197,6 +207,29 @@ class ChatProvider:
         except httpx.RequestError as error:
             raise DomainError('Cannot reach the model service. Check the address and that it is running.', 502,
                               'connection') from error
+
+    async def send(self, client, config, key, system, messages) -> AsyncIterator[Chunk]:
+        """One request; when the model turns down the reasoning effort, once more with one it takes (efforts.py)."""
+        sent = False
+        try:
+            async for chunk in self.ask(client, config, key, system, messages):
+                sent = True
+                yield chunk
+            return
+        except Rejected as error:
+            if sent or not efforts.turned_down(config, error.said):
+                raise
+            instead, levels = efforts.replacement(config, error.said)
+            if self.learned_effort:
+                self.learned_effort(config, instead, levels)
+        async for chunk in self.ask(client, {**config, 'reasoning_effort': instead}, key, system, messages):
+            yield chunk
+
+    async def ask(self, client, config, key, system, messages) -> AsyncIterator[Chunk]:
+        path, body = REQUESTS[config['provider']](config, system, messages)
+        body = {**body, **await self.prompts.prepare(client, config, system)}
+        async for chunk in self.request(client, config, key, path, body):
+            yield chunk
 
     async def request(self, client, config, key, path, body) -> AsyncIterator[Chunk]:
         url = config['base_url'] + path

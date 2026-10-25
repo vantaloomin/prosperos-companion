@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { queueWriteUp } from '../ready/useReady'
 import { api, ApiError } from '../../api'
@@ -34,6 +34,7 @@ import { AdultSideFields } from './AdultSideFields'
 import { LooksFields } from './LooksFields'
 import { InPhotosField } from './InPhotosField'
 import { QuickStart } from './QuickStart'
+import { forgetDraft, useKept } from './keptDraft'
 import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
@@ -54,8 +55,11 @@ export interface Start { definition: CharacterDefinition; drafted: boolean; atte
 export function Character({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
   const [saved, setSaved] = useState<number | null>(null)
   // A new companion starts with the quick start; the form then reviews the draft or starts empty.
-  const [start, setStart] = useState<Start | null>(null)
+  // Kept with the form while they step away and come back (keptDraft.ts), until the companion exists.
+  const [start, setStart] = useKept('start', () => null, !companion)
+  useEffect(() => { if (companion) forgetDraft() }, [companion])
   const begin = (definition: CharacterDefinition, drafted: boolean, split?: Start['split']) => {
+    forgetDraft('form')
     setStart((current) => ({ definition, drafted, split, attempt: (current?.attempt ?? 0) + 1 }))
     // A drafted character opens with the sidecar beside it, for changes in plain words; on a phone it would cover the form.
     if (drafted && window.matchMedia?.('(min-width: 721px)').matches) sidecar.show()
@@ -71,7 +75,7 @@ export function Character({ companion, go }: { companion: Companion | null; go: 
     )
   }
   // Remount the form on a new version or a new draft so it never edits a stale definition.
-  return <CharacterForm key={companion?.active_version_id ?? `new-${start?.attempt}`} companion={companion} start={start} onRestart={() => setStart(null)} go={go} saved={saved} onSaved={setSaved} />
+  return <CharacterForm key={companion?.active_version_id ?? `new-${start?.attempt}`} companion={companion} start={start} onRestart={() => { forgetDraft('form'); setStart(null) }} go={go} saved={saved} onSaved={setSaved} />
 }
 
 interface FormProps {
@@ -83,7 +87,7 @@ interface FormProps {
 export function CharacterForm({ companion, start, onRestart, go, saved, onSaved, create }: FormProps) {
   const client = useQueryClient()
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
-  const [form, setForm] = useState<FormState>(() => initialForm(companion, start))
+  const [form, setForm] = useKept('form', () => initialForm(companion, start), isNew(companion, create))
   const { definition, texts } = form
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
@@ -252,6 +256,11 @@ function openPersonality(setDetails: (shown: boolean) => void) {
 
 function draftedLinesOf(companion: Companion | null, start: Start | null) {
   return start?.drafted && !companion ? { seen_as: start.definition.seen_as ?? '', sees_self: start.definition.sees_self ?? '' } : null
+}
+
+/** Only a first companion's form is kept while the user steps away; a saved one reopens from its version. */
+function isNew(companion: Companion | null, create: FormProps['create']): boolean {
+  return !companion && !create
 }
 
 function initialForm(companion: Companion | null, start: Start | null): FormState {
