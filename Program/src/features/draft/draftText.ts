@@ -34,6 +34,22 @@ export interface Work {
   saved?: { id: string; revision: number }; summaryEdited?: boolean; gone?: string[]
   /** What Companion made of a world map it was opened from. */
   openedNotes?: string[]
+  /** Rows the user changed by hand, which Polish leaves as they are; and rows Polish changed, tagged until edited or saved. */
+  touched?: string[]; polished?: string[]
+}
+
+/** One of the climates a place can have (companion/world/draft/fill.py weathers). */
+export interface Weather { id: string; name: string; climate: { summary: string; months: unknown[] } }
+
+/** The weather choice a place's climate is, when it is one of the table's. */
+export function weatherOf(weathers: Weather[] | undefined, definition: Definition): Weather | undefined {
+  const climate = definition.climate as { summary?: string } | null | undefined
+  return climate ? weathers?.find((item) => item.climate.summary === climate.summary) : undefined
+}
+
+/** A row changed by hand: Polish leaves it alone from now on, and it is no longer tagged as polished. */
+export function touch(work: Work, id: string): Work {
+  return { ...work, touched: work.touched?.includes(id) ? work.touched : [...(work.touched ?? []), id], polished: work.polished?.filter((item) => item !== id) }
 }
 
 /** The lists the table edits, by the key they have in the city file. */
@@ -205,11 +221,26 @@ export function mapData(definition: Definition): CityMapData {
 }
 
 /** "1920s, a town on the sea, cold" from the brief, for the facts under the name. */
-export function briefLine(brief: Brief | null, definition: Definition): string {
-  if (!brief) return [ERAS[definition.era] ?? definition.era, `${definition.neighborhoods.length} ${definition.enclosed ? 'decks' : 'neighborhoods'}`].join(' · ')
+export function briefLine(brief: Brief | null, definition: Definition, weather?: string): string {
+  return brief ? drawnLine(brief, definition, weather) : openedLine(definition, weather)
+}
+
+/** "Today · 3 neighborhoods · Mild" for a place opened from a file, which has no brief. */
+function openedLine(definition: Definition, weather?: string): string {
+  const hoods = definition.neighborhoods.length
+  return [ERAS[definition.era] ?? definition.era, `${hoods} ${plural(hoods, definition.enclosed ? 'deck' : 'neighborhood')}`, weather].filter(Boolean).join(' · ')
+}
+
+function drawnLine(brief: Brief, definition: Definition, weather?: string): string {
+  const hoods = definition.neighborhoods.length
   const era = ERAS[brief.era] ?? brief.era
-  const size = brief.aboard ? `${definition.country.toLowerCase()} of ${definition.neighborhoods.length} decks` : `${SIZES[brief.size] ?? 'town'}${brief.water ? ` ${WATERS[brief.water] ?? ''}` : ''}`
-  return [era, size, brief.aboard ? '' : CLIMATES[brief.biome]].filter(Boolean).join(' · ')
+  const size = brief.aboard ? `${definition.country.toLowerCase()} of ${hoods} decks` : `${SIZES[brief.size] ?? 'town'}${brief.water ? ` ${WATERS[brief.water] ?? ''}` : ''}`
+  return [era, size, brief.aboard ? '' : weather ?? CLIMATES[brief.biome]].filter(Boolean).join(' · ')
+}
+
+/** "neighborhood" or "neighborhoods", for a count. */
+export function plural(count: number, one: string, many = `${one}s`): string {
+  return count === 1 ? one : many
 }
 
 const ERAS: Record<string, string> = { medieval: 'Medieval', fantasy: 'Fantasy', victorian: 'Victorian', steampunk: 'Steampunk', frontier: 'Frontier', 'jazz-age': '1920s', modern: 'Today', future: 'The future' }
@@ -271,4 +302,36 @@ export function loadWork(): Work | null {
 
 export function keepWork(work: Work | null) {
   try { if (work) localStorage.setItem(KEY, JSON.stringify(work)); else localStorage.removeItem(KEY) } catch { /* kept for this visit only */ }
+}
+
+/** The list each polishable section rewrites (companion/world/draft/polish.py LISTS). */
+const POLISH_LISTS: Partial<Record<Section, ListKey>> = { hoods: 'neighborhoods', places: 'places', employers: 'employers', transit: 'transit', events: 'annual_events', colour: 'local_color' }
+
+/** A polish put into the draft as it is now: the new names and summaries of the rows it changed, except any the user
+ * has changed by hand since, and those rows tagged. */
+export function takePolish(work: Work, section: Section, polished: Definition, ids: string[]): Work {
+  const key = POLISH_LISTS[section]
+  if (!key) return work
+  const mine = new Set(work.touched ?? [])
+  const fresh = new Map((polished[key] as Item[]).map((item) => [item.id, item]))
+  const taken = ids.filter((id) => !mine.has(id) && fresh.has(id))
+  const definition = { ...work.definition, [key]: (work.definition[key] as Item[]).map((item) => {
+    const found = taken.includes(item.id) ? fresh.get(item.id) : undefined
+    return found ? { ...item, name: found.name, summary: found.summary } : item
+  }) } as Definition
+  return { ...settle(work, definition), polished: [...new Set([...(work.polished ?? []), ...taken])] }
+}
+
+/** How many of a section's rows the user changed by hand, which Polish leaves alone. */
+export function keptRows(work: Work, section: Section): number {
+  const key = POLISH_LISTS[section]
+  const mine = new Set(work.touched ?? [])
+  return key ? (work.definition[key] as Item[]).filter((item) => mine.has(item.id)).length : 0
+}
+
+/** The place with a climate from the table, cited to one of the place's own sources when the table's is not among them. */
+export function withWeather(definition: Definition, climate: Weather['climate'] & { source?: string }): Definition {
+  const sources = definition.sources as Record<string, unknown> | undefined
+  const source = sources && climate.source && !(climate.source in sources) ? Object.keys(sources)[0] ?? climate.source : climate.source
+  return { ...definition, climate: { ...climate, source } }
 }

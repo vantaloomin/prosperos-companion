@@ -190,3 +190,17 @@ def build(line: str, seed: str = '', rolls: dict | None = None, today: str | Non
 
 
 __all__ = ['build', 'SECTIONS']
+
+
+def weather_for(city: dict) -> tuple[dict, str]:
+    """(the city with weather, what it is called) for a place opened without any: from the words in its name,
+    region, realm and summary, then its era, then Mild."""
+    if city.get('climate'):
+        return city, 'its own weather'
+    text = ' '.join(str(city.get(key) or '') for key in ('name', 'region', 'country', 'summary')).lower()
+    by_era = briefs.ERA_BIOMES.get(str(city.get('era') or ''), {})
+    biome = (briefs.first_match(text, briefs.BIOME_WORDS, None)
+             or (max(by_era, key=by_era.get) if by_era else 'temperate'))
+    # Cited to the file's own source, so the city's sources list stays as it was.
+    source = next(iter(city.get('sources') or {}), fill.SOURCE)
+    return {**city, 'climate': {**fill.climate({'aboard': False, 'biome': biome}), 'source': source}}, fill.WEATHER_NAMES[biome]

@@ -2585,7 +2585,7 @@ p.breakup-line { align-items: center; }
 .draft-list-head h2 { font-size: 1.1rem; } .draft-list-head h2 .subtle { font-size: 0.875rem; font-weight: 400; } .draft-list-head p { margin: 4px 0 0; max-width: 46ch; }
 .draft-list-actions { display: flex; gap: 8px; }
 .draft-group + .draft-group { margin-top: 20px; } .draft-group h3 { font-size: 0.9375rem; margin: 0 0 8px; }
-.draft-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.draft-items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .draft-item { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .draft-item.open { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
 .draft-item-head { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; text-align: left; border-radius: 8px; }
@@ -2604,10 +2604,15 @@ p.breakup-line { align-items: center; }
   .draft-page .icon-button:hover:not(:disabled) { background: transparent; color: var(--muted); }
 }
 .draft-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.draft-neighbours { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.draft-neighbours legend { font-weight: 600; padding: 0; margin-bottom: 2px; }
-.draft-neighbour { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 10px; align-items: end; }
+.draft-neighbours { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.draft-neighbours h3 { margin: 0; font-size: 1rem; font-weight: 600; }
 .draft-neighbours > .text-button { align-self: flex-start; }
+.draft-tag { flex: none; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-size: 0.75rem; font-weight: 500; }
+.draft-polish-note { margin-top: 4px; } .draft-undo-polish { color: var(--accent); min-height: 36px; padding-left: 0; }
+.draft-undo-polish svg { width: 15px; height: 15px; margin-right: 4px; vertical-align: -2px; }
+.draft-opened > summary { cursor: pointer; min-height: 32px; } .draft-opened .city-notes, .draft-list .city-notes { max-height: none; overflow: visible; }
+@media (min-width: 1001px) { .draft-toast-area { right: 540px; } }
+@media (min-width: 721px) and (max-width: 1000px) { .draft-toast-area { right: 440px; } }
 .draft-toast-action svg { width: 16px; height: 16px; margin-right: 4px; vertical-align: -3px; }
 .draft-add { margin-top: 6px; min-height: 44px; color: var(--accent); }
 .draft-months { margin: 0; padding: 0; border: 0; } .draft-months legend { margin-bottom: 7px; font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
@@ -2634,8 +2639,8 @@ p.breakup-line { align-items: center; }
   .draft-toast { flex-wrap: wrap; row-gap: 0; }
   .draft-toast > span { flex: 1 1 0; min-width: calc(100% - 84px); }
   .draft-toast-action { order: 3; margin-left: 28px; }
-  .draft-neighbour { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-  .draft-neighbour > :first-child { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .spin, :root:not([data-motion='full']) .draft-chip-checking svg, :root:not([data-motion='full']) .draft-toast { animation: none; } }
 :root[data-motion='reduce'] :is(.spin, .draft-chip-checking svg) { animation: none; }
+/* A nearby place's journey wraps under itself rather than cutting off "by the coast steamer". */
+.draft-neighbours .draft-item-meta { white-space: normal; text-align: right; max-width: 60%; }

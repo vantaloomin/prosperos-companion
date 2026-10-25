@@ -440,10 +440,11 @@ class _Map:
         read = len(set(self.roles) | {root['id'] for root in roots})
         said = [
             f'Read {read} place{"" if read == 1 else "s"} from the Marinara world map "{self.map_name()}".',
-            *([f"{', '.join(text(root.get('name')) for root in roots[1:])} folded in as more neighbourhoods, so the "
-               'world stays one town.'] if len(roots) > 1 else []),
+            *([f"{joined([text(root.get('name')) for root in roots[1:]])} became "
+               f"{'a neighborhood' if len(roots) == 2 else 'neighborhoods'}, so the world stays one town."]
+              if len(roots) > 1 else []),
             *([f"{counted(counts['streets'], 'street or smaller area', 'streets and smaller areas')} folded into their "
-               'neighbourhood; their notes are lore.']
+               'neighborhood; their notes are lore.']
               if counts['streets'] else []),
             *([f"{counted(counts['homes'], 'home', 'homes')} kept as lore, not public places: {'; '.join(self.homes[:8])}."]
               if counts['homes'] else []),
@@ -456,8 +457,8 @@ class _Map:
             *([f"{counted(counts['over'], 'place', 'places')} past the city's limits left out."] if counts['over'] else []),
             f'Timezone set to {zone}.' if zone != 'UTC' else
             "No time zone matched the city's name, so it uses UTC; change it in the editor.",
-            "Neighbourhood positions are fictional, worked out from the map's layout."
-            + (f" Placed at the centre, with no spot on the map: {counts['unplaced']}." if counts['unplaced'] else ''),
+            "Neighborhood positions are fictional, worked out from the map's layout."
+            + (f" Placed at the center, with no spot on the map: {counts['unplaced']}." if counts['unplaced'] else ''),
             f"The map does not say which country it is in, so it is {country}, from the city's time zone; change it "
             'in the editor.' if country else
             'The map does not say which country it is in; set it in the editor for local holidays.',
@@ -465,6 +466,11 @@ class _Map:
         if carried:
             said.append(f"{counted(carried, 'lorebook entry', 'lorebook entries')} came along with the map.")
         return said
+
+
+def joined(names: list[str]) -> str:
+    """"Outer Vale", "Outer Vale and Docks", "A, B and C"."""
+    return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
 
 
 def counted(number: int, one: str, many: str) -> str:

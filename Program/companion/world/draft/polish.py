@@ -1,7 +1,7 @@
 """Model polish for Prospero's Draft Table: the user's text model rewrites one section's names and summaries in the
 place's own voice, at the user's request. Everything else stays the rules': ids, kinds, where each thing is, its
 months, careers, prices and links. A reply that names an item it wasn't given, or leaves one out, changes nothing for
-that item, so the place always still loads. The prompt was chosen by an A/B run
+that item, so the place always still loads. Rows the user changed by hand (`keep`) are not sent. The prompt was chosen by an A/B run
 (/mnt/project-files/companion-draft-table/polish-ab/report.md).
 """
 import json
@@ -87,18 +87,19 @@ def era_words(definition: dict) -> str:
     return ERAS.get(era) or f'the {era.replace("-", " ")} era'
 
 
-def apply(definition: dict, section: str, reply: dict) -> tuple[dict, int]:
-    """(the definition with the reply's names and summaries in, how many items changed). Only items the section
-    already has change, and only their name and summary."""
+def apply(definition: dict, section: str, reply: dict) -> tuple[dict, list[str]]:
+    """(the definition with the reply's names and summaries in, the ids of the items that changed). Only items the
+    section already has change, and only their name and summary."""
     rewritten = {}
     for found in reply.get('items') if isinstance(reply.get('items'), list) else []:
         if isinstance(found, dict) and isinstance(found.get('id'), str):
             rewritten[found['id']] = found
-    changed, items = 0, []
+    changed, items = [], []
     for item in definition.get(LISTS[section]) or []:
         new = rewritten.get(item.get('id')) if isinstance(item, dict) else None
         merged = {**item, **cleaned(new)} if new else item
-        changed += merged != item
+        if merged != item:
+            changed.append(item['id'])
         items.append(merged)
     return {**definition, LISTS[section]: items}, changed
 
@@ -113,8 +114,19 @@ def cleaned(found: dict) -> dict:
     return out
 
 
-async def polish(state, definition: dict, section: str, line: str = '') -> dict:
-    """{definition, changed}: one section rewritten by the user's text model (the one set for drafting)."""
+def ready(database) -> bool:
+    """Whether the user has a text model set for drafting, which Polish uses."""
+    from companion import drafting
+    try:
+        drafting.connection_config(database)
+    except DomainError:
+        return False
+    return True
+
+
+async def polish(state, definition: dict, section: str, line: str = '', keep: frozenset = frozenset()) -> dict:
+    """{definition, changed, ids}: one section rewritten by the user's text model (the one set for drafting), leaving
+    the items in `keep` as they are."""
     from companion import drafting  # The model plumbing loads only when someone polishes.
     try:
         config = drafting.connection_config(state.database)
@@ -128,10 +140,15 @@ async def polish(state, definition: dict, section: str, line: str = '') -> dict:
             raise drafting.Unusable('it had no "items" list.')
         return raw
 
-    items, polished, changed = items_of(definition, section), definition, 0
+    items = [item for item in items_of(definition, section) if item['id'] not in keep]
+    polished, changed = definition, []
     for start in range(0, len(items), CHUNK):
         messages = [{'role': 'user', 'content': prompt(definition, section, line, items[start:start + CHUNK])}]
         reply = await drafting.ask(state, config, system, TOKENS, shape, messages)
-        polished, count = apply(polished, section, reply)
-        changed += count
-    return {'definition': polished, 'changed': changed}
+        polished, ids = apply(polished, section, reply)
+        changed += [found for found in ids if found not in keep]
+    # A reply naming a kept row changes nothing: the user's own wording stays.
+    kept = {item['id']: item for item in items_of(definition, section) if item['id'] in keep}
+    polished = {**polished, LISTS[section]: [kept.get(item.get('id'), item) if isinstance(item, dict) else item
+                                             for item in polished.get(LISTS[section]) or []]}
+    return {'definition': polished, 'changed': len(changed), 'ids': changed}

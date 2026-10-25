@@ -418,14 +418,18 @@ definition), and **Save to my cities** saves it with the user's own cities; Comp
 straight away, and **Show in Companion** turns that window to the city's card. The table keeps the work in progress
 on that device between visits, and can open any city file, or a Marinara world map (`POST /api/world/draft/marinara`,
 converted as the Settings import does, without its places' notes), to change it (without Roll again, since a file has
-no line). **Nearby places** on the Overview links other cities of the same world with the journey there
+no line). A world map has no weather, so the table picks it (from the words in its name, region, realm and summary, then
+its era, then Mild) and says so; **Weather** on the Overview changes it (`GET /api/world/draft/weather` lists the
+climates). **Nearby places** on the Overview links other cities of the same world with the journey there
 (`neighbours`), for trips and postcards.
 
 **Polish** on a list is the one step that uses a model, and only when the user presses it: the text model set for
 drafting rewrites that list's names and summaries in the place's own voice (`POST /api/world/draft/polish`
-`{"definition", "section", "line"}`, `companion/world/draft/polish.py`). Only names and summaries of items the list
-already has change; ids, kinds, where things are, months, careers and links stay the rules'. The prompt was chosen by
-an A/B over 11 models; **Undo** in the note that follows puts the list back.
+`{"definition", "section", "line", "keep"}`, `companion/world/draft/polish.py`; `GET` says whether a model is set).
+Only names and summaries of items the list already has change; ids, kinds, where things are, months, careers and links
+stay the rules', and rows the user changed by hand (`keep`) are not sent. Rows it changed are tagged Polished until
+they are edited or the place is saved, and **Undo polish** puts the list back until the next change. The prompt was
+chosen by an A/B over 11 models.
 
     python -m companion.world.draft "a cold fishing town, 1920s" --seed 3 -o wareholme.json
 

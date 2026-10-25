@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { addHood, addPlace, briefLine, changeCity, changeNeighbour, journey, changeItem, inHood, mapData, redrawsAll, removeItem, settle, staleNames, summaryFor, takeSection, uniqueId, type Brief, type Definition, type Work } from '../../src/features/draft/draftText.ts'
+import { addHood, addPlace, briefLine, changeCity, changeNeighbour, journey, changeItem, inHood, keptRows, mapData, plural, redrawsAll, removeItem, settle, staleNames, summaryFor, takePolish, takeSection, touch, uniqueId, weatherOf, withWeather, type Brief, type Definition, type Weather, type Work } from '../../src/features/draft/draftText.ts'
 
 const item = (id: string, neighborhood?: string, extra: Record<string, unknown> = {}) => ({ id, name: id, summary: `${id}.`, ...(neighborhood ? { neighborhood } : {}), ...extra })
 const hood = (id: string, lat: number, transit: string[] = ['walk']) => ({ ...item(id), lat, lon: 0, transit })
@@ -81,6 +81,32 @@ test('the map shows every place in its part of town and the facts read plainly',
   assert.deepEqual(data.hoods.map((entry) => entry.next), [['hill'], ['docks']])
   assert.equal(briefLine(brief, town()), '1920s · Town on the sea · Cold')
   assert.equal(briefLine(null, town()), '1920s · 2 neighborhoods')
+  assert.equal(briefLine(null, { ...town(), neighborhoods: [hood('docks', 0)] }, 'Mild'), '1920s · 1 neighborhood · Mild')
+  assert.equal(briefLine(brief, town(), 'Warm'), '1920s · Town on the sea · Warm')
+  assert.equal(`${plural(1, 'employer')} ${plural(2, 'employer')}`, 'employer employers')
+})
+
+test('polish leaves rows the user changed, tags the rows it changed, and an edit takes the tag off', () => {
+  let work: Work = { line: brief.line, seed: 's', rolls: {}, definition: town(), brief, edited: false }
+  work = touch(settle(work, changeItem(work.definition, 'places', 'pier', { name: 'Old Pier' })), 'pier')
+  assert.equal(keptRows(work, 'places'), 1)
+  const polished = { ...town(), places: town().places.map((entry) => ({ ...entry, name: `Polished ${entry.id}`, kind: 'bar' })) }
+  const next = takePolish(work, 'places', polished, ['pier', 'chowder'])
+  assert.deepEqual(next.definition.places.map((entry) => entry.name), ['Old Pier', 'Polished chowder', 'chapel'])
+  assert.equal(next.definition.places[1].kind, 'restaurant')
+  assert.deepEqual(next.polished, ['chowder'])
+  assert.deepEqual(touch(next, 'chowder').polished, [])
+  assert.equal(takePolish(work, 'name', polished, ['pier']), work)
+})
+
+test('the weather of a place is named when it is one of the climates the table draws with', () => {
+  const weathers: Weather[] = [{ id: 'temperate', name: 'Mild', climate: { summary: 'Four seasons.', months: [] } }]
+  assert.equal(weatherOf(weathers, { ...town(), climate: { summary: 'Four seasons.' } })?.name, 'Mild')
+  assert.equal(weatherOf(weathers, { ...town(), climate: { summary: 'Its own.' } }), undefined)
+  assert.equal(weatherOf(weathers, town()), undefined)
+  const cold = { summary: 'Cold.', months: [], source: 'draft-table' }
+  assert.deepEqual(withWeather({ ...town(), sources: { marinara: {} } }, cold).climate, { ...cold, source: 'marinara' })
+  assert.deepEqual(withWeather({ ...town(), sources: { 'draft-table': {}, other: {} } }, cold).climate, cold)
 })
 
 test('the summary follows the parts of town until the user writes their own, and Check names what it lost', () => {

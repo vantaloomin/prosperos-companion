@@ -11,7 +11,7 @@ from companion.errors import require
 from companion.life import network
 from companion.models import Input, WorldMapImport
 from companion.world import catalog, changes, check, custom, draft, era_words, generators, marinara, townsfolk
-from companion.world.draft import polish
+from companion.world.draft import fill, polish
 from companion.world.schema import PlaceKind
 from companion.world.source import CatalogWorld
 
@@ -44,6 +44,8 @@ class Polish(Input):
     definition: dict
     section: Literal[tuple(polish.LISTS)]
     line: str = Field('', max_length=400)
+    # Rows the user changed by hand, left as they wrote them.
+    keep: list[str] = Field(default_factory=list, max_length=4000)
 
 
 class CityChange(Input):
@@ -133,10 +135,22 @@ def check_draft(definition: dict):
             'warnings': check.plain_warnings(loaded)}
 
 
+@router.get('/draft/polish')
+def can_polish(request: Request):
+    """Whether Polish has a text model to use."""
+    return {'ready': polish.ready(request.app.state.database)}
+
+
 @router.post('/draft/polish')
 async def polish_draft(request: Request, body: Polish):
     """One section's names and summaries rewritten in the place's voice by the user's text model; nothing is saved."""
-    return await polish.polish(request.app.state, body.definition, body.section, body.line)
+    return await polish.polish(request.app.state, body.definition, body.section, body.line, frozenset(body.keep))
+
+
+@router.get('/draft/weather')
+def draft_weathers():
+    """The climates a Draft Table place can have, for its weather choice."""
+    return fill.weathers()
 
 
 @router.post('/draft/marinara')
@@ -147,7 +161,9 @@ def draft_from_world_map(request: Request, value: dict):
     if made['book']:
         notes.append("Its places' notes are not brought in here. Open the map in Companion under Settings > Cities "
                      'to bring them in as world lore.')
-    return {'definition': made['city'], 'notes': notes}
+    city, weather = draft.weather_for(made['city'])
+    notes.append(f'Weather set to {weather}; change it on Overview.')
+    return {'definition': city, 'notes': notes}
 
 
 @router.post('/validate')

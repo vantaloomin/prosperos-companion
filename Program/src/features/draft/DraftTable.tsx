@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, Dices, Download, ExternalLink, FilePlus2, LoaderCircle, Pencil, Plus, Save, Trash2, Undo2, Upload, X, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Dices, Download, ExternalLink, FilePlus2, LoaderCircle, Pencil, Plus, Save, Undo2, Upload, X, XCircle } from 'lucide-react'
 import { api, ApiError } from '../../api'
 import { Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -8,17 +8,18 @@ import { Field, TextArea, TextInput } from '../../components/Fields'
 import { SketchMap } from '../map/SketchMap'
 import { definitionOf, exportName, groupNotes, parseDefinition, type CityListing } from '../world/cityText'
 import { isWorldMap, readWorldMap } from '../world/worldMap'
-import { ColourList, EventList, HoodList, PlaceList, TransitList, WorkList, type ListProps } from './DraftLists'
-import { PolishContext } from './polishContext'
+import { Choice, ColourList, EventList, HoodList, ItemRow, PlaceList, TransitList, WorkList, type ListProps } from './DraftLists'
+import { PolishContext, type Polishing } from './polishContext'
 import {
   addHood, addPlace, briefLine, changeNeighbour, CITIES_CHANNEL, PLACE_KINDS, changeCity, changeItem, EXAMPLES, inHood, journey, JOURNEY_HOURS, keepWork, loadWork, mapData, newSeed,
-  POLISHED, redrawsAll, removeItem, settle, SHOW_CITY_KEY, staleNames, takeSection, uniqueId, type Checked, type Definition, type Drafted, type Item, type ListKey, type Neighbour, type Rolls, type Section, type Work,
+  plural, POLISHED, redrawsAll, removeItem, settle, SHOW_CITY_KEY, staleNames, keptRows, takePolish, takeSection, touch, uniqueId, weatherOf, withWeather, type Checked, type Definition, type Drafted, type Item, type ListKey, type Neighbour, type Rolls, type Section, type Weather, type Work,
 } from './draftText'
 
 type Tab = 'map' | 'overview' | 'hoods' | 'places' | 'work' | 'transit' | 'events' | 'colour' | 'check'
 type CheckState = { state: 'checking' } | { state: 'done'; checked: Checked } | { state: 'failed'; message: string }
 type Feedback = { tone: 'success' | 'error'; text: string; saveAsNew?: boolean; undo?: () => void; show?: string } | null
 /** A step that would throw away the user's changes waits for a yes. */
+type Undoable = { section: Section; before: Work; after: Definition }
 type Asking = { title: string; text: string; yes: string; go: () => void } | null
 
 const message = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
@@ -85,7 +86,7 @@ function Start({ busy, error, onDraw, onOpen, onError }: { busy: boolean; error:
       </form>
       <div aria-live="polite">{error && <Notice tone="error">{error}</Notice>}</div>
       <OpenFile className="text-button" onOpen={onOpen} onError={onError} />
-      <p className="subtle">Places are saved with your own cities in Companion, on this computer. Nothing here uses a model.</p>
+      <p className="subtle">Places are saved with your own cities in Companion, on this computer. Nothing here uses a model unless you press Polish.</p>
     </div>
   )
 }
@@ -128,7 +129,6 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
   const [open, setOpen] = useState<string | null>(null)
   const [removing, setRemoving] = useState<{ key: ListKey; item: Item } | null>(null)
   const [toast, setToast] = useState<Feedback>(null)
-  const [polishing, setPolishing] = useState<Section | null>(null)
   const check = useCheck(work)
   useAutoGrow()
   const edit = (change: (definition: Definition) => Definition, removed?: string) => setWork((current) => current && settle(current, change(current.definition), removed))
@@ -144,22 +144,12 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
   }
   const list: ListProps = {
     definition: work.definition, open, onOpen: setOpen, onRemove: remove, onRoll: work.brief ? roll : undefined,
-    onChange: (key, id, change) => edit((definition) => changeItem(definition, key, id, change)),
+    onChange: (key, id, change) => setWork((current) => current && touch(settle(current, changeItem(current.definition, key, id, change)), id)),
   }
   // On a phone a picked place shows a card over the map first; beside the lists, its row opens straight away.
   const pick = (id: string) => { if (tab !== 'map') setTab('places'); setOpen(id) }
   const add = (made: { definition: Definition; id: string }, to: Tab) => { edit(() => made.definition); setTab(to); setOpen(made.id) }
-  // The user's text model rewrites one list's names and summaries; Undo puts them back.
-  const polish = async (section: Section) => {
-    setPolishing(section)
-    setToast(null)
-    const before = work.definition
-    try {
-      const made = await api<{ definition: Definition; changed: number }>('/world/draft/polish', { definition: before, section, line: work.line })
-      edit(() => made.definition)
-      setToast(made.changed ? { tone: 'success', text: `Polished ${made.changed} ${POLISHED[section]}.`, undo: () => { edit(() => before); setToast(null) } } : { tone: 'success', text: 'Your text model left them as they were.' })
-    } catch (failure) { setToast({ tone: 'error', text: message(failure, 'They could not be polished. Try again.') }) } finally { setPolishing(null) }
-  }
+  const polishValue = usePolish(work, setWork, setToast)
   // On a phone the map is a tab; beside it on a wider screen, the overview shows instead.
   const overview = <Overview work={work} busy={busy} setWork={setWork} draw={draw} careful={careful} onRoll={roll} />
   return (
@@ -168,7 +158,7 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
       <div aria-live="polite">{error && <Notice tone="error">{error}</Notice>}</div>
       <div className={`draft-body${busy ? ' busy' : ''}`} data-tab={tab} aria-busy={busy}>
         <DraftMap definition={work.definition} selected={open} onSelect={pick} mapTab={tab === 'map'} onEdit={() => setTab('places')} onClose={() => setOpen(null)} />
-        <PolishContext.Provider value={{ polish: (section) => void polish(section), polishing }}>
+        <PolishContext.Provider value={polishValue}>
         <section className="draft-panel" aria-label="The place, part by part">
           <Tabs tab={tab} onTab={(next) => { setTab(next); setOpen(null) }} definition={work.definition} check={check} />
           <div className="draft-panel-body" role="tabpanel" id="draft-tabpanel" aria-labelledby={`draft-tab-${tab === 'map' ? 'overview' : tab}`}>
@@ -186,6 +176,45 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
         onRemove={() => { edit((definition) => removeItem(definition, 'neighborhoods', removing.item.id), removing.item.name); setRemoving(null) }} />}
     </div>
   )
+}
+
+/** Polish for the table's lists: the user's text model rewrites one list's names and summaries, and the last polish
+ * can be undone until the next change. */
+function usePolish(work: Work, setWork: TableProps['setWork'], setToast: (toast: Feedback) => void): Polishing {
+  const [polishing, setPolishing] = useState<Section | null>(null)
+  // The last polish, which can be undone until the next change.
+  const [undo, setUndo] = useState<Undoable | null>(null)
+  const latest = useRef(work)
+  useEffect(() => { latest.current = work })
+  const ready = useQuery({ queryKey: ['draft-polish-ready'], queryFn: () => api<{ ready: boolean }>('/world/draft/polish') })
+  // The user's text model rewrites one list's names and summaries, leaving rows the user changed; Undo puts them back.
+  const polish = async (section: Section) => {
+    setPolishing(section)
+    setToast(null)
+    const asked = work
+    try {
+      const made = await api<{ definition: Definition; changed: number; ids: string[] }>('/world/draft/polish', { definition: asked.definition, section, line: asked.line, keep: asked.touched ?? [] })
+      // Rows changed while the model was writing stay as the user left them.
+      const before = latest.current
+      const next = takePolish(before, section, made.definition, made.ids)
+      if (next.definition === before.definition) { setToast({ tone: 'success', text: 'Your text model left them as they were.' }); return }
+      setWork(() => next)
+      setUndo({ section, before, after: next.definition })
+      const changed = made.ids.filter((id) => !before.touched?.includes(id)).length
+      const kept = keptRows(asked, section)
+      setToast({ tone: 'success', text: `Polished ${changed} ${POLISHED[section]}.${kept ? ` ${kept === 1 ? 'The one' : `The ${kept}`} you changed ${kept === 1 ? 'was' : 'were'} left alone.` : ''}`, undo: () => takeBack({ section, before, after: next.definition }) })
+    } catch (failure) { setToast({ tone: 'error', text: message(failure, 'They could not be polished. Try again.') }) } finally { setPolishing(null) }
+  }
+  const takeBack = (last: Undoable) => {
+    setWork((current) => current && current.definition === last.after ? last.before : current)
+    setUndo(null)
+    setToast(null)
+  }
+  const undoable = undo && undo.after === work.definition ? undo : null
+  return {
+    polish: (section) => void polish(section), polishing, ready: ready.data?.ready ?? null,
+    undoable: undoable?.section ?? null, undo: () => { if (undoable) takeBack(undoable) }, polished: new Set(work.polished ?? []),
+  }
 }
 
 function RemoveHood({ definition, hood, onClose, onRemove }: { definition: Definition; hood: Item; onClose: () => void; onRemove: () => void }) {
@@ -334,6 +363,7 @@ function checkState(check: CheckState): 'checking' | 'ready' | 'thin' | 'broken'
 interface BarProps { work: Work; setWork: TableProps['setWork']; check: CheckState; onCheck: () => void; careful: TableProps['careful']; toast: Feedback; setToast: (toast: Feedback) => void }
 
 function TableBar({ work, setWork, check, onCheck, careful, toast, setToast }: BarProps) {
+  const weather = weatherOf(useWeathers(), work.definition)
   const [saving, setSaving] = useState(false)
   // The draft as last saved: Save rests as "Saved" until something changes.
   const [savedAs, setSavedAs] = useState<Definition | null>(null)
@@ -346,7 +376,7 @@ function TableBar({ work, setWork, check, onCheck, careful, toast, setToast }: B
         ? await api<CityListing & { revision: number }>(`/world/cities/${work.saved.id}`, { definition, expected_revision: work.saved.revision }, 'PUT')
         : await api<CityListing & { revision: number }>('/world/cities', definition)
       const kept = { ...definition, id: saved.id }
-      setWork((current) => current && { ...current, definition: kept, saved: { id: saved.id, revision: saved.revision } })
+      setWork((current) => current && { ...current, definition: kept, saved: { id: saved.id, revision: saved.revision }, polished: [] })
       setSavedAs(kept)
       setToast({ tone: 'success', text: `Saved ${saved.name}. It is in Companion now, under Custom in Settings > Cities.`, show: saved.id })
       announceSaved()
@@ -360,7 +390,7 @@ function TableBar({ work, setWork, check, onCheck, careful, toast, setToast }: B
       <div className="draft-title">
         <p className="draft-brand">Prospero's Draft Table</p>
         <h1>{work.definition.name || 'Unnamed place'}</h1>
-        <p className="subtle">{briefLine(work.brief, work.definition)}</p>
+        <p className="subtle">{briefLine(work.brief, work.definition, weather?.name)}</p>
       </div>
       <CheckChip check={check} onClick={onCheck} />
       <div className="draft-bar-actions">
@@ -440,58 +470,83 @@ function Overview({ work, busy, setWork, draw, careful, onRoll }: Pick<TableProp
     event.preventDefault()
     if (!busy) careful(() => void draw(line, newSeed(), {}), 'Draw up a new place?', 'Draw it up')
   }
+  // An opened file has no line to draw from again; New place in the header starts another.
   return (
     <section className="draft-list form-stack" aria-labelledby="draft-overview">
       <h2 id="draft-overview" className="visually-hidden">Overview</h2>
-      <form className="draft-line" onSubmit={redraw}>
-        <label htmlFor="draft-line-again">{work.brief ? 'Drawn from' : 'Draw up a new place'}</label>
+      {work.brief ? <form className="draft-line" onSubmit={redraw}>
+        <label htmlFor="draft-line-again">Drawn from</label>
         <div className="draft-line-row">
           <input id="draft-line-again" value={line} maxLength={400} placeholder="e.g. a cold fishing town, 1920s" onChange={(event) => setLine(event.target.value)} />
           <button type="submit" className="button" aria-disabled={busy}><FilePlus2 aria-hidden="true" />Draw it up</button>
         </div>
-        {work.brief && <div className="form-actions wrap">
+        <div className="form-actions wrap">
           <button type="button" className="button" disabled={busy} onClick={() => careful(() => void draw(work.line, newSeed(), {}), 'Take another go at this line?', 'Another take')}><Dices aria-hidden="true" />Another take</button>
           <button type="button" className="button" disabled={busy} onClick={() => onRoll('name')}><Dices aria-hidden="true" />Another name</button>
-        </div>}
-      </form>
-      {!work.brief && <p className="subtle">Opened from a file. Roll again needs the line a place was drawn from, so it is off for this one.</p>}
+        </div>
+      </form> : <p className="subtle">Opened from a file. Roll again needs the line a place was drawn from, so it is off for this one.</p>}
       <TextInput label="Name" value={work.definition.name} maxLength={120} onChange={(name) => change({ name })} hint={work.saved ? 'Saved with your cities, so its id stays as it is.' : undefined} />
       <SummaryField work={work} onChange={(summary) => change({ summary })} onRewrite={rewrite} />
       <div className="draft-pair">
         <TextInput label="Region" value={work.definition.region} maxLength={120} onChange={(region) => change({ region })} />
         <TextInput label={work.definition.enclosed ? 'Kind of ship' : 'Country or realm'} value={work.definition.country} maxLength={120} onChange={(country) => change({ country })} />
       </div>
+      {!work.definition.enclosed && <WeatherChoice definition={work.definition} onChange={(climate) => setWork((current) => current && settle(current, withWeather(current.definition, climate)))} />}
       <Neighbours definition={work.definition} cities={cities.data ?? []} onChange={(index, change) => setWork((current) => current && settle(current, changeNeighbour(current.definition, index, change)))} />
       {anchor && <p className="subtle">Money, prices, holidays and names follow {anchor.name}, which ships with Companion, so a day here costs what a day there does.</p>}
     </section>
   )
 }
 
-/** Other places of the same world, and how long the journey there takes: trips and postcards go between them. */
+/** The place's weather, from the climates the table draws with; a climate of the file's own stays until changed. */
+function WeatherChoice({ definition, onChange }: { definition: Definition; onChange: (climate: Weather['climate']) => void }) {
+  const weathers = useWeathers()
+  if (!weathers) return null
+  const now = weatherOf(weathers, definition)
+  const own = definition.climate ? 'Its own weather' : 'None yet'
+  const options = { ...(now ? {} : { '': own }), ...Object.fromEntries(weathers.map((item) => [item.id, item.name])) }
+  return <Choice label="Weather" value={now?.id ?? ''} options={options} hint={now?.climate.summary}
+    onChange={(id) => { const found = weathers.find((item) => item.id === id); if (found) onChange(found.climate) }} />
+}
+
+/** The climates a place can have (companion/world/draft/fill.py), which never change while the table is open. */
+function useWeathers(): Weather[] | undefined {
+  return useQuery({ queryKey: ['draft-weather'], queryFn: () => api<Weather[]>('/world/draft/weather'), staleTime: Infinity }).data
+}
+
+/** Other places of the same world, and how long the journey there takes: trips and postcards go between them. Each
+ * reads as a row, "Pellmouth · 3 hours by ferry", opening to its fields like every other list. */
 function Neighbours({ definition, cities, onChange }: { definition: Definition; cities: CityListing[]; onChange: (index: number, change: Partial<Neighbour> | null) => void }) {
+  const [open, setOpen] = useState<number | null>(null)
   const list = definition.neighbours ?? []
   const choices = cities.filter((city) => city.id !== definition.id)
   const name = (id: string) => cities.find((city) => city.id === id)?.name ?? id
+  const add = () => { onChange(list.length, { city: choices.find((city) => !list.some((item) => item.city === city.id))?.id ?? '' }); setOpen(list.length) }
   return (
-    <fieldset className="draft-neighbours">
-      <legend>Nearby places</legend>
+    <section className="draft-neighbours" aria-labelledby="draft-neighbours">
+      <h3 id="draft-neighbours">Nearby places</h3>
       <p className="subtle">Other places in the same world that people here travel to, for trips and postcards. It works both ways.</p>
-      {list.map((neighbour, index) => (
-        <div key={index} className="draft-neighbour">
-          <Field label="Place">{(id) => <select id={id} value={neighbour.city} onChange={(event) => onChange(index, { city: event.target.value })}>
-            {!neighbour.city && <option value="">Choose a place</option>}
-            {!choices.some((city) => city.id === neighbour.city) && neighbour.city && <option value={neighbour.city}>{name(neighbour.city)}</option>}
-            {choices.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
-          </select>}</Field>
-          <Field label="Journey">{(id) => <select id={id} value={neighbour.hours} onChange={(event) => onChange(index, { hours: Number(event.target.value) })}>
-            {[...new Set([...JOURNEY_HOURS, neighbour.hours])].sort((a, b) => a - b).map((hours) => <option key={hours} value={hours}>{journey(hours)}</option>)}
-          </select>}</Field>
-          <TextInput label="By" value={neighbour.by ?? ''} maxLength={40} placeholder="e.g. ferry" onChange={(by) => onChange(index, { by })} />
-          <button type="button" className="icon-button" aria-label={`Remove ${name(neighbour.city) || 'this place'}`} title="Remove" onClick={() => onChange(index, null)}><Trash2 aria-hidden="true" /></button>
-        </div>
-      ))}
-      {list.length < 20 && <button type="button" className="text-button" onClick={() => onChange(list.length, { city: choices.find((city) => !list.some((item) => item.city === city.id))?.id ?? '' })}><Plus aria-hidden="true" />Add a nearby place</button>}
-    </fieldset>
+      {list.length > 0 && <ul className="draft-items">
+        {list.map((neighbour, index) => (
+          <ItemRow key={index} item={{ id: `neighbour-${index}`, name: neighbour.city ? name(neighbour.city) : 'Choose a place', summary: '' }}
+            meta={`${journey(neighbour.hours)}${neighbour.by?.trim() ? ` by ${neighbour.by.trim()}` : ''}`} open={open === index}
+            onOpen={(id) => setOpen(id === null ? null : index)} onRemove={() => { onChange(index, null); setOpen(null) }}>
+            <div className="draft-pair">
+              <Field label="Place">{(id) => <select id={id} value={neighbour.city} onChange={(event) => onChange(index, { city: event.target.value })}>
+                {!neighbour.city && <option value="">Choose a place</option>}
+                {!choices.some((city) => city.id === neighbour.city) && neighbour.city && <option value={neighbour.city}>{name(neighbour.city)}</option>}
+                {choices.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+              </select>}</Field>
+              <Field label="Journey">{(id) => <select id={id} value={neighbour.hours} onChange={(event) => onChange(index, { hours: Number(event.target.value) })}>
+                {[...new Set([...JOURNEY_HOURS, neighbour.hours])].sort((a, b) => a - b).map((hours) => <option key={hours} value={hours}>{journey(hours)}</option>)}
+              </select>}</Field>
+            </div>
+            <TextInput label="By" value={neighbour.by ?? ''} maxLength={40} placeholder="e.g. the coast steamer" hint="How people get there. Leave it empty if it doesn't matter." onChange={(by) => onChange(index, { by })} />
+          </ItemRow>
+        ))}
+      </ul>}
+      {list.length < 20 && <button type="button" className="text-button draft-add" onClick={add}><Plus aria-hidden="true" />Add a nearby place</button>}
+    </section>
   )
 }
 
@@ -518,9 +573,14 @@ function CheckPanel({ check, opened }: { check: CheckState; opened?: string[] })
       <h2 id="draft-check">Check</h2>
       {!warnings.length && !notes.length && <Notice tone="success">Ready. Companion loads it as it is, with nothing to fix.</Notice>}
       {warnings.map((warning) => <Notice key={warning} tone="warning">{warning}</Notice>)}
-      {opened && opened.length > 0 && <div><p>From the world map it was opened from:</p><ul className="city-notes">{opened.map((note) => <li key={note}>{note}</li>)}</ul></div>}
+      {opened && opened.length > 0 && <details className="draft-opened">
+        <summary>What came over from the world map ({opened.length})</summary>
+        <ul className="city-notes">{opened.map((note) => <li key={note}>{note}</li>)}</ul>
+      </details>}
       {notes.length > 0 && <div><p>Companion tidies these on the way in:</p><ul className="city-notes">{groupNotes(notes).map((note) => <li key={note}>{note}</li>)}</ul></div>}
-      <p className="subtle">{counts.neighborhoods} {summary.enclosed ? 'decks' : 'neighborhoods'}, {counts.places} places, {counts.employers} employers, {counts.annual_events} yearly events.</p>
+      <p className="subtle">{[
+        `${counts.neighborhoods} ${plural(counts.neighborhoods, summary.enclosed ? 'deck' : 'neighborhood')}`, `${counts.places} ${plural(counts.places, 'place')}`,
+        `${counts.employers} ${plural(counts.employers, 'employer')}`].join(', ')}, {counts.annual_events} {plural(counts.annual_events, 'yearly event')}.</p>
     </section>
   )
 }

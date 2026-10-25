@@ -6,10 +6,10 @@ import { reducedMotion } from '../../motion'
 export function jumpToCity(id: string): boolean {
   const card = document.getElementById(`city-${id}`)
   if (!card) return false
-  card.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  card.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' })
   card.focus({ preventScroll: true })
   card.classList.add('jumped')
-  window.setTimeout(() => card.classList.remove('jumped'), 2000)
+  window.setTimeout(() => card.classList.remove('jumped'), 6000)
   return true
 }
 
