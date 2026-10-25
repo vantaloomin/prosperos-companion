@@ -140,3 +140,25 @@ def test_the_app_drafts_a_place_and_saves_it_like_any_other_city(client):
     assert saved.status_code == 200, saved.text
     assert client.get(f'/api/world/cities/{body["definition"]["id"]}').status_code == 200
     assert client.post('/api/world/draft', json={'line': 'x', 'rolls': {'nonsense': 1}}).status_code == 422
+
+
+def test_the_check_panel_says_what_loading_a_changed_draft_would_mend_and_where_it_is_thin(client):
+    definition = client.post('/api/world/draft', json={'line': 'a cold fishing town, 1920s', 'seed': '4'}).json()['definition']
+    clean = client.post('/api/world/draft/check', json=definition).json()
+    assert clean['notes'] == [] and clean['warnings'] == [] and clean['summary']['name'] == definition['name']
+    hood = definition['neighborhoods'][0]['id']
+    definition['places'] = [place for place in definition['places'] if place['neighborhood'] != hood]
+    definition['places'][0].pop('cost')
+    thin = client.post('/api/world/draft/check', json=definition).json()
+    assert any('fewer than two places' in warning and hood in warning for warning in thin['warnings'])
+    assert thin['notes']
+    definition['neighborhoods'] = []
+    assert client.post('/api/world/draft/check', json=definition).status_code in (400, 422)
+
+
+def test_the_draft_table_page_is_served_with_the_app():
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    page = (root / 'draft.html').read_text(encoding='utf-8')
+    assert '/src/draft.tsx' in page and "Prospero's Draft Table" in page
+    assert "draft: 'draft.html'" in (root / 'vite.config.ts').read_text(encoding='utf-8')

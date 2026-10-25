@@ -53,6 +53,7 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdi
 
 [Icons]
 Name: "{autoprograms}\Prospero Companion"; Filename: "{app}\runtime\python.exe"; Parameters: "-I -m companion.launch"; WorkingDir: "{app}"; Comment: "Start Prospero Companion"
+Name: "{autoprograms}\Prospero's Draft Table"; Filename: "{app}\runtime\python.exe"; Parameters: "-I -m companion.launch --draft"; WorkingDir: "{app}"; Comment: "Build a place for Prospero Companion from one line"
 Name: "{autodesktop}\Prospero Companion"; Filename: "{app}\runtime\python.exe"; Parameters: "-I -m companion.launch"; WorkingDir: "{app}"; Comment: "Start Prospero Companion"; Tasks: desktopicon
 
 [Run]
