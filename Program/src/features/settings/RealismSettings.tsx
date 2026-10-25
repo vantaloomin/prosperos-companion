@@ -150,10 +150,12 @@ export function PaceSettings() {
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake, unless a second text, "wake up" or a call wakes them. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
       {data.paced_replies && (
-        <Field label={`Waking them: ${waking.label}`} hint={waking.hint} tip="A companion in another time zone can live on your clock instead: the switch is on their Character page.">
-          {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.waking_realism} label={waking.label}
-            onChange={(waking_realism) => void save({ waking_realism })} />}
-        </Field>
+        <div className="toggle-nested">
+          <Field label={`Waking them: ${waking.label}`} hint={waking.hint} tip="A companion in another time zone can live on your clock instead: the switch is on their Character page.">
+            {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.waking_realism} label={waking.label}
+              onChange={(waking_realism) => void save({ waking_realism })} />}
+          </Field>
+        </div>
       )}
       <Toggle label="Let their days go off plan" checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
         hint={`Now and then they run late, stay late, have plans fall through, have something come up or get a surprise visit. Rolled with fixed dice, so a day never changes after the fact. Off: every day goes as planned.`} />

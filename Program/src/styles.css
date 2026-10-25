@@ -2629,5 +2629,8 @@ p.breakup-line { align-items: center; }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .spin, :root:not([data-motion='full']) .draft-chip-checking svg, :root:not([data-motion='full']) .draft-toast { animation: none; } }
 :root[data-motion='reduce'] :is(.spin, .draft-chip-checking svg) { animation: none; }
 /* Live on my clock (v1.1.0): the note about fitted hours sits under the switch's own words. */
-.their-hours-note { margin: 6px 0 0 30px; }
-.their-hours-note .text-button.inline { white-space: nowrap; }
+.text-button.their-hours-link { align-self: flex-start; margin-top: 4px; padding: 4px 0; color: var(--accent); text-decoration: underline; }
+@media (max-width: 720px) { .text-button.their-hours-link { min-height: 44px; margin-top: -4px; padding: 0 8px 0 0; } }
+/* A setting that belongs to the switch above it: in that switch's description column (the box with its margins, then
+   the 12px gap), 8px below it inside a form stack's 20px gap. */
+.toggle-nested { margin: -12px 0 0 37px; }

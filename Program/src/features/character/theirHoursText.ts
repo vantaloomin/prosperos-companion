@@ -30,25 +30,36 @@ export function gapText(gap: number): string {
 
 /** Why a fitted week sits where it does, in the Character page's words (their_hours.py WHY). */
 const FIT_WHY: Record<string, string> = {
-  night_owl: 'a night owl',
-  early_riser: 'an early riser',
-  remote: 'working remotely on odd hours',
-  nights: 'living by night',
+  night_owl: "they're a night owl",
+  early_riser: "they're an early riser",
+  remote: 'they work remotely on odd hours',
+  nights: 'they live by night',
 }
 
-export function fitText(hours: TheirHours): string {
-  const way = hours.fit > 0 ? 'later' : 'earlier'
-  const why = FIT_WHY[hours.why] ? `, ${FIT_WHY[hours.why]}` : ''
-  return `The app moved their week ${hoursText(hours.fit)} ${way} than written so they are free on your evenings${why}.`
+/** "9 hours earlier so they're free on your evenings; they work remotely on odd hours". */
+function fitted(hours: TheirHours): string {
+  const why = FIT_WHY[hours.why] ? `; ${FIT_WHY[hours.why]}` : ''
+  return `${hoursText(hours.fit)} ${hours.fit > 0 ? 'later' : 'earlier'} so they're free on your evenings${why}`
 }
 
-export function mineHint(city: string, gap: number, on: boolean, saved: boolean): string {
+export interface HoursHint { hours: TheirHours; saved: TheirHours['mode']; city: string; gap: number }
+
+const TURN_ON = ' Turn this on to put their whole day on your clock.'
+
+/** The one paragraph under Live on my clock: what their hours are now, or what saving will do to them. */
+export function hoursHint({ hours, saved, city, gap }: HoursHint): string {
   const place = city || 'their city'
-  if (on) {
-    const now = saved ? '' : ' Saving moves their week.'
-    return `Their whole day runs on your time, so they are up when you are. In ${place} they keep odd hours, working remotely on yours.${now}`
+  const pending = hours.mode !== saved
+  if (hours.mode === 'mine') {
+    const now = pending ? ' Saving moves their whole day onto your time.' : ''
+    return `Their whole day runs on your time, so they're up when you are. In ${place} they keep odd hours, working remotely on yours.${now}`
   }
-  return `Their day runs on ${place}'s clock, ${gapText(gap)}. Turn this on and save, and their whole day moves onto your time; they keep odd hours where they live.`
+  if (hours.mode === 'fit') {
+    const lead = pending ? (saved === 'mine' ? 'Saving moves their week back to the fitted hours, ' : 'Saving moves their week ') : 'The app moved their week '
+    return `${lead}${fitted(hours)}.${TURN_ON}`
+  }
+  const lead = pending ? `Saving puts them back on ${place}'s clock` : `Their day runs on ${place}'s clock`
+  return `${lead}, ${gapText(gap)}.${TURN_ON}`
 }
 
 /** Settings > Realism > Waking them (life_settings.waking_realism, companion/life/waking.py). */

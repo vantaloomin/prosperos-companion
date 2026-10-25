@@ -3,7 +3,7 @@ import { api } from '../../api'
 import { useWorkspaceSettings } from '../../companion'
 import type { CharacterDefinition, CitySummary, Companion, TheirHours as Hours } from '../../types'
 import { Toggle } from '../../components/Fields'
-import { clockGap, fitText, mineHint } from './theirHoursText'
+import { clockGap, hoursHint } from './theirHoursText'
 
 interface Props { definition: CharacterDefinition; companion: Companion | null; set: (change: Partial<CharacterDefinition>) => void }
 
@@ -33,18 +33,17 @@ export function TheirHoursField({ definition, companion, set }: Props) {
   return (
     <div className="their-hours">
       <Toggle label="Live on my clock" checked={on} onChange={(value) => mode(value ? 'mine' : hours.fit ? 'fit' : 'city')}
-        hint={mineHint(city, clockGap(definition.timezone, yours), on, on === (saved === 'mine'))} tip="Only their routine moves. Their city keeps its own time, weather and news." />
-      {!on && <FitNote hours={hours} pending={hours.mode !== saved} mode={mode} />}
+        hint={hoursHint({ hours, saved, city, gap: clockGap(definition.timezone, yours) })} tip="Only their routine moves. Their city keeps its own time, weather and news.">
+        <FitLink hours={hours} mode={mode} />
+      </Toggle>
     </div>
   )
 }
 
-/** The app moved their week to fit the user's evenings: say so, with a way back (and forward again). */
-function FitNote({ hours, pending, mode }: { hours: Hours; pending: boolean; mode: (next: Hours['mode']) => void }) {
-  if (!hours.fit) return null
-  const after = pending ? ' Saving moves their week.' : ''
-  if (hours.mode === 'fit') {
-    return <p className="subtle their-hours-note">{fitText(hours)}{after} <button type="button" className="text-button inline" onClick={() => mode('city')}>Use their city's hours</button></p>
-  }
-  return <p className="subtle their-hours-note">They keep their city's hours.{after} <button type="button" className="text-button inline" onClick={() => mode('fit')}>Fit them to my evenings</button></p>
+/** When the app fitted their week to the user's evenings: a way back to their city's hours, and forward again. The
+ * change waits for Save, like the rest of the form, and the hint above says what saving does. */
+function FitLink({ hours, mode }: { hours: Hours; mode: (next: Hours['mode']) => void }) {
+  if (!hours.fit || hours.mode === 'mine') return null
+  const back = hours.mode === 'fit'
+  return <button type="button" className="text-button their-hours-link" onClick={() => mode(back ? 'city' : 'fit')}>{back ? "Use their city's hours" : 'Fit them to my evenings'}</button>
 }
