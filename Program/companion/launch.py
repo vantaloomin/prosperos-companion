@@ -19,6 +19,8 @@ from companion.identity import APP_ID, APP_NAME, DEFAULT_PORT
 
 ROOT = Path(__file__).resolve().parent.parent
 HOST = '127.0.0.1'
+# Prospero's Draft Table, the place builder, is a page of the same server in a window of its own.
+DRAFT_PAGE = 'draft.html'
 
 
 def probe(url) -> str:
@@ -43,7 +45,7 @@ def open_interface(url):
     print(f'Open {url} in your browser.', flush=True)
 
 
-def reuse(url, no_browser, wait=10.0) -> int:
+def reuse(url, no_browser, wait=10.0, page='') -> int:
     """The port is taken: reuse it only if it is this app, and never stop another process."""
     deadline = time.monotonic() + wait
     while time.monotonic() < deadline:
@@ -51,7 +53,7 @@ def reuse(url, no_browser, wait=10.0) -> int:
         if state == 'ready':
             print(f'{APP_NAME} is already running at {url} Reusing it; no second server was started.', flush=True)
             if not no_browser:
-                open_interface(url)
+                open_interface(url + page)
             return 0
         if state == 'foreign':
             break
@@ -162,7 +164,7 @@ def restore_chosen_backup():
         report_restore(*chosen)
 
 
-def serve(listener, url, port, no_browser) -> int:
+def serve(listener, url, port, no_browser, page='') -> int:
     import uvicorn
 
     from companion import logs
@@ -173,7 +175,7 @@ def serve(listener, url, port, no_browser) -> int:
     server = uvicorn.Server(config)
     stopped = threading.Event()
     if not no_browser:
-        threading.Thread(target=open_when_ready, args=(server, stopped, url), daemon=True).start()
+        threading.Thread(target=open_when_ready, args=(server, stopped, url + page), daemon=True).start()
     print(f'{APP_NAME}: {url}\nKeep this window open while you use it. Press Ctrl+C to stop.', flush=True)
     try:
         server.run(sockets=[listener])
@@ -189,6 +191,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=DEFAULT_PORT)
     parser.add_argument('--no-browser', action='store_true')
+    parser.add_argument('--draft', action='store_true', help="Open Prospero's Draft Table, the place builder.")
     parser.add_argument('--restore', type=Path, metavar='BACKUP',
                         help='Replace the world you are in with a backup (the current one is set aside), then exit.')
     args = parser.parse_args(argv)
@@ -197,6 +200,7 @@ def main(argv=None) -> int:
     archive = args.restore.resolve() if args.restore else None
     os.chdir(ROOT)
     url = f'http://{HOST}:{args.port}/'
+    page = DRAFT_PAGE if args.draft else ''
     if archive:
         listener = reserve_port(args.port)
         if listener is None:
@@ -210,13 +214,13 @@ def main(argv=None) -> int:
         return 1
     listener = reserve_port(args.port)
     if listener is None:
-        return reuse(url, args.no_browser)
+        return reuse(url, args.no_browser, page=page)
     with listener:
         move_chosen_data()
         restore_chosen_backup()
         if not prepare_workspace():
             return 1
-        return serve(listener, url, args.port, args.no_browser)
+        return serve(listener, url, args.port, args.no_browser, page)
 
 
 if __name__ == '__main__':

@@ -52,6 +52,17 @@ def test_reuse_opens_a_running_companion(capsys):
         ours.shutdown()
 
 
+def test_the_draft_table_opens_its_own_page_of_a_running_companion(monkeypatch):
+    opened = []
+    monkeypatch.setattr(launch, 'open_interface', opened.append)
+    ours, url = health_server({'app_id': APP_ID})
+    try:
+        assert launch.reuse(url, no_browser=False, wait=1, page=launch.DRAFT_PAGE) == 0
+        assert opened == [url + 'draft.html']
+    finally:
+        ours.shutdown()
+
+
 def test_a_taken_port_cannot_be_reserved():
     first = launch.reserve_port(0)
     port = first.getsockname()[1]

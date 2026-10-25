@@ -11,7 +11,7 @@ export interface Point { x: number; y: number }
 export interface District { id: string; name: string; x: number; y: number; outline: Point[]; streets: [Point, Point][]; label: Point; places: { place: MapPlace; x: number; y: number }[] }
 export interface Road { id: string; from: Point; via: Point; to: Point }
 export interface DrawnWater { kind: MapWater['kind']; name: string; path: Point[]; width: number; label: Point }
-export interface Drawn { width: number; height: number; districts: District[]; roads: Road[]; water: DrawnWater[]; outskirts: Point[][] }
+export interface Drawn { width: number; height: number; districts: District[]; roads: Road[]; water: DrawnWater[]; outskirts: Point[][]; shrunk?: boolean }
 
 const GAP = 18
 const MARGIN = 50
@@ -283,14 +283,30 @@ function seaShape(item: MapWater, seats: Seat[], shift: Frame): DrawnWater {
   const side = item.side ?? 'south'
   const middle = { x: seats.reduce((sum, seat) => sum + seat.x, 0) / seats.length, y: seats.reduce((sum, seat) => sum + seat.y, 0) / seats.length }
   const { width: w, height: h } = shift
+  // The sea runs on well past the map's edges (a zoomed-out map shows more than the frame), and where no
+  // neighbourhood covers it the shore wanders a little rather than running dead straight.
+  const across = (y: number) => shore(-BEYOND, w + BEYOND).map((x, index) => ({ x, y: y + wander(index) }))
+  const down = (x: number) => shore(-BEYOND, h + BEYOND).map((y, index) => ({ x: x + wander(index), y }))
   const boxes = {
-    south: [{ x: 0, y: middle.y }, { x: w, y: middle.y }, { x: w, y: h }, { x: 0, y: h }],
-    north: [{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: middle.y }, { x: 0, y: middle.y }],
-    east: [{ x: middle.x, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: middle.x, y: h }],
-    west: [{ x: 0, y: 0 }, { x: middle.x, y: 0 }, { x: middle.x, y: h }, { x: 0, y: h }],
+    south: [...across(middle.y), { x: w + BEYOND, y: h + BEYOND }, { x: -BEYOND, y: h + BEYOND }],
+    north: [{ x: -BEYOND, y: -BEYOND }, { x: w + BEYOND, y: -BEYOND }, ...across(middle.y).reverse()],
+    east: [...down(middle.x), { x: w + BEYOND, y: h + BEYOND }, { x: w + BEYOND, y: -BEYOND }],
+    west: [{ x: -BEYOND, y: -BEYOND }, { x: -BEYOND, y: h + BEYOND }, ...down(middle.x).reverse()],
   }
   const labels = { south: { x: w / 2, y: h - SEA / 2 }, north: { x: w / 2, y: SEA / 2 }, east: { x: w - SEA / 2, y: h / 2 }, west: { x: SEA / 2, y: h / 2 } }
   return { kind: 'sea', name: item.name, path: boxes[side], width: 0, label: labels[side] }
+}
+
+const BEYOND = 4000
+
+/** Points every 24 from one end to the other. */
+function shore(from: number, to: number): number[] {
+  return Array.from({ length: Math.ceil((to - from) / 24) + 1 }, (_, index) => Math.min(to, from + index * 24))
+}
+
+/** A gentle, repeatable wobble for a shoreline. */
+function wander(index: number): number {
+  return Math.sin(index * 0.45) * 9 + Math.sin(index * 1.3 + 1) * 4
 }
 
 /** An SVG path through the points: straight for an outline, smooth (Catmull-Rom) for a river. */
@@ -333,7 +349,8 @@ const RANK: Record<Pin, number> = { scene: 0, home: 0, work: 0, usual: 1, recent
  * important first, takes the first spot next to where it belongs that is clear of the names already placed and of
  * the pins' badges, or is left off (a place's name then shows on hover).
  */
-export function labels(map: Drawn): MapLabel[] {
+export function labels(map: Drawn, grow = 1): MapLabel[] {
+  if (grow !== 1) return labels(shrunk(map, grow)).map((label) => ({ ...label, x: label.x * grow, y: label.y * grow }))
   const spots = map.districts.flatMap((district) => district.places)
   const pinned = spots.filter(({ place }) => mainPin(place) !== 'place')
   // Covering a plain dot matters less than covering a badge or another name.
@@ -342,8 +359,10 @@ export function labels(map: Drawn): MapLabel[] {
   const names: Box[] = []
   const districts = map.districts.map((district) => {
     const best = clearest({ kind: 'district', text: district.name, spots: nameSpots(district.label, 4, 112).filter((spot, index) => index === 0 || inside(spot, district.outline)) }, [...badges, ...dots, ...names])
-    names.push(best.box)
-    return { key: `${district.id}-label`, kind: 'district' as const, text: district.name, ...best.spot, shown: true }
+    // Drawn at a fixed size on a zoomed-out map, a name can run into the one next door: then the second is left off.
+    const shown = !map.shrunk || !names.some((other) => overlaps(best.box, other))
+    if (shown) names.push(best.box)
+    return { key: `${district.id}-label`, kind: 'district' as const, text: district.name, ...best.spot, shown }
   })
   const wanted = [
     ...pinned.map(({ place, x, y }) => ({ rank: RANK[mainPin(place) as Pin], key: `${place.id}-name`, kind: 'place' as const, text: place.name, spots: placeSpots(x, y) })),
@@ -356,6 +375,19 @@ export function labels(map: Drawn): MapLabel[] {
     return { key: item.key, kind: item.kind, text: item.text, ...best.spot, shown: best.hits === 0 }
   })
   return [...districts, ...others]
+}
+
+/**
+ * The map made `grow` times smaller with its pins and names their usual size, which is how a zoomed-out map with names
+ * and pins at a fixed size on screen lays out (SketchMap's zoomable maps).
+ */
+function shrunk(map: Drawn, grow: number): Drawn {
+  const at = <T extends Point>(point: T): T => ({ ...point, x: point.x / grow, y: point.y / grow })
+  return {
+    ...map, shrunk: true,
+    districts: map.districts.map((district) => ({ ...district, label: at(district.label), outline: district.outline.map(at), places: district.places.map(at) })),
+    water: map.water.map((water) => ({ ...water, label: at(water.label) })),
+  }
 }
 
 /** The first spot clear of everything taken, else the one that covers the least. */

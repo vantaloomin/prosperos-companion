@@ -9,6 +9,7 @@ Other scripts in this folder:
   status.bat           Says whether the Companion is running.
   stop.bat             Stops the Companion if you lost its window.
   create-shortcut.bat  Puts a Prospero Companion shortcut on your desktop.
+  draft-table.bat      Opens Prospero's Draft Table, which draws up a whole place from one line.
   dev.bat              Development mode, for working on the code.
 
 Your companion's data is normally not in this folder. It lives in %LOCALAPPDATA%\ProsperoCompanion,

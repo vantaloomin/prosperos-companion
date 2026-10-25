@@ -1,5 +1,5 @@
 # Adapted from prosperos-study start.ps1 at bbcbde4: Companion launcher module and port.
-param([switch]$NoBrowser, [switch]$NoPause, [ValidateRange(1024, 65535)][int]$Port = 8775)
+param([switch]$NoBrowser, [switch]$NoPause, [switch]$Draft, [ValidateRange(1024, 65535)][int]$Port = 8775)
 $ErrorActionPreference = 'Stop'
 # common.ps1 also sets the console to UTF-8 so npm, Vite and Python output renders.
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -11,6 +11,8 @@ try {
     if (-not (Test-Path -LiteralPath 'dist\index.html')) { throw 'The interface is not built. Double-click install.bat first.' }
     $arguments = @('-m', 'companion.launch', '--port', [string]$Port)
     if ($NoBrowser) { $arguments += '--no-browser' }
+    # Prospero's Draft Table, the place builder: the same server, opened on its own page.
+    if ($Draft) { $arguments += '--draft' }
     # The server logs to stderr; judge it by exit code, not by what it writes (see install.ps1).
     $ErrorActionPreference = 'Continue'
     & $python @arguments
