@@ -40,6 +40,7 @@ import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
 import { StartOver } from './StartOver'
 import { Cast } from './Cast'
+import { WhoTheyKnow } from './WhoTheyKnow'
 import { AnotherSection } from './AnotherCompanion'
 import { TownSeed } from './TownSeed'
 import { BringCharacter } from './BringCharacter'
@@ -217,6 +218,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
     <TownSeed companion={companion} />
     <Versions current={companion.active_version_id} />
     <Cast go={go} />
+    <WhoTheyKnow name={name} />
     <AnotherSection name={name} go={go} />
     <BringCharacter />
     <BringChat companion={companion} />
