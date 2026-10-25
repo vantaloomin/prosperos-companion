@@ -152,17 +152,17 @@ def test_their_own_turn_ons_and_turn_offs_go_in_their_prompt(client, companion):
 
 def test_the_user_can_pick_none_of_the_listed_interests(client, companion):
     client.put('/api/settings', json={'adult_side': True})
-    revise(client, identity='32, a librarian.')
-    # A reserved roll (or a conventional one that drew nothing) has no listed interests; which one comes up
-    # depends on the companion's random id.
-    rolled = '- Into: ' in preview(client)
+    # Picked first, since a roll can draw no interests at all.
+    revise(client, identity='32, a librarian.', intimacy={'interests': ['rope'], 'interests_picked': True})
+    assert '- Into: ' in preview(client)
     revise(client, intimacy={'interests': [], 'interests_picked': True})
     assert '- Into: ' not in preview(client)
     revise(client, intimacy={'interests': [], 'interests_picked': True, 'own_into': ['a sharp mind']})
     assert '- Into: a sharp mind.' in preview(client)
-    # Back to as rolled, the roll fills it again.
+    # Back to as rolled, the roll fills it again (when it drew any).
     revise(client, intimacy={'interests': [], 'interests_picked': False})
-    assert ('- Into: ' in preview(client)) == rolled
+    rolled = client.post('/api/companion/adult-side', json={'definition': {'identity': '32, a librarian.'}}).json()
+    assert ('- Into: ' in preview(client)) == bool(rolled['rolled']['interests'])
 
 
 def test_their_own_words_stay_between_consenting_adults(client, companion):

@@ -319,3 +319,20 @@ def test_a_deleted_group_leaves_the_backstory_it_told(client, cast):
     with client.app.state.database.connect() as connection:
         billy = by_id(connection, cast['Billy'])
         assert [tie['how'] for tie in pairs.ties(connection, billy, client.app.state.database.clock.now())] == ['Neighbors.']
+
+
+def test_the_one_on_one_prompt_lists_the_companions_they_know(client, cast):
+    from companion.characters import require_current
+    from companion.memory import context
+    database = client.app.state.database
+
+    def system() -> str:
+        with database.connect() as connection:
+            return context.build(connection, require_current(connection), database.clock.now(), 20_000)['system']
+
+    assert 'People you know who also know the user' not in system()
+    ok(client.post('/api/companion/ties', json={'companion_id': cast['Billy'], 'level': 4, 'how': 'Old bandmates.'}))
+    found = system()
+    assert '## People you know who also know the user' in found
+    assert '- Billy Hart' in found and 'You and Billy are close' in found and 'How you know Billy: Old bandmates.' in found
+    assert 'Sally Moss' not in found  # Never told, never met: not someone they know.

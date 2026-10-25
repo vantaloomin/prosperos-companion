@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { categoryOf, cityFacts, definitionOf, exportName, groupNotes, matchesCity, parseDefinition, shelveCities, slugify, type CityListing } from '../../src/features/world/cityText.ts'
+import { categoryOf, cityFacts, cityFor, definitionOf, exportName, groupNotes, keptBoth, matchesCity, parseDefinition, shelveCities, slugify, type CityListing } from '../../src/features/world/cityText.ts'
 
 const city = (extra: Partial<CityListing> = {}): CityListing => ({
   id: 'baltimore', name: 'Baltimore', region: 'Maryland', country: 'US', setting: 'real', era: 'modern', summary: '', basis: '',
@@ -60,4 +60,15 @@ test('notes that say the same about several places become one line', () => {
   assert.deepEqual(groupNotes(['Timezone set to UTC.', 'Bluebird Diner: filled in cost as \'$\'.', 'Oak Hall: ignored the field "x", which the app does not use.', 'Pier: filled in cost as \'$\'.']),
     ['Timezone set to UTC.', "Bluebird Diner and Pier: filled in cost as '$'.", 'Oak Hall: ignored the field "x", which the app does not use.'])
   assert.deepEqual(groupNotes(many), ["Mill 1, Mill 2, Mill 3, Mill 4, Mill 5 and 3 more: filled in cost as '$'."])
+})
+
+test('a city file is matched to the city with its id, and Keep both gives it the next free id', () => {
+  const mine = city({ id: 'uss-enterprise', name: 'USS Enterprise', origin: 'user', builtin: false })
+  const shelf = [city(), mine, city({ id: 'uss-enterprise-2', origin: 'user' })]
+  assert.equal(cityFor('{"id": "uss-enterprise", "name": "USS Enterprise"}', shelf), mine)
+  assert.equal(cityFor('{"id": "baltimore"}', shelf)?.origin, 'builtin')
+  assert.equal(cityFor('{"id": "somewhere-else"}', shelf), null)
+  assert.equal(cityFor('{"id": ', shelf), null)
+  assert.deepEqual(JSON.parse(keptBoth('{"id": "uss-enterprise", "name": "USS Enterprise", "era": "future"}', shelf)),
+    { id: 'uss-enterprise-3', name: 'USS Enterprise 3', era: 'future' })
 })
