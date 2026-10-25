@@ -40,6 +40,7 @@ import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
 import { StartOver } from './StartOver'
 import { Cast } from './Cast'
+import { AnotherSection } from './AnotherCompanion'
 import { TownSeed } from './TownSeed'
 import { BringCharacter } from './BringCharacter'
 import { BringChat } from './BringChat'
@@ -216,6 +217,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
     <TownSeed companion={companion} />
     <Versions current={companion.active_version_id} />
     <Cast go={go} />
+    <AnotherSection name={name} go={go} />
     <BringCharacter />
     <BringChat companion={companion} />
     <StartOver name={name} go={go} />
@@ -283,7 +285,7 @@ function savedNow(saved: number | null, companion: Companion | null): number | n
   return saved !== null && saved === companion?.version.number ? saved : null
 }
 
-function StartNotice({ start, onRestart }: { start: Start | null; onRestart: () => void }) {
+export function StartNotice({ start, onRestart }: { start: Start | null; onRestart: () => void }) {
   if (start?.split) {
     return <Notice action={<button type="button" className="text-button" onClick={onRestart}>Start over</button>}>{splitReply({ definition: start.definition, filled_in: start.split.filledIn, home_city: start.split.homeCity })} Change anything you like; nothing is saved until you create the companion.</Notice>
   }

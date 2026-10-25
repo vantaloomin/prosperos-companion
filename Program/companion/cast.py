@@ -14,7 +14,7 @@ character to step back, and starts as a romance unless the match was for friends
 from datetime import date
 
 from companion import dating, drafting, story
-from companion.characters import by_id, current, insert_version, require_current
+from companion.characters import by_id, create_in, current, insert_version, named, require_current
 from companion.clock import zone
 from companion.database import identifier, many, optional
 from companion.errors import DomainError, require
@@ -353,6 +353,35 @@ def switch(database, key: str, definition, ties=()) -> dict:
             pairs.tell(connection, pairs.companion_key(companion_id), pairs.companion_key(tie.companion_id), tie.level,
                        tie.how, timestamp)
         return current(connection)
+
+
+def add(database, definition) -> dict:
+    """A companion the user makes from scratch beside the ones here (the Character page's "Create another
+    companion"): they live in the same town as the main character and take over from them. With nobody here yet
+    they are simply the first."""
+    zone(definition.timezone)
+    timestamp = database.now()
+    with database.connect(write=True) as connection:
+        focus = current(connection)
+        if focus is None:
+            return create_in(connection, timestamp, definition)
+        add_in(connection, timestamp, named(connection, definition), 'Made on the Character page.', focus)
+        return current(connection)
+
+
+def add_in(connection, timestamp: str, definition, note: str, focus: dict) -> str:
+    """A new companion in `focus`'s town, who becomes the main character; `focus` steps back with everything they
+    have. Also how an imported character arrives (companion/imports/characters.py)."""
+    companion_id, timeline_id = identifier(), identifier()
+    connection.execute('INSERT INTO companions (id, slot, town_seed, created_at) VALUES (?, NULL, ?, ?)',
+                       (companion_id, focus.get('town_seed') or '', timestamp))
+    version_id = insert_version(connection, companion_id, 1, definition, note, timestamp)
+    connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
+                       (timeline_id, companion_id, timestamp))
+    connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',
+                       (version_id, timeline_id, companion_id))
+    step_back(connection, timestamp, companion_id)
+    return companion_id
 
 
 def focus_on(database, companion_id: str) -> dict:

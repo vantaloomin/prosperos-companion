@@ -9,7 +9,12 @@ export const RAIL_IDS = new Set(['conversation', 'groups', 'dating', 'story', 't
  * and Worlds tabs, so every view below belongs under it.
  */
 export function inChats(view: string): boolean {
-  return view === 'chats' || view === 'groups' || view.startsWith('group/') || view === 'worlds' || profileTab(view) !== null
+  return view === 'chats' || view === 'groups' || view.startsWith('group/') || view === 'worlds' || underProfile(view)
+}
+
+/** A profile tab, or Create another companion, opened from the Character page outside the tabs. */
+function underProfile(view: string): boolean {
+  return profileTab(view) !== null || view === 'another'
 }
 
 /**
@@ -27,7 +32,7 @@ export function fromToday(view: string): boolean {
 
 /** Whether a side rail button is lit. The phone's Chats tab uses inChats instead. */
 export function railCurrent(id: string, view: string): boolean {
-  if (id === 'conversation') return view === 'chats' || (profileTab(view) !== null && view !== 'memories')
+  if (id === 'conversation') return view === 'chats' || (underProfile(view) && view !== 'memories')
   if (id === 'today') return view === 'today' || fromToday(view)
   if (id === 'settings') return view === 'settings' || view.startsWith('settings/')
   if (id === 'groups') return view === 'groups' || view.startsWith('group/')

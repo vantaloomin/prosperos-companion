@@ -145,16 +145,7 @@ def add_companion(connection, timestamp: str, made: CharacterDefinition, note: s
     """The new companion, who becomes the one the app is about; whoever was steps back with everything they have."""
     if focus is None:
         return characters.create_in(connection, timestamp, made, note)['id']
-    companion_id, timeline_id = identifier(), identifier()
-    connection.execute('INSERT INTO companions (id, slot, town_seed, created_at) VALUES (?, NULL, ?, ?)',
-                       (companion_id, focus.get('town_seed') or '', timestamp))
-    version_id = characters.insert_version(connection, companion_id, 1, made, note, timestamp)
-    connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
-                       (timeline_id, companion_id, timestamp))
-    connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',
-                       (version_id, timeline_id, companion_id))
-    cast.step_back(connection, timestamp, companion_id)
-    return companion_id
+    return cast.add_in(connection, timestamp, made, note, focus)
 
 
 def add_book(connection, timestamp: str, book: dict, companion_id: str | None, filename: str) -> dict:
