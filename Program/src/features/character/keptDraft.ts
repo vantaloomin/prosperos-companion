@@ -1,6 +1,6 @@
 /** A new companion's picks and form, kept while the user steps away (to Settings, say) and comes back, and through
  * a reload. Held for this tab and this world only; they go once the companion is created. */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DraftRequest, FormState } from './drafting'
 import type { Start } from './Character'
 import { useWorlds } from '../worlds/useWorlds'
@@ -21,6 +21,11 @@ function write(world: string | null, change: Partial<Parts>) {
   try { sessionStorage.setItem(KEY, JSON.stringify({ ...read(world), ...change, world })) } catch { /* Kept for this page only. */ }
 }
 
+/** Whether the user left picks for a new companion in this tab (Settings offers the way back to them). */
+export function hasKeptDraft(): boolean {
+  try { return !!(JSON.parse(sessionStorage.getItem(KEY) ?? 'null') as Kept | null)?.picks } catch { return false }
+}
+
 /** Forget one part (a new draft replaces the form), or everything once the companion exists. */
 export function forgetDraft(part?: keyof Parts) {
   try {
@@ -30,13 +35,15 @@ export function forgetDraft(part?: keyof Parts) {
   } catch { /* Nothing kept. */ }
 }
 
-/** useState that starts from the kept part and keeps every change, while `keep` is on. */
+/** useState that starts from the kept part and keeps every change, while `keep` is on. Nothing is kept until the
+ * user changes something, so an untouched page leaves no draft behind. */
 export function useKept<K extends keyof Parts>(part: K, initial: () => Parts[K], keep = true) {
   const world = useWorlds().data?.active_world_id ?? null
   const [value, setValue] = useState<Parts[K]>(() => {
     const kept = keep ? read(world)?.[part] : undefined
     return kept === undefined ? initial() : kept as Parts[K]
   })
-  useEffect(() => { if (keep) write(world, { [part]: value }) }, [keep, world, part, value])
+  const first = useRef(value)
+  useEffect(() => { if (keep && value !== first.current) write(world, { [part]: value }) }, [keep, world, part, value])
   return [value, setValue] as const
 }

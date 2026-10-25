@@ -12,7 +12,7 @@ import type { SplitResult } from './helper'
 import { defaultCity } from './places'
 import { CityOptions } from '../world/CityOptions'
 import type { FeaturedCities } from '../world/cityText'
-import { AGES, VIBES, emptyRequest, toggleVibe, vibeList, type DraftRequest, type DraftResult } from './drafting'
+import { AGES, VIBES, emptyRequest, toggleVibe, turnedDown, vibeList, type DraftRequest, type DraftResult } from './drafting'
 import { CitiesUnavailable } from '../world/CitiesUnavailable'
 import { COMPANION_KEY } from '../../companion'
 import type { Companion } from '../../types'
@@ -159,13 +159,14 @@ function Vibes({ vibe, onChange }: { vibe: string; onChange: (vibe: string) => v
   )
 }
 
-/** A service that turned the model's settings down can be put right in Settings; the picks wait here (keptDraft.ts). */
+/** A service that turned the request down can be put right in Settings; the picks wait here (keptDraft.ts). */
 function DraftError({ error, go, onManual }: { error: { text: string; settings: boolean }; go: (view: View) => void; onManual: () => void }) {
-  const action = error.settings
-    ? <button type="button" className="text-button" onClick={() => go('settings/models')}>Open Settings</button>
-    : <button type="button" className="text-button" onClick={onManual}>Fill in the form myself</button>
-  return <Notice tone="error" action={action}>{error.text}</Notice>
+  if (!error.settings) return <Notice tone="error" action={<button type="button" className="text-button" onClick={onManual}>Fill in the form myself</button>}>{error.text}</Notice>
+  return <Notice tone="error">{turnedDown(error.text)}
+    <button type="button" className="text-button notice-link" onClick={() => go('settings/models')}>Open Settings</button>
+  </Notice>
 }
+
 
 function ModelNotice({ shown, downloading, go }: { shown: boolean; downloading: boolean; go: (view: View) => void }) {
   if (downloading) return <Notice>Your model isn't ready yet. Create them now and it writes the rest when it's ready.</Notice>

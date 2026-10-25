@@ -947,6 +947,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .quick-start h2 svg { width: 18px; height: 18px; color: var(--accent); }
 .quick-start > .subtle { margin: 0 0 16px; }
 .quick-start > .notice { margin-bottom: 16px; }
+/* A way on inside a notice: its own line under the message, lined up with the text. */
+.text-button.notice-link { display: flex; width: fit-content; min-height: 44px; margin-top: 2px; padding: 0; color: var(--accent); text-decoration: underline; }
+@media (max-width: 720px) { .quick-start .form-actions { flex-direction: column; align-items: stretch; } .quick-start .form-actions .text-button { justify-content: center; min-height: 44px; } }
 .paste-character > summary { cursor: pointer; list-style: none; }
 .paste-character > summary::-webkit-details-marker { display: none; }
 .paste-character > summary h2 { margin: 0; }

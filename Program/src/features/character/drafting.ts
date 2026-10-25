@@ -54,3 +54,10 @@ export function withField(state: FormState, field: DraftField, value: FieldValue
   if (list) return { ...state, texts: { ...state.texts, [list.key]: Array.isArray(value) ? value.join(list.separator) : value } }
   return { ...state, definition: { ...state.definition, [field]: value } }
 }
+
+/** What happened and what to do, with the service's own words when it gave them (companion/providers/chat.py). */
+export function turnedDown(text: string): string {
+  if (!/turned down the request/.test(text)) return text
+  const said = /It said: "(.*)"$/s.exec(text)?.[1]
+  return `Your text model turned down the request, so nothing was written yet.${said ? ` The service said: "${said}"` : ''} Pick another model in Settings, or fill in the form yourself.`
+}

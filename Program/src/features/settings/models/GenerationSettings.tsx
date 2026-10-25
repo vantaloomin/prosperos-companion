@@ -81,7 +81,7 @@ function EffortControl({ config, patch, model }: Props) {
   const efforts = config.provider === 'google' ? ['minimal', 'low', 'medium', 'high'] : config.provider === 'anthropic' || config.provider === 'claude_code' ? ['low', 'medium', 'high', 'xhigh', 'max'] : ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
   const reported = model?.supported_efforts ?? config.reported_capabilities?.supported_efforts
   const available = reported ? efforts.filter(value => reported.includes(value)) : efforts
-  return <Choice label="Reasoning effort" value={config.reasoning_effort} options={available} onChange={value => patch({ reasoning_effort: value, ...(config.provider === 'google' ? { thinking_mode: null, thinking_budget_tokens: null } : {}) })} hint={reported ? 'Only the levels this model takes.' : 'The model does not list its levels. If it turns one down, the app switches to the nearest it takes.'} />
+  return <Choice label="Reasoning effort" value={config.reasoning_effort} options={available} onChange={value => patch({ reasoning_effort: value, ...(config.provider === 'google' ? { thinking_mode: null, thinking_budget_tokens: null } : {}) })} capitalised hint={reported ? 'Only the levels this model takes.' : 'This model doesn’t list its levels. If it turns one down, the app switches to the nearest one it takes.'} />
 }
 
 function ModeControl({ config, patch }: Props) {
@@ -127,7 +127,8 @@ function NumberInput({ label, value, onChange, hint, tip, min, max, step, placeh
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} min={min} max={max} step={step} placeholder={placeholder} aria-describedby={describedBy} onChange={event => onChange(type === 'number' ? bounded(event.target.value, min, max) : event.target.value)} onBlur={type === 'number' ? leave : undefined} />}</Field>
 }
 
-function Choice({ label, value, options, onChange, hint, noDefault }: { label: string; value?: string | null; options: string[]; onChange: (value: string | null) => void; hint?: string; noDefault?: boolean }) {
+function Choice({ label, value, options, onChange, hint, noDefault, capitalised }: { label: string; value?: string | null; options: string[]; onChange: (value: string | null) => void; hint?: string; noDefault?: boolean; capitalised?: boolean }) {
   const id = useId()
-  return <div className="field"><label htmlFor={id}>{label}</label><select id={id} value={value ?? ''} aria-describedby={hint ? `${id}-hint` : undefined} onChange={event => onChange(event.target.value || null)}>{!noDefault && <option value="">Service default</option>}{value && !options.includes(value) && <option value={value}>{value} · saved, not reported</option>}{options.map(option => <option key={option} value={option}>{option}</option>)}</select>{hint && <small id={`${id}-hint`}>{hint}</small>}</div>
+  const shown = (option: string) => capitalised ? option.charAt(0).toUpperCase() + option.slice(1) : option
+  return <div className="field"><label htmlFor={id}>{label}</label><select id={id} value={value ?? ''} aria-describedby={hint ? `${id}-hint` : undefined} onChange={event => onChange(event.target.value || null)}>{!noDefault && <option value="">Service default</option>}{value && !options.includes(value) && <option value={value}>{shown(value)} · saved, not reported</option>}{options.map(option => <option key={option} value={option}>{shown(option)}</option>)}</select>{hint && <small id={`${id}-hint`}>{hint}</small>}</div>
 }
