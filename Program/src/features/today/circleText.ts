@@ -16,7 +16,7 @@ export function personNow(person: CirclePerson): string {
 }
 
 export function personWork(person: CirclePerson): string | null {
-  if (!person.career) return null
+  if (!person.career) return person.employer ? `Works at ${person.employer}` : null
   return person.employer ? `${person.career}, ${person.employer}` : person.career
 }
 
@@ -57,12 +57,25 @@ export const RELATION_WORDS = ['friend', 'close friend', 'best friend', 'mom', '
   'grandmother', 'grandfather', 'partner', 'roommate', 'neighbor', 'coworker', 'boss', 'mentor', 'old friend from school']
 
 /** The form's fields as text, the way the inputs hold them. */
-export interface AboutValues { name: string; role: string; pronouns: string; job: string; employer: string; age: string; local: 'here' | 'away'; note: string }
+export interface AboutValues { name: string; role: string; pronouns: string; job: string; employer: string; age: string; local: '' | 'here' | 'away'; note: string }
 
-/** Ages the picker offers: 16 to 110, and their own when it is outside that (an elf of 300). */
-export function AGE_CHOICES(current: string): string[] {
-  const ages = Array.from({ length: 95 }, (_, index) => String(index + 16))
-  return current && !ages.includes(current) ? [...ages, current].sort((a, b) => Number(a) - Number(b)) : ages
+export const NOTE_MAX = 300
+const AGES = { least: 16, most: 120 }
+
+/** An age typed in the box, kept in range when the box is left: their own age may be past the usual most (an elf of
+ * 300), and the box says what it kept. */
+export function ageClamp(value: string, current: string): { value: string; note: string } {
+  if (!value) return { value, note: '' }
+  const most = Math.max(AGES.most, Number(current) || 0)
+  const age = Number(value)
+  if (age > most) return { value: String(most), note: `Kept at ${most}, the most.` }
+  if (age < AGES.least) return { value: String(AGES.least), note: `Kept at ${AGES.least}, the least.` }
+  return { value: String(age), note: '' }
+}
+
+/** "260 of 300" once the note nears its limit, else nothing. */
+export function noteCount(note: string): string {
+  return note.length >= NOTE_MAX - 60 ? `${note.length} of ${NOTE_MAX}` : ''
 }
 
 /** The form for someone in the circle, filled in from them, or empty for someone new. */
@@ -71,7 +84,7 @@ export function aboutForm(person?: CirclePerson) {
   return { values, submit: person ? 'Save' : 'Add', title: (companion: string) => person ? `Change ${person.name}` : `Add someone to ${companion}'s life` }
 }
 
-const EMPTY_ABOUT: AboutValues = { name: '', role: '', pronouns: '', job: '', employer: '', age: '', local: 'here', note: '' }
+const EMPTY_ABOUT: AboutValues = { name: '', role: '', pronouns: '', job: '', employer: '', age: '', local: '', note: '' }
 
 function aboutValues(person: CirclePerson): AboutValues {
   return {
@@ -95,7 +108,7 @@ function newPerson(after: AboutValues): AboutChange {
   for (const key of ABOUT_TEXT) if (after[key].trim()) change[key] = after[key].trim()
   if (after.pronouns) change.pronouns = after.pronouns
   if (after.age) change.age = Number(after.age)
-  if (after.local === 'away') change.local = false
+  if (after.local) change.local = after.local === 'here'
   return change
 }
 
@@ -106,7 +119,7 @@ function changedPerson(before: AboutValues, after: AboutValues): AboutChange {
   if (change.name === '') delete change.name
   if (change.role === '') delete change.role
   if (after.pronouns !== before.pronouns) change.pronouns = after.pronouns
-  if (after.age !== before.age) change.age = Number(after.age)
+  if (after.age && after.age !== before.age) change.age = Number(after.age)
   if (after.local !== before.local) change.local = after.local === 'here'
   return change
 }
@@ -114,5 +127,5 @@ function changedPerson(before: AboutValues, after: AboutValues): AboutChange {
 /** The confirmation once saved. */
 export function aboutSaved(person: CirclePerson | undefined, name: string, companion: string): string {
   if (!person) return `${name} is now part of ${companion}'s life.`
-  return `Saved ${name || person.name}. Moments that already happened keep what they said.`
+  return `Saved ${name || person.name}. Moments that already happened stay as they were.`
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BookOpen, HeartHandshake, Pencil, Plus, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-react'
 import { api } from '../../api'
@@ -10,7 +10,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { stageText } from '../memories/pairText'
 import { displayName, metText, personFacts, personNow, personTies, personWork } from './circleText'
 import { WhyItWent } from './WhyItWent'
-import { PersonForm } from './PersonForm'
+import { PersonForm, type Act } from './PersonForm'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
@@ -24,21 +24,23 @@ import { kindSummary } from '../kinds/kindText'
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
 
-type Act = (action: () => Promise<unknown>, done: string) => Promise<boolean>
+type Feedback = { tone: 'info' | 'error'; text: string }
 
 /** The companion's supporting people (PRD T8): fictional, never the user, changed, added or removed from here. */
 export function Circle({ name }: { name: string }) {
   const client = useQueryClient()
   const [removed, setRemoved] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
+  const [feedback, setFeedback] = useState<Feedback | null>(null)
   const circle = useQuery({ queryKey: [...CIRCLE_KEY, removed], queryFn: () => api<CirclePerson[]>(`/life/circle?include_removed=${removed}`) })
-  const act: Act = async (action, done) => {
+  // `local` shows the outcome by the change (Iris R8) rather than at the top of the list.
+  const act: Act = async (action, done, local) => {
+    const tell = local ?? setFeedback
     try {
       await action()
-      setFeedback({ tone: 'info', text: done })
+      tell({ tone: 'info', text: done })
       return true
     } catch (error) {
-      setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'That change was not saved.' })
+      tell({ tone: 'error', text: error instanceof Error ? error.message : 'That change was not saved.' })
       return false
     } finally {
       void client.invalidateQueries({ queryKey: CIRCLE_KEY })
@@ -82,15 +84,30 @@ function CircleFooter({ name, act }: { name: string; act: Act }) {
   </>
 }
 
-/** Someone the user adds by hand, as little as a name: the app fills in the rest. */
+/** Someone the user adds by hand, as little as a name: the app fills in the rest. The form is a card of its own;
+ * focus goes to its Name, and back to the button after (Iris R7). */
 function AddSomeone({ name, act }: { name: string; act: Act }) {
   const [adding, setAdding] = useState(false)
-  if (adding) return <PersonForm companion={name} act={act} onDone={() => setAdding(false)} />
-  return (
-    <div className="person-actions">
-      <button type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Add someone</button>
-    </div>
-  )
+  const [notice, setNotice] = useNotice()
+  const button = useRef<HTMLButtonElement>(null)
+  const done = () => { setAdding(false); window.setTimeout(() => button.current?.focus()) }
+  return <>
+    {adding
+      ? <div className="person-card person-add"><PersonForm companion={name} act={act} local={setNotice} onDone={done} /></div>
+      : <button ref={button} type="button" className="button person-add-button" onClick={() => { setNotice(null); setAdding(true) }}><Plus aria-hidden="true" />Add someone</button>}
+    <div aria-live="polite">{notice && <Notice tone={notice.tone}>{notice.text}</Notice>}</div>
+  </>
+}
+
+/** A notice that fades after about six seconds (Iris R8). */
+function useNotice(): [Feedback | null, (feedback: Feedback | null) => void] {
+  const [notice, setNotice] = useState<Feedback | null>(null)
+  useEffect(() => {
+    if (!notice || notice.tone === 'error') return
+    const timer = window.setTimeout(() => setNotice(null), 6000)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+  return [notice, setNotice]
 }
 
 /** The circle fills itself to its size; after people were removed, new ones can take their places. */
@@ -110,6 +127,26 @@ const cardClass = (person: CirclePerson) => `person-card${person.late ? ' late' 
 
 function PersonCard({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
   const [editing, setEditing] = useState(false)
+  const [notice, setNotice] = useNotice()
+  const edit = () => { setNotice(null); setEditing(true) }
+  return (
+    <li className={cardClass(person)}>
+      {editing
+        ? <>
+          <h3>{displayName(person)}</h3>
+          <PersonForm person={person} companion={companion} act={act} local={setNotice} onDone={() => setEditing(false)} />
+        </>
+        : <>
+          <PersonHeader person={person} companion={companion} />
+          <div aria-live="polite">{notice && <Notice tone={notice.tone}>{notice.text}</Notice>}</div>
+          <CardBody person={person} companion={companion} act={act} onEdit={edit} />
+        </>}
+    </li>
+  )
+}
+
+/** The card below their name: what they're up to, the actions and what those open. */
+function CardBody({ person, companion, act, onEdit }: { person: CirclePerson; companion: string; act: Act; onEdit: () => void }) {
   const [removing, setRemoving] = useState(false)
   const [bringing, setBringing] = useState(false)
   const [diary, setDiary] = useState(false)
@@ -119,26 +156,22 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
   const remove = async () => { setRemoving(false); await act(() => api(`/life/circle/${person.id}/remove`, {}), `${person.name} is no longer part of ${companion}'s upcoming days.`) }
   const restore = () => act(() => api(`/life/circle/${person.id}/restore`, {}), `${person.name} is back in ${companion}'s life.`)
   const bringBack = async () => { setBringing(false); await act(() => api(`/life/circle/${person.id}/bring-back`, {}), `${person.name} is alive again, back in ${companion}'s life.`) }
-  return (
-    <li className={cardClass(person)}>
-      <PersonHeader person={person} companion={companion} />
-      <PersonState person={person} companion={companion} act={act} />
-      {editing && <PersonForm person={person} companion={companion} act={act} onDone={() => setEditing(false)} />}
-      {!editing && <PersonActions gone={gone} late={!!late} diary={diary} network={network} name={person.name} onEdit={() => setEditing(true)} onDiary={() => setDiary((open) => !open)}
-        onNetwork={() => setNetwork((open) => !open)} onRemove={() => setRemoving(true)} onRestore={() => void (late ? setBringing(true) : restore())} />}
-      {bringing && <BringBack person={person} companion={companion} onClose={() => setBringing(false)} onConfirm={() => void bringBack()} />}
-      {diary && <Diary person={person} />}
-      {network && !gone && <TheirPeople personKey={person.key} name={person.name} />}
-      {removing && (
-        <ConfirmDialog title={`Remove ${person.name}?`} onClose={() => setRemoving(false)} actions={<>
-          <button type="button" className="button" onClick={() => setRemoving(false)}>Cancel</button>
-          <button type="button" className="button primary" onClick={() => void remove()}>Remove</button>
-        </>}>
-          <p>{person.name} stops appearing in {companion}'s upcoming days. Moments that already happened keep them. You can restore them later.</p>
-        </ConfirmDialog>
-      )}
-    </li>
-  )
+  return <>
+    <PersonState person={person} companion={companion} act={act} />
+    <PersonActions gone={gone} late={!!late} diary={diary} network={network} name={person.name} onEdit={onEdit} onDiary={() => setDiary((open) => !open)}
+      onNetwork={() => setNetwork((open) => !open)} onRemove={() => setRemoving(true)} onRestore={() => void (late ? setBringing(true) : restore())} />
+    {bringing && <BringBack person={person} companion={companion} onClose={() => setBringing(false)} onConfirm={() => void bringBack()} />}
+    {diary && <Diary person={person} />}
+    {network && !gone && <TheirPeople personKey={person.key} name={person.name} />}
+    {removing && (
+      <ConfirmDialog title={`Remove ${person.name}?`} onClose={() => setRemoving(false)} actions={<>
+        <button type="button" className="button" onClick={() => setRemoving(false)}>Cancel</button>
+        <button type="button" className="button primary" onClick={() => void remove()}>Remove</button>
+      </>}>
+        <p>{person.name} stops appearing in {companion}'s upcoming days. Moments that already happened keep them. You can restore them later.</p>
+      </ConfirmDialog>
+    )}
+  </>
 }
 
 function PersonHeader({ person, companion }: { person: CirclePerson; companion: string }) {
@@ -244,13 +277,23 @@ function PersonDetails({ person, work, companion }: { person: CirclePerson; work
   return <>
     <p>{personNow(person)}</p>
     {work && <p className="subtle">{work}</p>}
-    {person.note && <p className="subtle person-note">{person.note}</p>}
+    {person.note && <PersonNote note={person.note} />}
     {personTies(person) && <p className="subtle">{personTies(person)}</p>}
     {person.haunts && person.haunts.length > 0 && <p className="subtle">Often at {person.haunts.join(', ')}</p>}
     <ChildLines person={person} companion={companion} />
     <PetLines pets={person.pets} />
     {person.recent.length > 0 && <ul className="diary-list">{person.recent.map((entry) => <DiaryLine key={entry.slot} entry={entry} />)}</ul>}
   </>
+}
+
+/** The user's own words about them, in the regular text color, clamped with More (Iris R6, S2). */
+function PersonNote({ note }: { note: string }) {
+  const [open, setOpen] = useState(false)
+  const long = note.length > 140
+  return <div className="person-note-block">
+    <p className={`person-note${long && !open ? ' clamped' : ''}`}>{note}</p>
+    {long && <button type="button" className="text-button person-note-more" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? 'Less' : 'More'}</button>}
+  </div>
 }
 
 /** Their children and a baby on the way (companion/life/families.py), in words only. */

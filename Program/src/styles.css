@@ -2650,3 +2650,27 @@ p.breakup-line { align-items: center; }
   .draft-list-work .draft-item-name { flex: 1 1 calc(100% - 40px); }
   .draft-list-work .draft-item-meta { order: 3; flex-basis: 100%; margin-left: 0; max-width: none; }
 }
+
+/* Editing someone in the circle (Iris review of editing the circle): the form fills the card, no box in a box. */
+.circle-form { display: grid; gap: 12px; min-width: 0; }
+.circle-form > p { margin: 0; }
+.circle-field { display: grid; gap: 6px; min-width: 0; align-content: start; }
+.circle-field label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+.circle-field input, .circle-field select, .circle-field textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+.circle-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-width: 0; align-items: start; }
+.circle-form-work { grid-template-columns: 1fr; }
+@media (min-width: 1200px) { .circle-form-work { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .circle-form-row { grid-template-columns: 1fr; } }
+.circle-form-actions { margin-top: 4px; }
+.suggest { position: relative; display: block; min-width: 0; }
+.suggest input { padding-right: 36px; }
+.suggest input::-webkit-calendar-picker-indicator { opacity: 0; }
+.suggest svg { position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
+.person-add { padding: var(--card-pad); }
+.person-add-button { align-self: flex-start; }
+@media (max-width: 720px) { .person-add-button { align-self: stretch; justify-content: center; } }
+.person-note-block { display: grid; justify-items: start; gap: 2px; }
+.person-note { margin: 0; color: var(--text); font-size: .95rem; }
+.person-note.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-width: 720px) { .person-note.clamped { -webkit-line-clamp: 2; } }
+.person-note-more { padding-left: 0; }

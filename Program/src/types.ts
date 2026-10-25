@@ -230,6 +230,8 @@ export interface MoneySetup {
   goal: number
   goal_since: string
   employment: Employment
+  /** What a student studies; empty reads it from who they are. */
+  field?: string
 }
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
@@ -2229,6 +2231,11 @@ export interface WorkLifeView {
   meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
   /** Same days every week, shifts that change weekly, or freelance gigs (companion/life/shifts.py). */
   hours: 'staff' | 'rota' | 'freelance'
+  /** A student (companion/life/work.py STUDY), and what they study. */
+  studying?: boolean
+  field?: string
+  /** What they are working on is the user's own words. */
+  own_project?: boolean
 }
 
 /** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */

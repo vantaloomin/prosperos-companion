@@ -1,85 +1,130 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { ChevronDown } from 'lucide-react'
 import { api } from '../../api'
 import type { CareerSummary, CirclePerson } from '../../types'
-import { AGE_CHOICES, RELATION_WORDS, aboutChange, aboutForm, aboutSaved, type AboutValues } from './circleText'
+import { NOTE_MAX, RELATION_WORDS, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, type AboutValues } from './circleText'
 
-type Act = (action: () => Promise<unknown>, done: string) => Promise<boolean>
+export type Act = (action: () => Promise<unknown>, done: string, local?: (feedback: { tone: 'info' | 'error'; text: string }) => void) => Promise<boolean>
 
-/** Changing someone in the circle, or adding someone by hand (`person` left out): name, how they know the companion,
- * pronouns, job, workplace, age, whether they live in town and a note the chat reads. The app picks anything left
- * blank when adding; when changing, only what changed is sent. */
-export function PersonForm({ person, companion, act, onDone }: { person?: CirclePerson; companion: string; act: Act; onDone: () => void }) {
+interface Props {
+  person?: CirclePerson
+  companion: string
+  act: Act
+  onDone: (saved: boolean) => void
+  /** Where the saved notice goes: inside the edited card (Iris R8). */
+  local?: (feedback: { tone: 'info' | 'error'; text: string }) => void
+}
+
+/** Changing someone in the circle, or adding someone by hand (`person` left out): who they are, where they live,
+ * their work and a note the chat reads. The app picks anything left blank when adding; when changing, only what
+ * changed is sent. It fills the card it belongs to (Iris R1). */
+export function PersonForm({ person, companion, act, onDone, local }: Props) {
   const form = aboutForm(person)
   const [values, setValues] = useState<AboutValues>(form.values)
   const careers = useQuery({ queryKey: ['careers'], queryFn: () => api<CareerSummary[]>('/world/careers'), staleTime: Infinity })
   const jobs = [...new Set((careers.data ?? []).filter((career) => !career.adult).map((career) => career.name))].sort()
   const set = (change: Partial<AboutValues>) => setValues((current) => ({ ...current, ...change }))
   const prefix = `about-${person?.id ?? 'new'}`
+  const pick = person ? undefined : 'Let the app pick'
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const change = aboutChange(form.values, values, !person)
-    if (person && Object.keys(change).length === 0) { onDone(); return }
+    if (person && Object.keys(change).length === 0) { onDone(false); return }
     const path = person ? `/life/circle/${person.id}/about` : '/life/circle/people'
-    if (await act(() => api(path, change, person ? 'PUT' : 'POST'), aboutSaved(person, values.name.trim(), companion))) onDone()
+    if (await act(() => api(path, change, person ? 'PUT' : 'POST'), aboutSaved(person, values.name.trim(), companion), local)) onDone(true)
   }
+  const count = noteCount(values.note)
   return (
-    <form className="rename-form home-add kid-form person-form" onSubmit={(event) => void submit(event)} aria-label={form.title(companion)}>
+    <form className="circle-form" onSubmit={(event) => void submit(event)} aria-label={form.title(companion)}>
       {!person && <p className="subtle">Someone in {companion}'s life. Anything you leave blank, the app picks.</p>}
-      <div className="kid-field">
-        <label htmlFor={`${prefix}-name`}>Name</label>
-        <input id={`${prefix}-name`} value={values.name} maxLength={60} required autoComplete="off" onChange={(event) => set({ name: event.target.value })} />
+      <Text id={`${prefix}-name`} label="Name">
+        <input id={`${prefix}-name`} value={values.name} maxLength={60} required autoComplete="off" autoFocus={!person} onChange={(event) => set({ name: event.target.value })} />
+      </Text>
+      <Text id={`${prefix}-role`} label={`Who they are to ${companion}`}>
+        <Suggest id={`${prefix}-role`} value={values.role} options={RELATION_WORDS} placeholder={person ? undefined : 'Friend'} required={!!person} maxLength={40} onChange={(role) => set({ role })} />
+      </Text>
+      <Basics prefix={prefix} values={values} set={set} adding={!person} current={form.values.age} />
+      <div className="circle-form-row circle-form-work">
+        <Text id={`${prefix}-job`} label="Job" hint="In your words, like Photography student or Retired. Their hours follow the job.">
+          <Suggest id={`${prefix}-job`} value={values.job} options={jobs} placeholder={pick} maxLength={60} describedBy={`${prefix}-job-hint`} onChange={(job) => set({ job })} />
+        </Text>
+        <Text id={`${prefix}-employer`} label="Where they work">
+          <input id={`${prefix}-employer`} value={values.employer} maxLength={80} autoComplete="off" placeholder={pick} onChange={(event) => set({ employer: event.target.value })} />
+        </Text>
       </div>
-      <div className="kid-field">
-        <label htmlFor={`${prefix}-role`}>Who they are to {companion}</label>
-        <input id={`${prefix}-role`} value={values.role} maxLength={40} required={!!person} list={`${prefix}-roles`} autoComplete="off"
-          placeholder={person ? undefined : 'Friend'} onChange={(event) => set({ role: event.target.value })} />
-        <datalist id={`${prefix}-roles`}>{RELATION_WORDS.map((word) => <option key={word} value={word} />)}</datalist>
+      <Text id={`${prefix}-note`} label="About them" hint={`${companion} keeps this in mind when they come up in chat.${count ? ` ${count}` : ''}`}>
+        <textarea id={`${prefix}-note`} value={values.note} maxLength={NOTE_MAX} rows={3} aria-describedby={`${prefix}-note-hint`}
+          onChange={(event) => set({ note: event.target.value })} />
+      </Text>
+      <div className="rename-row circle-form-actions">
+        <button type="submit" className="button primary">{form.submit}</button>
+        <button type="button" className="button quiet" onClick={() => onDone(false)}>Cancel</button>
       </div>
-      <div className="kid-field">
-        <label htmlFor={`${prefix}-pronouns`}>Pronouns</label>
+    </form>
+  )
+}
+
+interface BasicsProps { prefix: string; values: AboutValues; set: (change: Partial<AboutValues>) => void; adding: boolean; current: string }
+
+/** Pronouns and age on one row, then where they live; "Let the app pick" for each when adding (Iris R2, R4, R5). */
+function Basics({ prefix, values, set, adding, current }: BasicsProps) {
+  const [ageNote, setAgeNote] = useState('')
+  const blurAge = () => {
+    const clamped = ageClamp(values.age, current)
+    setAgeNote(clamped.note)
+    if (clamped.value !== values.age) set({ age: clamped.value })
+  }
+  const pick = adding ? <option value="">Let the app pick</option> : null
+  return <>
+    <div className="circle-form-row">
+      <Text id={`${prefix}-pronouns`} label="Pronouns">
         <select id={`${prefix}-pronouns`} value={values.pronouns} onChange={(event) => set({ pronouns: event.target.value })}>
-          {!person && <option value="">Let the app pick</option>}
+          {pick}
           <option value="she/her">she/her</option>
           <option value="he/him">he/him</option>
           <option value="they/them">they/them</option>
         </select>
-      </div>
-      <div className="kid-field">
-        <label htmlFor={`${prefix}-job`}>Job</label>
-        <input id={`${prefix}-job`} value={values.job} maxLength={60} list={`${prefix}-jobs`} autoComplete="off" aria-describedby={`${prefix}-job-hint`}
-          onChange={(event) => set({ job: event.target.value })} />
-        <datalist id={`${prefix}-jobs`}>{jobs.map((job) => <option key={job} value={job} />)}</datalist>
-        <small id={`${prefix}-job-hint`}>In your words. Their hours follow the job; write Retired for none.</small>
-      </div>
-      <div className="kid-field">
-        <label htmlFor={`${prefix}-employer`}>Where they work</label>
-        <input id={`${prefix}-employer`} value={values.employer} maxLength={80} autoComplete="off" onChange={(event) => set({ employer: event.target.value })} />
-      </div>
-      <div className="kid-field">
-        <label htmlFor={`${prefix}-age`}>Age</label>
-        <select id={`${prefix}-age`} value={values.age} onChange={(event) => set({ age: event.target.value })}>
-          {!person && <option value="">Let the app pick</option>}
-          {AGE_CHOICES(form.values.age).map((age) => <option key={age} value={age}>{age}</option>)}
-        </select>
-      </div>
-      <div className="kid-field">
-        <label htmlFor={`${prefix}-local`}>Where they live</label>
-        <select id={`${prefix}-local`} value={values.local} onChange={(event) => set({ local: event.target.value === 'away' ? 'away' : 'here' })}>
-          <option value="here">In town</option>
-          <option value="away">Out of town</option>
-        </select>
-      </div>
-      <div className="kid-field">
-        <label htmlFor={`${prefix}-note`}>About them</label>
-        <textarea id={`${prefix}-note`} value={values.note} maxLength={300} rows={2} aria-describedby={`${prefix}-note-hint`}
-          onChange={(event) => set({ note: event.target.value })} />
-        <small id={`${prefix}-note-hint`}>{companion} keeps this in mind when they come up in chat.</small>
-      </div>
-      <div className="rename-row kid-actions">
-        <button type="submit" className="button primary">{form.submit}</button>
-        <button type="button" className="button quiet" onClick={onDone}>Cancel</button>
-      </div>
-    </form>
+      </Text>
+      <Text id={`${prefix}-age`} label="Age" hint={ageNote || undefined}>
+        <input id={`${prefix}-age`} value={values.age} inputMode="numeric" maxLength={4} autoComplete="off" placeholder={adding ? 'Let the app pick' : undefined}
+          aria-describedby={ageNote ? `${prefix}-age-hint` : undefined} onBlur={blurAge}
+          onChange={(event) => { setAgeNote(''); set({ age: event.target.value.replace(/\D/g, '') }) }} />
+      </Text>
+    </div>
+    <Text id={`${prefix}-local`} label="Where they live">
+      <select id={`${prefix}-local`} value={values.local} onChange={(event) => set({ local: placeOf(event.target.value) })}>
+        {pick}
+        <option value="here">In town</option>
+        <option value="away">Out of town</option>
+      </select>
+    </Text>
+  </>
+}
+
+const placeOf = (value: string): AboutValues['local'] => value === 'here' || value === 'away' ? value : ''
+
+/** A label, the control and an optional hint (`{id}-hint`). */
+function Text({ id, label, hint, children }: { id: string; label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="circle-field">
+      <label htmlFor={id}>{label}</label>
+      {children}
+      {hint && <small id={`${id}-hint`}>{hint}</small>}
+    </div>
+  )
+}
+
+interface SuggestProps { id: string; value: string; options: string[]; onChange: (value: string) => void; placeholder?: string; required?: boolean; maxLength: number; describedBy?: string }
+
+/** Free text with suggestions, drawn with the same chevron as the selects (Iris R3). */
+function Suggest({ id, value, options, onChange, placeholder, required, maxLength, describedBy }: SuggestProps) {
+  return (
+    <span className="suggest">
+      <input id={id} value={value} list={`${id}-list`} maxLength={maxLength} required={required} placeholder={placeholder} autoComplete="off"
+        aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />
+      <ChevronDown aria-hidden="true" />
+      <datalist id={`${id}-list`}>{options.map((option) => <option key={option} value={option} />)}</datalist>
+    </span>
   )
 }
