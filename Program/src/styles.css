@@ -2628,3 +2628,6 @@ p.breakup-line { align-items: center; }
 }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .spin, :root:not([data-motion='full']) .draft-chip-checking svg, :root:not([data-motion='full']) .draft-toast { animation: none; } }
 :root[data-motion='reduce'] :is(.spin, .draft-chip-checking svg) { animation: none; }
+/* Live on my clock (v1.1.0): the note about fitted hours sits under the switch's own words. */
+.their-hours-note { margin: 6px 0 0 30px; }
+.their-hours-note .text-button.inline { white-space: nowrap; }

@@ -176,6 +176,8 @@ export interface CharacterDefinition {
   timezone: string
   home_city: string
   schedule: RoutineBlock[]
+  /** Their week moved to fit your evenings or onto your clock (companion/life/their_hours.py); the server moves it. */
+  their_hours?: TheirHours | null
   life_themes: string[]
   money: MoneySetup
   texting?: TextingStyle
@@ -184,6 +186,9 @@ export interface CharacterDefinition {
   /** Personality sliders (companion/world/personality.py); null, or a trait left out, is read from their words and rolled. */
   personality_sliders?: PersonalitySliders | null
 }
+
+/** How their week sits against your clock: 'fit' moved by the app, 'mine' on your clock, 'city' their city's hours. */
+export interface TheirHours { mode: 'fit' | 'mine' | 'city'; shift: number; why: string; zone: string; fit: number }
 
 export type PersonalityKey = 'social' | 'warmth' | 'order' | 'curiosity' | 'stress'
 /** One slider: 0 low, 1 in between, 2 high, and who set it. */
@@ -514,6 +519,7 @@ export interface LifeSettings {
   inner_voice: number
   /** Their look in chat (companion/their_look.py): 0 off, 1 steady, 2 true to life, 3 expressive. */
   their_look: number
+  waking_realism: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */

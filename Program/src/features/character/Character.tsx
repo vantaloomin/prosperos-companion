@@ -52,6 +52,7 @@ import { Steps } from './Steps'
 import { Family } from './Family'
 import { LifeLately } from './LifeLately'
 import { TheirLook } from './TheirLook'
+import { TheirHoursField } from './TheirHours'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
 
@@ -166,6 +167,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
         {help('appearance', 'their appearance')}
         <InPhotosField definition={cleaned} value={definition.in_photos} set={set} />
+        <TheirHoursField definition={definition} companion={companion} set={set} />
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>
           <LooksFields definition={cleaned} looks={definition.looks} set={set} />
