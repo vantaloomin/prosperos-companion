@@ -33,6 +33,23 @@ def warnings(data: dict) -> list[str]:
     return found
 
 
+def plain_warnings(data: dict) -> list[str]:
+    """The same thin spots in words for the Draft Table's Check tab: each part of town by name, one line each."""
+    found, part = [], 'deck' if data.get('enclosed') else 'neighborhood'
+    for hood in data['neighborhoods']:
+        kinds = [place['kind'] for place in data['places'] if place['neighborhood'] == hood['id']]
+        if len(kinds) < 2:
+            found.append(f'{hood["name"]} has one place. Add another so days there do not repeat.' if kinds else
+                         f'{hood["name"]} has no places yet. Add one or two so days there do not repeat.')
+        elif not FOOD & set(kinds):
+            found.append(f'{hood["name"]} has nowhere to eat or drink. Add a café, a bar or somewhere like it.')
+    if not data['employers'] and not data['career_hubs']:
+        found.append(f'Nobody is hiring: add an employer in a {part}.')
+    if data['climate'] is None and not data.get('enclosed'):
+        found.append('It has no weather yet.')
+    return found
+
+
 def check_file(path: Path) -> dict:
     # Built-in cities load exactly as written; packs and shared files are mended the way the app loads them.
     builtin = path.resolve().parent == (catalog.DATA / 'cities').resolve()

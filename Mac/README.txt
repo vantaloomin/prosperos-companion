@@ -10,6 +10,7 @@ Other scripts in this folder:
   status.command           Says whether the Companion is running.
   stop.command             Stops the Companion if you lost its window.
   create-shortcut.command  Puts a Prospero Companion app in your Applications folder.
+  draft-table.command      Opens Prospero's Draft Table, which draws up a whole place from one line.
   dev.command              Development mode, for working on the code.
 
 Your companion's data is normally not in this folder. It lives in ~/Library/Application Support/ProsperoCompanion,
