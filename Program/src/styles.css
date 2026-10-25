@@ -1923,10 +1923,18 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .world-rename input { flex: 1; min-width: 0; }
 /* Lined up with the world rows' names (row padding + portrait + gap), so it reads as this persona's. */
 .new-world { padding: 4px 10px 8px 68px; max-width: 528px; }
-/* New world for them, and Copy them to a new world, side by side under their worlds. */
-.persona-world-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+/* New world for them, and Copy them to a new world, side by side under their worlds; each link stays whole. */
+.persona-world-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.persona-world-actions .text-button { white-space: nowrap; }
+.new-world-title { margin: 0 0 2px; font-weight: 600; }
+.persona-row h2:focus { outline: none; }
+.persona-row h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+/* A copy just made (Iris): its section lights up briefly; Motion off makes it instant. */
+.persona-worlds.arrived { animation: persona-arrived 2.4s ease-out; border-radius: 8px; }
+@keyframes persona-arrived { from, 30% { background: var(--accent-tint); } to { background: transparent; } }
 @media (max-width: 720px) {
   .worlds-header, .worlds-list { padding-left: 16px; padding-right: 16px; }
+  .new-world { padding-left: 0; padding-right: 0; max-width: none; }
 }
 
 /* While you were away (src/features/conversation/AwayRecap.tsx): a quiet catch-up above the composer. */
