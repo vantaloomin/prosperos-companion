@@ -237,7 +237,12 @@ same way, and live by the same rules: days, goals, quirks and flaws are drawn fr
 name, age, role and temperament are the city's. The companion meets them like anyone else, and what it
 knows of them always includes `about`. Notables are never on the dating app. A pack's notable placed
 somewhere the city lacks is left out with a note. Notables stay in town for good unless `can_leave` is true, when
-they can move away or retire like anyone else and a newcomer takes over their role.
+they can move away or retire like anyone else and a newcomer takes over their role. A notable may name their
+`kind` (a built-in kind or one in the city's `kinds` block, see lifespans), which lets their `age` run past 120 (up to
+5000) and counts their life stage in their kind's years; an unknown kind makes them human, with a note. With
+`love_life: false` they get no seeded partner, engagement, wedding or baby, so their love life is only what `about`
+says. A character brought in from another app never borrows a notable's life (their job, home and routine come from
+a seeded townsperson). Older versions ignore both fields and hold the age to 120.
 
 **The town changes hands** (`companion/world/turnover.py`). Each spot a townsperson fills is held by one person
 after another: from 19 October 2026 on, people move away, take other jobs, retire (staff, from their sixties) and,

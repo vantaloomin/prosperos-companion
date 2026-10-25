@@ -115,14 +115,20 @@ OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours', 'words', 'lor
 
 
 def unset_work_rules(data: dict):
-    """Who worked a job in its era and at what ages (schema Career.worked_by and ages, City.work_by_gender) are
-    newer than most cities: left out when unset, so their data_version stays the same."""
+    """Who worked a job in its era and at what ages (schema Career.worked_by and ages, City.work_by_gender), and a
+    notable's kind and love life, are newer than most cities: left out when unset, so their data_version stays the
+    same."""
     if data.get('work_by_gender') is None:
         data.pop('work_by_gender', None)
     for career in data['careers']:
         for key in ('worked_by', 'ages'):
             if career.get(key) is None:
                 career.pop(key, None)
+    for notable in data['notables']:  # A notable's kind and love life are newer still.
+        if notable.get('kind') is None:
+            notable.pop('kind', None)
+        if notable.get('love_life', True):
+            notable.pop('love_life', None)
 
 
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:

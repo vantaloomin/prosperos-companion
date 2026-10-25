@@ -224,3 +224,16 @@ def test_a_card_brought_into_a_new_world_lives_in_that_worlds_city(client):
     assert client.post(f"/api/worlds/{made['id']}/switch").status_code == 200
     definition = bring(client, 'dana.json', as_json(CARD))['companion']['version']['definition']
     assert definition['home_city'] == 'osaka' and definition['timezone'] == 'Asia/Tokyo'
+
+
+def test_a_brought_character_never_borrows_a_named_characters_life():
+    from test_townsfolk import with_notables
+
+    from companion.imports import characters
+    from companion.world import townsfolk
+    data = with_notables()
+    named = {sheet['key'] for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])
+             if sheet.get('notable')}
+    for n in range(60):
+        sheet = characters.template(data, {'name': f'Visitor {n}', 'description': 'A traveller.', 'personality': ''})
+        assert sheet['key'] not in named
