@@ -468,6 +468,7 @@ export interface DeleteResult { deleted_memory_ids: string[]; redacted_message_i
 export interface LifeSettings {
   automatic_events: boolean
   phrase_with_model: boolean
+  model_routines: boolean
   catch_up_on_return: boolean
   catch_up_max_events: number
   catch_up_lookback_hours: number

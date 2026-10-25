@@ -38,6 +38,7 @@ from companion.life import (
     mood,
     narrator,
     pets,
+    planned_week,
     routine,
     thoughts,
     upkeep,
@@ -60,7 +61,7 @@ BACKGROUND_LOOKUP_DEADLINE = 20.0
 # Columns that record a one-time switch to a new default, not settings.
 MARKERS = ('texts_first_on_by_default', 'events_on_by_default', 'loss_by_preset')
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts',
-         'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups', 'people_pass_away')
+         'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups', 'people_pass_away', 'model_routines')
 NEWS_EVERY = timedelta(minutes=10)
 UNFINISHED = ('planned', 'running', 'interrupted')
 
@@ -736,7 +737,9 @@ class LifeEngine:
 
     async def prepare_now(self, limit=PREPARE_AHEAD) -> dict:
         """Bring the agenda up to date, then phrase the companion's next few entries at background
-        priority. A conversation interrupts this; the rest waits for the next call."""
+        priority, and plan their week when the user asked for that. A conversation interrupts this; the rest waits for
+        the next call."""
+        await self.quietly_plan_week()
         ready = await asyncio.to_thread(self.due_for_preparing, limit)
         if ready is None:
             return {'prepared': 0}
@@ -912,6 +915,37 @@ class LifeEngine:
     def save_thought(self, row, text):
         with self.database.connect(write=True) as connection:
             thoughts.save_polish(connection, row, text)
+
+    async def quietly_plan_week(self):
+        """The open companion's week in the model's few lines (companion/life/planned_week.py), once a week, when
+        "Let the model plan their week" is on. Lines that break the week's facts are dropped before they are kept."""
+        try:
+            due = await asyncio.to_thread(self.due_week)
+            if due is None:
+                return
+            config, found = due
+            try:
+                lines = await planned_week.write(self.provider, self.scheduler, config, key_for(self.vault, config),
+                                                 found)
+            except DomainError:
+                lines = []
+            await asyncio.to_thread(self.save_week, found, lines, config)
+        except BackgroundInterrupted:
+            pass
+        except Exception:  # noqa: BLE001 - the rules' week stands on its own.
+            LOG.exception("The week's plan could not be written.")
+
+    def due_week(self):
+        with self.database.connect() as connection:
+            config = config_for(connection, 'life')
+            if config is None or settings(connection)['paused_at'] is not None:
+                return None
+            found = planned_week.due(connection, current(connection), self.now())
+            return (config, found) if found else None
+
+    def save_week(self, found, lines, config):
+        with self.database.connect(write=True) as connection:
+            planned_week.save(connection, found, lines, config, self.now())
 
     async def quietly_narrate(self):
         """The day before of whoever the user is just watching, in the model's few lines (companion/life/narrator.py),
