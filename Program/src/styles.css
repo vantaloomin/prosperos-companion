@@ -1548,6 +1548,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-patch .text-button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--muted); }
 .profile-interests { gap: 6px; }
 .profile-ties { margin-top: 6px; }
+/* One tie per line, read as one run of text, so the detail after the "·" wraps as text does (Iris, PR #390). */
+.profile-ties li { display: block; flex-basis: 100%; }
+.profile-bubbles .profile-ties li { text-align: center; }
 .profile-interests li { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.75rem; }
 .profile-tabs { flex: none; display: flex; gap: 4px; padding: 0 32px; border-bottom: 1px solid var(--border); background: var(--canvas); }
 .profile-tabs button { padding: 12px 14px 10px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 0.875rem; font-weight: 500; }
