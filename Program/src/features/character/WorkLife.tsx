@@ -78,7 +78,7 @@ function WorkingOn({ view }: { view: WorkLifeView }) {
         <div className="kid-field">
           <label htmlFor="work-project">{label}</label>
           <input id="work-project" value={title} maxLength={120} autoComplete="off" required aria-describedby="work-project-hint" onChange={(event) => setTitle(event.target.value)} />
-          <small id="work-project-hint">Due {calendarDay(view.project.due, { weekday: true, month: 'long' })}. After that they move on to the next thing on their own.</small>
+          <small id="work-project-hint">Due {calendarDay(view.project.due, { weekday: true })}. After that they move on to the next thing on their own.</small>
         </div>
         <div className="rename-row kid-actions">
           <button type="submit" className="button primary">Save</button>
