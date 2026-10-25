@@ -184,5 +184,5 @@ function DraftError({ error, go, onManual }: { error: { text: string; settings: 
 function ModelNotice({ shown, downloading, go }: { shown: boolean; downloading: boolean; go: (view: View) => void }) {
   if (downloading) return <Notice>Your model isn't ready yet. Create them now and it writes the rest when it's ready.</Notice>
   if (!shown) return null
-  return <Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Settings</button>}>Drafting uses your text model, and none is connected yet. You can still fill in the form yourself.</Notice>
+  return <Notice action={<button type="button" className="text-button inline" onClick={() => go('settings/models')}>Open Settings</button>}>Drafting uses your text model, and none is connected yet. You can still fill in the form yourself.</Notice>
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { UserPlus } from 'lucide-react'
+import { ChevronLeft, UserPlus } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CharacterDefinition, Companion } from '../../types'
@@ -17,7 +17,7 @@ export function AnotherSection({ name, go }: { name: string; go: (view: View) =>
     <section className="settings-section form-stack" aria-labelledby="another-heading">
       <div>
         <h2 id="another-heading">Someone new</h2>
-        <p className="subtle">Make another companion from scratch, written your way, to live in this world alongside {name}. {name} keeps every chat and memory and goes on with their own life, and you can switch between them any time.</p>
+        <p className="subtle">Make another companion from scratch, written your way, to live in this world alongside {name}. They become your main character, and {name} steps back, keeping every chat and memory and goes on with their own life, and you can switch between them any time.</p>
       </div>
       <div className="form-actions">
         <button type="button" className="button" onClick={() => go('another')}><UserPlus aria-hidden="true" />Create another companion</button>
@@ -37,17 +37,16 @@ export function AnotherCompanion({ companion, go }: { companion: Companion; go: 
     setStart((current) => ({ definition, drafted, split, attempt: (current?.attempt ?? 0) + 1 }))
     if (drafted && window.matchMedia?.('(min-width: 721px)').matches) sidecar.show()
   }
-  const heading = (
+  const heading = (<>
+    <button type="button" className="text-button inline back-link" onClick={() => go('character')}><ChevronLeft aria-hidden="true" />Back to {old}</button>
     <header className="page-header">
       <div>
         <h1>Create another companion</h1>
         <p className="subtle">They live in this world alongside {old}. Nothing here is required, and you can change everything later.</p>
       </div>
-      <div className="form-actions">
-        <button type="button" className="text-button" onClick={() => go('character')}>Back to {old}</button>
-      </div>
     </header>
-  )
+    <div className="start-notice"><Notice>Once you create them, they become your main character. {old} steps back: everything you two shared stays, {old} goes on living around town, and you can switch back from the Character page or the Chats button.</Notice></div>
+  </>)
   if (!start) {
     return (
       <section className="page">
@@ -66,10 +65,7 @@ export function AnotherCompanion({ companion, go }: { companion: Companion; go: 
     <CharacterForm key={`another-${start.attempt}`} companion={null} start={start} onRestart={() => setStart(null)} go={go} saved={null} onSaved={() => undefined}
       create={{
         save, label: 'Create companion', heading,
-        notice: <>
-          <StartNotice start={start} onRestart={() => setStart(null)} />
-          <Notice>Once you create them, they become the main character. {old} steps back: everything you two shared stays, {old} goes on living around town, and you can switch back from the Character page or the Chats button.</Notice>
-        </>,
+        notice: <StartNotice start={start} onRestart={() => setStart(null)} />,
       }} />
   )
 }
