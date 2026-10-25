@@ -11,7 +11,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { isWorldMap, readWorldMap } from './worldMap'
 import { GetLatest } from '../character/Library'
 import { ONLINE_KEY, type OnlineBook } from '../character/libraryText'
-import { cityFacts, definitionOf, exportName, groupNotes, matchesCity, ownCityFor, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
+import { cityFacts, definitionOf, exportName, groupNotes, matchesCity, cityFor, keptBoth, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
 
 const CITIES_KEY = ['cities']
 const BROKEN_KEY = ['broken-cities']
@@ -92,14 +92,19 @@ export function Cities() {
     if (isWorldMap(chosen.name, await chosen.slice(0, 4096).text())) { await importWorldMap(chosen); return }
     const text = await chosen.text()
     if (file.current) file.current.value = ''
-    // A newer copy of one of the user's cities (an updated pack someone shared) replaces it in place.
-    const own = ownCityFor(text, cities.data ?? [])
-    if (own) {
+    // A copy of one of the user's cities (an updated file someone shared) replaces it in place.
+    const same = cityFor(text, cities.data ?? [])
+    if (same?.origin === 'user') {
       try {
-        const current = await api<{ revision: number }>(`/world/cities/${own.id}`)
-        setEditing({ mode: 'update', id: own.id, revision: current.revision, text, file: { name: chosen.name, city: own.name } })
-        setFeedback({ tone: 'info', text: `${chosen.name} is a newer ${own.name}. Save to update it in place. Worlds there keep their companions and all their history, though some townsfolk around town may be different people now.` })
+        const current = await api<{ revision: number }>(`/world/cities/${same.id}`)
+        setEditing({ mode: 'update', id: same.id, revision: current.revision, text, file: { name: chosen.name, city: same.name } })
+        setFeedback(null)
       } catch (error) { fail(error) }
+      return
+    }
+    if (same?.origin === 'pack') {
+      setEditing(null)
+      setFeedback({ tone: 'info', text: `${chosen.name} is a copy of ${same.name}, which loads from a pack folder. To update it, put this file in that folder in place of the old one, then choose Reload packs under Pack folders below. Worlds there keep their companions and all their history.` })
       return
     }
     setEditing({ mode: 'create', text })
@@ -141,7 +146,8 @@ export function Cities() {
         <input ref={file} type="file" accept=".json,application/json" hidden onChange={(event) => void importFile(event.target.files?.[0])} />
       </div>
       <div aria-live="polite">{feedback && <FeedbackNotice feedback={feedback} />}</div>
-      {editing && <CityEditor editing={editing} onClose={() => setEditing(null)}
+      {editing && <CityEditor key={editing.mode === 'update' ? editing.id : 'new'} editing={editing} onClose={() => setEditing(null)}
+        onKeepBoth={(text) => setEditing({ mode: 'create', text: keptBoth(text, cities.data ?? []) })}
         onSaved={(saved) => { const updated = editing.mode === 'update' && editing.file; setEditing(null); setFeedback({ tone: 'info', text: updated ? `Updated ${saved.name} in place.` : `Saved ${saved.name}.`, notes: saved.import_notes }); void refresh() }} />}
       {cities.isPending && <Loading label="Loading cities" />}
       {cities.isError && <ErrorNotice error={cities.error} />}
@@ -255,7 +261,8 @@ function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
   )
 }
 
-function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: () => void; onSaved: (city: CityListing) => void }) {
+function CityEditor({ editing, onClose, onSaved, onKeepBoth }: { editing: Editing; onClose: () => void; onSaved: (city: CityListing) => void; onKeepBoth: (text: string) => void }) {
+  const replacing = editing.mode === 'update' ? editing.file : undefined
   const [text, setText] = useState(editing.text)
   const [result, setResult] = useState<Feedback>(null)
   const [busy, setBusy] = useState(false)
@@ -278,18 +285,32 @@ function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: 
   }
   return (
     <div className="city-editor form-stack">
-      <h3>{editing.mode === 'create' ? (editing.ship ? 'New ship' : 'New city') : editing.file ? `Updating ${editing.file.city} from ${editing.file.name}` : `Editing ${editing.id}`}</h3>
-      <p className="subtle" id="city-json-hint">{editing.mode === 'create' && editing.ship ? 'A ship is a city file with "enclosed": true, so it has no weather or cars. Its decks are its neighborhoods, and every place and employer names its deck.' : 'A city is a JSON file. Every place, college and employer names its neighborhood.'} New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
+      <EditorHeading editing={editing} />
       <label htmlFor="city-json" className="visually-hidden">City definition</label>
       <textarea id="city-json" aria-describedby="city-json-hint" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
       <div aria-live="polite">{result && <FeedbackNotice feedback={result} />}</div>
-      <div className="form-actions">
-        <button type="button" className="button primary" disabled={busy} onClick={() => void run(true)}>Save</button>
+      <div className="form-actions wrap">
+        <button type="button" className="button primary" disabled={busy} onClick={() => void run(true)}>{replacing ? `Update ${replacing.city}` : 'Save'}</button>
         <button type="button" className="button" disabled={busy} onClick={() => void run(false)}>Check</button>
+        {replacing && <button type="button" className="button quiet" disabled={busy} onClick={() => onKeepBoth(text)}>Keep both instead</button>}
         <button type="button" className="button quiet" onClick={onClose}>Cancel</button>
       </div>
     </div>
   )
+}
+
+/** The editor's title and the line under it: what is being made or changed, and what saving will do. */
+function EditorHeading({ editing }: { editing: Editing }) {
+  const replacing = editing.mode === 'update' ? editing.file : undefined
+  if (replacing) return (<>
+    <h3 className="city-editor-title">Updating {replacing.city} from {replacing.name}</h3>
+    <p className="subtle" id="city-json-hint">{replacing.name} is a copy of your {replacing.city}. Saving replaces yours with it. Worlds there keep their companions and all their history, though some of the people around town may be different now.</p>
+  </>)
+  const ship = editing.mode === 'create' && editing.ship
+  return (<>
+    <h3 className="city-editor-title">{editing.mode === 'create' ? (ship ? 'New ship' : 'New city') : `Editing ${editing.id}`}</h3>
+    <p className="subtle" id="city-json-hint">{ship ? 'A ship is a city file with "enclosed": true, so it has no weather or cars. Its decks are its neighborhoods, and every place and employer names its deck.' : 'A city is a JSON file. Every place, college and employer names its neighborhood.'} New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
+  </>)
 }
 
 function CopyDialog({ city, onClose, onCopied }: { city: CityListing; onClose: () => void; onCopied: (name: string) => void }) {
