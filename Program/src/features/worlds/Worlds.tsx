@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Eye, Globe, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
+import { Copy, Eye, Globe, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
 import { api } from '../../api'
 import type { Persona, World, Worlds as WorldsData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { PersonaForm } from './PersonaForm'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { enter, useWorlds, WORLDS_KEY } from './useWorlds'
-import { companionsLine, initial, personaName, personaRef, personaTitle } from './worldsText'
+import { companionsLine, copyLabel, copyNote, initial, personaName, personaRef, personaTitle } from './worldsText'
 import { Toggle } from '../../components/Fields'
 import { useWatchActions } from '../watch/useObserver'
 
@@ -77,10 +77,11 @@ interface PersonaWorldsProps { persona: Persona; cityId: string; run: Run; store
 
 function PersonaWorlds({ persona, cityId, run, store, onSwitch, onSwitchPersona }: PersonaWorldsProps) {
   const [deleting, setDeleting] = useState(false)
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState<'' | 'world' | 'copy'>('')
   const addLink = useRef<HTMLButtonElement>(null)
-  // Closing the new-world form puts focus back on the link that opened it.
-  const closeAdding = () => { setAdding(false); requestAnimationFrame(() => addLink.current?.focus()) }
+  const copyLink = useRef<HTMLButtonElement>(null)
+  // Closing a form puts focus back on the link that opened it.
+  const closeAdding = () => { const link = adding === 'copy' ? copyLink : addLink; setAdding(''); requestAnimationFrame(() => link.current?.focus()) }
   const removable = !persona.active && persona.worlds.every((world) => !world.first)
   return (
     <section className="persona-worlds" aria-label={personaTitle(persona)}>
@@ -88,9 +89,12 @@ function PersonaWorlds({ persona, cityId, run, store, onSwitch, onSwitchPersona 
       <ul className="world-rows">
         {persona.worlds.map((world) => <WorldRow key={world.id} world={world} run={run} store={store} onSwitch={() => onSwitch(world)} />)}
       </ul>
-      {adding
-        ? <NewWorld persona={persona} cityId={cityId} run={run} onDone={closeAdding} />
-        : <button ref={addLink} type="button" className="text-button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />New world for {personaRef(persona)}</button>}
+      {adding === 'world' && <NewWorld persona={persona} cityId={cityId} run={run} onDone={closeAdding} />}
+      {adding === 'copy' && <CopyPersona persona={persona} cityId={cityId} run={run} onDone={closeAdding} />}
+      {!adding && <div className="persona-world-actions">
+        <button ref={addLink} type="button" className="text-button" onClick={() => setAdding('world')}><Plus aria-hidden="true" />New world for {personaRef(persona)}</button>
+        <button ref={copyLink} type="button" className="text-button" onClick={() => setAdding('copy')}><Copy aria-hidden="true" />{copyLabel(persona)}</button>
+      </div>}
       {deleting && <ConfirmDialog title={`Delete ${personaRef(persona)}?`} onClose={() => setDeleting(false)} actions={<>
         <button type="button" className="button" onClick={() => setDeleting(false)}>Keep</button>
         <button type="button" className="button danger" onClick={() => void run(async () => { store(await api<WorldsData>(`/worlds/personas/${persona.id}`, undefined, 'DELETE')); setDeleting(false) })}>Delete</button>
@@ -122,6 +126,30 @@ function NewWorld({ persona, cityId, run, onDone }: { persona: Persona; cityId: 
         <button type="button" className="text-button" disabled={!!making} onClick={onDone}>Cancel</button>
       </div>
       <p className="subtle">Watch a city: see the town go on without you, following whoever you like. Step in whenever you want.</p>
+    </form>
+  )
+}
+
+/** A separate copy of the persona, so the user need not type them again: a world of their own where they pick the
+ * city (somewhere new unless they pick), with everything on the persona's form but where they live. */
+function CopyPersona({ persona, cityId, run, onDone }: { persona: Persona; cityId: string; run: Run; onDone: () => void }) {
+  const client = useQueryClient()
+  const [city, setCity] = useState(SOMEWHERE_NEW)
+  const [making, setMaking] = useState(false)
+  const make = () => { setMaking(true); return run(async () => {
+    await api(`/worlds/personas/${persona.id}/copy`, { city_id: city })
+    await client.invalidateQueries({ queryKey: WORLDS_KEY })
+    onDone()
+  }).finally(() => setMaking(false)) }
+  return (
+    <form className="new-world form-stack" aria-label={copyLabel(persona)} onSubmit={(event) => { event.preventDefault(); void make() }}
+      onKeyDown={(event) => { if (event.key === 'Escape' && !making) onDone() }}>
+      <p className="subtle">{copyNote(persona)}</p>
+      <CityPick value={city} currentId={cityId} disabled={making} autoFocus onChange={setCity} />
+      <div className="form-actions wrap">
+        <button type="submit" className="button primary" disabled={making}>{making ? 'Making the copy…' : 'Make the copy'}</button>
+        <button type="button" className="text-button" disabled={making} onClick={onDone}>Cancel</button>
+      </div>
     </form>
   )
 }

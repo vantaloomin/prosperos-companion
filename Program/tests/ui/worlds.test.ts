@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { companionsLine, initial, personaName, personaRef, personaTitle, whereLine } from '../../src/features/worlds/worldsText.ts'
+import { companionsLine, copyLabel, copyNote, initial, personaName, personaRef, personaTitle, whereLine } from '../../src/features/worlds/worldsText.ts'
 import { fromPersona } from '../../src/features/dating/datingText.ts'
 
 test('a persona without a name is never called You', () => {
@@ -27,4 +27,12 @@ test('Matchlight starts from the persona', () => {
   assert.equal(profile.gender, 'man')
   assert.equal(profile.bio, 'Paramedic.')
   assert.equal(fromPersona(null).name, '')
+})
+
+test('a copy of a persona says what it takes and what it leaves', () => {
+  assert.equal(copyLabel({ name: 'Sam' }), 'Copy Sam to a new world')
+  assert.equal(copyLabel({ name: '' }), 'Copy this persona to a new world')
+  assert.match(copyNote({ name: 'Sam' }), /^A second Sam, with everything on their form but where they live/)
+  assert.match(copyNote({ name: '' }), /^A second persona, with everything on this persona's form/)
+  assert.match(copyNote({ name: 'Sam' }), /the other stays as it is\.$/)
 })

@@ -1923,6 +1923,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .world-rename input { flex: 1; min-width: 0; }
 /* Lined up with the world rows' names (row padding + portrait + gap), so it reads as this persona's. */
 .new-world { padding: 4px 10px 8px 68px; max-width: 528px; }
+/* New world for them, and Copy them to a new world, side by side under their worlds. */
+.persona-world-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 @media (max-width: 720px) {
   .worlds-header, .worlds-list { padding-left: 16px; padding-right: 16px; }
 }

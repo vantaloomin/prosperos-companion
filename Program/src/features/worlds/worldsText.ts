@@ -17,6 +17,17 @@ export function personaRef(persona: Pick<Persona, 'name'>): string {
   return personaName(persona) || 'this persona'
 }
 
+/** The link and form for copying a persona into a world of their own: "Copy Sam to a new world". */
+export function copyLabel(persona: Pick<Persona, 'name'>): string {
+  return `Copy ${personaRef(persona)} to a new world`
+}
+
+/** What a copy is, above its city picker. */
+export function copyNote(persona: Pick<Persona, 'name'>): string {
+  const name = personaName(persona)
+  return `${name ? `A second ${name}` : 'A second persona'}, with everything on ${name ? 'their' : 'this persona\'s'} form but where they live, in a world of their own with new people. Change one later and the other stays as it is.`
+}
+
 /** "Mira and Sally", "Mira, Sally and 2 more", or that nobody lives there yet. */
 export function companionsLine(world: Pick<World, 'companions'>): string {
   const names = world.companions
