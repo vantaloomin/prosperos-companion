@@ -216,3 +216,10 @@ def test_a_long_description_keeps_the_rest_as_lore(client, companion):
     assert len(made['companion']['version']['definition']['background']) == 12000
     entry = client.get('/api/lore').json()['books'][0]['entries'][0]
     assert entry['always'] and entry['text'] == 'and the rest.'
+
+
+def test_a_card_brought_into_a_new_world_lives_in_that_worlds_city(client):
+    made = client.post('/api/worlds', json={'city_id': 'osaka'}).json()
+    assert client.post(f"/api/worlds/{made['id']}/switch").status_code == 200
+    definition = bring(client, 'dana.json', as_json(CARD))['companion']['version']['definition']
+    assert definition['home_city'] == 'osaka' and definition['timezone'] == 'Asia/Tokyo'

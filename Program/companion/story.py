@@ -80,9 +80,14 @@ def opening_place(data: dict) -> dict:
 
 
 def default_city(connection) -> str:
-    """The companion's city, else Baltimore, the first shipped city."""
+    """The companion's city, else the city the user lives in in this world (a new world starts with no companion, so
+    a character brought in lives where the world is), else Baltimore, the first shipped city."""
     companion = current(connection)
-    return (newcomers.city_for(connection, companion['version']['definition'])['id'] if companion else '') or DEFAULT_CITY
+    if companion:
+        return newcomers.city_for(connection, companion['version']['definition'])['id'] or DEFAULT_CITY
+    row = optional(connection, 'SELECT home_city_id FROM persona WHERE id=1')
+    home = row and row['home_city_id'] and changes.resolve(row['home_city_id'], custom.all_cities(connection))
+    return home['id'] if home else DEFAULT_CITY
 
 
 def scene_row(connection) -> dict:
