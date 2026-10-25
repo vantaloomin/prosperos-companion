@@ -29,7 +29,10 @@ The app decides, the user overrides ("the world exists outside of User", Vanta 2
   and once the companion lives with them the companion is the kids' step-parent.
 
 The Character page's Family panel lists them, with where they live and the other parent; the user can change where
-they live or take a child out of their life. Children keep v0.14's limits: words only, and with the adult side of
+they live or take a child out of their life, add a child of theirs by hand the way a pet is added (`add`; whatever they
+leave out the app picks), change a child's name, age or whether they're a son or daughter (`edit`), and change who
+their other parent is (`set_other`): someone in their circle, someone new they name, or nobody (tester feedback,
+2026-10-25). Children keep v0.14's limits: words only, and with the adult side of
 life on nothing about them goes in a chat prompt (families.withheld). No model decides anything.
 """
 import re
@@ -65,6 +68,13 @@ PARTNER_ODDS = ((35, 0.2), (27, 0.12))
 PARENT_FROM = 19
 # Days at the least between the birthdays of a brother and sister who aren't twins.
 SPACING = 300
+# Children the user adds by hand (`add`): at most this many at once, and none who would make the companion a parent
+# before this age.
+BY_HAND_MOST = 8
+PARENT_YOUNGEST = 16
+# Who can be the kids' other parent (`others`): someone they had them with or are with now.
+PARTNER_WORDS = ('partner', 'wife', 'husband', 'spouse', 'girlfriend', 'boyfriend', 'fiancée', 'fiancé')
+OTHER_ROLES = ('co-parent', 'ex', 'ex-wife', 'ex-husband', 'ex-partner', *PARTNER_WORDS)
 
 _KIDS = (r'(?:kids?|children|child|step-?(?:sons?|daughters?|kids?|children|child)|sons?|daughters?|boys?|girls?|'
          r'toddlers?|newborns?|teenagers?|teens?)')
@@ -371,8 +381,9 @@ def born_on(age: int, seed: str, today: date) -> date:
 
 
 def add_kid(connection, companion: dict, world, kid: dict, index: int, now, parent_id: str | None = None,
-            mark: str | None = None) -> None:
-    """One child into `circle_children`: the companion's own (`parent_id` None), or a partner's."""
+            mark: str | None = None, by_hand: bool = False) -> None:
+    """One child into `circle_children`: the companion's own (`parent_id` None), or a partner's; `by_hand` one the
+    user added."""
     timeline_id, today = companion['active_timeline_id'], steps.local_today(companion, now)
     seed = f"kids:{timeline_id}:{parent_id or companion['id']}:{index}"
     sex = kid.get('pronouns') or ('she/her' if generators().unit(seed, 'sex') < 0.49 else 'he/him')
@@ -384,10 +395,10 @@ def add_kid(connection, companion: dict, world, kid: dict, index: int, now, pare
                                                  families.taken_names(connection, companion))
     connection.execute(
         'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, born_on, status, '
-        "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'born', ?, ?)",
+        "by_hand, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'born', ?, ?, ?)",
         (identifier(), timeline_id, parent_id or companion['id'], mark or f'{MARK}{timeline_id}', name, sex,
-         'friend' if parent_id else 'family', born.isoformat() if isinstance(born, date) else born, stamp(now),
-         stamp(now)))
+         'friend' if parent_id else 'family', born.isoformat() if isinstance(born, date) else born, int(by_hand),
+         stamp(now), stamp(now)))
 
 
 def apart(connection, companion: dict, kid: dict, seed: str, today: date, parent_id: str, mark: str) -> date:
@@ -844,14 +855,16 @@ def view(connection, companion: dict, world, now, show_odds: bool) -> dict:
     row = settle(connection, companion, world, now)
     kids = own(connection, companion['active_timeline_id']) if row else []
     if not row or not kids:
-        return {'shown': False}
+        return {'shown': False, 'can_add': bool(row) and can_add(companion)}
     today = steps.local_today(companion, now)
     pattern, how = pattern_of(connection, row)
     other = circle.person(connection, row['other_id']) if row['other_id'] else None
     labels = {'name': first(companion['version']['definition']['name']), 'other': first(other['name']) if other else ''}
     keys = [key for key in PATTERNS if fits(row, key)]
     return {'shown': True, 'how': row['how'], 'kids': [kid_view(kid, today) for kid in kids],
-            'other': {'name': other['name'], 'role': other['role']} if other else None,
+            'can_add': can_add(companion) and len(kids) < BY_HAND_MOST,
+            'other': other_view(other) if other else None,
+            'others': [other_view(person) for person in others(connection, row)],
             'pattern': pattern, 'pattern_how': how,
             'patterns': [{'key': key, 'label': PATTERN_LABELS[key].format(**labels)} for key in keys],
             'pattern_consequence_id': row['pattern_consequence_id'] if show_odds else None,
@@ -871,7 +884,24 @@ def meeting(connection, companion: dict) -> str | None:
 def kid_view(kid: dict, today: date) -> dict:
     return {'id': kid['id'], 'name': kid['name'], 'pronouns': kid['pronouns'], 'born_on': kid['born_on'],
             'age': families.age_of(kid, today), 'age_text': families.age_text(kid, today),
-            'relation': {'she/her': 'daughter', 'he/him': 'son'}.get(kid['pronouns'], 'child')}
+            'relation': {'she/her': 'daughter', 'he/him': 'son'}.get(kid['pronouns'], 'child'),
+            'by_hand': bool(kid['by_hand'])}
+
+
+def other_view(person: dict) -> dict:
+    """Their other parent, or someone who could be: `made` when the app made them for the kids (renamed in place when
+    the user names someone else, `set_other`), `made_up` when nobody named them either."""
+    details = decode(person['details'])
+    return {'id': person['id'], 'name': person['name'], 'role': person['role'], 'made': bool(details.get('co_parent')),
+            'made_up': bool(details.get('co_parent')) and not details.get('sheet') and not details.get('by_hand')}
+
+
+def others(connection, row: dict) -> list[dict]:
+    """Who in their circle could be the kids' other parent: the one who is, then an ex, a co-parent or a partner."""
+    people = circle.people(connection, row['timeline_id'])
+    fit = [person for person in people if person['id'] != row['other_id'] and
+           (person['role'] in OTHER_ROLES or decode(person['details']).get('co_parent'))]
+    return [person for person in people if person['id'] == row['other_id']] + fit
 
 
 def fits(row: dict, pattern: str) -> bool:
@@ -913,6 +943,129 @@ def bring_back(connection, row: dict, kid_id: str, now) -> None:
                        (encode(removed), stamp(now), row['timeline_id']))
 
 
+# By hand ------------------------------------------------------------------------------------------------------------
+
+def can_add(companion: dict) -> bool:
+    """Whether the user can add a child of theirs: never for a companion who reads as under 18 (`may_have`)."""
+    return ACTIVE and bool(companion.get('active_timeline_id')) and may_have(companion['version']['definition'])
+
+
+def add(connection, companion: dict, world, now, name: str | None = None, age: int | None = None,
+        pronouns: str | None = None) -> None:
+    """A child of theirs the user adds by hand, the way a pet is added: the name, age and whether they're a son or
+    daughter the app picks when left out, as for any child of theirs (`add_kid`). The first child of someone with
+    none gets an other parent the way kids from their description do (`other_for`: the ex or partner it names, else
+    someone seeded; nobody when it says they were widowed), and the engine says where they live."""
+    require(can_add(companion), "They can't have children of their own.", 422)
+    row = settle(connection, companion, world, now)
+    require(row is not None, "They can't have children of their own.", 422)
+    timeline_id, today = row['timeline_id'], steps.local_today(companion, now)
+    require(len(own(connection, timeline_id)) < BY_HAND_MOST, f'They have {BY_HAND_MOST} children already.', 422)
+    kid = {'name': kid_name(connection, timeline_id, name), 'pronouns': pronouns,
+           'age': kid_age(connection, companion, age, today)}
+    every = own(connection, timeline_id, include_ended=True)
+    if not every and not row['other_id']:
+        found = described(companion['version']['definition'])
+        if other := other_for(connection, companion, world, found, [], now):
+            connection.execute('UPDATE companion_kids SET other_id=?, pattern=?, chosen=NULL, updated_at=? '
+                               'WHERE timeline_id=?', (other['id'], first_pattern(found, other), stamp(now), timeline_id))
+            if not row_pattern_fixed(found, other):
+                custody_outcome(connection, companion, record(connection, timeline_id), now)
+    add_kid(connection, companion, world, kid, len(every), now, by_hand=True)
+
+
+def edit(connection, companion: dict, kid_id: str, now, name: str | None = None, age: int | None = None,
+         pronouns: str | None = None) -> None:
+    """The user changes a child's name, age (their birthday stays the same day of the year) or whether they're a son
+    or daughter. A child renamed from the name their description gives isn't brought back under the old one
+    (`add_described`)."""
+    row = record(connection, companion['active_timeline_id'])
+    require(row is not None, 'They have no children to change.', 404)
+    kid = optional(connection, "SELECT * FROM circle_children WHERE id=? AND storyline_id=? AND status='born'",
+                   (kid_id, f"{MARK}{row['timeline_id']}"))
+    require(kid is not None, 'That child is not one of theirs.', 404)
+    today = steps.local_today(companion, now)
+    renamed = kid_name(connection, row['timeline_id'], name, kid['id']) or kid['name']
+    if first(renamed) != first(kid['name']) and first(kid['name']) not in decode(row['removed']):
+        connection.execute('UPDATE companion_kids SET removed=?, updated_at=? WHERE timeline_id=?',
+                           (encode([*decode(row['removed']), first(kid['name'])]), stamp(now), row['timeline_id']))
+    born = date.fromisoformat(kid['born_on'])
+    if (aged := kid_age(connection, companion, age, today)) is not None and aged != families.age_of(kid, today):
+        born = ages.born_from(aged, born.strftime('%m-%d'), today)
+    connection.execute('UPDATE circle_children SET name=?, pronouns=?, born_on=?, updated_at=? WHERE id=?',
+                       (renamed, pronouns or kid['pronouns'], born.isoformat(), stamp(now), kid['id']))
+
+
+def kid_name(connection, timeline_id: str, name: str | None, kid_id: str | None = None) -> str | None:
+    """A name the user gave, tidied; None when they left it empty. Never one a brother or sister of theirs has."""
+    name = ' '.join((name or '').split())
+    if not name:
+        return None
+    taken = {first(kid['name']).casefold() for kid in own(connection, timeline_id) if kid['id'] != kid_id}
+    require(first(name).casefold() not in taken, f'They already have a child called {first(name)}.', 409)
+    return name
+
+
+def kid_age(connection, companion: dict, age: int | None, today: date) -> int | None:
+    if age is None:
+        return None
+    require(0 <= age < GROWN, 'A child of theirs is 17 or under. Add a grown son or daughter to their circle.', 422)
+    require(companion_age(connection, companion, today) - age >= PARENT_YOUNGEST,
+            f"That's older than a child of {first(companion['version']['definition']['name'])}'s could be.", 422)
+    return age
+
+
+def set_other(connection, companion: dict, world, now, other: str, name: str | None = None,
+              pronouns: str | None = None) -> None:
+    """Who the kids' other parent is: 'none' (raising them on their own), someone in their circle (`others`), or
+    'new', someone the user names. Someone the app made for the kids is renamed in place for 'new' rather than a
+    second person made, and leaves their circle when someone already in it is picked instead."""
+    row = record(connection, companion['active_timeline_id'])
+    require(row is not None, 'They have no children to change.', 404)
+    current = circle.person(connection, row['other_id']) if row['other_id'] else None
+    made = current is not None and bool(decode(current['details']).get('co_parent'))
+    if other == 'new':
+        name = ' '.join((name or '').split())
+        require(bool(name), 'Give their other parent a name.', 422)
+        person_id = rename_other(connection, current, name, pronouns, now) if made else \
+            add_other(connection, companion, world, {'name': name, 'pronouns': pronouns}, now)
+    elif other == 'none':
+        person_id = None
+    else:
+        require(other in {person['id'] for person in others(connection, row)},
+                'Pick someone in their circle, someone new or nobody.', 422)
+        person_id = other
+    if made and person_id != current['id'] and current['role'] == 'co-parent':
+        circle.set_status(connection, current['id'], 'removed', now)
+    place_kids(connection, companion, row, person_id, now)
+
+
+def rename_other(connection, person: dict, name: str, pronouns: str | None, now) -> str:
+    details = {key: value for key, value in decode(person['details']).items() if key not in ('full_name', 'sheet')}
+    details |= ({'full_name': name} if ' ' in name else {}) | ({'pronouns': pronouns} if pronouns else {}) | {'by_hand': True}
+    connection.execute('UPDATE circle_people SET name=?, details=?, revision=revision+1, updated_at=? WHERE id=?',
+                       (first(name), encode(details), stamp(now), person['id']))
+    return person['id']
+
+
+def place_kids(connection, companion: dict, row: dict, person_id: str | None, now) -> None:
+    """Where the kids live once their other parent changed: on their own with nobody; all together with a partner;
+    else as before, or as the engine picks (kids:custody) when it hadn't."""
+    if person_id is None:
+        connection.execute("UPDATE companion_kids SET other_id=NULL, pattern='sole', chosen=NULL, "
+                           'pattern_consequence_id=NULL, updated_at=? WHERE timeline_id=?', (stamp(now), row['timeline_id']))
+        return
+    together = circle.person(connection, person_id)['role'] in PARTNER_WORDS
+    pattern = 'together' if together else row['pattern'] if row['pattern'] not in ('sole', 'together') else 'with_them'
+    chosen = row['chosen'] if row['chosen'] not in ('sole', 'together') and not together else None
+    connection.execute('UPDATE companion_kids SET other_id=?, pattern=?, chosen=?, pattern_consequence_id=?, '
+                       'updated_at=? WHERE timeline_id=?',
+                       (person_id, pattern, chosen, None if together else row['pattern_consequence_id'], stamp(now),
+                        row['timeline_id']))
+    if not together and not row['pattern_consequence_id'] and row['pattern'] in ('sole', 'together'):
+        custody_outcome(connection, companion, record(connection, row['timeline_id']), now)
+
+
 def change(connection, companion: dict, consequence_id: str, option: int, now) -> dict:
     """The user makes a decision go another way (Hidden values): where the kids live follows the pick (`pattern_of`);
     kids:has taken back to none takes away the children the engine gave them, and turned to kids gives them some the next
@@ -920,7 +1073,9 @@ def change(connection, companion: dict, consequence_id: str, option: int, now) -
     outcome = consequences.change(connection, consequence_id, option, stamp(now))
     row = optional(connection, 'SELECT * FROM companion_kids WHERE consequence_id=?', (consequence_id,))
     if outcome['choice'] == 'kids:has' and row:
-        connection.execute('DELETE FROM circle_children WHERE storyline_id=?', (f"{MARK}{row['timeline_id']}",))
+        # The kids the user added by hand are theirs to keep or take out, whatever the engine's pick.
+        connection.execute('DELETE FROM circle_children WHERE storyline_id=? AND by_hand=0',
+                           (f"{MARK}{row['timeline_id']}",))
         connection.execute('UPDATE companion_kids SET how=?, removed=?, updated_at=? WHERE timeline_id=?',
                            ('seeded' if option == 1 else 'none', encode([]), stamp(now), row['timeline_id']))
     return consequences.by_id(connection, consequence_id)
@@ -963,6 +1118,6 @@ def copy(connection, parent_id: str, new_id: str, ids: dict) -> None:
             if parent:
                 connection.execute(
                     'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, '
-                    'born_on, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    'born_on, status, by_hand, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     (identifier(), new_id, parent, new_mark, kid['name'], kid['pronouns'], kid['title'], kid['born_on'],
-                     kid['status'], kid['created_at'], kid['updated_at']))
+                     kid['status'], kid['by_hand'], kid['created_at'], kid['updated_at']))

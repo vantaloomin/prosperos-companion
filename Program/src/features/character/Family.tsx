@@ -9,7 +9,7 @@ import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
 import { STEPS_KEY, stepDate } from './stepsText'
 import { FAMILY_KEY, KIDS_KEY, OURS_KEY, appPick, arrivalText, decidedHint, journeyLine, nameHint, outcomeSummary, routeHint, splitLine, wantsHint } from './familyText'
-import { Kids, KidsUndo, type Removed } from './Kids'
+import { Kids, KidsUndo, NoKids, type Removed } from './Kids'
 import { HowItWent, OurChildren } from './OurChildren'
 
 type FamilyChange = { wants?: string; route?: string; decided?: boolean; name?: string }
@@ -20,19 +20,27 @@ type Save = (change: FamilyChange) => void
  * (companion/life/kids.py), and your own children with them (companion/life/our_child.py). The app picks each one;
  * the user can change it. */
 export function Family({ name }: { name: string }) {
-  const { error, view, theirs, own } = useFamily()
+  const { error, view, theirs, own, canAdd } = useFamily()
   const [removed, setRemoved] = useState<Removed>(null)
   if (error) return <ErrorNotice error={error} />
-  if (!view && !theirs && !own && !removed) return null
+  if (!(view || theirs || own || removed || canAdd)) return null
   return (
     <section id="family" className="home-panel steps-panel family-panel" aria-labelledby="family-heading">
       <h2 id="family-heading">Family</h2>
       {theirs ? <Kids view={theirs} name={name} removed={removed} setRemoved={setRemoved} />
-        : <KidsUndo removed={removed} setRemoved={setRemoved} />}
+        : <NoKidsYet name={name} canAdd={canAdd} removed={removed} setRemoved={setRemoved} />}
       {own && <OurChildren view={own} family={view} name={name} howItWent={(child) => <Arrival child={child} journey={view?.journey} name={name} />} />}
       <Together view={view} own={own} name={name} headed={Boolean(theirs || own)} />
     </section>
   )
+}
+
+/** With none of their own: undo for the last one taken out, and a way to add one by hand. */
+function NoKidsYet({ name, canAdd, removed, setRemoved }: { name: string; canAdd: boolean; removed: Removed; setRemoved: (removed: Removed) => void }) {
+  return <>
+    <KidsUndo removed={removed} setRemoved={setRemoved} />
+    {canAdd && <NoKids name={name} />}
+  </>
 }
 
 /** What they want and a family together; while you two are split up, one line saying it comes back. */
@@ -48,6 +56,7 @@ function useFamily() {
   const ours = useQuery({ queryKey: OURS_KEY, queryFn: () => api<OursView>('/life/steps/ours') })
   return {
     error: query.error, view: shownOnly(query.data), theirs: shownOnly(kids.data), own: shownOnly(ours.data),
+    canAdd: Boolean(kids.data?.can_add),
   }
 }
 

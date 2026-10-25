@@ -372,6 +372,9 @@ ADDED_COLUMNS = (
     ('life_settings', 'inner_voice', 'INTEGER NOT NULL DEFAULT 2 CHECK (inner_voice BETWEEN 0 AND 3)'),
     # Words that fit the era (companion/world/era_words.py, Settings > General > Appearance): on unless turned off.
     ('workspace_settings', 'period_words', 'INTEGER NOT NULL DEFAULT 1 CHECK (period_words IN (0, 1))'),
+    # Companions who already have kids (companion/life/kids.py): a child of theirs the user added by hand, kept when
+    # the engine's kids:has is changed.
+    ('circle_children', 'by_hand', 'INTEGER NOT NULL DEFAULT 0 CHECK (by_hand IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
