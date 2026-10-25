@@ -115,3 +115,16 @@ def test_meeting_someone_of_another_kind_says_so():
     assert ', an Elf, who ' in encounters.line(elf, data, 0, place, date(2026, 10, 25))
     human = next(sheet for index in range(40) if not (sheet := townsfolk.person(data, place, index)).get('folk'))
     assert townsfolk.folk_label(data, human) is None and townsfolk.folk_words(data, human) == ''
+
+
+def test_a_kind_can_weigh_its_own_pronouns_and_grandports_elves_are_mostly_women():
+    data = catalog.city('grandport')
+    elves = [generators.name(data, seed=seed, age=30)['pronouns'] for seed in (f'e{n}' for n in range(4000))
+             if generators.kind_of(data, seed) == 'elf']
+    assert len(elves) > 100 and elves.count('she/her') / len(elves) > 0.7
+    # Humans there keep the town's usual mix.
+    humans = [generators.name(data, seed=f'h{n}', age=30)['pronouns'] for n in range(600)
+              if generators.kind_of(data, f'h{n}') == 'human']
+    assert 0.35 < humans.count('she/her') / len(humans) < 0.6
+    bad = city('baltimore', {'vulcan': VULCAN | {'share': 0.2, 'pronouns': {'she': 1, 'it': 2}}})
+    assert 'vulcan' not in (bad.get('kinds') or {}) and any('pronouns' in note for note in bad['import_notes'])

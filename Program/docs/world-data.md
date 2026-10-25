@@ -192,7 +192,9 @@ scaled down, so nobody is human. A kind listed without a share gets 10% when no 
 more than 30% for all of them together), and none when another kind there does, so `"share": 0` and a missing share
 both mean none in a block that sets shares. Each person's kind is rolled from their seed first, then their name
 group is drawn by `names.mix` weights from the groups tied to that kind (`"kind": "vulcan"`), or from the kind's own
-`groups` list (Camelot's fae take Welsh names), else from the human groups. A city with no `kinds` block draws from
+`groups` list (Camelot's fae take Welsh names), else from the human groups. A kind may also weigh its own
+`pronouns` (`{"she": 0.8, "he": 0.15, "they": 0.05}`, Grandport's elves, most of whom are women); others keep the
+town's usual mix. A city with no `kinds` block draws from
 the whole mix as before. Townsfolk of another kind are named as such when the companion meets them ("Got talking
 with Thalion Mossfall, the barkeep there, an Elf, who ...") and in Around town ("Elf, about 253, industrious; ..."). Built in: Grandport's city elves
 (4%), Camelot's fae (3%), Ellerbrück's dwarves and elves, and the Munchkins, Winkies, Quadlings and Gillikins in the

@@ -896,8 +896,9 @@ CITY = {
  'sources': sources, 'neighborhoods': neighborhoods, 'places': places, 'colleges': colleges,
  'employers': employers, 'career_hubs': career_hubs, 'transit': transit, 'climate': climate,
  'annual_events': annual_events, 'careers': careers, 'names': names, 'local_color': local_color,
- # About one in twenty-five people in town is a city elf (companion/world/lifespans.py `shares`).
- 'kinds': {'elf': {'share': 0.04}},
+ # About one in twenty-five people in town is a city elf (companion/world/lifespans.py `shares`), and most elves
+ # are women: the wiki puts male elves at one in five to one in seventeen.
+ 'kinds': {'elf': {'share': 0.04, 'pronouns': {'she': 0.8, 'he': 0.15, 'they': 0.05}}},
  'prices': prices, 'calendar': 'none', 'holidays': holidays, 'notables': notables, 'water': water,
 }
 if __name__ == '__main__':
