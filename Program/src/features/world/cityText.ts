@@ -52,6 +52,14 @@ export function parseDefinition(text: string): Parsed {
   return { ok: true, value: value as Record<string, unknown> }
 }
 
+/** One of the user's own cities that a city file is a newer copy of (the same id), so opening it updates that city in
+ * place: the worlds there, their companions and every bit of history stay. Pack and built-in ids are read-only here. */
+export function ownCityFor<T extends Pick<CityListing, 'id' | 'origin'>>(text: string, cities: T[]): T | null {
+  const parsed = parseDefinition(text)
+  if (!parsed.ok || typeof parsed.value.id !== 'string') return null
+  return cities.find((city) => city.origin === 'user' && city.id === parsed.value.id) ?? null
+}
+
 /** A release's featured cities (GET /world/featured); `new` while the app is on that release. */
 export interface FeaturedCities<T = CityListing> { release: string; title: string; note: string; new: boolean; cities: (T & { new?: boolean })[] }
 

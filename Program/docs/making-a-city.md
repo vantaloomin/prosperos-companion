@@ -93,3 +93,5 @@ Use real places for a real city. Ids are lowercase with dashes and unique across
 ```
 
 Then open the file with **Settings > Cities > Open a city file** and read the "Along the way:" list for anything the app changed.
+
+To update a city you already have, open the newer file the same way. When its `id` matches one of your cities, the editor opens as an update of that city: saving replaces it in place, so the worlds there keep their companions and all their history. Townsfolk are rebuilt from the city file, so some of the people around town may be different people afterward.

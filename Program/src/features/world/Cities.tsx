@@ -11,14 +11,14 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { isWorldMap, readWorldMap } from './worldMap'
 import { GetLatest } from '../character/Library'
 import { ONLINE_KEY, type OnlineBook } from '../character/libraryText'
-import { cityFacts, definitionOf, exportName, groupNotes, matchesCity, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
+import { cityFacts, definitionOf, exportName, groupNotes, matchesCity, ownCityFor, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
 
 const CITIES_KEY = ['cities']
 const BROKEN_KEY = ['broken-cities']
 // `notes` lists what the server mended or added when it loaded a city (companion/world/mend.py).
 type Feedback = { tone: 'info' | 'error'; text: string; notes?: string[] } | null
 // What the editor is working on: a new city (from the template, a file or a copy) or one of the user's own.
-type Editing = { mode: 'create'; text: string; ship?: boolean } | { mode: 'update'; id: string; revision: number; text: string }
+type Editing = { mode: 'create'; text: string; ship?: boolean } | { mode: 'update'; id: string; revision: number; text: string; file?: { name: string; city: string } }
 
 const pretty = (value: unknown) => JSON.stringify(value, null, 1)
 
@@ -90,9 +90,20 @@ export function Cities() {
   const importFile = async (chosen: File | undefined) => {
     if (!chosen) return
     if (isWorldMap(chosen.name, await chosen.slice(0, 4096).text())) { await importWorldMap(chosen); return }
-    setEditing({ mode: 'create', text: await chosen.text() })
-    setFeedback({ tone: 'info', text: `Opened ${chosen.name}. Check it, change the id if you need to, then save it as one of your cities.` })
+    const text = await chosen.text()
     if (file.current) file.current.value = ''
+    // A newer copy of one of the user's cities (an updated pack someone shared) replaces it in place.
+    const own = ownCityFor(text, cities.data ?? [])
+    if (own) {
+      try {
+        const current = await api<{ revision: number }>(`/world/cities/${own.id}`)
+        setEditing({ mode: 'update', id: own.id, revision: current.revision, text, file: { name: chosen.name, city: own.name } })
+        setFeedback({ tone: 'info', text: `${chosen.name} is a newer ${own.name}. Save to update it in place. Worlds there keep their companions and all their history, though some townsfolk around town may be different people now.` })
+      } catch (error) { fail(error) }
+      return
+    }
+    setEditing({ mode: 'create', text })
+    setFeedback({ tone: 'info', text: `Opened ${chosen.name}. Check it, change the id if you need to, then save it as one of your cities.` })
   }
   // A Marinara world map becomes a city and world lore straight away, with no editor step (companion/world/marinara.py).
   const importWorldMap = async (chosen: File) => {
@@ -131,7 +142,7 @@ export function Cities() {
       </div>
       <div aria-live="polite">{feedback && <FeedbackNotice feedback={feedback} />}</div>
       {editing && <CityEditor editing={editing} onClose={() => setEditing(null)}
-        onSaved={(saved) => { setEditing(null); setFeedback({ tone: 'info', text: `Saved ${saved.name}.`, notes: saved.import_notes }); void refresh() }} />}
+        onSaved={(saved) => { const updated = editing.mode === 'update' && editing.file; setEditing(null); setFeedback({ tone: 'info', text: updated ? `Updated ${saved.name} in place.` : `Saved ${saved.name}.`, notes: saved.import_notes }); void refresh() }} />}
       {cities.isPending && <Loading label="Loading cities" />}
       {cities.isError && <ErrorNotice error={cities.error} />}
       {broken.data?.map((city) => (
@@ -267,7 +278,7 @@ function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: 
   }
   return (
     <div className="city-editor form-stack">
-      <h3>{editing.mode === 'create' ? (editing.ship ? 'New ship' : 'New city') : `Editing ${editing.id}`}</h3>
+      <h3>{editing.mode === 'create' ? (editing.ship ? 'New ship' : 'New city') : editing.file ? `Updating ${editing.file.city} from ${editing.file.name}` : `Editing ${editing.id}`}</h3>
       <p className="subtle" id="city-json-hint">{editing.mode === 'create' && editing.ship ? 'A ship is a city file with "enclosed": true, so it has no weather or cars. Its decks are its neighborhoods, and every place and employer names its deck.' : 'A city is a JSON file. Every place, college and employer names its neighborhood.'} New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
       <label htmlFor="city-json" className="visually-hidden">City definition</label>
       <textarea id="city-json" aria-describedby="city-json-hint" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
