@@ -1,0 +1,31 @@
+{
+ "schema_version": 1,
+ "note": "What a place of each kind is like unless its entry says otherwise: cost, indoors or out, who it suits and when it is open (companion/world/draft).",
+ "kinds": {
+  "attraction": {"cost": "$$", "setting": "mixed", "good_for": ["friends", "date", "family"], "day_parts": ["morning", "afternoon"]},
+  "museum": {"cost": "$", "setting": "indoor", "good_for": ["solo", "friends", "date", "family"], "day_parts": ["morning", "afternoon"]},
+  "park": {"cost": "free", "setting": "outdoor", "good_for": ["solo", "friends", "date", "family"], "day_parts": ["morning", "afternoon", "evening"]},
+  "beach": {"cost": "free", "setting": "outdoor", "good_for": ["solo", "friends", "date", "family"], "day_parts": ["morning", "afternoon"]},
+  "landmark": {"cost": "free", "setting": "outdoor", "good_for": ["solo", "friends", "date", "family"], "day_parts": ["morning", "afternoon", "evening"]},
+  "venue": {"cost": "$$", "setting": "indoor", "good_for": ["friends", "date"], "day_parts": ["evening", "late"]},
+  "stadium": {"cost": "$$", "setting": "outdoor", "good_for": ["friends", "family", "coworkers"], "day_parts": ["afternoon", "evening"]},
+  "market": {"cost": "$", "setting": "mixed", "good_for": ["solo", "friends", "family"], "day_parts": ["morning", "afternoon"]},
+  "shopping": {"cost": "$$", "setting": "indoor", "good_for": ["solo", "friends"], "day_parts": ["morning", "afternoon"]},
+  "restaurant": {"cost": "$$", "setting": "indoor", "good_for": ["friends", "date", "family", "coworkers"], "day_parts": ["afternoon", "evening"]},
+  "cafe": {"cost": "$", "setting": "indoor", "good_for": ["solo", "friends", "coworkers"], "day_parts": ["morning", "afternoon"]},
+  "bar": {"cost": "$$", "setting": "indoor", "good_for": ["friends", "date", "coworkers"], "day_parts": ["evening", "late"]},
+  "nightlife": {"cost": "$$", "setting": "indoor", "good_for": ["friends", "date"], "day_parts": ["late"]},
+  "fitness": {"cost": "$", "setting": "indoor", "good_for": ["solo", "friends"], "day_parts": ["morning", "evening"]},
+  "library": {"cost": "free", "setting": "indoor", "good_for": ["solo"], "day_parts": ["morning", "afternoon"]},
+  "trail": {"cost": "free", "setting": "outdoor", "good_for": ["solo", "friends", "date"], "day_parts": ["morning", "afternoon"]},
+  "vet": {"cost": "$$", "setting": "indoor", "good_for": ["solo"], "day_parts": ["morning", "afternoon"]},
+  "tavern": {"cost": "$", "setting": "indoor", "good_for": ["solo", "friends", "coworkers"], "day_parts": ["evening", "late"]},
+  "inn": {"cost": "$$", "setting": "indoor", "good_for": ["friends", "date", "family"], "day_parts": ["afternoon", "evening"]},
+  "temple": {"cost": "free", "setting": "indoor", "good_for": ["solo", "family"], "day_parts": ["morning"]},
+  "guildhall": {"cost": "free", "setting": "indoor", "good_for": ["coworkers", "friends"], "day_parts": ["afternoon", "evening"]},
+  "workshop": {"cost": "$", "setting": "indoor", "good_for": ["solo", "coworkers"], "day_parts": ["morning", "afternoon"]},
+  "square": {"cost": "free", "setting": "outdoor", "good_for": ["solo", "friends", "family", "date"], "day_parts": ["morning", "afternoon", "evening"]},
+  "docks": {"cost": "free", "setting": "outdoor", "good_for": ["solo", "coworkers"], "day_parts": ["morning", "afternoon"]},
+  "garden": {"cost": "free", "setting": "outdoor", "good_for": ["solo", "date", "family"], "day_parts": ["morning", "afternoon"]}
+ }
+}

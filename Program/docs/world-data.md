@@ -383,6 +383,44 @@ travels only to its neighbours, and nobody visits one that does not list them. `
 Built-in cities cannot be changed or deleted, only copied. A user city's `data_version` is a hash
 of its content, so editing it changes the version later events record.
 
+## Prospero's Draft Table: a place from one line
+
+`companion/world/draft` builds a whole place from one line, such as "a cold fishing town on a northern coast,
+1920s", "an elven forest city" or "a generation ship". It is the engine of Prospero's Draft Table, the location
+builder; its own window comes later, and until then the files it makes open through **Settings > Cities > Open a
+city file** like any other.
+
+    python -m companion.world.draft "a cold fishing town, 1920s" --seed 3 -o wareholme.json
+
+`POST /api/world/draft` `{"line", "seed", "rolls"}` returns `{"definition", "brief", "summary", "notes",
+"warnings"}` and saves nothing; save the definition with `POST /api/world/cities`.
+
+Rules and seeds only, no model, following the guiding rule: nothing is asked, the line decides what it can and the
+seed decides the rest, and the user changes anything afterwards.
+
+- **Reading the line** (`brief.py`): the era from its words or a year (no era words means today; an empty line
+  picks one), a ship or station only in the future (a railway station in 1880 stays on the ground), sea, river or
+  lake, climate, size (village to great city), a name after "called" or in quotes, and the built-in city of the same
+  era it sits near (one the line names by city, region or country, else the era's own: Camelot, Ellerbrück,
+  London 1895, Calderwick, Whitlock, Pellmouth, Port Vesper, or Long Meridian aboard).
+- **Laying it out** (`layout.py`): the heart of town, the waterside quarter its water calls for, then a market,
+  homes, works, the well-off and the poor, green edges, learning and nightlife until the size; decks in a line
+  aboard. The sea, river or lake goes on the drawn map.
+- **Filling it** (`fill.py`): each neighbourhood's places from its bank entry, employers hiring the era's careers by
+  sector, a career hub for each working quarter, a college where there is a learning quarter, transit for the era,
+  yearly events, local colour and a 12-month climate (none aboard; the app gives ships their own).
+- **From the city it sits near**: money, rent per tier, prices (with their sources), holidays, residents' names,
+  era words and kinds of people; careers come from the era's city.
+- **Same line, same place**: the same line and seed always give the same file. `rolls` (`{"places": 1}`) redraws
+  one section (`name`, `hoods`, `places`, `employers`, `transit`, `events`, `colour`) and leaves the rest alone.
+
+Banks live in `companion/world/data/draft/`: `places/` and `hoods/` by era group (old, 1800s, 1920s, modern,
+future), `employers.json`, `events.json`, `colour.json`, `transit.json`, `kinds.json` (what each kind of place is
+like by default) and `words.json` (inn signs, street words, town-name parts, star names, saints). Every era draws
+from at least 100 places, and the other banks hold at least 100 entries each. An entry can narrow itself with
+`eras`, `water` or `aboard`. Every drafted place loads with nothing to mend and no thin-spot warnings
+(`tests/test_draft_table.py`).
+
 ## City packs
 
 A city pack is one city JSON file (the same schema) dropped into a pack folder. Packs load at start,

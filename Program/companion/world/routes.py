@@ -10,7 +10,7 @@ from companion.clock import zone
 from companion.errors import require
 from companion.life import network
 from companion.models import Input, WorldMapImport
-from companion.world import catalog, changes, custom, era_words, generators, marinara, townsfolk
+from companion.world import catalog, changes, check, custom, draft, era_words, generators, marinara, townsfolk
 from companion.world.schema import PlaceKind
 from companion.world.source import CatalogWorld
 
@@ -28,6 +28,14 @@ class CityRevision(Input):
 class CityCopy(Input):
     id: str = Field(pattern=r'^[a-z0-9]+(-[a-z0-9]+)*$', max_length=80)
     name: str = Field(min_length=1, max_length=400)
+
+
+class Draft(Input):
+    """One line describing a place, for Prospero's Draft Table (companion/world/draft)."""
+    line: str = Field('', max_length=400)
+    seed: str = Field('', max_length=40)
+    # Redraw these sections (places, employers, events, colour, transit, hoods, name) this many times over.
+    rolls: dict[Literal[draft.SECTIONS], int] = Field(default_factory=dict)
 
 
 class CityChange(Input):
@@ -98,6 +106,15 @@ def reload_packs():
 @router.get('/template')
 def read_template(request: Request, kind: Literal['city', 'ship'] = 'city'):
     return custom.template(request.app.state.database.now()[:10], kind)
+
+
+@router.post('/draft')
+def draft_city(request: Request, body: Draft):
+    """A whole place built from one line, as a city file to look over, change and save; nothing is saved here."""
+    built = draft.build(body.line, body.seed, body.rolls, request.app.state.database.now()[:10])
+    loaded = custom.check(built['city'])
+    return {'definition': built['city'], 'brief': built['brief'], 'summary': catalog.summary(loaded),
+            'notes': loaded.get('import_notes', []), 'warnings': check.warnings(loaded)}
 
 
 @router.post('/validate')
