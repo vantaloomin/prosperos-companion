@@ -42,6 +42,11 @@ PROGRAM_ENV = 'COMPANION_SHERPA_TTS'
 MODEL_ENV = 'COMPANION_KOKORO_MODEL'
 DOWNLOAD_SECONDS = 1800
 SPEAK_SECONDS = 180
+# What onnxruntime prints when the program ends up with an older onnxruntime than its own, such as the copy Windows 11
+# keeps in System32 for its own AI features.
+MISMATCH = ('requested API version', 'ORT Version')
+MISMATCH_MESSAGE = ('The built-in voice picked up an older copy of onnxruntime, a file it needs, from elsewhere on this '
+                    'PC. Repair the built-in voice to put its own copy back.')
 
 
 def platform_key() -> str | None:
@@ -74,8 +79,24 @@ def command(program: str, model: Path, speaker: int, output: Path, text: str) ->
 
 
 def run(arguments: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(arguments, capture_output=True, timeout=SPEAK_SECONDS, check=False,
-                          creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    """Runs the program from its own folder, with that folder first on its PATH, so its own libraries load."""
+    folder = Path(arguments[0]).parent
+    path = os.pathsep.join([str(folder), str(folder.parent / 'lib'), os.environ.get('PATH', '')])
+    return subprocess.run(arguments, capture_output=True, timeout=SPEAK_SECONDS, check=False, cwd=folder,
+                          env={**os.environ, 'PATH': path}, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+
+
+def place_libraries(program: Path):
+    """Puts any of the download's DLLs missing beside the program back there, from its lib folder.
+
+    Windows looks beside a program for its DLLs first and then in System32, so a missing onnxruntime.dll (an antivirus
+    can take it) means Windows 11's own, older copy loads instead and the program fails.
+    """
+    library = program.parent.parent / 'lib'
+    for source in library.glob('*.dll') if library.is_dir() else ():
+        target = program.parent / source.name
+        if not target.is_file() or target.stat().st_size != source.stat().st_size:
+            shutil.copy2(source, target)
 
 
 class Kokoro:
@@ -87,6 +108,8 @@ class Kokoro:
         self.runner = runner or run
         self.downloading = False
         self.error = ''
+        # Set when the program loaded someone else's onnxruntime; cleared by repairing.
+        self.broken = False
         self.lock = asyncio.Lock()
 
     # --- what is installed ---------------------------------------------------------------------
@@ -107,7 +130,7 @@ class Kokoro:
                                                                           MODEL_FILES)), None)
 
     def ready(self) -> bool:
-        return self.program() is not None and self.model() is not None
+        return not self.broken and self.program() is not None and self.model() is not None
 
     def download_mb(self) -> int | None:
         runtime = RUNTIMES.get(platform_key())
@@ -116,7 +139,7 @@ class Kokoro:
         return round(((0 if self.program() else runtime[1]) + (0 if self.model() else MODEL[1])) / 1e6)
 
     def status(self) -> dict:
-        return {'ready': self.ready(), 'available': platform_key() in RUNTIMES or self.ready(),
+        return {'ready': self.ready(), 'repair': self.broken, 'available': platform_key() in RUNTIMES or self.ready(),
                 'download_mb': self.download_mb(), 'downloading': self.downloading, 'error': self.error,
                 'version': VERSION}
 
@@ -142,6 +165,15 @@ class Kokoro:
         require(self.ready(), 'The download did not contain the built-in voice.', 502)
         return self.status()
 
+    async def repair(self) -> dict:
+        """Downloads the program again in place of the one on disk, keeping the voice model."""
+        require(not self.downloading, 'The built-in voice is already downloading.', 409)
+        require(not os.environ.get(PROGRAM_ENV), f'The built-in voice uses your own program from {PROGRAM_ENV}, '
+                'so the Companion cannot repair it.', 409)
+        await asyncio.to_thread(shutil.rmtree, self.folder / 'sherpa-onnx' / VERSION, True)
+        self.broken = False
+        return await self.install()
+
     async def fetch(self, path: str, size: int, digest: str, destination: Path):
         archive = await self.download(path, size, digest)
         await asyncio.to_thread(unpack, archive, destination)
@@ -154,7 +186,8 @@ class Kokoro:
             async with httpx.AsyncClient(transport=self.transport, timeout=DOWNLOAD_SECONDS, follow_redirects=True,
                                          trust_env=True) as client:
                 async with client.stream('GET', f'{RELEASES}/{path}') as response:
-                    require(response.status_code == 200, f'The voice download failed ({response.status_code}).', 502)
+                    require(response.status_code == 200, 'The built-in voice did not download. Check your internet '
+                            f'connection, then try again (error {response.status_code}).', 502)
                     with target.open('wb') as file:
                         async for chunk in response.aiter_bytes():
                             received += len(chunk)
@@ -178,12 +211,18 @@ class Kokoro:
         output.parent.mkdir(parents=True, exist_ok=True)
         async with self.lock:
             try:
+                if not os.environ.get(PROGRAM_ENV):
+                    await asyncio.to_thread(place_libraries, Path(program))
                 done = await asyncio.to_thread(self.runner, command(program, model, int(voice), output, text))
             except (OSError, subprocess.TimeoutExpired) as error:
                 raise DomainError(f'The built-in voice could not read the note: {error}', 503) from error
         if done.returncode != 0 or not output.is_file():
-            detail = (done.stderr or b'').decode('utf-8', 'replace').strip().splitlines()[-1:] or ['no output']
+            stderr = (done.stderr or b'').decode('utf-8', 'replace')
             output.unlink(missing_ok=True)
+            if all(marker in stderr for marker in MISMATCH):
+                self.broken, self.error = True, MISMATCH_MESSAGE
+                raise DomainError(MISMATCH_MESSAGE, 503)
+            detail = stderr.strip().splitlines()[-1:] or ['no output']
             raise DomainError(f'The built-in voice could not read the note: {detail[0][:300]}', 503)
         return output
 
