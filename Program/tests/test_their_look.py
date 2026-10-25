@@ -165,7 +165,9 @@ def test_about_one_strong_mood_in_three_never_shows(client, companion, clock):
 
 def test_a_new_season_can_change_the_shade_and_leaves_a_line(client, companion, clock, monkeypatch):
     monkeypatch.setattr(their_look, 'drift', lambda companion, today: 2 if today.month >= 12 else 0)
-    monkeypatch.setattr(their_look, 'family_for', lambda companion, picks, level, today: (picks[0], 0))
+    # The same family throughout: their ranked picks can reorder as the facts about them change with the date.
+    kept = {}
+    monkeypatch.setattr(their_look, 'family_for', lambda companion, picks, level, today: (kept.setdefault('family', picks[0]), 0))
     assert look(client)['look']['shade'] == 0
     clock.advance(timedelta(days=60))
     after = look(client)
