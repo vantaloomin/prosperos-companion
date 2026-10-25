@@ -11,8 +11,11 @@ export interface Definition {
   id: string; name: string; summary: string; region: string; country: string; era: string; lat: number; lon: number
   neighborhoods: Hood[]; places: Item[]; employers: Item[]; career_hubs: Hub[]; colleges?: Item[]; transit: Item[]
   annual_events: (Item & { months: number[] })[]; local_color: Colour[]; enclosed?: boolean; water?: CityMapData['water']
+  neighbours?: Neighbour[]
   [key: string]: unknown
 }
+/** Another place of the same world, and the journey there (companion/world/schema.py Neighbour). */
+export interface Neighbour { city: string; hours: number; by?: string }
 /** How the line was read (companion/world/draft/brief.py). */
 export interface Brief { line: string; era: string; group: string; aboard: boolean; water: string | null; biome: string; size: string; year: number | null; name: string | null; anchor: string; donor: string }
 export interface Checked { summary: CityListing; notes: string[]; warnings: string[] }
@@ -29,6 +32,8 @@ export type Rolls = Partial<Record<Section, number>>
 export interface Work {
   line: string; seed: string; rolls: Rolls; definition: Definition; brief: Brief | null; edited: boolean
   saved?: { id: string; revision: number }; summaryEdited?: boolean; gone?: string[]
+  /** What Companion made of a world map it was opened from. */
+  openedNotes?: string[]
 }
 
 /** The lists the table edits, by the key they have in the city file. */
@@ -237,6 +242,25 @@ export const MONTHS = Array.from({ length: 12 }, (_, index) => new Date(Date.UTC
 const KEY = 'draft-table-work'
 /** Saving a place tells Companion's window, which lists the user's cities, to look again. */
 export const CITIES_CHANNEL = 'companion-cities'
+/** The city Companion's window shows when it next opens Settings > Cities (Show in Companion). */
+export const SHOW_CITY_KEY = 'companion-show-city'
+
+/** Journey times a neighbour can be, in hours (the city file takes up to 72). */
+export const JOURNEY_HOURS = [1, 2, 3, 4, 6, 8, 12, 18, 24, 36, 48, 72]
+/** Sections the user's text model can polish (companion/world/draft/polish.py), by the list each rewrites. */
+export const POLISHED: Partial<Record<Section, string>> = { hoods: 'neighborhoods', places: 'places', employers: 'employers', transit: 'ways of getting about', events: 'events', colour: 'pieces of local color' }
+
+export function journey(hours: number): string {
+  return hours < 24 || hours % 24 ? `${hours} ${hours === 1 ? 'hour' : 'hours'}` : `${hours / 24} ${hours === 24 ? 'day' : 'days'}`
+}
+
+/** The neighbours with one changed (`change` null removes it), or a new one at the end. */
+export function changeNeighbour(definition: Definition, index: number, change: Partial<Neighbour> | null): Definition {
+  const list = [...(definition.neighbours ?? [])]
+  if (change === null) list.splice(index, 1)
+  else list[index] = { ...(list[index] ?? { city: '', hours: 2 }), ...change }
+  return { ...definition, neighbours: list }
+}
 
 export function loadWork(): Work | null {
   try {

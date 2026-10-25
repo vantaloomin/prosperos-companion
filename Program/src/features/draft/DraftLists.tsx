@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react'
-import { ChevronDown, Dices, Plus, Trash2 } from 'lucide-react'
+import { useContext, useEffect, useRef, type ReactNode } from 'react'
+import { ChevronDown, Dices, LoaderCircle, Plus, Trash2, WandSparkles } from 'lucide-react'
 import { Field, TextArea, TextInput } from '../../components/Fields'
-import { COLOUR_KINDS, hoodNames, MONTHS, PLACE_KINDS, TRANSIT_KINDS, type Definition, type Item, type ListKey, type Section } from './draftText'
+import { COLOUR_KINDS, hoodNames, MONTHS, PLACE_KINDS, POLISHED, TRANSIT_KINDS, type Definition, type Item, type ListKey, type Section } from './draftText'
+import { PolishContext } from './polishContext'
 
 /** What a list needs from the table: change or remove one of its items, redraw it, and which item is open. */
 export interface ListProps {
@@ -25,8 +26,22 @@ export function ListHead({ title, count, hint, section, onRoll, children }: { ti
       <div className="draft-list-actions">
         {children}
         {onRoll && <button type="button" className="button" onClick={() => onRoll(section)}><Dices aria-hidden="true" />Roll again</button>}
+        <PolishButton section={section} />
       </div>
     </header>
+  )
+}
+
+/** Rewrites the list's names and summaries in the place's voice with the user's text model. */
+function PolishButton({ section }: { section: Section }) {
+  const polish = useContext(PolishContext)
+  if (!polish || !POLISHED[section]) return null
+  const here = polish.polishing === section
+  return (
+    <button type="button" className="button" aria-disabled={polish.polishing !== null} title="Rewrites the names and descriptions in this place's own voice, with your text model"
+      onClick={() => { if (polish.polishing === null) polish.polish(section) }}>
+      {here ? <LoaderCircle aria-hidden="true" className="spin" /> : <WandSparkles aria-hidden="true" />}{here ? 'Polishing…' : 'Polish'}
+    </button>
   )
 }
 

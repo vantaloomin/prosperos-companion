@@ -11,6 +11,7 @@ from companion.errors import require
 from companion.life import network
 from companion.models import Input, WorldMapImport
 from companion.world import catalog, changes, check, custom, draft, era_words, generators, marinara, townsfolk
+from companion.world.draft import polish
 from companion.world.schema import PlaceKind
 from companion.world.source import CatalogWorld
 
@@ -36,6 +37,13 @@ class Draft(Input):
     seed: str = Field('', max_length=40)
     # Redraw these sections (places, employers, events, colour, transit, hoods, name) this many times over.
     rolls: dict[Literal[draft.SECTIONS], int] = Field(default_factory=dict)
+
+
+class Polish(Input):
+    """One section of a Draft Table place for the user's text model to rewrite (companion/world/draft/polish.py)."""
+    definition: dict
+    section: Literal[tuple(polish.LISTS)]
+    line: str = Field('', max_length=400)
 
 
 class CityChange(Input):
@@ -123,6 +131,23 @@ def check_draft(definition: dict):
     loaded = custom.check(definition)
     return {'summary': catalog.summary(loaded), 'notes': loaded.get('import_notes', []),
             'warnings': check.plain_warnings(loaded)}
+
+
+@router.post('/draft/polish')
+async def polish_draft(request: Request, body: Polish):
+    """One section's names and summaries rewritten in the place's voice by the user's text model; nothing is saved."""
+    return await polish.polish(request.app.state, body.definition, body.section, body.line)
+
+
+@router.post('/draft/marinara')
+def draft_from_world_map(request: Request, value: dict):
+    """A Marinara world map as a city file for the Draft Table to change before saving; nothing is saved here."""
+    made = marinara.convert(value, request.app.state.database.now()[:10])
+    notes = made['notes'][:-1] if made['book'] else made['notes']
+    if made['book']:
+        notes.append("Its places' notes are not brought in here. Open the map in Companion under Settings > Cities "
+                     'to bring them in as world lore.')
+    return {'definition': made['city'], 'notes': notes}
 
 
 @router.post('/validate')

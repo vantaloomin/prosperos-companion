@@ -415,8 +415,17 @@ to rename, move, add or remove anything. **Roll again** redraws one list and kee
 (rolling the neighbourhoods or the name draws up the whole place again, after asking if anything was changed). The
 **Check** tab shows what Companion would mend on loading it and its thin spots (`POST /api/world/draft/check` with a
 definition), and **Save to my cities** saves it with the user's own cities; Companion's window, if open, lists it
-straight away. The table keeps the work in progress on that device between visits, and can open any city file to
-change it (without Roll again, since a file has no line).
+straight away, and **Show in Companion** turns that window to the city's card. The table keeps the work in progress
+on that device between visits, and can open any city file, or a Marinara world map (`POST /api/world/draft/marinara`,
+converted as the Settings import does, without its places' notes), to change it (without Roll again, since a file has
+no line). **Nearby places** on the Overview links other cities of the same world with the journey there
+(`neighbours`), for trips and postcards.
+
+**Polish** on a list is the one step that uses a model, and only when the user presses it: the text model set for
+drafting rewrites that list's names and summaries in the place's own voice (`POST /api/world/draft/polish`
+`{"definition", "section", "line"}`, `companion/world/draft/polish.py`). Only names and summaries of items the list
+already has change; ids, kinds, where things are, months, careers and links stay the rules'. The prompt was chosen by
+an A/B over 11 models; **Undo** in the note that follows puts the list back.
 
     python -m companion.world.draft "a cold fishing town, 1920s" --seed 3 -o wareholme.json
 

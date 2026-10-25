@@ -2604,6 +2604,11 @@ p.breakup-line { align-items: center; }
   .draft-page .icon-button:hover:not(:disabled) { background: transparent; color: var(--muted); }
 }
 .draft-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.draft-neighbours { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.draft-neighbours legend { font-weight: 600; padding: 0; margin-bottom: 2px; }
+.draft-neighbour { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 10px; align-items: end; }
+.draft-neighbours > .text-button { align-self: flex-start; }
+.draft-toast-action svg { width: 16px; height: 16px; margin-right: 4px; vertical-align: -3px; }
 .draft-add { margin-top: 6px; min-height: 44px; color: var(--accent); }
 .draft-months { margin: 0; padding: 0; border: 0; } .draft-months legend { margin-bottom: 7px; font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 .draft-months .vibe-pick { min-width: 48px; min-height: 36px; } .draft-months .vibe-pick:disabled { opacity: 1; cursor: default; }
@@ -2625,6 +2630,12 @@ p.breakup-line { align-items: center; }
   .draft-body[data-tab='map'] .draft-map { flex: 1; }
   .draft-panel-body { padding: 16px 16px 40px; }
   .draft-pair { grid-template-columns: 1fr; }
+  /* The toast's text keeps the width; Undo or Show in Companion sit on a row of their own below it. */
+  .draft-toast { flex-wrap: wrap; row-gap: 0; }
+  .draft-toast > span { flex: 1 1 0; min-width: calc(100% - 84px); }
+  .draft-toast-action { order: 3; margin-left: 28px; }
+  .draft-neighbour { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .draft-neighbour > :first-child { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .spin, :root:not([data-motion='full']) .draft-chip-checking svg, :root:not([data-motion='full']) .draft-toast { animation: none; } }
 :root[data-motion='reduce'] :is(.spin, .draft-chip-checking svg) { animation: none; }

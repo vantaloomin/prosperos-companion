@@ -1,5 +1,4 @@
-import { reducedMotion } from '../../motion'
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Download, FilePlus2, FolderSync, Pencil, PencilRuler, Rocket, Search, Trash2, Upload } from 'lucide-react'
 import { api } from '../../api'
@@ -9,6 +8,7 @@ import { TextInput } from '../../components/Fields'
 import { shownPath } from '../../paths'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { isWorldMap, readWorldMap } from './worldMap'
+import { jumpToCity, useShowCity } from './useShowCity'
 import { CITIES_CHANNEL } from '../draft/draftText'
 import { GetLatest } from '../character/Library'
 import { ONLINE_KEY, type OnlineBook } from '../character/libraryText'
@@ -63,6 +63,8 @@ function saveFile(id: string, definition: unknown) {
 export function Cities() {
   const client = useQueryClient()
   const cities = useQuery({ queryKey: CITIES_KEY, queryFn: () => api<CityListing[]>('/world/cities') })
+  // Show in Companion, from Prospero's Draft Table: the saved city's card comes into view.
+  useShowCity(useMemo(() => cities.data?.map((city) => city.id), [cities.data]))
   const featured = useQuery({ queryKey: ['featured-cities'], queryFn: () => api<FeaturedCities>('/world/featured') })
   const broken = useQuery({ queryKey: BROKEN_KEY, queryFn: () => api<BrokenCity[]>('/world/broken-cities') })
   // Books the app can download into the library for a city (the Neokosmos wiki on Grandport's card).
@@ -242,15 +244,7 @@ function CityShelves({ cities, featured, actions, extra }: { cities: CityListing
 
 /** The release's featured cities as a row of compact cards; a card jumps to the city's full card below. */
 function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
-  const jump = (id: string) => {
-    const card = document.getElementById(`city-${id}`)
-    if (!card) return
-    const instant = reducedMotion()
-    card.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'start' })
-    card.focus({ preventScroll: true })
-    card.classList.add('jumped')
-    window.setTimeout(() => card.classList.remove('jumped'), 2000)
-  }
+  const jump = (id: string) => { jumpToCity(id) }
   return (
     <div className="featured-cities" role="region" aria-labelledby="featured-cities-heading">
       <h3 id="featured-cities-heading">{featured.title}</h3>

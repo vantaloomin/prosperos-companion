@@ -1,22 +1,23 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, Dices, Download, FilePlus2, LoaderCircle, Pencil, Save, Upload, X, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Dices, Download, ExternalLink, FilePlus2, LoaderCircle, Pencil, Plus, Save, Trash2, Undo2, Upload, X, XCircle } from 'lucide-react'
 import { api, ApiError } from '../../api'
 import { Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { TextArea, TextInput } from '../../components/Fields'
+import { Field, TextArea, TextInput } from '../../components/Fields'
 import { SketchMap } from '../map/SketchMap'
 import { definitionOf, exportName, groupNotes, parseDefinition, type CityListing } from '../world/cityText'
-import { isWorldMap } from '../world/worldMap'
+import { isWorldMap, readWorldMap } from '../world/worldMap'
 import { ColourList, EventList, HoodList, PlaceList, TransitList, WorkList, type ListProps } from './DraftLists'
+import { PolishContext } from './polishContext'
 import {
-  addHood, addPlace, briefLine, CITIES_CHANNEL, PLACE_KINDS, changeCity, changeItem, EXAMPLES, inHood, keepWork, loadWork, mapData, newSeed, redrawsAll,
-  removeItem, settle, staleNames, takeSection, uniqueId, type Checked, type Definition, type Drafted, type Item, type ListKey, type Rolls, type Section, type Work,
+  addHood, addPlace, briefLine, changeNeighbour, CITIES_CHANNEL, PLACE_KINDS, changeCity, changeItem, EXAMPLES, inHood, journey, JOURNEY_HOURS, keepWork, loadWork, mapData, newSeed,
+  POLISHED, redrawsAll, removeItem, settle, SHOW_CITY_KEY, staleNames, takeSection, uniqueId, type Checked, type Definition, type Drafted, type Item, type ListKey, type Neighbour, type Rolls, type Section, type Work,
 } from './draftText'
 
 type Tab = 'map' | 'overview' | 'hoods' | 'places' | 'work' | 'transit' | 'events' | 'colour' | 'check'
 type CheckState = { state: 'checking' } | { state: 'done'; checked: Checked } | { state: 'failed'; message: string }
-type Feedback = { tone: 'success' | 'error'; text: string; saveAsNew?: boolean } | null
+type Feedback = { tone: 'success' | 'error'; text: string; saveAsNew?: boolean; undo?: () => void; show?: string } | null
 /** A step that would throw away the user's changes waits for a yes. */
 type Asking = { title: string; text: string; yes: string; go: () => void } | null
 
@@ -95,16 +96,22 @@ function OpenFile({ className, onOpen, onError }: { className: string; onOpen: (
   const open = async (file: File | undefined) => {
     if (input.current) input.current.value = ''
     if (!file) return
-    const text = await file.text()
-    if (isWorldMap(file.name, text.slice(0, 4096))) { onError('That is a Marinara world map. Open it in Companion under Settings > Cities, which turns it into a city.'); return }
-    const parsed = parseDefinition(text)
+    if (isWorldMap(file.name, await file.slice(0, 4096).text())) { await openWorldMap(file); return }
+    const parsed = parseDefinition(await file.text())
     if (!parsed.ok) { onError(parsed.error); return }
     const definition = definitionOf(parsed.value) as Partial<Definition>
     if (!Array.isArray(definition.neighborhoods) || !Array.isArray(definition.places)) { onError('That file is not a city file: it has no neighborhoods or places.'); return }
     onOpen({ line: '', seed: '', rolls: {}, definition: { employers: [], career_hubs: [], transit: [], annual_events: [], local_color: [], ...definition } as Definition, brief: null, edited: false })
   }
+  // A Marinara world map becomes a city file to change here (companion/world/marinara.py); its pictures stay behind.
+  const openWorldMap = async (file: File) => {
+    try {
+      const made = await api<{ definition: Definition; notes: string[] }>('/world/draft/marinara', await readWorldMap(file))
+      onOpen({ line: '', seed: '', rolls: {}, definition: { employers: [], career_hubs: [], transit: [], annual_events: [], local_color: [], ...(made.definition as Partial<Definition>) } as Definition, brief: null, edited: false, openedNotes: made.notes })
+    } catch (failure) { onError(message(failure, 'That world map could not be opened.')) }
+  }
   return <>
-    <button type="button" className={className} onClick={() => input.current?.click()}><Upload aria-hidden="true" />Open a city file</button>
+    <button type="button" className={className} onClick={() => input.current?.click()}><Upload aria-hidden="true" />Open a city file or world map</button>
     <input ref={input} type="file" accept=".json,application/json" hidden onChange={(event) => void open(event.target.files?.[0])} />
   </>
 }
@@ -120,6 +127,8 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
   const [tab, setTab] = useState<Tab>('overview')
   const [open, setOpen] = useState<string | null>(null)
   const [removing, setRemoving] = useState<{ key: ListKey; item: Item } | null>(null)
+  const [toast, setToast] = useState<Feedback>(null)
+  const [polishing, setPolishing] = useState<Section | null>(null)
   const check = useCheck(work)
   useAutoGrow()
   const edit = (change: (definition: Definition) => Definition, removed?: string) => setWork((current) => current && settle(current, change(current.definition), removed))
@@ -140,25 +149,38 @@ function Table({ work, setWork, busy, error, draw, careful }: TableProps) {
   // On a phone a picked place shows a card over the map first; beside the lists, its row opens straight away.
   const pick = (id: string) => { if (tab !== 'map') setTab('places'); setOpen(id) }
   const add = (made: { definition: Definition; id: string }, to: Tab) => { edit(() => made.definition); setTab(to); setOpen(made.id) }
+  // The user's text model rewrites one list's names and summaries; Undo puts them back.
+  const polish = async (section: Section) => {
+    setPolishing(section)
+    setToast(null)
+    const before = work.definition
+    try {
+      const made = await api<{ definition: Definition; changed: number }>('/world/draft/polish', { definition: before, section, line: work.line })
+      edit(() => made.definition)
+      setToast(made.changed ? { tone: 'success', text: `Polished ${made.changed} ${POLISHED[section]}.`, undo: () => { edit(() => before); setToast(null) } } : { tone: 'success', text: 'Your text model left them as they were.' })
+    } catch (failure) { setToast({ tone: 'error', text: message(failure, 'They could not be polished. Try again.') }) } finally { setPolishing(null) }
+  }
   // On a phone the map is a tab; beside it on a wider screen, the overview shows instead.
   const overview = <Overview work={work} busy={busy} setWork={setWork} draw={draw} careful={careful} onRoll={roll} />
   return (
     <div className="draft-table">
-      <TableBar work={work} setWork={setWork} check={check} onCheck={() => setTab('check')} careful={careful} />
+      <TableBar work={work} setWork={setWork} check={check} onCheck={() => setTab('check')} careful={careful} toast={toast} setToast={setToast} />
       <div aria-live="polite">{error && <Notice tone="error">{error}</Notice>}</div>
       <div className={`draft-body${busy ? ' busy' : ''}`} data-tab={tab} aria-busy={busy}>
         <DraftMap definition={work.definition} selected={open} onSelect={pick} mapTab={tab === 'map'} onEdit={() => setTab('places')} onClose={() => setOpen(null)} />
+        <PolishContext.Provider value={{ polish: (section) => void polish(section), polishing }}>
         <section className="draft-panel" aria-label="The place, part by part">
           <Tabs tab={tab} onTab={(next) => { setTab(next); setOpen(null) }} definition={work.definition} check={check} />
           <div className="draft-panel-body" role="tabpanel" id="draft-tabpanel" aria-labelledby={`draft-tab-${tab === 'map' ? 'overview' : tab}`}>
             {{
-              map: () => overview, overview: () => overview, check: () => <CheckPanel check={check} />,
+              map: () => overview, overview: () => overview, check: () => <CheckPanel check={check} opened={work.openedNotes} />,
               hoods: () => <HoodList {...list} onAdd={() => add(addHood(work.definition), 'hoods')} />,
               places: () => <PlaceList {...list} onAdd={(hood) => add(addPlace(work.definition, hood), 'places')} />,
               work: () => <WorkList {...list} />, transit: () => <TransitList {...list} />, events: () => <EventList {...list} />, colour: () => <ColourList {...list} />,
             }[tab]()}
           </div>
         </section>
+        </PolishContext.Provider>
       </div>
       {removing && <RemoveHood definition={work.definition} hood={removing.item} onClose={() => setRemoving(null)}
         onRemove={() => { edit((definition) => removeItem(definition, 'neighborhoods', removing.item.id), removing.item.name); setRemoving(null) }} />}
@@ -309,8 +331,9 @@ function checkState(check: CheckState): 'checking' | 'ready' | 'thin' | 'broken'
 }
 
 /** The name of the place, what it says on its tin, and Save. */
-function TableBar({ work, setWork, check, onCheck, careful }: { work: Work; setWork: TableProps['setWork']; check: CheckState; onCheck: () => void; careful: TableProps['careful'] }) {
-  const [toast, setToast] = useState<Feedback>(null)
+interface BarProps { work: Work; setWork: TableProps['setWork']; check: CheckState; onCheck: () => void; careful: TableProps['careful']; toast: Feedback; setToast: (toast: Feedback) => void }
+
+function TableBar({ work, setWork, check, onCheck, careful, toast, setToast }: BarProps) {
   const [saving, setSaving] = useState(false)
   // The draft as last saved: Save rests as "Saved" until something changes.
   const [savedAs, setSavedAs] = useState<Definition | null>(null)
@@ -325,7 +348,7 @@ function TableBar({ work, setWork, check, onCheck, careful }: { work: Work; setW
       const kept = { ...definition, id: saved.id }
       setWork((current) => current && { ...current, definition: kept, saved: { id: saved.id, revision: saved.revision } })
       setSavedAs(kept)
-      setToast({ tone: 'success', text: `Saved ${saved.name}. It is in Companion now, under Custom in Settings > Cities.` })
+      setToast({ tone: 'success', text: `Saved ${saved.name}. It is in Companion now, under Custom in Settings > Cities.`, show: saved.id })
       announceSaved()
     } catch (failure) {
       setToast({ tone: 'error', text: message(failure, 'Not saved.'), saveAsNew: failure instanceof ApiError && failure.status === 409 })
@@ -356,7 +379,8 @@ function TableBar({ work, setWork, check, onCheck, careful }: { work: Work; setW
 function Toast({ toast, onClose, onSaveAsNew }: { toast: Feedback; onClose: () => void; onSaveAsNew: () => void }) {
   useEffect(() => {
     if (toast?.tone !== 'success') return
-    const timer = window.setTimeout(onClose, 5000)
+    // Long enough to reach Undo or Show in Companion.
+    const timer = window.setTimeout(onClose, toast.undo || toast.show ? 10000 : 5000)
     return () => window.clearTimeout(timer)
   }, [toast, onClose])
   return (
@@ -365,6 +389,8 @@ function Toast({ toast, onClose, onSaveAsNew }: { toast: Feedback; onClose: () =
         {toast.tone === 'error' ? <XCircle aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
         <span>{toast.text}</span>
         {toast.saveAsNew && <button type="button" className="text-button draft-toast-action" onClick={onSaveAsNew}>Save as a new city</button>}
+        {toast.undo && <button type="button" className="text-button draft-toast-action" onClick={toast.undo}><Undo2 aria-hidden="true" />Undo</button>}
+        {toast.show && <button type="button" className="text-button draft-toast-action" onClick={() => showInCompanion(toast.show ?? '')}><ExternalLink aria-hidden="true" />Show in Companion</button>}
         <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
       </div>}
     </div>
@@ -383,6 +409,15 @@ function CheckChip({ check, onClick }: { check: CheckState; onClick: () => void 
 /** Companion's own window, if open, lists the city straight away (features/world/Cities.tsx). */
 function announceSaved() {
   try { const channel = new BroadcastChannel(CITIES_CHANNEL); channel.postMessage('saved'); channel.close() } catch { /* it lists it on its next look */ }
+}
+
+/** Companion's window opens Settings > Cities at the saved city: the open window if there is one, else a new one. */
+function showInCompanion(id: string) {
+  try { localStorage.setItem(SHOW_CITY_KEY, id) } catch { /* it opens on Settings > Cities all the same */ }
+  try { const channel = new BroadcastChannel(CITIES_CHANNEL); channel.postMessage({ show: id }); channel.close() } catch { /* the new window reads it */ }
+  const companion = window.opener as Window | null
+  if (companion && !companion.closed) companion.focus()
+  else window.open('/#settings/life', 'prospero-companion')
 }
 
 function saveFile(definition: Definition) {
@@ -426,8 +461,37 @@ function Overview({ work, busy, setWork, draw, careful, onRoll }: Pick<TableProp
         <TextInput label="Region" value={work.definition.region} maxLength={120} onChange={(region) => change({ region })} />
         <TextInput label={work.definition.enclosed ? 'Kind of ship' : 'Country or realm'} value={work.definition.country} maxLength={120} onChange={(country) => change({ country })} />
       </div>
+      <Neighbours definition={work.definition} cities={cities.data ?? []} onChange={(index, change) => setWork((current) => current && settle(current, changeNeighbour(current.definition, index, change)))} />
       {anchor && <p className="subtle">Money, prices, holidays and names follow {anchor.name}, which ships with Companion, so a day here costs what a day there does.</p>}
     </section>
+  )
+}
+
+/** Other places of the same world, and how long the journey there takes: trips and postcards go between them. */
+function Neighbours({ definition, cities, onChange }: { definition: Definition; cities: CityListing[]; onChange: (index: number, change: Partial<Neighbour> | null) => void }) {
+  const list = definition.neighbours ?? []
+  const choices = cities.filter((city) => city.id !== definition.id)
+  const name = (id: string) => cities.find((city) => city.id === id)?.name ?? id
+  return (
+    <fieldset className="draft-neighbours">
+      <legend>Nearby places</legend>
+      <p className="subtle">Other places in the same world that people here travel to, for trips and postcards. It works both ways.</p>
+      {list.map((neighbour, index) => (
+        <div key={index} className="draft-neighbour">
+          <Field label="Place">{(id) => <select id={id} value={neighbour.city} onChange={(event) => onChange(index, { city: event.target.value })}>
+            {!neighbour.city && <option value="">Choose a place</option>}
+            {!choices.some((city) => city.id === neighbour.city) && neighbour.city && <option value={neighbour.city}>{name(neighbour.city)}</option>}
+            {choices.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+          </select>}</Field>
+          <Field label="Journey">{(id) => <select id={id} value={neighbour.hours} onChange={(event) => onChange(index, { hours: Number(event.target.value) })}>
+            {[...new Set([...JOURNEY_HOURS, neighbour.hours])].sort((a, b) => a - b).map((hours) => <option key={hours} value={hours}>{journey(hours)}</option>)}
+          </select>}</Field>
+          <TextInput label="By" value={neighbour.by ?? ''} maxLength={40} placeholder="e.g. ferry" onChange={(by) => onChange(index, { by })} />
+          <button type="button" className="icon-button" aria-label={`Remove ${name(neighbour.city) || 'this place'}`} title="Remove" onClick={() => onChange(index, null)}><Trash2 aria-hidden="true" /></button>
+        </div>
+      ))}
+      {list.length < 20 && <button type="button" className="text-button" onClick={() => onChange(list.length, { city: choices.find((city) => !list.some((item) => item.city === city.id))?.id ?? '' })}><Plus aria-hidden="true" />Add a nearby place</button>}
+    </fieldset>
   )
 }
 
@@ -444,7 +508,7 @@ function SummaryField({ work, onChange, onRewrite }: { work: Work; onChange: (su
 }
 
 /** What Companion would make of the place if it were saved now. */
-function CheckPanel({ check }: { check: CheckState }) {
+function CheckPanel({ check, opened }: { check: CheckState; opened?: string[] }) {
   if (check.state === 'checking') return <p className="subtle draft-checking"><LoaderCircle aria-hidden="true" className="spin" />Checking…</p>
   if (check.state === 'failed') return <section className="draft-list form-stack" aria-labelledby="draft-check"><h2 id="draft-check">Check</h2><Notice tone="error">Companion would not load this yet. {check.message}</Notice></section>
   const { warnings, notes, summary } = check.checked
@@ -454,6 +518,7 @@ function CheckPanel({ check }: { check: CheckState }) {
       <h2 id="draft-check">Check</h2>
       {!warnings.length && !notes.length && <Notice tone="success">Ready. Companion loads it as it is, with nothing to fix.</Notice>}
       {warnings.map((warning) => <Notice key={warning} tone="warning">{warning}</Notice>)}
+      {opened && opened.length > 0 && <div><p>From the world map it was opened from:</p><ul className="city-notes">{opened.map((note) => <li key={note}>{note}</li>)}</ul></div>}
       {notes.length > 0 && <div><p>Companion tidies these on the way in:</p><ul className="city-notes">{groupNotes(notes).map((note) => <li key={note}>{note}</li>)}</ul></div>}
       <p className="subtle">{counts.neighborhoods} {summary.enclosed ? 'decks' : 'neighborhoods'}, {counts.places} places, {counts.employers} employers, {counts.annual_events} yearly events.</p>
     </section>

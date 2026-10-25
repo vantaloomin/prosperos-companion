@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { addHood, addPlace, briefLine, changeCity, changeItem, inHood, mapData, redrawsAll, removeItem, settle, staleNames, summaryFor, takeSection, uniqueId, type Brief, type Definition, type Work } from '../../src/features/draft/draftText.ts'
+import { addHood, addPlace, briefLine, changeCity, changeNeighbour, journey, changeItem, inHood, mapData, redrawsAll, removeItem, settle, staleNames, summaryFor, takeSection, uniqueId, type Brief, type Definition, type Work } from '../../src/features/draft/draftText.ts'
 
 const item = (id: string, neighborhood?: string, extra: Record<string, unknown> = {}) => ({ id, name: id, summary: `${id}.`, ...(neighborhood ? { neighborhood } : {}), ...extra })
 const hood = (id: string, lat: number, transit: string[] = ['walk']) => ({ ...item(id), lat, lon: 0, transit })
@@ -95,4 +95,15 @@ test('the summary follows the parts of town until the user writes their own, and
   assert.deepEqual(staleNames(kept), ['hill'])
   const ship = { ...brief, aboard: true }
   assert.equal(summaryFor({ ...town(), country: 'Orbital station' }, ship), 'Ridgemouth is an orbital station of 2 decks, with docks at its heart and hill round about.')
+})
+
+test('nearby places are added, changed and removed, and journeys read as hours or days', () => {
+  let definition = changeNeighbour(town(), 0, { city: 'pellmouth' })
+  definition = changeNeighbour(definition, 1, { city: 'calderwick', hours: 24, by: 'night train' })
+  assert.deepEqual(definition.neighbours, [{ city: 'pellmouth', hours: 2 }, { city: 'calderwick', hours: 24, by: 'night train' }])
+  definition = changeNeighbour(definition, 0, { hours: 3 })
+  assert.equal(definition.neighbours?.[0].hours, 3)
+  assert.deepEqual(changeNeighbour(definition, 0, null).neighbours, [{ city: 'calderwick', hours: 24, by: 'night train' }])
+  assert.equal(town().neighbours, undefined)
+  assert.deepEqual([1, 6, 24, 36, 48].map(journey), ['1 hour', '6 hours', '1 day', '36 hours', '2 days'])
 })
