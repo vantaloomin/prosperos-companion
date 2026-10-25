@@ -575,24 +575,42 @@ def create_persona(database: Database, body) -> dict:
     too (the form starts on somewhere new, picked for them); everyone in it is decided for them."""
     name = (body.name or '').strip()
     require(bool(name), 'Give the new persona a name.', 422)
-    data = registry(database)
-    persona_id = identifier()
-    persona = {'id': persona_id, 'name': name, 'gender': body.gender or '', 'age': body.age,
+    persona = {'id': identifier(), 'name': name, 'gender': body.gender or '', 'age': body.age,
                'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now(),
                'pets': pets.persona_entries([], [pet.model_dump() for pet in body.pets or []],
                                             database.clock.now().date()),
                'kind': body.kind or '', 'lifespan': body.lifespan}
     check_kind(database, persona)
+    return with_world(database, persona, getattr(body, 'city_id', None))
+
+
+def with_world(database: Database, persona: dict, city_id: str | None) -> dict:
+    """A persona joins the list with a new world of their own in `city_id`; neither stays if the world fails."""
+    data = registry(database)
     data['personas'].append(persona)
     save(database.root, data)
     try:
-        world = create_world(database, persona_id, city_id=getattr(body, 'city_id', None))
+        world = create_world(database, persona['id'], city_id=city_id)
     except BaseException:
         data = registry(database)
-        data['personas'] = [item for item in data['personas'] if item['id'] != persona_id]
+        data['personas'] = [item for item in data['personas'] if item['id'] != persona['id']]
         save(database.root, data)
         raise
     return {**persona, 'worlds': [world]}
+
+
+# What a copy of a persona takes from them: who they are, never what belongs to their worlds (where they live there,
+# or the townsperson they became in one).
+COPIED = ('name', 'gender', 'age', 'about', 'birthday', 'pets', 'kind', 'lifespan')
+
+
+def copy_persona(database: Database, persona_id: str, city_id: str | None) -> dict:
+    """A separate persona made from this one, with a world of their own where everyone is new, so the user need not
+    type them again. Changing either one later leaves the other as it was; the app picks their home as in any new
+    world."""
+    persona = found(registry(database)['personas'], persona_id, 'persona')
+    copy = json.loads(json.dumps({key: persona.get(key) for key in COPIED}))
+    return with_world(database, {**copy, 'id': identifier(), 'created_at': database.now()}, city_id)
 
 
 def update_persona(database: Database, persona_id: str, body) -> dict:

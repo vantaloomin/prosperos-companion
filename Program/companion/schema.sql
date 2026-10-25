@@ -2752,3 +2752,27 @@ CREATE TABLE IF NOT EXISTS library_vectors (
   created_at TEXT NOT NULL,
   PRIMARY KEY (passage_id, model)
 );
+
+-- Their look in chat (companion/their_look.py): what the user set for a companion's colour family and name font on the
+-- Character page (NULL is the app's pick), "Keep it steady" and "Use my colours here", and the look last shown with
+-- how often a mood moved it that day, so a change the app makes leaves one line in their chat.
+CREATE TABLE IF NOT EXISTS their_looks (
+  companion_id TEXT PRIMARY KEY REFERENCES companions(id),
+  family TEXT,
+  font TEXT,
+  steady INTEGER NOT NULL DEFAULT 0 CHECK (steady IN (0, 1)),
+  use_mine INTEGER NOT NULL DEFAULT 0 CHECK (use_mine IN (0, 1)),
+  shown TEXT,
+  mood_day TEXT,
+  mood_changes INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
+
+-- The muted lines in a companion's chat when the app changed their colours ("Dana changed their colours.").
+CREATE TABLE IF NOT EXISTS their_look_changes (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  text TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS their_look_changes_companion ON their_look_changes(companion_id, created_at);

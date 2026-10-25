@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request
 
 from companion import worlds
-from companion.models import Become, HomeChange, NewPersona, NewWorld, PersonaInput, WorldChange
+from companion.models import Become, HomeChange, NewPersona, NewWorld, PersonaCopy, PersonaInput, WorldChange
 
 router = APIRouter(prefix='/api/worlds')
 
@@ -62,6 +62,12 @@ async def switch_world(request: Request, world_id: str):
 def create_persona(request: Request, body: NewPersona):
     """A new persona with a world of their own, in the city they picked. It does not switch to them."""
     return worlds.create_persona(db(request), body)
+
+
+@router.post('/personas/{persona_id}/copy')
+def copy_persona(request: Request, persona_id: str, body: PersonaCopy):
+    """A separate copy of the persona with a world of their own, in the city picked. It does not switch to them."""
+    return worlds.copy_persona(db(request), persona_id, body.city_id)
 
 
 @router.patch('/personas/{persona_id}')

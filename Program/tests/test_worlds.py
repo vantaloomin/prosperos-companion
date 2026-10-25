@@ -195,3 +195,40 @@ def test_somewhere_new_is_a_featured_city_other_than_this_one(client, companion)
     assert world['city_id'] != 'baltimore' and world['city_id'] in {'grandport', 'long-meridian', 'osaka'}
     other = ok(client.post('/api/worlds', json={'city_id': 'somewhere-new'}))
     assert other['city_id'] in {'grandport', 'long-meridian', 'osaka'}
+
+
+def test_a_persona_can_be_copied_into_a_world_of_their_own(client, companion):
+    original = ok(client.post('/api/worlds/personas', json={
+        'name': 'Sam', 'gender': 'man', 'age': 34, 'about': 'Works nights as a paramedic.', 'birthday': '04-23',
+        'pets': [{'name': 'Biscuit', 'kind': 'dog'}], 'city_id': 'haddon-harbor'}))
+    copy = ok(client.post(f"/api/worlds/personas/{original['id']}/copy", json={'city_id': 'grandport'}))
+    assert copy['id'] != original['id']
+    kept = ('name', 'gender', 'age', 'about', 'birthday', 'kind', 'lifespan')
+    assert {key: copy[key] for key in kept} == {key: original[key] for key in kept}
+    assert [pet['name'] for pet in copy['pets']] == ['Biscuit']
+    # Their world is new: its own city, its own home there, nobody in it yet.
+    world = copy['worlds'][0]
+    assert world['city_id'] == 'grandport' and world['companions'] == []
+    assert world['id'] != original['worlds'][0]['id']
+    # They are two people now: changing one leaves the other as it was.
+    ok(client.patch(f"/api/worlds/personas/{copy['id']}", json={'about': 'Retired, keeps bees.'}))
+    people = {persona['id']: persona for persona in listing(client)['personas']}
+    assert people[original['id']]['about'] == 'Works nights as a paramedic.'
+    assert people[copy['id']]['about'] == 'Retired, keeps bees.'
+    assert [item['id'] for item in people[original['id']]['worlds']] == [original['worlds'][0]['id']]
+    # Copying does not move the user, and a city that does not exist makes nothing.
+    assert listing(client)['active_persona_id'] not in (original['id'], copy['id'])
+    before = len(people)
+    assert client.post(f"/api/worlds/personas/{original['id']}/copy", json={'city_id': 'nowhere'}).status_code == 404
+    assert client.post('/api/worlds/personas/nobody/copy', json={}).status_code == 404
+    assert len(listing(client)['personas']) == before
+
+
+def test_a_copy_of_a_townsperson_is_not_that_townsperson_again(client, companion, app):
+    data = listing(client)
+    registry = worlds.registry(app.state.database)
+    registry['personas'][0] |= {'name': 'Ana', 'townsfolk_key': 'some-key', 'town_seed': 'seed'}
+    worlds.save(app.state.database.root, registry)
+    copy = ok(client.post(f"/api/worlds/personas/{data['persona']['id']}/copy", json={}))
+    assert copy['name'] == 'Ana' and 'townsfolk_key' not in copy and 'town_seed' not in copy
+    assert copy['worlds'][0]['city_id'] == data['world']['city_id']

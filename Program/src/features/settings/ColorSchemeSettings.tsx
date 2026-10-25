@@ -1,10 +1,10 @@
-import { useId, useState, type CSSProperties } from 'react'
+import { useId, useState, type CSSProperties, type ReactNode } from 'react'
 import type { WorkspaceSettings } from '../../types'
 import { COLOR_SCHEMES, PALETTE_KEYS, defaultPalette, paletteReadability, paletteStyles, paperPalette, validHex, validPalette, type ColorScheme, type Palette } from './palette'
 
 type Theme = NonNullable<WorkspaceSettings['theme']>
 type Save = (change: { color_scheme?: ColorScheme; custom_palette?: Palette; theme?: Theme }) => Promise<void>
-interface Props { theme: Theme; scheme: ColorScheme; palette: Palette | null; save: Save }
+interface Props { theme: Theme; scheme: ColorScheme; palette: Palette | null; save: Save; children?: ReactNode }
 
 /** The swatch row: Match my computer (Paper or Ink, following the computer), the dark schemes, Paper and Custom. */
 function choices(palette: Palette | null) {
@@ -20,7 +20,7 @@ function choices(palette: Palette | null) {
 
 /** General > Appearance: Prospero's Study's color schemes, Paper, Match my computer and a custom palette. Retro IM
  * keeps its own colors. Shared by every device on this workspace. */
-export function ColorSchemeSettings({ theme, scheme, palette, save }: Props) {
+export function ColorSchemeSettings({ theme, scheme, palette, save, children }: Props) {
   const name = useId()
   const chosen = theme === 'scheme' ? scheme : theme
   return (
@@ -39,6 +39,7 @@ export function ColorSchemeSettings({ theme, scheme, palette, save }: Props) {
         ))}
       </fieldset>
       <CustomPalette saved={palette} apply={(custom) => save({ theme: 'scheme', color_scheme: 'custom', custom_palette: custom })} />
+      {children}
     </div>
   )
 }
