@@ -15,7 +15,7 @@ test('an imported character says who came and what they brought', () => {
 
 test('a lorebook on its own joins the world', () => {
   assert.equal(broughtText({ format: 'NovelAI lorebook', picture: false, companion: null,
-    book: { id: 'b', name: 'Harbor', world: true, entries: 1, off: 0 } }), 'Harbor is now part of this world: 1 lore entry.')
+    book: { id: 'b', name: 'Harbor', world: true, entries: 1, off: 0 } }), 'Harbor is now part of this world, with 1 lore entry.')
 })
 
 test('a picture that was left out says why', () => {

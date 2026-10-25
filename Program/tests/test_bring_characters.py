@@ -70,7 +70,8 @@ def test_a_card_becomes_a_companion_with_a_life_in_town(client):
     assert not definition['identity'][:1].isdigit()
     text = json.dumps(definition)
     assert 'ward' not in text and 'hey you' not in text and 'Ignore all' not in text
-    assert made['book'] == {'id': made['book']['id'], 'name': 'Dana lore', 'world': False, 'entries': 4, 'off': 2}
+    assert made['book'] == {'id': made['book']['id'], 'name': 'Dana lore', 'world': False, 'entries': 4, 'off': 2,
+                            'owner': 'Dana Reyes'}
 
 
 def test_importing_with_a_companion_makes_the_new_one_the_focus(client, companion):

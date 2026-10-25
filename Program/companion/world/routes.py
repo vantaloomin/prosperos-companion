@@ -9,7 +9,7 @@ from companion.characters import current
 from companion.clock import zone
 from companion.errors import require
 from companion.life import network
-from companion.models import Input
+from companion.models import Input, WorldMapImport
 from companion.world import catalog, changes, custom, era_words, generators, marinara, townsfolk
 from companion.world.schema import PlaceKind
 from companion.world.source import CatalogWorld
@@ -115,6 +115,18 @@ def create_city(request: Request, definition: dict):
 def import_marinara(request: Request, value: dict):
     """A Marinara world map, its pictures already left out by the page, becomes a city and world lore at once."""
     return marinara.bring(request.app.state.database, value)
+
+
+@router.post('/import/marinara/inspect')
+def inspect_marinara(request: Request, value: dict):
+    """What a world map holds, for Bring your characters to tick; nothing is saved."""
+    return marinara.inspect(request.app.state.database, value)
+
+
+@router.post('/import/marinara/picked')
+def import_marinara_picked(request: Request, body: WorldMapImport):
+    """The ticked parts of a world map: the city, its places' notes as lore, or both."""
+    return marinara.bring(request.app.state.database, body.map, body.pick)
 
 
 @router.get('/cities/{city_id}')

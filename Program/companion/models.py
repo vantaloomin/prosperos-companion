@@ -234,10 +234,42 @@ class CharacterSplitRequest(Input):
     emotional_edges: bool = False
 
 
+class ImportPick(Input):
+    """Which parts of a character or lorebook file to import (companion/imports/characters.py); everything by default.
+    `entries` are positions in the file's lorebook as the preview listed them, all of them when None. `lore_for` is
+    whose the lorebook becomes: '' for the app's choice, 'new' (the character being imported), 'world' or a
+    companion's id."""
+    character: bool = True
+    picture: bool = True
+    book: bool = True
+    entries: list[int] | None = Field(default=None, max_length=5000)
+    lore_for: str = Field(default='', max_length=64)
+
+
 class CharacterCardFile(Input):
     """A character card file (JSON or PNG) read into plain text for the paste box; nothing is saved."""
     filename: str = Field(min_length=1, max_length=260)
     data: str = Field(min_length=1, max_length=14_000_000)
+
+
+class CharacterImportFile(CharacterCardFile):
+    """A character card, CHARX, BYAF or lorebook file, base64 encoded, with the parts of it to import."""
+    pick: ImportPick = Field(default_factory=ImportPick)
+
+
+class WorldMapPick(Input):
+    """Which parts of a Marinara world map to import (companion/world/marinara.py): the city, its places' notes as
+    lore, and which of those notes, all of them when None."""
+    city: bool = True
+    book: bool = True
+    entries: list[int] | None = Field(default=None, max_length=5000)
+
+
+class WorldMapImport(BaseModel):
+    """A Marinara world map, its pictures already left out by the page, with the parts of it to import."""
+    model_config = ConfigDict(extra='forbid')
+    map: dict
+    pick: WorldMapPick = Field(default_factory=WorldMapPick)
 
 
 class ChatFile(Input):

@@ -11,6 +11,11 @@ The character's own lorebook becomes theirs, a lorebook file on its own becomes 
 (companion/lore.py), and a card's picture is kept with their reference pictures, marked "Not stated" until
 the user says where it came from (as the Study import does, companion/imports/study.py). A scenario, greetings
 and creator's notes set up someone else's story, so they are not used: the companion's life starts here.
+
+Before anything is saved, `inspect` lists what the file holds: the character, their picture, their lorebook entry by
+entry, and the parts left out. Everything is ticked, so one click imports it all; the user can untick parts, such as
+importing only the lorebook, for the world or for a companion they already have. A character who is already one of
+the user's companions (by name) starts unticked, with their lorebook going to them.
 """
 import hashlib
 import re
@@ -18,12 +23,12 @@ import re
 from companion import cast, characters, dating, worlds
 from companion.clock import zone
 from companion.database import decode, encode, identifier
-from companion.errors import DomainError
+from companion.errors import DomainError, require
 from companion.images.adapters.base import AdapterError
 from companion.images.storage import sniff
 from companion.imports import formats
 from companion.lora import references
-from companion.models import CharacterDefinition
+from companion.models import CharacterDefinition, ImportPick
 from companion.world import generators, personality, townsfolk
 
 BACKGROUND = 12000
@@ -219,33 +224,110 @@ def add_picture(connection, timestamp, companion_id, stored, data, shape, filena
          width, height, len(data), f'The picture in {filename}'[:1000], timestamp, timestamp))
 
 
-def bring(database, filename: str, encoded: str) -> dict:
-    """Import one character or lorebook file. Returns what was made, for the page to say so."""
+def entry_view(entry: dict) -> dict:
+    """One lorebook entry as the preview lists it: enough to tell it apart, not the whole text."""
+    return {'title': entry['title'], 'keywords': entry['keywords'][:6], 'always': entry['always'],
+            'enabled': entry['enabled'], 'pattern': entry['pattern'], 'text': entry['text'][:200]}
+
+
+def book_view(book: dict | None) -> dict | None:
+    return book and {'name': book['name'], 'format': book['format'],
+                     'entries': [entry_view(entry) for entry in book['entries']]}
+
+
+def same_named(companions: list[dict], name: str) -> dict | None:
+    wanted = name.strip().casefold()
+    return next((member for member in companions if wanted and member['name'].strip().casefold() == wanted), None)
+
+
+def inspect(database, filename: str, encoded: str) -> dict:
+    """What one file holds, for the page to list with everything ticked; nothing is saved. `already` names a
+    companion the character already is, whose lorebook it then is by default."""
     found = formats.read(filename, encoded)
-    if found['character'] is None:
+    companions = [{'id': member['id'], 'name': member['name']} for member in cast.members(database)]
+    character = found['character']
+    picture = None
+    if found['picture']:
+        shape = checked_picture(found['picture'])
+        picture = {'usable': bool(shape), 'note': left_out(found['picture'], shape),
+                   'portrait': bool(found.get('portrait'))}
+    view, already = None, None
+    if character is not None:
+        name = character['name'].strip()[:120]
+        description = texts(character, name)[1]
+        view = {'name': name, 'about': description[:300], 'more_about': len(description) > BACKGROUND}
+        already = same_named(companions, name)
+    return {'format': found['format'], 'character': view, 'picture': picture, 'book': book_view(found['book']),
+            'unused': found.get('unused', []), 'companions': companions, 'already': already}
+
+
+def chosen(book: dict | None, pick: ImportPick) -> dict | None:
+    """The file's lorebook with only the ticked entries, or None when none are."""
+    if not book or not pick.book:
+        return None
+    if pick.entries is not None:
+        wanted = sorted({number for number in pick.entries if 0 <= number < len(book['entries'])})
+        book = {**book, 'entries': [book['entries'][number] for number in wanted]}
+    return book if book['entries'] else None
+
+
+def owner(connection, lore_for: str, new_id: str | None) -> dict | None:
+    """Whose the lorebook becomes: {id, name} for a companion, or None for everyone in the world."""
+    if lore_for == 'world' or (lore_for in ('', 'new') and new_id is None):
+        return None
+    found = characters.by_id(connection, new_id if lore_for in ('', 'new') else lore_for)
+    require(found is not None, 'That companion is no longer here. Choose whose lore it is again.', 404)
+    return {'id': found['id'], 'name': found['version']['name']}
+
+
+def bring(database, filename: str, encoded: str, pick: ImportPick | None = None) -> dict:
+    """Import the ticked parts of one character or lorebook file (all of it by default). Returns what was made, for
+    the page to say so."""
+    pick = pick or ImportPick()
+    found = formats.read(filename, encoded)
+    book = chosen(found['book'], pick)
+    if found['character'] is None or not pick.character:
+        require(book is not None, 'Tick something to import.', 422)
         with database.connect(write=True) as connection:
-            book = add_book(connection, database.now(), found['book'], None, filename)
-        return {'format': found['format'], 'companion': None, 'book': book, 'picture': False}
+            mine = owner(connection, pick.lore_for, None)
+            added = add_book(connection, database.now(), book, mine and mine['id'], filename)
+        return {'format': found['format'], 'companion': None, 'book': added | {'owner': mine and mine['name']},
+                'picture': False}
+    found = {**found, 'book': book, 'picture': found['picture'] if pick.picture else None}
     shape = checked_picture(found['picture'])
     stored = store_picture(database, found['picture'], shape[0]) if shape else None
     try:
-        return bring_character(database, filename, found, stored, shape) | {'picture_note': left_out(found['picture'],
-                                                                                                    shape)}
+        return bring_character(database, filename, found, stored, shape, pick.lore_for) | {
+            'picture_note': left_out(found['picture'], shape)}
     except BaseException:
         if stored:
             (references.directory(database) / stored[1]).unlink(missing_ok=True)
         raise
 
 
-def bring_character(database, filename: str, found: dict, stored, shape) -> dict:
+def add_lore(connection, timestamp: str, book: dict | None, made: CharacterDefinition, new: tuple[str, str],
+             lore_for: str, filename: str) -> dict | None:
+    """Their lorebook, for them or whoever the user chose. What did not fit their background (`new` holds their id
+    and that text) is about them, so it stays theirs either way."""
+    companion_id, overflow = new
+    mine = owner(connection, lore_for, companion_id)
+    theirs = mine is not None and mine['id'] == companion_id
+    if overflow and not theirs:
+        add_book(connection, timestamp, with_overflow(None, made.name, overflow), companion_id, filename)
+    book = with_overflow(book, made.name, overflow) if theirs else book
+    if not book:
+        return None
+    return add_book(connection, timestamp, book, mine and mine['id'], filename) | {'owner': mine and mine['name']}
+
+
+def bring_character(database, filename: str, found: dict, stored, shape, lore_for: str = '') -> dict:
     timestamp = database.now()
     with database.connect(write=True) as connection:
         focus = characters.current(connection)
         made, overflow = definition(connection, database, found['character'], focus)
         companion_id = add_companion(connection, timestamp, made, f"Imported from {filename} ({found['format']})"[:500],
                                      focus)
-        book = with_overflow(found['book'], made.name, overflow)
-        added = add_book(connection, timestamp, book, companion_id, filename) if book else None
+        added = add_lore(connection, timestamp, found['book'], made, (companion_id, overflow), lore_for, filename)
         if stored:
             add_picture(connection, timestamp, companion_id, stored, found['picture'], shape, filename)
             if found.get('portrait'):  # An app's own avatar is already their profile picture there.
