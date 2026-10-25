@@ -198,6 +198,17 @@ async def receive(database, stream) -> dict:
 def read(path: Path) -> tuple[zipfile.ZipFile, dict, dict]:
     try:
         archive = zipfile.ZipFile(path)
+    except zipfile.BadZipFile as error:
+        raise DomainError('This is not a saved companion, or the file did not arrive whole.', 422) from error
+    try:
+        return archive, *contents(archive)
+    except BaseException:
+        archive.close()  # Windows will not delete a file that is still open
+        raise
+
+
+def contents(archive: zipfile.ZipFile) -> tuple[dict, dict]:
+    try:
         manifest = json.loads(archive.read(MANIFEST))
         require(isinstance(manifest, dict) and manifest.get('format') == FORMAT, 'This is not a saved companion.', 422)
         require(int(manifest.get('format_version', 0)) <= FORMAT_VERSION,
@@ -206,7 +217,7 @@ def read(path: Path) -> tuple[zipfile.ZipFile, dict, dict]:
     except (zipfile.BadZipFile, KeyError, ValueError, TypeError) as error:
         raise DomainError('This is not a saved companion, or the file did not arrive whole.', 422) from error
     require(isinstance(rows, dict) and 'companions' in rows, 'This file holds no companion.', 422)
-    return archive, manifest, rows
+    return manifest, rows
 
 
 def bring(database, path: Path) -> dict:
