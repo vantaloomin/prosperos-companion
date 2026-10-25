@@ -18,7 +18,7 @@ const BROKEN_KEY = ['broken-cities']
 // `notes` lists what the server mended or added when it loaded a city (companion/world/mend.py).
 type Feedback = { tone: 'info' | 'error'; text: string; notes?: string[] } | null
 // What the editor is working on: a new city (from the template, a file or a copy) or one of the user's own.
-type Editing = { mode: 'create'; text: string; ship?: boolean } | { mode: 'update'; id: string; revision: number; text: string; file?: { name: string; city: string } }
+type Editing = { mode: 'create'; text: string; ship?: boolean; from?: string } | { mode: 'update'; id: string; revision: number; text: string; file?: { name: string; city: string } }
 
 const pretty = (value: unknown) => JSON.stringify(value, null, 1)
 
@@ -147,7 +147,7 @@ export function Cities() {
       </div>
       <div aria-live="polite">{feedback && <FeedbackNotice feedback={feedback} />}</div>
       {editing && <CityEditor key={editing.mode === 'update' ? editing.id : 'new'} editing={editing} onClose={() => setEditing(null)}
-        onKeepBoth={(text) => setEditing({ mode: 'create', text: keptBoth(text, cities.data ?? []) })}
+        onKeepBoth={(text, from) => setEditing({ mode: 'create', text: keptBoth(text, cities.data ?? []), from })}
         onSaved={(saved) => { const updated = editing.mode === 'update' && editing.file; setEditing(null); setFeedback({ tone: 'info', text: updated ? `Updated ${saved.name} in place.` : `Saved ${saved.name}.`, notes: saved.import_notes }); void refresh() }} />}
       {cities.isPending && <Loading label="Loading cities" />}
       {cities.isError && <ErrorNotice error={cities.error} />}
@@ -261,7 +261,7 @@ function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
   )
 }
 
-function CityEditor({ editing, onClose, onSaved, onKeepBoth }: { editing: Editing; onClose: () => void; onSaved: (city: CityListing) => void; onKeepBoth: (text: string) => void }) {
+function CityEditor({ editing, onClose, onSaved, onKeepBoth }: { editing: Editing; onClose: () => void; onSaved: (city: CityListing) => void; onKeepBoth: (text: string, from: string) => void }) {
   const replacing = editing.mode === 'update' ? editing.file : undefined
   const [text, setText] = useState(editing.text)
   const [result, setResult] = useState<Feedback>(null)
@@ -292,7 +292,7 @@ function CityEditor({ editing, onClose, onSaved, onKeepBoth }: { editing: Editin
       <div className="form-actions wrap">
         <button type="button" className="button primary" disabled={busy} onClick={() => void run(true)}>{replacing ? `Update ${replacing.city}` : 'Save'}</button>
         <button type="button" className="button" disabled={busy} onClick={() => void run(false)}>Check</button>
-        {replacing && <button type="button" className="button quiet" disabled={busy} onClick={() => onKeepBoth(text)}>Keep both instead</button>}
+        {replacing && <button type="button" className="button quiet" disabled={busy} onClick={() => onKeepBoth(text, replacing.name)}>Keep both instead</button>}
         <button type="button" className="button quiet" onClick={onClose}>Cancel</button>
       </div>
     </div>
@@ -308,7 +308,7 @@ function EditorHeading({ editing }: { editing: Editing }) {
   </>)
   const ship = editing.mode === 'create' && editing.ship
   return (<>
-    <h3 className="city-editor-title">{editing.mode === 'create' ? (ship ? 'New ship' : 'New city') : `Editing ${editing.id}`}</h3>
+    <h3 className="city-editor-title">{editing.mode === 'create' ? `${ship ? 'New ship' : 'New city'}${editing.from ? ` from ${editing.from}` : ''}` : `Editing ${editing.id}`}</h3>
     <p className="subtle" id="city-json-hint">{ship ? 'A ship is a city file with "enclosed": true, so it has no weather or cars. Its decks are its neighborhoods, and every place and employer names its deck.' : 'A city is a JSON file. Every place, college and employer names its neighborhood.'} New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
   </>)
 }
