@@ -711,6 +711,11 @@ class NewPersona(PersonaInput):
     city_id: str | None = Field(None, min_length=1, max_length=120)
 
 
+class PersonaCopy(Input):
+    """Where a copy of a persona gets their world (companion/worlds.py): as for a new persona."""
+    city_id: str | None = Field(None, min_length=1, max_length=120)
+
+
 class HomeChange(Input):
     """Where the user lives in a world (companion/life/where.py): a city and a neighbourhood there; a blank
     neighbourhood lets the app pick one."""
