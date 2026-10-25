@@ -2519,7 +2519,11 @@ p.breakup-line { align-items: center; }
 @media (hover: hover) { .sketch-zoom-button:hover:not(:disabled) { background: var(--raised); } }
 /* The selected place: a ring and its name, so the open row's place is easy to find. */
 .draft-map .sketch-pin.selected .sketch-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
-.draft-map .sketch-pin.selected .sketch-hit { fill: none; stroke: var(--accent); stroke-width: 3; }
+.sketch-ring { fill: none; stroke: none; pointer-events: none; } .draft-map .sketch-pin.selected .sketch-ring { stroke: var(--accent); stroke-width: 3; }
+/* Names on the Draft Table's map stay one size on screen however far it is zoomed (SketchMap sets --grow). */
+.sketch-map.zoomable .drawn-name { font-size: calc(11px * var(--grow, 1)); stroke-width: calc(3.5px * var(--grow, 1)); }
+.sketch-map.zoomable .drawn-water-name { font-size: calc(13px * var(--grow, 1)); stroke-width: calc(3px * var(--grow, 1)); }
+.sketch-map.zoomable > svg > .sketch-label { font-size: calc(12px * var(--grow, 1)); stroke-width: calc(3.5px * var(--grow, 1)); }
 .draft-map .sketch-pin.selected .sketch-hover-label { display: inline; }
 /* The drawn map in the dark themes, on the Draft Table. */
 :root:not([data-theme='paper']) .draft-map .sketch-map { background: #1f1e1b; }

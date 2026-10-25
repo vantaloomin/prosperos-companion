@@ -163,3 +163,14 @@ def test_the_draft_table_page_is_served_with_the_app():
     page = (root / 'draft.html').read_text(encoding='utf-8')
     assert '/src/draft.tsx' in page and "Prospero's Draft Table" in page
     assert "draft: 'draft.html'" in (root / 'vite.config.ts').read_text(encoding='utf-8')
+
+
+def test_getting_about_names_every_way_the_app_knows_in_plain_words():
+    import re
+    from pathlib import Path
+
+    from companion.world.schema import TRANSIT_KINDS
+    text = (Path(__file__).resolve().parent.parent / 'src/features/draft/draftText.ts').read_text(encoding='utf-8')
+    block = text.split('export const TRANSIT_KINDS', 1)[1].split('}', 1)[0]
+    named = {key.strip("'") for key in re.findall(r"([\w'-]+): '", block)}
+    assert named == set(TRANSIT_KINDS)

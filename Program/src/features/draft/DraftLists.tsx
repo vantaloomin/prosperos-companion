@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { ChevronDown, Dices, Plus, Trash2 } from 'lucide-react'
 import { Field, TextArea, TextInput } from '../../components/Fields'
-import { COLOUR_KINDS, hoodNames, MONTHS, PLACE_KINDS, type Definition, type Item, type ListKey, type Section } from './draftText'
+import { COLOUR_KINDS, hoodNames, MONTHS, PLACE_KINDS, TRANSIT_KINDS, type Definition, type Item, type ListKey, type Section } from './draftText'
 
 /** What a list needs from the table: change or remove one of its items, redraw it, and which item is open. */
 export interface ListProps {
@@ -142,8 +142,9 @@ export function TransitList({ definition, open, onOpen, onChange, onRemove, onRo
       <ListHead title="Getting about" count={definition.transit.length} section="transit" onRoll={onRoll} hint="How people get from one part of town to another, and how long it takes them." />
       <ul className="draft-items">
         {definition.transit.map((item) => (
-          <ItemRow key={item.id} item={item} meta={item.kind ?? ''} open={open === item.id} onOpen={onOpen} onRemove={() => onRemove('transit', item)}>
+          <ItemRow key={item.id} item={item} meta={TRANSIT_KINDS[item.kind ?? ''] ?? item.kind ?? ''} open={open === item.id} onOpen={onOpen} onRemove={() => onRemove('transit', item)}>
             <NameAndSummary item={item} onChange={(change) => onChange('transit', item.id, change)} />
+            <Choice label="Kind" value={item.kind ?? ''} options={TRANSIT_KINDS} onChange={(kind) => onChange('transit', item.id, { kind })} />
           </ItemRow>
         ))}
       </ul>

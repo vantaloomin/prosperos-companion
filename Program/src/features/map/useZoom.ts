@@ -67,7 +67,7 @@ export function useZoom(box: RefObject<HTMLDivElement | null>, map: { width: num
   }, [box, on])
 
   return {
-    scale, fitted: zoom === 'fit',
+    scale, size, fitted: zoom === 'fit',
     zoomIn: () => setZoom(clamp(scale * ZOOM.step)), zoomOut: () => setZoom(clamp(scale / ZOOM.step)), fit: () => setZoom('fit'),
     atMost: scale >= ZOOM.max, atLeast: scale <= ZOOM.min,
   }

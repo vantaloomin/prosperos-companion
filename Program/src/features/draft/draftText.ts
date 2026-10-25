@@ -215,6 +215,14 @@ const CLIMATES: Record<string, string> = { temperate: 'Mild', cold: 'Cold', dese
 /** Lines to start from, for the empty table. */
 export const EXAMPLES = ['a cold fishing town on a northern coast, 1920s', 'an elven forest city', 'a generation ship', 'a gaslit victorian port', 'a mining boomtown in the wild west']
 
+/** Ways of getting about the app knows (companion/world/schema.py TRANSIT_KINDS), in plain words. */
+export const TRANSIT_KINDS: Record<string, string> = {
+  walk: 'On foot', 'bike-share': 'Bike share', bus: 'Bus', streetcar: 'Streetcar', tram: 'Tram', 'light-rail': 'Light rail',
+  subway: 'Subway', 'commuter-rail': 'Commuter rail', monorail: 'Monorail', ferry: 'Ferry', 'water-taxi': 'Water taxi',
+  boat: 'Boat', car: 'Car', rideshare: 'Rideshare', carriage: 'Carriage', horse: 'On horseback', stagecoach: 'Stagecoach',
+  airship: 'Airship', lift: 'Lift', shuttle: 'Shuttle',
+}
+
 /** Place kinds the app knows (companion/world/schema.py PLACE_KINDS), in plain words. */
 export const PLACE_KINDS: Record<string, string> = {
   restaurant: 'Restaurant', cafe: 'Café', bar: 'Bar', tavern: 'Tavern', inn: 'Inn', nightlife: 'Nightlife', venue: 'Venue',
