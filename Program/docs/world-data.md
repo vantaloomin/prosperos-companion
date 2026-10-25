@@ -194,7 +194,7 @@ both mean none in a block that sets shares. Each person's kind is rolled from th
 group is drawn by `names.mix` weights from the groups tied to that kind (`"kind": "vulcan"`), or from the kind's own
 `groups` list (Camelot's fae take Welsh names), else from the human groups. A city with no `kinds` block draws from
 the whole mix as before. Townsfolk of another kind are named as such when the companion meets them ("Got talking
-with Thalion Mossfall, the barkeep there, an Elf, who ...") and in Around town. Built in: Grandport's city elves
+with Thalion Mossfall, the barkeep there, an Elf, who ...") and in Around town ("Elf, about 253, industrious; ..."). Built in: Grandport's city elves
 (4%), Camelot's fae (3%), Ellerbrück's dwarves and elves, and the Munchkins, Winkies, Quadlings and Gillikins in the
 Emerald City; real and modern cities stay human.
 
