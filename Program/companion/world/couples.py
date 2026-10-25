@@ -63,7 +63,11 @@ def companion_sheet(sheet: dict, data: dict) -> bool:
 
 
 def details_of(sheet: dict, data: dict) -> dict | None:
+    """Their dating details, or None for anyone who keeps no seeded love life: a companion living in town, or a
+    pack's notable whose love life is only what the pack says (schema Notable.love_life)."""
     if 'desire' not in sheet or 'age' not in sheet or companion_sheet(sheet, data):
+        return None
+    if sheet.get('love_life') is False:
         return None
     return dating.details(sheet, data)
 

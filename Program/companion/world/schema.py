@@ -326,7 +326,8 @@ class Notable(Record):
     # What people call them; the first word of `name` when left out.
     given: str = Field(default='', max_length=60)
     pronouns: Literal['she/her', 'he/him', 'they/them'] = 'they/them'
-    age: int = Field(ge=16, le=120)
+    # Their real age; past 120 only for a long-lived kind (`kind`), such as an elf of 400.
+    age: int = Field(ge=16, le=5000)
     place: Id
     role: Annotated[str, Field(min_length=1, max_length=80)]
     # Works there (keeps shifts) or only turns up as a regular (keeps visits).
@@ -337,6 +338,11 @@ class Notable(Record):
     # Whether they can move away or retire like other townsfolk (companion/world/turnover.py). A setting's own
     # characters stay put unless the pack says otherwise.
     can_leave: bool = False
+    # Their kind of people (companion/world/lifespans.py), built in or the city's own; left out or unknown, human.
+    kind: str | None = Field(default=None, max_length=40)
+    # False: no seeded partner, engagement, wedding or baby (companion/world/couples.py); their love life is only what
+    # `about` says.
+    love_life: bool = True
 
 
 # Where a townsperson goes to work on a goal (companion/world/townsfolk.py GOAL_KINDS).

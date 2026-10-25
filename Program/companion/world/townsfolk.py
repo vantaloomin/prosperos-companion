@@ -283,7 +283,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     notable = None if generation else held
     role = (held['role'], held['role'], held['staff']) if held else _slot_role(data, place, slot)
     title = held['role'] if held else role_title(data, role, place)
-    folk = lifespans.HUMAN if notable else folk_of(data, seed)
+    folk = notable_kind(data, notable) if notable else folk_of(data, seed)
     age = notable['age'] if notable else seeded_real_age(data, seed, False)
     life = lifespans.life_age(age, lifespans.lifespan_of(folk, data))
     name = _named(notable) if notable else generators.name(data, seed=seed, age=life)
@@ -309,6 +309,8 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         sheet['arrived'] = arrival(data, place['id'], slot, generation)
     if notable:
         sheet |= {'notable': notable['id'], 'about': notable['about'], 'occupation': notable['role']}
+        if not notable.get('love_life', True):
+            sheet['love_life'] = False
         if notable.get('temperament') in TEMPERAMENTS:
             sheet['temperament'] = notable['temperament']
     parts = place.get('day_parts') or ['afternoon']
@@ -322,6 +324,12 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         part = generators.pick(seed, 'visit', parts)
         sheet['visits'] = {'days': days, 'part': part, 'window': list(VISITS[part])}
     return sheet
+
+
+def notable_kind(data: dict, notable: dict) -> str:
+    """A notable's kind, as the pack names it, if it is one known where they are; else human."""
+    kind = notable.get('kind')
+    return kind if kind and kind in lifespans.kinds(data) else lifespans.HUMAN
 
 
 def _notable(data: dict, place: dict, slot: int) -> dict | None:
