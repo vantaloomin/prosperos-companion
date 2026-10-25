@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
-import { api } from '../../api'
+import { ApiError, api } from '../../api'
 import type { View } from '../../companion'
 import type { CharacterDefinition, CitySummary, Connection, Relationship } from '../../types'
 import { Notice } from '../../components/Feedback'
@@ -12,13 +12,14 @@ import type { SplitResult } from './helper'
 import { defaultCity } from './places'
 import { CityOptions } from '../world/CityOptions'
 import type { FeaturedCities } from '../world/cityText'
-import { AGES, VIBES, emptyRequest, toggleVibe, vibeList, type DraftRequest, type DraftResult } from './drafting'
+import { AGES, VIBES, emptyRequest, toggleVibe, turnedDown, vibeList, type DraftRequest, type DraftResult } from './drafting'
 import { CitiesUnavailable } from '../world/CitiesUnavailable'
 import { COMPANION_KEY } from '../../companion'
 import type { Companion } from '../../types'
 import { isActive } from '../ready/readyText'
 import { queueWriteUp, useReady } from '../ready/useReady'
 import { useWorlds } from '../worlds/useWorlds'
+import { useKept } from './keptDraft'
 import type { World } from '../../types'
 
 const submitLabel = (busy: boolean, downloading: boolean) => busy ? (downloading ? 'Saving…' : 'Writing…') : downloading ? 'Create them now' : 'Create my companion'
@@ -43,14 +44,15 @@ interface Props { onDraft: (definition: CharacterDefinition) => void; onSplit: (
 export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
-  const [request, setRequest] = useState<DraftRequest>(() => emptyRequest(guessTimezone()))
+  // Kept while they step away, to Settings say, and come back (keptDraft.ts).
+  const [picks, setPicks] = useKept('picks', () => ({ request: emptyRequest(guessTimezone()), cityPicked: false }))
   // The app picks where they live until the user picks somewhere else (or "Anywhere"): in a new world, its city.
-  const [cityPicked, setCityPicked] = useState(false)
+  const { request, cityPicked } = picks
   const world = useWorlds().data?.world
   const homeCity = cityPicked ? request.home_city : startingCity(world, cities.data ?? [], request.timezone)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const set = (change: Partial<DraftRequest>) => setRequest((current) => ({ ...current, ...change }))
+  const [error, setError] = useState<{ text: string; settings: boolean } | null>(null)
+  const set = (change: Partial<DraftRequest>) => setPicks((current) => ({ ...current, request: { ...current.request, ...change } }))
   const connected = !!connection.data
   // While "Set it up for me" downloads, they can save them now and the model writes the rest when it is ready.
   const ready = useReady().data
@@ -60,13 +62,13 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setBusy(true)
-    setError('')
+    setError(null)
     try {
       const { starting_closeness, ...body } = request
       if (downloading) { go(await saveForLater(client, { ...body, home_city: homeCity }, starting_closeness)); return }
       onDraft({ ...(await api<DraftResult>('/companion/draft', { ...body, home_city: homeCity })).definition, starting_closeness })
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'The draft could not be written.')
+      setError({ text: failure instanceof Error ? failure.message : 'The draft could not be written.', settings: failure instanceof ApiError && failure.code === 'provider' })
     } finally { setBusy(false) }
   }
 
@@ -76,7 +78,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
       <p className="subtle">Your text model writes the rest: their job, week, skills, flaws and how they talk. You see the whole character before anything is saved.</p>
       <ModelNotice shown={connection.isSuccess && !connected} downloading={downloading} go={go} />
       <form className="form-stack" onSubmit={submit}>
-        <Picks request={request} set={set} cities={cities} homeCity={homeCity} pickCity={(home_city) => { setCityPicked(true); set({ home_city }) }} />
+        <Picks request={request} set={set} cities={cities} homeCity={homeCity} pickCity={(home_city) => setPicks((current) => ({ cityPicked: true, request: { ...current.request, home_city } }))} />
         <details className="advanced more-options">
           <summary>More options</summary>
           <div className="form-stack">
@@ -102,7 +104,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
           </div>
         </details>
         {busy && <Notice>Writing your companion. A local model can take a minute or two.</Notice>}
-        {error && <Notice tone="error" action={<button type="button" className="text-button" onClick={onManual}>Fill in the form myself</button>}>{error}</Notice>}
+        {error && <DraftError error={error} go={go} onManual={onManual} />}
         <div className="form-actions">
           <button type="submit" className="button primary" disabled={!(connected || downloading) || busy}>{submitLabel(busy, downloading)}</button>
           <button type="button" className="text-button" onClick={onManual}>Fill in the form myself</button>
@@ -156,6 +158,15 @@ function Vibes({ vibe, onChange }: { vibe: string; onChange: (vibe: string) => v
     </div>
   )
 }
+
+/** A service that turned the request down can be put right in Settings; the picks wait here (keptDraft.ts). */
+function DraftError({ error, go, onManual }: { error: { text: string; settings: boolean }; go: (view: View) => void; onManual: () => void }) {
+  if (!error.settings) return <Notice tone="error" action={<button type="button" className="text-button" onClick={onManual}>Fill in the form myself</button>}>{error.text}</Notice>
+  return <Notice tone="error">{turnedDown(error.text)}
+    <button type="button" className="text-button notice-link" onClick={() => go('settings/models')}>Open Settings</button>
+  </Notice>
+}
+
 
 function ModelNotice({ shown, downloading, go }: { shown: boolean; downloading: boolean; go: (view: View) => void }) {
   if (downloading) return <Notice>Your model isn't ready yet. Create them now and it writes the rest when it's ready.</Notice>

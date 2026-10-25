@@ -4,14 +4,20 @@ import { cliProviders, embeddingProviders, initialConfig, type ProfileConfig } f
 export interface DiscoveredModel { id: string; name: string; context_tokens: number | null; max_output_tokens: number | null; limit_source: 'provider' | 'unreported'; supported_parameters?: string[]; supported_efforts?: string[] }
 export interface Discovery { available: boolean; models: string[]; model_details?: DiscoveredModel[]; generated: false; note?: string; location?: string }
 
-/** Reported limits fill the profile; the longest reply never rises above what the model reports. */
+/** Reported limits fill the profile; the longest reply never rises above what the model reports. Effort levels the
+ * service does not list stay as the app learned them from the model (companion/providers/efforts.py). */
 export function discoveredSettings(model: DiscoveredModel, current: ProfileConfig): Partial<ProfileConfig> {
   return {
     model: model.id,
-    reported_capabilities: { model_id: model.id, context_tokens: model.context_tokens, max_output_tokens: model.max_output_tokens, supported_parameters: model.supported_parameters ?? null, supported_efforts: model.supported_efforts ?? null },
+    reported_capabilities: { model_id: model.id, context_tokens: model.context_tokens, max_output_tokens: model.max_output_tokens, supported_parameters: model.supported_parameters ?? null, supported_efforts: model.supported_efforts ?? learnedEfforts(model.id, current) },
     context_tokens: model.context_tokens ? Math.max(1024, Math.min(model.context_tokens, 2000000)) : (model.id === current.model ? current.context_tokens : initialConfig.context_tokens),
     max_output_tokens: model.max_output_tokens ? Math.max(64, Math.min(current.max_output_tokens, model.max_output_tokens)) : current.max_output_tokens,
   }
+}
+
+function learnedEfforts(id: string, current: ProfileConfig): string[] | null {
+  const reported = current.reported_capabilities
+  return reported?.model_id === id ? reported.supported_efforts ?? null : null
 }
 
 /** A typed ID uses a listed model's limits when it matches one, and otherwise forgets reported limits. */

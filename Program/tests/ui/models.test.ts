@@ -14,6 +14,13 @@ test('a chosen model fills reported limits and never raises the reply above them
   assert.deepEqual(settings.reported_capabilities?.supported_efforts, ['low', 'high'])
 })
 
+test('testing again keeps the effort levels the app learned from the model, unless the service lists its own', () => {
+  const learned = { ...configFor('openai'), model: 'mystery', reported_capabilities: { model_id: 'mystery', context_tokens: null, max_output_tokens: null, supported_parameters: null, supported_efforts: ['none', 'low'] } }
+  assert.deepEqual(discoveredSettings(mystery, learned).reported_capabilities?.supported_efforts, ['none', 'low'])
+  assert.equal(discoveredSettings({ ...mystery, id: 'other' }, learned).reported_capabilities?.supported_efforts, null)
+  assert.deepEqual(discoveredSettings({ ...mystery, supported_efforts: ['high'] }, learned).reported_capabilities?.supported_efforts, ['high'])
+})
+
 test('a typed ID forgets reported limits unless it matches a listed model', () => {
   const current = { ...configFor('openrouter'), ...discoveredSettings(sonnet, configFor('openrouter')) }
   assert.equal(typedModelSettings('other', current, [sonnet]).reported_capabilities, null)

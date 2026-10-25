@@ -2,6 +2,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from functools import partial
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -20,6 +21,7 @@ from companion import (
     logs,
     observer_routes,
     story_routes,
+    text_models,
     troubleshoot,
     workspace,
     worlds,
@@ -202,6 +204,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.hardware = hardware or Hardware()
     app.state.builtin_chat = BuiltinChat(app.state.database, builtin_spawn, builtin_transport)
     app.state.conversation.provider.inner.builtin_chat = app.state.builtin_chat
+    app.state.conversation.provider.inner.learned_effort = partial(text_models.learn_effort, app.state.database)
     app.state.ready = Ready(app.state.database, app.state.builtin_chat,
                             lambda: app.state.hardware.report(app.state.database), builtin_transport)
     app.state.ready.state_of_app = app.state

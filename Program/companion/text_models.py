@@ -179,6 +179,29 @@ def update(database, vault, profile_id: str, body: ProfileUpdate) -> dict:
     return result
 
 
+def learn_effort(database, config: dict, instead: str | None, levels: list[str] | None):
+    """The model turned down the profile's reasoning effort (providers/efforts.py): the profile asks with `instead`
+    from now on and, when the service named them, offers only `levels` in Settings. A profile changed meanwhile is
+    left as the user made it."""
+    profile_id = config.get('profile_id')
+    if not profile_id:
+        return
+    with database.connect(write=True) as connection:
+        row = optional(connection, 'SELECT * FROM model_profiles WHERE id=?', (profile_id,))
+        saved = decode(row['config']) if row else None
+        if not saved or saved.get('model') != config.get('model') or \
+                saved.get('reasoning_effort') != config.get('reasoning_effort'):
+            return
+        saved['reasoning_effort'] = instead
+        if levels:
+            reported = saved.get('reported_capabilities') or {}
+            if reported.get('model_id') != saved['model']:
+                reported = {'model_id': saved['model']}
+            saved['reported_capabilities'] = {**reported, 'supported_efforts': levels}
+        connection.execute('UPDATE model_profiles SET config=?, revision=revision+1, updated_at=? WHERE id=?',
+                           (encode(saved), database.now(), profile_id))
+
+
 def require_assignable(connection, profile_id: str):
     """A profile doing a job must stay able to do it."""
     row = profile_row(connection, profile_id)
