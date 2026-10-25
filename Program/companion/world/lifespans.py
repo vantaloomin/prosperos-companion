@@ -236,6 +236,12 @@ def clean(data: dict) -> list[str]:
             value['groups'] = [group for group in value['groups'] if group in named]
             if not value['groups']:
                 value.pop('groups')
+    return notes + clean_people(data, known)
+
+
+def clean_people(data: dict, known: set[str]) -> list[str]:
+    """Notes for name groups and notables naming a kind that isn't known; they are human instead."""
+    notes = []
     for key, group in ((data.get('names') or {}).get('groups') or {}).items():
         if group.get('kind') and group['kind'] not in known:
             notes.append(f'The name group "{key}" names the kind "{group["kind"]}", which isn\'t known, so its people '
