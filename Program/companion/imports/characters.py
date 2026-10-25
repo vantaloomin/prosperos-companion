@@ -50,9 +50,9 @@ def pronouns_of(character: dict) -> str | None:
 
 def template(data: dict, character: dict) -> dict | None:
     """A grown-up townsperson whose life they borrow: the same one for the same name, matching pronouns when the
-    description makes them clear."""
+    description makes them clear. Never a city's named character (a pack's notable): their life is their own."""
     people = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])
-              if worlds.STARTER_AGES[0] <= sheet['age'] <= worlds.STARTER_AGES[1]]
+              if worlds.STARTER_AGES[0] <= sheet['age'] <= worlds.STARTER_AGES[1] and not sheet.get('notable')]
     wanted = pronouns_of(character)
     if wanted:
         people = [sheet for sheet in people if (sheet.get('pronouns') or '').startswith(f'{wanted}/')] or people

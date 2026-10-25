@@ -250,6 +250,11 @@ def clean(data: dict) -> list[str]:
                          'are human.')
         if not group.get('kind') or group['kind'] not in known:
             group.pop('kind', None)  # Humans, as before kinds: a city without them keeps its data_version.
+    for notable in data.get('notables') or ():
+        if notable.get('kind') and notable['kind'] not in known:
+            notes.append(f'{notable["name"]} names the kind "{notable["kind"]}", which isn\'t known, so they are '
+                         'human.')
+            notable.pop('kind')
     return notes
 
 
