@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { kidAgeChoice, kidChange, kidLine, kidSaved, kidsHint, otherHint, parentChoice, standingLine, whereHint, wherePick } from '../../src/features/character/familyText.ts'
+import { kidAgeChoice, kidChange, kidLine, kidSaved, kidsHint, madeUpLine, otherHint, parentChoice, removedLine, standingLine, whereHint, whereLabel, wherePick } from '../../src/features/character/familyText.ts'
 import type { Kid, KidsView } from '../../src/types.ts'
 
 const kid = (changes: Partial<Kid>): Kid => ({
@@ -55,7 +55,14 @@ test('the add and edit forms send only what was filled in or changed', () => {
   assert.deepEqual(kidChange(undefined, 'Spock ', 'he/him', 5), { name: 'Spock', pronouns: 'he/him', age: 5 })
   assert.deepEqual(kidChange(kid({}), 'Leo', 'he/him', 7), {})
   assert.deepEqual(kidChange(kid({}), 'Spock', 'he/him', 5), { name: 'Spock', age: 5 })
-  assert.equal(kidAgeChoice(-1), 'Picked for you')
+  assert.equal(kidAgeChoice(-1), 'Let the app pick')
   assert.equal(kidAgeChoice(0), 'Under a year')
   assert.equal(kidSaved(undefined, view({ kids: [kid({}), kid({ name: 'Ivy', by_hand: true })] })), 'Added Ivy.')
+})
+
+test('the form and notice wording follows the review', () => {
+  assert.equal(whereLabel(view({})), 'Where Leo lives')
+  assert.equal(whereLabel(view({ kids: [kid({}), kid({ id: 'k2', name: 'Mia' })] })), 'Where the kids live')
+  assert.equal(removedLine('Spock', 'Sarek Hale'), "Spock is out of Sarek's life.")
+  assert.equal(madeUpLine('Edward Lin'), 'The app made up Edward. Edward becomes the person you name here.')
 })

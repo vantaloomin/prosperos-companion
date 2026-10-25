@@ -38,7 +38,7 @@ export function Family({ name }: { name: string }) {
 /** With none of their own: undo for the last one taken out, and a way to add one by hand. */
 function NoKidsYet({ name, canAdd, removed, setRemoved }: { name: string; canAdd: boolean; removed: Removed; setRemoved: (removed: Removed) => void }) {
   return <>
-    <KidsUndo removed={removed} setRemoved={setRemoved} />
+    <KidsUndo removed={removed} setRemoved={setRemoved} name={name} />
     {canAdd && <NoKids name={name} />}
   </>
 }

@@ -2343,8 +2343,17 @@ p.breakup-line { align-items: center; }
 .kids-block .kids-standing { margin: 4px 0 0; }
 /* Adding or changing a child by hand: the button sits under the list, the form in place of a card. */
 .kids-block .kids-add { justify-self: start; margin-bottom: 8px; }
+/* Every inline form (add, edit, someone else) in the same panel: 12px between field groups, 16px above the actions. */
+.kid-form { gap: 12px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 10px; padding: var(--panel-pad); background: var(--surface); min-width: 0; }
+.kid-card .kid-form { border: 0; padding: 0; margin: 0; background: none; }
+.kid-field { display: grid; gap: 6px; min-width: 0; }
 .kid-form label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
-.kid-form { margin-bottom: 8px; }
+.kid-form .number-stepper { max-width: 280px; }
+.kid-form .kid-actions { margin-top: 4px; }
+@media (max-width: 720px) {
+  .kid-card .person-actions .text-button { min-height: 44px; }
+  .kid-card { padding-block: 2px; }
+}
 .kids-none { display: grid; gap: 8px; justify-items: start; }
 .kids-none p { margin: 0; }
 .kid-card.kid-editing { grid-template-columns: minmax(0, 1fr); }

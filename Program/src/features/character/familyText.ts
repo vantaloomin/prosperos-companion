@@ -74,9 +74,26 @@ export function otherHint(view: KidsView, name: string): string {
 
 /** A child's age on the add and edit forms: "Picked for you", "Under a year", "5 years old". */
 export function kidAgeChoice(years: number): string {
-  if (years < 0) return 'Picked for you'
+  if (years < 0) return 'Let the app pick'
   if (years === 0) return 'Under a year'
   return `${years} year${years === 1 ? '' : 's'} old`
+}
+
+/** "Where Spock lives" for one child, "Where the kids live" for more. */
+export function whereLabel(view: KidsView): string {
+  const kids = view.kids ?? []
+  return kids.length === 1 ? `Where ${firstName(kids[0].name)} lives` : 'Where the kids live'
+}
+
+/** The Undo notice after taking a child out: "Spock is out of Sarek's life." */
+export function removedLine(kid: string, name = ''): string {
+  return name ? `${kid} is out of ${firstName(name)}'s life.` : `${kid} is out of their life.`
+}
+
+/** Over the "Someone else" form when the app made up the other parent: they become who the user names. */
+export function madeUpLine(other: string): string {
+  const who = firstName(other)
+  return `The app made up ${who}. ${who} becomes the person you name here.`
 }
 
 /** Son, daughter or child, as the forms offer them, by pronouns. */
@@ -85,7 +102,7 @@ export const KID_RELATIONS = [{ pronouns: 'he/him', label: 'Son' }, { pronouns: 
 /** The add form (`kid` undefined) or a child's edit form: what it starts with, says and sends to. */
 export function kidForm(kid: Kid | undefined) {
   if (!kid) {
-    return { adding: true, prefix: 'kid-add', title: 'Add a child', submit: 'Add', placeholder: 'Picked for you', name: '', pronouns: '', age: -1,
+    return { adding: true, prefix: 'kid-add', title: 'Add a child', submit: 'Add', placeholder: 'Let the app pick', name: '', pronouns: '', age: -1,
       youngest: -1, path: '/life/steps/kids', method: 'POST' }
   }
   return { adding: false, prefix: `kid-${kid.id}`, title: `Edit ${kid.name}`, submit: 'Save', placeholder: undefined, name: kid.name,
