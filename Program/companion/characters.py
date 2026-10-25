@@ -1,7 +1,7 @@
 """One focal companion per workspace, with versioned definitions (PRD C1)."""
 import re
 
-from companion.clock import zone
+from companion.clock import parse, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import DomainError, require
 
@@ -147,8 +147,11 @@ def revise(database, body) -> dict:
         require(companion['active_version_id'] == body.expected_version_id,
                 'The character changed since you opened it. Review the latest version.', 409)
         number = companion['version']['number'] + 1
-        version_id = insert_version(connection, companion['id'], number, body.definition, body.note,
-                                    database.now())
+        from companion.life import their_hours  # The Live on my clock switch moves their week here.
+        definition = type(body.definition).model_validate(their_hours.settled(
+            companion['version']['definition'], body.definition.model_dump(), their_hours.user_zone(connection),
+            database.clock.now()))
+        version_id = insert_version(connection, companion['id'], number, definition, body.note, database.now())
         connection.execute('UPDATE companions SET active_version_id=? WHERE id=?', (version_id, companion['id']))
         from companion.life import long_distance
         long_distance.settle_all(connection, database.clock.now())  # A move: visits planned for their old city.
@@ -164,6 +167,10 @@ def versions(database) -> list[dict]:
 
 
 def insert_version(connection, companion_id, number, definition, note, timestamp) -> str:
+    if number == 1:  # A new companion's week fits the user's evenings (companion/life/their_hours.py).
+        from companion.life import their_hours
+        definition = type(definition).model_validate(their_hours.fitted(connection, definition.model_dump(),
+                                                                        parse(timestamp)))
     version_id = identifier()
     connection.execute('INSERT INTO character_versions (id, companion_id, number, name, definition, relationship, '
                        'timezone, note, effective_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',

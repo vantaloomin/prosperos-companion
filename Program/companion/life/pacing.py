@@ -9,7 +9,7 @@ full reply later as a message of its own, or a quick short note now instead of a
 The holding text stays in the conversation. If the user writes again before the full reply shows,
 that reply is dropped unseen and the answer to the new message becomes the full reply, at the same
 time, so it takes in everything they said meanwhile. Asleep, the reply shows
-when they wake. A reply that shows at once also shows any earlier one still held, and a reply held
+when they wake, unless a second text or "wake up" wakes them (companion/life/waking.py). A reply that shows at once also shows any earlier one still held, and a reply held
 while an earlier one is waiting shows no sooner than it. What counts is the companion's precomputed
 day (a holiday or a sick day is not work), else their routine. A held reply that shows while the app
 is in the background is announced like a first message.
@@ -73,9 +73,10 @@ def busy_kind(block: dict) -> str | None:
     return block['kind'] if block['kind'] in DELAYS else None
 
 
-def hold(connection, companion, now, seed: str) -> dict:
+def hold(connection, companion, now, seed: str, text: str = '') -> dict:
     """{held_until, held_line, instruction} for a reply being written now. `held_line` is a holding text
-    sent now, `instruction` what the model is told; all None when the reply is an ordinary one shown at once."""
+    sent now, `instruction` what the model is told; all None when the reply is an ordinary one shown at once.
+    `text` is the user's message: asleep, a second text or "wake up" wakes them (companion/life/waking.py)."""
     life = optional(connection, 'SELECT paced_replies FROM life_settings WHERE id=1')
     from companion.life import calls
     if calls.on_call(connection, companion, now):
@@ -86,6 +87,10 @@ def hold(connection, companion, now, seed: str) -> dict:
         return dict(NOT_HELD)
     block, ends_at = found
     if kind == 'sleep':
+        from companion.life import waking
+        dropped = waking.by_text(connection, companion, now, text, ends_at)
+        if dropped is not None:  # Woken: a groggy reply now (the line is in their chat context).
+            return {**NOT_HELD, 'dropped': dropped}
         return {**NOT_HELD, 'held_until': stamp(min(parse(ends_at), now + SLEEP_CAP))}
     rng = random.Random(f'pace:{seed}')
     way = rng.choices([name for name, _weight in WAYS], [weight for _name, weight in WAYS])[0]

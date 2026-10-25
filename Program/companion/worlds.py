@@ -419,10 +419,27 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
     library.carry_city_books(path, database.path, data)
 
 
-def somewhere_new(connection, here: str, seed: str) -> str:
-    """A featured city other than `here`, the same one for the same world; `here` when nothing else is featured."""
-    others = [city['id'] for city in catalog.featured(custom.all_cities(connection))['cities'] if city['id'] != here]
-    return min(others, key=lambda city_id: generators.unit(city_id, 'somewhere-new', seed), default=here)
+def somewhere_new(connection, here: str, seed: str, now=None) -> str:
+    """A featured city other than `here`, the same one for the same world; `here` when nothing else is featured. It
+    leans toward cities within NEAR_HOURS of the user's clock, so the companion found there is awake on the user's
+    evenings more often (companion/life/their_hours.py), without ruling the far ones out."""
+    from companion.life import their_hours
+    others = [city for city in catalog.featured(custom.all_cities(connection))['cities'] if city['id'] != here]
+    mine = their_hours.user_zone(connection) if their_hours.known(connection) else None
+
+    def weight(city: dict) -> float:
+        if mine is None or not now or not city.get('timezone'):
+            return 1.0
+        return NEAR_WEIGHT if abs(their_hours.gap(city['timezone'], mine, now)) <= NEAR_HOURS * 60 else 1.0
+    # A weighted draw with one roll per city: the highest roll ** (1 / weight) wins.
+    picked = max(others, key=lambda city: generators.unit(city['id'], 'somewhere-new', seed) ** (1 / weight(city)),
+                 default=None)
+    return picked['id'] if picked else here
+
+
+# "Somewhere new" leans this many times toward a featured city within NEAR_HOURS of the user's clock.
+NEAR_HOURS = 4
+NEAR_WEIGHT = 4.0
 
 
 def unique_name(data: dict, wanted: str) -> str:
@@ -445,7 +462,7 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
     world_id = identifier()
     with database.connect() as connection:
         if city_id == SOMEWHERE_NEW:
-            city_id = somewhere_new(connection, city_of(connection)['id'], world_id)
+            city_id = somewhere_new(connection, city_of(connection)['id'], world_id, database.clock.now())
         city = story.city_data(connection, city_id) if city_id else city_of(connection)
     folder = f'{FOLDER}/{world_id}'
     path = database.root / folder / DATABASE

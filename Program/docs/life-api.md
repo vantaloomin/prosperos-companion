@@ -991,6 +991,22 @@ day is not work, and a shifted day (see Day disruptions) counts as it ended up. 
 shows while the app is in the background is announced like a first message, unless the user has
 written since.
 
+### Waking them
+
+Asleep is never a wall (`companion/life/waking.py`). A second text while the first reply is still waiting
+for morning, words like "wake up", or a call (the Call button) wakes them. The reply comes now, written
+from a "Right now" line that says it is the middle of the night for them and to answer half-awake and
+brief; the reply that was waiting is dropped unseen (the response's `dropped`). For AWAKE_FOR (20
+minutes) after the last message they are still up; after that the next text waits again. Being woken
+leaves them a little annoyed with the user (`companion/moods.py`), and once their sleep is over they
+may bring it up, once, until they have answered once. Each sleep they were woken from is a row in
+`wakes`, and the nights woken in the last two weeks decide how they take it: `first`, `again` (a step
+less patient) or `thin` (fed up, and they ask to be left to sleep unless something is wrong).
+Closeness softens it. The Life setting `waking_realism` (Settings > Realism > Waking them, shown with
+"Reply at their own pace" on) sets how fast it wears thin: 0 they never mind, 1 easygoing, 2 true to
+life (the default), 3 it wears thin fast. The lines were A/B tested on 11 models: they fit the
+night's mood 115 times out of 119, against 50 for a bare "their message woke you".
+
 ## Day disruptions
 
 Nobody's day goes exactly to plan (`companion/life/disruptions.py`). When the agenda writes a slot,
@@ -1041,6 +1057,25 @@ The schedule is part of the character definition (`POST /api/companion`,
 `kind` is one of `work`, `study`, `errand`, `leisure`, `social`, `rest`, `sleep`; nothing is
 simulated in `sleep` blocks. `days` are 0 (Monday) to 6 (Sunday), all days by default. An `end` at
 or before `start` crosses midnight. `key` is optional and derived from the label.
+
+### Their hours and yours
+
+A companion's day runs on their home city's clock (`companion/life/their_hours.py`). When the app makes
+a companion and their sleep or work would cover more than 40% of the user's evenings (18:00 to 23:00
+the user's time, over a week), it moves their whole week by the fewest whole hours that free 80% of
+them, and their chat context says why: a night owl or an early riser (up to four hours), or odd hours
+working remotely, or living by night. A world from before v1.1.0 does the same once, on the life
+engine's next tick, for a companion whose sleep covers most of the user's evenings (version note
+"Hours fitted to yours"). Nothing moves while the user's zone is still the default (`known`).
+
+`definition.their_hours` is `{mode, shift, why, zone, fit}`: `fit` (moved by the app), `mine` (Live on
+my clock, the Character page switch) or `city` (the user put back their city's hours, so nothing fits
+them again). `shift` is the minutes the saved week is moved from the week as written; the saved
+`schedule` is always the moved one, on the city's clock. The form sends only the `mode`: on save the
+server moves the week from the previous version's `shift`. With `mine`, the week moves by the gap
+between the two clocks and the life engine keeps it in step when either changes (daylight saving, or
+the user's own zone), as a new version with the note "Kept on your clock". "Somewhere new" (a new
+world's city) leans four to one toward Featured cities within four hours of the user's clock.
 
 ## Today
 

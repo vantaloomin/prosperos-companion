@@ -22,6 +22,7 @@ import { TURN_LEVELS } from '../character/turnsText'
 import { LOSS_LEVELS, PASS_AWAY_HINT, PASS_AWAY_TIP } from '../character/lossText'
 import { INNER_VOICE_LEVELS } from '../watch/watchText'
 import { LOOK_LEVELS, LOOK_TIP } from '../character/theirLookText'
+import { WAKING_LEVELS } from '../character/theirHoursText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -76,6 +77,7 @@ export function PaceSettings() {
   const memes = step(MEME_LEVELS, data.memes_realism, 2)
   const voice = step(INNER_VOICE_LEVELS, data.inner_voice, 2)
   const look = step(LOOK_LEVELS, data.their_look, 2)
+  const waking = step(WAKING_LEVELS, data.waking_realism, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
   const families = step(FAMILY_LEVELS, data.growing_families, 2)
   const familyLife = step(FAMILY_LIFE_LEVELS, data.family_life, 2)
@@ -146,7 +148,15 @@ export function PaceSettings() {
           onChange={(inner_voice) => void save({ inner_voice })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
-        hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
+        hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake, unless a second text, "wake up" or a call wakes them. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
+      {data.paced_replies && (
+        <div className="toggle-nested">
+          <Field label={`Waking them: ${waking.label}`} hint={waking.hint} tip="A companion in another time zone can live on your clock instead: the switch is on their Character page.">
+            {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.waking_realism} label={waking.label}
+              onChange={(waking_realism) => void save({ waking_realism })} />}
+          </Field>
+        </div>
+      )}
       <Toggle label="Let their days go off plan" checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
         hint={`Now and then they run late, stay late, have plans fall through, have something come up or get a surprise visit. Rolled with fixed dice, so a day never changes after the fact. Off: every day goes as planned.`} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
