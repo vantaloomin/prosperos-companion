@@ -432,6 +432,22 @@ def untold_for(connection, companion: dict, now) -> list[dict]:
     return result
 
 
+def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
+    """The other companions they know, for their one-on-one prompt: who each one is (their public "Others see" line),
+    the group chat's stage line and how they know each other (A/B 2026-10-25,
+    /mnt/project-files/companion-who-they-know-ab/report.md). The key changes only with the stage, so it caches."""
+    from companion.groups import FEELS, HOW_YOU_KNOW
+    lines = []
+    for tie in ties(connection, companion, now):
+        first, level = tie['name'].split(' ')[0], tie['feels']['level']
+        public = perception.companion_lines(connection, tie['companion_id'])['public']
+        text = f"- {tie['name']}" + (f': {public}' if public else '') + f"\n  {FEELS[level - 1].format(name=first)}"
+        if tie['how']:
+            text += '\n  ' + HOW_YOU_KNOW.format(name=first, how=tie['how'])
+        lines.append((f"companion:{tie['companion_id']}:{level}", text))
+    return lines
+
+
 def defaults_for_new(connection, others: list[dict], key: str, now) -> list[dict]:
     """The ties a new companion (a townsperson or match about to become one, `key` their town key) would start
     with, for the form that makes them a companion: every other companion, at the stage their meetings in town
