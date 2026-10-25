@@ -1727,6 +1727,8 @@ export interface Townsperson {
   full: string
   pronouns: string
   age: number
+  /** Their kind's name when they aren't human ("Vulcan", "Elf"), else null (companion/world/lifespans.py). */
+  folk?: string | null
   role: string
   /** Staff at their place, a regular there, or an ordinary resident of `neighborhood`. */
   kind: 'staff' | 'regular' | 'resident'

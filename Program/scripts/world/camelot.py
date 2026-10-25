@@ -674,6 +674,10 @@ CITY = {
     'water': [{'kind': 'river', 'name': 'Cam', 'width_km': 0.12, 'points': [
         [51.034, -2.552], [51.024, -2.545], [51.012, -2.538], [51.006, -2.526], [51.007, -2.508]]}],
     # What this city calls things on the in-world screens (companion/world/era_words.py).
+    # A few of the fair folk out of Avalon and the lakes walk among the townsfolk (Malory's Lady of the Lake and
+    # Morgan le Fay are of them), with Welsh names; they live a very long time (companion/world/lifespans.py).
+    'kinds': {'fae': {'label': 'Fae', 'lifespan': 1000, 'words': ['fae', 'faerie', 'fay folk'], 'share': 0.03,
+                      'groups': ['welsh']}},
     'words': {
         'call_to': 'Seek {name} in the scrying glass',
         'call_on': 'Speaking with {name} in the scrying glass',

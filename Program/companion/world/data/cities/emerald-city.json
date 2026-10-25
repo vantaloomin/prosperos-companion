@@ -3385,6 +3385,40 @@
    "source": "curated-2026-10"
   }
  ],
+ "kinds": {
+  "munchkin": {
+   "label": "Munchkin",
+   "lifespan": 80,
+   "words": [
+    "munchkin"
+   ],
+   "share": 0.12
+  },
+  "winkie": {
+   "label": "Winkie",
+   "lifespan": 80,
+   "words": [
+    "winkie"
+   ],
+   "share": 0.08
+  },
+  "quadling": {
+   "label": "Quadling",
+   "lifespan": 80,
+   "words": [
+    "quadling"
+   ],
+   "share": 0.08
+  },
+  "gillikin": {
+   "label": "Gillikin",
+   "lifespan": 80,
+   "words": [
+    "gillikin"
+   ],
+   "share": 0.08
+  }
+ },
  "words": {
   "call_to": "Speak with {name} through the Magic Picture",
   "call_on": "Speaking with {name} through the Magic Picture",

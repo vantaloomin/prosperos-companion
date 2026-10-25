@@ -4121,6 +4121,21 @@
    ]
   }
  ],
+ "kinds": {
+  "fae": {
+   "label": "Fae",
+   "lifespan": 1000,
+   "words": [
+    "fae",
+    "faerie",
+    "fay folk"
+   ],
+   "share": 0.03,
+   "groups": [
+    "welsh"
+   ]
+  }
+ },
  "words": {
   "call_to": "Seek {name} in the scrying glass",
   "call_on": "Speaking with {name} in the scrying glass",

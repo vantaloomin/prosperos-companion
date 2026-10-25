@@ -649,9 +649,36 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
 
 
 def group_of(data: dict, seed: str, group: str | None = None) -> str:
-    """The name group a resident's name comes from (`name`): `group` when the city has it, else drawn by the seed."""
+    """The name group a resident's name comes from (`name`): `group` when the city has it, else drawn by the seed
+    from the groups their kind is named from (`kind_of`)."""
+    return drawn(data, seed, group)[0]
+
+
+def kind_of(data: dict, seed: str, group: str | None = None) -> str:
+    """A resident's kind (companion/world/lifespans.py): `group`'s when given, else rolled from the shares the city's
+    `kinds` block gives each kind (humans the rest), else their drawn name group's."""
+    return drawn(data, seed, group)[1]
+
+
+def drawn(data: dict, seed: str, group: str | None = None) -> tuple[str, str]:
+    """(name group, kind) for a seed. A city without kind shares draws the group from the whole mix, as before shares
+    existed; with them, the kind comes first and the group from that kind's own (a human keeps the group they had
+    when the mix has no kind-tied groups)."""
     groups, mix = catalog.name_groups(data)
-    return group if group in groups else pick(seed, 'name-group', list(mix), list(mix.values()))
+    if group in groups:
+        return group, lifespans.of_group(data, group)
+    shares = lifespans.shares(data)
+    if not shares:
+        group = pick(seed, 'name-group', list(mix), list(mix.values()))
+        return group, lifespans.of_group(data, group)
+    kind, mark = lifespans.HUMAN, unit(seed, 'folk-kind')
+    for key, share in shares.items():
+        if mark < share:
+            kind = key
+            break
+        mark -= share
+    weights = lifespans.groups_for(data, kind)
+    return pick(seed, 'name-group', list(weights), list(weights.values())), kind
 
 
 def _feminine_family(family: str, names: dict) -> str:
@@ -667,7 +694,9 @@ def _family(seed: str, culture: str | None, pronouns: str, names: dict, groups: 
         family = pick(seed, 'family', surnames, naming.rank_weights(surnames))
         return naming.gendered(culture, naming.base_family(culture, family), pronouns)
     # Most residents' family names come from the same heritage group; some from anywhere in the city.
-    other = pick(seed, 'family-group', list(mix), list(mix.values()))
+    # From people of their own kind: a human isn't a Hrívë Court elf's namesake.
+    same = {key: weight for key, weight in mix.items() if groups[key].get('kind') == names.get('kind')} or mix
+    other = pick(seed, 'family-group', list(same), list(same.values()))
     return pick(seed, 'family', names['family'] if unit(seed, 'mixed') >= 0.2 else groups[other]['family'])
 
 
@@ -755,7 +784,7 @@ def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None 
         raise DomainError(f'Role is one of {", ".join(ROLES)}.', 422)
     life = age or _age(data, seed, career, around_age, role)
     named = name(data, seed=seed, group=group, family=family, age=life)
-    folk = folk or lifespans.of_group(data, named['group'])
+    folk = folk or kind_of(data, seed, group)
     person = {'id': f'{role}-{hashlib.sha256(seed.encode()).hexdigest()[:8]}', 'role': role,
               'closeness': ROLES[role][0], 'name': named,
               'age': lifespans.real_age(life, lifespans.lifespan_of(folk, data)), 'local': local,

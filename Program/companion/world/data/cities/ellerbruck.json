@@ -4217,6 +4217,14 @@
    ]
   }
  ],
+ "kinds": {
+  "dwarf": {
+   "share": 0.04
+  },
+  "elf": {
+   "share": 0.02
+  }
+ },
  "words": {
   "call_to": "Speak with {name} through the mirror",
   "call_on": "Speaking with {name} through the mirror",
