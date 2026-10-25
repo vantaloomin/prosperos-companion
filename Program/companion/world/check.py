@@ -46,7 +46,7 @@ def plain_warnings(data: dict) -> list[str]:
     if not data['employers'] and not data['career_hubs']:
         found.append(f'Nobody is hiring: add an employer in a {part}.')
     if data['climate'] is None and not data.get('enclosed'):
-        found.append('It has no weather yet.')
+        found.append('It has no weather yet. Pick it on Overview, under Weather.')
     return found
 
 

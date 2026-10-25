@@ -23,6 +23,7 @@ import { unreadOf } from './features/chats/chatText'
 import { AppNav } from './features/nav/AppNav'
 import { RAIL_IDS, fromToday } from './features/nav/navText'
 import { useAppColors } from './features/settings/useAppColors'
+import { useShowCityLink } from './features/world/useShowCity'
 import { useObserver } from './features/watch/useObserver'
 import { WatchBanner } from './features/watch/WatchBanner'
 import { inChat } from './features/watch/watchText'
@@ -74,6 +75,7 @@ export default function App() {
   // Switching Settings tabs keeps the address deep-linkable without filling the back button with tabs.
   const openTab = useCallback((tab: SettingsTab) => { window.history.replaceState(null, '', `#settings/${tab}`); setView(`settings/${tab}`) }, [])
   useNotifications(!!companion.data, go)
+  useShowCityLink(go)
   useTexts(!!companion.data)
   useChatLink(view, setView)
   const chats = useChats(!!companion.data).data?.chats ?? []
