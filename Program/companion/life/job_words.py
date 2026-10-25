@@ -75,3 +75,34 @@ def label(text: str) -> str:
     words = ' '.join(text.split()).strip(' .,;')
     words = re.sub(r'^(?:a|an)\s+', '', words, flags=re.IGNORECASE)
     return words[:1].upper() + words[1:]
+
+
+# What a student studies, in the description's words: "majoring in photography", "a photography major", "studies
+# nursing at Hopkins", "a degree in marine biology", "an art student".
+_FIELD = r"(?P<field>[a-z][a-z'’&-]*(?: (?!(?:at|in|and|with|for|from|who|but|while|since|on)\b)[a-z][a-z'’&-]*){0,3})"
+FIELDS = (re.compile(rf"\b(?:majoring|majors|majored|concentrating|specializing|specialising) in {_FIELD}", re.IGNORECASE),
+          re.compile(rf"\b(?:studies|studying|studied|reading|reads) {_FIELD}(?= at| in|[,.;]|$| and)", re.IGNORECASE),
+          re.compile(rf"\b(?:degree|diploma|bachelor'?s|master'?s|ba|bs|bfa|mfa|ma|ms|phd|doctorate) in {_FIELD}", re.IGNORECASE),
+          re.compile(rf"\b(?:a|an) {_FIELD} (?:major|student|undergrad|undergraduate)\b", re.IGNORECASE))
+NOT_FIELDS = {'college', 'university', 'grad', 'graduate', 'full time', 'part time', 'first year', 'second year',
+              'third year', 'fourth year', 'final year', 'senior', 'junior', 'sophomore', 'freshman', 'exchange', 'hard', 'late', 'night', 'mature', 'former', 'good', 'top', 'straight a', 'poor', 'broke'}
+
+
+def field_of_study(definition: dict) -> str:
+    """What a student studies, from who they are, their background or routine ("photography"); '' when it says
+    nothing. Their own `money.field` wins."""
+    own = ((definition.get('money') or {}).get('field') or '').strip()
+    if own:
+        return own
+    text = ' '.join(str(definition.get(key) or '') for key in ('identity', 'background', 'routine'))
+    hits = [match for pattern in FIELDS for match in pattern.finditer(text)]
+    for match in sorted(hits, key=lambda match: match.start()):
+        field = match['field'].strip(" -'’").casefold()
+        if field and field not in NOT_FIELDS and plain(field) not in NOT_FIELDS:
+            return FIELD_WORDS.get(field, field)
+    return ''
+
+
+# How a field reads in "the midterm project for medicine 201".
+FIELD_WORDS = {'medical': 'medicine', 'nursing school': 'nursing', 'art school': 'art', 'film school': 'film',
+               'pre-med': 'pre-med biology', 'premed': 'pre-med biology', 'pre-law': 'political science'}

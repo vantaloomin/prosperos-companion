@@ -11707,6 +11707,968 @@
      "domme"
     ]
    }
+  ],
+  "study": [
+   {
+    "title": "the midterm project for {field} 201",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a final portfolio review in {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a twelve-page paper for the {field} seminar",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the group presentation in intro {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a critique day in the {field} studio",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the reading list for upper-level {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a lab report that keeps growing for {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the capstone proposal in {field}",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "office hours with the {field} advisor about next term",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "an independent study in {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a semester-long {field} project with a partner who never answers",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the midterm exam in {field} theory",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a field assignment for {field} methods",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a research assistant spot in the {field} department",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the honors thesis outline in {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a juried show of {field} students' work",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the weekly problem sets for {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a case study for the {field} practicum",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a conference poster about their {field} project",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the department's {field} showcase",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a rewrite of the {field} paper the professor sent back",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} elective that turned out harder than it looked",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the {field} club's end-of-term project",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a summer internship application in {field}",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a statement of purpose for a {field} program",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the {field} reading group's book this month",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a group critique of everyone's {field} work",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the history-of-{field} survey course",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a take-home exam in advanced {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} assignment shot, drafted or built three times over",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "notes for the {field} final",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} journal entry due every Friday",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the senior seminar in {field}",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} workshop with a visiting artist or speaker",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the {field} TA's comments on their last assignment",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a collaborative {field} project with the class next door",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the {field} lab hours they keep missing",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a mock interview for {field} internships",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a {field} competition entry",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a scholarship essay about why they chose {field}",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the {field} department's open studio night",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a pile of {field} readings before the quiz",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a semester review with their {field} mentor",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the methods section of their {field} project",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "an archive visit for a {field} paper",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} final that counts for half the grade",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} assignment they're secretly proud of",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} project that needs one more all-nighter",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the {field} midterm critique",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a study group for {field} that mostly eats snacks",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the {field} syllabus's longest assignment",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} presentation in front of the whole class",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a portfolio of their best {field} work for next year",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the {field} course everyone warned them about",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "an extra-credit {field} assignment",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the {field} program's thesis proposal deadline",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} paper on a topic they picked too late",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "drafts of a {field} project for the end-of-term show",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the {field} prerequisites for next year",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a {field} assignment due right after the long weekend",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the midterm crunch",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a group project with three people who never reply",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the reading for Tuesday's seminar",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "registering for next term's classes",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "an essay due Friday at midnight",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "finals week coming up",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a quiz in the gen-ed science course",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a required writing course",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the library's late-night study room",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "an advising appointment about their major",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a statistics requirement they've put off",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a presentation they're dreading",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a lab section at eight in the morning",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a scholarship renewal form",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a semester of shared notes with a classmate",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a paper they've rewritten twice",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "office hours for a grade they want to argue",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "an all-nighter before a deadline",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the language requirement",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a take-home exam",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a discussion post due every Sunday",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a research paper's bibliography",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a study group in the campus cafe",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the elective they took for fun",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the last week of add-drop",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a group chat for a class project",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "an online quiz every Thursday",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a professor who assigns too much reading",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a make-up exam after being sick",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a term paper's first draft",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the honor society application",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a campus job's schedule around classes",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a course evaluation they keep meaning to fill in",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the student loan paperwork",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "an essay outline due Monday",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "notes from a lecture they half slept through",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a review session before the final",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a semester project's final week",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a peer review of a classmate's essay",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the course reader they still haven't bought",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a petition to get into a full class",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a late assignment and an apologetic email",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a public speaking requirement",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "the end-of-term crunch",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a library book that's overdue",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a seminar paper's thesis statement",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the writing center appointment",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a pop quiz they did better on than expected",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the transcript for a transfer application",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a term's worth of flashcards",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a deadline extension they asked for",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a summer class to catch up on credits",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a recommendation letter request",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a reading response due before every class",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "the syllabus week of a new term",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a study abroad application",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a final project's last revisions",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   },
+   {
+    "title": "a dean's list GPA to keep",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a campus talk for extra credit",
+    "eras": [
+     "modern"
+    ]
+   },
+   {
+    "title": "a semester schedule with no breaks",
+    "eras": [
+     "modern",
+     "jazz-age",
+     "industrial",
+     "old"
+    ]
+   }
   ]
  }
 }

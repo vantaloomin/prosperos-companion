@@ -19,7 +19,7 @@ WEEKDAYS = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'start': '09:00', '
 
 def test_the_project_banks_are_big_specific_and_era_tagged():
     banks = work.data()['projects']
-    assert set(banks) == {*work.KINDS, 'general', 'adult'}
+    assert set(banks) == {*work.KINDS, 'general', 'adult', 'study'}
     titles = [item['title'] for bank in banks.values() for item in bank]
     assert len(titles) == len(set(titles))
     for kind, bank in banks.items():
@@ -377,3 +377,60 @@ def test_a_new_job_at_an_employer_ending_in_a_full_stop_ends_its_line_once(clien
         lines = [text for _key, text in work.context_lines(connection, companion, clock.now())]
     [line] = [text for text in lines if 'Coutts' in text]
     assert line.endswith('you started a new job at Coutts and Co.'), line
+
+
+def student(client, monkeypatch, identity):
+    monkeypatch.setattr(body, 'state_on', lambda *_args: None)
+    monkeypatch.setattr(work, 'ACTIVE', True)
+    response = client.post('/api/companion', json={'name': 'Dana', 'timezone': 'UTC', 'schedule': WEEKDAYS,
+                                                    'home_city': 'Baltimore', 'identity': identity})
+    assert response.status_code == 200, response.text
+    reconcile(client)
+    return response.json()
+
+
+def test_a_student_works_on_coursework_in_what_they_study(client, monkeypatch):
+    """A photography major gets a photography portfolio, never a teacher's syllabus for Intro to Chemistry."""
+    dana = student(client, monkeypatch, 'Dana is 21, a college student majoring in photography.')
+    view = client.get('/api/life/work').json()['work']
+    assert view['studying'] and view['field'] == 'photography'
+    teaching = {item['title'] for item in work.data()['projects']['teaching']}
+    assert view['project']['title'] not in teaching
+    study = {item['title'].replace('{field}', 'photography') for item in work.data()['projects']['study']}
+    assert view['project']['title'] in study
+    with connect(client, write=False) as connection:
+        companion = require_current(connection)
+        lines = [line for _key, line in work.context_lines(connection, companion,
+                                                           client.app.state.database.clock.now())]
+    assert any(line.startswith('- For your classes you are in the middle of') for line in lines)
+    assert any('studying photography.' in line and 'year of college' in line for line in lines)
+    assert not any('At work' in line for line in lines)
+    assert dana['id']
+
+
+def test_job_words_find_what_a_student_studies():
+    from companion.life import job_words
+    found = {text: job_words.field_of_study({'identity': text}) for text in (
+        'A college student majoring in photography.', 'She studies nursing at Hopkins.', 'A photography major at MICA.',
+        'An art student who loves jazz.', 'A degree in marine biology.', 'A college student at Towson.',
+        'A senior studying computer science and economics.')}
+    assert list(found.values()) == ['photography', 'nursing', 'photography', 'art', 'marine biology', '',
+                                    'computer science']
+    assert job_words.field_of_study({'identity': 'A photography major.', 'money': {'field': 'film'}}) == 'film'
+
+
+def test_a_student_on_an_old_teachers_project_gets_coursework_and_the_user_can_write_their_own(client, monkeypatch):
+    dana = student(client, monkeypatch, 'Dana is 21, a college student majoring in photography.')
+    with connect(client) as connection:
+        connection.execute("UPDATE work_life SET kind='teaching', project=json_set(project, '$.title', "
+                           "'the fall syllabus for Intro to Chemistry', '$.field', '') WHERE timeline_id=?",
+                           (dana['active_timeline_id'],))
+    view = client.get('/api/life/work').json()['work']
+    assert view['project']['title'] != 'the fall syllabus for Intro to Chemistry' and view['field'] == 'photography'
+    response = client.put('/api/life/work/project', json={'title': 'a darkroom series of the harbor at night'})
+    assert response.status_code == 200, response.text
+    view = response.json()['work']
+    assert view['project']['title'] == 'a darkroom series of the harbor at night' and view['own_project']
+    assert client.get('/api/life/work').json()['work']['project']['title'] == 'a darkroom series of the harbor at night'
+    view = client.put('/api/life/work/project', json={'title': ''}).json()['work']
+    assert not view['own_project'] and view['project']['title'] != 'a darkroom series of the harbor at night'

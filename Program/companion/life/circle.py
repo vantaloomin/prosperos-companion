@@ -178,7 +178,7 @@ def city_named(data: dict, definition: dict, timeline_id: str, person: dict, see
                                  family=family if related else None, group=group if related else None,
                                  folk=folk if related else None, pronouns=person['pronouns'],
                                  career=career['id'] if career and person['local'] else None,
-                                 employer=workplace, age=person.get('age'),
+                                 employer=workplace, age=grown_age(person),
                                  around_age=ages.written_age(timeline_id, definition))  # A friend of 21 is no 44.
     # The sheet's own word, else they/them; someone added by hand without one gets the resident's.
     pronouns = person['pronouns'] or (member['name']['pronouns'] if person.get('by_hand') else 'they/them')
@@ -203,9 +203,14 @@ def plain_named(definition: dict, person: dict, seed: str, ordinal: int) -> dict
         made |= {'career': career['id'], 'schedule': generators.schedule(career, seed)}
     if not person['local']:
         made |= {'career': '', 'schedule': [], 'details': made['details'] | {'career': '', 'employer': ''}}
-    if person.get('age'):
+    if grown_age(person):
         made['details'] = made['details'] | {'age': person['age']}
     return with_job(made, shown, career, person.get('employer') or '', seed)
+
+
+def grown_age(person: dict) -> int | None:
+    """The age the words give a grown-up; a son or daughter's stays with the kids (companion/life/kids.py)."""
+    return person.get('age') if person['kind'] != 'child' else None
 
 
 def sheet_career(person: dict, offered: dict[str, dict]) -> tuple[dict | None, str | None]:

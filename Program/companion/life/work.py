@@ -27,7 +27,7 @@ from pathlib import Path
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import admin, money, outings, routine, shifts
+from companion.life import admin, job_words, money, outings, routine, shifts
 from companion.world import catalog, generators, wording
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'work_life.json'
@@ -73,6 +73,11 @@ LABELS = {'Vacation': 'Vacation day', 'Job hunt': 'Job hunting', 'Parental leave
 LATE_TITLE = 'Staying late at work'
 LATE_DONE = 'stayed late at work on '
 WORKLOAD_WORDS = {'slammed': 'Slammed this week', 'normal': 'An ordinary week at work', 'slow': 'A slow week at work'}
+STUDY_WORKLOAD = {'slammed': 'Slammed this week', 'normal': 'An ordinary week of classes', 'slow': 'A light week of classes'}
+WEEK_LINES = {'slammed': 'Work is slammed this week.', 'slow': 'Work is slow this week.', 'normal': 'An ordinary week at work.'}
+STUDY_WEEK_LINES = {'slammed': 'Your classes are slammed this week.', 'slow': 'A light week of classes.',
+                    'normal': 'An ordinary week of classes.'}
+YEARS = ('first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh')
 
 # The kind of work a career is, by its sector (any word of it), for the project bank.
 KINDS = {
@@ -156,7 +161,12 @@ TRADES_BY_CAREER = {
     'adult-store-clerk': ('shop',), 'erotica-author': ('author',),
 }
 # Careers whose sector would put them in the wrong bank.
-KIND_BY_CAREER = {'defense-engineer': 'tech', 'scribe': 'office', 'arbiter': 'office', 'convent-teacher': 'teaching'}
+KIND_BY_CAREER = {'defense-engineer': 'tech', 'scribe': 'office', 'arbiter': 'office', 'convent-teacher': 'teaching',
+                  'undergraduate': 'study', 'graduate-student': 'study'}
+# Students: coursework from the study bank, in what they study (job_words.field_of_study), never a teacher's projects;
+# never laid off; a few years in, not a decade.
+STUDY = 'study'
+STUDY_YEARS = {'undergraduate': 4, 'graduate-student': 6}
 # Fewer fitting projects than this for an era, and the general bank joins in.
 MIN_OPTIONS = 4
 ERA_GROUPS = {'modern': 'modern', 'future': 'modern', 'other': 'modern', 'jazz-age': 'jazz-age',
@@ -265,13 +275,17 @@ def in_world(item: dict, city: dict | None) -> bool:
     return not (item.get('monarchy') and 'republic' in (city.get('country') or '').lower())
 
 
-def projects(kind: str, group: str, trades: frozenset[str] = frozenset(), city: dict | None = None) -> list[str]:
+def projects(kind: str, group: str, trades: frozenset[str] = frozenset(), city: dict | None = None,
+             field: str = '') -> list[str]:
     """The projects a career could be running: its kind's that fit its trades (or anyone of the kind), in its era and
-    world; the general bank joins in when that leaves too few."""
+    world; the general bank joins in when that leaves too few. A student's coursework names what they study
+    (`field`), and without one stays any student's."""
     bank = data()['projects']
     def pool(name: str) -> list[str]:
         return [item['title'] for item in bank.get(name, ()) if group in item['eras'] and in_world(item, city)
                 and (not item.get('fits') or trades & set(item['fits']))]
+    if kind == STUDY:
+        return [title.replace('{field}', field) for title in pool(STUDY) if field or '{field}' not in title]
     found = pool(kind) if kind != 'general' else []
     if len(found) < MIN_OPTIONS:
         found += pool('general')
@@ -293,15 +307,22 @@ def state(connection, timeline_id: str) -> dict | None:
     return {**row, 'project': decode(row['project'])} if row else None
 
 
-def new_project(seed: str, index: int, career: dict | None, city: dict | None, start: date, used: list[str]) -> dict:
-    """The next running project, from the bank, fitting their career, not one of the last few, in the city's own
-    English."""
+def new_project(seed: str, index: int, career: dict | None, city: dict | None, start: date, used: list[str],
+                field: str = '') -> dict:
+    """The next running project, from the bank, fitting their career (and what a student studies), not one of the
+    last few, in the city's own English."""
     found = [wording.regional(city, title)
-             for title in projects(kind_of(career), era_group(city), trades_of(career), city)]
+             for title in projects(kind_of(career), era_group(city), trades_of(career), city, field)]
     title = generators.pick(seed, f'project:{index}', [title for title in found if title not in used[-8:]] or found)
     weeks = PROJECT_WEEKS[0] + int(generators.unit(seed, 'weeks', index) * (PROJECT_WEEKS[1] - PROJECT_WEEKS[0] + 1))
     due = monday_of(start) + timedelta(weeks=weeks, days=int(generators.unit(seed, 'due-day', index) * 5))
-    return {'title': title, 'index': index, 'started': start.isoformat(), 'due': max(due, start).isoformat()}
+    return {'title': title, 'index': index, 'started': start.isoformat(), 'due': max(due, start).isoformat(),
+            **({'field': field} if field else {})}
+
+
+def field_of(definition: dict, career: dict | None) -> str:
+    """What a student studies, for their coursework; '' for anyone else."""
+    return job_words.field_of_study(definition) if kind_of(career) == STUDY else ''
 
 
 def ensure(connection, companion: dict, today: date, now: datetime) -> dict | None:
@@ -313,14 +334,17 @@ def ensure(connection, companion: dict, today: date, now: datetime) -> dict | No
     city = outings.city_data(connection, definition)
     career = career_of(definition, city)
     career_id = career['id'] if career else ''
-    found = state(connection, timeline_id)
+    found, field = state(connection, timeline_id), field_of(definition, career)
     if found and found['career'] == career_id:
-        return found
+        return refreshed(connection, found, career, city, field, today, now)
     seed = f"work:{timeline_id}:{career_id}"
-    started = today - timedelta(days=0 if found else 200 + int(generators.unit(seed, 'tenure') * 2400))
+    years = STUDY_YEARS.get(career_id)
+    span = (years * 365 - 200) if years else 2400
+    started = today - timedelta(days=0 if found else 200 + int(generators.unit(seed, 'tenure') * span))
     month = rules(city).get('review_month')
     review = f'{month:02d}-{1 + int(generators.unit(seed, "review") * 27):02d}' if month else started.strftime('%m-%d')
-    project = new_project(seed, 0, career, city, today - timedelta(days=int(generators.unit(seed, 'into') * 14)), [])
+    project = new_project(seed, 0, career, city, today - timedelta(days=int(generators.unit(seed, 'into') * 14)), [],
+                          field)
     connection.execute(
         'INSERT INTO work_life (timeline_id, career, kind, started_on, review_on, pay, status, project, used, '
         'checked_through, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?) '
@@ -331,6 +355,42 @@ def ensure(connection, companion: dict, today: date, now: datetime) -> dict | No
         (timeline_id, career_id, kind_of(career), started.isoformat(), review, 'working', encode(project),
          encode([project['title']]), today.isoformat(), stamp(now), stamp(now)))
     return state(connection, timeline_id)
+
+
+def refreshed(connection, found: dict, career: dict | None, city: dict | None, field: str, today: date, now) -> dict:
+    """Their work state, with a new project when the one running no longer fits: a student still on a project from
+    before students had their own (a teacher's syllabus), or coursework in what they no longer study. A project the
+    user wrote stays."""
+    project = found['project']
+    if STUDY not in (found['kind'], kind_of(career)):
+        return found
+    if project.get('own') or (found['kind'] == kind_of(career) and project.get('field', '') == field):
+        return found
+    fresh = new_project(f"work:{found['timeline_id']}:{found['career']}:{field}", project['index'] + 1, career, city,
+                        today, used_titles(found), field)
+    update(connection, found['timeline_id'], now, kind=kind_of(career), project=fresh,
+           used=[*used_titles(found), fresh['title']][-12:])
+    return state(connection, found['timeline_id'])
+
+
+def set_project(connection, companion: dict, title: str, now: datetime) -> dict | None:
+    """What they are working on, in the user's words, until it is due; then the next comes from the bank as before.
+    An empty title gives the app's pick back."""
+    found = ensure(connection, companion, local_today(companion, now), now)
+    if not found:
+        return None
+    project, title = found['project'], ' '.join(title.split())
+    if title:
+        project = {**project, 'title': title, 'own': True}
+    else:
+        definition = companion['version']['definition']
+        city = outings.city_data(connection, definition)
+        career = career_of(definition, city)
+        project = new_project(f"work:{found['timeline_id']}:{found['career']}:own", project['index'], career, city,
+                              date.fromisoformat(project['started']), used_titles(found), field_of(definition, career))
+        project['due'] = found['project']['due']
+    update(connection, found['timeline_id'], now, project=project)
+    return state(connection, found['timeline_id'])
 
 
 def record(connection, timeline_id: str, key: str, kind: str, day: date, text: str, pay: float, change: float,
@@ -519,8 +579,9 @@ def next_project(connection, companion: dict, found: dict) -> dict:
     definition = companion['version']['definition']
     city = outings.city_data(connection, definition)
     start = date.fromisoformat(found['project']['due']) + timedelta(days=2)
+    career = career_of(definition, city)
     return new_project(f"work:{companion['active_timeline_id']}:{found['career']}", found['project']['index'] + 1,
-                       career_of(definition, city), city, start, used_titles(found))
+                       career, city, start, used_titles(found), field_of(definition, career))
 
 
 def project_on(connection, companion: dict, found: dict, day: date) -> dict:
@@ -561,8 +622,9 @@ def new_job(connection, companion: dict, found: dict, day: date, now) -> dict:
            f'started a new job{" at " + employer if employer and not employer.startswith("a ") else ""}', pay,
            (pay / found['pay'] - 1) * 100, now)
     used = used_titles(found)
+    career = career_of(definition, city)
     project = new_project(f'work:{timeline_id}:{found["career"]}:{day.isoformat()}', found['project']['index'] + 1,
-                          career_of(definition, city), city, day, used)
+                          career, city, day, used, field_of(definition, career))
     return {'status': 'working', 'hunt_until': None, 'hunt_reason': None, 'employer': employer, 'pay': pay,
             'started_on': day.isoformat(), 'review_on': day.strftime('%m-%d') if not rules(city).get('review_month')
             else found['review_on'], 'project': project, 'used': [*used, project['title']][-12:]}
@@ -620,7 +682,7 @@ def advance(connection, companion: dict, now: datetime) -> dict | None:
                 changes['pay'] = review(connection, companion, current, day, chosen, rule, now)
             if day.isoformat() > current['project']['due']:
                 changes.update(finish_project(connection, companion, current, day, chosen, now))
-            if chosen >= 3 and day.weekday() == 0:
+            if chosen >= 3 and day.weekday() == 0 and current['kind'] != STUDY:  # A student isn't laid off.
                 run = sum(workload(current, day - timedelta(weeks=back), chosen) == 'slammed' for back in (1, 2))
                 if lost := lose_job(connection, companion, current, day, run, now):
                     changes.update(lost)
@@ -831,6 +893,13 @@ def tenure(started: str, today: date) -> str:
     return 'about a year' if years == 1 else f'about {years} years'
 
 
+def study_year(found: dict, today: date, field: str) -> str:
+    """"You are in your second year, studying photography." for a student's chat context."""
+    year = YEARS[min(len(YEARS) - 1, max(0, (today - date.fromisoformat(found['started_on'])).days // 365))]
+    program = 'of graduate school' if found['career'] == 'graduate-student' else 'of college'
+    return f"You are in your {year} year {program}" + (f", studying {field}." if field else '.')
+
+
 def vacation_line(days: list[str], today: date) -> str:
     """'You are off work Friday, October 30 (a vacation day).' or a run of days as one stretch."""
     upcoming = sorted({day for day in days if today.isoformat() <= day <= (today + timedelta(days=21)).isoformat()})
@@ -875,10 +944,12 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         week, project = workload(found, monday_of(today), chosen), found['project']
         due = date.fromisoformat(project['due'])
         due_text = f" It is due {day_text(project['due'])}." if 0 <= (due - today).days <= 21 else ''
-        lines.append(('week', {'slammed': 'Work is slammed this week.', 'slow': 'Work is slow this week.',
-                               'normal': 'An ordinary week at work.'}[week]))
-        lines.append(('project', f"At work you are in the middle of {project['title']}.{due_text}"))
-        lines.append(('tenure', f"You have been at this job for {tenure(found['started_on'], today)}."))
+        studying = found['kind'] == STUDY
+        lines.append(('week', (STUDY_WEEK_LINES if studying else WEEK_LINES)[week]))
+        lines.append(('project', f"{'For your classes' if studying else 'At work'} you are in the middle of "
+                                 f"{project['title']}.{due_text}"))
+        lines.append(('tenure', study_year(found, today, project.get('field', '')) if studying else
+                      f"You have been at this job for {tenure(found['started_on'], today)}."))
         if shifts.ACTIVE and (line := shifts.context_line(connection, companion, today)):
             lines.append(('shifts', line[2:]))
         if line := vacation_line(vacation_days(connection, companion, today.year, found)
@@ -899,9 +970,8 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
     if not works(companion['version']['definition']):
         return None
     chosen = level(connection)
-    found = state(connection, timeline_id) if ACTIVE else None
-    if not found and ACTIVE:
-        found = ensure(connection, companion, local_today(companion, now), now)
+    # Made the first time, and a project that no longer fits a student replaced (refreshed).
+    found = ensure(connection, companion, local_today(companion, now), now) if ACTIVE else None
     today = local_today(companion, now)
     if not found:
         return None
@@ -922,7 +992,8 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
             # A freelancer's gigs say how the week is going; with none this week there is no project to be on (Iris).
             state_lines.append(gigs)
         else:
-            state_lines += [WORKLOAD_WORDS[week] + '.', *([gigs] if gigs else [])]
+            words = STUDY_WORKLOAD if found['kind'] == STUDY else WORKLOAD_WORDS
+            state_lines += [words[week] + '.', *([gigs] if gigs else [])]
         if hours != 'freelance' or not gigs.startswith('No gigs'):
             state_lines.append(f"Working on {found['project']['title']}, due {day_text(found['project']['due'])}.")
         if line := vacation_line(days + vacation_days(connection, companion, today.year + 1, found), today):
@@ -941,4 +1012,5 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
             'late_nights': late, 'vacation': [day for day in days if day >= today.isoformat()][:10],
             'events': [{'id': event['id'], 'kind': event['kind'], 'local_date': event['local_date'],
                         'text': event['text']} for event in reversed(events)][:8],
-            'level': chosen, 'meter': meter, 'hours': hours}
+            'level': chosen, 'meter': meter, 'hours': hours, 'studying': found['kind'] == STUDY,
+            'field': found['project'].get('field', ''), 'own_project': bool(found['project'].get('own'))}
