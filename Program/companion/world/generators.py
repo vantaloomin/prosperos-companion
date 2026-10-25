@@ -595,10 +595,12 @@ RETIRED_SCHEDULE = [
 ]
 
 
-def seeded_pronouns(data: dict, seed: str) -> str:
-    """The pronouns `name` gives this seed when none are asked for: 'she', 'he' or 'they'."""
+def seeded_pronouns(data: dict, seed: str, group: str | None = None) -> str:
+    """The pronouns `name` gives this seed when none are asked for: 'she', 'he' or 'they'. A kind whose city entry
+    gives its own `pronouns` weights uses those (Grandport's elves are mostly women)."""
+    own = lifespans.pronoun_weights(data, kind_of(data, seed, group)) if data.get('kinds') else None
     modern = data['era'] in ('modern', 'future', 'other')
-    return pick(seed, 'pronouns', ['she', 'he', 'they'], town_mix.pronoun_weights(modern))
+    return pick(seed, 'pronouns', ['she', 'he', 'they'], own or town_mix.pronoun_weights(modern))
 
 
 def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | None = None,
@@ -617,7 +619,7 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
     group = group_of(data, seed, group)
     names = groups[group]
     if pronouns not in PRONOUNS:
-        pronouns = seeded_pronouns(data, seed)
+        pronouns = seeded_pronouns(data, seed, group)
     links = naming.links(names, data)
     if family and not names.get('own_family'):
         # A relative's given name comes from a culture that fits the family name they share.

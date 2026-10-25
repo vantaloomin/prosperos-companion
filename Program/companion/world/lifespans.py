@@ -31,6 +31,7 @@ DEFAULT_SHARE = 0.1
 DEFAULT_TOTAL = 0.3
 LONG_LIVED = 150  # Past this, milestone birthdays are round 50s and 100s of real years, and an age past 120 can be theirs.
 WORD_FIELDS = ('identity', 'appearance')
+PRONOUNS = ('she', 'he', 'they')
 NEGATED = re.compile(r"\b(?:not|never|isn't|no)\s+(?:\w+\s+)?(?:an?\s+)?$", re.IGNORECASE)
 
 
@@ -119,6 +120,13 @@ def groups_for(data: dict, kind: str) -> dict[str, float]:
     if tied:
         return tied
     return groups_for(data, HUMAN) if kind != HUMAN else mix
+
+
+def pronoun_weights(data: dict | None, kind: str) -> list[float] | None:
+    """[she, he, they] weights for people of a kind where the city's `kinds` entry gives its own `pronouns`, else
+    None (the town's usual mix)."""
+    own = ((((data or {}).get('kinds') or {}).get(kind) or {}).get('pronouns'))
+    return [own.get(key, 0) for key in PRONOUNS] if own else None
 
 
 def from_words(text: str, data: dict | None = None) -> str:
@@ -294,8 +302,9 @@ def clean_kinds(block: dict) -> tuple[list[str], dict]:
 
 
 def extras(value: dict) -> tuple[dict, str]:
-    """({share, groups} as given, '') for a kind's entry, or ({}, why) when one is wrong: a share is a number from 0
-    to 1 (the fraction of the town's seeded people of this kind) and groups name the city's name groups."""
+    """({share, groups, pronouns} as given, '') for a kind's entry, or ({}, why) when one is wrong: a share is a number
+    from 0 to 1 (the fraction of the town's seeded people of this kind), groups name the city's name groups and
+    pronouns weigh she, he and they for people of this kind."""
     extra = {}
     if 'share' in value:
         share = value['share']
@@ -307,4 +316,11 @@ def extras(value: dict) -> tuple[dict, str]:
         if not isinstance(groups, list) or not groups or not all(isinstance(group, str) and group for group in groups):
             return {}, 'its groups must list the name groups its people are named from.'
         extra['groups'] = list(dict.fromkeys(groups))
+    if 'pronouns' in value:
+        weights = value['pronouns']
+        if not isinstance(weights, dict) or not weights or set(weights) - set(PRONOUNS) or \
+                any(isinstance(weight, bool) or not isinstance(weight, (int, float)) or weight < 0
+                    for weight in weights.values()) or not sum(weights.values()):
+            return {}, 'its pronouns must weigh "she", "he" and "they" ({"she": 0.8, "he": 0.15, "they": 0.05}).'
+        extra['pronouns'] = {key: float(weights[key]) for key in PRONOUNS if key in weights}
     return extra, ''

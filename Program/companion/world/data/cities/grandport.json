@@ -4788,7 +4788,12 @@
  ],
  "kinds": {
   "elf": {
-   "share": 0.04
+   "share": 0.04,
+   "pronouns": {
+    "she": 0.8,
+    "he": 0.15,
+    "they": 0.05
+   }
   }
  },
  "prices": [
