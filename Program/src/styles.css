@@ -2738,3 +2738,8 @@ p.breakup-line { align-items: center; }
   .circle-pets > .text-button { min-height: 44px; }
   .circle-pet-form select { max-width: none; width: 100%; }
 }
+
+/* Settings > General > Updates: the link sits on the first line's right on wide windows, and on its own line under the text on a phone. */
+.update-check .notice > .text-button { align-self: flex-start; line-height: 1.55; }
+@media (min-width: 721px) { .update-check .notice > .text-button { padding-block: 0; } }
+@media (max-width: 720px) { .update-check .notice > .text-button { flex-basis: 100%; margin-left: 23px; justify-content: flex-start; } }
