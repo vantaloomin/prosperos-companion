@@ -187,6 +187,8 @@ supporting characters, never the user and never a source of facts about the user
 ```http
 GET   /api/life/circle                     # ?include_removed=true also lists removed people
 PATCH /api/life/circle/{id}                {"name": "Rowan"}
+PUT   /api/life/circle/{id}/about          {"role": "old roommate", "job": "ER nurse", "age": 41, ...}
+POST  /api/life/circle/people              {"name": "Mo", "role": "cousin"}   # added by hand; the app picks the rest
 POST  /api/life/circle/{id}/remove
 POST  /api/life/circle/{id}/restore
 POST  /api/life/circle/{id}/spared         {"spared": false}   # People can pass away: whether they can
@@ -216,6 +218,19 @@ restoring someone rebuilds their upcoming entries and the companion's upcoming e
 them. Entries that already happened keep the earlier name. Social events can name a circle member
 who is free at the time: the event's `details.with` is `{id, name}` or `null`. The chat context
 lists the circle with each person's current block and latest diary entry.
+
+The people the character's description names (companion/life/named.py) take their places in the circle with the
+relation, job and age it gives them ("her brother Tunde, a nurse at Mercy", "Mia works as a tattoo artist", "her
+61-year-old mom Ana"). The job shows in the description's words; the career it matches (companion/life/job_words.py)
+gives their week its hours, and words that match none keep office hours, or a retired week for "retired". A job said
+only in passing ("Tunde, a quiet man") counts only when it names a known career.
+
+`PUT .../about` changes any of `name`, `role`, `pronouns`, `job`, `employer`, `age`, `local` and `note`; only the fields
+sent change (companion/life/circle_edit.py). A new job or workplace gives them a new week, moving out of town clears it
+and moving into town gives them a home, haunts and a week. `note` (up to 300 characters) is the user's own words about
+them, which the chat context adds to their line. What the user set is listed in `edited`, so later passes (family
+names) leave it alone. `POST .../people` adds someone by hand with as little as a name (`by_hand`, spared from
+passing away unless `spared` says otherwise), the way someone the description names is added.
 
 ### Circle size and who knows whom
 

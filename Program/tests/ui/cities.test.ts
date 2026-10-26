@@ -50,8 +50,8 @@ test('the city search matches name, other names, region and country, ignoring ac
 })
 
 test('facts read naturally', () => {
-  assert.equal(cityFacts(city()), 'Real city · modern · 21 neighborhoods, 124 places')
-  assert.equal(cityFacts(city({ setting: 'original', counts: { ...city().counts, neighborhoods: 1, places: 1 } })), 'Original setting · modern · 1 neighborhood, 1 place')
+  assert.equal(cityFacts(city()), 'Real city · Today · 21 neighborhoods, 124 places')
+  assert.equal(cityFacts(city({ setting: 'original', counts: { ...city().counts, neighborhoods: 1, places: 1 } })), 'Original setting · Today · 1 neighborhood, 1 place')
 })
 
 

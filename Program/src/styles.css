@@ -2592,7 +2592,7 @@ p.breakup-line { align-items: center; }
 .draft-list-head h2 { font-size: 1.1rem; } .draft-list-head h2 .subtle { font-size: 0.875rem; font-weight: 400; } .draft-list-head p { margin: 4px 0 0; max-width: 46ch; }
 .draft-list-actions { display: flex; gap: 8px; }
 .draft-group + .draft-group { margin-top: 20px; } .draft-group h3 { font-size: 0.9375rem; margin: 0 0 8px; }
-.draft-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.draft-items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .draft-item { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .draft-item.open { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
 .draft-item-head { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; text-align: left; border-radius: 8px; }
@@ -2611,6 +2611,16 @@ p.breakup-line { align-items: center; }
   .draft-page .icon-button:hover:not(:disabled) { background: transparent; color: var(--muted); }
 }
 .draft-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.draft-neighbours { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.draft-neighbours h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.draft-neighbours > .text-button { align-self: flex-start; }
+.draft-tag { flex: none; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-size: 0.75rem; font-weight: 500; }
+.draft-polish-note { margin-top: 4px; } .draft-undo-polish { color: var(--accent); min-height: 36px; padding-left: 0; }
+.draft-undo-polish svg { width: 15px; height: 15px; margin-right: 4px; vertical-align: -2px; }
+.draft-opened > summary { cursor: pointer; min-height: 32px; } .draft-opened .city-notes, .draft-list .city-notes { max-height: none; overflow: visible; }
+@media (min-width: 1001px) { .draft-toast-area { right: 540px; } }
+@media (min-width: 721px) and (max-width: 1000px) { .draft-toast-area { right: 440px; } }
+.draft-toast-action svg { width: 16px; height: 16px; margin-right: 4px; vertical-align: -3px; }
 .draft-add { margin-top: 6px; min-height: 44px; color: var(--accent); }
 .draft-months { margin: 0; padding: 0; border: 0; } .draft-months legend { margin-bottom: 7px; font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 .draft-months .vibe-pick { min-width: 48px; min-height: 36px; } .draft-months .vibe-pick:disabled { opacity: 1; cursor: default; }
@@ -2632,6 +2642,10 @@ p.breakup-line { align-items: center; }
   .draft-body[data-tab='map'] .draft-map { flex: 1; }
   .draft-panel-body { padding: 16px 16px 40px; }
   .draft-pair { grid-template-columns: 1fr; }
+  /* The toast's text keeps the width; Undo or Show in Companion sit on a row of their own below it. */
+  .draft-toast { flex-wrap: wrap; row-gap: 0; }
+  .draft-toast > span { flex: 1 1 0; min-width: calc(100% - 84px); }
+  .draft-toast-action { order: 3; margin-left: 28px; }
 }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .spin, :root:not([data-motion='full']) .draft-chip-checking svg, :root:not([data-motion='full']) .draft-toast { animation: none; } }
 :root[data-motion='reduce'] :is(.spin, .draft-chip-checking svg) { animation: none; }
@@ -2641,3 +2655,39 @@ p.breakup-line { align-items: center; }
 /* A setting that belongs to the switch above it: in that switch's description column (the box with its margins, then
    the 12px gap), 8px below it inside a form stack's 20px gap. */
 .toggle-nested { margin: -12px 0 0 37px; }
+
+/* A nearby place's journey wraps under itself rather than cutting off "by the coast steamer". */
+.draft-neighbours .draft-item-meta { white-space: normal; text-align: right; max-width: 60%; }
+/* On a phone an employer's neighborhood goes under its name, so neither is cut short. */
+@media (max-width: 720px) {
+  .draft-list-work .draft-item-head { flex-wrap: wrap; row-gap: 2px; }
+  .draft-list-work .draft-item-name { flex: 1 1 calc(100% - 40px); }
+  .draft-list-work .draft-item-meta { order: 3; flex-basis: 100%; margin-left: 0; max-width: none; }
+}
+
+/* Editing someone in the circle (Iris review of editing the circle): the form fills the card, no box in a box. */
+.circle-form { display: grid; gap: 12px; min-width: 0; }
+.circle-form > p { margin: 0; }
+.circle-field { display: grid; gap: 6px; min-width: 0; align-content: start; }
+.circle-field label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+.circle-field input, .circle-field select, .circle-field textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+.circle-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-width: 0; align-items: start; }
+.circle-form-work { grid-template-columns: 1fr; }
+@media (min-width: 1200px) { .circle-form-work { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .circle-form-row { grid-template-columns: 1fr; } }
+.circle-form-actions { margin-top: 4px; }
+.suggest { position: relative; display: block; min-width: 0; }
+.suggest input { padding-right: 36px; }
+.suggest input::-webkit-calendar-picker-indicator { opacity: 0; }
+.suggest svg { position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
+.person-add { padding: var(--card-pad); }
+.person-add-button { align-self: flex-start; }
+@media (max-width: 720px) { .person-add-button { align-self: stretch; justify-content: center; } }
+.person-note-block { display: grid; justify-items: start; gap: 2px; }
+.person-note { margin: 0; color: var(--text); font-size: .95rem; }
+.person-note.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-width: 720px) { .person-note.clamped { -webkit-line-clamp: 2; } }
+.person-note-more { padding-left: 0; }
+.person-card > h3 + .circle-form { margin-top: 6px; }
+.person-note-more { color: var(--accent); }
+@media (max-width: 720px) { .person-note-more { min-height: 44px; } }

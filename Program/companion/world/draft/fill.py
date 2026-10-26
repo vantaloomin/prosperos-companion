@@ -192,6 +192,17 @@ def colour(hoods: list[dict], brief: dict, namer, city: str, seed: str) -> list[
     return found
 
 
+# What each climate is called on the Draft Table, as its subtitle says it.
+WEATHER_NAMES = {'temperate': 'Mild', 'cold': 'Cold', 'desert': 'Dry', 'tropical': 'Tropical', 'warm': 'Warm',
+                 'highland': 'Mountains'}
+
+
+def weathers() -> list[dict]:
+    """Every climate the table can give a place, for its weather choice: {id, name, climate}."""
+    return [{'id': biome, 'name': name, 'climate': climate({'aboard': False, 'biome': biome})}
+            for biome, name in WEATHER_NAMES.items()]
+
+
 def climate(brief: dict) -> dict | None:
     """Weather for the place's climate, none aboard (the app gives a ship its own steady climate)."""
     if brief['aboard']:

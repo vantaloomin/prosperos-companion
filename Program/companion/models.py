@@ -93,6 +93,8 @@ class MoneySetup(Input):
     # Their hours (companion/life/shifts.py): empty follows their work (shifts that change each week for a bartender,
     # gigs for a freelancer), or the same days every week ('staff'), shifts ('rota') or gigs ('freelance').
     employment: Literal['', 'staff', 'rota', 'freelance'] = ''
+    # What a student studies (companion/life/job_words.py); empty reads it from who they are.
+    field: str = Field(default='', max_length=60)
 
 
 class Looks(Input):

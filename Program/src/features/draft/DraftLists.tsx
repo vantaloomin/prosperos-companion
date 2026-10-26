@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react'
-import { ChevronDown, Dices, Plus, Trash2 } from 'lucide-react'
+import { useContext, useEffect, useRef, type ReactNode } from 'react'
+import { ChevronDown, Dices, LoaderCircle, Plus, Trash2, Undo2, WandSparkles } from 'lucide-react'
 import { Field, TextArea, TextInput } from '../../components/Fields'
-import { COLOUR_KINDS, hoodNames, MONTHS, PLACE_KINDS, TRANSIT_KINDS, type Definition, type Item, type ListKey, type Section } from './draftText'
+import { COLOUR_KINDS, hoodNames, MONTHS, PLACE_KINDS, POLISHED, TRANSIT_KINDS, type Definition, type Item, type ListKey, type Section } from './draftText'
+import { PolishContext } from './polishContext'
 
 /** What a list needs from the table: change or remove one of its items, redraw it, and which item is open. */
 export interface ListProps {
@@ -21,13 +22,42 @@ export function ListHead({ title, count, hint, section, onRoll, children }: { ti
       <div>
         <h2 id={id}>{title} <span className="subtle">{count}</span></h2>
         <p className="subtle">{hint}</p>
+        <PolishNote section={section} />
       </div>
       <div className="draft-list-actions">
         {children}
         {onRoll && <button type="button" className="button" onClick={() => onRoll(section)}><Dices aria-hidden="true" />Roll again</button>}
+        <PolishButton section={section} />
       </div>
     </header>
   )
+}
+
+const POLISH_SAYS = "Polish uses your text model to rewrite names and blurbs. Rows you've changed are left alone."
+const NO_MODEL = 'Set up a text model in Companion first, under Settings > Models.'
+
+/** Rewrites the list's names and summaries in the place's voice with the user's text model. */
+function PolishButton({ section }: { section: Section }) {
+  const polish = useContext(PolishContext)
+  if (!polish || !POLISHED[section]) return null
+  const here = polish.polishing === section
+  const off = polish.polishing !== null || polish.ready !== true
+  return (
+    <button type="button" className="button" aria-disabled={off} title={polish.ready === false ? NO_MODEL : POLISH_SAYS} aria-describedby={`draft-polish-${section}`}
+      onClick={() => { if (!off) polish.polish(section) }}>
+      {here ? <LoaderCircle aria-hidden="true" className="spin" /> : <WandSparkles aria-hidden="true" />}{here ? 'Polishing…' : 'Polish'}
+    </button>
+  )
+}
+
+/** Under the list's hint: what Polish does (or what it needs), and Undo polish until the next change. */
+function PolishNote({ section }: { section: Section }) {
+  const polish = useContext(PolishContext)
+  if (!polish || !POLISHED[section]) return null
+  return <>
+    <p className="subtle draft-polish-note" id={`draft-polish-${section}`}>{polish.ready === false ? NO_MODEL : POLISH_SAYS}</p>
+    {polish.undoable === section && <button type="button" className="text-button draft-undo-polish" onClick={polish.undo}><Undo2 aria-hidden="true" />Undo polish</button>}
+  </>
 }
 
 /** One item: its name and what it is, opening to its fields. The open item scrolls into view, as when picked on the map. */
@@ -35,10 +65,12 @@ export function ItemRow({ item, meta, open, onOpen, onRemove, children }: { item
   const row = useRef<HTMLLIElement>(null)
   useEffect(() => { if (open) row.current?.scrollIntoView({ block: 'nearest' }) }, [open])
   const panel = `draft-item-${item.id}`
+  const polished = useContext(PolishContext)?.polished.has(item.id)
   return (
     <li ref={row} className={`draft-item${open ? ' open' : ''}`}>
       <button type="button" className="draft-item-head" aria-expanded={open} aria-controls={panel} onClick={() => onOpen(open ? null : item.id)}>
         <span className="draft-item-name">{item.name || 'Unnamed'}</span>
+        {polished && <span className="draft-tag">Polished</span>}
         <span className="subtle draft-item-meta">{meta}</span>
         <ChevronDown aria-hidden="true" className="draft-item-chevron" />
       </button>
@@ -122,7 +154,7 @@ export function HoodList({ definition, open, onOpen, onChange, onRemove, onRoll,
 export function WorkList({ definition, open, onOpen, onChange, onRemove, onRoll }: ListProps) {
   const hoods = hoodNames(definition)
   return (
-    <section className="draft-list" aria-labelledby="draft-employers">
+    <section className="draft-list draft-list-work" aria-labelledby="draft-employers">
       <ListHead title="Work" count={definition.employers.length} section="employers" onRoll={onRoll} hint="Employers, and the jobs of the era they hire for. A companion who lives here can work at one." />
       <ul className="draft-items">
         {definition.employers.map((item) => (

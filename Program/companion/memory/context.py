@@ -468,6 +468,8 @@ def person_text(person) -> str:
                               if person.get('birth_family') else '.')
     if person.get('knows'):
         text += ' ' + circle.ties_text(person['knows'])
+    if person.get('note'):  # The user's own words about them, from the circle list.
+        text += f" {person['note'].rstrip()}" + ('' if person['note'].rstrip()[-1:] in '.!?' else '.')
     return text
 
 

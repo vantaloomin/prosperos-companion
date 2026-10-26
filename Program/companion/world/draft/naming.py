@@ -70,7 +70,11 @@ class Namer:
         return key
 
     def fill(self, pattern: str, **slots) -> str:
-        return SLOT.sub(lambda found: self.slot(found.group(1), slots), pattern)
+        """The pattern with its slots drawn; a name put mid-sentence reads "the Estates", not "The Estates"."""
+        def filled(found) -> str:
+            value = self.slot(found.group(1), slots)
+            return f'the {value[4:]}' if found.start() and value.startswith('The ') else value
+        return SLOT.sub(filled, pattern)
 
     def name(self, patterns: list[str], **slots) -> str:
         """A name from the patterns that no other record of the place has, trying a few draws before giving the

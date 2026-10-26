@@ -19,6 +19,7 @@ from companion.life import (
     calls,
     chapters,
     circle,
+    circle_edit,
     citymap,
     deck,
     encounters,
@@ -65,6 +66,22 @@ class Reconcile(Input):
 
 
 class PersonUpdate(Input):
+    name: str = Field(min_length=1, max_length=60, pattern=r'\S')
+
+
+class PersonAbout(Input):
+    """The user's changes to someone in the circle (companion/life/circle_edit.py); only the fields given change."""
+    name: str | None = Field(default=None, min_length=1, max_length=60, pattern=r'\S')
+    role: str | None = Field(default=None, min_length=1, max_length=40, pattern=r'\S')
+    pronouns: Literal['she/her', 'he/him', 'they/them'] | None = None
+    job: str | None = Field(default=None, max_length=60)
+    employer: str | None = Field(default=None, max_length=80)
+    age: int | None = Field(default=None, ge=0, le=5000)
+    local: bool | None = None
+    note: str | None = Field(default=None, max_length=300)
+
+
+class PersonNew(PersonAbout):
     name: str = Field(min_length=1, max_length=60, pattern=r'\S')
 
 
@@ -249,6 +266,28 @@ def grow_circle(request: Request):
 def rename_person(request: Request, person_id: str, body: PersonUpdate):
     return circle_change(request, person_id,
                          lambda connection, now: circle.rename(connection, person_id, body.name, now))
+
+
+@router.put('/circle/{person_id}/about')
+def edit_person(request: Request, person_id: str, body: PersonAbout):
+    """The user's changes to someone in the circle: who they are, their job, where they live and a note."""
+    world = request.app.state.life.world
+    return circle_change(request, person_id, lambda connection, now: circle_edit.edit(
+        connection, require_current(connection), world, person_id, body.model_dump(exclude_unset=True), now))
+
+
+@router.post('/circle/people')
+def add_person(request: Request, body: PersonNew):
+    """Someone the user adds by hand; whatever they leave out the app picks."""
+    database, engine = db(request), request.app.state.life
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        added = circle_edit.add(connection, companion, engine.world, body.model_dump(exclude_unset=True), now)
+        if simulation.may_extend(settings(connection), 'return'):
+            agenda.extend(connection, companion, engine.world, now)
+        return next(person for person in agenda.circle_view(connection, companion['active_timeline_id'], now)
+                    if person['id'] == added['id'])
 
 
 @router.put('/circle/{person_id}/kind')
