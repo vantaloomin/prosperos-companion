@@ -30,6 +30,7 @@ import { ModelSettings } from './models/ModelSettings'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { NextStep } from './NextStep'
 import { CommunityLink } from './CommunityLink'
+import { UpdateCheck } from './UpdateCheck'
 import { availableTabs, pickTab, searchSettings, type SettingsMatch, type SettingsTab } from './sections'
 
 interface Props {
@@ -98,7 +99,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   // Built-in recall reads and runs files on the PC, so a phone does not show it (companion/phone/access.py).
   const remote = !!usePhoneStatus().data?.remote
   const content: Record<SettingsTab, ReactNode> = {
-    general: <><TimezoneSettings /><ChatStyleSettings /><OocSettings /><PauseSettings /><BackgroundSettings /></>,
+    general: <><TimezoneSettings /><ChatStyleSettings /><OocSettings /><PauseSettings /><BackgroundSettings /><UpdateCheck /></>,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
     life: <><LifeSettings name={name} /><Cities /><Library world /></>,
     realism: <><RealismIntro /><PaceSettings /><LoveSettings /><HomeLifeSettings /><ClosenessSettings name={name} /><AdultSideSettings /><HiddenValues name="" /></>,

@@ -2720,3 +2720,8 @@ p.breakup-line { align-items: center; }
 .person-card > h3 + .circle-form { margin-top: 6px; }
 .person-note-more { color: var(--accent); }
 @media (max-width: 720px) { .person-note-more { min-height: 44px; } }
+
+/* Settings > General > Updates: the link sits on the first line's right on wide windows, and on its own line under the text on a phone. */
+.update-check .notice > .text-button { align-self: flex-start; line-height: 1.55; }
+@media (min-width: 721px) { .update-check .notice > .text-button { padding-block: 0; } }
+@media (max-width: 720px) { .update-check .notice > .text-button { flex-basis: 100%; margin-left: 23px; justify-content: flex-start; } }
