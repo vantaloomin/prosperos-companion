@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Books, shows and songs from their own world:** a companion in a made-up world used to read, watch and hum the
+  same generic made-up titles whether they lived in Camelot, Oz or a fan-made world of your own. Now the titles come
+  from their world: a city can list its own books, shows and songs (`media` in the city file, see Making a city),
+  and one without a list gets titles built from its own places, people, festivals, food and lore ("A History of the
+  Emerald City", "Last Round at the Blue Cloth"), mixed with the shared ones. What they are on today changes over.
 - **Post something of your own:** the top of the Posts page has a box to share something with everyone. All your
   companions see it, and so do their friends, so it is how you get to know friends of friends. They like and
   comment on it in their own time: the closer you are to a companion, the likelier they and their circle join

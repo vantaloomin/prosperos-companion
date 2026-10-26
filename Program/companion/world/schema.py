@@ -478,6 +478,9 @@ class City(Record):
     # each `when` naming weather, season, time, day, holiday, place or work. Checked when the city loads
     # (lore_moments.clean), which drops a bad entry with a note rather than stopping the city loading.
     lore: Any = None
+    # The city's own books, shows and songs (companion/life/media_world.py): {credit, book, show, music}, each a list
+    # of [title, by, year, tags]. Checked when the city loads (media_world.clean), which drops a bad entry with a note.
+    media: Any = None
 
     @model_validator(mode='after')
     def check(self):
