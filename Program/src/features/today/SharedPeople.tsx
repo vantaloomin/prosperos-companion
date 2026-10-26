@@ -1,24 +1,37 @@
-import { useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, type FormEvent, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { BookOpen, ChevronDown, Pencil, UserMinus, UsersRound } from 'lucide-react'
 import { api } from '../../api'
 import type { CirclePerson, ShareablePerson } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { RELATION_WORDS, displayName, fromText, personFacts, personNow, personWork } from './circleText'
+import { refocus } from '../character/refocus'
+import { RELATION_WORDS, displayName, personFacts, personNow, personWork } from './circleText'
 import { useCircleHome } from './useCircleHome'
 import type { Act } from './PersonForm'
 
 type Feedback = { tone: 'info' | 'error'; text: string }
 
-/** Someone from another companion's circle: the same person, changed on their own companion's page. Here the user
- * changes only who they are to this companion, or takes them out of this companion's life. */
+/** Another companion's name, opening their page: they become the one in focus, and this page shows their life. */
+export function CompanionLink({ id, name }: { id: string; name: string }) {
+  const client = useQueryClient()
+  const open = async () => {
+    await api('/companion/cast/focus', { companion_id: id })
+    await refocus(client)
+  }
+  return <button type="button" className="text-button inline" onClick={() => void open()}>{name}</button>
+}
+
+/** Someone from another companion's circle: the same person, looking like everyone else here (Iris, shared people 2),
+ * changed on their own companion's page. Here the user changes only who they are to this companion, or takes them
+ * out of this companion's life. */
 export function SharedCard({ person, companion, act, diary }: { person: CirclePerson; companion: string; act: Act; diary: () => ReactNode }) {
   const [editing, setEditing] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [showDiary, setShowDiary] = useState(false)
   const [notice, setNotice] = useState<Feedback | null>(null)
-  const owner = person.shared?.owner ?? ''
+  const shared = person.shared
+  const owner = shared?.owner ?? ''
   const remove = async () => {
     setRemoving(false)
     await act(() => api(`/life/circle/shared/${person.id}/remove`, {}), `${person.name} is no longer part of ${companion}'s life. They stay in ${owner}'s.`)
@@ -28,7 +41,7 @@ export function SharedCard({ person, companion, act, diary }: { person: CirclePe
       <header>
         <h3>{displayName(person)}</h3>
         <p className="subtle">{personFacts(person)}</p>
-        <p className="subtle person-from"><UsersRound aria-hidden="true" />{fromText(person)}</p>
+        {shared && <p className="subtle person-from"><UsersRound aria-hidden="true" /><span><CompanionLink id={shared.owner_id} name={owner} />'s {shared.role}</span></p>}
       </header>
       <div aria-live="polite">{notice && <Notice tone={notice.tone}>{notice.text}</Notice>}</div>
       {editing
@@ -59,11 +72,11 @@ function SharedDetails({ person }: { person: CirclePerson }) {
     <p>{personNow(person, aboard)}</p>
     {work && <p className="subtle">{work}</p>}
     {person.note && <p className="person-note">{person.note}</p>}
-    <p className="subtle">To change who they are, open {person.shared?.owner}'s page.</p>
   </>
 }
 
-/** Who they are to this companion: the one thing changed from here. */
+/** Who they are to this companion: the one thing changed from here; the rest on their own companion's page (Iris,
+ * shared people 3). */
 function RoleForm({ person, companion, act, local, onDone }: { person: CirclePerson; companion: string; act: Act; local: (feedback: Feedback) => void; onDone: () => void }) {
   const [role, setRole] = useState(person.role)
   const id = `shared-role-${person.id}`
@@ -72,9 +85,11 @@ function RoleForm({ person, companion, act, local, onDone }: { person: CirclePer
     if (role.trim() === person.role) { onDone(); return }
     if (await act(() => api(`/life/circle/shared/${person.id}`, { role: role.trim() }, 'PUT'), `Saved. ${person.name} is ${companion}'s ${role.trim().toLowerCase()}.`, local)) onDone()
   }
+  const shared = person.shared
   return (
     <form className="circle-form" onSubmit={(event) => void submit(event)} aria-label={`Who ${person.name} is to ${companion}`}>
-      <RoleField id={id} companion={companion} value={role} onChange={setRole} />
+      <RoleField id={id} companion={companion} value={role} onChange={setRole}
+        hint={shared && <>To change who they are, open <CompanionLink id={shared.owner_id} name={shared.owner} />'s page.</>} />
       <div className="rename-row circle-form-actions">
         <button type="submit" className="button primary">Save</button>
         <button type="button" className="button quiet" onClick={onDone}>Cancel</button>
@@ -83,38 +98,26 @@ function RoleForm({ person, companion, act, local, onDone }: { person: CirclePer
   )
 }
 
-function RoleField({ id, companion, value, onChange, required = true }: { id: string; companion: string; value: string; onChange: (value: string) => void; required?: boolean }) {
+interface RoleFieldProps { id: string; companion: string; value: string; onChange: (value: string) => void; required?: boolean; hint?: ReactNode }
+
+function RoleField({ id, companion, value, onChange, required = true, hint }: RoleFieldProps) {
   return (
     <div className="circle-field">
       <label htmlFor={id}>Who they are to {companion}</label>
       <span className="suggest">
-        <input id={id} value={value} list={`${id}-list`} maxLength={40} required={required} placeholder="Friend" autoComplete="off" onChange={(event) => onChange(event.target.value)} />
+        <input id={id} value={value} list={`${id}-list`} maxLength={40} required={required} placeholder="Friend" autoComplete="off"
+          aria-describedby={hint ? `${id}-hint` : undefined} onChange={(event) => onChange(event.target.value)} />
         <ChevronDown aria-hidden="true" />
         <datalist id={`${id}-list`}>{RELATION_WORDS.map((option) => <option key={option} value={option} />)}</datalist>
       </span>
+      {hint && <small id={`${id}-hint`}>{hint}</small>}
     </div>
   )
 }
 
-/** Adding someone another companion already knows, such as Sarek's wife as Spock's mother: shown only when the
- * other companions have people to offer. Focus goes to the picker, and back to the button after (Iris R7). */
-export function AddShared({ companion, act }: { companion: string; act: Act }) {
-  const offered = useQuery({ queryKey: ['circle', 'shareable'], queryFn: () => api<ShareablePerson[]>('/life/circle/shareable') })
-  const [adding, setAdding] = useState(false)
-  const [notice, setNotice] = useState<Feedback | null>(null)
-  const button = useRef<HTMLButtonElement>(null)
-  if (!offered.data?.length && !adding) return notice ? <div aria-live="polite"><Notice tone={notice.tone}>{notice.text}</Notice></div> : null
-  const done = () => { setAdding(false); window.setTimeout(() => button.current?.focus()) }
-  return <>
-    {adding
-      ? <div className="person-card person-add"><SharedForm people={offered.data ?? []} companion={companion} act={act} local={setNotice} onDone={done} /></div>
-      : <button ref={button} type="button" className="button person-add-button" onClick={() => { setNotice(null); setAdding(true) }}><UsersRound aria-hidden="true" />Add someone another companion knows</button>}
-    <div aria-live="polite">{notice && <Notice tone={notice.tone}>{notice.text}</Notice>}</div>
-  </>
-}
-
-/** The people on offer, grouped by whose life they are in, and who they are to this companion. */
-function SharedForm({ people, companion, act, local, onDone }: { people: ShareablePerson[]; companion: string; act: Act; local: (feedback: Feedback) => void; onDone: () => void }) {
+/** Adding someone another companion already knows, such as Sarek's wife as Spock's mother: the people on offer,
+ * grouped by whose life they are in, and who they are to this companion. */
+export function SharedForm({ people, companion, act, local, onDone }: { people: ShareablePerson[]; companion: string; act: Act; local: (feedback: Feedback) => void; onDone: () => void }) {
   const [picked, setPicked] = useState('')
   const [role, setRole] = useState('')
   const owners = [...new Map(people.map((person) => [person.owner_id, person.owner])).entries()]
