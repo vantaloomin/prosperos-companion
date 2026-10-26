@@ -163,7 +163,23 @@ a.button { color: inherit; text-decoration: none; }
 .conversation-notice { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .conversation-notice .text-button { flex-shrink: 0; padding: 0; }
 .composer { display: flex; align-items: flex-end; gap: 10px; max-width: 760px; width: 100%; margin: 0 auto; padding: 12px 32px 22px; }
-.composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; overflow-y: auto; }
+.composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; overflow-y: auto; resize: none; }
+/* The box sits at the bottom, so it is made taller from its top edge (messageBox.ts): a thin grip that shows a short
+   bar on hover or focus, and a small tab at the right that folds it to one line to see more of the chat.
+   Phones size it by what is typed alone, as in Messages, and fold it themselves while reading back. */
+.message-box { position: relative; flex: 1; min-width: 0; display: flex; }
+.message-box textarea { width: 100%; }
+.message-box.folded textarea { height: 52px; min-height: 0; max-height: none; padding-block: 0; line-height: 50px; overflow: hidden; }
+.message-box-grip { position: absolute; top: -5px; left: 12px; right: 44px; height: 10px; z-index: 1; cursor: ns-resize; touch-action: none; }
+.message-box-grip::after { content: ''; position: absolute; top: 3px; left: calc(50% + 16px); width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--accent); opacity: 0; transition: opacity .15s; }
+.message-box:hover .message-box-grip::after { opacity: .3; }
+.message-box-grip:hover::after { opacity: .6; }
+.message-box-grip:focus-visible { outline: none; }
+.message-box-grip:focus-visible::after { opacity: 1; }
+.message-box-fold { position: absolute; top: -11px; right: 10px; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--muted); }
+.message-box-fold:hover { color: var(--text); border-color: var(--accent); }
+.message-box-fold svg { width: 14px; height: 14px; }
+.chat-retro .message-box-fold { border-radius: 0; border: 2px outset #f2f1ee; }
 
 /* Story mode (src/features/story): one reading column of narration, the user's lines set apart. */
 .story { flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -1461,7 +1477,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @media (max-width: 720px) {
   .composer { gap: 8px; align-items: flex-end; padding: 8px 10px max(8px, env(safe-area-inset-bottom)); }
   .composer textarea { min-height: 40px; max-height: 30dvh; padding: 8px 14px; border-radius: 20px; line-height: 1.4; resize: none; }
-  .composer > .info-tip, .composer-label { display: none; }
+  .composer > .info-tip, .composer-label, .message-box-grip, .message-box-fold { display: none; }
   .composer .composer-attach, .composer .composer-send { flex-shrink: 0; width: 40px; height: 40px; min-height: 0; padding: 0; justify-content: center; border-radius: 50%; }
   .composer .composer-attach { order: -1; border-color: transparent; background: transparent; }
   .composer .composer-send svg, .composer .composer-attach svg { width: 22px; height: 22px; }
