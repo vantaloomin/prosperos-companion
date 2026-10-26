@@ -2720,3 +2720,14 @@ p.breakup-line { align-items: center; }
 .person-card > h3 + .circle-form { margin-top: 6px; }
 .person-note-more { color: var(--accent); }
 @media (max-width: 720px) { .person-note-more { min-height: 44px; } }
+
+/* Someone's pets under their Edit form in the circle: a ruled-off group, one row per pet, each saving on its own. */
+.circle-pets { display: grid; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); min-width: 0; }
+.circle-pets h4 { margin: 0; font-size: 1rem; }
+.circle-pets > p { margin: 0; }
+.circle-pets > .text-button { justify-self: start; padding-left: 0; }
+.circle-pet-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.circle-pet { display: grid; gap: 2px; min-width: 0; }
+.circle-pet p { margin: 0; }
+.circle-pet .person-actions { margin-top: 2px; }
+@media (max-width: 720px) { .circle-pets > .text-button { min-height: 44px; } }
