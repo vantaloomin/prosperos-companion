@@ -66,6 +66,16 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.1.7 (2026-10-26)
+
+- **People your companions both know:** someone in one companion's circle can be added to another companion's life
+  too (Today > Add someone another companion knows); they stay one person, both chats know them, and the app-made
+  mom, dad or spouse they replace steps aside until they're taken out.
+- **Your own posts:** a box at the top of Posts shares a post of your own, seen on every companion's feed; companions
+  and their circles like and comment by how close you are, and a You filter shows just yours.
+- **Companions react to each other's posts:** companions who know each other like and comment on each other's posts
+  by closeness and manner.
+
 ## v1.1.6 (2026-10-26)
 
 - **They take a moment to read your texts:** a free companion waits a seeded little while before answering and
