@@ -864,6 +864,16 @@ export interface KindChoices {
   spans: number[]
 }
 
+/** Someone in another companion's circle the open companion could know too (GET /life/circle/shareable). */
+export interface ShareablePerson {
+  id: string
+  name: string
+  full_name: string
+  role: string
+  owner_id: string
+  owner: string
+}
+
 export interface CirclePerson {
   kind?: KindShown
   own_kind?: string
@@ -889,6 +899,11 @@ export interface CirclePerson {
   works_with_companion?: boolean
   /** Who they know inside the circle and how. */
   knows?: CircleTie[]
+  /** Someone from another companion's circle this one knows too (companion/life/shared_people.py): whose circle
+   * they live in and who they are there; `role` above is who they are to this companion. */
+  shared?: { owner_id: string; owner: string; role: string }
+  /** The other companions who know someone in this circle, and who they are to each. */
+  also?: { companion_id: string; name: string; role: string }[]
   /** How close they and the companion feel, both ways (companion/memory/pairs.py); read-only. */
   stage?: PairStage | null
   /** What they think of you, once they have met you (companion/life/their_people.py). */

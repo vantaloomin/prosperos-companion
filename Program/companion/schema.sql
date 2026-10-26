@@ -2805,3 +2805,15 @@ CREATE TABLE IF NOT EXISTS planned_weeks (
   tried_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, week)
 );
+
+-- Someone in one companion's circle whom another companion knows too (companion/life/shared_people.py): Amanda lives
+-- in Sarek's circle and is also Spock's mother. Kept by the person's seed, which a copied timeline keeps, and read
+-- from the owner's active timeline each time; `role` is how `companion_id` knows them.
+CREATE TABLE IF NOT EXISTS circle_shares (
+  owner_id TEXT NOT NULL REFERENCES companions(id),
+  person_seed TEXT NOT NULL,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  role TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (person_seed, companion_id)
+);

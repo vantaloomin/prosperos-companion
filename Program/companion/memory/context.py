@@ -54,6 +54,7 @@ from companion.life import (
     reactions,
     recommendations,
     rough_patches,
+    shared_people,
     stays,
     steps,
     storylines,
@@ -472,6 +473,10 @@ def person_text(person, away: str = 'out of town') -> str:
                               if person.get('birth_family') else '.')
     if person.get('knows'):
         text += ' ' + circle.ties_text(person['knows'])
+    if person.get('shared'):  # From another companion's circle (companion/life/shared_people.py).
+        text += ' ' + shared_people.owner_text(person['shared'])
+    if person.get('also'):
+        text += ' ' + shared_people.also_text(person['also'])
     if person.get('note'):  # The user's own words about them, from the circle list.
         text += f" {person['note'].rstrip()}" + ('' if person['note'].rstrip()[-1:] in '.!?' else '.')
     return text
@@ -804,7 +809,9 @@ def offer_people(packet, connection, companion, now, today):
     """The circle, and the storylines going on in their lives and the companion's."""
     timeline_id = companion['active_timeline_id']
     away = ships.away_text(ships.vessel_of(connection, companion['version']['definition']))
-    for person in agenda.circle_view(connection, timeline_id, now):
+    also = shared_people.also_known(connection, companion)
+    people = [{**person, 'also': also.get(person['id'])} for person in agenda.circle_view(connection, timeline_id, now)]
+    for person in people + shared_people.shared_with(connection, companion, now):
         if person.get('late'):
             continue  # Someone who passed away is in the 'loss' section (companion/life/loss.py), not among the living.
         said = circle.said(person['role'], companion['version']['definition'])  # 'mother' in 1895
