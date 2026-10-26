@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { careersFor, guessLabel, todayIso, workChoices } from '../../src/features/character/money.ts'
+import { careersFor, guessLabel, todayIso, workChoices, workHint } from '../../src/features/character/money.ts'
 import { completeDefinition } from '../../src/features/character/definition.ts'
 import { boughtFor, costsText, goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
 import type { MoneyView } from '../../src/types.ts'
@@ -69,8 +69,10 @@ test('a fantasy city lists its own work, and the guess says what it found', () =
   assert.deepEqual(workChoices(ionia, shared, 'fantasy', '').map((career) => career.id), ['monk', 'pit-fighter'])
   assert.deepEqual(workChoices(ionia, shared, 'fantasy', 'nurse').map((career) => career.id), ['monk', 'nurse', 'pit-fighter'])
   assert.deepEqual(workChoices(undefined, shared, 'modern', '').map((career) => career.id), ['nurse'])
-  assert.equal(guessLabel(ionia[0]), 'Guess from who they are: Pit fighter')
-  assert.equal(guessLabel(null), 'Guess from who they are: an everyday wage for now')
+  assert.equal(guessLabel(ionia[0]), 'Guess from who they are: Pit fighter ($$)')
+  assert.equal(guessLabel(null), 'Guess from who they are: no job named')
+  assert.match(workHint(null), /everyday wage\. Pick one to set it\.$/)
+  assert.match(workHint(ionia[0]), /^Sets their pay/)
   assert.equal(guessLabel(undefined), 'Guess from who they are')
 })
 

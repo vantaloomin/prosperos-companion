@@ -16,10 +16,17 @@ export function workChoices(offered: CareerSummary[] | undefined, shared: Career
   return careersFor([...offered, ...kept], undefined, current, adult)
 }
 
-/** The "Guess from who they are" choice, naming the career it found ("Guess from who they are: Pit fighter"). */
+/** The "Guess from who they are" choice, naming the career it found ("Guess from who they are: Pit fighter ($$)"). */
 export function guessLabel(guess: CareerSummary | null | undefined): string {
   if (guess === undefined) return 'Guess from who they are'
-  return guess ? `Guess from who they are: ${guess.name}` : 'Guess from who they are: an everyday wage for now'
+  return guess ? `Guess from who they are: ${guess.name} (${guess.pay})` : 'Guess from who they are: no job named'
+}
+
+/** The Work hint: on a guess that found no job, why they earn an everyday wage. */
+export function workHint(guess: CareerSummary | null | undefined): string {
+  return guess === null
+    ? 'Nothing in “Who they are” names a job, so they earn an everyday wage. Pick one to set it.'
+    : 'Sets their pay. Left on the guess, it comes from what “Who they are” says.'
 }
 
 export function todayIso(now = appDate()): string {

@@ -3,7 +3,7 @@ import { api } from '../../api'
 import type { CareerSummary, CharacterDefinition, CitySummary, Employment, MoneySetup, SpendingStyle } from '../../types'
 import { Field, TextInput } from '../../components/Fields'
 import { useWorkspaceSettings } from '../../companion'
-import { guessLabel, todayIso, workChoices } from './money'
+import { guessLabel, todayIso, workChoices, workHint } from './money'
 import { useSettled } from './useSettled'
 
 const STYLES: { value: SpendingStyle; label: string }[] = [
@@ -58,6 +58,7 @@ export function MoneyFields({ definition, onChange }: Props) {
   const { money } = definition
   const listed = useWorkChoices(definition)
   const guess = useGuess(definition, money.career === '')
+  const guessed = definition.home_city ? guess.data : undefined
   // Adult work sits in its own group at the end, so the everyday list stays easy to scan.
   const option = (career: CareerSummary) => <option key={career.id} value={career.id}>{career.name} ({career.pay})</option>
   const set = (change: Partial<MoneySetup>) => onChange({ ...money, ...change })
@@ -67,16 +68,16 @@ export function MoneyFields({ definition, onChange }: Props) {
     <fieldset className="traits">
       <legend>Work and money</legend>
       <p className="subtle">Their pay comes from their work and their rent from their home city, so some weeks are tight and some are flush. You can see their budget on Today.</p>
-      <Field label="Work" hint="Sets their pay. Left on the guess, it comes from what “Who they are” says.">
+      <Field label="Work" hint={workHint(money.career ? undefined : guessed)}>
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.career} onChange={(event) => set({ career: event.target.value })}>
-            <option value="">{guessLabel(definition.home_city ? guess.data : undefined)}</option>
+            <option value="">{guessLabel(guessed)}</option>
             {listed.filter((career) => !career.adult).map(option)}
             {listed.some((career) => career.adult) && <optgroup label="Adult work">{listed.filter((career) => career.adult).map(option)}</optgroup>}
           </select>
         )}
       </Field>
-      {studies(money.career, definition.home_city ? guess.data : undefined) && <TextInput label="What they study" value={money.field ?? ''} maxLength={60}
+      {studies(money.career, guessed) && <TextInput label="What they study" value={money.field ?? ''} maxLength={60}
         onChange={(field) => set({ field })} hint="For a student, such as Photography. Their coursework follows it. Left empty, it comes from what “Who they are” says." />}
       <Field label="Hours" hint="Left as their work goes, a bartender or nurse gets new shifts each week and a freelancer has gigs that come and go; an office job keeps the same days.">
         {(id, hint) => (
