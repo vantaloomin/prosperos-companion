@@ -43,6 +43,8 @@ def test_a_removed_pet_stays_removed_and_one_can_be_added(client, circle):
     added = ok(client.post(f"/api/life/circle/{person['id']}/pets", json={'name': 'Biscuit II', 'kind': 'dog'}))
     assert [(pet['name'], pet['kind'], pet['looks']) for pet in added['pets']] == [('Biscuit II', 'dog', 'a dog')]
     assert added['pets'][0]['number'] == number + 1
+    years = int(added['pets'][0]['age'].split()[0]) if 'year' in added['pets'][0]['age'] else 0
+    assert years <= 8 and added['pets'][0]['state'] != 'died'  # an age that fits a dog, picked for you
 
 
 def test_someone_without_a_pet_can_be_given_one_and_kinds_are_checked(client, circle):

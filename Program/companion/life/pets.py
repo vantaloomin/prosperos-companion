@@ -122,15 +122,20 @@ def looks_for(seed: str, label_: str, kind: str, era: str) -> str:
     return generators.pick(seed, f'{label_}:look', found) or kind_phrase(kind)
 
 
+def seeded_born(seed: str, label_: str, kind: str, day: date, young=False) -> str:
+    """A birth date young to middle-aged for its kind (a few weeks to months for a young one)."""
+    share = 0.02 + generators.unit(seed, label_, 'age') * (0.08 if young else START_AGE)
+    age = max(60, int(share * kinds().get(kind, kinds()['cat'])['lifespan'][0] * 365))
+    return (day - timedelta(days=age)).isoformat()
+
+
 def draw(seed: str, label_: str, era: str, day: date, young=False, aboard=False) -> dict:
     """A pet suited to the era (and to a cabin, aboard), as a home item: its name, kind, looks, birth and lifespan."""
     choices = drawable(era, aboard) or ['cat']
     kind = generators.pick(seed, f'{label_}:kind', choices, [kinds()[choice]['weight'] for choice in choices])
     lifespan = lifespan_days(f'{seed}:{label_}', kind)
-    share = 0.02 + generators.unit(seed, label_, 'age') * (0.08 if young else START_AGE)
-    age = max(60, int(share * kinds()[kind]['lifespan'][0] * 365))
     return {'kind': 'pet', 'name': name_for(seed, label_, era), 'variety': kind,
-            'details': {'description': looks_for(seed, label_, kind, era), 'born': (day - timedelta(days=age)).isoformat(),
+            'details': {'description': looks_for(seed, label_, kind, era), 'born': seeded_born(seed, label_, kind, day, young),
                         'lifespan_days': lifespan}}
 
 

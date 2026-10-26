@@ -94,7 +94,7 @@ def add(connection, person_id: str, given: dict, where: dict, today: date, now) 
     def update(kept):
         number = max((entry['n'] for entry in kept), default=-1) + 1
         key = f'circle:{person_id}:{number}'
-        born = given.get('born') or pets.draw(key, 'pet', where['era'], today)['details']['born']
+        born = given.get('born') or pets.seeded_born(key, 'pet', kind, today)
         added['n'] = number
         kept.append({'n': number, 'name': ' '.join(given['name'].split()), 'kind': kind,
                      'looks': (given.get('looks') or '').strip() or pets.kind_phrase(kind), 'born': born,

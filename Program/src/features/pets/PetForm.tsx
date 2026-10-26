@@ -15,11 +15,15 @@ interface Props {
   /** Saves the change; true when it was saved, so the form can close. */
   onSave: (change: PetChange) => Promise<boolean>
   onDone: () => void
+  /** Its buttons' words, where another form's Save sits nearby ("Save pet", "Add pet"). */
+  submit?: string
+  /** Extra classes: the circle draws it as an inset panel. */
+  className?: string
 }
 
 /** Changing a pet, or adding one (`pet` left out): its kind, name, looks and age. Anything left as it was the pet
  * keeps; when adding, the app picks an age that fits the looks. */
-export function PetForm({ id, kinds, pet, onSave, onDone }: Props) {
+export function PetForm({ id, kinds, pet, onSave, onDone, submit, className }: Props) {
   const [values, setValues] = useState(() => startOf(pet, kinds))
   const save = async (event: FormEvent) => {
     event.preventDefault()
@@ -27,10 +31,10 @@ export function PetForm({ id, kinds, pet, onSave, onDone }: Props) {
     if (change && await onSave(change)) onDone()
   }
   return (
-    <form className={pet ? 'rename-form' : 'rename-form home-add'} onSubmit={(event) => void save(event)}>
+    <form className={['rename-form', pet ? '' : 'home-add', className ?? ''].filter(Boolean).join(' ')} onSubmit={(event) => void save(event)}>
       <PetFields id={id} kinds={kinds} pet={pet} values={values} set={(change) => setValues((current) => ({ ...current, ...change }))} />
       <div className="rename-row">
-        <button type="submit" className="button primary">{pet ? 'Save' : 'Add'}</button>
+        <button type="submit" className="button primary">{submit ?? (pet ? 'Save' : 'Add')}</button>
         <button type="button" className="button quiet" onClick={onDone}>Cancel</button>
       </div>
     </form>
@@ -54,19 +58,17 @@ function changeOf(values: Values, pet?: PetView): PetChange | null {
 
 interface FieldsProps { id: string; kinds: PetKind[]; pet?: PetView; values: Values; set: (change: Partial<Values>) => void }
 
-/** Adding asks for the kind first; changing leads with the name (as the companion's own Pets panel always has). */
+/** Name, Kind, Looks and Age, in that order whether adding or changing (Iris, circle pets review). */
 function PetFields({ id, kinds, pet, values, set }: FieldsProps) {
-  const kind = <KindSelect id={`${id}-kind`} kinds={kinds} value={values.kind} onChange={(value) => set({ kind: value })} />
   const adding = !pet
   return <>
-    {adding && kind}
     <label htmlFor={`${id}-name`}>Name</label>
     <input id={`${id}-name`} value={values.name} maxLength={80} required={adding} placeholder={adding ? 'Biscuit' : undefined} autoFocus={adding}
       onChange={(event) => set({ name: event.target.value })} />
+    <KindSelect id={`${id}-kind`} kinds={kinds} value={values.kind} onChange={(value) => set({ kind: value })} />
     <label htmlFor={`${id}-looks`}>Looks</label>
     <input id={`${id}-looks`} value={values.looks} maxLength={300} placeholder={adding ? 'a small orange tabby with a white bib' : undefined}
       onChange={(event) => set({ looks: event.target.value })} />
-    {!adding && kind}
     <Stepper label="Age" value={values.age} min={-1} max={MAX_PET_AGE} onChange={(age) => set({ age })}
       format={(years) => ageChoice(years, pet ? `Keep (${pet.age})` : 'Picked for you')}
       hint={values.age < 0 && adding ? 'Leave it and the app picks one that fits their looks.' : undefined} />
