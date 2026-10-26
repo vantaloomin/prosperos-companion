@@ -238,6 +238,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }), [])
   const voice = useMemo(() => ({ pins: voicePins.data?.pins, toggle: (message: Message) => void handlers.current.toggleVoice(message) }), [voicePins.data])
   const turns = useMemo(() => groupTurns(messages), [messages])
+  const starting = noTurnsYet(history.isSuccess, turns.length)
   const following = streamingIds(messages)
   const latestUserId = latestUser(turns)
   const lastUserId = lastUserMessage(messages)
@@ -256,12 +257,12 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         data-their-font={look.font} aria-label={`Conversation with ${name}`}>
         <ConversationTop companion={companion} go={go} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
         {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
-        <div className="transcript" ref={transcript} onScroll={scroll.onScroll} data-start={history.isSuccess && turns.length === 0 ? '' : undefined} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
+        <div className="transcript" ref={transcript} onScroll={scroll.onScroll} data-start={starting ? '' : undefined} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
           <div className="reading-column">
             {history.isPending && <Loading label="Loading the conversation" />}
             {history.isError && <ErrorNotice error={history.error} />}
             {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
-            {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
+            {starting && <GettingStarted companion={companion} go={go} />}
             <VoiceActions.Provider value={voice}>
             {turns.map((turn, index) => (
               <Fragment key={turnKey(turn)}>
@@ -338,4 +339,9 @@ function DeclineDialog({ name, onCancel, onConfirm }: { name: string; onCancel: 
       <p>{name} won't turn this message into a memory, now or later. The message itself stays in your conversation.</p>
     </ConfirmDialog>
   )
+}
+
+/** Loaded and nothing said yet: Getting started shows, and the transcript reads it from the top (useScrollAway.ts). */
+function noTurnsYet(loaded: boolean, turns: number): boolean {
+  return loaded && turns === 0
 }
