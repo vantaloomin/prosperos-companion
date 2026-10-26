@@ -966,6 +966,9 @@ export interface NetworkAnswer { person: Pick<NetworkPerson, 'key' | 'name' | 'd
 export interface Acquaintance extends Omit<NetworkPerson, 'depth' | 'met'> { occasion: string; met_on: string; met_at: string }
 
 export interface CircleTie { id: string; name: string; how: string }
+/** Whether the companion lives aboard a ship or station (companion/world/ships.py `vessel`), else null. */
+export interface CircleHome { aboard: 'ship' | 'station' | null }
+
 export interface CircleRoom { people: number; target: number; sociability: 'quiet' | 'usual' | 'social' }
 
 export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'

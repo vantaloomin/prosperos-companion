@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aboutChange, ageClamp, noteCount, aboutForm, displayName, personFacts, personNow, personTies, personWork } from '../../src/features/today/circleText.ts'
+import { aboutChange, ageClamp, noteCount, aboutForm, displayName, personFacts, personNow, personTies, personWork, placeWords } from '../../src/features/today/circleText.ts'
 import type { CirclePerson } from '../../src/types.ts'
 
 const person = (extra: Partial<CirclePerson> = {}): CirclePerson => ({
@@ -69,4 +69,12 @@ test('the note counts only near its limit, and a workplace alone reads as one', 
   assert.equal(noteCount('short'), '')
   assert.equal(noteCount('x'.repeat(260)), '260 of 300')
   assert.equal(personWork(person({ career: null, employer: 'Charm City Ink' })), 'Works at Charm City Ink')
+})
+
+test('where they live reads aboard and off a ship or station', () => {
+  assert.deepEqual(placeWords(), { here: 'In town', away: 'Out of town' })
+  assert.deepEqual(placeWords('ship'), { here: 'Aboard the ship', away: 'Off the ship' })
+  assert.deepEqual(placeWords('station'), { here: 'On the station', away: 'Off the station' })
+  assert.equal(personNow(person({ local: false }), 'ship'), 'Lives off the ship')
+  assert.equal(personNow(person({ local: false }), 'station'), 'Lives off the station')
 })

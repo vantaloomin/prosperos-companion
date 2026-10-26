@@ -11,6 +11,7 @@ import { stageText } from '../memories/pairText'
 import { displayName, metText, personFacts, personNow, personTies, personWork } from './circleText'
 import { WhyItWent } from './WhyItWent'
 import { PersonForm, type Act } from './PersonForm'
+import { useCircleHome } from './useCircleHome'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
@@ -274,8 +275,9 @@ function PersonActions({ gone, late, diary, network, name, onEdit, onDiary, onNe
 }
 
 function PersonDetails({ person, work, companion }: { person: CirclePerson; work: string | null; companion: string }) {
+  const aboard = useCircleHome()
   return <>
-    <p>{personNow(person)}</p>
+    <p>{personNow(person, aboard)}</p>
     {work && <p className="subtle">{work}</p>}
     {person.note && <PersonNote note={person.note} />}
     {personTies(person) && <p className="subtle">{personTies(person)}</p>}

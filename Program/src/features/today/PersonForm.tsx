@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
 import { api } from '../../api'
 import type { CareerSummary, CirclePerson } from '../../types'
-import { NOTE_MAX, RELATION_WORDS, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, type AboutValues } from './circleText'
+import { NOTE_MAX, RELATION_WORDS, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, placeWords, type AboutValues } from './circleText'
+import { useCircleHome } from './useCircleHome'
 
 export type Act = (action: () => Promise<unknown>, done: string, local?: (feedback: { tone: 'info' | 'error'; text: string }) => void) => Promise<boolean>
 
@@ -76,6 +77,7 @@ function Basics({ prefix, values, set, adding, current }: BasicsProps) {
     if (clamped.value !== values.age) set({ age: clamped.value })
   }
   const pick = adding ? <option value="">Let the app pick</option> : null
+  const place = placeWords(useCircleHome())
   return <>
     <div className="circle-form-row">
       <Text id={`${prefix}-pronouns`} label="Pronouns">
@@ -95,8 +97,8 @@ function Basics({ prefix, values, set, adding, current }: BasicsProps) {
     <Text id={`${prefix}-local`} label="Where they live">
       <select id={`${prefix}-local`} value={values.local} onChange={(event) => set({ local: placeOf(event.target.value) })}>
         {pick}
-        <option value="here">In town</option>
-        <option value="away">Out of town</option>
+        <option value="here">{place.here}</option>
+        <option value="away">{place.away}</option>
       </select>
     </Text>
   </>

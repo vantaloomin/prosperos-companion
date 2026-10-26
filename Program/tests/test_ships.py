@@ -328,3 +328,17 @@ def test_a_ship_and_its_station_are_a_shuttle_ride_apart_and_its_works_are_not_o
     assert changes.change_text(works, ship_data, date(2026, 10, 20)).endswith('; getting through there takes longer')
     assert 'by road' in changes.change_text(works, catalog.city('baltimore') | {'neighborhoods': ship_data[
         'neighborhoods']}, date(2026, 10, 20))
+
+
+def test_the_circle_lives_aboard_and_off_a_ship_or_station(client):
+    from companion.memory.context import person_text
+    assert ships.vessel(catalog.city('long-meridian')) == 'ship'
+    assert ships.vessel(catalog.city('port-vesper')) == 'station'
+    assert ships.vessel(catalog.city('baltimore')) is None
+    assert ships.away_text('ship') == 'off the ship' and ships.away_text(None) == 'out of town'
+    person = {'name': 'Jim', 'role': 'friend', 'career': 'Captain', 'employer': None, 'local': False}
+    assert person_text(person, ships.away_text('ship')) == '- Jim (friend): Captain. Lives off the ship.'
+    assert client.post('/api/world/cities', json=raw_city('ark-two', country='Generation ship')).status_code == 200
+    response = client.post('/api/companion', json={'name': 'Mira', 'timezone': 'UTC', 'home_city': 'Ark Two'})
+    assert response.status_code == 200, response.text
+    assert client.get('/api/life/circle/home').json() == {'aboard': 'ship'}

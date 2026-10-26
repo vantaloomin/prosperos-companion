@@ -93,7 +93,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible, told
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import intimacy, looks, newcomers, perception, personality
+from companion.world import intimacy, looks, newcomers, perception, personality, ships
 
 # The conversation sent with each reply: at least RECENT_MESSAGES turns. Its first turn moves forward WINDOW_STEP
 # turns at a time, so the start of the conversation stays the same for several replies and can be reused (prompt
@@ -456,8 +456,9 @@ def post_text(post) -> str:
     return '\n'.join(([post['intro']] if post['intro'] else []) + lines)
 
 
-def person_text(person) -> str:
-    """One circle member as they stay from one reply to the next: who they are and how they know the others."""
+def person_text(person, away: str = 'out of town') -> str:
+    """One circle member as they stay from one reply to the next: who they are and how they know the others. `away`
+    is where someone who lives elsewhere is (ships.away_text): off the ship, aboard one."""
     text = f"- {person['name']} ({person['role']})"
     if person['career']:
         text += f": {person['career']}" + (f" at {person['employer']}" if person['employer'] else '')
@@ -465,7 +466,7 @@ def person_text(person) -> str:
         text = f"- {person['name']} ({person['role']}): works with you"
     # An employer whose name ends in a full stop ("Coutts and Co.") already ends the sentence.
     text += '' if text.endswith('.') else '.'
-    text += '' if person.get('local', True) else ' Lives out of town.'
+    text += '' if person.get('local', True) else f' Lives {away}.'
     if person.get('married'):
         text += ' Married' + (f", goes by their married name (born {person['birth_family']})."
                               if person.get('birth_family') else '.')
@@ -802,11 +803,12 @@ def offer_all(packet, section: str, lines: list[tuple[str, str]]):
 def offer_people(packet, connection, companion, now, today):
     """The circle, and the storylines going on in their lives and the companion's."""
     timeline_id = companion['active_timeline_id']
+    away = ships.away_text(ships.vessel_of(connection, companion['version']['definition']))
     for person in agenda.circle_view(connection, timeline_id, now):
         if person.get('late'):
             continue  # Someone who passed away is in the 'loss' section (companion/life/loss.py), not among the living.
         said = circle.said(person['role'], companion['version']['definition'])  # 'mother' in 1895
-        packet.offer('circle', person['id'], person_text({**person, 'role': said}))
+        packet.offer('circle', person['id'], person_text({**person, 'role': said}, away))
         if moment := person_now_text({**person, 'birthday_today': person['birthday'] == today[5:]}):
             packet.offer('circle_now', person['id'], moment)
     offer_all(packet, 'circle', families.context_lines(connection, companion, now))
