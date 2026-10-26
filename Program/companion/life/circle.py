@@ -143,8 +143,9 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
     family, base = family_name(definition), seed or f'circle:{timeline_id}'
     group = family_group(data, family)
     folk = lifespans.sheet_kind(definition, data)  # Their relatives are their kind (companion/world/lifespans.py).
+    life, peer = centre_ages(data, definition, timeline_id)
     made = generators.circle(data, seed=base, size=min(size, len(order)), home=home, order=order, coworkers=works,
-                             family=family, group=group, folk=folk)
+                             family=family, group=group, folk=folk, age=life, peer_age=peer)
     sheet_people = named.in_circle(definition) if sheet else []
     taken = set(taken or ()) | {definition['name'], *definition['name'].split()[:1]} | \
         {person['name'].split()[0] for person in named.people(definition)}  # Their children's names too.
@@ -171,15 +172,23 @@ def city_named(data: dict, definition: dict, timeline_id: str, person: dict, see
     family = family_name(definition)
     group, home = family_group(data, family), home_of(data, definition)
     folk = lifespans.sheet_kind(definition, data)
+    known = notable_named(data, person['name'])  # Kirk is the 35-year-old captain the ship's crew list gives.
+    if known and not person.get('job'):
+        person = {**person, 'job': known.get('role') or '', 'sure': True}
     career, shown = sheet_career(person, catalog.everyday(catalog.careers_for(data)))
     workplace = place_named(data, person.get('employer') or '') if career else None
+    life, peer = centre_ages(data, definition, timeline_id)  # A friend of 21 is no 44.
+    kind = (known.get('kind') or lifespans.HUMAN) if known else folk if related else None
+    age = grown_age(person) or (known or {}).get('age')
     member = generators.resident(data, seed=seed, role=role, local=person['local'],
                                  near=home if role in ('neighbor', 'parent', 'sibling') else None,
                                  family=family if related else None, group=group if related else None,
-                                 folk=folk if related else None, pronouns=person['pronouns'],
-                                 career=career['id'] if career and person['local'] else None,
-                                 employer=workplace, age=grown_age(person),
-                                 around_age=ages.written_age(timeline_id, definition))  # A friend of 21 is no 44.
+                                 folk=kind, pronouns=person['pronouns'] or (known or {}).get('pronouns'),
+                                 career=career['id'] if career and person['local'] else None, employer=workplace,
+                                 age=lifespans.life_age(age, lifespans.lifespan_of(kind, data)),
+                                 around_age=life if related else peer)
+    if age:
+        member['age'] = age  # In years, as given: the human-terms age above only picks their job.
     # The sheet's own word, else they/them; someone added by hand without one gets the resident's.
     pronouns = person['pronouns'] or (member['name']['pronouns'] if person.get('by_hand') else 'they/them')
     given = person['name'].split()[0]
@@ -206,6 +215,32 @@ def plain_named(definition: dict, person: dict, seed: str, ordinal: int) -> dict
     if grown_age(person):
         made['details'] = made['details'] | {'age': person['age']}
     return with_job(made, shown, career, person.get('employer') or '', seed)
+
+
+def centre_ages(data: dict, definition: dict, timeline_id: str) -> tuple[int | None, int | None]:
+    """(relatives', everyone else's) age to place the circle around: the companion's age in human terms for their own
+    kind (companion/world/lifespans.py), and in years for friends and crewmates while a human could be that old, so
+    a Vulcan of 38 has friends of about 38 and an elf of 300 has friends their age in human terms."""
+    real = ages.written_age(timeline_id, definition)
+    if real is None:
+        return None, None
+    life = lifespans.life_age(real, lifespans.lifespan_of(lifespans.sheet_kind(definition, data), data))
+    return life, real if real <= lifespans.HUMAN_LIFESPAN else life
+
+
+def notable_named(data: dict, words: str) -> dict | None:
+    """The city's notable (its crew list, its well-known people) the user's or the sheet's words name: "James T. Kirk",
+    "Jim Kirk" or "Kirk", when only one notable fits."""
+    said = re.findall(r"[\w']+", words.casefold())
+    if not said:
+        return None
+    found = []
+    for notable in data.get('notables') or ():
+        names = re.findall(r"[\w']+", notable['name'].casefold())
+        firsts = {names[0], (notable.get('given') or '').casefold()} if names else set()
+        if names and said[-1] == names[-1] and (len(said) == 1 or said[0] in firsts):
+            found.append(notable)
+    return found[0] if len(found) == 1 else None
 
 
 def grown_age(person: dict) -> int | None:

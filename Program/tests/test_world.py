@@ -437,7 +437,7 @@ def test_circles_are_deterministic_and_coherent(city_id):
             if person['role'] == 'coworker' and employer:
                 assert person['job']['employer']['id'] == employer
             if person['role'] == 'parent':
-                assert person['age'] >= 30 + 24
+                assert person['age'] >= 30 + generators.ROLES['parent'][1][0]
             if person['local'] and person['schedule']:
                 CharacterDefinition(name=person['name']['given'], schedule=person['schedule'])
             assert len(person['haunts']) <= 3

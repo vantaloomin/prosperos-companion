@@ -1,6 +1,6 @@
 """The user's own changes to the people in the companion's life (companion/life/circle_edit.py), and the jobs the
 character sheet gives them (companion/life/named.py, companion/life/job_words.py)."""
-from companion.life import circle, job_words, named
+from companion.life import circle, circle_edit, job_words, named
 from companion.memory import context
 from companion.world import catalog
 from companion.world.source import CatalogWorld
@@ -96,3 +96,39 @@ def test_the_user_adds_someone_by_hand(client):
     friend = client.post('/api/life/circle/people', json={'name': 'Mo', 'job': 'barista', 'local': False}).json()
     assert friend['role'] == 'friend' and friend['career'] == 'Barista' and friend['schedule'] == []
     assert client.post('/api/life/circle/people', json={'name': ' '}).status_code == 422
+
+
+def test_someone_added_by_hand_takes_the_age_and_job_a_crew_list_gives():
+    data = catalog.city('baltimore') | {'notables': [
+        {'id': 'kirk', 'name': 'James T. Kirk', 'given': 'Jim', 'pronouns': 'he/him', 'age': 35, 'role': 'Captain'},
+        {'id': 'scott', 'name': 'Montgomery Scott', 'pronouns': 'he/him', 'age': 46, 'role': 'Chief engineer'}]}
+    sheet = {**DANA, 'identity': 'Dana Okafor is 38.'}
+
+    def added(name, **change):
+        person = circle_edit.words_person({'name': name, **change})
+        return circle.city_named(data, sheet, 't1', person, f'circle:t1:by-hand:{name}')
+    assert [added(name)['details']['age'] for name in ('James T. Kirk', 'Jim Kirk', 'Kirk', 'Montgomery Scott')] == \
+        [35, 35, 35, 46]
+    assert added('Kirk')['details']['career'] == 'Captain' and 'folk' not in added('Kirk')['details']
+    # The user's own age and job win; someone the list doesn't name gets the app's.
+    assert added('Kirk', age=50, job='Barista')['details']['age'] == 50
+    assert added('Kirk', job='Barista')['details']['career'] == 'Barista'
+    assert circle.notable_named(data, 'Scott Kirk') is None
+
+
+def test_people_added_by_hand_are_not_all_one_age():
+    sheet = {**DANA, 'identity': 'Dana Okafor is 38.'}
+    data = catalog.city('baltimore')
+    found = [circle.city_named(data, sheet, 't1', circle_edit.words_person({'name': f'Friend {index}'}),
+                               f'circle:t1:by-hand:{index}')['details']['age'] for index in range(12)]
+    assert len(set(found)) >= 7 and max(found) - min(found) >= 10
+    assert 28 <= sum(found) / len(found) <= 48
+
+
+def test_a_long_lived_companions_friends_are_their_age_in_years_while_a_human_could_be():
+    data = catalog.city('baltimore') | {'kinds': {'vulcan': {'label': 'Vulcan', 'lifespan': 220, 'words': ['vulcan']}}}
+    vulcan = {'name': 'Sorel', 'home_city': 'baltimore', 'identity': 'Sorel is a Vulcan of 38.'}
+    life, peer = circle.centre_ages(data, vulcan, 't1')
+    assert peer == 38 and life < 30  # 38 years is about 24 in human terms.
+    elf = {'name': 'Ael', 'home_city': 'baltimore', 'identity': 'Ael is a 300-year-old elf.'}
+    assert circle.centre_ages(data, elf, 't1') == (48, 48)  # No human friend is 300: theirs are about 48.
