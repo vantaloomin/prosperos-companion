@@ -83,7 +83,12 @@ function RoleForm({ person, companion, act, local, onDone }: { person: CirclePer
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (role.trim() === person.role) { onDone(); return }
-    if (await act(() => api(`/life/circle/shared/${person.id}`, { role: role.trim() }, 'PUT'), `Saved. ${person.name} is ${companion}'s ${role.trim().toLowerCase()}.`, local)) onDone()
+    const as = role.trim().toLowerCase()
+    let room: string[] = []
+    const save = async () => { room = (await api<{ made_room: string[] }>(`/life/circle/shared/${person.id}`, { role: role.trim() }, 'PUT')).made_room }
+    const told = (feedback: Feedback) => local(feedback.tone === 'error' ? feedback
+      : { tone: 'info', text: `Saved. ${person.name} is ${companion}'s ${as}.${room.length ? ` ${roomText(room, as)}` : ''}` })
+    if (await act(save, '', told)) onDone()
   }
   const shared = person.shared
   return (
@@ -126,7 +131,9 @@ export function SharedForm({ people, companion, act, local, onDone }: { people: 
     const person = people.find((item) => item.id === picked)
     if (!person) return
     const as = role.trim() || 'friend'
-    if (await act(() => api('/life/circle/shared', { person_id: person.id, role: as }), `${person.name} is now part of ${companion}'s life too, as their ${as.toLowerCase()}. They stay in ${person.owner}'s.`, local)) onDone()
+    let room: string[] = []
+    const add = async () => { room = (await api<{ made_room: string[] }>('/life/circle/shared', { person_id: person.id, role: as })).made_room }
+    if (await act(add, '', (feedback) => local(feedback.tone === 'error' ? feedback : { tone: 'info', text: addedText(person, companion, as, room) }))) onDone()
   }
   return (
     <form className="circle-form" onSubmit={(event) => void submit(event)} aria-label={`Add someone another companion knows to ${companion}'s life`}>
@@ -149,4 +156,15 @@ export function SharedForm({ people, companion, act, local, onDone }: { people: 
       </div>
     </form>
   )
+}
+
+/** "Ruth is now part of Elias's life too, as their mom. Diana, the mom the app had made, stepped aside; Show people
+ * you removed brings them back." */
+function addedText(person: ShareablePerson, companion: string, as: string, room: string[]): string {
+  const added = `${person.name} is now part of ${companion}'s life too, as their ${as.toLowerCase()}. They stay in ${person.owner}'s.`
+  return room.length ? `${added} ${roomText(room, as.toLowerCase())}` : added
+}
+
+function roomText(room: string[], as: string): string {
+  return `${room.join(' and ')}, the ${as} the app had made, stepped aside. Show people you removed brings them back.`
 }

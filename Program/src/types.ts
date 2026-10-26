@@ -902,6 +902,8 @@ export interface CirclePerson {
   /** Someone from another companion's circle this one knows too (companion/life/shared_people.py): whose circle
    * they live in and who they are there; `role` above is who they are to this companion. */
   shared?: { owner_id: string; owner: string; role: string }
+  /** Someone the app made who stepped aside when a shared person took their place (a second mom): who that is. */
+  made_room_for?: string | null
   /** The other companions who know someone in this circle, and who they are to each. */
   also?: { companion_id: string; name: string; role: string }[]
   /** How close they and the companion feel, both ways (companion/memory/pairs.py); read-only. */

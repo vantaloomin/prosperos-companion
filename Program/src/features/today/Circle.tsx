@@ -224,7 +224,7 @@ function MetYou({ person }: { person: CirclePerson }) {
 /** What the card says about them: their days, or that they were removed or passed away. */
 function PersonState({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
   if (person.late) return <Late person={person} died={person.late} />
-  if (person.status === 'removed') return <p className="subtle">Removed. Moments that already happened still mention them.</p>
+  if (person.status === 'removed') return <p className="subtle">{person.made_room_for ? `Stepped aside when you added ${person.made_room_for} as ${companion}'s ${person.role}.` : 'Removed.'} Moments that already happened still mention them.</p>
   return <>
     <PersonDetails person={person} work={personWork(person)} companion={companion} />
     <CanPassAway person={person} act={act} />
