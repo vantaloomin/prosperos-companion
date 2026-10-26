@@ -42,6 +42,7 @@ from companion.life import (
     recommendations,
     rough_patches,
     routine,
+    shared_people,
     simulation,
     social,
     steps,
@@ -234,8 +235,13 @@ def read_circle(request: Request, include_removed: bool = False):
         met = their_people.for_circle(connection, companion, bool(settings(connection)['show_odds']), now)
         # Their children and a due month while expecting (companion/life/families.py), in words only.
         kids = families.for_circle(connection, companion, now)
-        return [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {}),
-                 **kids.get(person['id'], {'children': [], 'expecting': None})} for person in people]
+        also = shared_people.also_known(connection, companion)
+        own = [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {}),
+                **kids.get(person['id'], {'children': [], 'expecting': None}), 'also': also.get(person['id'], [])}
+               for person in people]
+        # People from the other companions' circles this one knows too (companion/life/shared_people.py).
+        return own + with_pets(connection, companion, engine.world, shared_people.shared_with(connection, companion, now),
+                               now)
 
 
 def pet_world(connection, companion: dict, world, now) -> tuple[dict, date]:
@@ -413,8 +419,62 @@ def person_diary(request: Request, person_id: str, before: str | None = None, li
     with db(request).connect() as connection:
         companion = require_current(connection)
         row = circle.person(connection, person_id)
-        require(row['timeline_id'] == companion['active_timeline_id'], 'That person is not in the circle.', 404)
-        return agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
+        shared = shared_people.is_shared(connection, companion, person_id)
+        require(row['timeline_id'] == companion['active_timeline_id'] or shared, 'That person is not in the circle.', 404)
+        found = agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
+        # Someone from another circle: what they did with their own companion stays on that companion's page.
+        return [{**entry, 'with_companion': None} for entry in found if entry['slot'] is not None] if shared else found
+
+
+class SharedPerson(Input):
+    """Someone from another companion's circle, and how the open companion knows them."""
+    person_id: str = Field(min_length=1, max_length=64)
+    role: str = Field(default='friend', min_length=1, max_length=40, pattern=r'\S')
+
+
+class SharedRole(Input):
+    role: str = Field(min_length=1, max_length=40, pattern=r'\S')
+
+
+@router.get('/circle/shareable')
+def shareable_people(request: Request):
+    """People in the other companions' circles the open companion could know too."""
+    with db(request).connect() as connection:
+        return shared_people.candidates(connection, require_current(connection))
+
+
+def shared_change(request: Request, person_id: str, change) -> dict:
+    database = db(request)
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        change(connection, companion, now)
+        return next(person for person in shared_people.shared_with(connection, companion, now)
+                    if person['id'] == person_id)
+
+
+@router.post('/circle/shared')
+def share_person(request: Request, body: SharedPerson):
+    """Add someone from another companion's circle to the open companion's life: the same person, in both."""
+    return shared_change(request, body.person_id, lambda connection, companion, now: shared_people.share(
+        connection, companion, body.person_id, body.role, now))
+
+
+@router.put('/circle/shared/{person_id}')
+def change_shared(request: Request, person_id: str, body: SharedRole):
+    """How the open companion knows someone from another circle."""
+    def change(connection, companion, now):
+        require(shared_people.is_shared(connection, companion, person_id), 'That person is not in their life.', 404)
+        shared_people.share(connection, companion, person_id, body.role, now)
+    return shared_change(request, person_id, change)
+
+
+@router.post('/circle/shared/{person_id}/remove')
+def unshare_person(request: Request, person_id: str):
+    """The open companion no longer knows them; their own companion's circle keeps them."""
+    with db(request).connect(write=True) as connection:
+        shared_people.unshare(connection, require_current(connection), person_id)
+        return {'removed': person_id}
 
 
 @router.get('/network')
