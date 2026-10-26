@@ -58,6 +58,14 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.1.5 (2026-10-26)
+
+- **What's on their mind this week:** an opt-in Settings > Life switch that has the model add a few lines on the open
+  companion's mind once a week.
+- **Matchlight answers every like:** a like that isn't returned says so, and a yes comes after three misses in a row.
+- **Find your chats:** the desktop rail's Profile button is now Chats; the sidecar has a lightbulb icon.
+- **Fixes:** a reply stuck on "…" after its connection dropped, and Getting started hidden behind Visual novel's stage.
+
 ## v1.1.0 (2026-10-26)
 
 - **Prospero's Draft Table:** a window that draws up a whole place from one line, to change, check, polish and save

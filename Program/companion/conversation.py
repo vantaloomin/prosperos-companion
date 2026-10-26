@@ -187,6 +187,8 @@ def recover(database):
 
 # What the app is doing for a reply before its text arrives, so the chat can always say (never the companion's presence).
 PHASES = ('preparing', 'looking', 'waiting', 'remembering', 'writing')
+# Seconds of quiet before an open reply stream says it is still there (events).
+KEEP_ALIVE_SECONDS = 15
 
 
 @dataclass
@@ -353,7 +355,16 @@ class Conversation:
             live.listeners.add(queue)
             try:
                 yield 'snapshot', {'id': attempt_id, 'text': ''.join(live.text), 'phase': live.phase}
-                while (item := await queue.get()) is not None:
+                while True:
+                    try:
+                        item = await asyncio.wait_for(queue.get(), KEEP_ALIVE_SECONDS)
+                    except TimeoutError:
+                        # A model thinking for minutes sends nothing; a quiet stream can be cut by whatever sits
+                        # between the browser and the app, so it says it's still there.
+                        yield 'ping', {'id': attempt_id}
+                        continue
+                    if item is None:
+                        break
                     yield item[0], {'id': attempt_id, **item[1]}
             finally:
                 live.listeners.discard(queue)

@@ -2792,3 +2792,16 @@ CREATE TABLE IF NOT EXISTS wakes (
   UNIQUE (timeline_id, sleep_ends_at)
 );
 CREATE INDEX IF NOT EXISTS wakes_companion ON wakes(companion_id, woken_at);
+
+-- Their week, planned by the model (companion/life/planned_week.py, Settings > Life, off by default): the checked lines
+-- for the open companion's week (its Monday), kept so the week reads the same all week. Empty lines are a week that came
+-- back with nothing usable, tried again after a day.
+CREATE TABLE IF NOT EXISTS planned_weeks (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  week TEXT NOT NULL,
+  lines TEXT NOT NULL,
+  model TEXT,
+  prompt_version INTEGER NOT NULL,
+  tried_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, week)
+);

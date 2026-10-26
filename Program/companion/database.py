@@ -382,6 +382,8 @@ ADDED_COLUMNS = (
     # Waking them (companion/life/waking.py, Settings > Realism > Their days): how fast being woken wears thin, 0 they
     # never mind, 1 easygoing, 2 true to life, 3 it wears thin fast.
     ('life_settings', 'waking_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (waking_realism BETWEEN 0 AND 3)'),
+    # Their week, planned by the model (companion/life/planned_week.py, Settings > Life): off unless turned on.
+    ('life_settings', 'model_routines', 'INTEGER NOT NULL DEFAULT 0 CHECK (model_routines IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

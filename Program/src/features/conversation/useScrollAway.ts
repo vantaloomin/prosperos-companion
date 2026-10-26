@@ -22,7 +22,7 @@ export function useScrollAway(transcriptRef: RefObject<HTMLDivElement | null>, p
     const resized = element.clientHeight !== heightRef.current || element.scrollHeight !== contentRef.current
     heightRef.current = element.clientHeight
     contentRef.current = element.scrollHeight
-    const atBottom = element.scrollHeight - element.scrollTop - element.clientHeight < NEAR_BOTTOM_PX
+    const atBottom = element.dataset.start !== undefined || element.scrollHeight - element.scrollTop - element.clientHeight < NEAR_BOTTOM_PX
     if (jumpingRef.current || (resized && pinnedRef.current)) {
       if (atBottom) jumpingRef.current = false
       return
@@ -35,7 +35,7 @@ export function useScrollAway(transcriptRef: RefObject<HTMLDivElement | null>, p
   }, [transcriptRef, pinnedRef])
   const toLatest = useCallback(() => {
     const element = transcriptRef.current
-    element?.scrollTo({ top: element.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
+    element?.scrollTo({ top: latest(element), behavior: reducedMotion() ? 'auto' : 'smooth' })
     jumpingRef.current = true
     window.setTimeout(() => { jumpingRef.current = false }, JUMP_MS)
     pinnedRef.current = true
@@ -47,12 +47,18 @@ export function useScrollAway(transcriptRef: RefObject<HTMLDivElement | null>, p
   useEffect(() => {
     const element = transcriptRef.current
     if (!element || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(() => { if (pinnedRef.current) element.scrollTop = element.scrollHeight })
+    const observer = new ResizeObserver(() => { if (pinnedRef.current) element.scrollTop = latest(element) })
     observer.observe(element)
     if (element.firstElementChild) observer.observe(element.firstElementChild)
     return () => observer.disconnect()
   }, [transcriptRef, pinnedRef])
   return { away, onScroll, toLatest }
+}
+
+/** Where "the latest" is: the bottom, or the top before the first message (the transcript's `data-start`), so
+ * Getting started reads from its heading even where Visual novel's stage leaves the transcript short. */
+export function latest(element: HTMLElement): number {
+  return element.dataset.start !== undefined ? 0 : element.scrollHeight
 }
 
 function putKeyboardAway() {

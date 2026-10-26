@@ -575,6 +575,7 @@ class LifeSettingsUpdate(Input):
     # Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life.
     breakups: bool | None = None
     on_her_mind: bool | None = None
+    model_routines: bool | None = None
     # Looks that change (companion/life/grooming.py): never (0), now and then, like real life, often (3).
     looks_realism: int | None = Field(default=None, ge=0, le=3)
     # Pets with lives of their own (companion/life/pets.py): 0 off, 1 light, 2 true to life, 3 dramatic.

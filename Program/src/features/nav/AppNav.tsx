@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, MessageSquareText, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
+import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Lightbulb, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
@@ -11,13 +11,14 @@ import { useReady, useReadyActions } from '../ready/useReady'
 
 /**
  * The views. The desktop side rail shows all of them; the phone's tab bar (`rail-only` hidden) keeps Today, Story,
- * Matchlight and Settings, with Chats in place of Profile, Groups and Memories (navText.ts). While the user is just
+ * Matchlight and Settings, with Chats in place of the rail's Chats, Groups and Memories (navText.ts). The rail's
+ * Chats opens the companion's Messages; their Posts, Memories and Character are tabs above it, and keep it lit. While the user is just
  * watching, Watching takes Matchlight's place (Matchlight waits meanwhile), so the phone still has five tabs.
  */
 type NavView = { id: View; label: string; icon: typeof UserRound; railOnly?: boolean }
 const WATCHING: NavView = { id: 'watch', label: 'Watching', icon: Eye }
 const VIEWS: NavView[] = [
-  { id: 'conversation', label: 'Profile', icon: UserRound, railOnly: true },
+  { id: 'conversation', label: 'Chats', icon: MessageCircle, railOnly: true },
   { id: 'groups', label: 'Groups', icon: UsersRound, railOnly: true },
   { id: 'dating', label: 'Matchlight', icon: Heart },
   { id: 'story', label: 'Story', icon: BookOpen },
@@ -50,7 +51,7 @@ export function AppNav({ view, go, storyOn, datingInstalled, unread, sidecarOpen
         <Fragment key={id}>
           {/* The sidecar opens beside any view, so it is a toggle rather than a view. On a phone it is in the chat header. */}
           {id === 'settings' && <button type="button" className="nav-sidecar rail-only" aria-pressed={sidecarOpen} onClick={() => toggleSidecar(sidecarOpen)}>
-            <MessageSquareText aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
+            <Lightbulb aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
           </button>}
           <button type="button" className={`nav-${id}${railOnly ? ' rail-only' : ''}`} aria-current={railCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>

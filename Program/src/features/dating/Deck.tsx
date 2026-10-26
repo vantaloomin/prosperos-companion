@@ -4,7 +4,7 @@ import type { Dating as DatingData, DatingCard } from '../../types'
 import { reducedMotion } from '../../motion'
 import { cardHeading, cardLabel, humanTerms } from './datingText'
 import { Photo } from './Photo'
-import { FLY_MS, answeredText, arrowWay, decide, hintText, nextHeard, pose, undoLabel, undoShown, type SwipeWay } from './swipe'
+import { FLY_MS, answeredText, arrowWay, decide, hintText, missedText, nextHeard, pose, undoLabel, undoShown, type SwipeWay } from './swipe'
 
 /** Answers the card; true once the app took it. */
 type Answer = (key: string, like: boolean) => Promise<boolean>
@@ -12,9 +12,13 @@ type Answer = (key: string, like: boolean) => Promise<boolean>
 /** Takes back the last answer; true once the app took it back. */
 type TakeBack = (key: string) => Promise<boolean>
 
-interface DeckProps { data: DatingData; onSwipe: Answer; onUndo: TakeBack; onPassedAgain: () => void }
+/** Answers the card; the app's new state once it took it, with `matched` set when the like was returned. */
+type Swipe = (key: string, like: boolean) => Promise<DatingData | null>
 
-interface Said { key: string; name: string; way: SwipeWay }
+interface DeckProps { data: DatingData; onSwipe: Swipe; onUndo: TakeBack; onPassedAgain: () => void }
+
+/** The answer just given; `missed` when it was a like that was not returned. */
+interface Said { key: string; name: string; way: SwipeWay; missed: boolean }
 
 /** The deck: on a dating app a stack of cards to drag left or right; older eras show one notice at a time.
  * Pass and Like stay under it, and the arrow keys answer too. */
@@ -23,27 +27,33 @@ export function Deck({ data, onSwipe, onUndo, onPassedAgain }: DeckProps) {
   const [back, setBack] = useState('')
   const card = data.deck[0]
   const answered: Answer = async (key, like) => {
-    // A personal-column notice gives initials only, so it is never named.
-    const name = data.surface === 'column' ? 'the notice' : data.deck.find((item) => item.key === key)?.name ?? ''
+    const name = answeredName(data, key)
     // The card's buttons go with it, so a keyboard user's focus moves to the next card's same button.
     const kept = document.activeElement?.closest('.dating-actions') ? (like ? '.button.primary' : '.button:not(.primary)') : null
-    const done = await onSwipe(key, like)
-    if (done) { setSaid({ key, name, way: like ? 'like' : 'pass' }); setBack(''); if (kept) refocus(kept) }
-    return done
+    const next = await onSwipe(key, like)
+    if (next) { setSaid({ key, name, way: like ? 'like' : 'pass', missed: like && !next.matched }); setBack(''); if (kept) refocus(kept) }
+    return next !== null
   }
+  // Every like is answered at once, so a like that was not returned says so rather than looking like a wait.
+  const missed = said?.missed ? missedText(data.words.missed, said.name) : ''
   const undo = said && (() => void onUndo(said.key).then((done) => { if (done) { refocus(); setBack(`${said.name.charAt(0).toUpperCase()}${said.name.slice(1)} is back.`); setSaid(null) } }))
-  const heard = <p className="visually-hidden" role="status">{back || (said ? answeredText(said.name, said.way, nextHeard(data.surface, card ? cardLabel(card) : null)) : '')}</p>
+  const heard = <p className="visually-hidden" role="status">{back || (said ? answeredText(said.name, said.way, nextHeard(data.surface, card ? cardLabel(card) : null), missed) : '')}</p>
   const takeBack = (busy: boolean) => said && undo && undoShown(said.key, data.undo, busy) ? <UndoButton said={said} onUndo={undo} /> : null
   if (!card) {
-    return <div className="dating-empty">{heard}<p className="subtle">{data.words.empty} {takeBack(false)}</p>
+    return <div className="dating-empty">{heard}<p className="subtle">{missed && <>{missed} </>}{data.words.empty} {takeBack(false)}</p>
       <button type="button" className="text-button dating-again" onClick={onPassedAgain}><RotateCcw aria-hidden="true" />See people you passed on again</button></div>
   }
   return <>
     {heard}
     {data.surface === 'app'
-      ? <Stack key={card.key} data={data} card={card} onSwipe={answered} takeBack={takeBack} />
-      : <Notice key={card.key} data={data} card={card} onSwipe={answered} takeBack={takeBack} />}
+      ? <Stack key={card.key} data={data} card={card} onSwipe={answered} takeBack={takeBack} missed={missed} />
+      : <Notice key={card.key} data={data} card={card} onSwipe={answered} takeBack={takeBack} missed={missed} />}
   </>
+}
+
+/** Who was answered, as the status line names them. A personal-column notice gives initials only, so it is never named. */
+function answeredName(data: DatingData, key: string): string {
+  return data.surface === 'column' ? 'the notice' : data.deck.find((item) => item.key === key)?.name ?? ''
 }
 
 /** After Undo the link is gone, so focus goes to the returned card's Like button rather than the page. */
@@ -56,10 +66,10 @@ function UndoButton({ said, onUndo }: { said: Said; onUndo: () => void }) {
   return <button type="button" className="text-button inline dating-undo" aria-label={undoLabel(said.name, said.way)} onClick={onUndo}>Undo</button>
 }
 
-interface CardProps { data: DatingData; card: DatingCard; onSwipe: Answer; takeBack: (busy: boolean) => ReactNode }
+interface CardProps { data: DatingData; card: DatingCard; onSwipe: Answer; takeBack: (busy: boolean) => ReactNode; missed: string }
 
 /** The personal column or the matchmaker: no dragging a newspaper, just the answers and the arrow keys. */
-function Notice({ data, card, onSwipe, takeBack }: CardProps) {
+function Notice({ data, card, onSwipe, takeBack, missed }: CardProps) {
   const [busy, setBusy] = useState(false)
   const answer = (way: SwipeWay) => {
     if (busy) return
@@ -70,7 +80,7 @@ function Notice({ data, card, onSwipe, takeBack }: CardProps) {
   return (
     <article className={`dating-card dating-${data.surface}`} role="group" aria-label={data.surface === 'column' ? 'A notice in the personal column' : cardLabel(card)}>
       {data.surface === 'column' ? <p className="dating-notice">{card.notice}</p> : <Details card={card} />}
-      <Answers data={data} busy={busy} onAnswer={answer} takeBack={takeBack} />
+      <Answers data={data} busy={busy} onAnswer={answer} takeBack={takeBack} missed={missed} />
     </article>
   )
 }
@@ -79,7 +89,7 @@ interface Drag { x: number; y: number; at: number; lastX: number; lastAt: number
 
 /** One card on top with the next peeking behind. Drag or flick it away and it tilts and fades with a Like or Pass
  * stamp; let go early and it springs back. Text first: a photo shows only if one was already made. */
-function Stack({ data, card, onSwipe, takeBack }: CardProps) {
+function Stack({ data, card, onSwipe, takeBack, missed }: CardProps) {
   const [dx, setDx] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [flying, setFlying] = useState<SwipeWay | null>(null)
@@ -137,7 +147,7 @@ function Stack({ data, card, onSwipe, takeBack }: CardProps) {
           <Details card={card} />
         </article>
       </div>
-      <Answers data={data} busy={flying !== null} onAnswer={answer} takeBack={takeBack} hint />
+      <Answers data={data} busy={flying !== null} onAnswer={answer} takeBack={takeBack} missed={missed} hint />
     </div>
   )
 }
@@ -152,15 +162,16 @@ function Details({ card }: { card: DatingCard }) {
   </>
 }
 
-interface AnswersProps { data: DatingData; busy: boolean; onAnswer: (way: SwipeWay) => void; takeBack: (busy: boolean) => ReactNode; hint?: boolean }
+interface AnswersProps { data: DatingData; busy: boolean; onAnswer: (way: SwipeWay) => void; takeBack: (busy: boolean) => ReactNode; missed: string; hint?: boolean }
 
-function Answers({ data, busy, onAnswer, takeBack, hint = false }: AnswersProps) {
+function Answers({ data, busy, onAnswer, takeBack, missed, hint = false }: AnswersProps) {
   const touch = window.matchMedia('(pointer: coarse)').matches
   return <>
     <div className="form-actions dating-actions">
       <button type="button" className="button" aria-disabled={busy || undefined} aria-keyshortcuts="ArrowLeft" onClick={() => onAnswer('pass')}><X aria-hidden="true" />{data.words.pass}</button>
       <button type="button" className="button primary" aria-disabled={busy || undefined} aria-keyshortcuts="ArrowRight" onClick={() => onAnswer('like')}><Heart aria-hidden="true" />{data.words.like}</button>
     </div>
+    {missed && <p className="dating-missed" aria-hidden="true">{missed}</p>}
     <p className="subtle dating-left">{hintText(data.remaining - 1, touch, hint)} {takeBack(busy)}</p>
   </>
 }

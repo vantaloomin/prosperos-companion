@@ -197,3 +197,21 @@ def test_a_reply_waiting_for_the_model_says_so_then_fails_visibly_at_the_time_li
     done = events[-1][1]
     assert done['status'] == 'failed'
     assert 'busy with other work' in done['error']
+
+
+def test_a_quiet_stream_says_it_is_still_there(app, connected, monkeypatch):
+    monkeypatch.setattr(conversation_module, 'KEEP_ALIVE_SECONDS', 0.01)
+    gated = GatedProvider()
+    conversation = Conversation(app.state.database, app.state.vault, gated)
+
+    async def scenario():
+        result = await conversation.send(MessageCreate(text='Hi', client_id='client-0001'), wait=False)
+        await gated.started.wait()
+        events = conversation.events(result['reply']['id'])
+        first, quiet = await anext(events), await anext(events)
+        gated.release.set()
+        return [first, quiet] + [event async for event in events]
+
+    events = asyncio.run(scenario())
+    assert events[1] == ('ping', {'id': events[0][1]['id']})
+    assert events[-1][0] == 'done' and events[-1][1]['text'] == 'First part. And the rest.'

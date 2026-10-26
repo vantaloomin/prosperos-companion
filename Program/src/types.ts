@@ -473,6 +473,7 @@ export interface DeleteResult { deleted_memory_ids: string[]; redacted_message_i
 export interface LifeSettings {
   automatic_events: boolean
   phrase_with_model: boolean
+  model_routines: boolean
   catch_up_on_return: boolean
   catch_up_max_events: number
   catch_up_lookback_hours: number
@@ -1894,7 +1895,7 @@ export interface DatingMatch extends DatingCard {
 }
 /** A townsperson's one portrait (companion/dating_photos.py). */
 export interface DatingPhoto { status: 'none' | 'queued' | 'running' | 'completed' | 'failed'; error?: string | null; url?: string | null }
-export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; empty: string; tagline: string; get: string; getting: string }
+export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; missed: string; empty: string; tagline: string; get: string; getting: string }
 export interface Dating {
   surface: 'app' | 'column' | 'matchmaker'
   words: DatingWords

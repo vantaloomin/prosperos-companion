@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowUp, MessageSquareText, RotateCcw, SquareArrowOutUpRight, Undo2, X } from 'lucide-react'
+import { ArrowUp, Lightbulb, RotateCcw, SquareArrowOutUpRight, Undo2, X } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Connection } from '../../types'
@@ -22,7 +22,7 @@ export function Sidecar({ view, go, windowed = false }: { view: View; go: (view:
     <aside className="sidecar" aria-labelledby="sidecar-title">
       <header>
         <div>
-          <h2 id="sidecar-title"><MessageSquareText aria-hidden="true" />Sidecar</h2>
+          <h2 id="sidecar-title"><Lightbulb aria-hidden="true" />Sidecar</h2>
           <p className="subtle">Only you see this. Nothing here reaches {chat.name}.</p>
           {windowed && <p className="sidecar-context subtle">{lookingAt(view, chat.name)}</p>}
         </div>

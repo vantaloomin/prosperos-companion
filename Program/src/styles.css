@@ -223,6 +223,9 @@ a.button { color: inherit; text-decoration: none; }
 .dating-deck { max-width: 520px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px; }
 .dating-deck .dating-actions { justify-content: center; }
 .dating-deck .dating-left { text-align: center; }
+/* "No match with Ashanti this time.": a like is answered at once, so a miss says so. */
+.dating-missed { margin: 0; }
+.dating-deck .dating-missed { text-align: center; }
 .dating-stack { display: grid; padding-bottom: 10px; }
 .dating-stack > .dating-card { grid-area: 1 / 1; margin-bottom: 0; }
 .dating-peek { z-index: 0; pointer-events: none; transform-origin: 50% 100%; transition: transform 240ms ease-out; }
