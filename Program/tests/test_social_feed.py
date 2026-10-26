@@ -277,3 +277,71 @@ def test_new_posts_that_cannot_be_written_leave_the_feed_readable(app, client, c
     monkeypatch.setattr(logs, 'open_folder', opened.append)
     assert client.post('/api/logs/open-folder').json() == {'folder': str(logs.file_path().parent)}
     assert opened == [logs.file_path().parent]
+
+
+def known_companion(client, name: str, personality: str, level: int | None = 5) -> str:
+    """Another companion in the workspace; with `level`, Mira and they know each other at that stage."""
+    from test_groups import companion_named
+
+    from companion.characters import require_current
+    from companion.memory import pairs
+    other = companion_named(client, name, personality)
+    if level:
+        database = client.app.state.database
+        with database.connect(write=True) as connection:
+            assert pairs.tell(connection, pairs.companion_key(require_current(connection)['id']), pairs.companion_key(other), level, 'Old friends.',
+                              database.now())
+    return other
+
+
+def test_companions_who_know_each_other_react_to_their_posts(client, city, clock, monkeypatch):
+    monkeypatch.setattr(social, 'KNOWN_LIKES', (1,) * 5)
+    monkeypatch.setattr(social, 'KNOWN_COMMENTS', (1,) * 5)
+    monkeypatch.setattr(social, 'MANNERS', {**social.MANNERS, 'reserved': (1, 1)})
+    monkeypatch.setattr(social, 'KNOWN_MOST', (1, 1))
+    # Around before Mira's first posts (which go back a few days).
+    clock.advance(-social.LOOKBACK)
+    known_companion(client, 'Spock', 'Reserved, logical and private.')
+    known_companion(client, 'Billy Hart', 'Easygoing.', level=None)
+    clock.advance(social.LOOKBACK)
+    live_days(client, clock)
+    posts = feed(client)['posts']
+    # Likes come within eight hours of a post.
+    settled = stamp(clock.now() - social.REACTION_WINDOW)
+    own = [post for post in posts if post['author']['kind'] == 'companion' and post['occurs_at'] <= settled]
+    assert own and all('Spock' in post['audience']['likes'] for post in own)
+    # Spock says little, and in few words: none of the chatty lines.
+    chatty = {*social.COMMENTS['general'], *social.COMMENTS['from_companion']}
+    said = [comment for post in own for comment in post['audience']['comments'] if comment['name'] == 'Spock']
+    assert said and all(comment['author'] == 'companion' and comment['text'] not in chatty for comment in said)
+    # Billy has never met Mira, and nobody but the circle joins in on a friend's post.
+    assert not any('Billy Hart' in post['audience']['likes'] for post in posts)
+    assert not any('Spock' in post['audience']['likes'] for post in posts if post['author']['kind'] == 'person')
+
+
+def test_a_companion_does_not_react_to_posts_from_before_they_were_around(client, city, clock, monkeypatch):
+    monkeypatch.setattr(social, 'KNOWN_LIKES', (1,) * 5)
+    monkeypatch.setattr(social, 'KNOWN_MOST', (1, 1))
+    live_days(client, clock)
+    known_companion(client, 'Spock', 'Reserved.')
+    assert not any('Spock' in post['audience']['likes'] for post in feed(client)['posts'])
+
+
+@pytest.mark.parametrize(('personality', 'expected'), [
+    ('Reserved, logical, keeps his emotions in check.', 'reserved'),
+    ('A stoic Vulcan of few words.', 'reserved'),
+    ('Warm, chatty and affectionate.', 'warm'),
+    ('An outgoing people person.', 'warm'),
+    ('Easygoing.', 'usual'),
+])
+def test_how_reserved_or_warm_a_companion_is(personality, expected):
+    assert social.manner({'personality': personality}) == expected
+
+
+def test_closer_and_warmer_companions_join_in_more():
+    def chances(manner: str, stage: int) -> tuple[float, float]:
+        likes, comments = social.MANNERS[manner]
+        return social.KNOWN_LIKES[stage - 1] * likes, social.KNOWN_COMMENTS[stage - 1] * comments
+
+    assert chances('reserved', 5) < chances('usual', 5) < chances('warm', 5)
+    assert chances('usual', 1) < chances('usual', 3) < chances('usual', 5)
