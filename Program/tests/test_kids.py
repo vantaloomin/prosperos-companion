@@ -289,7 +289,8 @@ def test_in_an_older_city_seeded_kids_live_with_them_and_no_rota(client, monkeyp
     view = panel(client)
     assert view['how'] == 'seeded' and view['kids'] and view['other'] is None and view['pattern'] == 'sole'
     assert view['pattern_how'] == 'seeded'  # Not "Read from their description".
-    assert 'weekend' not in prompt(client) and 'a week with' not in prompt(client)
+    # The rota's words, not just 'weekend': a seeded perception line can say "what they did at the weekend".
+    assert 'every other weekend' not in prompt(client) and 'a week with' not in prompt(client)
 
 
 def test_in_an_older_city_the_ex_the_description_names_is_still_the_other_parent(client):

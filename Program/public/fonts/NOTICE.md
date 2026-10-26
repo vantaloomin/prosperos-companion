@@ -6,5 +6,5 @@ OpenDyslexic is distributed separately under the included SIL Open Font License,
 
 # Name fonts
 
-Their look in chat uses five fonts for companions' names only, never message text: Libre Baskerville, Manrope, Nunito,
-Courier Prime and Caveat. Each is self-hosted from its Fontsource npm package, which includes its SIL Open Font License.
+Their look in chat uses six fonts for companions' names only, never message text: Libre Baskerville, Manrope, Nunito,
+Courier Prime, Caveat and Oswald. Each is self-hosted from its Fontsource npm package, which includes its SIL Open Font License.

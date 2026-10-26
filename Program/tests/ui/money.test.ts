@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { careersFor, todayIso } from '../../src/features/character/money.ts'
+import { careersFor, guessLabel, todayIso, workChoices, workHint } from '../../src/features/character/money.ts'
 import { completeDefinition } from '../../src/features/character/definition.ts'
 import { boughtFor, costsText, goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
 import type { MoneyView } from '../../src/types.ts'
@@ -59,6 +59,21 @@ test('adult work is listed only with the adult side on, and a current pick alway
   assert.deepEqual(careersFor(careers, 'modern', '').map((career) => career.id), ['nurse'])
   assert.deepEqual(careersFor(careers, 'modern', '', true).map((career) => career.id), ['nurse', 'cam-model'])
   assert.deepEqual(careersFor(careers, 'modern', 'cam-model').map((career) => career.id), ['nurse', 'cam-model'])
+})
+
+test('a fantasy city lists its own work, and the guess says what it found', () => {
+  const shared = [{ id: 'nurse', name: 'Nurse', pay: '$$', eras: ['modern'] }]
+  const ionia = [{ id: 'pit-fighter', name: 'Pit fighter', pay: '$$', eras: ['modern'] }, { id: 'monk', name: 'Monk', pay: '$', eras: ['modern'] }]
+  // The shared catalogue has no fantasy careers: only the city's own fill the list.
+  assert.deepEqual(careersFor(shared, 'fantasy', ''), [])
+  assert.deepEqual(workChoices(ionia, shared, 'fantasy', '').map((career) => career.id), ['monk', 'pit-fighter'])
+  assert.deepEqual(workChoices(ionia, shared, 'fantasy', 'nurse').map((career) => career.id), ['monk', 'nurse', 'pit-fighter'])
+  assert.deepEqual(workChoices(undefined, shared, 'modern', '').map((career) => career.id), ['nurse'])
+  assert.equal(guessLabel(ionia[0]), 'Guess from who they are: Pit fighter ($$)')
+  assert.equal(guessLabel(null), 'Guess from who they are: no job named')
+  assert.match(workHint(null), /everyday wage\. Pick one to set it\.$/)
+  assert.match(workHint(ionia[0]), /^Sets their pay/)
+  assert.equal(guessLabel(undefined), 'Guess from who they are')
 })
 
 test('older saved characters get a default money setup', () => {

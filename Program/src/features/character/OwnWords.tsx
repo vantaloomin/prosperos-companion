@@ -18,7 +18,8 @@ interface Props {
 
 /** A short list in the user's own words (their own turn-ons or turn-offs on the Adult side): type one, add it, take
  * it off with its X. Enter adds too. Iris: chips read mid-sentence, so a first capital goes unless it looks like a
- * name; a repeat is left out quietly; words already in the other list are refused with a line saying so. */
+ * name; a repeat is left out quietly; words already in the other list are refused with a line saying so. The box
+ * keeps the browser's memory of past entries out, so nothing typed for anyone else turns up in it. */
 export function OwnWords({ label, hint, placeholder, value, onChange, other, boxes = [], onBox, outlined }: Props) {
   const [draft, setDraft] = useState('')
   const text = asChip(draft)
@@ -46,7 +47,7 @@ export function OwnWords({ label, hint, placeholder, value, onChange, other, box
           ))}
         </ul>}
         <div className="own-words-add">
-          <input id={id} value={draft} maxLength={80} placeholder={placeholder} aria-describedby={describedBy} disabled={full}
+          <input id={id} value={draft} maxLength={80} placeholder={placeholder} autoComplete="off" aria-describedby={describedBy} disabled={full}
             aria-invalid={clash || undefined} onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); add() } }} />
           <button type="button" className="button" disabled={!text || clash || full} onClick={add}><Plus aria-hidden="true" />Add</button>
