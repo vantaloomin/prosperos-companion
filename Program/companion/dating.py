@@ -21,21 +21,26 @@ from companion.world import catalog, dating, mix, townsfolk, turnover
 APP_NAME = 'Matchlight'
 PAUSED = "Matchlight waits while you're just watching. Step in to use it."
 DECK_SIZE = 5
+# After this many likes in a row that were not returned, the app shows someone who would like the user back next,
+# as real apps put likelier matches first. Each person's own yes or no stays theirs (dating.says_yes).
+DRY_SPELL = 3
 DATE_KINDS = ('cafe', 'restaurant', 'bar', 'tavern', 'nightlife', 'park', 'garden', 'museum', 'venue', 'beach',
               'market', 'landmark', 'attraction', 'square', 'trail', 'inn')
 COLUMN_ERAS = ('victorian', 'steampunk', 'frontier', 'jazz-age')
 # What the user sees, by the kind of matchmaking the city's era has.
 SURFACES = {
     'app': {'title': APP_NAME, 'noun': 'a dating app', 'like': 'Like', 'pass': 'Pass',
-            'matched': "It's a match", 'empty': 'Nobody new around here right now. Try another city.',
+            'matched': "It's a match", 'missed': 'No match with {name} this time.',
+            'empty': 'Nobody new around here right now. Try another city.',
             'tagline': 'Meet people around town.', 'get': 'Get', 'getting': 'Installing…'},
     'column': {'title': 'Personal column', 'noun': 'the personal column in the paper', 'like': 'Write to them',
-               'pass': 'Turn the page', 'matched': 'A letter came back',
+               'pass': 'Turn the page', 'matched': 'A letter came back', 'missed': 'No letter came back this time.',
                'empty': 'No new notices in the paper. Try another city.',
                'tagline': 'Lonely hearts, answered in confidence.', 'get': 'Buy the paper',
                'getting': 'Fetching the paper…'},
     'matchmaker': {'title': 'The matchmaker', 'noun': 'the town matchmaker', 'like': 'Ask for an introduction',
                    'pass': 'Not this one', 'matched': 'They agreed to meet you',
+                   'missed': '{name} declined the introduction.',
                    'empty': 'The matchmaker knows nobody else for you here. Try another city.',
                    'tagline': 'She knows everyone worth knowing.', 'get': 'Call on the matchmaker',
                    'getting': 'Knocking at her door…'},
@@ -181,7 +186,21 @@ def deck(connection, data: dict, mine: dict) -> tuple[list[dict], int]:
     candidates = [(sheet, found) for sheet, found in people(connection, data)
                   if sheet['key'] not in swiped and dating.suits(sheet, found, mine)]
     candidates.sort(key=lambda item: townsfolk.generators.unit(item[0]['key'], 'deck', mine['seed']))
+    if dry_spell(connection) >= DRY_SPELL:
+        keen = next((item for item in candidates if dating.says_yes(*item, mine)), None)
+        if keen:
+            candidates = [keen, *(item for item in candidates if item is not keen)]
     return candidates[:DECK_SIZE], len(candidates)
+
+
+def dry_spell(connection) -> int:
+    """How many likes in a row, latest first, were not returned. Passes neither count nor end it."""
+    misses = 0
+    for row in many(connection, 'SELECT matched FROM dating_swipes WHERE liked=1 ORDER BY created_at DESC, rowid DESC'):
+        if row['matched']:
+            break
+        misses += 1
+    return misses
 
 
 def city_for(connection, city_id: str, town: str) -> dict:
@@ -206,8 +225,8 @@ def person(connection, key: str, town: str) -> tuple[dict, dict]:
 
 def swipe(database, key: str, like: bool) -> dict:
     """Pass or like someone in the deck. A like is a match only if their rules like the user back (or always, with
-    Settings > Debug > 100% Matchlight matches); a like that is not returned simply never comes back, as on a real
-    app."""
+    Settings > Debug > 100% Matchlight matches). The answer comes at once: the screen says when a like was not
+    returned, and after a dry spell (DRY_SPELL) the deck puts someone who would say yes next."""
     with database.connect(write=True) as connection:
         require(not observer.watching(connection), PAUSED, 409)
         mine = profile(connection)

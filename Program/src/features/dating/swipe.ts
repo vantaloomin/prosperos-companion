@@ -72,9 +72,15 @@ export function undoShown(answered: string | null, undoable: string | null | und
   return answered !== null && answered === undoable && !busy
 }
 
-/** What a screen reader hears after an answer: "Liked Ashanti. Next: Rachel, 40." */
-export function answeredText(name: string, way: SwipeWay, next: string | null): string {
-  return `${way === 'like' ? 'Liked' : 'Passed on'} ${name}.${next ? ` Next: ${next}.` : ''}`
+/** What a screen reader hears after an answer: "Liked Ashanti. No match with Ashanti this time. Next: Rachel, 40." */
+export function answeredText(name: string, way: SwipeWay, next: string | null, missed = ''): string {
+  return `${way === 'like' ? 'Liked' : 'Passed on'} ${name}.${missed ? ` ${missed}` : ''}${next ? ` Next: ${next}.` : ''}`
+}
+
+/** The line after a like that was not returned, from the surface's wording: "No match with Ashanti this time." */
+export function missedText(template: string, name: string): string {
+  const text = template.replace('{name}', name)
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`
 }
 
 export interface Pose { x: number; rotate: number; opacity: number; like: number; pass: number; lift: number }
