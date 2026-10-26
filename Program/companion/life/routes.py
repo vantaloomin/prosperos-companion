@@ -52,6 +52,7 @@ from companion.life import (
     together,
     town_personality,
     trips,
+    user_posts,
     web,
     wedding,
 )
@@ -103,6 +104,10 @@ class Reaction(Input):
 class Answer(Input):
     option: str = Field(min_length=1, max_length=200)
     client_id: str = Field(min_length=8, max_length=100)
+
+
+class OwnPost(Input):
+    text: str = Field(min_length=1, max_length=user_posts.TEXT_LIMIT)
 
 
 class PostCreate(Input):
@@ -809,7 +814,7 @@ def reset_mood(request: Request, mood_id: str):
 
 @feed_router.get('')
 def read_feed(request: Request, before: str | None = None, limit: int = 20, hidden: bool = False,
-              source: Literal['all', 'companion', 'circle'] = 'all'):
+              source: Literal['all', 'companion', 'circle', 'mine'] = 'all'):
     social.refresh(db(request))
     return feed.listing(db(request), before, min(max(limit, 1), 100), hidden, source)
 
@@ -827,6 +832,12 @@ def read_posts(request: Request, body: ReadPosts | None = None):
 @feed_router.post('/posts')
 def create_post(request: Request, body: PostCreate):
     return feed.post_event(db(request), body.event_id, body.intro)
+
+
+@feed_router.post('/mine')
+def create_own_post(request: Request, body: OwnPost):
+    """A post of the user's own, which every companion and their circles see (companion/life/user_posts.py)."""
+    return user_posts.create(db(request), body.text)
 
 
 @feed_router.get('/{post_id}')
@@ -859,7 +870,7 @@ async def discuss(request: Request, post_id: str, body: MessageCreate, wait: boo
     """Send a chat message that replies to a post; the reply is built knowing which post (F1).
 
     `wait=false` returns once the reply attempt is saved, as for ordinary sends."""
-    feed.get(db(request), post_id)
+    require(feed.get(db(request), post_id)['source'] != user_posts.USER, 'That is your own post.', 409)
     message = conversation.record_user(db(request), body)
     feed.link_message(db(request), message['id'], post_id)
     return await request.app.state.conversation.send(body, wait)

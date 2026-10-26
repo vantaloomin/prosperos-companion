@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { EyeOff, Eye, MessageCircle, Trash2 } from 'lucide-react'
+import { EyeOff, Eye, MessageCircle, Trash2, UserRound } from 'lucide-react'
 import type { FeedPost, Reaction } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { REACTIONS } from './feedState'
@@ -35,6 +35,8 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
     return () => observer.disconnect()
   }, [post.read])
   const hidden = post.status === 'hidden'
+  // The user's own post: nothing to react to or talk over, only to take down.
+  const own = post.source === 'user'
   return (
     <article ref={card} className={`post${hidden ? ' hidden-post' : ''}`} aria-labelledby={`post-${post.id}`}>
       <PostHeader post={post} name={name} />
@@ -42,15 +44,17 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
       <PostBody post={post} actions={actions} />
       <Audience audience={post.audience} />
       <div className="post-actions">
-        <span className="reactions" role="group" aria-label="React">
-          {REACTIONS.map((reaction) => (
-            <button key={reaction.id} type="button" className="reaction" aria-pressed={post.reaction === reaction.id} aria-label={reaction.label} onClick={() => actions.react(post, reaction.id)}>
-              <span aria-hidden="true">{reaction.emoji}</span>
-            </button>
-          ))}
-        </span>
-        <button type="button" className="text-button" aria-expanded={discussing} onClick={() => setDiscussing(!discussing)}><MessageCircle aria-hidden="true" />Talk about this</button>
-        <button type="button" className="text-button" onClick={() => actions.hide(post, !hidden)}>{hidden ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}{hidden ? 'Show' : 'Hide'}</button>
+        {!own && <>
+          <span className="reactions" role="group" aria-label="React">
+            {REACTIONS.map((reaction) => (
+              <button key={reaction.id} type="button" className="reaction" aria-pressed={post.reaction === reaction.id} aria-label={reaction.label} onClick={() => actions.react(post, reaction.id)}>
+                <span aria-hidden="true">{reaction.emoji}</span>
+              </button>
+            ))}
+          </span>
+          <button type="button" className="text-button" aria-expanded={discussing} onClick={() => setDiscussing(!discussing)}><MessageCircle aria-hidden="true" />Talk about this</button>
+          <button type="button" className="text-button" onClick={() => actions.hide(post, !hidden)}>{hidden ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}{hidden ? 'Show' : 'Hide'}</button>
+        </>}
         <button type="button" className="text-button danger-text" onClick={() => setRemoving(true)}><Trash2 aria-hidden="true" />Remove</button>
       </div>
       {discussing && <DiscussForm post={post} name={name} discuss={actions.discuss} onDone={() => setDiscussing(false)} />}
@@ -59,18 +63,24 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
           <button type="button" className="button" onClick={() => setRemoving(false)}>Cancel</button>
           <button type="button" className="button danger" onClick={() => { setRemoving(false); actions.remove(post) }}>Remove</button>
         </>}>
-          <p>{post.source === 'life' ? `The post is removed for good. What happened stays part of ${name}'s life and can still come up in conversation.` : 'The post is removed for good.'} To keep it but out of sight, choose Hide instead.</p>
+          <p>{removeText(post, name)}</p>
         </ConfirmDialog>
       )}
     </article>
   )
 }
 
+function removeText(post: FeedPost, name: string) {
+  if (post.source === 'user') return 'The post is removed for good, for everyone, with its likes and comments.'
+  const life = post.source === 'life' ? ` What happened stays part of ${name}'s life and can still come up in conversation.` : ''
+  return `The post is removed for good.${life} To keep it but out of sight, choose Hide instead.`
+}
+
 function PostBody({ post, actions }: { post: FeedPost; actions: PostActions }) {
   const imageFirst = post.events.length > 1
   return <>
     <PostEvents post={post} imageFirst={imageFirst} refresh={actions.refresh} />
-    {post.source === 'social' && <SocialBody post={post} answer={actions.answer} />}
+    {post.source !== 'life' && <SocialBody post={post} answer={actions.answer} />}
     {post.image && !imageFirst && <PostImage post={post} image={post.image} onChange={actions.refresh} />}
   </>
 }
@@ -100,10 +110,11 @@ function PostHeader({ post, name }: { post: FeedPost; name: string }) {
   )
 }
 
-/** The poster's picture: the companion's profile picture on their own posts, everyone else's initial. */
+/** The poster's picture: the companion's profile picture on their own posts, a person on the user's, everyone else's initial. */
 function PostAvatar({ post }: { post: FeedPost }) {
   const portrait = usePortrait()
   if (post.author.kind === 'companion' && portrait) return <img className="post-avatar" src={portrait} alt="" aria-hidden="true" />
+  if (post.author.kind === 'user') return <span className="post-avatar" aria-hidden="true"><UserRound /></span>
   return <span className="post-avatar" aria-hidden="true">{post.author.name.slice(0, 1).toUpperCase()}</span>
 }
 

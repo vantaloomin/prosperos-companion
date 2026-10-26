@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Post something of your own:** the top of the Posts page has a box to share something with everyone. All your
+  companions see it, and so do their friends, so it is how you get to know friends of friends. They like and
+  comment on it in their own time: the closer you are to a companion, the likelier they and their circle join
+  in. The You filter shows only your posts.
 - **Companions who know each other join in on the Feed:** other companions a companion knows (from how
   they know each other, a group chat, or running into each other in town) now like and comment on their posts,
   more often the closer they are. A reserved one, like a Vulcan, likes now and then and says little; a warm one
