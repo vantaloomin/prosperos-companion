@@ -440,7 +440,7 @@ def shareable_people(request: Request):
 
 
 def shared_change(request: Request, person_id: str, change) -> dict:
-    """Apply a change to someone shared in, with `made_room`: the names of the app-made people who made room for them."""
+    """Apply a change to someone shared in, with `made_room`: the app-made people who made room for them."""
     database = db(request)
     now = database.clock.now()
     with database.connect(write=True) as connection:

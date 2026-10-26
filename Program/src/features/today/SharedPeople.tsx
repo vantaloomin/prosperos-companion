@@ -84,8 +84,8 @@ function RoleForm({ person, companion, act, local, onDone }: { person: CirclePer
     event.preventDefault()
     if (role.trim() === person.role) { onDone(); return }
     const as = role.trim().toLowerCase()
-    let room: string[] = []
-    const save = async () => { room = (await api<{ made_room: string[] }>(`/life/circle/shared/${person.id}`, { role: role.trim() }, 'PUT')).made_room }
+    let room: Room[] = []
+    const save = async () => { room = (await api<{ made_room: Room[] }>(`/life/circle/shared/${person.id}`, { role: role.trim() }, 'PUT')).made_room }
     const told = (feedback: Feedback) => local(feedback.tone === 'error' ? feedback
       : { tone: 'info', text: `Saved. ${person.name} is ${companion}'s ${as}.${room.length ? ` ${roomText(room, as)}` : ''}` })
     if (await act(save, '', told)) onDone()
@@ -131,8 +131,8 @@ export function SharedForm({ people, companion, act, local, onDone }: { people: 
     const person = people.find((item) => item.id === picked)
     if (!person) return
     const as = role.trim() || 'friend'
-    let room: string[] = []
-    const add = async () => { room = (await api<{ made_room: string[] }>('/life/circle/shared', { person_id: person.id, role: as })).made_room }
+    let room: Room[] = []
+    const add = async () => { room = (await api<{ made_room: Room[] }>('/life/circle/shared', { person_id: person.id, role: as })).made_room }
     if (await act(add, '', (feedback) => local(feedback.tone === 'error' ? feedback : { tone: 'info', text: addedText(person, companion, as, room) }))) onDone()
   }
   return (
@@ -158,13 +158,21 @@ export function SharedForm({ people, companion, act, local, onDone }: { people: 
   )
 }
 
-/** "Ruth is now part of Elias's life too, as their mom. Diana, the mom the app had made, stepped aside; Show people
- * you removed brings them back." */
-function addedText(person: ShareablePerson, companion: string, as: string, room: string[]): string {
+type Room = { name: string; pronouns: string }
+
+/** "Ruth is now part of Elias's life too, as their mom. They stay in Anton's. Susana, the mom the app had made, stepped
+ * aside. You can bring her back from Show people you removed." (Iris, stepped aside 1) */
+function addedText(person: ShareablePerson, companion: string, as: string, room: Room[]): string {
   const added = `${person.name} is now part of ${companion}'s life too, as their ${as.toLowerCase()}. They stay in ${person.owner}'s.`
   return room.length ? `${added} ${roomText(room, as.toLowerCase())}` : added
 }
 
-function roomText(room: string[], as: string): string {
-  return `${room.join(' and ')}, the ${as} the app had made, stepped aside. Show people you removed brings them back.`
+function roomText(room: Room[], as: string): string {
+  const who = room.length === 1 ? objectPronoun(room[0].pronouns) : 'them'
+  return `${room.map((item) => item.name).join(' and ')}, the ${as} the app had made, stepped aside. You can bring ${who} back from Show people you removed.`
+}
+
+/** "her" for she/her: the second word of the pronouns. */
+function objectPronoun(pronouns: string | undefined): string {
+  return pronouns?.split('/')[1] || 'them'
 }

@@ -91,9 +91,9 @@ def candidates(connection, companion: dict) -> list[dict]:
     return result
 
 
-def share(connection, companion: dict, person_id: str, role: str, now) -> list[str]:
+def share(connection, companion: dict, person_id: str, role: str, now) -> list[dict]:
     """Add someone from another companion's circle to this one's life, or change how this one knows them. Returns
-    the names of the app-made people who stepped aside for them (step_aside)."""
+    the app-made people who stepped aside for them (step_aside)."""
     row = circle.person(connection, person_id)
     owner = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (row['timeline_id'],))
     owner_id = owner and owner['companion_id']
@@ -125,10 +125,10 @@ def made_by_app(connection, row: dict) -> bool:
     return optional(connection, 'SELECT id FROM love_partners WHERE person_id=?', (row['id'],)) is None
 
 
-def step_aside(connection, companion: dict, seed: str, role: str, now) -> list[str]:
+def step_aside(connection, companion: dict, seed: str, role: str, now) -> list[dict]:
     """The app-made people in this companion's own circle whose place the shared person now takes (a second mom)
     step aside: removed, marked with whom they made room for, so Restore brings them back and taking the shared
-    person out again does too. Returns their names."""
+    person out again does too. Returns their names and pronouns, for the notice."""
     if not (slot := slot_of(role)):
         return []
     timeline_id, names = companion['active_timeline_id'], []
@@ -139,7 +139,7 @@ def step_aside(connection, companion: dict, seed: str, role: str, now) -> list[s
                                'updated_at=? WHERE id=?', (encode(details | {'stepped_aside': seed}), stamp(now),
                                                            row['id']))
             agenda.forget_person(connection, timeline_id, row['id'], now)
-            names.append(row['name'])
+            names.append({'name': row['name'], 'pronouns': details.get('pronouns') or 'they/them'})
     return names
 
 

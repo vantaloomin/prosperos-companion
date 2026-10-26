@@ -69,7 +69,7 @@ def test_the_app_made_mom_makes_room_for_one_shared_in(client, companion):
     ok(client.put(f"/api/life/circle/{kept['id']}/about", json={'note': 'My stepmom, really.'}))
 
     shared = ok(client.post('/api/life/circle/shared', json={'person_id': theirs['id'], 'role': 'Mom'}))
-    assert shared['made_room'] == [made['name']]
+    assert [item['name'] for item in shared['made_room']] == [made['name']]
     listed = {person['id']: person for person in ok(client.get('/api/life/circle?include_removed=true'))}
     assert listed[made['id']]['status'] == 'removed' and listed[made['id']]['made_room_for']
     assert listed[kept['id']]['status'] == 'active'
