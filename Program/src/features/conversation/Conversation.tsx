@@ -26,7 +26,7 @@ import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
 import { useOoc } from './useOoc'
-import { useScrollAway } from './useScrollAway'
+import { latest, useScrollAway } from './useScrollAway'
 import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
 import { NovelStage } from './NovelStage'
@@ -120,7 +120,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   // Keep the newest text in view only while the reader is already at the bottom; never pull them away from history.
   useEffect(() => {
     const element = transcript.current
-    if (element && pinned.current) element.scrollTop = element.scrollHeight
+    if (element && pinned.current) element.scrollTop = latest(element)
   }, [messages, live])
   // Bring a search result into view once its page is rendered, and move focus to it for keyboard and screen reader users.
   useEffect(() => {
@@ -256,7 +256,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         data-their-font={look.font} aria-label={`Conversation with ${name}`}>
         <ConversationTop companion={companion} go={go} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
         {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
-        <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
+        <div className="transcript" ref={transcript} onScroll={scroll.onScroll} data-start={history.isSuccess && turns.length === 0 ? '' : undefined} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
           <div className="reading-column">
             {history.isPending && <Loading label="Loading the conversation" />}
             {history.isError && <ErrorNotice error={history.error} />}
