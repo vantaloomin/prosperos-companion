@@ -4,7 +4,8 @@ A call is the third state a companion can be in with the user, beside apart and 
 Rules start and end it; the model never decides it.
 
 The user calls them: the Call button in the chat header, or words like "can I call you?" and "call me?". They pick up
-when they are free (not at work, out, or asleep); otherwise they don't, and the reply to those words says why, or for
+when they are free (not at work or out); asleep, the phone wakes them and they pick up groggy (companion/life/waking.py).
+Otherwise they don't, and the reply to those words says why, or for
 the button, they text back once they are free ("sorry, missed your call, I was at work").
 
 They call the user: now and then, as often as the Getting together slider says (more for someone far away, since calls
@@ -246,6 +247,10 @@ def call(connection, companion: dict, now: datetime) -> dict:
     require(blocked(connection, companion, now) is None, 'You are already together or on a call.', 409)
     hang_up_others(connection, companion, now)
     reason = why_not(connection, companion, now)
+    if reason and reason['why'] == 'asleep':
+        from companion.life import waking  # The phone wakes them: they pick up, groggy (companion/life/waking.py).
+        waking.wake(connection, companion, now, waking.asleep(connection, companion, now), 'call')
+        return insert(connection, companion, 'you', 'on', now)
     if reason:
         return insert(connection, companion, 'you', 'missed', now, reason=reason)
     return insert(connection, companion, 'you', 'on', now)

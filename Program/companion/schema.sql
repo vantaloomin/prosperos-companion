@@ -2777,6 +2777,22 @@ CREATE TABLE IF NOT EXISTS their_look_changes (
 );
 CREATE INDEX IF NOT EXISTS their_look_changes_companion ON their_look_changes(companion_id, created_at);
 
+-- Waking them (companion/life/waking.py): each sleep a companion was woken from by the user, how (a second text, words
+-- like "wake up", or a call), the night's count and level then, and when they were last up that night.
+CREATE TABLE IF NOT EXISTS wakes (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  sleep_ends_at TEXT NOT NULL,
+  how TEXT NOT NULL CHECK (how IN ('texts', 'words', 'call')),
+  level TEXT NOT NULL CHECK (level IN ('first', 'again', 'thin')),
+  nights INTEGER NOT NULL,
+  woken_at TEXT NOT NULL,
+  last_at TEXT NOT NULL,
+  UNIQUE (timeline_id, sleep_ends_at)
+);
+CREATE INDEX IF NOT EXISTS wakes_companion ON wakes(companion_id, woken_at);
+
 -- Their week, planned by the model (companion/life/planned_week.py, Settings > Life, off by default): the checked lines
 -- for the open companion's week (its Monday), kept so the week reads the same all week. Empty lines are a week that came
 -- back with nothing usable, tried again after a day.

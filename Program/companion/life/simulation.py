@@ -40,6 +40,7 @@ from companion.life import (
     pets,
     planned_week,
     routine,
+    their_hours,
     thoughts,
     upkeep,
 )
@@ -793,6 +794,7 @@ class LifeEngine:
         monotonic timer. Background batches always run, rule-built; model phrasing, lookups and preparation in
         the background need the user's permission (T4)."""
         with self.database.pin():
+            self.quietly_hours()
             await self.quietly_life('return')
         while True:
             # A fast debug clock (companion/debug_time.py) ticks more often in real time to keep up.
@@ -801,6 +803,7 @@ class LifeEngine:
                 await self.tick()
 
     async def tick(self):
+        self.quietly_hours()
         await self.quietly_life('background')
         await self.quietly_spread()
         with self.database.connect() as connection:
@@ -814,6 +817,15 @@ class LifeEngine:
         # First messages have their own setting (texts_first), so the companion can text while the
         # app is closed even when background activity is off; the open app also asks each minute.
         await self.quietly_text()
+
+    def quietly_hours(self):
+        """Fit an older world's companions to the user's evenings once, and keep anyone living on the user's clock in
+        step with it (companion/life/their_hours.py)."""
+        try:
+            with self.database.connect(write=True) as connection:
+                their_hours.settle_all(connection, self.database.clock.now())
+        except Exception:  # noqa: BLE001 - their week stays as it was until the next tick.
+            LOG.exception('Fitting their hours failed.')
 
     async def quietly_observe(self):
         """Real weather and local events for the companion's city, when the user allowed lookups for their

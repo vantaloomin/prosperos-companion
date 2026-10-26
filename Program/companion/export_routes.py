@@ -1,10 +1,12 @@
-"""Export API: a chat or the story as a file to keep (companion/export.py). Plain GETs, so a link downloads it."""
+"""Export API: a chat or the story as a file to keep (companion/export.py), and a companion saved to take to another
+world (companion/carry.py). Plain GETs, so a link downloads it."""
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
+from starlette.background import BackgroundTask
 
-from companion import export
+from companion import carry, export
 from companion.story_routes import switched_on
 
 router = APIRouter(prefix='/api/export')
@@ -26,3 +28,17 @@ def export_chat(request: Request, thread_id: str, format: Format = 'html'):
 @router.get('/story', dependencies=[Depends(switched_on)])
 def export_story(request: Request, format: Format = 'html'):
     return attachment(export.story(request.app.state.database), format)
+
+
+@router.get('/companion/{companion_id}')
+def save_companion(request: Request, companion_id: str):
+    """A companion with everything that happened, as a file another world can open (companion/carry.py)."""
+    path, name = carry.save(request.app.state.database, companion_id)
+    return FileResponse(path, media_type='application/zip', filename=name, headers={'Cache-Control': 'no-store'},
+                        background=BackgroundTask(path.unlink, missing_ok=True))
+
+
+@router.post('/companion')
+async def open_companion(request: Request):
+    """The body is a saved companion's file; they arrive in this world with their history."""
+    return await carry.receive(request.app.state.database, request.stream())

@@ -57,11 +57,13 @@ from companion.life import (
     stays,
     steps,
     storylines,
+    their_hours,
     their_people,
     together,
     traditions,
     trips,
     upkeep,
+    waking,
     wardrobe,
     wedding,
     where,
@@ -578,6 +580,18 @@ def day_text(connection, companion, now: datetime) -> str:
     return '\n'.join(lines)
 
 
+def offer_hours(packet, connection, companion, now: datetime, group):
+    """Hours that don't match their city's (companion/life/their_hours.py), and being woken by the user, groggy now or
+    to bring up the morning after (companion/life/waking.py)."""
+    definition = companion['version']['definition']
+    city = outings.city_data(connection, definition)
+    if hours := their_hours.why_text(definition, city['name'] if city else ''):
+        packet.offer('time', 'hours', hours)
+    if group is None:
+        for key, text in waking.lines(connection, companion, now):
+            packet.require('time', key, text)
+
+
 def memory_text(memory, now: str | None = None) -> str:
     label = 'Boundary' if memory['boundary'] else memory['layer'].replace('_', ' ').capitalize()
     timing = ''
@@ -1006,6 +1020,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     packet.require('time', 'clock', clock_text(connection, companion, now, previous, group))
     if today := day_text(connection, companion, now):
         packet.offer('time', 'day', today)
+    offer_hours(packet, connection, companion, now, group)
     conversation = fit_conversation(packet, recent)
     if group is None and (wording := wording_text(connection, timeline_id, version['definition'], messages)):
         packet.offer('wording', 'wording', wording)

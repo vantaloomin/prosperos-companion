@@ -232,7 +232,7 @@ def test_tonight_asked_at_work_is_a_visit_this_evening_and_sometime_settles_noth
     [visit] = client.get('/api/life/outings').json()['outings']
     assert (visit['activity'], visit['local_date'], visit['at_time'], visit['state']) == (
         'visit-yours', '2026-10-05', '19:00', 'planned')
-    assert "You can't" not in notes(provider) and where(client)['state'] == 'apart'
+    assert "You can't:" not in notes(provider) and where(client)['state'] == 'apart'
     says(provider)
     send(client, 'can I come over sometime next week?', 'client-together-21')
     assert len(client.get('/api/life/outings').json()['outings']) == 1

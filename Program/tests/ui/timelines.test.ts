@@ -29,3 +29,10 @@ test('the edited words go into the message box only when it is empty and the tim
   assert.equal(waitingDraft({ ...current, active: false }, ''), null)
   assert.equal(waitingDraft(undefined, ''), null)
 })
+
+test('the edited words are placed once, so clearing the message box keeps it clear', () => {
+  const current = timeline('b', { active: true, status: 'active', draft: 'I went to the coast.' })
+  assert.equal(waitingDraft(current, '', null), 'I went to the coast.')
+  assert.equal(waitingDraft(current, '', 'b'), null)
+  assert.equal(waitingDraft(current, '', 'a'), 'I went to the coast.')
+})

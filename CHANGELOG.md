@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Built-in voice on Windows 11:** the built-in voice could fail with "The requested API version is not available"
+  when Windows loaded its own older copy of onnxruntime instead of the voice's. The voice now puts its own copy
+  back beside its program before each note and runs from its own folder, and if it still happens, Settings >
+  Models > Voice notes explains it and offers Repair the built-in voice, which downloads only the program again.
+- **Take a companion to another world:** the Character page can save a companion to a file with everything that
+  happened between you: chats, memories, Closeness, kids, home, look and voice. Open it under Bring your
+  characters in another world and they arrive there with all of it, moving to that world's city if it is another
+  one. Opening an updated city file for one of your own cities now updates it in place, so a world in it keeps
+  its companions.
 - **Memories stay in the right chat:** a memory found in one companion's chat could be saved to whichever
   companion was open when the app got round to it, for example after you switched chats or opened another one
   on your phone. Memories, things they say about themselves, and Remember this now always go to the companion
@@ -48,6 +57,21 @@
 - **Duplicate a model profile:** each profile in Settings > Models has a Duplicate button that copies
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
+
+## v1.1.0 (2026-10-26)
+
+- **Prospero's Draft Table:** a window that draws up a whole place from one line, to change, check, polish and save
+  with your cities, with nearby places and Marinara maps as a start.
+- **People of other kinds:** elves, fae, dwarves and the peoples of Oz live in town by a share per kind, and pack
+  characters can be another kind.
+- **Their look in chat:** each companion's own name color and font, picked by the app, easy to read on every style.
+- **On your clock:** wake a sleeping companion, hours fitted to your evenings, and Live on my clock.
+- **Take a companion to another world** with their whole history, in a `.companion` file.
+- **Who they know:** the Character page and one-on-one chats know the other companions someone knows.
+- **Their circle and their work:** edit and add people in the circle, jobs and ages from the description, and students
+  working in their own field.
+- **Family, personas and cities:** add children by hand, copy a persona to a new world, and update a city from a newer file.
+- **Fixes:** the built-in voice on some Windows 11 PCs, and a message box that refilled after editing a message.
 
 ## v1.0.1 (2026-10-25)
 

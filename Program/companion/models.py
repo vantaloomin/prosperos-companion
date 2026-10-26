@@ -35,6 +35,16 @@ class RoutineBlock(Input):
         return self
 
 
+class TheirHours(Input):
+    """How their week sits against the user's clock (companion/life/their_hours.py). The form sends the mode back;
+    the shift is always worked out on the server."""
+    mode: Literal['fit', 'mine', 'city'] = 'city'
+    shift: int = Field(default=0, ge=-1440, le=1440)
+    why: str = Field(default='', max_length=20)
+    zone: str = Field(default='', max_length=64)
+    fit: int = Field(default=0, ge=-1440, le=1440)
+
+
 class EmotionalTrait(Input):
     """An opt-in trait such as jealousy or guilt over absence (PRD C6). None are enabled by default."""
     name: str = Field(min_length=1, max_length=60)
@@ -151,6 +161,8 @@ class CharacterDefinition(Input):
     timezone: str = Field(default='UTC', max_length=64)
     # Structured routine for the life simulation; empty uses a gentle default day.
     schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
+    # Their week moved to fit the user's evenings, or onto the user's clock (companion/life/their_hours.py).
+    their_hours: TheirHours | None = None
     # Themes automatic events may draw on (PRD T3).
     life_themes: list[str] = Field(default_factory=list, max_length=20)
     # "MM-DD"; empty picks a date from the companion's id (companion/life/occasions.py).
@@ -540,6 +552,8 @@ class LifeSettingsUpdate(Input):
     inner_voice: int | None = Field(default=None, ge=0, le=3)
     # Their look in chat (companion/their_look.py): 0 off, 1 steady, 2 true to life, 3 expressive.
     their_look: int | None = Field(default=None, ge=0, le=3)
+    # Waking them (companion/life/waking.py): 0 they never mind, 1 easygoing, 2 true to life, 3 it wears thin fast.
+    waking_realism: int | None = Field(default=None, ge=0, le=3)
     # Getting together (companion/life/together.py): 0 never on their own, 1 light, 2 true to life, 3 often.
     together_realism: int | None = Field(default=None, ge=0, le=3)
     # Rough patches (companion/life/rough_patches.py): 0 off, 1 easy, 2 true to life, 3 dramatic.
