@@ -1730,7 +1730,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .group-picker legend { margin-bottom: 8px; font-weight: 500; }
 .group-picker label, .group-add label { display: flex; align-items: center; gap: 8px; }
 .group-chat .conversation-title h1 { display: flex; align-items: center; gap: 4px; }
-.group-rename { width: 28px; height: 28px; }
+.group-chat .conversation-title h1 > .group-title-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.group-rename { width: 28px; height: 28px; flex-shrink: 0; }
 .group-rename svg { width: 15px; height: 15px; }
 .group-rename-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .group-rename-form input { min-width: 0; flex: 1 1 180px; }
@@ -1801,7 +1802,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-row:hover:not(:disabled), .chat-row:focus-visible { background: var(--accent-tint); }
 .chat-row.current { background: var(--raised); }
 .chat-row .portrait { width: 40px; height: 40px; font-size: 1.05rem; object-fit: cover; }
-.chat-row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.chat-row-text { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .chat-row-top { display: flex; align-items: baseline; gap: 8px; }
 .chat-row-top strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .chat-row-time { flex-shrink: 0; color: var(--muted); font-size: 0.75rem; }
