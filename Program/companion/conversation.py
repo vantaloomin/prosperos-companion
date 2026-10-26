@@ -422,7 +422,8 @@ class Conversation:
         """Free, the reply waits a little before it is read (companion/life/reading.py); replies still waiting to be
         read in this chat are dropped unseen. In person, on the phone or out of character it starts at once."""
         now = self.database.clock.now()
-        if in_character.out_of_character(user['text']) or calls.on_call(connection, companion, now) or \
+        if not reading.reads_later(connection, companion) or in_character.out_of_character(user['text']) or \
+                calls.on_call(connection, companion, now) or \
                 together.in_person(connection, companion, now):
             return held, []
         unread = [key for key, item in self.unread.items() if item['timeline_id'] == user['timeline_id']]

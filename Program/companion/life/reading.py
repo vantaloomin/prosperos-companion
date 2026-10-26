@@ -50,6 +50,11 @@ def pace(connection, companion) -> int:
     return min(setting, QUICK) if quick else setting
 
 
+def reads_later(connection, companion) -> bool:
+    """Whether a reply to a text may wait to be read at all, checked before anything costlier."""
+    return ACTIVE and pace(connection, companion) > 0
+
+
 def first_wait(connection, companion, now, seed: str, setting: int) -> float:
     """Seconds before they read a text when no reply is waiting to be read."""
     rng = random.Random(f'read:{seed}')
