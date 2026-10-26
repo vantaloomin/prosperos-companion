@@ -146,6 +146,27 @@ def test_the_user_adds_keeps_and_gives_up_pastimes(client, kim):
     assert client.post('/api/life/hobbies', json={'name': ''}).status_code == 422
 
 
+def test_a_pastime_the_user_adds_is_long_standing_unless_they_say_otherwise(client, kim):
+    client.get('/api/life/hobbies')
+    view = client.post('/api/life/hobbies', json={'name': 'metal detecting'}).json()
+    added = next(item for item in view['hobbies'] if item['label'] == 'Metal detecting')
+    assert added['level'] >= 1 and not added['level_text'].startswith('Just started')
+    assert re.match(r'(About|\w+ months)', added['since_text']), added['since_text']
+    view = client.post('/api/life/hobbies', json={'name': 'origami', 'level': 0}).json()
+    fresh = next(item for item in view['hobbies'] if item['label'] == 'Origami')
+    assert fresh['level_text'].startswith('Just started') and fresh['since_text'] in ('A few days in', 'A few weeks in')
+    view = client.patch(f"/api/life/hobbies/{fresh['id']}", json={'level': 4}).json()
+    assert next(item for item in view['hobbies'] if item['id'] == fresh['id'])['since_text'].startswith('About')
+
+
+def test_a_young_companion_has_not_had_a_pastime_since_before_they_were_twelve(client, kim):
+    with client.app.state.database.connect() as connection, \
+            patch('companion.life.ages.companion_age', return_value=13):
+        timeline = connection.execute('SELECT active_timeline_id FROM companions').fetchone()['active_timeline_id']
+        assert hobbies.most_months(connection, timeline, {}, TODAY) == 12
+        assert all(hobbies.user_months(connection, timeline, {}, TODAY, f'seed{n}', None) <= 12 for n in range(20))
+
+
 def test_sessions_take_free_evenings_and_reach_the_chat(client, kim, provider, clock):
     for _day in range(6):
         reconcile(client)
