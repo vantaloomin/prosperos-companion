@@ -54,7 +54,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.models import Input, KindChange, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
-from companion.world import lifespans, paper
+from companion.world import lifespans, paper, ships
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -246,6 +246,14 @@ def circle_room(request: Request):
     """How many people the circle has and how many it should have, for the offer to add more."""
     with db(request).connect() as connection:
         return circle.room(connection, require_current(connection))
+
+
+@router.get('/circle/home')
+def circle_home(request: Request):
+    """Whether the companion lives aboard a ship or station ('ship', 'station' or None), so "where they live" in
+    the circle reads Aboard the ship and Off the ship there rather than In town and Out of town."""
+    with db(request).connect() as connection:
+        return {'aboard': ships.vessel_of(connection, require_current(connection)['version']['definition'])}
 
 
 @router.post('/circle/grow')
