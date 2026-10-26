@@ -142,6 +142,7 @@ def test_a_page_left_open_in_another_world_is_told_to_reload(client, companion):
     # The phone still shows the first world: it changes nothing here and is told to open this one.
     stale = client.post('/api/conversation/recap/read', json={'since': 'x'}, headers={'X-Companion-World': first})
     assert stale.status_code == 409 and stale.json()['code'] == 'world_changed'
+    assert stale.json()['world'] == made['name']  # So the page can say where it went.
     assert client.get('/api/companion', headers={'X-Companion-World': made['id']}).status_code == 200
 
 
