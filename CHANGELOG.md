@@ -58,6 +58,21 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.1.0 (2026-10-26)
+
+- **Prospero's Draft Table:** a window that draws up a whole place from one line, to change, check, polish and save
+  with your cities, with nearby places and Marinara maps as a start.
+- **People of other kinds:** elves, fae, dwarves and the peoples of Oz live in town by a share per kind, and pack
+  characters can be another kind.
+- **Their look in chat:** each companion's own name color and font, picked by the app, easy to read on every style.
+- **On your clock:** wake a sleeping companion, hours fitted to your evenings, and Live on my clock.
+- **Take a companion to another world** with their whole history, in a `.companion` file.
+- **Who they know:** the Character page and one-on-one chats know the other companions someone knows.
+- **Their circle and their work:** edit and add people in the circle, jobs and ages from the description, and students
+  working in their own field.
+- **Family, personas and cities:** add children by hand, copy a persona to a new world, and update a city from a newer file.
+- **Fixes:** the built-in voice on some Windows 11 PCs, and a message box that refilled after editing a message.
+
 ## v1.0.1 (2026-10-25)
 
 - **Choose what to import from a file:** a preview of a character, lorebook or world map file with every part ticked;
