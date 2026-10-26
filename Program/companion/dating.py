@@ -34,7 +34,7 @@ SURFACES = {
             'empty': 'Nobody new around here right now. Try another city.',
             'tagline': 'Meet people around town.', 'get': 'Get', 'getting': 'Installing…'},
     'column': {'title': 'Personal column', 'noun': 'the personal column in the paper', 'like': 'Write to them',
-               'pass': 'Turn the page', 'matched': 'A letter came back', 'missed': 'No letter came back this time.',
+               'pass': 'Turn the page', 'matched': 'A letter came back', 'missed': 'Your last letter went unanswered.',
                'empty': 'No new notices in the paper. Try another city.',
                'tagline': 'Lonely hearts, answered in confidence.', 'get': 'Buy the paper',
                'getting': 'Fetching the paper…'},

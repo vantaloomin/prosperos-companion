@@ -55,7 +55,7 @@ time and nothing is stored:
 - A like is a match only if the person's rules say yes: a chance from their pickiness, temperament, the age
   gap and whether they want the same thing, rolled once for this person and this user's profile. Every like
   is answered at once: a like that is not returned says so under the buttons ("No match with Ashanti this
-  time.", "No letter came back this time.", "Edric declined the introduction."), so it never looks like a
+  time.", "Your last letter went unanswered.", "Edric declined the introduction."), so it never looks like a
   wait. The average like comes back about a third of the time.
 - **Dry spells**: after `DRY_SPELL` (3) likes in a row that were not returned, the deck puts the first person
   who would say yes on top, as real apps show likelier matches first. Nobody's own answer changes; passes

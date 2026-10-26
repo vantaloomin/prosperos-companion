@@ -61,7 +61,7 @@ test('a screen reader hears the answer and who is next', () => {
 test('a like that was not returned says so, in the words of the era', () => {
   assert.equal(missedText('No match with {name} this time.', 'Ashanti'), 'No match with Ashanti this time.')
   assert.equal(missedText('{name} declined the introduction.', 'Edric'), 'Edric declined the introduction.')
-  assert.equal(missedText('No letter came back this time.', 'the notice'), 'No letter came back this time.')
+  assert.equal(missedText('Your last letter went unanswered.', 'the notice'), 'No letter came back this time.')
 })
 
 test('a card flies off the way it was answered, and only fades when motion is reduced', () => {
