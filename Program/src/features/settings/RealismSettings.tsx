@@ -23,6 +23,7 @@ import { LOSS_LEVELS, PASS_AWAY_HINT, PASS_AWAY_TIP } from '../character/lossTex
 import { INNER_VOICE_LEVELS } from '../watch/watchText'
 import { LOOK_LEVELS, LOOK_TIP } from '../character/theirLookText'
 import { WAKING_LEVELS } from '../character/theirHoursText'
+import { READ_LEVELS, READ_TIP } from './readPaceText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -78,6 +79,7 @@ export function PaceSettings() {
   const voice = step(INNER_VOICE_LEVELS, data.inner_voice, 2)
   const look = step(LOOK_LEVELS, data.their_look, 2)
   const waking = step(WAKING_LEVELS, data.waking_realism, 2)
+  const reading = step(READ_LEVELS, data.read_pace, 2)
   const together = step(TOGETHER_LEVELS, data.together_realism, 2)
   const families = step(FAMILY_LEVELS, data.growing_families, 2)
   const familyLife = step(FAMILY_LIFE_LEVELS, data.family_life, 2)
@@ -157,6 +159,10 @@ export function PaceSettings() {
           </Field>
         </div>
       )}
+      <Field label={`How quickly they read your texts: ${reading.label}`} hint={reading.hint} tip={READ_TIP}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.read_pace} label={reading.label}
+          onChange={(read_pace) => void save({ read_pace })} />}
+      </Field>
       <Toggle label="Let their days go off plan" checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
         hint={`Now and then they run late, stay late, have plans fall through, have something come up or get a surprise visit. Rolled with fixed dice, so a day never changes after the fact. Off: every day goes as planned.`} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}

@@ -82,7 +82,7 @@ export interface MemeBox { x: number; y: number; w: number; h: number }
 /** Where meme pictures come from (Settings > Images > Memes and GIFs). */
 export interface MemeSources { folder: string; mine: number; pack: number; formats_on: boolean; formats_here: number; formats_total: number; gif_key: boolean; key_here: boolean }
 
-export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean }
+export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean; quick?: boolean }
 
 export interface Timeline {
   id: string
@@ -523,6 +523,8 @@ export interface LifeSettings {
   /** Their look in chat (companion/their_look.py): 0 off, 1 steady, 2 true to life, 3 expressive. */
   their_look: number
   waking_realism: number
+  /** How quickly they read your texts while free (companion/life/reading.py): 0 at once, 1 quick, 2 natural, 3 slow. */
+  read_pace: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
