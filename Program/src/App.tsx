@@ -79,7 +79,7 @@ export default function App() {
   useTexts(!!companion.data)
   useChatLink(view, setView)
   const chats = useChats(!!companion.data).data?.chats ?? []
-  // Unread one-to-one chats count on Profile, group chats on Groups, and both on the phone's Chats.
+  // Unread one-to-one chats count on the rail's Chats, group chats on Groups, and both on the phone's Chats.
   const unread = { companion: unreadOf(chats, 'companion'), group: unreadOf(chats, 'group') }
   useFocusOnViewChange(view)
   // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
