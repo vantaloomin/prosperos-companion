@@ -139,7 +139,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
           <NameField name={definition.name} creating={!companion} onChange={(name) => set({ name })} />
-          <Field label="Relationship" hint="Someone you haven't met yet is a Friendship at Just met. Romance starts only with your yes." tip="Sets how they think of you and what they are comfortable with. You can change it later and their memories stay.">
+          <Field label="Relationship" hint="Someone you haven't met yet starts as a Friendship at Just met. Romance starts only with your yes." tip="Sets how they think of you and what they are comfortable with. You can change it later and their memories stay.">
             {(id, hint) => (
               <select id={id} aria-describedby={hint} value={definition.relationship} onChange={(event) => set({ relationship: event.target.value as Relationship })}>
                 {RELATIONSHIPS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}

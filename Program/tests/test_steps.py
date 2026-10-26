@@ -132,14 +132,15 @@ def test_someone_you_have_not_met_is_not_a_friend_yet(client, provider, monkeypa
     # companion "You are friends", so they picked "Something else" for everyone they did not know.
     make(client, monkeypatch, relationship='friendship')
     found = view(client)
-    assert found['step'] == 'friends' and found['text'] == 'Just met' and found['not_yet'] == 1
+    assert found['step'] == 'friends' and found['text'] == 'Met today' and found['not_yet'] == 1
     assert found['ladder_steps'][0] == {'step': 'friends', 'label': 'Just met'}
     says(provider)
     send(client, 'hi, I think we have not met?', 'client-steps-stranger')
     assert 'you are not friends yet, just two people starting to talk' in prompt(provider)
     assert 'You are friends.' not in prompt(provider) and 'Friends since' not in prompt(provider)
     close(client, 2)
-    assert view(client)['text'] == 'Getting to know each other'
+    found = view(client)
+    assert found['label'] == 'Getting to know each other' and found['text'] == 'Met today'
     close(client, 3)
     found = view(client)
     assert found['text'] == 'Friends for 1 day' and found['not_yet'] is None

@@ -457,7 +457,7 @@ def state(connection, companion: dict, now, write: bool = True) -> dict | None:
             'next_label': following.label if following else None, 'since': since,
             'steps': [{'step': row['step'], 'label': step_of(ladder, row['step']).label, 'on': row['reached_on'],
                        'how': row['how']} for row in rows],
-            'text': label if early else plain_text(ladder, current, rows, today), 'not_yet': early,
+            'text': met_text(since, today) if early else plain_text(ladder, current, rows, today), 'not_yet': early,
             'ladder_steps': [{'step': step.key, 'label': label if step is current else step.label}
                              for step in ladder_steps]}
 
@@ -517,6 +517,12 @@ def plain_text(ladder: str, current: Step, rows: list[dict], today: date) -> str
     if current.key == 'friends':
         return f'Friends for {span}' if span else 'Friends'
     return f'Friends for {span}, {current.state}' if span else current.state.capitalize()
+
+
+def met_text(since: str, today: date) -> str:
+    """'Met today', 'Met 1 day ago', 'Met 12 days ago': before they are friends, beside the stage the picker shows."""
+    days = (today - date.fromisoformat(since)).days
+    return 'Met today' if days <= 0 else f"Met {days} day{'s' if days != 1 else ''} ago"
 
 
 def long_date(day: str) -> str:

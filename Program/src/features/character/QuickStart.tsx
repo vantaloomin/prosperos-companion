@@ -95,7 +95,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go, another }: Props) {
           <div className="form-stack">
             <TextArea label="Who are they?" value={request.idea} onChange={(idea) => set({ idea })} maxLength={2000} rows={2}
               placeholder="A night-shift nurse who is trying to get back into running" hint="Leave it empty to be surprised." />
-            <Field label="Relationship" hint="Friendship unless you pick otherwise, someone you haven't met yet too. Romance is only ever your choice.">
+            <Field label="Relationship" hint="Someone you haven't met yet starts as a Friendship at Just met. Romance starts only with your yes.">
               {(id, hint) => (
                 <select id={id} aria-describedby={hint} value={request.relationship} onChange={(event) => set({ relationship: event.target.value as Relationship })}>
                   {RELATIONSHIPS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}

@@ -36,7 +36,7 @@ export function PasteCharacter({ connected, onSplit }: Props) {
         <TextArea label="Your character" value={text} onChange={setText} maxLength={40000} rows={6}
           placeholder={'Name: Dana Whitfield\nDana is 34 and works nights as a nurse…'} hint="Their name, who they are, how they talk, their history: whatever you have, in any order." />
         <CardButton onText={setText} onError={setError} disabled={busy} />
-        <Field label="Relationship" hint="Friendship for someone you haven't met yet too. Romance is only ever your choice.">
+        <Field label="Relationship" hint="Someone you haven't met yet starts as a Friendship at Just met. Romance starts only with your yes.">
           {(id, hint) => (
             <select id={id} aria-describedby={hint} value={relationship} onChange={(event) => setRelationship(event.target.value as Relationship)}>
               {RELATIONSHIPS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
