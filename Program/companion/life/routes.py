@@ -42,6 +42,7 @@ from companion.life import (
     recommendations,
     rough_patches,
     routine,
+    shared_people,
     simulation,
     social,
     steps,
@@ -51,6 +52,7 @@ from companion.life import (
     together,
     town_personality,
     trips,
+    user_posts,
     web,
     wedding,
 )
@@ -102,6 +104,10 @@ class Reaction(Input):
 class Answer(Input):
     option: str = Field(min_length=1, max_length=200)
     client_id: str = Field(min_length=8, max_length=100)
+
+
+class OwnPost(Input):
+    text: str = Field(min_length=1, max_length=user_posts.TEXT_LIMIT)
 
 
 class PostCreate(Input):
@@ -229,8 +235,14 @@ def read_circle(request: Request, include_removed: bool = False):
         met = their_people.for_circle(connection, companion, bool(settings(connection)['show_odds']), now)
         # Their children and a due month while expecting (companion/life/families.py), in words only.
         kids = families.for_circle(connection, companion, now)
-        return [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {}),
-                 **kids.get(person['id'], {'children': [], 'expecting': None})} for person in people]
+        also = shared_people.also_known(connection, companion)
+        own = [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {}),
+                **kids.get(person['id'], {'children': [], 'expecting': None}), 'also': also.get(person['id'], [])}
+               for person in people]
+        # People from the other companions' circles this one knows too (companion/life/shared_people.py).
+        own = shared_people.made_room(connection, companion, own, now)
+        return own + with_pets(connection, companion, engine.world, shared_people.shared_with(connection, companion, now),
+                               now)
 
 
 def pet_world(connection, companion: dict, world, now) -> tuple[dict, date]:
@@ -408,8 +420,63 @@ def person_diary(request: Request, person_id: str, before: str | None = None, li
     with db(request).connect() as connection:
         companion = require_current(connection)
         row = circle.person(connection, person_id)
-        require(row['timeline_id'] == companion['active_timeline_id'], 'That person is not in the circle.', 404)
-        return agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
+        shared = shared_people.is_shared(connection, companion, person_id)
+        require(row['timeline_id'] == companion['active_timeline_id'] or shared, 'That person is not in the circle.', 404)
+        found = agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
+        # Someone from another circle: what they did with their own companion stays on that companion's page.
+        return [{**entry, 'with_companion': None} for entry in found if entry['slot'] is not None] if shared else found
+
+
+class SharedPerson(Input):
+    """Someone from another companion's circle, and how the open companion knows them."""
+    person_id: str = Field(min_length=1, max_length=64)
+    role: str = Field(default='friend', min_length=1, max_length=40, pattern=r'\S')
+
+
+class SharedRole(Input):
+    role: str = Field(min_length=1, max_length=40, pattern=r'\S')
+
+
+@router.get('/circle/shareable')
+def shareable_people(request: Request):
+    """People in the other companions' circles the open companion could know too."""
+    with db(request).connect() as connection:
+        return shared_people.candidates(connection, require_current(connection))
+
+
+def shared_change(request: Request, person_id: str, change) -> dict:
+    """Apply a change to someone shared in, with `made_room`: the app-made people who made room for them."""
+    database = db(request)
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        names = change(connection, companion, now)
+        return next(person for person in shared_people.shared_with(connection, companion, now)
+                    if person['id'] == person_id) | {'made_room': names}
+
+
+@router.post('/circle/shared')
+def share_person(request: Request, body: SharedPerson):
+    """Add someone from another companion's circle to the open companion's life: the same person, in both."""
+    return shared_change(request, body.person_id, lambda connection, companion, now: shared_people.share(
+        connection, companion, body.person_id, body.role, now))
+
+
+@router.put('/circle/shared/{person_id}')
+def change_shared(request: Request, person_id: str, body: SharedRole):
+    """How the open companion knows someone from another circle."""
+    def change(connection, companion, now):
+        require(shared_people.is_shared(connection, companion, person_id), 'That person is not in their life.', 404)
+        return shared_people.share(connection, companion, person_id, body.role, now)
+    return shared_change(request, person_id, change)
+
+
+@router.post('/circle/shared/{person_id}/remove')
+def unshare_person(request: Request, person_id: str):
+    """The open companion no longer knows them; their own companion's circle keeps them."""
+    with db(request).connect(write=True) as connection:
+        shared_people.unshare(connection, require_current(connection), person_id, db(request).clock.now())
+        return {'removed': person_id}
 
 
 @router.get('/network')
@@ -747,7 +814,7 @@ def reset_mood(request: Request, mood_id: str):
 
 @feed_router.get('')
 def read_feed(request: Request, before: str | None = None, limit: int = 20, hidden: bool = False,
-              source: Literal['all', 'companion', 'circle'] = 'all'):
+              source: Literal['all', 'companion', 'circle', 'mine'] = 'all'):
     social.refresh(db(request))
     return feed.listing(db(request), before, min(max(limit, 1), 100), hidden, source)
 
@@ -765,6 +832,12 @@ def read_posts(request: Request, body: ReadPosts | None = None):
 @feed_router.post('/posts')
 def create_post(request: Request, body: PostCreate):
     return feed.post_event(db(request), body.event_id, body.intro)
+
+
+@feed_router.post('/mine')
+def create_own_post(request: Request, body: OwnPost):
+    """A post of the user's own, which every companion and their circles see (companion/life/user_posts.py)."""
+    return user_posts.create(db(request), body.text)
 
 
 @feed_router.get('/{post_id}')
@@ -797,7 +870,7 @@ async def discuss(request: Request, post_id: str, body: MessageCreate, wait: boo
     """Send a chat message that replies to a post; the reply is built knowing which post (F1).
 
     `wait=false` returns once the reply attempt is saved, as for ordinary sends."""
-    feed.get(db(request), post_id)
+    require(feed.get(db(request), post_id)['source'] != user_posts.USER, 'That is your own post.', 409)
     message = conversation.record_user(db(request), body)
     feed.link_message(db(request), message['id'], post_id)
     return await request.app.state.conversation.send(body, wait)

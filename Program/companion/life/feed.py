@@ -12,11 +12,13 @@ from companion.characters import definition_for_timeline, require_current
 from companion.clock import parse, zone
 from companion.database import decode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import composer, loss, social
+from companion.life import composer, loss, social, user_posts
 
 REACTIONS = ('heart', 'laugh', 'wow', 'sad', 'hug')
 # A photo sent in chat waits on a post keyed to the event its slot will become (companion/images/photos.py).
 PHOTO_KEY = 'photo:'
+# Whose posts each feed filter keeps; 'all' keeps everyone's.
+SOURCES = {'companion': ('companion',), 'circle': ('person',), 'mine': (user_posts.USER,)}
 IMAGE_STATES = ('none', 'queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted')
 
 
@@ -183,8 +185,9 @@ def grief_test(connection, timeline_id):
 
 
 def everything(connection, companion, now: str, include_hidden=False, source='all') -> list[dict]:
-    """Life posts and social posts (companion/life/social.py) together, newest first, with the circle's
-    likes and comments. `source` keeps only the companion's own posts or only the circle's. Likes and
+    """Life posts, social posts (companion/life/social.py) and the user's own (companion/life/user_posts.py)
+    together, newest first, with likes and comments. `source` keeps only the companion's own posts, the circle's
+    or the user's. Likes and
     comments are worked out over every post, so a filter or a hidden post never changes them."""
     timeline_id, name = companion['active_timeline_id'], companion['version']['name']
     people = social.active_people(connection, timeline_id)
@@ -192,9 +195,13 @@ def everything(connection, companion, now: str, include_hidden=False, source='al
               '_basis': (social.COMPANION, {'mood': (post['events'] or [{}])[0].get('mood', '')})}
              for post in visible_posts(connection, timeline_id, include_hidden=True)]
     posts += social.visible(connection, companion, include_hidden=True)
-    social.add_audiences(posts, now, people, name)
-    posts = [post for post in posts if (include_hidden or post['status'] == 'visible')
-             and (source == 'all' or (post['author']['kind'] == 'companion') == (source == 'companion'))]
+    mine = user_posts.visible(connection, now, include_hidden=True)
+    known = tuple(social.known_audience(connection, companion, parse(now)))
+    everyone = tuple(user_posts.crowd(connection, parse(now))) if mine else ()
+    social.add_audiences(posts + mine, now, people, name, known, everyone)
+    authors = SOURCES.get(source)
+    posts = [post for post in posts + mine if (include_hidden or post['status'] == 'visible')
+             and (authors is None or post['author']['kind'] in authors)]
     return sorted(posts, key=lambda post: (post['occurs_at'], post['id']), reverse=True)
 
 
@@ -208,6 +215,8 @@ def shown(connection, post_id, now: str) -> dict | None:
         return found
     if row := social.find(connection, post_id):
         post = social.view(row, social.active_people(connection, row['timeline_id']), companion['version']['name'])
+    elif row := user_posts.find(connection, post_id):
+        post = user_posts.view(row)
     else:
         post = post_view(connection, one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,)))
         post = post and {**post, 'author': social.author_view(social.COMPANION, {}, companion['version']['name'])}
@@ -265,6 +274,9 @@ def set_status(database, post_id, status) -> dict:
         if row := social.find(connection, post_id):
             social.set_status(connection, row, status, database.now())
             return shown(connection, post_id, database.now())
+        if row := user_posts.find(connection, post_id):
+            user_posts.set_status(connection, row, status, database.now())
+            return shown(connection, post_id, database.now())
         post = one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
         require(post['status'] != 'removed', 'This post was removed.', 409)
         if status == 'removed':
@@ -282,6 +294,7 @@ def react(database, post_id, reaction) -> dict:
         if row := social.find(connection, post_id):
             social.react(connection, row, reaction, database.now())
             return shown(connection, post_id, database.now())
+        require(user_posts.find(connection, post_id) is None, 'That is your own post.', 409)
         post = one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
         require(post['status'] != 'removed', 'This post was removed.', 409)
         connection.execute('UPDATE feed_posts SET reaction=?, read_at=COALESCE(read_at, ?) WHERE id=?',
@@ -294,6 +307,7 @@ def link_message(database, message_id, post_id):
         if row := social.find(connection, post_id):
             social.link_message(connection, row, message_id, database.now())
             return
+        require(user_posts.find(connection, post_id) is None, 'That is your own post.', 409)
         post = one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
         require(post['status'] != 'removed', 'This post was removed.', 409)
         connection.execute('INSERT OR IGNORE INTO message_post_links (message_id, post_id) VALUES (?, ?)',

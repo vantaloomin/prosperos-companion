@@ -800,15 +800,17 @@ export interface PauseRecord { id: string; started_at: string; ended_at: string 
 
 export type Reaction = 'heart' | 'laugh' | 'wow' | 'sad' | 'hug'
 
-export type FeedSource = 'all' | 'companion' | 'circle'
-export interface FeedAuthor { kind: 'companion' | 'person'; id: string | null; name: string; role: string }
-export interface FeedComment { author: 'companion' | 'person'; name: string; text: string; at: string }
+export type FeedSource = 'all' | 'companion' | 'circle' | 'mine'
+/** `user` is the user's own post, which every companion and their circles see. */
+export interface FeedAuthor { kind: 'companion' | 'person' | 'user'; id: string | null; name: string; role: string }
+/** `role` says whose friend a commenter is ("Mira's sister"), on the user's own posts. */
+export interface FeedComment { author: 'companion' | 'person'; name: string; text: string; at: string; role?: string }
 
 export interface FeedPost {
   id: string
-  /** Life posts tell life events; social posts (friends, status, shout-outs, city news, questions) carry their own text. */
-  kind: 'digest' | 'event' | 'status' | 'friend' | 'birthday' | 'holiday' | 'city' | 'question'
-  source: 'life' | 'social'
+  /** Life posts tell life events; social posts (friends, status, shout-outs, city news, questions) and the user's own carry their own text. */
+  kind: 'digest' | 'event' | 'status' | 'friend' | 'birthday' | 'holiday' | 'city' | 'question' | 'user'
+  source: 'life' | 'social' | 'user'
   author: FeedAuthor
   intro: string
   status: 'visible' | 'hidden'
@@ -864,6 +866,16 @@ export interface KindChoices {
   spans: number[]
 }
 
+/** Someone in another companion's circle the open companion could know too (GET /life/circle/shareable). */
+export interface ShareablePerson {
+  id: string
+  name: string
+  full_name: string
+  role: string
+  owner_id: string
+  owner: string
+}
+
 export interface CirclePerson {
   kind?: KindShown
   own_kind?: string
@@ -889,6 +901,13 @@ export interface CirclePerson {
   works_with_companion?: boolean
   /** Who they know inside the circle and how. */
   knows?: CircleTie[]
+  /** Someone from another companion's circle this one knows too (companion/life/shared_people.py): whose circle
+   * they live in and who they are there; `role` above is who they are to this companion. */
+  shared?: { owner_id: string; owner: string; role: string }
+  /** Someone the app made who stepped aside when a shared person took their place (a second mom): who that is. */
+  made_room_for?: string | null
+  /** The other companions who know someone in this circle, and who they are to each. */
+  also?: { companion_id: string; name: string; role: string }[]
   /** How close they and the companion feel, both ways (companion/memory/pairs.py); read-only. */
   stage?: PairStage | null
   /** What they think of you, once they have met you (companion/life/their_people.py). */

@@ -17,7 +17,9 @@ Posts are written when the feed or Today is read, for the last few days up to no
 idempotency keys seeded by the timeline and slot, so reading twice never posts twice. Likes and
 comments are not stored: they follow from the post, the circle and the clock, so a comment shows
 up some time after its post, a renamed friend comments under the new name and a removed one
-leaves the conversation. The companion likes and comments on friends' posts the same way.
+leaves the conversation. The companion likes and comments on friends' posts the same way, and
+other companions who know them (companion/memory/pairs.py) on the companion's own posts, by how
+close they feel and how reserved or warm they are.
 """
 import logging
 import re
@@ -106,6 +108,29 @@ COMMENTS = {
 }
 LIKELY = {'close friend': 0.85, 'sibling': 0.7, 'roommate from years ago': 0.55}
 COMMENT_CHANCE, COMPANION_LIKES = 0.22, 0.7
+# Other companions who know this one (companion/memory/pairs.py) join in on the companion's own posts: the closer
+# they feel to them, the likelier (by stage, "Just met" first), and by their manner. Someone reserved (a Vulcan,
+# a loner) likes now and then and seldom says a word, in a few dry words when they do; someone warm joins in more.
+KNOWN_LIKES = (0.15, 0.3, 0.5, 0.65, 0.75)
+KNOWN_COMMENTS = (0.04, 0.08, 0.14, 0.2, 0.25)
+MANNERS = {'warm': (1.2, 1.5), 'usual': (1.0, 1.0), 'reserved': (0.5, 0.3)}
+# However close and warm, nobody likes or comments on every single post.
+KNOWN_MOST = (0.9, 0.5)
+RESERVED_WORDS = re.compile(r"\b(?:reserved|stoic\w*|reticent|taciturn|aloof|restrained|impassive|unemotional|"
+                            r"emotionless|logical|of few words|keeps (?:his|her|their) (?:emotions|feelings) "
+                            r"(?:in check|hidden|to (?:himself|herself|themselves|themself))|"
+                            r"(?:controls?|suppress\w*|hides?) (?:his|her|their) (?:emotions|feelings))\b",
+                            re.IGNORECASE)
+WARM_WORDS = re.compile(r"\b(?:warm|affectionate|bubbly|chatty|talkative|effusive|enthusiastic|cheerful|"
+                        r"expressive|gushing|wears (?:his|her|their) heart on (?:his|her|their) sleeve)\b",
+                        re.IGNORECASE)
+RESERVED_COMMENTS = {
+    'general': ('Well done.', 'Noted.', 'Interesting.', 'A good use of the day.', 'Agreeable.', 'Sensible.',
+                'I approve.', 'Pleasing.'),
+    'down': ('Rest well.', 'I hope you recover quickly.', 'Take the time you need.'),
+    'grief': ('I am here, should you need anything.', 'My thoughts are with you.'),
+    'question': ('{option}.', '{option}, logically.'),
+}
 LOG = logging.getLogger(__name__)
 
 
@@ -366,9 +391,45 @@ def author_view(author: str, people: dict, name: str) -> dict | None:
     return person and {'kind': 'person', 'id': person['id'], 'name': person['name'], 'role': person['role']}
 
 
-def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool) -> tuple[str, ...]:
+def manner(definition: dict) -> str:
+    """'reserved', 'warm' or 'usual', from words in their sheet and how sociable they are (companion/life/circle.py)."""
+    text = ' '.join(definition.get(field) or '' for field in ('identity', 'personality', 'voice'))
+    sociable = circle.sociability(definition)
+    reserved = len(RESERVED_WORDS.findall(text)) + (sociable == 'quiet')
+    warm = len(WARM_WORDS.findall(text)) + (sociable == 'social')
+    return 'reserved' if reserved > warm else 'warm' if warm > reserved else 'usual'
+
+
+def known_audience(connection, companion: dict, now: datetime) -> list[dict]:
+    """The other companions who know this one, each with their chances to like and comment on its own posts."""
+    from companion.characters import by_id
+    from companion.memory import pairs
+    key, result = pairs.companion_key(companion['id']), []
+    try:
+        for other in pairs.known_companions(connection, companion, now):
+            found, them = pairs.closeness(connection, other, key, now), by_id(connection, pairs.companion_id(other))
+            if not found or them is None:
+                continue
+            likes, comments = MANNERS[style := manner(them['version']['definition'])]
+            result.append({'key': other, 'name': them['version']['name'], 'manner': style,
+                           'since': them['created_at'],
+                           'like': min(KNOWN_LIKES[found - 1] * likes, KNOWN_MOST[0]),
+                           'comment': min(KNOWN_COMMENTS[found - 1] * comments, KNOWN_MOST[1])})
+    except Exception:  # noqa: BLE001 - who else knows them never keeps the feed from opening.
+        LOG.exception('Could not work out which companions know %s', companion['id'])
+        return []
+    return result
+
+
+def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool, style: str = '') -> tuple[str, ...]:
     if by_companion:
         return COMMENTS['from_companion']
+    if style == 'reserved':
+        if content.get('text') in STATUS['grief']:
+            return RESERVED_COMMENTS['grief']
+        if content.get('tone') in ('sick', 'down') or content.get('mood') in SICK | DOWN:
+            return RESERVED_COMMENTS['down']
+        return RESERVED_COMMENTS['question'] if kind == 'question' else RESERVED_COMMENTS['general']
     if kind == 'birthday':
         return COMMENTS['birthday_self'] if commenter == content.get('person') else COMMENTS['birthday']
     if kind == 'city':
@@ -383,16 +444,22 @@ def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool) -
 
 
 def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str, now: str, people: dict,
-             companion_name: str, avoid: frozenset[str] = frozenset()) -> dict:
+             companion_name: str, avoid: frozenset[str] = frozenset(), known: tuple = ()) -> dict:
     """Who liked and commented by `now`, from the post and the circle alone. The companion joins in
-    on friends' posts; friends join in on everyone's. No line is said twice on a post, and lines in
-    `avoid` (said on the posts just before) are left for later."""
+    on friends' posts; friends join in on everyone's; other companions who know the companion
+    (`known_audience`) join in on the companion's own posts, if they were around when it went up.
+    No line is said twice on a post, and lines in `avoid` (said on the posts just before) are
+    left for later."""
     occurred = parse(occurs_at)
-    crowd = [(person_id, person['name'], LIKELY.get(person['role'], 0.45)) for person_id, person in people.items()]
+    crowd = [(person_id, person['name'], LIKELY.get(person['role'], 0.45), COMMENT_CHANCE, '')
+             for person_id, person in people.items()]
     if author != COMPANION:
-        crowd.append((COMPANION, companion_name, COMPANION_LIKES))
+        crowd.append((COMPANION, companion_name, COMPANION_LIKES, COMMENT_CHANCE, ''))
+    else:
+        crowd += [(other['key'], other['name'], other['like'], other['comment'], other['manner'])
+                  for other in known if other['since'] <= occurs_at]
     likes, speakers = [], []
-    for who, name, chance in crowd:
+    for who, name, chance, talks, style in crowd:
         if who == author and kind != 'birthday':
             continue
         seed = f'{post_id}:{who}'
@@ -401,20 +468,20 @@ def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str
         if (unit(seed, 'like') < chance or thanked) and liked_at <= now:
             likes.append(name)
         said = stamp(occurred + REACTION_WINDOW * unit(seed, 'comment-at'))
-        if (unit(seed, 'comment') < COMMENT_CHANCE or thanked) and said <= now:
-            speakers.append((said, who, name, seed))
+        if (unit(seed, 'comment') < talks or thanked) and said <= now:
+            speakers.append((said, who, name, seed, style))
     comments, used = [], set(avoid)
-    for said, who, name, seed in sorted(speakers)[:MAX_COMMENTS]:
+    for said, who, name, seed, style in sorted(speakers)[:MAX_COMMENTS]:
         option = pick(seed, 'option', content.get('options') or [''])
         lines = [line.format(name=people.get(content.get('person'), {}).get('name', ''), option=option)
-                 for line in comment_pool(kind, content, who, who == COMPANION)]
+                 for line in comment_pool(kind, content, who, who == COMPANION, style)]
         fresh = [line for line in lines if line not in used]
         if not fresh:
             continue  # Everything this person would say was just said.
         text = pick(seed, 'comment', fresh)
         used.add(text)
-        comments.append({'author': 'companion' if who == COMPANION else 'person', 'name': name, 'at': said,
-                         'text': text})
+        comments.append({'author': 'companion' if who == COMPANION or who.startswith('companion:') else 'person',
+                         'name': name, 'at': said, 'text': text})
     return {'likes': likes, 'comments': comments}
 
 
@@ -422,17 +489,24 @@ def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str
 NEARBY = 10
 
 
-def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str) -> None:
+def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str, known: tuple = (),
+                  everyone: tuple = ()) -> None:
     """Fill in each post's likes and comments, oldest first, so a line said on one post is not said
-    again on the next few. Posts carry their basis as `_basis` (author, content); it is removed here."""
+    again on the next few. Posts carry their basis as `_basis` (author, content); it is removed here.
+    The user's own posts (companion/life/user_posts.py) go to `everyone` who can see them."""
+    from companion.life import user_posts
     recent: list[set[str]] = []
     for post in sorted(posts, key=lambda post: (post['occurs_at'], post['id'])):
         basis = post.pop('_basis', None)
+        avoid = frozenset().union(*recent[-NEARBY:])
         if basis is None:
             post['audience'] = {'likes': [], 'comments': []}
             continue
-        post['audience'] = audience(post['id'], post['kind'], basis[0], basis[1], post['occurs_at'], now, people,
-                                    companion_name, frozenset().union(*recent[-NEARBY:]))
+        if basis[0] == user_posts.USER:
+            post['audience'] = user_posts.audience(post['id'], basis[1], post['occurs_at'], now, list(everyone), avoid)
+        else:
+            post['audience'] = audience(post['id'], post['kind'], basis[0], basis[1], post['occurs_at'], now, people,
+                                        companion_name, avoid, known)
         recent.append({comment['text'] for comment in post['audience']['comments']})
 
 

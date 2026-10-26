@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from companion import logs
 from companion.clock import stamp, zone
 from companion.identity import CLIENT_HEADER
-from companion.life import body, circle, composer, social
+from companion.life import body, circle, composer, social, user_posts
 from companion.life import feed as feed_module
 
 
@@ -277,3 +277,212 @@ def test_new_posts_that_cannot_be_written_leave_the_feed_readable(app, client, c
     monkeypatch.setattr(logs, 'open_folder', opened.append)
     assert client.post('/api/logs/open-folder').json() == {'folder': str(logs.file_path().parent)}
     assert opened == [logs.file_path().parent]
+
+
+def known_companion(client, name: str, personality: str, level: int | None = 5) -> str:
+    """Another companion in the workspace; with `level`, Mira and they know each other at that stage."""
+    from test_groups import companion_named
+
+    from companion.characters import require_current
+    from companion.memory import pairs
+    other = companion_named(client, name, personality)
+    if level:
+        database = client.app.state.database
+        with database.connect(write=True) as connection:
+            assert pairs.tell(connection, pairs.companion_key(require_current(connection)['id']), pairs.companion_key(other), level, 'Old friends.',
+                              database.now())
+    return other
+
+
+def test_companions_who_know_each_other_react_to_their_posts(client, city, clock, monkeypatch):
+    monkeypatch.setattr(social, 'KNOWN_LIKES', (1,) * 5)
+    monkeypatch.setattr(social, 'KNOWN_COMMENTS', (1,) * 5)
+    monkeypatch.setattr(social, 'MANNERS', {**social.MANNERS, 'reserved': (1, 1)})
+    monkeypatch.setattr(social, 'KNOWN_MOST', (1, 1))
+    # Around before Mira's first posts (which go back a few days).
+    clock.advance(-social.LOOKBACK)
+    known_companion(client, 'Spock', 'Reserved, logical and private.')
+    known_companion(client, 'Billy Hart', 'Easygoing.', level=None)
+    clock.advance(social.LOOKBACK)
+    live_days(client, clock)
+    posts = feed(client)['posts']
+    # Likes come within eight hours of a post.
+    settled = stamp(clock.now() - social.REACTION_WINDOW)
+    own = [post for post in posts if post['author']['kind'] == 'companion' and post['occurs_at'] <= settled]
+    assert own and all('Spock' in post['audience']['likes'] for post in own)
+    # Spock says little, and in few words: none of the chatty lines.
+    chatty = {*social.COMMENTS['general'], *social.COMMENTS['from_companion']}
+    said = [comment for post in own for comment in post['audience']['comments'] if comment['name'] == 'Spock']
+    assert said and all(comment['author'] == 'companion' and comment['text'] not in chatty for comment in said)
+    # Billy has never met Mira, and nobody but the circle joins in on a friend's post.
+    assert not any('Billy Hart' in post['audience']['likes'] for post in posts)
+    assert not any('Spock' in post['audience']['likes'] for post in posts if post['author']['kind'] == 'person')
+
+
+def test_a_companion_does_not_react_to_posts_from_before_they_were_around(client, city, clock, monkeypatch):
+    monkeypatch.setattr(social, 'KNOWN_LIKES', (1,) * 5)
+    monkeypatch.setattr(social, 'KNOWN_MOST', (1, 1))
+    live_days(client, clock)
+    known_companion(client, 'Spock', 'Reserved.')
+    assert not any('Spock' in post['audience']['likes'] for post in feed(client)['posts'])
+
+
+@pytest.mark.parametrize(('personality', 'expected'), [
+    ('Reserved, logical, keeps his emotions in check.', 'reserved'),
+    ('A stoic Vulcan of few words.', 'reserved'),
+    ('Warm, chatty and affectionate.', 'warm'),
+    ('An outgoing people person.', 'warm'),
+    ('Easygoing.', 'usual'),
+])
+def test_how_reserved_or_warm_a_companion_is(personality, expected):
+    assert social.manner({'personality': personality}) == expected
+
+
+def test_closer_and_warmer_companions_join_in_more():
+    def chances(manner: str, stage: int) -> tuple[float, float]:
+        likes, comments = social.MANNERS[manner]
+        return social.KNOWN_LIKES[stage - 1] * likes, social.KNOWN_COMMENTS[stage - 1] * comments
+
+    assert chances('reserved', 5) < chances('usual', 5) < chances('warm', 5)
+    assert chances('usual', 1) < chances('usual', 3) < chances('usual', 5)
+
+
+# The user's own posts (companion/life/user_posts.py) ------------------------------------------------
+
+
+def post(client, text: str) -> dict:
+    response = client.post('/api/feed/mine', json={'text': text})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+class Certain(dict):
+    """Everyone in the circle is sure to like a post, whatever their role."""
+    def get(self, *_args):
+        return 1
+
+
+@pytest.fixture
+def everyone_joins_in(monkeypatch):
+    monkeypatch.setattr(user_posts, 'LIKES', (1,) * 5)
+    monkeypatch.setattr(user_posts, 'COMMENTS', (1,) * 5)
+    monkeypatch.setattr(user_posts, 'REACH', (1,) * 5)
+    monkeypatch.setattr(social, 'KNOWN_MOST', (1, 1))
+    monkeypatch.setattr(social, 'MANNERS', {name: (1, 1) for name in social.MANNERS})
+    monkeypatch.setattr(social, 'LIKELY', Certain())
+    monkeypatch.setattr(social, 'COMMENT_CHANCE', 1)
+
+
+def test_a_post_of_your_own_shows_on_the_feed_as_yours(client, city):
+    made = post(client, '  Finally finished the bookshelf.  ')
+    assert made['text'] == 'Finally finished the bookshelf.'
+    assert made['author'] == {'kind': 'user', 'id': None, 'name': 'You', 'role': ''}
+    assert made['read'] and made['source'] == 'user'
+    # Nobody has seen it yet the moment it goes up.
+    assert made['audience'] == {'likes': [], 'comments': []}
+    assert [found['id'] for found in feed(client, source='mine')['posts']] == [made['id']]
+    assert made['id'] in {found['id'] for found in feed(client)['posts']}
+    for source in ('companion', 'circle'):
+        assert made['id'] not in {found['id'] for found in feed(client, source=source)['posts']}
+
+
+def test_companions_and_their_circles_join_in(client, city, clock, everyone_joins_in):
+    from test_groups import companion_named
+    reconcile(client)
+    companion_named(client, 'Spock', 'Reserved, logical and private.')
+    clock.advance(timedelta(minutes=1))
+    made = post(client, 'Went to the night market with my sister.')
+    clock.advance(user_posts.CIRCLE_WINDOW)
+    shown = next(found for found in feed(client)['posts'] if found['id'] == made['id'])
+    people = [person['name'] for person in circle_people(client)]
+    assert people
+    assert 'Mira' in shown['audience']['likes'] and 'Spock' in shown['audience']['likes']
+    assert set(people) <= set(shown['audience']['likes'])
+    comments = shown['audience']['comments']
+    assert len(comments) == user_posts.MAX_COMMENTS
+    assert len({comment['text'] for comment in comments}) == len(comments)
+    # Friends of friends say whose they are.
+    for comment in comments:
+        if comment['author'] == 'person':
+            assert comment['role'].startswith("Mira's ")
+    # Spock is reserved: few, dry words, never the chatty ones.
+    chatty = {*user_posts.LINES['close'], *user_posts.LINES['friendly']}
+    assert all(comment['text'] not in chatty for comment in comments if comment['name'] == 'Spock')
+
+
+def test_the_same_people_join_in_whoever_is_the_main_companion(client, city, clock, everyone_joins_in):
+    from test_groups import companion_named
+
+    from companion import cast
+    spock = companion_named(client, 'Spock')
+    clock.advance(timedelta(minutes=1))
+    made = post(client, 'Rainy Sunday, big pot of soup.')
+    clock.advance(user_posts.CIRCLE_WINDOW)
+
+    def audience():
+        return next(found for found in feed(client)['posts'] if found['id'] == made['id'])['audience']
+    before = audience()
+    assert {'Mira', 'Spock'} <= set(before['likes'])
+    cast.focus_on(client.app.state.database, spock)
+    assert audience() == before
+
+
+def test_nobody_joins_in_on_a_post_from_before_they_were_around(client, city, clock, everyone_joins_in):
+    from test_groups import companion_named
+    made = post(client, 'First post!')
+    clock.advance(timedelta(minutes=5))
+    companion_named(client, 'Billy Hart')
+    clock.advance(user_posts.CIRCLE_WINDOW)
+    shown = next(found for found in feed(client)['posts'] if found['id'] == made['id'])
+    assert 'Mira' in shown['audience']['likes'] and 'Billy Hart' not in shown['audience']['likes']
+
+
+def test_a_down_or_sick_post_gets_kind_words():
+    companion = {'kind': 'companion', 'style': 'usual'}
+    assert user_posts.pool('Home sick with the flu.', companion) == user_posts.LINES['sick']
+    assert user_posts.pool('Rough day at work.', companion) == user_posts.LINES['down']
+    assert user_posts.pool('Coffee or tea?', companion) == user_posts.LINES['question']
+    assert user_posts.pool('New haircut!', companion) == user_posts.LINES['close']
+    assert user_posts.pool('New haircut!', {'kind': 'person', 'style': ''}) == user_posts.LINES['friendly']
+    assert user_posts.pool('Rough day.', {'kind': 'companion', 'style': 'reserved'}) == \
+        social.RESERVED_COMMENTS['down']
+
+
+def test_closer_means_more_of_their_circle_notices():
+    assert list(user_posts.REACH) == sorted(user_posts.REACH)
+    assert list(user_posts.LIKES) == sorted(user_posts.LIKES)
+    assert list(user_posts.COMMENTS) == sorted(user_posts.COMMENTS)
+
+
+def test_your_own_post_can_be_removed_but_not_reacted_to_or_discussed(client, city):
+    made = post(client, 'Hello, everyone.')
+    assert client.post(f"/api/feed/{made['id']}/reaction", json={'reaction': 'heart'}).status_code == 409
+    database = client.app.state.database
+
+    def messages():
+        with database.connect() as connection:
+            return connection.execute('SELECT COUNT(*) FROM messages').fetchone()[0]
+    before = messages()
+    discuss = client.post(f"/api/feed/{made['id']}/discuss", json={'text': 'Hi', 'client_id': 'client-0001'})
+    assert discuss.status_code == 409 and messages() == before
+    removed = client.post(f"/api/feed/{made['id']}/remove")
+    assert removed.status_code == 200 and removed.json()['text'] == ''
+    assert made['id'] not in {found['id'] for found in feed(client, hidden=True)['posts']}
+
+
+@pytest.mark.parametrize('text', ['', '   ', 'x' * (user_posts.TEXT_LIMIT + 1)])
+def test_a_post_needs_some_words_and_not_too_many(client, city, text):
+    assert client.post('/api/feed/mine', json={'text': text}).status_code == 422
+
+
+def test_a_post_from_later_waits_after_going_back_in_time(client, city, clock):
+    made = post(client, 'From the future.')
+    clock.advance(timedelta(hours=-2))
+    assert made['id'] not in {found['id'] for found in feed(client)['posts']}
+
+
+def circle_people(client) -> list[dict]:
+    database = client.app.state.database
+    with database.connect() as connection:
+        from companion.characters import require_current
+        return list(social.active_people(connection, require_current(connection)['active_timeline_id']).values())

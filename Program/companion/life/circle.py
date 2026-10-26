@@ -665,12 +665,19 @@ def era_word(role: str, older: bool | str) -> str:
 
 def room(connection, companion: dict) -> dict:
     """How many people the circle has and could have, for the "add people" offer. Someone who passed away still
-    holds their place: a death is not a removal (companion/life/loss.py)."""
+    holds their place: a death is not a removal (companion/life/loss.py), and nor is stepping aside for someone
+    shared in from another circle (companion/life/shared_people.py), who holds it now."""
     definition = companion['version']['definition']
     active = len([row for row in sized(people(connection, companion['active_timeline_id'], include_removed=True))
-                  if row['status'] == 'active' or (decode(row['details']) or {}).get('late')])
+                  if holds_place(row)])
     return {'people': active, 'target': target_size(definition, setting(connection)),
             'sociability': sociability(definition)}
+
+
+def holds_place(row: dict) -> bool:
+    """Someone who counts toward the circle's size: anyone active, someone late, someone who stepped aside."""
+    details = decode(row['details']) or {}
+    return row['status'] == 'active' or bool(details.get('late') or details.get('stepped_aside'))
 
 
 def grow(connection, companion: dict, world, now) -> list[dict]:
@@ -680,7 +687,7 @@ def grow(connection, companion: dict, world, now) -> list[dict]:
     before = len(people(connection, companion['active_timeline_id'], include_removed=True))
     ensure(connection, companion, world, now)
     rows = people(connection, companion['active_timeline_id'], include_removed=True)
-    active = [row for row in sized(rows) if row['status'] == 'active' or (decode(row['details']) or {}).get('late')]
+    active = [row for row in sized(rows) if holds_place(row)]
     missing = target_size(companion['version']['definition'], setting(connection)) - len(active)
     require(missing > 0 or len(rows) > before, 'Their circle already has everyone it should. Raise the circle size in '
             'Settings to add more people.', 409)

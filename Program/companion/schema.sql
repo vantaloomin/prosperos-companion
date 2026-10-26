@@ -2805,3 +2805,27 @@ CREATE TABLE IF NOT EXISTS planned_weeks (
   tried_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, week)
 );
+
+-- Someone in one companion's circle whom another companion knows too (companion/life/shared_people.py): Amanda lives
+-- in Sarek's circle and is also Spock's mother. Kept by the person's seed, which a copied timeline keeps, and read
+-- from the owner's active timeline each time; `role` is how `companion_id` knows them.
+CREATE TABLE IF NOT EXISTS circle_shares (
+  owner_id TEXT NOT NULL REFERENCES companions(id),
+  person_seed TEXT NOT NULL,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  role TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (person_seed, companion_id)
+);
+
+-- The user's own posts on the feed (companion/life/user_posts.py). They belong to the world, not to a companion's
+-- timeline, so every companion and their circle sees them; likes and comments are worked out, never stored.
+CREATE TABLE IF NOT EXISTS user_posts (
+  id TEXT PRIMARY KEY,
+  text TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'visible' CHECK (status IN ('visible', 'hidden', 'removed')),
+  occurs_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  removed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS user_posts_order ON user_posts(occurs_at, id);

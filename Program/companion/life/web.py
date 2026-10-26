@@ -2,7 +2,8 @@
 
 Nothing here is stored or asked of a model. The web is read from what the app already keeps: the companions
 and their ties to each other (companion/memory/pairs.py), each companion's circle and how its members know
-each other (companion/life/circle.py), people met through them (companion/life/network.py), townsfolk met
+each other (companion/life/circle.py), someone one companion's circle shares with another
+(companion/life/shared_people.py), people met through them (companion/life/network.py), townsfolk met
 around town (companion/life/encounters.py), the people the user has told a companion about
 (companion/memory/people.py), Matchlight matches (companion/dating.py) and people the user met in Story mode
 (companion/story_people.py). Secrets, closeness and moods are left out, so the web shows only who knows who.
@@ -12,7 +13,7 @@ Townsfolk and network people keep their keys as ids, so someone two companions m
 """
 from companion.database import many
 from companion.errors import DomainError
-from companion.life import circle, encounters, network
+from companion.life import circle, encounters, network, shared_people
 from companion.memory import pairs
 from companion.world import turnover
 
@@ -74,6 +75,9 @@ def build(connection, now, story_on: bool = False) -> dict:
         web.link(YOU, key, 'your companion', 'you')
     for companion in cast:
         add_companion(connection, web, companion, now)
+    for companion in cast:  # Someone from another companion's circle they know too (companion/life/shared_people.py).
+        for person in shared_people.shared_with(connection, companion, now):
+            web.link(pairs.companion_key(companion['id']), person['key'], person['role'])
     add_yours(connection, web, cast, story_on)
     return web.view()
 

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Post something of your own:** the top of the Posts page has a box to share something with everyone. All your
+  companions see it, and so do their friends, so it is how you get to know friends of friends. They like and
+  comment on it in their own time: the closer you are to a companion, the likelier they and their circle join
+  in. The You filter shows only your posts.
+- **Companions who know each other join in on the Feed:** other companions a companion knows (from how
+  they know each other, a group chat, or running into each other in town) now like and comment on their posts,
+  more often the closer they are. A reserved one, like a Vulcan, likes now and then and says little; a warm one
+  joins in more.
 - **Built-in voice on Windows 11:** the built-in voice could fail with "The requested API version is not available"
   when Windows loaded its own older copy of onnxruntime instead of the voice's. The voice now puts its own copy
   back beside its program before each note and runs from its own folder, and if it still happens, Settings >
@@ -57,6 +65,16 @@
 - **Duplicate a model profile:** each profile in Settings > Models has a Duplicate button that copies
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
+
+## v1.1.7 (2026-10-26)
+
+- **People your companions both know:** someone in one companion's circle can be added to another companion's life
+  too (Today > Add someone another companion knows); they stay one person, both chats know them, and the app-made
+  mom, dad or spouse they replace steps aside until they're taken out.
+- **Your own posts:** a box at the top of Posts shares a post of your own, seen on every companion's feed; companions
+  and their circles like and comment by how close you are, and a You filter shows just yours.
+- **Companions react to each other's posts:** companions who know each other like and comment on each other's posts
+  by closeness and manner.
 
 ## v1.1.6 (2026-10-26)
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, HeartHandshake, Pencil, Plus, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-react'
+import { BookOpen, HeartHandshake, Pencil, Plus, RotateCcw, UserMinus, UserPlus, Users, UsersRound } from 'lucide-react'
 import { api } from '../../api'
 import type { CirclePerson, CircleRoom, DiaryEntry } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -12,6 +12,8 @@ import { displayName, metText, personFacts, personNow, personTies, personWork } 
 import { WhyItWent } from './WhyItWent'
 import { PersonForm, type Act } from './PersonForm'
 import { useCircleHome } from './useCircleHome'
+import { CompanionLink, SharedCard, SharedForm } from './SharedPeople'
+import { useShareable } from './useShareable'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
@@ -86,17 +88,28 @@ function CircleFooter({ name, act }: { name: string; act: Act }) {
   </>
 }
 
-/** Someone the user adds by hand, as little as a name: the app fills in the rest. The form is a card of its own;
- * focus goes to its Name, and back to the button after (Iris R7). */
+/** Someone the user adds by hand, as little as a name: the app fills in the rest. Beside it, quieter, adding someone
+ * another companion knows (Iris, shared people 1). Either form is a card of its own; focus goes to its first field,
+ * and back to its button after (Iris R7). */
 function AddSomeone({ name, act }: { name: string; act: Act }) {
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState<'new' | 'shared' | null>(null)
   const [notice, setNotice] = useNotice()
-  const button = useRef<HTMLButtonElement>(null)
-  const done = () => { setAdding(false); window.setTimeout(() => button.current?.focus()) }
+  const newButton = useRef<HTMLButtonElement>(null)
+  const sharedButton = useRef<HTMLButtonElement>(null)
+  const offered = useShareable()
+  const done = () => {
+    const button = adding === 'shared' ? sharedButton : newButton
+    setAdding(null)
+    window.setTimeout(() => button.current?.focus())
+  }
+  const open = (which: 'new' | 'shared') => { setNotice(null); setAdding(which) }
   return <>
-    {adding
-      ? <div className="person-card person-add"><PersonForm companion={name} act={act} local={setNotice} onDone={done} /></div>
-      : <button ref={button} type="button" className="button person-add-button" onClick={() => { setNotice(null); setAdding(true) }}><Plus aria-hidden="true" />Add someone</button>}
+    {adding === 'new' && <div className="person-card person-add"><PersonForm companion={name} act={act} local={setNotice} onDone={done} /></div>}
+    {adding === 'shared' && <div className="person-card person-add"><SharedForm people={offered} companion={name} act={act} local={setNotice} onDone={done} /></div>}
+    {!adding && <div className="person-add-row">
+      <button ref={newButton} type="button" className="button person-add-button" onClick={() => open('new')}><Plus aria-hidden="true" />Add someone</button>
+      {offered.length > 0 && <button ref={sharedButton} type="button" className="button quiet person-add-button" onClick={() => open('shared')}><UsersRound aria-hidden="true" />Add someone another companion knows</button>}
+    </div>}
     <div aria-live="polite">{notice && <Notice tone={notice.tone}>{notice.text}</Notice>}</div>
   </>
 }
@@ -128,6 +141,11 @@ function MorePeople({ name, act }: { name: string; act: Act }) {
 const cardClass = (person: CirclePerson) => `person-card${person.late ? ' late' : person.status === 'removed' ? ' removed' : ''}`
 
 function PersonCard({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
+  if (person.shared) return <SharedCard person={person} companion={companion} act={act} diary={() => <Diary person={person} />} />
+  return <OwnCard person={person} companion={companion} act={act} />
+}
+
+function OwnCard({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useNotice()
   const edit = () => { setNotice(null); setEditing(true) }
@@ -182,6 +200,8 @@ function PersonHeader({ person, companion }: { person: CirclePerson; companion: 
     <header>
       <h3>{displayName(person)}</h3>
       <p className="subtle">{personFacts(person)}</p>
+      {person.also && person.also.length > 0 && <p className="subtle person-from"><UsersRound aria-hidden="true" /><span>Also {person.also.map((item, index) => <span key={item.companion_id}>
+        {index > 0 && (index === person.also!.length - 1 ? ' and ' : ', ')}<CompanionLink id={item.companion_id} name={item.name} />'s {item.role}</span>)}</span></p>}
       {person.love && <p className="subtle pair-stage">{person.love}</p>}
       {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
       {person.love_odds && <WhyItWent id={person.love_odds} />}
@@ -204,7 +224,7 @@ function MetYou({ person }: { person: CirclePerson }) {
 /** What the card says about them: their days, or that they were removed or passed away. */
 function PersonState({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
   if (person.late) return <Late person={person} died={person.late} />
-  if (person.status === 'removed') return <p className="subtle">Removed. Moments that already happened still mention them.</p>
+  if (person.status === 'removed') return <p className="subtle">{person.made_room_for ? `Stepped aside when you added ${person.made_room_for} as ${companion}'s ${person.role}. Past moments still mention ${person.name}.` : 'Removed. Moments that already happened still mention them.'}</p>
   return <>
     <PersonDetails person={person} work={personWork(person)} companion={companion} />
     <CanPassAway person={person} act={act} />
