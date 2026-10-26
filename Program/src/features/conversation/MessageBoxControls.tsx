@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent, type ReactNode, type PointerEvent, type RefObject } from 'react'
+import { useRef, useState, type KeyboardEvent, type ReactNode, type PointerEvent, type RefObject } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { keepHeight, setFolded, sizeBox, useFolded, useKeptHeight } from './messageBox'
 
@@ -18,8 +18,8 @@ function MessageBoxControls({ text }: { text: RefObject<HTMLTextAreaElement | nu
   const folded = useFolded()
   return <>
     {!folded && <HeightGrip text={text} />}
-    <button type="button" className="message-box-fold" aria-pressed={folded} onClick={() => setFolded(!folded)}
-      aria-label={folded ? 'Open the message box' : 'Fold the message box to one line'} title={folded ? 'Open the message box' : 'Fold to one line'}>
+    <button type="button" className="message-box-fold" aria-expanded={!folded} onClick={() => setFolded(!folded)}
+      aria-label={folded ? 'Show the whole message box' : 'Fold to one line'} title={folded ? 'Show the whole message box' : 'Fold to one line'}>
       {folded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
     </button>
   </>
@@ -28,12 +28,14 @@ function MessageBoxControls({ text }: { text: RefObject<HTMLTextAreaElement | nu
 function HeightGrip({ text }: { text: RefObject<HTMLTextAreaElement | null> }) {
   const kept = useKeptHeight()
   const start = useRef<{ y: number; height: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
   const resize = (height: number) => { if (text.current) keepHeight(sizeBox(text.current, height)) }
   const down = (event: PointerEvent<HTMLDivElement>) => {
     if (!text.current) return
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
     start.current = { y: event.clientY, height: text.current.offsetHeight }
+    setDragging(true)
   }
   const move = (event: PointerEvent<HTMLDivElement>) => {
     if (start.current) resize(start.current.height + start.current.y - event.clientY)
@@ -46,11 +48,11 @@ function HeightGrip({ text }: { text: RefObject<HTMLTextAreaElement | null> }) {
     else return
     event.preventDefault()
   }
-  const end = () => { start.current = null }
+  const end = () => { start.current = null; setDragging(false) }
   return (
-    <div className="message-box-grip" role="separator" aria-orientation="horizontal" tabIndex={0} aria-valuenow={kept}
+    <div className={dragging ? 'message-box-grip dragging' : 'message-box-grip'} role="separator" aria-orientation="horizontal" tabIndex={0} aria-valuenow={kept}
       aria-label="Message box height. Drag up or press the up arrow to make it taller; double-click or press Home to fit the text again."
-      title="Drag to resize. Double-click to fit the text."
+      title="Drag to resize · double-click to fit"
       onPointerDown={down} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onDoubleClick={() => keepHeight(0)} onKeyDown={key} />
   )
 }

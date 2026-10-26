@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 
 /**
  * The message box grows with what is written, up to its maximum height (styles.css), then scrolls. On a computer
@@ -54,7 +54,23 @@ export function sizeBox(element: HTMLTextAreaElement, wanted: number) {
   const own = element.scrollHeight + border
   element.style.height = `${Math.max(own, kept)}px`
   if (frame) frame.style.minHeight = ''
+  markHidden(element)
   return kept > own ? kept : 0
+}
+
+/** A soft fade on the box's top edge (styles.css) while some of the text is scrolled out of sight above. */
+function markHidden(element: HTMLTextAreaElement) {
+  const frame = element.parentElement
+  if (frame) frame.toggleAttribute('data-more-above', element.scrollTop > 1)
+}
+
+/** On a phone the box grows to at most about a third of what is visible, keyboard included, and never under four
+ * lines, so a long message can't bury the chat. */
+function capToScreen(element: HTMLTextAreaElement) {
+  const visible = window.visualViewport?.height ?? window.innerHeight
+  const style = getComputedStyle(element)
+  const fourLines = 4 * (parseFloat(style.lineHeight) || 22) + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + 2
+  element.style.setProperty('--phone-cap', `${Math.round(Math.max(fourLines, visible * 0.35))}px`)
 }
 
 /** The box's ref, sized on every change. Folded, or shrunk to one line (`compact`, a phone reading history), it
@@ -66,9 +82,21 @@ export function useMessageBox(value: string, compact = false) {
   useLayoutEffect(() => {
     const element = text.current
     if (!element) return
+    capToScreen(element)
     if (isFolded) element.style.height = ''
     else sizeBox(element, kept)
     if (compact || isFolded) element.scrollTop = element.scrollHeight
+    markHidden(element)
   }, [value, compact, kept, isFolded])
+  useEffect(() => {
+    const element = text.current
+    if (!element) return
+    const scrolled = () => markHidden(element)
+    const screen = window.visualViewport ?? window
+    const resized = () => { capToScreen(element); if (!element.parentElement?.classList.contains('folded')) sizeBox(element, readHeight()) }
+    element.addEventListener('scroll', scrolled)
+    screen.addEventListener('resize', resized)
+    return () => { element.removeEventListener('scroll', scrolled); screen.removeEventListener('resize', resized) }
+  }, [])
   return { text, folded: isFolded }
 }
