@@ -574,12 +574,13 @@ HAUNTS = ('cafe', 'bar', 'tavern', 'inn', 'restaurant', 'park', 'garden', 'fitne
           'beach', 'square', 'trail')
 RETIRED_AT = 67
 ROLES = {
-    # Role: (closeness, age offset range from the companion, shares the family name)
-    'close-friend': ('close', (-4, 4), False), 'friend': ('regular', (-7, 7), False),
-    'coworker': ('regular', (-12, 12), False), 'neighbor': ('occasional', (-20, 25), False),
+    # Role: (closeness, age offset range from the companion, shares the family name). Wide enough that a circle
+    # isn't all one age: two draws averaged still keep most friends within about five years.
+    'close-friend': ('close', (-8, 8), False), 'friend': ('regular', (-12, 12), False),
+    'coworker': ('regular', (-15, 18), False), 'neighbor': ('occasional', (-25, 30), False),
     'old-classmate': ('occasional', (-1, 1), False), 'mentor': ('occasional', (12, 30), False),
-    'longtime-friend': ('close', (-3, 3), False), 'new-friend': ('regular', (-8, 8), False),
-    'sibling': ('close', (-8, 8), True), 'parent': ('close', (24, 36), True), 'cousin': ('occasional', (-10, 10), None),
+    'longtime-friend': ('close', (-5, 5), False), 'new-friend': ('regular', (-14, 14), False),
+    'sibling': ('close', (-10, 10), True), 'parent': ('close', (20, 40), True), 'cousin': ('occasional', (-12, 12), None),
 }
 # The order a circle fills in, so a small circle has the closest people.
 CIRCLE = ('close-friend', 'coworker', 'sibling', 'friend', 'parent', 'neighbor', 'friend', 'cousin', 'old-classmate',
@@ -824,7 +825,7 @@ def _home_in(data: dict, seed: str, bedrooms: str, hood_id: str) -> dict:
 def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age: int | None = None,
            career: str | None = None, employer: str | None = None, family: str | None = None,
            group: str | None = None, order: tuple[str, ...] = CIRCLE, coworkers: bool = False,
-           folk: str | None = None) -> dict:
+           folk: str | None = None, peer_age: int | None = None) -> dict:
     """The people around a companion: friends, coworkers, family and neighbors, closest first.
 
     Pass what is known about the companion (home neighborhood, age, career, workplace, family name and
@@ -832,7 +833,9 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
     neighbors live nearby and relatives share a name. Without a career or workplace there are no coworkers.
     `order` is the order roles fill in (SOCIAL for a sociable companion); `coworkers` keeps coworkers
     when the caller places them at the companion's work itself. `folk` is the companion's kind, which their
-    relatives share (companion/world/lifespans.py); `age` is theirs in human terms.
+    relatives share (companion/world/lifespans.py); `age` is theirs in human terms, which relatives are placed
+    around. `peer_age` is the age everyone else is placed around (`age` when not given): a Vulcan of 38 has crewmates
+    of about 38, not of the 24 that 38 is in human terms.
     """
     if not 1 <= size <= len(order):
         raise DomainError(f'A circle has 1 to {len(order)} people.', 422)
@@ -850,7 +853,8 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
         if related is None:
             related = unit(member_seed, 'shares-name') < 0.5
         local = role not in ('parent', 'sibling', 'cousin') or unit(member_seed, 'local') < 0.6
-        person = resident(data if related else others, seed=member_seed, role=role, around_age=age, local=local,
+        around = age if related or peer_age is None else peer_age
+        person = resident(data if related else others, seed=member_seed, role=role, around_age=around, local=local,
                           near=home if role in ('neighbor', 'parent', 'sibling') else None,
                           employer=employer if role == 'coworker' else None,
                           career=career if role == 'coworker' and not employer else None,
