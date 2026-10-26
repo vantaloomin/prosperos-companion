@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { CareerSummary, CitySummary, Employment, MoneySetup, SpendingStyle } from '../../types'
+import type { CareerSummary, CharacterDefinition, CitySummary, Employment, MoneySetup, SpendingStyle } from '../../types'
 import { Field, TextInput } from '../../components/Fields'
 import { useWorkspaceSettings } from '../../companion'
-import { careersFor, todayIso } from './money'
+import { guessLabel, todayIso, workChoices } from './money'
+import { useSettled } from './useSettled'
 
 const STYLES: { value: SpendingStyle; label: string }[] = [
   { value: 'careful', label: 'Careful: saves first, rarely runs short' },
@@ -21,16 +22,43 @@ const HOURS: { value: Employment; label: string }[] = [
 // Careers whose work is coursework (companion/life/work.py STUDY).
 const STUDENTS = new Set(['undergraduate', 'graduate-student'])
 
-interface Props { money: MoneySetup; homeCity: string; onChange: (money: MoneySetup) => void }
+/** Whether they study: a student career picked, or the guess is one (or has found nothing yet). */
+function studies(career: string, guess: CareerSummary | null | undefined): boolean {
+  return career ? STUDENTS.has(career) : !guess || STUDENTS.has(guess.id)
+}
 
-/** Their work and money habits; pay, rent and prices come from their home city's data. */
-export function MoneyFields({ money, homeCity, onChange }: Props) {
+interface Props { definition: CharacterDefinition; onChange: (money: MoneySetup) => void }
+
+/** What "Guess from who they are" finds in their home city right now (companion/life/money.py `career_for`). */
+function useGuess(definition: CharacterDefinition, asking: boolean) {
+  const { name, identity, background, routine, appearance, personality, home_city: homeCity } = useSettled(definition)
+  const words = { name, identity, background, routine, appearance, personality }
+  return useQuery({
+    queryKey: ['career-guess', homeCity, words], enabled: asking && homeCity !== '',
+    queryFn: () => api<CareerSummary | null>(`/world/cities/${encodeURIComponent(homeCity)}/careers/guess`, words),
+    staleTime: Infinity, placeholderData: (previous) => previous,
+  })
+}
+
+/** The careers the Work picker offers in their home city (see `workChoices`). */
+function useWorkChoices({ money, home_city: homeCity }: CharacterDefinition): CareerSummary[] {
   const careers = useQuery({ queryKey: ['careers'], queryFn: () => api<CareerSummary[]>('/world/careers'), staleTime: Infinity })
+  const offered = useQuery({
+    queryKey: ['careers', homeCity], enabled: homeCity !== '', staleTime: Infinity,
+    queryFn: () => api<CareerSummary[]>(`/world/cities/${encodeURIComponent(homeCity)}/careers`),
+  })
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
   const era = cities.data?.find((city) => city.id === homeCity)?.era
   const adult = useWorkspaceSettings().data?.adult_side === true
+  return workChoices(homeCity ? offered.data : undefined, careers.data ?? [], era, money.career, adult)
+}
+
+/** Their work and money habits; pay, rent and prices come from their home city's data. */
+export function MoneyFields({ definition, onChange }: Props) {
+  const { money } = definition
+  const listed = useWorkChoices(definition)
+  const guess = useGuess(definition, money.career === '')
   // Adult work sits in its own group at the end, so the everyday list stays easy to scan.
-  const listed = careersFor(careers.data ?? [], era, money.career, adult)
   const option = (career: CareerSummary) => <option key={career.id} value={career.id}>{career.name} ({career.pay})</option>
   const set = (change: Partial<MoneySetup>) => onChange({ ...money, ...change })
   // A new goal starts counting savings from today.
@@ -42,13 +70,13 @@ export function MoneyFields({ money, homeCity, onChange }: Props) {
       <Field label="Work" hint="Sets their pay. Left on the guess, it comes from what “Who they are” says.">
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.career} onChange={(event) => set({ career: event.target.value })}>
-            <option value="">Guess from who they are</option>
+            <option value="">{guessLabel(definition.home_city ? guess.data : undefined)}</option>
             {listed.filter((career) => !career.adult).map(option)}
             {listed.some((career) => career.adult) && <optgroup label="Adult work">{listed.filter((career) => career.adult).map(option)}</optgroup>}
           </select>
         )}
       </Field>
-      {(money.career === '' || STUDENTS.has(money.career)) && <TextInput label="What they study" value={money.field ?? ''} maxLength={60}
+      {studies(money.career, definition.home_city ? guess.data : undefined) && <TextInput label="What they study" value={money.field ?? ''} maxLength={60}
         onChange={(field) => set({ field })} hint="For a student, such as Photography. Their coursework follows it. Left empty, it comes from what “Who they are” says." />}
       <Field label="Hours" hint="Left as their work goes, a bartender or nurse gets new shifts each week and a freelancer has gigs that come and go; an office job keeps the same days.">
         {(id, hint) => (
