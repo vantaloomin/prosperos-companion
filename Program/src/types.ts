@@ -966,6 +966,9 @@ export interface NetworkAnswer { person: Pick<NetworkPerson, 'key' | 'name' | 'd
 export interface Acquaintance extends Omit<NetworkPerson, 'depth' | 'met'> { occasion: string; met_on: string; met_at: string }
 
 export interface CircleTie { id: string; name: string; how: string }
+/** Whether the companion lives aboard a ship or station (companion/world/ships.py `vessel`), else null. */
+export interface CircleHome { aboard: 'ship' | 'station' | null }
+
 export interface CircleRoom { people: number; target: number; sociability: 'quiet' | 'usual' | 'social' }
 
 export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
@@ -2280,3 +2283,12 @@ export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chap
 export interface WatchLine { id: string; at: string; kind: WatchKind; text: string; inner: string | null; numbers: string[] }
 export interface WatchDay { date: string; entry: string | null; items: WatchLine[] }
 export interface WatchFeed { focus: WatchFocus; voice: number; timezone: string; shown: { moods: boolean; odds: boolean }; days: WatchDay[] }
+
+/** Settings > General > Updates (companion/updates.py). */
+export interface UpdateCheck {
+  status: 'newer' | 'current' | 'unavailable'
+  current: string; latest: string | null; title: string | null; published: string | null
+  /** The release's page on GitHub, or the latest-release page when the check failed. */
+  page: string
+  install: 'installer' | 'folder'; system: 'windows' | 'mac' | 'other'
+}

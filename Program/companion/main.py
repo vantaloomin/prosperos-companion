@@ -89,6 +89,7 @@ from companion.recall_routes import router as recall_router
 from companion.routes import router
 from companion.text_model_routes import router as model_router
 from companion.their_look_routes import router as their_look_router
+from companion.updates import router as updates_router
 from companion.voice.notes import VoiceNotes
 from companion.voice_routes import router as voice_router
 from companion.world import changes as city_changes
@@ -306,6 +307,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(calls_router)
     app.include_router(mix_router)
     app.include_router(matches_router)
+    app.include_router(updates_router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

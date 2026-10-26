@@ -22,6 +22,7 @@ from companion.world import catalog
 SHIP_WORDS = re.compile(r'\b(?:ship|starship|spaceship|space\s+station|station|orbital|starbase|space\s+habitat|'
                         r'generation\s+ship|colony\s+ship|ark|vessel|freighter)\b', re.IGNORECASE)
 DECK_WORDS = re.compile(r'\b(?:deck|decks|ring|module|spoke)\b', re.IGNORECASE)
+STATION_WORDS = re.compile(r'\b(?:station|starbase|orbital|habitat|outpost)\b', re.IGNORECASE)
 DECKS = 2
 FLAT_SOURCE = 'enclosed-climate'
 FLAT_MONTH = {'high_f': 70, 'low_f': 66, 'rain_days': 0, 'note': 'Climate-controlled decks'}
@@ -81,6 +82,24 @@ def home_of(connection, definition: dict) -> dict | None:
 def aboard(connection, definition: dict) -> bool:
     """Whether the character lives on a ship or station."""
     return enclosed(home_of(connection, definition))
+
+
+def vessel(data: dict | None) -> str | None:
+    """'station' or 'ship' for an enclosed city, by the words in its country, region or name, else None: what the
+    circle calls living there ("Aboard the ship") and away ("Off the station") instead of in and out of town."""
+    if not enclosed(data):
+        return None
+    words = ' '.join(data.get(key) or '' for key in ('country', 'region', 'name'))
+    return 'station' if STATION_WORDS.search(words) else 'ship'
+
+
+def vessel_of(connection, definition: dict) -> str | None:
+    return vessel(home_of(connection, definition))
+
+
+def away_text(kind: str | None) -> str:
+    """How someone in the circle who lives elsewhere is told: off the ship or station, else out of town."""
+    return f'off the {kind}' if kind else 'out of town'
 
 
 # --- Travel between made-up places ---
