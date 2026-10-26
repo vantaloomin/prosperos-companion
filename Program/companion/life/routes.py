@@ -235,6 +235,7 @@ def read_circle(request: Request, include_removed: bool = False):
                 **kids.get(person['id'], {'children': [], 'expecting': None}), 'also': also.get(person['id'], [])}
                for person in people]
         # People from the other companions' circles this one knows too (companion/life/shared_people.py).
+        own = shared_people.made_room(connection, companion, own, now)
         return own + with_pets(connection, companion, engine.world, shared_people.shared_with(connection, companion, now),
                                now)
 
@@ -439,13 +440,14 @@ def shareable_people(request: Request):
 
 
 def shared_change(request: Request, person_id: str, change) -> dict:
+    """Apply a change to someone shared in, with `made_room`: the app-made people who made room for them."""
     database = db(request)
     now = database.clock.now()
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        change(connection, companion, now)
+        names = change(connection, companion, now)
         return next(person for person in shared_people.shared_with(connection, companion, now)
-                    if person['id'] == person_id)
+                    if person['id'] == person_id) | {'made_room': names}
 
 
 @router.post('/circle/shared')
@@ -460,7 +462,7 @@ def change_shared(request: Request, person_id: str, body: SharedRole):
     """How the open companion knows someone from another circle."""
     def change(connection, companion, now):
         require(shared_people.is_shared(connection, companion, person_id), 'That person is not in their life.', 404)
-        shared_people.share(connection, companion, person_id, body.role, now)
+        return shared_people.share(connection, companion, person_id, body.role, now)
     return shared_change(request, person_id, change)
 
 
@@ -468,7 +470,7 @@ def change_shared(request: Request, person_id: str, body: SharedRole):
 def unshare_person(request: Request, person_id: str):
     """The open companion no longer knows them; their own companion's circle keeps them."""
     with db(request).connect(write=True) as connection:
-        shared_people.unshare(connection, require_current(connection), person_id)
+        shared_people.unshare(connection, require_current(connection), person_id, db(request).clock.now())
         return {'removed': person_id}
 
 
