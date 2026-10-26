@@ -117,3 +117,15 @@ def test_at_once_off_out_of_character_and_another_reply_start_right_away(chat, c
     for result in asyncio.run(scenario()):
         assert result['reply']['held_until'] is None
     assert client.get('/api/life/settings').json()['read_pace'] == 0
+
+
+def test_quick_to_reply_is_never_slower_than_the_setting(app, connected):
+    with app.state.database.connect() as connection:
+        from companion.characters import require_current
+        companion = require_current(connection)
+        quick = {**companion, 'version': {**companion['version'], 'definition': {
+            **companion['version']['definition'], 'texting': {'quick': True}}}}
+        for setting, expected in ((0, 0), (1, 1), (2, 1), (3, 1)):
+            connection.execute('UPDATE life_settings SET read_pace=? WHERE id=1', (setting,))
+            assert reading.pace(connection, quick) == expected
+            assert reading.pace(connection, companion) == setting

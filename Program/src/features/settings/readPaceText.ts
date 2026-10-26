@@ -6,4 +6,4 @@ export const READ_LEVELS = [
   { label: 'Slow', hint: 'When they are free, they get to your texts in their own time, a few minutes at most. Send a few texts in a row and they answer them together.' },
 ]
 
-export const READ_TIP = 'A companion can be quick to reply whatever this says: the switch is under How they text on their Character page.'
+export const READ_TIP = 'A companion can be quick to reply even when this is slower: the switch is under How they text on their Character page.'

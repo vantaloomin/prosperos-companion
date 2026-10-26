@@ -150,7 +150,7 @@ export function PaceSettings() {
           onChange={(inner_voice) => void save({ inner_voice })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
-        hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake, unless a second text, "wake up" or a call wakes them. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
+        hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake, unless a second text, "wake up" or a call wakes them. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off and busy companions answer right away too.`} />
       {data.paced_replies && (
         <div className="toggle-nested">
           <Field label={`Waking them: ${waking.label}`} hint={waking.hint} tip="A companion in another time zone can live on your clock instead: the switch is on their Character page.">
