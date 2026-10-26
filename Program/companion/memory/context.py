@@ -50,6 +50,7 @@ from companion.life import (
     own_plans,
     pacing,
     pets,
+    planned_week,
     reactions,
     recommendations,
     rough_patches,
@@ -176,6 +177,8 @@ HEADINGS = {
             # Work life (companion/life/work.py): the week at work, the project and what changed lately.
             'work': 'Your job (fictional, yours; decided: bring it up the way a person would and never contradict '
                     'it)',
+            # Their week, planned by the model (companion/life/planned_week.py, off by default): changes once a week.
+            'planned_week': planned_week.HEADING,
             'weather': "Today where you live (typical weather for the season in your fictional day, from "
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
@@ -845,6 +848,7 @@ def offer_money(packet, connection, companion, now, today: str):
         packet.offer('money', identity, text)
     for identity, text in work.context_lines(connection, companion, now):
         packet.offer('work', identity, text)
+    planned_week.offer(packet, connection, companion, now)
 def offer_together(packet, connection, companion, now, recent, group=None):
     """Outings with the user and trips away, in a 1:1 chat. The messages since the companion last wrote are the turn
     being answered, so an outing they settled is one the reply announces."""

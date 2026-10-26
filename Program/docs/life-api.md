@@ -866,6 +866,7 @@ PUT /api/life/settings
 | `automatic_events` | `false` | | Commit ordinary events without review (PRD T3). Changing it advances the permission revision, so prepared work is revalidated. |
 | `catch_up_on_return` | `true` | | Run a batch on return (PRD T4). |
 | `phrase_with_model` | `true` | | Let the connected model reword composed events. Off means template wording and no model calls. |
+| `model_routines` | `false` | | Let the life model plan the open companion's week: once a week, 3 to 5 checked lines on what is on their mind, read by the chat as "On your mind this week" (`companion/life/planned_week.py`). Lines naming a day, time or person the week lacks, or a big life event, are dropped. Off: no section and no calls. |
 | `catch_up_max_events` | 3 | 0–6 | Most events in one batch, however long the absence (PRD T5). |
 | `catch_up_lookback_hours` | 48 | 6–336 | Only slots this recent are written; older absence stays uneventful. |
 | `return_gap_hours` | 4 | 1–48 | Unsimulated time needed before a return batch runs. |

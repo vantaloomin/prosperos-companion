@@ -379,6 +379,8 @@ ADDED_COLUMNS = (
     # Companions who already have kids (companion/life/kids.py): a child of theirs the user added by hand, kept when
     # the engine's kids:has is changed.
     ('circle_children', 'by_hand', 'INTEGER NOT NULL DEFAULT 0 CHECK (by_hand IN (0, 1))'),
+    # Their week, planned by the model (companion/life/planned_week.py, Settings > Life): off unless turned on.
+    ('life_settings', 'model_routines', 'INTEGER NOT NULL DEFAULT 0 CHECK (model_routines IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
