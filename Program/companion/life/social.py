@@ -489,17 +489,24 @@ def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str
 NEARBY = 10
 
 
-def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str, known: tuple = ()) -> None:
+def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str, known: tuple = (),
+                  everyone: tuple = ()) -> None:
     """Fill in each post's likes and comments, oldest first, so a line said on one post is not said
-    again on the next few. Posts carry their basis as `_basis` (author, content); it is removed here."""
+    again on the next few. Posts carry their basis as `_basis` (author, content); it is removed here.
+    The user's own posts (companion/life/user_posts.py) go to `everyone` who can see them."""
+    from companion.life import user_posts
     recent: list[set[str]] = []
     for post in sorted(posts, key=lambda post: (post['occurs_at'], post['id'])):
         basis = post.pop('_basis', None)
+        avoid = frozenset().union(*recent[-NEARBY:])
         if basis is None:
             post['audience'] = {'likes': [], 'comments': []}
             continue
-        post['audience'] = audience(post['id'], post['kind'], basis[0], basis[1], post['occurs_at'], now, people,
-                                    companion_name, frozenset().union(*recent[-NEARBY:]), known)
+        if basis[0] == user_posts.USER:
+            post['audience'] = user_posts.audience(post['id'], basis[1], post['occurs_at'], now, list(everyone), avoid)
+        else:
+            post['audience'] = audience(post['id'], post['kind'], basis[0], basis[1], post['occurs_at'], now, people,
+                                        companion_name, avoid, known)
         recent.append({comment['text'] for comment in post['audience']['comments']})
 
 

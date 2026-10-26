@@ -1221,6 +1221,7 @@ POST /api/feed/{post_id}/remove
 POST /api/feed/{post_id}/discuss   {"text": "…", "client_id": "…"}
 POST /api/feed/{post_id}/answer    {"option": "Tacos", "client_id": "…"}   (question posts)
 POST /api/feed/posts               {"event_id": "…", "intro": "…"}
+POST /api/feed/mine                {"text": "…"}   (a post of the user's own, 1 to 1000 characters)
 GET  /api/feed/export
 ```
 
@@ -1286,6 +1287,21 @@ discussed with the same endpoints. Likes and comments are derived, not stored: t
 post, the active circle and the clock, arriving within a few hours of the post, at most three
 comments each. No line is said twice on one post or repeated on the few posts just before it. The companion likes and comments on friends' posts. Other companions who know the companion (a backstory, a group in common, or meetings in town: [companion/memory/pairs.py](../companion/memory/pairs.py)) like and comment on the companion's own posts from the time they were around, more often the closer they feel; someone reserved by their sheet (stoic, logical, of few words, quiet) likes now and then and seldom comments, in a few dry words, and someone warm joins in more. Their comments have `author: "companion"`. A renamed friend shows their new
 name; a removed one's posts and comments leave the feed. A branched timeline keeps the social posts from before it split off, with their read, reaction and answer state.
+
+### The user's own posts
+
+`POST /api/feed/mine` shares a post of the user's own ([companion/life/user_posts.py](../companion/life/user_posts.py)).
+It belongs to the world, not to a companion's timeline, so it shows on the feed whichever companion is open, with
+the same likes and comments; `source=mine` keeps only these. It has `kind` and `source` `user`, `author`
+`{kind: "user", name: "You"}`, and is always read. It can be removed (or hidden), but not reacted to or discussed
+(409). A post from later than now (after Debug time went back) is left out until then.
+
+Nobody is asked anything. Every companion, main or stepped back, who was around when it went up likes and comments
+on it, the likelier the closer the user is to them (Closeness stage) and by their manner (reserved or warm, as
+above), within four hours. Every companion's circle sees it too, friends of friends: the closer the user is to that
+companion, the more of their circle notices, within a day. Someone in two circles joins in once. Comments from a
+circle carry `role` ("Mira's sister"); at most four comments a post. A post that sounds sick or down gets kind
+words, a question gets answers in kind.
 
 ## Going out together and trips
 

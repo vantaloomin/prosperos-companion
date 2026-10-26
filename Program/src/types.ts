@@ -800,15 +800,17 @@ export interface PauseRecord { id: string; started_at: string; ended_at: string 
 
 export type Reaction = 'heart' | 'laugh' | 'wow' | 'sad' | 'hug'
 
-export type FeedSource = 'all' | 'companion' | 'circle'
-export interface FeedAuthor { kind: 'companion' | 'person'; id: string | null; name: string; role: string }
-export interface FeedComment { author: 'companion' | 'person'; name: string; text: string; at: string }
+export type FeedSource = 'all' | 'companion' | 'circle' | 'mine'
+/** `user` is the user's own post, which every companion and their circles see. */
+export interface FeedAuthor { kind: 'companion' | 'person' | 'user'; id: string | null; name: string; role: string }
+/** `role` says whose friend a commenter is ("Mira's sister"), on the user's own posts. */
+export interface FeedComment { author: 'companion' | 'person'; name: string; text: string; at: string; role?: string }
 
 export interface FeedPost {
   id: string
-  /** Life posts tell life events; social posts (friends, status, shout-outs, city news, questions) carry their own text. */
-  kind: 'digest' | 'event' | 'status' | 'friend' | 'birthday' | 'holiday' | 'city' | 'question'
-  source: 'life' | 'social'
+  /** Life posts tell life events; social posts (friends, status, shout-outs, city news, questions) and the user's own carry their own text. */
+  kind: 'digest' | 'event' | 'status' | 'friend' | 'birthday' | 'holiday' | 'city' | 'question' | 'user'
+  source: 'life' | 'social' | 'user'
   author: FeedAuthor
   intro: string
   status: 'visible' | 'hidden'

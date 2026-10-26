@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
 import { api, newId } from '../../api'
@@ -76,10 +76,11 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
       <header className="page-header">
         <div>
           <h2>{words.posts_tab}</h2>
-          <p className="subtle">{name}'s {words.posts}, and what their friends are up to{unreadText(unread)}. Only you see them.</p>
+          <p className="subtle">{name}'s {words.posts}, what their friends are up to, and yours{unreadText(unread)}. Nobody outside the app sees them.</p>
         </div>
         <button type="button" className="button" onClick={() => void exportFeed()}><Download aria-hidden="true" />Export</button>
       </header>
+      <OwnPost onPosted={() => { setError(null); void client.invalidateQueries({ queryKey: ['feed'] }) }} onError={setError} />
       <div className="memory-toolbar">
         <SourcePicker source={source} name={name} onChange={setSource} />
         <Toggle label={`Show hidden ${words.posts}`} checked={hidden} onChange={setHidden} />
@@ -93,11 +94,37 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
 }
 
 function SourcePicker({ source, name, onChange }: { source: FeedSource; name: string; onChange: (source: FeedSource) => void }) {
-  const choices: [FeedSource, string][] = [['all', 'Everyone'], ['companion', name], ['circle', 'Friends']]
+  const choices: [FeedSource, string][] = [['all', 'Everyone'], ['companion', name], ['circle', 'Friends'], ['mine', 'You']]
   return (
     <div className="vibe-picks" role="group" aria-label="Whose posts">
       {choices.map(([id, label]) => <button key={id} type="button" className="vibe-pick" aria-pressed={source === id} onClick={() => onChange(id)}>{label}</button>)}
     </div>
+  )
+}
+
+/** A post of the user's own. Every companion and their friends see it, and like or comment on it in their own time. */
+function OwnPost({ onPosted, onError }: { onPosted: () => void; onError: (message: string) => void }) {
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    setBusy(true)
+    try {
+      await api<FeedPost>('/feed/mine', { text: text.trim() })
+      setText('')
+      onPosted()
+    } catch (failure) { onError(failure instanceof Error ? failure.message : 'The post was not shared.') }
+    setBusy(false)
+  }
+  return (
+    <form className="own-post" onSubmit={submit}>
+      <label htmlFor="own-post-text" className="visually-hidden">Share something</label>
+      <textarea id="own-post-text" rows={2} maxLength={1000} value={text} placeholder="Share something with everyone" onChange={(event) => setText(event.target.value)} />
+      <div className="own-post-foot">
+        <p className="subtle">Your companions and their friends see it, and may like or comment.</p>
+        <button type="submit" className="button primary" disabled={busy || !text.trim()}>Post</button>
+      </div>
+    </form>
   )
 }
 
