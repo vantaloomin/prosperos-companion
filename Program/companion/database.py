@@ -384,6 +384,9 @@ ADDED_COLUMNS = (
     ('life_settings', 'waking_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (waking_realism BETWEEN 0 AND 3)'),
     # Their week, planned by the model (companion/life/planned_week.py, Settings > Life): off unless turned on.
     ('life_settings', 'model_routines', 'INTEGER NOT NULL DEFAULT 0 CHECK (model_routines IN (0, 1))'),
+    # How quickly they read your texts while free (companion/life/reading.py, Settings > Realism > Their days): 0 at
+    # once, 1 quick, 2 natural, 3 slow.
+    ('life_settings', 'read_pace', 'INTEGER NOT NULL DEFAULT 2 CHECK (read_pace BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -481,6 +484,9 @@ UPGRADE_DREAMS = {0: {'memes_realism': 1, 'inner_voice': 1}, 3: {'memes_realism'
 UPGRADE_LOOK = {0: {'their_look': 1}, 3: {'their_look': 3}}
 # "I pull the strings" has a real life's drama but no paced replies, and hears everything on their mind.
 STRINGS_VOICE = {1: {'inner_voice': 3}}
+# Reading texts while free (v1.1.6): an easy life and "I pull the strings" read them quickly.
+UPGRADE_READ = {0: {'read_pace': 1}}
+STRINGS_READ = {1: {'read_pace': 1}}
 
 
 def add_columns(connection):
@@ -492,11 +498,13 @@ def add_columns(connection):
             added.add((table, column))
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
                            ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE),
-                           ('inner_voice', UPGRADE_DREAMS), ('their_look', UPGRADE_LOOK)):
+                           ('inner_voice', UPGRADE_DREAMS), ('their_look', UPGRADE_LOOK), ('read_pace', UPGRADE_READ)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
     if ('life_settings', 'inner_voice') in added:
         preset_upgrade(connection, STRINGS_VOICE, 'paced_replies=0 AND day_shifts=1')
+    if ('life_settings', 'read_pace') in added:
+        preset_upgrade(connection, STRINGS_READ, 'paced_replies=0 AND day_shifts=1')
     if ('life_settings', 'loss_by_preset') in added:
         preset_upgrade(connection, UPGRADE_LOSS, 'people_pass_away=0 AND loss=2')
 

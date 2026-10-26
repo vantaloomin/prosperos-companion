@@ -82,7 +82,7 @@ export interface MemeBox { x: number; y: number; w: number; h: number }
 /** Where meme pictures come from (Settings > Images > Memes and GIFs). */
 export interface MemeSources { folder: string; mine: number; pack: number; formats_on: boolean; formats_here: number; formats_total: number; gif_key: boolean; key_here: boolean }
 
-export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean }
+export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean; quick?: boolean }
 
 export interface Timeline {
   id: string
@@ -523,6 +523,8 @@ export interface LifeSettings {
   /** Their look in chat (companion/their_look.py): 0 off, 1 steady, 2 true to life, 3 expressive. */
   their_look: number
   waking_realism: number
+  /** How quickly they read your texts while free (companion/life/reading.py): 0 at once, 1 quick, 2 natural, 3 slow. */
+  read_pace: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
@@ -893,8 +895,8 @@ export interface CirclePerson {
   met?: CircleMet | null
   now: RoutineBlock | null
   recent: DiaryEntry[]
-  /** Their pets (companion/life/pets.py), seeded by who they are. */
-  pets?: PetView[]
+  /** Their pets (companion/life/pets.py), seeded by who they are until the user changes them. */
+  pets?: CirclePetView[]
   /** Someone the companion is seeing (companion/life/love_life.py): "Together 8 months, exclusive". */
   love?: string
   /** The latest roll for the two of them, only with Hidden values' odds on. */
@@ -966,6 +968,9 @@ export interface NetworkAnswer { person: Pick<NetworkPerson, 'key' | 'name' | 'd
 export interface Acquaintance extends Omit<NetworkPerson, 'depth' | 'met'> { occasion: string; met_on: string; met_at: string }
 
 export interface CircleTie { id: string; name: string; how: string }
+/** Whether the companion lives aboard a ship or station (companion/world/ships.py `vessel`), else null. */
+export interface CircleHome { aboard: 'ship' | 'station' | null }
+
 export interface CircleRoom { people: number; target: number; sociability: 'quiet' | 'usual' | 'social' }
 
 export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
@@ -1727,6 +1732,8 @@ export interface PetView {
   health: number | null
   lifespan_years: number | null
 }
+/** A pet of someone in the circle; `number` names it in the user's changes (companion/life/circle_pets.py). */
+export interface CirclePetView extends PetView { number: number }
 /** The companion's own pets (GET /api/life/pets): a pet id is its home item's. */
 export interface CompanionPet extends PetView { id: string; edited?: boolean }
 export interface PetsView {
@@ -2280,3 +2287,12 @@ export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chap
 export interface WatchLine { id: string; at: string; kind: WatchKind; text: string; inner: string | null; numbers: string[] }
 export interface WatchDay { date: string; entry: string | null; items: WatchLine[] }
 export interface WatchFeed { focus: WatchFocus; voice: number; timezone: string; shown: { moods: boolean; odds: boolean }; days: WatchDay[] }
+
+/** Settings > General > Updates (companion/updates.py). */
+export interface UpdateCheck {
+  status: 'newer' | 'current' | 'unavailable'
+  current: string; latest: string | null; title: string | null; published: string | null
+  /** The release's page on GitHub, or the latest-release page when the check failed. */
+  page: string
+  install: 'installer' | 'folder'; system: 'windows' | 'mac' | 'other'
+}

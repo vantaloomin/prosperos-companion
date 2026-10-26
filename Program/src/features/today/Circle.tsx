@@ -11,9 +11,11 @@ import { stageText } from '../memories/pairText'
 import { displayName, metText, personFacts, personNow, personTies, personWork } from './circleText'
 import { WhyItWent } from './WhyItWent'
 import { PersonForm, type Act } from './PersonForm'
+import { useCircleHome } from './useCircleHome'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
+import { CirclePets } from './CirclePets'
 import { childLabel, childLine, expectingLabel, expectingLine } from '../character/familiesText'
 import { lateText } from '../character/lossText'
 import { useLifeSettings } from '../settings/useLifeSettings'
@@ -135,6 +137,7 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
         ? <>
           <h3>{displayName(person)}</h3>
           <PersonForm person={person} companion={companion} act={act} local={setNotice} onDone={() => setEditing(false)} />
+          <CirclePets person={person} act={act} />
         </>
         : <>
           <PersonHeader person={person} companion={companion} />
@@ -274,8 +277,9 @@ function PersonActions({ gone, late, diary, network, name, onEdit, onDiary, onNe
 }
 
 function PersonDetails({ person, work, companion }: { person: CirclePerson; work: string | null; companion: string }) {
+  const aboard = useCircleHome()
   return <>
-    <p>{personNow(person)}</p>
+    <p>{personNow(person, aboard)}</p>
     {work && <p className="subtle">{work}</p>}
     {person.note && <PersonNote note={person.note} />}
     {personTies(person) && <p className="subtle">{personTies(person)}</p>}

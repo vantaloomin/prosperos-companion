@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react'
+import { useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react'
 import { ArrowUp, ImagePlus, Square, X } from 'lucide-react'
 import type { DraftState } from './useDraft'
 import { usePrepare } from './usePrepare'
@@ -9,6 +9,8 @@ import { canSend as ready, PER_MESSAGE } from './pictureState'
 import { AuthorsNote } from './AuthorsNote'
 import { useEraWords } from '../world/useEraWords'
 import { say } from '../world/eraWords'
+import { setFolded, useMessageBox } from './messageBox'
+import { MessageBox } from './MessageBoxControls'
 
 /** On a phone the box shows only their first name, so a period line like "Write a letter to Wren" stays on one line. */
 const onPhone = () => !!window.matchMedia?.('(max-width: 720px)').matches
@@ -25,7 +27,7 @@ const OUT_OF_CHARACTER = 'To step out of the story, start a message with OOC: or
  * down or tap it. A group chat has no picture button (`pictures` false). `chat` names the chat's author's note. */
 export function Composer({ name, chat, draft, streaming, compact, onSend, onStop, pictures: withPictures }: { name: string; chat: string; draft: DraftState; streaming: boolean; compact: boolean; onSend: () => void; onStop: () => void; pictures?: boolean }) {
   const prepare = usePrepare()
-  const text = useGrowing(draft.value.text, compact)
+  const { text, folded } = useMessageBox(draft.value.text, compact)
   const pictures = usePictureAdder(draft, withPictures !== false)
   const canSend = ready(draft.value.text, draft.value.pictures?.length ?? 0, draft.sending || streaming || pictures.busy)
   const onKeyDown = keyHandler(canSend, streaming, onSend, onStop)
@@ -37,8 +39,10 @@ export function Composer({ name, chat, draft, streaming, compact, onSend, onStop
       <ComposerPictures draft={draft} busy={pictures.busy} error={pictures.error} />
       <AuthorsNote key={chat} chat={chat} name={name} />
       <label className="visually-hidden" htmlFor="composer-text">{placeholder}</label>
-      <textarea ref={text} id="composer-text" rows={1} value={draft.value.text} placeholder={placeholder} maxLength={40000}
-        onChange={(event) => { draft.edit(event.target.value); prepare() }} onKeyDown={onKeyDown} {...pictures.textEvents} aria-describedby="composer-help" />
+      <MessageBox text={text} folded={folded}>
+        <textarea ref={text} id="composer-text" rows={1} value={draft.value.text} placeholder={placeholder} maxLength={40000} onFocus={() => setFolded(false)}
+          onChange={(event) => { draft.edit(event.target.value); prepare() }} onKeyDown={onKeyDown} {...pictures.textEvents} aria-describedby="composer-help" />
+      </MessageBox>
       <AttachButton enabled={pictures.enabled} count={draft.value.pictures?.length ?? 0} busy={pictures.busy} onAdd={(files) => void pictures.add(files)} />
       <p id="composer-help" className="visually-hidden">Enter sends, Shift and Enter adds a new line{streaming ? ', Escape stops the reply' : ''}. Unsent text is kept if you leave. {OUT_OF_CHARACTER}</p>
       <InfoTip id="composer-tip" label="writing messages" above text={`Enter sends, Shift+Enter adds a new line. ${OUT_OF_CHARACTER}`} />
@@ -61,22 +65,6 @@ function keyHandler(canSend: boolean, streaming: boolean, onSend: () => void, on
       onStop()
     }
   }
-}
-
-/** The message box grows with what is written, up to its maximum height (styles.css), then scrolls, so a long
- * message stays readable while it is typed. It shrinks again once sent; shrunk to one line while the reader is up in
- * the history, it shows the line being written. */
-function useGrowing(value: string, compact: boolean) {
-  const text = useRef<HTMLTextAreaElement>(null)
-  useLayoutEffect(() => {
-    const element = text.current
-    if (!element) return
-    element.style.height = 'auto'
-    const border = element.offsetHeight - element.clientHeight
-    element.style.height = `${element.scrollHeight + border}px`
-    if (compact) element.scrollTop = element.scrollHeight
-  }, [value, compact])
-  return text
 }
 
 /** Pictures join the draft from the button, a paste or a drop; each is shrunk and uploaded at once. Not `enabled`,

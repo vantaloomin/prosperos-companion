@@ -58,6 +58,17 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.1.6 (2026-10-26)
+
+- **They take a moment to read your texts:** a free companion waits a seeded little while before answering and
+  answers texts in a row together; Settings > Realism > How quickly they read your texts, and a per-companion
+  Quick to reply switch.
+- **Check for updates:** a button in Settings > General that compares this copy with the latest release.
+- **Pets in the circle:** edit, remove and add circle pets; fewer pets, and only cabin-sized ones aboard.
+- **A resizable chat box:** a grip on its top edge, a fold-to-one-line button, and the newest message stays in view.
+- **Fixes:** circle "Where they live" says aboard and off the ship on ships and stations; circle ages spread per
+  relation, and people the city names take its age and role.
+
 ## v1.1.5 (2026-10-26)
 
 - **What's on their mind this week:** an opt-in Settings > Life switch that has the model add a few lines on the open

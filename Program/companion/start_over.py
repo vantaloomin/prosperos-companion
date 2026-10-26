@@ -78,7 +78,8 @@ SCOPE = (
     ('gone_generations', 'SELECT id FROM lora_generations WHERE companion_id=:companion'),
 )
 PET_KEYS = ("pet_key IN (SELECT 'home:' || id FROM home_items WHERE timeline_id IN gone_timelines) "
-            "OR pet_key IN (SELECT 'circle:' || id || ':0' FROM circle_people WHERE timeline_id IN gone_timelines)")
+            "OR EXISTS (SELECT 1 FROM circle_people WHERE timeline_id IN gone_timelines "
+            "AND pet_key LIKE 'circle:' || id || ':%')")
 # How a table without its own timeline or companion column finds one companion's rows; None keeps them.
 OWN = {
     'context_uses': 'message_id IN gone_messages',

@@ -27,6 +27,7 @@ from companion import (
     troubleshoot,
 )
 from companion.characters import by_id, for_timeline, require_current
+from companion.clock import parse
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
@@ -40,6 +41,7 @@ from companion.life import (
     own_family,
     own_plans,
     pacing,
+    reading,
     recommendations,
     rough_patches,
     steps,
@@ -240,6 +242,9 @@ class Conversation:
         # Pictures the user sends, described once before the reply (companion/pictures.py).
         self.seer = pictures.Seer(database, vault, self.provider, self.scheduler)
         self.running: dict[str, LiveReply] = {}
+        # Replies waiting to be read while the companion is free ({timeline_id, held_until, since}), which the model has
+        # not started; another text drops them and the reply to it answers everything (companion/life/reading.py).
+        self.unread: dict[str, dict] = {}
         # Called once a turn needs nothing more from the model, so memory work never runs ahead of a reply.
         self.after_turn = after_turn
         # Voice notes (companion/voice/notes.py), set by the app: on a call, replies are read aloud with them.
@@ -256,7 +261,7 @@ class Conversation:
             reply = active_reply(connection, user['id']) or self.in_progress(connection, user['id'])
         if reply:
             return {'message': self.user_view(user), 'reply': message_view(reply), 'connection': 'ready'}
-        return await self.respond(user, wait)
+        return await self.respond(user, wait, read_later=True)
 
     def in_progress(self, connection, user_message_id) -> dict | None:
         """A retried send while its reply is still being written follows that reply instead of starting another."""
@@ -305,13 +310,18 @@ class Conversation:
         except Exception:  # noqa: BLE001 - the companion continues without tools (X3).
             return []
 
-    async def respond(self, user, wait: bool = True) -> dict:
+    async def respond(self, user, wait: bool = True, read_later: bool = False) -> dict:
         """The attempt is saved before anything waits on a model service, so `wait=false` returns at once;
-        recall and lookups for the reply happen in its own task (PRD responsiveness target)."""
-        prepared = self.prepare(user)
+        recall and lookups for the reply happen in its own task (PRD responsiveness target). A new text may wait
+        to be read (`read_later`, companion/life/reading.py); asking for another reply never does."""
+        prepared = self.prepare(user, read_later)
         if prepared['connection'] != 'ready':
             self.after_turn()
             return {'message': self.user_view(user), 'reply': None, 'connection': prepared['connection']}
+        for unread in prepared['unread']:
+            # Dropped before the model started on it: the reply to this text answers both.
+            if unread in self.running:
+                self.running[unread].task.cancel()
         live = self.start(prepared)
         if wait:
             try:
@@ -336,6 +346,7 @@ class Conversation:
 
     def close(self, attempt_id):
         """The attempt is saved in its final state before its streams are told it ended."""
+        self.unread.pop(attempt_id, None)
         live = self.running.pop(attempt_id, None)
         for queue in live.listeners if live else ():
             queue.put_nowait(None)
@@ -370,7 +381,7 @@ class Conversation:
                 live.listeners.discard(queue)
         yield 'done', self.reply(attempt_id)
 
-    def prepare(self, user) -> dict:
+    def prepare(self, user, read_later: bool = False) -> dict:
         with self.database.connect(write=True) as connection:
             config = config_for(connection, CHAT)
             if config is None:
@@ -382,6 +393,8 @@ class Conversation:
                                                          user['text']),
                                              now)
             dropped = [*dropped, *held.pop('dropped', ())]  # A reply waiting for morning, when this woke them.
+            held, unread = self.read_later(connection, companion, user, attempt_id, held) if read_later and \
+                held == pacing.NOT_HELD else (held, [])
             held = pacing.join(connection, user['timeline_id'], held, now)
             note = None
             if held['held_line']:
@@ -401,8 +414,36 @@ class Conversation:
                  None if note else user['id'], companion['active_version_id'], settings(connection)['memory_revision'],
                  now, held['held_until'], held['held_line']))
         return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user,
-                'instruction': held['instruction'], 'note': note, 'dropped': dropped,
+                'instruction': held['instruction'], 'note': note, 'dropped': [*dropped, *unread], 'unread': unread,
+                'read_at': held['held_until'] if attempt_id in self.unread else None,
                 'definition': companion['version']['definition']}
+
+    def read_later(self, connection, companion, user, attempt_id, held) -> tuple[dict, list[str]]:
+        """Free, the reply waits a little before it is read (companion/life/reading.py); replies still waiting to be
+        read in this chat are dropped unseen. In person, on the phone or out of character it starts at once."""
+        now = self.database.clock.now()
+        if not reading.reads_later(connection, companion) or in_character.out_of_character(user['text']) or \
+                calls.on_call(connection, companion, now) or \
+                together.in_person(connection, companion, now):
+            return held, []
+        unread = [key for key, item in self.unread.items() if item['timeline_id'] == user['timeline_id']]
+        found = reading.wait(connection, companion, now, attempt_id, [self.unread[key] for key in unread])
+        if found is None:
+            return held, []
+        for key in unread:
+            del self.unread[key]
+            # Never started, so it ends here: its task may be cancelled before it runs at all.
+            connection.execute("UPDATE messages SET superseded_at=?, active=0, held_until=NULL, status='cancelled', "
+                               "error='Stopped.', completed_at=? WHERE id=?",
+                               (self.database.now(), self.database.now(), key))
+        self.unread[attempt_id] = {'timeline_id': user['timeline_id'], 'held_until': found['held_until'],
+                                   'since': found['since']}
+        return {**held, 'held_until': found['held_until'], 'instruction': found['instruction']}, unread
+
+    async def read(self, until: str | None):
+        """Wait, without the model, until the reply is read (if it waits); app time, so debug time moves it along."""
+        while until and self.database.clock.now() < parse(until):
+            await asyncio.sleep(reading.POLL_SECONDS)
 
     async def assemble(self, prepared, step=lambda _phase: None) -> dict:
         """Build the reply's inputs and record the memory revision and character version they reflect,
@@ -440,6 +481,7 @@ class Conversation:
         definition = prepared.get('definition') or {}
         active = in_character.applies(prepared['user']['text'], definition)
         try:
+            await self.read(prepared.get('read_at'))
             key = key_for(self.vault, prepared['config'])
             with self.scheduler.foreground_work():
                 packet = await self.assemble(prepared, step)

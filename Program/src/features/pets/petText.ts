@@ -42,3 +42,8 @@ export function ageChoice(years: number, unset = 'Picked for you'): string {
 }
 
 export const MAX_PET_AGE = 30
+
+/** "Guinea pig" for "guinea pig". */
+export function capital(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text
+}
