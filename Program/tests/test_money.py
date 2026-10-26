@@ -231,3 +231,13 @@ def test_a_big_bill_comes_from_savings_then_month_by_month():
     assert money.paying(100, 0, 4000) == {'saved': 0.0, 'monthly': 100.0, 'months': 1}
     city = money.city_for(NURSE)
     assert 3500 < money.typical_month(city) < 5000  # A middle wage's month in Baltimore.
+
+
+def test_work_picker_lists_a_period_city_and_shows_the_guess(client):
+    # Camelot's work is all its own: the shared catalogue has no medieval careers, so the picker reads the city's.
+    listed = {career['id'] for career in client.get('/api/world/cities/camelot/careers').json()}
+    assert {'blacksmith', 'falconer', 'minstrel'} <= listed
+    guessed = client.post('/api/world/cities/camelot/careers/guess',
+                          json={'name': 'Bran', 'identity': 'Bran is the castle falconer, up before the hawks.'}).json()
+    assert guessed['id'] == 'falconer'
+    assert client.post('/api/world/cities/camelot/careers/guess', json={'identity': 'Bran likes hawks.'}).json() is None
