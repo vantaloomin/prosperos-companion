@@ -18,6 +18,9 @@ const HOURS: { value: Employment; label: string }[] = [
   { value: 'freelance', label: 'Freelance gigs, busy and quiet spells' },
 ]
 
+// Careers whose work is coursework (companion/life/work.py STUDY).
+const STUDENTS = new Set(['undergraduate', 'graduate-student'])
+
 interface Props { money: MoneySetup; homeCity: string; onChange: (money: MoneySetup) => void }
 
 /** Their work and money habits; pay, rent and prices come from their home city's data. */
@@ -45,6 +48,8 @@ export function MoneyFields({ money, homeCity, onChange }: Props) {
           </select>
         )}
       </Field>
+      {(money.career === '' || STUDENTS.has(money.career)) && <TextInput label="What they study" value={money.field ?? ''} maxLength={60}
+        onChange={(field) => set({ field })} hint="For a student, such as Photography. Their coursework follows it. Left empty, it comes from what “Who they are” says." />}
       <Field label="Hours" hint="Left as their work goes, a bartender or nurse gets new shifts each week and a freelancer has gigs that come and go; an office job keeps the same days.">
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.employment} onChange={(event) => set({ employment: event.target.value as Employment })}>

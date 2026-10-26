@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { displayName, personFacts, personNow, personTies, personWork } from '../../src/features/today/circleText.ts'
+import { aboutChange, ageClamp, noteCount, aboutForm, displayName, personFacts, personNow, personTies, personWork } from '../../src/features/today/circleText.ts'
 import type { CirclePerson } from '../../src/types.ts'
 
 const person = (extra: Partial<CirclePerson> = {}): CirclePerson => ({
@@ -39,4 +39,34 @@ test('parents who parted in an older city read separated, not divorced', () => {
   assert.equal(personTies(person({ knows: [{ id: 'r', name: 'Rui', how: 'separated' }, { id: 'a', name: 'Ana', how: 'family' }] })),
     'Separated from Rui. Knows Ana (family).')
   assert.equal(personTies(person({ knows: [{ id: 'r', name: 'Rui', how: 'divorced' }] })), 'Divorced from Rui.')
+})
+
+test('the edit form starts from the person and sends only what changed', () => {
+  const form = aboutForm(person({ pronouns: 'she/her', age: 40, employer: 'Mercy' }))
+  assert.deepEqual(form.values, { name: 'Ebony', role: 'friend', pronouns: 'she/her', job: 'Nurse', employer: 'Mercy', age: '40', local: 'here', note: '' })
+  assert.deepEqual(aboutChange(form.values, { ...form.values }, false), {})
+  assert.deepEqual(aboutChange(form.values, { ...form.values, job: ' ER nurse ', age: '41', local: 'away', name: '' }, false),
+    { job: 'ER nurse', age: 41, local: false })
+  // A coworker's "Works with Dana" is not offered as a job to edit.
+  assert.equal(aboutForm(person({ career: 'Works with Dana', works_with_companion: true })).values.job, '')
+})
+
+test('adding someone sends only what was filled in', () => {
+  const empty = aboutForm().values
+  assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', job: 'barista' }, true), { name: 'Mo', job: 'barista' })
+  assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', local: 'away', age: '30' }, true), { name: 'Mo', age: 30, local: false })
+  assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', local: 'here' }, true), { name: 'Mo', local: true })
+})
+
+test('the age box keeps an age in range and says so, past the most only for their own age', () => {
+  assert.deepEqual(ageClamp('', ''), { value: '', note: '' })
+  assert.deepEqual(ageClamp('400', '44'), { value: '120', note: 'Kept at 120, the most.' })
+  assert.deepEqual(ageClamp('300', '300'), { value: '300', note: '' })
+  assert.deepEqual(ageClamp('9', '44'), { value: '16', note: 'Kept at 16, the least.' })
+})
+
+test('the note counts only near its limit, and a workplace alone reads as one', () => {
+  assert.equal(noteCount('short'), '')
+  assert.equal(noteCount('x'.repeat(260)), '260 of 300')
+  assert.equal(personWork(person({ career: null, employer: 'Charm City Ink' })), 'Works at Charm City Ink')
 })

@@ -38,16 +38,27 @@ function runs(days: string[]): [string, string, number][] {
 }
 
 /** "1 vacation day coming up: Fri, Nov 13.", "Vacation days coming up: Fri, Nov 6 and Fri, Dec 4." or "Vacation Nov 23 to
- * 27 (5 days)." (Iris); "No time off booked." */
-export function timeOffText(days: string[]): string {
-  if (!days.length) return 'No time off booked.'
+ * 27 (5 days)." (Iris); "No time off booked." A student's are days with no classes: "No classes on Fri, Nov 6." */
+export function timeOffText(days: string[], studying = false): string {
+  const words = studying ? STUDY_OFF : WORK_OFF
+  if (!days.length) return words.none
   const found = runs(days)
   // Single days read as one list (Iris): "Vacation days coming up: Fri, Nov 6, Fri, Dec 4 and Fri, Dec 11."
   const single = found.filter(([, , count]) => count === 1).map(([first]) => day(first, { weekday: true }))
-  const singles = single.length === 1 ? `1 vacation day coming up: ${single[0]}.`
-    : single.length ? `Vacation days coming up: ${single.slice(0, -1).join(', ')} and ${single[single.length - 1]}.` : ''
-  const stretches = found.filter(([, , count]) => count > 1).map(([first, last, count]) => `Vacation ${day(first)} to ${day(last)} (${count} days).`)
+  const singles = single.length === 1 ? words.one(single[0])
+    : single.length ? `${words.many}: ${single.slice(0, -1).join(', ')} and ${single[single.length - 1]}.` : ''
+  const stretches = found.filter(([, , count]) => count > 1).map(([first, last, count]) => `${words.stretch} ${day(first)} to ${day(last)} (${count} days).`)
   return [...stretches, singles].filter(Boolean).join(' ')
+}
+
+const WORK_OFF = { none: 'No time off booked.', one: (when: string) => `1 vacation day coming up: ${when}.`, many: 'Vacation days coming up', stretch: 'Vacation' }
+const STUDY_OFF = { none: 'No days off coming up.', one: (when: string) => `No classes on ${when}.`, many: 'Days off coming up', stretch: 'A break' }
+
+/** What they're working on as the field shows it: "Reading list for upper-level photography", without the article the
+ * sentences give it. */
+export function projectField(title: string): string {
+  const bare = title.replace(/^(?:a|an|the)\s+/i, '')
+  return bare.charAt(0).toUpperCase() + bare.slice(1)
 }
 
 /** "Vacation: 2 of 11 days used this year. Pay: 3% above where they started." */
