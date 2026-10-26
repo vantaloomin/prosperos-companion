@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Ellipsis, GitBranch, MessageSquareText, MessagesSquare, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
+import { ChevronLeft, Ellipsis, GitBranch, Lightbulb, MessagesSquare, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
 import { api } from '../../api'
 import type { ChatStyle, Companion } from '../../types'
 import { CHAT_STYLES } from './chatStyles'
@@ -84,7 +84,7 @@ function SidecarButton() {
   const waiting = useSidecarWaiting()
   return (
     <button type="button" className="icon-button sidecar-button phone-only" aria-label={waiting ? 'Sidecar, something waiting' : 'Sidecar'} aria-pressed={open} onClick={() => toggleSidecar(open)}>
-      <MessageSquareText aria-hidden="true" />{waiting && <span className="nav-dot" aria-hidden="true" />}
+      <Lightbulb aria-hidden="true" />{waiting && <span className="nav-dot" aria-hidden="true" />}
     </button>
   )
 }

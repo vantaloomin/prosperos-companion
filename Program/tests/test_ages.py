@@ -138,7 +138,7 @@ def test_the_circle_ages_in_their_rows_and_milestones_reach_the_occasions(client
                         .fetchone()[0])['age']
         row = ages.stored(connection, 'circle', person['id'])
     assert row['from_age'] == before and row['birthday'] == circle.birthday(person['id'])
-    clock.advance(timedelta(days=366))
+    clock.advance(timedelta(days=365))  # A year to the day: 366 would cross a 6 October birthday twice.
     assert sync(client, clock) >= 1
     with connect(client, False) as connection:
         after = decode(connection.execute('SELECT details FROM circle_people WHERE id=?', (person['id'],))

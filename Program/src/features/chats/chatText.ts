@@ -63,7 +63,7 @@ export function isOpen(chat: Pick<Chat, 'kind' | 'id' | 'focus'>, open: OpenChat
   return open ? chat.kind === open.kind && chat.id === open.id : chat.focus
 }
 
-/** Unread messages by kind of chat, for the Profile (companions) and Groups tabs. */
+/** Unread messages by kind of chat, for the rail's Chats (companions) and Groups tabs. */
 export function unreadOf(chats: Pick<Chat, 'kind' | 'unread'>[], kind: string): number {
   return chats.reduce((total, chat) => total + (chat.kind === kind ? chat.unread : 0), 0)
 }
