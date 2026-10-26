@@ -10,8 +10,9 @@ export function arrive(name: string, companion: string | undefined) {
 
 /** Another tab or the phone moved to another world, and this page came along (useFollowWorld, src/api.ts). */
 export function followed(world?: string) {
-  const where = world ? `Now in ${world}. ` : 'Now in the world you just opened. '
-  try { sessionStorage.setItem(KEY, `${where}You switched worlds on another screen, so this one came too.`) } catch { /* No line, nothing lost. */ }
+  const text = world ? `Now in ${world}. You switched worlds on another screen, so this one came too.`
+    : 'Now in the world you opened on another screen. This one came too.'
+  try { sessionStorage.setItem(KEY, text) } catch { /* No line, nothing lost. */ }
 }
 
 /** The line, once. */
