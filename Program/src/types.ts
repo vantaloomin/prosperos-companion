@@ -2280,3 +2280,12 @@ export type WatchKind = 'day' | 'moment' | 'dream' | 'thought' | 'story' | 'chap
 export interface WatchLine { id: string; at: string; kind: WatchKind; text: string; inner: string | null; numbers: string[] }
 export interface WatchDay { date: string; entry: string | null; items: WatchLine[] }
 export interface WatchFeed { focus: WatchFocus; voice: number; timezone: string; shown: { moods: boolean; odds: boolean }; days: WatchDay[] }
+
+/** Settings > General > Updates (companion/updates.py). */
+export interface UpdateCheck {
+  status: 'newer' | 'current' | 'unavailable'
+  current: string; latest: string | null; title: string | null; published: string | null
+  /** The release's page on GitHub, or the latest-release page when the check failed. */
+  page: string
+  install: 'installer' | 'folder'; system: 'windows' | 'mac' | 'other'
+}

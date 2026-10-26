@@ -28,6 +28,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
       { heading: 'appearance-heading', title: 'Appearance', keywords: 'appearance chat style look feed bubbles texting community avatars retro im messenger visual novel portrait sounds period words era letters telephone old-fashioned' },
       { heading: 'activity-heading', title: 'Pause', keywords: 'pause resume stop freeze' },
       { heading: 'background-heading', title: 'Background activity', keywords: 'background running open simulation' },
+      { heading: 'updates-heading', title: 'Updates', keywords: 'update updates upgrade check for updates new version latest release download github about' },
     ],
   },
   {
