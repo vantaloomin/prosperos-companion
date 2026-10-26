@@ -1,4 +1,13 @@
-import type { CirclePerson } from '../../types'
+import type { CircleHome, CirclePerson } from '../../types'
+
+type Aboard = CircleHome['aboard']
+
+/** What "where they live" says: in and out of town, or aboard and off a ship or station. */
+export function placeWords(aboard: Aboard = null): { here: string; away: string } {
+  if (aboard === 'station') return { here: 'On the station', away: 'Off the station' }
+  if (aboard === 'ship') return { here: 'Aboard the ship', away: 'Off the ship' }
+  return { here: 'In town', away: 'Out of town' }
+}
 
 /** "close friend · she/her · 40" or "sister · married, born Smith · she/her · 31": how they relate to the companion, then what is known about them. */
 export function personFacts(person: CirclePerson): string {
@@ -8,8 +17,8 @@ export function personFacts(person: CirclePerson): string {
 }
 
 /** Where they are in their week, without implying the companion is with them. */
-export function personNow(person: CirclePerson): string {
-  if (person.local === false) return 'Lives out of town'
+export function personNow(person: CirclePerson, aboard: Aboard = null): string {
+  if (person.local === false) return `Lives ${placeWords(aboard).away.toLowerCase()}`
   if (person.met?.meeting === 'now') return 'Right now: meeting you'
   if (!person.now) return 'Free right now'
   return person.now.kind === 'sleep' ? 'Asleep right now' : `Right now: ${person.now.label}`
