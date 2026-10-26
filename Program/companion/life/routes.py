@@ -20,6 +20,7 @@ from companion.life import (
     chapters,
     circle,
     circle_edit,
+    circle_pets,
     citymap,
     deck,
     encounters,
@@ -36,6 +37,7 @@ from companion.life import (
     outings,
     parenthood,
     pets,
+    pets_routes,
     reactions,
     recommendations,
     rough_patches,
@@ -237,14 +239,63 @@ def read_circle(request: Request, include_removed: bool = False):
                                now)
 
 
-def with_pets(connection, companion: dict, world, people: list[dict], now) -> list[dict]:
-    """Each person in the circle with their pets (companion/life/pets.py), seeded by the person."""
+def pet_world(connection, companion: dict, world, now) -> tuple[dict, date]:
+    """Where the circle's pets live (companion/life/circle_pets.py `where`) and the companion's today."""
     definition = companion['version']['definition']
-    era = pets.era_of(circle.city_data(definition, world))
-    day = storylines.local_today(companion, now)
+    data = circle.city_data(definition, world)
     started = pets.timeline_start(connection, companion['active_timeline_id'], definition.get('timezone'))
-    return [{**person, 'pets': pets.lived(connection, pets.circle_pets(person, era, started), day, now)}
-            for person in people]
+    return ({'era': pets.era_of(data), 'start': started, 'aboard': ships.enclosed(data)},
+            storylines.local_today(companion, now))
+
+
+def with_pets(connection, companion: dict, world, people: list[dict], now) -> list[dict]:
+    """Each person in the circle with their pets (companion/life/pets.py): seeded by the person until the user
+    changes them (companion/life/circle_pets.py)."""
+    where, day = pet_world(connection, companion, world, now)
+    return [{**{key: value for key, value in person.items() if key != circle_pets.KEPT},
+             'pets': person_pets(connection, circle_pets.of_person(person, where), day, now)} for person in people]
+
+
+def person_pets(connection, found: list[dict], day: date, now) -> list[dict]:
+    """Their pets' views, each with the number the user's edits name it by."""
+    return [view | {'number': each['number']} for each, view in zip(found, pets.lived(connection, found, day, now))]
+
+
+def pet_change(request: Request, person_id: str, action) -> dict:
+    """Run `action(connection, where, today, now)` on someone's pets, then return the person."""
+    world = request.app.state.life.world
+
+    def change(connection, now):
+        where, today = pet_world(connection, require_current(connection), world, now)
+        action(connection, where, today, now)
+    return circle_change(request, person_id, change)
+
+
+@router.post('/circle/{person_id}/pets')
+def add_circle_pet(request: Request, person_id: str, body: pets_routes.PetCreate):
+    return pet_change(request, person_id, lambda connection, where, today, now: circle_pets.add(
+        connection, person_id, pet_given(body, today), where, today, now))
+
+
+@router.patch('/circle/{person_id}/pets/{number}')
+def edit_circle_pet(request: Request, person_id: str, number: int, body: pets_routes.PetUpdate):
+    return pet_change(request, person_id, lambda connection, where, today, now: circle_pets.edit(
+        connection, person_id, number, pet_given(body, today), where, today, now))
+
+
+@router.post('/circle/{person_id}/pets/{number}/remove')
+def remove_circle_pet(request: Request, person_id: str, number: int):
+    """They no longer have this pet; the app does not give it back."""
+    return pet_change(request, person_id, lambda connection, where, _today, now: circle_pets.remove(
+        connection, person_id, number, where, now))
+
+
+def pet_given(body, today: date) -> dict:
+    """The fields the user gave, with a birth date from the age they stepped to or the looks they wrote."""
+    given = body.model_dump(exclude_unset=True)
+    kind = given.get('kind') or 'cat'
+    born = pets_routes.born(given.pop('age', None), today) or pets.age_from_looks(given.get('looks') or '', kind, today)
+    return given | ({'born': born} if born else {})
 
 
 @router.get('/circle/room')

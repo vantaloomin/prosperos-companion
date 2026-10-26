@@ -166,9 +166,10 @@ def budgeted(seed: str, data: dict, budget, features: list[str], lived: str = ''
         'features': features, 'refs': [hood['id']], 'sources': [hood['source']], 'data_version': data['data_version']}}
 
 
-def pet_item(seed: str, era: str, label: str = 'pet', day: date | None = None, young=False) -> dict:
-    """A pet suited to the city's era, with its looks, birth date and lifespan (companion/life/pets.py)."""
-    return pets.draw(seed, label, era, day or pets.TOWN_ANCHOR, young)
+def pet_item(seed: str, era: str, label: str = 'pet', day: date | None = None, young=False, aboard=False) -> dict:
+    """A pet suited to the city's era (cabin-sized aboard), with its looks, birth date and lifespan
+    (companion/life/pets.py)."""
+    return pets.draw(seed, label, era, day or pets.TOWN_ANCHOR, young, aboard)
 
 
 def sheet_pets(definition: dict) -> list[dict]:
@@ -221,14 +222,20 @@ def favorite_item(seed: str, definition: dict, era_modern: bool, label: str, tak
     return {'kind': 'favorite', 'name': chosen[0], 'variety': chosen[0], 'details': {'description': chosen[0]}}
 
 
+# How likely the companion starts with a pet the sheet does not name: aboard a ship or station, about one in six.
+HAS_PET = 0.55
+HAS_PET_ABOARD = 1 / 6
+
+
 def assemble(seed: str, definition: dict, data: dict | None, day: date | None = None) -> list[dict]:
     """Everything they start with: the same for the same seed, definition, city data and start day."""
     era_modern = modern(data)
     items = [place_item(seed, definition, data)]
     # The pets the sheet names are their pets; only a sheet that names none leaves it to chance.
     items += sheet_pets(definition)
-    if not items[1:] and generators.unit(seed, 'has-pet') < 0.55:
-        items.append(pet_item(seed, pets.era_of(data), day=day))
+    aboard = ships.enclosed(data)
+    if not items[1:] and generators.unit(seed, 'has-pet') < (HAS_PET_ABOARD if aboard else HAS_PET):
+        items.append(pet_item(seed, pets.era_of(data), day=day, aboard=aboard))
     names: list[str] = []
     for index in range(int(generators.unit(seed, 'plants') * 4)):
         if plant := plant_item(seed, era_modern, f'plant{index}', names):
@@ -404,7 +411,8 @@ def repair(connection, state, seed, day, items, era_modern, now):
 
 
 def new_pet(connection, state, seed, day, items, era_modern, now):
-    pet = pet_item(seed, pets.era_of({'era': state['era']}), 'adopted', day, young=True)
+    aboard = ships.enclosed(circle.city_of_timeline(connection, state['timeline_id']))
+    pet = pet_item(seed, pets.era_of({'era': state['era']}), 'adopted', day, young=True, aboard=aboard)
     item_id = insert_item(connection, state['timeline_id'], pet, 'change', day, now)
     return item_id, f"adopted {pet['name']}, {pet['details']['description']}", None, '$$'
 
