@@ -11,8 +11,10 @@ def circle(client):
     return client.get('/api/life/circle').json()
 
 
-def owner(people: list[dict]) -> dict:
-    return next(person for person in people if person['pets'])
+def owner(client, people: list[dict]) -> dict:
+    """Someone with a pet: a seeded one when anyone has one (about one in three do), else one given by hand."""
+    found = next((person for person in people if person['pets']), None)
+    return found or ok(client.post(f"/api/life/circle/{people[0]['id']}/pets", json={'name': 'Rex', 'kind': 'dog'}))
 
 
 def ok(response):
@@ -21,7 +23,7 @@ def ok(response):
 
 
 def test_a_seeded_pet_can_be_edited_and_keeps_its_life(client, circle):
-    person = owner(circle)
+    person = owner(client, circle)
     pet = person['pets'][0]
     changed = ok(client.patch(f"/api/life/circle/{person['id']}/pets/{pet['number']}",
                               json={'name': 'Pickles', 'kind': 'tortoise', 'looks': 'a stately old tortoise', 'age': 30}))
@@ -34,7 +36,7 @@ def test_a_seeded_pet_can_be_edited_and_keeps_its_life(client, circle):
 
 
 def test_a_removed_pet_stays_removed_and_one_can_be_added(client, circle):
-    person = owner(circle)
+    person = owner(client, circle)
     number = person['pets'][0]['number']
     assert ok(client.post(f"/api/life/circle/{person['id']}/pets/{number}/remove", json={}))['pets'] == []
     assert next(found for found in client.get('/api/life/circle').json() if found['id'] == person['id'])['pets'] == []
@@ -48,7 +50,11 @@ def test_a_removed_pet_stays_removed_and_one_can_be_added(client, circle):
 
 
 def test_someone_without_a_pet_can_be_given_one_and_kinds_are_checked(client, circle):
-    person = next(person for person in circle if not person['pets'])
+    person = next((person for person in circle if not person['pets']), None)
+    if person is None:  # everyone drew a pet (rare): take one away first
+        person = circle[0]
+        for pet in person['pets']:
+            ok(client.post(f"/api/life/circle/{person['id']}/pets/{pet['number']}/remove", json={}))
     bad = client.post(f"/api/life/circle/{person['id']}/pets", json={'name': 'Nessie', 'kind': 'dragon'})
     assert bad.status_code == 422
     added = ok(client.post(f"/api/life/circle/{person['id']}/pets",
