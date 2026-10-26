@@ -15,6 +15,7 @@ import { useCircleHome } from './useCircleHome'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
+import { CirclePets } from './CirclePets'
 import { childLabel, childLine, expectingLabel, expectingLine } from '../character/familiesText'
 import { lateText } from '../character/lossText'
 import { useLifeSettings } from '../settings/useLifeSettings'
@@ -136,6 +137,7 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
         ? <>
           <h3>{displayName(person)}</h3>
           <PersonForm person={person} companion={companion} act={act} local={setNotice} onDone={() => setEditing(false)} />
+          <CirclePets person={person} act={act} />
         </>
         : <>
           <PersonHeader person={person} companion={companion} />

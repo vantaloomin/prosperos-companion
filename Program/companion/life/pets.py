@@ -48,6 +48,11 @@ TRAVELS_ALONG = 0.6
 # Moments at work, where pet news is not woven (companion/life/home.py WORKING_ACTIVITIES).
 WORKING = {'steady-shift', 'busy-shift', 'library', 'study-cafe'}
 LEGACY_AGE = re.compile(r',? about (\d+) years? old$')
+# How likely someone in the circle has a pet: about one in three on Earth (many share one with family there), and
+# about one in ten aboard a ship or station (companion/world/ships.py), where only a cabin-sized pet fits.
+CIRCLE_OWNS = 0.33
+CIRCLE_OWNS_ABOARD = 0.1
+CABIN = ('cat', 'fish', 'bird', 'hamster', 'guinea-pig', 'lizard', 'tortoise')
 
 
 @cache
@@ -82,8 +87,10 @@ def kind_phrase(kind: str) -> str:
     return f"{'an' if words[:1] in 'aeiou' else 'a'} {words}"
 
 
-def drawable(era: str) -> list[str]:
-    return [kind for kind, value in kinds().items() if value['weight'] > 0 and era in value['eras']]
+def drawable(era: str, aboard=False) -> list[str]:
+    """The kinds a pet is drawn from in this era; aboard a ship or station, only cabin-sized ones."""
+    return [kind for kind, value in kinds().items() if value['weight'] > 0 and era in value['eras'] and
+            (not aboard or kind in CABIN)]
 
 
 def lifespan_days(seed: str, kind: str) -> int:
@@ -115,15 +122,20 @@ def looks_for(seed: str, label_: str, kind: str, era: str) -> str:
     return generators.pick(seed, f'{label_}:look', found) or kind_phrase(kind)
 
 
-def draw(seed: str, label_: str, era: str, day: date, young=False) -> dict:
-    """A pet suited to the era, as a home item: its name, kind, looks line, birth date and lifespan."""
-    choices = drawable(era) or ['cat']
+def seeded_born(seed: str, label_: str, kind: str, day: date, young=False) -> str:
+    """A birth date young to middle-aged for its kind (a few weeks to months for a young one)."""
+    share = 0.02 + generators.unit(seed, label_, 'age') * (0.08 if young else START_AGE)
+    age = max(60, int(share * kinds().get(kind, kinds()['cat'])['lifespan'][0] * 365))
+    return (day - timedelta(days=age)).isoformat()
+
+
+def draw(seed: str, label_: str, era: str, day: date, young=False, aboard=False) -> dict:
+    """A pet suited to the era (and to a cabin, aboard), as a home item: its name, kind, looks, birth and lifespan."""
+    choices = drawable(era, aboard) or ['cat']
     kind = generators.pick(seed, f'{label_}:kind', choices, [kinds()[choice]['weight'] for choice in choices])
     lifespan = lifespan_days(f'{seed}:{label_}', kind)
-    share = 0.02 + generators.unit(seed, label_, 'age') * (0.08 if young else START_AGE)
-    age = max(60, int(share * kinds()[kind]['lifespan'][0] * 365))
     return {'kind': 'pet', 'name': name_for(seed, label_, era), 'variety': kind,
-            'details': {'description': looks_for(seed, label_, kind, era), 'born': (day - timedelta(days=age)).isoformat(),
+            'details': {'description': looks_for(seed, label_, kind, era), 'born': seeded_born(seed, label_, kind, day, young),
                         'lifespan_days': lifespan}}
 
 
@@ -159,12 +171,13 @@ def from_home_item(item: dict, era: str, started: date) -> dict:
                item.get('lifespan_days'), spared=bool(item.get('spared')), item_id=item['id'], owner='companion')
 
 
-def circle_pets(person: dict, era: str, start: date) -> list[dict]:
-    """The pets of someone in the companion's circle: about half have one, the same one every time."""
+def circle_pets(person: dict, era: str, start: date, aboard=False) -> list[dict]:
+    """The pets of someone in the companion's circle: about one in three have one (one in ten aboard), the same one
+    every time."""
     seed = f"pets:{person.get('key') or person['id']}"
-    if generators.unit(seed, 'has') >= 0.45:
+    if generators.unit(seed, 'has') >= (CIRCLE_OWNS_ABOARD if aboard else CIRCLE_OWNS):
         return []
-    item = draw(seed, 'pet0', era, start)
+    item = draw(seed, 'pet0', era, start, aboard=aboard)
     details = item['details']
     return [pet(f"circle:{person['id']}:0", item['name'], item['variety'], details['description'],
                 date.fromisoformat(details['born']), start, era, details['lifespan_days'], owner='circle')]

@@ -895,8 +895,8 @@ export interface CirclePerson {
   met?: CircleMet | null
   now: RoutineBlock | null
   recent: DiaryEntry[]
-  /** Their pets (companion/life/pets.py), seeded by who they are. */
-  pets?: PetView[]
+  /** Their pets (companion/life/pets.py), seeded by who they are until the user changes them. */
+  pets?: CirclePetView[]
   /** Someone the companion is seeing (companion/life/love_life.py): "Together 8 months, exclusive". */
   love?: string
   /** The latest roll for the two of them, only with Hidden values' odds on. */
@@ -1732,6 +1732,8 @@ export interface PetView {
   health: number | null
   lifespan_years: number | null
 }
+/** A pet of someone in the circle; `number` names it in the user's changes (companion/life/circle_pets.py). */
+export interface CirclePetView extends PetView { number: number }
 /** The companion's own pets (GET /api/life/pets): a pet id is its home item's. */
 export interface CompanionPet extends PetView { id: string; edited?: boolean }
 export interface PetsView {
