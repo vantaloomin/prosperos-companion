@@ -5,7 +5,7 @@ import { api } from '../../api'
 import type { UpdateCheck as Found } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { usePhoneStatus } from '../phone/phoneAccess'
-import { howToUpdate, releasedOn } from './updateText'
+import { howToUpdate, linkLabel, releasedOn } from './updateText'
 
 // Asks GitHub for the newest release only when pressed (companion/updates.py); nothing checks in the background.
 export function UpdateCheck() {
@@ -19,12 +19,13 @@ export function UpdateCheck() {
     setBusy(true)
     setError(null)
     try { setFound(await api<Found>('/updates/check', {})) } catch (failure) {
+      setFound(null)
       setError(failure instanceof Error ? failure.message : 'The check did not finish.')
     } finally { setBusy(false) }
   }
   const current = found?.current ?? health.data?.version
   return (
-    <section className="settings-section form-stack" aria-labelledby="updates-heading">
+    <section className="settings-section form-stack update-check" aria-labelledby="updates-heading">
       <div>
         <h2 id="updates-heading">Updates</h2>
         <p className="subtle">{current && `You’re on version ${current}. `}Checking asks GitHub for the newest release. Nothing about you is sent.</p>
@@ -46,7 +47,7 @@ function UpdateResult({ found }: { found: Found }) {
   const onPhone = !!usePhoneStatus().data?.remote
   const link = (
     <a className="text-button" href={found.page} target="_blank" rel="noreferrer noopener">
-      {found.status === 'newer' ? 'Download' : 'Releases page'}<span className="visually-hidden"> (GitHub, opens in a new tab)</span>
+      {linkLabel(found, onPhone)}<span className="visually-hidden"> (GitHub, opens in a new tab)</span>
     </a>
   )
   if (found.status === 'current') return <Notice tone="success" action={link}>You have the latest version.</Notice>

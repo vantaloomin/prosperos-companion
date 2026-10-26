@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { howToUpdate, releasedOn } from '../../src/features/settings/updateText.ts'
+import { howToUpdate, linkLabel, releasedOn } from '../../src/features/settings/updateText.ts'
 import type { UpdateCheck } from '../../src/types.ts'
 
 const found = (change: Partial<UpdateCheck>): UpdateCheck => ({
@@ -22,4 +22,12 @@ test('the installed app is pointed at the new installer, and a phone at the comp
 test('the release date is left out when GitHub gave none', () => {
   assert.equal(releasedOn(null), '')
   assert.match(releasedOn('2026-10-26T14:58:09Z'), /^, released .*2026/)
+})
+
+test('the link says Download only for the installed app on the PC', () => {
+  assert.equal(linkLabel(found({ install: 'installer' }), false), 'Download')
+  assert.equal(linkLabel(found({ install: 'installer' }), true), 'What’s new')
+  assert.equal(linkLabel(found({}), false), 'What’s new')
+  assert.equal(linkLabel(found({ status: 'current' }), false), 'What’s new in 1.1.5')
+  assert.equal(linkLabel(found({ status: 'unavailable' }), false), 'Releases page')
 })

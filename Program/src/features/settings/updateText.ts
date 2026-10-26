@@ -18,3 +18,10 @@ export function howToUpdate(found: Found, onPhone: boolean): string {
 export function releasedOn(iso: string | null): string {
   return iso ? `, released ${new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}` : ''
 }
+
+/** "Download" only where the release page is the next step (the installer, on the PC); elsewhere it shows what changed. */
+export function linkLabel(found: Found, onPhone: boolean): string {
+  if (found.status === 'unavailable') return 'Releases page'
+  if (found.status === 'current') return `What’s new in ${found.current}`
+  return found.install === 'installer' && !onPhone ? 'Download' : 'What’s new'
+}
