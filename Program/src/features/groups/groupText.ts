@@ -77,3 +77,15 @@ export function guestMeters(member: GroupMember): string {
   const replies = `${guest.replies_left} of ${guest.replies_each} replies left this conversation`
   return [visits, replies].filter(Boolean).join(' · ')
 }
+
+/** The group's name for the message box on a phone: whole when it fits ("Night out"), else cut at a word with an
+ * ellipsis ("Saturday brunch…"). Never just the first word, which reads as a cut-off name. */
+export function shortTitle(title: string, limit = 20): string {
+  const name = title.trim()
+  if (name.length <= limit) return name
+  const space = name.slice(0, limit + 1).lastIndexOf(' ')
+  let kept = space >= limit / 2 ? name.slice(0, space) : name.slice(0, limit)
+  // A name never ends on a joining word: "Mira, Sam…", not "Mira, Sam and…".
+  for (let last = ''; last !== kept;) [last, kept] = [kept, kept.replace(/[\s,;:.–—&-]+$/, '').replace(/\s+(and|with|of|the|at|to|for|in|on)$/i, '')]
+  return `${kept}…`
+}
