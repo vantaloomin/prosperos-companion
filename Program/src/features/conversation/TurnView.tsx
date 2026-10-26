@@ -1,6 +1,6 @@
 import { appNow, realDelay } from '../../appTime.ts'
 import { memo, useContext, useEffect, useState, type ContextType, type ReactNode } from 'react'
-import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, MessageSquareText, Pencil, Pin, PinOff, RotateCcw, Square } from 'lucide-react'
+import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, Lightbulb, Pencil, Pin, PinOff, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { VoiceNote } from './VoiceNote'
@@ -144,7 +144,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, onRemembe
   const actions = withVoice(replyActions(message, streaming, { onRemember, onEdit, onBranch, onMoment }), message, useContext(VoiceActions))
   // On a phone the sidecar is one more entry in the sheet rather than a small icon on every reply.
   const sheet = useMessageSheet(message, message.status === 'complete' && actions.length
-    ? [...actions, ['Ask the sidecar', <MessageSquareText key="icon" aria-hidden="true" />, (item) => sidecar.ask(item)]] : actions)
+    ? [...actions, ['Ask the sidecar', <Lightbulb key="icon" aria-hidden="true" />, (item) => sidecar.ask(item)]] : actions)
   // Until they get back to the user there is nothing to see; a holding text they sent meanwhile is its own message.
   if (held) return null
   return (
@@ -174,7 +174,7 @@ function ReplyTools({ message, position, streaming, onPage, onStop, actions, onS
         </span>
       )}
       {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
-      {message.status === 'complete' && !message.redacted && <button type="button" className="text-button reply-sidecar" aria-label="Ask the sidecar about this reply" title="Ask the sidecar about this reply" onClick={() => sidecar.ask(message)}><MessageSquareText aria-hidden="true" /></button>}
+      {message.status === 'complete' && !message.redacted && <button type="button" className="text-button reply-sidecar" aria-label="Ask the sidecar about this reply" title="Ask the sidecar about this reply" onClick={() => sidecar.ask(message)}><Lightbulb aria-hidden="true" /></button>}
       <MessageActions message={message} actions={actions} onSheet={onSheet} />
     </span>
   )

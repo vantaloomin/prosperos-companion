@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, MessageSquareText, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
+import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Lightbulb, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
@@ -51,7 +51,7 @@ export function AppNav({ view, go, storyOn, datingInstalled, unread, sidecarOpen
         <Fragment key={id}>
           {/* The sidecar opens beside any view, so it is a toggle rather than a view. On a phone it is in the chat header. */}
           {id === 'settings' && <button type="button" className="nav-sidecar rail-only" aria-pressed={sidecarOpen} onClick={() => toggleSidecar(sidecarOpen)}>
-            <MessageSquareText aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
+            <Lightbulb aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
           </button>}
           <button type="button" className={`nav-${id}${railOnly ? ' rail-only' : ''}`} aria-current={railCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>
