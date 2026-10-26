@@ -273,14 +273,16 @@ def start_day(connection, timeline_id: str, timezone: str, now) -> date:
 
 def new_row(timeline_id: str, item: dict, source: str, day: date, seed: str, *, skill=None, months=None,
             position=0, now=None, name=None) -> dict:
-    """A pastime as a row: written interests are years along, the app's first picks some months, new ones fresh."""
+    """A pastime as a row: written interests and the user's are years along, the app's first picks some months, new
+    ones fresh."""
     label = f'{seed}:{item["id"]}:{name or ""}'
-    span = {'interest': (12, 96), 'app': (2, 30), 'user': (0, 0), 'new': (0, 0)}[source]
+    span = {'interest': (12, 96), 'app': (2, 30), 'user': (12, 96), 'new': (0, 0)}[source]
     months = months if months is not None else span[0] + int((span[1] - span[0]) * generators.unit(label, 'months'))
-    low, high = {'interest': (25, 70), 'app': (8, 45), 'user': (0, 6), 'new': (0, 4)}[source]
+    low, high = {'interest': (25, 70), 'app': (8, 45), 'user': (25, 70), 'new': (0, 4)}[source]
     skill = skill if skill is not None else low + (high - low) * generators.unit(label, 'skill')
-    weekly = [1, 2, 3] if source == 'interest' else [1, 2]
-    per_week = generators.pick(label, 'weekly', weekly, [3, 4, 2] if source == 'interest' else [5, 3])
+    steady = source in ('interest', 'user')
+    weekly = [1, 2, 3] if steady else [1, 2]
+    per_week = generators.pick(label, 'weekly', weekly, [3, 4, 2] if steady else [5, 3])
     talent = 0.7 + 0.6 * generators.unit(label, 'talent')
     started = day - timedelta(days=int(months * 30.4))
     # Seeded, so a pastime taken up again on a re-walk is the same row, with the same sessions and milestones.
@@ -1018,12 +1020,38 @@ def add(connection, timeline_id: str, definition: dict, world, now, timezone: st
                            (today.isoformat(), existing['id']))
     else:
         skill = LEVEL_AT[level] + 2 if level is not None else None
+        label = f"{life.seed}:{item['id']}:{clean}"
         row = new_row(timeline_id, item, 'user', today, life.seed, position=len(life.rows), now=now, skill=skill,
+                      months=user_months(connection, timeline_id, definition, today, label, level),
                       name=None if item['id'] != 'custom' else item['name'])
         row['kept'] = 1
         insert(connection, row)
     after_edit(connection, timeline_id, today, now)
     return {}
+
+
+# How long the user's pastime has been going, in months, by the level they set: just starting out is a few weeks,
+# really good is years. With no level it reads like a written interest, years along.
+LEVEL_MONTHS = ((0, 2), (3, 18), (12, 60), (24, 120), (48, 180))
+USER_MONTHS = (12, 96)
+# They took it up no younger than this, so a long-standing pastime never predates their childhood.
+TOOK_UP_AT = 12
+
+
+def user_months(connection, timeline_id: str, definition: dict, day: date, label: str, level: int | None) -> int:
+    """A sensible "since" for a pastime the user gives them: seeded within the level's span, never before they were
+    old enough to take it up (their age from companion/life/ages.py)."""
+    low, high = USER_MONTHS if level is None else LEVEL_MONTHS[level]
+    months = low + int((high - low) * generators.unit(label, 'user-months'))
+    return min(months, most_months(connection, timeline_id, definition, day) or months)
+
+
+def most_months(connection, timeline_id: str, definition: dict, day: date) -> int | None:
+    """How many months they could have had a pastime by now, None with no age known."""
+    from companion.life import ages
+    found = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    age = ages.companion_age(connection, found['companion_id'], definition, day) if found else None
+    return None if age is None else max(1, (age - TOOK_UP_AT) * 12)
 
 
 def edit(connection, timeline_id: str, row_id: str, body: dict, definition: dict, world, now, timezone: str) -> None:
@@ -1038,6 +1066,9 @@ def edit(connection, timeline_id: str, row_id: str, body: dict, definition: dict
         skill = LEVEL_AT[body['level']] + (LEVEL_AT[min(body['level'] + 1, 4)] - LEVEL_AT[body['level']]) * 0.3 \
             if body['level'] < 4 else 82.0
         changes.update(skill=round(skill, 2), best=max(row['best'], skill), next_at=round(skill + step(row_id, 0), 2))
+        if (today - date.fromisoformat(row['started_on'])).days < LEVEL_MONTHS[body['level']][0] * 30.4:
+            months = user_months(connection, timeline_id, definition, today, row_id, body['level'])
+            changes['started_on'] = (today - timedelta(days=int(months * 30.4))).isoformat()
     if body.get('kept') is not None:
         changes['kept'] = int(body['kept'])
     if body.get('status') in ('active', 'dropped') and body['status'] != row['status']:
