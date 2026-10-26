@@ -62,8 +62,11 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
   )
 })
 
-/** Another reply or Retry under the newest message, or Retry under a promised full reply that failed. */
+/** Another reply or Retry under the newest message, or Retry under a promised full reply that failed. Nothing while
+ * their reply waits to be read or shown: nothing went wrong, they just haven't got back to you yet. */
 function TurnRetry({ turn, isLatest, shown, followUpOf, onRetry }: { turn: Turn; isLatest: boolean; shown: Message | null; followUpOf?: string; onRetry: (userId: string) => void }) {
+  const waiting = useHeld(turn.attempts.find((attempt) => attempt.held_until && attempt.status !== 'failed' && attempt.status !== 'incomplete'))
+  if (waiting) return null
   if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} onRetry={() => onRetry(turn.user!.id)} />
   if (followUpOf && failedFollowUp(turn.leads.at(-1))) return <RetryAction label="Retry" onRetry={() => onRetry(followUpOf)} />
   return null
@@ -229,14 +232,15 @@ function ReplyBody({ text, streaming, bursts }: { text: string; streaming: boole
 }
 
 /** True until the reply's time comes; re-renders once at that moment. A failed reply is never held. */
-function useHeld(message: Message): boolean {
+function useHeld(message: Message | undefined): boolean {
   const [now, setNow] = useState(() => appNow())
-  const held = waitsUntilLater(message, now)
+  const held = !!message && waitsUntilLater(message, now)
+  const until = message?.held_until
   useEffect(() => {
-    if (!held) return undefined
-    const timer = window.setTimeout(() => setNow(appNow()), Math.min(realDelay(Date.parse(message.held_until!) - now) + 500, 2 ** 31 - 1))
+    if (!held || !until) return undefined
+    const timer = window.setTimeout(() => setNow(appNow()), Math.min(realDelay(Date.parse(until) - now) + 500, 2 ** 31 - 1))
     return () => window.clearTimeout(timer)
-  }, [held, message.held_until, now])
+  }, [held, until, now])
   return held
 }
 
