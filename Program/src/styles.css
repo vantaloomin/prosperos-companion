@@ -531,7 +531,8 @@ a.button { color: inherit; text-decoration: none; }
 .discuss-form { display: flex; flex-direction: column; gap: 8px; }
 /* The user's own post, at the top of the feed. */
 .own-post { display: flex; flex-direction: column; gap: 8px; max-width: 680px; margin: 4px 0 12px; }
-.own-post textarea { width: 100%; resize: vertical; }
+.own-post textarea { width: 100%; resize: none; }
+.own-post.open textarea { resize: vertical; }
 .own-post-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .own-post-foot p { margin: 0; font-size: 0.8125rem; }
 .post-avatar svg { width: 20px; height: 20px; }
