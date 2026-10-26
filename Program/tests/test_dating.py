@@ -137,6 +137,24 @@ def match_someone(client, profile=PROFILE) -> dict:
     raise AssertionError('Nobody liked the user back.')
 
 
+def test_after_a_dry_spell_the_deck_shows_someone_who_would_say_yes_next(client, clock):
+    """Each person still answers by their own rules; after app.DRY_SPELL likes in a row that were not returned, the
+    app puts a yes first. Without it this deck has 8 misses in a row. Passes neither count nor end the spell."""
+    state = ok(client.put('/api/dating/profile', json=PROFILE))
+    assert state['words']['missed'] == 'No match with {name} this time.'
+    misses = longest = 0
+    for _ in range(40):
+        state = ok(client.post('/api/dating/swipes', json={'key': state['deck'][0]['key'], 'like': True}))
+        misses = 0 if state['matched'] else misses + 1
+        longest = max(longest, misses)
+    assert longest == app.DRY_SPELL
+    with client.app.state.database.connect() as connection:
+        assert app.dry_spell(connection) == misses
+    state = ok(client.post('/api/dating/swipes', json={'key': state['deck'][0]['key'], 'like': False}))
+    with client.app.state.database.connect() as connection:
+        assert app.dry_spell(connection) == misses
+
+
 def test_the_last_answer_can_be_undone_until_they_become_a_companion(client, clock):
     state = ok(client.put('/api/dating/profile', json=PROFILE))
     first, second = state['deck'][0]['key'], state['deck'][1]['key']

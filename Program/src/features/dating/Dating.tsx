@@ -51,7 +51,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
   const swipe = async (key: string, like: boolean) => {
     const next = await run(() => api<DatingData>('/dating/swipes', { key, like }))
     if (next) setMatched(next.matched ?? null)
-    return next !== null
+    return next
   }
   return (
     <section className="page dating" aria-labelledby="dating-heading">

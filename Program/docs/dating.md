@@ -53,8 +53,13 @@ time and nothing is stored:
   sees only others looking for friends, of the genders they chose, whatever their orientation. The order is
   fixed for the user's profile.
 - A like is a match only if the person's rules say yes: a chance from their pickiness, temperament, the age
-  gap and whether they want the same thing, rolled once for this person and this user's profile. A like
-  that is not returned simply never comes back, as on a real app.
+  gap and whether they want the same thing, rolled once for this person and this user's profile. Every like
+  is answered at once: a like that is not returned says so under the buttons ("No match with Ashanti this
+  time.", "Your last letter went unanswered.", "Edric declined the introduction."), so it never looks like a
+  wait. The average like comes back about a third of the time.
+- **Dry spells**: after `DRY_SPELL` (3) likes in a row that were not returned, the deck puts the first person
+  who would say yes on top, as real apps show likelier matches first. Nobody's own answer changes; passes
+  neither count nor end the spell.
 - A match can be **started talking to**: the Make-the-main-character form opens with their profile drafted
   from their sheet (`#match/<key>`). It starts as a romance, or a friendship if they matched for friends,
   and says they matched through the app. It works with no companion yet (they become the first) or with

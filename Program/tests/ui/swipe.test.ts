@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { BLANK, cardHeading, cardLabel, humanTerms, interestText } from '../../src/features/dating/datingText.ts'
-import { undoLabel, answeredText, arrowWay, decide, hintText, nextHeard, pose, stamp, threshold, tilt, undoShown } from '../../src/features/dating/swipe.ts'
+import { undoLabel, answeredText, arrowWay, decide, hintText, missedText, nextHeard, pose, stamp, threshold, tilt, undoShown } from '../../src/features/dating/swipe.ts'
 
 test('a drag past a third of the card likes to the right and passes to the left', () => {
   assert.equal(threshold(360), 120)
@@ -55,6 +55,13 @@ test('the hint names the arrow keys on a computer and the buttons on a phone', (
 test('a screen reader hears the answer and who is next', () => {
   assert.equal(answeredText('Ashanti', 'like', 'Rachel, 40'), 'Liked Ashanti. Next: Rachel, 40.')
   assert.equal(answeredText('Ashanti', 'pass', null), 'Passed on Ashanti.')
+  assert.equal(answeredText('Ashanti', 'like', null, 'No match with Ashanti this time.'), 'Liked Ashanti. No match with Ashanti this time.')
+})
+
+test('a like that was not returned says so, in the words of the era', () => {
+  assert.equal(missedText('No match with {name} this time.', 'Ashanti'), 'No match with Ashanti this time.')
+  assert.equal(missedText('{name} declined the introduction.', 'Edric'), 'Edric declined the introduction.')
+  assert.equal(missedText('Your last letter went unanswered.', 'the notice'), 'Your last letter went unanswered.')
 })
 
 test('a card flies off the way it was answered, and only fades when motion is reduced', () => {
