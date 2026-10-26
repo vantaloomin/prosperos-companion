@@ -73,7 +73,9 @@ def test_the_app_made_mom_makes_room_for_one_shared_in(client, companion):
     listed = {person['id']: person for person in ok(client.get('/api/life/circle?include_removed=true'))}
     assert listed[made['id']]['status'] == 'removed' and listed[made['id']]['made_room_for']
     assert listed[kept['id']]['status'] == 'active'
-    assert f"- {made['name']} (mom)" not in system(client)
+    # Billy's person can share the app-made mom's seeded name; only the app-made mom's line must be gone.
+    assert not [line for line in system(client).splitlines()
+                if line.startswith(f"- {made['name']} (mom)") and 'Billy Hart' not in line]
     room = ok(client.get('/api/life/circle/room'))  # Stepping aside makes no room for a stranger.
     assert room['people'] == len(own)
     # A friend takes no one's place; back to mom, and out again, the app's mom comes back.
