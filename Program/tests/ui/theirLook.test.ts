@@ -66,8 +66,8 @@ test('a mid-grey custom palette, where no shade can stand out, falls back to its
   assert.equal(nameColour({ family: 'teal', font: 'sans', shade: 0, mood: null }, grey), '#000000')
 })
 
-test('only body-safe fonts: each name font is one of the five, with a fallback stack', () => {
-  assert.deepEqual(FONTS.map((font) => font.id), ['serif', 'sans', 'rounded', 'typewriter', 'handwritten'])
+test('only body-safe fonts: each name font is one of the six, with a fallback stack', () => {
+  assert.deepEqual(FONTS.map((font) => font.id), ['serif', 'sans', 'rounded', 'typewriter', 'handwritten', 'bold'])
   for (const font of FONTS) assert.match(font.family, /,\s*(serif|sans-serif|monospace|cursive)$/)
 })
 
