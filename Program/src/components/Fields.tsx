@@ -38,9 +38,10 @@ export function TextInput({ label, hint, tip, value, onChange, required, maxLeng
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} required={required} maxLength={maxLength} list={list} placeholder={placeholder} min={min} max={max} step={step} aria-describedby={describedBy} onChange={(event) => onChange(bounded(event.target.value, min, max))} onBlur={leave} />}</Field>
 }
 
-interface ToggleProps extends Help { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }
+interface ToggleProps extends Help { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean; children?: ReactNode }
 
-export function Toggle({ label, hint, tip, checked, onChange, disabled }: ToggleProps) {
+/** A switch; `children` sit under its hint, in the same column. */
+export function Toggle({ label, hint, tip, checked, onChange, disabled, children }: ToggleProps) {
   const id = useId()
   const hintId = hint ? `${id}-hint` : undefined
   const tipId = tip ? `${id}-tip` : undefined
@@ -50,6 +51,7 @@ export function Toggle({ label, hint, tip, checked, onChange, disabled }: Toggle
       <div className="toggle-text">
         <span className="label-row"><label htmlFor={id}>{label}</label>{tip && tipId && <InfoTip id={tipId} label={label} text={tip} />}</span>
         {hint && <small id={hintId}>{hint}</small>}
+        {children}
       </div>
     </div>
   )

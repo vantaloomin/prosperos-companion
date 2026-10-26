@@ -10,7 +10,7 @@ from test_social_circle import make
 from companion.characters import require_current
 from companion.database import decode
 from companion.life import body, encounters, network
-from companion.world import catalog, dating, generators, naming, townsfolk
+from companion.world import catalog, couples, dating, generators, naming, townsfolk
 
 
 @pytest.fixture(autouse=True)
@@ -348,3 +348,28 @@ def test_what_the_companion_knows_of_a_notable_says_who_they_are():
     sheet = townsfolk.at_place(data, data['notables'][1]['place'])[-1]
     person = encounters.revealed(sheet, data, [{'place': 'there', 'local_date': '2026-03-04'}], None, {})
     assert 'Who they are: Knows every ship that ever docked here.' in encounters.text(person)
+
+
+def test_a_notable_can_be_of_another_kind_and_keep_no_seeded_love_life():
+    raw = copy.deepcopy(catalog.city('grandport'))
+    for key in ('data_version', 'builtin', 'origin', 'pack_file'):
+        raw.pop(key, None)
+    place = raw['places'][0]
+    source = next(iter(raw['sources']))
+    raw['notables'] = [
+        {'id': 'ilwen', 'name': 'Ilwen', 'pronouns': 'she/her', 'age': 400, 'place': place['id'], 'role': 'archivist',
+         'about': 'An elven archivist.', 'kind': 'elf', 'love_life': False, 'source': source},
+        {'id': 'brom', 'name': 'Brom', 'pronouns': 'he/him', 'age': 50, 'place': place['id'], 'role': 'porter',
+         'about': 'A porter.', 'kind': 'gnome', 'source': source}]
+    data = catalog.prepare(raw, mend=True)
+    assert any('"gnome"' in note for note in data['import_notes'])
+    ilwen, brom = townsfolk.at_place(data, place['id'])[-2:]
+    assert (ilwen['age'], ilwen['folk'], ilwen['love_life']) == (400, 'elf', False)
+    assert dating.life_of(ilwen, data) < 60  # An elf of 400 is in mid-life.
+    assert couples.details_of(ilwen, data) is None and couples.couple(ilwen, data, date(2027, 6, 1)) is None
+    assert 'folk' not in brom and 'love_life' not in brom
+
+
+def test_a_notables_kind_and_love_life_leave_older_cities_as_they_were():
+    data = with_notables()
+    assert all('kind' not in item and 'love_life' not in item for item in data['notables'])

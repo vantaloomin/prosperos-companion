@@ -38,8 +38,10 @@ import { forgetDraft, useKept } from './keptDraft'
 import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
+import { TakeAlong } from './TakeAlong'
 import { StartOver } from './StartOver'
 import { Cast } from './Cast'
+import { WhoTheyKnow } from './WhoTheyKnow'
 import { AnotherSection } from './AnotherCompanion'
 import { TownSeed } from './TownSeed'
 import { BringCharacter } from './BringCharacter'
@@ -50,6 +52,8 @@ import { Voice } from './Voice'
 import { Steps } from './Steps'
 import { Family } from './Family'
 import { LifeLately } from './LifeLately'
+import { TheirLook } from './TheirLook'
+import { TheirHoursField } from './TheirHours'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
 
@@ -164,6 +168,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
         {help('appearance', 'their appearance')}
         <InPhotosField definition={cleaned} value={definition.in_photos} set={set} />
+        <TheirHoursField definition={definition} companion={companion} set={set} />
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>
           <LooksFields definition={cleaned} looks={definition.looks} set={set} />
@@ -211,15 +216,18 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
       <LifeAdmin name={name} />
       <SelfFacts name={name} />
     </>}
+    <TheirLook name={name} />
     <Voice name={name} />
     <Lore />
     <Library name={name} />
     <TownSeed companion={companion} />
     <Versions current={companion.active_version_id} />
     <Cast go={go} />
+    <WhoTheyKnow name={name} />
     <AnotherSection name={name} go={go} />
     <BringCharacter />
     <BringChat companion={companion} />
+    <TakeAlong id={companion.id} name={name} />
     <StartOver name={name} go={go} />
   </>)
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Starts Prospero Companion on http://127.0.0.1:8775 and opens it in the browser. Keep the window open;
-# close it (or press Ctrl+C) to stop. Options: --port <n>, --no-browser.
+# close it (or press Ctrl+C) to stop. Options: --port <n>, --no-browser, --draft (opens Prospero's Draft Table).
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 cd "$COMPANION_ROOT" || exit 1
 
@@ -10,6 +10,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --port) port="$2"; shift 2 ;;
         --no-browser) arguments+=(--no-browser); shift ;;
+        --draft) arguments+=(--draft); shift ;;
         *) say_error "Unknown option: $1"; exit 1 ;;
     esac
 done

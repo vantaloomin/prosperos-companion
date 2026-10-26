@@ -372,6 +372,16 @@ ADDED_COLUMNS = (
     ('life_settings', 'inner_voice', 'INTEGER NOT NULL DEFAULT 2 CHECK (inner_voice BETWEEN 0 AND 3)'),
     # Words that fit the era (companion/world/era_words.py, Settings > General > Appearance): on unless turned off.
     ('workspace_settings', 'period_words', 'INTEGER NOT NULL DEFAULT 1 CHECK (period_words IN (0, 1))'),
+    # Their look in chat (companion/their_look.py, Settings > Realism > Their days): 0 off, 1 steady, 2 true to life,
+    # 3 expressive; and Settings > General > Appearance's "Keep my colours everywhere".
+    ('life_settings', 'their_look', 'INTEGER NOT NULL DEFAULT 2 CHECK (their_look BETWEEN 0 AND 3)'),
+    ('workspace_settings', 'keep_my_colours', 'INTEGER NOT NULL DEFAULT 0 CHECK (keep_my_colours IN (0, 1))'),
+    # Companions who already have kids (companion/life/kids.py): a child of theirs the user added by hand, kept when
+    # the engine's kids:has is changed.
+    ('circle_children', 'by_hand', 'INTEGER NOT NULL DEFAULT 0 CHECK (by_hand IN (0, 1))'),
+    # Waking them (companion/life/waking.py, Settings > Realism > Their days): how fast being woken wears thin, 0 they
+    # never mind, 1 easygoing, 2 true to life, 3 it wears thin fast.
+    ('life_settings', 'waking_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (waking_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -465,6 +475,8 @@ UPGRADE_FAMILY_LIFE = {0: {'family_life': 0}, 3: {'family_life': 3}}
 # Memes and GIFs and Inner voice (v0.16) the same way: an easy life now and then and a few thoughts, a dramatic one
 # often and everything on their mind.
 UPGRADE_DREAMS = {0: {'memes_realism': 1, 'inner_voice': 1}, 3: {'memes_realism': 3, 'inner_voice': 3}}
+# Their look in chat (v1.1) the same way: an easy life keeps it steady, a dramatic one expressive.
+UPGRADE_LOOK = {0: {'their_look': 1}, 3: {'their_look': 3}}
 # "I pull the strings" has a real life's drama but no paced replies, and hears everything on their mind.
 STRINGS_VOICE = {1: {'inner_voice': 3}}
 
@@ -478,7 +490,7 @@ def add_columns(connection):
             added.add((table, column))
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
                            ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE),
-                           ('inner_voice', UPGRADE_DREAMS)):
+                           ('inner_voice', UPGRADE_DREAMS), ('their_look', UPGRADE_LOOK)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
     if ('life_settings', 'inner_voice') in added:

@@ -176,6 +176,8 @@ export interface CharacterDefinition {
   timezone: string
   home_city: string
   schedule: RoutineBlock[]
+  /** Their week moved to fit your evenings or onto your clock (companion/life/their_hours.py); the server moves it. */
+  their_hours?: TheirHours | null
   life_themes: string[]
   money: MoneySetup
   texting?: TextingStyle
@@ -184,6 +186,9 @@ export interface CharacterDefinition {
   /** Personality sliders (companion/world/personality.py); null, or a trait left out, is read from their words and rolled. */
   personality_sliders?: PersonalitySliders | null
 }
+
+/** How their week sits against your clock: 'fit' moved by the app, 'mine' on your clock, 'city' their city's hours. */
+export interface TheirHours { mode: 'fit' | 'mine' | 'city'; shift: number; why: string; zone: string; fit: number }
 
 export type PersonalityKey = 'social' | 'warmth' | 'order' | 'curiosity' | 'stress'
 /** One slider: 0 low, 1 in between, 2 high, and who set it. */
@@ -196,6 +201,8 @@ export interface PersonalityView { sliders: Required<PersonalitySliders>; chips:
 
 export interface IntimacySetup {
   orientation: string; level: string; drive: string; interests: string[]
+  /** The user chose the interests, so an empty list means none rather than the roll. */
+  interests_picked?: boolean
   /** Their own turn-ons and turn-offs, in the user's words. */
   own_into: string[]; not_into: string[]; note: string
 }
@@ -228,6 +235,8 @@ export interface MoneySetup {
   goal: number
   goal_since: string
   employment: Employment
+  /** What a student studies; empty reads it from who they are. */
+  field?: string
 }
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
@@ -305,6 +314,8 @@ export interface WorkspaceSettings {
   chat_retro_dark?: boolean
   /** Period words in period cities: letters in Camelot, comms aboard a ship (companion/world/era_words.py). On unless turned off. */
   period_words?: boolean
+  /** Keep my colours everywhere: no companion's own colours or name font (companion/their_look.py). */
+  keep_my_colours?: boolean
   /** The app's colors (Prospero's Study's palettes); Retro IM keeps its own. */
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */
@@ -508,6 +519,9 @@ export interface LifeSettings {
   memes_realism: number
   /** Inner voice (companion/life/narrator.py): how much of what is on their mind the Watching page tells, 0 to 3. */
   inner_voice: number
+  /** Their look in chat (companion/their_look.py): 0 off, 1 steady, 2 true to life, 3 expressive. */
+  their_look: number
+  waking_realism: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
@@ -652,7 +666,11 @@ export interface KidsView {
   shown: boolean
   how?: 'description' | 'town' | 'seeded'
   kids?: Kid[]
-  other?: { name: string; role: string } | null
+  /** Whether the user can add a child of theirs by hand (never for a companion who reads as under 18). */
+  can_add?: boolean
+  other?: KidsParent | null
+  /** Who in their circle could be the kids' other parent, the one who is first. */
+  others?: KidsParent[]
   pattern?: 'together' | 'with_them' | 'shared' | 'weekends' | 'sole'
   pattern_how?: 'set' | 'seeded' | 'fixed'
   patterns?: { key: string; label: string }[]
@@ -665,7 +683,11 @@ export interface KidsView {
   meeting?: 'met' | 'soon' | 'unmet' | null
 }
 
-export interface Kid { id: string; name: string; pronouns: string; born_on: string; age: number; age_text: string; relation: 'son' | 'daughter' | 'child' }
+export interface Kid { id: string; name: string; pronouns: string; born_on: string; age: number; age_text: string; relation: 'son' | 'daughter' | 'child'; by_hand?: boolean }
+
+/** The kids' other parent, or someone in their circle who could be: `made` when the app made them for the kids (naming
+ * someone else renames them), `made_up` when nobody named them either. */
+export interface KidsParent { id: string; name: string; role: string; made: boolean; made_up: boolean }
 
 /** Whose place in one city ('yours', 'theirs', 'new'), or who moves across the distance ('them' to your city; 'you',
  * which waits until you move to theirs). `place` is the neighbourhood, `city` the city, `home` the shared home once moved. */
@@ -884,6 +906,10 @@ export interface CirclePerson {
   adopting?: boolean
   /** Written into the character's description (companion/life/named.py): spared from passing away unless `spared` is false. */
   sheet?: string
+  /** Added by the user on the circle list (companion/life/circle_edit.py): spared from passing away like `sheet`. */
+  by_hand?: boolean
+  /** The user's own words about them, which the chat reads. */
+  note?: string
   /** People can pass away (companion/life/loss.py): whether the user spared them, or let them pass away. */
   spared?: boolean
   /** The day they passed away, when they have. */
@@ -1721,6 +1747,8 @@ export interface Townsperson {
   full: string
   pronouns: string
   age: number
+  /** Their kind's name when they aren't human ("Vulcan", "Elf"), else null (companion/world/lifespans.py). */
+  folk?: string | null
   role: string
   /** Staff at their place, a regular there, or an ordinary resident of `neighborhood`. */
   kind: 'staff' | 'regular' | 'resident'
@@ -1776,6 +1804,8 @@ export interface PairTie {
   group_days: number
   meetings: number
 }
+/** Another companion the current one doesn't know yet, as the app would start them (Character > Who they know). */
+export interface UntoldTie { companion_id: string; name: string; level: number; how: string }
 /** Two companions about to share a group for the first time: their backstory can be told, once. */
 export interface UntoldPair { a: string; b: string; a_name: string; b_name: string; level: number; how: string }
 /** What the user tells about two companions: a starting stage and a line, both optional. */
@@ -2207,6 +2237,11 @@ export interface WorkLifeView {
   meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
   /** Same days every week, shifts that change weekly, or freelance gigs (companion/life/shifts.py). */
   hours: 'staff' | 'rota' | 'freelance'
+  /** A student (companion/life/work.py STUDY), and what they study. */
+  studying?: boolean
+  field?: string
+  /** What they are working on is the user's own words. */
+  own_project?: boolean
 }
 
 /** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */

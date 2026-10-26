@@ -185,6 +185,21 @@ are; rules about how far through life someone is read their life age (`companion
 age through childhood, then adulthood stretched to their kind's lifespan, so an elf of 300 is 48 in human terms and
 is seeded, retires, dates and passes away like it. A city file can only change how long adulthood lasts.
 
+**How many people of each kind.** A kind in the city's `kinds` block can carry a `share`: the fraction of the
+town's seeded townsfolk and residents of that kind, from 0 to 1 (`{"vulcan": {..., "share": 0.12}}`; a built-in kind
+can be listed with only a share, `{"elf": {"share": 0.04}}`). Humans are the rest; shares that add up past 1 are
+scaled down, so nobody is human. A kind listed without a share gets 10% when no kind in the block has one (never
+more than 30% for all of them together), and none when another kind there does, so `"share": 0` and a missing share
+both mean none in a block that sets shares. Each person's kind is rolled from their seed first, then their name
+group is drawn by `names.mix` weights from the groups tied to that kind (`"kind": "vulcan"`), or from the kind's own
+`groups` list (Camelot's fae take Welsh names), else from the human groups. A kind may also weigh its own
+`pronouns` (`{"she": 0.8, "he": 0.15, "they": 0.05}`, Grandport's elves, most of whom are women); others keep the
+town's usual mix. A city with no `kinds` block draws from
+the whole mix as before. Townsfolk of another kind are named as such when the companion meets them ("Got talking
+with Thalion Mossfall, the barkeep there, an Elf, who ...") and in Around town ("Elf, about 253, industrious; ..."). Built in: Grandport's city elves
+(4%), Camelot's fae (3%), Ellerbrück's dwarves and elves, and the Munchkins, Winkies, Quadlings and Gillikins in the
+Emerald City; real and modern cities stay human.
+
 **Local colour.** Each city lists things locals eat, drink, say, root for and do (`local_color`, with
 `kind` dish, drink, saying, custom, team, shop, legend, rumor or other), with the places they are easiest to find and
 the seasons they belong to. `local_color` picks a few for a seed, in season on `day`, so the model can
@@ -224,7 +239,12 @@ same way, and live by the same rules: days, goals, quirks and flaws are drawn fr
 name, age, role and temperament are the city's. The companion meets them like anyone else, and what it
 knows of them always includes `about`. Notables are never on the dating app. A pack's notable placed
 somewhere the city lacks is left out with a note. Notables stay in town for good unless `can_leave` is true, when
-they can move away or retire like anyone else and a newcomer takes over their role.
+they can move away or retire like anyone else and a newcomer takes over their role. A notable may name their
+`kind` (a built-in kind or one in the city's `kinds` block, see lifespans), which lets their `age` run past 120 (up to
+5000) and counts their life stage in their kind's years; an unknown kind makes them human, with a note. With
+`love_life: false` they get no seeded partner, engagement, wedding or baby, so their love life is only what `about`
+says. A character brought in from another app never borrows a notable's life (their job, home and routine come from
+a seeded townsperson). Older versions ignore both fields and hold the age to 120.
 
 **The town changes hands** (`companion/world/turnover.py`). Each spot a townsperson fills is held by one person
 after another: from 19 October 2026 on, people move away, take other jobs, retire (staff, from their sixties) and,
@@ -382,6 +402,65 @@ travels only to its neighbours, and nobody visits one that does not list them. `
 
 Built-in cities cannot be changed or deleted, only copied. A user city's `data_version` is a hash
 of its content, so editing it changes the version later events record.
+
+## Prospero's Draft Table: a place from one line
+
+`companion/world/draft` builds a whole place from one line, such as "a cold fishing town on a northern coast,
+1920s", "an elven forest city" or "a generation ship". It is the engine of Prospero's Draft Table, the location
+builder, which has a window of its own: `draft.html` on the same server (`src/features/draft`), opened from **Settings
+> Cities > Prospero's Draft Table**, the Start menu entry the installer adds, `Windows\draft-table.bat`,
+`Mac/draft-table.command` or `python -m companion.launch --draft`. The window draws the place on the same drawn map
+as Companion's city map, with a tab for each part (neighbourhoods, places, work, getting about, events, local colour)
+to rename, move, add or remove anything. **Roll again** redraws one list and keeps the user's changes everywhere else
+(rolling the neighbourhoods or the name draws up the whole place again, after asking if anything was changed). The
+**Check** tab shows what Companion would mend on loading it and its thin spots (`POST /api/world/draft/check` with a
+definition), and **Save to my cities** saves it with the user's own cities; Companion's window, if open, lists it
+straight away, and **Show in Companion** turns that window to the city's card. The table keeps the work in progress
+on that device between visits, and can open any city file, or a Marinara world map (`POST /api/world/draft/marinara`,
+converted as the Settings import does, without its places' notes), to change it (without Roll again, since a file has
+no line). A world map has no weather, so the table picks it (from the words in its name, region, realm and summary, then
+its era, then Mild) and says so; **Weather** on the Overview changes it (`GET /api/world/draft/weather` lists the
+climates). **Nearby places** on the Overview links other cities of the same world with the journey there
+(`neighbours`), for trips and postcards.
+
+**Polish** on a list is the one step that uses a model, and only when the user presses it: the text model set for
+drafting rewrites that list's names and summaries in the place's own voice (`POST /api/world/draft/polish`
+`{"definition", "section", "line", "keep"}`, `companion/world/draft/polish.py`; `GET` says whether a model is set).
+Only names and summaries of items the list already has change; ids, kinds, where things are, months, careers and links
+stay the rules', and rows the user changed by hand (`keep`) are not sent. Rows it changed are tagged Polished until
+they are edited or the place is saved, and **Undo polish** puts the list back until the next change. The prompt was
+chosen by an A/B over 11 models.
+
+    python -m companion.world.draft "a cold fishing town, 1920s" --seed 3 -o wareholme.json
+
+`POST /api/world/draft` `{"line", "seed", "rolls"}` returns `{"definition", "brief", "summary", "notes",
+"warnings"}` and saves nothing; save the definition with `POST /api/world/cities`.
+
+Rules and seeds only, no model, following the guiding rule: nothing is asked, the line decides what it can and the
+seed decides the rest, and the user changes anything afterwards.
+
+- **Reading the line** (`brief.py`): the era from its words or a year (no era words means today; an empty line
+  picks one), a ship or station only in the future (a railway station in 1880 stays on the ground), sea, river or
+  lake, climate, size (village to great city), a name after "called" or in quotes, and the built-in city of the same
+  era it sits near (one the line names by city, region or country, else the era's own: Camelot, Ellerbrück,
+  London 1895, Calderwick, Whitlock, Pellmouth, Port Vesper, or Long Meridian aboard).
+- **Laying it out** (`layout.py`): the heart of town, the waterside quarter its water calls for, then a market,
+  homes, works, the well-off and the poor, green edges, learning and nightlife until the size; decks in a line
+  aboard. The sea, river or lake goes on the drawn map.
+- **Filling it** (`fill.py`): each neighbourhood's places from its bank entry, employers hiring the era's careers by
+  sector, a career hub for each working quarter, a college where there is a learning quarter, transit for the era,
+  yearly events, local colour and a 12-month climate (none aboard; the app gives ships their own).
+- **From the city it sits near**: money, rent per tier, prices (with their sources), holidays, residents' names,
+  era words and kinds of people; careers come from the era's city.
+- **Same line, same place**: the same line and seed always give the same file. `rolls` (`{"places": 1}`) redraws
+  one section (`name`, `hoods`, `places`, `employers`, `transit`, `events`, `colour`) and leaves the rest alone.
+
+Banks live in `companion/world/data/draft/`: `places/` and `hoods/` by era group (old, 1800s, 1920s, modern,
+future), `employers.json`, `events.json`, `colour.json`, `transit.json`, `kinds.json` (what each kind of place is
+like by default) and `words.json` (inn signs, street words, town-name parts, star names, saints). Every era draws
+from at least 100 places, and the other banks hold at least 100 entries each. An entry can narrow itself with
+`eras`, `water` or `aboard`. Every drafted place loads with nothing to mend and no thin-spot warnings
+(`tests/test_draft_table.py`).
 
 ## City packs
 

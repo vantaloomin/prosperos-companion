@@ -10,8 +10,8 @@ life age is their real age, so nothing changes for them.
 The kinds are rule data (world/data/lifespans.json). A city file may carry its own `kinds` block, which changes a
 built-in kind's lifespan for that city or adds the city's own kind, and a name group ties to a kind with
 `"kind": "<key>"` (`clean` checks both when a city loads). Who gets which kind is decided by the app: a companion
-or the user from what their own words say about them (`from_words`), a townsperson from their name group (`of_group`),
-a circle relative from the companion. The user's own pick on their page wins over both (`lifespan_of`).
+or the user from what their own words say about them (`from_words`), a townsperson from the share of each kind the
+city's `kinds` block gives (`shares`, else their name group's, `of_group`), a circle relative from the companion. The user's own pick on their page wins over both (`lifespan_of`).
 """
 import json
 import re
@@ -25,8 +25,13 @@ AGELESS = 'ageless'
 ADULT = 18
 HUMAN_LIFESPAN = 80
 CITY_YEARS = (40, 5000)  # The whole years a city file may give a kind.
+# The share of townsfolk of a kind the city's `kinds` block lists without one, when no kind there has a share; never
+# more than DEFAULT_TOTAL of the town in all, so a block that lists many kinds still leaves most people human.
+DEFAULT_SHARE = 0.1
+DEFAULT_TOTAL = 0.3
 LONG_LIVED = 150  # Past this, milestone birthdays are round 50s and 100s of real years, and an age past 120 can be theirs.
 WORD_FIELDS = ('identity', 'appearance')
+PRONOUNS = ('she', 'he', 'they')
 NEGATED = re.compile(r"\b(?:not|never|isn't|no)\s+(?:\w+\s+)?(?:an?\s+)?$", re.IGNORECASE)
 
 
@@ -76,6 +81,52 @@ def of_group(data: dict | None, group: str | None) -> str:
     groups, _mix = catalog.name_groups(data)
     kind = (groups.get(group) or {}).get('kind')
     return kind if kind and kind in kinds(data) else HUMAN
+
+
+def shares(data: dict | None) -> dict[str, float]:
+    """The share of the town's seeded people of each kind other than human, from the city's `kinds` block; humans
+    are the rest. A kind in the block with no `share` has none when another kind there has one (`"share": 0` is
+    none too), else DEFAULT_SHARE. A kind a name group in the mix ties to and the block leaves out keeps its part of
+    the mix. Empty for a city with no `kinds` block: its people are drawn from the mix alone, as before kinds had
+    shares."""
+    block = (data or {}).get('kinds') or {}
+    if not block:
+        return {}
+    given = any('share' in value for value in block.values())
+    found = {key: value['share'] if 'share' in value else 0 if given else min(DEFAULT_SHARE, DEFAULT_TOTAL / len(block))
+             for key, value in block.items()}
+    groups, mix = catalog.name_groups(data)
+    total = sum(mix.values())
+    for key, weight in mix.items():
+        kind = groups[key].get('kind')
+        if kind and kind not in block and kind in kinds(data):
+            found[kind] = found.get(kind, 0) + weight / total
+    found = {key: share for key, share in sorted(found.items()) if share > 0 and key != HUMAN}
+    total = sum(found.values())
+    return {key: share / total for key, share in found.items()} if total > 1 else found
+
+
+def groups_for(data: dict, kind: str) -> dict[str, float]:
+    """The name groups people of a kind take their names from, with weights: the kind's own `groups` in the city's
+    block, else the groups in the mix tied to it, else any group tied to it, else the human ones (a kind with no names
+    of its own is named like everyone else)."""
+    groups, mix = catalog.name_groups(data)
+    own = (((data or {}).get('kinds') or {}).get(kind) or {}).get('groups')
+    if own:
+        return {key: mix.get(key, 1.0) for key in own if key in groups}
+    tied = {key: weight for key, weight in mix.items() if (groups[key].get('kind') or HUMAN) == kind}
+    if not tied and kind != HUMAN:
+        tied = {key: 1.0 for key, group in groups.items() if group.get('kind') == kind}
+    if tied:
+        return tied
+    return groups_for(data, HUMAN) if kind != HUMAN else mix
+
+
+def pronoun_weights(data: dict | None, kind: str) -> list[float] | None:
+    """[she, he, they] weights for people of a kind where the city's `kinds` entry gives its own `pronouns`, else
+    None (the town's usual mix)."""
+    own = ((((data or {}).get('kinds') or {}).get(kind) or {}).get('pronouns'))
+    return [own.get(key, 0) for key in PRONOUNS] if own else None
 
 
 def from_words(text: str, data: dict | None = None) -> str:
@@ -185,12 +236,31 @@ def clean(data: dict) -> list[str]:
     else:
         data.pop('kinds', None)
     known = set(table()['kinds']) | set(own)
+    named = set(catalog.name_groups(data)[0]) if own else set()
+    for key, value in own.items():
+        if 'groups' in value and not set(value['groups']) <= named:
+            notes.append(f'The kind "{key}" takes names from groups the city doesn\'t have '
+                         f'({", ".join(sorted(set(value["groups"]) - named))}), so those are left out.')
+            value['groups'] = [group for group in value['groups'] if group in named]
+            if not value['groups']:
+                value.pop('groups')
+    return notes + unknown_kinds(data, known)
+
+
+def unknown_kinds(data: dict, known: set[str]) -> list[str]:
+    """Name groups and notables that name a kind the city doesn't know become human, with a note for each."""
+    notes = []
     for key, group in ((data.get('names') or {}).get('groups') or {}).items():
         if group.get('kind') and group['kind'] not in known:
             notes.append(f'The name group "{key}" names the kind "{group["kind"]}", which isn\'t known, so its people '
                          'are human.')
         if not group.get('kind') or group['kind'] not in known:
             group.pop('kind', None)  # Humans, as before kinds: a city without them keeps its data_version.
+    for notable in data.get('notables') or ():
+        if notable.get('kind') and notable['kind'] not in known:
+            notes.append(f'{notable["name"]} names the kind "{notable["kind"]}", which isn\'t known, so they are '
+                         'human.')
+            notable.pop('kind')
     return notes
 
 
@@ -202,7 +272,14 @@ def clean_kinds(block: dict) -> tuple[list[str], dict]:
         if not isinstance(value, dict) or not re.fullmatch(r'[a-z0-9][a-z0-9-]*', str(key)):
             notes.append(f'Dropped the kind "{key}": it needs a lowercase key and a lifespan.')
             continue
+        extra, why = extras(value)
+        if why:
+            notes.append(f'Dropped the kind "{key}": {why}')
+            continue
         span = value.get('lifespan', 'missing')
+        if key in builtin and span == 'missing' and key not in (HUMAN, AGELESS):
+            own[key] = extra  # A built-in kind with only a share here keeps its own lifespan.
+            continue
         if span is not None and (isinstance(span, bool) or not isinstance(span, int)
                                  or not CITY_YEARS[0] <= span <= CITY_YEARS[1]):
             notes.append(f'Dropped the kind "{key}": its lifespan must be a whole number of years from '
@@ -213,12 +290,37 @@ def clean_kinds(block: dict) -> tuple[list[str], dict]:
                                                          'other kind.' if key == HUMAN else "it doesn't age anywhere."))
             continue
         if key in builtin:
-            own[key] = {'lifespan': span}  # A built-in kind: only its lifespan changes here.
+            own[key] = {'lifespan': span} | extra  # A built-in kind: only its lifespan (and share) changes here.
             continue
         label, words = value.get('label'), value.get('words')
         if not isinstance(label, str) or not label.strip() or not isinstance(words, list) or not words or \
                 not all(isinstance(word, str) and word.strip() for word in words):
             notes.append(f'Dropped the kind "{key}": a kind of the city\'s own needs a label and some words.')
             continue
-        own[key] = {'label': label.strip()[:40], 'lifespan': span, 'words': [word.strip()[:40] for word in words]}
+        own[key] = {'label': label.strip()[:40], 'lifespan': span, 'words': [word.strip()[:40] for word in words]} | extra
     return notes, own
+
+
+def extras(value: dict) -> tuple[dict, str]:
+    """({share, groups, pronouns} as given, '') for a kind's entry, or ({}, why) when one is wrong: a share is a number
+    from 0 to 1 (the fraction of the town's seeded people of this kind), groups name the city's name groups and
+    pronouns weigh she, he and they for people of this kind."""
+    extra = {}
+    if 'share' in value:
+        share = value['share']
+        if isinstance(share, bool) or not isinstance(share, (int, float)) or not 0 <= share <= 1:
+            return {}, 'its share must be a number from 0 to 1 (0.2 is one person in five).'
+        extra['share'] = float(share)
+    if 'groups' in value:
+        groups = value['groups']
+        if not isinstance(groups, list) or not groups or not all(isinstance(group, str) and group for group in groups):
+            return {}, 'its groups must list the name groups its people are named from.'
+        extra['groups'] = list(dict.fromkeys(groups))
+    if 'pronouns' in value:
+        weights = value['pronouns']
+        if not isinstance(weights, dict) or not weights or set(weights) - set(PRONOUNS) or \
+                any(isinstance(weight, bool) or not isinstance(weight, (int, float)) or weight < 0
+                    for weight in weights.values()) or not sum(weights.values()):
+            return {}, 'its pronouns must weigh "she", "he" and "they" ({"she": 0.8, "he": 0.15, "they": 0.05}).'
+        extra['pronouns'] = {key: float(weights[key]) for key in PRONOUNS if key in weights}
+    return extra, ''

@@ -222,7 +222,8 @@ def test_a_best_friend_is_asked_to_be_godparent_at_the_naming_day(client, mira, 
     assert row['details']['pronouns'] == child['pronouns']  # The baby's, not their partner's.
     assert date.fromisoformat(row['local_date']).weekday() == 5
     text = big_days.invitation(row, 'Saturday', '11')
-    assert child['name'] in text and 'Saturday' in text
+    # The invitation uses their first name: "for Bao" when the baby is Bao Chau.
+    assert big_days.first(child['name']) in text and 'Saturday' in text
     assert 'godparent' in big_days.reason_for(row, date.fromisoformat(row['local_date']))
     assert 'to be the godparent' in prompt(client)
 

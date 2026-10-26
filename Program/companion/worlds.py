@@ -419,10 +419,27 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
     library.carry_city_books(path, database.path, data)
 
 
-def somewhere_new(connection, here: str, seed: str) -> str:
-    """A featured city other than `here`, the same one for the same world; `here` when nothing else is featured."""
-    others = [city['id'] for city in catalog.featured(custom.all_cities(connection))['cities'] if city['id'] != here]
-    return min(others, key=lambda city_id: generators.unit(city_id, 'somewhere-new', seed), default=here)
+def somewhere_new(connection, here: str, seed: str, now=None) -> str:
+    """A featured city other than `here`, the same one for the same world; `here` when nothing else is featured. It
+    leans toward cities within NEAR_HOURS of the user's clock, so the companion found there is awake on the user's
+    evenings more often (companion/life/their_hours.py), without ruling the far ones out."""
+    from companion.life import their_hours
+    others = [city for city in catalog.featured(custom.all_cities(connection))['cities'] if city['id'] != here]
+    mine = their_hours.user_zone(connection) if their_hours.known(connection) else None
+
+    def weight(city: dict) -> float:
+        if mine is None or not now or not city.get('timezone'):
+            return 1.0
+        return NEAR_WEIGHT if abs(their_hours.gap(city['timezone'], mine, now)) <= NEAR_HOURS * 60 else 1.0
+    # A weighted draw with one roll per city: the highest roll ** (1 / weight) wins.
+    picked = max(others, key=lambda city: generators.unit(city['id'], 'somewhere-new', seed) ** (1 / weight(city)),
+                 default=None)
+    return picked['id'] if picked else here
+
+
+# "Somewhere new" leans this many times toward a featured city within NEAR_HOURS of the user's clock.
+NEAR_HOURS = 4
+NEAR_WEIGHT = 4.0
 
 
 def unique_name(data: dict, wanted: str) -> str:
@@ -445,7 +462,7 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
     world_id = identifier()
     with database.connect() as connection:
         if city_id == SOMEWHERE_NEW:
-            city_id = somewhere_new(connection, city_of(connection)['id'], world_id)
+            city_id = somewhere_new(connection, city_of(connection)['id'], world_id, database.clock.now())
         city = story.city_data(connection, city_id) if city_id else city_of(connection)
     folder = f'{FOLDER}/{world_id}'
     path = database.root / folder / DATABASE
@@ -575,24 +592,42 @@ def create_persona(database: Database, body) -> dict:
     too (the form starts on somewhere new, picked for them); everyone in it is decided for them."""
     name = (body.name or '').strip()
     require(bool(name), 'Give the new persona a name.', 422)
-    data = registry(database)
-    persona_id = identifier()
-    persona = {'id': persona_id, 'name': name, 'gender': body.gender or '', 'age': body.age,
+    persona = {'id': identifier(), 'name': name, 'gender': body.gender or '', 'age': body.age,
                'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now(),
                'pets': pets.persona_entries([], [pet.model_dump() for pet in body.pets or []],
                                             database.clock.now().date()),
                'kind': body.kind or '', 'lifespan': body.lifespan}
     check_kind(database, persona)
+    return with_world(database, persona, getattr(body, 'city_id', None))
+
+
+def with_world(database: Database, persona: dict, city_id: str | None) -> dict:
+    """A persona joins the list with a new world of their own in `city_id`; neither stays if the world fails."""
+    data = registry(database)
     data['personas'].append(persona)
     save(database.root, data)
     try:
-        world = create_world(database, persona_id, city_id=getattr(body, 'city_id', None))
+        world = create_world(database, persona['id'], city_id=city_id)
     except BaseException:
         data = registry(database)
-        data['personas'] = [item for item in data['personas'] if item['id'] != persona_id]
+        data['personas'] = [item for item in data['personas'] if item['id'] != persona['id']]
         save(database.root, data)
         raise
     return {**persona, 'worlds': [world]}
+
+
+# What a copy of a persona takes from them: who they are, never what belongs to their worlds (where they live there,
+# or the townsperson they became in one).
+COPIED = ('name', 'gender', 'age', 'about', 'birthday', 'pets', 'kind', 'lifespan')
+
+
+def copy_persona(database: Database, persona_id: str, city_id: str | None) -> dict:
+    """A separate persona made from this one, with a world of their own where everyone is new, so the user need not
+    type them again. Changing either one later leaves the other as it was; the app picks their home as in any new
+    world."""
+    persona = found(registry(database)['personas'], persona_id, 'persona')
+    copy = json.loads(json.dumps({key: persona.get(key) for key in COPIED}))
+    return with_world(database, {**copy, 'id': identifier(), 'created_at': database.now()}, city_id)
 
 
 def update_persona(database: Database, persona_id: str, body) -> dict:

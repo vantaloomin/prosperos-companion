@@ -753,12 +753,36 @@ PICT_M = words("""Arn Bram Dag Eirik Grim Hakon Lok Murn Orm Rask Sten Tor Ulf V
     Brok Dregg Fenn Gorm Harald Krag Mord Rurik Skarn Thrain Ulfar Vidar""")
 PICT_FAMILY = ['of the Boar', 'of the Bear', 'of the Wolf', 'of the Deer', 'of the Shadowfang',
     'of the Thunderhoof', 'of the Elk', 'of the Raven', 'of the Seal', 'of the Lynx']
-ELF_F = words("""Aerwen Ithriel Lairenë Saelwen Tuilinë Merawen Nimriel Elanwë Silmarë Faelith Iriel Lothiel
-    Varanë Celewen Aranel Ilwen Yavië Loriel Thessa Daphne Ione Phaedra Rhea Thalia Melina Aletha""")
+ELF_F = words("""Aerwen Ithriel Lairenë Saelwen Tuilinë Merawen Nimriel Elanwë Silmarë Faelith Iriel Lothiel Varanë
+    Celewen Aranel Ilwen Yavië Loriel Thessa Daphne Ione Phaedra Rhea Thalia Melina Aletha Alassië Amarië Anariel
+    Ariniel Aurelë Belwen Calawen Celandë Cirieth Edhelwen Eilinë Elenrë Erinwë Estelë Faewen Fíriel Gilwen Haldië
+    Hiswen Ilmarë Ináriel Isilmë Ithilwen Lindë Linwen Lómiel Lossiel Luinwë Maerwen Mirwen Naira Nárië Neldorë
+    Nénwen Nessiel Orniel Oronwë Rána Rilwen Rínwë Rossiel Sérien Silwen Súlië Taurwen Tárië Telwen Tindë Tirnel
+    Úriel Valwen Vanyë Vinyarë Alcarë Ambarel Anwië Arcamë Calmië Ëarniel Hrívien Lairiel Lótessë Quellinë Tuilië
+    Wilwarë Nimwen Helinë Hísiel Mornië Fanwië Írimë Chloe Iris Selene Theodora Eudora Callista Ariadne Danae
+    Eirene Galene Helia Kore Leda Niobe Penelope Philomela Theia Althea Antheia Corinna Delia Dione Electra
+    Euphemia Halcyone Ianthe Isadora Larissa Medora Nephele Pelagia Sophronia Thea Urania""")
 ELF_M = words("""Aerendil Thalion Voriel Saeron Tuilar Calandor Elorin Maranor Ithrandir Faelor Lairon Quelaron
-    Belion Caranor Nethril Varion Halion Erevan Ilmarin Tavor Theon Doros Kallias Myron Nikias""")
-ELF_FAMILY = ['of the Hrívë Court', 'Fernwhisper', 'Mossfall', 'Thornwillow', 'Leafmantle',
-    'Brookshade', 'Ashenbough', 'Dewglen', 'Starbriar', 'Quellarin', 'Tuilëandor']
+    Belion Caranor Nethril Varion Halion Erevan Ilmarin Tavor Theon Doros Kallias Myron Nikias Alcarin Arandor
+    Arthion Aurion Calion Celeron Edhelion Fíron Gilmar Haldion Isildor Ithilion Lindor Lómion Lossar Luinor
+    Maedhor Mirion Nárion Neldor Oronar Saelor Silmon Taurion Telion Tindor Úlmar Valandor Vanyon Alcarion Ambaron
+    Anwion Calmion Hrívion Lótion Quellion Tuilion Wilwaron Nimron Helion Hísion Mornion Fanwion Írion Erendor
+    Faranel Halmir Ilmendor Lassion Alexios Aristos Damian Demetrios Galen Hektor Isandros Kleon Lykos Melanthios
+    Nestor Orestes Pallas Phaedon Philon Stavros Timon Xanthos Zenon Alkaios Dion Eumenes Hesperos Iason Kosmas
+    Leontios Lysias Nereus Pyrrhos Sotiris Thrasos Ambrose Basil Cyril Eusebios Gregorios Linos Markos Petros
+    Spyros Andrion""")
+ELF_FAMILY = ['of the Hrívë Court', 'of the Spring Court', 'of the Summer Court',
+    'of the Autumn Court', 'of House Quellë', 'of House Tuilë', 'of House Lairë'] + words("""
+    Fernwhisper Mossfall Thornwillow Leafmantle Brookshade Ashenbough Dewglen Starbriar Quellarin Tuilëandor
+    Fernglen Fernshade Fernbrook Mossbough Mossglen Mosslight Leaffall Leafbrook Leafsong Brookleaf Brookfern
+    Brookwillow Dewbough Dewfern Dewleaf Willowshade Willowglen Willowbrook Birchglen Birchsong Birchfall Alderglen
+    Aldershade Alderbrook Rowanleaf Rowanglen Rowanfall Hazelbrook Hazelglen Hazelshade Lindenfall Lindenglen
+    Lindensong Elderglen Elderbough Reedsong Reedglen Heatherfall Heatherglen Brackenfall Brackenshade Cloverglen
+    Cloverbrook Ivyfall Ivyglen Laurelbrook Laurelshade Myrtleglen Sorrelbrook Thymeglen Bramblefall Brambleshade
+    Larksong Larkglen Wrenfall Wrensong Finchbrook Heronglen Heronfall Swansong Swanbrook Otterbrook Hartglen
+    Hartfall Doebrook Fawnglen Fawnshade Pinebough Pinefall Cedarglen Cedarshade Yewbough Yewglen Elmshade
+    Aspenfall Aspenglen Hollybrook Juniperglen Meadowsong Meadowbrook Glenfern Glenwillow Mistleaf Springbough
+    Rainfern Rainglen Petalfall Bloomglen Honeybrook Applebough Pearbough Plumglen Quincebrook Sloeglen""")
 FAR_F = words("Freya Xenia Kalliope Irina Sigrun Thora Asta Liv Ragna Dalia Zora Leandra Nerissa Selka Yara")
 FAR_M = words("Theron Halvard Torvin Ivar Damon Leander Ragnar Orm Darius Esben Kasimir Nils Tarik Yannick")
 FAR_FAMILY = words("Freyhold Seafarer Islesend Farshore Northwind Wavecrest Saltwind Longvoyage Driftwell Westerly Tradewind Harbourne")
@@ -779,8 +803,10 @@ names = {
  # Short northern names with the tribe as the family name, like the wiki's Kasa of the Boar Tribe.
  'pictish': {'feminine': PICT_F, 'masculine': PICT_M, 'neutral': [], 'family': PICT_FAMILY,
  'own_family': True},
- # Elves are rare since the Veil; names after the wiki's elven and Greek-sounding ones. They live long
- # (companion/world/lifespans.py), so an elven resident is often centuries old.
+ # Elves keep to Velatasia behind the Veil, though city elves live among humans; names after the wiki's elven
+ # (Tuilë, Lairë, Quellë) and Greek-sounding ones. They live long (companion/world/lifespans.py), so an elven
+ # resident is often centuries old. The wiki has no half-elves: an elf and a human's son is human, their
+ # daughter an elf.
  'elven': {'feminine': ELF_F, 'masculine': ELF_M, 'neutral': [], 'family': ELF_FAMILY, 'own_family': True,
  'kind': 'elf'},
  },
@@ -870,6 +896,9 @@ CITY = {
  'sources': sources, 'neighborhoods': neighborhoods, 'places': places, 'colleges': colleges,
  'employers': employers, 'career_hubs': career_hubs, 'transit': transit, 'climate': climate,
  'annual_events': annual_events, 'careers': careers, 'names': names, 'local_color': local_color,
+ # About one in twenty-five people in town is a city elf (companion/world/lifespans.py `shares`), and most elves
+ # are women: the wiki puts male elves at one in five to one in seventeen.
+ 'kinds': {'elf': {'share': 0.04, 'pronouns': {'she': 0.8, 'he': 0.15, 'they': 0.05}}},
  'prices': prices, 'calendar': 'none', 'holidays': holidays, 'notables': notables, 'water': water,
 }
 if __name__ == '__main__':

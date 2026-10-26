@@ -7,7 +7,8 @@ or two circle people, are never computed, so the thousands of townsfolk in a cit
 
 Where a pair starts:
 - two companions: "Just met", or higher the more often they have run into each other around town, unless the
-  user wrote how they know each other when they were first put together (a group, or becoming a companion);
+  user wrote how they know each other when they were first put together (a group, or becoming a companion),
+  or told it from the Character page's "Who they know" without a group;
 - a companion and someone in their circle: a default by the circle role, nudged one step up or down by the
   person's seed (some families are tight, some distant; not every close friend is the closest);
 - a companion and a townsperson: higher the more often they have met (#204's rule for the user).
@@ -417,6 +418,34 @@ def ties(connection, companion: dict, now) -> list[dict]:
                            'feels': found['ab'], 'they_feel': found['ba'], 'how': found['how'],
                            'group_days': found['group_days'], 'meetings': found['meetings']})
     return result
+
+
+def untold_for(connection, companion: dict, now) -> list[dict]:
+    """The other companions whose backstory with this one can still be told, for the Character page's "Who they
+    know": each at the stage and with the line the app works out, so telling it is one click (Vanta 2026-10-25)."""
+    others = [row['id'] for row in many(connection, 'SELECT id FROM companions WHERE id!=? AND active_version_id IS NOT NULL '
+                                        'ORDER BY created_at', (companion['id'],))]
+    result = []
+    for other in others:
+        for found in untold(connection, [companion['id'], other], now):
+            result.append({'companion_id': other, 'name': found['b_name'], 'level': found['level'], 'how': found['how']})
+    return result
+
+
+def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
+    """The other companions they know, for their one-on-one prompt: who each one is (their public "Others see" line),
+    the group chat's stage line and how they know each other (A/B 2026-10-25,
+    /mnt/project-files/companion-who-they-know-ab/report.md). The key changes only with the stage, so it caches."""
+    from companion.groups import FEELS, HOW_YOU_KNOW
+    lines = []
+    for tie in ties(connection, companion, now):
+        first, level = tie['name'].split(' ')[0], tie['feels']['level']
+        public = perception.companion_lines(connection, tie['companion_id'])['public']
+        text = f"- {tie['name']}" + (f': {public}' if public else '') + f"\n  {FEELS[level - 1].format(name=first)}"
+        if tie['how']:
+            text += '\n  ' + HOW_YOU_KNOW.format(name=first, how=tie['how'])
+        lines.append((f"companion:{tie['companion_id']}:{level}", text))
+    return lines
 
 
 def defaults_for_new(connection, others: list[dict], key: str, now) -> list[dict]:

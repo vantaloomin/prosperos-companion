@@ -8,7 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { stageText } from '../memories/pairText'
-import { townLeft, townMet, townNow, townRole } from './townText'
+import { townFirstLook, townLeft, townMet, townNow, townRole } from './townText'
 import { BecomeThem } from './BecomeThem'
 import { PetLines } from '../pets/PetLines'
 import { PersonalitySliderList, PersonalitySummary } from '../character/PersonalityFields'
@@ -43,7 +43,7 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
   const now = useQuery({ queryKey: ['townsfolk', person.key], queryFn: () => api<{ now: TownspersonNow | null; pets?: PetView[] }>(`/life/townsfolk/person?key=${encodeURIComponent(person.key)}`) })
   return (
     <div className="town-detail">
-      <p>About {person.age}, {person.temperament}; {person.quirk}.</p>
+      <p>{townFirstLook(person)}</p>
       <TownLove love={person.love} />
       <ComesAcross person={person} />
       <TownPersonality person={person} />

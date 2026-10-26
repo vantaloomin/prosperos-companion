@@ -35,6 +35,16 @@ class RoutineBlock(Input):
         return self
 
 
+class TheirHours(Input):
+    """How their week sits against the user's clock (companion/life/their_hours.py). The form sends the mode back;
+    the shift is always worked out on the server."""
+    mode: Literal['fit', 'mine', 'city'] = 'city'
+    shift: int = Field(default=0, ge=-1440, le=1440)
+    why: str = Field(default='', max_length=20)
+    zone: str = Field(default='', max_length=64)
+    fit: int = Field(default=0, ge=-1440, le=1440)
+
+
 class EmotionalTrait(Input):
     """An opt-in trait such as jealousy or guilt over absence (PRD C6). None are enabled by default."""
     name: str = Field(min_length=1, max_length=60)
@@ -55,6 +65,8 @@ class IntimacySetup(Input):
     level: Literal['', 'reserved', 'conventional', 'curious', 'adventurous', 'wild'] = ''
     drive: Literal['', 'low', 'average', 'high'] = ''
     interests: list[Annotated[str, Field(max_length=40)]] = Field(default_factory=list, max_length=24)
+    # The user chose the interests themselves, so an empty list means none rather than the roll.
+    interests_picked: bool = False
     # Their own turn-ons and turn-offs, in the user's words, beyond the bank.
     own_into: list[Annotated[str, Field(max_length=80)]] = Field(default_factory=list, max_length=8)
     not_into: list[Annotated[str, Field(max_length=80)]] = Field(default_factory=list, max_length=8)
@@ -81,6 +93,8 @@ class MoneySetup(Input):
     # Their hours (companion/life/shifts.py): empty follows their work (shifts that change each week for a bartender,
     # gigs for a freelancer), or the same days every week ('staff'), shifts ('rota') or gigs ('freelance').
     employment: Literal['', 'staff', 'rota', 'freelance'] = ''
+    # What a student studies (companion/life/job_words.py); empty reads it from who they are.
+    field: str = Field(default='', max_length=60)
 
 
 class Looks(Input):
@@ -147,6 +161,8 @@ class CharacterDefinition(Input):
     timezone: str = Field(default='UTC', max_length=64)
     # Structured routine for the life simulation; empty uses a gentle default day.
     schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
+    # Their week moved to fit the user's evenings, or onto the user's clock (companion/life/their_hours.py).
+    their_hours: TheirHours | None = None
     # Themes automatic events may draw on (PRD T3).
     life_themes: list[str] = Field(default_factory=list, max_length=20)
     # "MM-DD"; empty picks a date from the companion's id (companion/life/occasions.py).
@@ -398,6 +414,8 @@ class SettingsUpdate(Input):
     chat_retro_dark: bool | None = None
     # Period words in period cities (companion/world/era_words.py).
     period_words: bool | None = None
+    # Keep my colours everywhere (companion/their_look.py): no companion's own colours or name font anywhere.
+    keep_my_colours: bool | None = None
     color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
     custom_palette: Palette | None = None
     # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
@@ -532,6 +550,10 @@ class LifeSettingsUpdate(Input):
     memes_realism: int | None = Field(default=None, ge=0, le=3)
     # Inner voice (companion/life/narrator.py): 0 just what happened, 1 a few thoughts, 2 true to life, 3 everything.
     inner_voice: int | None = Field(default=None, ge=0, le=3)
+    # Their look in chat (companion/their_look.py): 0 off, 1 steady, 2 true to life, 3 expressive.
+    their_look: int | None = Field(default=None, ge=0, le=3)
+    # Waking them (companion/life/waking.py): 0 they never mind, 1 easygoing, 2 true to life, 3 it wears thin fast.
+    waking_realism: int | None = Field(default=None, ge=0, le=3)
     # Getting together (companion/life/together.py): 0 never on their own, 1 light, 2 true to life, 3 often.
     together_realism: int | None = Field(default=None, ge=0, le=3)
     # Rough patches (companion/life/rough_patches.py): 0 off, 1 easy, 2 true to life, 3 dramatic.
@@ -702,6 +724,11 @@ class PersonaInput(Input):
 class NewPersona(PersonaInput):
     """A new persona, and the city their world is in: the current one unless the user picks another, or
     `somewhere-new` for the app to pick (companion/worlds.py)."""
+    city_id: str | None = Field(None, min_length=1, max_length=120)
+
+
+class PersonaCopy(Input):
+    """Where a copy of a persona gets their world (companion/worlds.py): as for a new persona."""
     city_id: str | None = Field(None, min_length=1, max_length=120)
 
 

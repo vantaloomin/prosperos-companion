@@ -25,7 +25,7 @@ from datetime import date, timedelta
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import ages, named
+from companion.life import ages, job_words, named
 from companion.world import catalog, generators, lifespans, naming
 
 CIRCLE_SIZE = 5
@@ -136,9 +136,7 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
     """The circle from the world data's generator, closest first, living near the companion when
     their location names a neighborhood. A circle bigger than the usual one fills in sociably. With `sheet`, the
     people the character sheet names take their places (with_named)."""
-    match = catalog.resolve(definition.get('location') or '')
-    hoods = {hood['id'] for hood in data['neighborhoods']}
-    home = match['neighborhood'] if match and match['neighborhood'] in hoods else None
+    home = home_of(data, definition)
     social = size > CIRCLE_SIZE
     order = generators.SOCIAL if social else generators.CIRCLE
     works = social and bool(work_blocks(definition))
@@ -153,19 +151,118 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
     result = [city_person(member, data, definition, family, timeline_id, taken) for member in made['people']]
 
     def make(index, person):
-        role = person['generator_role']
-        related = role in ('parent', 'sibling', 'cousin')
-        member = generators.resident(data, seed=f'{base}:named:{index}', role=role, local=person['local'],
-                                     near=home if role in ('neighbor', 'parent', 'sibling') else None,
-                                     family=family if related else None, group=group if related else None,
-                                     folk=folk if related else None, pronouns=person['pronouns'])
-        pronouns = person['pronouns'] or 'they/them'
-        given = person['name'].split()[0]
-        full = person['name'] if ' ' in person['name'] else given
-        member['name'] = {**member['name'], 'given': given, 'full': full, 'pronouns': pronouns}
-        made = city_person(member, data, definition, family, timeline_id, set(), named_role(person))
+        made = city_named(data, definition, timeline_id, person, f'{base}:named:{index}')
         return made | {'details': made['details'] | {'sheet': person['name']}}
     return with_named(result, sheet_people, make)
+
+
+def home_of(data: dict, definition: dict) -> str | None:
+    """The neighborhood id their location names, when it is one of the city's."""
+    match = catalog.resolve(definition.get('location') or '')
+    return match['neighborhood'] if match and match['neighborhood'] in {hood['id'] for hood in data['neighborhoods']} \
+        else None
+
+
+def city_named(data: dict, definition: dict, timeline_id: str, person: dict, seed: str) -> dict:
+    """Someone named in words (the sheet's, or the user's on the circle list) as a circle member from the city: their
+    name, relation, job and age as given, and the rest a seeded resident's."""
+    role = person['generator_role']
+    related = role in ('parent', 'sibling', 'cousin')
+    family = family_name(definition)
+    group, home = family_group(data, family), home_of(data, definition)
+    folk = lifespans.sheet_kind(definition, data)
+    career, shown = sheet_career(person, catalog.everyday(catalog.careers_for(data)))
+    workplace = place_named(data, person.get('employer') or '') if career else None
+    member = generators.resident(data, seed=seed, role=role, local=person['local'],
+                                 near=home if role in ('neighbor', 'parent', 'sibling') else None,
+                                 family=family if related else None, group=group if related else None,
+                                 folk=folk if related else None, pronouns=person['pronouns'],
+                                 career=career['id'] if career and person['local'] else None,
+                                 employer=workplace, age=grown_age(person),
+                                 around_age=ages.written_age(timeline_id, definition))  # A friend of 21 is no 44.
+    # The sheet's own word, else they/them; someone added by hand without one gets the resident's.
+    pronouns = person['pronouns'] or (member['name']['pronouns'] if person.get('by_hand') else 'they/them')
+    given = person['name'].split()[0]
+    full = person['name'] if ' ' in person['name'] else given
+    member['name'] = {**member['name'], 'given': given, 'full': full, 'pronouns': pronouns}
+    made = city_person(member, data, definition, family, timeline_id, set(), named_role(person))
+    return with_job(made, shown, career, '' if workplace and person['local'] else person.get('employer') or '', seed)
+
+
+def plain_named(definition: dict, person: dict, seed: str, ordinal: int) -> dict:
+    """Someone named in words as a circle member in a place the app has no data for."""
+    made = assemble(seed, ordinal, definition, None, set(), named_role(person))
+    full = person['name'] if ' ' in person['name'] else ''
+    pronouns = person['pronouns'] or (generators.pick(seed, 'pronouns', ['she/her', 'he/him'])
+                                      if person.get('by_hand') else 'they/them')
+    made |= {'name': person['name'].split()[0],
+             'details': made['details'] | {'pronouns': pronouns, 'local': person['local']}
+             | ({'full_name': full} if full else {})}
+    career, shown = sheet_career(person, catalog.everyday(catalog.careers()))
+    if career:
+        made |= {'career': career['id'], 'schedule': generators.schedule(career, seed)}
+    if not person['local']:
+        made |= {'career': '', 'schedule': [], 'details': made['details'] | {'career': '', 'employer': ''}}
+    if grown_age(person):
+        made['details'] = made['details'] | {'age': person['age']}
+    return with_job(made, shown, career, person.get('employer') or '', seed)
+
+
+def grown_age(person: dict) -> int | None:
+    """The age the words give a grown-up; a son or daughter's stays with the kids (companion/life/kids.py)."""
+    return person.get('age') if person['kind'] != 'child' else None
+
+
+def sheet_career(person: dict, offered: dict[str, dict]) -> tuple[dict | None, str | None]:
+    """(career, how their job shows) for a job the sheet gives someone (companion/life/named.py `job_of`): the
+    matched career for its hours, and the sheet's own words. A job said only in passing ("Tunde, a quiet man")
+    counts only when it names a career; (None, None) for none."""
+    words = person.get('job') or ''
+    if not words:
+        return None, None
+    if gone := job_words.no_job(words):
+        return None, gone[0]
+    career = job_words.career_match(words, offered)
+    return career, job_words.label(words) if career or person.get('sure') else None
+
+
+def place_named(data: dict, name: str) -> str | None:
+    """The id of a workplace in the city by its name ("Mercy Medical Center"), for someone's job there."""
+    wanted = job_words.plain(name)
+    if not wanted:
+        return None
+    for group in ('employers', 'colleges', 'places'):
+        for item in data.get(group, ()):
+            if job_words.plain(item['name']) in (wanted, job_words.plain(f'the {wanted}')) and 'neighborhood' in item:
+                return item['id']
+    return None
+
+
+OFFICE_HOURS = {'id': '', 'schedule': 'office', 'themes': []}
+
+
+def with_job(person: dict, shown: str | None, career: dict | None, employer: str, seed: str) -> dict:
+    """The person with a job in someone's own words (`shown`; None keeps theirs): the words show as their job, and
+    their week keeps the matched career's hours (`career`, already in their schedule), else office hours for words
+    the app doesn't know, a retired week for no job, or nothing out of town. `employer` names where they work in
+    words the city has no record for."""
+    if shown is None and not employer:
+        return person
+    details, schedule, career_id = dict(person['details']), person['schedule'], person['career']
+    if shown is not None:
+        details.pop('works_with_companion', None)
+        details['career'], career_id = shown, career['id'] if career else ''
+        if not career:
+            details['employer'] = ''
+            working = bool(shown) and not job_words.no_job(shown)
+            schedule = [] if not details.get('local', True) else \
+                generators.schedule(OFFICE_HOURS | {'name': shown}, seed, employer) if working else \
+                generators.RETIRED_SCHEDULE
+        elif shown:  # "Right now: ER nurse", in their words.
+            schedule = [block | {'label': shown} if block['kind'] == 'work' else block for block in schedule]
+    if employer:
+        details['employer'] = employer
+    return {**person, 'career': career_id, 'details': details, 'schedule': schedule}
 
 
 def city_person(member: dict, data: dict, definition: dict, family: str | None, timeline_id: str, taken: set[str],
@@ -344,15 +441,8 @@ def build(definition: dict, world, timeline_id: str, size: int, seed: str | None
         names.add(person['name'])
 
     def make(index, person):
-        made = assemble(f'{base}:named:{index}', len(built) + index, definition, None, set(), named_role(person))
-        full = person['name'] if ' ' in person['name'] else ''
-        made |= {'name': person['name'].split()[0],
-                 'details': made['details'] | {'pronouns': person['pronouns'] or 'they/them', 'local': person['local'],
-                                               'sheet': person['name']}
-                 | ({'full_name': full} if full else {})}
-        if not person['local']:
-            made |= {'career': '', 'schedule': [], 'details': made['details'] | {'career': '', 'employer': ''}}
-        return made
+        made = plain_named(definition, person, f'{base}:named:{index}', len(built) + index)
+        return made | {'details': made['details'] | {'sheet': person['name']}}
     return with_named(built, named.in_circle(definition) if sheet else [], make)
 
 
@@ -480,6 +570,8 @@ def match_family(connection, companion: dict, world, rows: list[dict], now) -> b
     for row in relatives:
         details = decode(row['details'])
         full = details.get('full_name')
+        if 'name' in details.get('edited', ()):
+            continue  # The user named them; their name stays as they wrote it.
         if not full or not (full == row['name'] or full.startswith(f"{row['name']} ")):
             continue
         given = row['name'] if full != row['name'] else full.split()[0]

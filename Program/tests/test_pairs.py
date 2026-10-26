@@ -288,3 +288,51 @@ def test_a_mask_never_leaves_their_own_mom_at_just_met(client, monkeypatch):
     people = ok(client.get('/api/life/circle'))
     family = [person for person in people if person['role'] in ('mom', 'dad', 'sister', 'brother')]
     assert family and all(person['stage']['level'] >= 2 for person in family)
+
+
+def test_the_character_page_tells_who_they_know_once_without_a_group(client, cast):
+    mira, billy, sally = key(cast['Mira']), key(cast['Billy']), key(cast['Sally'])
+    found = ok(client.get('/api/companion/ties'))
+    assert found['ties'] == []
+    # Everyone else starts filled in, as the group form does, so telling it is one click.
+    assert [(item['name'], item['level'], item['how']) for item in found['untold']] == [
+        ('Billy Hart', 1, 'Only know each other through the user'), ('Sally Moss', 1, 'Only know each other through the user')]
+
+    told = ok(client.post('/api/companion/ties', json={'companion_id': cast['Billy'], 'level': 4, 'how': 'Old bandmates.'}))
+    assert [(tie['name'], tie['feels']['level'], tie['how']) for tie in told['ties']] == [('Billy Hart', 4, 'Old bandmates.')]
+    assert [item['name'] for item in told['untold']] == ['Sally Moss']
+    assert stage(client, mira, billy) == stage(client, billy, mira) == 4 and stage(client, mira, sally) == 1
+    # Told once, through any door: not again here, and a group later keeps it.
+    again = client.post('/api/companion/ties', json={'companion_id': cast['Billy'], 'level': 1, 'how': 'Strangers.'})
+    assert again.status_code == 409
+    ok(client.post('/api/groups', json={'companion_ids': [cast['Mira'], cast['Billy']], 'ties': [
+        {'a': cast['Mira'], 'b': cast['Billy'], 'level': 2, 'how': 'Twins.'}]}))
+    assert stage(client, mira, billy) == 4
+    assert client.post('/api/companion/ties', json={'companion_id': 'nobody', 'level': 2}).status_code == 409
+
+
+def test_a_deleted_group_leaves_the_backstory_it_told(client, cast):
+    """What a tester found (2026-10-25): a group they deleted still left the two knowing each other."""
+    group = ok(client.post('/api/groups', json={'companion_ids': [cast['Billy'], cast['Sally']], 'ties': [
+        {'a': cast['Billy'], 'b': cast['Sally'], 'level': 3, 'how': 'Neighbors.'}]}))
+    ok(client.delete(f"/api/groups/{group['id']}"))
+    with client.app.state.database.connect() as connection:
+        billy = by_id(connection, cast['Billy'])
+        assert [tie['how'] for tie in pairs.ties(connection, billy, client.app.state.database.clock.now())] == ['Neighbors.']
+
+
+def test_the_one_on_one_prompt_lists_the_companions_they_know(client, cast):
+    from companion.characters import require_current
+    from companion.memory import context
+    database = client.app.state.database
+
+    def system() -> str:
+        with database.connect() as connection:
+            return context.build(connection, require_current(connection), database.clock.now(), 20_000)['system']
+
+    assert 'People you know who also know the user' not in system()
+    ok(client.post('/api/companion/ties', json={'companion_id': cast['Billy'], 'level': 4, 'how': 'Old bandmates.'}))
+    found = system()
+    assert '## People you know who also know the user' in found
+    assert '- Billy Hart' in found and 'You and Billy are close' in found and 'How you know Billy: Old bandmates.' in found
+    assert 'Sally Moss' not in found  # Never told, never met: not someone they know.

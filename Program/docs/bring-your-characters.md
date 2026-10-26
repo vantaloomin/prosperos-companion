@@ -122,11 +122,38 @@ off in the source stay off.
 each book and entry, a way to remove an imported book, and each entry's moments: chips to take one off and a picker
 to add one (no free text). An entry whose moment holds right now says "Fits right now".
 
+## Taking a companion to another world
+
+**Take them to another world** on the Character page (**Save Spock to a file**) saves a companion with
+everything that happened between you, as a `.companion` file (`GET /api/export/companion/{id}`,
+companion/carry.py). Opening that file with **Import a character or lorebook** in another world
+brings them there straight away, with nothing to pick (`POST /api/export/companion`, the file as the body):
+
+- **What comes along** is what Delete would remove (companion/start_over.py `CHARACTER` and `HISTORY`): every
+  character version and timeline, the chats with their pictures and voice notes, memories, the feed, Closeness,
+  relationship steps, kids, their circle, home, wardrobe, hobbies and the rest of their life, their look (reference
+  pictures and character sheets) and voice.
+- **What stays behind**: queued work (memory jobs, notifications, unread marks, held replies), real-world lookups
+  made for the old world's city, the observer's notes, and LoRA training and trained adapters, which run to
+  hundreds of megabytes each. A row pointing at something left behind loses that pointer, or stays behind with it.
+- **They become the main character**, as an imported character does; whoever was steps back with everything.
+- **In another city they move there**, as a companion moving to the user's city does (companion/life/moving_in.py):
+  a new character version with that city's clock, the same job there or one like it, and a neighborhood; a new
+  home from today; coworkers stay at the old job, and friends and family stay in the old city. Who they are
+  stays as written. A companion without a home city of their own lives wherever the world is.
+- **The same companion twice** is turned away ("already live in this world").
+
+This is also how a companion survives a fresh world, for example one built from an updated city pack. To keep the
+same world instead, open the updated city file under Settings > Life & cities: when its id matches one of your
+cities, it updates that city in place ([making-a-city.md](making-a-city.md)).
+
 ## API
 
 | Request | Purpose |
 | --- | --- |
 | `POST /api/import/character {filename, data}` | Imports one file (`data` is base64, up to 10 MiB). Returns `format`, `companion` (or null for a lorebook), `book` (`name`, `world`, `entries`, `off`), `picture`, `stepped_back` |
+| `GET /api/export/companion/{id}` | A companion saved with their history, as a `.companion` zip (`manifest.json`, `rows.json`, `files/`) |
+| `POST /api/export/companion` | Opens a saved companion in this world (the file as the body, up to 4 GiB). Returns `companion`, `name`, `moved_to`, `stepped_back`, `counts`, `left_out` |
 | `GET /api/lore` | The open companion's lorebooks and the world's, with entries |
 | `PUT /api/lore/books/{id} {enabled}`, `DELETE /api/lore/books/{id}` | Turn a book on or off, or remove it |
 | `PUT /api/lore/entries/{id} {enabled}` | Turn an entry on or off; an entry with search patterns cannot be turned on |

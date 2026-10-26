@@ -17,6 +17,38 @@ export function personaRef(persona: Pick<Persona, 'name'>): string {
   return personaName(persona) || 'this persona'
 }
 
+/** Which worlds a persona lives in, said only when another persona has the same name (Iris): "Grandport", or
+ * "Grandport +1" with more worlds. '' when their name is theirs alone. */
+export function worldTag(persona: Pick<Persona, 'id' | 'name'> & { worlds: Pick<World, 'name'>[] }, personas: Pick<Persona, 'id' | 'name'>[]): string {
+  const name = personaName(persona)
+  const twin = personas.some((other) => other.id !== persona.id && personaName(other) === name)
+  if (!twin || !persona.worlds.length) return ''
+  return persona.worlds.length > 1 ? `${persona.worlds[0].name} +${persona.worlds.length - 1}` : persona.worlds[0].name
+}
+
+/** The muted words after a persona's name on Worlds: "you, now", their world when it tells two of a name apart, or
+ * both ("you, now · Baltimore"). */
+export function personaSuffix(active: boolean, tag: string): string {
+  return [active ? 'you, now' : '', tag].filter(Boolean).join(' · ')
+}
+
+/** A persona in a sentence, with their world when another persona shares the name: "Sam (Grandport)". */
+export function personaRefTagged(persona: Pick<Persona, 'name'>, tag: string): string {
+  return tag ? `${personaRef(persona)} (${tag})` : personaRef(persona)
+}
+
+/** The link and form for copying a persona into a world of their own: "Copy Sam to a new world". */
+export function copyLabel(persona: Pick<Persona, 'name'>): string {
+  return `Copy ${personaRef(persona)} to a new world`
+}
+
+/** What a copy is, above its city picker (Iris). */
+export function copyNote(persona: Pick<Persona, 'name'>): string {
+  const name = personaName(persona)
+  const who = name ? `this ${name}` : 'this persona'
+  return `${name ? `A second ${name}` : 'A second persona'} with the same details, starting over in a new world with new people. Your companions and history stay with ${who}, and changing one later leaves the other as it is.`
+}
+
 /** "Mira and Sally", "Mira, Sally and 2 more", or that nobody lives there yet. */
 export function companionsLine(world: Pick<World, 'companions'>): string {
   const names = world.companions

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { companionsLine, initial, personaName, personaRef, personaTitle, whereLine } from '../../src/features/worlds/worldsText.ts'
+import { companionsLine, copyLabel, copyNote, initial, personaName, personaRef, personaRefTagged, personaSuffix, personaTitle, whereLine, worldTag } from '../../src/features/worlds/worldsText.ts'
 import { fromPersona } from '../../src/features/dating/datingText.ts'
 
 test('a persona without a name is never called You', () => {
@@ -27,4 +27,27 @@ test('Matchlight starts from the persona', () => {
   assert.equal(profile.gender, 'man')
   assert.equal(profile.bio, 'Paramedic.')
   assert.equal(fromPersona(null).name, '')
+})
+
+test('a copy of a persona says what it takes and what it leaves', () => {
+  assert.equal(copyLabel({ name: 'Sam' }), 'Copy Sam to a new world')
+  assert.equal(copyLabel({ name: '' }), 'Copy this persona to a new world')
+  assert.equal(copyNote({ name: 'Sam' }), 'A second Sam with the same details, starting over in a new world with new people. Your companions and history stay with this Sam, and changing one later leaves the other as it is.')
+  assert.match(copyNote({ name: '' }), /^A second persona with the same details.*stay with this persona,/)
+})
+
+test('two personas of one name are told apart by their worlds', () => {
+  const sam = { id: 'a', name: 'Sam', worlds: [{ name: 'Baltimore' }] }
+  const copy = { id: 'b', name: 'Sam ', worlds: [{ name: 'Grandport' }, { name: 'Osaka' }] }
+  const jordan = { id: 'c', name: 'Jordan', worlds: [{ name: 'Haddon Harbor' }] }
+  const all = [sam, copy, jordan]
+  assert.equal(worldTag(sam, all), 'Baltimore')
+  assert.equal(worldTag(copy, all), 'Grandport +1')
+  assert.equal(worldTag(jordan, all), '')
+  assert.equal(personaSuffix(true, 'Baltimore'), 'you, now · Baltimore')
+  assert.equal(personaSuffix(false, 'Grandport'), 'Grandport')
+  assert.equal(personaSuffix(true, ''), 'you, now')
+  assert.equal(personaSuffix(false, ''), '')
+  assert.equal(personaRefTagged(copy, 'Grandport +1'), 'Sam (Grandport +1)')
+  assert.equal(personaRefTagged(jordan, ''), 'Jordan')
 })

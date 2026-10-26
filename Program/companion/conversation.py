@@ -367,8 +367,10 @@ class Conversation:
             companion = chat_owner(connection, user['timeline_id'])
             attempt_id, now = identifier(), self.database.now()
             held, dropped = pacing.take_over(connection, user['timeline_id'],
-                                             pacing.hold(connection, companion, self.database.clock.now(), attempt_id),
+                                             pacing.hold(connection, companion, self.database.clock.now(), attempt_id,
+                                                         user['text']),
                                              now)
+            dropped = [*dropped, *held.pop('dropped', ())]  # A reply waiting for morning, when this woke them.
             held = pacing.join(connection, user['timeline_id'], held, now)
             note = None
             if held['held_line']:

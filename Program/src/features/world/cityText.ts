@@ -52,6 +52,25 @@ export function parseDefinition(text: string): Parsed {
   return { ok: true, value: value as Record<string, unknown> }
 }
 
+/** The city a city file has the id of, if any. One of the user's own opens as an update of it in place, so the
+ * worlds there keep their companions and every bit of history; a pack city is updated in its pack folder instead. */
+export function cityFor<T extends Pick<CityListing, 'id'>>(text: string, cities: T[]): T | null {
+  const parsed = parseDefinition(text)
+  if (!parsed.ok || typeof parsed.value.id !== 'string') return null
+  return cities.find((city) => city.id === parsed.value.id) ?? null
+}
+
+/** "Keep both instead": the same file as a new city, with the first free id after its own (`-2`, `-3`, ...). */
+export function keptBoth(text: string, cities: Pick<CityListing, 'id'>[]): string {
+  const parsed = parseDefinition(text)
+  if (!parsed.ok || typeof parsed.value.id !== 'string') return text
+  const taken = new Set(cities.map((city) => city.id))
+  let number = 2
+  while (taken.has(`${parsed.value.id}-${number}`)) number += 1
+  const name = typeof parsed.value.name === 'string' ? `${parsed.value.name} ${number}` : parsed.value.name
+  return JSON.stringify({ ...parsed.value, id: `${parsed.value.id}-${number}`, name }, null, 1)
+}
+
 /** A release's featured cities (GET /world/featured); `new` while the app is on that release. */
 export interface FeaturedCities<T = CityListing> { release: string; title: string; note: string; new: boolean; cities: (T & { new?: boolean })[] }
 
@@ -88,9 +107,12 @@ export function matchesCity(city: Pick<CityListing, 'name' | 'region' | 'country
 const SETTINGS: Record<CityListing['setting'], string> = { real: 'Real city', fictional: 'Fictional setting', original: 'Original setting' }
 
 /** "Real city · modern · 21 neighborhoods, 124 places" */
+/** Eras as people say them, for a city's facts here and the Draft Table's subtitle. */
+export const ERA_NAMES: Record<string, string> = { medieval: 'Medieval', fantasy: 'Fantasy', victorian: 'Victorian', steampunk: 'Steampunk', frontier: 'Frontier', 'jazz-age': '1920s', modern: 'Today', future: 'The future' }
+
 export function cityFacts(city: CityListing): string {
   const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
-  return [SETTINGS[city.setting], city.era,
+  return [SETTINGS[city.setting], ERA_NAMES[city.era] ?? city.era,
     `${city.enclosed ? plural(city.counts.neighborhoods, 'deck', 'decks') : plural(city.counts.neighborhoods, 'neighborhood', 'neighborhoods')}, ${plural(city.counts.places, 'place', 'places')}`].join(' · ')
 }
 

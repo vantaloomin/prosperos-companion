@@ -34,7 +34,7 @@ export function ModelCalls() {
       <Toggle label="Record model calls" checked={data?.recording === true} disabled={!data} onChange={(checked) => void change({ recording: checked })}
         hint="The files hold your chats and your companions' prompts word for word. Turn this off once you have what you need, and only share the files with someone you trust." />
       {data && data.files > 0 && (
-        <div className="form-actions">
+        <div className="form-actions wrap">
           <a className="button" href="/api/model-calls/download" download><Download aria-hidden="true" />Save for support ({size(data.bytes)})</a>
           <button type="button" className="button" onClick={() => void change()}><Trash2 aria-hidden="true" />Delete recorded calls</button>
         </div>

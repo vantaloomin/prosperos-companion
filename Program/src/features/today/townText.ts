@@ -1,6 +1,13 @@
 import { calendarDay } from '../../when.ts'
 import type { TownLeft, Townsperson, TownspersonNow } from '../../types'
 
+/** "About 41, calm; hums while they work." or, for someone who isn't human, "Vulcan, about 212, calm; ...": their kind
+ * comes first, so the age makes sense when it's read. */
+export function townFirstLook(person: Pick<Townsperson, 'age' | 'folk' | 'temperament' | 'quirk'>): string {
+  const age = person.folk ? `${person.folk}, about ${person.age}` : `About ${person.age}`
+  return `${age}, ${person.temperament}; ${person.quirk}.`
+}
+
 /** "Bartender at The Claddagh Pub, Canton", "A regular at Patterson Park" or "Electrician, lives in Canton". */
 export function townRole(person: Pick<Townsperson, 'role' | 'staff' | 'place' | 'neighborhood'> & { kind?: Townsperson['kind']; left?: TownLeft | null }): string {
   const gone = !!person.left
