@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aboutChange, ageClamp, noteCount, aboutForm, displayName, personFacts, personNow, personTies, personWork, placeWords } from '../../src/features/today/circleText.ts'
+import { aboutChange, alsoText, fromText, ageClamp, noteCount, aboutForm, displayName, personFacts, personNow, personTies, personWork, placeWords } from '../../src/features/today/circleText.ts'
 import type { CirclePerson } from '../../src/types.ts'
 
 const person = (extra: Partial<CirclePerson> = {}): CirclePerson => ({
@@ -77,4 +77,13 @@ test('where they live reads aboard and off a ship or station', () => {
   assert.deepEqual(placeWords('station'), { here: 'On the station', away: 'Off the station' })
   assert.equal(personNow(person({ local: false }), 'ship'), 'Lives off the ship')
   assert.equal(personNow(person({ local: false }), 'station'), 'Lives off the station')
+})
+
+test('someone two companions know says so on both sides', () => {
+  assert.equal(alsoText(person()), null)
+  assert.equal(alsoText(person({ also: [{ companion_id: 's', name: 'Spock', role: 'mother' }] })), "Also Spock's mother")
+  assert.equal(alsoText(person({ also: [{ companion_id: 's', name: 'Spock', role: 'mother' }, { companion_id: 'v', name: 'Vorel', role: 'friend' }, { companion_id: 'k', name: 'Kirk', role: 'neighbor' }] })),
+    "Also Spock's mother, Vorel's friend and Kirk's neighbor")
+  assert.equal(fromText(person({ shared: { owner_id: 'o', owner: 'Sarek', role: 'wife' } })), "From Sarek's life · Sarek's wife")
+  assert.equal(fromText(person()), '')
 })

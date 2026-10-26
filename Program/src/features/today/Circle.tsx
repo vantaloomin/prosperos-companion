@@ -8,10 +8,11 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { stageText } from '../memories/pairText'
-import { displayName, metText, personFacts, personNow, personTies, personWork } from './circleText'
+import { alsoText, displayName, metText, personFacts, personNow, personTies, personWork } from './circleText'
 import { WhyItWent } from './WhyItWent'
 import { PersonForm, type Act } from './PersonForm'
 import { useCircleHome } from './useCircleHome'
+import { AddShared, SharedCard } from './SharedPeople'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
@@ -80,6 +81,7 @@ function People({ people, name, act }: { people: CirclePerson[]; name: string; a
 function CircleFooter({ name, act }: { name: string; act: Act }) {
   return <>
     <AddSomeone name={name} act={act} />
+    <AddShared companion={name} act={act} />
     <MorePeople name={name} act={act} />
     <Acquaintances name={name} />
   </>
@@ -127,6 +129,11 @@ function MorePeople({ name, act }: { name: string; act: Act }) {
 const cardClass = (person: CirclePerson) => `person-card${person.late ? ' late' : person.status === 'removed' ? ' removed' : ''}`
 
 function PersonCard({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
+  if (person.shared) return <SharedCard person={person} companion={companion} act={act} diary={() => <Diary person={person} />} />
+  return <OwnCard person={person} companion={companion} act={act} />
+}
+
+function OwnCard({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useNotice()
   const edit = () => { setNotice(null); setEditing(true) }
@@ -180,6 +187,7 @@ function PersonHeader({ person, companion }: { person: CirclePerson; companion: 
     <header>
       <h3>{displayName(person)}</h3>
       <p className="subtle">{personFacts(person)}</p>
+      {alsoText(person) && <p className="subtle person-from"><Users aria-hidden="true" />{alsoText(person)}</p>}
       {person.love && <p className="subtle pair-stage">{person.love}</p>}
       {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
       {person.love_odds && <WhyItWent id={person.love_odds} />}

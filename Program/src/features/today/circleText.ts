@@ -138,3 +138,16 @@ export function aboutSaved(person: CirclePerson | undefined, name: string, compa
   if (!person) return `${name} is now part of ${companion}'s life.`
   return `Saved ${name || person.name}. Moments that already happened stay as they were.`
 }
+
+/** "Also Spock's mother": the other companions who know someone in this circle (companion/life/shared_people.py). */
+export function alsoText(person: CirclePerson): string | null {
+  const names = (person.also ?? []).map((item) => `${item.name}'s ${item.role}`)
+  if (names.length === 0) return null
+  return `Also ${names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`}`
+}
+
+/** "From Sarek's life · Sarek's wife": whose circle someone shared with this companion lives in. */
+export function fromText(person: CirclePerson): string {
+  const shared = person.shared
+  return shared ? `From ${shared.owner}'s life · ${shared.owner}'s ${shared.role}` : ''
+}

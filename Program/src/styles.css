@@ -2711,6 +2711,8 @@ p.breakup-line { align-items: center; }
 .suggest svg { position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
 .person-add { padding: var(--card-pad); }
 .person-add-button { align-self: flex-start; }
+.person-from { display: flex; align-items: center; gap: 6px; }
+.person-from svg { width: 16px; height: 16px; flex: none; }
 @media (max-width: 720px) { .person-add-button { align-self: stretch; justify-content: center; } }
 .person-note-block { display: grid; justify-items: start; gap: 2px; }
 .person-note { margin: 0; color: var(--text); font-size: .95rem; }
