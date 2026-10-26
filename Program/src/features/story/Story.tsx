@@ -14,6 +14,8 @@ import { StoryPeople } from './StoryPeople'
 import { CityOptions } from '../world/CityOptions'
 import { ExportLinks } from '../chats/ExportLinks'
 import { AuthorsNote } from '../conversation/AuthorsNote'
+import { setFolded, useMessageBox } from '../conversation/messageBox'
+import { MessageBox } from '../conversation/MessageBoxControls'
 
 const STORY_KEY = ['story']
 const OUT_OF_STORY = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)).'
@@ -120,6 +122,7 @@ function StoryLine({ message }: { message: StoryMessage }) {
 
 function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string) => void }) {
   const [text, setText] = useState('')
+  const { text: box, folded } = useMessageBox(text)
   const submit = () => { if (text.trim() && !busy) { onSend(text.trim()); setText('') } }
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit() }
@@ -128,8 +131,10 @@ function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string)
     <form className="composer story-composer" onSubmit={(event) => { event.preventDefault(); submit() }}>
       <AuthorsNote chat="story" name="The narrator" story />
       <label className="visually-hidden" htmlFor="story-text">What you do or say</label>
-      <textarea id="story-text" rows={2} value={text} maxLength={40000} placeholder="What do you do or say?"
-        onChange={(event) => setText(event.target.value)} onKeyDown={onKeyDown} />
+      <MessageBox text={box} folded={folded}>
+        <textarea ref={box} id="story-text" rows={2} value={text} maxLength={40000} placeholder="What do you do or say?" onFocus={() => setFolded(false)}
+          onChange={(event) => setText(event.target.value)} onKeyDown={onKeyDown} />
+      </MessageBox>
       <InfoTip id="story-tip" label="the story" above text={`Enter sends, Shift+Enter adds a new line. ${OUT_OF_STORY}`} />
       <button type="submit" className="button primary" disabled={busy || !text.trim()}><Send aria-hidden="true" />Send</button>
     </form>

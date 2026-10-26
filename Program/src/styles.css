@@ -163,7 +163,28 @@ a.button { color: inherit; text-decoration: none; }
 .conversation-notice { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .conversation-notice .text-button { flex-shrink: 0; padding: 0; }
 .composer { display: flex; align-items: flex-end; gap: 10px; max-width: 760px; width: 100%; margin: 0 auto; padding: 12px 32px 22px; }
-.composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; overflow-y: auto; }
+.composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; overflow-y: auto; resize: none; }
+/* The box sits at the bottom, so it is made taller from its top edge (messageBox.ts): a thin grip that shows a short
+   bar while the box is hovered or focused, and a button at the right that folds it to one line to see more of the
+   chat. A fade on the top edge says there is more text above. Phones size it by what is typed alone, as in
+   Messages, up to about a third of the screen, and fold it themselves while reading back. */
+.message-box { position: relative; flex: 1; min-width: 0; display: flex; }
+.message-box textarea { width: 100%; }
+.message-box.folded textarea { height: 52px; min-height: 0; max-height: none; overflow: hidden; }
+.message-box[data-more-above]::before { content: ''; position: absolute; top: 1px; left: 8px; right: 8px; height: 22px; z-index: 1; pointer-events: none; background: linear-gradient(var(--canvas), transparent); }
+.chat-retro .message-box[data-more-above]::before { top: 2px; left: 2px; right: 2px; background: linear-gradient(var(--surface), transparent); }
+.message-box-grip { position: absolute; top: -5px; left: 12px; right: 44px; height: 10px; z-index: 2; cursor: ns-resize; touch-action: none; }
+.message-box-grip::after { content: ''; position: absolute; top: 3px; left: calc(50% + 16px); width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--accent); opacity: 0; transition: opacity .15s; }
+.message-box:is(:hover, :focus-within) .message-box-grip::after { opacity: .35; }
+.message-box .message-box-grip:is(:hover, .dragging, :focus-visible)::after { opacity: 1; }
+.message-box-grip:focus-visible { outline: none; }
+.message-box-fold { position: absolute; top: -14px; right: 7px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; background: transparent; color: var(--muted); opacity: 0; transition: opacity .15s; }
+.message-box-fold::before { content: ''; position: absolute; inset: 3px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); }
+.message-box-fold svg { position: relative; width: 14px; height: 14px; }
+.message-box:is(:hover, :focus-within) .message-box-fold, .message-box.folded .message-box-fold { opacity: 1; }
+.message-box-fold:hover { color: var(--text); }
+.message-box-fold:hover::before { border-color: var(--accent); }
+.chat-retro .message-box-fold::before { border-radius: 0; border: 2px outset #f2f1ee; }
 
 /* Story mode (src/features/story): one reading column of narration, the user's lines set apart. */
 .story { flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -1394,6 +1415,11 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-novel .turn-actions { margin: -8px 0 18px; }
 .chat-novel .chat-photo { margin-top: 12px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); }
 .chat-novel .chat-photo-frame { border-radius: 6px; }
+/* A growing message box takes the stage's height first (down to 120px), so the dialogue card stays in view;
+   with the stage at its smallest the box stops growing. */
+.novel-stage { flex-shrink: 1; min-height: 120px; }
+.chat-novel .transcript { min-height: clamp(160px, 30dvh, 360px); }
+.chat-novel .composer textarea { max-height: 24dvh; }
 @media (max-height: 560px) { .novel-stage { display: none; } }
 
 @media (max-width: 720px) {
@@ -1451,7 +1477,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .field-label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 #debug-progress { width: 100%; accent-color: var(--accent); }
 .info-tip.above .info-tip-text { top: auto; bottom: calc(100% + 6px); left: auto; right: -4px; }
-.composer > .info-tip { align-self: center; }
+.composer > .info-tip { align-self: flex-end; margin-bottom: 9px; }
 /* Phones: one full-width box that grows as you type, between a round picture button and a round send arrow,
    as in Messages or WhatsApp. The writing tips stay available to screen readers and on a computer. */
 .composer-send svg { flex-shrink: 0; }
@@ -1460,8 +1486,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .jump-latest .icon-button { pointer-events: auto; transform: translateY(-100%); width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 4px 14px var(--shadow); }
 @media (max-width: 720px) {
   .composer { gap: 8px; align-items: flex-end; padding: 8px 10px max(8px, env(safe-area-inset-bottom)); }
-  .composer textarea { min-height: 40px; max-height: 30dvh; padding: 8px 14px; border-radius: 20px; line-height: 1.4; resize: none; }
-  .composer > .info-tip, .composer-label { display: none; }
+  .composer textarea { min-height: 40px; max-height: var(--phone-cap, 30dvh); padding: 8px 14px; border-radius: 20px; line-height: 1.4; resize: none; }
+  .composer > .info-tip, .composer-label, .message-box-grip, .message-box-fold { display: none; }
   .composer .composer-attach, .composer .composer-send { flex-shrink: 0; width: 40px; height: 40px; min-height: 0; padding: 0; justify-content: center; border-radius: 50%; }
   .composer .composer-attach { order: -1; border-color: transparent; background: transparent; }
   .composer .composer-send svg, .composer .composer-attach svg { width: 22px; height: 22px; }
