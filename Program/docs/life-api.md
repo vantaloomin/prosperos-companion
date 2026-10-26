@@ -1284,7 +1284,7 @@ from the agenda, the circle, the city data and fixed phrasing, under seeded idem
 Social posts have `events: []` and `image: null`. They are read, reacted to, hidden, removed and
 discussed with the same endpoints. Likes and comments are derived, not stored: they come from the
 post, the active circle and the clock, arriving within a few hours of the post, at most three
-comments each. No line is said twice on one post or repeated on the few posts just before it. The companion likes and comments on friends' posts. A renamed friend shows their new
+comments each. No line is said twice on one post or repeated on the few posts just before it. The companion likes and comments on friends' posts. Other companions who know the companion (a backstory, a group in common, or meetings in town: [companion/memory/pairs.py](../companion/memory/pairs.py)) like and comment on the companion's own posts from the time they were around, more often the closer they feel; someone reserved by their sheet (stoic, logical, of few words, quiet) likes now and then and seldom comments, in a few dry words, and someone warm joins in more. Their comments have `author: "companion"`. A renamed friend shows their new
 name; a removed one's posts and comments leave the feed. A branched timeline keeps the social posts from before it split off, with their read, reaction and answer state.
 
 ## Going out together and trips

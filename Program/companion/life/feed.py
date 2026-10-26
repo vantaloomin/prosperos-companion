@@ -192,7 +192,8 @@ def everything(connection, companion, now: str, include_hidden=False, source='al
               '_basis': (social.COMPANION, {'mood': (post['events'] or [{}])[0].get('mood', '')})}
              for post in visible_posts(connection, timeline_id, include_hidden=True)]
     posts += social.visible(connection, companion, include_hidden=True)
-    social.add_audiences(posts, now, people, name)
+    known = tuple(social.known_audience(connection, companion, parse(now)))
+    social.add_audiences(posts, now, people, name, known)
     posts = [post for post in posts if (include_hidden or post['status'] == 'visible')
              and (source == 'all' or (post['author']['kind'] == 'companion') == (source == 'companion'))]
     return sorted(posts, key=lambda post: (post['occurs_at'], post['id']), reverse=True)

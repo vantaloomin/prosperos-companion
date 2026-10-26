@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Companions who know each other join in on the Feed:** other companions a companion knows (from how
+  they know each other, a group chat, or running into each other in town) now like and comment on their posts,
+  more often the closer they are. A reserved one, like a Vulcan, likes now and then and says little; a warm one
+  joins in more.
 - **Built-in voice on Windows 11:** the built-in voice could fail with "The requested API version is not available"
   when Windows loaded its own older copy of onnxruntime instead of the voice's. The voice now puts its own copy
   back beside its program before each note and runs from its own folder, and if it still happens, Settings >
