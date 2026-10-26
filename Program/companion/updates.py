@@ -70,7 +70,7 @@ async def check(transport=None, now: float | None = None) -> dict:
     try:
         release = await fetch_latest(transport)
         tag = str(release.get('tag_name') or '')
-        found = {'status': 'newer' if newer(tag) else 'current', 'latest': tag.lstrip('v') or None,
+        found = {'status': 'newer' if newer(tag, VERSION) else 'current', 'latest': tag.lstrip('v') or None,
                  'title': release.get('name') or None, 'published': release.get('published_at'),
                  'page': release.get('html_url') or RELEASES_PAGE}
     except (httpx.HTTPError, ValueError) as error:
