@@ -127,6 +127,30 @@ def test_a_new_romance_starts_dating_and_the_chat_knows_where_things_stand(clien
     assert 'You are dating: it is still early.' in prompt(provider)
 
 
+def test_someone_you_have_not_met_is_not_a_friend_yet(client, provider, monkeypatch):
+    # A tester making a companion they had not met: Friendship at Just met read "Friends for 1 day" and told the
+    # companion "You are friends", so they picked "Something else" for everyone they did not know.
+    make(client, monkeypatch, relationship='friendship')
+    found = view(client)
+    assert found['step'] == 'friends' and found['text'] == 'Just met' and found['not_yet'] == 1
+    assert found['ladder_steps'][0] == {'step': 'friends', 'label': 'Just met'}
+    says(provider)
+    send(client, 'hi, I think we have not met?', 'client-steps-stranger')
+    assert 'you are not friends yet, just two people starting to talk' in prompt(provider)
+    assert 'You are friends.' not in prompt(provider) and 'Friends since' not in prompt(provider)
+    close(client, 2)
+    assert view(client)['text'] == 'Getting to know each other'
+    close(client, 3)
+    found = view(client)
+    assert found['text'] == 'Friends for 1 day' and found['not_yet'] is None
+
+
+def test_old_friends_are_friends_from_the_start(client, monkeypatch):
+    make(client, monkeypatch, relationship='friendship', history_together='Old friends from school.')
+    found = view(client)
+    assert found['text'] == 'Friends' and found['not_yet'] is None
+
+
 def test_how_you_know_each_other_sets_the_start(client, monkeypatch):
     make(client, monkeypatch, history_together='We have been married for ten years and live in a little flat.')
     found = view(client)
