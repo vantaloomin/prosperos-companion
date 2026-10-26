@@ -34,12 +34,13 @@ def with_connection(client, work):
 def test_the_bank_is_whole():
     bank = their_look.bank()
     assert len(bank['families']) >= 8 and len(set(their_look.family_ids())) == len(bank['families'])
-    assert set(their_look.font_ids()) == {'serif', 'sans', 'rounded', 'typewriter', 'handwritten'}
+    assert set(their_look.font_ids()) == {'serif', 'sans', 'rounded', 'typewriter', 'handwritten', 'bold'}
     traits = {'social', 'warmth', 'order', 'curiosity', 'stress'}
     eras = {'modern', 'fantasy', 'future', 'jazz-age', 'steampunk', 'medieval', 'victorian', 'frontier'}
     for item in bank['families'] + bank['fonts']:
         for key in item['leans']:
-            assert key in eras | {'jobs', 'young', 'older'} or key.split(':')[0] in traits, (item['id'], key)
+            assert key in eras | {'jobs', 'young', 'older', 'he', 'she'} | set(bank['temperaments']) \
+                or key.split(':')[0] in traits, (item['id'], key)
     for item in bank['families']:
         assert 0 <= item['hue'] < 360 and 20 <= item['sat'] <= 80
 
@@ -60,6 +61,32 @@ def test_a_retired_librarian_leans_to_moss_and_a_classic_serif(client):
     picked = look(client)['picked']
     assert picked['family'] == 'moss'
     assert picked['font'] in ('serif', 'handwritten')
+
+
+def test_a_brash_pit_fighter_never_gets_a_pink_script(client):
+    # Sett, a tester's companion (2026-10-26): warm, loud and from a fantasy city drew rose and handwritten.
+    client.post('/api/companion', json={
+        'name': 'Sett', 'timezone': 'Asia/Tokyo',
+        'identity': 'He is the Boss: the man who runs the underground fighting pits, early thirties, half-vastayan.',
+        'personality': 'Brash, cocky, charismatic, loud, funny, loyal, protective, generous, loves a good fight.'})
+    picked = look(client)['picked']
+    assert picked['family'] not in ('rose', 'magenta', 'plum')
+    assert picked['font'] == 'bold'
+
+
+def test_a_gentle_florist_can_still_write_by_hand(client):
+    client.post('/api/companion', json={'name': 'Lena Park', 'identity': 'She is 26, a florist and illustrator.',
+                                        'personality': 'Warm, dreamy, curious about everything.', 'timezone': 'Europe/Paris'})
+    assert look(client)['picked']['font'] == 'handwritten'
+
+
+def test_a_new_way_of_picking_changes_a_look_quietly(client, companion, monkeypatch):
+    before = look(client)['look']
+    other = next(family for family in their_look.family_ids() if family != before['family'])
+    monkeypatch.setattr(their_look, 'TASTE', their_look.TASTE + 1)
+    monkeypatch.setattr(their_look, 'family_for', lambda companion, picks, level, today: (other, 0))
+    after = look(client)
+    assert after['look']['family'] == other and after['changes'] == []
 
 
 def test_the_same_companion_always_gets_the_same_look(client, companion):
