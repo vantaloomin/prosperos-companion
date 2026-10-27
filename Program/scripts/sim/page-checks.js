@@ -4,6 +4,8 @@
     const box = el.getBoundingClientRect()
     return box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== 'hidden'
   }
+  // Text kept only for screen readers (.visually-hidden) is cut on purpose.
+  const forReaders = (el) => el.getBoundingClientRect().width <= 2 || getComputedStyle(el).clip.startsWith('rect(0')
   const px = (value) => parseFloat(value) || 0
   const textOf = (el) => (el.innerText ?? el.textContent ?? '').trim()
 
@@ -23,7 +25,7 @@
   function cutText() {
     const found = []
     for (const el of document.querySelectorAll('h1, h2, h3, h4, button, a, label, .chip, [class*="name"], [class*="title"], strong, span, p, td, li')) {
-      if (!visible(el) || el.children.length > 2) continue
+      if (!visible(el) || forReaders(el) || el.children.length > 2) continue
       const style = getComputedStyle(el)
       const text = textOf(el)
       if (!text || !clips(style)) continue

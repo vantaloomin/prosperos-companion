@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Ellipsis, GitBranch, Lightbulb, MessagesSquare, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
 import { api } from '../../api'
@@ -10,6 +10,7 @@ import { useLocalTime } from './clock'
 import { useChats } from '../chats/useChats'
 import { StatusText } from '../status/StatusLine'
 import { badge, chatsButtonLabel, othersUnread, type OpenChat } from '../chats/chatText'
+import { useFitOnScreen } from '../../components/fitOnScreen'
 import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
 import { toggleSidecar } from '../sidecar/toggle'
 import { ExportLinks } from '../chats/ExportLinks'
@@ -103,10 +104,12 @@ export function ChatStyleSwitch({ phone = false }: { phone?: boolean }) {
 /** The overflow ("More") at the end of the header's icon row: exporting the chat on screen, and on a phone the chat style. */
 export function ChatMenu({ threadId }: { threadId: string }) {
   const [open, setOpen] = useState(false)
+  const panel = useRef<HTMLDivElement>(null)
+  useFitOnScreen(panel, open)
   return (
     <span className="header-menu" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
       <button type="button" className="icon-button" aria-label="More" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /></button>
-      {open && <div className="header-menu-panel">
+      {open && <div ref={panel} className="header-menu-panel">
         <label className="phone-only">Chat style<ChatStyleSwitch phone /></label>
         <ExportLinks target={{ kind: 'chat', threadId }} onPick={() => setOpen(false)} />
       </div>}
