@@ -19,6 +19,8 @@ PER_COMPANION = ['/api/companion', '/api/life/circle', '/api/life/pets', '/api/l
                  '/api/closeness', '/api/people']
 SHARED = ['/api/feed', '/api/chats', '/api/groups', '/api/worlds', '/api/companion/cast', '/api/settings',
           '/api/life/settings', '/api/notifications/settings', '/api/dating', '/api/observer/feed']
+# The feed comes a page at a time: read as much as one page holds, so the user's own post from days ago is in it.
+PARAMS = {'/api/feed': {'limit': 100}}
 
 
 class Driver:
@@ -65,7 +67,7 @@ class Driver:
 
     def snapshot(self, label: str):
         """What each companion's screens say now, and the shared ones."""
-        seen = {'shared': {path: self.call('GET', path, quiet=True) for path in SHARED}, 'companions': {}}
+        seen = {'shared': {path: self.call('GET', path, quiet=True, params=PARAMS.get(path)) for path in SHARED}, 'companions': {}}
         for index, companion_id in enumerate(self.ids):
             self.focus(index)
             seen['companions'][companion_id] = {path: self.call('GET', path, quiet=True) for path in PER_COMPANION}

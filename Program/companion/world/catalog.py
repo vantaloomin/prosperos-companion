@@ -175,6 +175,21 @@ def unset_work_rules(data: dict):
             notable.pop('love_life', None)
 
 
+# Money for a city that names none, by era: the schema's default is US dollars, which fits only some.
+ERA_CURRENCY = {'medieval': {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'},
+                'fantasy': {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'},
+                'victorian': {'code': 'shilling', 'symbol': 's.', 'name': 'shillings'},
+                'steampunk': {'code': 'shilling', 'symbol': 's.', 'name': 'shillings'}}
+
+
+def era_currency(data: dict, given: set[str]) -> list[str]:
+    """A city written without a currency pays in its era's money, not US dollars."""
+    if 'currency' in given or data['era'] not in ERA_CURRENCY:
+        return []
+    data['currency'] = dict(ERA_CURRENCY[data['era']])
+    return [f'No currency was given, so money is in {data["currency"]["name"]}, as in its era.']
+
+
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError.
 
@@ -188,6 +203,7 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     # stays the same.
     data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
     unset_work_rules(data)
+    notes += era_currency(data, model.model_fields_set)
     from companion import lore_moments
     from companion.life import media_world
     from companion.world import era_words, lifespans, ships

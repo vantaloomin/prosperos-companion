@@ -73,6 +73,17 @@ def test_a_city_written_without_careers_still_has_work_for_its_era(era):
     assert made['details']['career'] == ''
 
 
+@pytest.mark.parametrize('era, money', [('medieval', 'silver pennies'), ('fantasy', 'silver pennies'),
+                                         ('victorian', 'shillings'), ('steampunk', 'shillings')])
+def test_a_city_written_without_money_pays_in_its_eras(era, money):
+    data = {key: value for key, value in city_as(era).items() if key not in ('currency', 'data_version', 'import_notes')}
+    assert catalog.prepare(data)['currency']['name'] == money
+    # Money the city names is kept, and a modern city with none is in dollars as before.
+    assert catalog.prepare(data | {'currency': {'code': 'gc', 'symbol': 'gc', 'name': 'gold crowns'}})[
+        'currency']['name'] == 'gold crowns'
+    assert catalog.prepare(data | {'era': 'modern'})['currency']['name'] == 'US dollars'
+
+
 def test_jazz_age_townsfolk_have_period_jobs_and_looks():
     data = city_as('jazz-age')
     people = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])]

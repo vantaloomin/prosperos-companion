@@ -57,7 +57,9 @@
     return fits ? '' : `${el.placeholder} (${Math.round(room)}px box)`
   }
 
+  // Browsers suggest earlier entries in one-line boxes, not in text areas.
   function autofills(el) {
+    if (el.tagName === 'TEXTAREA') return false
     const own = (el.getAttribute('autocomplete') || '').toLowerCase()
     if (['off', 'new-password', 'one-time-code'].includes(own)) return false
     return !(el.form && el.form.getAttribute('autocomplete') === 'off')
