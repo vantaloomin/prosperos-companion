@@ -124,7 +124,7 @@ function ConnectionFields({ config, patch, keyEntry, found }: { config: ProfileC
   </>
   return <>
     {(local || config.provider === 'compatible') && <TextInput label="Server address" value={config.base_url} onChange={value => patch({ base_url: value })} maxLength={500} hint={local ? 'An address on this computer. LM Studio and Ollama usually end in /v1.' : 'The API base URL, without /models or /chat/completions.'} />}
-    <TokenEntry key={config.provider} {...keyEntry} />
+    <TokenEntry key={config.provider} {...keyEntry} local={local || config.provider === 'compatible'} />
   </>
 }
 
@@ -162,12 +162,12 @@ function EmbeddingFields({ config, patch, discovery }: { config: ProfileConfig; 
   </>
 }
 
-function TokenEntry(entry: KeyEntry) {
+function TokenEntry(entry: KeyEntry & { local: boolean }) {
   const [editing, setEditing] = useState(false)
   if (editing) return <KeyField {...entry} onDone={() => setEditing(false)} />
   // A key another profile saved for this service is used as it is; typing one is only for a different key.
   if (entry.reused && !entry.saved) return <div className="token-entry"><p>Uses the API key saved with <strong>{entry.reused}</strong>.</p><button type="button" className="button" onClick={() => setEditing(true)}>Use a different key</button></div>
-  return <div className="token-entry"><p><KeyStatus saved={entry.saved} others={entry.sharedWith.join(', ')} /></p><button type="button" className="button" onClick={() => setEditing(true)}>{entry.saved ? 'Replace key' : 'Add API key'}</button><small>Local servers can leave this empty, and an environment variable such as OPENAI_API_KEY also works.</small></div>
+  return <div className="token-entry"><p><KeyStatus saved={entry.saved} others={entry.sharedWith.join(', ')} /></p><button type="button" className="button" onClick={() => setEditing(true)}>{entry.saved ? 'Replace key' : 'Add API key'}</button>{entry.local && <small>Local servers can leave this empty, and an environment variable such as OPENAI_API_KEY also works.</small>}</div>
 }
 
 function KeyStatus({ saved, others }: { saved: boolean; others: string }) {
