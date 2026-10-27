@@ -178,6 +178,13 @@ class ProfileUpdate(ProfileCreate):
     expected_revision: int
 
 
+class MixUpdate(Input):
+    job: str = Field(default='chat', min_length=1, max_length=40)
+    profile_ids: list[str] = Field(default_factory=list, max_length=20)
+    mode: str = Field(default='random', max_length=20)
+    enabled: bool = True
+
+
 class RouteUpdate(Input):
     job: str = Field(min_length=1, max_length=40)
     profile_id: str | None = None

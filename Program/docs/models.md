@@ -93,6 +93,21 @@ five minutes, and Check connection asks again. Nothing polls in the background.
 | Story narrator | Replies in the Story tab ([story.md](story.md)). |
 | Semantic recall | Embeddings, from a recall profile, or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). Recall profiles (`purpose: recall`) have their own section, Settings > Models > Recall: an OpenAI, NanoGPT, local or compatible service and an `embedding_model`, with no text model. They do this job and no other, text profiles never do it, and the first one saved takes the job when recall has none. Without one, recall matches keywords only. |
 
+### Switching models and the Mix
+
+Profiles work as presets: "Add another model" on a profile card copies it (same key and settings) and
+opens the copy to change its model. The chat header's More menu has a Model choice once two text profiles
+are finished; picking one makes it the Conversation profile, and the one left keeps its settings. Under a
+failed chat reply, besides Retry, "Try with …" offers up to two other finished profiles (most recently
+changed first): it switches the Conversation profile to that one and retries.
+
+"Mix models in chat" (Settings > Models, off by default) picks each chat reply's profile from a list, at
+random or in turn, each with its own model and settings (`reply_config`; one-to-one chats and group
+lines, not openers). Turning it on starts with the Conversation profile and one other. With fewer than two
+finished profiles in it, the Conversation profile answers. Readiness checks and previews read the
+Conversation profile and never move the turn on. Picking one model in the chat's Model choice turns the
+Mix off and keeps its list; "Mix (N models)" there turns it back on. Every other job keeps its own profile.
+
 There is no automatic fallback to another profile when a request fails; like the Study, a failed
 request reports its error, and OpenRouter requests forbid OpenRouter's own provider fallbacks. The one
 exception is a rate limit (HTTP 429) before any text arrives: hosted models answer it for a few
@@ -172,4 +187,5 @@ local server.
 | `POST /api/models/profiles/{id}/check` | Test a saved profile |
 | `GET /api/models/profiles/{id}/usage` | Credits or usage the service reports for free, or `null`; `?fresh=true` skips the five-minute cache |
 | `PUT /api/models/routes` | `{job, profile_id}`; `null` returns the job to the conversation profile |
+| `PUT /api/models/mix` | `{job: 'chat', profile_ids, mode: 'random' \| 'in_turn', enabled}`; the overview's `mix` shows it |
 | `GET /api/hardware` | This computer: `computer`, `can_run` lines, the `local_text` and `local_images` checked, and `warnings` (`area`, `tone`, `text`); `?fresh=true` scans again |

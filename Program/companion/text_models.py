@@ -10,6 +10,7 @@ assigns another profile.
 Saving a profile never contacts the service. A saved key stays with its provider and address:
 changing either drops it, so a key is never sent somewhere it was not entered for.
 """
+import random
 import sqlite3
 from urllib.parse import urlsplit
 
@@ -74,7 +75,7 @@ def routes(connection) -> dict[str, str]:
 def overview(connection) -> dict:
     rows = many(connection, 'SELECT * FROM model_profiles ORDER BY name COLLATE NOCASE, created_at')
     return {'profiles': [profile_view(row, sharing(rows, row)) for row in rows], 'routes': routes(connection),
-            'jobs': JOBS}
+            'jobs': JOBS, 'mix': {CHAT: mix_view(connection, CHAT)}}
 
 
 def sharing(rows: list[dict], row: dict) -> list[str]:
@@ -98,6 +99,62 @@ def assigned(connection, job: str) -> dict | None:
     assignments = routes(connection)
     profile_id = assignments.get(job) or assignments.get(CHAT)
     return optional(connection, 'SELECT * FROM model_profiles WHERE id=?', (profile_id,)) if profile_id else None
+
+
+MIX_MODES = ('random', 'in_turn')
+
+
+def mix_state(connection, job: str) -> dict:
+    row = optional(connection, 'SELECT * FROM model_mix_state WHERE job=?', (job,))
+    return row or {'job': job, 'enabled': 0, 'mode': 'random', 'turn': 0}
+
+
+def mix_view(connection, job: str) -> dict:
+    state = mix_state(connection, job)
+    ids = [row['profile_id'] for row in many(connection, 'SELECT profile_id FROM model_mix WHERE job=? ORDER BY position',
+                                             (job,))]
+    return {'enabled': bool(state['enabled']), 'mode': state['mode'], 'profile_ids': ids}
+
+
+def mixed(connection, job: str) -> list[dict]:
+    """The finished profiles in a job's Mix while it is on and has at least two; otherwise none."""
+    if not mix_state(connection, job)['enabled']:
+        return []
+    rows = many(connection, 'SELECT p.* FROM model_mix m JOIN model_profiles p ON p.id=m.profile_id WHERE m.job=? '
+                'ORDER BY m.position', (job,))
+    ready = [row for row in rows if ready_for(decode(row['config']), job)]
+    return ready if len(ready) > 1 else []
+
+
+def set_mix(database, job: str, profile_ids: list[str], mode: str, enabled: bool) -> dict:
+    require(job == CHAT, 'Only the conversation can mix models.', 422)
+    require(mode in MIX_MODES, 'Unknown mix order.', 422)
+    with database.connect(write=True) as connection:
+        for profile_id in profile_ids:
+            require(profile_ready(decode(profile_row(connection, profile_id)['config'])),
+                    'Finish this profile: choose a model before adding it to the mix.', 409)
+        connection.execute('DELETE FROM model_mix WHERE job=?', (job,))
+        connection.executemany('INSERT INTO model_mix (job, profile_id, position) VALUES (?, ?, ?)',
+                               [(job, profile_id, index) for index, profile_id in enumerate(dict.fromkeys(profile_ids))])
+        connection.execute('INSERT INTO model_mix_state (job, enabled, mode, turn) VALUES (?, ?, ?, 0) ON CONFLICT(job) '
+                           'DO UPDATE SET enabled=excluded.enabled, mode=excluded.mode', (job, int(enabled), mode))
+        return overview(connection)
+
+
+def reply_config(connection, job: str = CHAT, chooser=random.choice) -> dict | None:
+    """Settings for one reply: from the job's Mix when it is on (each profile with its own model and settings), else
+    the job's profile. In turn moves on one profile per reply, so it needs a write connection."""
+    rows = mixed(connection, job)
+    if not rows:
+        return config_for(connection, job)
+    state = mix_state(connection, job)
+    if state['mode'] == 'in_turn':
+        row = rows[state['turn'] % len(rows)]
+        connection.execute('UPDATE model_mix_state SET turn=? WHERE job=?', ((state['turn'] + 1) % len(rows), job))
+    else:
+        row = chooser(rows)
+    return {**decode(row['config']), 'credential_ref': row['credential_ref'], 'profile_id': row['id'],
+            'profile_name': row['name']}
 
 
 def config_for(connection, job: str) -> dict | None:
@@ -244,9 +301,10 @@ def learn_effort(database, config: dict, instead: str | None, levels: list[str] 
 
 
 def require_assignable(connection, profile_id: str):
-    """A profile doing a job must stay able to do it."""
+    """A profile doing a job, or in a Mix, must stay able to do it."""
     row = profile_row(connection, profile_id)
     jobs = [job for job, assigned_id in routes(connection).items() if assigned_id == profile_id]
+    jobs += [item['job'] for item in many(connection, 'SELECT job FROM model_mix WHERE profile_id=?', (profile_id,))]
     require(all(ready_for(decode(row['config']), job) for job in jobs),
             'This profile does a job in Settings > Models. Choose a model (an embedding model, for recall) before '
             'saving it, or assign the job to another profile first.', 409)
@@ -257,6 +315,7 @@ def delete(database, vault, profile_id: str) -> dict:
         row = profile_row(connection, profile_id)
         # Jobs it did fall back to the conversation profile, or wait for one.
         connection.execute('DELETE FROM model_routes WHERE profile_id=?', (profile_id,))
+        connection.execute('DELETE FROM model_mix WHERE profile_id=?', (profile_id,))
         connection.execute('DELETE FROM model_profiles WHERE id=?', (profile_id,))
         result = overview(connection)
     if row['credential_ref']:
@@ -450,5 +509,5 @@ def quick_save(database, vault, body) -> dict:
         return connection_summary(connection)
 
 
-__all__ = ['CHAT', 'DEFAULT_URLS', 'JOBS', 'adopt_legacy', 'split_recall', 'config_for', 'connection_summary', 'create', 'delete', 'duplicate',
+__all__ = ['CHAT', 'reply_config', 'set_mix', 'DEFAULT_URLS', 'JOBS', 'adopt_legacy', 'split_recall', 'config_for', 'connection_summary', 'create', 'delete', 'duplicate',
            'key_for', 'overview', 'probe_key', 'quick_save', 'set_route', 'update']

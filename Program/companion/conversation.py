@@ -52,7 +52,7 @@ from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
-from companion.text_models import CHAT, config_for, default_name, key_for
+from companion.text_models import CHAT, config_for, default_name, key_for, reply_config
 from companion.voice import notes as voice_notes
 
 LOG = logging.getLogger(__name__)
@@ -383,7 +383,7 @@ class Conversation:
 
     def prepare(self, user, read_later: bool = False) -> dict:
         with self.database.connect(write=True) as connection:
-            config = config_for(connection, CHAT)
+            config = reply_config(connection, CHAT)
             if config is None:
                 return {'connection': 'not_configured'}
             companion = chat_owner(connection, user['timeline_id'])

@@ -2837,3 +2837,18 @@ CREATE TABLE IF NOT EXISTS family_trees (
   tree TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+-- A job's Mix (companion/text_models.py reply_config): profiles that take turns answering, in turn or at random, each
+-- with its own model and settings. Off, or with fewer than two finished profiles, the job's own profile answers.
+CREATE TABLE IF NOT EXISTS model_mix (
+  job TEXT NOT NULL,
+  profile_id TEXT NOT NULL REFERENCES model_profiles(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  PRIMARY KEY (job, profile_id)
+);
+CREATE TABLE IF NOT EXISTS model_mix_state (
+  job TEXT PRIMARY KEY,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  mode TEXT NOT NULL DEFAULT 'random' CHECK (mode IN ('random', 'in_turn')),
+  turn INTEGER NOT NULL DEFAULT 0
+);

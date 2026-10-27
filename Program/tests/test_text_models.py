@@ -396,3 +396,29 @@ def test_a_new_key_on_a_shared_profile_replaces_it_for_every_profile_sharing_it(
     assert list(app.state.vault.secrets.values()) == ['new']
     with app.state.database.connect() as connection:
         assert text_models.key_for(app.state.vault, text_models.config_for(connection, 'recall')) == 'new'
+
+
+def test_the_conversation_mix_takes_turns_or_picks_at_random_and_each_keeps_its_settings(client, app):
+    first = add(client, {'provider': 'openrouter', 'model': 'a/one', 'temperature': 0.2}, name='One', api_key='k')
+    second = add(client, {'provider': 'openrouter', 'model': 'b/two', 'temperature': 1.1}, name='Two')
+    unfinished = add(client, {'provider': 'openrouter'}, name='Unfinished')
+    assert client.put('/api/models/mix', json={'profile_ids': [first['id'], unfinished['id']]}).status_code == 409
+    mix = client.put('/api/models/mix', json={'profile_ids': [first['id'], second['id']], 'mode': 'in_turn'}).json()
+    assert mix['mix']['chat'] == {'enabled': True, 'mode': 'in_turn', 'profile_ids': [first['id'], second['id']]}
+    with app.state.database.connect(write=True) as connection:
+        picked = [text_models.reply_config(connection) for _ in range(3)]
+        assert [(item['model'], item['temperature']) for item in picked] == [('a/one', 0.2), ('b/two', 1.1), ('a/one', 0.2)]
+        # Readiness checks and previews never move the turn on: they read the conversation's own profile.
+        assert text_models.config_for(connection, 'chat')['profile_id'] == first['id']
+    client.put('/api/models/mix', json={'profile_ids': [first['id'], second['id']], 'mode': 'random'})
+    with app.state.database.connect(write=True) as connection:
+        assert text_models.reply_config(connection, chooser=lambda rows: rows[-1])['profile_id'] == second['id']
+    # Off, or down to one profile, the conversation's profile answers again.
+    client.put('/api/models/mix', json={'profile_ids': [first['id'], second['id']], 'enabled': False})
+    with app.state.database.connect(write=True) as connection:
+        assert text_models.reply_config(connection, chooser=lambda rows: rows[-1])['profile_id'] == first['id']
+    client.put('/api/models/mix', json={'profile_ids': [first['id'], second['id']]})
+    client.delete(f"/api/models/profiles/{second['id']}")
+    assert client.get('/api/models').json()['mix']['chat']['profile_ids'] == [first['id']]
+    with app.state.database.connect(write=True) as connection:
+        assert text_models.reply_config(connection)['profile_id'] == first['id']

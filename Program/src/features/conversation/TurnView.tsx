@@ -14,6 +14,7 @@ import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
 import { shownAttempt, statusDetail, unfinished, type Turn } from './turns'
 import { pinnedIn, VoiceActions } from './voicePins'
+import { alternatives, useModelSwitch } from '../settings/models/useModelSwitch'
 
 interface Props {
   turn: Turn
@@ -67,7 +68,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
 function TurnRetry({ turn, isLatest, shown, followUpOf, onRetry }: { turn: Turn; isLatest: boolean; shown: Message | null; followUpOf?: string; onRetry: (userId: string) => void }) {
   const waiting = useHeld(turn.attempts.find((attempt) => attempt.held_until && attempt.status !== 'failed' && attempt.status !== 'incomplete'))
   if (waiting) return null
-  if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} onRetry={() => onRetry(turn.user!.id)} />
+  if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} failed={shown?.status === 'failed'} onRetry={() => onRetry(turn.user!.id)} />
   if (followUpOf && failedFollowUp(turn.leads.at(-1))) return <RetryAction label="Retry" onRetry={() => onRetry(followUpOf)} />
   return null
 }
@@ -77,12 +78,20 @@ function failedFollowUp(lead: Message | undefined): boolean {
   return !!lead?.held_line && (lead.status === 'failed' || lead.status === 'incomplete')
 }
 
-function RetryAction({ label, onRetry }: { label: string; onRetry: () => void }) {
+function RetryAction({ label, failed = false, onRetry }: { label: string; failed?: boolean; onRetry: () => void }) {
   return (
     <div className="turn-actions">
       <button type="button" className="text-button" onClick={onRetry}><RotateCcw aria-hidden="true" />{label}</button>
+      {failed && <TryAnotherModel onRetry={onRetry} />}
     </div>
   )
+}
+
+/** After a failed reply: try again with another saved model, which then answers in chat (switch back under More). */
+function TryAnotherModel({ onRetry }: { onRetry: () => void }) {
+  const models = useModelSwitch()
+  const tryWith = async (profileId: string) => { try { await models.choose(profileId); onRetry() } catch { /* Retry stays offered. */ } }
+  return <>{alternatives(models.others).map((profile) => <button key={profile.id} type="button" className="text-button" onClick={() => void tryWith(profile.id)}><RotateCcw aria-hidden="true" />Try with {profile.name}</button>)}</>
 }
 
 /** Messages the companion sent first: shown like replies, with no versions to page through. */
