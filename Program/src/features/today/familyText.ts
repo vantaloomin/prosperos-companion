@@ -8,7 +8,7 @@ export const inFamily = (person: CirclePerson) => Boolean(person.kin) && !person
 export const outOfTouch = (person: CirclePerson) => Boolean(person.estranged) && !person.late
 
 /** "Passed away when Mira was 14." for someone who died before the companion's story began. */
-export const longAgoText = (companion: string, age: number) =>
+export const longAgoText = (full: string, age: number, companion = full.split(' ')[0]) =>
   age < 1 ? `Passed away before ${companion} was born.` : age < 2 ? `Passed away when ${companion} was a baby.` : `Passed away when ${companion} was ${age}.`
 
 /** "Dana and Jessica don't talk anymore. …", by first names (Iris, family circles 4). */

@@ -20,6 +20,7 @@ test('someone who died before now reads by the companion age then', () => {
   assert.equal(longAgoText('Mira', 14), 'Passed away when Mira was 14.')
   assert.equal(longAgoText('Mira', 1), 'Passed away when Mira was a baby.')
   assert.equal(longAgoText('Mira', 0), 'Passed away before Mira was born.')
+  assert.equal(longAgoText('Mira Costa', 20), 'Passed away when Mira was 20.')
 })
 
 test('the Family shapes slider has four steps', () => {
