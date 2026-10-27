@@ -184,7 +184,7 @@ class DatingPhotos:
             return
         self.finish(key, 'running')
         width, height = size_for(backend['kind'], 'portrait')
-        secret = self.vault.get(backend['credential_ref']) if backend['credential_ref'] else None
+        secret = backends.backend_key(self.database, self.vault, backend)
         job_id = f'dating-{identifier()}'
         image = ImageRequest(job_id, row['prompt'], row['negative'], row['seed'], width, height, backend,
                              decode(backend['config']), secret, storage.raw_directory(self.database))

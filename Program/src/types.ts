@@ -1033,6 +1033,8 @@ export interface ImageBackend {
   // Can make a picture that follows an earlier one (the onboarding profile pictures).
   takes_reference: boolean
   has_key: boolean
+  // With no key of its own: the text model profile whose key it uses for the same service.
+  key_from: string | null
   controlled_machine: boolean
   concurrency: number
   local: boolean

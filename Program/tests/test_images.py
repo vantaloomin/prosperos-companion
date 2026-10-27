@@ -1299,3 +1299,16 @@ def test_they_takes_the_plural_verb_after_a_name_is_said_as_a_pronoun():
     found = prompts.unnamed('Mira always wears a red scarf. Mira carries a tote and Mira dresses well.', 'Mira', 'they')
     assert found == 'They always wear a red scarf. They carry a tote and they dress well.'
     assert prompts.unnamed('Mira always wears a red scarf.', 'Mira', 'she') == 'She always wears a red scarf.'
+
+
+def test_an_image_api_with_no_key_uses_the_key_saved_for_its_text_service(client, companion, clock, adapters):
+    ok(client.put(f"/api/images/backends/{local_comfy(client)['id']}", json={'enabled': False}))
+    client.post('/api/models/profiles', json={'name': 'Chat', 'config': {'provider': 'openrouter', 'model': 'a/b'},
+                                              'api_key': 'or-key'})
+    borrowing = add_backend(client, kind='hosted', provider='openrouter', model='m')
+    elsewhere = add_backend(client, kind='hosted', provider='other', base_url='https://images.example/v1', model='m')
+    assert borrowing['key_from'] == 'Chat' and not borrowing['has_key'] and elsewhere['key_from'] is None
+    ok(client.put(f"/api/images/backends/{elsewhere['id']}", json={'enabled': False}))
+    generate(client, make_post(client, clock))
+    drain(client)
+    assert adapters['hosted'].requests[0].key == 'or-key'
