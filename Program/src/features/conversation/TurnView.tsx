@@ -1,6 +1,6 @@
 import { appNow, realDelay } from '../../appTime.ts'
 import { memo, useContext, useEffect, useState, type ContextType, type ReactNode } from 'react'
-import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, Lightbulb, Pencil, Pin, PinOff, RotateCcw, Square } from 'lucide-react'
+import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, Lightbulb, Pencil, Pin, PinOff, RotateCcw, Shuffle, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { VoiceNote } from './VoiceNote'
@@ -14,7 +14,7 @@ import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
 import { shownAttempt, statusDetail, unfinished, type Turn } from './turns'
 import { pinnedIn, VoiceActions } from './voicePins'
-import { alternatives, useModelSwitch } from '../settings/models/useModelSwitch'
+import { alternatives, MIX, useModelSwitch } from '../settings/models/useModelSwitch'
 
 interface Props {
   turn: Turn
@@ -22,7 +22,8 @@ interface Props {
   live: Record<string, string>
   isLatest: boolean
   busy: boolean
-  onRetry: (userId: string) => void
+  /** `profileId`: this one reply from that profile (Try with … while the Mix is on). */
+  onRetry: (userId: string, profileId?: string) => void
   onStop: (replyId: string) => void
   onRemember: (message: Message) => void
   onDecline: (message: Message) => void
@@ -47,6 +48,7 @@ function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
 export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, onBranch, onMoment, bursts, highlight, followUpOf }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
+  const [switched, setSwitched] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
@@ -58,17 +60,18 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
       )}
-      {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUpOf={followUpOf} onRetry={(id) => { setChosen(null); onRetry(id) }} />}
+      {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUpOf={followUpOf} onSwitched={setSwitched} onRetry={(id, profileId) => { setChosen(null); onRetry(id, profileId) }} />}
+      {switched && isLatest && <p className="turn-note" role="status">{switched} answers in chat now. Switch back under More.</p>}
     </>
   )
 })
 
 /** Another reply or Retry under the newest message, or Retry under a promised full reply that failed. Nothing while
  * their reply waits to be read or shown: nothing went wrong, they just haven't got back to you yet. */
-function TurnRetry({ turn, isLatest, shown, followUpOf, onRetry }: { turn: Turn; isLatest: boolean; shown: Message | null; followUpOf?: string; onRetry: (userId: string) => void }) {
+function TurnRetry({ turn, isLatest, shown, followUpOf, onRetry, onSwitched }: { turn: Turn; isLatest: boolean; shown: Message | null; followUpOf?: string; onRetry: (userId: string, profileId?: string) => void; onSwitched: (name: string) => void }) {
   const waiting = useHeld(turn.attempts.find((attempt) => attempt.held_until && attempt.status !== 'failed' && attempt.status !== 'incomplete'))
   if (waiting) return null
-  if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} failed={shown?.status === 'failed'} onRetry={() => onRetry(turn.user!.id)} />
+  if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} failed={shown?.status === 'failed'} onSwitched={onSwitched} onRetry={(profileId) => onRetry(turn.user!.id, profileId)} />
   if (followUpOf && failedFollowUp(turn.leads.at(-1))) return <RetryAction label="Retry" onRetry={() => onRetry(followUpOf)} />
   return null
 }
@@ -78,20 +81,24 @@ function failedFollowUp(lead: Message | undefined): boolean {
   return !!lead?.held_line && (lead.status === 'failed' || lead.status === 'incomplete')
 }
 
-function RetryAction({ label, failed = false, onRetry }: { label: string; failed?: boolean; onRetry: () => void }) {
+function RetryAction({ label, failed = false, onRetry, onSwitched }: { label: string; failed?: boolean; onRetry: (profileId?: string) => void; onSwitched?: (name: string) => void }) {
   return (
     <div className="turn-actions">
-      <button type="button" className="text-button" onClick={onRetry}><RotateCcw aria-hidden="true" />{label}</button>
-      {failed && <TryAnotherModel onRetry={onRetry} />}
+      <button type="button" className="text-button" onClick={() => onRetry()}><RotateCcw aria-hidden="true" />{label}</button>
+      {failed && onSwitched && <TryAnotherModel onRetry={onRetry} onSwitched={onSwitched} />}
     </div>
   )
 }
 
-/** After a failed reply: try again with another saved model, which then answers in chat (switch back under More). */
-function TryAnotherModel({ onRetry }: { onRetry: () => void }) {
+/** After a failed reply: try again with another saved model. With the Mix off it then answers in chat (switch back
+ * under More); with the Mix on only this reply uses it and the Mix stays as it is (Iris). */
+function TryAnotherModel({ onRetry, onSwitched }: { onRetry: (profileId?: string) => void; onSwitched: (name: string) => void }) {
   const models = useModelSwitch()
-  const tryWith = async (profileId: string) => { try { await models.choose(profileId); onRetry() } catch { /* Retry stays offered. */ } }
-  return <>{alternatives(models.others).map((profile) => <button key={profile.id} type="button" className="text-button" onClick={() => void tryWith(profile.id)}><RotateCcw aria-hidden="true" />Try with {profile.name}</button>)}</>
+  const tryWith = async (profile: { id: string; name: string }) => {
+    if (models.current === MIX) return onRetry(profile.id)
+    try { await models.choose(profile.id); onSwitched(profile.name); onRetry() } catch { /* Retry stays offered. */ }
+  }
+  return <>{alternatives(models.others).map((profile) => <button key={profile.id} type="button" className="text-button" onClick={() => void tryWith(profile)}><Shuffle aria-hidden="true" />Try with {profile.name}</button>)}</>
 }
 
 /** Messages the companion sent first: shown like replies, with no versions to page through. */

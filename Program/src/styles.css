@@ -158,7 +158,12 @@ a.button { color: inherit; text-decoration: none; }
 .system-note > svg { width: 15px; height: 15px; margin-top: 2px; flex-shrink: 0; }
 .system-note > span { min-width: 0; overflow-wrap: anywhere; }
 .system-note-error { border-style: solid; border-color: var(--danger-border); background: var(--danger-tint); color: var(--danger); }
-.turn-actions { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -12px 0 24px; }
+.turn-actions { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: -12px 0 24px; }
+.turn-note { margin: -16px 0 24px; font-size: 0.8125rem; color: var(--muted); }
+/* Settings > Models: the Mix's choices, inside its toggle, without the browser's fieldset box (Iris). */
+.plain-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.plain-fieldset small { color: var(--muted); }
+.model-mix-options { margin-top: 10px; }
 .typing { font-style: italic; }
 .conversation-notice { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .conversation-notice .text-button { flex-shrink: 0; padding: 0; }

@@ -24,21 +24,24 @@ export function ModelMix({ overview, onChanged, onError }: { overview: ModelsOve
   }
   const toggle = (id: string, on: boolean) => void save({ profile_ids: on ? [...mix.profile_ids, id] : mix.profile_ids.filter(item => item !== id) })
   const safeOnly = ready.filter(profile => mix.profile_ids.includes(profile.id) && profile.config.provider === 'claude_code')
-  return <div className="model-mix form-stack">
-    <Toggle label="Mix models in chat" checked={mix.enabled} onChange={value => void save({ enabled: value })} hint="Each reply comes from one of the profiles you pick, with that profile's own model and settings, for more variety. Other jobs keep their own profile." />
-    {mix.enabled && <>
-      <fieldset className="model-mix-picks"><legend className="field-label">Profiles in the mix</legend>
-        {ready.map(profile => <label key={profile.id} className="checkbox-row"><input type="checkbox" checked={mix.profile_ids.includes(profile.id)} onChange={event => toggle(profile.id, event.target.checked)} />{profile.name}</label>)}
-      </fieldset>
-      <fieldset><legend className="field-label">Order</legend>
-        <div className="segmented">
-          {([['random', 'At random'], ['in_turn', 'In turn']] as const).map(([value, label]) => <label key={value}>
-            <input type="radio" className="visually-hidden" name="model-mix-mode" value={value} checked={mix.mode === value} onChange={() => void save({ mode: value })} /><span>{label}</span>
-          </label>)}
-        </div>
-      </fieldset>
-      {mix.profile_ids.length < 2 && <p className="subtle">Pick at least two. Until then the Conversation profile answers.</p>}
-      {safeOnly.length > 0 && <p className="subtle">{safeOnly.map(profile => profile.name).join(', ')} won’t write the adult side of life, so those replies stay non-explicit.</p>}
-    </>}
+  // The picks and order sit inside the toggle, lined up with its hint (Iris).
+  return <div className="model-mix">
+    <Toggle label="Mix models in chat" checked={mix.enabled} onChange={value => void save({ enabled: value })} hint="Each reply comes from one of the profiles you pick, with that profile's own model and settings, for more variety. Other jobs keep their own profile.">
+      {mix.enabled && <div className="model-mix-options form-stack">
+        <fieldset className="plain-fieldset"><legend className="field-label">Profiles in the mix</legend>
+          {ready.map(profile => <label key={profile.id} className="checkbox-row"><input type="checkbox" checked={mix.profile_ids.includes(profile.id)} onChange={event => toggle(profile.id, event.target.checked)} />{profile.name}</label>)}
+          {mix.profile_ids.length < 2 && <small>Pick at least two. Until then the Conversation profile answers.</small>}
+          {safeOnly.length > 0 && <small>{safeOnly.map(profile => profile.name).join(', ')} won’t write the adult side of life, so those replies stay non-explicit.</small>}
+        </fieldset>
+        <fieldset className="plain-fieldset"><legend className="field-label">Order</legend>
+          <div className="segmented">
+            {([['random', 'At random'], ['in_turn', 'In turn']] as const).map(([value, label]) => <label key={value}>
+              <input type="radio" className="visually-hidden" name="model-mix-mode" value={value} checked={mix.mode === value} onChange={() => void save({ mode: value })} /><span>{label}</span>
+            </label>)}
+          </div>
+          <small>At random can repeat a model. In turn goes through them one after another.</small>
+        </fieldset>
+      </div>}
+    </Toggle>
   </div>
 }

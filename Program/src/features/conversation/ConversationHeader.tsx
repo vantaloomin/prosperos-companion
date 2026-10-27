@@ -112,6 +112,7 @@ function ModelSwitch() {
       {models.canMix && <option value={MIX}>Mix ({models.mixCount} models)</option>}
       {models.profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
     </select>
+    <small className="subtle">Answers in every chat.</small>
   </label>
 }
 

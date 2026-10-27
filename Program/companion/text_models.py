@@ -147,14 +147,25 @@ def reply_config(connection, job: str = CHAT, chooser=random.choice) -> dict | N
     rows = mixed(connection, job)
     if not rows:
         return config_for(connection, job)
+    return pick(connection, job, rows, chooser)
+
+
+def profile_config(connection, profile_id: str, job: str = CHAT) -> dict:
+    """One named profile's settings for a job, for a reply written with it alone."""
+    row = profile_row(connection, profile_id)
+    config = decode(row['config'])
+    require(ready_for(config, job), 'Finish this profile: choose a model before using it.', 409)
+    return {**config, 'credential_ref': row['credential_ref'], 'profile_id': row['id'], 'profile_name': row['name']}
+
+
+def pick(connection, job: str, rows: list[dict], chooser) -> dict:
     state = mix_state(connection, job)
     if state['mode'] == 'in_turn':
         row = rows[state['turn'] % len(rows)]
         connection.execute('UPDATE model_mix_state SET turn=? WHERE job=?', ((state['turn'] + 1) % len(rows), job))
     else:
         row = chooser(rows)
-    return {**decode(row['config']), 'credential_ref': row['credential_ref'], 'profile_id': row['id'],
-            'profile_name': row['name']}
+    return profile_config(connection, row['id'], job)
 
 
 def config_for(connection, job: str) -> dict | None:

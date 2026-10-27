@@ -99,7 +99,9 @@ Profiles work as presets: "Add another model" on a profile card copies it (same 
 opens the copy to change its model. The chat header's More menu has a Model choice once two text profiles
 are finished; picking one makes it the Conversation profile, and the one left keeps its settings. Under a
 failed chat reply, besides Retry, "Try with …" offers up to two other finished profiles (most recently
-changed first): it switches the Conversation profile to that one and retries.
+changed first): with the Mix off it switches the Conversation profile to that one and retries (a line says
+so, and More switches back); with the Mix on only that reply uses it (`profile_id` on
+`POST /api/conversation/messages/{id}/alternatives`) and the Mix stays on.
 
 "Mix models in chat" (Settings > Models, off by default) picks each chat reply's profile from a list, at
 random or in turn, each with its own model and settings (`reply_config`; one-to-one chats and group

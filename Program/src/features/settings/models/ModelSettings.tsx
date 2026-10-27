@@ -58,7 +58,6 @@ function TextProfiles({ overview, editing, setEditing, refresh, result, setResul
     {editing === 'new' ? <ProfileEditor others={overview.profiles} onDone={done} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => { setResult(null); setEditing('new') }}>Add a model profile</button></div>}
     {profiles.some(profile => profile.ready) && <JobAssignments overview={overview} onChanged={refresh} setResult={setResult} />}
-    <ModelMix overview={overview} onChanged={refresh} onError={text => setResult({ tone: 'error', text })} />
     {result && editing !== 'new-recall' && <Notice tone={result.tone}>{result.text}</Notice>}
   </section>
 }
@@ -151,6 +150,14 @@ function ProfileCard({ profile, jobs, onEdit, onCopied, onChanged, setResult }: 
   </li>
 }
 
+/** While the Mix answers in chat, the Conversation profile still does the other jobs (Iris). */
+function jobHint(overview: ModelsOverview, job: ModelJob) {
+  const mix = overview.mix?.chat
+  const ready = new Set(overview.profiles.filter(profile => profile.ready).map(profile => profile.id))
+  const count = mix?.enabled ? mix.profile_ids.filter(id => ready.has(id)).length : 0
+  return job.key === 'chat' && count > 1 ? `Mix is on, so replies come from ${count} profiles. Other jobs use this one.` : job.detail
+}
+
 function JobAssignments({ overview, onChanged, setResult }: { overview: ModelsOverview; onChanged: (data?: ModelsOverview) => void; setResult: (result: Result) => void }) {
   const ready = overview.profiles.filter(profile => profile.ready)
   const change = async (job: ModelJob, profileId: string) => {
@@ -169,7 +176,8 @@ function JobAssignments({ overview, onChanged, setResult }: { overview: ModelsOv
           <option value="">{job.key === 'chat' ? 'None' : `Same as conversation${choice.inherited ? ` (${choice.inherited})` : ''}`}</option>
           {options.map(profile => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
         </select>
-        <small id={`model-job-${job.key}-hint`}>{job.detail}</small>
+        <small id={`model-job-${job.key}-hint`}>{jobHint(overview, job)}</small>
+        {job.key === 'chat' && <ModelMix overview={overview} onChanged={onChanged} onError={text => setResult({ tone: 'error', text })} />}
       </div>
     })}
   </fieldset>
