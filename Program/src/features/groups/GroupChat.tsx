@@ -231,7 +231,7 @@ function Rename({ group, onDone, onChange }: { group: Group; onDone: () => void;
   return (
     <form className="group-rename-form" onSubmit={(event) => { event.preventDefault(); save() }}>
       <label className="visually-hidden" htmlFor="group-name">Group name</label>
-      <input id="group-name" autoFocus value={name} maxLength={60} placeholder="No name: shows who is in it" onChange={(event) => setName(event.target.value)}
+      <input autoComplete="off" id="group-name" autoFocus value={name} maxLength={60} placeholder="No name: shows who is in it" onChange={(event) => setName(event.target.value)}
         onKeyDown={(event) => { if (event.key === 'Escape') onDone() }} />
       <button type="submit" className="button primary">Save</button>
       <button type="button" className="text-button" onClick={onDone}>Cancel</button>

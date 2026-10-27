@@ -169,7 +169,7 @@ function ChildName({ journey, name, save }: { journey: Journey; name: string; sa
     <form className="rename-form" onSubmit={(event) => { event.preventDefault(); submit() }}>
       <label htmlFor="child-name">Their name</label>
       <div className="rename-row">
-        <input id="child-name" value={value} maxLength={40} aria-describedby="child-name-hint" onChange={(event) => setValue(event.target.value)} />
+        <input autoComplete="off" id="child-name" value={value} maxLength={40} aria-describedby="child-name-hint" onChange={(event) => setValue(event.target.value)} />
         <button type="submit" className="button primary" disabled={!value.trim() || value.trim() === journey.name}>Save</button>
       </div>
       <small id="child-name-hint" className="subtle">{nameHint(journey, name)}</small>

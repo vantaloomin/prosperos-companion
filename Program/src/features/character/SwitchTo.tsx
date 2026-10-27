@@ -76,7 +76,7 @@ function SwitchTies({ name, ties, value, onChange }: { name: string; ties: NewTi
               {PAIR_STAGES.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
             </select>
           </label>
-          <input aria-label={`How ${name} and ${tie.name} know each other`} value={value[tie.companion_id]?.how ?? ''} maxLength={300}
+          <input autoComplete="off" aria-label={`How ${name} and ${tie.name} know each other`} value={value[tie.companion_id]?.how ?? ''} maxLength={300}
             placeholder="e.g. Regulars at the same bar" onChange={(event) => set(tie.companion_id, { how: event.target.value })} />
         </div>
       ))}

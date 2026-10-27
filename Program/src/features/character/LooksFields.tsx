@@ -63,7 +63,7 @@ interface WordProps { field: LooksWord; label: string; value: string; options: s
 /** A word field, free text with the bank's suggestions offered as you type. */
 function WordField({ field, label, value, options, empty, onChange }: WordProps) {
   return <Field label={label}>{(id) => <>
-    <input id={id} value={value} maxLength={field === 'hair' || field === 'feature' ? 200 : 120} list={options.length ? `looks-${field}` : undefined}
+    <input autoComplete="off" id={id} value={value} maxLength={field === 'hair' || field === 'feature' ? 200 : 120} list={options.length ? `looks-${field}` : undefined}
       placeholder={empty} onChange={(event) => onChange(event.target.value)} />
     {options.length > 0 && <datalist id={`looks-${field}`}>{options.map((option) => <option key={option} value={option} />)}</datalist>}
   </>}</Field>

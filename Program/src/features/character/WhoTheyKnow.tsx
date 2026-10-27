@@ -89,7 +89,7 @@ function TellTie({ name, untold, onTold }: { name: string; untold: UntoldTie[]; 
         </Field>
       </div>
       <Field label="How they know each other" hint={`Filled in for you. Once saved, only time ${first} and ${firstName(chosen.name)} spend together changes it.`}>
-        {(id, hint) => <input id={id} aria-describedby={hint} value={current.how} maxLength={300} placeholder="e.g. Roommates in college" onChange={(event) => setDraft({ ...current, how: event.target.value })} />}
+        {(id, hint) => <input autoComplete="off" id={id} aria-describedby={hint} value={current.how} maxLength={300} placeholder="e.g. Roommates in college" onChange={(event) => setDraft({ ...current, how: event.target.value })} />}
       </Field>
       {error && <ErrorNotice error={error} />}
       <div className="form-actions">

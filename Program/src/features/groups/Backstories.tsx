@@ -34,7 +34,7 @@ export function Backstories({ companionIds, value, onChange }: { companionIds: s
               </select>
             </label>
             {/* Shown with "you" for "the user", saved as the companions' prompts read it (pairText.howText). */}
-            <input aria-label={`How ${label} know each other`} value={howText(current.how)} maxLength={300} placeholder="e.g. Roommates in college"
+            <input autoComplete="off" aria-label={`How ${label} know each other`} value={howText(current.how)} maxLength={300} placeholder="e.g. Roommates in college"
               onChange={(event) => set(pair, { how: modelHow(event.target.value).slice(0, 300) })} />
           </div>
         )

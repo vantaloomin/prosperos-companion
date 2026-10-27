@@ -39,7 +39,7 @@ export function FieldHelp({ field, label, definition, current, apply }: Props) {
   }
   return (
     <div className="field-help open" role="group" aria-label={`Help with ${label}`}>
-      <input aria-label={`What should change in ${label}? (optional)`} placeholder="What should change? (optional)" value={request} maxLength={500}
+      <input autoComplete="off" aria-label={`What should change in ${label}? (optional)`} placeholder="What should change? (optional)" value={request} maxLength={500}
         onChange={(event) => setRequest(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void rewrite() } }} />
       <button type="button" className="button" disabled={busy} onClick={() => void rewrite()}>{busy ? 'Writing…' : 'Rewrite'}</button>
       <button type="button" className="text-button" disabled={busy} onClick={() => setOpen(false)}>Cancel</button>

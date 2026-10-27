@@ -63,11 +63,11 @@ function PetFields({ id, kinds, pet, values, set }: FieldsProps) {
   const adding = !pet
   return <>
     <label htmlFor={`${id}-name`}>Name</label>
-    <input id={`${id}-name`} value={values.name} maxLength={80} required={adding} placeholder={adding ? 'Biscuit' : undefined} autoFocus={adding}
+    <input autoComplete="off" id={`${id}-name`} value={values.name} maxLength={80} required={adding} placeholder={adding ? 'Biscuit' : undefined} autoFocus={adding}
       onChange={(event) => set({ name: event.target.value })} />
     <KindSelect id={`${id}-kind`} kinds={kinds} value={values.kind} onChange={(value) => set({ kind: value })} />
     <label htmlFor={`${id}-looks`}>Looks</label>
-    <input id={`${id}-looks`} value={values.looks} maxLength={300} placeholder={adding ? 'a small orange tabby with a white bib' : undefined}
+    <input autoComplete="off" id={`${id}-looks`} value={values.looks} maxLength={300} placeholder={adding ? 'a small orange tabby with a white bib' : undefined}
       onChange={(event) => set({ looks: event.target.value })} />
     <Stepper label="Age" value={values.age} min={-1} max={MAX_PET_AGE} onChange={(age) => set({ age })}
       format={(years) => ageChoice(years, pet ? `Keep (${pet.age})` : 'Picked for you')}
