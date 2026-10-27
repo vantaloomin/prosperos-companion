@@ -5,6 +5,7 @@
 // node scripts/sim/browse.mjs <out dir> [world ...]
 import { createRequire } from 'module'
 import fs from 'fs'
+import { fileURLToPath } from 'url'
 const require = createRequire(process.env.PW_REQUIRE || import.meta.url)
 const { chromium } = require('playwright')
 
@@ -41,60 +42,7 @@ async function api(base, path, body) {
   return response.ok ? response.json() : null
 }
 
-// Runs in the page: what is wrong with what it shows.
-function inspect(words) {
-  const found = { wide: document.documentElement.scrollWidth > window.innerWidth + 1, user: /\bthe user\b/i.test(document.body.innerText), cut: [], placeholders: [], autofill: [], words: [] }
-  const visible = (el) => { const box = el.getBoundingClientRect(); return box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== 'hidden' }
-  for (const el of document.querySelectorAll('h1, h2, h3, h4, button, a, label, .chip, [class*="name"], [class*="title"], strong, span, p, td, li')) {
-    if (!visible(el) || el.children.length > 2) continue
-    const style = getComputedStyle(el)
-    const clips = style.overflow === 'hidden' || style.overflowX === 'hidden' || style.textOverflow === 'ellipsis'
-    const text = (el.innerText ?? el.textContent ?? '').trim()
-    if (clips && text && el.scrollWidth > el.clientWidth + 2) found.cut.push(text.slice(0, 80))
-    if (clips && text && style.webkitLineClamp === 'none' && el.scrollHeight > el.clientHeight + 4 && style.whiteSpace !== 'nowrap' && el.clientHeight > 0) found.cut.push(text.slice(0, 80))
-  }
-  const canvas = document.createElement('canvas').getContext('2d')
-  for (const el of document.querySelectorAll('input, textarea')) {
-    if (!visible(el)) continue
-    const type = (el.getAttribute('type') || 'text').toLowerCase()
-    if (el.tagName === 'INPUT' && !['text', 'search', ''].includes(type)) continue
-    const style = getComputedStyle(el)
-    if (el.placeholder) {
-      canvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
-      const room = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
-      const lines = el.tagName === 'TEXTAREA' ? Math.max(1, Math.floor((el.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / (parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.3))) : 1
-      if (canvas.measureText(el.placeholder).width > room * lines + 1) found.placeholders.push(`${el.placeholder} (${Math.round(room)}px box)`)
-    }
-    const off = (el.getAttribute('autocomplete') || '').toLowerCase()
-    if (!['off', 'new-password', 'one-time-code'].includes(off) && !(el.form && (el.form.getAttribute('autocomplete') || '') === 'off')) {
-      const label = el.labels?.[0]?.innerText || el.getAttribute('aria-label') || el.placeholder || el.name || '(no label)'
-      found.autofill.push(label.trim().slice(0, 60))
-    }
-  }
-  if (words) {
-    const pattern = new RegExp(`\\b(?:${words})\\b`, 'gi')
-    const main = document.querySelector('main') || document.body
-    for (const line of main.innerText.split('\n')) {
-      for (const match of line.matchAll(pattern)) found.words.push(`${match[0]}: ${line.trim().slice(0, 140)}`)
-    }
-  }
-  return found
-}
-
-// Runs in the page: what sits partly outside the window, sideways, among things laid over the page.
-function offScreen() {
-  const found = []
-  for (const el of document.querySelectorAll('body *')) {
-    const style = getComputedStyle(el)
-    if (!['absolute', 'fixed'].includes(style.position) || style.visibility === 'hidden' || style.display === 'none') continue
-    const box = el.getBoundingClientRect()
-    if (box.width < 8 || box.height < 8) continue
-    // Wholly outside is hidden on purpose (a skip link, a closed drawer); partly outside is cut off.
-    const partly = (box.right > window.innerWidth + 2 && box.left < window.innerWidth) || (box.left < -2 && box.right > 0)
-    if (partly) found.push(`${(el.innerText || el.getAttribute('aria-label') || el.className || el.tagName).toString().trim().slice(0, 60)} (${Math.round(box.left)} to ${Math.round(box.right)} of ${window.innerWidth})`)
-  }
-  return found.slice(0, 3)
-}
+const PAGE_CHECKS = fileURLToPath(new URL('./page-checks.js', import.meta.url))
 
 const browser = await chromium.launch()
 for (const [world, base] of Object.entries(apps)) {
@@ -103,6 +51,7 @@ for (const [world, base] of Object.entries(apps)) {
   const groups = (await api(base, '/api/groups'))?.groups || []
   for (const [size, options] of Object.entries(SIZES)) {
     const context = await browser.newContext({ ...options, deviceScaleFactor: 1 })
+    await context.addInitScript({ path: PAGE_CHECKS })
     const page = await context.newPage()
     let current = ''
     page.on('pageerror', (error) => note(world, size, current, 'page error', error.message.slice(0, 200)))
@@ -122,7 +71,7 @@ for (const [world, base] of Object.entries(apps)) {
         await page.waitForTimeout(400)
         // Open what folds away, so its text is checked too.
         await page.evaluate(() => { for (const el of document.querySelectorAll('details:not([open])')) el.open = true })
-        let found = await page.evaluate(inspect, worldWords[world] || '').catch((error) => ({ cut: [], placeholders: [], autofill: [], words: [], error: error.message }))
+        let found = await page.evaluate((words) => window.simChecks.inspect(words), worldWords[world] || '').catch((error) => ({ cut: [], placeholders: [], autofill: [], words: [], error: error.message }))
         if (found.error) note(world, size, view, 'walk error', found.error.slice(0, 160))
         // Menus and pop-overs open one at a time: each must fit on screen.
         for (const button of (await page.locator('button[aria-expanded="false"]').all()).slice(0, 12)) {
@@ -130,7 +79,7 @@ for (const [world, base] of Object.entries(apps)) {
           const label = ((await button.getAttribute('aria-label')) || (await button.innerText().catch(() => '')) || '').trim().slice(0, 40)
           await button.click({ timeout: 800 }).catch(() => {})
           await page.waitForTimeout(250)
-          const off = await page.evaluate(offScreen).catch(() => [])
+          const off = await page.evaluate(() => window.simChecks.offScreen()).catch(() => [])
           for (const text of off) note(world, size, view, 'off screen', `${label}: ${text}`)
           if (await button.getAttribute('aria-expanded').catch(() => null) === 'true') await button.click({ timeout: 800 }).catch(() => {})
           await page.keyboard.press('Escape').catch(() => {})
@@ -141,7 +90,7 @@ for (const [world, base] of Object.entries(apps)) {
         for (const opener of await page.locator('main button').filter({ hasText: OPENERS }).all()) {
           await opener.click({ timeout: 500 }).catch(() => {})
           await page.waitForTimeout(300)
-          const more = await page.evaluate(inspect, '')
+          const more = await page.evaluate(() => window.simChecks.inspect(''))
           found = { ...found, placeholders: [...found.placeholders, ...more.placeholders], autofill: [...found.autofill, ...more.autofill], cut: [...found.cut, ...more.cut] }
           await page.keyboard.press('Escape').catch(() => {})
           break
@@ -159,7 +108,7 @@ for (const [world, base] of Object.entries(apps)) {
   if (cast[0]) await api(base, '/api/companion/cast/focus', { companion_id: cast[0].id })
 }
 await browser.close()
-fs.writeFileSync(`${out}/browse.json`, JSON.stringify(problems.map(({ key, ...item }) => item), null, 1))
+fs.writeFileSync(`${out}/browse.json`, JSON.stringify(problems.map((item) => ({ ...item, key: undefined })), null, 1))
 const counts = {}
 for (const item of problems) counts[`${item.world} ${item.kind}`] = (counts[`${item.world} ${item.kind}`] || 0) + 1
 console.log(JSON.stringify(counts, null, 1))
