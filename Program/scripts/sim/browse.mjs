@@ -14,6 +14,8 @@ const worldWords = JSON.parse(fs.readFileSync(`${out}/world-words.json`, 'utf8')
 const VIEWS = ['chats', 'conversation', 'feed', 'character', 'memories', 'today', 'people', 'map', 'groups', 'worlds',
   'story', 'dating', 'settings/general', 'settings/life', 'settings/realism', 'settings/images',
   'settings/notifications']
+// What differs from one companion to the next.
+const OWN_VIEWS = ['conversation', 'feed', 'character', 'today']
 // Buttons that open a form without changing anything, so its text boxes are checked too.
 const OPENERS = /^(Add someone|Add a pet|Add a pastime|Add memory|Write a post|New post|Edit)$/i
 const SIZES = {
@@ -94,13 +96,15 @@ for (const [world, base] of Object.entries(apps)) {
       const url = new URL(response.url())
       if (url.pathname.startsWith('/api/') && response.status() >= 400 && response.status() !== 404) note(world, size, current, 'failed call', `${response.request().method()} ${url.pathname} ${response.status()}`)
     })
-    for (const member of cast) {
+    for (const [index, member] of cast.entries()) {
       await api(base, '/api/companion/cast/focus', { companion_id: member.id })
-      const views = [...VIEWS, ...groups.slice(0, 1).map((group) => `group/${group.id}`)]
+      // Every screen for the first companion; the others' own screens for the rest.
+      const views = index ? OWN_VIEWS : [...VIEWS, ...groups.slice(0, 1).map((group) => `group/${group.id}`)]
       for (const view of views) {
         current = view
         await page.goto(`${base}/#${view}`)
-        await page.waitForTimeout(1800)
+        await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {})
+        await page.waitForTimeout(400)
         // Open what folds away, so its text is checked too.
         await page.evaluate(() => { for (const el of document.querySelectorAll('details:not([open])')) el.open = true })
         for (const button of await page.locator('main button[aria-expanded="false"]').all()) await button.click({ timeout: 500 }).catch(() => {})

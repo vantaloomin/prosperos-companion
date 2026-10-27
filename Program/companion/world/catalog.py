@@ -37,9 +37,10 @@ def careers_for(data: dict, *, needs_met: bool = True) -> dict[str, dict]:
     """Careers a city offers: the shared ones for its era, then its own (which win on a shared id).
     A shared career that `needs` a kind of place (a beach) is left out where the city has none and
     no employer for it, unless `needs_met` is False. An era with no shared careers (medieval, fantasy, steampunk,
-    victorian, frontier) shares the careers of the built-in cities of that era, so a city someone writes for it
-    without careers of its own still has work for its people."""
-    era = era_careers(data['era'])
+    victorian, frontier) offers nothing besides the city's own, but a city someone writes for it without careers
+    of its own borrows the built-in cities' (era_careers), so it still has work for its people."""
+    borrowing = data['era'] in BORROWED_ERAS and not data['careers']
+    era = era_careers(data['era']) if borrowing or data['era'] not in BORROWED_ERAS else {}
     if not needs_met:
         return era | {career['id']: career for career in data['careers']}
     kinds = {place['kind'] for place in data.get('places', [])}
