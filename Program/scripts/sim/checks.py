@@ -16,7 +16,7 @@ WORDS = {
             r'wi-?fi|internet|online|uber|lyft|cars?|drove|driving|highways?|freeways?|subway|airports?|flights?|'
             r'airplanes?|television|tv|movies?|cinema|video games?|playstation|xbox|starbucks|mcdonald\'?s|walmart|'
             r'amazon|software|data analyst|credit cards?|selfies?|gym|yoga|jiu-?jitsu|photography|camera|'
-            r'electricity|plastic|streaming|playlist|spreadsheets?|zoom call|pizza|sushi|tacos?',
+            r'electricity|plastic|streaming|playlist|spreadsheets?|zoom call|pizza|sushi|tacos?|takeout|take-out',
     'earth': r'america|american|usa|united states|chicago|new york|california|texas|paris|tokyo|europe|european|'
              r'thanksgiving|halloween|fourth of july|valentine\'?s|black friday|super bowl|dollars?|nfl|nba',
     'ground': r'rain(?:ing|y)?|snow(?:ing|y)?|sunny|sunshine|weather|umbrella|winter coat|backyard|back yard|horses?|'
@@ -193,7 +193,9 @@ def together(found: Findings, name: str, snapshot, ids):
     said = json.dumps(post.get('audience') or {})
     quiet = [companion for companion in names if companion.split()[0] not in said]
     if quiet:
-        found.add(name, 'medium', 'multi-companion', "Companions who never reacted to the user's own post",
+        # Each companion joins in by chance, likelier the closer they are (life/user_posts.py): worth a look only
+        # when it keeps happening across runs.
+        found.add(name, 'low', 'multi-companion', "Companions who never reacted to the user's own post",
                   quiet + [said[:300]])
     theirs = [post for post in posts if (post.get('author') or {}).get('kind') == 'companion']
     reacted = [post for post in theirs if any(other.split()[0] in json.dumps(post.get('audience') or {})
