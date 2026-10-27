@@ -11,13 +11,14 @@ import { townSeedText } from './castText'
 export function TownSeed({ companion }: { companion: Companion }) {
   const client = useQueryClient()
   const members = useQuery({ queryKey: ['cast'], queryFn: () => api<{ members: CastMember[] }>('/companion/cast').then((data) => data.members) })
+  const town = useQuery({ queryKey: ['companion-town', companion.id, companion.town_seed], queryFn: () => api<{ notables: string[] }>('/companion/town') })
   const [asking, setAsking] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const name = companion.version.name
   const own = !!companion.town_seed
   const shared = (members.data?.length ?? 1) > 1
-  const text = townSeedText(name, own)
+  const text = townSeedText(name, own, town.data?.notables)
   const change = async (fresh: boolean) => {
     setBusy(true)
     setError('')

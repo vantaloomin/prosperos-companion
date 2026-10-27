@@ -399,18 +399,42 @@ def focus_on(database, companion_id: str) -> dict:
 
 def reseed_town(database, fresh: bool) -> dict:
     """Seed new townsfolk for the companion (`fresh`), or go back to the city's shared ones. Everyone they had
-    met becomes someone they never met, so those meetings are forgotten; earlier diary entries keep their
-    words. Only while they are the workspace's one companion, since others share their town."""
+    met becomes someone they never met, so those meetings are forgotten, except with the city's notables, who are in
+    every town; earlier diary entries keep their words. Only while they are the workspace's one companion, since
+    others share their town."""
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         others = connection.execute('SELECT COUNT(*) FROM companions WHERE id!=?', (companion['id'],)).fetchone()[0]
         require(others == 0, 'Your companions share one town. Seeding new townsfolk is only possible with one '
                 'companion.', 409)
-        connection.execute('UPDATE companions SET town_seed=? WHERE id=?',
-                           (identifier()[:16] if fresh else '', companion['id']))
-        connection.execute('DELETE FROM townsfolk_encounters WHERE timeline_id IN '
-                           '(SELECT id FROM timelines WHERE companion_id=?)', (companion['id'],))
+        town = identifier()[:16] if fresh else ''
+        data = network.city(connection, companion)
+        connection.execute('UPDATE companions SET town_seed=? WHERE id=?', (town, companion['id']))
+        keep_notables(connection, companion['id'], data, {**data, 'town': town})
         return current(connection)
+
+
+def town_view(database) -> dict:
+    """Who stays whatever townsfolk are seeded: the companion's city's notables (a pack's well-known people), by
+    name."""
+    with database.connect() as connection:
+        data = network.city(connection, require_current(connection))
+    return {'notables': [notable['name'] for notable in data.get('notables') or ()]}
+
+
+def keep_notables(connection, companion_id: str, before: dict, after: dict) -> None:
+    """Everyone met around town is forgotten, except the city's notables: they are the same people in any town, so
+    meetings with them move to the key they have in the new one (their spot comes after the seeded people at their
+    place, so it can shift)."""
+    timelines = '(SELECT id FROM timelines WHERE companion_id=?)'
+    now = townsfolk.notable_keys(after)
+    for notable, old in townsfolk.notable_keys(before).items():
+        connection.execute(f'UPDATE townsfolk_encounters SET key=? WHERE key=? AND timeline_id IN {timelines}',
+                           (f'kept|{now[notable]}', old, companion_id))
+    connection.execute(f"DELETE FROM townsfolk_encounters WHERE key NOT LIKE 'kept|%' AND timeline_id IN {timelines}",
+                       (companion_id,))
+    connection.execute(f"UPDATE townsfolk_encounters SET key=substr(key, 6) WHERE timeline_id IN {timelines}",
+                       (companion_id,))
 
 
 def wants(desire: str) -> str:

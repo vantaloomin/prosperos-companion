@@ -169,6 +169,7 @@ def test_new_townsfolk_can_be_seeded_for_one_companion(client, clock, chatty):
     mira, _person = met_someone(client, clock)
     shared = ok(client.get('/api/world/cities/baltimore/places/national-aquarium/people'))
     assert mira['town_seed'] == ''
+    assert ok(client.get('/api/companion/town')) == {'notables': []}  # Baltimore has no well-known people.
 
     seeded = ok(client.post('/api/companion/town', json={'fresh': True}))
     assert seeded['town_seed']
@@ -193,3 +194,25 @@ def test_new_townsfolk_can_be_seeded_for_one_companion(client, clock, chatty):
     with client.app.state.database.connect(write=True) as connection:
         connection.execute("INSERT INTO companions (id, slot, created_at) VALUES ('other', NULL, 'x')")
     assert client.post('/api/companion/town', json={'fresh': True}).status_code == 409
+
+
+def test_new_townsfolk_keep_the_notables_the_companion_met(client):
+    """A pack's notables are in every town: meetings with them carry over to a new one, the rest are forgotten."""
+    from test_townsfolk import with_notables
+
+    from companion import cast
+    from companion.world import townsfolk
+    make(client, 'Warm and curious.')
+    data = with_notables()
+    before, after = {**data, 'town': ''}, {**data, 'town': 'fresh'}
+    tess = townsfolk.notable_keys(before)['tess']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        for key in (tess, f"town:{data['id']}:{data['places'][0]['id']}:0"):
+            connection.execute('INSERT INTO townsfolk_encounters (timeline_id, key, slot_key, place, local_date, met_at) '
+                               "VALUES (?, ?, 's', 'p', '2026-03-02', '2026-03-02T20:00:00Z')",
+                               (companion['active_timeline_id'], key))
+        cast.keep_notables(connection, companion['id'], before, after)
+        kept = [row['key'] for row in connection.execute('SELECT key FROM townsfolk_encounters')]
+    assert kept == [townsfolk.notable_keys(after)['tess']]
+    assert townsfolk.find(after, kept[0])['notable'] == 'tess'

@@ -335,6 +335,12 @@ def ties_of(connection, companion: dict, now) -> dict:
     return {'ties': pairs.ties(connection, companion, now), 'untold': pairs.untold_for(connection, companion, now)}
 
 
+@router.get('/companion/town')
+def companion_town_view(request: Request):
+    """The city's notables, who stay whatever townsfolk are seeded."""
+    return cast.town_view(db(request))
+
+
 @router.post('/companion/town')
 def companion_town(request: Request, body: TownSeed):
     """New townsfolk of the companion's own, or the city's shared ones again."""
