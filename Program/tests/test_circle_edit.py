@@ -98,16 +98,25 @@ def test_the_user_adds_someone_by_hand(client):
     assert client.post('/api/life/circle/people', json={'name': ' '}).status_code == 422
 
 
+def app_made_mom(client) -> dict:
+    """Someone in the circle the app made, as mom (whether the seeded circle has a mom depends on the seed)."""
+    made = client.get('/api/life/circle').json()[-1]
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE circle_people SET role='mom' WHERE id=?", (made['id'],))
+    return made
+
+
 def test_a_mom_added_by_hand_takes_the_app_made_moms_place(client):
     companion(client)
-    made = next(person for person in client.get('/api/life/circle').json() if person['role'] in ('mom', 'dad'))
-    role = made['role']
+    made, role = app_made_mom(client), 'mom'
     added = client.post('/api/life/circle/people', json={'name': 'Hollis', 'role': role}).json()
     listed = {person['id']: person for person in client.get('/api/life/circle?include_removed=true').json()}
     assert listed[made['id']]['status'] == 'removed' and listed[made['id']]['made_room_for'] == 'Hollis'
     assert [person['name'] for person in listed.values() if person['role'] == role and person['status'] == 'active'] \
         == ['Hollis']
-    assert client.get('/api/life/circle/room').json()['people'] == len(listed) - 1  # Makes no room for a stranger.
+    # Hollis holds the place now: the one who stepped aside no longer counts toward the circle's size.
+    assert client.get('/api/life/circle/room').json()['people'] == sum(
+        person['status'] == 'active' for person in listed.values())
     # Taken out again, the app's one comes back; put back, Hollis takes the place again.
     client.post(f"/api/life/circle/{added['id']}/remove", json={}).raise_for_status()
     back = {person['id']: person for person in client.get('/api/life/circle?include_removed=true').json()}
@@ -119,10 +128,9 @@ def test_a_mom_added_by_hand_takes_the_app_made_moms_place(client):
 
 def test_making_someone_mom_by_hand_takes_the_app_made_moms_place(client):
     companion(client)
-    people = client.get('/api/life/circle').json()
-    made = next(person for person in people if person['role'] in ('mom', 'dad'))
-    friend = next(person for person in people if 'friend' in person['role'])
-    client.put(f"/api/life/circle/{friend['id']}/about", json={'role': made['role']}).raise_for_status()
+    made = app_made_mom(client)
+    friend = next(person for person in client.get('/api/life/circle').json() if person['id'] != made['id'])
+    client.put(f"/api/life/circle/{friend['id']}/about", json={'role': 'Mom'}).raise_for_status()
     listed = {person['id']: person for person in client.get('/api/life/circle?include_removed=true').json()}
     assert listed[made['id']]['status'] == 'removed' and listed[friend['id']]['status'] == 'active'
     assert listed[made['id']]['made_room_for'] == friend['full_name']

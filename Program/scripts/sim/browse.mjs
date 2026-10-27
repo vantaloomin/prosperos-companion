@@ -49,7 +49,7 @@ function inspect(words) {
     if (!visible(el) || el.children.length > 2) continue
     const style = getComputedStyle(el)
     const clips = style.overflow === 'hidden' || style.overflowX === 'hidden' || style.textOverflow === 'ellipsis'
-    const text = el.innerText.trim()
+    const text = (el.innerText ?? el.textContent ?? '').trim()
     if (clips && text && el.scrollWidth > el.clientWidth + 2) found.cut.push(text.slice(0, 80))
     if (clips && text && style.webkitLineClamp === 'none' && el.scrollHeight > el.clientHeight + 4 && style.whiteSpace !== 'nowrap' && el.clientHeight > 0) found.cut.push(text.slice(0, 80))
   }
@@ -81,6 +81,21 @@ function inspect(words) {
   return found
 }
 
+// Runs in the page: what sits partly outside the window, sideways, among things laid over the page.
+function offScreen() {
+  const found = []
+  for (const el of document.querySelectorAll('body *')) {
+    const style = getComputedStyle(el)
+    if (!['absolute', 'fixed'].includes(style.position) || style.visibility === 'hidden' || style.display === 'none') continue
+    const box = el.getBoundingClientRect()
+    if (box.width < 8 || box.height < 8) continue
+    // Wholly outside is hidden on purpose (a skip link, a closed drawer); partly outside is cut off.
+    const partly = (box.right > window.innerWidth + 2 && box.left < window.innerWidth) || (box.left < -2 && box.right > 0)
+    if (partly) found.push(`${(el.innerText || el.getAttribute('aria-label') || el.className || el.tagName).toString().trim().slice(0, 60)} (${Math.round(box.left)} to ${Math.round(box.right)} of ${window.innerWidth})`)
+  }
+  return found.slice(0, 3)
+}
+
 const browser = await chromium.launch()
 for (const [world, base] of Object.entries(apps)) {
   if (only.length && !only.includes(world)) continue
@@ -107,9 +122,19 @@ for (const [world, base] of Object.entries(apps)) {
         await page.waitForTimeout(400)
         // Open what folds away, so its text is checked too.
         await page.evaluate(() => { for (const el of document.querySelectorAll('details:not([open])')) el.open = true })
-        for (const button of await page.locator('main button[aria-expanded="false"]').all()) await button.click({ timeout: 500 }).catch(() => {})
-        await page.waitForTimeout(300)
-        let found = await page.evaluate(inspect, worldWords[world] || '')
+        let found = await page.evaluate(inspect, worldWords[world] || '').catch((error) => ({ cut: [], placeholders: [], autofill: [], words: [], error: error.message }))
+        if (found.error) note(world, size, view, 'walk error', found.error.slice(0, 160))
+        // Menus and pop-overs open one at a time: each must fit on screen.
+        for (const button of (await page.locator('button[aria-expanded="false"]').all()).slice(0, 12)) {
+          if (!(await button.isVisible().catch(() => false))) continue
+          const label = ((await button.getAttribute('aria-label')) || (await button.innerText().catch(() => '')) || '').trim().slice(0, 40)
+          await button.click({ timeout: 800 }).catch(() => {})
+          await page.waitForTimeout(250)
+          const off = await page.evaluate(offScreen).catch(() => [])
+          for (const text of off) note(world, size, view, 'off screen', `${label}: ${text}`)
+          if (await button.getAttribute('aria-expanded').catch(() => null) === 'true') await button.click({ timeout: 800 }).catch(() => {})
+          await page.keyboard.press('Escape').catch(() => {})
+        }
         const shot = `${out}/screens/${world}/${size}-${member.name.split(' ')[0]}-${view.replace(/\//g, '-')}.png`
         fs.mkdirSync(`${out}/screens/${world}`, { recursive: true })
         await page.screenshot({ path: shot, fullPage: true })
