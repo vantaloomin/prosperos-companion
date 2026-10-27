@@ -549,7 +549,7 @@ def elder_resident(data: dict, seed: str, age: int, local: bool, family: str | N
     for attempt in range(8):
         member = generators.resident(data, seed=seed if not attempt else f'{seed}:{attempt}', role='parent', age=age,
                                      local=local, family=family, group=family_group(data, family), folk=folk)
-        if member['name']['given'] not in firsts:
+        if member['name']['given'].split()[0] not in firsts:  # "Maria Teresa" shares "Maria"
             break
     return member
 

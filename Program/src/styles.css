@@ -2211,7 +2211,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .header-break { flex-basis: 100%; height: 0; }
 .conversation-header .header-break + * { margin-left: 0; }
 .header-menu { position: relative; display: inline-flex; }
-.header-menu-panel { position: absolute; z-index: 30; left: 0; top: calc(100% + 6px); display: flex; flex-direction: column; gap: 6px; min-width: 180px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 0.8125rem; box-shadow: 0 6px 18px var(--shadow); transform: translateX(var(--fit-shift, 0px)); }
+.header-menu-panel { position: absolute; z-index: 30; left: 0; top: calc(100% + 6px); display: flex; flex-direction: column; gap: 6px; min-width: 200px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 0.8125rem; box-shadow: 0 6px 18px var(--shadow); transform: translateX(var(--fit-shift, 0px)); }
 .header-menu-panel .chat-style-switch { max-width: none; width: 100%; }
 .header-menu-panel > label { display: flex; flex-direction: column; gap: 6px; }
 /* On a wide screen the More button ends the header, so its panel opens leftward and stays on screen. */
