@@ -347,3 +347,38 @@ def test_duplicating_a_profile_copies_its_settings_and_key_but_not_its_jobs(clie
     client.delete(f"/api/models/profiles/{copy['id']}")
     with app.state.database.connect() as connection:
         assert text_models.key_for(app.state.vault, text_models.config_for(connection, 'drafting')) == 'sk-ant'
+
+
+def test_a_new_profile_on_the_same_service_reuses_its_saved_key(client, app):
+    """A tester's OpenAI key for chat had to be pasted again for recall; one saved key now does both."""
+    chat = add(client, {'provider': 'openai', 'model': 'gpt-5'}, api_key='sk-openai')
+    recall = add(client, {'provider': 'openai', 'purpose': 'recall', 'model': '', 'embedding_model': 'text-embedding-3-small'})
+    second = add(client, {'provider': 'openai', 'model': 'gpt-5-mini'})
+    other = add(client, {'provider': 'openrouter', 'model': 'x/y'})
+    elsewhere = add(client, {'provider': 'compatible', 'model': 'm', 'base_url': 'https://one.example/v1'})
+    assert recall['has_saved_key'] and second['has_saved_key']
+    assert not other['has_saved_key'] and not elsewhere['has_saved_key']
+    assert list(app.state.vault.secrets.values()) == ['sk-openai']
+    with app.state.database.connect() as connection:
+        assert text_models.key_for(app.state.vault, text_models.config_for(connection, 'recall')) == 'sk-openai'
+    shared = {item['id']: item['key_shared'] for item in client.get('/api/models').json()['profiles']}
+    assert shared[chat['id']] and shared[recall['id']] and not shared[other['id']]
+    # Deleting the profile the key was typed into keeps it for the others.
+    client.delete(f"/api/models/profiles/{chat['id']}")
+    assert list(app.state.vault.secrets.values()) == ['sk-openai']
+
+
+def test_a_keyless_profile_picks_up_a_key_saved_later_for_its_service(client, app):
+    first = add(client, {'provider': 'openrouter', 'model': 'a/b'})
+    add(client, {'provider': 'openrouter', 'model': 'c/d'}, api_key='or-key')
+    saved = client.put(f"/api/models/profiles/{first['id']}", json={
+        'name': first['name'], 'config': first['config'], 'expected_revision': first['revision']}).json()
+    assert saved['has_saved_key']
+
+
+def test_testing_a_new_form_uses_the_key_saved_for_its_service(client, app):
+    add(client, {'provider': 'openrouter', 'model': 'a/b'}, api_key='or-key')
+    body = type('Probe', (), {'api_key': None, 'profile_id': None,
+                              'config': type('Config', (), {'model_dump': lambda self: {
+                                  'provider': 'openrouter', 'base_url': 'https://openrouter.ai/api/v1'}})()})()
+    assert text_models.probe_key(app.state.database, app.state.vault, body) == 'or-key'

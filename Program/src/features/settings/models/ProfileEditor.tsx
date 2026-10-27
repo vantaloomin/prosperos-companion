@@ -7,7 +7,7 @@ import { Notice } from '../../../components/Feedback'
 import { TextInput } from '../../../components/Fields'
 import { GenerationSettings } from './GenerationSettings'
 import { ModelCombobox } from './ModelCombobox'
-import { applyDiscovered, discoveredSettings, profileReady, recallReady, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
+import { applyDiscovered, discoveredSettings, profileReady, recallReady, reusableKey, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
 import { shownPath } from '../../../paths'
 import { cliProviders, configFor, embeddingProviders, isRecall, providerOrder, providers, recallConfigFor, type ModelProfile, type ProfileConfig, type Provider } from './types'
 
@@ -52,7 +52,7 @@ function useSave(profile: ModelProfile | undefined, onDone: (saved?: ModelProfil
   return { saving, error, save }
 }
 
-function useProfileForm(profile: ModelProfile | undefined, recall: boolean) {
+function useProfileForm(profile: ModelProfile | undefined, recall: boolean, others: ModelProfile[]) {
   const fresh = recall ? recallConfigFor : configFor
   const [name, setName] = useState(profile?.name ?? '')
   const [config, setConfig] = useState<ProfileConfig>(profile?.config ?? fresh('local'))
@@ -62,19 +62,24 @@ function useProfileForm(profile: ModelProfile | undefined, recall: boolean) {
   const changeProvider = (provider: Provider) => { discovery.reset(); setConfig(fresh(provider)); setKey('') }
   const changeKey = (value: string) => { discovery.reset(); setKey(value) }
   const test = () => { void discovery.connect(config, key, result => setConfig(current => isRecall(current) ? current : applyDiscovered(result, current))) }
-  return { name, setName, config, key, discovery, found: discovery.result?.location, patch, changeProvider, changeKey, test, ...readiness(profile, config, key),
+  return { name, setName, config, key, discovery, found: discovery.result?.location, patch, changeProvider, changeKey, test, ...readiness(profile, config, key, others),
     body: { name: name.trim(), config, api_key: key || null } }
 }
 
-function readiness(profile: ModelProfile | undefined, config: ProfileConfig, key: string) {
+function keyState(profile: ModelProfile | undefined, config: ProfileConfig, others: ModelProfile[]) {
   const savedKey = savedKeyApplies(profile?.config, profile?.has_saved_key ?? false, config)
+  return { savedKey, reused: savedKey ? undefined : reusableKey(others, config, profile?.id) }
+}
+
+function readiness(profile: ModelProfile | undefined, config: ProfileConfig, key: string, others: ModelProfile[]) {
+  const { savedKey, reused } = keyState(profile, config, others)
   const ready = isRecall(config) ? recallReady(config) : profileReady(config)
-  return { savedKey, ready, canSave: ready || !!key.trim() || savedKey, keyless: cliProviders.includes(config.provider) }
+  return { savedKey, reused: reused?.name, ready, canSave: ready || !!key.trim() || savedKey || !!reused, keyless: cliProviders.includes(config.provider) }
 }
 
 /** A text profile writes; a recall profile (`recall`) only makes embeddings, so recall can use a different service. */
-export function ProfileEditor({ profile, recall = false, onDone }: { profile?: ModelProfile; recall?: boolean; onDone: (saved?: ModelProfile) => void }) {
-  const form = useProfileForm(profile, recall || (!!profile && isRecall(profile.config)))
+export function ProfileEditor({ profile, recall = false, others, onDone }: { profile?: ModelProfile; recall?: boolean; others: ModelProfile[]; onDone: (saved?: ModelProfile) => void }) {
+  const form = useProfileForm(profile, recall || (!!profile && isRecall(profile.config)), others)
   const saving = useSave(profile, onDone)
   const { config, patch, discovery } = form
   const recalls = isRecall(config)
@@ -82,7 +87,7 @@ export function ProfileEditor({ profile, recall = false, onDone }: { profile?: M
   return <form className="model-profile-editor form-stack" onSubmit={submit} aria-label={profile ? `Edit ${profile.name}` : recalls ? 'New recall profile' : 'New model profile'}>
     <ProviderPicker selected={config.provider} choices={recalls ? embeddingProviders : providerOrder} onChange={form.changeProvider} />
     <TextInput label="Profile name" value={form.name} onChange={form.setName} maxLength={120} placeholder={recalls ? 'Ollama embeddings…' : 'Everyday chat, careful drafting…'} hint={`Leave empty to name it after the provider and ${recalls ? 'embedding ' : ''}model.`} />
-    <ConnectionFields config={config} patch={patch} savedKey={form.savedKey} apiKey={form.key} onKey={form.changeKey} found={form.found} />
+    <ConnectionFields config={config} patch={patch} savedKey={form.savedKey} reused={form.reused} apiKey={form.key} onKey={form.changeKey} found={form.found} />
     <ModelDiscovery config={config} discovery={discovery} onTest={form.test} patch={patch} />
     {recalls ? <EmbeddingFields config={config} patch={patch} discovery={discovery} /> : <ModelFields config={config} patch={patch} discovery={discovery} />}
     <SaveActions ready={form.ready} recall={recalls} keyless={form.keyless} canSave={form.canSave} saving={saving.saving} error={saving.error} onCancel={() => onDone()} />
@@ -105,7 +110,7 @@ function ProviderPicker({ selected, choices, onChange }: { selected: Provider; c
     : providers[selected].description}</p></>
 }
 
-function ConnectionFields({ config, patch, savedKey, apiKey, onKey, found }: { config: ProfileConfig; patch: Patch; savedKey: boolean; apiKey: string; onKey: (value: string) => void; found?: string }) {
+function ConnectionFields({ config, patch, savedKey, reused, apiKey, onKey, found }: { config: ProfileConfig; patch: Patch; savedKey: boolean; reused?: string; apiKey: string; onKey: (value: string) => void; found?: string }) {
   const local = config.provider === 'local' || config.provider === 'kobold'
   if (config.provider === 'codex') return <p className="subtle">Uses the Codex CLI’s own login; no key is entered here. Codex runs in an empty temporary folder with its shell, plugins, web search and tools turned off.</p>
   if (config.provider === 'claude_code') return <>
@@ -114,7 +119,7 @@ function ConnectionFields({ config, patch, savedKey, apiKey, onKey, found }: { c
   </>
   return <>
     {(local || config.provider === 'compatible') && <TextInput label="Server address" value={config.base_url} onChange={value => patch({ base_url: value })} maxLength={500} hint={local ? 'An address on this computer. LM Studio and Ollama usually end in /v1.' : 'The API base URL, without /models or /chat/completions.'} />}
-    <TokenEntry key={config.provider} saved={savedKey} value={apiKey} onChange={onKey} />
+    <TokenEntry key={config.provider} saved={savedKey} reused={reused} value={apiKey} onChange={onKey} />
   </>
 }
 
@@ -152,8 +157,10 @@ function EmbeddingFields({ config, patch, discovery }: { config: ProfileConfig; 
   </>
 }
 
-function TokenEntry({ saved, value, onChange }: { saved: boolean; value: string; onChange: (value: string) => void }) {
+function TokenEntry({ saved, reused, value, onChange }: { saved: boolean; reused?: string; value: string; onChange: (value: string) => void }) {
   const [editing, setEditing] = useState(false)
+  // A key another profile saved for this service is used as it is; typing one is only for a different key.
+  if (!editing && reused && !saved) return <div className="token-entry"><p>Uses the API key saved with {reused}.</p><button type="button" className="button" onClick={() => setEditing(true)}>Use a different key</button></div>
   if (!editing) return <div className="token-entry"><p>{saved ? 'An API key is saved for this profile.' : 'No API key saved for this profile.'}</p><button type="button" className="button" onClick={() => setEditing(true)}>{saved ? 'Replace key' : 'Add API key'}</button><small>Local servers can leave this empty, and an environment variable such as OPENAI_API_KEY also works.</small></div>
   return <div className="token-entry"><TextInput label="API key" type="password" value={value} onChange={onChange} maxLength={4000} hint="Saved in your system keychain. It is never shown again." /><button type="button" className="text-button" onClick={() => { onChange(''); setEditing(false) }}>Cancel key entry</button></div>
 }

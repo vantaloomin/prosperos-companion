@@ -1,5 +1,5 @@
 // Applying a connection test's model list, adapted from prosperos-study src/features/models/discovery.ts at bbcbde4.
-import { cliProviders, embeddingProviders, initialConfig, type ProfileConfig } from './types.ts'
+import { cliProviders, embeddingProviders, initialConfig, type ModelProfile, type ProfileConfig } from './types.ts'
 
 export interface DiscoveredModel { id: string; name: string; context_tokens: number | null; max_output_tokens: number | null; limit_source: 'provider' | 'unreported'; supported_parameters?: string[]; supported_efforts?: string[] }
 export interface Discovery { available: boolean; models: string[]; model_details?: DiscoveredModel[]; generated: false; note?: string; location?: string }
@@ -50,4 +50,14 @@ export const recallReady = (config: ProfileConfig) => config.purpose === 'recall
 /** A key typed for one provider and address is never kept for another. */
 export function savedKeyApplies(initial: ProfileConfig | undefined, hasSavedKey: boolean, config: ProfileConfig) {
   return !!initial && hasSavedKey && initial.provider === config.provider && (!initial.base_url || initial.base_url === config.base_url)
+}
+
+const address = (config: ProfileConfig) => (config.base_url || '').replace(/\/+$/, '')
+
+/** The profile whose saved key a new or keyless profile on the same provider and address uses (the server reuses it on
+ * save, most recently changed first), so one key does every job. */
+export function reusableKey(profiles: ModelProfile[], config: ProfileConfig, excluding?: string) {
+  if (cliProviders.includes(config.provider)) return undefined
+  return profiles.filter(other => other.id !== excluding && other.has_saved_key && other.config.provider === config.provider && address(other.config) === address(config))
+    .sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))[0]
 }

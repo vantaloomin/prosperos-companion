@@ -59,10 +59,11 @@ def same_connection(first: dict, second: dict) -> bool:
     return first['provider'] == second['provider'] and (first['base_url'] == second['base_url'] or not first['base_url'])
 
 
-def profile_view(row: dict) -> dict:
+def profile_view(row: dict, key_shared: bool = False) -> dict:
     config = decode(row['config'])
     return {'id': row['id'], 'name': row['name'], 'revision': row['revision'], 'config': config,
             'provider_name': PROVIDER_NAMES[config['provider']], 'has_saved_key': bool(row['credential_ref']),
+            'key_shared': key_shared,
             'ready': profile_ready(config), 'recall_ready': recall_ready(config), 'updated_at': row['updated_at']}
 
 
@@ -72,7 +73,9 @@ def routes(connection) -> dict[str, str]:
 
 def overview(connection) -> dict:
     rows = many(connection, 'SELECT * FROM model_profiles ORDER BY name COLLATE NOCASE, created_at')
-    return {'profiles': [profile_view(row) for row in rows], 'routes': routes(connection), 'jobs': JOBS}
+    keys = [row['credential_ref'] for row in rows if row['credential_ref']]
+    return {'profiles': [profile_view(row, keys.count(row['credential_ref']) > 1) for row in rows],
+            'routes': routes(connection), 'jobs': JOBS}
 
 
 def profile_row(connection, profile_id: str) -> dict:
@@ -109,17 +112,40 @@ def key_for(vault, config: dict) -> str | None:
 
 
 def probe_key(database, vault, body) -> str | None:
-    """The key a connection test uses: the one typed, else the profile's saved key if it still applies."""
+    """The key a connection test uses: the one typed, else the profile's saved key if it still applies, else a key
+    another profile saved for the same service."""
     if body.api_key:
         return body.api_key
     config = body.config.model_dump()
     reference = None
-    if body.profile_id:
-        with database.connect() as connection:
+    with database.connect() as connection:
+        if body.profile_id:
             row = profile_row(connection, body.profile_id)
-        if same_connection(decode(row['config']), config):
-            reference = row['credential_ref']
+            if same_connection(decode(row['config']), config):
+                reference = row['credential_ref']
+        if reference is None:
+            reference = (reusable_key(connection, config) or {}).get('credential_ref')
     return credential_for(vault, reference, config['provider'])
+
+
+def same_service(first: dict, second: dict) -> bool:
+    """The same provider at the same address, so a key saved for one is meant for the other."""
+    return first['provider'] == second['provider'] and \
+        (first.get('base_url') or '').rstrip('/') == (second.get('base_url') or '').rstrip('/')
+
+
+def reusable_key(connection, config: dict, excluding: str | None = None) -> dict | None:
+    """The profile whose saved key a new or keyless profile on the same service uses, most recently changed first.
+
+    One key per service is what people expect (an OpenAI key for chat also does recall), so the app reuses it
+    instead of asking for it again. The key never travels to another provider or address."""
+    if config['provider'] in CLI_PROVIDERS:
+        return None
+    for row in many(connection, 'SELECT * FROM model_profiles WHERE credential_ref IS NOT NULL AND id IS NOT ? '
+                    'ORDER BY updated_at DESC, created_at DESC', (excluding,)):
+        if same_service(decode(row['config']), config):
+            return row
+    return None
 
 
 def default_name(config: dict) -> str:
@@ -143,6 +169,8 @@ def create(database, vault, body: ProfileCreate) -> dict:
     profile_id = identifier()
     reference = store_key(vault, body, None)
     with database.connect(write=True) as connection:
+        if reference is None:
+            reference = (reusable_key(connection, config) or {}).get('credential_ref')
         timestamp = database.now()
         connection.execute('INSERT INTO model_profiles (id, name, config, credential_ref, revision, created_at, '
                            'updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)',
@@ -169,6 +197,8 @@ def update(database, vault, profile_id: str, body: ProfileUpdate) -> dict:
     with database.connect(write=True) as connection:
         row = profile_row(connection, profile_id)
         require(row['revision'] == body.expected_revision, 'This profile changed. Reopen it and try again.', 409)
+        if reference is None:
+            reference = (reusable_key(connection, config, profile_id) or {}).get('credential_ref')
         connection.execute('UPDATE model_profiles SET name=?, config=?, credential_ref=?, revision=revision+1, '
                            'updated_at=? WHERE id=?',
                            (body.name or default_name(config), encode(config), reference, database.now(), profile_id))

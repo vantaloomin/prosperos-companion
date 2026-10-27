@@ -352,7 +352,7 @@ class GenerationRunner:
     async def generate(self, image, backend, reference=None):
         width, height = size_for(backend['kind'], image['aspect'])
         config = decode(backend['config'])
-        key = self.vault.get(backend['credential_ref']) if backend['credential_ref'] else None
+        key = backends.backend_key(self.database, self.vault, backend)
         request = ImageRequest(image['id'], image['prompt'], image['negative'], image['seed'], width, height,
                                backend, config, key, raw_directory(self.database), reference=reference)
         try:
