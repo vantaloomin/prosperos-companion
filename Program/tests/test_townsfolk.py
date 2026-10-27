@@ -373,3 +373,26 @@ def test_a_notable_can_be_of_another_kind_and_keep_no_seeded_love_life():
 def test_a_notables_kind_and_love_life_leave_older_cities_as_they_were():
     data = with_notables()
     assert all('kind' not in item and 'love_life' not in item for item in data['notables'])
+
+
+def test_a_notable_is_the_same_person_in_every_town():
+    data = with_notables()
+    for town in ('', 'abc', 'xyz'):
+        here = {**data, 'town': town}
+        keys = townsfolk.notable_keys(here)
+        assert {notable: townsfolk.find(here, key)['notable'] for notable, key in keys.items()} == \
+            {'tess': 'tess', 'old-ned': 'old-ned'}
+
+
+def test_a_notable_who_is_around_stands_out():
+    data = with_notables()
+    tess = townsfolk.find(data, townsfolk.notable_keys(data)['tess'])
+    day = date(2026, 3, 2) + timedelta(days=tess['shifts']['days'][0])
+    start = datetime.combine(day, datetime.min.time()) + timedelta(minutes=tess['shifts']['window'][0] + 30)
+    found = encounters.notable_here(data, tess['place']['id'], [start], {}, encounters.NO_CAST, 'seed')
+    assert found and set(found[1]) <= set(townsfolk.notable_keys(data).values())
+    # Once met, they are someone familiar rather than someone who stands out.
+    met = {key: [{}] for key in townsfolk.notable_keys(data).values()}
+    assert encounters.notable_here(data, tess['place']['id'], [start], met, encounters.NO_CAST, 'seed') is None
+    elsewhere = next(place['id'] for place in data['places'] if place['id'] != tess['place']['id'])
+    assert encounters.notable_here(data, elsewhere, [start], {}, encounters.NO_CAST, 'seed') is None
