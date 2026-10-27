@@ -387,6 +387,9 @@ ADDED_COLUMNS = (
     # How quickly they read your texts while free (companion/life/reading.py, Settings > Realism > Their days): 0 at
     # once, 1 quick, 2 natural, 3 slow.
     ('life_settings', 'read_pace', 'INTEGER NOT NULL DEFAULT 2 CHECK (read_pace BETWEEN 0 AND 3)'),
+    # The shape of a new companion's family (companion/life/family_tree.py, Settings > Realism > Family shapes): 0
+    # simple, 1 gentle, 2 true to life, 3 more drama.
+    ('life_settings', 'family_shapes', 'INTEGER NOT NULL DEFAULT 2 CHECK (family_shapes BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -486,6 +489,8 @@ UPGRADE_LOOK = {0: {'their_look': 1}, 3: {'their_look': 3}}
 STRINGS_VOICE = {1: {'inner_voice': 3}}
 # Reading texts while free (v1.1.6): an easy life and "I pull the strings" read them quickly.
 UPGRADE_READ = {0: {'read_pace': 1}}
+# Family shapes (v1.1.8): an easy life's new families are gentle, a dramatic one's have more drama.
+UPGRADE_FAMILY_SHAPES = {0: {'family_shapes': 1}, 3: {'family_shapes': 3}}
 STRINGS_READ = {1: {'read_pace': 1}}
 
 
@@ -498,7 +503,8 @@ def add_columns(connection):
             added.add((table, column))
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
                            ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE),
-                           ('inner_voice', UPGRADE_DREAMS), ('their_look', UPGRADE_LOOK), ('read_pace', UPGRADE_READ)):
+                           ('inner_voice', UPGRADE_DREAMS), ('their_look', UPGRADE_LOOK), ('read_pace', UPGRADE_READ),
+                           ('family_shapes', UPGRADE_FAMILY_SHAPES)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
     if ('life_settings', 'inner_voice') in added:

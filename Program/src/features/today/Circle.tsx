@@ -20,6 +20,7 @@ import { PetLines } from '../pets/PetLines'
 import { CirclePets } from './CirclePets'
 import { childLabel, childLine, expectingLabel, expectingLine } from '../character/familiesText'
 import { lateText } from '../character/lossText'
+import { BRING_BACK_LONG_AGO, inFamily, longAgoFacts, longAgoText, outOfTouch, outOfTouchText } from './familyText'
 import { useLifeSettings } from '../settings/useLifeSettings'
 import { KindFields } from '../kinds/KindFields'
 import { useKindChoices } from '../kinds/useKindChoices'
@@ -66,16 +67,24 @@ export function Circle({ name }: { name: string }) {
   )
 }
 
-/** The living first; people who passed away in a small Remembered group at the end. */
+/** Their family first when the app planned one, then everyone else; family they don't talk to in a quiet Not in
+ * touch group, and people who passed away in a small Remembered group at the end. */
 function People({ people, name, act }: { people: CirclePerson[]; name: string; act: Act }) {
-  const living = people.filter((person) => !person.late)
-  const late = people.filter((person) => person.late)
+  const family = people.filter(inFamily)
+  const others = people.filter((person) => !person.late && !inFamily(person) && !outOfTouch(person))
   return <>
-    {living.length > 0 && <ul className="person-list">{living.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>}
-    {late.length > 0 && <>
-      <h3>Remembered</h3>
-      <ul className="person-list">{late.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>
-    </>}
+    <Group title={family.length > 0 ? 'Family' : null} people={family} name={name} act={act} />
+    <Group title={family.length > 0 && others.length > 0 ? 'Everyone else' : null} people={others} name={name} act={act} />
+    <Group title="Not in touch" people={people.filter(outOfTouch)} name={name} act={act} quiet />
+    <Group title="Remembered" people={people.filter((person) => person.late)} name={name} act={act} />
+  </>
+}
+
+function Group({ title, people, name, act, quiet }: { title: string | null; people: CirclePerson[]; name: string; act: Act; quiet?: boolean }) {
+  if (people.length === 0) return null
+  return <>
+    {title && <h3 className={quiet ? 'subtle' : undefined}>{title}</h3>}
+    <ul className="person-list">{people.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>
   </>
 }
 
@@ -140,6 +149,9 @@ function MorePeople({ name, act }: { name: string; act: Act }) {
 
 const cardClass = (person: CirclePerson) => `person-card${person.late ? ' late' : person.status === 'removed' ? ' removed' : ''}`
 
+/** Someone who passed away before their story began has no funeral to call off: they come back with Restore. */
+const longAgo = (person: CirclePerson) => person.late && person.long_ago != null
+
 function PersonCard({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
   if (person.shared) return <SharedCard person={person} companion={companion} act={act} diary={() => <Diary person={person} />} />
   return <OwnCard person={person} companion={companion} act={act} />
@@ -176,10 +188,10 @@ function CardBody({ person, companion, act, onEdit }: { person: CirclePerson; co
   const gone = person.status === 'removed'
   const remove = async () => { setRemoving(false); await act(() => api(`/life/circle/${person.id}/remove`, {}), `${person.name} is no longer part of ${companion}'s upcoming days.`) }
   const restore = () => act(() => api(`/life/circle/${person.id}/restore`, {}), `${person.name} is back in ${companion}'s life.`)
-  const bringBack = async () => { setBringing(false); await act(() => api(`/life/circle/${person.id}/bring-back`, {}), `${person.name} is alive again, back in ${companion}'s life.`) }
+  const bringBack = async () => { setBringing(false); await act(() => api(`/life/circle/${person.id}/${longAgo(person) ? 'restore' : 'bring-back'}`, {}), `${person.name} is alive again, back in ${companion}'s life.`) }
   return <>
     <PersonState person={person} companion={companion} act={act} />
-    <PersonActions gone={gone} late={!!late} diary={diary} network={network} name={person.name} onEdit={onEdit} onDiary={() => setDiary((open) => !open)}
+    <PersonActions gone={gone} late={!!late && !longAgo(person)} diary={diary} network={network} name={person.name} onEdit={onEdit} onDiary={() => setDiary((open) => !open)}
       onNetwork={() => setNetwork((open) => !open)} onRemove={() => setRemoving(true)} onRestore={() => void (late ? setBringing(true) : restore())} />
     {bringing && <BringBack person={person} companion={companion} onClose={() => setBringing(false)} onConfirm={() => void bringBack()} />}
     {diary && <Diary person={person} />}
@@ -199,11 +211,11 @@ function PersonHeader({ person, companion }: { person: CirclePerson; companion: 
   return (
     <header>
       <h3>{displayName(person)}</h3>
-      <p className="subtle">{personFacts(person)}</p>
+      <p className="subtle">{longAgo(person) ? longAgoFacts(person) : personFacts(person)}</p>
       {person.also && person.also.length > 0 && <p className="subtle person-from"><UsersRound aria-hidden="true" /><span>Also {person.also.map((item, index) => <span key={item.companion_id}>
         {index > 0 && (index === person.also!.length - 1 ? ' and ' : ', ')}<CompanionLink id={item.companion_id} name={item.name} />'s {item.role}</span>)}</span></p>}
       {person.love && <p className="subtle pair-stage">{person.love}</p>}
-      {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
+      {person.stage && !outOfTouch(person) && !longAgo(person) && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
       {person.love_odds && <WhyItWent id={person.love_odds} />}
       <MetYou person={person} />
     </header>
@@ -223,7 +235,8 @@ function MetYou({ person }: { person: CirclePerson }) {
 
 /** What the card says about them: their days, or that they were removed or passed away. */
 function PersonState({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
-  if (person.late) return <Late person={person} died={person.late} />
+  if (person.late) return <Late person={person} died={person.late} companion={companion} />
+  if (outOfTouch(person)) return <p className="subtle">{outOfTouchText(companion, person.name)}</p>
   if (person.status === 'removed') return <p className="subtle">{person.made_room_for ? `Stepped aside when you added ${person.made_room_for} as ${companion}'s ${person.role}. Past moments still mention ${person.name}.` : 'Removed. Moments that already happened still mention them.'}</p>
   return <>
     <PersonDetails person={person} work={personWork(person)} companion={companion} />
@@ -256,15 +269,15 @@ function BringBack({ person, companion, onClose, onConfirm }: { person: CirclePe
       <button type="button" className="button" onClick={onClose}>Keep</button>
       <button type="button" className="button primary" onClick={onConfirm}>Undo</button>
     </>}>
-      <p>{person.name} is alive again from today, back in {companion}'s life. The funeral is called off and {companion} stops grieving. Moments that already happened stay as they were.</p>
+      <p>{longAgo(person) ? BRING_BACK_LONG_AGO(person.name, companion) : `${person.name} is alive again from today, back in ${companion}'s life. The funeral is called off and ${companion} stops grieving.`} Moments that already happened stay as they were.</p>
     </ConfirmDialog>
   )
 }
 
 /** Someone who passed away (companion/life/loss.py): when, and how it went under Hidden values. */
-function Late({ person, died }: { person: CirclePerson; died: string }) {
+function Late({ person, died, companion }: { person: CirclePerson; died: string; companion: string }) {
   return <>
-    <p className="subtle">{lateText(died)} Moments that already happened still mention them.</p>
+    <p className="subtle">{person.long_ago != null ? longAgoText(companion, person.long_ago) : `${lateText(died)} Moments that already happened still mention them.`}</p>
     {person.loss?.consequence_id && <WhyItWent id={person.loss.consequence_id} />}
   </>
 }
