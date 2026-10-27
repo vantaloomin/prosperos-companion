@@ -61,10 +61,16 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
       )}
       {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUpOf={followUpOf} onSwitched={setSwitched} onRetry={(id, profileId) => { setChosen(null); onRetry(id, profileId) }} />}
-      {switched && isLatest && shown?.status !== 'complete' && <p className="turn-note" role="status">{switched} answers in chat now. Switch back under More.</p>}
+      <SwitchedNote name={switched} show={isLatest && shown?.status !== 'complete'} />
     </>
   )
 })
+
+/** After Try with: which model answers in chat now. Gone once a reply comes through (Iris). */
+function SwitchedNote({ name, show }: { name: string | null; show: boolean }) {
+  if (!name || !show) return null
+  return <p className="turn-note" role="status">{name} answers in chat now. Switch back under More.</p>
+}
 
 /** Another reply or Retry under the newest message, or Retry under a promised full reply that failed. Nothing while
  * their reply waits to be read or shown: nothing went wrong, they just haven't got back to you yet. */
