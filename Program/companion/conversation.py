@@ -52,7 +52,7 @@ from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
-from companion.text_models import CHAT, config_for, default_name, key_for
+from companion.text_models import CHAT, config_for, default_name, key_for, profile_config, reply_config
 from companion.voice import notes as voice_notes
 
 LOG = logging.getLogger(__name__)
@@ -268,14 +268,16 @@ class Conversation:
         rows = many(connection, "SELECT * FROM messages WHERE reply_to=? AND status='streaming'", (user_message_id,))
         return next((row for row in rows if row['id'] in self.running), None)
 
-    async def alternative(self, user_message_id, wait: bool = True) -> dict:
+    async def alternative(self, user_message_id, wait: bool = True, profile_id: str | None = None) -> dict:
+        """Another reply to the latest message; `profile_id` writes this one reply with that profile ("Try with …"
+        while the Mix is on), leaving the Conversation profile and the Mix as they are."""
         with self.database.connect() as connection:
             user = one(connection, "SELECT * FROM messages WHERE id=? AND role='user'", (user_message_id,))
             latest = latest_user_message(connection, user['timeline_id'])
             require(latest['id'] == user['id'], 'Alternatives are available for the latest message only.', 409)
             # An old chat brought in (companion/imports/chats.py) is history; it is never answered again.
             require(user['import_id'] is None, 'This message came in from an old chat.', 409)
-        return await self.respond(user, wait)
+        return await self.respond(user, wait, profile_id=profile_id)
 
     def stop(self, attempt_id) -> bool:
         live = self.running.get(attempt_id)
@@ -310,11 +312,11 @@ class Conversation:
         except Exception:  # noqa: BLE001 - the companion continues without tools (X3).
             return []
 
-    async def respond(self, user, wait: bool = True, read_later: bool = False) -> dict:
+    async def respond(self, user, wait: bool = True, read_later: bool = False, profile_id: str | None = None) -> dict:
         """The attempt is saved before anything waits on a model service, so `wait=false` returns at once;
         recall and lookups for the reply happen in its own task (PRD responsiveness target). A new text may wait
         to be read (`read_later`, companion/life/reading.py); asking for another reply never does."""
-        prepared = self.prepare(user, read_later)
+        prepared = self.prepare(user, read_later, profile_id)
         if prepared['connection'] != 'ready':
             self.after_turn()
             return {'message': self.user_view(user), 'reply': None, 'connection': prepared['connection']}
@@ -381,9 +383,9 @@ class Conversation:
                 live.listeners.discard(queue)
         yield 'done', self.reply(attempt_id)
 
-    def prepare(self, user, read_later: bool = False) -> dict:
+    def prepare(self, user, read_later: bool = False, profile_id: str | None = None) -> dict:
         with self.database.connect(write=True) as connection:
-            config = config_for(connection, CHAT)
+            config = profile_config(connection, profile_id, CHAT) if profile_id else reply_config(connection, CHAT)
             if config is None:
                 return {'connection': 'not_configured'}
             companion = chat_owner(connection, user['timeline_id'])

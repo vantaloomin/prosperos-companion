@@ -141,3 +141,16 @@ def test_search_finds_both_sides_newest_first_ignoring_case(client, connected):
     assert len(client.get('/api/conversation/search', params={'q': 'strasse'}).json()['results']) == 1
     assert len(client.get('/api/conversation/search', params={'q': 'hello AGAIN'}).json()['results']) == 3
     assert client.get('/api/conversation/search', params={'q': ' a '}).status_code == 422
+
+
+def test_try_with_writes_one_reply_with_that_profile_and_leaves_the_mix_on(client, connected, provider):
+    other = client.post('/api/models/profiles', json={'name': 'Other', 'config': {
+        'provider': 'local', 'model': 'other-model', 'base_url': 'http://127.0.0.1:1234/v1'}}).json()
+    chat = connected['profile_id']
+    client.put('/api/models/mix', json={'profile_ids': [chat, other['id']], 'mode': 'in_turn'}).raise_for_status()
+    message = send(client, 'Hi Mira', 'client-0001')['message']
+    tried = client.post(f"/api/conversation/messages/{message['id']}/alternatives?profile_id={other['id']}")
+    assert tried.status_code == 200, tried.text
+    assert [request['config']['model'] for request in provider.requests] == ['local-model', 'other-model']
+    overview = client.get('/api/models').json()
+    assert overview['mix']['chat']['enabled'] and overview['routes']['chat'] == chat

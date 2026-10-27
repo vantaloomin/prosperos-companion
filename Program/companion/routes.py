@@ -479,8 +479,8 @@ def read_picture(request: Request, picture_id: str):
 
 
 @router.post('/conversation/messages/{message_id}/alternatives')
-async def alternative(request: Request, message_id: str, wait: bool = True):
-    return await request.app.state.conversation.alternative(message_id, wait)
+async def alternative(request: Request, message_id: str, wait: bool = True, profile_id: str | None = None):
+    return await request.app.state.conversation.alternative(message_id, wait, profile_id)
 
 
 @router.get('/conversation/replies/{attempt_id}/events')
