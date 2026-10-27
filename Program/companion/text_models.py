@@ -59,11 +59,11 @@ def same_connection(first: dict, second: dict) -> bool:
     return first['provider'] == second['provider'] and (first['base_url'] == second['base_url'] or not first['base_url'])
 
 
-def profile_view(row: dict, key_shared: bool = False) -> dict:
+def profile_view(row: dict, key_shared_with: list[str] | None = None) -> dict:
     config = decode(row['config'])
     return {'id': row['id'], 'name': row['name'], 'revision': row['revision'], 'config': config,
             'provider_name': PROVIDER_NAMES[config['provider']], 'has_saved_key': bool(row['credential_ref']),
-            'key_shared': key_shared,
+            'key_shared_with': key_shared_with or [],
             'ready': profile_ready(config), 'recall_ready': recall_ready(config), 'updated_at': row['updated_at']}
 
 
@@ -73,9 +73,20 @@ def routes(connection) -> dict[str, str]:
 
 def overview(connection) -> dict:
     rows = many(connection, 'SELECT * FROM model_profiles ORDER BY name COLLATE NOCASE, created_at')
-    keys = [row['credential_ref'] for row in rows if row['credential_ref']]
-    return {'profiles': [profile_view(row, keys.count(row['credential_ref']) > 1) for row in rows],
-            'routes': routes(connection), 'jobs': JOBS}
+    return {'profiles': [profile_view(row, sharing(rows, row)) for row in rows], 'routes': routes(connection),
+            'jobs': JOBS}
+
+
+def sharing(rows: list[dict], row: dict) -> list[str]:
+    """The other profiles using this profile's saved key."""
+    reference = row['credential_ref']
+    return [other['name'] for other in rows if reference and other['credential_ref'] == reference and
+            other['id'] != row['id']]
+
+
+def view_of(connection, profile_id: str) -> dict:
+    return profile_view(profile_row(connection, profile_id), sharing(many(connection, 'SELECT * FROM model_profiles'),
+                                                                     profile_row(connection, profile_id)))
 
 
 def profile_row(connection, profile_id: str) -> dict:
@@ -182,7 +193,7 @@ def create(database, vault, body: ProfileCreate) -> dict:
         # The first finished recall profile does recall, unless the user already chose one for it.
         elif recall_ready(config) and 'recall' not in routes(connection):
             assign(connection, 'recall', profile_id, timestamp)
-        return profile_view(profile_row(connection, profile_id))
+        return view_of(connection, profile_id)
 
 
 def update(database, vault, profile_id: str, body: ProfileUpdate) -> dict:
@@ -191,8 +202,8 @@ def update(database, vault, profile_id: str, body: ProfileUpdate) -> dict:
         current = profile_row(connection, profile_id)
     require(current['revision'] == body.expected_revision, 'This profile changed. Reopen it and try again.', 409)
     kept = current['credential_ref'] if same_connection(decode(current['config']), config) else None
-    if kept and body.api_key and shared(database, kept, profile_id):
-        kept = None  # A new key for this profile never replaces the one a copy shares.
+    if kept and body.api_key and not body.share_key and shared(database, kept, profile_id):
+        kept = None  # Asked for a key of its own: the others keep the shared one.
     reference = store_key(vault, body, kept)
     with database.connect(write=True) as connection:
         row = profile_row(connection, profile_id)
@@ -203,7 +214,7 @@ def update(database, vault, profile_id: str, body: ProfileUpdate) -> dict:
                            'updated_at=? WHERE id=?',
                            (body.name or default_name(config), encode(config), reference, database.now(), profile_id))
         require_assignable(connection, profile_id)
-        result = profile_view(profile_row(connection, profile_id))
+        result = view_of(connection, profile_id)
     if current['credential_ref'] and current['credential_ref'] != reference:
         release(database, vault, current['credential_ref'])
     return result
@@ -265,7 +276,7 @@ def duplicate(database, profile_id: str) -> dict:
         connection.execute('INSERT INTO model_profiles (id, name, config, credential_ref, revision, created_at, '
                            'updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)',
                            (copy_id, name, row['config'], row['credential_ref'], timestamp, timestamp))
-        return profile_view(profile_row(connection, copy_id))
+        return view_of(connection, copy_id)
 
 
 def shared(database, reference: str, profile_id: str) -> bool:

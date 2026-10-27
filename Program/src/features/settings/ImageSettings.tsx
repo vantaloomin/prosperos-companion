@@ -16,6 +16,8 @@ import { SectionPending } from '../../components/SectionPending'
 import { MemeSettings } from './MemeSettings'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
+import { imageKeyFrom } from './models/discovery'
+import type { ModelsOverview } from './models/types'
 import { SliderField, SliderNumber } from '../../components/NumberFields'
 import { countText } from '../../components/numberBounds'
 
@@ -703,7 +705,7 @@ function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () =
             {PROVIDERS.filter((item) => !phone || item.id !== 'other').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         )}</Field>
-        <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store. Leave it empty to use a key you already saved for this service in Settings > Models." />
+        <HostedKey provider={provider} baseUrl={baseUrl} value={apiKey} onChange={setApiKey} />
         {provider === 'other' && <TextInput label="API base URL" value={baseUrl} required onChange={setBaseUrl} hint="For an OpenAI-compatible image service, usually ending in /v1." />}
         <ImageModelField provider={provider} baseUrl={baseUrl} apiKey={apiKey} value={model} placeholder={MODEL_EXAMPLES[provider]} onChange={setModel} />
         <NsfwChoice provider={provider} checked={nsfw} onChange={(value) => { setNsfw(value); setAccepted(false) }} />
@@ -715,4 +717,15 @@ function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () =
       </div>
     </form>
   )
+}
+
+/** The key for a new image API: the one saved with a text profile on the same service is used as it is, as in
+ * Settings > Models, and "Use a different key" opens the field. */
+function HostedKey({ provider, baseUrl, value, onChange }: { provider: HostedProvider; baseUrl: string; value: string; onChange: (value: string) => void }) {
+  const profiles = useQuery({ queryKey: ['models'], queryFn: () => api<ModelsOverview>('/models') }).data?.profiles ?? []
+  const [typing, setTyping] = useState(false)
+  const from = imageKeyFrom(profiles, provider, baseUrl)
+  if (from && !typing) return <div className="token-entry"><p>Uses the API key saved with <strong>{from.name}</strong>.</p><button type="button" className="button" onClick={() => setTyping(true)}>Use a different key</button></div>
+  return <div className="token-entry"><TextInput label="API key" type="password" value={value} onChange={onChange} hint="Saved in your system's credential store." />
+    {from && <button type="button" className="text-button" onClick={() => { onChange(''); setTyping(false) }}>Use the {from.name} key</button>}</div>
 }

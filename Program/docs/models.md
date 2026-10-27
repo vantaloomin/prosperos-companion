@@ -16,7 +16,9 @@ One key does every job on its service. A new or keyless profile on the same prov
 profile with a saved key uses that key (the most recently changed one) without asking for it again, so
 the OpenAI key typed for chat also does recall. The form says "Uses the API key saved with …" and
 "Use a different key" gives that profile a key of its own. A key leaves the vault only once no profile
-uses it. A hosted image backend with no key of its own borrows the key saved with a text profile for the
+uses it. Replacing the key on a profile that shares it replaces it for every profile sharing it (so a
+rotated key keeps recall working), unless "Also use it for …" is unticked (`share_key: false`), which gives
+that profile a key of its own. A hosted image backend with no key of its own borrows the key saved with a text profile for the
 same provider at its usual address (an "other" image API: a compatible text profile at the same address).
 
 | Provider | Address | Key | Request |

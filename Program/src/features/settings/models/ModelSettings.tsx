@@ -108,6 +108,11 @@ function RecallChoice({ overview, profiles, onChanged, setResult }: { overview: 
   </div>
 }
 
+function keyLine(profile: ModelProfile) {
+  if (!profile.has_saved_key) return ''
+  return profile.key_shared_with?.length ? ` · key shared with ${profile.key_shared_with.join(', ')}` : ' · key saved'
+}
+
 function modelLine(profile: ModelProfile) {
   if (isRecall(profile.config)) return profile.config.embedding_model || 'Unfinished: choose an embedding model'
   return profile.config.model || 'Unfinished: choose a model'
@@ -121,13 +126,13 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
   const verify = () => run(async () => { setCheck(null); const found = await api<{ models: string[]; note?: string }>(`/models/profiles/${profile.id}/check`, {}); setCheck({ count: found.models.length, note: found.note }); void refresh() })
   const copy = () => run(async () => { const made = await api<ModelProfile>(`/models/profiles/${profile.id}/duplicate`, {}); onChanged(); setResult({ tone: 'info', text: `${made.name} added. Edit it to change what differs.` }) })
   const remove = () => {
-    if (!window.confirm(`Delete ${profile.name}? ${profile.key_shared ? 'Its saved key stays, since another profile uses it' : 'Its saved key is removed from your keychain'}${jobs.length ? ', and its jobs go back to the conversation profile' : ''}.`)) return
+    if (!window.confirm(`Delete ${profile.name}? ${profile.key_shared_with?.length ? 'Its saved key stays, since another profile uses it' : 'Its saved key is removed from your keychain'}${jobs.length ? ', and its jobs go back to the conversation profile' : ''}.`)) return
     void run(async () => { onChanged(await api<ModelsOverview>(`/models/profiles/${profile.id}`, undefined, 'DELETE')); setResult({ tone: 'info', text: `${profile.name} deleted.` }) })
   }
   const where = profile.config.provider === 'codex' ? 'Codex CLI login' : profile.config.provider === 'claude_code' ? 'Claude Code login' : profile.config.base_url
   return <li className="model-profile">
     <div><span className="eyebrow">{profile.config.resource_group === 'builtin-chat' ? 'Local / Built-in' : profile.provider_name}</span><h3>{profile.name}</h3>
-      <p className="subtle">{modelLine(profile)} · {where}{profile.has_saved_key ? ' · key saved' : ''}</p>
+      <p className="subtle">{modelLine(profile)} · {where}{keyLine(profile)}</p>
       <ModelUsage usage={usage} />
       <UseBuiltin profileId={profile.id} />
       {jobs.length > 0 && <p className="model-jobs"><Check size={14} aria-hidden="true" />{jobs.map(job => job.name).join(', ')}</p>}

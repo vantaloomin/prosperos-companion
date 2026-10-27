@@ -1,5 +1,5 @@
 // Applying a connection test's model list, adapted from prosperos-study src/features/models/discovery.ts at bbcbde4.
-import { cliProviders, embeddingProviders, initialConfig, type ModelProfile, type ProfileConfig } from './types.ts'
+import { cliProviders, embeddingProviders, initialConfig, providers, type ModelProfile, type ProfileConfig, type Provider } from './types.ts'
 
 export interface DiscoveredModel { id: string; name: string; context_tokens: number | null; max_output_tokens: number | null; limit_source: 'provider' | 'unreported'; supported_parameters?: string[]; supported_efforts?: string[] }
 export interface Discovery { available: boolean; models: string[]; model_details?: DiscoveredModel[]; generated: false; note?: string; location?: string }
@@ -59,5 +59,15 @@ const address = (config: ProfileConfig) => (config.base_url || '').replace(/\/+$
 export function reusableKey(profiles: ModelProfile[], config: ProfileConfig, excluding?: string) {
   if (cliProviders.includes(config.provider)) return undefined
   return profiles.filter(other => other.id !== excluding && other.has_saved_key && other.config.provider === config.provider && address(other.config) === address(config))
+    .sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))[0]
+}
+
+/** The text profile whose saved key an image API on `provider` borrows when it has none of its own
+ * (companion/images/backends.py text_profile_key): the same provider at its usual address. */
+export function imageKeyFrom(profiles: ModelProfile[], provider: string, baseUrl: string) {
+  const text = (provider === 'other' ? 'compatible' : provider) as Provider
+  const wanted = (provider === 'other' ? baseUrl : providers[text]?.url ?? '').replace(/\/+$/, '')
+  if (!wanted) return undefined
+  return profiles.filter(profile => profile.has_saved_key && profile.config.provider === text && address(profile.config) === wanted)
     .sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))[0]
 }

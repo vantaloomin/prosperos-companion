@@ -1158,6 +1158,10 @@ a.button { color: inherit; text-decoration: none; }
 .token-entry p { margin: 0; font-size: 0.875rem; }
 .token-entry small { flex-basis: 100%; color: var(--muted); }
 .token-entry .field { flex: 1 1 280px; }
+/* The shared-key choice gets its own line; the way back lines up with the field's edge (Iris). */
+.token-entry .checkbox-row { flex-basis: 100%; }
+.token-entry .text-button { padding-inline: 0; }
+@media (max-width: 720px) { .model-profile-editor .form-actions:has(.keychain-note) { flex-wrap: wrap; } .model-profile-editor .keychain-note { flex-basis: 100%; } }
 .connection-success { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); }
 .advanced-settings > summary { cursor: pointer; color: var(--muted); }
 .advanced-settings > .form-stack { margin-top: 14px; }
