@@ -168,10 +168,21 @@ class ProfileCreate(Input):
     name: str = Field(default='', max_length=120)
     config: SavedProfileConfig
     api_key: str | None = Field(default=None, max_length=4000)
+    # On an update: a new key on a profile whose key other profiles share replaces it for all of them (a rotated key
+    # keeps every job working); False gives this profile a key of its own instead. A new profile has no one to share
+    # with yet, so it ignores this.
+    share_key: bool = True
 
 
 class ProfileUpdate(ProfileCreate):
     expected_revision: int
+
+
+class MixUpdate(Input):
+    job: str = Field(default='chat', min_length=1, max_length=40)
+    profile_ids: list[str] = Field(default_factory=list, max_length=20)
+    mode: str = Field(default='random', max_length=20)
+    enabled: bool = True
 
 
 class RouteUpdate(Input):

@@ -69,6 +69,11 @@ FALL_HOLD = 365
 AWKWARD_DAYS = 5
 # How long the chat context keeps a step just reached, or an answer just given.
 FRESH = timedelta(hours=12)
+# A friendship the app started, while closeness is still "Just met" or "Getting to know each other" (`not_yet`): what
+# the chat context and the Character page say instead of "You are friends" and "Friends for 1 day".
+EARLY_LINES = ('You have only just met the user: you are not friends yet, just two people starting to talk.',
+               'You are getting to know the user and may become friends, but you are not friends yet.')
+EARLY_TEXT = ('Just met', 'Getting to know each other')
 
 
 @dataclass(frozen=True)
@@ -446,12 +451,26 @@ def state(connection, companion: dict, now, write: bool = True) -> dict | None:
     following = ladder_steps[top + 1] if top + 1 < len(ladder_steps) else None
     since = rows[0]['reached_on']
     today = local_today(companion, now)
-    return {'ladder': ladder, 'step': current.key, 'label': current.label, 'next': following.key if following else None,
+    early = not_yet(connection, companion, ladder, current, rows, now)
+    label = EARLY_TEXT[early - 1] if early else current.label
+    return {'ladder': ladder, 'step': current.key, 'label': label, 'next': following.key if following else None,
             'next_label': following.label if following else None, 'since': since,
             'steps': [{'step': row['step'], 'label': step_of(ladder, row['step']).label, 'on': row['reached_on'],
                        'how': row['how']} for row in rows],
-            'text': plain_text(ladder, current, rows, today),
-            'ladder_steps': [{'step': step.key, 'label': step.label} for step in ladder_steps]}
+            'text': met_text(since, today) if early else plain_text(ladder, current, rows, today), 'not_yet': early,
+            'ladder_steps': [{'step': step.key, 'label': label if step is current else step.label}
+                             for step in ladder_steps]}
+
+
+def not_yet(connection, companion: dict, ladder: str, current: Step, rows: list[dict], now) -> int | None:
+    """The closeness stage (1 or 2) while a friendship the app started is not a friendship yet, else None: someone the
+    user has only just met, or is getting to know, is not a friend from day one. One from how they know each other, or
+    set by the user, is."""
+    if ladder != 'friendship' or current.key != 'friends' or rows[0]['how'] != 'start':
+        return None
+    from companion.memory import closeness
+    level = closeness.state(connection, companion, now)['level']
+    return level if level < 3 else None
 
 
 def exclusive(connection, companion: dict, now) -> bool:
@@ -500,6 +519,12 @@ def plain_text(ladder: str, current: Step, rows: list[dict], today: date) -> str
     return f'Friends for {span}, {current.state}' if span else current.state.capitalize()
 
 
+def met_text(since: str, today: date) -> str:
+    """'Met today', 'Met 1 day ago', 'Met 12 days ago': before they are friends, beside the stage the picker shows."""
+    days = (today - date.fromisoformat(since)).days
+    return 'Met today' if days <= 0 else f"Met {days} day{'s' if days != 1 else ''} ago"
+
+
 def long_date(day: str) -> str:
     found = date.fromisoformat(day)
     return f'{found.day} {found:%B %Y}'
@@ -515,6 +540,9 @@ def context_line(found: dict, others: tuple[str, str] = ('alone', ''), home: str
     they know of the user's other romances (`others_known`); `home`, in a group chat, whether they live together yet
     (`group_home`)."""
     step = step_of(found['ladder'], found['step'])
+    if found.get('not_yet'):
+        return (f"- {EARLY_LINES[found['not_yet'] - 1]} Keep to where things stand: do not act further along than "
+                'this.')
     kind, sentence = others
     line = SHARED_LINES.get(step.key, {}).get(kind, step.line) + (f' {sentence}' if sentence else '')
     if home:

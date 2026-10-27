@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Ellipsis, GitBranch, Lightbulb, MessagesSquare, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
 import { api } from '../../api'
@@ -10,6 +10,7 @@ import { useLocalTime } from './clock'
 import { useChats } from '../chats/useChats'
 import { StatusText } from '../status/StatusLine'
 import { badge, chatsButtonLabel, othersUnread, type OpenChat } from '../chats/chatText'
+import { useFitOnScreen } from '../../components/fitOnScreen'
 import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
 import { toggleSidecar } from '../sidecar/toggle'
 import { ExportLinks } from '../chats/ExportLinks'
@@ -17,6 +18,7 @@ import { useEraWords, useMagicCalls } from '../world/useEraWords'
 import { say } from '../world/eraWords'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, canCall, type WhereState } from './whereText'
+import { MIX, useModelSwitch } from '../settings/models/useModelSwitch'
 
 type Props = { companion: Companion; listing: boolean; chatsButton: RefObject<HTMLButtonElement | null>; onChats: () => void; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
 
@@ -100,13 +102,31 @@ export function ChatStyleSwitch({ phone = false }: { phone?: boolean }) {
   )
 }
 
-/** The overflow ("More") at the end of the header's icon row: exporting the chat on screen, and on a phone the chat style. */
+/** Which model answers in chat, once there is more than one to pick: a model that fails or a style you want for a
+ * while is one choice away, and the one you leave keeps its settings for later. */
+function ModelSwitch() {
+  const models = useModelSwitch()
+  if (models.profiles.length < 2) return null
+  return <label>Model
+    <select className="chat-style-switch" value={models.current} onChange={(event) => void models.choose(event.target.value).catch(() => undefined)}>
+      {models.canMix && <option value={MIX}>Mix ({models.mixCount} models)</option>}
+      {models.profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
+    </select>
+    <small className="subtle">Answers in every chat.</small>
+  </label>
+}
+
+/** The overflow ("More") at the end of the header's icon row: the model that answers, exporting the chat on screen,
+ * and on a phone the chat style. */
 export function ChatMenu({ threadId }: { threadId: string }) {
   const [open, setOpen] = useState(false)
+  const panel = useRef<HTMLDivElement>(null)
+  useFitOnScreen(panel, open)
   return (
     <span className="header-menu" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
       <button type="button" className="icon-button" aria-label="More" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /></button>
-      {open && <div className="header-menu-panel">
+      {open && <div ref={panel} className="header-menu-panel">
+        <ModelSwitch />
         <label className="phone-only">Chat style<ChatStyleSwitch phone /></label>
         <ExportLinks target={{ kind: 'chat', threadId }} onPick={() => setOpen(false)} />
       </div>}

@@ -478,6 +478,12 @@ class City(Record):
     # each `when` naming weather, season, time, day, holiday, place or work. Checked when the city loads
     # (lore_moments.clean), which drops a bad entry with a note rather than stopping the city loading.
     lore: Any = None
+    # The city's own books, shows and songs (companion/life/media_world.py): {credit, book, show, music}, each a list
+    # of [title, by, year, tags]. Checked when the city loads (media_world.clean), which drops a bad entry with a note.
+    media: Any = None
+    # The city's own family rates over its era's (companion/world/data/family_shapes.json, family_tree.rates):
+    # {together, split, ..., siblings: [none, one, two, three or more]}. Keys the era doesn't have are ignored.
+    family: dict[str, float | list[float]] | None = None
 
     @model_validator(mode='after')
     def check(self):

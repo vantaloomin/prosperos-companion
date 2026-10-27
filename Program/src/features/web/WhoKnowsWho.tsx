@@ -58,7 +58,7 @@ function WebSearch({ data, onPick }: { data: WebData; onPick: (id: string) => vo
   const found = search(data, text)
   return (
     <div className="web-search">
-      <input type="search" value={text} placeholder="Find someone" aria-label="Find someone" onChange={(event) => setText(event.target.value)}
+      <input autoComplete="off" type="search" value={text} placeholder="Find someone" aria-label="Find someone" onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => { if (event.key === 'Enter' && found[0]) { onPick(found[0].id); setText('') } }} />
       {found.length > 0 && <ul className="web-results">
         {found.map((node) => <li key={node.id}><button type="button" onClick={() => { onPick(node.id); setText('') }}>{node.name}<span className="subtle"> · {KIND_LABELS[node.kind]}</span></button></li>)}

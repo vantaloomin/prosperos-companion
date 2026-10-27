@@ -338,6 +338,17 @@ def _notable(data: dict, place: dict, slot: int) -> dict | None:
     return named[0] if slot >= count(data, place) and named else None
 
 
+def notable_keys(data: dict) -> dict[str, str]:
+    """Each of the city's notables by id, with the key they have in this town. Their spot comes after the seeded
+    people at their place, so seeding new townsfolk can move it."""
+    keys = {}
+    for place in data.get('places', ()):
+        seeded = count(data, place)
+        for offset, notable in enumerate(notables_at(data, place['id'])):
+            keys[notable['id']] = f"town:{data['id']}:{place['id']}:{seeded + offset}"
+    return keys
+
+
 def _slot_role(data: dict, place: dict, slot: int) -> tuple:
     """The role a spot at a place has, drawn for its first holder: a newcomer takes the same one."""
     return _role(place, slot, seed_for(data, f"town:{data['id']}:{place['id']}:{slot}"))

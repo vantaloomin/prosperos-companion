@@ -13,7 +13,7 @@ export function ScheduleEditor({ blocks, onChange, timezone }: { blocks: Routine
       )}
       {blocks.map((block, index) => (
         <div className="schedule-row" key={index} role="group" aria-label={block.label || `Block ${index + 1}`}>
-          <input aria-label="Name" value={block.label} maxLength={120} placeholder="Bakery shift" onChange={(event) => set(index, { label: event.target.value })} />
+          <input autoComplete="off" aria-label="Name" value={block.label} maxLength={120} placeholder="Bakery shift" onChange={(event) => set(index, { label: event.target.value })} />
           <select aria-label="Kind" value={block.kind} onChange={(event) => set(index, { kind: event.target.value as BlockKind })}>
             {KINDS.map((kind) => <option key={kind.id} value={kind.id}>{kind.label}</option>)}
           </select>
@@ -25,7 +25,7 @@ export function ScheduleEditor({ blocks, onChange, timezone }: { blocks: Routine
               <label key={day} className="day-pick"><input type="checkbox" checked={block.days.includes(number)} onChange={() => set(index, { days: toggleDay(block.days, number) })} /><span>{day}</span></label>
             ))}
           </div>
-          <input className="schedule-themes" aria-label="Themes (optional)" aria-describedby="schedule-themes-about" value={block.themes.join(', ')} placeholder="Themes, such as regulars, new recipes (optional)"
+          <input autoComplete="off" className="schedule-themes" aria-label="Themes (optional)" aria-describedby="schedule-themes-about" value={block.themes.join(', ')} placeholder="Themes, such as regulars, new recipes (optional)"
             onChange={(event) => set(index, { themes: event.target.value.split(',') })} />
         </div>
       ))}

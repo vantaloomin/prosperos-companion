@@ -46,6 +46,10 @@ ROLE_DEFAULTS = {
     # A grandparent (companion/life/circle.py add_grandparent) starts where the rest of the family does.
     'grandparent': (3, 0.3, 0.3), 'grandmother': (3, 0.3, 0.3), 'grandfather': (3, 0.3, 0.3),
     'grandma': (3, 0.3, 0.3), 'grandpa': (3, 0.3, 0.3),
+    # Step and half family from their family plan (companion/life/family_circle.py): known since they were young.
+    **dict.fromkeys(('stepmom', 'stepdad', 'stepparent', 'stepmum', 'stepmother', 'stepfather'), (3, 0.2, 0.35)),
+    **dict.fromkeys(('half sister', 'half brother', 'half sibling'), (3, 0.3, 0.3)),
+    **dict.fromkeys(('stepsister', 'stepbrother', 'stepsibling'), (2, 0.3, 0.0)),
     'longtime friend': (3, 0.25, 0.25), 'old friend from school': (3, 0.25, 0.25), 'friend': (3, 0.25, 0.25),
     'cousin': (2, 0.3, 0.0), 'roommate from years ago': (2, 0.3, 0.0),
     'coworker': (2, 0.2, 0.0), 'neighbor': (2, 0.2, 0.0), 'new friend': (2, 0.2, 0.0), 'mentor': (2, 0.2, 0.0),
@@ -59,6 +63,9 @@ ROLE_DEFAULTS = {
 UNKNOWN_ROLE = (1, 0.0, 0.0)
 # The lowest a parent, sibling or grandparent ever stands with the companion (the role defaults never start them lower).
 FAMILY_FLOOR = 2
+# Family the app planned (companion/life/family_circle.py) and still in touch: known all their life, never lower than
+# Comfortable (Iris, family circles 1).
+PLANNED_FLOOR = 3
 # Meetings around town -> the stage they start at, highest first (the same as companion/cast.py for the user).
 MEETINGS = ((6, 3), (3, 2), (0, 1))
 # Storyline beats with a circle person that move the stage: {story: {beat index: steps, or steps by tone}}.
@@ -323,6 +330,11 @@ def both_companions(connection, a: str, b: str, first: dict, second: dict, now, 
             'ab': toward(first, b), 'ba': toward(second, a)}
 
 
+def planned_family(person: dict) -> bool:
+    details = decode(person['details'] or '{}')
+    return bool(details.get('kin')) and not details.get('estranged')
+
+
 def with_circle(connection, a: str, b: str, me: dict, person: dict, now) -> dict:
     """A companion and someone in their own circle; both directions start at the role's default."""
     from companion.life import circle
@@ -338,6 +350,8 @@ def with_circle(connection, a: str, b: str, me: dict, person: dict, now) -> dict
     # secret does.
     close_family = circle.role_kind(person['role']) in ('parent', 'sibling') or person['role'] in circle.GRANDPARENTS
     mine = max(mine, min(base, FAMILY_FLOOR)) if close_family else mine
+    if planned_family(person):
+        base, mine = max(base, PLANNED_FLOOR), max(mine, PLANNED_FLOOR)
     return {'start': found['level'], 'role': person['role'], 'nudge': found['nudge'], 'how': '', 'told': False,
             'storylines': moved['reasons'], 'ab': {'level': mine, 'cooled': False},
             'ba': {'level': base, 'cooled': False}}

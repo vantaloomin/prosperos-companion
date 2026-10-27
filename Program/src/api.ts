@@ -1,4 +1,6 @@
 // Request helper adapted from prosperos-study src/api.ts at bbcbde4: Companion header and error codes.
+import { followed } from './features/worlds/arrival'
+
 export class ApiError extends Error {
   constructor(message: string, public status: number, public code?: string) { super(message) }
 }
@@ -36,9 +38,9 @@ export async function api<T>(path: string, body?: unknown, method?: string): Pro
 }
 
 /** A phone whose pairing was removed on the PC goes back to the pairing screen (src/features/phone). */
-function failure(status: number, data: { detail?: unknown; code?: string }): ApiError {
+function failure(status: number, data: { detail?: unknown; code?: string; world?: string | null }): ApiError {
   if (data.code === 'phone_unpaired') window.dispatchEvent(new Event('companion:unpaired'))
-  if (data.code === 'world_changed') { window.location.hash = '#conversation'; window.location.reload() }
+  if (data.code === 'world_changed') { followed(data.world ?? undefined); window.location.hash = '#conversation'; window.location.reload() }
   return new ApiError(errorMessage(status, data), status, data.code)
 }
 

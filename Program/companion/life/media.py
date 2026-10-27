@@ -3,7 +3,8 @@
 Each companion has one current book (and how far along they are), one show they are partway through and one song on
 repeat, picked by the app from banks of real, era-correct titles for our world (titles, authors and artists only:
 never lyrics or excerpts) or of invented in-world titles for made-up worlds (Camelot, Oz, Grandport), in
-companion/world/data/media/*.json. Picks lean on their interests and stated likes, their city's country and, for
+companion/world/data/media/*.json. A made-up world's own titles come first: the city's `media` block, else titles
+built from its places, people, festivals and lore (companion/life/media_world.py). Picks lean on their interests and stated likes, their city's country and, for
 songs, the years they grew up in. In the past, a "show" is what people followed then: a serial in a magazine, a play,
 a picture serial or a radio program.
 
@@ -30,7 +31,7 @@ from pathlib import Path
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import circle, money
+from companion.life import circle, media_world, money
 from companion.world import generators, looks, wording
 
 COMPANION = 'companion'
@@ -40,6 +41,10 @@ KINDS = ('book', 'show', 'music')
 WEAVE = True
 RECOMMENDS = True
 
+# Of a made-up world's picks, the share from the city's own block (the rest built from the city) and, for a city
+# without one, the share built from the city (the rest from the shared bank).
+OWN_SHARE = 0.8
+BUILT_SHARE = 0.6
 # Banks by era: real titles up to the era's year in our world, invented ones in made-up worlds.
 ERA_BANKS = {'modern': 'modern', 'other': 'modern', 'victorian': 'nineteenth', 'steampunk': 'nineteenth',
              'frontier': 'nineteenth', 'jazz-age': 'jazz-age', 'fantasy': 'tales', 'medieval': 'tales',
@@ -161,7 +166,13 @@ def place_of(data: dict | None) -> dict:
         if era == 'other':
             bank_id = 'nineteenth' if own < 1900 else 'jazz-age' if own < 1930 else 'modern'
         year = min(own, year or own)
-    return {'bank': bank_id, 'year': year, 'region': region, 'era': era}
+    return {'bank': bank_id, 'year': year, 'region': region, 'era': era,
+            'world': media_world.mark(data, bank_id, bank(bank_id)['real'])}
+
+
+def world_titles(me: dict, data: dict | None) -> dict | None:
+    """Their city's own titles and those built from it (media_world.titles), or None."""
+    return media_world.titles(data, me['bank'], bank(me['bank'])['real'])
 
 
 def tastes(definition: dict) -> tuple[set, set]:
@@ -226,9 +237,24 @@ def candidates(me: dict, kind: str, taken: set) -> list[dict]:
     return found
 
 
-def choose(seed: str, label: str, me: dict, kind: str, definition: dict, taken: set) -> dict | None:
-    """A pick for one kind: era-correct, not one they have had, leaning to their tastes."""
-    options = candidates(me, kind, taken) or candidates(me, kind, set())
+def options_for(seed: str, label: str, me: dict, kind: str, taken: set, titles: dict | None) -> list[dict]:
+    """What one pick is drawn from: in a made-up world mostly the city's own titles, else ones built from it, else
+    the shared bank; a list that has run out gives way to the next."""
+    if titles:
+        roll = generators.unit(seed, label, 'world')
+        own = [item for item in titles['own'].get(kind, ()) if item['title'].casefold() not in taken]
+        built = [item for item in titles['built'].get(kind, ()) if item['title'].casefold() not in taken]
+        if own and (roll < OWN_SHARE or not built):
+            return own
+        if built and (titles['own'].get(kind) or roll < BUILT_SHARE):
+            return built
+    return candidates(me, kind, taken) or candidates(me, kind, set())
+
+
+def choose(seed: str, label: str, me: dict, kind: str, definition: dict, taken: set,
+           titles: dict | None = None) -> dict | None:
+    """A pick for one kind: era-correct (or of their own world), not one they have had, leaning to their tastes."""
+    options = options_for(seed, label, me, kind, taken, titles)
     liked, disliked = tastes(definition)
     born = (me.get('year') or ERA_YEARS['modern']) - looks.age_of(definition, seed)
     return generators.pick(seed, label, options, [weight(item, kind, me, liked, disliked, born) for item in options])
@@ -254,12 +280,13 @@ def ensure(connection, timeline_id: str, definition: dict, world, today: date | 
 
 
 def replaced(connection, state: dict, definition: dict, world, today: date) -> dict:
-    """State saved before the city's own year capped the titles (a 1925 city once ran to 1926): the bank and year
-    are read again, and what they are on today from after that year is drawn again."""
+    """State saved before the city's own year capped the titles (a 1925 city once ran to 1926), or before a made-up
+    world's own titles counted: the bank, year and world are read again, and what they are on today from after that
+    year, or from the shared bank of a world that now has its own, is drawn again."""
     data = circle.city_data(definition, world)
     me = decode(state['profile'])
     found = place_of(data) if data else None
-    if not found or (found['bank'], found['year']) == (me['bank'], me['year']):
+    if not found or (found['bank'], found['year'], found['world']) == (me['bank'], me['year'], me.get('world', '')):
         return state
     old, me = me, {**me, **found}
     timeline_id = state['timeline_id']
@@ -268,7 +295,8 @@ def replaced(connection, state: dict, definition: dict, world, today: date) -> d
     rewind(connection, timeline_id, today)
     years = {item['title'].casefold(): item['year'] for kind in KINDS for item in bank(old['bank'])[kind]}
     for item in items(connection, timeline_id):
-        late = (years.get(item['title'].casefold()) or 0) > (me['year'] or 9999) or old['bank'] != me['bank']
+        late = (years.get(item['title'].casefold()) or 0) > (me['year'] or 9999) or old['bank'] != me['bank'] or \
+            old.get('world', '') != me['world']
         if item['status'] == 'current' and item['source'] == 'bank' and late:
             connection.execute('DELETE FROM media_items WHERE id=?', (item['id'],))
     return optional(connection, 'SELECT * FROM media_state WHERE timeline_id=?', (timeline_id,))
@@ -361,15 +389,16 @@ def advance(connection, timeline_id: str, definition: dict, world, through: date
     if level == 0:
         return []
     me = decode(state['profile'])
+    titles = world_titles(me, circle.city_data(definition, world))
     for kind in KINDS:
-        advance_kind(connection, timeline_id, state['seed'], me, kind, definition, through, level)
+        advance_kind(connection, timeline_id, state['seed'], me, kind, definition, through, level, titles)
     return items(connection, timeline_id)
 
 
-def advance_kind(connection, timeline_id, seed, me, kind, definition, through: date, level: int):
+def advance_kind(connection, timeline_id, seed, me, kind, definition, through: date, level: int, titles=None):
     chain = items(connection, timeline_id, kind)
     if not chain:
-        first = choose(seed, f'{kind}:0', me, kind, definition, set())
+        first = choose(seed, f'{kind}:0', me, kind, definition, set(), titles)
         if not first:
             return
         first = {**first, 'kind': kind}
@@ -390,7 +419,7 @@ def advance_kind(connection, timeline_id, seed, me, kind, definition, through: d
             return
         taken = {row['title'].casefold() for row in chain}
         label = f"{kind}:{last['seq'] + 1}"
-        found = choose(seed, label, me, kind, definition, taken)
+        found = choose(seed, label, me, kind, definition, taken, titles)
         if not found:
             return
         found = {**found, 'kind': kind}
@@ -755,7 +784,8 @@ def change(connection, timeline_id: str, body: dict, definition: dict, world, no
     seq = max((row['seq'] for row in chain), default=-1) + 1
     label = f'{kind}:{seq}'
     if body.get('reset'):
-        item = choose(seed, label, me, kind, definition, {row['title'].casefold() for row in chain})
+        titles = world_titles(me, circle.city_data(definition, world))
+        item = choose(seed, label, me, kind, definition, {row['title'].casefold() for row in chain}, titles)
         source = 'bank'
     else:
         title = (body.get('title') or '').strip()

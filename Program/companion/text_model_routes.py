@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request
 from companion import text_models
 from companion.database import decode
 from companion.providers import balance
-from companion.providers.config import ConnectionProbe, ProfileCreate, ProfileUpdate, RouteUpdate
+from companion.providers.config import ConnectionProbe, MixUpdate, ProfileCreate, ProfileUpdate, RouteUpdate
 
 router = APIRouter(prefix='/api/models')
 
@@ -76,3 +76,9 @@ async def profile_usage(profile_id: str, request: Request, fresh: bool = False):
 @router.put('/routes')
 def set_route(body: RouteUpdate, request: Request):
     return text_models.set_route(db(request), body.job, body.profile_id)
+
+
+@router.put('/mix')
+def set_mix(body: MixUpdate, request: Request):
+    """The conversation's Mix: profiles that answer in turn or at random, each with its own settings."""
+    return text_models.set_mix(db(request), body.job, body.profile_ids, body.mode, body.enabled)

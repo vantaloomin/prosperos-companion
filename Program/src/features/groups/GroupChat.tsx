@@ -24,7 +24,7 @@ import { useGroupLookStyles } from '../conversation/useTheirLook'
 import { Backstories } from './Backstories'
 import { NewGroup } from './Groups'
 import { chatKey, GROUPS_KEY, useCast } from './groupState'
-import { canRetry, failureText, groupActivity, guestLine, guestMeters, membersLine, shownMessages, toldOnly } from './groupText'
+import { canRetry, failureText, groupActivity, guestLine, guestMeters, membersLine, shortTitle, shownMessages, toldOnly } from './groupText'
 import { guardNote } from './secretText'
 
 // While replies are being written, the chat asks for what is new this often.
@@ -105,7 +105,7 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
       <p className="chat-activity subtle" role="status" aria-live="polite">{groupActivity(data, sending)}{groupActivity(data, sending) && ooc.note && ' · '}<AsideText note={ooc.note} /></p>
       <GroupNotice notice={notice ?? (data.ready ? null : NO_MODEL)} go={go} />
       {group.members.length
-        ? <Composer name={group.title} chat={`group:${id}`} draft={draft} streaming={data.busy} compact={scroll.away} onSend={() => void submit()} pictures={false}
+        ? <Composer name={group.title} phoneName={shortTitle(group.title)} chat={`group:${id}`} draft={draft} streaming={data.busy} compact={scroll.away} onSend={() => void submit()} pictures={false}
           onStop={() => void act(() => api(`/groups/${id}/stop`, {}))} />
         : <GroupNotice notice={NOBODY} go={go} />}
     </section>
@@ -212,7 +212,7 @@ function GroupHeader({ group, go, onChange }: { group: Group; go: (view: View) =
       <div className="portrait" aria-hidden="true"><UsersRound /></div>
       <div className="conversation-title">
         {renaming ? <Rename group={group} onDone={() => setRenaming(false)} onChange={onChange} />
-          : <h1>{group.title} <button type="button" className="icon-button group-rename" aria-label="Rename the group" onClick={() => setRenaming(true)}><Pencil aria-hidden="true" /></button></h1>}
+          : <h1><span className="group-title-text">{group.title}</span> <button type="button" className="icon-button group-rename" aria-label="Rename the group" onClick={() => setRenaming(true)}><Pencil aria-hidden="true" /></button></h1>}
         <p className="subtle">{membersLine(group)}</p>
       </div>
       <ChatsButton listing={listing} button={chatsButton} onChats={() => setListing(!listing)} current={current} />
@@ -231,7 +231,7 @@ function Rename({ group, onDone, onChange }: { group: Group; onDone: () => void;
   return (
     <form className="group-rename-form" onSubmit={(event) => { event.preventDefault(); save() }}>
       <label className="visually-hidden" htmlFor="group-name">Group name</label>
-      <input id="group-name" autoFocus value={name} maxLength={60} placeholder="No name: shows who is in it" onChange={(event) => setName(event.target.value)}
+      <input autoComplete="off" id="group-name" autoFocus value={name} maxLength={60} placeholder="No name: shows who is in it" onChange={(event) => setName(event.target.value)}
         onKeyDown={(event) => { if (event.key === 'Escape') onDone() }} />
       <button type="submit" className="button primary">Save</button>
       <button type="button" className="text-button" onClick={onDone}>Cancel</button>

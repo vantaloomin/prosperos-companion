@@ -10,6 +10,7 @@ assigns another profile.
 Saving a profile never contacts the service. A saved key stays with its provider and address:
 changing either drops it, so a key is never sent somewhere it was not entered for.
 """
+import random
 import sqlite3
 from urllib.parse import urlsplit
 
@@ -59,10 +60,11 @@ def same_connection(first: dict, second: dict) -> bool:
     return first['provider'] == second['provider'] and (first['base_url'] == second['base_url'] or not first['base_url'])
 
 
-def profile_view(row: dict) -> dict:
+def profile_view(row: dict, key_shared_with: list[str] | None = None) -> dict:
     config = decode(row['config'])
     return {'id': row['id'], 'name': row['name'], 'revision': row['revision'], 'config': config,
             'provider_name': PROVIDER_NAMES[config['provider']], 'has_saved_key': bool(row['credential_ref']),
+            'key_shared_with': key_shared_with or [],
             'ready': profile_ready(config), 'recall_ready': recall_ready(config), 'updated_at': row['updated_at']}
 
 
@@ -72,7 +74,20 @@ def routes(connection) -> dict[str, str]:
 
 def overview(connection) -> dict:
     rows = many(connection, 'SELECT * FROM model_profiles ORDER BY name COLLATE NOCASE, created_at')
-    return {'profiles': [profile_view(row) for row in rows], 'routes': routes(connection), 'jobs': JOBS}
+    return {'profiles': [profile_view(row, sharing(rows, row)) for row in rows], 'routes': routes(connection),
+            'jobs': JOBS, 'mix': {CHAT: mix_view(connection, CHAT)}}
+
+
+def sharing(rows: list[dict], row: dict) -> list[str]:
+    """The other profiles using this profile's saved key."""
+    reference = row['credential_ref']
+    return [other['name'] for other in rows if reference and other['credential_ref'] == reference and
+            other['id'] != row['id']]
+
+
+def view_of(connection, profile_id: str) -> dict:
+    return profile_view(profile_row(connection, profile_id), sharing(many(connection, 'SELECT * FROM model_profiles'),
+                                                                     profile_row(connection, profile_id)))
 
 
 def profile_row(connection, profile_id: str) -> dict:
@@ -84,6 +99,73 @@ def assigned(connection, job: str) -> dict | None:
     assignments = routes(connection)
     profile_id = assignments.get(job) or assignments.get(CHAT)
     return optional(connection, 'SELECT * FROM model_profiles WHERE id=?', (profile_id,)) if profile_id else None
+
+
+MIX_MODES = ('random', 'in_turn')
+
+
+def mix_state(connection, job: str) -> dict:
+    row = optional(connection, 'SELECT * FROM model_mix_state WHERE job=?', (job,))
+    return row or {'job': job, 'enabled': 0, 'mode': 'random', 'turn': 0}
+
+
+def mix_view(connection, job: str) -> dict:
+    state = mix_state(connection, job)
+    ids = [row['profile_id'] for row in many(connection, 'SELECT profile_id FROM model_mix WHERE job=? ORDER BY position',
+                                             (job,))]
+    return {'enabled': bool(state['enabled']), 'mode': state['mode'], 'profile_ids': ids}
+
+
+def mixed(connection, job: str) -> list[dict]:
+    """The finished profiles in a job's Mix while it is on and has at least two; otherwise none."""
+    if not mix_state(connection, job)['enabled']:
+        return []
+    rows = many(connection, 'SELECT p.* FROM model_mix m JOIN model_profiles p ON p.id=m.profile_id WHERE m.job=? '
+                'ORDER BY m.position', (job,))
+    ready = [row for row in rows if ready_for(decode(row['config']), job)]
+    return ready if len(ready) > 1 else []
+
+
+def set_mix(database, job: str, profile_ids: list[str], mode: str, enabled: bool) -> dict:
+    require(job == CHAT, 'Only the conversation can mix models.', 422)
+    require(mode in MIX_MODES, 'Unknown mix order.', 422)
+    with database.connect(write=True) as connection:
+        for profile_id in profile_ids:
+            require(profile_ready(decode(profile_row(connection, profile_id)['config'])),
+                    'Finish this profile: choose a model before adding it to the mix.', 409)
+        connection.execute('DELETE FROM model_mix WHERE job=?', (job,))
+        connection.executemany('INSERT INTO model_mix (job, profile_id, position) VALUES (?, ?, ?)',
+                               [(job, profile_id, index) for index, profile_id in enumerate(dict.fromkeys(profile_ids))])
+        connection.execute('INSERT INTO model_mix_state (job, enabled, mode, turn) VALUES (?, ?, ?, 0) ON CONFLICT(job) '
+                           'DO UPDATE SET enabled=excluded.enabled, mode=excluded.mode', (job, int(enabled), mode))
+        return overview(connection)
+
+
+def reply_config(connection, job: str = CHAT, chooser=random.choice) -> dict | None:
+    """Settings for one reply: from the job's Mix when it is on (each profile with its own model and settings), else
+    the job's profile. In turn moves on one profile per reply, so it needs a write connection."""
+    rows = mixed(connection, job)
+    if not rows:
+        return config_for(connection, job)
+    return pick(connection, job, rows, chooser)
+
+
+def profile_config(connection, profile_id: str, job: str = CHAT) -> dict:
+    """One named profile's settings for a job, for a reply written with it alone."""
+    row = profile_row(connection, profile_id)
+    config = decode(row['config'])
+    require(ready_for(config, job), 'Finish this profile: choose a model before using it.', 409)
+    return {**config, 'credential_ref': row['credential_ref'], 'profile_id': row['id'], 'profile_name': row['name']}
+
+
+def pick(connection, job: str, rows: list[dict], chooser) -> dict:
+    state = mix_state(connection, job)
+    if state['mode'] == 'in_turn':
+        row = rows[state['turn'] % len(rows)]
+        connection.execute('UPDATE model_mix_state SET turn=? WHERE job=?', ((state['turn'] + 1) % len(rows), job))
+    else:
+        row = chooser(rows)
+    return profile_config(connection, row['id'], job)
 
 
 def config_for(connection, job: str) -> dict | None:
@@ -109,17 +191,40 @@ def key_for(vault, config: dict) -> str | None:
 
 
 def probe_key(database, vault, body) -> str | None:
-    """The key a connection test uses: the one typed, else the profile's saved key if it still applies."""
+    """The key a connection test uses: the one typed, else the profile's saved key if it still applies, else a key
+    another profile saved for the same service."""
     if body.api_key:
         return body.api_key
     config = body.config.model_dump()
     reference = None
-    if body.profile_id:
-        with database.connect() as connection:
+    with database.connect() as connection:
+        if body.profile_id:
             row = profile_row(connection, body.profile_id)
-        if same_connection(decode(row['config']), config):
-            reference = row['credential_ref']
+            if same_connection(decode(row['config']), config):
+                reference = row['credential_ref']
+        if reference is None:
+            reference = (reusable_key(connection, config) or {}).get('credential_ref')
     return credential_for(vault, reference, config['provider'])
+
+
+def same_service(first: dict, second: dict) -> bool:
+    """The same provider at the same address, so a key saved for one is meant for the other."""
+    return first['provider'] == second['provider'] and \
+        (first.get('base_url') or '').rstrip('/') == (second.get('base_url') or '').rstrip('/')
+
+
+def reusable_key(connection, config: dict, excluding: str | None = None) -> dict | None:
+    """The profile whose saved key a new or keyless profile on the same service uses, most recently changed first.
+
+    One key per service is what people expect (an OpenAI key for chat also does recall), so the app reuses it
+    instead of asking for it again. The key never travels to another provider or address."""
+    if config['provider'] in CLI_PROVIDERS:
+        return None
+    for row in many(connection, 'SELECT * FROM model_profiles WHERE credential_ref IS NOT NULL AND id IS NOT ? '
+                    'ORDER BY updated_at DESC, created_at DESC', (excluding,)):
+        if same_service(decode(row['config']), config):
+            return row
+    return None
 
 
 def default_name(config: dict) -> str:
@@ -143,6 +248,8 @@ def create(database, vault, body: ProfileCreate) -> dict:
     profile_id = identifier()
     reference = store_key(vault, body, None)
     with database.connect(write=True) as connection:
+        if reference is None:
+            reference = (reusable_key(connection, config) or {}).get('credential_ref')
         timestamp = database.now()
         connection.execute('INSERT INTO model_profiles (id, name, config, credential_ref, revision, created_at, '
                            'updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)',
@@ -154,7 +261,7 @@ def create(database, vault, body: ProfileCreate) -> dict:
         # The first finished recall profile does recall, unless the user already chose one for it.
         elif recall_ready(config) and 'recall' not in routes(connection):
             assign(connection, 'recall', profile_id, timestamp)
-        return profile_view(profile_row(connection, profile_id))
+        return view_of(connection, profile_id)
 
 
 def update(database, vault, profile_id: str, body: ProfileUpdate) -> dict:
@@ -163,17 +270,19 @@ def update(database, vault, profile_id: str, body: ProfileUpdate) -> dict:
         current = profile_row(connection, profile_id)
     require(current['revision'] == body.expected_revision, 'This profile changed. Reopen it and try again.', 409)
     kept = current['credential_ref'] if same_connection(decode(current['config']), config) else None
-    if kept and body.api_key and shared(database, kept, profile_id):
-        kept = None  # A new key for this profile never replaces the one a copy shares.
+    if kept and body.api_key and not body.share_key and shared(database, kept, profile_id):
+        kept = None  # Asked for a key of its own: the others keep the shared one.
     reference = store_key(vault, body, kept)
     with database.connect(write=True) as connection:
         row = profile_row(connection, profile_id)
         require(row['revision'] == body.expected_revision, 'This profile changed. Reopen it and try again.', 409)
+        if reference is None:
+            reference = (reusable_key(connection, config, profile_id) or {}).get('credential_ref')
         connection.execute('UPDATE model_profiles SET name=?, config=?, credential_ref=?, revision=revision+1, '
                            'updated_at=? WHERE id=?',
                            (body.name or default_name(config), encode(config), reference, database.now(), profile_id))
         require_assignable(connection, profile_id)
-        result = profile_view(profile_row(connection, profile_id))
+        result = view_of(connection, profile_id)
     if current['credential_ref'] and current['credential_ref'] != reference:
         release(database, vault, current['credential_ref'])
     return result
@@ -203,9 +312,10 @@ def learn_effort(database, config: dict, instead: str | None, levels: list[str] 
 
 
 def require_assignable(connection, profile_id: str):
-    """A profile doing a job must stay able to do it."""
+    """A profile doing a job, or in a Mix, must stay able to do it."""
     row = profile_row(connection, profile_id)
     jobs = [job for job, assigned_id in routes(connection).items() if assigned_id == profile_id]
+    jobs += [item['job'] for item in many(connection, 'SELECT job FROM model_mix WHERE profile_id=?', (profile_id,))]
     require(all(ready_for(decode(row['config']), job) for job in jobs),
             'This profile does a job in Settings > Models. Choose a model (an embedding model, for recall) before '
             'saving it, or assign the job to another profile first.', 409)
@@ -216,6 +326,7 @@ def delete(database, vault, profile_id: str) -> dict:
         row = profile_row(connection, profile_id)
         # Jobs it did fall back to the conversation profile, or wait for one.
         connection.execute('DELETE FROM model_routes WHERE profile_id=?', (profile_id,))
+        connection.execute('DELETE FROM model_mix WHERE profile_id=?', (profile_id,))
         connection.execute('DELETE FROM model_profiles WHERE id=?', (profile_id,))
         result = overview(connection)
     if row['credential_ref']:
@@ -235,7 +346,7 @@ def duplicate(database, profile_id: str) -> dict:
         connection.execute('INSERT INTO model_profiles (id, name, config, credential_ref, revision, created_at, '
                            'updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)',
                            (copy_id, name, row['config'], row['credential_ref'], timestamp, timestamp))
-        return profile_view(profile_row(connection, copy_id))
+        return view_of(connection, copy_id)
 
 
 def shared(database, reference: str, profile_id: str) -> bool:
@@ -409,5 +520,5 @@ def quick_save(database, vault, body) -> dict:
         return connection_summary(connection)
 
 
-__all__ = ['CHAT', 'DEFAULT_URLS', 'JOBS', 'adopt_legacy', 'split_recall', 'config_for', 'connection_summary', 'create', 'delete', 'duplicate',
+__all__ = ['CHAT', 'reply_config', 'set_mix', 'DEFAULT_URLS', 'JOBS', 'adopt_legacy', 'split_recall', 'config_for', 'connection_summary', 'create', 'delete', 'duplicate',
            'key_for', 'overview', 'probe_key', 'quick_save', 'set_route', 'update']

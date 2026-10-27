@@ -143,6 +143,22 @@ def test_a_held_reply_is_announced_when_it_shows(client, office, provider, clock
     assert client.post('/api/notifications/next', json={'focused': False}).json()['notification'] is None
 
 
+def test_a_held_reply_read_in_the_open_app_is_not_announced_later(client, office, provider, clock, monkeypatch):
+    """The app had focus when the reply showed, the user read it, and then looked away: no late notification."""
+    way(monkeypatch, 'later')
+    client.put('/api/notifications/settings', json={'enabled': True, 'preview': 'full', 'quiet_start': '00:00',
+                                                    'quiet_end': '00:00'})
+    clock.instant = clock.now().replace(hour=10)
+    says(provider, 'Sorry, here now.')
+    reply = send(client, 'Ping', 'client-text-11')['reply']
+    clock.advance(timedelta(hours=1))
+    assert client.post('/api/notifications/next', json={'focused': True}).json()['held'] == 'focused'
+    timeline = client.get('/api/chats').json()['chats'][0]['thread_id']
+    client.post('/api/chats/read', json={'thread_id': timeline, 'seq': reply['seq']})
+    clock.advance(timedelta(minutes=13))
+    assert client.post('/api/notifications/next', json={'focused': False}).json()['notification'] is None
+
+
 def test_paced_replies_are_on_by_default_and_can_be_turned_off(client, office, provider, clock):
     assert client.get('/api/life/settings').json()['paced_replies'] is True
     set_life(client, paced_replies=False)

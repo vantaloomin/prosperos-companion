@@ -81,6 +81,14 @@ QUESTIONS = (
     ('Is pineapple on pizza okay?', ('Yes', 'Absolutely not')),
     ('Sunrise or sunset?', ('Sunrise', 'Sunset')),
 )
+# Lines that belong to today (and the near future): before about 1950 nobody watches episodes or orders tacos, and
+# in a medieval or fantasy town nobody drinks coffee; aboard a ship or station there is no beach, sunrise or
+# outdoors to linger in (companion/world/ships.py). The rest suit any world.
+TODAYS = re.compile(r'\b(?:tv|episodes?|movies?|pizza|tacos|ramen|iced|couch)\b', re.IGNORECASE)
+COFFEE = re.compile(r'\bcoffee\b', re.IGNORECASE)
+NO_COFFEE_ERAS = {'medieval', 'fantasy'}
+TODAYS_ERAS = {'modern', 'future'}
+GROUNDED = re.compile(r'\b(?:beach|sunrise|sunset|outside|umbrella|rain)\b', re.IGNORECASE)
 BIRTHDAY = ('Happy birthday, {name}! 🎂', 'Happy birthday to {name}, who makes everything more fun. 🎉',
             'Another year of {name}. Lucky us. Happy birthday! 🎂')
 FAMILY_BIRTHDAY = 'Happy birthday to my favorite {role}, {name}! 🎂'
@@ -254,6 +262,7 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
     timezone, definition = version['timezone'], version['definition']
     result = []
     days = local_dates(since, now, timezone)
+    fits = fits_world(connection, definition)
     for day in days:
         local_date, prefix = day.isoformat(), f'{timeline_id}:{day.isoformat()}'
         facts = day_facts(connection, timeline_id, local_date)
@@ -262,13 +271,14 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
         grieving = loss.raw_or_heavy(connection, timeline_id, day)
         if unit(prefix, 'status') < STATUS_CHANCE:
             text, tone = (pick(prefix, 'line', list(STATUS['grief'])), 'down') if grieving else \
-                status_text(prefix, day, facts, definition)
+                status_text(prefix, day, facts, definition, fits)
             result.append(own('status', f'status:{prefix}', at(day, timezone, f'status:{prefix}', 8, 22),
                               {'text': text, 'tone': tone}))
         if grieving:
             continue  # Only a quiet status while grief is raw or heavy.
         if unit(prefix, 'question') < QUESTION_CHANCE:
-            question, options = pick(prefix, 'question', list(QUESTIONS))
+            question, options = pick(prefix, 'question', [item for item in QUESTIONS if fits(
+                ' '.join([item[0], *item[1]]))])
             result.append(own('question', f'question:{prefix}', at(day, timezone, f'question:{prefix}', 12, 21),
                               {'text': question, 'options': list(options)}))
         result += celebrations(prefix, day, timezone, facts, people)
@@ -282,11 +292,26 @@ def own(kind, key, occurs_at, content) -> dict:
     return {'kind': kind, 'author': COMPANION, 'key': key, 'occurs_at': occurs_at, 'content': content}
 
 
-def status_text(seed: str, day: date, facts: dict, definition: dict) -> tuple[str, str]:
-    """A thought that fits the day and claims nothing happened. Returns the text and its tone."""
+def fits_world(connection, definition: dict):
+    """Whether a status or question line suits the companion's world: its era (TODAYS, COFFEE) and whether they
+    live aboard (GROUNDED)."""
+    from companion.world import ships
+    data = city_data(connection, definition)
+    era = (data or {}).get('era', 'modern')
+    aboard = bool(data) and ships.enclosed(data)
+
+    def fits(text: str) -> bool:
+        return not ((era not in TODAYS_ERAS and TODAYS.search(text)) or (era in NO_COFFEE_ERAS and COFFEE.search(text))
+                    or (aboard and GROUNDED.search(text)))
+    return fits
+
+
+def status_text(seed: str, day: date, facts: dict, definition: dict, fits=lambda _text: True) -> tuple[str, str]:
+    """A thought that fits the day and the world (`fits`) and claims nothing happened. Returns the text and its
+    tone."""
     state = (facts['body'] or {}).get('state')
-    if state in STATUS:
-        return pick(seed, 'line', list(STATUS[state])), 'sick' if state == 'sick' else 'down'
+    if state in STATUS and (lines := [line for line in STATUS[state] if fits(line)]):
+        return pick(seed, 'line', lines), 'sick' if state == 'sick' else 'down'
     choices = [*STATUS['any']]
     weather = facts['weather'] or {}
     if weather:
@@ -299,7 +324,7 @@ def status_text(seed: str, day: date, facts: dict, definition: dict) -> tuple[st
     if interests:
         interest = pick(seed, 'interest', interests)
         choices += [line.format(interest=interest_text(interest)) for line in STATUS['interest']]
-    return pick(seed, 'line', choices), ''
+    return pick(seed, 'line', [line for line in choices if fits(line)] or list(STATUS['any'])), ''
 
 
 def interest_text(interest: str) -> str:

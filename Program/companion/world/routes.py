@@ -8,7 +8,7 @@ from pydantic import Field
 from companion.characters import current
 from companion.clock import zone
 from companion.errors import require
-from companion.life import network
+from companion.life import money, network
 from companion.models import Input, WorldMapImport
 from companion.world import catalog, changes, check, custom, draft, era_words, generators, marinara, townsfolk
 from companion.world.draft import fill, polish
@@ -46,6 +46,16 @@ class Polish(Input):
     line: str = Field('', max_length=400)
     # Rows the user changed by hand, left as they wrote them.
     keep: list[str] = Field(default_factory=list, max_length=4000)
+
+
+class CareerGuess(Input):
+    """The words of a character sheet the Work picker guesses their career from (companion/life/money.py)."""
+    name: str = Field('', max_length=200)
+    identity: str = Field('', max_length=20000)
+    background: str = Field('', max_length=20000)
+    routine: str = Field('', max_length=20000)
+    appearance: str = Field('', max_length=20000)
+    personality: str = Field('', max_length=20000)
 
 
 class CityChange(Input):
@@ -219,6 +229,13 @@ def copy_city(request: Request, city_id: str, body: CityCopy):
 @router.get('/cities/{city_id}/careers')
 def list_city_careers(request: Request, city_id: str):
     return list(catalog.careers_for(city(request, city_id)).values())
+
+
+@router.post('/cities/{city_id}/careers/guess')
+def guess_city_career(request: Request, city_id: str, body: CareerGuess):
+    """The career “Guess from who they are” picks in this city, or None (an everyday wage)."""
+    career, _ = money.career_for(body.model_dump(), city(request, city_id))
+    return career
 
 
 @router.get('/cities/{city_id}/sources')

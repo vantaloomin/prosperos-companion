@@ -153,10 +153,11 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
       void client.invalidateQueries({ queryKey: WHERE_KEY })
     } catch (error) { fail(error) } finally { draft.setSending(false) }
   }
-  const retry = async (userId: string) => {
+  const retry = async (userId: string, profileId?: string) => {
     // The retry button leaves while the new reply is written; the message box is where Escape stops it.
     document.getElementById('composer-text')?.focus()
-    try { accept(await api<SendResult>(`/conversation/messages/${userId}/alternatives?wait=false`, {})) } catch (error) { fail(error) }
+    const only = profileId ? `&profile_id=${encodeURIComponent(profileId)}` : ''
+    try { accept(await api<SendResult>(`/conversation/messages/${userId}/alternatives?wait=false${only}`, {})) } catch (error) { fail(error) }
   }
   const stop = async (replyId: string) => {
     try { await api(`/conversation/replies/${replyId}/stop`, {}) } catch (error) { fail(error) }
@@ -228,7 +229,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const handlers = useRef({ retry, stop, remember, moment, toggleVoice })
   useEffect(() => { handlers.current = { retry, stop, remember, moment, toggleVoice } })
   const turnActions = useMemo(() => ({
-    retry: (id: string) => void handlers.current.retry(id),
+    retry: (id: string, profileId?: string) => void handlers.current.retry(id, profileId),
     stop: (id: string) => void handlers.current.stop(id),
     remember: (message: Message) => void handlers.current.remember(message),
     moment: (message: Message) => handlers.current.moment(message),

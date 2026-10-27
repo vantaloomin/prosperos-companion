@@ -12,6 +12,15 @@ A profile is one provider, one model and its settings, plus an API key kept in t
 vault under the service name `Prospero Companion` (never the Study's). Saving a profile never
 contacts the service.
 
+One key does every job on its service. A new or keyless profile on the same provider and address as a
+profile with a saved key uses that key (the most recently changed one) without asking for it again, so
+the OpenAI key typed for chat also does recall. The form says "Uses the API key saved with …" and
+"Use a different key" gives that profile a key of its own. A key leaves the vault only once no profile
+uses it. Replacing the key on a profile that shares it replaces it for every profile sharing it (so a
+rotated key keeps recall working), unless "Also use it for …" is unticked (`share_key: false`), which gives
+that profile a key of its own. A hosted image backend with no key of its own borrows the key saved with a text profile for the
+same provider at its usual address (an "other" image API: a compatible text profile at the same address).
+
 | Provider | Address | Key | Request |
 | --- | --- | --- | --- |
 | OpenAI | official | `OPENAI_API_KEY` or saved | Responses API |
@@ -83,6 +92,23 @@ five minutes, and Check connection asks again. Nothing polls in the background.
 | Seeing pictures | Describes each picture you send in chat, once, before the reply (OpenAI, Anthropic, Google, OpenRouter, NanoGPT, local or compatible profiles with a vision model; Kobold and Codex cannot look at pictures here). |
 | Story narrator | Replies in the Story tab ([story.md](story.md)). |
 | Semantic recall | Embeddings, from a recall profile, or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). Recall profiles (`purpose: recall`) have their own section, Settings > Models > Recall: an OpenAI, NanoGPT, local or compatible service and an `embedding_model`, with no text model. They do this job and no other, text profiles never do it, and the first one saved takes the job when recall has none. Without one, recall matches keywords only. |
+
+### Switching models and the Mix
+
+Profiles work as presets: "Add another model" on a profile card copies it (same key and settings) and
+opens the copy to change its model. The chat header's More menu has a Model choice once two text profiles
+are finished; picking one makes it the Conversation profile, and the one left keeps its settings. Under a
+failed chat reply, besides Retry, "Try with …" offers up to two other finished profiles (most recently
+changed first): with the Mix off it switches the Conversation profile to that one and retries (a line says
+so, and More switches back); with the Mix on only that reply uses it (`profile_id` on
+`POST /api/conversation/messages/{id}/alternatives`) and the Mix stays on.
+
+"Mix models in chat" (Settings > Models, off by default) picks each chat reply's profile from a list, at
+random or in turn, each with its own model and settings (`reply_config`; one-to-one chats and group
+lines, not openers). Turning it on starts with the Conversation profile and one other. With fewer than two
+finished profiles in it, the Conversation profile answers. Readiness checks and previews read the
+Conversation profile and never move the turn on. Picking one model in the chat's Model choice turns the
+Mix off and keeps its list; "Mix (N models)" there turns it back on. Every other job keeps its own profile.
 
 There is no automatic fallback to another profile when a request fails; like the Study, a failed
 request reports its error, and OpenRouter requests forbid OpenRouter's own provider fallbacks. The one
@@ -163,4 +189,5 @@ local server.
 | `POST /api/models/profiles/{id}/check` | Test a saved profile |
 | `GET /api/models/profiles/{id}/usage` | Credits or usage the service reports for free, or `null`; `?fresh=true` skips the five-minute cache |
 | `PUT /api/models/routes` | `{job, profile_id}`; `null` returns the job to the conversation profile |
+| `PUT /api/models/mix` | `{job: 'chat', profile_ids, mode: 'random' \| 'in_turn', enabled}`; the overview's `mix` shows it |
 | `GET /api/hardware` | This computer: `computer`, `can_run` lines, the `local_text` and `local_images` checked, and `warnings` (`area`, `tone`, `text`); `?fresh=true` scans again |

@@ -32,7 +32,7 @@ from companion.clock import parse, stamp
 from companion.database import identifier, many, optional, settings
 from companion.errors import require
 from companion.life import ages, families, storylines
-from companion.world import catalog, perception
+from companion.world import catalog, looks, perception
 
 LEVELS = (0, 1, 2, 3)
 USUAL = 2
@@ -55,6 +55,11 @@ NEAR_HUE = 24
 SEASONS_BACK = 40
 CHANGES_SHOWN = 30
 JOB_FIELDS = ('identity', 'background', 'routine')
+# How they are, as well as who they are, for a temperament (`temperaments` in the bank).
+TEMPER_FIELDS = (*JOB_FIELDS, 'personality', 'voice', 'appearance')
+# Bumped when the way a taste is picked changes: a look that moves only because of that is taken quietly, with no line
+# in their chat (Sett's pink handwriting turning to a bold rust is the app's fix, not his change of taste).
+TASTE = 2
 
 
 @cache
@@ -80,11 +85,27 @@ def label(family: str) -> str:
 
 # The taste the app picks ------------------------------------------------------------------------------------
 
+def temperaments(definition: dict) -> set[str]:
+    """The temperaments their sheet's words show (`tough` for a pit fighter or a gruff mercenary)."""
+    words = ' '.join(str(value) for field in TEMPER_FIELDS for value in listed(definition.get(field))).casefold()
+    return {name for name, patterns in bank()['temperaments'].items()
+            if any(re.search(rf'\b{pattern}', words) for pattern in patterns)}
+
+
+def listed(value) -> list:
+    return value if isinstance(value, list) else [value or '']
+
+
 def facts(connection, companion: dict, today: date) -> set[str]:
-    """What a taste leans on: `trait:level` for each personality slider, the home city's era, and young or older."""
+    """What a taste leans on: `trait:level` for each personality slider, the home city's era, young or older, he or
+    she, and their temperament: so a brash pit fighter in a fantasy city is not handed a pink script."""
     definition, companion_id = companion['version']['definition'], companion['id']
     found = {f'{trait}:{level}' for trait, level in perception.sliders_of(definition, companion_id).items()}
     found.add(families.era_of(connection, definition))
+    found |= temperaments(definition)
+    pronouns = looks.pronouns_of(definition)
+    if pronouns != 'they/them':
+        found.add(pronouns.split('/')[0])
     age = ages.companion_age(connection, companion_id, definition, today)
     if age is not None:
         found.add('young' if age < 30 else 'older' if age >= 55 else 'adult')
@@ -199,7 +220,7 @@ def worked_out(connection, companion: dict, now, with_mood: bool = True) -> dict
                                 else picked['families'][0])
     mood, hint = mood_shade(connection, companion, level, now) if moving and with_mood else (None, False)
     return {'family': family, 'font': mine['font'] or picked['font'], 'shade': drift(companion, today) if moving else 0,
-            'mood': mood, 'hint': hint and mood is not None, 'level': level}
+            'mood': mood, 'hint': hint and mood is not None, 'level': level, 'taste': TASTE}
 
 
 def first_of(companion: dict) -> str:
@@ -234,8 +255,10 @@ def settle(connection, companion: dict, now) -> dict | None:
             used += 1
     if shown == look:
         return look
-    # The first look, one after the user moved the Realism slider, and a mood's are taken quietly.
-    if shown is not None and shown.get('level') == look['level'] and not mood_only:
+    # The first look, one after the user moved the Realism slider, one after the app changed how it picks, and a
+    # mood's are taken quietly.
+    if (shown is not None and shown.get('level') == look['level'] and shown.get('taste') == look['taste']
+            and not mood_only):
         connection.execute('INSERT INTO their_look_changes (id, companion_id, text, created_at) VALUES (?, ?, ?, ?)',
                            (identifier(), companion['id'], change_text(companion, shown, look), stamp(now)))
     keep(connection, companion['id'], now, shown=json.dumps(look, sort_keys=True), mood_day=today, mood_changes=used)

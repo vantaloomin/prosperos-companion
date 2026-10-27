@@ -1,0 +1,28 @@
+{
+  "_about": "How a companion's own family is made (companion/life/family_tree.py): shares of companions of about 30, by era. Parents' stories are one choice (together, split, single from the start, adopted, raised by two moms or two dads); remarried is the share of splits where a parent married again, same_sex_step the share of all companions whose parent remarried someone of the same sex. Deaths are of a parent or a sibling before now, scaled by the companion's age; estranged is the share who no longer talk to a parent or a sibling. A city can give its own under `family`. Rates agreed with Vanta 2026-10-27.",
+  "eras": {
+    "modern": "today", "future": "today", "other": "today", "jazz-age": "1920s",
+    "victorian": "1895", "steampunk": "1895", "frontier": "1895", "medieval": "medieval", "fantasy": "medieval"
+  },
+  "rates": {
+    "today": {"together": 0.55, "split": 0.30, "remarried": 0.60, "single": 0.10, "adopted": 0.02, "same_sex": 0.01,
+              "same_sex_step": 0.01, "siblings": [0.18, 0.38, 0.25, 0.19], "more_siblings": 0.3,
+              "mother_died": 0.05, "father_died": 0.09, "sibling_died": 0.02, "estranged_parent": 0.10,
+              "estranged_sibling": 0.08},
+    "1920s": {"together": 0.75, "split": 0.08, "remarried": 0.40, "single": 0.05, "adopted": 0.02, "same_sex": 0.0,
+              "same_sex_step": 0.0, "siblings": [0.12, 0.25, 0.25, 0.38], "more_siblings": 0.45,
+              "mother_died": 0.10, "father_died": 0.14, "sibling_died": 0.08, "estranged_parent": 0.05,
+              "estranged_sibling": 0.05},
+    "1895": {"together": 0.80, "split": 0.04, "remarried": 0.30, "single": 0.05, "adopted": 0.02, "same_sex": 0.0,
+             "same_sex_step": 0.0, "siblings": [0.08, 0.15, 0.20, 0.57], "more_siblings": 0.55,
+             "mother_died": 0.18, "father_died": 0.22, "sibling_died": 0.20, "estranged_parent": 0.05,
+             "estranged_sibling": 0.05},
+    "medieval": {"together": 0.80, "split": 0.03, "remarried": 0.50, "single": 0.05, "adopted": 0.03, "same_sex": 0.0,
+                 "same_sex_step": 0.0, "siblings": [0.08, 0.10, 0.15, 0.67], "more_siblings": 0.6,
+                 "mother_died": 0.25, "father_died": 0.30, "sibling_died": 0.35, "estranged_parent": 0.05,
+                 "estranged_sibling": 0.05}
+  },
+  "_ages": "How much likelier a parent has died than at 30, by the companion's age in human terms.",
+  "parent_death_by_age": [[18, 0.35], [25, 0.7], [30, 1.0], [35, 1.5], [40, 2.4], [45, 3.6], [50, 5.5], [55, 8.0],
+                          [60, 11.0], [70, 15.0], [200, 20.0]]
+}

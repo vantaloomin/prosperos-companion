@@ -31,9 +31,10 @@ export interface ProfileConfig {
   /** Where the Claude Code CLI is installed, when it is not on PATH. */
   cli_path?: string
 }
-export interface ModelProfile { id: string; name: string; revision: number; config: ProfileConfig; provider_name: string; has_saved_key: boolean; ready: boolean; recall_ready?: boolean }
+export interface ModelProfile { id: string; name: string; revision: number; config: ProfileConfig; provider_name: string; has_saved_key: boolean; key_shared_with?: string[]; ready: boolean; recall_ready?: boolean; updated_at?: string }
 export interface ModelJob { key: string; name: string; detail: string }
-export interface ModelsOverview { profiles: ModelProfile[]; routes: Record<string, string>; jobs: ModelJob[] }
+export interface ModelMix { enabled: boolean; mode: 'random' | 'in_turn'; profile_ids: string[] }
+export interface ModelsOverview { profiles: ModelProfile[]; routes: Record<string, string>; jobs: ModelJob[]; mix?: Record<string, ModelMix> }
 
 export const providers: Record<Provider, { name: string; url: string; description: string }> = {
   openai: { name: 'OpenAI', url: 'https://api.openai.com/v1', description: 'Connect with an OpenAI API key.' },

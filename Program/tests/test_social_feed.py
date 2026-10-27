@@ -7,6 +7,7 @@ from conftest import life_reply, reconcile, set_life
 from fastapi.testclient import TestClient
 
 from companion import logs
+from companion.characters import current
 from companion.clock import stamp, zone
 from companion.identity import CLIENT_HEADER
 from companion.life import body, circle, composer, social, user_posts
@@ -486,3 +487,22 @@ def circle_people(client) -> list[dict]:
     with database.connect() as connection:
         from companion.characters import require_current
         return list(social.active_people(connection, require_current(connection)['active_timeline_id']).values())
+
+
+@pytest.mark.parametrize(('home', 'unfit'), [
+    ('camelot', r'\b(?:TV|episode|Movie|pizza|Tacos|Ramen|coffee|Iced)\b'),
+    ('long-meridian', r'\b(?:Beach|Sunrise|Sunset|outside)\b'),
+])
+def test_status_posts_and_questions_fit_the_world(client, clock, home, unfit):
+    client.post('/api/companion', json={'name': 'Wren', 'timezone': 'UTC', 'home_city': home}).raise_for_status()
+    database = client.app.state.database
+    with database.connect() as connection:
+        found = current(connection)
+        fits = social.fits_world(connection, found['version']['definition'])
+        posts = social.day_posts(connection, found, {}, clock.now() - timedelta(days=300), clock.now())
+    texts = [' '.join([post['content']['text'], *post['content'].get('options', ())]) for post in posts
+             if post['kind'] in ('status', 'question')]
+    assert len(texts) > 100
+    assert not [text for text in texts if re.search(unfit, text)]
+    assert fits('Small wins today.') and not fits('Is pineapple on pizza okay?' if home == 'camelot' else
+                                                  'Beach or mountains?')

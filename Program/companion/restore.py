@@ -24,7 +24,7 @@ from companion.memory import records
 
 MOVED = ('images', 'lora')
 # What "settings" means for a restore, parents before the tables that refer to them.
-KEPT_SETTINGS = ('workspace_settings', 'connection', 'model_profiles', 'model_routes', 'life_settings',
+KEPT_SETTINGS = ('workspace_settings', 'connection', 'model_profiles', 'model_routes', 'model_mix', 'model_mix_state', 'life_settings',
                  'image_settings', 'image_backends', 'context_settings', 'context_services', 'context_tools',
                  'lora_settings', 'notification_settings', 'phone_settings', 'phone_devices', 'phone_push',
                  'builtin_recall', 'voice_settings', 'prompt_overrides', 'debug_time', 'local_programs')

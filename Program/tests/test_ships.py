@@ -53,6 +53,9 @@ def test_aboard_there_is_no_weather_season_or_car():
     assert all(home.vehicle_item(f'seed-{index}', found) is None for index in range(20))
     look = wardrobe.profile('seed', {'name': 'Mira'}, found)
     assert look['aboard'] and look['coldest_f'] == 70
+    # Nothing made for the rain in a wardrobe aboard.
+    owned = [item for index in range(30) for item in wardrobe.assemble(f'seed-{index}', {'name': 'Mira'}, found)[1]]
+    assert owned and not [item['name'] for item in owned if 'rain' in item['name'] or item['variety'] == 'galoshes']
     assert wardrobe.season_need(look, date(2026, 10, 1)) == []
     assert 'aboard' not in wardrobe.profile('seed', {'name': 'Mira'}, catalog.city('baltimore'))
 

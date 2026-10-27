@@ -230,7 +230,7 @@ function OocMarkers({ markers, save }: { markers: OocMarker[]; save: (markers: O
 
 function MarkerRowEditor({ row, problem, only, onChange, onRemove }: { row: MarkerRow; problem: string | null; only: boolean; onChange: (part: Partial<MarkerRow>) => void; onRemove: () => void }) {
   const box = (value: string, label: string, set: (text: string) => void) =>
-    <input value={value} maxLength={12} size={6} aria-label={label} aria-invalid={!!problem} onChange={(event) => set(event.target.value)} />
+    <input autoComplete="off" value={value} maxLength={12} size={6} aria-label={label} aria-invalid={!!problem} onChange={(event) => set(event.target.value)} />
   return (
     <div>
       <div className="form-actions">

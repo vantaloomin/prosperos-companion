@@ -36,15 +36,59 @@ def careers() -> dict[str, dict]:
 def careers_for(data: dict, *, needs_met: bool = True) -> dict[str, dict]:
     """Careers a city offers: the shared ones for its era, then its own (which win on a shared id).
     A shared career that `needs` a kind of place (a beach) is left out where the city has none and
-    no employer for it, unless `needs_met` is False."""
+    no employer for it, unless `needs_met` is False. An era with no shared careers (medieval, fantasy, steampunk,
+    victorian, frontier) offers nothing besides the city's own, but a city someone writes for it without careers
+    of its own borrows the built-in cities' (era_careers), so it still has work for its people."""
+    borrowing = data['era'] in BORROWED_ERAS and not data['careers']
+    era = era_careers(data['era']) if borrowing or data['era'] not in BORROWED_ERAS else {}
     if not needs_met:
-        return {key: value for key, value in careers().items() if data['era'] in value['eras']} | \
-            {career['id']: career for career in data['careers']}
+        return era | {career['id']: career for career in data['careers']}
     kinds = {place['kind'] for place in data.get('places', [])}
     hired = {career for employer in data.get('employers', []) for career in employer['careers']}
-    shared = {key: value for key, value in careers().items() if data['era'] in value['eras']
-              and (not value['needs'] or kinds & set(value['needs']) or key in hired)}
+    shared = {key: value for key, value in era.items()
+              if not value['needs'] or kinds & set(value['needs']) or key in hired}
     return shared | {career['id']: career for career in data['careers']}
+
+
+# Eras with no shared careers borrow the built-in cities' own: their own era's first, then the nearest one's.
+BORROWED_ERAS = {'medieval': ('medieval', 'fantasy'), 'fantasy': ('fantasy', 'medieval'),
+                 'steampunk': ('steampunk', 'victorian'), 'victorian': ('victorian', 'steampunk'),
+                 'frontier': ('frontier',)}
+# Words in a city's place names too common to tie a career to that city.
+COMMON_WORDS = {'Market', 'Street', 'Square', 'House', 'Houses', 'Royal', 'Kitchen', 'Castle', 'Palace', 'Guild',
+                'Office', 'Temple', 'Grand', 'Hospital', 'Gate', 'Garden', 'Gardens', 'Harbour', 'Docks', 'Quays',
+                'Abbey', 'North', 'South', 'East', 'West', 'Upper', 'Lower', 'Hill', 'Bridge', 'Yards', 'River',
+                'Lane', 'Road', 'Fields', 'Marsh', 'Wharf', 'City', 'Main'}
+
+
+@cache
+def era_careers(era: str) -> dict[str, dict]:
+    """The shared careers for an era. An era the catalogue has none for borrows the built-in cities' own careers
+    (BORROWED_ERAS), leaving out any that name their city's places (Camelot's tanner works at Barkers End), so a city
+    someone writes for that era without careers of its own still has work for its people."""
+    shared = {key: value for key, value in careers().items() if era in value['eras']}
+    if shared or era not in BORROWED_ERAS:
+        return shared
+    found = {}
+    for kin in BORROWED_ERAS[era]:
+        for path in sorted(BUILTIN_CITIES.glob('*.json')):  # Read raw: loading a city reads its careers (prepare).
+            data = json.loads(path.read_text(encoding='utf-8'))
+            if data.get('era') == kin:
+                tied = city_words(data)
+                found |= {career.id: career.model_dump() for career in map(Career.model_validate, data.get(
+                    'careers', ())) if career.id not in found and not tied.search(' '.join(
+                        [career.name, career.summary, *career.themes]))}
+    return found
+
+
+def city_words(data: dict) -> re.Pattern:
+    """A city's own names (itself, its neighbourhoods, places and employers, and the uncommon words in its own and
+    its neighbourhoods' names), to tell a career that belongs to that city alone."""
+    names = [data['name'], *(item['name'] for key in ('neighborhoods', 'places', 'employers')
+                             for item in data.get(key, ()))]
+    words = {word for name in [data['name'], *(hood['name'] for hood in data.get('neighborhoods', ()))]
+             for word in re.findall(r"[A-Z][a-z'üöä]+", name) if len(word) > 3 and word not in COMMON_WORDS}
+    return re.compile('|'.join([*map(re.escape, names), *(rf'\b{re.escape(word)}\b' for word in words)]))
 
 
 def everyday(offered: dict[str, dict]) -> dict[str, dict]:
@@ -111,7 +155,7 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
-OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours', 'words', 'lore'}
+OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours', 'words', 'lore', 'media', 'family'}
 
 
 def unset_work_rules(data: dict):
@@ -131,6 +175,21 @@ def unset_work_rules(data: dict):
             notable.pop('love_life', None)
 
 
+# Money for a city that names none, by era: the schema's default is US dollars, which fits only some.
+ERA_CURRENCY = {'medieval': {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'},
+                'fantasy': {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'},
+                'victorian': {'code': 'shilling', 'symbol': 's.', 'name': 'shillings'},
+                'steampunk': {'code': 'shilling', 'symbol': 's.', 'name': 'shillings'}}
+
+
+def era_currency(data: dict, given: set[str]) -> list[str]:
+    """A city written without a currency pays in its era's money, not US dollars."""
+    if 'currency' in given or data['era'] not in ERA_CURRENCY:
+        return []
+    data['currency'] = dict(ERA_CURRENCY[data['era']])
+    return [f'No currency was given, so money is in {data["currency"]["name"]}, as in its era.']
+
+
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError.
 
@@ -144,11 +203,14 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     # stays the same.
     data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
     unset_work_rules(data)
+    notes += era_currency(data, model.model_fields_set)
     from companion import lore_moments
+    from companion.life import media_world
     from companion.world import era_words, lifespans, ships
     notes += lifespans.clean(data)
     notes += era_words.clean(data)
     notes += lore_moments.clean(data)
+    notes += media_world.clean(data)
     notes += ships.settle(data)
     known = careers_for(data)
     for employer in data['employers']:

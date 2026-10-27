@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { canRetry, groupActivity, guestLine, guestMeters, latestLine, membersLine, namesText, shownMessages } from '../../src/features/groups/groupText.ts'
+import { canRetry, groupActivity, guestLine, guestMeters, latestLine, membersLine, namesText, shortTitle, shownMessages } from '../../src/features/groups/groupText.ts'
 import type { Group, GroupMessage } from '../../src/types.ts'
 
 const member = (label: string) => ({ companion_id: label, key: `companion:${label}`, name: `${label} Hart`, label, main: false, joined_at: '', sees_from: 1 })
@@ -51,4 +51,15 @@ test('a guest reads as who they are to the group, with their numbers only as hid
   assert.equal(guestLine({ ...ada, guest: { ...guest, kept: true } }), "Mira's close friend · staying")
   assert.equal(guestMeters({ ...ada, guest: { ...guest, kept: true } }), '2 of 4 replies left this conversation')
   assert.equal(guestLine(member('Billy')), '')
+})
+
+test('the message box on a phone keeps the whole group name, or cuts it at a word', () => {
+  assert.equal(shortTitle('Night out'), 'Night out')
+  assert.equal(shortTitle('Billy and Sally'), 'Billy and Sally')
+  assert.equal(shortTitle('Saturday brunch with the whole crew'), 'Saturday brunch…')
+  assert.equal(shortTitle('Spock, Leonard McCoy and James Kirk'), 'Spock, Leonard McCoy…')
+  assert.equal(shortTitle('Mira, Sam and Leonard'), 'Mira, Sam…')
+  assert.equal(shortTitle('Drinks with the team after work'), 'Drinks with the team…')
+  assert.equal(shortTitle('Coffee with Sam and the rest'), 'Coffee with Sam…')
+  assert.equal(shortTitle('Supercalifragilisticexpialidocious'), 'Supercalifragilistic…')
 })

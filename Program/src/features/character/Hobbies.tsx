@@ -157,7 +157,7 @@ function AddForm({ view, act, onDone }: { view: HobbiesView; act: Act; onDone: (
       <h3 id="hobby-add-heading">Add a pastime</h3>
       <div className="rename-form hobby-form">
         <label htmlFor="hobby-add-name">Pastime</label>
-        <input ref={input} id="hobby-add-name" value={name} maxLength={40} placeholder="Pottery, chess, learning Spanish" onChange={(event) => setName(event.target.value)} />
+        <input autoComplete="off" ref={input} id="hobby-add-name" value={name} maxLength={40} placeholder="Pottery, chess, learning Spanish" onChange={(event) => setName(event.target.value)} />
         <LevelSelect id="hobby-add-level" view={view} value={level} onChange={setLevel} unset="Picked for them" />
         <div className="rename-row">
           <button type="submit" className="button primary">Add</button>

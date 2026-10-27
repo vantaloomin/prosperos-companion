@@ -56,7 +56,7 @@ from companion.memory import closeness, context, pairs
 from companion.memory.budget import token_estimate
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
-from companion.text_models import CHAT, config_for, default_name, key_for
+from companion.text_models import CHAT, config_for, default_name, key_for, reply_config
 from companion.world import perception
 
 LOG = logging.getLogger(__name__)
@@ -1008,7 +1008,7 @@ class GroupChats:
     async def speak(self, group_id: str, user: dict, stay: dict, running: Round) -> dict | None:
         database = self.database
         with database.connect(write=True) as connection:
-            config = config_for(connection, CHAT)
+            config = reply_config(connection, CHAT)
             if config is None:
                 return None
             row = add_line(connection, group_id, database.now(), stay['member'], stay['name'], '', status='streaming',

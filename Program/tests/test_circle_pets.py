@@ -76,3 +76,12 @@ def test_aboard_a_ship_pets_are_rare_and_fit_a_cabin():
     cabin = {home.pet_item(f'seed{n}', 'modern', aboard=True)['variety'] for n in range(300)}
     assert cabin <= set(pets.CABIN) and {'cat', 'fish'} <= cabin
     assert home.HAS_PET_ABOARD < home.HAS_PET / 3
+
+
+def test_aboard_a_ship_add_a_pet_offers_only_cabin_sized_ones(client):
+    from companion.life import pets
+    ok(client.post('/api/companion', json={'name': 'Tamsin', 'timezone': 'UTC', 'home_city': 'long-meridian'}))
+    offered = [kind['id'] for kind in ok(client.get('/api/life/pets'))['kinds']]
+    assert offered and set(offered) <= set(pets.CABIN) | {found['kind'] for found in ok(client.get(
+        '/api/life/pets'))['pets']}
+    assert not {'dog', 'horse', 'chickens'} & set(offered)

@@ -9,6 +9,7 @@ import { LaunchFor } from './LocalPrograms'
 import { ModelUsage } from './ModelUsage'
 import { useModelUsage } from './usage'
 import { ProfileEditor } from './ProfileEditor'
+import { ModelMix } from './ModelMix'
 import { ReadyCard, UseBuiltin } from '../../ready/ReadyCard'
 import { isActive } from '../../ready/readyText'
 import { useReady } from '../../ready/useReady'
@@ -54,7 +55,7 @@ function TextProfiles({ overview, editing, setEditing, refresh, result, setResul
     <ReadyCard hasProfiles={profiles.length > 0} />
     {profiles.length === 0 && editing !== 'new' && !builtinComing && <p className="subtle">No model yet. Until you add one, your messages are saved and replies wait.</p>}
     <ProfileList profiles={profiles} overview={overview} editing={editing} setEditing={setEditing} done={done} refresh={refresh} setResult={setResult} />
-    {editing === 'new' ? <ProfileEditor onDone={done} />
+    {editing === 'new' ? <ProfileEditor others={overview.profiles} onDone={done} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => { setResult(null); setEditing('new') }}>Add a model profile</button></div>}
     {profiles.some(profile => profile.ready) && <JobAssignments overview={overview} onChanged={refresh} setResult={setResult} />}
     {result && editing !== 'new-recall' && <Notice tone={result.tone}>{result.text}</Notice>}
@@ -72,7 +73,7 @@ function RecallProfiles({ overview, editing, setEditing, refresh, setResult }: S
       <p className="subtle">Semantic recall finds related memories even when the words differ, using an embedding model. It can use a different service from your text model: an embeddings model in Ollama or LM Studio, OpenAI, or an OpenAI-compatible service. Or let Built-in recall below run one on this PC. Without either, recall matches keywords only.</p>
     </div>
     <ProfileList profiles={profiles} overview={overview} editing={editing} setEditing={setEditing} done={done} refresh={refresh} setResult={setResult} />
-    {editing === 'new-recall' ? <ProfileEditor recall onDone={done} />
+    {editing === 'new-recall' ? <ProfileEditor recall others={overview.profiles} onDone={done} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => { setResult(null); setEditing('new-recall') }}>Add a recall profile</button></div>}
     {profiles.length > 0 && <RecallChoice overview={overview} profiles={profiles} onChanged={refresh} setResult={setResult} />}
   </section>
@@ -86,8 +87,8 @@ function ProfileList({ profiles, overview, editing, setEditing, done, refresh, s
   if (!profiles.length) return null
   return <ul className="model-profiles">
     {profiles.map(profile => editing === profile.id
-      ? <li key={profile.id}><ProfileEditor profile={profile} onDone={done} /></li>
-      : <ProfileCard key={profile.id} profile={profile} jobs={overview.jobs.filter(job => overview.routes[job.key] === profile.id)} onEdit={() => setEditing(profile.id)} onChanged={refresh} setResult={setResult} />)}
+      ? <li key={profile.id}><ProfileEditor profile={profile} others={overview.profiles} onDone={done} /></li>
+      : <ProfileCard key={profile.id} profile={profile} jobs={overview.jobs.filter(job => overview.routes[job.key] === profile.id)} onEdit={() => setEditing(profile.id)} onCopied={setEditing} onChanged={refresh} setResult={setResult} />)}
   </ul>
 }
 
@@ -108,26 +109,32 @@ function RecallChoice({ overview, profiles, onChanged, setResult }: { overview: 
   </div>
 }
 
+function keyLine(profile: ModelProfile) {
+  if (!profile.has_saved_key) return ''
+  return profile.key_shared_with?.length ? ` · key shared with ${profile.key_shared_with.join(', ')}` : ' · key saved'
+}
+
 function modelLine(profile: ModelProfile) {
   if (isRecall(profile.config)) return profile.config.embedding_model || 'Unfinished: choose an embedding model'
   return profile.config.model || 'Unfinished: choose a model'
 }
 
-function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile: ModelProfile; jobs: ModelJob[]; onEdit: () => void; onChanged: (data?: ModelsOverview) => void; setResult: (result: Result) => void }) {
+function ProfileCard({ profile, jobs, onEdit, onCopied, onChanged, setResult }: { profile: ModelProfile; jobs: ModelJob[]; onEdit: () => void; onCopied: (id: string) => void; onChanged: (data?: ModelsOverview) => void; setResult: (result: Result) => void }) {
   const [busy, setBusy] = useState(false)
   const [check, setCheck] = useState<{ count: number; note?: string } | null>(null)
   const { usage, refresh } = useModelUsage(profile)
   const run = async (work: () => Promise<void>) => { setBusy(true); try { await work() } catch (error) { setResult({ tone: 'error', text: failure(error, 'That did not work.') }) } finally { setBusy(false) } }
   const verify = () => run(async () => { setCheck(null); const found = await api<{ models: string[]; note?: string }>(`/models/profiles/${profile.id}/check`, {}); setCheck({ count: found.models.length, note: found.note }); void refresh() })
-  const copy = () => run(async () => { const made = await api<ModelProfile>(`/models/profiles/${profile.id}/duplicate`, {}); onChanged(); setResult({ tone: 'info', text: `${made.name} added. Edit it to change what differs.` }) })
+  // Another model on the same service: a copy with the same key and settings, open for its model to be changed.
+  const copy = () => run(async () => { const made = await api<ModelProfile>(`/models/profiles/${profile.id}/duplicate`, {}); onChanged(); setResult(null); onCopied(made.id) })
   const remove = () => {
-    if (!window.confirm(`Delete ${profile.name}? Its saved key is removed from your keychain${jobs.length ? ', and its jobs go back to the conversation profile' : ''}.`)) return
+    if (!window.confirm(`Delete ${profile.name}? ${profile.key_shared_with?.length ? 'Its saved key stays, since another profile uses it' : 'Its saved key is removed from your keychain'}${jobs.length ? ', and its jobs go back to the conversation profile' : ''}.`)) return
     void run(async () => { onChanged(await api<ModelsOverview>(`/models/profiles/${profile.id}`, undefined, 'DELETE')); setResult({ tone: 'info', text: `${profile.name} deleted.` }) })
   }
   const where = profile.config.provider === 'codex' ? 'Codex CLI login' : profile.config.provider === 'claude_code' ? 'Claude Code login' : profile.config.base_url
   return <li className="model-profile">
     <div><span className="eyebrow">{profile.config.resource_group === 'builtin-chat' ? 'Local / Built-in' : profile.provider_name}</span><h3>{profile.name}</h3>
-      <p className="subtle">{modelLine(profile)} · {where}{profile.has_saved_key ? ' · key saved' : ''}</p>
+      <p className="subtle">{modelLine(profile)} · {where}{keyLine(profile)}</p>
       <ModelUsage usage={usage} />
       <UseBuiltin profileId={profile.id} />
       {jobs.length > 0 && <p className="model-jobs"><Check size={14} aria-hidden="true" />{jobs.map(job => job.name).join(', ')}</p>}
@@ -136,11 +143,19 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
     <div className="form-actions">
       <button type="button" className="button" onClick={() => void verify()} disabled={busy}><PlugZap size={15} aria-hidden="true" />{busy ? 'Checking…' : 'Check connection'}</button>
       <button type="button" className="button" onClick={onEdit} aria-label={`Edit ${profile.name}`}><Pencil size={15} aria-hidden="true" />Edit</button>
-      <button type="button" className="button" onClick={() => void copy()} disabled={busy} aria-label={`Duplicate ${profile.name}`}><Copy size={15} aria-hidden="true" />Duplicate</button>
+      <button type="button" className="button" onClick={() => void copy()} disabled={busy} aria-label={`Add another model like ${profile.name}`}><Copy size={15} aria-hidden="true" />Add another model</button>
       <button type="button" className="button" onClick={remove} disabled={busy} aria-label={`Delete ${profile.name}`}><Trash2 size={15} aria-hidden="true" />Delete</button>
       <LaunchFor id={profile.id} />
     </div>
   </li>
+}
+
+/** While the Mix answers in chat, the Conversation profile still does the other jobs (Iris). */
+function jobHint(overview: ModelsOverview, job: ModelJob) {
+  const mix = overview.mix?.chat
+  const ready = new Set(overview.profiles.filter(profile => profile.ready).map(profile => profile.id))
+  const count = mix?.enabled ? mix.profile_ids.filter(id => ready.has(id)).length : 0
+  return job.key === 'chat' && count > 1 ? `Mix is on, so replies come from ${count} profiles. Other jobs use this one.` : job.detail
 }
 
 function JobAssignments({ overview, onChanged, setResult }: { overview: ModelsOverview; onChanged: (data?: ModelsOverview) => void; setResult: (result: Result) => void }) {
@@ -161,7 +176,8 @@ function JobAssignments({ overview, onChanged, setResult }: { overview: ModelsOv
           <option value="">{job.key === 'chat' ? 'None' : `Same as conversation${choice.inherited ? ` (${choice.inherited})` : ''}`}</option>
           {options.map(profile => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
         </select>
-        <small id={`model-job-${job.key}-hint`}>{job.detail}</small>
+        <small id={`model-job-${job.key}-hint`}>{jobHint(overview, job)}</small>
+        {job.key === 'chat' && <ModelMix overview={overview} onChanged={onChanged} onError={text => setResult({ tone: 'error', text })} />}
       </div>
     })}
   </fieldset>

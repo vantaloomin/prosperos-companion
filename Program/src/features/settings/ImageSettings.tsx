@@ -16,6 +16,8 @@ import { SectionPending } from '../../components/SectionPending'
 import { MemeSettings } from './MemeSettings'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
+import { imageKeyFrom } from './models/discovery'
+import type { ModelsOverview } from './models/types'
 import { SliderField, SliderNumber } from '../../components/NumberFields'
 import { countText } from '../../components/numberBounds'
 
@@ -230,7 +232,7 @@ function BackendConnection({ backend, save }: { backend: ImageBackend; save: (bo
       <summary className="subtle">Connection</summary>
       <div className="form-stack">
         <TextInput label="Name" value={draft.label} onChange={set('label')} />
-        {hosted && <TextInput label="API key" type="password" value={draft.apiKey} onChange={set('apiKey')} placeholder={backend.has_key ? 'Saved; type a new one to replace it' : ''} hint="Saved in your system's credential store." />}
+        {hosted && <TextInput label="API key" type="password" value={draft.apiKey} onChange={set('apiKey')} placeholder={backend.has_key ? 'Saved; type a new one to replace it' : backend.key_from ? `Using the key saved with ${backend.key_from}` : ''} hint={backend.key_from ? 'Type a key only to use a different one here.' : "Saved in your system's credential store."} />}
         <AddressField backend={backend} draft={draft} onChange={set('baseUrl')} />
         {hosted && <ImageModelField provider={backend.provider} baseUrl={draft.baseUrl} apiKey={draft.apiKey} backendId={backend.id} value={draft.model} onChange={set('model')} />}
         {backend.kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={draft.cliPath} onChange={set('cliPath')} hint="Found on PATH when empty." />}
@@ -615,16 +617,20 @@ function WorkflowActions({ flow, set }: { flow: Workflow; set: boolean }) {
   </>
 }
 
-function BackendSummary({ backend }: { backend: ImageBackend }) {
+function summaryLine(backend: ImageBackend) {
   const where = backend.kind === 'codex' ? 'Codex CLI' : backend.local ? 'This computer' : backend.base_url
-  const missingKey = backend.kind === 'hosted' && !backend.has_key
+  const missingKey = backend.kind === 'hosted' && !backend.has_key && !backend.key_from
+  return [where, backend.model, missingKey ? 'no API key' : '', backend.key_from ? `key from ${backend.key_from}` : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')
+}
+
+function BackendSummary({ backend }: { backend: ImageBackend }) {
   return <>
     <div className="backend-title">
       <strong>{backend.label}</strong>
       <span className="badge">{backend.accepts_nsfw ? (backend.local ? 'Local · safe and NSFW' : 'Safe and NSFW') : 'Safe only'}</span>
       {backend.experimental && <span className="badge">Experimental</span>}
     </div>
-    <p className="subtle">{[where, backend.model, missingKey ? 'no API key' : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')}</p>
+    <p className="subtle">{summaryLine(backend)}</p>
   </>
 }
 
@@ -699,7 +705,7 @@ function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () =
             {PROVIDERS.filter((item) => !phone || item.id !== 'other').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         )}</Field>
-        <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store." />
+        <HostedKey provider={provider} baseUrl={baseUrl} value={apiKey} onChange={setApiKey} />
         {provider === 'other' && <TextInput label="API base URL" value={baseUrl} required onChange={setBaseUrl} hint="For an OpenAI-compatible image service, usually ending in /v1." />}
         <ImageModelField provider={provider} baseUrl={baseUrl} apiKey={apiKey} value={model} placeholder={MODEL_EXAMPLES[provider]} onChange={setModel} />
         <NsfwChoice provider={provider} checked={nsfw} onChange={(value) => { setNsfw(value); setAccepted(false) }} />
@@ -711,4 +717,15 @@ function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () =
       </div>
     </form>
   )
+}
+
+/** The key for a new image API: the one saved with a text profile on the same service is used as it is, as in
+ * Settings > Models, and "Use a different key" opens the field. */
+function HostedKey({ provider, baseUrl, value, onChange }: { provider: HostedProvider; baseUrl: string; value: string; onChange: (value: string) => void }) {
+  const profiles = useQuery({ queryKey: ['models'], queryFn: () => api<ModelsOverview>('/models') }).data?.profiles ?? []
+  const [typing, setTyping] = useState(false)
+  const from = imageKeyFrom(profiles, provider, baseUrl)
+  if (from && !typing) return <div className="token-entry"><p>Uses the API key saved with <strong>{from.name}</strong>.</p><button type="button" className="button" onClick={() => setTyping(true)}>Use a different key</button></div>
+  return <div className="token-entry"><TextInput label="API key" type="password" value={value} onChange={onChange} hint="Saved in your system's credential store." />
+    {from && <button type="button" className="text-button" onClick={() => { onChange(''); setTyping(false) }}>Use the {from.name} key</button>}</div>
 }

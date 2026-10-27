@@ -114,7 +114,7 @@ function KitchenForm({ view, save, onDone }: { view: KitchenView; save: (body: o
       )}</Field>
       <Toggle label="Loves baking" checked={bakes} onChange={setBakes} />
       <Field label="Dishes they make a lot" hint="Separate dishes with commas. Up to five; they cook these more often.">{(id, describedBy) => (
-        <input id={id} aria-describedby={describedBy} value={favorites} maxLength={300} onChange={(event) => setFavorites(event.target.value)} />
+        <input autoComplete="off" id={id} aria-describedby={describedBy} value={favorites} maxLength={300} onChange={(event) => setFavorites(event.target.value)} />
       )}</Field>
       <div className="form-actions">
         <button type="submit" className="button primary">Save</button>

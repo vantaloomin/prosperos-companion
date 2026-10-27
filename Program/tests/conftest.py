@@ -153,6 +153,13 @@ def no_kids(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_family_plan(monkeypatch):
+    """A new companion's own family (companion/life/family_tree.py) changes who is in every circle; unrelated tests
+    keep the circle as the generator makes it, and tests/test_family_tree.py turns it on."""
+    monkeypatch.setattr('companion.life.family_tree.ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
 def no_big_days(monkeypatch):
     """Big days in the circle (companion/life/big_days.py) would plan weddings and parties, and their invitations,
     as unrelated tests' clocks move on; tests/test_big_days.py turns them on."""

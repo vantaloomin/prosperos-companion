@@ -23,6 +23,9 @@ CHANCE = 0.15
 FAMILIAR_CHANCE = 0.35
 # Another companion there by their own day stands out from a crowd of strangers (small world).
 FELLOW_CHANCE = 0.5
+# One of the city's well-known people (a pack's notables) stands out too: when one the companion hasn't met yet is
+# there, they get talking this often, ahead of anyone else around.
+NOTABLE_CHANCE = 0.5
 KINDS = {'leisure', 'errand', 'social'}
 # On the way out to a morning shift or class, the companion may meet neighbors on their street.
 COMMUTE_KINDS = {'work', 'study'}
@@ -89,7 +92,8 @@ def meet(connection, companion: dict | None, entry: dict | None, view: dict, blo
     cast = town_cast(connection, companion, data)
     history = history_for(connection, companion, cast, None, before=view['starts_at'])
     lucky, fellow = roll(seed, 'stranger') < CHANCE, roll(seed, 'fellow') < FELLOW_CHANCE
-    if (not lucky and not fellow and not history) or many(
+    famous = bool(data.get('notables')) and roll(seed, 'notable') < NOTABLE_CHANCE
+    if (not lucky and not fellow and not famous and not history) or many(
             connection, 'SELECT 1 FROM townsfolk_encounters WHERE timeline_id=? AND local_date=? AND slot_key!=?',
             (timeline_id, view['local_date'], view['key'])):
         return entry
@@ -100,6 +104,9 @@ def meet(connection, companion: dict | None, entry: dict | None, view: dict, blo
     plans = cast_plans(connection, cast, times_of_day)
     seen = present(data, place['id'], times_of_day, history, cast, plans)
     key = seen and pick(seen[1], history, lucky, seed, fellow and plans)
+    standout = famous and key not in plans and notable_here(data, place['id'], times_of_day, history, cast, seed)
+    if standout:
+        seen, key = standout, next(iter(standout[1]))
     if not key:
         return entry
     moment, here = seen
@@ -154,6 +161,26 @@ def present(data: dict, place_id: str, times_of_day: list[datetime], history: di
                 here[sheet['key']] = {'doing': found['doing']}
         if here:
             return moment, here
+    return None
+
+
+def notable_here(data: dict, place_id: str, times_of_day: list[datetime], history: dict, cast: dict,
+                 seed: str) -> tuple[datetime, dict] | None:
+    """The first of these moments when one of the city's notables the companion hasn't met yet is at the place,
+    with that one (seeded among several) and what they are doing, or None."""
+    day = times_of_day[0].date() if times_of_day else None
+    sheets = [sheet for key in townsfolk.notable_keys(data).values()
+              if key not in history and key not in cast['own'] and key not in cast['aliases'] and key != data.get('you')
+              and (sheet := townsfolk.find(data, key)) and not (day and townsfolk.gone(sheet, data, day))]
+    for moment in times_of_day:
+        here = {}
+        for sheet in sheets:
+            found = townsfolk.whereabouts(sheet, data, moment)
+            if found['place'] and found['place']['id'] == place_id:
+                here[sheet['key']] = {'doing': found['doing']}
+        if here:
+            key = sorted(here)[int(roll(seed, 'notable-who') * len(here))]
+            return moment, {key: here[key]}
     return None
 
 

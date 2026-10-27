@@ -335,6 +335,12 @@ def ties_of(connection, companion: dict, now) -> dict:
     return {'ties': pairs.ties(connection, companion, now), 'untold': pairs.untold_for(connection, companion, now)}
 
 
+@router.get('/companion/town')
+def companion_town_view(request: Request):
+    """The city's notables, who stay whatever townsfolk are seeded."""
+    return cast.town_view(db(request))
+
+
 @router.post('/companion/town')
 def companion_town(request: Request, body: TownSeed):
     """New townsfolk of the companion's own, or the city's shared ones again."""
@@ -473,8 +479,8 @@ def read_picture(request: Request, picture_id: str):
 
 
 @router.post('/conversation/messages/{message_id}/alternatives')
-async def alternative(request: Request, message_id: str, wait: bool = True):
-    return await request.app.state.conversation.alternative(message_id, wait)
+async def alternative(request: Request, message_id: str, wait: bool = True, profile_id: str | None = None):
+    return await request.app.state.conversation.alternative(message_id, wait, profile_id)
 
 
 @router.get('/conversation/replies/{attempt_id}/events')

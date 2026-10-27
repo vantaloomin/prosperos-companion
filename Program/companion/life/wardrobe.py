@@ -191,9 +191,11 @@ def article(text: str) -> str:
 
 
 def fits(piece: tuple, found: dict, tier: int | None = None) -> bool:
+    """Whether they would own the piece: their means and presentation, and aboard a ship or station, which has no
+    weather, nothing made for the rain (occasion 'r')."""
     who, lowest = piece[4], piece[5]
     tier = found['tier'] if tier is None else tier
-    return lowest <= tier and who in ('*', found['who'])
+    return lowest <= tier and who in ('*', found['who']) and not (found.get('aboard') and 'r' in piece[2])
 
 
 ERA_PIECES = {'jazz-age': JAZZ_AGE_PIECES}
