@@ -92,8 +92,8 @@ def enqueue_message(connection, message_id, timestamp):
 
 
 def ready_messages(connection, companion, now) -> list[dict]:
-    """Queued first messages, from any companion's active timeline, that the user has not answered yet; each
-    names the companion who sent it."""
+    """Queued first messages, from any companion's active timeline, that the user has not answered or read yet
+    (companion/chats.py keeps how far each chat was read); each names the companion who sent it."""
     ready = []
     for item in many(connection, "SELECT openers.*, messages.text, messages.seq, companions.id AS companion_id, "
                      'character_versions.name AS name FROM openers JOIN messages ON messages.id=openers.message_id '
@@ -101,12 +101,17 @@ def ready_messages(connection, companion, now) -> list[dict]:
                      'character_versions ON character_versions.id=companions.active_version_id '
                      "WHERE notify='queued' ORDER BY openers.created_at"):
         answered = optional(connection, "SELECT id FROM messages WHERE timeline_id=? AND role='user' AND seq>?",
-                            (item['timeline_id'], item['seq']))
+                            (item['timeline_id'], item['seq'])) or seen(connection, item['timeline_id'], item['seq'])
         if answered or item['companion_id'] is None or now - parse(item['created_at']) > STALE:
             connection.execute("UPDATE openers SET notify='dropped' WHERE id=?", (item['id'],))
         else:
             ready.append(item)
     return ready
+
+
+def seen(connection, timeline_id: str, seq: int) -> bool:
+    """Whether the user has read their chat up to this message, so announcing it later would be old news."""
+    return optional(connection, 'SELECT 1 FROM chat_reads WHERE thread_id=? AND read_seq>=?', (timeline_id, seq)) is not None
 
 
 def in_quiet_hours(local: datetime, start: str, end: str) -> bool:
@@ -181,11 +186,13 @@ def message(config, companion, posts, voiced) -> dict:
 
 
 def ready_held(connection, companion, now) -> list[dict]:
-    """Replies held while the companion was busy (companion/life/pacing.py) whose time has come, unanswered."""
+    """Replies held while the companion was busy (companion/life/pacing.py) whose time has come, unanswered and
+    unread."""
     return many(connection, "SELECT id AS message_id, text FROM messages WHERE timeline_id=? AND held_until<=? "
                 "AND held_until>? AND held_notified IS NULL AND active=1 AND status='complete' AND NOT EXISTS "
                 "(SELECT 1 FROM messages later WHERE later.timeline_id=messages.timeline_id AND later.role='user' "
-                'AND later.seq>messages.seq) ORDER BY seq', (companion['active_timeline_id'], stamp(now),
+                'AND later.seq>messages.seq) AND NOT EXISTS (SELECT 1 FROM chat_reads WHERE '
+                'chat_reads.thread_id=messages.timeline_id AND chat_reads.read_seq>=messages.seq) ORDER BY seq', (companion['active_timeline_id'], stamp(now),
                                                              stamp(now - STALE)))
 
 

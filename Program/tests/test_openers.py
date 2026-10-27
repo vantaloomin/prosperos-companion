@@ -157,6 +157,19 @@ def test_a_first_message_is_announced_when_notifications_are_on(client, companio
     assert client.post('/api/notifications/next', json={'focused': False}).json()['notification'] is None
 
 
+def test_a_first_message_read_in_the_open_app_is_not_announced_later(client, companion, clock):
+    """It came while the app had focus; the user read it and left it unanswered, then switched away."""
+    client.put('/api/notifications/settings', json={'enabled': True, 'preview': 'full', 'quiet_start': '00:00',
+                                                    'quiet_end': '00:00'})
+    set_life(client, texts_first=True)
+    interview(client)
+    sent = check(client)['message']
+    assert client.post('/api/notifications/next', json={'focused': True}).json()['held'] == 'focused'
+    client.post('/api/chats/read', json={'thread_id': sent['timeline_id'], 'seq': sent['seq']})
+    clock.advance(timedelta(minutes=13))
+    assert client.post('/api/notifications/next', json={'focused': False}).json()['notification'] is None
+
+
 def test_a_fork_keeps_the_triggers_already_used(client, companion, clock):
     set_life(client, texts_first=True)
     interview(client)

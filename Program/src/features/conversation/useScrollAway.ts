@@ -1,5 +1,6 @@
 import { reducedMotion } from '../../motion'
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { useWakeMessages } from './useWakeMessages'
 
 const NEAR_BOTTOM_PX = 80
 // Long enough for a smooth scroll to finish; after it a reader who grabbed the history mid-way counts again.
@@ -52,6 +53,7 @@ export function useScrollAway(transcriptRef: RefObject<HTMLDivElement | null>, p
     if (element.firstElementChild) observer.observe(element.firstElementChild)
     return () => observer.disconnect()
   }, [transcriptRef, pinnedRef])
+  useWakeMessages(transcriptRef)
   return { away, onScroll, toLatest }
 }
 
