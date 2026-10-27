@@ -43,7 +43,8 @@ QUIET_WORDS = re.compile(r"\b(?:introverted|introvert|shy|loner|reserved|homebod
 NEGATED = re.compile(r"\b(?:not|never|isn't|aren't|wasn't|hardly|far from|anything but)\s+(?:\w+\s+)?$", re.IGNORECASE)
 FAMILY = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother', 'cousin', 'partner', 'wife', 'husband', 'girlfriend',
           'boyfriend', 'fiancée', 'fiancé', 'son', 'daughter', 'aunt', 'uncle', 'grandmother', 'grandfather',
-          'grandparent'}
+          'grandparent', 'stepmom', 'stepdad', 'stepparent', 'half sister', 'half brother', 'half sibling', 'stepsister',
+          'stepbrother', 'stepsibling', 'stepmum', 'stepmother', 'stepfather'}
 GRANDPARENTS = {'grandparent', 'grandmother', 'grandfather', 'grandma', 'grandpa'}
 # A companion younger than this has a grandparent in their circle, aged ELDER_AGES (v0.15: so People can pass away
 # finds someone old). They come on top of the circle's size.
@@ -132,10 +133,11 @@ def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken
 
 
 def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE_SIZE, seed: str | None = None,
-              taken: set[str] | None = None, sheet: bool = True) -> list[dict]:
+              taken: set[str] | None = None, sheet: bool = True, tree: dict | None = None) -> list[dict]:
     """The circle from the world data's generator, closest first, living near the companion when
     their location names a neighborhood. A circle bigger than the usual one fills in sociably. With `sheet`, the
-    people the character sheet names take their places (with_named)."""
+    people the character sheet names take their places (with_named). With a family plan (`tree`,
+    companion/life/family_tree.py) the family comes from it and the other places go to friends (from_plan)."""
     home = home_of(data, definition)
     social = size > CIRCLE_SIZE
     order = generators.SOCIAL if social else generators.CIRCLE
@@ -144,17 +146,46 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
     group = family_group(data, family)
     folk = lifespans.sheet_kind(definition, data)  # Their relatives are their kind (companion/world/lifespans.py).
     life, peer = centre_ages(data, definition, timeline_id)
-    made = generators.circle(data, seed=base, size=min(size, len(order)), home=home, order=order, coworkers=works,
-                             family=family, group=group, folk=folk, age=life, peer_age=peer)
     sheet_people = named.in_circle(definition) if sheet else []
     taken = set(taken or ()) | {definition['name'], *definition['name'].split()[:1]} | \
         {person['name'].split()[0] for person in named.people(definition)}  # Their children's names too.
-    result = [city_person(member, data, definition, family, timeline_id, taken) for member in made['people']]
+    if tree:
+        if not family:  # As the generator would pick it, so friends never carry it.
+            chosen = generators.name(data, seed=f'{base}:family', group=group)
+            family, group = naming.base_family(chosen['culture'], chosen['family']), group or chosen['group']
+        ctx = {'data': data, 'base': base, 'life': life or tree['age'], 'home': home, 'group': group, 'folk': folk,
+               'family': family}
+        result = from_plan(tree, ctx, definition, timeline_id, taken, (size, order, works, peer))
+    else:
+        made = generators.circle(data, seed=base, size=min(size, len(order)), home=home, order=order,
+                                 coworkers=works, family=family, group=group, folk=folk, age=life, peer_age=peer)
+        result = [city_person(member, data, definition, family, timeline_id, taken) for member in made['people']]
 
     def make(index, person):
         made = city_named(data, definition, timeline_id, person, f'{base}:named:{index}')
         return made | {'details': made['details'] | {'sheet': person['name']}}
     return with_named(result, sheet_people, make)
+
+
+# Friends a circle keeps beside a big family, however small its size.
+FEWEST_FRIENDS = 2
+
+
+def from_plan(tree: dict, ctx: dict, definition: dict, timeline_id: str, taken: set[str], shape: tuple) -> list[dict]:
+    """The family plan's people after the closest friend and before everyone else, and friends for the rest of the
+    circle's size (never fewer than FEWEST_FRIENDS). `shape` is (size, order, coworkers, peer age)."""
+    from companion.life import family_circle
+    size, order, works, peer = shape
+    data, family = ctx['data'], ctx['family']
+    kin = family_circle.people(tree, ctx, lambda member, role: city_person(
+        member, data, definition, family, timeline_id, taken, role))
+    friends = tuple(role for role in order if role not in ('parent', 'sibling'))
+    wanted = max(FEWEST_FRIENDS, size - family_circle.in_touch(kin))
+    made = generators.circle(data, seed=ctx['base'], size=min(wanted, len(friends)), home=ctx['home'], order=friends,
+                             coworkers=works, family=family, group=ctx['group'], folk=ctx['folk'], age=ctx['life'],
+                             peer_age=peer)
+    others = [city_person(member, data, definition, family, timeline_id, taken) for member in made['people']]
+    return others[:1] + kin + others[1:]
 
 
 def home_of(data: dict, definition: dict) -> str | None:
@@ -354,7 +385,9 @@ def with_named(built: list[dict], sheet_people: list[dict], make) -> list[dict]:
             result.append(entry)
             kept.add(len(result) - 1)
         else:
-            result[slot] = entry
+            # In the family plan's place, so ties and the family line follow (companion/life/family_circle.py).
+            planned = result[slot]['details'].get('kin')
+            result[slot] = entry | ({'details': entry['details'] | {'kin': planned}} if planned else {})
             kept.add(slot)
     return result
 
@@ -465,13 +498,14 @@ def view(row: dict, data: dict | None = None) -> dict:
 
 
 def build(definition: dict, world, timeline_id: str, size: int, seed: str | None = None, taken=(),
-          sheet: bool = True) -> list[dict]:
+          sheet: bool = True, tree: dict | None = None) -> list[dict]:
     """`size` people, closest first, from the city's generator when the world knows their city, with the people
-    the sheet names in their places (`sheet`; False for people added to a circle later)."""
+    the sheet names in their places (`sheet`; False for people added to a circle later). `tree` is a new circle's
+    family plan (companion/life/family_tree.py), used where the world knows their city."""
     base = seed or f'circle:{timeline_id}'
     data = city_data(definition, world)
     if data:
-        return from_city(data, definition, timeline_id, size, base, set(taken), sheet)
+        return from_city(data, definition, timeline_id, size, base, set(taken), sheet, tree)
     names, roles, built = set(taken) | {definition['name']}, SOCIAL_ROLES if size > CIRCLE_SIZE else None, []
     for ordinal in range(min(size, len(SOCIAL_ROLES))):
         person = assemble(f'{base}:{ordinal}', ordinal, definition, None, names, roles[ordinal] if roles else None)
@@ -485,12 +519,14 @@ def build(definition: dict, world, timeline_id: str, size: int, seed: str | None
 
 
 def insert(connection, timeline_id, built: list[dict], first: int, now):
+    """The people as rows; someone of a family plan who died before now or is out of touch goes in removed."""
     for ordinal, person in enumerate(built, start=first):
         connection.execute(
             'INSERT OR IGNORE INTO circle_people (id, timeline_id, ordinal, seed, name, role, career, details, schedule, '
-            'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (identifier(), timeline_id, ordinal, f'circle:{timeline_id}:{ordinal}', person['name'], person['role'],
-             person['career'], encode(person['details']), encode(person['schedule']), stamp(now), stamp(now)))
+             person['career'], encode(person['details']), encode(person['schedule']), person.get('status', 'active'),
+             stamp(now), stamp(now)))
 
 
 def ensure(connection, companion: dict, world, now) -> list[dict]:
@@ -510,8 +546,10 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
             rows = people(connection, timeline_id, include_removed=True)
         return [row for row in rows if row['status'] == 'active']
     definition = companion['version']['definition']
-    insert(connection, timeline_id, build(definition, world, timeline_id, target_size(definition, setting(connection))),
-           0, now)
+    from companion.life import family_tree  # Their own family first (Vanta, 2026-10-27).
+    tree = family_tree.start(connection, companion, city_data(definition, world), now)
+    insert(connection, timeline_id, build(definition, world, timeline_id, target_size(definition, setting(connection)),
+                                          tree=tree), 0, now)
     add_grandparent(connection, companion, world, now)
     from companion.life import kids  # A companion new to the user: their kids, maybe seeded, and the other parent.
     kids.settle(connection, companion, world, now, fresh=True)
@@ -678,11 +716,11 @@ def room(connection, companion: dict) -> dict:
 
 
 def holds_place(row: dict, rows: list[dict]) -> bool:
-    """Someone who counts toward the circle's size: anyone active, someone late, someone who stepped aside for a
-    person shared in from another circle (who is not one of `rows`, this circle's own)."""
+    """Someone who counts toward the circle's size: anyone active, someone late or out of touch, someone who stepped
+    aside for a person shared in from another circle (who is not one of `rows`, this circle's own)."""
     details = decode(row['details']) or {}
     aside = details.get('stepped_aside')
-    return row['status'] == 'active' or bool(details.get('late')) or bool(aside and aside not in {
+    return row['status'] == 'active' or bool(details.get('late') or details.get('estranged')) or bool(aside and aside not in {
         other['seed'] for other in rows})
 
 
@@ -710,6 +748,8 @@ def fill(connection, companion: dict, world, rows: list[dict], now, count: int):
     taken = {row['name'] for row in rows}
     candidates = build(definition, world, timeline_id, len(SOCIAL_ROLES), f'circle:{timeline_id}:more:{len(rows)}', taken,
                        sheet=False)
+    if any('kin' in (decode(row['details']) or {}) for row in rows):  # Their family is the plan's, never one more mom.
+        candidates = [person for person in candidates if role_kind(person['role']) not in ('parent', 'sibling')]
     have = {}
     for row in active:
         have[role_kind(row['role'])] = have.get(role_kind(row['role']), 0) + 1
@@ -771,6 +811,8 @@ def tie(first: dict, second: dict, older: bool = False) -> str | None:
     (before 1950) parents who parted are separated, and far fewer did (breakups.separated)."""
     kinds = {role_kind(first['role']), role_kind(second['role'])}
     pair = ':'.join(sorted((first['id'], second['id'])))
+    if planned := planned_tie(first, second):  # Their family plan says (companion/life/family_circle.py).
+        return 'separated' if older and planned == 'divorced' else planned
     if kinds == {'parent'}:
         parted = generators.unit(pair, 'divorced') < (OLDER_PARTED if older else 0.25)
         return ('separated' if older else 'divorced') if parted else 'married'
@@ -784,6 +826,15 @@ def tie(first: dict, second: dict, older: bool = False) -> str | None:
         return 'known for years'
     chance = 0.15 if 'new friend' in kinds else 0.3
     return 'friends' if generators.unit(pair, 'friends') < chance else None
+
+
+def planned_tie(first: dict, second: dict) -> str | None:
+    """How two people of a family plan stand: married or parted ('divorced'), as the plan has it."""
+    kin = [(decode(row['details']) if isinstance(row.get('details'), str) else row.get('details') or {}).get('kin')
+           for row in (first, second)]
+    if not (kin[0] and kin[1]):
+        return None
+    return kin[0]['ties'].get(kin[1]['id']) or kin[1]['ties'].get(kin[0]['id'])
 
 
 def ties(rows: list[dict], older: bool = False) -> dict[str, list[dict]]:

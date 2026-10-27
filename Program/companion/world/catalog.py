@@ -155,7 +155,7 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
-OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours', 'words', 'lore', 'media'}
+OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours', 'words', 'lore', 'media', 'family'}
 
 
 def unset_work_rules(data: dict):

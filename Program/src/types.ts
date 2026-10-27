@@ -543,6 +543,8 @@ export interface LifeSettings {
   growing_families: number
   /** Our child (companion/life/our_child.py): 0 easy kids ... 3 true-to-life chaos. */
   family_life: number
+  /** The family a new companion comes from (companion/life/family_tree.py): 0 simple, 1 gentle, 2 true to life, 3 more drama. */
+  family_shapes: number
   /** Loss and grief (companion/life/loss.py): whether people can pass away (off on every preset), and how often: 0 rare, 1 now and then, 2 true to life, 3 often. */
   people_pass_away: boolean
   loss: number
@@ -926,6 +928,12 @@ export interface CirclePerson {
   expecting?: string | null
   /** The companion and this partner are adopting rather than expecting. */
   adopting?: boolean
+  /** Their place in the companion's family plan (companion/life/family_circle.py). */
+  kin?: { id: string; ties: Record<string, string> }
+  /** Family the companion doesn't talk to anymore: removed, in a Not in touch group. */
+  estranged?: boolean
+  /** Someone who died before the companion's story began: the companion's age then. */
+  long_ago?: number
   /** Written into the character's description (companion/life/named.py): spared from passing away unless `spared` is false. */
   sheet?: string
   /** Added by the user on the circle list (companion/life/circle_edit.py): spared from passing away like `sheet`. */

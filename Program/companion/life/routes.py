@@ -25,6 +25,7 @@ from companion.life import (
     deck,
     encounters,
     families,
+    family_circle,
     feed,
     kids,
     long_distance,
@@ -395,7 +396,9 @@ def restore_person(request: Request, person_id: str):
     def change(connection, now):
         if found := loss.of_person(connection, person_id):  # Someone late comes back as if they never passed away.
             return loss.undo(connection, require_current(connection), found['id'], now)
-        restored = circle.set_status(connection, person_id, 'active', now)
+        circle.set_status(connection, person_id, 'active', now)
+        family_circle.welcome_back(connection, person_id, now)  # Family long gone or out of touch: back again.
+        restored = circle.person(connection, person_id)
         if not shared_people.made_by_app(connection, restored):  # Back in their place, as when they were added.
             shared_people.step_aside(connection, require_current(connection), restored['seed'], restored['role'], now)
     return circle_change(request, person_id, change)

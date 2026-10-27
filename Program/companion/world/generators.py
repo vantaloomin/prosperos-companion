@@ -769,7 +769,8 @@ def _haunts(data: dict, seed: str, hood: str, count: int = 3) -> list[dict]:
 def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None = None, age: int | None = None,
              near: str | None = None, employer: str | None = None, family: str | None = None,
              group: str | None = None, around_age: int | None = None, local: bool = True,
-             avoid: list[str] | tuple = (), folk: str | None = None, pronouns: str | None = None) -> dict:
+             avoid: list[str] | tuple = (), folk: str | None = None, pronouns: str | None = None,
+             named_as: str | None = None) -> dict:
     """One person in the city: name, age, home, job with commute, weekly schedule and regular haunts.
 
     `near` puts their home close to a neighborhood (a neighbor's is the same one); `employer` makes them
@@ -781,12 +782,13 @@ def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None 
     (companion/world/lifespans.py): `folk`, else their name group's, so a relative of an elf is an elf and an
     elven resident is often centuries old. Their job and retiring follow the age in human terms.
 
-    Their job fits the work their era gave their side (fits_side): `pronouns`, else their name's.
+    Their job fits the work their era gave their side (fits_side): `pronouns`, else their name's. `named_as` ('she',
+    'he' or 'they') names them for those pronouns (a mom, a stepdad), else their name's own are seeded.
     """
     if role not in ROLES:
         raise DomainError(f'Role is one of {", ".join(ROLES)}.', 422)
     life = age or _age(data, seed, career, around_age, role)
-    named = name(data, seed=seed, group=group, family=family, age=life)
+    named = name(data, seed=seed, group=group, family=family, age=life, pronouns=named_as)
     folk = folk or kind_of(data, seed, group)
     person = {'id': f'{role}-{hashlib.sha256(seed.encode()).hexdigest()[:8]}', 'role': role,
               'closeness': ROLES[role][0], 'name': named,

@@ -32,6 +32,7 @@ from companion.life import (
     dreams,
     encounters,
     families,
+    family_tree,
     grooming,
     hobbies,
     home,
@@ -812,13 +813,15 @@ def offer_people(packet, connection, companion, now, today):
     also = shared_people.also_known(connection, companion)
     people = [{**person, 'also': also.get(person['id'])} for person in agenda.circle_view(connection, timeline_id, now)]
     for person in people + shared_people.shared_with(connection, companion, now):
-        if person.get('late'):
-            continue  # Someone who passed away is in the 'loss' section (companion/life/loss.py), not among the living.
+        if person.get('late') or person.get('estranged'):
+            continue  # Someone who passed away is in the 'loss' section (companion/life/loss.py), not among the living;
+            # family they don't talk to, and family who died before now, are in the family line (family_tree.py).
         said = circle.said(person['role'], companion['version']['definition'])  # 'mother' in 1895
         packet.offer('circle', person['id'], person_text({**person, 'role': said}, away))
         if moment := person_now_text({**person, 'birthday_today': person['birthday'] == today[5:]}):
             packet.offer('circle_now', person['id'], moment)
     offer_all(packet, 'circle', families.context_lines(connection, companion, now))
+    offer_all(packet, 'circle', family_tree.context_lines(connection, companion))
     offer_all(packet, 'known_companions', pairs.context_lines(connection, companion, now))
     for identity, text in [*kids.context_lines(connection, companion, now),
                            *our_child.context_lines(connection, companion, now)]:

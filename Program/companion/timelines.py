@@ -27,6 +27,7 @@ from companion.life import (
     encounters,
     expecting,
     families,
+    family_tree,
     feed,
     grooming,
     hobbies,
@@ -208,6 +209,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
         'idempotency_key': copied_key(row['idempotency_key'], ids, new_id), 'details': remap(row['details'], ids),
     } for row in events])
     insert(connection, 'circle_people', [{**row, 'id': ids[row['id']], 'timeline_id': new_id} for row in people])
+    family_tree.copy(connection, parent_id, new_id)
     home.copy(connection, parent_id, new_id, cutoff, ids)
     wardrobe.copy(connection, parent_id, new_id, cutoff, ids)
     upkeep.copy(connection, parent_id, new_id, cutoff)

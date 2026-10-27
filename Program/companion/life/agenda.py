@@ -652,9 +652,11 @@ def circle_view(connection, timeline_id, now, include_removed=False) -> list[dic
     at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
     data = circle.city_of_timeline(connection, timeline_id)  # Its own kinds (companion/world/lifespans.py).
     for row in circle.people(connection, timeline_id, True):
-        late = (decode(row['details']) or {}).get('late')
-        if row['status'] != 'active' and not include_removed and not late:
-            continue  # Someone late stays on the list (companion/life/loss.py); someone removed only when asked.
+        details = decode(row['details']) or {}
+        late = details.get('late')
+        if row['status'] != 'active' and not include_removed and not (late or details.get('estranged')):
+            continue  # Someone late stays on the list (companion/life/loss.py), and family out of touch; someone
+            # removed only when asked.
         person = circle.view(row, data) | ({'loss': loss.of_person(connection, row['id'])} if late else {})
         person['role'] = circle.era_word(person['role'], said)
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \

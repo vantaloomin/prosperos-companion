@@ -2829,3 +2829,11 @@ CREATE TABLE IF NOT EXISTS user_posts (
   removed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS user_posts_order ON user_posts(occurs_at, id);
+
+-- A companion's own family as planned when their circle was made (companion/life/family_tree.py): their parents'
+-- story, siblings, who died before now and who they don't talk to. Circles from before it have none.
+CREATE TABLE IF NOT EXISTS family_trees (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  tree TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

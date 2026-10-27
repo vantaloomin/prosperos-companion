@@ -17,6 +17,15 @@ export const FAMILY_LIFE_LEVELS = [
   { label: 'Chaotic', hint: 'Long months of broken nights, more sick days, and babies who sleep through late.' },
 ]
 
+/** The Family shapes slider's steps (companion/life/family_tree.py: LEVELS), for the family a new companion comes
+ * from. */
+export const FAMILY_SHAPES_LEVELS = [
+  { label: 'Simple', hint: 'Parents still together, everyone alive and in touch, unless the description says otherwise. Some still have two moms or two dads, or were adopted. Applies to companions made from now on.' },
+  { label: 'Gentle', hint: 'Fewer divorces, fewer people who passed away and fewer family rifts than in real life. Applies to companions made from now on.' },
+  { label: 'True to life', hint: 'Families as they are in their time and place: some parents divorced or remarried, stepfamilies and half siblings, two moms or two dads, only children, a parent who passed away years ago, now and then someone they no longer talk to. Applies to companions made from now on.' },
+  { label: 'More drama', hint: 'More divorces and stepfamilies, more loss and more family they no longer talk to. Applies to companions made from now on.' },
+]
+
 /** "Mia, 2, Dana's niece" (the companion by first name), "Leo, 7 months old, Ana's son", or the companion's own
  * with their partner: "Ivy, newborn, Dana and Tyler's daughter". One child under their parent in the people list. */
 export function childLine(child: CircleChild, parent: string, companion: string): string {

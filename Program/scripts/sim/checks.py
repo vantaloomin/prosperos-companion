@@ -225,6 +225,27 @@ def shared(found: Findings, name: str, snapshot, edits):
         found.add(name, 'high', 'multi-companion', 'A person shared into a second circle is not in both', knowing)
 
 
+def families(found: Findings, name: str, snapshot):
+    """A family the app planned (life/family_tree.py) reads as one: no third parent who isn't a step, nobody long
+    gone or out of touch still in their days, and someone of the plan in each place only once."""
+    for companion_id, screens in snapshot['companions'].items():
+        people = screens.get('/api/life/circle') or []
+        kin = [p for p in people if p.get('kin')]
+        if not kin:
+            continue
+        who = named(snapshot, companion_id)
+        parents = [p for p in kin if p['role'] in SLOTS['mother'] | SLOTS['father'] and p['status'] == 'active'
+                   and not p.get('late')]
+        if len(parents) > 2:
+            found.add(name, 'high', 'app-data', f'{who} has {len(parents)} parents in touch',
+                      [f"{p['name']} ({p['role']})" for p in parents])
+        if wrong := [p['name'] for p in kin if (p.get('late') or p.get('estranged')) and p['now']]:
+            found.add(name, 'high', 'app-data', f"Family long gone or out of touch still in {who}'s days", wrong)
+        places = Counter(p['kin']['id'] for p in kin)
+        if twice := [place for place, count in places.items() if count > 1]:
+            found.add(name, 'high', 'app-data', f"Two people in the same place in {who}'s family", twice)
+
+
 def errors(found: Findings, name: str, out: Path, logs: Path):
     for error in load(out, name, 'errors') or []:
         found.add(name, 'high' if str(error.get('status')).startswith('5') else 'medium', 'error',
@@ -255,6 +276,7 @@ def run(out: Path, names, logs: Path):
             together(found, name, later, [c['id'] for c in created])
             strangers(found, name, later)
             shared(found, name, later, edits)
+            families(found, name, later)
         errors(found, name, out, logs)
     return sorted(found.items, key=lambda item: (SEVERITY[item['severity']], item['kind'], item['world']))
 

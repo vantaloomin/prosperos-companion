@@ -9,6 +9,9 @@ the screens' endpoints say and walks every screen in a browser. It looks for the
 - **What the user set by hand**: a pastime, an age, a job, a pet, a mom added by hand: still there after time
   passes and a new version of the character, not read as new, not doubled by what the app made.
 - **App-made beside user-made**: two moms, a person shared into a second circle.
+- **Families**: the family the app planned for each companion reads as one (no third parent in touch who isn't a
+  step, nobody long gone or out of touch still in their days). The rates themselves are checked by
+  tests/test_family_tree.py over thousands of seeds.
 - **Several companions**: everyone reacting to the user's own post and to each other's.
 - **Errors**: API calls that fail, errors in the app's log, page and console errors.
 - **On screen** (browse.mjs): text cut off, placeholders wider than their box, sideways scroll, text boxes the

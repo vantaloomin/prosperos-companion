@@ -542,6 +542,8 @@ class LifeSettingsUpdate(Input):
     paced_replies: bool | None = None
     # How quickly they read your texts while free (companion/life/reading.py): 0 at once, 1 quick, 2 natural, 3 slow.
     read_pace: int | None = Field(default=None, ge=0, le=3)
+    # The shape of a new companion's family (companion/life/family_tree.py): 0 simple, 1 gentle, 2 true to life, 3 more.
+    family_shapes: int | None = Field(default=None, ge=0, le=3)
     day_shifts: bool | None = None
     # Life admin calendar (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic.
     admin_realism: int | None = Field(default=None, ge=0, le=3)
