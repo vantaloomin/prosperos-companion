@@ -71,6 +71,22 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.1.8 (2026-10-27)
+
+- **Families that look like real families:** a new companion's family is planned at true-to-life rates for their
+  era (divorce, remarriage, step and half family, adoption, two moms or two dads, only children, family long gone
+  or out of touch); Today > People groups them, and Settings > Realism has a Family shapes slider.
+- **One saved key for everything:** a key saved for a service is used by every profile on that service, and image
+  services without a key borrow the one saved for the same service's text models.
+- **Switch models fast, or mix them:** Add another model on a profile, a Model choice in the chat's More menu,
+  Try with another model on a failed reply, and Mix models in chat (in turn or at random).
+- **Tester fixes:** name styles fit who they are; Work lists a made-up city's own jobs; books, shows and songs
+  come from their own world; a city's well-known people stand out around town; a notification no longer opens
+  a blank message; other tabs follow a world switch; whole group names in the phone message box; strangers
+  start at Just met; pastimes you add read as long-standing; no browser autofill in text boxes.
+- **Found before testers did:** no second mom when you add one; jobs and money in written fantasy cities; ship
+  and era-fitting pets, clothes and posts; tips and menus stay on a phone screen.
+
 ## v1.1.7 (2026-10-26)
 
 - **People your companions both know:** someone in one companion's circle can be added to another companion's life
