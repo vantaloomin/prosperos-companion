@@ -304,7 +304,10 @@ def city_person(member: dict, data: dict, definition: dict, family: str | None, 
                 role: str | None = None) -> dict:
     """One generated city resident as a circle member; `role` is the sheet's own word for a named person."""
     job = member['job'] or {}
-    details = {'career': (job.get('career') or {}).get('name', 'Retired' if member['local'] else ''),
+    # No job: retired when they are old enough, else just no job named (a city with no work for their age).
+    span = lifespans.lifespan_of(member.get('folk') or lifespans.HUMAN, data)
+    retired = member['local'] and (lifespans.life_age(member['age'], span) or 0) >= generators.RETIRED_AT
+    details = {'career': (job.get('career') or {}).get('name', 'Retired' if retired else ''),
                'employer': (job.get('employer') or {}).get('name', ''),
                'neighborhood': member['home']['neighborhood']['name'] if member['home'] else '',
                'city': data['name'] if member['local'] else '', 'full_name': member['name']['full'],
@@ -668,16 +671,19 @@ def room(connection, companion: dict) -> dict:
     holds their place: a death is not a removal (companion/life/loss.py), and nor is stepping aside for someone
     shared in from another circle (companion/life/shared_people.py), who holds it now."""
     definition = companion['version']['definition']
-    active = len([row for row in sized(people(connection, companion['active_timeline_id'], include_removed=True))
-                  if holds_place(row)])
+    rows = sized(people(connection, companion['active_timeline_id'], include_removed=True))
+    active = len([row for row in rows if holds_place(row, rows)])
     return {'people': active, 'target': target_size(definition, setting(connection)),
             'sociability': sociability(definition)}
 
 
-def holds_place(row: dict) -> bool:
-    """Someone who counts toward the circle's size: anyone active, someone late, someone who stepped aside."""
+def holds_place(row: dict, rows: list[dict]) -> bool:
+    """Someone who counts toward the circle's size: anyone active, someone late, someone who stepped aside for a
+    person shared in from another circle (who is not one of `rows`, this circle's own)."""
     details = decode(row['details']) or {}
-    return row['status'] == 'active' or bool(details.get('late') or details.get('stepped_aside'))
+    aside = details.get('stepped_aside')
+    return row['status'] == 'active' or bool(details.get('late')) or bool(aside and aside not in {
+        other['seed'] for other in rows})
 
 
 def grow(connection, companion: dict, world, now) -> list[dict]:
@@ -687,7 +693,7 @@ def grow(connection, companion: dict, world, now) -> list[dict]:
     before = len(people(connection, companion['active_timeline_id'], include_removed=True))
     ensure(connection, companion, world, now)
     rows = people(connection, companion['active_timeline_id'], include_removed=True)
-    active = [row for row in sized(rows) if holds_place(row)]
+    active = [row for row in sized(rows) if holds_place(row, rows)]
     missing = target_size(companion['version']['definition'], setting(connection)) - len(active)
     require(missing > 0 or len(rows) > before, 'Their circle already has everyone it should. Raise the circle size in '
             'Settings to add more people.', 409)

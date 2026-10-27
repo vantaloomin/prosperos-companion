@@ -98,6 +98,36 @@ def test_the_user_adds_someone_by_hand(client):
     assert client.post('/api/life/circle/people', json={'name': ' '}).status_code == 422
 
 
+def test_a_mom_added_by_hand_takes_the_app_made_moms_place(client):
+    companion(client)
+    made = next(person for person in client.get('/api/life/circle').json() if person['role'] in ('mom', 'dad'))
+    role = made['role']
+    added = client.post('/api/life/circle/people', json={'name': 'Hollis', 'role': role}).json()
+    listed = {person['id']: person for person in client.get('/api/life/circle?include_removed=true').json()}
+    assert listed[made['id']]['status'] == 'removed' and listed[made['id']]['made_room_for'] == 'Hollis'
+    assert [person['name'] for person in listed.values() if person['role'] == role and person['status'] == 'active'] \
+        == ['Hollis']
+    assert client.get('/api/life/circle/room').json()['people'] == len(listed) - 1  # Makes no room for a stranger.
+    # Taken out again, the app's one comes back; put back, Hollis takes the place again.
+    client.post(f"/api/life/circle/{added['id']}/remove", json={}).raise_for_status()
+    back = {person['id']: person for person in client.get('/api/life/circle?include_removed=true').json()}
+    assert back[made['id']]['status'] == 'active' and not back[made['id']].get('stepped_aside')
+    client.post(f"/api/life/circle/{added['id']}/restore", json={}).raise_for_status()
+    again = {person['id']: person for person in client.get('/api/life/circle?include_removed=true').json()}
+    assert again[made['id']]['status'] == 'removed' and again[added['id']]['status'] == 'active'
+
+
+def test_making_someone_mom_by_hand_takes_the_app_made_moms_place(client):
+    companion(client)
+    people = client.get('/api/life/circle').json()
+    made = next(person for person in people if person['role'] in ('mom', 'dad'))
+    friend = next(person for person in people if 'friend' in person['role'])
+    client.put(f"/api/life/circle/{friend['id']}/about", json={'role': made['role']}).raise_for_status()
+    listed = {person['id']: person for person in client.get('/api/life/circle?include_removed=true').json()}
+    assert listed[made['id']]['status'] == 'removed' and listed[friend['id']]['status'] == 'active'
+    assert listed[made['id']]['made_room_for'] == friend['full_name']
+
+
 def test_someone_added_by_hand_takes_the_age_and_job_a_crew_list_gives():
     data = catalog.city('baltimore') | {'notables': [
         {'id': 'kirk', 'name': 'James T. Kirk', 'given': 'Jim', 'pronouns': 'he/him', 'age': 35, 'role': 'Captain'},
