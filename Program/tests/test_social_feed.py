@@ -490,7 +490,7 @@ def circle_people(client) -> list[dict]:
 
 
 @pytest.mark.parametrize(('home', 'unfit'), [
-    ('camelot', r'\b(?:TV|episode|pizza|Tacos|Ramen|coffee|Iced)\b'),
+    ('camelot', r'\b(?:TV|episode|Movie|pizza|Tacos|Ramen|coffee|Iced)\b'),
     ('long-meridian', r'\b(?:Beach|Sunrise|Sunset|outside)\b'),
 ])
 def test_status_posts_and_questions_fit_the_world(client, clock, home, unfit):

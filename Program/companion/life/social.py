@@ -84,7 +84,7 @@ QUESTIONS = (
 # Lines that belong to today (and the near future): before about 1950 nobody watches episodes or orders tacos, and
 # in a medieval or fantasy town nobody drinks coffee; aboard a ship or station there is no beach, sunrise or
 # outdoors to linger in (companion/world/ships.py). The rest suit any world.
-TODAYS = re.compile(r'\b(?:tv|episodes?|pizza|tacos|ramen|iced|couch)\b', re.IGNORECASE)
+TODAYS = re.compile(r'\b(?:tv|episodes?|movies?|pizza|tacos|ramen|iced|couch)\b', re.IGNORECASE)
 COFFEE = re.compile(r'\bcoffee\b', re.IGNORECASE)
 NO_COFFEE_ERAS = {'medieval', 'fantasy'}
 TODAYS_ERAS = {'modern', 'future'}
