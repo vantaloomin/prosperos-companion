@@ -61,7 +61,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
       )}
       {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUpOf={followUpOf} onSwitched={setSwitched} onRetry={(id, profileId) => { setChosen(null); onRetry(id, profileId) }} />}
-      {switched && isLatest && <p className="turn-note" role="status">{switched} answers in chat now. Switch back under More.</p>}
+      {switched && isLatest && shown?.status !== 'complete' && <p className="turn-note" role="status">{switched} answers in chat now. Switch back under More.</p>}
     </>
   )
 })

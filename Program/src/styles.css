@@ -163,6 +163,7 @@ a.button { color: inherit; text-decoration: none; }
 /* Settings > Models: the Mix's choices, inside its toggle, without the browser's fieldset box (Iris). */
 .plain-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .plain-fieldset small { color: var(--muted); }
+.model-mix { margin-top: 4px; }
 .model-mix-options { margin-top: 10px; }
 .typing { font-style: italic; }
 .conversation-notice { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }

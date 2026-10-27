@@ -243,7 +243,11 @@ def test_bringing_them_back_undoes_it_all(client, clock, monkeypatch):
         assert one(connection, 'SELECT picked FROM consequences WHERE id=?', (row['consequence_id'],))['picked'] == 0
         assert optional(connection, "SELECT id FROM big_days WHERE source=? AND status IN ('planned', 'invited')",
                         (f"loss:{row['id']}",)) is None
-    assert not any(row['name'].split()[0] in text for text in lines(client, clock))
+    # By the loss's own identity, not the first name: another loss's line can carry the same name (a shared first
+    # name in the circle), which made this flaky.
+    with client.app.state.database.connect() as connection:
+        identities = [key for key, _text in loss.context_lines(connection, current(connection), clock.now())]
+    assert not any(key.startswith(f"loss:{row['id']}:") for key in identities)
 
 
 def test_turning_the_switch_off_cancels_deaths_to_come(client, clock, monkeypatch):
