@@ -1,12 +1,13 @@
 """Every era is wired end to end, and the modern calendars of other countries keep their own holidays."""
 import copy
+import re
 from datetime import date
 
 import pytest
 from pydantic import ValidationError
 
 from companion import dating as dating_app
-from companion.life import home, money, wardrobe
+from companion.life import circle, home, money, wardrobe
 from companion.world import catalog, changes, dating, generators, naming, townsfolk
 from companion.world.schema import Era, Holiday
 
@@ -51,6 +52,25 @@ def test_jazz_age_is_another_era_with_its_own_careers_names_and_calendar():
     year = on(data, 1926)
     assert year['thanksgiving'] == '1926-11-25' and year['armistice-day'] == '1926-11-11'
     assert year['decoration-day'] == '1926-05-30' and 'juneteenth' not in year
+
+
+@pytest.mark.parametrize('era', ['medieval', 'fantasy', 'steampunk', 'victorian', 'frontier'])
+def test_a_city_written_without_careers_still_has_work_for_its_era(era):
+    # As someone writes a city from the template: places, no careers or employers of its own.
+    data = city_as(era, careers=[])
+    offered = catalog.careers_for(data)
+    assert len(offered) >= 15 and 'software-engineer' not in offered
+    # None names a built-in city's own places (Camelot's tanner works at Barkers End).
+    assert not [career['id'] for career in offered.values() if re.search(
+        r'Barkers|Smithgate|Schustergasse|Nomion|Pennock|Fort Merritt|London', career['summary'])]
+    people = [generators.resident(data, seed=f'{era}-{index}', age=30) for index in range(20)]
+    assert all(person['job'] for person in people)
+    # Someone young with no work in a city is not "Retired".
+    bare = city_as('other', careers=[])
+    member = generators.resident(bare, seed='bare', age=30)
+    assert member['job'] is None
+    made = circle.city_person(member, bare, {'name': 'Kai'}, None, 't1', set())
+    assert made['details']['career'] == ''
 
 
 def test_jazz_age_townsfolk_have_period_jobs_and_looks():
