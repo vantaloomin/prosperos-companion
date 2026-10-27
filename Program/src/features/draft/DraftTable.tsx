@@ -75,7 +75,7 @@ function Start({ busy, error, onDraw, onOpen, onError }: { busy: boolean; error:
       <form className="draft-line" onSubmit={submit}>
         <label htmlFor="draft-line">Your place, in a line</label>
         <div className="draft-line-row">
-          <input id="draft-line" value={line} maxLength={400} placeholder="e.g. a cold fishing town, 1920s" onChange={(event) => setLine(event.target.value)} />
+          <input autoComplete="off" id="draft-line" value={line} maxLength={400} placeholder="e.g. a cold fishing town, 1920s" onChange={(event) => setLine(event.target.value)} />
           <button type="submit" className="button primary" aria-disabled={busy}>{busy ? <LoaderCircle aria-hidden="true" className="spin" /> : <FilePlus2 aria-hidden="true" />}Draw it up</button>
         </div>
         <div className="draft-examples">
@@ -477,7 +477,7 @@ function Overview({ work, busy, setWork, draw, careful, onRoll }: Pick<TableProp
       {work.brief ? <form className="draft-line" onSubmit={redraw}>
         <label htmlFor="draft-line-again">Drawn from</label>
         <div className="draft-line-row">
-          <input id="draft-line-again" value={line} maxLength={400} placeholder="e.g. a cold fishing town, 1920s" onChange={(event) => setLine(event.target.value)} />
+          <input autoComplete="off" id="draft-line-again" value={line} maxLength={400} placeholder="e.g. a cold fishing town, 1920s" onChange={(event) => setLine(event.target.value)} />
           <button type="submit" className="button" aria-disabled={busy}><FilePlus2 aria-hidden="true" />Draw it up</button>
         </div>
         <div className="form-actions wrap">

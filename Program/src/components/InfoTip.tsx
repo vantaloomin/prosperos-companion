@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CircleHelp } from 'lucide-react'
+import { useFitOnScreen } from './fitOnScreen'
 
 interface Props { id: string; label: string; text: string; above?: boolean }
 
@@ -13,7 +14,9 @@ export function InfoTip({ id, label, text, above }: Props) {
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const box = useRef<HTMLSpanElement>(null)
+  const tip = useRef<HTMLSpanElement>(null)
   const open = pinned || hovered || focused
+  useFitOnScreen(tip, open)
   useEffect(() => {
     if (!open) return
     const close = (event: KeyboardEvent) => { if (event.key === 'Escape') { setPinned(false); setHovered(false); setFocused(false) } }
@@ -28,7 +31,7 @@ export function InfoTip({ id, label, text, above }: Props) {
         onClick={() => setPinned((value) => !value)} onFocus={() => setFocused(true)} onBlur={() => { setFocused(false); setPinned(false) }}>
         <CircleHelp aria-hidden="true" />
       </button>
-      <span id={id} role="tooltip" className="info-tip-text" hidden={!open}>{text}</span>
+      <span ref={tip} id={id} role="tooltip" className="info-tip-text" hidden={!open}>{text}</span>
     </span>
   )
 }

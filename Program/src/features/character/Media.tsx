@@ -107,10 +107,10 @@ function ChangeForm({ item, bank, save, onDone }: { item: MediaNow; bank?: strin
   return (
     <form className="form-stack media-form" onSubmit={(event) => void submit(event)} onKeyDown={(event) => { if (event.key === 'Escape') onDone() }}>
       <Field label="Title">{(id, describedBy) => (
-        <input id={id} aria-describedby={describedBy} value={title} maxLength={120} required autoFocus placeholder={example.title} onChange={(event) => setTitle(event.target.value)} />
+        <input autoComplete="off" id={id} aria-describedby={describedBy} value={title} maxLength={120} required autoFocus placeholder={example.title} onChange={(event) => setTitle(event.target.value)} />
       )}</Field>
       {second && <Field label={second}>{(id, describedBy) => (
-        <input id={id} aria-describedby={describedBy} value={by} maxLength={80} placeholder={example.by} onChange={(event) => setBy(event.target.value)} />
+        <input autoComplete="off" id={id} aria-describedby={describedBy} value={by} maxLength={80} placeholder={example.by} onChange={(event) => setBy(event.target.value)} />
       )}</Field>}
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={!title.trim()}>Save</button>

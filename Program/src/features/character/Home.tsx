@@ -121,9 +121,9 @@ function EditForm({ item, view, act, onDone }: { item: HomeItem; view: HomeView;
   return (
     <form className="rename-form" onSubmit={(event) => void save(event)}>
       <label htmlFor={`home-name-${item.id}`}>Name</label>
-      <input id={`home-name-${item.id}`} value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
+      <input autoComplete="off" id={`home-name-${item.id}`} value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
       <label htmlFor={`home-description-${item.id}`}>Description</label>
-      <input id={`home-description-${item.id}`} value={description} maxLength={300} onChange={(event) => setDescription(event.target.value)} />
+      <input autoComplete="off" id={`home-description-${item.id}`} value={description} maxLength={300} onChange={(event) => setDescription(event.target.value)} />
       {options && <VarietySelect id={`home-variety-${item.id}`} options={options} value={variety} onChange={setVariety} />}
       <div className="rename-row">
         <button type="submit" className="button primary">Save</button>
@@ -153,9 +153,9 @@ function AddForm({ view, act, onDone }: { view: HomeView; act: Act; onDone: () =
       </select>
       {options && <VarietySelect id="home-add-variety" options={options} value={variety || options[0]} onChange={setVariety} />}
       <label htmlFor="home-add-name">Name</label>
-      <input id="home-add-name" value={name} maxLength={80} required placeholder={kind === 'pet' ? 'Biscuit' : kind === 'plant' ? 'the fern' : kind === 'vehicle' ? 'the car' : 'a chipped green mug'} onChange={(event) => setName(event.target.value)} />
+      <input autoComplete="off" id="home-add-name" value={name} maxLength={80} required placeholder={kind === 'pet' ? 'Biscuit' : kind === 'plant' ? 'the fern' : kind === 'vehicle' ? 'the car' : 'a chipped green mug'} onChange={(event) => setName(event.target.value)} />
       <label htmlFor="home-add-description">Description (optional)</label>
-      <input id="home-add-description" aria-describedby="home-add-description-hint" value={description} maxLength={300} placeholder="Such as a gray tabby with one white paw" onChange={(event) => setDescription(event.target.value)} />
+      <input autoComplete="off" id="home-add-description" aria-describedby="home-add-description-hint" value={description} maxLength={300} placeholder="Such as a gray tabby with one white paw" onChange={(event) => setDescription(event.target.value)} />
       <small id="home-add-description-hint" className="subtle">What it looks like. Pictures and replies use it.</small>
       <div className="rename-row">
         <button type="submit" className="button primary" disabled={!name.trim()}>Add</button>

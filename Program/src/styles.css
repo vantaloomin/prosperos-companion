@@ -339,7 +339,7 @@ a.button { color: inherit; text-decoration: none; }
 .info-tip-button { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: var(--muted); }
 .info-tip-button:hover, .info-tip-button[aria-expanded='true'] { color: var(--accent); background: var(--accent-tint); }
 .info-tip-button svg { width: 15px; height: 15px; }
-.info-tip-text { position: absolute; z-index: 20; left: -4px; top: calc(100% + 6px); width: max-content; max-width: min(300px, 75vw); padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); color: var(--text); font-size: 0.8125rem; font-weight: 400; line-height: 1.5; box-shadow: 0 6px 18px var(--shadow); white-space: normal; }
+.info-tip-text { position: absolute; z-index: 20; left: -4px; top: calc(100% + 6px); width: max-content; max-width: min(300px, 75vw); padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); color: var(--text); font-size: 0.8125rem; font-weight: 400; line-height: 1.5; box-shadow: 0 6px 18px var(--shadow); white-space: normal; transform: translateX(var(--fit-shift, 0px)); }
 .versions { margin-top: 32px; max-width: 760px; border-top: 1px solid var(--border); padding-top: 18px; }
 .versions summary { cursor: pointer; color: var(--muted); font-size: 0.875rem; }
 .versions ol { padding-left: 22px; display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
@@ -2211,7 +2211,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .header-break { flex-basis: 100%; height: 0; }
 .conversation-header .header-break + * { margin-left: 0; }
 .header-menu { position: relative; display: inline-flex; }
-.header-menu-panel { position: absolute; z-index: 30; left: 0; top: calc(100% + 6px); display: flex; flex-direction: column; gap: 6px; min-width: 180px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 0.8125rem; box-shadow: 0 6px 18px var(--shadow); }
+.header-menu-panel { position: absolute; z-index: 30; left: 0; top: calc(100% + 6px); display: flex; flex-direction: column; gap: 6px; min-width: 200px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 0.8125rem; box-shadow: 0 6px 18px var(--shadow); transform: translateX(var(--fit-shift, 0px)); }
 .header-menu-panel .chat-style-switch { max-width: none; width: 100%; }
 .header-menu-panel > label { display: flex; flex-direction: column; gap: 6px; }
 /* On a wide screen the More button ends the header, so its panel opens leftward and stays on screen. */

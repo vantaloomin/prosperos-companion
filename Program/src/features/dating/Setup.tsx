@@ -69,7 +69,7 @@ interface StepProps { draft: DatingProfile; set: (change: Partial<DatingProfile>
 
 export function AboutYou({ draft, set }: StepProps) {
   return <>
-    <label>First name <input value={draft.name} maxLength={80} onChange={(event) => set({ name: event.target.value })} /></label>
+    <label>First name <input autoComplete="off" value={draft.name} maxLength={80} onChange={(event) => set({ name: event.target.value })} /></label>
     <label>Age <input type="number" min={18} max={120} value={draft.age} onChange={(event) => set({ age: Number(event.target.value) })} /></label>
     {draft.age < 18 && <Notice tone="error">You must be 18 or older.</Notice>}
   </>

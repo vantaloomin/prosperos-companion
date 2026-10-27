@@ -176,8 +176,11 @@ def is_shared(connection, companion: dict, person_id: str) -> bool:
 
 def made_room(connection, companion: dict, people: list[dict], now) -> list[dict]:
     """The circle list's people, each who stepped aside with `made_room_for`: the name of who took their place."""
-    names = {person['key']: person.get('full_name') or person['name'] for person in shared_with(
-        connection, companion, now)} if any(person.get('stepped_aside') for person in people) else {}
+    if not any(person.get('stepped_aside') for person in people):
+        return people
+    # Someone shared in, or someone the user added to this circle by hand (circle_edit.add).
+    names = {person['key']: person.get('full_name') or person['name'] for person in [
+        *shared_with(connection, companion, now), *people]}
     return [{**person, 'made_room_for': names.get(person.get('stepped_aside'))} if person.get('stepped_aside') else
             person for person in people]
 

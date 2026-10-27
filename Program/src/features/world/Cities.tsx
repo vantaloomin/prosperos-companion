@@ -214,7 +214,7 @@ function CityShelves({ cities, featured, actions, extra }: { cities: CityListing
       <div className="search-field">
         <Search aria-hidden="true" />
         <label className="visually-hidden" htmlFor="city-search">Find a city</label>
-        <input id="city-search" type="search" placeholder="Find a city" value={query} onChange={(event) => setQuery(event.target.value)}
+        <input autoComplete="off" id="city-search" type="search" placeholder="Find a city" value={query} onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => { if (event.key === 'Escape') setQuery('') }} />
       </div>
     </div>

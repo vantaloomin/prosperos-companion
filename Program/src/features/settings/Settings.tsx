@@ -168,7 +168,7 @@ function SettingsSearch({ hasCompanion, onPhone, onPick }: { hasCompanion: boole
       <label className="visually-hidden" htmlFor="settings-search">Find a setting</label>
       <div className="search-field">
         <Search aria-hidden="true" />
-        <input id="settings-search" type="search" placeholder="Find a setting" value={query} onChange={(event) => setQuery(event.target.value)}
+        <input autoComplete="off" id="settings-search" type="search" placeholder="Find a setting" value={query} onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => { if (event.key === 'Escape') setQuery('') }} aria-describedby="settings-search-count" />
       </div>
       <p id="settings-search-count" className="visually-hidden" aria-live="polite">{searching ? `${matches.length} ${matches.length === 1 ? 'setting' : 'settings'} found` : ''}</p>

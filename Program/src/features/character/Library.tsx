@@ -125,7 +125,7 @@ function Passages({ book }: { book: LibraryBook }) {
       <form className="search-field" role="search" onSubmit={(event) => { event.preventDefault(); setAsked(query.trim()) }}>
         <Search aria-hidden="true" />
         <label className="visually-hidden" htmlFor={field}>Search {book.name}</label>
-        <input id={field} type="search" placeholder="Search this book" value={query} onChange={(event) => { setQuery(event.target.value); if (!event.target.value) setAsked('') }} />
+        <input autoComplete="off" id={field} type="search" placeholder="Search this book" value={query} onChange={(event) => { setQuery(event.target.value); if (!event.target.value) setAsked('') }} />
       </form>
       {found.data && <>
         <p className="subtle" aria-live="polite">{shownText(found.data.passages.length, found.data.total, Boolean(asked))}</p>

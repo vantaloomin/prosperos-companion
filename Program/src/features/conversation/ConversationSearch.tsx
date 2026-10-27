@@ -32,7 +32,7 @@ export function ConversationSearch({ name, onPick, onClose }: Props) {
     <div className="conversation-search" role="search" onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}>
       <div className="search-bar">
         <label className="visually-hidden" htmlFor="conversation-search">Search the conversation</label>
-        <input id="conversation-search" ref={input} type="search" value={text} placeholder={`Search your conversation with ${name}`} onChange={(event) => setText(event.target.value)} />
+        <input autoComplete="off" id="conversation-search" ref={input} type="search" value={text} placeholder={`Search your conversation with ${name}`} onChange={(event) => setText(event.target.value)} />
         <button type="button" className="icon-button" aria-label="Close search" onClick={onClose}><X aria-hidden="true" /></button>
       </div>
       <SearchBody query={query} search={search} name={name} onPick={onPick} />

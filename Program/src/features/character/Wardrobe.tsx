@@ -116,9 +116,9 @@ function EditForm({ item, view, act, onDone }: { item: WardrobeItem; view: Wardr
   return (
     <form className="rename-form" onSubmit={(event) => void save(event)}>
       <label htmlFor={`wardrobe-name-${item.id}`}>Name</label>
-      <input id={`wardrobe-name-${item.id}`} value={name} maxLength={120} onChange={(event) => setName(event.target.value)} />
+      <input autoComplete="off" id={`wardrobe-name-${item.id}`} value={name} maxLength={120} onChange={(event) => setName(event.target.value)} />
       <label htmlFor={`wardrobe-description-${item.id}`}>Note (optional)</label>
-      <input id={`wardrobe-description-${item.id}`} value={description} maxLength={300} onChange={(event) => setDescription(event.target.value)} />
+      <input autoComplete="off" id={`wardrobe-description-${item.id}`} value={description} maxLength={300} onChange={(event) => setDescription(event.target.value)} />
       <CategorySelect id={`wardrobe-category-${item.id}`} view={view} value={category} onChange={setCategory} />
       <Toggle label="A favorite (worn often)" checked={favorite} onChange={setFavorite} />
       <div className="rename-row">
@@ -143,10 +143,10 @@ function AddForm({ view, act, onDone }: { view: WardrobeView; act: Act; onDone: 
     <form className="rename-form home-add" onSubmit={(event) => void save(event)}>
       <CategorySelect id="wardrobe-add-category" view={view} value={category} onChange={setCategory} />
       <label htmlFor="wardrobe-add-name">What it is</label>
-      <input id="wardrobe-add-name" aria-describedby="wardrobe-add-name-hint" value={name} maxLength={120} required placeholder="a mustard corduroy jacket" onChange={(event) => setName(event.target.value)} />
+      <input autoComplete="off" id="wardrobe-add-name" aria-describedby="wardrobe-add-name-hint" value={name} maxLength={120} required placeholder="a mustard corduroy jacket" onChange={(event) => setName(event.target.value)} />
       <small id="wardrobe-add-name-hint" className="subtle">Colour and kind, the way you would describe it. Pictures use these words.</small>
       <label htmlFor="wardrobe-add-description">Note (optional)</label>
-      <input id="wardrobe-add-description" value={description} maxLength={300} placeholder="A gift from their sister" onChange={(event) => setDescription(event.target.value)} />
+      <input autoComplete="off" id="wardrobe-add-description" value={description} maxLength={300} placeholder="A gift from their sister" onChange={(event) => setDescription(event.target.value)} />
       <Toggle label="A favorite (worn often)" checked={favorite} onChange={setFavorite} />
       <div className="rename-row">
         <button type="submit" className="button primary" disabled={!name.trim()}>Add</button>

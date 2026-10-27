@@ -51,7 +51,7 @@ export function StatusEditor({ id, name, status }: { id: string; name: string; s
   }
   return (
     <div className="status-edit">
-      <input autoFocus className="status-input" value={draft} maxLength={120} aria-label={`${name}'s status`} placeholder={status?.text ?? ''}
+      <input autoComplete="off" autoFocus className="status-input" value={draft} maxLength={120} aria-label={`${name}'s status`} placeholder={status?.text ?? ''}
         onChange={(event) => setDraft(event.target.value)} onBlur={() => void save(draft)}
         onKeyDown={(event) => { if (event.key === 'Enter') void save(draft); if (event.key === 'Escape') setDraft(null) }} />
       <p className="subtle status-hint">{stickHint(name)}</p>

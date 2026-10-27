@@ -724,11 +724,14 @@ def drawable_any() -> list[str]:
 
 
 def offered(connection, timeline_id: str) -> list[str]:
-    """The kinds "Add a pet" offers: those kept in the city's era, and any kind they already have."""
+    """The kinds "Add a pet" offers: those kept in the city's era (only cabin-sized ones aboard a ship or station, as
+    for the pets the app draws), and any kind they already have."""
     state = optional(connection, 'SELECT era FROM home_state WHERE timeline_id=?', (timeline_id,))
     era = era_of({'era': state['era']} if state else None)
+    aboard = afloat(connection, timeline_id)
     have = {found['kind'] for found in of_home(connection, timeline_id)}
-    return [kind for kind in drawable_any() if era in kinds()[kind]['eras'] or kind in have]
+    return [kind for kind in drawable_any() if (era in kinds()[kind]['eras'] and (not aboard or kind in CABIN))
+            or kind in have]
 
 
 def lived(connection, found: list[dict], day: date, now) -> list[dict]:

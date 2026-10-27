@@ -912,7 +912,9 @@ def purchases(connection, timeline_id: str, start: date, end: date, definition: 
         return []
     what = listing(list(dict.fromkeys(meal['takeout']['dish'] for meal in nights))[:3])
     times = 'once' if len(nights) == 1 else 'twice' if len(nights) == 2 else f'{len(nights)} times'
-    return [{'text': f'ordered takeout {times} ({what})', 'date': nights[-1]['date'], 'spend': '',
+    # Before today nobody orders takeout: they pick up a cooked supper (as meal_text says it).
+    bought = 'ordered takeout' if modern_bank(found.found['bank']) else 'picked up a cooked supper'
+    return [{'text': f'{bought} {times} ({what})', 'date': nights[-1]['date'], 'spend': '',
              'cost': round(sum(meal['cost'] for meal in nights), 2), 'for': 'food'}]
 
 

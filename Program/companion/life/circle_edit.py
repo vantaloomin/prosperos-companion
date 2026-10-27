@@ -4,14 +4,16 @@ The app still decides first: everyone in the circle is seeded (companion/life/ci
 character sheet names take their places with the relation, job and age it gives (companion/life/named.py). From the
 circle list the user can then change anyone's name, how they know the companion, pronouns, job and workplace, age,
 whether they live in town, and a note the chat reads, or add someone by hand, giving as little as a name; the app
-fills in the rest the way it would for someone the sheet names. A job is kept in the user's own words; the career it
+fills in the rest the way it would for someone the sheet names. Someone the user adds or makes a mom, dad or spouse
+takes that place from the one the app made, who steps aside as for someone shared in (companion/life/shared_people.py)
+and comes back if the user takes them out again. A job is kept in the user's own words; the career it
 matches (companion/life/job_words.py) gives their week its hours. What the user set is listed in the person's
 `edited`, so the app's later passes (family names) leave it be. What already happened keeps what it said.
 """
 from companion.clock import stamp
 from companion.database import decode, encode, one
 from companion.errors import require
-from companion.life import circle, job_words, named
+from companion.life import circle, job_words, named, shared_people
 from companion.world import catalog, generators
 
 FIELDS = ('name', 'role', 'pronouns', 'job', 'employer', 'age', 'local', 'note')
@@ -46,6 +48,7 @@ def add(connection, companion: dict, world, change: dict, now) -> dict:
     added = one(connection, 'SELECT * FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))
     connection.execute('INSERT OR IGNORE INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?)',
                        (timeline_id, added['id'], stamp(now)))
+    shared_people.step_aside(connection, companion, added['seed'], added['role'], now)
     return added
 
 
@@ -71,6 +74,8 @@ def edit(connection, companion: dict, world, person_id: str, change: dict, now) 
                        'updated_at=? WHERE id=?',
                        (made['name'], made['role'], made['career'], encode(made['details']),
                         encode(made['schedule']), stamp(now), person_id))
+    if 'role' in given:
+        shared_people.step_aside(connection, companion, row['seed'], made['role'], now)
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 

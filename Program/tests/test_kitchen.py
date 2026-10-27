@@ -83,6 +83,18 @@ def made(database, connection):
     return kitchen.day_for(connection, companion['active_timeline_id'], definition, WORLD, database.clock.now())
 
 
+def test_before_today_nobody_orders_takeout(client, monkeypatch):
+    monkeypatch.setattr(body, 'state_on', lambda *_args: None)
+    client.post('/api/companion', json={'name': 'Elowen', 'timezone': 'UTC', 'schedule': EVENINGS,
+                                        'home_city': 'camelot', 'identity': 'An herbalist.'}).raise_for_status()
+    reconcile(client)
+    database = client.app.state.database
+    with day_for(client) as found:
+        bought = kitchen.purchases(found.connection, found.timeline_id, TODAY - timedelta(days=60), TODAY,
+                                   found.definition, WORLD, database.clock.now())
+    assert bought and bought[0]['text'].startswith('picked up a cooked supper')
+
+
 def test_the_panel_shows_their_week_in_words_and_the_user_can_change_it(client, kim):
     reconcile(client)
     view = client.get('/api/life/kitchen').json()

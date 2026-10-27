@@ -96,7 +96,7 @@ export function NewGroup({ companions, chosen, onClose, onMade }: { companions: 
       </fieldset>
       <Backstories companionIds={picked} value={ties} onChange={setTies} />
       <label className="field">Name (optional)
-        <input value={name} maxLength={60} placeholder="Shown instead of their names" onChange={(event) => setName(event.target.value)} />
+        <input autoComplete="off" value={name} maxLength={60} placeholder="Shown instead of their names" onChange={(event) => setName(event.target.value)} />
       </label>
       {error && <p className="error-text" role="alert">{error}</p>}
     </ConfirmDialog>

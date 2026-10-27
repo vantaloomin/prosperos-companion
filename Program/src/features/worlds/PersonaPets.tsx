@@ -21,7 +21,7 @@ export function PersonaPets({ drafts, onChange, persona }: { drafts: PetDraft[];
           <div className="persona-pet-row">
             <div className="field">
               <label htmlFor={`persona-pet-name-${index}`}>Name</label>
-              <input id={`persona-pet-name-${index}`} value={pet.name} maxLength={40} placeholder="Biscuit" onChange={(event) => set(index, { name: event.target.value })} />
+              <input autoComplete="off" id={`persona-pet-name-${index}`} value={pet.name} maxLength={40} placeholder="Biscuit" onChange={(event) => set(index, { name: event.target.value })} />
             </div>
             <div className="field">
               <label htmlFor={`persona-pet-kind-${index}`}>Kind</label>
@@ -32,7 +32,7 @@ export function PersonaPets({ drafts, onChange, persona }: { drafts: PetDraft[];
             <Stepper label="Age" value={pet.age} min={-1} max={MAX_PET_AGE} onChange={(age) => set(index, { age })} format={(years) => ageChoice(years, unsetAge(pet))} />
           </div>
           <label htmlFor={`persona-pet-looks-${index}`}>Looks</label>
-          <input id={`persona-pet-looks-${index}`} value={pet.looks} maxLength={160} placeholder="a one-eyed orange tabby" onChange={(event) => set(index, { looks: event.target.value })} />
+          <input autoComplete="off" id={`persona-pet-looks-${index}`} value={pet.looks} maxLength={160} placeholder="a one-eyed orange tabby" onChange={(event) => set(index, { looks: event.target.value })} />
           {status(pet.name) && <p className="subtle pet-status">{status(pet.name)}</p>}
           <button type="button" className="text-button" onClick={() => onChange(drafts.filter((_, at) => at !== index))}><X aria-hidden="true" />Remove {pet.name.trim() || 'this pet'}</button>
         </div>
