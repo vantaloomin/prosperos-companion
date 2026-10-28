@@ -233,3 +233,24 @@ def test_the_home_line_says_rent_in_the_citys_money():
         ' The mortgage is about 5 d. a week (an estimate).'
     dollars = {'code': 'USD', 'symbol': '$', 'name': 'US dollars'}
     assert home.money_text({'rent': 1410, 'currency': dollars}) == ' Rent is about $1,410 a month (an estimate).'
+
+
+def test_the_homes_quirks_are_the_users_to_rewrite_or_clear(client, baltimore):
+    # A tester's Sett moved to "an apartment above the fighting pits" and kept "a smoky hearth" from the old home.
+    place = client.get('/api/life/home').json()['items'][0]
+    assert place['kind'] == 'home' and place['features']
+    moved = client.patch(f"/api/life/home/items/{place['id']}", json={'description': 'an apartment above the pits'})
+    assert next(item for item in moved.json()['items'] if item['kind'] == 'home')['features'] == []
+    mine = client.patch(f"/api/life/home/items/{place['id']}", json={'features': ['a window onto the arena', ' ']})
+    assert next(item for item in mine.json()['items'] if item['kind'] == 'home')['features'] == ['a window onto the arena']
+    kept = client.patch(f"/api/life/home/items/{place['id']}", json={'description': 'a loft above the pits',
+                                                                    'features': ['a window onto the arena']})
+    assert next(item for item in kept.json()['items'] if item['kind'] == 'home')['features'] == ['a window onto the arena']
+    assert client.patch(f"/api/life/home/items/{place['id']}", json={'features': ['x'] * 5}).status_code == 422
+
+
+def test_a_cabin_aboard_gets_cabin_quirks():
+    ship = {**CatalogWorld().find('baltimore'), 'enclosed': True}
+    for n in range(12):
+        place = home.place_item(f'home:s{n}', MIRA, ship)
+        assert set(place['details']['features']) <= set(home.FEATURES['aboard'])

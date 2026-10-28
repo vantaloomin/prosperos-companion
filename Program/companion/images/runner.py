@@ -199,7 +199,8 @@ class ImageRunner:
         key = backends.backend_key(self.database, self.vault, backend)
         request = ImageRequest(job_id, inputs['prompt'], inputs['negative'], inputs['seed'], width, height,
                                backend, decode(backend['config']), key, storage.raw_directory(self.database),
-                               character_lora(backend, inputs))
+                               character_lora(backend, inputs),
+                               name=inputs.get('character_name') if inputs.get('pictured') else None)
         result = None
         followed = None
         try:

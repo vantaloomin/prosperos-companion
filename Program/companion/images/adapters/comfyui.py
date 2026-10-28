@@ -389,6 +389,26 @@ def node_rejection(node_id: str, found: dict) -> str:
     return ''
 
 
+# Prompts' "He is the only person in the picture." (images/prompts.alone), which tag-trained families read best as tags.
+ONLY_ONE = re.compile(r'\b(She|He|They) (?:is|are) the only person in the picture\.')
+TAGGED = {'anima', 'booru'}
+SOLO_TAGS = {'She': '1girl', 'He': '1boy', 'They': '1other'}
+
+
+def solo(family: str, prompt: str, negative: str, name: str | None = None) -> tuple[str, str]:
+    """For an anime family trained on booru tags: their name as a tag (it may know "sett"), and "solo" for a moment of
+    their own, since it draws one sentence of looks and another of the moment's outfit as two people unless told.
+    The tags are added here, after the content check has read the prompt, so a name never trips it."""
+    if family not in TAGGED:
+        return prompt, negative
+    found = ONLY_ONE.search(prompt)
+    tag = re.sub(r'[^\w\s.\'-]', '', name or '').strip().lower()
+    tags = [*(['solo', SOLO_TAGS[found[1]]] if found else []), *([tag] if tag else [])]
+    if found:
+        negative = ', '.join(part for part in (negative, 'multiple people, 2boys, 2girls, multiple views, clone') if part)
+    return (f"{', '.join(tags)}, {prompt}" if tags else prompt), negative
+
+
 def failure_text(entry) -> str:
     for message in (entry.get('status') or {}).get('messages', []):
         if isinstance(message, list) and message and message[0] == 'execution_error':
@@ -417,8 +437,9 @@ class ComfyAdapter:
                                              if request.config.get(key) not in (None, '')}}
             name = f"{name} ({used['steps']} steps, CFG {used['cfg']:g}, {used['sampler_name']}/{used['scheduler']})"
         styles = style_loras(request.config, request.lora)
-        prompt = triggered(request.prompt, request.lora, styles)
-        values = {'{{prompt}}': prompt, '{{negative}}': request.negative, '{{seed}}': request.seed,
+        prompt, negative = solo(family_of(request.config), triggered(request.prompt, request.lora, styles),
+                                request.negative, request.name)
+        values = {'{{prompt}}': prompt, '{{negative}}': negative, '{{seed}}': request.seed,
                   '{{width}}': request.width, '{{height}}': request.height, REFERENCE: ''}
         async with self.client(request.config['base_url']) as client:
             if request.reference is not None:

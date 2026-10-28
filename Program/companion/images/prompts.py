@@ -10,7 +10,19 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import composer, families, feed, grooming, home, pets, pronouns, traditions, upkeep, wardrobe
+from companion.life import (
+    composer,
+    families,
+    feed,
+    grooming,
+    hobbies,
+    home,
+    pets,
+    pronouns,
+    traditions,
+    upkeep,
+    wardrobe,
+)
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks, ships
@@ -267,13 +279,28 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     opening = FRAMINGS[framing].format(subject=subject.lower(), possessive=possessive) if FRAMINGS[framing] else \
         ''
     parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
-             sheet, f'{look}.' if look else '', setting, action,
+             sheet, f'{look}.' if look else '', setting, action, alone(event, action, subject, who, framing),
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
              ship_light(event.get('hour')) if aboard else light(event.get('hour'), event.get('weather')),
              camera(style, framing)]
     if aboard:
         parts[3:5] = [aboard_words(part) for part in parts[3:5]]
     return looks.seen(' '.join(part for part in parts if part))
+
+
+# Moments with other people in them, where "the only person in the picture" would be wrong.
+CROWDED = {'busy-shift', 'dinner', 'drinks', 'show', 'market', 'dinner-in', 'festival', 'birthday', 'own-birthday',
+           'gathering', 'tradition', 'wedding', 'big-day', 'own-wedding-day'}
+COMPANY = re.compile(r'\b(?:with|together|friends?|family|date|partner|everyone|crowd|guests|kids?|children)\b',
+                     re.IGNORECASE)
+
+
+def alone(event, action, subject, who, framing) -> str:
+    """Says they are the only one in a moment of their own, so the picture shows them once (adapters/comfyui.py
+    turns it into a tag-model's "solo"); nothing for a view, company or a crowded activity."""
+    if framing == 'view' or event.get('with') or event.get('activity') in CROWDED or COMPANY.search(action or ''):
+        return ''
+    return f"{subject} {'are' if who == 'they' else 'is'} the only person in the picture."
 
 
 # What each activity of the life sim (companion/life/composer.py and the circle's gatherings) looks
@@ -329,7 +356,11 @@ CALLS = ('called', 'phone')
 def picture_of(event) -> str | None:
     """The activity's picture line; a pastime's own (companion/life/hobbies.py), with visible wording only."""
     if event.get('activity') == 'hobby':
-        return (event.get('hobby') or {}).get('picture') or PICTURES['hobby']
+        hobby = event.get('hobby') or {}
+        if hobby.get('name') and hobby.get('picture') == f"absorbed in {hobby['name']} at home":
+            # A pastime added by hand used to be pictured at home whatever it was; it follows its own words now.
+            return hobbies.custom(hobby['name'])['picture']
+        return hobby.get('picture') or PICTURES['hobby']
     return PICTURES.get(event.get('activity') or '')
 
 
@@ -383,9 +414,34 @@ def in_photos(definition, who=None, dressed=False) -> str:
                            reverse=True):
             own = re.sub(rf'^{re.escape(form)}\s*[,:;–—-]\s*', '', own)
         own = unnamed(own, definition['name'], who).rstrip('.')
+        own = sceneless(own)
         return f'{own[:1].upper()}{own[1:]}'
     appearance = definition.get('appearance', '')
     return visible(without_clothes(appearance) if dressed else appearance, definition['name'], who)
+
+
+# A clause of an In photos line that sets a scene ("Ionian fighting pit with hanging lamps") rather than describing them.
+SCENE = re.compile(r"\b(?:pit|arena|room|hall|street|alley|tavern|bar|pub|inn|kitchen|bedroom|office|forest|woods|beach|"
+                   r"city|town|village|temple|dojo|gym|studio|market|garden|park|background|lamps?|lanterns?|interior|"
+                   r"indoors|outdoors|landscape|skyline|scenery|backdrop)\b", re.IGNORECASE)
+
+
+def sceneless(line: str) -> str:
+    """The user's In photos line without the scene it sets: a line written for one portrait ("fighting pit with hanging
+    lamps") next to the moment's own place made the image model draw them twice."""
+    kept = []
+    for sentence in re.split(r'(?<=[.!?])\s+', line.strip()):
+        clauses = [clause for clause in CLAUSE.split(sentence.rstrip('.!? ')) if clause and not SCENE.search(clause)]
+        if clauses:
+            kept.append(', '.join(clauses))
+    return '. '.join(kept)
+
+
+def own_outfit(definition) -> bool:
+    """Whether the user's own In photos line says what they wear ("open fur-collared coat"). It is theirs to keep, so
+    the moment's outfit gives way to it rather than the picture showing two outfits, and so two people."""
+    own = (definition.get('in_photos') or '').strip()
+    return any(clothing(clause) for clause in CLAUSE.split(own) if clause.strip())
 
 
 def local_hour(stamp_text, timezone) -> int | None:
@@ -417,7 +473,8 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
         likeness = {**likeness, 'lora': None}
     return {'prompt_version': PROMPT_VERSION,
             'prompt': prompt or feed_prompt(definition, first, image_settings,
-                                            setting(connection, post['timeline_id'], events[0]), who, sheet,
+                                            setting(connection, post['timeline_id'], events[0],
+                                                    not own_outfit(definition)), who, sheet,
                                             ships.aboard(connection, definition)),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
@@ -425,7 +482,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), **likeness,
+            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, **likeness,
             **children(connection, post['timeline_id'], [event[key] for event in events
                                                           for key in ('summary', 'caption', 'label', 'place')],
                        [(event['moment'].get('outing') or {}).get('id') for event in events])}
@@ -447,11 +504,18 @@ def feed_prompt(definition, first, image_settings, worn: tuple[str, bool], who, 
                    sheet=sheet, look=look, aboard=aboard)
 
 
-def setting(connection, timeline_id, event) -> tuple[str, bool]:
+def at_home(event) -> bool:
+    """Whether the moment happens at their home: no place of its own, and an activity that is done at home (its picture
+    line says so) or none at all. Combat training before a show has no place but is not at home."""
+    line = picture_of(event)
+    return not event.get('place') and (line is None or 'at home' in line or 'home' in (event.get('activity') or ''))
+
+
+def setting(connection, timeline_id, event, outfit=True) -> tuple[str, bool]:
     """Their home where the moment is at home, and what they are wearing (companion/life/wardrobe.py),
     with whether it says what they wear."""
-    wearing = wardrobe.image_hint(connection, timeline_id, event.get('moment') or {})
-    parts = [home.image_hint(connection, timeline_id, event), upkeep.image_hint(connection, timeline_id, event),
+    wearing = wardrobe.image_hint(connection, timeline_id, event.get('moment') or {}) if outfit else ''
+    parts = [home.image_hint(connection, timeline_id, event, at_home(event)), upkeep.image_hint(connection, timeline_id, event),
              traditions.image_hint(connection, timeline_id, event), wearing]
     return ' '.join(part for part in parts if part), bool(wearing)
 
@@ -497,8 +561,9 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
                                                                 'weather', 'activity', 'with', 'hobby')},
                              moment.get('neighborhood'))
     appearance = '' if framing == 'view' else definition.get('appearance', '')
-    wearing = '' if framing == 'view' else moment.get('wearing') or wardrobe.image_hint(
-        connection, companion['active_timeline_id'], moment)
+    # A moment's own outfit (a wedding's) is kept; their everyday one gives way to an In photos line that says one.
+    wearing = '' if framing == 'view' else moment.get('wearing') or ('' if own_outfit(definition) else wardrobe.image_hint(
+        connection, companion['active_timeline_id'], moment))
     sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))
     look = '' if framing == 'view' else in_photos(definition, who, bool(wearing))
     prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),
@@ -507,6 +572,7 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     if framing == 'view':
         likeness = {**likeness, 'lora': None}
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
+            'pictured': framing != 'view',
             'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
             'moment': moment, **likeness,
             **children(connection, companion['active_timeline_id'],
@@ -530,6 +596,7 @@ def build_meme(connection, meme, image_settings) -> dict:
     prompt = looks.seen(prompt)
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': 'meme',
             'aspect': 'square', 'captions': [meme['top'], meme['bottom'], meme['subject'] or ''],
+            'pictured': not meme['subject'],
             'meme': meme, **likeness}
 
 
