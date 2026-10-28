@@ -2787,7 +2787,10 @@ p.breakup-line { align-items: center; }
 .circle-tie select { width: 100%; min-width: 0; }
 .circle-tie-add { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .circle-tie-add .rename-row { grid-column: 1 / -1; }
-@media (max-width: 720px) { .circle-tie { grid-template-columns: 1fr; gap: 4px; } }
+@media (max-width: 720px) {
+  .circle-tie { grid-template-columns: 1fr; gap: 4px; }
+  .circle-tie label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+}
 .circle-pet-form { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .circle-pet-form > label, .circle-pet-form .field-label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 .circle-pet-form .field { margin: 0; }

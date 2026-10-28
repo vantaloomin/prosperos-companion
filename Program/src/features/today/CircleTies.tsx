@@ -28,11 +28,11 @@ export function CircleTies({ person, act }: { person: CirclePerson; act: Act }) 
       <h4 id={headingId}>Who {person.name} knows here</h4>
       <p className="subtle">Changes here save on their own and show on both cards.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
-      {knows.length === 0 && <p className="subtle">No one else in this circle yet.</p>}
+      {knows.length === 0 && <p className="subtle">{person.name} doesn't know anyone here yet.</p>}
       {knows.length > 0 && <ul className="circle-tie-list">{knows.map((item) => (
         <li key={item.id} className="circle-tie">
           <label htmlFor={`${headingId}-${item.id}`}>{item.name}</label>
-          <select id={`${headingId}-${item.id}`} value={item.how} onChange={(event) => void save(item.id, item.name, event.target.value)}>
+          <select id={`${headingId}-${item.id}`} aria-label={`How ${person.name} knows ${item.name}`} value={item.how} onChange={(event) => void save(item.id, item.name, event.target.value)}>
             {choices(item.how).map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
             <option value={NOT_AT_ALL}>Don't know each other</option>
           </select>

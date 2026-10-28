@@ -48,7 +48,7 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
       </Text>
       <Text id={`${prefix}-start`} label={`How close they are with ${companion}`} hint="Where the two of them start. It moves as their days go on.">
         <select id={`${prefix}-start`} value={values.start} aria-describedby={`${prefix}-start-hint`} onChange={(event) => set({ start: event.target.value })}>
-          <option value="">Let the app pick</option>
+          <option value="">{appPick(person)}</option>
           {PAIR_STAGES.map((stage, index) => <option key={stage} value={String(index + 1)}>{stage}</option>)}
         </select>
       </Text>
@@ -72,6 +72,9 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
     </form>
   )
 }
+
+/** "Let the app pick (Comfortable)": what the app picked, while the card's own stage line is hidden (Iris). */
+const appPick = (person?: CirclePerson) => person?.stage && !person.start_stage ? `Let the app pick (${person.stage.name})` : 'Let the app pick'
 
 interface BasicsProps { prefix: string; values: AboutValues; set: (change: Partial<AboutValues>) => void; adding: boolean; current: string }
 
