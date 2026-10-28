@@ -42,14 +42,16 @@ def unread(connection, timeline_id: str, now) -> int:
 
 def latest(connection, timeline_id: str, now) -> dict | None:
     """The last message either of them sent that the user can see."""
-    row = optional(connection, "SELECT role, text, created_at FROM messages WHERE timeline_id=? AND active=1 AND "
+    # A held reply (companion/life/pacing.py) is stamped when it showed, or when it was done if written after.
+    row = optional(connection, "SELECT role, text, CASE WHEN held_until IS NULL THEN created_at ELSE "
+                   "MAX(held_until, COALESCE(completed_at, held_until)) END AS at FROM messages WHERE timeline_id=? AND active=1 AND "
                    "status='complete' AND redacted_at IS NULL AND superseded_at IS NULL AND "
                    '(held_until IS NULL OR held_until<=?) ORDER BY seq DESC LIMIT 1', (timeline_id, stamp(now)))
     if row is None:
         return None
     text = ' '.join(row['text'].split())
     return {'role': row['role'], 'text': text if len(text) <= PREVIEW else text[:PREVIEW - 1].rstrip() + '…',
-            'at': row['created_at']}
+            'at': row['at']}
 
 
 def companion_chats(connection, now) -> list[dict]:

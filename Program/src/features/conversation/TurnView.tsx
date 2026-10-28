@@ -9,7 +9,7 @@ import { Stamp } from '../../components/Stamp'
 import { CrisisNote } from '../../components/Safety'
 import { sidecar } from '../sidecar/store'
 import { useMessageSheet, type Act, type Action } from './useMessageSheet'
-import { waitsUntilLater } from './held'
+import { shownAt, waitsUntilLater } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
@@ -181,7 +181,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, onRemembe
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found, pressing: sheet.pressing })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined} {...sheet.press}>
       <Avatar name={name} companion />
       <header>
-        <Stamp value={message.created_at} clock className="stamp-lead" />
+        <Stamp value={shownAt(message)} clock className="stamp-lead" />
         <span className="speaker">{name}</span>
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} actions={actions} onSheet={sheet.open} />
       </header>
@@ -195,7 +195,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, onRemembe
 function ReplyTools({ message, position, streaming, onPage, onStop, actions, onSheet }: Pick<ReplyProps, 'message' | 'position' | 'onPage' | 'onStop'> & { streaming: boolean; actions: Action[]; onSheet: () => void }) {
   return (
     <span className="reply-tools">
-      <Stamp value={message.created_at} />
+      <Stamp value={shownAt(message)} />
       {position && (
         <span className="pager" role="group" aria-label="Reply versions">
           <PageButton label="Previous version" step={-1} disabled={position[0] === 0} onPage={onPage}><ChevronLeft aria-hidden="true" /></PageButton>

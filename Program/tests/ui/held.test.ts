@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { isHeld, releaseHeld, waitsUntilLater } from '../../src/features/conversation/held.ts'
+import { isHeld, releaseHeld, shownAt, waitsUntilLater } from '../../src/features/conversation/held.ts'
 import { activityLine, nextChange } from '../../src/features/conversation/activity.ts'
 import { lastUserMessage } from '../../src/features/conversation/turns.ts'
 import type { Message } from '../../src/types.ts'
@@ -18,8 +18,18 @@ test('a reply is held until its time', () => {
 })
 
 test('a reply shown at once shows replies held before it', () => {
-  const released = releaseHeld([message({ held_until: '2099-01-01T00:00:00Z' }), message({ id: 'n', seq: 5, held_until: '2099-01-01T00:00:00Z' })], 4)
-  assert.deepEqual(released.map((item) => item.held_until), [null, '2099-01-01T00:00:00Z'])
+  const released = releaseHeld([message({ held_until: '2099-01-01T00:00:00Z' }), message({ id: 'n', seq: 5, held_until: '2099-01-01T00:00:00Z' })], 4, '2026-10-05T10:20:00Z')
+  assert.deepEqual(released.map((item) => item.held_until), ['2026-10-05T10:20:00Z', '2099-01-01T00:00:00Z'])
+})
+
+test('a held reply is stamped when it showed, not when the user wrote', () => {
+  assert.equal(shownAt(message({})), '2026-10-05T10:00:00Z')
+  // Written at once, shown after the holding text's wait.
+  const held = { held_until: '2026-10-05T10:30:00Z', completed_at: '2026-10-05T10:00:20Z' }
+  assert.equal(shownAt(message(held)), '2026-10-05T10:30:00Z')
+  // Read later and written after the wait: shown when it was done.
+  assert.equal(shownAt(message({ ...held, completed_at: '2026-10-05T10:31:10Z' })), '2026-10-05T10:31:10Z')
+  assert.equal(shownAt(message({ ...held, status: 'failed', completed_at: '2026-10-05T10:01:00Z' })), '2026-10-05T10:01:00Z')
 })
 
 test('a held reply that failed is not kept out of sight', () => {
