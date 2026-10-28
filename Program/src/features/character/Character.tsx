@@ -169,8 +169,8 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('appearance', 'their appearance')}
         <InPhotosField definition={cleaned} value={definition.in_photos} set={set} />
         <Toggle label="Use their name in pictures" checked={Boolean(definition.name_in_pictures)} onChange={(on) => set({ name_in_pictures: on })}
-          hint="For a character image models may already know, like one from a game or show. Anime models always get the name as a tag."
-          tip="Off by default: for someone original a name gives the model nothing to draw, and it can show up as lettering in the picture." />
+          hint="Helps when image models already know them, like a character from a game or show. Anime models always get the name as a tag."
+          tip="For an original character, the name gives the model nothing to draw, and it can show up as lettering in the picture." />
         <TheirHoursField definition={definition} companion={companion} set={set} />
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>
