@@ -395,6 +395,10 @@ ADDED_COLUMNS = (
     # Local politics (companion/life/politics.py, Settings > Realism > Their days): 0 off, 1 quiet, 2 true to life,
     # 3 lively.
     ('life_settings', 'politics_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (politics_realism BETWEEN 0 AND 3)'),
+    # Whether pictures of the companion follow their profile picture on a backend that takes a reference
+    # (companion/images/runner.py, Settings > Images): on unless turned off, per world.
+    ('image_settings', 'follow_profile_picture',
+     'INTEGER NOT NULL DEFAULT 1 CHECK (follow_profile_picture IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

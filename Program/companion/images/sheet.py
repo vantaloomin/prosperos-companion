@@ -116,6 +116,11 @@ FOLLOW = ('The attached image is a character reference sheet of this same person
           'not a reference sheet: no panels, no grey studio background.')
 
 
+# Off the Codex sheet: a picture of the companion follows their profile picture (Vanta, 2026-10-28).
+FOLLOW_PROFILE = ('The attached reference picture shows this same person: keep their face, hair, skin tone and build '
+                  'exactly as they are there; take the outfit, pose, setting and framing from this description.')
+
+
 def depicts_companion(inputs: dict) -> bool:
     """Whether a picture shows the companion: a view of what they see does not, nor a meme of something else."""
     return inputs.get('framing') != 'view' and not (inputs.get('meme') or {}).get('subject')
@@ -184,6 +189,17 @@ def profile_picture(database, connection, companion: dict) -> bytes | None:
     with contextlib.suppress(OSError):
         return files.inside(files.folder(database, 'references'), row['file']).read_bytes()
     return None
+
+
+def profile_reference(database, version_id: str | None) -> bytes | None:
+    """The profile picture a picture of the companion follows, or None when the world has that switched off
+    (Settings > Images) or they have no profile picture."""
+    from companion.images.jobs import image_settings  # jobs builds on the image modules that import this one
+    with database.connect() as connection:
+        if not image_settings(connection)['follow_profile_picture']:
+            return None
+        companion = by_id(connection, companion_of_version(connection, version_id) or '')
+        return None if companion is None else profile_picture(database, connection, companion)
 
 
 async def ensure(database, adapter, backend: dict, config: dict, key, raw_dir, companion_id: str | None,

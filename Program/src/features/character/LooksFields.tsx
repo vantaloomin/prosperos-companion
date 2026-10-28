@@ -3,6 +3,7 @@ import { api } from '../../api'
 import type { CharacterDefinition, KindChoices, KindShown, Looks } from '../../types'
 import { KindFields } from '../kinds/KindFields'
 import { Field, Toggle } from '../../components/Fields'
+import { SuggestInput } from '../../components/SuggestInput'
 import { useSettled } from './useSettled'
 import { decadeHint, emptyLooks, emptyText, heightLabel, keepsAgeHint, looksWords, numberChoices, weightLabel, type LooksWord } from './looksText'
 
@@ -62,11 +63,8 @@ interface WordProps { field: LooksWord; label: string; value: string; options: s
 
 /** A word field, free text with the bank's suggestions offered as you type. */
 function WordField({ field, label, value, options, empty, onChange }: WordProps) {
-  return <Field label={label}>{(id) => <>
-    <input autoComplete="off" id={id} value={value} maxLength={field === 'hair' || field === 'feature' ? 200 : 120} list={options.length ? `looks-${field}` : undefined}
-      placeholder={empty} onChange={(event) => onChange(event.target.value)} />
-    {options.length > 0 && <datalist id={`looks-${field}`}>{options.map((option) => <option key={option} value={option} />)}</datalist>}
-  </>}</Field>
+  return <Field label={label}>{(id) => <SuggestInput id={id} value={value} options={options} maxLength={field === 'hair' || field === 'feature' ? 200 : 120}
+    placeholder={empty} onChange={onChange} />}</Field>
 }
 
 function coveredBy(found: LooksSuggestions | undefined) {

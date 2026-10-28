@@ -132,8 +132,11 @@ def disclosure(backend: dict) -> str | None:
             else 'this image service'
     text = (f'Each image request sends its prompt (built from the event and the character\'s appearance '
             f'description) to {destination}. Their retention rules apply. Conversation and memories are '
-            f'not sent. Reference pictures are sent only when you make profile pictures: the first one goes '
-            f'along with the other two.')
+            f'not sent. Reference pictures go along when you make profile pictures: the first one goes along with '
+            f'the other two.')
+    if backend['kind'] != 'codex':
+        text += (' Where it can take a reference picture, each picture of your companion also sends their profile '
+                 'picture, so they keep one face (Settings > Images can turn this off).')
     if backend['kind'] == 'codex':
         text += (' With Codex, each picture of your companion also sends their character sheet, and their first '
                  'picture takes two requests: one to draw the sheet (from their profile picture, if they have one), '
