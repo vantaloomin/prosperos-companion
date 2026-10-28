@@ -19,6 +19,7 @@ import { say } from '../world/eraWords'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, canCall, type WhereState } from './whereText'
 import { MIX, useModelSwitch } from '../settings/models/useModelSwitch'
+import { useWorlds } from '../worlds/useWorlds'
 
 type Props = { companion: Companion; listing: boolean; chatsButton: RefObject<HTMLButtonElement | null>; onChats: () => void; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
 
@@ -106,13 +107,14 @@ export function ChatStyleSwitch({ phone = false }: { phone?: boolean }) {
  * while is one choice away, and the one you leave keeps its settings for later. */
 function ModelSwitch() {
   const models = useModelSwitch()
+  const world = useWorlds().data?.world.name
   if (models.profiles.length < 2) return null
   return <label>Model
     <select className="chat-style-switch" value={models.current} onChange={(event) => void models.choose(event.target.value).catch(() => undefined)}>
       {models.canMix && <option value={MIX}>Mix ({models.mixCount} models)</option>}
       {models.profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
     </select>
-    <small className="subtle">Answers in every chat.</small>
+    <small className="subtle">{models.ownWorld && world ? `Answers in every chat in ${world}.` : 'Answers in every chat.'}</small>
   </label>
 }
 

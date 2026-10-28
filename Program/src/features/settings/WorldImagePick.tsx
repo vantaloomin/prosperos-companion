@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api } from '../../api'
 import type { ImageBackend, WorldImageBackends } from '../../types'
-import { Field, Toggle } from '../../components/Fields'
+import { Toggle } from '../../components/Fields'
 import { useWorlds } from '../worlds/useWorlds'
 
 type Result = { tone: 'info' | 'error'; text: string } | null
@@ -20,18 +20,17 @@ export function WorldImagePick({ list, world, refresh, setResult }: { list: Imag
   }
   const on = list.filter((backend) => backend.enabled)
   return (
-    <fieldset className="plain-fieldset world-image-pick">
-      <legend>Pictures in {name}</legend>
-      <Field label="Backends used in this world" hint={world.own ? 'Only the ones switched on below, in the order above. Your other worlds keep their own.' : 'Pick some for this world alone, say an anime model here and photographs elsewhere.'}>{(id, hint) => (
-        <select id={id} aria-describedby={hint} aria-disabled={busy} value={world.own ? 'own' : 'all'}
-          onChange={(event) => void save(event.target.value === 'own' ? (on.length ? on : list).map((backend) => backend.id) : null)}>
-          <option value="all">All of them, in the order above</option>
-          <option value="own">Only the ones I pick</option>
-        </select>
-      )}</Field>
+    <div className="world-image-divider"><fieldset className="plain-fieldset world-image-pick">
+      <legend id="world-image-legend">Pictures in {name}</legend>
+      <select aria-labelledby="world-image-legend" aria-describedby="world-image-hint" aria-disabled={busy} value={world.own ? 'own' : 'all'}
+        onChange={(event) => void save(event.target.value === 'own' ? (on.length ? on : list).map((backend) => backend.id) : null)}>
+        <option value="all">All of them, in the order above</option>
+        <option value="own">Only the ones I pick</option>
+      </select>
+      <small id="world-image-hint" className="subtle">{world.own ? 'Only the ones switched on below, in the order above. Your other worlds keep their own.' : 'Pick some for this world alone, say an anime model here and photographs elsewhere.'}</small>
       {world.own && <Picks list={list} picked={world.picked} save={save} />}
       {world.falls_back && <p className="subtle">None of the backends picked here is on, so {name} uses all of them for now.</p>}
-    </fieldset>
+    </fieldset></div>
   )
 }
 

@@ -14,10 +14,10 @@ export function WorldModelPick({ overview, onChanged, onError }: { overview: Mod
   const change = async (value: boolean) => {
     try { onChanged(await api<ModelsOverview>('/models/world', { own: value }, 'PUT')) } catch (error) { onError(error instanceof Error ? error.message : 'Not changed.') }
   }
-  return <Field label={`Models in ${name}`} hint={own ? `The choices below are for ${name} alone; your other worlds keep theirs. Mix in chat stays with your other worlds.` : 'Give this world models of its own, starting from these. Switching models in chat then changes this world alone.'}>{(id, hint) => (
+  return <div className="world-model-pick"><Field label={`Models in ${name}`} hint={own ? `Only in ${name}; your other worlds keep theirs. Mix models in chat works only with the usual models.` : `Uses the same models as your other worlds. Pick This world's own to give ${name} its own, starting from these.`}>{(id, hint) => (
     <select id={id} aria-describedby={hint} value={own ? 'own' : 'usual'} onChange={(event) => void change(event.target.value === 'own')}>
       <option value="usual">Same as your other worlds</option>
       <option value="own">This world's own</option>
     </select>
-  )}</Field>
+  )}</Field></div>
 }
