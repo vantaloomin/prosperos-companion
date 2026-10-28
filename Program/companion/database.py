@@ -392,6 +392,9 @@ ADDED_COLUMNS = (
     ('life_settings', 'family_shapes', 'INTEGER NOT NULL DEFAULT 2 CHECK (family_shapes BETWEEN 0 AND 3)'),
     # When the user took a picture a reply sent out of the chat (companion/images/photo_edits.py); NULL while it shows.
     ('chat_photos', 'removed_at', 'TEXT'),
+    # Local politics (companion/life/politics.py, Settings > Realism > Their days): 0 off, 1 quiet, 2 true to life,
+    # 3 lively.
+    ('life_settings', 'politics_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (politics_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

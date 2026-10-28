@@ -155,7 +155,7 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
-OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours', 'words', 'lore', 'media', 'family'}
+OMIT_WHEN_EMPTY = {'townsfolk', 'kinds', 'enclosed', 'neighbours', 'words', 'lore', 'media', 'family', 'politics'}
 
 
 def unset_work_rules(data: dict):
@@ -206,11 +206,12 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     notes += era_currency(data, model.model_fields_set)
     from companion import lore_moments
     from companion.life import media_world
-    from companion.world import era_words, lifespans, ships
+    from companion.world import era_words, lifespans, politics, ships
     notes += lifespans.clean(data)
     notes += era_words.clean(data)
     notes += lore_moments.clean(data)
     notes += media_world.clean(data)
+    notes += politics.clean(data)
     notes += ships.settle(data)
     known = careers_for(data)
     for employer in data['employers']:

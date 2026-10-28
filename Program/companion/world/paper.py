@@ -18,7 +18,7 @@ from companion.database import decode, many
 from companion.world import changes, couples, generators, townsfolk, turnover
 
 TOWNSFOLK_PER_HOOD, MOST_TOWNSFOLK, MOST_COMINGS = 12, 3, 3
-MOST_NEWS, MOST_SEEN, MOST_GOSSIP, MOST_COUPLES = 5, 4, 2, 3
+MOST_NEWS, MOST_SEEN, MOST_GOSSIP, MOST_COUPLES, MOST_POLITICS = 5, 4, 2, 3, 5
 # Places where being seen is public: a show, a festival, a game, a museum.
 SEEN_KINDS = {'event', 'venue', 'stadium', 'museum', 'attraction', 'landmark', 'market', 'garden'}
 WEEKDAYS = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
@@ -43,7 +43,7 @@ def title(data: dict) -> str:
 def issue(connection, data: dict, world, day: date) -> dict:
     """The issue out on the Sunday `day`, for the city `data`: the week up to it, and the week after. Engagements and
     weddings lead with the user's own (companion/life/wedding.py)."""
-    from companion.life import ages, loss, wedding
+    from companion.life import ages, loss, politics, wedding
     week = (day - timedelta(days=6), day)
     # Townsfolk are as old as Around town says: from the day the town started getting older (companion/life/ages.py).
     data = {**data, 'began': ages.town_began(connection)}
@@ -56,6 +56,8 @@ def issue(connection, data: dict, world, day: date) -> dict:
             'couples': [*wedding.paper_items(connection, data, week), *couples_news(mine, week)][:MOST_COUPLES + 1],
             'seen': seen_around(connection, data, week, {(item['date'], item['place']) for item in talk}),
             'gossip': [{'text': item['text']} for item in talk],
+            # Local politics (companion/life/politics.py): what happened in each issue, factions falling out.
+            'politics': politics.paper_items(connection, data, week)[:MOST_POLITICS],
             'ahead': coming_up(data, world, day)}
 
 

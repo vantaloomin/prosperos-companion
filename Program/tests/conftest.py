@@ -175,6 +175,13 @@ def no_big_days(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_politics(monkeypatch):
+    """Local politics (companion/life/politics.py) would add a section to unrelated tests' prompts and items to their
+    papers; tests/test_politics.py turns it on."""
+    monkeypatch.setattr('companion.life.politics.ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
 def no_trips(monkeypatch):
     """Weekends away (companion/life/trips.py) are seeded dice; their own tests turn them on."""
     from companion.life import trips
