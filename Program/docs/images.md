@@ -12,7 +12,7 @@ backend is off until the user sets it up, and text never waits for an image. The
 | --- | --- | --- | --- |
 | `comfyui` | `adapters/comfyui.py`: ComfyUI HTTP API (`/prompt`, `/history`, `/view`) | Safe; NSFW too when local | One job at a time |
 | `codex` | `adapters/codex.py`: the Codex CLI's built-in image generation (`codex exec`) | Safe only | One job at a time across every Codex backend |
-| `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations` or OpenRouter-style `/chat/completions` with image output | Safe only; NSFW too when the user switches it on (OpenRouter, NanoGPT and other APIs only) | Its configured limit (1 to 4) |
+| `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations`, OpenRouter's image API (`/images`), or a chat-style `/chat/completions` with image output | Safe only; NSFW too when the user switches it on (OpenRouter, NanoGPT and other APIs only) | Its configured limit (1 to 4) |
 
 - **ComfyUI** is local when its address is a loopback address, or when the user marks it as a
   machine they control. A remote address otherwise counts as hosted (F6). The app only connects to
@@ -125,11 +125,17 @@ backend is off until the user sets it up, and text never waits for an image. The
   user runs `codex login` and chooses **Signed in again**. Nothing is retried automatically. The
   raw output stays in `images/raw/` until it passes the image check. The path is labelled
   experimental and has only been tested against a stand-in `codex`, not a real login.
-- **Hosted APIs** default to OpenRouter (`chat` style), Google's OpenAI-compatible endpoint
+- **Hosted APIs** default to OpenRouter, Google's OpenAI-compatible endpoint
   (`images` style), the OpenAI API or NanoGPT (`https://nano-gpt.com/api/v1`, `images` style;
   **Check** reads its image list at `/images/models`, since its `/models` lists text models only,
   also for a NanoGPT address entered as another API). A base URL saved with a request path on the
   end (`/images/generations`, `/chat/completions`, `/models`, `/images`) is trimmed to the base.
+  An OpenRouter backend (any address at openrouter.ai, whatever style it was saved with) lists models
+  from `/images/models` and makes pictures with `POST /images`, sending the size as the nearest aspect
+  ratio and a reference picture as `input_references`. Its `/models` leaves out models that write no
+  text, so before 1.1.9 only the Google and OpenAI image models showed, and the chat route has no
+  endpoint for FLUX, Seedream, Recraft or Krea. SVG-only vector models are left out of the list, and a
+  model the list says reads text only is not picked for the onboarding portraits.
   Each backend's **Connection** panel edits its name, model, API key and address (another API's
   base URL or a ComfyUI address) in place; saving a new address accepts its disclosure again. Keys are stored in the OS vault as `image-backend:<id>`.
   Enabling a hosted backend, a Codex backend or a remote ComfyUI server requires accepting a
@@ -330,8 +336,8 @@ step can be skipped and run again from the Character page (**Profile pictures**)
   warm and so on) and the two outfits are a fixed pick for that companion from a short list. No
   model writes anything; the description and all three shots can be edited before sending.
 - Pictures 2 and 3 each send picture 1 along as a reference, so the set shows one person. The whole set goes to the first enabled backend that can take a reference picture:
-  **Codex** (attached with `codex exec --image`), a **chat-style API** such as OpenRouter (the
-  picture goes in the message), the **OpenAI API** (`/images/edits`), or a **ComfyUI** server with
+  **Codex** (attached with `codex exec --image`), **OpenRouter** (the picture goes in
+  `input_references`) or another chat-style API (the picture goes in the message), the **OpenAI API** (`/images/edits`), or a **ComfyUI** server with
   its *reference workflow*, the built-in one or the user's own with `{{reference_image}}` as a
   LoadImage node's image (the app uploads the picture through `/upload/image`). Google's OpenAI-compatible endpoint and other `images`-style APIs
   cannot take one.
