@@ -64,6 +64,14 @@
     "family": "qwen21"
   },
   {
+    "name": "Qwen Image 2.1 in GGUF files (for cards under 10 GB)",
+    "role": "model",
+    "file": "qwen_image_2.1_Q6_K.gguf",
+    "url": "https://huggingface.co/Abiray/Qwen-Image-2.1-GGUF/tree/main",
+    "licence": "Qwen Research License, as above (a community conversion, not Qwen's own). Goes in models/diffusion_models. Q6_K, Q5_K_M, Q4_K_M and Q3_K_M suit 8, 7, 6 and 5 GB cards. Needs the ComfyUI-GGUF nodes (Apache-2.0, https://github.com/city96/ComfyUI-GGUF) in custom_nodes; the built-in workflow loads a .gguf file with them.",
+    "family": "qwen21"
+  },
+  {
     "name": "Qwen3-VL 8B text encoder (int8)",
     "role": "clip",
     "file": "qwen3vl_8b_int8_convrot.safetensors",
@@ -88,6 +96,14 @@
     "family": "zimage"
   },
   {
+    "name": "Z-Image Turbo in GGUF files (for cards under 8 GB)",
+    "role": "model",
+    "file": "z-image-turbo-Q6_K.gguf",
+    "url": "https://huggingface.co/unsloth/Z-Image-Turbo-GGUF/tree/main",
+    "licence": "Apache 2.0 (a community conversion, not Tongyi's own). Goes in models/diffusion_models. Q6_K, Q4_K_M and Q3_K_M suit 8, 7 and 6 GB cards. Needs the ComfyUI-GGUF nodes (Apache-2.0, https://github.com/city96/ComfyUI-GGUF) in custom_nodes; the built-in workflow loads a .gguf file with them.",
+    "family": "zimage"
+  },
+  {
     "name": "Qwen3 4B text encoder",
     "role": "clip",
     "file": "qwen_3_4b.safetensors",
@@ -109,6 +125,14 @@
     "file": "anima-base-v1.0.safetensors",
     "url": "https://huggingface.co/circlestone-labs/Anima/tree/main/split_files/diffusion_models",
     "licence": "CircleStone Labs Non-Commercial License (the pictures you make are yours to use). Goes in models/diffusion_models. Not gated. Anime and illustration only; it does not do realism. The same folder has a Turbo file for fewer steps at CFG 1.",
+    "family": "anima"
+  },
+  {
+    "name": "Anima Base v1.0 in GGUF files (for cards under 6 GB)",
+    "role": "model",
+    "file": "anima-base-v1.0-Q8_0.gguf",
+    "url": "https://huggingface.co/Abiray/Anima-base-v1.0-GGUF/tree/main",
+    "licence": "The same terms as Anima Base (a community conversion, not CircleStone Labs' own). Goes in models/diffusion_models. Q8_0 and Q6_K suit 5 and 4 GB cards. Needs the ComfyUI-GGUF nodes (Apache-2.0, https://github.com/city96/ComfyUI-GGUF) in custom_nodes; the built-in workflow loads a .gguf file with them.",
     "family": "anima"
   },
   {

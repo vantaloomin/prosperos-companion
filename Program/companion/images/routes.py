@@ -51,7 +51,7 @@ def runner(request: Request):
 
 
 def fit(request: Request, backend_id: str, options=None) -> dict:
-    """Puts a Krea 2 server on this computer on a model file its graphics card holds (hardware.fit_images), and
+    """Puts a ComfyUI server on this computer on a model file its graphics card holds (hardware.fit_images), and
     returns the backend as it now is."""
     computer = request.app.state.hardware.computer()
     with db(request).connect(write=True) as connection:
@@ -159,7 +159,7 @@ async def check_backend(request: Request, backend_id: str):
     config = {**decode(backend['config']), **({'lora_name': lora['comfy_name']} if lora else {})}
     card = hardware.best_card(request.app.state.hardware.computer())
     if config.get('unet_fit') and not config.get('unet_name') and card:
-        config['fit_line'] = hardware.missing_fit_line(config['unet_fit'], card)
+        config['fit_line'] = hardware.missing_fit_line(config['unet_fit'], card, family_of(config))
     return (await adapter.check(backend, config, key)).view()
 
 

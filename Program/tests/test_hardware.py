@@ -13,7 +13,7 @@ def computer(*gpus, memory=64):
 GEMMA = {'profile': 'Kobold', 'model': 'koboldcpp/gemma-4-31b-it-Q4_K_M',
          'size_gb': hardware.text_size_gb('gemma-4-31b-it-Q4_K_M')}
 KREA = {'label': 'Local ComfyUI', 'base_url': 'http://127.0.0.1:8188', 'unet': 'krea2_turbo_fp8_scaled.safetensors',
-        'size_gb': hardware.image_size_gb('krea2_turbo_fp8_scaled.safetensors'), 'krea2': True}
+        'size_gb': hardware.image_size_gb('krea2_turbo_fp8_scaled.safetensors'), 'family': 'krea2'}
 
 
 def test_reads_nvidia_smi_output():
