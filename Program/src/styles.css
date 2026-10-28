@@ -452,6 +452,8 @@ a.button { color: inherit; text-decoration: none; }
 .sheet-group .sheet-action + .sheet-action { border-top: 1px solid var(--border); }
 .sheet-action svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--muted); }
 .sheet-action:active { background: var(--raised); }
+.sheet-action.danger, .sheet-action.danger svg { color: var(--danger); }
+.sheet-picture { align-self: flex-start; height: 56px; width: auto; max-width: 88%; margin: -4px 0 6px; border-radius: 10px; object-fit: cover; box-shadow: 0 10px 30px var(--shadow); }
 .sheet-cancel { justify-content: center; border-radius: 14px; font-weight: 600; }
 @keyframes sheet-up { from { transform: translateY(100%); } }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .message-sheet { animation: none; } }
@@ -809,6 +811,19 @@ a.button { color: inherit; text-decoration: none; }
 .gif-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%;
   background: rgb(0 0 0 / .6); color: #ffffff; cursor: pointer; }
 .gif-play svg { width: 20px; height: 20px; }
+/* New picture and Remove on a chat picture: with a mouse, in its top corner while it is hovered or focused; a touch
+   screen has them in the reply's sheet (TurnView.tsx). */
+.chat-photo-tools { position: absolute; top: 8px; right: 8px; z-index: 2; display: none; gap: 6px; }
+.photo-tool { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / .6); color: #ffffff; cursor: pointer; }
+.photo-tool svg { width: 16px; height: 16px; }
+.photo-tool:hover:not(:disabled) { background: rgb(0 0 0 / .78); }
+.photo-tool:disabled { opacity: .6; cursor: progress; }
+.photo-tool:focus-visible { outline: 2px solid #ffffff; outline-offset: 1px; box-shadow: 0 0 0 4px var(--accent); }
+@media (hover: hover) { .chat-photo-frame:is(:hover, :focus-within) .chat-photo-tools { display: flex; } }
+.chat-photo-removed { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 8px 0 0; }
+.chat-photo-removed .text-button { display: inline-flex; align-items: center; margin-left: 0; }
+.chat-photo-removed .text-button svg { width: 14px; height: 14px; }
+.chat-bubbles .chat-photo-removed, .chat-community .chat-photo-removed { padding-left: 8px; }
 .post-image { display: grid; gap: 6px; }
 /* The picture in its own shape; a tall one is cut at the bottom, never through the face at the top. */
 .post-image .photo-open-inline > img { display: block; width: 100%; height: auto; max-height: min(80vh, 760px); object-fit: cover; object-position: center top; border-radius: 10px; background: var(--accent-tint); }

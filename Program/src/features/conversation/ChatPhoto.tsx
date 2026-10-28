@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ImageOff, Play, RotateCcw } from 'lucide-react'
+import { ImageOff, Play, RefreshCw, RotateCcw, Trash2, Undo2 } from 'lucide-react'
 import { Lightbox } from '../../components/Lightbox'
 import { api } from '../../api'
 import type { ChatPhoto as Photo, Message } from '../../types'
@@ -9,30 +9,53 @@ import { MemeLines } from '../../components/MemeLines'
 import { reducedMotion } from '../../motion'
 import { canRetry, fittedSize, photoAlt, photoLine, photoShape, photoSource } from './photoState'
 import { useEraWords } from '../world/useEraWords'
-import { usePhoto } from './usePhoto'
+import type { PhotoEdit } from './usePhotoEdit'
 
 /**
  * The photo a reply sent of what they were doing. Its picture is the moment's feed picture too.
  * Until it lands, the frame holds its final shape with a blurry picture filling in, like a photo
  * coming through on a slow connection, so nothing moves when the real one arrives.
  */
-export function ChatPhoto({ message, name }: { message: Message; name: string }) {
-  const photo = usePhoto(message.id, message.photo).data
+export function ChatPhoto({ message, name, edit }: { message: Message; name: string; edit: PhotoEdit }) {
   const words = useEraWords()
+  const photo = edit.photo
   if (!photo) return null
-  const line = photoLine(photo, words)
+  if (photo.removed) return edit.undo ? <Removed edit={edit} /> : null
+  const line = edit.error || (edit.coming ? 'A new picture is on its way.' : photoLine(photo, words))
   return (
     <figure className={photo.kind === 'meme' ? 'chat-photo chat-meme' : 'chat-photo'}>
-      <PhotoFrame photo={photo} name={name} when={message.created_at} />
-      {line && <PhotoLine photo={photo} line={line} />}
+      <PhotoFrame photo={photo} name={name} when={message.created_at} edit={edit} />
+      {line && <PhotoLine photo={photo} line={line} failed={!!edit.error} />}
       {photo.source === 'gif' && <GiphyCredit page={photo.page} />}
     </figure>
   )
 }
 
+/** Where a picture the user just removed was: a quiet line with Undo, until they leave the chat. */
+function Removed({ edit }: { edit: PhotoEdit }) {
+  return (
+    <p className={edit.error ? 'image-line chat-photo-removed error-text' : 'image-line chat-photo-removed subtle'} role="status">
+      {edit.error || 'Picture removed.'}
+      <button type="button" className="text-button" disabled={edit.busy} onClick={edit.restore}><Undo2 aria-hidden="true" />Undo</button>
+    </p>
+  )
+}
+
+/** With a mouse, a new picture or Remove shows on the picture while it is hovered or focused; on a touch screen they
+ * are in the reply's sheet (press and hold, useMessageSheet.tsx) and these stay hidden (styles.css). */
+function PhotoTools({ edit, ready }: { edit: PhotoEdit; ready: boolean }) {
+  if (!ready || (!edit.canReroll && !edit.canRemove)) return null
+  return (
+    <span className="chat-photo-tools">
+      {edit.canReroll && <button type="button" className="photo-tool" title="New picture" aria-label="New picture" disabled={edit.busy} onClick={edit.reroll}><RefreshCw aria-hidden="true" /></button>}
+      {edit.canRemove && <button type="button" className="photo-tool" title="Remove picture" aria-label="Remove picture" disabled={edit.busy} onClick={edit.remove}><Trash2 aria-hidden="true" /></button>}
+    </span>
+  )
+}
+
 /** The frame in the photo's final shape: the loading picture until the real one has loaded, then the photo. A template
  * or a GIF under a meme keeps its own shape. */
-function PhotoFrame({ photo, name, when }: { photo: Photo; name: string; when: string }) {
+function PhotoFrame({ photo, name, when, edit }: { photo: Photo; name: string; when: string; edit: PhotoEdit }) {
   const [loaded, setLoaded] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const words = useEraWords()
@@ -46,6 +69,7 @@ function PhotoFrame({ photo, name, when }: { photo: Photo; name: string; when: s
       {src && <img src={src} alt={photoAlt(name, photo, words)} onLoad={() => setLoaded(src)} onError={() => setLoaded(src)} />}
       {landed && src && <Landed photo={photo} src={src} name={name} when={when} />}
       {!!held && <button type="button" className="gif-play" aria-label="Play GIF" onClick={() => setPlaying(true)}><Play aria-hidden="true" /></button>}
+      <PhotoTools edit={edit} ready={landed || failed} />
     </div>
   )
 }
@@ -84,7 +108,7 @@ function OpenFullSize({ photo, src, name, when }: { photo: Photo; src: string; n
 }
 
 /** A plain line under a photo still coming, or one that could not be made with Try again. */
-function PhotoLine({ photo, line }: { photo: Photo; line: string }) {
+function PhotoLine({ photo, line, failed: editFailed }: { photo: Photo; line: string; failed: boolean }) {
   const client = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -99,7 +123,7 @@ function PhotoLine({ photo, line }: { photo: Photo; line: string }) {
   }
   const failed = canRetry(photo)
   return (
-    <p className={failed ? 'image-line error-text' : 'image-line subtle'} role="status">
+    <p className={failed || editFailed ? 'image-line error-text' : 'image-line subtle'} role="status">
       {error || line}
       {failed && photo.job_id && <button type="button" className="text-button" disabled={busy} onClick={() => void retry()}><RotateCcw aria-hidden="true" />Try again</button>}
     </p>
