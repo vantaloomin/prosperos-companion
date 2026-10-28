@@ -19,9 +19,9 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from companion.database import decode, many
+from companion.database import decode, encode, many
 from companion.images import backends
-from companion.images.adapters.comfyui import model_file
+from companion.images.adapters.comfyui import EDIT_MODEL, default_files, family_of, model_file
 from companion.providers.urls import is_loopback
 from companion.text_models import routes
 
@@ -33,12 +33,28 @@ BITS = [(r'iq1', 1.8), (r'iq2', 2.5), (r'iq3', 3.4), (r'iq4', 4.4), (r'q2', 2.9)
 DEFAULT_BITS = 4.8
 CONTEXT_GB = 1.5
 # Rough memory for a picture model with its text encoder and working space, by the precision in the
-# diffusion model's file name. Krea 2 is the target (docs/images.md); other models are similar or smaller.
+# diffusion model's file name, for models other than Krea 2 (which has its own sizes below).
 IMAGE_GB = [(r'(nv|mx)?fp4|int4|svdq', 11.0), (r'gguf|q[2-6]_', 12.0), (r'fp8|e4m3|e5m2', 16.0),
             # Qwen Image 2.1's int8 files with their 8B encoder, Anima (2B), and SDXL-based checkpoints.
             (r'int8|w4a8', 17.0), (r'anima', 6.0), (r'illustrious|pony|noob|sdxl|animagine', 8.0)]
 FULL_IMAGE_GB = 24.0
-NVFP4_IMAGE_GB = IMAGE_GB[0][1]
+# Krea 2 Turbo's diffusion model in each precision, in GB as the card counts them, from the file sizes on
+# Comfy-Org/Krea-2 and the community GGUF repos (read 2026-10-28). ComfyUI moves the text encoder off the card
+# while the model draws, so a picture needs the model file plus working room for the picture and the VAE.
+KREA2 = re.compile(r'krea|kr2|kera', re.IGNORECASE)
+KREA2_WEIGHTS_GB = [(r'bf16|fp16', 24.5), (r'(nv|mx)?fp4', 7.1), (r'mxfp8|int8', 12.6), (r'fp8', 12.2),
+                    (r'q8', 12.8), (r'q6', 9.9), (r'q5', 8.3), (r'q4', 7.0), (r'q3', 5.6), (r'q2', 4.6)]
+WORKING_GB = 2.0
+FP4 = re.compile(r'(nv|mx)?fp4', re.IGNORECASE)
+# Cards that run 4-bit NVFP4 files natively (Blackwell: RTX 50-series and its workstation and data-centre kin).
+# Elsewhere ComfyUI has to unpack them, so the app doesn't pick them there.
+BLACKWELL = re.compile(r'RTX\s*50\d0|RTX PRO \d+ Blackwell|\bB[12]00\b|\bGB[12]\d\d\b', re.IGNORECASE)
+# What the app picks for a card too small for the built-in fp8 file, best first: the 4-bit NVFP4 file on a
+# Blackwell card, else the largest GGUF that fits (the built-in workflow then loads it with the ComfyUI-GGUF nodes).
+KREA2_SMALLER = ['krea2_turbo_nvfp4.safetensors', 'krea2_turbo-Q6_K.gguf', 'krea2_turbo-Q5_K_M.gguf',
+                 'krea2_turbo-Q4_K_M.gguf', 'krea2_turbo-Q3_K_M.gguf']
+# Krea 2 files that don't suit the built-in Turbo workflow: the slow Raw/Base model and Edit merges.
+NOT_TURBO = re.compile(r'raw|base', re.IGNORECASE)
 LOW_MEMORY_GB = 16
 # macOS lets the GPU use roughly three quarters of shared memory by default (inferred, not measured here).
 APPLE_SHARE = 0.75
@@ -147,8 +163,62 @@ def text_size_gb(model: str) -> float | None:
 
 
 def image_size_gb(unet: str) -> float:
+    if KREA2.search(unet):
+        weights = next((value for pattern, value in KREA2_WEIGHTS_GB if re.search(pattern, unet, re.IGNORECASE)),
+                       KREA2_WEIGHTS_GB[0][1])
+        return round(weights + WORKING_GB, 1)
     name = unet.lower()
     return next((value for pattern, value in IMAGE_GB if re.search(pattern, name)), FULL_IMAGE_GB)
+
+
+def turbo_file(name: str) -> bool:
+    """A Krea 2 file the built-in Turbo workflow can load."""
+    return bool(KREA2.search(name)) and name.lower().endswith(('.safetensors', '.gguf')) and \
+        not NOT_TURBO.search(name) and not EDIT_MODEL.search(name)
+
+
+def krea_pick(gpu: dict | None, options=None) -> str | None:
+    """The Krea 2 file for this card when the built-in fp8 one is too big for it: the best one ComfyUI already has
+    that fits (NVFP4 first on a Blackwell card, which runs it fastest), else the best one to download. None keeps the
+    built-in file: it fits, or nothing does (or no card was measured)."""
+    if gpu is None or image_size_gb(default_files('krea2')['unet_name']) <= gpu['usable_gb']:
+        return None
+    blackwell = bool(BLACKWELL.search(gpu['name']))
+
+    def fits(name):
+        return image_size_gb(name) <= gpu['usable_gb'] and (blackwell or not FP4.search(name))
+    have = [name for name in options or [] if turbo_file(name) and fits(name)]
+    if have:
+        return max(have, key=lambda name: (bool(FP4.search(name)), image_size_gb(name)))
+    return next((name for name in KREA2_SMALLER if fits(name)), None)
+
+
+def best_card(computer: dict) -> dict | None:
+    return max(computer['gpus'], key=lambda gpu: gpu['usable_gb'], default=None)
+
+
+def fit_images(connection, computer: dict, options=None, only: str | None = None):
+    """Puts each Krea 2 ComfyUI server on this computer on a model file its graphics card holds (Vanta, 2026-10-28:
+    the app decides, the user overrides). The pick is kept as `unet_fit`, which the built-in workflow uses only while
+    the user hasn't chosen a model. `options` are the files the server listed, when it was asked; without them an
+    earlier pick that still fits stands."""
+    card = best_card(computer)
+    for backend in backends.ordered(connection):
+        config = decode(backend['config'])
+        if (only and backend['id'] != only) or not fits_here(backend, config):
+            continue
+        pick = krea_pick(card, options if options is not None else [config.get('unet_fit') or ''])
+        if config.get('unet_fit') == pick:
+            continue
+        config.pop('unet_fit', None)
+        config.update({'unet_fit': pick} if pick else {})
+        connection.execute('UPDATE image_backends SET config=? WHERE id=?', (encode(config), backend['id']))
+
+
+def fits_here(backend: dict, config: dict) -> bool:
+    """A ComfyUI server on this computer running the built-in Krea 2 workflow, whose card the app can measure."""
+    return backend['kind'] == 'comfyui' and family_of(config) == 'krea2' and not config.get('workflow') and \
+        is_loopback(urlsplit(config.get('base_url', '')).hostname)
 
 
 def largest_text(card_gb: float) -> int | None:
@@ -176,7 +246,8 @@ def can_run(computer: dict) -> list[str]:
         return lines
     best = gpus[0]
     alone = largest_text(best['usable_gb'])
-    picture = NVFP4_IMAGE_GB
+    file = krea_pick(best) or default_files('krea2')['unet_name']
+    picture = image_size_gb(file)
     if alone:
         lines.append(f'Text: local models up to about {alone}B at 4-bit (Q4) fit on the {best["name"]}.')
     else:
@@ -186,17 +257,20 @@ def can_run(computer: dict) -> list[str]:
         lines.append(f'Pictures: run ComfyUI on the {second["name"]} (start it with --cuda-device {second["index"]}) '
                      'and keep the text model on the bigger card, so both stay loaded.')
     elif best['usable_gb'] >= picture:
-        together = largest_text(best['usable_gb'] - picture)
-        if together:
-            lines.append(f'Pictures: Krea 2 in a 4-bit file (NVFP4) needs about {gb(picture)}. With it on the same '
-                         f'card, keep the text model to about {together}B, or use a hosted image service.')
-        else:
-            lines.append('Pictures: Krea 2 in a 4-bit file (NVFP4) fits, but not beside a local text model. Use a '
-                         'hosted text model with local pictures, or a hosted image service.')
+        lines.append(picture_line(best, file, picture))
     else:
-        lines.append(f'Pictures: the card is too small for Krea 2 (about {gb(picture)} even in a 4-bit file). '
-                     'Use a hosted image service.')
+        lines.append(f'Pictures: the card is too small for Krea 2 (about {gb(image_size_gb(KREA2_SMALLER[-1]))} even in '
+                     'a 3-bit file). Use a hosted image service.')
     return lines
+
+
+def picture_line(best: dict, file: str, picture: float) -> str:
+    together = largest_text(best['usable_gb'] - picture)
+    if together:
+        return (f'Pictures: Krea 2 ({file}) needs about {gb(picture)}. With it on the same card, keep the text model '
+                f'to about {together}B, or use a hosted image service.')
+    return (f'Pictures: Krea 2 ({file}) fits, but not beside a local text model. Use a hosted text model with local '
+            'pictures, or a hosted image service.')
 
 
 def local_text(connection) -> list[dict]:
@@ -222,7 +296,7 @@ def local_images(connection) -> list[dict]:
         config = decode(backend['config'])
         unet = model_file(config)
         found.append({'label': backend['label'], 'base_url': config.get('base_url', ''), 'unet': unet,
-                      'size_gb': image_size_gb(unet)})
+                      'size_gb': image_size_gb(unet), 'krea2': family_of(config) == 'krea2'})
     return found
 
 
@@ -284,9 +358,8 @@ def image_warning(image: dict, gpus: list[dict], biggest: float, devices: dict[s
     card = next((gpu for gpu in gpus if gpu['index'] == index), best)
     if image['size_gb'] > card['usable_gb']:
         return warning('images', f"{image['label']}: {image['unet']} needs about {gb(image['size_gb'])}, more than the "
-                       f"{card_text(card)}. Pictures will be very slow or fail. "
-                       + ('A 4-bit file (NVFP4) or a hosted image service fits better.' if image['size_gb'] > NVFP4_IMAGE_GB
-                          else 'A hosted image service fits better.'))
+                       f"{card_text(card)}. ComfyUI keeps the rest in system memory, so pictures will be slow. "
+                       + smaller_text(card, image.get('krea2', False)))
     if not biggest or biggest + image['size_gb'] <= best['usable_gb']:
         return None
     others = [gpu for gpu in gpus[1:] if gpu['usable_gb'] >= image['size_gb']]
@@ -306,6 +379,15 @@ def image_warning(image: dict, gpus: list[dict], biggest: float, devices: dict[s
                    'keep the text model on the bigger card.', 'warning' if index is not None else 'tip')
 
 
+def smaller_text(card: dict, krea2: bool) -> str:
+    """What fits the card instead: a named Krea 2 file, else a hosted service."""
+    pick = krea_pick(card) if krea2 else None
+    if not pick:
+        return 'A hosted image service fits better.'
+    nodes = ' with the ComfyUI-GGUF nodes' if pick.endswith('.gguf') else ''
+    return f'{pick} (about {gb(image_size_gb(pick))}) fits{nodes}; pick it under Model files, or use a hosted image service.'
+
+
 class Hardware:
     """Scans once and keeps the result for a few minutes; the scan runs nvidia-smi."""
 
@@ -321,7 +403,8 @@ class Hardware:
 
     def report(self, database, fresh=False) -> dict:
         computer = self.computer(fresh)
-        with database.connect() as connection:
+        with database.connect(write=True) as connection:
+            fit_images(connection, computer)
             texts = local_text(connection)
             images = local_images(connection)
         devices = {image['base_url']: self.device(image['base_url']) for image in images} if len(computer['gpus']) > 1 else {}

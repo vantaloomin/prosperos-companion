@@ -59,6 +59,9 @@ FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoad
                # The reference workflow's own model, where a family has one; unset means the same as unet_name.
                'ref_unet_name': ('UNETLoader', 'unet_name')}
 REFERENCE_ONLY = ('ref_unet_name',)
+# A .gguf model file loads through the ComfyUI-GGUF nodes' loader instead of UNETLoader (Vanta, 2026-10-28: one node
+# swapped), so smaller cards can use GGUF quantizations. Its list holds the .gguf files in diffusion_models and unet.
+GGUF_LOADER = 'UnetLoaderGGUF'
 # A Krea 2 Edit model reads the reference by itself, so the Identity Edit LoRA is left out for one and
 # the reference counts for more (Vanta's Krea 2 Reference workflow, 2026-10-13).
 EDIT_MODEL = re.compile(r'edit', re.IGNORECASE)
@@ -69,7 +72,8 @@ NODE_PACKS = {
        for name in ('Krea2EditModelPatch', 'Krea2EditGroundedEncode')},
     **{name: ('IPAdapter Plus', 'https://github.com/cubiq/ComfyUI_IPAdapter_plus')
        for name in ('IPAdapterUnifiedLoader', 'IPAdapterAdvanced')},
-    'ApplyCosmosReferenceLatent': ('Cosmos Reference', 'https://github.com/Mirumo0u0/ComfyUI-Cosmos-Reference')}
+    'ApplyCosmosReferenceLatent': ('Cosmos Reference', 'https://github.com/Mirumo0u0/ComfyUI-Cosmos-Reference'),
+    GGUF_LOADER: ('ComfyUI-GGUF', 'https://github.com/city96/ComfyUI-GGUF')}
 # Files a node loads by preset rather than by name: IPAdapter Plus's loader finds its models by name in their
 # folders, which its own loader nodes list (src/features/settings/modelFiles.ts PRESET_FILES).
 PRESET_FILES = {'IPAdapterUnifiedLoader': (
@@ -197,7 +201,7 @@ def built_in(config, reference=False) -> dict | None:
     # The reference model comes last, so it replaces the main one in the reference workflow only.
     keys = [key for key in family.files if key not in REFERENCE_ONLY] + \
         ([key for key in family.files if key in REFERENCE_ONLY] if reference else [])
-    chosen = [(*FILE_INPUTS[key], config[key]) for key in keys if config.get(key)]
+    chosen = [(*FILE_INPUTS[key], file) for key in keys if (file := chosen_file(config, key))]
     chosen += [('KSampler', key, config[key]) for key in SAMPLER_INPUTS if config.get(key) not in (None, '')]
     for class_type, field, value in chosen:
         for node in workflow.values():
@@ -205,7 +209,17 @@ def built_in(config, reference=False) -> dict | None:
                 node['inputs'][field] = value
     if reference and EDIT_MODEL.search(config.get('ref_unet_name') or ''):
         without_identity_lora(workflow)
+    for node in workflow.values():
+        if node['class_type'] == 'UNETLoader' and str(node['inputs'].get('unet_name', '')).lower().endswith('.gguf'):
+            node['class_type'] = GGUF_LOADER
+            node['inputs'] = {'unet_name': node['inputs']['unet_name']}
     return workflow
+
+
+def chosen_file(config, key) -> str | None:
+    """The user's file for a loader input; for the model, else the one the app picked for this computer's graphics
+    card (`unet_fit`, companion/hardware.py fit_images)."""
+    return config.get(key) or (config.get('unet_fit') if key == 'unet_name' else None)
 
 
 def without_identity_lora(workflow: dict):
@@ -240,7 +254,7 @@ def model_file(config) -> str:
     """The diffusion model or checkpoint the built-in workflow loads."""
     family = family_of(config)
     key = 'ckpt_name' if 'ckpt_name' in FAMILIES[family].files else 'unet_name'
-    return config.get(key) or default_files(family)[key]
+    return chosen_file(config, key) or default_files(family)[key]
 
 
 def options_of(spec) -> list | None:
@@ -551,8 +565,10 @@ class ComfyAdapter:
         found = {}
         inputs = {key: FILE_INPUTS[key] for key in FAMILIES[family_of(config)].files}
         async with self.client(config['base_url']) as client:
-            for class_type in dict.fromkeys([*(class_type for class_type, _ in inputs.values()), LORA_INPUT[0],
-                                             'KSampler']):
+            loaders = [class_type for class_type, _ in inputs.values()]
+            # A server without the ComfyUI-GGUF nodes answers 404 for their loader, which lists nothing.
+            for class_type in dict.fromkeys([*loaders, *([GGUF_LOADER] if 'UNETLoader' in loaders else []),
+                                             LORA_INPUT[0], 'KSampler']):
                 response = await self.call(client, 'GET', f'/object_info/{class_type}')
                 try:
                     found[class_type] = response.json() if response.is_success else {}
@@ -561,4 +577,9 @@ class ComfyAdapter:
                 if not isinstance(found[class_type], dict):
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.')
         lists = {**inputs, 'lora': LORA_INPUT, **{key: ('KSampler', key) for key in SAMPLER_LISTS}}
-        return {key: input_options(found[class_type], class_type, name) for key, (class_type, name) in lists.items()}
+        listed = {key: input_options(found[class_type], class_type, name) for key, (class_type, name) in lists.items()}
+        for key in ('unet_name', 'ref_unet_name'):
+            if key in listed:
+                listed[key] += [name for name in input_options(found.get(GGUF_LOADER, {}), GGUF_LOADER, 'unet_name')
+                                if name not in listed[key]]
+        return listed

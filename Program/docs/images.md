@@ -154,9 +154,26 @@ loaded. When they don't both fit on one card, ComfyUI runs very slowly from syst
 
 - **Two cards:** start ComfyUI with `--cuda-device 1` (the second card) and keep the text model on the
   bigger one.
-- **One card:** a smaller text model leaves room (Krea 2 in an NVFP4 file needs about 11 GB with its
-  text encoder; an FP8 file about 16 GB), or use a hosted image service for pictures.
-- **Small cards (under about 12 GB):** a hosted image service.
+- **One card:** a smaller text model leaves room (Krea 2 Turbo's FP8 file needs about 14 GB, its NVFP4
+  file about 9 GB and its Q4_K_M GGUF about 9 GB), or use a hosted image service for pictures.
+- **Cards under about 8 GB:** a hosted image service.
+
+### Krea 2 on smaller cards
+
+ComfyUI moves the text encoder off the card while the model draws, so Krea 2 needs about its diffusion
+model's file size plus 2 GB (sizes from the files on Comfy-Org/Krea-2 and the community GGUF repos,
+2026-10-28): bf16 26.5, FP8 14.2, NVFP4 9.1, Q6_K 11.9, Q5_K_M 10.3, Q4_K_M 9.0, Q3_K_M 7.6 GB.
+
+When the built-in FP8 file is too big for the biggest card, a Krea 2 server on this computer starts on
+one that fits (Vanta, 2026-10-28: the app decides, the user overrides): a fitting Turbo file the server
+already lists (Raw/Base and Edit models aside), else the one to download. NVFP4 comes first on a
+Blackwell card (RTX 50-series), which runs it natively; other cards get the largest GGUF that fits. The
+pick is kept as `unet_fit` (`hardware.fit_images`, run by Settings > Images, Check, the file list and
+saving a backend) and used only while the user hasn't chosen a model; Model files shows it as the
+default. A `.gguf` model loads through the ComfyUI-GGUF nodes' `UnetLoaderGGUF` in place of
+`UNETLoader` (the one node swapped); their file list is merged into the model choices, and Check names
+the nodes when the server lacks them. They need the `gguf` Python package, so the app doesn't install
+them.
 
 Settings > Models > This computer checks this for you (see [models.md](models.md#this-computer)), and
 Settings > Images repeats any picture warnings.

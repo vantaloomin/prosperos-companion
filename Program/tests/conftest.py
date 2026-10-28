@@ -56,6 +56,13 @@ def no_pc_timezone(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_graphics_card(monkeypatch):
+    """Tests never ask the test machine for its graphics cards (nvidia-smi, PowerShell); tests/test_hardware.py and
+    tests/test_image_fit.py hand in the cards they need."""
+    monkeypatch.setattr('companion.hardware.find_gpus', lambda memory: ([], 'No graphics card in tests.'))
+
+
+@pytest.fixture(autouse=True)
 def no_hold_after_replies(monkeypatch):
     """Background work would wait for the user to pause after each reply; tests/test_scheduling.py checks that."""
     monkeypatch.setattr('companion.providers.scheduling.HOLD_AFTER_REPLY', 0)

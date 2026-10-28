@@ -11,7 +11,7 @@ import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
 import { HardwareWarnings } from './models/HardwareCheck'
 import { HARDWARE_KEY, useHardware } from './models/hardware'
-import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, filesLabel, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, usesFit, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { MemeSettings } from './MemeSettings'
 import { ImageModelField } from './ImageModelField'
@@ -294,7 +294,7 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
     setUndo({ to: FAMILIES[next].sampling, body: before, before: was, after: null })
   }
   return <div className="form-stack family-picker">
-    <Field label="Model family" hint={familyHint(family, backend.custom_workflow)}>{(id, describedBy) => (
+    <Field label="Model family" hint={familyHint(family, backend.custom_workflow, usesFit(backend.model_fit, backend.model_files))}>{(id, describedBy) => (
       <select id={id} aria-describedby={describedBy} value={backend.family ?? 'krea2'} onChange={(event) => void choose(event.target.value as ImageFamily)}>
         {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
       </select>
@@ -306,9 +306,10 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
 }
 
 /** The dropdown's hint (Iris's wording). */
-function familyHint(family: ReturnType<typeof familyOf>, custom: boolean): string {
+function familyHint(family: ReturnType<typeof familyOf>, custom: boolean, fitted: boolean): string {
   if (custom) return 'Your own workflow is used for pictures; the family still sets the reference workflow.'
   const lines = [`Sets the built-in workflow, model files and sampling to ${family.sampling}'s. You can change any of them below.`]
+  if (fitted) lines.push('Its model is a smaller file that fits this computer\'s graphics card.')
   if (family.note) lines.push(family.note)
   return lines.join(' ')
 }
@@ -335,7 +336,7 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
   const store = async (body: ModelFiles) => { if (await save(body)) setDraft({}) }
   return (
     <details onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="subtle">Model files for the built-in workflow {isChosen(saved) ? '(your choice)' : '(defaults)'}</summary>
+      <summary className="subtle">Model files for the built-in workflow {filesLabel(saved, backend.model_fit)}</summary>
       <div className="form-stack">
         <p className="subtle">Pick the files your ComfyUI server has. The lists come from the server at this backend's address; nothing is downloaded or installed.</p>
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its files…</p>}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { FAMILIES, FAMILY_KEYS, familyOf, missingFrom, fileChoices, filesBody, TURBO, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody } from '../../src/features/settings/modelFiles.ts'
+import { FAMILIES, FAMILY_KEYS, familyOf, missingFrom, fileChoices, filesBody, filesLabel, TURBO, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, usesFit } from '../../src/features/settings/modelFiles.ts'
 import type { ModelFiles, ModelLink } from '../../src/types.ts'
 
 const DEFAULTS: ModelFiles = { unet_name: 'krea2_turbo_fp8_scaled.safetensors', clip_name: 'qwen3vl_4b_fp8_scaled.safetensors', clip_type: 'krea2', vae_name: 'qwen_image_vae.safetensors', ref_unet_name: '' }
@@ -94,4 +94,12 @@ test('each model family lists only its own loaders, and an unknown family is Kre
 test('the settings page and the server agree on the families', () => {
   const server = readFileSync('companion/images/models.py', 'utf8')
   assert.match(server, new RegExp(`Family = Literal\\[${FAMILY_KEYS.map(key => `'${key}'`).join(', ')}\\]`))
+})
+
+test('the file list says when its model was picked for the graphics card', () => {
+  const fit = 'krea2_turbo_nvfp4.safetensors'
+  assert.equal(filesLabel(NONE, fit), '(picked for this graphics card)')
+  assert.equal(filesLabel(NONE, null), '(defaults)')
+  assert.equal(filesLabel({ ...NONE, vae_name: 'mine.safetensors' }, fit), '(your choice)')
+  assert.ok(usesFit(fit, NONE) && !usesFit(fit, { ...NONE, unet_name: 'mine.safetensors' }) && !usesFit(null, NONE))
 })

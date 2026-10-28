@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
+from companion import hardware
 from companion.data_folder import open_folder
 from companion.database import decode, encode
 from companion.errors import DomainError
@@ -46,6 +47,21 @@ def db(request: Request):
 
 def runner(request: Request):
     return request.app.state.images
+
+
+def fit(request: Request, backend_id: str, options=None) -> dict:
+    """Puts a Krea 2 server on this computer on a model file its graphics card holds (hardware.fit_images), and
+    returns the backend as it now is."""
+    computer = request.app.state.hardware.computer()
+    with db(request).connect(write=True) as connection:
+        hardware.fit_images(connection, computer, options, only=backend_id)
+        return backends.get(connection, backend_id)
+
+
+def fitted_view(request: Request, backend_id: str) -> dict:
+    backend = fit(request, backend_id)
+    with db(request).connect() as connection:
+        return backends.view(backend, connection)
 
 
 @router.get('/settings')
@@ -89,13 +105,15 @@ def from_phone(request: Request, body: BackendFields, creating=False) -> None:
 @router.post('/backends')
 def create_backend(request: Request, body: BackendCreate):
     from_phone(request, body, creating=True)
-    return backends.create(db(request), request.app.state.vault, body)
+    created = backends.create(db(request), request.app.state.vault, body)
+    return fitted_view(request, created['id'])
 
 
 @router.put('/backends/{backend_id}')
 def update_backend(request: Request, backend_id: str, body: BackendFields):
     from_phone(request, body)
-    result = backends.update(db(request), request.app.state.vault, backend_id, body)
+    backends.update(db(request), request.app.state.vault, backend_id, body)
+    result = fitted_view(request, backend_id)
     runner(request).wake()
     return result
 
@@ -125,8 +143,8 @@ def delete_backend(request: Request, backend_id: str):
 
 @router.post('/backends/{backend_id}/check')
 async def check_backend(request: Request, backend_id: str):
+    backend = fit(request, backend_id)
     with db(request).connect() as connection:
-        backend = backends.get(connection, backend_id)
         lora = current_for_images(connection)['lora'] if backend['kind'] == 'comfyui' and \
             connection.execute('SELECT 1 FROM companions').fetchone() else None
     key = backends.backend_key(db(request), request.app.state.vault, backend)
@@ -200,7 +218,7 @@ async def backend_files(request: Request, backend_id: str):
     if not FAMILIES[family].character_lora:
         character = None
     keys = [*FAMILIES[family].files, 'lora', *SAMPLER_LISTS]
-    result = {'ok': True, 'error': None, 'family': family, 'defaults': default_files(family),
+    result = {'ok': True, 'error': None, 'family': family, 'defaults': fitted_defaults(family, fit(request, backend_id)),
               'sampler_defaults': default_sampler(family), 'options': {key: [] for key in keys},
               'matching': {key: [] for key in keys}, 'character_lora': character['comfy_name'] if character else None}
     try:
@@ -211,7 +229,15 @@ async def backend_files(request: Request, backend_id: str):
     for key in keys:
         options = [name for name in found.get(key, []) if not (key == 'lora' and character and name == character['comfy_name'])]
         result['options'][key], result['matching'][key] = family_first(key, options, family)
+    # The default model is the one the app picked for this computer's card from the files the server has.
+    result['defaults'] = fitted_defaults(family, fit(request, backend_id, found.get('unet_name', [])))
     return result
+
+
+def fitted_defaults(family: str, backend: dict) -> dict:
+    """The family's own files, with the model the app picked for this computer's card in place of its own."""
+    picked = decode(backend['config']).get('unet_fit')
+    return {**default_files(family), **({'unet_name': picked} if picked else {})}
 
 
 @router.get('/model-links')

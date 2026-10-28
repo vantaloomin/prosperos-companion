@@ -12,8 +12,8 @@ def computer(*gpus, memory=64):
 
 GEMMA = {'profile': 'Kobold', 'model': 'koboldcpp/gemma-4-31b-it-Q4_K_M',
          'size_gb': hardware.text_size_gb('gemma-4-31b-it-Q4_K_M')}
-KREA = {'label': 'Local ComfyUI', 'base_url': 'http://127.0.0.1:8188', 'unet': 'Muse Krea2 V3.5 NVFP4.safetensors',
-        'size_gb': hardware.image_size_gb('Muse Krea2 V3.5 NVFP4.safetensors')}
+KREA = {'label': 'Local ComfyUI', 'base_url': 'http://127.0.0.1:8188', 'unet': 'krea2_turbo_fp8_scaled.safetensors',
+        'size_gb': hardware.image_size_gb('krea2_turbo_fp8_scaled.safetensors'), 'krea2': True}
 
 
 def test_reads_nvidia_smi_output():
@@ -44,7 +44,7 @@ def test_what_a_computer_can_run():
 def test_warns_when_text_and_pictures_cannot_share_one_card():
     warnings = hardware.check(computer(card(0, 'RTX 4090', 24)), [GEMMA], [KREA], {})
     assert [warning['area'] for warning in warnings] == ['images']
-    assert "don't both fit" in warnings[0]['text'] and 'about 14B' in warnings[0]['text']
+    assert "don't both fit" in warnings[0]['text'] and 'about 12B' in warnings[0]['text']
     assert hardware.check(computer(card(0, 'RTX 6000', 48)), [GEMMA], [KREA], {}) == []
 
 
