@@ -88,6 +88,8 @@ def test_filling_in_downtime_matches_running_all_day(client, baltimore, clock):
     with client.app.state.database.connect(write=True) as connection:
         connection.execute('DELETE FROM life_agenda')
         connection.execute('DELETE FROM agenda_cursors')
+        # Housework days are walked from the agenda's meals, so they go with it (companion/life/upkeep.py).
+        connection.execute('DELETE FROM upkeep_days')
     reconcile(client)
     filled = {(row['subject'], row['slot_key']): row['entry'] for row in rows(client)
               if parse(row['ends_at']) <= clock.now()}
