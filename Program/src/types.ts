@@ -162,6 +162,8 @@ export interface CharacterDefinition {
   appearance: string
   /** The In photos line pictures use (companion/images/prompts.py `in_photos`); empty follows the appearance. */
   in_photos?: string
+  /** Their name in every picture prompt (companion/images/runner.py `named`), off by default. */
+  name_in_pictures?: boolean
   /** Face shape, height, build and the rest (companion/world/looks.py); an empty field is drawn for them. */
   looks?: Looks
   routine: string

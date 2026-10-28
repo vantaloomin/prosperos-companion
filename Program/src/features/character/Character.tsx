@@ -5,7 +5,7 @@ import { api, ApiError } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
 import type { CharacterDefinition, CharacterVersion, Companion, Connection, ImageBackend, Relationship } from '../../types'
 import { Notice } from '../../components/Feedback'
-import { Field, TextArea, TextInput } from '../../components/Fields'
+import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, stageNames, timezones } from './definition'
 import { fieldValue, withField, type DraftField, type FormState } from './drafting'
 import { FieldHelp } from './FieldHelp'
@@ -167,6 +167,9 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
         {help('appearance', 'their appearance')}
         <InPhotosField definition={cleaned} value={definition.in_photos} set={set} />
+        <Toggle label="Use their name in pictures" checked={Boolean(definition.name_in_pictures)} onChange={(on) => set({ name_in_pictures: on })}
+          hint="Helps when image models already know them, like a character from a game or show. Anime models always get the name as a tag."
+          tip="For an original character, the name gives the model nothing to draw, and it can show up as lettering in the picture." />
         <TheirHoursField definition={definition} companion={companion} set={set} />
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>

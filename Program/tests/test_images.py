@@ -1434,3 +1434,11 @@ def test_a_moment_without_a_place_is_at_home_only_when_its_activity_is():
     from companion.life import hobbies
     assert hobbies.custom('Combat training')['place']['kinds'] == ['fitness']
     assert hobbies.custom('knitting socks')['place'] is None
+
+
+def test_their_name_goes_in_pictures_only_when_switched_on_and_after_the_content_check():
+    from companion.images.runner import named
+    inputs = {'prompt': 'Anime illustration of a man at a market.', 'character_name': 'Sett', 'pictured': True}
+    assert named(inputs) == inputs['prompt']
+    assert named({**inputs, 'name_in_pictures': True}).endswith('market. This is Sett.')
+    assert named({**inputs, 'name_in_pictures': True, 'pictured': False}) == inputs['prompt']

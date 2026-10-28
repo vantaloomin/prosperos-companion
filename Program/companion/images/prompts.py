@@ -482,7 +482,8 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, **likeness,
+            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt,
+            'name_in_pictures': bool(definition.get('name_in_pictures')), **likeness,
             **children(connection, post['timeline_id'], [event[key] for event in events
                                                           for key in ('summary', 'caption', 'label', 'place')],
                        [(event['moment'].get('outing') or {}).get('id') for event in events])}
@@ -610,6 +611,7 @@ def children(connection, timeline_id: str, texts, outing_ids=()) -> dict:
 
 def base_inputs(companion, definition, image_settings) -> dict:
     return {'prompt_version': PROMPT_VERSION, 'negative': NEGATIVE, 'style': image_settings['style'],
+            'name_in_pictures': bool(definition.get('name_in_pictures')),
             'aspect': image_settings['aspect'], 'seed': random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
