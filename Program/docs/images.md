@@ -181,6 +181,23 @@ default. A `.gguf` model loads through the ComfyUI-GGUF nodes' `UnetLoaderGGUF` 
 the nodes when the server lacks them. They need the `gguf` Python package, so the app doesn't install
 them.
 
+### Other families on smaller cards
+
+The same pick runs for every family with smaller files (Vanta, 2026-10-28; `hardware.FITS`), each with
+its own sizes (file plus 2 GB) and the files that don't suit its built-in workflow left aside:
+
+- **Qwen Image 2.1:** int8 about 8.8 GB; else Abiray/Qwen-Image-2.1-GGUF Q6_K 7.8, Q5_K_M 7.0, Q4_K_M
+  5.9, Q3_K_M 5.0 GB. Turbo, Edit and I2I files are left aside (the workflow runs 25 steps).
+- **Z-Image Turbo:** bf16 about 13.5 GB; else NVFP4 6.2 (Blackwell only), int8 7.8, then
+  unsloth/Z-Image-Turbo-GGUF Q6_K 7.5, Q5_K_M 7.2, Q4_K_M 6.7, Q3_K_M 5.9 GB. Base and Edit files aside.
+- **Anima:** about 5.9 GB; else Abiray/Anima-base-v1.0-GGUF Q8_0 4.1 down to Q3_K_M 3.0 GB. Turbo
+  files aside.
+- **Booru** (SDXL checkpoints) has no smaller files, so nothing is picked.
+
+Changing a backend's family drops the old pick for the new family's own. A `.gguf` file counts as on
+the server only where `UnetLoaderGGUF` lists it, so the too-big warning's one-press switch never
+offers a file ComfyUI can't load (Iris).
+
 Settings > Models > This computer checks this for you (see [models.md](models.md#this-computer)), and
 Settings > Images repeats any picture warnings.
 
