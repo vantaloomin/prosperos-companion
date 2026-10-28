@@ -5,15 +5,19 @@ the companion's home, the places their committed life events happened at (usual 
 Story mode's current scene, and townsfolk the companion knows who are regulars or staff somewhere. Places
 have no coordinates in the city packs, so each sits at a small seeded offset from its neighbourhood's centre
 and says its location is approximate. Real public cities are drawn on a street map in the interface; the
-rest (fictional, original and private cities) on a sketch of their neighbourhoods. The map never shows
-where the user is.
+rest (fictional, original and private cities) on a sketch of their neighbourhoods. Everyone's home in the city is
+on it: theirs, the user's (where the user lives in this world, companion/life/where.py), the other companions' and
+the people in any companion's circle who live here. It never shows where the user is right now.
+
+What is inside a place is one list, the user's to rewrite: their home's rooms are kept on their home
+(companion/life/home.py), and a place's spots in `place_spots` (companion/world/inside.py).
 """
 import math
 from datetime import timedelta
 
 from companion.clock import stamp, zone
-from companion.database import decode, many
-from companion.life import encounters, home, network
+from companion.database import decode, many, optional
+from companion.life import circle, encounters, home, network
 from companion.world import catalog, generators, inside
 
 USUAL_DAYS = 60
@@ -89,17 +93,67 @@ def regulars(connection, companion: dict, now) -> dict[str, list[str]]:
     return found
 
 
+def home_item(connection, timeline_id: str, timezone: str, now) -> dict | None:
+    day = now.astimezone(zone(timezone)).date()
+    return next((item for item in home.items_on(connection, timeline_id, day) if item['kind'] == 'home'), None)
+
+
+def hood_by_name(hoods: dict, name: str | None) -> dict | None:
+    return next((hood for hood in hoods.values() if name and hood['name'] == name), None)
+
+
+def home_view(place_id: str, name: str, hood: dict, pin: str, spots=(), about='', centre=False) -> dict:
+    """A home as a place on the map: theirs at its neighbourhood's centre, everyone else's a little off it."""
+    north, east = (0.0, 0.0) if centre else offset(place_id)
+    return {'id': place_id, 'name': name, 'kind': 'home', 'hood': hood['name'], 'hood_id': hood['id'],
+            'lat': round(hood['lat'] + north, 6), 'lon': round(hood['lon'] + east, 6), 'approx': True, 'pins': [pin],
+            'spots': list(spots), 'about': about, 'history': [], 'regulars': []}
+
+
 def home_pin(connection, companion: dict, data: dict, hoods: dict, now) -> dict | None:
-    """Their home as a pin at its neighbourhood's centre, when it is in this city."""
-    day = now.astimezone(zone(companion['version']['timezone'])).date()
-    item = next((item for item in home.items_on(connection, companion['active_timeline_id'], day)
-                 if item['kind'] == 'home'), None)
-    hood = item and next((hood for hood in hoods.values() if hood['name'] == item.get('neighborhood')), None)
+    """Their home as a pin at its neighbourhood's centre, when it is in this city, with its rooms and description."""
+    item = home_item(connection, companion['active_timeline_id'], companion['version']['timezone'], now)
+    hood = item and hood_by_name(hoods, item.get('neighborhood'))
     if not hood or item.get('city') not in (data['name'], None):
         return None
-    return {'id': '~home', 'name': f"{companion['version']['name']}'s home", 'kind': 'home', 'hood': hood['name'],
-            'hood_id': hood['id'], 'lat': hood['lat'], 'lon': hood['lon'], 'approx': True, 'pins': ['home'],
-            'spots': inside.names(inside.for_home(item)), 'history': [], 'regulars': []}
+    found = home_view('~home', f"{companion['version']['name']}'s home", hood, 'home',
+                      inside.names(inside.for_home(item)), item.get('description', ''), centre=True)
+    return found | {'item_id': item['id'], 'rooms_set': bool(item.get('rooms'))}
+
+
+def your_pin(connection, data: dict, hoods: dict) -> dict | None:
+    """Where the user lives in this world, when it is this city (companion/life/where.py)."""
+    row = optional(connection, 'SELECT home_city_id, home_neighbourhood FROM persona WHERE id=1')
+    hood = row and row['home_city_id'] == data['id'] and hoods.get(row['home_neighbourhood'])
+    return home_view('~you', 'Your home', hood, 'yours') if hood else None
+
+
+def known_pins(connection, companion: dict, data: dict, hoods: dict, now) -> list[dict]:
+    """The other companions' homes in this city, then the homes of people in any companion's circle who live here,
+    each person once, with who they are ("Sett's friend")."""
+    others = many(connection, 'SELECT c.id, c.active_timeline_id, v.name, v.timezone FROM companions c JOIN '
+                  'character_versions v ON v.id=c.active_version_id WHERE c.id<>? ORDER BY c.created_at',
+                  (companion['id'],))
+    taken, found = {companion['version']['name']}, []
+    for other in others:
+        item = home_item(connection, other['active_timeline_id'], other['timezone'], now)
+        hood = item and item.get('city') == data['name'] and hood_by_name(hoods, item.get('neighborhood'))
+        if hood and other['name'] not in taken:
+            taken.add(other['name'])
+            found.append(home_view(f"~companion:{other['id']}", f"{other['name']}'s home", hood, 'known',
+                                   about=item.get('description', '')) | {'relation': 'Another companion'})
+    owners = [(companion['active_timeline_id'], companion['version']['name']),
+              *((other['active_timeline_id'], other['name']) for other in others)]
+    for timeline_id, owner in owners:
+        for person in circle.people(connection, timeline_id):
+            details = decode(person['details'])
+            hood = details.get('city') == data['name'] and hood_by_name(hoods, details.get('neighborhood'))
+            if hood and person['name'] not in taken:
+                taken.add(person['name'])
+                role = circle.relation(person['role'], details.get('pronouns', ''))
+                found.append(home_view(f"~circle:{person['id']}", f"{person['name']}'s home", hood, 'known')
+                             | {'relation': f"{owner}'s {role}"})
+    return found
 
 
 def scene_place(connection, data: dict) -> str | None:
@@ -113,6 +167,7 @@ def place_view(place: dict, hood: dict, pins: set[str], events: list[dict], peop
     return {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'hood': hood['name'], 'hood_id': hood['id'],
             'lat': round(hood['lat'] + north, 6), 'lon': round(hood['lon'] + east, 6), 'approx': True,
             'pins': sorted(pins), 'spots': inside.names(inside.for_place(place, era)),
+            'spots_set': bool(place.get('spots_set')),
             'history': [{'id': event['id'], 'summary': event['summary'], 'at': event['at']} for event in events[:HISTORY]],
             'regulars': sorted(set(people))}
 
@@ -128,15 +183,19 @@ def build(connection, companion: dict, now, story_on: bool) -> dict:
     for event in events:
         by_place.setdefault(event['place'], []).append(event)
     places = []
+    edits = inside.edited(connection, data['id'])
     for place in data['places']:
         hood = hoods.get(place['neighborhood'])
+        if place['id'] in edits:
+            place = inside.with_edits(place, edits) | {'spots_set': True}
         if hood:
             pins = marked.get(place['id'], set()) | ({'scene'} if place['id'] == scene else set())
             places.append(place_view(place, hood, pins, by_place.get(place['id'], []), people.get(place['id'], []), data.get('era')))
-    found = home_pin(connection, companion, data, hoods, now)
+    homes = [pin for pin in (home_pin(connection, companion, data, hoods, now), your_pin(connection, data, hoods))
+             if pin] + known_pins(connection, companion, data, hoods, now)
     next_to = neighbours(list(hoods.values()))
     return {'city': {'id': data['id'], 'name': data['name'], 'lat': data['lat'], 'lon': data['lon'], 'real': real(data),
                      'enclosed': data.get('enclosed') is True},
             'hoods': [{'id': hood['id'], 'name': hood['name'], 'lat': hood['lat'], 'lon': hood['lon'],
                        'next': next_to[hood['id']]} for hood in hoods.values()],
-            'places': ([found] if found else []) + places, 'water': data.get('water') or [], 'story': story_on}
+            'places': homes + places, 'water': data.get('water') or [], 'story': story_on}

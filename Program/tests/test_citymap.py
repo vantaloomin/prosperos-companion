@@ -30,7 +30,7 @@ def test_the_map_shows_every_place_in_their_city_near_its_neighbourhood(client):
     assert found['city']['id'] == 'baltimore' and found['city']['real'] is True and found['story'] is False
     hoods = {hood['id']: hood for hood in found['hoods']}
     assert all(len(hood['next']) == citymap.NEXT_TO and hood['id'] not in hood['next'] for hood in hoods.values())
-    places = [place for place in found['places'] if place['id'] != '~home']
+    places = [place for place in found['places'] if not place['id'].startswith('~')]
     assert len(places) > 100 and all(place['approx'] for place in places)
     for place in places:
         hood = hoods[place['hood_id']]
@@ -107,3 +107,75 @@ def test_regulars_leave_out_the_staff(monkeypatch):
               {'key': 'town:x:cafe:2', 'name': 'Ben', 'kind': 'regular', 'staff': False, 'place': {'id': 'cafe'}}]
     monkeypatch.setattr(encounters, 'known', lambda *_args: people)
     assert citymap.regulars(None, {}, None) == {'cafe': ['Ben']}
+
+
+def home_on(found, place_id='~home'):
+    return next((place for place in found['places'] if place['id'] == place_id), None)
+
+
+def test_their_home_follows_where_its_description_and_their_words_put_it_and_the_user_can_move_it(client):
+    from companion.life import money
+    pits = {'neighborhoods': [{'id': 'wuju-hills', 'name': 'Wuju Hills'}, {'id': 'the-pits', 'name': 'The Pits'}],
+            'places': [{'id': 'great-pit', 'name': 'The Great Pit', 'neighborhood': 'the-pits'}]}
+    assert money.named_hood({'identity': 'He runs the underground fighting pits of Navori.'}, pits)['id'] == 'the-pits'
+    assert money.named_hood({'identity': 'He runs the underground fighting pits.'}, pits, loose=False) is None
+    assert money.named_hood({}, pits, ('an apartment above the Great Pit',))['id'] == 'the-pits'
+    assert money.named_hood({'routine': 'Works in Wuju Hills. Lives above the Great Pit.'}, pits)['id'] == 'the-pits'
+    make(client, 'Warm and curious.')
+    item = client.get('/api/life/home').json()['items'][0]
+    # The user rewrites their home as being in Canton: the map (and the home) follow.
+    assert client.patch(f"/api/life/home/items/{item['id']}", json={'description': 'a rowhouse in Canton'}).status_code == 200
+    found = read(client)
+    assert home_on(found)['hood'] == 'Canton' and home_on(found)['about'] == 'a rowhouse in Canton'
+    assert client.get('/api/life/home').json()['items'][0]['neighborhood'] == 'Canton'
+    # Moved on the map, it stays where the user put it, and the description says so.
+    hampden = next(hood['id'] for hood in found['hoods'] if hood['name'] == 'Hampden')
+    moved = client.put('/api/life/map/home', json={'neighborhood': hampden})
+    assert moved.status_code == 200 and home_on(moved.json())['hood'] == 'Hampden'
+    assert home_on(read(client))['about'] == 'a rowhouse in Hampden'
+    assert client.put('/api/life/map/home', json={'neighborhood': 'nowhere'}).status_code == 422
+
+
+def test_a_home_whose_neighbourhood_is_not_in_their_city_is_placed_again(client):
+    make(client, 'Warm and curious.')
+    item = client.get('/api/life/home').json()['items'][0]
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE home_items SET details=json_set(details, "$.city", "Somewhere Else", '
+                           '"$.neighborhood", "Deck 9") WHERE id=?', (item['id'],))
+    home = home_on(read(client))
+    assert home and home['hood'] in {hood['name'] for hood in read(client)['hoods']}
+
+
+def test_rooms_and_what_is_inside_a_place_are_the_users_to_rewrite(client):
+    make(client, 'Warm and curious.')
+    found = read(client)
+    item_id = home_on(found)['item_id']
+    assert client.patch(f'/api/life/home/items/{item_id}', json={'rooms': ['the den', 'in the loft']}).status_code == 200
+    home = home_on(read(client))
+    assert home['spots'] == ['the den', 'the loft'] and home['rooms_set'] is True
+    assert client.patch(f'/api/life/home/items/{item_id}', json={'rooms': []}).status_code == 200
+    assert home_on(read(client))['rooms_set'] is False
+    place = next(place for place in found['places'] if place['id'] == 'vaccaros')
+    changed = client.put('/api/life/map/places/vaccaros/inside', json={'spots': ['the pastry case', 'the back room']})
+    assert changed.status_code == 200
+    assert home_on(changed.json(), 'vaccaros')['spots'] == ['the pastry case', 'the back room']
+    assert home_on(changed.json(), 'vaccaros')['spots_set'] is True
+    back = client.put('/api/life/map/places/vaccaros/inside', json={'spots': []}).json()
+    assert home_on(back, 'vaccaros')['spots'] == place['spots']
+    assert client.put('/api/life/map/places/nowhere/inside', json={'spots': ['x']}).status_code == 404
+
+
+def test_everyone_who_lives_in_the_city_is_on_the_map_the_user_too(client):
+    make(client, 'Outgoing, the life of the party.')
+    build(client)
+    found = read(client)
+    hood = found['hoods'][0]
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE persona SET home_city_id=?, home_neighbourhood=? WHERE id=1', ('baltimore', hood['id']))
+    found = read(client)
+    yours = home_on(found, '~you')
+    assert yours and yours['name'] == 'Your home' and yours['pins'] == ['yours'] and yours['hood'] == hood['name']
+    known = [place for place in found['places'] if 'known' in place['pins']]
+    locals_ = [person for person in client.get('/api/life/circle').json() if person.get('city') == 'Baltimore']
+    assert known and len(known) == len({place['name'] for place in known})
+    assert {place['name'] for place in known} <= {f"{person['name']}'s home" for person in locals_}

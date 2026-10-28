@@ -2181,6 +2181,13 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .map-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; } .map-card h2 { font-size: 1.05rem; }
 .map-card h3 { font-size: 0.875rem; margin-bottom: 4px; } .map-card p { margin: 0; }
 .map-history { list-style: none; padding: 0; margin: 0; } .map-history .text-button { text-align: left; }
+.map-edit { width: 100%; justify-content: center; } .map-edit-form { display: grid; gap: 6px; } .map-edit-form .rename-row { margin-top: 6px; }
+.map-edit-form select, .map-edit-form textarea { width: 100%; } .map-edit-form textarea { field-sizing: content; min-height: 2lh; max-height: 6lh; }
+.map-card > .button { width: 100%; justify-content: center; }
+.map-page .sketch-pin.pin-place.selected .sketch-ring { stroke: var(--accent-hover); stroke-width: 3; }
+.sketch-pin.pin-yours .sketch-badge { fill: var(--accent); stroke: var(--accent); } .sketch-pin.pin-yours .sketch-glyph { stroke: #fff; }
+.leaflet-marker-icon.map-pin.pin-yours, .map-key-card .map-pin.pin-yours { background: var(--accent); border-color: var(--accent); border-radius: 50%; color: #fff; padding: 2px; }
+.sketch-pin.pin-known .sketch-glyph { stroke: var(--muted); } .map-pin.pin-known { color: var(--muted); }
 .map-list { flex: 1; padding: 20px 24px 40px; overflow-y: auto; }
 .map-list li.picked, .web-list li.picked { margin: 6px 0; } .map-card.inline { position: static; width: auto; max-width: 560px; max-height: none; margin-top: 8px; box-shadow: none; }
 .sketch-hover-label { display: none; } .sketch-pin:hover .sketch-hover-label, .sketch-pin:focus-visible .sketch-hover-label { display: inline; }
@@ -2214,6 +2221,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 :root[data-motion='reduce'] .sketch-pin.pin-scene .sketch-badge { animation: none; }
 @media (max-width: 720px) {
   .map-bar { padding: 10px 16px; }
+  .map-card > .button, .map-edit-form .button { min-height: 44px; }
   .map-card { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 60%; border-radius: 14px 14px 0 0; }
 }
 .show-on-map { padding: 0 2px; font-size: 0.75rem; }

@@ -247,18 +247,58 @@ def where_they_live(definition: dict) -> str:
     return ' '.join(sentence for sentence in re.split(r'(?<=[.!?])\s+', text) if LIVES.search(sentence))
 
 
+def name_pattern(name: str) -> re.Pattern | None:
+    """A neighbourhood or place name as it shows up in someone's words: without its "The", in any case, one or many
+    ("The Pits" in "above the fighting pits", "The Great Pit"). None for a name too short to tell."""
+    core = re.sub(r'^the\s+', '', name.strip(), flags=re.IGNORECASE)
+    core = core[:-1] if core.endswith('s') and not core.endswith('ss') else core
+    return re.compile(rf"(?<!\w){re.escape(core)}s?(?!\w)", re.IGNORECASE) if len(core) >= 3 else None
+
+
+def mentions(text: str, city: dict, places: bool = True) -> list[tuple[int, dict]]:
+    """(where in `text`, neighbourhood) for each neighbourhood the text names, or names a place in (`places`)."""
+    hoods = {hood['id']: hood for hood in city.get('neighborhoods') or []}
+    found = []
+    named = [(hood['name'], hood) for hood in hoods.values()]
+    if places:
+        named += [(place['name'], hoods[place['neighborhood']]) for place in city.get('places') or ()
+                  if place.get('neighborhood') in hoods]
+    for name, hood in named:
+        pattern = name_pattern(name)
+        match = pattern and pattern.search(text)
+        if match:
+            found.append((match.start(), hood))
+    return sorted(found, key=lambda item: item[0])
+
+
+def named_hood(definition: dict, city: dict, first: tuple[str, ...] = (), loose: bool = True) -> dict | None:
+    """The neighbourhood their own words put their home in: `first` (their home's description, as the user wrote it),
+    then their location, then the sentences that say where they live (the neighbourhood, or a place there, nearest
+    after "lives"), then, when `loose`, a neighbourhood their identity names at all ("runs the fighting pits"). None
+    when nothing names one."""
+    location = ' '.join(definition.get(key) or '' for key in ('near', 'location'))
+    by_id = next((hood for hood in city.get('neighborhoods') or () if hood['id'] == location.strip().casefold()), None)
+    for text in (*first, location):
+        hits = mentions(text, city)
+        if text is location and by_id:
+            return by_id
+        if hits:
+            return hits[0][1]
+    for sentence in re.split(r'(?<=[.!?])\s+', where_they_live(definition)):
+        lives = LIVES.search(sentence)
+        hits = mentions(sentence, city)
+        if hits:
+            return min(hits, key=lambda hit: (hit[0] < lives.start(), abs(hit[0] - lives.start())))[1]
+    hits = mentions(definition.get('identity') or '', city, places=False) if loose else []
+    return hits[0][1] if hits else None
+
+
 def home_hood(definition: dict, city: dict, tier: int, seed: str) -> dict:
-    """Their neighbourhood: one named in their location, else in the draft's own words about where
-    they live, else one with rents that fit their pay."""
+    """Their neighbourhood: one their own words put them in (`named_hood`), else one with rents that fit their pay."""
     hoods = [hood for hood in city['neighborhoods'] if hood.get('rent')]
-    text = ' '.join(definition.get(key) or '' for key in ('near', 'location')).casefold()
-    named = [hood for hood in hoods if hood['name'].casefold() in text or hood['id'] == text]
-    if named:
-        return named[0]
-    lived = where_they_live(definition)
-    named = [hood for hood in hoods if re.search(rf"\b{re.escape(hood['name'])}\b", lived, re.IGNORECASE)]
-    if named:
-        return named[0]
+    named = named_hood(definition, city)
+    if named and named in hoods:
+        return named
     fitting = [hood for hood in hoods if hood['rent_tier'] in HOOD_TIERS[tier]] or hoods
     return random.Random(f'{seed}:hood').choice(fitting)
 

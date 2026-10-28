@@ -17,6 +17,8 @@ class ItemUpdate(Input):
     variety: str | None = Field(default=None, max_length=40)
     # Their home's quirks ("a smoky hearth"); an empty list clears them.
     features: list[Annotated[str, Field(max_length=80)]] | None = Field(default=None, max_length=4)
+    # Their home's rooms, as the map's home card names them; an empty list goes back to the usual ones.
+    rooms: list[Annotated[str, Field(max_length=60)]] | None = Field(default=None, max_length=8)
 
 
 class ItemCreate(Input):

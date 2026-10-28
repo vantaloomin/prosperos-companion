@@ -2876,3 +2876,13 @@ CREATE TABLE IF NOT EXISTS world_model_routes (
   routes TEXT NOT NULL DEFAULT '{}',
   updated_at TEXT NOT NULL
 );
+
+-- What is inside a place, as the user rewrote it on the map's place card (companion/world/inside.py): the spots the
+-- map, Story mode and their days name there. No row: the city pack's own, else the ones rules pick.
+CREATE TABLE IF NOT EXISTS place_spots (
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  spots TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, place_id)
+);
