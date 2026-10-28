@@ -70,3 +70,9 @@ export function madeBy(image: GeneratedImage): string {
   const follows = image.follows ?? null
   return `${image.backend_label ?? ''}${follows === null ? '' : `, from picture ${follows + 1}`}`
 }
+
+/** Under a picture: the backend that made it, or that the user added it (their own picture 1). */
+export function sourceLine(image: GeneratedImage): string | null {
+  if (image.backend_label) return madeBy(image)
+  return image.position === 0 && image.reference_id && !image.prompt ? 'Added by you' : null
+}

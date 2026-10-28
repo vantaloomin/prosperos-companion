@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ImagePlus } from 'lucide-react'
 import { api, upload } from '../../api'
 import { COMPANION_KEY, useCompanion, useWorkspaceSettings, type View } from '../../companion'
 import type { Companion, GeneratedImage, Generation, PlannedShot, PortraitDraft, Shot } from '../../types'
 import { Notice } from '../../components/Feedback'
-import { Field, TextArea } from '../../components/Fields'
+import { TextArea } from '../../components/Fields'
 import { keepBody, profileCopy } from './browserImage'
 import { routeLine } from './loraState'
-import { PORTRAITS_KEY, cardNote, keepable, madeBy, redoLabel, redoable, sendsLine, setLine, startable } from './portraitState'
+import { PORTRAITS_KEY, cardNote, keepable, redoLabel, redoable, sendsLine, setLine, sourceLine, startable } from './portraitState'
 import { REFERENCES_KEY, pictureUrl } from './queries'
 
 const failure = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
@@ -167,6 +168,7 @@ function FirstPicture({ name, own, setOwn }: { name: string; own: boolean; setOw
 function OwnPicture({ name }: { name: string }) {
   const client = useQueryClient()
   const current = useCompanion().data?.portrait_reference_id
+  const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const choose = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -185,11 +187,14 @@ function OwnPicture({ name }: { name: string }) {
       {current && <img src={pictureUrl(current)} alt={`${name}'s profile picture`} />}
       <div className="form-stack">
         {current && <p className="subtle">{name}'s profile picture now.</p>}
-        <Field label={current ? 'Choose another picture' : 'Choose a picture'} hint={`PNG, JPEG or WebP. It becomes ${name}'s profile picture right away, and pictures of ${name} follow it on image backends that can take a reference picture.`}>
-          {(id, describedBy) => <input id={id} type="file" accept="image/png,image/jpeg,image/webp" aria-describedby={describedBy} disabled={busy} onChange={(event) => void choose(event)} />}
-        </Field>
-        {busy && <p className="subtle" role="status">Adding the picture…</p>}
-        {error && <Notice tone="error">{error}</Notice>}
+        <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(event) => void choose(event)} />
+        <div>
+          <button type="button" className="button" disabled={busy} aria-describedby="own-picture-types" onClick={() => input.current?.click()}>
+            <ImagePlus aria-hidden="true" />{busy ? 'Adding the picture…' : current ? 'Choose another picture' : 'Choose a picture'}
+          </button>
+          <p className="subtle" id="own-picture-types">PNG, JPEG or WebP. It becomes {name}'s profile picture as soon as you pick it.</p>
+        </div>
+        <div aria-live="polite">{error && <Notice tone="error">{error}</Notice>}</div>
       </div>
     </div>
   )
@@ -250,7 +255,7 @@ function PortraitCard({ image, images, canRedo, redo }: { image: GeneratedImage;
     <li className="reference-card">
       {image.has_image ? <img src={`/api/lora/generation-images/${image.id}/file`} alt={image.label} /> : <p className={image.status === 'failed' ? 'error-text' : 'subtle'}>{cardNote(image)}</p>}
       <strong className="reference-name">{image.position + 1}. {image.label}</strong>
-      {image.backend_label && <small className="subtle">{madeBy(image)}</small>}
+      {sourceLine(image) && <small className="subtle">{sourceLine(image)}</small>}
       {image.decision === 'kept' && <span className="badge">Kept</span>}
       {canRedo && settled && <button type="button" className="text-button" onClick={redo}>{redoLabel(image, images)}</button>}
     </li>

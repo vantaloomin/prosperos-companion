@@ -92,7 +92,7 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
       <Toggle label="Let them send pictures without being asked" checked={data.unprompted_photos} disabled={!data.chat_photos} onChange={(value) => void save({ unprompted_photos: value })}
         hint="Now and then a reply comes with a photo or a meme, a few a day at most. If they may message you first (Life & cities), they sometimes text a photo of what they're out doing, once a day at most." />
       <Toggle label="Keep their face from their profile picture" checked={data.follow_profile_picture} onChange={(value) => void save({ follow_profile_picture: value })}
-        hint="Pictures of your companion send their profile picture along, so they look like the same person every time. Only backends that can take a reference picture use it, and an adopted LoRA comes first. For this world." />
+        hint="New pictures of them start from their profile picture, so they look like the same person every time. Only on backends that can take a reference picture. A LoRA you adopted for them is used instead. This world only." />
       <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
         hint="Only to a backend allowed to receive that request." />
       <div className="form-grid">

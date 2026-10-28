@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { cardNote, keepable, madeBy, redoLabel, redoable, sendsLine, setLine, startable } from '../../src/features/appearance/portraitState.ts'
+import { cardNote, keepable, madeBy, redoLabel, redoable, sendsLine, setLine, sourceLine, startable } from '../../src/features/appearance/portraitState.ts'
 import type { GeneratedImage, Generation, PlannedShot } from '../../src/types.ts'
 
 const codex = { id: 'b1', label: 'Codex', kind: 'codex', local: false }
@@ -51,4 +51,10 @@ test('with their own picture only pictures 2 and 3 are sent, each with it along'
   assert.equal(startable(missing), false)
   assert.equal(startable([shot({}), shot({ follows: 0 })]), true)
   assert.equal(startable([shot({ backend: null })]), false)
+})
+
+test('their own picture 1 says it was added by the user', () => {
+  assert.equal(sourceLine(image({ backend_label: null, reference_id: 'r', prompt: '' })), 'Added by you')
+  assert.equal(sourceLine(image({ follows: 0 })), 'Codex, from picture 1')
+  assert.equal(sourceLine(image({ backend_label: null, reference_id: null })), null)
 })
