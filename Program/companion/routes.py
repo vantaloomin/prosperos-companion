@@ -239,7 +239,7 @@ def looks_suggestions(request: Request, body: PerceptionRequest):
         data = ages.city_of(connection, body.definition)
     automatic = looks.for_companion(companion['id'], body.definition) if companion else None
     line = in_photos({'name': '', **body.definition, 'in_photos': ''})
-    return {'automatic': automatic, 'covered': sorted(looks.covered(body.definition.get('appearance', ''))),
+    return {'automatic': automatic, 'covered': sorted(looks.covered(looks.own_text(body.definition))),
             'options': looks.options(), 'in_photos': line, 'age_now': age_now,
             'kind': kind_view(body.definition, data, age_now or (automatic or {}).get('age'))}
 

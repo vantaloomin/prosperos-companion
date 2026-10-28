@@ -138,3 +138,32 @@ def test_an_age_spelled_out_is_read_like_digits():
     assert age('34, and her brother is fifty') == 34
     assert age('in her thirties') == 35
     assert age('has fifty-nine cats') == age('has cats')
+
+
+SETT = {'name': 'Sett', 'identity': 'The Boss of the Navori fighting pits.',
+        'appearance': 'Tall, broad, heavily muscled half-vastayan man in his early thirties, with thick red-brown hair '
+                      'swept back from his face, upswept pointed ears, amber eyes and sharp canine teeth.',
+        'in_photos': 'Sett, tall muscular half-vastayan man, early thirties, swept-back red-brown hair, amber eyes'}
+
+
+def test_a_card_look_is_the_only_look_in_the_picture():
+    # Vanta, 2026-10-28: Sett's picture said "a stocky man in his mid twenties" and then his card's "tall muscular
+    # half-vastayan man, early thirties". The card's words win; the sheet only fills in what they leave unsaid.
+    sheet = looks.for_companion('sett', SETT)
+    assert sheet['age'] == 32 and sheet['build'] == '' and sheet['height_cm'] is None and sheet['weight_kg'] is None
+    who = prompts.drawn_as(SETT)
+    opening, line = looks.picture(sheet, who), prompts.in_photos(SETT, who)
+    assert opening.startswith('A man in his early thirties with ') and 'twenties' not in opening
+    assert line.startswith('Tall muscular half-vastayan man') and 'Sett' not in line
+    # What only the In photos line says counts as said too.
+    assert looks.automatic({'in_photos': 'stocky, bearded'}, 'x')['facial_hair'] == ''
+
+
+def test_looks_copied_from_town_give_way_to_what_their_card_says():
+    drawn = {'age': 26, 'height_cm': 170, 'build': 'stocky', 'skin': 'tan', 'face': 'square'}
+    mine = {**SETT, 'looks': {**drawn, 'drawn': drawn}}
+    sheet = looks.for_companion('sett', mine)
+    assert sheet['build'] == '' and sheet['height_cm'] is None and sheet['skin'] == 'tan' and sheet['age'] == 26
+    # Once the user changes a copied value it is theirs and stays.
+    edited = {**SETT, 'looks': {**drawn, 'build': 'burly', 'drawn': drawn}}
+    assert looks.for_companion('sett', edited)['build'] == 'burly'
