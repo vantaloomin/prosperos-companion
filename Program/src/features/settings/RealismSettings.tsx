@@ -30,6 +30,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { SectionPending } from '../../components/SectionPending'
 import { useLifeSettings, type SaveResult } from './useLifeSettings'
 import { RealismPresets } from './RealismPresets'
+import { useWorlds } from '../worlds/useWorlds'
 
 /** Life admin (companion/life/admin.py) on the home features' shared scale: how much of the boring stuff fills their weeks. */
 const ADMIN_LEVELS = [
@@ -68,6 +69,7 @@ export function RealismIntro() {
 /** How much drama, their pace and plans that go off course: world-wide settings, so they come first. */
 export function PaceSettings() {
   const { settings, data, save, result } = useLifeSettings()
+  const world = useWorlds().data?.world.name
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
   const level = step(DRAMA_LEVELS, data.drama, 1)
   const looks = step(LOOKS_LEVELS, data.looks_realism, 2)
@@ -90,7 +92,7 @@ export function PaceSettings() {
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
       <Field label={`Drama in your worlds: ${level.label}`} tip="Every world follows this unless it has its own, in Life & cities > This world."
-        hint={data.world_drama === null ? level.hint : `${level.hint} This world has its own: ${step(DRAMA_LEVELS, data.world_drama, 1).label}, in Life & cities.`}>
+        hint={data.world_drama === null ? level.hint : `${level.hint} ${world ?? 'This world'} has its own level, ${step(DRAMA_LEVELS, data.world_drama, 1).label}, in Life & cities.`}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.drama} label={level.label}
           onChange={(drama) => void save({ drama })} />}
       </Field>

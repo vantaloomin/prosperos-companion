@@ -20,7 +20,6 @@ export function WorldDrama({ name }: { name: string }) {
   const [error, setError] = useState<Error | null>(null)
   if (!data) return <SectionPending queries={[settings]} heading="world-life-heading" title="This world" />
   const realism = DRAMA_LEVELS[data.drama] ?? DRAMA_LEVELS[1]
-  const own = data.world_drama === null ? null : DRAMA_LEVELS[data.world_drama]
   const save = async (value: string) => {
     try {
       const saved = await api<LifeSettings>('/life/world', { drama: value === SAME ? null : Number(value) }, 'PUT')
@@ -29,13 +28,11 @@ export function WorldDrama({ name }: { name: string }) {
       setError(null)
     } catch (caught) { setError(caught instanceof Error ? caught : new Error('Not saved.')) }
   }
-  const alone = data.alone && name
-    ? ` ${name} is the only companion here, so a little more happens to them than to someone with others around.` : ''
   return (
     <section className="settings-section form-stack" aria-labelledby="world-life-heading">
       <h2 id="world-life-heading">This world</h2>
       <Field label={`How much happens${world ? ` in ${world}` : ''}`}
-        hint={`${(own ?? realism).hint} Only for this world. Your other worlds stay as they are.${alone}`}>
+        hint={worldHint(data, world, name)}>
         {(id, describedBy) => (
           <select id={id} aria-describedby={describedBy} value={data.world_drama ?? SAME} onChange={(event) => void save(event.target.value)}>
             <option value={SAME}>Same as in Realism ({realism.label})</option>
@@ -46,4 +43,14 @@ export function WorldDrama({ name }: { name: string }) {
       {error && <ErrorNotice error={error} />}
     </section>
   )
+}
+
+/** Iris's wording: what the level means, where it is set, and a lone companion's extra share. */
+function worldHint(data: LifeSettings, world: string | undefined, name: string) {
+  const place = world ?? 'this world'
+  const own = data.world_drama === null ? null : DRAMA_LEVELS[data.world_drama]
+  const level = own ?? DRAMA_LEVELS[data.drama] ?? DRAMA_LEVELS[1]
+  const where = own ? `Only in ${place}; your other worlds follow Realism.` : `Set for all your worlds in Realism. Pick a level to give ${place} its own.`
+  const alone = data.alone && name ? ` ${name} is the only companion here, so a little more happens to them.` : ''
+  return `${level.hint} ${where}${alone}`
 }
