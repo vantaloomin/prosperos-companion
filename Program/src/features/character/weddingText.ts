@@ -1,5 +1,6 @@
 /** Engagement and wedding (companion/life/wedding.py): the wedding card's wording, kept apart for tests. */
 import type { WeddingPlan } from '../../types.ts'
+import { appDate } from '../../appTime.ts'
 import { calendarDay } from '../../when.ts'
 
 /** "A proper wedding on Sat, Jun 12, 2027 at The Belvedere, about 80 guests." */
@@ -42,7 +43,7 @@ export function takeOpening(): boolean {
 }
 
 /** Tomorrow as a local ISO date: the earliest day the wedding can move to. */
-export function tomorrow(today = new Date()): string {
+export function tomorrow(today = appDate()): string {
   const next = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
   return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`
 }

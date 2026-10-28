@@ -16,6 +16,7 @@ import re
 import secrets
 from datetime import timedelta
 
+from companion import world_year
 from companion.characters import current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -172,7 +173,10 @@ def modern(data: dict | None) -> bool:
 
 def target(connection, purpose: str, world, now) -> dict | None:
     """Where a lookup applies: the user's own location, the companion's real city (None if it has none), or,
-    for the daily culture digest, nowhere at all (None when the companion does not live in the present day)."""
+    for the daily culture digest, nowhere at all (None when the companion does not live in the present day). A world
+    in a past year (companion/world_year.py) has no use for today's weather, news or charts: None there."""
+    if world_year.past(connection):
+        return None
     if purpose == 'conversation':
         # Without a location only lookups that send none (such as general news) can run.
         place = place_settings(connection)
@@ -493,6 +497,8 @@ class Lookups:
 
 def fresh_city_events(connection, now) -> dict | None:
     """The latest fresh local-events lookup for the companion's city, for imagining an outing."""
+    if world_year.past(connection):
+        return None
     row = optional(connection, "SELECT * FROM context_observations WHERE category='local_events' AND "
                    "purpose='companion_city' AND status='ok' AND fresh_until>? ORDER BY retrieved_at DESC, rowid DESC "
                    'LIMIT 1', (stamp(now),))
@@ -503,7 +509,7 @@ def fresh_culture(connection, now, definition: dict) -> dict | None:
     """Today's culture digest, while it is fresh: what's out and trending, for the companion to bring up. None
     for a companion who does not live in the present day, even when one asked earlier still is."""
     from companion.life.social import city_data
-    if not modern(city_data(connection, definition)):
+    if not modern(city_data(connection, definition)) or world_year.past(connection):
         return None
     row = optional(connection, "SELECT * FROM context_observations WHERE category='culture' AND purpose='ambient' "
                    "AND status='ok' AND fresh_until>? ORDER BY retrieved_at DESC, rowid DESC LIMIT 1", (stamp(now),))

@@ -15,7 +15,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from companion import backup, start_over
+from companion import backup, start_over, world_year
 from companion.clock import parse, stamp, zone
 from companion.database import Database, many, optional, settings
 from companion.errors import DomainError, require
@@ -52,7 +52,9 @@ def status(database: Database, jumping: dict | None = None) -> dict:
     clock = database.clock
     with database.connect() as connection:
         row = optional(connection, 'SELECT * FROM debug_time WHERE id=1')
+    # A world in a past year (companion/world_year.py) runs behind real time too; the page follows the app's time then.
     view = {'active': row is not None, 'now': stamp(clock.now()), 'real_now': stamp(clock.real()),
+            'years_back': world_year.years_back(database),
             'speed': clock.speed, 'speeds': list(SPEEDS), 'started_at': None, 'app_started_at': None,
             'backup': None, 'jumping': jumping}
     if row:

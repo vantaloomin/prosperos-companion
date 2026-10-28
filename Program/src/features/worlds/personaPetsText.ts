@@ -1,4 +1,5 @@
 import type { PersonaPet } from '../../types'
+import { appDate } from '../../appTime.ts'
 
 /** One of the user's pets being edited; `age` -1 keeps the age it has (or, for a new one, lets the app pick). */
 export type PetDraft = { name: string; kind: string; looks: string; age: number; born?: string }
@@ -17,7 +18,7 @@ export function petsBody(drafts: PetDraft[]): { name: string; kind: string; look
 }
 
 /** What leaving the age alone means: the age a saved pet has now, or one picked to fit a new pet's looks. */
-export function unsetAge(pet: PetDraft, today = new Date()): string {
+export function unsetAge(pet: PetDraft, today = appDate()): string {
   if (!pet.born) return 'Picked for you'
   const years = Math.floor((today.getTime() - new Date(`${pet.born}T12:00:00`).getTime()) / (365.25 * 86400000))
   return years < 1 ? 'Under a year' : `${years} year${years === 1 ? '' : 's'} old`

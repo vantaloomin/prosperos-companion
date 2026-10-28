@@ -1,5 +1,6 @@
 """Real instants are stored in UTC; tests substitute a controllable clock."""
-from datetime import UTC, datetime
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from companion.errors import DomainError
@@ -21,15 +22,22 @@ class FixedClock(Clock):
         self.instant += delta
 
 
+PRESENT = timedelta(0)
+
+
 class AppClock(Clock):
-    """The clock the whole app reads (Database.clock). It is real time unless debug time (companion/debug_time.py)
-    has moved it ahead or set it running faster: then now = where it was moved to + real time since, times speed."""
+    """The clock the whole app reads (Database.clock). It is real time, less how far behind the world it serves runs
+    (a world in a past year, companion/world_year.py), unless debug time (companion/debug_time.py) has moved it ahead
+    or set it running faster: then now = where it was moved to + real time since, times speed."""
 
     def __init__(self, base: Clock | None = None):
         self.base = base or Clock()
         self.anchor_real: datetime | None = None
         self.anchor_app: datetime | None = None
         self.speed = 1.0
+        # How far behind real time the world being served runs; Database asks per world, so work pinned to one world
+        # keeps its year while the user opens another.
+        self.behind: Callable[[], timedelta] = lambda: PRESENT
 
     @property
     def shifted(self) -> bool:
@@ -40,7 +48,7 @@ class AppClock(Clock):
 
     def now(self) -> datetime:
         if self.anchor_app is None:
-            return self.base.now()
+            return self.base.now() - self.behind()
         return self.anchor_app + (self.base.now() - self.anchor_real) * self.speed
 
     def shift(self, instant: datetime, speed: float | None = None):
@@ -56,6 +64,14 @@ class AppClock(Clock):
     def wait(self, seconds: float) -> float:
         """Real seconds to sleep so a loop meant to run every `seconds` of app time keeps up with a fast clock."""
         return max(1.0, seconds / self.speed) if self.speed > 1 else seconds
+
+
+# The app clock of the world opened last (Database.open), for bookkeeping stamps written where no clock is handed in.
+CURRENT: list[Clock] = [Clock()]
+
+
+def app_now() -> datetime:
+    return CURRENT[0].now()
 
 
 def stamp(instant: datetime) -> str:

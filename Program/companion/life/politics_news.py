@@ -17,6 +17,7 @@ import re
 from datetime import date, datetime, timedelta
 from functools import cache
 
+from companion import world_year
 from companion.database import many
 from companion.world import catalog, politics
 from companion.world.changes import headlines
@@ -107,7 +108,7 @@ def recent(connection, city_id: str, day: date) -> dict[str, list[dict]]:
 def issues(connection, data: dict, day: date, level: int, era: list[dict]) -> list[dict]:
     """Add the news to the big questions it is about, and make issues of the rest, as many as the city has big
     questions (`era` is changed in place)."""
-    if not level or not real_and_now(data):
+    if not level or not real_and_now(data) or world_year.past(connection):  # Today's news is not a past year's.
         return []
     by_id = {issue['id']: issue for issue in era}
     found = []

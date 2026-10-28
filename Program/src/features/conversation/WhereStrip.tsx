@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { DoorOpen, EyeOff, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
 import { api } from '../../api'
+import { appNow } from '../../appTime.ts'
 import { TOGETHER_KEY } from '../today/outingText'
 import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
@@ -106,9 +107,9 @@ function CallLead({ lead, short }: { lead: string; short?: string }) {
 
 /** How long the call has been on, ticking each second; screen readers are not told every tick. */
 function CallLength({ since }: { since: string }) {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => appNow())
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    const timer = window.setInterval(() => setNow(appNow()), 1000)
     return () => window.clearInterval(timer)
   }, [])
   return <time className="call-length" aria-hidden="true" dateTime={since}>{callClock(now - Date.parse(since))}</time>

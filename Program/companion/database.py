@@ -9,10 +9,12 @@ import re
 import sqlite3
 from contextlib import contextmanager
 from contextvars import ContextVar
+from datetime import timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from companion.clock import AppClock, Clock, stamp
+from companion import clock as clocks
+from companion.clock import PRESENT, AppClock, Clock, stamp
 from companion.errors import DomainError, require
 from companion.identity import APP_ID, SCHEMA_VERSION, VERSION, database_path
 
@@ -35,7 +37,7 @@ def decode(value: str | None):
 
 
 class Database:
-    def __init__(self, path: str | Path | None = None, clock: Clock | None = None):
+    def __init__(self, path: str | Path | None = None, clock: Clock | None = None, year: int | None = None):
         self.active = Path(path or database_path())
         # The folder of the first world: what every world shares (downloaded models, worlds.json) lives there.
         # Another world's database is in its own folder below it (companion/worlds.py), and `use` switches to it.
@@ -44,7 +46,11 @@ class Database:
         self.world: str | None = None  # The open world's id, set by companion/worlds.py.
         # Tests hand in a FixedClock; debug time (companion/debug_time.py) shifts the app clock wrapped around it.
         self.clock = clock if isinstance(clock, AppClock) else AppClock(clock)
-        self.open()
+        # How far behind real time each world runs (companion/world_year.py), read when it opens; the clock asks for
+        # the world the work under way belongs to. `year` starts a new world in a past year.
+        self.behind: dict[Path, timedelta] = {}
+        self.clock.behind = lambda: self.behind.get(self.path, PRESENT)
+        self.open(year)
 
     @property
     def path(self) -> Path:
@@ -77,17 +83,25 @@ class Database:
                 PINNED.set(pinned)
             raise
 
-    def open(self):
+    def open(self, year: int | None = None):
+        from companion import debug_time, world_year
         self.path.parent.mkdir(parents=True, exist_ok=True)
         inspect_existing(self.path)
+        new_year = world_year.load(self, year)
         if upgrade_needed(self.path):
             from companion import upgrade
             upgrade.run(self.path, self.now())
         with self.connect(write=True) as connection:
             initialize(connection, self.now())
-        from companion import debug_time
-        from companion.world import turnover
+            if new_year:
+                world_year.write(connection, new_year, self.now())
         debug_time.load(self)
+        self.follow()
+
+    def follow(self):
+        """Point what reads the time app-wide (bookkeeping stamps, the town's turnover) at this database's clock."""
+        from companion.world import turnover
+        clocks.CURRENT[0] = self.clock
         turnover.load(self)
 
     def now(self) -> str:

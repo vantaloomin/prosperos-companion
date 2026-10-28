@@ -2943,3 +2943,12 @@ CREATE TABLE IF NOT EXISTS politics_headlines (
   created_at TEXT NOT NULL,
   PRIMARY KEY (city_id, text)
 );
+
+-- The year a world runs in (companion/world_year.py, Back when): its clock runs offset_days behind real time, at real
+-- speed, from when it was made in started_year. No row: the present.
+CREATE TABLE IF NOT EXISTS world_year (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  started_year INTEGER NOT NULL,
+  offset_days INTEGER NOT NULL CHECK (offset_days > 0),
+  created_at TEXT NOT NULL
+);

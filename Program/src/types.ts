@@ -1892,6 +1892,8 @@ export interface DebugTime {
   /** The app's time, and the PC's real time. */
   now: string
   real_now: string
+  /** How many years behind real time this world runs (a world in a past year, companion/world_year.py); 0 now. */
+  years_back?: number
   speed: number
   speeds: number[]
   started_at: string | null
@@ -2217,6 +2219,8 @@ export interface World {
   companions: string[]
   /** Whether the user is just watching it (Observer mode, companion/observer.py). */
   watching?: boolean
+  /** The year it is there when the world runs in a past year (companion/world_year.py); null in the present. */
+  year?: number | null
   /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
   home: WorldHome | null
 }

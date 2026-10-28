@@ -32,15 +32,19 @@ def table(id, name, days, kind, summary, shift=0):
     return {'id': id, 'name': name, 'kind': kind, 'dates': dates, 'summary': summary}
 
 
-# Lunar-calendar dates in Korea for 2024-2040, from the Korea Astronomy and Space Science Institute's lunar
-# conversion tables (Korean Standard Time, so Seollal can fall a day after Chinese New Year, as in 2027).
-YEARS = range(2024, 2041)
-SEOLLAL = ('02-10 01-29 02-17 02-07 01-27 02-13 02-03 01-23 02-11 01-31 02-19 02-08 01-28 02-15 02-04 01-24 '
-           '02-12').split()
-BUDDHA = ('05-15 05-05 05-24 05-13 05-02 05-20 05-09 05-28 05-16 05-06 05-25 05-15 05-03 05-22 05-11 04-30 '
-          '05-18').split()
-CHUSEOK = ('09-17 10-06 09-25 09-15 10-03 09-22 09-12 10-01 09-19 09-08 09-27 09-16 10-04 09-24 09-13 10-02 '
-           '09-21').split()
+# Lunar-calendar dates in Korea for 1990-2040 (Back when worlds go back to 1990), from the Korea Astronomy and
+# Space Science Institute's lunar conversion tables (Korean Standard Time, so Seollal can fall a day after Chinese
+# New Year, as in 2027).
+YEARS = range(1990, 2041)
+SEOLLAL = ('01-27 02-15 02-04 01-23 02-10 01-31 02-19 02-08 01-28 02-16 02-05 01-24 02-12 02-01 01-22 02-09 01-29 '
+           '02-18 02-07 01-26 02-14 02-03 01-23 02-10 01-31 02-19 02-08 01-28 02-16 02-05 01-25 02-12 02-01 01-22 '
+           '02-10 01-29 02-17 02-07 01-27 02-13 02-03 01-23 02-11 01-31 02-19 02-08 01-28 02-15 02-04 01-24 02-12').split()
+BUDDHA = ('05-02 05-21 05-10 05-28 05-18 05-07 05-24 05-14 05-03 05-22 05-11 05-01 05-19 05-08 05-26 05-15 05-05 '
+          '05-24 05-12 05-02 05-21 05-10 05-28 05-17 05-06 05-25 05-14 05-03 05-22 05-12 04-30 05-19 05-08 05-27 '
+          '05-15 05-05 05-24 05-13 05-02 05-20 05-09 05-28 05-16 05-06 05-25 05-15 05-03 05-22 05-11 04-30 05-18').split()
+CHUSEOK = ('10-03 09-22 09-11 09-30 09-20 09-09 09-27 09-16 10-05 09-24 09-12 10-01 09-21 09-11 09-28 09-18 10-06 '
+           '09-25 09-14 10-03 09-22 09-12 09-30 09-19 09-08 09-27 09-15 10-04 09-24 09-13 10-01 09-21 09-10 09-29 '
+           '09-17 10-06 09-25 09-15 10-03 09-22 09-12 10-01 09-19 09-08 09-27 09-16 10-04 09-24 09-13 10-02 09-21').split()
 
 
 def lunar(days):
@@ -62,8 +66,13 @@ VERNAL = {year: date(year, 3, equinox(year, 20.8431)) for year in YEARS}
 AUTUMNAL = {year: date(year, 9, equinox(year, 23.2488)) for year in YEARS}
 # A day between two holidays is a holiday too: in some years Respect for the Aged Day and the autumn equinox
 # are two days apart, and the day between them makes a five-day "Silver Week".
+def respect_for_the_aged(year):
+    """The third Monday of September since 2003; the 15th before."""
+    return nth_weekday(year, 9, 0, 3) if year >= 2003 else date(year, 9, 15)
+
+
 SILVER_WEEK = {year: day - timedelta(days=1) for year, day in AUTUMNAL.items()
-               if (day - nth_weekday(year, 9, 0, 3)).days == 2}
+               if (day - respect_for_the_aged(year)).days == 2}
 
 
 US = [
@@ -356,7 +365,8 @@ HOLIDAYS = {
                'retrieved': '2026-10-05',
                'note': 'Public holidays and observances from general knowledge. Moved weekend dates ("observed" '
                        'and substitute days) are not included. Korean lunar holidays follow KASI tables and '
-                       "Japan's equinox days the almanac formula, for 2024-2040."},
+                       "Japan's equinox days the almanac formula, for 1990-2040 (Back when worlds run as far back "
+                       'as 1990).'},
     'calendars': {
         'us': {'name': 'United States (current)', 'holidays': US},
         'uk': {'name': 'United Kingdom (England and Wales, current)', 'holidays': UK},

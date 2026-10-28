@@ -4,6 +4,8 @@
  * (appTime.ts), so with debug time on a message from before the jump reads as long ago. Times show in the
  * PC's own timezone.
  */
+import { appNow } from './appTime.ts'
+
 const CLOCK = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: 'short' })
 const DAY = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
@@ -75,7 +77,7 @@ export function listTime(value: string, now: number): string {
 }
 
 /** "Oct 12, 4:51 PM": the short date and clock time, with the year only when it is not this year's. */
-export function dayAndClock(value: string, now: number = Date.now()): string {
+export function dayAndClock(value: string, now: number = appNow()): string {
   const then = Date.parse(value)
   if (Number.isNaN(then)) return ''
   const sameYear = new Date(then).getFullYear() === new Date(now).getFullYear()
