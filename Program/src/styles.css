@@ -510,7 +510,11 @@ a.button { color: inherit; text-decoration: none; }
 .politics-split-first { background: var(--accent); }
 .politics-split-neither { background: var(--border); }
 .politics-split-second { background: color-mix(in srgb, var(--text) 70%, transparent); }
-.politics-people, .politics-rows { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 6px 12px; align-items: center; max-width: 520px; }
+.politics-people, .politics-rows { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 6px 12px; align-items: center; max-width: 520px; }
+/* Views: the select column fits the longest side name (news sides are phrases), the same for every row, up to 320px. */
+.politics-people { grid-template-columns: minmax(0, 1fr) fit-content(320px); max-width: 600px; }
+.politics-people select { min-width: 180px; }
+textarea.politics-long { resize: vertical; field-sizing: content; min-height: calc(2lh + 16px); }
 .politics-rows { grid-template-columns: minmax(0, 1fr) 280px; max-width: 620px; }
 .politics-people select, .politics-rows select { width: 100%; }
 .politics-rows .circle-field { display: contents; }
@@ -522,8 +526,9 @@ a.button { color: inherit; text-decoration: none; }
   .politics-split { max-width: none; }
   .politics-rows { grid-template-columns: 1fr; }
   .politics-rows .circle-field { display: grid; gap: 4px; }
-  .politics-people { grid-template-columns: minmax(0, 1fr) 180px; }
-  .politics-people > label { min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.25em; }
+  .politics-people { grid-template-columns: minmax(0, 1fr); row-gap: 4px; max-width: none; }
+  .politics-people > label { display: flex; flex-wrap: wrap; column-gap: 0.25em; padding-top: 8px; }
+  .politics-people select { min-height: 44px; }
 }
 @media (pointer: coarse) { .politics-issue .text-button, .politics-faction .text-button { min-height: 44px; } }
 .why-it-went summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }

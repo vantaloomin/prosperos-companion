@@ -12,7 +12,7 @@ import { Reasons } from './WhyItWent'
 import { storyDate } from './storyText'
 import {
   STAGE_CHOICES, STANCES, alliesText, backingText, neitherText, outcomeChoices, outcomeText, pullText, relationsOf,
-  sortedPeople, splitShares, splitText, stageLabel, viewOptions,
+  sortedPeople, splitShares, splitText, stageLabel, stageSetBy, viewOptions,
 } from './politicsText'
 
 const POLITICS_KEY = ['politics']
@@ -129,7 +129,10 @@ function IssueDetail({ issue, data, save }: { issue: PoliticsIssue; data: TownPo
       {issue.beats.length > 1 && <ul className="plain-list">
         {issue.beats.map((beat) => <li key={beat.on + beat.text} className="subtle"><time dateTime={beat.on}>{storyDate(beat.on)}</time>: {beat.text}</li>)}
       </ul>}
-      {backing.map((line) => <p key={line} className="subtle">{line}</p>)}
+      {backing.length > 0 && <>
+        <h3 className="politics-subhead">Who backs which side</h3>
+        {backing.map((line) => <p key={line} className="subtle">{line}</p>)}
+      </>}
       <Odds issue={issue} />
       <IssueEdit issue={issue} save={save} />
       <People issue={issue} people={data.people} save={save} />
@@ -188,7 +191,7 @@ function IssueForm({ issue, save, close }: { issue: PoliticsIssue; save: Save; c
   return (
     <form ref={box} className="circle-form politics-form" onSubmit={(event) => void submit(event)} aria-label={`Change ${issue.title}`}>
       <Text id={`title-${issue.id}`} label="What it's about" value={title} onChange={setTitle} />
-      <Text id={`question-${issue.id}`} label="The question people argue over" value={question} onChange={setQuestion} required={false} max={200} />
+      <Text id={`question-${issue.id}`} label="The question people argue over" value={question} onChange={setQuestion} required={false} max={200} long />
       <div className="circle-form-row">
         {sides.map((side, index) => <Text key={index} id={`side-${issue.id}-${index}`} label={index ? 'The other side' : 'One side'} value={side} onChange={(value) => setSides(sides.map((item, at) => at === index ? value : item))} />)}
       </div>
@@ -207,7 +210,7 @@ function IssueForm({ issue, save, close }: { issue: PoliticsIssue; save: Save; c
 
 /** How far a local issue has got and how it went; a big question of the era is left to its times. */
 function HowFar({ issue, save }: { issue: PoliticsIssue; save: Save }) {
-  if (issue.kind !== 'local') return <p className="subtle">{issue.real ? 'History sets' : 'The times set'} how hot this gets.</p>
+  if (issue.kind !== 'local') return <p className="subtle">{stageSetBy(issue)}</p>
   const patch = (body: object) => void save(`/issues/${issue.id}`, body, 'PATCH')
   const outcome = issue.settled?.picked_by === 'user' ? String(issue.settled.picked) : ''
   const stage = issue.stage_by === 'you' ? issue.stage : 'app'
@@ -231,11 +234,15 @@ function PutAway({ title, children, close, away }: { title: string; children: Re
   )
 }
 
-function Text({ id, label, value, onChange, required = true, max = 80 }: { id: string; label: string; value: string; onChange: (value: string) => void; required?: boolean; max?: number }) {
+/** A short text field, or with `long` a two-line one that grows as it fills (a question can be a sentence). */
+function Text({ id, label, value, onChange, required = true, max = 80, long = false }: { id: string; label: string; value: string; onChange: (value: string) => void; required?: boolean; max?: number; long?: boolean }) {
+  const props = { id, value, required, maxLength: max }
   return (
     <div className="circle-field">
       <label htmlFor={id}>{label}</label>
-      <input id={id} value={value} required={required} maxLength={max} autoComplete="off" onChange={(event) => onChange(event.target.value)} />
+      {long
+        ? <textarea {...props} autoComplete="off" rows={2} className="politics-long" onChange={(event) => onChange(event.target.value)} />
+        : <input {...props} autoComplete="off" onChange={(event) => onChange(event.target.value)} />}
     </div>
   )
 }

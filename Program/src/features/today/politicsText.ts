@@ -4,9 +4,17 @@ const STAGES: Record<PoliticsStage, string> = {
   whispers: 'Whispers', open: 'Out in the open', heated: 'Heated', settled: 'Settled', ended: 'Over',
 }
 
-/** "Heated", or "Real history" for a real question of the city's year (it stays open). */
-export function stageLabel(issue: Pick<PoliticsIssue, 'stage' | 'real'>): string {
-  return issue.real && issue.stage !== 'ended' ? `${STAGES[issue.stage]} · real history` : STAGES[issue.stage]
+/** "Heated", "Heated · in the news" for one made from real local headlines, or "Heated · real history" for a real
+ * question of the city's year (both stay open). */
+export function stageLabel(issue: Pick<PoliticsIssue, 'stage' | 'real'> & { origin?: PoliticsIssue['origin'] }): string {
+  if (issue.stage === 'ended' || !issue.real) return STAGES[issue.stage]
+  return `${STAGES[issue.stage]} · ${issue.origin === 'news' ? 'in the news' : 'real history'}`
+}
+
+/** Why a big question's stage can't be set by hand. */
+export function stageSetBy(issue: Pick<PoliticsIssue, 'real' | 'origin'>): string {
+  if (issue.origin === 'news') return 'The news sets how hot this gets.'
+  return `${issue.real ? 'History sets' : 'The times set'} how hot this gets.`
 }
 
 /** The five views as a select lists them, strongest for the first side first. */
@@ -91,11 +99,11 @@ export function alliesText(id: string, data: Pick<TownPolitics, 'relations' | 'f
   return [allies && `Allies: ${allies}.`, rivals && `Rivals: ${rivals}.`].filter(Boolean).join(' ')
 }
 
-/** "Backing Wet: Tammany Hall, The garment unions." for each side some faction backs. */
+/** "Wet: Tammany Hall, The garment unions." for each side some faction backs, under "Who backs which side". */
 export function backingText(issue: Pick<PoliticsIssue, 'sides' | 'lines'>, factions: Pick<PoliticsFaction, 'id' | 'name'>[]): string[] {
   return issue.sides.map((side, index) => {
     const names = factions.filter((faction) => issue.lines[faction.id] === index).map((faction) => faction.name)
-    return names.length ? `Backing ${side.name}: ${names.join(', ')}.` : ''
+    return names.length ? `${side.name}: ${names.join(', ')}.` : ''
   }).filter(Boolean)
 }
 

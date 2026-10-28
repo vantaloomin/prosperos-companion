@@ -204,3 +204,73 @@ def test_the_chat_hears_what_people_are_arguing_about(client, jazz, provider):
     assert 'Local politics people are arguing about' in prompt
     assert 'Prohibition' in prompt and ('You want to' in prompt or 'You would rather' in prompt
                                         or "You don't much care" in prompt)
+
+
+# --- Real headlines (companion/life/politics_news.py) ---
+
+def test_headlines_are_sorted_into_topics_and_other_news_is_left_out():
+    from companion.life.politics_news import topic_of
+    assert topic_of('City council approves rezoning plan for Fells Point (The Banner, Oct 27)') == 'housing'
+    assert topic_of('Port workers vote to strike (WBAL, Oct 26)') == 'labor'
+    assert topic_of('Airbnb hosts face new rules') == 'short-lets'
+    assert topic_of('Mayor faces ethics probe') == 'city-hall'
+    assert topic_of('Orioles win in extra innings (ESPN, Oct 26)') is None
+    from companion.life.politics_news import dated
+    assert dated('Strike vote at the port (WBAL, Oct 26)', DAY) == ('Strike vote at the port (WBAL)', date(2026, 10, 26))
+    assert dated('Strike vote (WBAL, Dec 30)', date(2026, 10, 28)) == ('Strike vote (WBAL)', date(2025, 12, 30))
+    assert dated('Strike vote (WBAL)', DAY) == ('Strike vote (WBAL)', DAY)
+
+
+def observe(database, headlines, city='baltimore'):
+    from companion.database import encode, identifier
+    from companion.life import politics_news
+    observation_id, now = identifier(), database.now()
+    with database.connect(write=True) as connection:
+        connection.execute(
+            'INSERT INTO context_observations (id, service_name, category, purpose, tool, arguments, destination, '
+            "location, status, content, structured, requested_at, retrieved_at) VALUES (?, 'Built-in local pulse', "
+            "'news', 'companion_city', 'get_local_news', '{}', 'here', ?, 'ok', '', ?, ?, ?)",
+            (observation_id, encode({'city': city}), encode({'headlines': headlines}), now, now))
+    politics_news.remember(database, {'id': observation_id, 'category': 'news', 'purpose': 'companion_city',
+                                      'status': 'ok', 'location': {'city': city}, 'retrieved_at': now,
+                                      'structured': {'headlines': headlines}})
+    return observation_id
+
+
+def test_real_headlines_become_what_a_real_city_argues_about_until_the_lookup_is_deleted(client):
+    make(client, 'Stubborn and devout.', home_city='baltimore')
+    ok(client.get('/api/life/circle'))
+    database = client.app.state.database
+    observation = observe(database, ['Port workers vote to strike (WBAL, Oct 4)',
+                                     'Orioles win in extra innings (ESPN, Oct 4)'])
+    found = ok(client.get('/api/life/politics'))
+    news = next(issue for issue in found['issues'] if issue['origin'] == 'news')
+    assert news['title'] == 'Workers and wages' and news['real'] and news['stage'] == 'heated'
+    assert [(beat['on'], beat['text']) for beat in news['beats']] == [('2026-10-04', 'Port workers vote to strike (WBAL)')]
+    assert found['companion']['views'][news['id']]['by'] == 'world'
+    assert client.patch(f"/api/life/politics/issues/{news['id']}", json={'outcome': 0}).status_code == 422
+    with database.connect(write=True) as connection:
+        connection.execute('DELETE FROM context_observations WHERE id=?', (observation,))
+    found = ok(client.get('/api/life/politics'))
+    assert all(issue['origin'] != 'news' for issue in found['issues'])
+
+
+def test_headlines_never_reach_a_made_up_or_past_city(client, jazz):
+    observe(client.app.state.database, ['Port workers vote to strike'], city='new-york-1925')
+    found = ok(client.get('/api/life/politics'))
+    assert all(issue['origin'] != 'news' for issue in found['issues'])
+
+
+def test_a_headline_on_a_question_the_city_already_argues_about_joins_it(client):
+    make(client, 'Stubborn and devout.', home_city='baltimore')
+    ok(client.get('/api/life/circle'))
+    before = ok(client.get('/api/life/politics'))
+    era = next(issue for issue in before['issues'] if issue['kind'] == 'era')
+    topic = {'housing-crisis': 'Council fights over rezoning', 'bike-lanes': 'New bike lanes for Charles Street',
+             'policing': 'Police budget hearing draws a crowd', 'short-lets': 'Airbnb rules pass',
+             'automation': 'Robotaxis arrive downtown', 'climate': 'Heat wave strains the grid'}[era['id'][4:]]
+    observe(client.app.state.database, [topic])
+    found = ok(client.get('/api/life/politics'))
+    same = next(issue for issue in found['issues'] if issue['id'] == era['id'])
+    assert same['beats'][-1]['text'] == topic and same['stage'] == 'heated'
+    assert all(issue['origin'] != 'news' for issue in found['issues'])

@@ -840,15 +840,16 @@ class LifeEngine:
             LOG.exception('Fitting their hours failed.')
 
     async def quietly_observe(self):
-        """Real weather and local events for the companion's city, when the user allowed lookups for their
-        simulated day, and the daily culture digest when they turned it on. Fresh results are reused (an hour for
-        weather, twelve for events, a day for the digest); never while paused."""
+        """Real weather, local events and headlines for the companion's city, when the user allowed lookups for
+        their simulated day (headlines feed Talk of the town), and the daily culture digest when they turned it on.
+        Fresh results are reused (an hour for weather, twelve for events and headlines, a day for the digest); never
+        while paused."""
         if self.lookups is None:
             return
         with self.database.connect() as connection:
             if settings(connection)['paused_at'] is not None:
                 return
-        for category in ('weather', 'local_events'):
+        for category in ('weather', 'local_events', 'news'):
             try:
                 await self.lookups.run(category, 'companion_city', None, BACKGROUND_LOOKUP_DEADLINE)
             except Exception:  # noqa: BLE001 - the day keeps its typical weather and its own plans.

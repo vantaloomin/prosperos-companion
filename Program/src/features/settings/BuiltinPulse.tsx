@@ -16,14 +16,19 @@ interface Props {
 
 interface Switch { key: string; category: ContextCategory; label: string; hint: string; checked: boolean; place: string | null; runIn: (on: boolean) => ContextPurpose[] }
 
-/** The three switches: headlines for you, and games and air quality for your place and the companion's city. */
+/** The four switches: headlines for you and for the companion's city (Talk of the town), and games and air quality
+ * for your place and theirs. */
 function switches(news: ContextMapping | undefined, events: ContextMapping | undefined, yours: string, theirs: string | null, name: string): Switch[] {
   const on = weatherSwitches(events)
+  const told = weatherSwitches(news)
   const mine = yours || 'set your city or region above'
   return [
-    { key: 'news', category: 'news', label: `Local headlines (${mine})`, checked: Boolean(news?.enabled && news.approved), place: yours || null,
+    { key: 'news', category: 'news', label: `Local headlines (${mine})`, checked: told.mine, place: yours || null,
       hint: "When you ask about the news in chat: headlines for your city or the topic you name, what people are reading on Wikipedia, and your city's subreddit.",
-      runIn: (value) => value ? ['conversation'] : [] },
+      runIn: (value) => weatherRunIn(value, told.theirs) },
+    { key: 'politics', category: 'news', label: `Local politics in ${name}'s city (${theirs ?? 'not a real-world city'})`, checked: told.theirs, place: theirs,
+      hint: theirs ? `Twice a day in the background: the city's headlines about City Hall, rent, the police and the like become what people argue about on Today > Talk of the town.` : 'Only for a companion who lives in a real, modern city.',
+      runIn: (value) => weatherRunIn(told.mine, value) },
     { key: 'mine', category: 'local_events', label: `Games and air quality near you (${mine})`, checked: on.mine, place: yours || null,
       hint: "When you ask what's on nearby: pro games this week, recent scores and today's air quality.", runIn: (value) => weatherRunIn(value, on.theirs) },
     { key: 'theirs', category: 'local_events', label: `Games and air quality in ${name}'s city (${theirs ?? 'not a real-world city'})`, checked: on.theirs, place: theirs,
