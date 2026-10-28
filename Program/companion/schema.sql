@@ -2853,6 +2853,14 @@ CREATE TABLE IF NOT EXISTS model_mix_state (
   turn INTEGER NOT NULL DEFAULT 0
 );
 
+-- This world's own drama level (companion/life/world_drama.py); NULL or no row follows Settings > Realism. Kept in the
+-- world's own database: life_settings travels between worlds, this does not.
+CREATE TABLE IF NOT EXISTS world_life (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  drama INTEGER CHECK (drama BETWEEN 0 AND 3),
+  updated_at TEXT NOT NULL
+);
+
 -- Which image backends this world draws with (companion/images/world_choice.py). No row: every enabled backend, in
 -- the user's order. Backends follow the user from world to world; this row stays with its world.
 CREATE TABLE IF NOT EXISTS world_image_backends (

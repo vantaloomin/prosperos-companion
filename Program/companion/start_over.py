@@ -39,7 +39,7 @@ WORKSPACE = (
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
     'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge', 'authors_notes',
-    'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books', 'city_lore_choices', 'library_vectors', 'library_passages', 'library_books', 'observer', 'user_posts',
+    'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books', 'city_lore_choices', 'library_vectors', 'library_passages', 'library_books', 'observer', 'user_posts', 'world_life',
     'world_image_backends', 'world_model_routes', 'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.

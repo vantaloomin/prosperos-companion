@@ -155,6 +155,7 @@ def view(backend: dict, connection=None) -> dict:
             'family': family_of(config) if backend['kind'] == 'comfyui' else None,
             'model_files': {key: config.get(key, '') for key in FAMILIES[family_of(config)].files}
             if backend['kind'] == 'comfyui' else None,
+            'model_fit': config.get('unet_fit') if backend['kind'] == 'comfyui' else None,
             'style_loras': config.get('style_loras', []) if backend['kind'] == 'comfyui' else None,
             'sampler': {key: config.get(key) for key in SAMPLER_INPUTS} if backend['kind'] == 'comfyui' else None,
             'reference_workflow': bool(config.get('reference_workflow')), 'takes_reference': takes_reference(backend),
@@ -256,7 +257,7 @@ def choose_family(config: dict, kind, body):
     if kind != 'comfyui' or body.family is None:
         return
     if body.family != family_of(config):
-        for key in (*FILE_KEYS, *SAMPLER_INPUTS):
+        for key in (*FILE_KEYS, *SAMPLER_INPUTS, 'unet_fit'):
             config.pop(key, None)
     config['family'] = body.family
     if body.family == DEFAULT_FAMILY:

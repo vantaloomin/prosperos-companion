@@ -12,7 +12,7 @@ backend is off until the user sets it up, and text never waits for an image. The
 | --- | --- | --- | --- |
 | `comfyui` | `adapters/comfyui.py`: ComfyUI HTTP API (`/prompt`, `/history`, `/view`) | Safe; NSFW too when local | One job at a time |
 | `codex` | `adapters/codex.py`: the Codex CLI's built-in image generation (`codex exec`) | Safe only | One job at a time across every Codex backend |
-| `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations` or OpenRouter-style `/chat/completions` with image output | Safe only; NSFW too when the user switches it on (OpenRouter, NanoGPT and other APIs only) | Its configured limit (1 to 4) |
+| `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations`, OpenRouter's image API (`/images`), or a chat-style `/chat/completions` with image output | Safe only; NSFW too when the user switches it on (OpenRouter, NanoGPT and other APIs only) | Its configured limit (1 to 4) |
 
 - **ComfyUI** is local when its address is a loopback address, or when the user marks it as a
   machine they control. A remote address otherwise counts as hosted (F6). The app only connects to
@@ -125,11 +125,17 @@ backend is off until the user sets it up, and text never waits for an image. The
   user runs `codex login` and chooses **Signed in again**. Nothing is retried automatically. The
   raw output stays in `images/raw/` until it passes the image check. The path is labelled
   experimental and has only been tested against a stand-in `codex`, not a real login.
-- **Hosted APIs** default to OpenRouter (`chat` style), Google's OpenAI-compatible endpoint
+- **Hosted APIs** default to OpenRouter, Google's OpenAI-compatible endpoint
   (`images` style), the OpenAI API or NanoGPT (`https://nano-gpt.com/api/v1`, `images` style;
   **Check** reads its image list at `/images/models`, since its `/models` lists text models only,
   also for a NanoGPT address entered as another API). A base URL saved with a request path on the
   end (`/images/generations`, `/chat/completions`, `/models`, `/images`) is trimmed to the base.
+  An OpenRouter backend (any address at openrouter.ai, whatever style it was saved with) lists models
+  from `/images/models` and makes pictures with `POST /images`, sending the size as the nearest aspect
+  ratio and a reference picture as `input_references`. Its `/models` leaves out models that write no
+  text, so before 1.1.9 only the Google and OpenAI image models showed, and the chat route has no
+  endpoint for FLUX, Seedream, Recraft or Krea. SVG-only vector models are left out of the list, and a
+  model the list says reads text only is not picked for the onboarding portraits.
   Each backend's **Connection** panel edits its name, model, API key and address (another API's
   base URL or a ComfyUI address) in place; saving a new address accepts its disclosure again. Keys are stored in the OS vault as `image-backend:<id>`.
   Enabling a hosted backend, a Codex backend or a remote ComfyUI server requires accepting a
@@ -154,9 +160,26 @@ loaded. When they don't both fit on one card, ComfyUI runs very slowly from syst
 
 - **Two cards:** start ComfyUI with `--cuda-device 1` (the second card) and keep the text model on the
   bigger one.
-- **One card:** a smaller text model leaves room (Krea 2 in an NVFP4 file needs about 11 GB with its
-  text encoder; an FP8 file about 16 GB), or use a hosted image service for pictures.
-- **Small cards (under about 12 GB):** a hosted image service.
+- **One card:** a smaller text model leaves room (Krea 2 Turbo's FP8 file needs about 14 GB, its NVFP4
+  file about 9 GB and its Q4_K_M GGUF about 9 GB), or use a hosted image service for pictures.
+- **Cards under about 8 GB:** a hosted image service.
+
+### Krea 2 on smaller cards
+
+ComfyUI moves the text encoder off the card while the model draws, so Krea 2 needs about its diffusion
+model's file size plus 2 GB (sizes from the files on Comfy-Org/Krea-2 and the community GGUF repos,
+2026-10-28): bf16 26.5, FP8 14.2, NVFP4 9.1, Q6_K 11.9, Q5_K_M 10.3, Q4_K_M 9.0, Q3_K_M 7.6 GB.
+
+When the built-in FP8 file is too big for the biggest card, a Krea 2 server on this computer starts on
+one that fits (Vanta, 2026-10-28: the app decides, the user overrides): a fitting Turbo file the server
+already lists (Raw/Base and Edit models aside), else the one to download. NVFP4 comes first on a
+Blackwell card (RTX 50-series), which runs it natively; other cards get the largest GGUF that fits. The
+pick is kept as `unet_fit` (`hardware.fit_images`, run by Settings > Images, Check, the file list and
+saving a backend) and used only while the user hasn't chosen a model; Model files shows it as the
+default. A `.gguf` model loads through the ComfyUI-GGUF nodes' `UnetLoaderGGUF` in place of
+`UNETLoader` (the one node swapped); their file list is merged into the model choices, and Check names
+the nodes when the server lacks them. They need the `gguf` Python package, so the app doesn't install
+them.
 
 Settings > Models > This computer checks this for you (see [models.md](models.md#this-computer)), and
 Settings > Images repeats any picture warnings.
@@ -330,8 +353,8 @@ step can be skipped and run again from the Character page (**Profile pictures**)
   warm and so on) and the two outfits are a fixed pick for that companion from a short list. No
   model writes anything; the description and all three shots can be edited before sending.
 - Pictures 2 and 3 each send picture 1 along as a reference, so the set shows one person. The whole set goes to the first enabled backend that can take a reference picture:
-  **Codex** (attached with `codex exec --image`), a **chat-style API** such as OpenRouter (the
-  picture goes in the message), the **OpenAI API** (`/images/edits`), or a **ComfyUI** server with
+  **Codex** (attached with `codex exec --image`), **OpenRouter** (the picture goes in
+  `input_references`) or another chat-style API (the picture goes in the message), the **OpenAI API** (`/images/edits`), or a **ComfyUI** server with
   its *reference workflow*, the built-in one or the user's own with `{{reference_image}}` as a
   LoadImage node's image (the app uploads the picture through `/upload/image`). Google's OpenAI-compatible endpoint and other `images`-style APIs
   cannot take one.

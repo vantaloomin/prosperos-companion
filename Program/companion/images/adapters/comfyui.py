@@ -59,6 +59,9 @@ FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoad
                # The reference workflow's own model, where a family has one; unset means the same as unet_name.
                'ref_unet_name': ('UNETLoader', 'unet_name')}
 REFERENCE_ONLY = ('ref_unet_name',)
+# A .gguf model file loads through the ComfyUI-GGUF nodes' loader instead of UNETLoader (Vanta, 2026-10-28: one node
+# swapped), so smaller cards can use GGUF quantizations. Its list holds the .gguf files in diffusion_models and unet.
+GGUF_LOADER = 'UnetLoaderGGUF'
 # A Krea 2 Edit model reads the reference by itself, so the Identity Edit LoRA is left out for one and
 # the reference counts for more (Vanta's Krea 2 Reference workflow, 2026-10-13).
 EDIT_MODEL = re.compile(r'edit', re.IGNORECASE)
@@ -69,7 +72,8 @@ NODE_PACKS = {
        for name in ('Krea2EditModelPatch', 'Krea2EditGroundedEncode')},
     **{name: ('IPAdapter Plus', 'https://github.com/cubiq/ComfyUI_IPAdapter_plus')
        for name in ('IPAdapterUnifiedLoader', 'IPAdapterAdvanced')},
-    'ApplyCosmosReferenceLatent': ('Cosmos Reference', 'https://github.com/Mirumo0u0/ComfyUI-Cosmos-Reference')}
+    'ApplyCosmosReferenceLatent': ('Cosmos Reference', 'https://github.com/Mirumo0u0/ComfyUI-Cosmos-Reference'),
+    GGUF_LOADER: ('ComfyUI-GGUF', 'https://github.com/city96/ComfyUI-GGUF')}
 # Files a node loads by preset rather than by name: IPAdapter Plus's loader finds its models by name in their
 # folders, which its own loader nodes list (src/features/settings/modelFiles.ts PRESET_FILES).
 PRESET_FILES = {'IPAdapterUnifiedLoader': (
@@ -197,7 +201,7 @@ def built_in(config, reference=False) -> dict | None:
     # The reference model comes last, so it replaces the main one in the reference workflow only.
     keys = [key for key in family.files if key not in REFERENCE_ONLY] + \
         ([key for key in family.files if key in REFERENCE_ONLY] if reference else [])
-    chosen = [(*FILE_INPUTS[key], config[key]) for key in keys if config.get(key)]
+    chosen = [(*FILE_INPUTS[key], file) for key in keys if (file := chosen_file(config, key))]
     chosen += [('KSampler', key, config[key]) for key in SAMPLER_INPUTS if config.get(key) not in (None, '')]
     for class_type, field, value in chosen:
         for node in workflow.values():
@@ -205,7 +209,27 @@ def built_in(config, reference=False) -> dict | None:
                 node['inputs'][field] = value
     if reference and EDIT_MODEL.search(config.get('ref_unet_name') or ''):
         without_identity_lora(workflow)
+    for node in workflow.values():
+        if node['class_type'] == 'UNETLoader' and str(node['inputs'].get('unet_name', '')).lower().endswith('.gguf'):
+            node['class_type'] = GGUF_LOADER
+            node['inputs'] = {'unet_name': node['inputs']['unet_name']}
     return workflow
+
+
+def fit_problems(missing: list[str], config) -> list[str]:
+    """The raw loader line for the model the app picked for the graphics card, when ComfyUI lacks it, said plainly
+    instead (`fit_line`, from companion/images/routes.py; Iris, 2026-10-28)."""
+    fit = config.get('unet_fit')
+    if not fit or config.get('unet_name') or not config.get('fit_line'):
+        return missing
+    raw = {f'Missing file or option for {loader}.unet_name: {fit}.' for loader in ('UNETLoader', GGUF_LOADER)}
+    return [config['fit_line'] if line in raw else line for line in missing]
+
+
+def chosen_file(config, key) -> str | None:
+    """The user's file for a loader input; for the model, else the one the app picked for this computer's graphics
+    card (`unet_fit`, companion/hardware.py fit_images)."""
+    return config.get(key) or (config.get('unet_fit') if key == 'unet_name' else None)
 
 
 def without_identity_lora(workflow: dict):
@@ -240,7 +264,7 @@ def model_file(config) -> str:
     """The diffusion model or checkpoint the built-in workflow loads."""
     family = family_of(config)
     key = 'ckpt_name' if 'ckpt_name' in FAMILIES[family].files else 'unet_name'
-    return config.get(key) or default_files(family)[key]
+    return chosen_file(config, key) or default_files(family)[key]
 
 
 def options_of(spec) -> list | None:
@@ -327,6 +351,42 @@ def output_images(entry) -> list[dict]:
     for output in (entry.get('outputs') or {}).values():
         images += [image for image in output.get('images', []) if image.get('type', 'output') == 'output']
     return images
+
+
+# Where ComfyUI looks for the file each loader input names, for a rejection that says which file is missing.
+MODEL_FOLDERS = {'unet_name': 'diffusion_models', 'ckpt_name': 'checkpoints', 'vae_name': 'vae', 'lora_name': 'loras',
+                 'clip_name': 'text_encoders', 'clip_name1': 'text_encoders', 'clip_name2': 'text_encoders',
+                 'clip_name3': 'text_encoders', 'clip_name4': 'text_encoders'}
+
+
+def rejection_text(body: dict) -> str:
+    """Why ComfyUI refused the workflow, naming the node and the file or setting at fault (its `node_errors`), and
+    what to do about it. Its own top line ("Prompt outputs failed validation") says only that something is wrong."""
+    for node_id, found in (body.get('node_errors') or {}).items():
+        if text := node_rejection(node_id, found or {}):
+            return text
+    error = body.get('error') if isinstance(body.get('error'), dict) else {}
+    if error.get('type') == 'missing_node_type':
+        return (f"ComfyUI is missing a node the workflow uses: {error.get('message') or 'unknown node'}. Run the "
+                'compatibility check in Settings > Images to see what to install.')
+    return f"ComfyUI rejected the workflow: {error.get('message') or 'invalid workflow'}. " \
+        'Run the compatibility check in Settings.'
+
+
+def node_rejection(node_id: str, found: dict) -> str:
+    """One refused node's first error: a model file ComfyUI does not have is named with the folder it goes in."""
+    node = found.get('class_type') or f'node {node_id}'
+    for error in found.get('errors') or []:
+        extra = error.get('extra_info') or {}
+        name, value = extra.get('input_name'), extra.get('received_value')
+        if error.get('type') == 'value_not_in_list' and name in MODEL_FOLDERS and isinstance(value, str):
+            return (f"ComfyUI does not have {value}, which the workflow's {node} node loads. Put it in ComfyUI's "
+                    f"models/{MODEL_FOLDERS[name]} folder and restart ComfyUI, or choose a model it has in "
+                    'Settings > Images.')
+        detail = str(error.get('details') or error.get('message') or 'invalid input')
+        detail = re.sub(r'\s+not in \[.*', ' is not one it offers', detail, flags=re.DOTALL)[:200]  # not every option
+        return f"ComfyUI rejected the workflow's {node} node: {detail}. Run the compatibility check in Settings."
+    return ''
 
 
 def failure_text(entry) -> str:
@@ -423,9 +483,7 @@ class ComfyAdapter:
         response = await self.call(client, 'POST', '/prompt', json={'prompt': graph, 'client_id': uuid4().hex})
         body = response.json() if response.headers.get('content-type', '').startswith('application/json') else {}
         if response.status_code == 400 or body.get('node_errors'):
-            error = (body.get('error') or {}).get('message') if isinstance(body.get('error'), dict) else None
-            raise AdapterError('incompatible', f"ComfyUI rejected the workflow: {error or 'invalid workflow'}. "
-                               'Run the compatibility check in Settings.')
+            raise AdapterError('incompatible', rejection_text(body))
         if not response.is_success or 'prompt_id' not in body:
             raise AdapterError('failed', f'ComfyUI did not accept the request (HTTP {response.status_code}).')
         return body['prompt_id']
@@ -518,6 +576,7 @@ class ComfyAdapter:
                                       style_loras(config, {'comfy_name': config.get('lora_name')}))
         if config.get('reference_workflow'):
             missing += follows
+        missing = fit_problems(missing, config)
         # Users never see the template's file name, so it reads as "the built-in workflow".
         shown = f'built-in {FAMILIES[family_of(config)].label}' if name in TEMPLATE_NAMES else name
         if missing:
@@ -551,8 +610,10 @@ class ComfyAdapter:
         found = {}
         inputs = {key: FILE_INPUTS[key] for key in FAMILIES[family_of(config)].files}
         async with self.client(config['base_url']) as client:
-            for class_type in dict.fromkeys([*(class_type for class_type, _ in inputs.values()), LORA_INPUT[0],
-                                             'KSampler']):
+            loaders = [class_type for class_type, _ in inputs.values()]
+            # A server without the ComfyUI-GGUF nodes answers 404 for their loader, which lists nothing.
+            for class_type in dict.fromkeys([*loaders, *([GGUF_LOADER] if 'UNETLoader' in loaders else []),
+                                             LORA_INPUT[0], 'KSampler']):
                 response = await self.call(client, 'GET', f'/object_info/{class_type}')
                 try:
                     found[class_type] = response.json() if response.is_success else {}
@@ -561,4 +622,9 @@ class ComfyAdapter:
                 if not isinstance(found[class_type], dict):
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.')
         lists = {**inputs, 'lora': LORA_INPUT, **{key: ('KSampler', key) for key in SAMPLER_LISTS}}
-        return {key: input_options(found[class_type], class_type, name) for key, (class_type, name) in lists.items()}
+        listed = {key: input_options(found[class_type], class_type, name) for key, (class_type, name) in lists.items()}
+        for key in ('unet_name', 'ref_unet_name'):
+            if key in listed:
+                listed[key] += [name for name in input_options(found.get(GGUF_LOADER, {}), GGUF_LOADER, 'unet_name')
+                                if name not in listed[key]]
+        return listed

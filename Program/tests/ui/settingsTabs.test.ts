@@ -79,7 +79,10 @@ test('prompts are grouped in order and their placeholders explained', () => {
 test('everything that dials realism down is on the Realism tab, and search finds it there', () => {
   const tab = (query: string) => searchSettings(query, true).map((match) => match.tab.id)
   assert.equal(availableTabs(true).findIndex((item) => item.id === 'realism'), availableTabs(true).findIndex((item) => item.id === 'life') + 1)
-  for (const query of ['never closer than', 'closeness', 'cooling', 'hidden values', 'moods', 'odds', 'paced replies', 'drama', 'off plan', 'realism', 'haircut', 'hair colour', 'pets', 'vet', 'life admin', 'guests', 'retirement', 'mortgage']) {
+  // Drama also finds one world's own level, in Life & cities > This world (companion/life/world_drama.py).
+  const drama = searchSettings('drama', true).map((match) => match.section.heading)
+  assert.ok(drama.includes('world-life-heading') && drama.includes('pace-heading'))
+  for (const query of ['never closer than', 'closeness', 'cooling', 'hidden values', 'moods', 'odds', 'paced replies', 'off plan', 'realism', 'haircut', 'hair colour', 'pets', 'vet', 'life admin', 'guests', 'retirement', 'mortgage']) {
     assert.ok(tab(query).length && tab(query).every((id) => id === 'realism'), query)
   }
   assert.equal(pickTab('realism', true), 'realism')

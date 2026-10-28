@@ -44,7 +44,7 @@ from companion import consequences
 from companion.clock import parse, stamp, zone
 from companion.database import identifier, many, optional
 from companion.errors import require
-from companion.life import own_plans
+from companion.life import own_plans, world_drama
 from companion.world import catalog
 
 ACTIVE = True
@@ -314,8 +314,7 @@ def just_friends(connection, companion_id: str) -> bool:
 
 
 def drama(connection) -> int:
-    row = optional(connection, 'SELECT drama FROM life_settings WHERE id=1')
-    return row['drama'] if row else 1
+    return world_drama.level(connection)
 
 
 # The ladder and where a pair is on it -----------------------------------------------------------------------------

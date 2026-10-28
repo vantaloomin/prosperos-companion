@@ -61,6 +61,8 @@ export interface ChatPhoto {
   in_feed: boolean
   /** Sent without being asked. */
   unasked: boolean
+  /** Taken out of the chat by the user; the chat shows nothing, or Undo while it is still open. */
+  removed?: boolean
   /** The shape it is made in; the chat holds that space while it loads. Older servers leave it out. */
   aspect?: 'square' | 'landscape' | 'portrait'
   /** A meme's picture: made by an image model, a template on this computer, or a reaction GIF (companion/images/gifs.py). */
@@ -497,6 +499,10 @@ export interface LifeSettings {
   on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
+  /** This world's own drama level (companion/life/world_drama.py); null follows `drama`, which every world shares. */
+  world_drama: number | null
+  /** Their companion is the only one in this world, so storylines start a little more often for them. */
+  alone: boolean
   /** Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy. */
   upkeep_realism: number
   /** Looks that change (companion/life/grooming.py): never (0), now and then, like real life (2), often (3). */
@@ -1025,6 +1031,8 @@ export interface ImageBackend {
   family: ImageFamily | null
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
+  // The smaller Krea 2 model file the app picked for this computer's graphics card, used while no model is chosen.
+  model_fit: string | null
   // ComfyUI: LoRAs applied after the character's own, in order; null for other kinds.
   style_loras: StyleLora[] | null
   // ComfyUI: the built-in workflow's sampler; null in a field means the workflow's own value.
