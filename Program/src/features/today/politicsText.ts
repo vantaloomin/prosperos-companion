@@ -99,11 +99,11 @@ export function alliesText(id: string, data: Pick<TownPolitics, 'relations' | 'f
   return [allies && `Allies: ${allies}.`, rivals && `Rivals: ${rivals}.`].filter(Boolean).join(' ')
 }
 
-/** "Backing Wet: Tammany Hall, The garment unions." for each side some faction backs. */
+/** "Wet: Tammany Hall, The garment unions." for each side some faction backs, under "Who backs which side". */
 export function backingText(issue: Pick<PoliticsIssue, 'sides' | 'lines'>, factions: Pick<PoliticsFaction, 'id' | 'name'>[]): string[] {
   return issue.sides.map((side, index) => {
     const names = factions.filter((faction) => issue.lines[faction.id] === index).map((faction) => faction.name)
-    return names.length ? `Backing ${side.name}: ${names.join(', ')}.` : ''
+    return names.length ? `${side.name}: ${names.join(', ')}.` : ''
   }).filter(Boolean)
 }
 

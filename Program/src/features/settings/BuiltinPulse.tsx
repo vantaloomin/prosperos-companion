@@ -27,7 +27,7 @@ function switches(news: ContextMapping | undefined, events: ContextMapping | und
       hint: "When you ask about the news in chat: headlines for your city or the topic you name, what people are reading on Wikipedia, and your city's subreddit.",
       runIn: (value) => weatherRunIn(value, told.theirs) },
     { key: 'politics', category: 'news', label: `Local politics in ${name}'s city (${theirs ?? 'not a real-world city'})`, checked: told.theirs, place: theirs,
-      hint: theirs ? `Twice a day in the background: ${theirs}'s headlines about City Hall, rent, the police and the like become what people argue about on Today > Talk of the town.` : 'Only for a companion who lives in a real, modern city.',
+      hint: theirs ? `Twice a day in the background: the city's headlines about City Hall, rent, the police and the like become what people argue about on Today > Talk of the town.` : 'Only for a companion who lives in a real, modern city.',
       runIn: (value) => weatherRunIn(told.mine, value) },
     { key: 'mine', category: 'local_events', label: `Games and air quality near you (${mine})`, checked: on.mine, place: yours || null,
       hint: "When you ask what's on nearby: pro games this week, recent scores and today's air quality.", runIn: (value) => weatherRunIn(value, on.theirs) },

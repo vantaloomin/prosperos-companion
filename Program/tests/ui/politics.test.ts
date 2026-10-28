@@ -30,7 +30,7 @@ test('factions name their allies, rivals and the side they back', () => {
     { a: 'league', b: 'unions', stance: 0, by: 'world' as const }]
   assert.equal(alliesText('hall', { factions: factions as never, relations }), 'Allies: The unions. Rivals: The League.')
   assert.equal(alliesText('unions', { factions: factions as never, relations }), 'Allies: Tammany Hall.')
-  assert.deepEqual(backingText({ sides, lines: { hall: 0, league: 1, unions: 0 } }, factions), ['Backing Wet: Tammany Hall, The unions.', 'Backing Dry: The League.'])
+  assert.deepEqual(backingText({ sides, lines: { hall: 0, league: 1, unions: 0 } }, factions), ['Wet: Tammany Hall, The unions.', 'Dry: The League.'])
 })
 
 test('a settled issue says how it went, and when the user picked it', () => {
