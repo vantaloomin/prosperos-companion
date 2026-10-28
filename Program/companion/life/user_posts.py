@@ -7,7 +7,10 @@ of the user); who joins in, and when, follows from the post, the people and the 
 - each companion, main or stepped back, the likelier the closer the user is to them (memory/closeness.py), and
   by their manner (life/social.py `manner`): someone reserved seldom comments, and in few, dry words;
 - each companion's circle, friends of friends: they know the user through that companion, so the closer the
-  user and the companion, the more their circle notices. Their likes and comments come more slowly.
+  user and the companion, and the closer the companion and that person, the more they notice. Their likes and
+  comments come more slowly;
+- now and then, one step further out: a circle person's own people (life/network.py), the closer the user is to
+  the companion and the companion to that circle person, the likelier. Slower still.
 
 That is how the user gets to know friends of friends: by posting, and by being close to the people who know them.
 """
@@ -18,7 +21,8 @@ from datetime import datetime, timedelta
 from companion.clock import parse, stamp
 from companion.database import identifier, many, one, optional
 from companion.errors import require
-from companion.life import social
+from companion.life import circle, network, social
+from companion.memory import pairs
 from companion.world.generators import pick, unit
 
 USER = 'user'
@@ -28,7 +32,13 @@ LIKES = (0.4, 0.55, 0.7, 0.8, 0.9)
 COMMENTS = (0.12, 0.2, 0.3, 0.4, 0.5)
 # How much of a companion's circle notices the user's posts, by the user's stage with that companion.
 REACH = (0.1, 0.2, 0.35, 0.5, 0.65)
-COMPANION_WINDOW, CIRCLE_WINDOW = timedelta(hours=4), timedelta(hours=24)
+# How much more a circle person notices by how close the companion feels to them (memory/pairs.py), "Just met" first:
+# someone the companion has only just met hardly knows the user exists.
+TIE = (0.3, 0.6, 1.0, 1.2, 1.4)
+# Their own people, one step further out, notice only a little of what that circle person would.
+FAR = 0.15
+FAR_LIKE = 0.45
+COMPANION_WINDOW, CIRCLE_WINDOW, FAR_WINDOW = timedelta(hours=4), timedelta(hours=24), timedelta(hours=48)
 MAX_COMMENTS = 4
 SICK = re.compile(r'\b(?:sick|ill|flu|fever|migraine|throwing up|hospital)\b', re.IGNORECASE)
 DOWN = re.compile(r'\b(?:sad|tired|exhausted|rough|awful|terrible|stressed|lonely|miss(?:ing)?|worst|crying|'
@@ -41,6 +51,8 @@ LINES = {
     'friendly': ('Love this!', 'Ha, same.', 'Nice!', 'Good to see you on here.', 'This is great.',
                  "Any friend of {friend}'s is a friend of mine.", 'Okay, this is cute.', 'Yes!!', '😂',
                  '{friend} has told me about you.'),
+    # One step further out: they have only heard of the user, so nothing that claims to know them.
+    'far': ('Nice!', 'Love this!', 'Ha, same.', 'This is great.', 'Yes!!', '😂', 'Oh fun.', 'Good one.'),
     'question': ('Good question.', 'Following. I want to know too.', 'Ooh. Tell us what you pick.', 'Hmm, hard one.',
                  'Asking the real questions.'),
     'sick': social.COMMENTS['sick'],
@@ -102,8 +114,8 @@ def any_posts(connection) -> bool:
 # Who joins in ----------------------------------------------------------------------------------
 
 def crowd(connection, now: datetime) -> list[dict]:
-    """Everyone who can see the user's posts, with their chances to like and comment: every companion, and every
-    companion's circle. Someone in two circles (a shared person) joins in once."""
+    """Everyone who can see the user's posts, with their chances to like and comment: every companion, every
+    companion's circle, and the circle's own people. Someone in two circles (a shared person) joins in once."""
     from companion.characters import by_id
     result, seen = [], set()
     for row in many(connection, 'SELECT id FROM companions WHERE active_version_id IS NOT NULL ORDER BY created_at'):
@@ -119,24 +131,56 @@ def crowd(connection, now: datetime) -> list[dict]:
                        'like': min(LIKES[level - 1] * likes, social.KNOWN_MOST[0]),
                        'comment': min(COMMENTS[level - 1] * comments, social.KNOWN_MOST[1])})
         seen.add(name)
-        result += circle_crowd(connection, companion, level, seen)
+        circle_people = circle_crowd(connection, companion, level, now, seen)
+        result += circle_people + far_crowd(connection, companion, circle_people, seen)
     return result
 
 
-def circle_crowd(connection, companion: dict, level: int, seen: set[str]) -> list[dict]:
+def circle_crowd(connection, companion: dict, level: int, now: datetime, seen: set[str]) -> list[dict]:
     first = companion['version']['name'].strip().split()[0] if companion['version']['name'].strip() else ''
+    rows = {row['id']: row for row in circle.people(connection, companion['active_timeline_id'])}
     found = []
     for person in social.active_people(connection, companion['active_timeline_id']).values():
-        if person['name'] in seen:
+        if person['name'] in seen or person['id'] not in rows:
             continue
         seen.add(person['name'])
-        reach = REACH[level - 1]
+        reach = REACH[level - 1] * TIE[tie(connection, companion, rows[person['id']], now) - 1]
         found.append({'key': person['id'], 'name': person['name'], 'kind': 'person', 'style': '',
                       'role': f"{first}'s {person['role']}" if first and person['role'] else '', 'friend': first,
-                      'since': companion['created_at'], 'window': CIRCLE_WINDOW,
-                      'like': social.LIKELY.get(person['role'], 0.45) * reach,
-                      'comment': social.COMMENT_CHANCE * reach})
+                      'since': companion['created_at'], 'window': CIRCLE_WINDOW, 'reach': reach,
+                      'row': rows[person['id']],
+                      'like': min(social.LIKELY.get(person['role'], 0.45) * reach, 1),
+                      'comment': min(social.COMMENT_CHANCE * reach, 1)})
     return found
+
+
+def far_crowd(connection, companion: dict, circle_people: list[dict], seen: set[str]) -> list[dict]:
+    """Each circle person's own people (life/network.py), one step further out, built the same way every time."""
+    if not circle_people:
+        return []
+    found, data, taken = [], network.city(connection, companion), network.names_taken(connection, companion)
+    for friend in circle_people:
+        reach = friend.pop('reach') * FAR
+        root = network.root(friend.pop('row'))
+        for person in network.their_people(root, data, taken):
+            # Their given name alone could be someone already here (a circle person, a companion): only once.
+            if person['full'] in seen or person['name'] in seen:
+                continue
+            seen.add(person['full'])
+            found.append({'key': person['key'], 'name': person['full'], 'kind': 'person', 'style': '', 'far': True,
+                          'role': person['short'], 'friend': friend['name'], 'since': friend['since'],
+                          'window': FAR_WINDOW, 'like': min(FAR_LIKE * reach, 1),
+                          'comment': min(social.COMMENT_CHANCE * reach, 1)})
+    return found
+
+
+def tie(connection, companion: dict, row: dict, now: datetime) -> int:
+    """How close the companion feels to someone in their circle, 3 (no change) when it cannot be worked out."""
+    try:
+        return pairs.closeness(connection, pairs.companion_key(companion['id']), row['seed'], now) or 3
+    except Exception:  # noqa: BLE001 - one person's closeness never keeps the feed from opening.
+        LOG.exception('Could not work out closeness between %s and %s for the feed', companion['id'], row['id'])
+        return 3
 
 
 def stage(connection, companion: dict, now: datetime) -> int:
@@ -157,6 +201,8 @@ def pool(text: str, who: dict) -> tuple[str, ...]:
         return LINES[tone]
     if text.rstrip().endswith('?'):
         return LINES['question']
+    if who.get('far'):
+        return LINES['far']
     return LINES['close' if who['kind'] == 'companion' else 'friendly']
 
 
