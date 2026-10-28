@@ -216,6 +216,16 @@ def built_in(config, reference=False) -> dict | None:
     return workflow
 
 
+def fit_problems(missing: list[str], config) -> list[str]:
+    """The raw loader line for the model the app picked for the graphics card, when ComfyUI lacks it, said plainly
+    instead (`fit_line`, from companion/images/routes.py; Iris, 2026-10-28)."""
+    fit = config.get('unet_fit')
+    if not fit or config.get('unet_name') or not config.get('fit_line'):
+        return missing
+    raw = {f'Missing file or option for {loader}.unet_name: {fit}.' for loader in ('UNETLoader', GGUF_LOADER)}
+    return [config['fit_line'] if line in raw else line for line in missing]
+
+
 def chosen_file(config, key) -> str | None:
     """The user's file for a loader input; for the model, else the one the app picked for this computer's graphics
     card (`unet_fit`, companion/hardware.py fit_images)."""
@@ -532,6 +542,7 @@ class ComfyAdapter:
                                       style_loras(config, {'comfy_name': config.get('lora_name')}))
         if config.get('reference_workflow'):
             missing += follows
+        missing = fit_problems(missing, config)
         # Users never see the template's file name, so it reads as "the built-in workflow".
         shown = f'built-in {FAMILIES[family_of(config)].label}' if name in TEMPLATE_NAMES else name
         if missing:

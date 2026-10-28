@@ -57,12 +57,24 @@ def test_prefers_a_fitting_file_comfyui_already_has():
 
 
 def test_a_too_big_file_names_the_one_that_fits():
-    image = {'label': 'Local ComfyUI', 'base_url': 'http://127.0.0.1:8188', 'unet': 'krea2_turbo_fp8_scaled.safetensors',
+    image = {'id': 'b1', 'label': 'Local ComfyUI', 'base_url': 'http://127.0.0.1:8188',
+             'unet': 'krea2_turbo_fp8_scaled.safetensors',
              'size_gb': hardware.image_size_gb('krea2_turbo_fp8_scaled.safetensors'), 'krea2': True}
-    text = hardware.check(computer(RTX_5070), [], [image], {})[0]['text']
-    assert 'krea2_turbo_nvfp4.safetensors (about 9.1 GB) fits' in text and 'NVFP4)' not in text
+    # The server lacks it: where to put it, no button.
+    found = hardware.check(computer(RTX_5070), [], [image], {}, {image['base_url']: ['flux.safetensors']})[0]
+    assert found['text'] == ('Local ComfyUI: krea2_turbo_fp8_scaled.safetensors needs about 14 GB, and the NVIDIA GeForce '
+                             'RTX 5070 has 12 GB. ComfyUI will keep the rest in system memory, so pictures will be slow. '
+                             'krea2_turbo_nvfp4.safetensors (about 9.1 GB) fits. Put it in ComfyUI\'s '
+                             'models/diffusion_models folder, then press Check.')
+    assert 'action' not in found and found['after'] == 'Or use a hosted image service.'
+    # The server has it: one press uses it.
+    listed = {image['base_url']: ['krea2_turbo_nvfp4.safetensors']}
+    found = hardware.check(computer(RTX_5070), [], [image], {}, listed)[0]
+    assert found['action'] == {'label': 'Use krea2_turbo_nvfp4', 'backend_id': 'b1',
+                               'unet_name': 'krea2_turbo_nvfp4.safetensors'}
+    assert found['text'].endswith('fits.')
     lines = hardware.can_run(computer(RTX_5070))
-    assert 'krea2_turbo_nvfp4.safetensors' in lines[1]
+    assert lines[1].startswith('Pictures: Krea 2 fits as krea2_turbo_nvfp4 (about 9.1 GB), but not beside')
 
 
 def test_the_pick_is_used_until_the_user_chooses_a_model():
@@ -84,16 +96,25 @@ def test_a_gguf_model_loads_through_the_gguf_loader():
     assert {node['class_type'] for node in mixed.values() if 'unet_name' in node['inputs']} == {'UNETLoader'}
 
 
+def test_the_check_names_the_gguf_nodes_when_comfyui_lacks_them():
+    workflow = built_in({'unet_name': 'krea2_turbo-Q4_K_M.gguf'})
+    assert 'Missing node: UnetLoaderGGUF (from the ComfyUI-GGUF nodes, https://github.com/city96/ComfyUI-GGUF).' in \
+        ComfyAdapter.node_problems({}, workflow)
+
+
 GGUF_FILES = {'UnetLoaderGGUF': {'input': {'required': {'unet_name': [['Krea 2\\krea2_turbo-Q4_K_S.gguf'], {}]}}}}
 
 
 class GgufStandIn(ComfyStandIn):
-    """A server with the ComfyUI-GGUF nodes and one Krea 2 GGUF file, and no UnetLoaderGGUF in the check's list."""
+    """A server with the ComfyUI-GGUF nodes and one Krea 2 GGUF file."""
 
     def object_info(self, request: httpx.Request):
         if request.url.path == '/object_info/UnetLoaderGGUF':
             return httpx.Response(200, json=GGUF_FILES)
-        return super().object_info(request)
+        response = super().object_info(request)
+        if request.url.path == '/object_info':
+            return httpx.Response(200, json={**response.json(), **GGUF_FILES})
+        return response
 
 
 @pytest.fixture
@@ -124,8 +145,14 @@ def test_a_new_krea_2_server_starts_on_a_file_its_card_holds(small_card):
     # Asking the card again keeps that pick.
     ok(small_card.get('/api/hardware?fresh=true'))
     assert saved_config(small_card, backend['id'])['unet_fit'] == 'Krea 2\\krea2_turbo-Q4_K_S.gguf'
-    check = ok(small_card.post(f"/api/images/backends/{backend['id']}/check"))
-    assert any('Missing node: UnetLoaderGGUF (from the ComfyUI-GGUF nodes' in line for line in check['details'])
+    # A picked file the server lacks is said plainly, not as a loader error.
+    ok(small_card.put(f"/api/images/backends/{backend['id']}", json={}))
+    with small_card.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE image_backends SET config=json_set(config, '$.unet_fit', 'krea2_turbo-Q3_K_M.gguf')")
+    details = ok(small_card.post(f"/api/images/backends/{backend['id']}/check"))['details']
+    assert "krea2_turbo-Q3_K_M.gguf (about 7.6 GB) isn't in ComfyUI yet. It's the Krea 2 file that fits this 10 GB card. " \
+        "Put it in ComfyUI's models/diffusion_models folder and add the ComfyUI-GGUF nodes, then press Check." in details
+    assert not any('unet_name' in line for line in details)
     # Another family drops the pick.
     ok(small_card.put(f"/api/images/backends/{backend['id']}", json={'family': 'zimage'}))
     assert 'unet_fit' not in saved_config(small_card, backend['id'])

@@ -150,6 +150,9 @@ async def check_backend(request: Request, backend_id: str):
     key = backends.backend_key(db(request), request.app.state.vault, backend)
     adapter = runner(request).adapters[backend['kind']]
     config = {**decode(backend['config']), **({'lora_name': lora['comfy_name']} if lora else {})}
+    card = hardware.best_card(request.app.state.hardware.computer())
+    if config.get('unet_fit') and not config.get('unet_name') and card:
+        config['fit_line'] = hardware.missing_fit_line(config['unet_fit'], card)
     return (await adapter.check(backend, config, key)).view()
 
 

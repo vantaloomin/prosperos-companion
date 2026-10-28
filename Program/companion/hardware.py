@@ -267,10 +267,10 @@ def can_run(computer: dict) -> list[str]:
 def picture_line(best: dict, file: str, picture: float) -> str:
     together = largest_text(best['usable_gb'] - picture)
     if together:
-        return (f'Pictures: Krea 2 ({file}) needs about {gb(picture)}. With it on the same card, keep the text model '
-                f'to about {together}B, or use a hosted image service.')
-    return (f'Pictures: Krea 2 ({file}) fits, but not beside a local text model. Use a hosted text model with local '
-            'pictures, or a hosted image service.')
+        return (f'Pictures: Krea 2 fits as {short_name(file)} (about {gb(picture)}). With it on the same card, keep the '
+                f'text model to about {together}B, or use a hosted image service.')
+    return (f'Pictures: Krea 2 fits as {short_name(file)} (about {gb(picture)}), but not beside a local text model. Use a '
+            'hosted text model with local pictures, or a hosted image service.')
 
 
 def local_text(connection) -> list[dict]:
@@ -295,7 +295,7 @@ def local_images(connection) -> list[dict]:
             continue
         config = decode(backend['config'])
         unet = model_file(config)
-        found.append({'label': backend['label'], 'base_url': config.get('base_url', ''), 'unet': unet,
+        found.append({'id': backend['id'], 'label': backend['label'], 'base_url': config.get('base_url', ''), 'unet': unet,
                       'size_gb': image_size_gb(unet), 'krea2': family_of(config) == 'krea2'})
     return found
 
@@ -319,8 +319,10 @@ def warning(area: str, text: str, tone='warning') -> dict:
     return {'area': area, 'tone': tone, 'text': text}
 
 
-def check(computer: dict, texts: list[dict], images: list[dict], devices: dict[str, str | None]) -> list[dict]:
-    """Warnings for the setup in use. `devices` maps a ComfyUI address to the card it reports."""
+def check(computer: dict, texts: list[dict], images: list[dict], devices: dict[str, str | None],
+          listed: dict[str, list[str] | None] | None = None) -> list[dict]:
+    """Warnings for the setup in use. `devices` maps a ComfyUI address to the card it reports, `listed` to the
+    model files it has (asked only for a model too big for its card)."""
     warnings = []
     gpus = sorted(computer['gpus'], key=lambda gpu: gpu['usable_gb'], reverse=True)
     memory = computer['memory_gb']
@@ -334,7 +336,7 @@ def check(computer: dict, texts: list[dict], images: list[dict], devices: dict[s
         return warnings
     warnings += [found for text in texts if (found := text_warning(text, gpus[0], memory))]
     biggest = max((text['size_gb'] or 0 for text in texts), default=0)
-    warnings += [found for image in images if (found := image_warning(image, gpus, biggest, devices))]
+    warnings += [found for image in images if (found := image_warning(image, gpus, biggest, devices, listed or {}))]
     return warnings
 
 
@@ -351,15 +353,14 @@ def text_warning(text: dict, best: dict, memory: float | None) -> dict | None:
                    f"{spill}. " + (f'A model of about {fits}B at 4-bit fits.' if fits else 'Consider a hosted service.'))
 
 
-def image_warning(image: dict, gpus: list[dict], biggest: float, devices: dict[str, str | None]) -> dict | None:
+def image_warning(image: dict, gpus: list[dict], biggest: float, devices: dict[str, str | None],
+                  listed: dict[str, list[str] | None]) -> dict | None:
     """Pictures too big for their card, or a local text model and pictures that can't share it."""
     best = gpus[0]
     index = device_index(devices.get(image['base_url']))
     card = next((gpu for gpu in gpus if gpu['index'] == index), best)
     if image['size_gb'] > card['usable_gb']:
-        return warning('images', f"{image['label']}: {image['unet']} needs about {gb(image['size_gb'])}, more than the "
-                       f"{card_text(card)}. ComfyUI keeps the rest in system memory, so pictures will be slow. "
-                       + smaller_text(card, image.get('krea2', False)))
+        return too_big(image, card, listed.get(image['base_url']))
     if not biggest or biggest + image['size_gb'] <= best['usable_gb']:
         return None
     others = [gpu for gpu in gpus[1:] if gpu['usable_gb'] >= image['size_gb']]
@@ -379,21 +380,58 @@ def image_warning(image: dict, gpus: list[dict], biggest: float, devices: dict[s
                    'keep the text model on the bigger card.', 'warning' if index is not None else 'tip')
 
 
-def smaller_text(card: dict, krea2: bool) -> str:
-    """What fits the card instead: a named Krea 2 file, else a hosted service."""
-    pick = krea_pick(card) if krea2 else None
+def too_big(image: dict, card: dict, listed: list[str] | None) -> dict:
+    """A picture model too big for its card (Iris, 2026-10-28): the Krea 2 file that fits, with a button to use it
+    when ComfyUI has it, else where to put it; a hosted service last."""
+    text = (f"{image['label']}: {image['unet']} needs about {gb(image['size_gb'])}, and the {card['name']} has "
+            f"{gb(card['memory_gb'])}. ComfyUI will keep the rest in system memory, so pictures will be slow.")
+    pick = krea_pick(card, listed) if image.get('krea2') else None
     if not pick:
-        return 'A hosted image service fits better.'
-    nodes = ' with the ComfyUI-GGUF nodes' if pick.endswith('.gguf') else ''
-    return f'{pick} (about {gb(image_size_gb(pick))}) fits{nodes}; pick it under Model files, or use a hosted image service.'
+        return warning('images', f'{text} A hosted image service fits better.')
+    text += f' {pick} (about {gb(image_size_gb(pick))}) fits.'
+    found = {**warning('images', text), 'after': 'Or use a hosted image service.'}
+    if listed and pick in listed and image.get('id'):
+        return {**found, 'action': {'label': f'Use {short_name(pick)}', 'backend_id': image['id'], 'unet_name': pick}}
+    return {**found, 'text': f'{text} {put_it(pick)}'}
+
+
+def put_it(file: str) -> str:
+    nodes = ' and add the ComfyUI-GGUF nodes' if file.lower().endswith('.gguf') else ''
+    return f"Put it in ComfyUI's models/diffusion_models folder{nodes}, then press Check."
+
+
+def missing_fit_line(file: str, card: dict) -> str:
+    """The check's line for the file the app picked when ComfyUI doesn't have it yet (Iris, 2026-10-28)."""
+    return (f"{file} (about {gb(image_size_gb(file))}) isn't in ComfyUI yet. It's the Krea 2 file that fits this "
+            f"{gb(card['memory_gb'])} card. {put_it(file)}")
+
+
+def short_name(file: str) -> str:
+    """A model file's name without its folder or extension: krea2_turbo_nvfp4."""
+    return re.sub(r'\.(safetensors|gguf)$', '', re.split(r'[\\/]', file)[-1], flags=re.IGNORECASE)
+
+
+def comfy_models(base_url: str) -> list[str] | None:
+    """The diffusion model files a ComfyUI server lists for its two loaders, or None when it can't be asked."""
+    found = []
+    try:
+        for loader in ('UNETLoader', 'UnetLoaderGGUF'):
+            response = httpx.get(f"{base_url.rstrip('/')}/object_info/{loader}", timeout=2, trust_env=False)
+            spec = (response.json().get(loader) or {}).get('input', {}).get('required', {}).get('unet_name') \
+                if response.is_success else None
+            found += [name for name in (spec[0] if spec and isinstance(spec[0], list) else []) if isinstance(name, str)]
+    except (httpx.HTTPError, ValueError, AttributeError):
+        return None
+    return found
 
 
 class Hardware:
     """Scans once and keeps the result for a few minutes; the scan runs nvidia-smi."""
 
-    def __init__(self, scanner=scan, device=comfy_device):
+    def __init__(self, scanner=scan, device=comfy_device, models=comfy_models):
         self.scanner = scanner
         self.device = device
+        self.models = models
         self.cached: tuple[float, dict] | None = None
 
     def computer(self, fresh=False) -> dict:
@@ -408,8 +446,11 @@ class Hardware:
             texts = local_text(connection)
             images = local_images(connection)
         devices = {image['base_url']: self.device(image['base_url']) for image in images} if len(computer['gpus']) > 1 else {}
+        card = best_card(computer)
+        listed = {image['base_url']: self.models(image['base_url']) for image in images
+                  if image['krea2'] and card and image['size_gb'] > card['usable_gb']}
         return {'computer': computer, 'can_run': can_run(computer), 'local_text': texts, 'local_images': images,
-                'warnings': check(computer, texts, images, devices)}
+                'warnings': check(computer, texts, images, devices, listed)}
 
 
 def summary(computer: dict) -> str:

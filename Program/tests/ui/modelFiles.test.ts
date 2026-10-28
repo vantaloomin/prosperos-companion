@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { FAMILIES, FAMILY_KEYS, familyOf, missingFrom, fileChoices, filesBody, filesLabel, TURBO, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, usesFit } from '../../src/features/settings/modelFiles.ts'
+import { FAMILIES, FAMILY_KEYS, familyOf, missingFrom, fileChoices, filesBody, filesLabel, TURBO, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, fitLine, shortName } from '../../src/features/settings/modelFiles.ts'
 import type { ModelFiles, ModelLink } from '../../src/types.ts'
 
 const DEFAULTS: ModelFiles = { unet_name: 'krea2_turbo_fp8_scaled.safetensors', clip_name: 'qwen3vl_4b_fp8_scaled.safetensors', clip_type: 'krea2', vae_name: 'qwen_image_vae.safetensors', ref_unet_name: '' }
@@ -101,5 +101,10 @@ test('the file list says when its model was picked for the graphics card', () =>
   assert.equal(filesLabel(NONE, fit), '(picked for this graphics card)')
   assert.equal(filesLabel(NONE, null), '(defaults)')
   assert.equal(filesLabel({ ...NONE, vae_name: 'mine.safetensors' }, fit), '(your choice)')
-  assert.ok(usesFit(fit, NONE) && !usesFit(fit, { ...NONE, unet_name: 'mine.safetensors' }) && !usesFit(null, NONE))
+  assert.equal(fitLine(fit, NONE, 11.9), 'On this 12 GB card it uses krea2_turbo_nvfp4, a smaller file that fits.')
+  assert.equal(fitLine('Krea 2\\krea2_turbo-Q3_K_M.gguf', NONE, 8), 'On this 8.0 GB card it uses krea2_turbo-Q3_K_M, a smaller file that fits.')
+  assert.equal(fitLine(fit, NONE, null), 'On this graphics card it uses krea2_turbo_nvfp4, a smaller file that fits.')
+  assert.equal(fitLine(fit, { ...NONE, unet_name: 'mine.safetensors' }, 12), null)
+  assert.equal(fitLine(null, NONE, 12), null)
+  assert.equal(shortName('Krea 2/krea2_turbo-Q4_K_M.gguf'), 'krea2_turbo-Q4_K_M')
 })
