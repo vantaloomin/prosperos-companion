@@ -1,5 +1,5 @@
 """Home and belongings API: what the companion lives with, and the user's edits to it."""
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Request
 from pydantic import Field
@@ -15,6 +15,8 @@ class ItemUpdate(Input):
     name: str | None = Field(default=None, min_length=1, max_length=80, pattern=r'\S')
     description: str | None = Field(default=None, max_length=300)
     variety: str | None = Field(default=None, max_length=40)
+    # Their home's quirks ("a smoky hearth"); an empty list clears them.
+    features: list[Annotated[str, Field(max_length=80)]] | None = Field(default=None, max_length=4)
 
 
 class ItemCreate(Input):

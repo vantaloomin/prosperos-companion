@@ -112,10 +112,16 @@ function EditForm({ item, view, act, onDone }: { item: HomeItem; view: HomeView;
   const [name, setName] = useState(item.name)
   const [description, setDescription] = useState(item.description)
   const [variety, setVariety] = useState(item.variety)
+  // Their home's quirks, picked by the app: the user rewrites or clears them. Rewriting the description without
+  // touching them clears them, since they were picked for the old home.
+  const [quirks, setQuirks] = useState<string | null>(null)
+  const isHome = item.kind === 'home'
   const options = varieties(view, item.kind)
+  const shownQuirks = quirks ?? (description.trim() === item.description ? (item.features ?? []).join(', ') : '')
   const save = async (event: FormEvent) => {
     event.preventDefault()
-    const body = { name: name.trim() || item.name, description: description.trim() || undefined, variety: options ? variety : undefined }
+    const features = isHome && quirks !== null ? quirks.split(/[,;]/).map((part) => part.trim()).filter(Boolean).slice(0, 4) : undefined
+    const body = { name: name.trim() || item.name, description: description.trim() || undefined, variety: options ? variety : undefined, features }
     if (await act(() => api(`/life/home/items/${item.id}`, body, 'PATCH'), 'Saved. Upcoming days use the new details.')) onDone()
   }
   return (
@@ -124,6 +130,11 @@ function EditForm({ item, view, act, onDone }: { item: HomeItem; view: HomeView;
       <input autoComplete="off" id={`home-name-${item.id}`} value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
       <label htmlFor={`home-description-${item.id}`}>Description</label>
       <input autoComplete="off" id={`home-description-${item.id}`} value={description} maxLength={300} onChange={(event) => setDescription(event.target.value)} />
+      {isHome && <>
+        <label htmlFor={`home-quirks-${item.id}`}>Quirks</label>
+        <input autoComplete="off" id={`home-quirks-${item.id}`} aria-describedby={`home-quirks-hint-${item.id}`} value={shownQuirks} maxLength={240} placeholder="Such as a smoky hearth, a window that sticks" onChange={(event) => setQuirks(event.target.value)} />
+        <small id={`home-quirks-hint-${item.id}`} className="subtle">Little things about the place, separated by commas. Pictures and replies use them. Leave empty for none.</small>
+      </>}
       {options && <VarietySelect id={`home-variety-${item.id}`} options={options} value={variety} onChange={setVariety} />}
       <div className="rename-row">
         <button type="submit" className="button primary">Save</button>

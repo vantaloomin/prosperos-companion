@@ -5,7 +5,8 @@ export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet',
 
 /** "A one-bedroom in a rowhouse in Fells Point, Baltimore". */
 export function homeTitle(item: HomeItem): string {
-  const text = item.city && !item.description.includes(item.city) ? `${item.description}, ${item.city}` : item.description
+  const description = item.description.replace(/[.\s]+$/, '')
+  const text = item.city && !description.includes(item.city) ? `${description}, ${item.city}` : description
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
