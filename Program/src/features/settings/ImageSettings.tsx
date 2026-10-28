@@ -10,8 +10,8 @@ import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
 import { HardwareWarnings } from './models/HardwareCheck'
-import { HARDWARE_KEY, useHardware } from './models/hardware'
-import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { HARDWARE_KEY, useHardware, type HardwareReport } from './models/hardware'
+import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, filesLabel, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, fitLine, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { MemeSettings } from './MemeSettings'
 import { ImageModelField } from './ImageModelField'
@@ -279,6 +279,7 @@ function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: 
 /** Which kind of model this server runs, so the built-in workflow, its files, sampling and prompt style suit it
  * (Vanta, 2026-10-13). Krea 2 until changed; saved on change. A workflow of the user's own runs whatever it says. */
 function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: object) => Promise<boolean> }) {
+  const hardware = useHardware()
   // What a switch replaced, so it can be undone (undo over confirm); only when the user had made choices.
   const [undo, setUndo] = useState<{ to: string; body: object; before: string; after: string | null } | null>(null)
   const family = familyOf(backend.family)
@@ -294,7 +295,7 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
     setUndo({ to: FAMILIES[next].sampling, body: before, before: was, after: null })
   }
   return <div className="form-stack family-picker">
-    <Field label="Model family" hint={familyHint(family, backend.custom_workflow)}>{(id, describedBy) => (
+    <Field label="Model family" hint={familyHint(family, backend.custom_workflow, fitLine(backend.model_fit, backend.model_files, biggestCard(hardware.data)))}>{(id, describedBy) => (
       <select id={id} aria-describedby={describedBy} value={backend.family ?? 'krea2'} onChange={(event) => void choose(event.target.value as ImageFamily)}>
         {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
       </select>
@@ -305,10 +306,15 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
   </div>
 }
 
+/** The memory of this computer's biggest graphics card, which the app picks model files for. */
+const biggestCard = (report: HardwareReport | undefined) =>
+  report?.computer.gpus.reduce<number | null>((most, gpu) => Math.max(most ?? 0, gpu.memory_gb), null) ?? null
+
 /** The dropdown's hint (Iris's wording). */
-function familyHint(family: ReturnType<typeof familyOf>, custom: boolean): string {
+function familyHint(family: ReturnType<typeof familyOf>, custom: boolean, fitted: string | null): string {
   if (custom) return 'Your own workflow is used for pictures; the family still sets the reference workflow.'
   const lines = [`Sets the built-in workflow, model files and sampling to ${family.sampling}'s. You can change any of them below.`]
+  if (fitted) lines.push(fitted)
   if (family.note) lines.push(family.note)
   return lines.join(' ')
 }
@@ -335,7 +341,7 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
   const store = async (body: ModelFiles) => { if (await save(body)) setDraft({}) }
   return (
     <details onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="subtle">Model files for the built-in workflow {isChosen(saved) ? '(your choice)' : '(defaults)'}</summary>
+      <summary className="subtle">Model files for the built-in workflow {filesLabel(saved, backend.model_fit)}</summary>
       <div className="form-stack">
         <p className="subtle">Pick the files your ComfyUI server has. The lists come from the server at this backend's address; nothing is downloaded or installed.</p>
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its files…</p>}

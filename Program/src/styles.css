@@ -2764,5 +2764,6 @@ p.breakup-line { align-items: center; }
 
 /* Settings > General > Updates: the link sits on the first line's right on wide windows, and on its own line under the text on a phone. */
 .update-check .notice > .text-button { align-self: flex-start; line-height: 1.55; }
+.notice .hardware-fix, .notice .hardware-after { display: block; margin-top: 8px; }
 @media (min-width: 721px) { .update-check .notice > .text-button { padding-block: 0; } }
 @media (max-width: 720px) { .update-check .notice > .text-button { flex-basis: 100%; margin-left: 23px; justify-content: flex-start; } }

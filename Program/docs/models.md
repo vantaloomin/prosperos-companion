@@ -159,8 +159,9 @@ then checks the setup in use and warns when:
 Sizes are estimates from names: billions of parameters (`31b`, `8x7b`) times the bits of the
 quantization in the name (`Q4_K_M`, `Q8_0`, `fp16`; 4-bit when none is named), plus 10% and 1.5 GB for
 the context. A name without a size gets a tip instead of a check. Picture models are sized by the
-precision in the diffusion model's file name (NVFP4 about 11 GB, FP8 about 16 GB, otherwise about
-24 GB, each with the text encoder and working space). The scan is kept for five minutes; Check again
+precision in the diffusion model's file name: Krea 2 by its real file sizes plus working room (FP8
+about 14 GB, NVFP4 about 9 GB, GGUF by quantization; see [images.md](images.md#krea-2-on-smaller-cards)),
+other families roughly (FP8 about 16 GB, otherwise about 24 GB). The scan is kept for five minutes; Check again
 scans now. Other cards (AMD, Intel) are named on Windows but not measured, so nothing is checked.
 
 `install.bat` and `install.command` print the same summary when setup finishes

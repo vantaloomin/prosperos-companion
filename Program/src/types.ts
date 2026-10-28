@@ -1025,6 +1025,8 @@ export interface ImageBackend {
   family: ImageFamily | null
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
+  // The smaller Krea 2 model file the app picked for this computer's graphics card, used while no model is chosen.
+  model_fit: string | null
   // ComfyUI: LoRAs applied after the character's own, in order; null for other kinds.
   style_loras: StyleLora[] | null
   // ComfyUI: the built-in workflow's sampler; null in a field means the workflow's own value.

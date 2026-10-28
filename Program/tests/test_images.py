@@ -724,7 +724,8 @@ def test_comfyui_lists_the_servers_files_for_each_loader():
                      'lora': [PHONE, 'sdxl\\detail.safetensors', 'prospero-x.safetensors'],
                      'sampler_name': ['euler', 'res_multistep'], 'scheduler': ['simple', 'beta']}
     assert server.info_calls == [f'http://127.0.0.1:8188/object_info/{name}'
-                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader', 'LoraLoaderModelOnly', 'KSampler')]
+                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader', 'UnetLoaderGGUF', 'LoraLoaderModelOnly',
+                                              'KSampler')]
 
 
 def test_comfyui_puts_chosen_files_in_the_built_in_workflow_only():
