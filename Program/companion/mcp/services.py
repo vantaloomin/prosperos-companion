@@ -21,7 +21,10 @@ CATEGORIES = {
     'weather': {'label': 'Weather', 'keywords': ('weather', 'forecast', 'conditions', 'temperature'),
                 'purposes': ('conversation', 'companion_city')},
     'news': {'label': 'News and recent events', 'keywords': ('news', 'headline', 'article', 'current'),
-             'purposes': ('conversation',)},
+             'purposes': ('conversation', 'companion_city'),
+             'when_for': {'companion_city': "Twice a day in the background, while background activity is on and the "
+                                            "companion lives in a real, present-day city: that city's headlines, so "
+                                            'its politics can feed Talk of the town'}},
     'local_events': {'label': 'Local events', 'keywords': ('event', 'concert', 'festival', 'things to do', 'happening'),
                      'purposes': ('conversation', 'companion_city')},
     # A fallback for links the app cannot read on this computer, such as pages that need a browser.

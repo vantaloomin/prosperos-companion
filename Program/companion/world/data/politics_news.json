@@ -1,0 +1,313 @@
+{
+ "schema_version": 1,
+ "source": "Builder in the local politics thread (2026-10-28); topics for real headlines from the news lookup, first match wins.",
+ "topics": [
+  {
+   "id": "short-lets",
+   "question": "short-lets",
+   "match": "\\b(airbnb|vrbo|short[- ]term rentals?|vacation rentals?)\\b"
+  },
+  {
+   "id": "bike-lanes",
+   "question": "bike-lanes",
+   "match": "\\b(bike lanes?|cycl(ing|ists?)|parking (spots|spaces|meters)|e-?scooters?)\\b"
+  },
+  {
+   "id": "housing",
+   "question": "housing-crisis",
+   "match": "\\b(rents?|housing|re-?zoning|zoning|evictions?|tenants?|landlords?|affordable homes|homeless(ness)?|shelters?)\\b"
+  },
+  {
+   "id": "police",
+   "question": "policing",
+   "match": "\\b(police|policing|sheriff|officers?|public safety|crime|shootings?|jail)\\b"
+  },
+  {
+   "id": "automation",
+   "question": "automation",
+   "match": "\\b(artificial intelligence|automation|robots?|self-driving|driverless|robotaxis?)\\b"
+  },
+  {
+   "id": "climate",
+   "question": "climate",
+   "match": "\\b(climate|heat ?waves?|emissions|flood(ing|s)?|wildfires?|drought|pollution|smog)\\b"
+  },
+  {
+   "id": "schools",
+   "title": "The schools",
+   "question_text": "Should the city spend more on its schools?",
+   "match": "\\b(schools?|school board|teachers?|superintendent|curriculum|school district)\\b",
+   "sides": [
+    {
+     "name": "Spend more",
+     "stand": "spend more on the schools",
+     "jobs": [
+      "learned",
+      "care"
+     ],
+     "words": [
+      "idealist"
+     ],
+     "backers": [
+      "reform",
+      "workers"
+     ]
+    },
+    {
+     "name": "Hold the line",
+     "stand": "hold the line on what schools cost",
+     "jobs": [
+      "trade",
+      "official"
+     ],
+     "words": [
+      "practical",
+      "cautious"
+     ],
+     "backers": [
+      "business",
+      "tradition"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "labor",
+   "title": "Workers and wages",
+   "question_text": "Whose side is the city on, the workers or the bosses?",
+   "match": "\\b(strikes?|striking|unions?|walkouts?|picket(s|ing)?|minimum wage|wage (hike|increase)s?|layoffs?)\\b",
+   "sides": [
+    {
+     "name": "Back the workers",
+     "stand": "back the workers",
+     "jobs": [
+      "labor",
+      "care"
+     ],
+     "words": [
+      "rebel",
+      "idealist"
+     ],
+     "backers": [
+      "workers",
+      "radical"
+     ]
+    },
+    {
+     "name": "Back the employers",
+     "stand": "back the employers",
+     "jobs": [
+      "trade",
+      "official"
+     ],
+     "words": [
+      "practical"
+     ],
+     "backers": [
+      "business",
+      "establishment"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "development",
+   "title": "Big building plans",
+   "question_text": "Should the big new projects go ahead?",
+   "match": "\\b(stadium|arena|casino|developers?|redevelopment|megaproject|skyscraper|tower plan|data center)\\b",
+   "sides": [
+    {
+     "name": "Build it",
+     "stand": "see the new projects built",
+     "jobs": [
+      "trade",
+      "labor"
+     ],
+     "words": [
+      "practical"
+     ],
+     "backers": [
+      "business",
+      "workers"
+     ]
+    },
+    {
+     "name": "Not here",
+     "stand": "stop the big projects",
+     "jobs": [
+      "arts",
+      "learned"
+     ],
+     "words": [
+      "cautious",
+      "idealist"
+     ],
+     "backers": [
+      "locals",
+      "tradition"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "transit",
+   "title": "Getting around",
+   "question_text": "Should the city put its money into transit or roads?",
+   "match": "\\b(transit|subway|buses|bus routes?|fares?|light rail|commuter rail|congestion|traffic|highways?|potholes?)\\b",
+   "sides": [
+    {
+     "name": "Transit first",
+     "stand": "put the money into transit",
+     "jobs": [
+      "learned",
+      "arts",
+      "care"
+     ],
+     "words": [
+      "idealist"
+     ],
+     "backers": [
+      "reform",
+      "radical"
+     ]
+    },
+    {
+     "name": "Fix the roads",
+     "stand": "fix the roads first",
+     "jobs": [
+      "trade",
+      "labor",
+      "farm"
+     ],
+     "words": [
+      "practical"
+     ],
+     "backers": [
+      "business",
+      "tradition"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "budget",
+   "title": "The city budget",
+   "question_text": "Should the city spend more, or cut taxes?",
+   "match": "\\b(budget|taxes|tax (hike|cut|rate)s?|property tax|levy|bond measure|deficit|city spending)\\b",
+   "sides": [
+    {
+     "name": "Invest in the city",
+     "stand": "see the city spend on what it needs",
+     "jobs": [
+      "care",
+      "learned",
+      "official"
+     ],
+     "words": [
+      "idealist"
+     ],
+     "backers": [
+      "reform",
+      "workers"
+     ]
+    },
+    {
+     "name": "Cut taxes",
+     "stand": "see taxes cut",
+     "jobs": [
+      "trade",
+      "farm"
+     ],
+     "words": [
+      "practical",
+      "cautious"
+     ],
+     "backers": [
+      "business",
+      "tradition"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "election",
+   "title": "The coming election",
+   "question_text": "Is it time for new people at City Hall?",
+   "match": "\\b(elections?|primary|primaries|ballots?|referendum|candidates?|campaign(s|ing)?|runoff|polls)\\b",
+   "sides": [
+    {
+     "name": "Time for a change",
+     "stand": "see new people voted in",
+     "jobs": [
+      "arts",
+      "labor"
+     ],
+     "words": [
+      "rebel",
+      "idealist"
+     ],
+     "backers": [
+      "reform",
+      "radical"
+     ]
+    },
+    {
+     "name": "Keep who we have",
+     "stand": "keep the people in office now",
+     "jobs": [
+      "official",
+      "law",
+      "church"
+     ],
+     "words": [
+      "cautious"
+     ],
+     "backers": [
+      "establishment",
+      "tradition"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "city-hall",
+   "title": "Trouble at City Hall",
+   "question_text": "Can City Hall be trusted?",
+   "match": "\\b(mayor|city council|council ?members?|aldermen|alderman|city hall|city manager|corruption|indict(ed|ment)|ethics|recall|scandal|ordinance|lawsuit)\\b",
+   "sides": [
+    {
+     "name": "Back City Hall",
+     "stand": "give City Hall the benefit of the doubt",
+     "jobs": [
+      "official",
+      "law"
+     ],
+     "words": [
+      "cautious"
+     ],
+     "backers": [
+      "establishment",
+      "law"
+     ]
+    },
+    {
+     "name": "Clean house",
+     "stand": "clean house at City Hall",
+     "jobs": [
+      "learned",
+      "arts",
+      "labor"
+     ],
+     "words": [
+      "rebel",
+      "idealist"
+     ],
+     "backers": [
+      "reform",
+      "radical"
+     ]
+    }
+   ]
+  }
+ ]
+}

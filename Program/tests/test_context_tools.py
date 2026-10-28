@@ -233,7 +233,7 @@ def test_enabling_needs_the_current_disclosure(client, companion):
                          json={'tool': 'get_forecast', 'arguments': {}, 'run_in': ['conversation']})
     assert missing.status_code == 422
     news_place = client.put(f"/api/context/services/{service['id']}/tools/news",
-                            json={'tool': 'latest_news', 'arguments': {}, 'run_in': ['companion_city']})
+                            json={'tool': 'latest_news', 'arguments': {}, 'run_in': ['ambient']})
     assert news_place.status_code == 422
 
 

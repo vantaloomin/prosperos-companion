@@ -2168,7 +2168,8 @@ export interface PoliticsIssue {
   settled_on: string | null
   /** A real question of the city's year (Prohibition in 1925): it never settles against history. */
   real: boolean
-  origin: 'seeded' | 'user'
+  /** 'news' for an issue made from real local headlines (companion/life/politics_news.py). */
+  origin: 'seeded' | 'user' | 'news'
   started: string | null
   /** 'you' when the user set how far a local issue has got. */
   stage_by: 'you' | null

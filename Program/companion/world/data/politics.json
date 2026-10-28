@@ -377,8 +377,8 @@
    },
    {
     "id": "short-lets",
-    "title": "Holiday rentals",
-    "question": "Should holiday rentals be limited?",
+    "title": "Short-term rentals",
+    "question": "Should short-term rentals be limited?",
     "sides": [
      {
       "name": "Limit them",
@@ -411,7 +411,7 @@
     ],
     "beats": [
      [
-      "Half a street in {hood} is holiday rentals now.",
+      "Half a street in {hood} is short-term rentals now.",
       0
      ],
      [

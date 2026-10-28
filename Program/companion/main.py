@@ -54,6 +54,7 @@ from companion.life import (
     media_routes,
     outings,
     pets_routes,
+    politics_news,
     politics_routes,
     scrapbook_routes,
     status,
@@ -201,6 +202,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.lookups = Lookups(app.state.database, app.state.vault, world, context_transports, link_reader)
     app.state.lookups.listeners.append(lambda observation: observed_weather.apply(app.state.database, observation))
     app.state.lookups.listeners.append(lambda observation: city_changes.remember(app.state.database, observation))
+    app.state.lookups.listeners.append(lambda observation: politics_news.remember(app.state.database, observation))
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder,
                                           lookups=app.state.lookups)
     app.state.builtin_recall = BuiltinRecall(app.state.database, builtin_spawn, builtin_transport)

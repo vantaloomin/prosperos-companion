@@ -2931,3 +2931,15 @@ CREATE TABLE IF NOT EXISTS politics_relations (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (city_id, first, second)
 );
+
+-- Real local headlines about politics in the companion's real, present-day city, from a news lookup the user turned
+-- on for it (companion/life/politics_news.py): sorted into a topic, they feed Talk of the town. Gone with the lookup.
+CREATE TABLE IF NOT EXISTS politics_headlines (
+  city_id TEXT NOT NULL,
+  text TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  on_day TEXT NOT NULL,
+  observation_id TEXT NOT NULL REFERENCES context_observations(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, text)
+);

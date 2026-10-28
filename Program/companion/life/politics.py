@@ -15,7 +15,7 @@ from datetime import date, timedelta
 from companion import consequences
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import DomainError, require
-from companion.life import circle, world_drama
+from companion.life import circle, politics_news, world_drama
 from companion.memory import pairs
 from companion.world import politics, townsfolk
 from companion.world.generators import pick, unit
@@ -118,7 +118,9 @@ def city_issues(connection, data: dict, day: date, level_: int, drama: int) -> l
     if not level_:
         return []
     edits = stored(connection, 'politics_issues', 'issue_id', data['id'])
-    found = [edited(issue, edits.get(issue['id'])) for issue in politics.era_issues(data, day, level_)]
+    era = politics.era_issues(data, day, level_)
+    era += politics_news.issues(connection, data, day, level_, era)
+    found = [edited(issue, edits.get(issue['id'])) for issue in era]
     found = [issue for issue in found if not edits.get(issue['id'], {}).get('dismissed')]
     seeded = [edited(issue, edits.get(issue['id'])) for issue in politics.seeded_locals(data, day, level_, drama)]
     own = [user_issue(issue_id, edit) for issue_id, edit in edits.items() if edit['origin'] == 'user'

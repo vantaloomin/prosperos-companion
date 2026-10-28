@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { alliesText, backingText, neitherText, outcomeText, pullText, sortedPeople, splitShares, splitText, stageLabel, viewLabel } from '../../src/features/today/politicsText.ts'
+import { alliesText, backingText, neitherText, outcomeText, pullText, sortedPeople, splitShares, splitText, stageLabel, stageSetBy, viewLabel } from '../../src/features/today/politicsText.ts'
 
 const sides = [{ name: 'Wet', stand: 'see Prohibition repealed' }, { name: 'Dry', stand: 'keep the country dry' }]
 
@@ -17,6 +17,9 @@ test('views, stages and pull read in words', () => {
   assert.equal(viewLabel(0, { sides }), "Doesn't much care")
   assert.equal(stageLabel({ stage: 'open', real: true }), 'Out in the open · real history')
   assert.equal(stageLabel({ stage: 'heated', real: false }), 'Heated')
+  assert.equal(stageLabel({ stage: 'heated', real: true, origin: 'news' }), 'Heated · in the news')
+  assert.equal(stageSetBy({ real: true, origin: 'news' }), 'The news sets how hot this gets.')
+  assert.equal(stageSetBy({ real: true, origin: 'seeded' }), 'History sets how hot this gets.')
   assert.equal(pullText({ pull: 4, change: 1 }), 'Strong pull, up after a win')
   assert.equal(pullText({ pull: 2, change: 0 }), 'Some pull')
 })

@@ -510,7 +510,7 @@ a.button { color: inherit; text-decoration: none; }
 .politics-split-first { background: var(--accent); }
 .politics-split-neither { background: var(--border); }
 .politics-split-second { background: color-mix(in srgb, var(--text) 70%, transparent); }
-.politics-people, .politics-rows { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 6px 12px; align-items: center; max-width: 520px; }
+.politics-people, .politics-rows { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 6px 12px; align-items: center; max-width: 520px; }
 .politics-rows { grid-template-columns: minmax(0, 1fr) 280px; max-width: 620px; }
 .politics-people select, .politics-rows select { width: 100%; }
 .politics-rows .circle-field { display: contents; }

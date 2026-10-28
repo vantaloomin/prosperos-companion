@@ -12,7 +12,7 @@ import { Reasons } from './WhyItWent'
 import { storyDate } from './storyText'
 import {
   STAGE_CHOICES, STANCES, alliesText, backingText, neitherText, outcomeChoices, outcomeText, pullText, relationsOf,
-  sortedPeople, splitShares, splitText, stageLabel, viewOptions,
+  sortedPeople, splitShares, splitText, stageLabel, stageSetBy, viewOptions,
 } from './politicsText'
 
 const POLITICS_KEY = ['politics']
@@ -207,7 +207,7 @@ function IssueForm({ issue, save, close }: { issue: PoliticsIssue; save: Save; c
 
 /** How far a local issue has got and how it went; a big question of the era is left to its times. */
 function HowFar({ issue, save }: { issue: PoliticsIssue; save: Save }) {
-  if (issue.kind !== 'local') return <p className="subtle">{issue.real ? 'History sets' : 'The times set'} how hot this gets.</p>
+  if (issue.kind !== 'local') return <p className="subtle">{stageSetBy(issue)}</p>
   const patch = (body: object) => void save(`/issues/${issue.id}`, body, 'PATCH')
   const outcome = issue.settled?.picked_by === 'user' ? String(issue.settled.picked) : ''
   const stage = issue.stage_by === 'you' ? issue.stage : 'app'
