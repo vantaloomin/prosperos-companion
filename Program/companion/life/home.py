@@ -74,6 +74,9 @@ FEATURES = {
            'creaky floorboards', 'a clawfoot tub', 'a window that sticks', 'good afternoon light'),
     False: ('a smoky hearth', 'a window that sticks', 'low beams', 'a creaky stair', 'a little yard',
             'good morning light'),
+    # A cabin aboard a ship or station (companion/world/ships.py): no brick, no yard, no hearth.
+    'aboard': ('a viewport onto the stars', 'an air vent that hums', 'a narrow bunk', 'a fold-down desk',
+               'a door that sighs open', 'dim night lighting', 'a cramped washroom', 'a wall locker that sticks'),
 }
 SIZES = {'studio': 'a studio', 'one_bedroom': 'a one-bedroom', 'two_bedroom': 'a two-bedroom'}
 HOUSING = {'single-family': 'single-family house', 'master-planned': 'house in a master-planned community',
@@ -119,7 +122,8 @@ def article(text: str) -> str:
 
 def place_item(seed: str, definition: dict, data: dict | None) -> dict:
     """The home: from the city's housing and rents when the world knows the city, else a plain apartment."""
-    features = sorted({generators.pick(seed, f'feature{index}', list(FEATURES[modern(data)])) for index in range(2)})
+    kind = 'aboard' if ships.enclosed(data) else modern(data)
+    features = sorted({generators.pick(seed, f'feature{index}', list(FEATURES[kind])) for index in range(2)})
     if not data:
         return {'kind': 'home', 'name': 'an apartment', 'variety': 'apartment',
                 'details': {'description': 'an apartment', 'features': features, 'city': definition.get('location', '')}}
@@ -261,6 +265,7 @@ def ensure(connection, timeline_id: str, definition: dict, world, now) -> dict:
     state = optional(connection, 'SELECT * FROM home_state WHERE timeline_id=?', (timeline_id,))
     if state:
         add_sheet_pets(connection, timeline_id, definition, date.fromisoformat(state['started']), now)
+        refit_quirks(connection, timeline_id, circle.city_data(definition, world))
         return state
     seed, start = f'home:{timeline_id}', started_on(connection, timeline_id, definition.get('timezone'))
     data = circle.city_data(definition, world)
@@ -271,6 +276,21 @@ def ensure(connection, timeline_id: str, definition: dict, world, now) -> dict:
                                                         'modern' if modern(data) else data['era'], stamp(now),
                                                         stamp(now)))
     return one(connection, 'SELECT * FROM home_state WHERE timeline_id=?', (timeline_id,))
+
+
+def refit_quirks(connection, timeline_id: str, data: dict | None):
+    """A cabin assembled before cabins had quirks of their own ("exposed brick" in a starship cabin) gets cabin quirks,
+    unless the user has edited the home."""
+    if not ships.enclosed(data):
+        return
+    row = optional(connection, "SELECT * FROM home_items WHERE timeline_id=? AND kind='home' AND until IS NULL AND "
+                   'edited=0', (timeline_id,))
+    details = decode(row['details']) if row else {}
+    if not row or set(details.get('features') or ()) <= set(FEATURES['aboard']):
+        return
+    seed = f'home:{timeline_id}'
+    details['features'] = sorted({generators.pick(seed, f'feature{index}', list(FEATURES['aboard'])) for index in range(2)})
+    connection.execute('UPDATE home_items SET details=? WHERE id=?', (encode(details), row['id']))
 
 
 def add_sheet_pets(connection, timeline_id: str, definition: dict, since: date, now):
@@ -538,23 +558,25 @@ def mentioned(items: list[dict], text: str) -> list[dict]:
         rf'(?<!\w){re.escape(item["name"])}(?!\w)', text, 0 if item['name'][:1].isupper() else re.IGNORECASE)]
 
 
-def image_hint(connection, timeline_id: str, event: dict) -> str:
+def image_hint(connection, timeline_id: str, event: dict, at_home: bool | None = None) -> str:
     """What the picture should show of their home: the room for a moment at home, and how any
-    belonging the event names looks. Empty when the home was never assembled."""
+    belonging the event names looks. Empty when the home was never assembled. `at_home` says whether the moment
+    happens there; left out, a moment with no place counts as home."""
     rows = many(connection, 'SELECT * FROM home_items WHERE timeline_id=?', (timeline_id,))
     if not rows:
         return ''
     items = [item_view(row) for row in rows]
     parts = []
     home = next((item for item in items if item['kind'] == 'home' and not item['until']), None)
-    if home and not event.get('place'):
+    there = not event.get('place') if at_home is None else at_home
+    if home and there:
         features = home.get('features') or []
         parts.append(f"At home: {home['description']}" + (f", with {' and '.join(features)}" if features else '') + '.')
     named_items = mentioned(items, event.get('summary', ''))
     parts += [f"{item['name'][:1].upper()}{item['name'][1:]} is {item['description']}." for item in named_items
               if item['description'] != item['name'] and item['kind'] != 'pet']
     parts += pet_hint(connection, timeline_id, event, [item['id'] for item in named_items if item['kind'] == 'pet'],
-                      bool(home and not event.get('place')))
+                      bool(home and there))
     return ' '.join(parts)
 
 
@@ -681,11 +703,17 @@ def item(connection, timeline_id: str, item_id: str) -> dict:
 
 
 def edit(connection, timeline_id: str, item_id: str, change: dict, day: date, now):
-    """Rename or redescribe a belonging (and, for a pet or a vehicle, change what kind it is)."""
+    """Rename or redescribe a belonging (and, for a pet or a vehicle, change what kind it is). Their home's quirks ("a
+    smoky hearth") are the user's to rewrite or clear; a home described anew without them loses the drawn ones, which
+    were picked for the old home."""
     row = item(connection, timeline_id, item_id)
     details = decode(row['details'])
     if change.get('description') is not None:
+        if row['kind'] == 'home' and change.get('features') is None and change['description'] != details['description']:
+            details['features'] = []
         details['description'] = change['description']
+    if row['kind'] == 'home' and change.get('features') is not None:
+        details['features'] = [text.strip() for text in change['features'] if text.strip()][:4]
     if change.get('born'):
         details['born'] = change['born']
     variety = change.get('variety') or row['variety']

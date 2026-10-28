@@ -40,6 +40,8 @@ class ImageRequest:
     # A picture the new one must follow (the same person), for backends that take one
     # (backends.takes_reference): the profile pictures, and pictures of the companion that follow theirs.
     reference: bytes | None = None
+    # Their name, when the picture shows them: a tag-trained family (Anima, Booru) may know a character by name.
+    name: str | None = None
 
 
 @dataclass

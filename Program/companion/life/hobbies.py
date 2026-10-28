@@ -138,13 +138,22 @@ def match(text: str, era: str | None = None) -> dict | None:
     return None
 
 
+# A pastime added by hand that is training of some kind happens where people train (a gym, a dojo, a fighting hall).
+TRAINING = re.compile(r'\b(?:training|train|sparring|spar|fight\w*|combat|conditioning|drills?|workouts?|bouts?)\b',
+                      re.IGNORECASE)
+TRAINING_PLACE = {'kinds': ['fitness'], 'tags': ['gym', 'training', 'boxing', 'classes']}
+
+
 def custom(name: str) -> dict:
-    """A pastime the catalogue does not know, as the user wrote it: the general bank's milestones."""
+    """A pastime the catalogue does not know, as the user wrote it: the general bank's milestones. Training is done at
+    a training place in the city; anything else at home."""
     clean = ' '.join(name.replace('{', '').replace('}', '').split())[:40]
+    trains = bool(TRAINING.search(clean))
     return {'id': 'custom', 'label': clean[:1].upper() + clean[1:], 'name': clean, 'kind': 'general', 'eras': ['any'],
-            'words': [], 'session': f'spent some time on {clean}', 'place': None, 'where': '', 'when': 'any',
+            'words': [], 'session': f'spent some time on {clean}', 'place': TRAINING_PLACE if trains else None,
+            'where': 'at the training hall' if trains else '', 'when': 'any',
             'together': None, 'ask': None, 'gear': None, 'fees': None, 'event': None,
-            'picture': f'absorbed in {clean} at home'}
+            'picture': f'absorbed in {clean}' if trains else f'absorbed in {clean} at home'}
 
 
 def entry_of(row: dict) -> dict:
