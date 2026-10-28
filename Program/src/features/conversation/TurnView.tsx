@@ -169,10 +169,12 @@ function Reply({ message, found, name, text, position, onPage, onStop, onRemembe
   const streaming = message.status === 'streaming' && !held
   const actions = withVoice(replyActions(message, streaming, { onRemember, onEdit, onBranch, onMoment }), message, useContext(VoiceActions))
   const edit = usePhotoEdit(message.id, message.photo)
-  // On a phone the sidecar is one more entry in the sheet rather than a small icon on every reply, and the picture's
-  // own buttons come first in it.
-  const sheet = useMessageSheet(message, [...photoActions(edit), ...(message.status === 'complete' && actions.length
-    ? [...actions, ['Ask the sidecar', <Lightbulb key="icon" aria-hidden="true" />, (item: Message) => sidecar.ask(item)] as Action] : actions)])
+  // On a phone the sidecar is one more entry in the sheet rather than a small icon on every reply. New picture comes
+  // first, and Remove picture last, as taking something away does on iOS and Android.
+  const [reroll, remove] = photoActions(edit)
+  const sheet = useMessageSheet(message, [...reroll, ...(message.status === 'complete' && actions.length
+    ? [...actions, ['Ask the sidecar', <Lightbulb key="icon" aria-hidden="true" />, (item: Message) => sidecar.ask(item)] as Action] : actions), ...remove],
+  edit.thumbnail)
   // Until they get back to the user there is nothing to see; a holding text they sent meanwhile is its own message.
   if (held) return null
   return (
@@ -222,10 +224,10 @@ function replyActions(message: Message, streaming: boolean, { onRemember, onEdit
 }
 
 /** A picture the reply sent can be made again or taken out of the chat (the same buttons show on it with a mouse). */
-function photoActions(edit: PhotoEdit): Action[] {
+function photoActions(edit: PhotoEdit): [Action[], Action[]] {
   return [
-    ...(edit.canReroll ? [['New picture', <RefreshCw key="icon" aria-hidden="true" />, edit.reroll] as Action] : []),
-    ...(edit.canRemove ? [['Remove picture', <Trash2 key="icon" aria-hidden="true" />, edit.remove] as Action] : []),
+    edit.canReroll ? [['New picture', <RefreshCw key="icon" aria-hidden="true" />, edit.reroll]] : [],
+    edit.canRemove ? [['Remove picture', <Trash2 key="icon" aria-hidden="true" />, edit.remove, 'danger']] : [],
   ]
 }
 

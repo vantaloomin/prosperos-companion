@@ -21,7 +21,7 @@ export function ChatPhoto({ message, name, edit }: { message: Message; name: str
   const photo = edit.photo
   if (!photo) return null
   if (photo.removed) return edit.undo ? <Removed edit={edit} /> : null
-  const line = edit.error || photoLine(photo, words)
+  const line = edit.error || (edit.coming ? 'A new picture is on its way.' : photoLine(photo, words))
   return (
     <figure className={photo.kind === 'meme' ? 'chat-photo chat-meme' : 'chat-photo'}>
       <PhotoFrame photo={photo} name={name} when={message.created_at} edit={edit} />

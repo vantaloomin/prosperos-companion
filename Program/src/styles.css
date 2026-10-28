@@ -452,6 +452,8 @@ a.button { color: inherit; text-decoration: none; }
 .sheet-group .sheet-action + .sheet-action { border-top: 1px solid var(--border); }
 .sheet-action svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--muted); }
 .sheet-action:active { background: var(--raised); }
+.sheet-action.danger, .sheet-action.danger svg { color: var(--danger); }
+.sheet-picture { align-self: flex-start; height: 56px; width: auto; max-width: 88%; margin: -4px 0 6px; border-radius: 10px; object-fit: cover; box-shadow: 0 10px 30px var(--shadow); }
 .sheet-cancel { justify-content: center; border-radius: 14px; font-weight: 600; }
 @keyframes sheet-up { from { transform: translateY(100%); } }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .message-sheet { animation: none; } }
@@ -818,8 +820,10 @@ a.button { color: inherit; text-decoration: none; }
 .photo-tool:disabled { opacity: .6; cursor: progress; }
 .photo-tool:focus-visible { outline: 2px solid #ffffff; outline-offset: 1px; box-shadow: 0 0 0 4px var(--accent); }
 @media (hover: hover) { .chat-photo-frame:is(:hover, :focus-within) .chat-photo-tools { display: flex; } }
-.chat-photo-removed { margin: 8px 0 0; }
+.chat-photo-removed { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 8px 0 0; }
+.chat-photo-removed .text-button { display: inline-flex; align-items: center; margin-left: 0; }
 .chat-photo-removed .text-button svg { width: 14px; height: 14px; }
+.chat-bubbles .chat-photo-removed, .chat-community .chat-photo-removed { padding-left: 8px; }
 .post-image { display: grid; gap: 6px; }
 /* The picture in its own shape; a tall one is cut at the bottom, never through the face at the top. */
 .post-image .photo-open-inline > img { display: block; width: 100%; height: auto; max-height: min(80vh, 760px); object-fit: cover; object-position: center top; border-radius: 10px; background: var(--accent-tint); }
