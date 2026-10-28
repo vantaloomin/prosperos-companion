@@ -46,6 +46,14 @@ def default_adapters() -> dict:
     return {'comfyui': ComfyAdapter(), 'codex': CodexAdapter(), 'hosted': HostedAdapter()}
 
 
+def named(inputs: dict) -> str:
+    """The prompt, with "This is Sett." when the user switched on their name in pictures and the picture shows them. It
+    is added at dispatch, after the content check has read the prompt, so a name never trips it."""
+    name = (inputs.get('character_name') or '').strip()
+    if not (inputs.get('name_in_pictures') and inputs.get('pictured') and name):
+        return inputs['prompt']
+    return f"{inputs['prompt'].rstrip()} This is {name}."
+
 class ImageRunner:
     def __init__(self, database, vault, adapters=None, scheduler=None):
         self.database = database
@@ -197,7 +205,7 @@ class ImageRunner:
         job, backend, inputs = claimed
         width, height = size_for(backend['kind'], inputs['aspect'])
         key = backends.backend_key(self.database, self.vault, backend)
-        request = ImageRequest(job_id, inputs['prompt'], inputs['negative'], inputs['seed'], width, height,
+        request = ImageRequest(job_id, named(inputs), inputs['negative'], inputs['seed'], width, height,
                                backend, decode(backend['config']), key, storage.raw_directory(self.database),
                                character_lora(backend, inputs),
                                name=inputs.get('character_name') if inputs.get('pictured') else None)
