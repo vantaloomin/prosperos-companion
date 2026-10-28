@@ -130,6 +130,16 @@ def update_settings(request: Request, body: LifeSettingsUpdate):
     return simulation.update_settings(db(request), body)
 
 
+class WorldDrama(Input):
+    """This world's own drama level, or null to follow Settings > Realism (companion/life/world_drama.py)."""
+    drama: int | None = Field(ge=0, le=3)
+
+
+@router.put('/world')
+def update_world(request: Request, body: WorldDrama):
+    return simulation.update_world(db(request), body.drama)
+
+
 @router.post('/reconcile')
 async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.look_in((body or Reconcile()).mode)

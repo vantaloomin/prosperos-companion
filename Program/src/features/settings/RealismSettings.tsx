@@ -89,7 +89,8 @@ export function PaceSettings() {
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
-      <Field label={`Drama in your world: ${level.label}`} hint={level.hint}>
+      <Field label={`Drama in your worlds: ${level.label}`} tip="Every world follows this unless it has its own, in Life & cities > This world."
+        hint={data.world_drama === null ? level.hint : `${level.hint} This world has its own: ${step(DRAMA_LEVELS, data.world_drama, 1).label}, in Life & cities.`}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.drama} label={level.label}
           onChange={(drama) => void save({ drama })} />}
       </Field>
