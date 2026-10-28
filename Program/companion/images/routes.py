@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from companion.data_folder import open_folder
 from companion.database import decode, encode
 from companion.errors import DomainError
-from companion.images import backends, gifs, jobs, meme_pictures, node_packs, photos, storage
+from companion.images import backends, gifs, jobs, meme_pictures, node_packs, photo_edits, photos, storage
 from companion.images.adapters.base import AdapterError
 from companion.images.adapters.comfyui import (
     FAMILIES,
@@ -286,7 +286,7 @@ def job_file(request: Request, job_id: str):
 @router.get('/photos/{message_id}')
 def read_photo(request: Request, message_id: str):
     """The photo a chat reply sent, with its image's current state."""
-    photo = photos.get(db(request), message_id)
+    photo = photos.get(db(request), message_id, removed=True)
     if photo is None:
         raise DomainError('This photo could not be found.', 404)
     return photo
@@ -298,6 +298,26 @@ def retry_photo(request: Request, message_id: str):
     photo = photos.retry(db(request), message_id)
     runner(request).wake()
     return photo
+
+
+@router.post('/photos/{message_id}/reroll')
+def reroll_photo(request: Request, message_id: str):
+    """Another take of a chat picture: a new image of the same request, or another template or GIF for a meme."""
+    photo = photo_edits.reroll(db(request), message_id, request.app.state.vault)
+    runner(request).wake()
+    return photo
+
+
+@router.delete('/photos/{message_id}')
+def remove_photo(request: Request, message_id: str):
+    """Take a chat picture out of the chat; the reply's words stay."""
+    return photo_edits.remove(db(request), message_id)
+
+
+@router.post('/photos/{message_id}/restore')
+def restore_photo(request: Request, message_id: str):
+    """Undo removing a chat picture."""
+    return photo_edits.remove(db(request), message_id, removed=False)
 
 
 # Memes without a picture model (companion/images/meme_pictures.py, gifs.py) ----------------------------

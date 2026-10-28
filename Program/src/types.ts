@@ -61,6 +61,8 @@ export interface ChatPhoto {
   in_feed: boolean
   /** Sent without being asked. */
   unasked: boolean
+  /** Taken out of the chat by the user; the chat shows nothing, or Undo while it is still open. */
+  removed?: boolean
   /** The shape it is made in; the chat holds that space while it loads. Older servers leave it out. */
   aspect?: 'square' | 'landscape' | 'portrait'
   /** A meme's picture: made by an image model, a template on this computer, or a reaction GIF (companion/images/gifs.py). */
