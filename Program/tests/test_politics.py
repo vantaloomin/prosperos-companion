@@ -97,6 +97,15 @@ def test_a_real_city_keeps_the_questions_of_its_year_and_prohibition_never_settl
     assert 'Prohibition' not in [question['title'] for question in politics.era_questions(made_up, DAY)]
 
 
+def test_a_stage_the_user_picks_holds_and_pushes_later_stages_back():
+    from companion.life.politics import staged
+    dates = {'whispers': '2026-10-01', 'open': '2026-10-10', 'heated': '2026-11-01', 'settled': '2026-11-20'}
+    found = staged(dates, 'heated', DAY.replace(month=10, day=12))
+    assert found == {'whispers': '2026-10-01', 'open': '2026-10-10', 'heated': '2026-10-12', 'settled': '2026-11-20'}
+    found = staged(dates, 'whispers', DAY.replace(month=10, day=15))
+    assert found['open'] == '2026-10-16' and found['heated'] == '2026-11-07' and found['settled'] == '2026-11-26'
+
+
 # --- Views ---
 
 def test_views_follow_work_and_character():
@@ -151,12 +160,15 @@ def test_the_user_can_change_views_issues_and_factions(client, jazz):
                                                               'stands': ['build the pier', '']}))
     mine = next(item for item in found['issues'] if item['title'] == 'The new pier')
     assert mine['origin'] == 'user' and mine['stage'] == 'open' and mine['sides'][1]['stand'] == 'side with No pier'
+    found = ok(client.patch(f"/api/life/politics/issues/{mine['id']}", json={'stage': 'heated', 'question': 'A pier?'}))
+    assert next(item for item in found['issues'] if item['id'] == mine['id'])['stage'] == 'heated'
     found = ok(client.patch(f"/api/life/politics/issues/{mine['id']}", json={'outcome': 0}))
     assert next(item for item in found['issues'] if item['id'] == mine['id'])['stage'] == 'settled'
     found = ok(client.delete(f"/api/life/politics/issues/{mine['id']}"))
     assert mine['id'] not in [item['id'] for item in found['issues']]
 
     assert client.patch(f'/api/life/politics/issues/{issue}', json={'outcome': 0}).status_code == 422
+    assert client.patch(f'/api/life/politics/issues/{issue}', json={'stage': 'heated'}).status_code == 422
     found = ok(client.patch(f'/api/life/politics/issues/{issue}', json={'sides': ['Wets', 'Drys']}))
     assert [side['name'] for side in found['issues'][1]['sides']] == ['Wets', 'Drys']
     found = ok(client.delete(f'/api/life/politics/issues/{issue}'))

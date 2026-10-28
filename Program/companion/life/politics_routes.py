@@ -1,5 +1,7 @@
 """Local politics API: Talk of the town on Today, and the user's changes to the city's issues and factions
 (companion/life/politics.py)."""
+from typing import Literal
+
 from fastapi import APIRouter, Request
 from pydantic import Field
 
@@ -21,11 +23,13 @@ class IssueNew(Input):
 
 
 class IssueChange(Input):
-    """Only the fields sent change. `outcome`: 0 or 1 for the side that won, 2 for fizzled out, null undoes it."""
+    """Only the fields sent change. `outcome`: 0 or 1 for the side that won, 2 for fizzled out, null undoes it.
+    `stage`: how far a local issue has got (null hands it back to the app)."""
     title: str | None = Field(default=None, min_length=1, max_length=80)
     question: str | None = Field(default=None, max_length=200)
     sides: list[str] | None = Field(default=None, min_length=2, max_length=2)
     outcome: int | None = Field(default=None, ge=0, le=2)
+    stage: Literal['whispers', 'open', 'heated'] | None = None
     ended: bool | None = None
 
 

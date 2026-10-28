@@ -14,14 +14,14 @@ export function viewOptions(issue: Pick<PoliticsIssue, 'sides'>): { value: numbe
   const [first, second] = issue.sides
   return [
     { value: 2, label: `Strongly: ${first.name}` }, { value: 1, label: `Leans: ${first.name}` },
-    { value: 0, label: "Doesn't care" },
+    { value: 0, label: "Doesn't much care" },
     { value: -1, label: `Leans: ${second.name}` }, { value: -2, label: `Strongly: ${second.name}` },
   ]
 }
 
-/** "Strongly: Dry", "Leans: Wet" or "Doesn't care" (matches world/politics.py view_label). */
+/** "Strongly: Dry", "Leans: Wet" or "Doesn't much care" (matches world/politics.py view_label). */
 export function viewLabel(view: number, issue: Pick<PoliticsIssue, 'sides'>): string {
-  return viewOptions(issue).find((option) => option.value === view)?.label ?? "Doesn't care"
+  return viewOptions(issue).find((option) => option.value === view)?.label ?? "Doesn't much care"
 }
 
 /** Whole-number shares of the town for each side and of those who don't much care, adding up to 100. */
@@ -38,6 +38,24 @@ export function splitText(issue: Pick<PoliticsIssue, 'sides' | 'split'>): string
   const shares = splitShares(issue.split)
   return `Around town: ${shares.first}% ${issue.sides[0].name}, ${shares.second}% ${issue.sides[1].name}, ${shares.neither}% don't much care.`
 }
+
+/** "47% don't much care", the line under the bar; the sides' shares sit at its ends. */
+export function neitherText(split: PoliticsIssue['split']): string {
+  return `${splitShares(split).neither}% don't much care`
+}
+
+/** People with a view first, strongest first; those who don't much care fold away when there are more than 3. */
+export function sortedPeople<T extends { views: Record<string, { view: number }> }>(people: T[], issueId: string): { shown: T[]; folded: T[] } {
+  const strength = (person: T) => Math.abs(person.views[issueId]?.view ?? 0)
+  const sorted = [...people].sort((a, b) => strength(b) - strength(a))
+  const caring = sorted.filter((person) => strength(person) > 0)
+  const rest = sorted.filter((person) => strength(person) === 0)
+  return rest.length > 3 ? { shown: caring, folded: rest } : { shown: sorted, folded: [] }
+}
+
+export const STAGE_CHOICES: { value: string; label: string }[] = [
+  { value: 'whispers', label: STAGES.whispers }, { value: 'open', label: STAGES.open }, { value: 'heated', label: STAGES.heated },
+]
 
 const PULL = ['', 'Little pull', 'Some pull', 'Real pull', 'Strong pull', 'Runs the town']
 
@@ -101,9 +119,9 @@ export function outcomeChoices(issue: Pick<PoliticsIssue, 'sides'>): { value: st
 /** Settings > Realism > Local politics (life_settings.politics_realism). */
 export const POLITICS_LEVELS = [
   { label: 'Off', hint: 'Nobody argues about local politics, and there are no factions.' },
-  { label: 'Quiet', hint: 'One big question of the day, and a local row now and then.' },
-  { label: 'True to life', hint: 'The big questions of the day, and local rows that come and go: people take sides by their work and character.' },
-  { label: 'Lively', hint: 'Always something to argue about: up to three big questions, and local rows come often.' },
+  { label: 'Quiet', hint: 'One big question of the day, and a local quarrel now and then.' },
+  { label: 'True to life', hint: 'The big questions of the day, and local quarrels that come and go: people take sides by their work and character.' },
+  { label: 'Lively', hint: 'Always something to argue about: up to three big questions, and local quarrels come often.' },
 ]
 
 export const POLITICS_TIP = 'See and change every issue, view and faction on Today > Talk of the town.'

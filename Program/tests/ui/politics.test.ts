@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { alliesText, backingText, outcomeText, pullText, splitShares, splitText, stageLabel, viewLabel } from '../../src/features/today/politicsText.ts'
+import { alliesText, backingText, neitherText, outcomeText, pullText, sortedPeople, splitShares, splitText, stageLabel, viewLabel } from '../../src/features/today/politicsText.ts'
 
 const sides = [{ name: 'Wet', stand: 'see Prohibition repealed' }, { name: 'Dry', stand: 'keep the country dry' }]
 
@@ -8,12 +8,13 @@ test('the town split adds up to 100 and reads out', () => {
   assert.deepEqual(splitShares({ first: 42, second: 27, neither: 51 }), { first: 35, second: 23, neither: 42 })
   assert.deepEqual(splitShares({ first: 0, second: 0, neither: 0 }), { first: 0, second: 0, neither: 100 })
   assert.equal(splitText({ sides, split: { first: 42, second: 27, neither: 51 } }), "Around town: 35% Wet, 23% Dry, 42% don't much care.")
+  assert.equal(neitherText({ first: 42, second: 27, neither: 51 }), "42% don't much care")
 })
 
 test('views, stages and pull read in words', () => {
   assert.equal(viewLabel(-1, { sides }), 'Leans: Dry')
   assert.equal(viewLabel(2, { sides }), 'Strongly: Wet')
-  assert.equal(viewLabel(0, { sides }), "Doesn't care")
+  assert.equal(viewLabel(0, { sides }), "Doesn't much care")
   assert.equal(stageLabel({ stage: 'open', real: true }), 'Out in the open · real history')
   assert.equal(stageLabel({ stage: 'heated', real: false }), 'Heated')
   assert.equal(pullText({ pull: 4, change: 1 }), 'Strong pull, up after a win')
@@ -34,4 +35,13 @@ test('a settled issue says how it went, and when the user picked it', () => {
   assert.equal(outcomeText({ settled: { options, picked: 0, picked_by: 'dice' } }), 'The pier is built.')
   assert.equal(outcomeText({ settled: { options, picked: 1, picked_by: 'user' } }), 'No pier. You picked how it went.')
   assert.equal(outcomeText({ settled: null }), null)
+})
+
+test('people with a view come first, and five who do not much care fold away', () => {
+  const person = (name: string, view: number) => ({ name, views: { p: { view } } })
+  const few = sortedPeople([person('a', 0), person('b', -2), person('c', 1)], 'p')
+  assert.deepEqual(few.shown.map((item) => item.name), ['b', 'c', 'a'])
+  assert.equal(few.folded.length, 0)
+  const many = sortedPeople([person('a', 0), person('b', 0), person('c', 1), person('d', 0), person('e', 0)], 'p')
+  assert.deepEqual([many.shown.map((item) => item.name), many.folded.length], [['c'], 4])
 })

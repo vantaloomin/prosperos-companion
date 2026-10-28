@@ -477,9 +477,9 @@ def view_text(view: int, issue: dict) -> str:
 
 
 def view_label(view: int, issue: dict) -> str:
-    """A view for a chip: "Strongly Dry", "Leans Wet", "Doesn't care"."""
+    """A view for a chip: "Strongly Dry", "Leans Wet", "Doesn't much care"."""
     if view == 0:
-        return "Doesn't care"
+        return "Doesn't much care"
     side = issue['sides'][0 if view > 0 else 1]['name']
     return f'Strongly: {side}' if abs(view) == 2 else f'Leans: {side}'
 

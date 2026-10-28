@@ -2164,6 +2164,8 @@ export interface PoliticsIssue {
   real: boolean
   origin: 'seeded' | 'user'
   started: string | null
+  /** 'you' when the user set how far a local issue has got. */
+  stage_by: 'you' | null
   /** The side each faction takes: 0 or 1, null when it stays out. */
   lines: Record<string, number | null>
   edited: boolean

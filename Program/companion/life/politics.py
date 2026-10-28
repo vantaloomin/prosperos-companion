@@ -71,6 +71,26 @@ def edited(issue: dict, edit: dict | None) -> dict:
     for key in ('outcome', 'ended'):
         if edit.get(key) is not None:
             found[key] = edit[key]
+    if edit.get('stage') and 'dates' in issue:
+        found['dates'] = staged(issue['dates'], edit['stage'], date.fromisoformat(edit['stage_on']))
+        found['stage_by'] = 'you'
+    return found
+
+
+NEVER = '9999-12-31'
+
+
+def staged(dates: dict, stage: str, day: date) -> dict:
+    """An issue's dates with `stage` reached by `day` and the stages after it pushed back, keeping their gaps."""
+    at = politics.STAGES.index(stage)
+    found = {key: min(value, day.isoformat()) if politics.STAGES.index(key) <= at else value
+             for key, value in dates.items()}
+    later = politics.STAGES[at + 1:]
+    if later and found[later[0]] <= day.isoformat():
+        shift = day + timedelta(days=1) - date.fromisoformat(found[later[0]])
+        for key in later:
+            if found[key] < NEVER:
+                found[key] = (date.fromisoformat(found[key]) + shift).isoformat()
     return found
 
 
@@ -81,8 +101,12 @@ def user_issue(issue_id: str, edit: dict) -> dict:
     return {'id': issue_id, 'kind': 'local', 'template': None, 'title': edit['title'], 'question': edit['question'],
             'sides': sides, 'origin': 'user', 'real': False, 'hood': None, 'place': None, 'person': None,
             'started': edit['started'], 'outcome': edit.get('outcome'), 'ended': edit.get('ended'),
-            'beats_text': {}, 'dates': {'whispers': edit['started'], 'open': edit['started'], 'heated': '9999-12-31',
-                                        'settled': edit.get('ended') or '9999-12-31'}}
+            'beats_text': {}, 'dates': user_dates(edit), 'stage_by': 'you' if edit.get('stage') else None}
+
+
+def user_dates(edit: dict) -> dict:
+    dates = {'whispers': edit['started'], 'open': edit['started'], 'heated': NEVER, 'settled': edit.get('ended') or NEVER}
+    return staged(dates, edit['stage'], date.fromisoformat(edit['stage_on'])) if edit.get('stage') else dates
 
 
 def ended(issue: dict) -> bool:
@@ -401,6 +425,9 @@ def change_issue(connection, data: dict, issue_id: str, changes: dict, day: date
     for key in ('title', 'question', 'outcome'):
         if key in changes:
             current[key] = changes[key]
+    if 'stage' in changes:
+        require(issue.get('kind') == 'local', 'History sets how hot a big question of the era gets.', 422)
+        current['stage'], current['stage_on'] = changes['stage'], day.isoformat()
     if changes.get('sides'):
         current['sides'] = [name.strip() for name in changes['sides']][:2]
     if 'ended' in changes:
@@ -666,7 +693,7 @@ def today_view(connection, companion: dict, data: dict, now) -> dict:
                 | {'members': sorted(key for key in known_people if key in faction_member_keys(faction, me, views)),
                    'sides': faction.get('sides', {})} for faction in picture['factions']]
     issues = [{key: issue.get(key) for key in ('id', 'kind', 'title', 'question', 'sides', 'stage', 'beats', 'split',
-                                                'settled', 'settled_on', 'real', 'origin', 'started')}
+                                                'settled', 'settled_on', 'real', 'origin', 'started', 'stage_by')}
               | {'lines': {faction['id']: faction_line(faction, issue) for faction in picture['factions']},
                  'edited': bool(issue.get('edited'))} for issue in picture['issues']]
     return {'level': level_, 'city': picture['city'], 'issues': issues, 'factions': factions,
