@@ -5,8 +5,9 @@ export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet',
 
 /** "A one-bedroom in a rowhouse in Fells Point, Baltimore". */
 export function homeTitle(item: HomeItem): string {
-  // The name heads the card, with the city; the description is a body line under it (itemDetail).
-  const base = (item.name || item.description).replace(/[.\s]+$/, '')
+  // The name heads the card, with the city, and the description is a line under it (itemDetail); a description that
+  // only adds to the name ("a studio in a rowhouse in Hampden") heads the card itself.
+  const base = (titledByName(item) ? item.name : item.description).replace(/[.\s]+$/, '')
   const text = item.city && !base.includes(item.city) ? `${base}, ${item.city}` : base
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
@@ -23,7 +24,7 @@ export function rentText(item: HomeItem): string | null {
 /** The description when it says more than the name, with what is wrong right now. */
 export function itemDetail(item: HomeItem): string {
   const home = item.kind === 'home'
-  const description = item.description !== item.name && (!home || item.name) ? (home ? sentence(item.description.replace(/[.\s]+$/, '')) : item.description) : ''
+  const description = item.description !== item.name && (!home || titledByName(item)) ? (home ? sentence(item.description.replace(/[.\s]+$/, '')) : item.description) : ''
   const parts = [description, item.out_of_action ? `right now ${item.out_of_action}` : '']
   return parts.filter(Boolean).join('; ')
 }
@@ -37,4 +38,8 @@ export function sinceText(item: HomeItem): string | null {
 
 export function sentence(text: string): string {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`
+}
+
+function titledByName(item: HomeItem): boolean {
+  return Boolean(item.name) && !item.description.toLowerCase().startsWith(item.name.toLowerCase())
 }

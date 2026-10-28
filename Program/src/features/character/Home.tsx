@@ -156,7 +156,7 @@ function Quirks({ item, description, quirks, setQuirks }: QuirksProps) {
   const shown = quirks ?? (cleared ? '' : drawn)
   return <>
     <label htmlFor={`home-quirks-${item.id}`}>Quirks</label>
-    <input autoComplete="off" id={`home-quirks-${item.id}`} aria-describedby={`home-quirks-hint-${item.id}`} value={shown} maxLength={240} placeholder="Such as a smoky hearth, a window that sticks" onChange={(event) => setQuirks(event.target.value)} />
+    <input autoComplete="off" id={`home-quirks-${item.id}`} aria-describedby={`home-quirks-hint-${item.id}`} value={shown} maxLength={240} placeholder="Such as a smoky hearth" onChange={(event) => setQuirks(event.target.value)} />
     <small id={`home-quirks-hint-${item.id}`} className="subtle" aria-live="polite">
       {cleared
         ? <>Cleared because the description changed. <button type="button" className="text-button inline" onClick={() => setQuirks(drawn)}>Undo</button></>
