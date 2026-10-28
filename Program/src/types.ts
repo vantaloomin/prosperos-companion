@@ -918,8 +918,10 @@ export interface CirclePerson {
   made_room_for?: string | null
   /** The other companions who know someone in this circle, and who they are to each. */
   also?: { companion_id: string; name: string; role: string }[]
-  /** How close they and the companion feel, both ways (companion/memory/pairs.py); read-only. */
+  /** How close they and the companion feel, both ways (companion/memory/pairs.py). */
   stage?: PairStage | null
+  /** Where the user says the two of them start, 1 Just met to 5; unset is the app's pick. */
+  start_stage?: number
   /** What they think of you, once they have met you (companion/life/their_people.py). */
   met?: CircleMet | null
   now: RoutineBlock | null

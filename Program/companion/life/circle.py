@@ -46,6 +46,9 @@ FAMILY = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother', 'cousin', 'par
           'grandparent', 'stepmom', 'stepdad', 'stepparent', 'half sister', 'half brother', 'half sibling', 'stepsister',
           'stepbrother', 'stepsibling', 'stepmum', 'stepmother', 'stepfather'}
 GRANDPARENTS = {'grandparent', 'grandmother', 'grandfather', 'grandma', 'grandpa'}
+# Family by blood or marriage, and an ex: never friends with the rest of the circle by chance (tie), only when the
+# user says so. Someone the companion is seeing may be.
+KIN = (FAMILY | GRANDPARENTS | {'ex'}) - {'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée', 'fiancé'}
 # A companion younger than this has a grandparent in their circle, aged ELDER_AGES (v0.15: so People can pass away
 # finds someone old). They come on top of the circle's size.
 GRANDCHILD_UNDER = 40
@@ -806,9 +809,26 @@ def set_status(connection, person_id, status: str, now) -> dict:
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 
+def details_of(row: dict) -> dict:
+    return (decode(row['details']) if isinstance(row.get('details'), str) else row.get('details')) or {}
+
+
+def own_tie(first: dict, second: dict) -> str | None:
+    """How the user says two of them know each other (set_tie), '' for not at all; None where they haven't said."""
+    for one_side, other in ((first, second), (second, first)):
+        told = details_of(one_side).get('own_ties', {})
+        if other.get('seed') in told:
+            return told[other['seed']]
+    return None
+
+
 def tie(first: dict, second: dict, older: bool = False) -> str | None:
     """How two circle members know each other, the same every time for the same two people. In an older city
-    (before 1950) parents who parted are separated, and far fewer did (breakups.separated)."""
+    (before 1950) parents who parted are separated, and far fewer did (breakups.separated). What the user set
+    comes first. Friends by chance are never family: the companion's mom doesn't pal around with their rival."""
+    told = own_tie(first, second)
+    if told is not None:
+        return told or None
     kinds = {role_kind(first['role']), role_kind(second['role'])}
     pair = ':'.join(sorted((first['id'], second['id'])))
     if planned := planned_tie(first, second):  # Their family plan says (companion/life/family_circle.py).
@@ -824,14 +844,15 @@ def tie(first: dict, second: dict, older: bool = False) -> str | None:
         return 'old friends'
     if kinds & OLD_FRIENDS and kinds & FAMILY:
         return 'known for years'
+    if kinds & KIN:
+        return None
     chance = 0.15 if 'new friend' in kinds else 0.3
     return 'friends' if generators.unit(pair, 'friends') < chance else None
 
 
 def planned_tie(first: dict, second: dict) -> str | None:
     """How two people of a family plan stand: married or parted ('divorced'), as the plan has it."""
-    kin = [(decode(row['details']) if isinstance(row.get('details'), str) else row.get('details') or {}).get('kin')
-           for row in (first, second)]
+    kin = [details_of(row).get('kin') for row in (first, second)]
     if not (kin[0] and kin[1]):
         return None
     return kin[0]['ties'].get(kin[1]['id']) or kin[1]['ties'].get(kin[0]['id'])
@@ -846,6 +867,29 @@ def ties(rows: list[dict], older: bool = False) -> dict[str, list[dict]]:
                 result[first['id']].append({'id': second['id'], 'name': second['name'], 'how': how})
                 result[second['id']].append({'id': first['id'], 'name': first['name'], 'how': how})
     return result
+
+
+# How the user can say two people know each other (set_tie); '' is not at all.
+TIE_WORDS = ('friends', 'old friends', 'family', 'coworkers', 'known for years', 'rivals', 'married', 'divorced',
+             'separated', '')
+
+
+def set_tie(connection, person_id: str, other_id: str, how: str | None, now) -> dict:
+    """The user's word on how two of them know each other, kept on both (by seed, so a timeline's copy keeps it);
+    None hands it back to the app."""
+    row, other = person(connection, person_id), person(connection, other_id)
+    require(row['timeline_id'] == other['timeline_id'] and row['id'] != other['id'],
+            'Pick someone else in the same circle.', 422)
+    require(how is None or how in TIE_WORDS, 'Pick one of the ways listed.', 422)
+    for one_side, far in ((row, other), (other, row)):
+        details = details_of(one_side)
+        told = {key: value for key, value in details.get('own_ties', {}).items() if key != far['seed']}
+        told |= {} if how is None else {far['seed']: how}
+        details = {key: value for key, value in details.items() if key != 'own_ties'} | (
+            {'own_ties': told} if told else {})
+        connection.execute('UPDATE circle_people SET details=?, revision=revision+1, updated_at=? WHERE id=?',
+                           (encode(details), stamp(now), one_side['id']))
+    return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 
 def ties_text(known: list[dict]) -> str:

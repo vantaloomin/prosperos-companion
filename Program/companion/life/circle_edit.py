@@ -10,13 +10,15 @@ and comes back if the user takes them out again. A job is kept in the user's own
 matches (companion/life/job_words.py) gives their week its hours. What the user set is listed in the person's
 `edited`, so the app's later passes (family names) leave it be. What already happened keeps what it said.
 """
+import re
+
 from companion.clock import stamp
 from companion.database import decode, encode, one
 from companion.errors import require
 from companion.life import circle, job_words, named, shared_people
 from companion.world import catalog, generators
 
-FIELDS = ('name', 'role', 'pronouns', 'job', 'employer', 'age', 'local', 'note')
+FIELDS = ('name', 'role', 'pronouns', 'job', 'employer', 'age', 'local', 'note', 'start_stage')
 NOTE_MAX = 300
 
 
@@ -43,7 +45,8 @@ def add(connection, companion: dict, world, change: dict, now) -> dict:
         circle.plain_named(definition, person, seed, ordinal)
     note = (change.get('note') or '').strip()[:NOTE_MAX]
     made['details'] = made['details'] | {'by_hand': True, 'spared': True, 'edited': sorted(
-        key for key in FIELDS if change.get(key) not in (None, ''))} | ({'note': note} if note else {})
+        key for key in FIELDS if change.get(key) not in (None, ''))} | ({'note': note} if note else {}) | (
+        {'start_stage': change['start_stage']} if change.get('start_stage') else {})
     circle.insert(connection, timeline_id, [made], ordinal, now)
     added = one(connection, 'SELECT * FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))
     connection.execute('INSERT OR IGNORE INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?)',
@@ -84,6 +87,8 @@ def basics(made: dict, given: dict) -> dict:
     details = made['details']
     if 'name' in given:
         name = ' '.join(given['name'].split())
+        if details.get('note') and 'note' not in given:
+            details['note'] = renamed_note(details['note'], made['name'], name)
         made['name'] = name
         if ' ' in name:
             details['full_name'] = name
@@ -93,12 +98,23 @@ def basics(made: dict, given: dict) -> dict:
         details['pronouns'] = given['pronouns']
     if 'age' in given:
         details['age'] = given['age']
+    if 'start_stage' in given:  # Where they start with the companion (memory/pairs.py); 0 is the app's pick again.
+        details.pop('start_stage', None)
+        details |= {'start_stage': given['start_stage']} if given['start_stage'] else {}
     if 'note' in given:
         note = given['note'].strip()[:NOTE_MAX]
         details |= {'note': note} if note else {}
         if not note:
             details.pop('note', None)
     return made
+
+
+def renamed_note(note: str, old: str, new: str) -> str:
+    """The note with their old first name swapped for the new one, so it doesn't speak of someone else."""
+    before, after = old.split()[0] if old.split() else '', new.split()[0]
+    if not before or before == after:
+        return note
+    return re.sub(rf"\b{re.escape(before)}\b", after, note)
 
 
 def move(made: dict, local: bool, data: dict | None, seed: str) -> dict:

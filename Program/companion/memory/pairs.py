@@ -21,7 +21,8 @@ out (the secrets ledger) lowers how they feel about the people it is about, but 
 says they react that way: there is no built-in jealousy or betrayal. Someone whose "I see myself" lines show a
 mask may keep others a step further than they are kept.
 
-Only the one-time backstory is stored (`pair_backstories`); the user has no other dials between people.
+Only the one-time backstory is stored (`pair_backstories`); the user has no other dials between people, except
+where someone in a companion's circle starts with them, set on that person's card (companion/life/circle_edit.py).
 """
 import json
 import re
@@ -61,6 +62,19 @@ ROLE_DEFAULTS = {
     'co-parent': (3, 0.2, 0.0),
 }
 UNKNOWN_ROLE = (1, 0.0, 0.0)
+# For a role the defaults don't know (a rival, a fan), the words of the role and the user's note about them say where
+# the two start, first match wins: never met, known for years, or someone they see often.
+WORD_STARTS = (
+    (re.compile(r"\b(?:never (?:actually |really |even )?met|(?:has|have|hasn't|haven't|had|hadn't)(?: never| not)? "
+                r"(?:yet )?met|not met|(?:a |total |complete )?strangers?)\b", re.IGNORECASE), 1),
+    (re.compile(r"\b(?:for (?:many |several |a few )?years|years-long|years of|since (?:childhood|they were|we were|"
+                r"school|forever|the (?:start|beginning))|grew up (?:together|with)|lifelong|long-?time|long-?standing|"
+                r"childhood|old (?:friend|rival|flame|partner|pal|mate|comrade))\b", re.IGNORECASE), 3),
+    (re.compile(r"\b(?:rival|nemesis|arch-?enemy|sparring|opponent|teammate|trainer|coach|regular|fan|fangirl|fanboy|"
+                r"admirer|groupie|spectator|landlord|landlady|bartender|barkeep|client|customer|patron|student|"
+                r"apprentice|squire|crew|crewmate|shipmate|comrade|ally|acquaintance|bandmate|classmate)s?\b",
+                re.IGNORECASE), 2),
+)
 # The lowest a parent, sibling or grandparent ever stands with the companion (the role defaults never start them lower).
 FAMILY_FLOOR = 2
 # Family the app planned (companion/life/family_circle.py) and still in touch: known all their life, never lower than
@@ -210,10 +224,20 @@ def contact_days(days: list[str]) -> list[str]:
 
 # Rules about the people themselves ------------------------------------------------------------------
 
-def role_default(role: str, seed: str) -> dict:
-    """The stage a circle person starts at with the companion: their role's default, nudged by their seed."""
+def word_start(role: str, note: str = '') -> int | None:
+    """Where someone of a role the defaults don't know starts, from the words of the role and the note: None when
+    they say nothing."""
+    text = f'{role}. {note}'
+    return next((level for pattern, level in WORD_STARTS if pattern.search(text)), None)
+
+
+def role_default(role: str, seed: str, note: str = '') -> dict:
+    """The stage a circle person starts at with the companion: their role's default, nudged by their seed. A role
+    the defaults don't know starts where its words and the note say (word_start), else at Just met."""
     from companion.life import circle
-    base, up, down = ROLE_DEFAULTS.get(circle.role_kind(role), ROLE_DEFAULTS.get(role, UNKNOWN_ROLE))
+    known = ROLE_DEFAULTS.get(circle.role_kind(role), ROLE_DEFAULTS.get(role))
+    worded = None if known else word_start(role, note)
+    base, up, down = known or ((worded, 0.0, 0.0) if worded else UNKNOWN_ROLE)
     roll = generators.unit(seed, 'pair-closeness-nudge')
     nudge = 1 if roll < up else -1 if roll >= 1 - down else 0
     return {'level': min(max(base + nudge, 1), STAGES), 'default': base, 'nudge': nudge}
@@ -339,8 +363,11 @@ def with_circle(connection, a: str, b: str, me: dict, person: dict, now) -> dict
     """A companion and someone in their own circle; both directions start at the role's default."""
     from companion.life import circle
     # Their kids' other parent starts where any co-parent does, whatever the description calls them (an ex-husband).
-    found = role_default('co-parent' if decode(person['details'] or '{}').get('co_parent') else person['role'],
-                         person['seed'])
+    details = decode(person['details'] or '{}')
+    found = role_default('co-parent' if details.get('co_parent') else person['role'], person['seed'],
+                         details.get('note') or '')
+    if details.get('start_stage'):  # Where the user says the two of them start (companion/life/circle_edit.py).
+        found = {'level': clamp(details['start_stage']), 'default': found['default'], 'nudge': 0}
     today = now.astimezone(zone(me['version']['timezone'])).date().isoformat()
     moved = story_moves(connection, me, person['id'], today)
     base = clamp(level_from(found['level'], moved['points']) + moved['steps'])

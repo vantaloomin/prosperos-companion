@@ -5,6 +5,7 @@ import { api } from '../../api'
 import type { CareerSummary, CirclePerson } from '../../types'
 import { NOTE_MAX, RELATION_WORDS, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, placeWords, type AboutValues } from './circleText'
 import { useCircleHome } from './useCircleHome'
+import { PAIR_STAGES } from '../memories/pairText'
 
 export type Act = (action: () => Promise<unknown>, done: string, local?: (feedback: { tone: 'info' | 'error'; text: string }) => void) => Promise<boolean>
 
@@ -45,6 +46,12 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
       <Text id={`${prefix}-role`} label={`Who they are to ${companion}`}>
         <SuggestInput id={`${prefix}-role`} value={values.role} options={RELATION_WORDS} placeholder={person ? undefined : 'Friend'} required={!!person} maxLength={40} onChange={(role) => set({ role })} />
       </Text>
+      <Text id={`${prefix}-start`} label={`How close they are with ${companion}`} hint="Where the two of them start. It moves as their days go on.">
+        <select id={`${prefix}-start`} value={values.start} aria-describedby={`${prefix}-start-hint`} onChange={(event) => set({ start: event.target.value })}>
+          <option value="">{appPick(person)}</option>
+          {PAIR_STAGES.map((stage, index) => <option key={stage} value={String(index + 1)}>{stage}</option>)}
+        </select>
+      </Text>
       <Basics prefix={prefix} values={values} set={set} adding={!person} current={form.values.age} />
       <div className="circle-form-row circle-form-work">
         <Text id={`${prefix}-job`} label="Job" hint="In your words, like Photography student or Retired. Their hours follow the job.">
@@ -65,6 +72,9 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
     </form>
   )
 }
+
+/** "Let the app pick (Comfortable)": what the app picked, while the card's own stage line is hidden (Iris). */
+const appPick = (person?: CirclePerson) => person?.stage && !person.start_stage ? `Let the app pick (${person.stage.name})` : 'Let the app pick'
 
 interface BasicsProps { prefix: string; values: AboutValues; set: (change: Partial<AboutValues>) => void; adding: boolean; current: string }
 
