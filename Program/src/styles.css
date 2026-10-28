@@ -914,6 +914,11 @@ a.button { color: inherit; text-decoration: none; }
 .shot-row { display: grid; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
 .shot-prompt { overflow-wrap: anywhere; }
 .reference-card > .badge { justify-self: start; }
+.first-picture { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.first-picture legend { font-weight: 500; margin-bottom: 4px; }
+.own-picture { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; min-width: 0; }
+.own-picture > img { width: 120px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
+.own-picture > .form-stack { flex: 1 1 220px; min-width: 0; }
 .crop-preview { position: relative; }
 .crop-preview img { display: block; width: 100%; border-radius: 6px; }
 .crop-box { position: absolute; border: 2px solid var(--accent); box-shadow: 0 0 0 9999px #0008; pointer-events: none; }

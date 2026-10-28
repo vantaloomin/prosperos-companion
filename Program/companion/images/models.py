@@ -83,6 +83,7 @@ class ImageSettingsUpdate(Input):
     chat_photos: bool | None = None
     unprompted_photos: bool | None = None
     meme_formats: bool | None = None
+    follow_profile_picture: bool | None = None
     aspect: Aspect | None = None
     style: str | None = Field(default=None, max_length=500)
 

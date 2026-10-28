@@ -17,7 +17,8 @@ from companion.life import feed
 
 ACTIVE = ('queued', 'running')
 FINISHED = ('completed', 'failed', 'cancelled', 'interrupted')
-SETTING_FLAGS = ('automatic_images', 'fallback', 'chat_photos', 'unprompted_photos', 'meme_formats')
+SETTING_FLAGS = ('automatic_images', 'fallback', 'chat_photos', 'unprompted_photos', 'meme_formats',
+                 'follow_profile_picture')
 
 
 def settings_view(row) -> dict:
