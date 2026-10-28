@@ -1064,7 +1064,7 @@ export interface ImageBackend {
 export interface WorldImageBackends { own: boolean; picked: string[]; falls_back: boolean; used: string[] }
 export interface ImageBackendList { backends: ImageBackend[]; world: WorldImageBackends }
 
-export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; follow_profile_picture: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
@@ -1384,6 +1384,8 @@ export interface PlannedShot {
   backend: { id: string; label: string; kind: string; local: boolean } | null
   // Onboarding portraits: the position of the picture this one follows.
   follows?: number | null
+  // Picture 1 when it is their profile picture as it is (often the user's own): nothing is made for it.
+  own?: string
 }
 
 export interface PortraitDraft extends GenerationDraft { any_backend: boolean; reference_backend: { id: string; label: string; kind: string; local: boolean } | null }

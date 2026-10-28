@@ -392,6 +392,10 @@ ADDED_COLUMNS = (
     ('life_settings', 'family_shapes', 'INTEGER NOT NULL DEFAULT 2 CHECK (family_shapes BETWEEN 0 AND 3)'),
     # When the user took a picture a reply sent out of the chat (companion/images/photo_edits.py); NULL while it shows.
     ('chat_photos', 'removed_at', 'TEXT'),
+    # Whether pictures of the companion follow their profile picture on a backend that takes a reference
+    # (companion/images/runner.py, Settings > Images): on unless turned off, per world.
+    ('image_settings', 'follow_profile_picture',
+     'INTEGER NOT NULL DEFAULT 1 CHECK (follow_profile_picture IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

@@ -49,3 +49,20 @@ export async function keepBody(id: string): Promise<{ body: Blob; hash?: string 
   const copy = await pngCopy(blob)
   return { body: copy, hash: await hashPicture(copy) }
 }
+
+/** The user's own picture as PNG or JPEG, at most 2048 px on its longer side, ready to be their profile picture. */
+export async function profileCopy(file: Blob): Promise<Blob> {
+  const bitmap = await createImageBitmap(file)
+  const scale = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height))
+  const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+  if (scale === 1 && type === file.type) {
+    bitmap.close()
+    return file
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(bitmap.width * scale)
+  canvas.height = Math.round(bitmap.height * scale)
+  canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+  bitmap.close()
+  return new Promise((resolve, reject) => canvas.toBlob((copy) => copy ? resolve(copy) : reject(new Error('This picture could not be read.')), type, 0.92))
+}

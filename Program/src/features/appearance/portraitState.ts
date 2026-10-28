@@ -3,8 +3,17 @@ import type { GeneratedImage, Generation, PlannedShot } from '../../types'
 
 export const PORTRAITS_KEY = ['lora-portraits']
 
+/** The first picture that is made: picture 1, or picture 2 when picture 1 is their own. */
+const firstMade = (planned: PlannedShot[]) => planned.find((shot) => !shot.own)
+
+/** Whether the set can start: their own picture is there, and the first picture made has somewhere to go. */
+export function startable(planned?: PlannedShot[]): boolean {
+  return !!planned && !(planned[0]?.own && planned[0].refusal) && !!firstMade(planned)?.backend
+}
+
 /** What leaves the computer, said before anything is sent. */
 export function sendsLine(planned: PlannedShot[], withoutReference: boolean): string {
+  if (planned[0]?.own) return ownLine(planned)
   const target = planned[0]?.backend
   if (!target) return planned[0]?.refusal ?? 'These pictures cannot be made yet.'
   const where = `${target.label}${target.local ? ' on this computer' : ''}`
@@ -12,6 +21,13 @@ export function sendsLine(planned: PlannedShot[], withoutReference: boolean): st
   const following = planned.filter((shot) => shot.follows !== null && shot.follows !== undefined && shot.backend).length
   if (!following) return `The picture goes to ${where}.`
   return `All three go to ${where}. Pictures 2 and 3 each send picture 1 along as the reference, so they show the same person.`
+}
+
+function ownLine(planned: PlannedShot[]): string {
+  const target = firstMade(planned)?.backend
+  if (planned[0].refusal) return planned[0].refusal
+  if (!target) return firstMade(planned)?.refusal ?? 'These pictures cannot be made yet.'
+  return `Pictures 2 and 3 go to ${target.label}${target.local ? ' on this computer' : ''}, each with your picture along as the reference, so they show the same person.`
 }
 
 /** Pictures that finished and are not yet kept or discarded. */
