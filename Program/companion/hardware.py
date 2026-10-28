@@ -464,7 +464,9 @@ def comfy_models(base_url: str) -> list[str] | None:
             response = httpx.get(f"{base_url.rstrip('/')}/object_info/{loader}", timeout=2, trust_env=False)
             spec = (response.json().get(loader) or {}).get('input', {}).get('required', {}).get('unet_name') \
                 if response.is_success else None
-            found += [name for name in (spec[0] if spec and isinstance(spec[0], list) else []) if isinstance(name, str)]
+            # A .gguf file counts only where the ComfyUI-GGUF loader lists it, so the server can load it (Iris).
+            found += [name for name in (spec[0] if spec and isinstance(spec[0], list) else [])
+                      if isinstance(name, str) and (loader == 'UnetLoaderGGUF' or not name.lower().endswith('.gguf'))]
     except (httpx.HTTPError, ValueError, AttributeError):
         return None
     return found

@@ -215,3 +215,14 @@ def test_another_familys_gguf_file_loads_through_the_gguf_loader(family):
     for workflow in (built_in(config), built_in(config, reference=True)):
         loaders = [node for node in workflow.values() if 'unet_name' in node['inputs']]
         assert loaders and all(node['class_type'] == 'UnetLoaderGGUF' for node in loaders)
+
+
+def test_a_gguf_file_counts_only_where_the_gguf_loader_lists_it(monkeypatch):
+    # Without the ComfyUI-GGUF nodes, a .gguf file on disk can't run, so no "Use" button offers it (Iris).
+    def get(url, **kwargs):
+        loader = url.rsplit('/', 1)[-1]
+        names = {'UNETLoader': ['qwen_image_2.1_Q6_K.gguf', 'flux.safetensors']}.get(loader)
+        spec = {loader: {'input': {'required': {'unet_name': [names, {}]}}}} if names else {}
+        return httpx.Response(200 if names else 404, json=spec, request=httpx.Request('GET', url))
+    monkeypatch.setattr(httpx, 'get', get)
+    assert hardware.comfy_models('http://127.0.0.1:8188') == ['flux.safetensors']
