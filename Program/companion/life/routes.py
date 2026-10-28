@@ -85,6 +85,15 @@ class PersonAbout(Input):
     age: int | None = Field(default=None, ge=0, le=5000)
     local: bool | None = None
     note: str | None = Field(default=None, max_length=300)
+    # Where the two of them start with the companion, 1 Just met to 5; 0 hands it back to the app (memory/pairs.py).
+    start_stage: int | None = Field(default=None, ge=0, le=5)
+
+
+class PersonTie(Input):
+    """How two people in the circle know each other, in the user's word ('' is not at all); None is the app's pick."""
+    other_id: str = Field(min_length=1, max_length=64)
+    how: Literal['friends', 'old friends', 'family', 'coworkers', 'known for years', 'rivals', 'married', 'divorced',
+                 'separated', ''] | None = None
 
 
 class PersonNew(PersonAbout):
@@ -357,6 +366,13 @@ def edit_person(request: Request, person_id: str, body: PersonAbout):
     world = request.app.state.life.world
     return circle_change(request, person_id, lambda connection, now: circle_edit.edit(
         connection, require_current(connection), world, person_id, body.model_dump(exclude_unset=True), now))
+
+
+@router.put('/circle/{person_id}/ties')
+def set_person_tie(request: Request, person_id: str, body: PersonTie):
+    """How someone knows another person in the circle, as the user says; it changes both their cards."""
+    return circle_change(request, person_id, lambda connection, now: circle.set_tie(
+        connection, person_id, body.other_id, body.how, now))
 
 
 @router.post('/circle/people')

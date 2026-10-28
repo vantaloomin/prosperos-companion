@@ -2781,6 +2781,13 @@ p.breakup-line { align-items: center; }
 .circle-pet p { margin: 0; }
 .circle-pet .person-actions { margin-top: 2px; }
 /* The open pet form is its own small inset form, so its Save pet does not read as the person form's Save. */
+.circle-tie-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.circle-tie { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 14rem); gap: 12px; align-items: center; min-width: 0; }
+.circle-tie label { overflow-wrap: anywhere; }
+.circle-tie select { width: 100%; min-width: 0; }
+.circle-tie-add { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.circle-tie-add .rename-row { grid-column: 1 / -1; }
+@media (max-width: 720px) { .circle-tie { grid-template-columns: 1fr; gap: 4px; } }
 .circle-pet-form { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .circle-pet-form > label, .circle-pet-form .field-label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 .circle-pet-form .field { margin: 0; }

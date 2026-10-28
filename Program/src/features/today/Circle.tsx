@@ -18,6 +18,7 @@ import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
 import { CirclePets } from './CirclePets'
+import { CircleTies } from './CircleTies'
 import { childLabel, childLine, expectingLabel, expectingLine } from '../character/familiesText'
 import { lateText } from '../character/lossText'
 import { BRING_BACK_LONG_AGO, inFamily, longAgoFacts, longAgoText, outOfTouch, outOfTouchText } from './familyText'
@@ -167,6 +168,7 @@ function OwnCard({ person, companion, act }: { person: CirclePerson; companion: 
         ? <>
           <h3>{displayName(person)}</h3>
           <PersonForm person={person} companion={companion} act={act} local={setNotice} onDone={() => setEditing(false)} />
+          <CircleTies person={person} act={act} />
           <CirclePets person={person} act={act} />
         </>
         : <>

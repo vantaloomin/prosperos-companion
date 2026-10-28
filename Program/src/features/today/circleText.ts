@@ -66,7 +66,7 @@ export const RELATION_WORDS = ['friend', 'close friend', 'best friend', 'mom', '
   'grandmother', 'grandfather', 'partner', 'roommate', 'neighbor', 'coworker', 'boss', 'mentor', 'old friend from school']
 
 /** The form's fields as text, the way the inputs hold them. */
-export interface AboutValues { name: string; role: string; pronouns: string; job: string; employer: string; age: string; local: '' | 'here' | 'away'; note: string }
+export interface AboutValues { name: string; role: string; pronouns: string; job: string; employer: string; age: string; local: '' | 'here' | 'away'; note: string; start: string }
 
 export const NOTE_MAX = 300
 const AGES = { least: 16, most: 120 }
@@ -93,7 +93,7 @@ export function aboutForm(person?: CirclePerson) {
   return { values, submit: person ? 'Save' : 'Add', title: (companion: string) => person ? `Change ${person.name}` : `Add someone to ${companion}'s life` }
 }
 
-const EMPTY_ABOUT: AboutValues = { name: '', role: '', pronouns: '', job: '', employer: '', age: '', local: '', note: '' }
+const EMPTY_ABOUT: AboutValues = { name: '', role: '', pronouns: '', job: '', employer: '', age: '', local: '', note: '', start: '' }
 
 function aboutValues(person: CirclePerson): AboutValues {
   return {
@@ -101,6 +101,7 @@ function aboutValues(person: CirclePerson): AboutValues {
     // A coworker's "Works with Dana" is how the card says it, not a job to edit.
     job: person.works_with_companion ? '' : person.career ?? '', employer: person.employer ?? '',
     age: typeof person.age === 'number' ? String(person.age) : '', local: person.local === false ? 'away' : 'here', note: person.note ?? '',
+    start: person.start_stage ? String(person.start_stage) : '',
   }
 }
 
@@ -118,6 +119,7 @@ function newPerson(after: AboutValues): AboutChange {
   if (after.pronouns) change.pronouns = after.pronouns
   if (after.age) change.age = Number(after.age)
   if (after.local) change.local = after.local === 'here'
+  if (after.start) change.start_stage = Number(after.start)
   return change
 }
 
@@ -130,7 +132,12 @@ function changedPerson(before: AboutValues, after: AboutValues): AboutChange {
   if (after.pronouns !== before.pronouns) change.pronouns = after.pronouns
   if (after.age && after.age !== before.age) change.age = Number(after.age)
   if (after.local !== before.local) change.local = after.local === 'here'
-  return change
+  return { ...change, ...changedStart(before, after) }
+}
+
+/** Where they start with the companion; back to the app's pick is 0. */
+function changedStart(before: AboutValues, after: AboutValues): AboutChange {
+  return after.start === before.start ? {} : { start_stage: Number(after.start || 0) }
 }
 
 /** The confirmation once saved. */
@@ -138,3 +145,10 @@ export function aboutSaved(person: CirclePerson | undefined, name: string, compa
   if (!person) return `${name} is now part of ${companion}'s life.`
   return `Saved ${name || person.name}. Moments that already happened stay as they were.`
 }
+
+/** How two people in the circle can know each other, as the user picks it (companion/life/circle.py TIE_WORDS). */
+export const TIE_CHOICES: { value: string; label: string }[] = [
+  { value: 'friends', label: 'Friends' }, { value: 'old friends', label: 'Old friends' }, { value: 'family', label: 'Family' },
+  { value: 'coworkers', label: 'Coworkers' }, { value: 'known for years', label: 'Known for years' }, { value: 'rivals', label: 'Rivals' },
+  { value: 'married', label: 'Married' }, { value: 'divorced', label: 'Divorced' }, { value: 'separated', label: 'Separated' },
+]
