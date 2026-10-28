@@ -94,3 +94,20 @@ test('a pin on a neighbourhood name moves the name straight up or down, never of
   const pin = alder.places[0], half = (name.text.length * 7.4) / 2
   assert.ok(name.y + 1 <= pin.y - 11 || name.y - 9 >= pin.y + 11 || Math.abs(name.x - pin.x) >= half + 11, 'the pin no longer covers the name')
 })
+
+test("the same city lays out the same whoever's map it is and whoever lives where", () => {
+  const plain = drawn(city())
+  const homes = city()
+  homes.places = [{ ...place('~home', 'a', ['home']), kind: 'home' }, { ...place('~you', 'b', ['yours']), kind: 'home' },
+    ...[1, 2, 3, 4, 5, 6].map((index) => ({ ...place(`~circle:${index}`, 'a', ['known']), kind: 'home' })), ...homes.places]
+  const lived = drawn(homes)
+  assert.deepEqual(lived.districts.map(({ id, x, y }) => ({ id, x, y })), plain.districts.map(({ id, x, y }) => ({ id, x, y })))
+  assert.deepEqual(lived.districts.map((district) => district.streets), plain.districts.map((district) => district.streets))
+  // The city's own places keep their corners; the homes take the next ones, each its own.
+  const at = (map: typeof plain) => new Map(map.districts.flatMap((district) => district.places).map((spot) => [spot.place.id, `${spot.x},${spot.y}`]))
+  const before = at(plain), after = at(lived)
+  for (const [id, spot] of before) assert.equal(after.get(id), spot)
+  assert.equal(new Set(after.values()).size, after.size)
+  assert.equal(mainPin({ pins: ['known'] }), 'known')
+  assert.equal(mainPin({ pins: ['yours'] }), 'yours')
+})

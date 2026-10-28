@@ -1,6 +1,6 @@
 """Life simulation, Today and Feed API (PRD T1–T7, F1, F2, F4)."""
 from datetime import date, timedelta
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Request
 from pydantic import Field
@@ -27,6 +27,7 @@ from companion.life import (
     families,
     family_circle,
     feed,
+    home,
     kids,
     long_distance,
     loss,
@@ -59,7 +60,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.models import Input, KindChange, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
-from companion.world import lifespans, paper, ships
+from companion.world import inside, lifespans, paper, ships
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -518,13 +519,50 @@ def read_acquaintances(request: Request):
         return network.acquaintances(connection, companion['active_timeline_id'], database.clock.now())
 
 
+class MapHomeMove(Input):
+    neighborhood: str = Field(min_length=1, max_length=80)
+
+
+class MapPlaceInside(Input):
+    spots: list[Annotated[str, Field(max_length=60)]] = Field(max_length=8)
+
+
+def map_change(request: Request, action=None):
+    """The map, after `action(connection, companion, data, now)`; their home is set up (and kept in a neighbourhood
+    that fits what is said about it, companion/life/home.py) before it is drawn."""
+    database = db(request)
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        version = companion['version']
+        home.ensure(connection, companion['active_timeline_id'], version['definition'], request.app.state.life.world,
+                    now)
+        if action:
+            action(connection, companion, network.city(connection, companion), now)
+        return citymap.build(connection, companion, now, bool(settings(connection)['story_mode']))
+
+
 @router.get('/map')
 def read_map(request: Request):
     """The companion's city with their places marked, for the map (companion/life/citymap.py)."""
-    database = db(request)
-    with database.connect() as connection:
-        companion = require_current(connection)
-        return citymap.build(connection, companion, database.clock.now(), bool(settings(connection)['story_mode']))
+    return map_change(request)
+
+
+@router.put('/map/home')
+def move_home(request: Request, body: MapHomeMove):
+    """The user moves the companion's home to another neighbourhood of their city."""
+    return map_change(request, lambda connection, companion, data, now: home.move(
+        connection, companion['active_timeline_id'], data, body.neighborhood,
+        home.today_for(companion['version'], now), now))
+
+
+@router.put('/map/places/{place_id}/inside')
+def edit_place_inside(request: Request, place_id: str, body: MapPlaceInside):
+    """What is inside a place of their city, in the user's words; an empty list goes back to the usual ones."""
+    def action(connection, _companion, data, now):
+        require(any(place['id'] == place_id for place in data['places']), 'That place is not in their city.', 404)
+        inside.edit(connection, data['id'], place_id, body.spots, now)
+    return map_change(request, action)
 
 
 @router.get('/outings')

@@ -124,7 +124,7 @@ def present(connection, data: dict, place_id: str, moment: datetime) -> list[dic
 def scene(connection, now: datetime) -> dict:
     row = scene_row(connection)
     data = city_data(connection, row['city_id'])
-    place = catalog.find(data, row['place_id'])
+    place = inside.with_edits(catalog.find(data, row['place_id']), inside.edited(connection, data['id']))
     moment = local_moment(data, now)
     weather = generators.conditions(data, moment.date())
     hood = townsfolk.neighborhood_name(data, place['neighborhood'])

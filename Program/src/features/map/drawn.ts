@@ -5,7 +5,7 @@
  * to the districts next to it, parks under green places, and any sea, river or lake the city data names. Places
  * sit on street corners. Not to scale, and the caption says so.
  */
-import { mainPin, type CityMapData, type MapPlace, type MapWater, type Pin } from './mapText.ts'
+import { isHome, mainPin, type CityMapData, type MapPlace, type MapWater, type Pin } from './mapText.ts'
 
 export interface Point { x: number; y: number }
 export interface District { id: string; name: string; x: number; y: number; outline: Point[]; streets: [Point, Point][]; label: Point; places: { place: MapPlace; x: number; y: number }[] }
@@ -34,7 +34,9 @@ export function drawn(data: CityMapData): Drawn {
   const sea = data.water?.filter((water) => water.kind === 'sea') ?? []
   const shift = frame(seats, sea)
   const move = (point: Point): Point => drift(seats, point, shift)
-  const districts = seats.map((seat) => district(seat, seats, data.places.filter((item) => item.hood_id === seat.id)))
+  // The city's own places take their corners first and homes the next ones, so whoever's map it is, and whoever lives
+  // where, the same city lays out the same.
+  const districts = seats.map((seat) => district(seat, seats, [...data.places.filter((item) => item.hood_id === seat.id && !isHome(item)), ...data.places.filter((item) => item.hood_id === seat.id && isHome(item))]))
   const water = (data.water ?? []).map((item) => waterShape(item, seats, project, move, perKm, shift))
   const labels = districts.map((district) => district.label)
   return { width: shift.width, height: shift.height, districts, roads: roads(seats, districts), water: water.map((item) => clearLabel(item, labels)), outskirts: seats.map((seat) => outskirts(seat, seats)) }
@@ -49,7 +51,8 @@ function place(data: CityMapData) {
   const km = (lat: number, lon: number): Point => ({ x: lon * squash * 111, y: -lat * 111 })
   const raw = data.hoods.map((hood) => km(hood.lat, hood.lon))
   const centre = { x: raw.reduce((sum, at) => sum + at.x, 0) / raw.length, y: raw.reduce((sum, at) => sum + at.y, 0) / raw.length }
-  const sizes = data.hoods.map((hood) => radiusFor(data.places.filter((item) => item.hood_id === hood.id).length))
+  // Sized by the city's own places only: a home there must not make a neighbourhood bigger and move the rest around.
+  const sizes = data.hoods.map((hood) => radiusFor(data.places.filter((item) => item.hood_id === hood.id && !isHome(item)).length))
   const typical = quartile(raw.map((at, index) => Math.min(...raw.filter((_, other) => other !== index).map((other) => Math.hypot(other.x - at.x, other.y - at.y))))) || 0.5
   const perKm = ((2 * sizes.reduce((sum, size) => sum + size, 0)) / sizes.length + GAP) / typical, reach = typical * 2.5
   const project = (lat: number, lon: number): Point => {
@@ -128,7 +131,7 @@ function district(seat: Seat, seats: Seat[], places: MapPlace[]): District {
   let outline = coast(seat, reachOf(seat, seats))
   for (const other of seats) if (other !== seat) outline = cut(outline, seat, other)
   const label = { x: seat.x, y: seat.y }
-  const { streets, corners } = grid(seat, outline, places.length, label)
+  const { streets, corners } = grid(seat, outline, places.filter((item) => !isHome(item)).length, places.length, label)
   return { id: seat.id, name: seat.name, x: seat.x, y: seat.y, outline, streets, label, places: places.map((item, index) => ({ place: item, ...corners[index] })) }
 }
 
@@ -188,14 +191,16 @@ function edgeDistance(point: Point, outline: Point[]): number {
 }
 
 /** Side streets at a seeded angle, and the corners places sit on, nearest the middle first, clear of the name. */
-function grid(seat: Seat, outline: Point[], count: number, label: Point) {
+function grid(seat: Seat, outline: Point[], count: number, total: number, label: Point) {
   const angle = (unit(`${seat.id}:angle`) - 0.5) * 0.7
   let step = STREET, corners: Point[] = []
   for (let tries = 0; tries < 5; tries++, step *= 0.82) {
     corners = cornersIn(seat, outline, angle, step, label)
     if (corners.length >= count) break
   }
-  while (corners.length < count) corners.push({ x: seat.x + (corners.length % 3) * 6, y: seat.y + 18 })
+  // Homes past the city's own places sit between the corners, so they never change the streets.
+  if (corners.length < total) corners = [...corners, ...cornersIn(seat, outline, angle, step / 2, label).filter((point) => !corners.some((other) => Math.hypot(other.x - point.x, other.y - point.y) < 4))]
+  while (corners.length < total) corners.push({ x: seat.x + (corners.length % 3) * 6, y: seat.y + 18 })
   return { streets: streetLines(seat, angle, step), corners }
 }
 
@@ -340,8 +345,9 @@ interface Box { x: number; y: number; w: number; h: number; weight?: number }
 const LETTER = { district: 8, water: 8, place: 6.6 }
 // How far each kind's text reaches above and below the baseline.
 const INK = { district: [10, 2], water: [12, 4], place: [11, 3] } as const
-// After the neighbourhoods, their home, work and the scene claim their spot first, then their other places, then water.
-const RANK: Record<Pin, number> = { scene: 0, home: 0, work: 0, usual: 1, recent: 2 }
+// After the neighbourhoods, their home, yours, work and the scene claim their spot first, then their other places and
+// other people's homes, then water.
+const RANK: Record<Pin, number> = { scene: 0, home: 0, yours: 0, work: 0, usual: 1, recent: 2, known: 2 }
 
 /**
  * Keeps names from running into each other and into pins. Neighbourhood names go first and are never left off:

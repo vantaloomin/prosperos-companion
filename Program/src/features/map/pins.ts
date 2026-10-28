@@ -6,6 +6,6 @@ const CASE = '<rect x="4" y="8" width="16" height="11" rx="2"/><path d="M9 8V6.5
 const DOT = '<circle cx="12" cy="12" r="6"/>'
 
 export function pinMarkup(pin: Pin | 'place'): string {
-  const shape = pin === 'home' ? HOUSE : pin === 'work' ? CASE : DOT
+  const shape = pin === 'home' || pin === 'yours' || pin === 'known' ? HOUSE : pin === 'work' ? CASE : DOT
   return `<svg viewBox="0 0 24 24" aria-hidden="true">${shape}</svg>`
 }

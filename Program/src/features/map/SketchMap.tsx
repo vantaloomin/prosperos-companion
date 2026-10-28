@@ -125,7 +125,7 @@ function PlacePin({ place, x, y, grow, hit, named, selected, onSelect }: PinProp
 
 /** The same glyphs as the street map's pins (pins.ts). */
 function PinShape({ pin }: { pin: ReturnType<typeof mainPin> }) {
-  if (pin === 'home') return <path d="M4 11.5 12 5l8 6.5V20h-5v-5H9v5H4z" />
+  if (pin === 'home' || pin === 'yours' || pin === 'known') return <path d="M4 11.5 12 5l8 6.5V20h-5v-5H9v5H4z" />
   if (pin === 'work') return <><rect x="4" y="8" width="16" height="11" rx="2" /><path d="M9 8V6.5A1.5 1.5 0 0 1 10.5 5h3A1.5 1.5 0 0 1 15 6.5V8" /></>
   return <circle cx="12" cy="12" r="6" />
 }
