@@ -1,0 +1,260 @@
+{
+ "credit": "Written for the app from the New York, 1925 city data and the history of that year.",
+ "own_factions": true,
+ "factions": [
+  {
+   "id": "tammany",
+   "name": "Tammany Hall",
+   "kind": "party machine",
+   "tags": [
+    "establishment"
+   ],
+   "pull": 5,
+   "about": "The Democratic machine on 14th Street: jobs, coal and favors for votes.",
+   "jobs": [
+    "official"
+   ],
+   "places": [
+    "tammany-hall"
+   ],
+   "allies": [
+    "the-force",
+    "bootleggers"
+   ],
+   "rivals": [
+    "citizens-union"
+   ]
+  },
+  {
+   "id": "citizens-union",
+   "name": "The Citizens Union",
+   "kind": "reform league",
+   "tags": [
+    "reform"
+   ],
+   "pull": 2,
+   "about": "Good-government reformers who want the machine out of City Hall.",
+   "jobs": [
+    "learned"
+   ],
+   "places": [
+    "cooper-union-great-hall"
+   ],
+   "allies": [
+    "anti-saloon-league"
+   ],
+   "rivals": [
+    "tammany"
+   ]
+  },
+  {
+   "id": "anti-saloon-league",
+   "name": "The Anti-Saloon League",
+   "kind": "dry league",
+   "tags": [
+    "church",
+    "reform"
+   ],
+   "pull": 3,
+   "about": "The drys, who won Prohibition and mean to see it enforced.",
+   "jobs": [
+    "church"
+   ],
+   "allies": [
+    "citizens-union"
+   ],
+   "rivals": [
+    "bootleggers"
+   ]
+  },
+  {
+   "id": "bootleggers",
+   "name": "The bootleggers",
+   "kind": "gangs",
+   "tags": [
+    "outlaws"
+   ],
+   "pull": 4,
+   "about": "The rum-runners and speakeasy owners who keep the city wet and the police paid.",
+   "jobs": [
+    "drink"
+   ],
+   "places": [
+    "texas-guinans",
+    "cotton-club",
+    "mulberry-social-club"
+   ],
+   "allies": [
+    "tammany"
+   ],
+   "rivals": [
+    "anti-saloon-league",
+    "the-force"
+   ]
+  },
+  {
+   "id": "garment-unions",
+   "name": "The garment unions",
+   "kind": "union",
+   "tags": [
+    "workers",
+    "radical"
+   ],
+   "pull": 3,
+   "about": "Cutters, cloakmakers and dressmakers of the Lower East Side, organized and quarrelling among themselves.",
+   "jobs": [
+    "labor"
+   ],
+   "places": [
+    "union-square-plaza"
+   ],
+   "allies": [],
+   "rivals": [
+    "chamber"
+   ]
+  },
+  {
+   "id": "chamber",
+   "name": "The Chamber of Commerce",
+   "kind": "business",
+   "tags": [
+    "business"
+   ],
+   "pull": 4,
+   "about": "Bankers and merchants of the Financial District.",
+   "jobs": [
+    "trade"
+   ],
+   "allies": [],
+   "rivals": [
+    "garment-unions"
+   ]
+  },
+  {
+   "id": "the-force",
+   "name": "The police",
+   "kind": "police",
+   "tags": [
+    "law"
+   ],
+   "pull": 3,
+   "about": "The city's police, some of them on the take.",
+   "jobs": [
+    "law"
+   ],
+   "allies": [
+    "tammany"
+   ],
+   "rivals": [
+    "bootleggers"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "mayors-race",
+   "title": "Walker or Hylan",
+   "question": "Should Jimmy Walker take the mayor's chair from Hylan?",
+   "years": [
+    1925,
+    1925
+   ],
+   "real": true,
+   "sides": [
+    {
+     "name": "Walker",
+     "stand": "see Jimmy Walker in City Hall",
+     "jobs": [
+      "arts",
+      "drink",
+      "official"
+     ],
+     "words": [
+      "party"
+     ],
+     "backers": [
+      "establishment"
+     ]
+    },
+    {
+     "name": "Hylan",
+     "stand": "keep Mayor Hylan",
+     "jobs": [
+      "labor"
+     ],
+     "words": [
+      "cautious"
+     ],
+     "backers": [
+      "workers"
+     ]
+    }
+   ],
+   "beats": [
+    [
+     "Tammany came out for Walker.",
+     0
+    ],
+    [
+     "Hylan promised to keep the five-cent fare.",
+     1
+    ],
+    [
+     "Walker was seen at a Broadway opening past three in the morning.",
+     0
+    ],
+    [
+     "Hearst's papers backed Hylan.",
+     1
+    ]
+   ]
+  },
+  {
+   "id": "five-cent-fare",
+   "title": "The five-cent fare",
+   "question": "Should the subway fare stay at a nickel?",
+   "real": true,
+   "sides": [
+    {
+     "name": "Raise it",
+     "stand": "let the companies raise the fare",
+     "jobs": [
+      "trade"
+     ],
+     "words": [
+      "practical"
+     ],
+     "backers": [
+      "business"
+     ]
+    },
+    {
+     "name": "Keep the nickel",
+     "stand": "keep the fare at five cents",
+     "jobs": [
+      "labor",
+      "care"
+     ],
+     "words": [
+      "cautious"
+     ],
+     "backers": [
+      "workers",
+      "establishment"
+     ]
+    }
+   ],
+   "beats": [
+    [
+     "The subway companies say they are losing money.",
+     0
+    ],
+    [
+     "Straphangers packed a hearing at City Hall.",
+     1
+    ]
+   ]
+  }
+ ],
+ "issues": []
+}

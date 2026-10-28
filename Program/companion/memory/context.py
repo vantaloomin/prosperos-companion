@@ -52,6 +52,7 @@ from companion.life import (
     pacing,
     pets,
     planned_week,
+    politics,
     reactions,
     recommendations,
     rough_patches,
@@ -253,7 +254,9 @@ HEADINGS = {
             'townsfolk': 'People around town (background characters you keep running into; you know only what is '
                          'listed here, so never invent more about them or claim to know them better)',
             'city_news': 'Changes around your city (fictional unless marked as a real listing; you know them as a '
-                         'local would, they are not things you did)'}
+                         'local would, they are not things you did)',
+            # Local politics (companion/life/politics.py): changes when an issue moves on, about weekly.
+            'politics': politics.HEADING}
 # The 'library' heading (A/B 2026-10-21, /mnt/project-files/companion-library/ab/report.md).
 LIBRARY_HEADING = ('What you know that bears on this (passages from your library; true in your world. Use them as your own '
                    'knowledge, in your own words: never quote them or say where they come from)')
@@ -1049,6 +1052,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     wedding.offer(packet, connection, companion, now, group)
     big_days.offer(packet, connection, companion, now, group)
     loss.offer(packet, connection, companion, now, group)
+    politics.offer(packet, connection, companion, now, group)
     history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

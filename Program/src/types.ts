@@ -556,6 +556,8 @@ export interface LifeSettings {
   /** Loss and grief (companion/life/loss.py): whether people can pass away (off on every preset), and how often: 0 rare, 1 now and then, 2 true to life, 3 often. */
   people_pass_away: boolean
   loss: number
+  /** Local politics (companion/life/politics.py): 0 off, 1 quiet, 2 true to life, 3 lively. */
+  politics_realism: number
 }
 
 /** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
@@ -2133,6 +2135,8 @@ export interface TownPaper {
   couples: { key: string; headline: string; text: string }[]
   seen: { companion_id: string; text: string }[]
   gossip: { text: string }[]
+  /** Local issues that moved that week (companion/life/politics.py paper_items). */
+  politics?: { key: string; headline: string; text: string; date: string }[]
   ahead: {
     events: { date: string; name: string; text: string }[]
     holidays: { date: string; name: string }[]
@@ -2140,6 +2144,63 @@ export interface TownPaper {
   }
   previous: string
   next: string | null
+}
+
+/** Local politics (companion/life/politics.py): what people in the companion's city argue about, the factions behind
+ * each side and where the companion and their people stand. Views run from 2 (strongly for the first side) to -2
+ * (strongly for the second); `by` says whether the app or the user set it. */
+export type PoliticsStage = 'whispers' | 'open' | 'heated' | 'settled' | 'ended'
+export interface PoliticsSide { name: string; stand: string }
+export interface PoliticsBeat { on: string; text: string; stage?: string; favors?: number }
+export interface PoliticsView { view: number; by: 'world' | 'you' }
+export interface PoliticsIssue {
+  id: string
+  kind: 'era' | 'local'
+  title: string
+  question: string
+  sides: PoliticsSide[]
+  stage: PoliticsStage
+  beats: PoliticsBeat[]
+  /** How many of the townsfolk who stand for the town are on each side, or don't much care. */
+  split: { first: number; second: number; neither: number }
+  /** How a local issue went, with the odds of each way (shown only with Hidden values > odds). */
+  settled: { options: { option: number; label: string; odds: number; reasons: string[]; moves?: ReasonMove[] }[]; picked: number; picked_by: 'dice' | 'user' } | null
+  settled_on: string | null
+  /** A real question of the city's year (Prohibition in 1925): it never settles against history. */
+  real: boolean
+  origin: 'seeded' | 'user'
+  started: string | null
+  /** 'you' when the user set how far a local issue has got. */
+  stage_by: 'you' | null
+  /** The side each faction takes: 0 or 1, null when it stays out. */
+  lines: Record<string, number | null>
+  edited: boolean
+}
+export interface PoliticsFaction {
+  id: string
+  name: string
+  kind: string
+  about: string
+  /** 1 to 5; `change` is how far recent wins or losses moved it from `base_pull`. */
+  pull: number
+  base_pull: number
+  change: number
+  origin: 'city' | 'era' | 'user'
+  /** The companion and people they know who belong. */
+  members: string[]
+  /** The sides the user told it to take, by issue. */
+  sides: Record<string, number>
+}
+export interface PoliticsRelation { a: string; b: string; stance: number; by: 'world' | 'you' }
+export interface PoliticsPerson { key: string; name: string; role: string; kind: string; factions: string[]; views: Record<string, PoliticsView> }
+export interface TownPolitics {
+  level: number
+  city: { id: string | null; name: string | null }
+  issues: PoliticsIssue[]
+  factions: PoliticsFaction[]
+  relations: PoliticsRelation[]
+  companion: { key: string; name: string; factions: string[]; views: Record<string, PoliticsView> } | null
+  people: PoliticsPerson[]
 }
 
 /** Worlds and personas (companion/worlds.py): the user as someone in particular, and the worlds they live in. */

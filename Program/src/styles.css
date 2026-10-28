@@ -499,6 +499,33 @@ a.button { color: inherit; text-decoration: none; }
 .today-section { max-width: 760px; margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
 .today-section h3 { font-size: 1rem; margin-top: 10px; color: var(--muted); }
 .why-it-went { margin: 0 0 6px; }
+/* Talk of the town (Iris review 2026-10-28): side shares at the bar's ends, name | select rows. */
+.politics-issue p, .politics-detail p { margin: 0; }
+.politics-title .badge { margin-left: 4px; white-space: nowrap; }
+.politics-split { display: grid; gap: 2px; margin: 4px 0; max-width: 360px; }
+.politics-split-ends { display: flex; justify-content: space-between; gap: 12px; font-size: 0.8rem; color: var(--muted); min-width: 0; }
+.politics-split-ends > span { display: flex; gap: 4px; min-width: 0; white-space: nowrap; }
+.politics-split-name { overflow: hidden; text-overflow: ellipsis; }
+.politics-split-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--border); }
+.politics-split-first { background: var(--accent); }
+.politics-split-neither { background: var(--border); }
+.politics-split-second { background: color-mix(in srgb, var(--text) 70%, transparent); }
+.politics-people, .politics-rows { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 6px 12px; align-items: center; max-width: 520px; }
+.politics-rows { grid-template-columns: minmax(0, 1fr) 280px; max-width: 620px; }
+.politics-people select, .politics-rows select { width: 100%; }
+.politics-rows .circle-field { display: contents; }
+.today-section .politics-subhead { font-family: inherit; font-size: 0.875rem; font-weight: 500; color: var(--muted); margin: 12px 0 4px; }
+.politics-gets-on summary { cursor: pointer; }
+.politics-form { margin: 6px 0; max-width: 520px; }
+.politics-more { margin-left: 24px; }
+@media (max-width: 600px) {
+  .politics-split { max-width: none; }
+  .politics-rows { grid-template-columns: 1fr; }
+  .politics-rows .circle-field { display: grid; gap: 4px; }
+  .politics-people { grid-template-columns: minmax(0, 1fr) 180px; }
+  .politics-people > label { min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.25em; }
+}
+@media (pointer: coarse) { .politics-issue .text-button, .politics-faction .text-button { min-height: 44px; } }
 .why-it-went summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .why-it-went ul { margin-top: 6px; }
 .why-it-went[open] { margin-bottom: 16px; }
