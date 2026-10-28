@@ -27,7 +27,7 @@ from datetime import date, timedelta
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, pronouns
+from companion.life import circle, pronouns, world_drama
 from companion.world import lifespans, perception
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
@@ -181,8 +181,7 @@ def find_story(key) -> Story:
 
 
 def drama(connection) -> int:
-    row = optional(connection, 'SELECT drama FROM life_settings WHERE id=1')
-    return row['drama'] if row else 1
+    return world_drama.level(connection)
 
 
 # Casting ------------------------------------------------------------------------------------------
@@ -241,12 +240,13 @@ def running(connection, timeline_id, today: str) -> list[dict]:
     return [row for row in rows if decode(row['stages'])[-1]['on'] > today]
 
 
-def start(connection, companion, people, day: date, level: int) -> dict | None:
-    """The storyline that starts on this day, if one does: seeded by the timeline and the date."""
+def start(connection, companion, people, day: date, level: int, lone: bool = False) -> dict | None:
+    """The storyline that starts on this day, if one does: seeded by the timeline and the date. A companion alone
+    in their world gets a few more (companion/life/world_drama.py)."""
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     rng = random.Random(f'storyline:{timeline_id}:{day.isoformat()}')
     drawn = [row for row in running(connection, timeline_id, day.isoformat()) if row['story'] not in OWN]
-    if rng.random() >= START[level] or len(drawn) >= RUNNING[level]:
+    if rng.random() >= START[level] * (world_drama.ALONE if lone else 1) or len(drawn) >= RUNNING[level]:
         return None
     since = (day - REPEAT_AFTER).isoformat()
     recent = many(connection, 'SELECT story, cast_ids FROM storylines WHERE timeline_id=? AND started_on>=?',
@@ -379,14 +379,14 @@ def advance(connection, companion, now) -> int:
     """Decide the storylines that started on each day since the last check (cheap, no model)."""
     timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
     end_removed(connection, timeline_id, today)
-    level = drama(connection)
+    level, lone = drama(connection), world_drama.alone(connection)
     cursor = optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (timeline_id,))
     first = today - timedelta(days=CATCH_UP_DAYS)
     day = max(date.fromisoformat(cursor['through']) + timedelta(days=1), first) if cursor else today
     people = circle.people(connection, timeline_id)
     started = 0
     while day <= today:
-        found = start(connection, companion, people, day, level)
+        found = start(connection, companion, people, day, level, lone)
         if found:
             connection.execute(
                 'INSERT INTO storylines (id, timeline_id, story, level, cast_ids, stages, started_on, status, created_at) '
