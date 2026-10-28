@@ -456,13 +456,37 @@ def test_provider_refusal_reclassifies_and_falls_back_only_to_local(client, comp
 
 def test_failure_without_fallback_does_not_move_on(client, companion, clock, adapters):
     add_backend(client, kind='codex')
-    local_comfy(client)
+    add_backend(client, kind='hosted', provider='openrouter', model='m', api_key='k')
     adapters['codex'].outcomes = [AdapterError('timeout', 'timed out')]
     post = make_post(client, clock)
     generate(client, post)
     drain(client)
-    assert adapters['comfyui'].requests == []
+    assert adapters['hosted'].requests == []
     assert post_image(client, post)['status'] == 'failed'
+
+
+def test_hosted_failure_falls_back_to_local_even_without_fallback(client, companion, clock, adapters):
+    hosted = add_backend(client, kind='hosted', provider='openrouter', model='m', api_key='k')
+    add_backend(client, kind='hosted', provider='openai', model='gpt-image-1', api_key='k')
+    local = local_comfy(client)
+    adapters['hosted'].outcomes = [AdapterError('auth', 'The provider rejected the API key.')]
+    post = make_post(client, clock)
+    job = generate(client, post)
+    drain(client)
+    assert ok(client.get(f"/api/images/jobs/{job['id']}"))['backend_id'] == hosted['id']
+    assert len(adapters['hosted'].requests) == 1 and len(adapters['comfyui'].requests) == 1
+    jobs = ok(client.get('/api/images/jobs', params={'post_id': post['id']}))['jobs']
+    assert jobs[0]['backend_id'] == local['id'] and jobs[0]['trigger'] == 'fallback' and jobs[0]['status'] == 'completed'
+
+
+def test_local_failure_does_not_fall_back_without_fallback(client, companion, clock, adapters):
+    local_comfy(client)
+    add_backend(client, kind='comfyui', base_url='http://127.0.0.1:8189')
+    adapters['comfyui'].outcomes = [AdapterError('failed', 'out of memory')]
+    post = make_post(client, clock)
+    generate(client, post)
+    drain(client)
+    assert len(adapters['comfyui'].requests) == 1 and post_image(client, post)['status'] == 'failed'
 
 
 def test_codex_auth_error_stops_its_queue_until_sign_in(client, companion, clock, adapters):

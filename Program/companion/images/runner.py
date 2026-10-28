@@ -249,20 +249,22 @@ class ImageRunner:
             backends.block(self.database, backend['id'], error.message)
         was_current = jobs.is_current(self.database, job['id'])
         jobs.finish(self.database, job['id'], 'failed', error=error.message, code=error.code, fields=fields)
-        if error.code == 'auth' or not was_current:
+        if not was_current:
             return
         with self.database.connect() as connection:
-            fallback = jobs.image_settings(connection)['fallback']
+            fallback = jobs.image_settings(connection)['fallback'] and error.code != 'auth'
         after = backend['id']
         if error.code == 'refused':
             # Reclassified NSFW, it may go to any backend that accepts NSFW, but never back to one that
             # already did and refused it.
             reclassified = jobs.reclassify_refused(self.database, job['id'], ['refused by the provider'])
             inputs, after = reclassified, (after if backends.accepts_nsfw(backend) else None)
-        # Fallback is opt-in and only to a backend the request is eligible for (F5, F6).
-        if fallback and jobs.routable(self.database, inputs, after):
+        # Fallback down the user's order is opt-in, and only to a backend the request is eligible for (F5, F6).
+        # A hosted API's or Codex's failure always tries a local ComfyUI when one is set up.
+        local_only = not fallback and not backends.is_local(backend)
+        if (fallback or local_only) and jobs.routable(self.database, inputs, after, local_only):
             jobs.enqueue(self.database, job['post_id'], 'fallback', inputs=inputs, retry_of=job['id'],
-                         after_id=after)
+                         after_id=after if not local_only else backend['id'], local_only=local_only)
             self.wake()
 
     async def cancel(self, job_id) -> dict:

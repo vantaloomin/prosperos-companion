@@ -536,8 +536,9 @@ def build_meme(connection, meme, image_settings) -> dict:
 def children(connection, timeline_id: str, texts, outing_ids=()) -> dict:
     """Marks a request whose words name a child in the circle, or that shows a child's big day however it was worded
     (companion/life/families.py), which nothing pictures."""
-    found = families.pictured(connection, timeline_id, texts) or families.childs_day(connection, outing_ids)
-    return {'withheld': True} if found else {}
+    found = families.named_child(connection, timeline_id, texts) or \
+        (families.childs_day(connection, outing_ids) and "it shows a child's big day, and children are never pictured")
+    return {'withheld': True, 'withheld_reason': found} if found else {}
 
 
 def base_inputs(companion, definition, image_settings) -> dict:
