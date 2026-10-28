@@ -215,6 +215,8 @@ def test_children_keep_their_limits(client, provider, clock, monkeypatch, likeli
     with client.app.state.database.connect() as connection:
         timeline_id = current(connection)['active_timeline_id']
         assert families.pictured(connection, timeline_id, [f'Painting the nursery for {name}'])
+        assert name in families.named_child(connection, timeline_id, [f'Painting the nursery for {name}'])
+        assert families.named_child(connection, timeline_id, ['I spent some time on Scientific observation.']) is None
     to(client, clock, stage(row, 'news')['on'])
     assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
     assert triggers(client, clock) == []

@@ -16,7 +16,9 @@ cost stays unknown. A provider's content refusal is reported as `refused`, which
 request as NSFW so it is never offered to another hosted provider (F6).
 """
 import base64
+import json
 import math
+import re
 from urllib.parse import urlsplit
 
 import httpx
@@ -51,6 +53,37 @@ def api_base(value: str) -> str:
 def refused(text: str) -> bool:
     lowered = text.casefold()
     return any(sign in lowered for sign in REFUSAL_SIGNS)
+
+
+# Anything in a provider's answer that looks like a key is cut before it is shown or stored.
+KEY_LIKE = re.compile(r'\b(?:sk|pk|rk|key|AIza)[-_A-Za-z0-9]{12,}|\b[A-Za-z0-9_-]{32,}\b')
+
+
+def said(text: str, limit: int = 300) -> str:
+    """The provider's own words about a failed request, as ' The provider said: "..."', or '' when there are none:
+    `error.message` (OpenAI, OpenRouter, Google), a top-level `message` or `detail`, else short plain text."""
+    words = ''
+    try:
+        data = json.loads(text)
+    except ValueError:
+        data = None
+    if isinstance(data, dict):
+        error = data.get('error')
+        if isinstance(error, dict):
+            error = error.get('message') or error.get('code')
+            metadata = (data.get('error') or {}).get('metadata') or {}
+            raw = metadata.get('raw') if isinstance(metadata, dict) else None
+            if isinstance(raw, str) and raw.strip() and raw.strip() not in str(error):
+                error = f'{error} ({raw})'
+        words = next((str(item) for item in (error, data.get('message'), data.get('detail')) if item), '')
+    elif data is None and text and '<' not in text[:50]:
+        words = text
+    words = KEY_LIKE.sub('[hidden]', ' '.join(words.split()))
+    if not words:
+        return ''
+    if len(words) > limit:
+        words = words[:limit].rstrip() + '…'
+    return f' The provider said: "{words}"'
 
 
 def decode_data_url(url: str) -> bytes:
@@ -223,14 +256,16 @@ class HostedAdapter:
             raise AdapterError('unavailable', 'Cannot reach the provider. Check the address and your network.') \
                 from error
         text = response.text[:2000]
+        detail = said(text) if response.status_code >= 400 else ''
         if response.status_code in (401, 403):
-            raise AdapterError('auth', 'The provider rejected the API key. Update it in Settings.')
+            raise AdapterError('auth', f'The provider rejected the API key (HTTP {response.status_code}). Update it in '
+                                       f'Settings.{detail}')
         if response.status_code == 429:
-            raise AdapterError('rate_limited', 'The provider reached a rate or usage limit. Try again later.')
+            raise AdapterError('rate_limited', f'The provider reached a rate or usage limit. Try again later.{detail}')
         if response.status_code >= 400 and refused(text):
-            raise AdapterError('refused', 'The provider refused this image under its content rules.')
+            raise AdapterError('refused', f'The provider refused this image under its content rules.{detail}')
         if not response.is_success:
-            raise AdapterError('failed', f'The provider rejected the request (HTTP {response.status_code}).')
+            raise AdapterError('failed', f'The provider rejected the request (HTTP {response.status_code}).{detail}')
         try:
             data = response.json()
         except ValueError as error:
@@ -247,9 +282,12 @@ class HostedAdapter:
             url = (image.get('image_url') or {}).get('url') if isinstance(image, dict) else None
             if isinstance(url, str):
                 return decode_data_url(url)
-        if choice.get('finish_reason') == 'content_filter' or refused(str(message.get('refusal') or '')):
-            raise AdapterError('refused', 'The provider refused this image under its content rules.')
-        raise AdapterError('invalid_output', 'The model answered without an image. Check that it is an image model.')
+        refusal, content = str(message.get('refusal') or ''), message.get('content')
+        reply = said(json.dumps({'message': refusal or (content if isinstance(content, str) else '')}))
+        if choice.get('finish_reason') == 'content_filter' or refused(refusal):
+            raise AdapterError('refused', f'The provider refused this image under its content rules.{reply}')
+        raise AdapterError('invalid_output', 'The model answered without an image. Check that it is an image '
+                                             f'model.{reply}')
 
     async def images_image(self, client, data) -> bytes:
         item = (data.get('data') or [{}])[0]

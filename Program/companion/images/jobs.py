@@ -96,7 +96,7 @@ def preview(database, post_id, marked_nsfw=False) -> dict:
 
 
 def enqueue(database, post_id, trigger, *, backend_id=None, marked_nsfw=False, inputs=None, retry_of=None,
-            after_id=None) -> dict:
+            after_id=None, local_only=False) -> dict:
     """Classify, route and queue one request. A refusal is stored as a failed job and returned;
     it never reaches a backend."""
     with database.connect(write=True) as connection:
@@ -106,7 +106,8 @@ def enqueue(database, post_id, trigger, *, backend_id=None, marked_nsfw=False, i
                 f"{active} images are already waiting. Let them finish or cancel some first.", 409)
         inputs = inputs or prompts.build(connection, post_id, current, marked_nsfw)
         classification = classify(inputs)
-        decision = route(classification, backends.ordered(connection, enabled_only=True), backend_id, after_id)
+        decision = route(classification, backends.ordered(connection, enabled_only=True), backend_id, after_id,
+                         local_only)
         job_id = insert(connection, database.now(), post_id, trigger, retry_of, inputs, classification, decision)
         return view(connection, one(connection, 'SELECT * FROM image_jobs WHERE id=?', (job_id,)))
 
@@ -239,7 +240,7 @@ def automatic_candidate(database) -> str | None:
         return next((row['id'] for row in rows if feed.post_view(connection, row)), None)
 
 
-def routable(database, inputs, after_id=None) -> bool:
+def routable(database, inputs, after_id=None, local_only=False) -> bool:
     with database.connect() as connection:
-        return route(classify(inputs), backends.ordered(connection, enabled_only=True), after_id=after_id).target \
-            is not None
+        return route(classify(inputs), backends.ordered(connection, enabled_only=True), after_id=after_id,
+                     local_only=local_only).target is not None
