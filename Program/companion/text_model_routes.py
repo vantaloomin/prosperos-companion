@@ -7,7 +7,14 @@ from fastapi import APIRouter, Request
 from companion import text_models
 from companion.database import decode
 from companion.providers import balance
-from companion.providers.config import ConnectionProbe, MixUpdate, ProfileCreate, ProfileUpdate, RouteUpdate
+from companion.providers.config import (
+    ConnectionProbe,
+    MixUpdate,
+    ProfileCreate,
+    ProfileUpdate,
+    RouteUpdate,
+    WorldModels,
+)
 
 router = APIRouter(prefix='/api/models')
 
@@ -76,6 +83,12 @@ async def profile_usage(profile_id: str, request: Request, fresh: bool = False):
 @router.put('/routes')
 def set_route(body: RouteUpdate, request: Request):
     return text_models.set_route(db(request), body.job, body.profile_id)
+
+
+@router.put('/world')
+def set_world(body: WorldModels, request: Request):
+    """Whether this world has job assignments of its own (companion/world_models.py)."""
+    return text_models.set_world(db(request), body.own)
 
 
 @router.put('/mix')
