@@ -12,6 +12,7 @@ from pydantic import ValidationError
 
 from companion.errors import DomainError
 from companion.identity import VERSION, data_dir
+from companion.world import decades
 from companion.world import mend as mending
 from companion.world.schema import Career, Careers, City, Featured, Holidays, Names
 
@@ -38,16 +39,24 @@ def careers_for(data: dict, *, needs_met: bool = True) -> dict[str, dict]:
     A shared career that `needs` a kind of place (a beach) is left out where the city has none and
     no employer for it, unless `needs_met` is False. An era with no shared careers (medieval, fantasy, steampunk,
     victorian, frontier) offers nothing besides the city's own, but a city someone writes for it without careers
-    of its own borrows the built-in cities' (era_careers), so it still has work for its people."""
+    of its own borrows the built-in cities' (era_careers), so it still has work for its people. In a modern city,
+    a career with `years` is only offered in those years (companion/world/decades.py)."""
     borrowing = data['era'] in BORROWED_ERAS and not data['careers']
     era = era_careers(data['era']) if borrowing or data['era'] not in BORROWED_ERAS else {}
     if not needs_met:
-        return era | {career['id']: career for career in data['careers']}
+        return of_the_year(era | {career['id']: career for career in data['careers']}, data)
     kinds = {place['kind'] for place in data.get('places', [])}
     hired = {career for employer in data.get('employers', []) for career in employer['careers']}
     shared = {key: value for key, value in era.items()
               if not value['needs'] or kinds & set(value['needs']) or key in hired}
-    return shared | {career['id']: career for career in data['careers']}
+    return of_the_year(shared | {career['id']: career for career in data['careers']}, data)
+
+
+def of_the_year(offered: dict[str, dict], data: dict) -> dict[str, dict]:
+    """The careers that exist in the city's year: one that came later (or had ended) is left out."""
+    year = decades.offered_year(data)
+    return offered if year is None else {key: value for key, value in offered.items()
+                                         if decades.in_years(value, year)}
 
 
 # Eras with no shared careers borrow the built-in cities' own: their own era's first, then the nearest one's.
@@ -335,11 +344,12 @@ def reload() -> dict:
 
 
 def city(city_id: str, extra: dict[str, dict] | None = None) -> dict:
-    """A built-in city, or one of `extra` (the user's own cities)."""
+    """A built-in city, or one of `extra` (the user's own cities). In a world that runs in a past year, a modern
+    city's rents and prices are that year's (decades.dated)."""
     found = cities().get(city_id) or (extra or {}).get(city_id)
     if not found:
         raise DomainError(f'No world data for city {city_id!r}.', 404, 'unknown_city')
-    return found
+    return decades.dated(found)
 
 
 CATEGORIES = ('real', 'other-eras', 'fictional')

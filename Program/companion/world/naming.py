@@ -11,7 +11,7 @@ import re
 from functools import cache
 from importlib import resources
 
-from companion.world import catalog
+from companion.world import catalog, decades
 from companion.world.schema import GivenNames
 
 # Where no city is known, names come from the modern bank as an American city would mix them.
@@ -28,12 +28,13 @@ def data() -> dict:
 
 
 def present_year(city: dict | None = None) -> int | None:
-    """The year ages count back from: the city's own, else its era's. None for an era without birth-year lists
-    (medieval, fantasy), where names come from the bank's own lists."""
+    """The year ages count back from: a modern city's in a world that runs in a past year (companion/world/
+    decades.py), else the city's own, else its era's. None for an era without birth-year lists (medieval, fantasy),
+    where names come from the bank's own lists."""
     if city is None:
         return data()['present_year']
     own = (city.get('names') or {}).get('year')
-    return own or data()['era_years'].get(city.get('era', 'modern'))
+    return decades.year_of(city) or own or data()['era_years'].get(city.get('era', 'modern'))
 
 
 def culture(key: str) -> dict:

@@ -1,5 +1,5 @@
 {
- "about": "Words that fit the era (Hit List #82, companion/world/era_words.py). The in-world screens and the app's own lines say these instead of today's words in a city of another era: chat, Today, Watching, the circle, Matchlight, posts and notifications. Settings, setup and help keep today's words. Each group lists every word; a city file's optional `words` block renames any of them. {name} stands for the person's name.",
+ "about": "Words that fit the era (Hit List #82, companion/world/era_words.py). The in-world screens and the app's own lines say these instead of today's words in a city of another era: chat, Today, Watching, the circle, Matchlight, posts and notifications. Settings, setup and help keep today's words. Each group lists every word; a city file's optional `words` block renames any of them. {name} stands for the person's name. `decades` puts a decade's own words over today's in a modern city of a world that runs in a past year (Back when, companion/world/decades.py); a decade lists only the words it changes.",
  "groups": {
   "modern": "modern", "other": "modern",
   "victorian": "historical", "steampunk": "historical", "frontier": "historical", "jazz-age": "historical",
@@ -119,5 +119,18 @@
    "selfie": "selfie",
    "dating_tab": "Matchlight"
   }
+ },
+ "decades": {
+  "1990s": {
+   "sent_you": "{name} left you a message.",
+   "nobody_writes": "Nobody calls you",
+   "selfie": "snapshot",
+   "dating_tab": "Personals"
+  },
+  "2000s": {
+   "selfie": "photo"
+  },
+  "2010s": {},
+  "2020s": {}
  }
 }
