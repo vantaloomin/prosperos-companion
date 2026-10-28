@@ -107,7 +107,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     // A reply that shows at once shows the ones held before it; a held one stays quiet until its time.
     // One that failed shows now, so an error is never hidden behind the companion being busy.
     const held = waitsUntilLater(reply, appNow())
-    update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq), reply))
+    update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq, reply.created_at), reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
     if (held) return
     void client.invalidateQueries({ queryKey: WHERE_KEY })

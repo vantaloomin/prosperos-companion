@@ -10,6 +10,7 @@ import { reducedMotion } from '../../motion'
 import { canRetry, fittedSize, photoAlt, photoLine, photoShape, photoSource } from './photoState'
 import { useEraWords } from '../world/useEraWords'
 import type { PhotoEdit } from './usePhotoEdit'
+import { shownAt } from './held'
 
 /**
  * The photo a reply sent of what they were doing. Its picture is the moment's feed picture too.
@@ -24,7 +25,7 @@ export function ChatPhoto({ message, name, edit }: { message: Message; name: str
   const line = edit.error || (edit.coming ? 'A new picture is on its way.' : photoLine(photo, words))
   return (
     <figure className={photo.kind === 'meme' ? 'chat-photo chat-meme' : 'chat-photo'}>
-      <PhotoFrame photo={photo} name={name} when={message.created_at} edit={edit} />
+      <PhotoFrame photo={photo} name={name} when={shownAt(message)} edit={edit} />
       {line && <PhotoLine photo={photo} line={line} failed={!!edit.error} />}
       {photo.source === 'gif' && <GiphyCredit page={photo.page} />}
     </figure>
