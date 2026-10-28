@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from 'react'
 import { InfoTip } from './InfoTip'
 import { bounded } from './numberBounds'
+import { SuggestInput } from './SuggestInput'
 
 /** Help for a control: `hint` shows under it, `tip` sits behind a "?" next to its label. Both are read out with it. */
 interface Help { hint?: ReactNode; tip?: string }
@@ -30,13 +31,15 @@ export function TextArea({ label, hint, tip, value, onChange, onBlur, rows = 3, 
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <textarea id={id} rows={rows} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />}</Field>
 }
 
-interface TextInputProps extends Help { label: string; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; list?: string; type?: string; placeholder?: string; min?: number; max?: number; step?: number }
+interface TextInputProps extends Help { label: string; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; suggestions?: string[]; type?: string; placeholder?: string; min?: number; max?: number; step?: number }
 
 /** With `min` or `max`, a number box keeps what is typed inside that range. Text boxes keep the browser's memory of
- * past entries out: a page's ids repeat across screens, so it offers words typed for someone else. */
-export function TextInput({ label, hint, tip, value, onChange, required, maxLength, list, type = 'text', placeholder, min, max, step }: TextInputProps) {
+ * past entries out: a page's ids repeat across screens, so it offers words typed for someone else. `suggestions`
+ * are the app's own, offered in its own list. */
+export function TextInput({ label, hint, tip, value, onChange, required, maxLength, suggestions, type = 'text', placeholder, min, max, step }: TextInputProps) {
   const leave = () => { const fixed = bounded(value, min, max, true); if (fixed !== value) onChange(fixed) }
-  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} required={required} maxLength={maxLength} list={list} placeholder={placeholder} autoComplete={type === 'password' ? undefined : 'off'} min={min} max={max} step={step} aria-describedby={describedBy} onChange={(event) => onChange(bounded(event.target.value, min, max))} onBlur={leave} />}</Field>
+  if (suggestions) return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <SuggestInput id={id} value={value} options={suggestions} required={required} maxLength={maxLength} placeholder={placeholder} describedBy={describedBy} onChange={onChange} />}</Field>
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} required={required} maxLength={maxLength} placeholder={placeholder} autoComplete={type === 'password' ? undefined : 'off'} min={min} max={max} step={step} aria-describedby={describedBy} onChange={(event) => onChange(bounded(event.target.value, min, max))} onBlur={leave} />}</Field>
 }
 
 interface ToggleProps extends Help { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean; children?: ReactNode }

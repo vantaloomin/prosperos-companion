@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown } from 'lucide-react'
+import { SuggestInput } from '../../components/SuggestInput'
 import { api } from '../../api'
 import type { CareerSummary, CirclePerson } from '../../types'
 import { NOTE_MAX, RELATION_WORDS, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, placeWords, type AboutValues } from './circleText'
@@ -43,12 +43,12 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
         <input id={`${prefix}-name`} value={values.name} maxLength={60} required autoComplete="off" autoFocus={!person} onChange={(event) => set({ name: event.target.value })} />
       </Text>
       <Text id={`${prefix}-role`} label={`Who they are to ${companion}`}>
-        <Suggest id={`${prefix}-role`} value={values.role} options={RELATION_WORDS} placeholder={person ? undefined : 'Friend'} required={!!person} maxLength={40} onChange={(role) => set({ role })} />
+        <SuggestInput id={`${prefix}-role`} value={values.role} options={RELATION_WORDS} placeholder={person ? undefined : 'Friend'} required={!!person} maxLength={40} onChange={(role) => set({ role })} />
       </Text>
       <Basics prefix={prefix} values={values} set={set} adding={!person} current={form.values.age} />
       <div className="circle-form-row circle-form-work">
         <Text id={`${prefix}-job`} label="Job" hint="In your words, like Photography student or Retired. Their hours follow the job.">
-          <Suggest id={`${prefix}-job`} value={values.job} options={jobs} placeholder={pick} maxLength={60} describedBy={`${prefix}-job-hint`} onChange={(job) => set({ job })} />
+          <SuggestInput id={`${prefix}-job`} value={values.job} options={jobs} placeholder={pick} maxLength={60} describedBy={`${prefix}-job-hint`} onChange={(job) => set({ job })} />
         </Text>
         <Text id={`${prefix}-employer`} label="Where they work">
           <input id={`${prefix}-employer`} value={values.employer} maxLength={80} autoComplete="off" placeholder={pick} onChange={(event) => set({ employer: event.target.value })} />
@@ -117,16 +117,3 @@ function Text({ id, label, hint, children }: { id: string; label: string; hint?:
   )
 }
 
-interface SuggestProps { id: string; value: string; options: string[]; onChange: (value: string) => void; placeholder?: string; required?: boolean; maxLength: number; describedBy?: string }
-
-/** Free text with suggestions, drawn with the same chevron as the selects (Iris R3). */
-function Suggest({ id, value, options, onChange, placeholder, required, maxLength, describedBy }: SuggestProps) {
-  return (
-    <span className="suggest">
-      <input id={id} value={value} list={`${id}-list`} maxLength={maxLength} required={required} placeholder={placeholder} autoComplete="off"
-        aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />
-      <ChevronDown aria-hidden="true" />
-      <datalist id={`${id}-list`}>{options.map((option) => <option key={option} value={option} />)}</datalist>
-    </span>
-  )
-}
