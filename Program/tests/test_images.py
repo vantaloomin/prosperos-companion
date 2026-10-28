@@ -1000,17 +1000,40 @@ def test_hosted_images_style_sends_only_the_prompt():
     assert result.usage == {'total_tokens': 10} and result.data.startswith(b'\x89PNG')
 
 
-def test_hosted_chat_style_reads_openrouter_images():
+def test_hosted_chat_style_reads_images_in_the_message():
     seen = []
     url = 'data:image/png;base64,' + base64.b64encode(png()).decode()
     body = {'id': 'gen-1', 'choices': [{'message': {'content': '', 'images': [{'image_url': {'url': url}}]}}],
             'usage': {'cost': 0.04}}
     adapter = HostedAdapter(hosted_server([httpx.Response(200, json=body)], seen))
-    request = request_for('hosted', {'base_url': 'https://openrouter.ai/api/v1', 'model': 'google/gemini-image',
-                                     'api_style': 'chat'}, provider='openrouter', key='k')
+    request = request_for('hosted', {'base_url': 'https://images.example.com/v1', 'model': 'google/gemini-image',
+                                     'api_style': 'chat'}, provider='other', key='k')
     result = asyncio.run(adapter.generate(request))
     assert json.loads(seen[0].content)['modalities'] == ['image', 'text']
     assert result.usage == {'cost': 0.04} and result.remote_id == 'gen-1'
+
+
+@pytest.mark.parametrize('model', ['black-forest-labs/flux.2-pro', 'google/gemini-2.5-flash-image'])
+def test_openrouter_uses_its_image_api_for_any_image_model(model):
+    """A FLUX model writes no text, so the chat route has no endpoint for it; the image API takes every model,
+    including backends saved with the chat style."""
+    seen = []
+    body = {'data': [{'b64_json': base64.b64encode(png()).decode(), 'media_type': 'image/png'}], 'usage': {'cost': 0.03}}
+    adapter = HostedAdapter(hosted_server([httpx.Response(200, json=body)], seen))
+    request = request_for('hosted', {'base_url': 'https://openrouter.ai/api/v1', 'model': model, 'api_style': 'chat'},
+                          provider='openrouter', key='k', width=768, height=1024, reference=png())
+    result = asyncio.run(adapter.generate(request))
+    sent = json.loads(seen[0].content)
+    assert seen[0].url.path == '/api/v1/images' and sent['model'] == model and sent['aspect_ratio'] == '3:4'
+    assert sent['input_references'][0]['image_url']['url'].startswith('data:image/png;base64,')
+    assert result.usage == {'cost': 0.03} and result.data.startswith(b'\x89PNG')
+
+
+@pytest.mark.parametrize(('width', 'height', 'ratio'), [(1024, 1024, '1:1'), (1536, 1024, '3:2'), (1024, 1536, '2:3'),
+                                                        (1344, 768, '16:9'), (832, 1040, '4:5')])
+def test_openrouter_sizes_become_the_nearest_aspect_ratio(width, height, ratio):
+    from companion.images.adapters.hosted import aspect_ratio
+    assert aspect_ratio(width, height) == ratio
 
 
 @pytest.mark.parametrize(('response', 'code'), [
@@ -1023,8 +1046,8 @@ def test_hosted_chat_style_reads_openrouter_images():
 ])
 def test_hosted_errors_are_typed(response, code):
     adapter = HostedAdapter(hosted_server([response], []))
-    request = request_for('hosted', {'base_url': 'https://openrouter.ai/api/v1', 'model': 'm', 'api_style': 'chat'},
-                          provider='openrouter', key='k')
+    request = request_for('hosted', {'base_url': 'https://images.example.com/v1', 'model': 'm', 'api_style': 'chat'},
+                          provider='other', key='k')
     with pytest.raises(AdapterError) as error:
         asyncio.run(adapter.generate(request))
     assert error.value.code == code
@@ -1215,10 +1238,19 @@ def test_an_image_api_connection_can_be_edited_in_place(client):
     assert edited['enabled'] and edited['has_key']
 
 
-def test_openrouter_lists_only_its_image_models():
+def test_openrouter_lists_every_image_model_it_has():
+    """OpenRouter's `/models` leaves out models that write no text (FLUX, Seedream, Recraft), so the list comes from its
+    image list, without the SVG-only vector models a photo cannot show."""
+    from companion.images.adapters import hosted
     body = {'data': [{'id': 'google/gemini-2.5-flash-image', 'name': 'Gemini 2.5 Flash Image',
-                      'architecture': {'output_modalities': ['image', 'text']}},
-                     {'id': 'openai/gpt-5', 'name': 'GPT-5', 'architecture': {'output_modalities': ['text']}}]}
+                      'architecture': {'input_modalities': ['image', 'text'], 'output_modalities': ['image', 'text']}},
+                     {'id': 'black-forest-labs/flux.2-pro', 'name': 'FLUX.2 Pro',
+                      'architecture': {'input_modalities': ['text', 'image'], 'output_modalities': ['image']}},
+                     {'id': 'recraft/recraft-v4.1-flash', 'name': 'Recraft V4.1 Flash',
+                      'architecture': {'input_modalities': ['text'], 'output_modalities': ['image']}},
+                     {'id': 'recraft/recraft-v4-vector', 'name': 'Recraft V4 Vector',
+                      'architecture': {'input_modalities': ['text', 'image'], 'output_modalities': ['image']},
+                      'supported_parameters': {'output_format': {'type': 'enum', 'values': ['svg']}}}]}
     seen = []
 
     def server(request):
@@ -1226,8 +1258,14 @@ def test_openrouter_lists_only_its_image_models():
         return httpx.Response(200, json=body)
     models = asyncio.run(HostedAdapter(httpx.MockTransport(server)).models(
         'openrouter', {'base_url': 'https://openrouter.ai/api/v1'}))
-    assert models == [{'id': 'google/gemini-2.5-flash-image', 'name': 'Gemini 2.5 Flash Image'}]
-    assert 'authorization' not in seen[0].headers
+    assert [model['id'] for model in models] == ['black-forest-labs/flux.2-pro', 'google/gemini-2.5-flash-image',
+                                                 'recraft/recraft-v4.1-flash']
+    assert seen[0].url.path == '/api/v1/images/models' and 'authorization' not in seen[0].headers
+    # A model that reads text only cannot follow a picture, so the onboarding portraits pick another backend.
+    config = {'base_url': 'https://openrouter.ai/api/v1', 'api_style': 'chat'}
+    assert not hosted.takes_reference({**config, 'model': 'recraft/recraft-v4.1-flash'}, 'openrouter')
+    assert hosted.takes_reference({**config, 'model': 'black-forest-labs/flux.2-pro'}, 'openrouter')
+    assert hosted.takes_reference({**config, 'model': 'never-listed'}, 'openrouter')
 
 
 @pytest.mark.parametrize('body,provider,expected', [
