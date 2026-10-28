@@ -378,7 +378,12 @@ def in_photos(definition, who=None, dressed=False) -> str:
     who = who or drawn_as(definition)
     own = (definition.get('in_photos') or '').strip()
     if own:
-        return unnamed(own, definition['name'], who).rstrip('.')
+        # "Sett, tall muscular man..." names who the line is about; the picture already opens with them.
+        for form in sorted({definition['name'].strip(), definition['name'].strip().split(' ')[0]} - {''}, key=len,
+                           reverse=True):
+            own = re.sub(rf'^{re.escape(form)}\s*[,:;–—-]\s*', '', own)
+        own = unnamed(own, definition['name'], who).rstrip('.')
+        return f'{own[:1].upper()}{own[1:]}'
     appearance = definition.get('appearance', '')
     return visible(without_clothes(appearance) if dressed else appearance, definition['name'], who)
 
