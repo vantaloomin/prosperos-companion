@@ -767,6 +767,8 @@ class NewWorld(Input):
     city_id: str | None = Field(None, min_length=1, max_length=120)
     # Watch a city: the world starts just watching (companion/observer.py).
     watch: bool = False
+    # Start in a past year (companion/world_year.py): its clock runs in that year at real speed.
+    year: int | None = Field(None, ge=1990, le=9999)
 
 
 class RecapRead(Input):

@@ -13,7 +13,7 @@ from companion import consequences, library, lore, news, pictures, prompt_librar
 from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.characters import definition_for_timeline
-from companion.clock import parse, stamp, zone
+from companion.clock import app_now, parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
@@ -369,7 +369,7 @@ def persona_text(connection, today: date | None = None, definition: dict | None 
              # Where they live in this world (companion/life/where.py): the app's pick until they change it.
              f'Lives in: {home}' if (home := where.home_text(connection)) else '', row['about'].strip()]
     # The user's own pets, as they wrote them, and how each is today (companion/life/pets.py).
-    if found := pets.persona_lines(connection, today or date.today()):
+    if found := pets.persona_lines(connection, today or app_now().date()):
         parts.append('Pets: ' + '; '.join(found))
     return '\n'.join(f'- {part}' for part in parts if part) or None
 

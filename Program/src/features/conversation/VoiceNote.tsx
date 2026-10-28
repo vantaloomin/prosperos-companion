@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { appNow } from '../../appTime.ts'
 import { Pause, Play } from 'lucide-react'
 import type { VoiceNote as Note } from '../../types'
 import { useWhere } from './useWhere'
@@ -21,7 +22,7 @@ export function VoiceNote({ note, text, name, at: arrived = null }: { note: Note
   useEffect(() => () => audio.current?.pause(), [])
   useEffect(() => {
     const player = audio.current
-    if (!player || !calling || heard.has(note.url) || !playsByItself(arrived, Date.now())) return
+    if (!player || !calling || heard.has(note.url) || !playsByItself(arrived, appNow())) return
     heard.add(note.url)
     speaking?.pause()
     speaking = player

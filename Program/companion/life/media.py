@@ -24,11 +24,11 @@ The user can set what they are on now on the Character page (Set by you); the da
 import json
 import math
 import re
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 
-from companion.clock import parse, stamp, zone
+from companion.clock import app_now, parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, media_world, money
@@ -320,7 +320,7 @@ def rewind_at(connection, timeline_id: str, timestamp: str):
 
 
 def stamp_now() -> str:
-    return stamp(datetime.now(UTC))
+    return stamp(app_now())
 
 
 def items(connection, timeline_id: str, kind: str | None = None) -> list[dict]:
