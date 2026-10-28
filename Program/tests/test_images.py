@@ -456,13 +456,37 @@ def test_provider_refusal_reclassifies_and_falls_back_only_to_local(client, comp
 
 def test_failure_without_fallback_does_not_move_on(client, companion, clock, adapters):
     add_backend(client, kind='codex')
-    local_comfy(client)
+    add_backend(client, kind='hosted', provider='openrouter', model='m', api_key='k')
     adapters['codex'].outcomes = [AdapterError('timeout', 'timed out')]
     post = make_post(client, clock)
     generate(client, post)
     drain(client)
-    assert adapters['comfyui'].requests == []
+    assert adapters['hosted'].requests == []
     assert post_image(client, post)['status'] == 'failed'
+
+
+def test_hosted_failure_falls_back_to_local_even_without_fallback(client, companion, clock, adapters):
+    hosted = add_backend(client, kind='hosted', provider='openrouter', model='m', api_key='k')
+    add_backend(client, kind='hosted', provider='openai', model='gpt-image-1', api_key='k')
+    local = local_comfy(client)
+    adapters['hosted'].outcomes = [AdapterError('auth', 'The provider rejected the API key.')]
+    post = make_post(client, clock)
+    job = generate(client, post)
+    drain(client)
+    assert ok(client.get(f"/api/images/jobs/{job['id']}"))['backend_id'] == hosted['id']
+    assert len(adapters['hosted'].requests) == 1 and len(adapters['comfyui'].requests) == 1
+    jobs = ok(client.get('/api/images/jobs', params={'post_id': post['id']}))['jobs']
+    assert jobs[0]['backend_id'] == local['id'] and jobs[0]['trigger'] == 'fallback' and jobs[0]['status'] == 'completed'
+
+
+def test_local_failure_does_not_fall_back_without_fallback(client, companion, clock, adapters):
+    local_comfy(client)
+    add_backend(client, kind='comfyui', base_url='http://127.0.0.1:8189')
+    adapters['comfyui'].outcomes = [AdapterError('failed', 'out of memory')]
+    post = make_post(client, clock)
+    generate(client, post)
+    drain(client)
+    assert len(adapters['comfyui'].requests) == 1 and post_image(client, post)['status'] == 'failed'
 
 
 def test_codex_auth_error_stops_its_queue_until_sign_in(client, companion, clock, adapters):
@@ -724,7 +748,8 @@ def test_comfyui_lists_the_servers_files_for_each_loader():
                      'lora': [PHONE, 'sdxl\\detail.safetensors', 'prospero-x.safetensors'],
                      'sampler_name': ['euler', 'res_multistep'], 'scheduler': ['simple', 'beta']}
     assert server.info_calls == [f'http://127.0.0.1:8188/object_info/{name}'
-                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader', 'LoraLoaderModelOnly', 'KSampler')]
+                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader', 'UnetLoaderGGUF', 'LoraLoaderModelOnly',
+                                              'KSampler')]
 
 
 def test_comfyui_puts_chosen_files_in_the_built_in_workflow_only():
@@ -1000,17 +1025,40 @@ def test_hosted_images_style_sends_only_the_prompt():
     assert result.usage == {'total_tokens': 10} and result.data.startswith(b'\x89PNG')
 
 
-def test_hosted_chat_style_reads_openrouter_images():
+def test_hosted_chat_style_reads_images_in_the_message():
     seen = []
     url = 'data:image/png;base64,' + base64.b64encode(png()).decode()
     body = {'id': 'gen-1', 'choices': [{'message': {'content': '', 'images': [{'image_url': {'url': url}}]}}],
             'usage': {'cost': 0.04}}
     adapter = HostedAdapter(hosted_server([httpx.Response(200, json=body)], seen))
-    request = request_for('hosted', {'base_url': 'https://openrouter.ai/api/v1', 'model': 'google/gemini-image',
-                                     'api_style': 'chat'}, provider='openrouter', key='k')
+    request = request_for('hosted', {'base_url': 'https://images.example.com/v1', 'model': 'google/gemini-image',
+                                     'api_style': 'chat'}, provider='other', key='k')
     result = asyncio.run(adapter.generate(request))
     assert json.loads(seen[0].content)['modalities'] == ['image', 'text']
     assert result.usage == {'cost': 0.04} and result.remote_id == 'gen-1'
+
+
+@pytest.mark.parametrize('model', ['black-forest-labs/flux.2-pro', 'google/gemini-2.5-flash-image'])
+def test_openrouter_uses_its_image_api_for_any_image_model(model):
+    """A FLUX model writes no text, so the chat route has no endpoint for it; the image API takes every model,
+    including backends saved with the chat style."""
+    seen = []
+    body = {'data': [{'b64_json': base64.b64encode(png()).decode(), 'media_type': 'image/png'}], 'usage': {'cost': 0.03}}
+    adapter = HostedAdapter(hosted_server([httpx.Response(200, json=body)], seen))
+    request = request_for('hosted', {'base_url': 'https://openrouter.ai/api/v1', 'model': model, 'api_style': 'chat'},
+                          provider='openrouter', key='k', width=768, height=1024, reference=png())
+    result = asyncio.run(adapter.generate(request))
+    sent = json.loads(seen[0].content)
+    assert seen[0].url.path == '/api/v1/images' and sent['model'] == model and sent['aspect_ratio'] == '3:4'
+    assert sent['input_references'][0]['image_url']['url'].startswith('data:image/png;base64,')
+    assert result.usage == {'cost': 0.03} and result.data.startswith(b'\x89PNG')
+
+
+@pytest.mark.parametrize(('width', 'height', 'ratio'), [(1024, 1024, '1:1'), (1536, 1024, '3:2'), (1024, 1536, '2:3'),
+                                                        (1344, 768, '16:9'), (832, 1040, '4:5')])
+def test_openrouter_sizes_become_the_nearest_aspect_ratio(width, height, ratio):
+    from companion.images.adapters.hosted import aspect_ratio
+    assert aspect_ratio(width, height) == ratio
 
 
 @pytest.mark.parametrize(('response', 'code'), [
@@ -1023,8 +1071,8 @@ def test_hosted_chat_style_reads_openrouter_images():
 ])
 def test_hosted_errors_are_typed(response, code):
     adapter = HostedAdapter(hosted_server([response], []))
-    request = request_for('hosted', {'base_url': 'https://openrouter.ai/api/v1', 'model': 'm', 'api_style': 'chat'},
-                          provider='openrouter', key='k')
+    request = request_for('hosted', {'base_url': 'https://images.example.com/v1', 'model': 'm', 'api_style': 'chat'},
+                          provider='other', key='k')
     with pytest.raises(AdapterError) as error:
         asyncio.run(adapter.generate(request))
     assert error.value.code == code
@@ -1215,10 +1263,19 @@ def test_an_image_api_connection_can_be_edited_in_place(client):
     assert edited['enabled'] and edited['has_key']
 
 
-def test_openrouter_lists_only_its_image_models():
+def test_openrouter_lists_every_image_model_it_has():
+    """OpenRouter's `/models` leaves out models that write no text (FLUX, Seedream, Recraft), so the list comes from its
+    image list, without the SVG-only vector models a photo cannot show."""
+    from companion.images.adapters import hosted
     body = {'data': [{'id': 'google/gemini-2.5-flash-image', 'name': 'Gemini 2.5 Flash Image',
-                      'architecture': {'output_modalities': ['image', 'text']}},
-                     {'id': 'openai/gpt-5', 'name': 'GPT-5', 'architecture': {'output_modalities': ['text']}}]}
+                      'architecture': {'input_modalities': ['image', 'text'], 'output_modalities': ['image', 'text']}},
+                     {'id': 'black-forest-labs/flux.2-pro', 'name': 'FLUX.2 Pro',
+                      'architecture': {'input_modalities': ['text', 'image'], 'output_modalities': ['image']}},
+                     {'id': 'recraft/recraft-v4.1-flash', 'name': 'Recraft V4.1 Flash',
+                      'architecture': {'input_modalities': ['text'], 'output_modalities': ['image']}},
+                     {'id': 'recraft/recraft-v4-vector', 'name': 'Recraft V4 Vector',
+                      'architecture': {'input_modalities': ['text', 'image'], 'output_modalities': ['image']},
+                      'supported_parameters': {'output_format': {'type': 'enum', 'values': ['svg']}}}]}
     seen = []
 
     def server(request):
@@ -1226,8 +1283,14 @@ def test_openrouter_lists_only_its_image_models():
         return httpx.Response(200, json=body)
     models = asyncio.run(HostedAdapter(httpx.MockTransport(server)).models(
         'openrouter', {'base_url': 'https://openrouter.ai/api/v1'}))
-    assert models == [{'id': 'google/gemini-2.5-flash-image', 'name': 'Gemini 2.5 Flash Image'}]
-    assert 'authorization' not in seen[0].headers
+    assert [model['id'] for model in models] == ['black-forest-labs/flux.2-pro', 'google/gemini-2.5-flash-image',
+                                                 'recraft/recraft-v4.1-flash']
+    assert seen[0].url.path == '/api/v1/images/models' and 'authorization' not in seen[0].headers
+    # A model that reads text only cannot follow a picture, so the onboarding portraits pick another backend.
+    config = {'base_url': 'https://openrouter.ai/api/v1', 'api_style': 'chat'}
+    assert not hosted.takes_reference({**config, 'model': 'recraft/recraft-v4.1-flash'}, 'openrouter')
+    assert hosted.takes_reference({**config, 'model': 'black-forest-labs/flux.2-pro'}, 'openrouter')
+    assert hosted.takes_reference({**config, 'model': 'never-listed'}, 'openrouter')
 
 
 @pytest.mark.parametrize('body,provider,expected', [
@@ -1312,3 +1375,70 @@ def test_an_image_api_with_no_key_uses_the_key_saved_for_its_text_service(client
     generate(client, make_post(client, clock))
     drain(client)
     assert adapters['hosted'].requests[0].key == 'or-key'
+
+
+def test_a_comfyui_rejection_names_the_node_and_file_at_fault():
+    from companion.images.adapters.comfyui import rejection_text
+    missing = {'error': {'type': 'prompt_outputs_failed_validation', 'message': 'Prompt outputs failed validation'},
+               'node_errors': {'1': {'class_type': 'UNETLoader', 'errors': [{
+                   'type': 'value_not_in_list', 'message': 'Value not in list',
+                   'details': "unet_name: 'krea2_turbo_fp8_scaled.safetensors' not in ['flux1-dev.safetensors']",
+                   'extra_info': {'input_name': 'unet_name', 'received_value': 'krea2_turbo_fp8_scaled.safetensors'}}]}}}
+    text = rejection_text(missing)
+    assert 'krea2_turbo_fp8_scaled.safetensors' in text and 'UNETLoader' in text
+    assert 'models/diffusion_models' in text and 'failed validation' not in text
+    sampler = {'node_errors': {'3': {'class_type': 'KSampler', 'errors': [{
+        'type': 'value_not_in_list', 'details': "sampler_name: 'odd' not in ['euler', 'dpmpp_2m']",
+        'extra_info': {'input_name': 'sampler_name', 'received_value': 'odd'}}]}}}
+    assert rejection_text(sampler) == ("ComfyUI rejected the workflow's KSampler node: sampler_name: 'odd' is not one "
+                                       'it offers. Run the compatibility check in Settings.')
+    assert 'missing a node' in rejection_text({'error': {'type': 'missing_node_type', 'message': 'Node X not found'}})
+    assert rejection_text({}).startswith('ComfyUI rejected the workflow: invalid workflow.')
+
+
+def test_an_in_photos_line_gives_way_to_the_moments_outfit_and_place_and_tag_models_draw_one_person():
+    # Vanta, 2026-10-28: on Anima, Sett came out twice, once in the moment's waistcoat and once in his In photos
+    # line's fur coat in its own fighting pit.
+    definition = {'name': 'Sett', 'appearance': '', 'in_photos': 'tall muscular half-vastayan man, swept-back red-brown '
+                  'hair, amber eyes, taped knuckles, open fur-collared coat over bare chest, gold chain, Ionian fighting '
+                  'pit with hanging lamps'}
+    # His own line keeps its coat, so the moment's everyday outfit gives way; the pit is no place of this moment.
+    line = prompts.in_photos(definition, 'he')
+    assert 'coat' in line and 'gold chain' in line and 'pit' not in line and prompts.own_outfit(definition)
+    assert not prompts.own_outfit({'in_photos': 'amber eyes, taped knuckles'})
+    event = {'summary': 'Spent some time on combat training.', 'place': '', 'mood': 'content', 'activity': 'hobby',
+             'hobby': {'name': 'Combat training', 'picture': 'absorbed in Combat training at home'}}
+    prompt = prompts.compose('Sett', '', [event], 'Anime illustration', who='he', look=line)
+    assert 'He is the only person in the picture.' in prompt and 'at home' not in prompt
+    from companion.images.adapters.comfyui import solo
+    tagged, negative = solo('anima', prompt, 'text', 'Sett')
+    assert tagged.startswith('solo, 1boy, sett, ') and 'multiple people' in negative
+    assert solo('booru', 'A cafe.', 'text', 'Dana Reyes') == ('dana reyes, A cafe.', 'text')
+    assert solo('krea2', prompt, 'text', 'Sett') == (prompt, 'text')
+    # Company or a crowd is never called alone.
+    assert 'only person' not in prompts.compose('Sett', '', [{**event, 'activity': 'show'}], '', who='he')
+    assert 'only person' not in prompts.compose('Sett', '', [{**event, 'with': 'Mia'}], '', who='he')
+
+
+def test_a_moment_without_a_place_is_at_home_only_when_its_activity_is():
+    assert prompts.at_home({'place': '', 'activity': 'reading'})
+    assert prompts.at_home({'place': '', 'summary': 'Had a quiet evening.'})
+    assert not prompts.at_home({'place': '', 'activity': 'workout'})
+    assert not prompts.at_home({'place': 'Ironfist Training Hall', 'activity': 'reading'})
+    training = {'place': '', 'activity': 'hobby', 'hobby': {'name': 'Combat training',
+                                                             'picture': 'absorbed in Combat training at home'}}
+    assert not prompts.at_home(training)
+    knitting = {'place': '', 'activity': 'hobby', 'hobby': {'name': 'knitting socks',
+                                                             'picture': 'absorbed in knitting socks at home'}}
+    assert prompts.at_home(knitting)
+    from companion.life import hobbies
+    assert hobbies.custom('Combat training')['place']['kinds'] == ['fitness']
+    assert hobbies.custom('knitting socks')['place'] is None
+
+
+def test_their_name_goes_in_pictures_only_when_switched_on_and_after_the_content_check():
+    from companion.images.runner import named
+    inputs = {'prompt': 'Anime illustration of a man at a market.', 'character_name': 'Sett', 'pictured': True}
+    assert named(inputs) == inputs['prompt']
+    assert named({**inputs, 'name_in_pictures': True}).endswith('market. This is Sett.')
+    assert named({**inputs, 'name_in_pictures': True, 'pictured': False}) == inputs['prompt']

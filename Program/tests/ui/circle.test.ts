@@ -43,10 +43,13 @@ test('parents who parted in an older city read separated, not divorced', () => {
 
 test('the edit form starts from the person and sends only what changed', () => {
   const form = aboutForm(person({ pronouns: 'she/her', age: 40, employer: 'Mercy' }))
-  assert.deepEqual(form.values, { name: 'Ebony', role: 'friend', pronouns: 'she/her', job: 'Nurse', employer: 'Mercy', age: '40', local: 'here', note: '' })
+  assert.deepEqual(form.values, { name: 'Ebony', role: 'friend', pronouns: 'she/her', job: 'Nurse', employer: 'Mercy', age: '40', local: 'here', note: '', start: '' })
   assert.deepEqual(aboutChange(form.values, { ...form.values }, false), {})
   assert.deepEqual(aboutChange(form.values, { ...form.values, job: ' ER nurse ', age: '41', local: 'away', name: '' }, false),
     { job: 'ER nurse', age: 41, local: false })
+  // Where they start: a pick is sent as a number, the app's pick again as 0.
+  assert.deepEqual(aboutChange(form.values, { ...form.values, start: '3' }, false), { start_stage: 3 })
+  assert.deepEqual(aboutChange({ ...form.values, start: '3' }, { ...form.values, start: '' }, false), { start_stage: 0 })
   // A coworker's "Works with Dana" is not offered as a job to edit.
   assert.equal(aboutForm(person({ career: 'Works with Dana', works_with_companion: true })).values.job, '')
 })
@@ -56,6 +59,7 @@ test('adding someone sends only what was filled in', () => {
   assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', job: 'barista' }, true), { name: 'Mo', job: 'barista' })
   assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', local: 'away', age: '30' }, true), { name: 'Mo', age: 30, local: false })
   assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', local: 'here' }, true), { name: 'Mo', local: true })
+  assert.deepEqual(aboutChange(empty, { ...empty, name: 'Mo', start: '2' }, true), { name: 'Mo', start_stage: 2 })
 })
 
 test('the age box keeps an age in range and says so, past the most only for their own age', () => {

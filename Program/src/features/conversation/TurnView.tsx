@@ -1,14 +1,15 @@
 import { appNow, realDelay } from '../../appTime.ts'
 import { memo, useContext, useEffect, useState, type ContextType, type ReactNode } from 'react'
-import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, Lightbulb, Pencil, Pin, PinOff, RotateCcw, Shuffle, Square } from 'lucide-react'
+import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, Lightbulb, Pencil, Pin, PinOff, RefreshCw, RotateCcw, Shuffle, Square, Trash2 } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
+import { usePhotoEdit, type PhotoEdit } from './usePhotoEdit'
 import { VoiceNote } from './VoiceNote'
 import { Stamp } from '../../components/Stamp'
 import { CrisisNote } from '../../components/Safety'
 import { sidecar } from '../sidecar/store'
 import { useMessageSheet, type Act, type Action } from './useMessageSheet'
-import { waitsUntilLater } from './held'
+import { shownAt, waitsUntilLater } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
@@ -167,21 +168,25 @@ function Reply({ message, found, name, text, position, onPage, onStop, onRemembe
   // A reply being written while they are away stays out of sight: no typing dots, no Stop.
   const streaming = message.status === 'streaming' && !held
   const actions = withVoice(replyActions(message, streaming, { onRemember, onEdit, onBranch, onMoment }), message, useContext(VoiceActions))
-  // On a phone the sidecar is one more entry in the sheet rather than a small icon on every reply.
-  const sheet = useMessageSheet(message, message.status === 'complete' && actions.length
-    ? [...actions, ['Ask the sidecar', <Lightbulb key="icon" aria-hidden="true" />, (item) => sidecar.ask(item)]] : actions)
+  const edit = usePhotoEdit(message.id, message.photo)
+  // On a phone the sidecar is one more entry in the sheet rather than a small icon on every reply. New picture comes
+  // first, and Remove picture last, as taking something away does on iOS and Android.
+  const [reroll, remove] = photoActions(edit)
+  const sheet = useMessageSheet(message, [...reroll, ...(message.status === 'complete' && actions.length
+    ? [...actions, ['Ask the sidecar', <Lightbulb key="icon" aria-hidden="true" />, (item: Message) => sidecar.ask(item)] as Action] : actions), ...remove],
+  edit.thumbnail)
   // Until they get back to the user there is nothing to see; a holding text they sent meanwhile is its own message.
   if (held) return null
   return (
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found, pressing: sheet.pressing })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined} {...sheet.press}>
       <Avatar name={name} companion />
       <header>
-        <Stamp value={message.created_at} clock className="stamp-lead" />
+        <Stamp value={shownAt(message)} clock className="stamp-lead" />
         <span className="speaker">{name}</span>
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} actions={actions} onSheet={sheet.open} />
       </header>
       {message.voice && !message.redacted ? <VoiceNote note={message.voice} text={message.text} name={name} at={message.completed_at} /> : <ReplyBody text={text} streaming={streaming} bursts={bursts} />}
-      <ReplyExtras message={message} name={name} note={note} />
+      <ReplyExtras message={message} name={name} note={note} edit={edit} />
       {sheet.sheet}
     </article>
   )
@@ -190,7 +195,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, onRemembe
 function ReplyTools({ message, position, streaming, onPage, onStop, actions, onSheet }: Pick<ReplyProps, 'message' | 'position' | 'onPage' | 'onStop'> & { streaming: boolean; actions: Action[]; onSheet: () => void }) {
   return (
     <span className="reply-tools">
-      <Stamp value={message.created_at} />
+      <Stamp value={shownAt(message)} />
       {position && (
         <span className="pager" role="group" aria-label="Reply versions">
           <PageButton label="Previous version" step={-1} disabled={position[0] === 0} onPage={onPage}><ChevronLeft aria-hidden="true" /></PageButton>
@@ -218,6 +223,14 @@ function replyActions(message: Message, streaming: boolean, { onRemember, onEdit
   return unfinished(message) ? [edit, branch] : [branch]
 }
 
+/** A picture the reply sent can be made again or taken out of the chat (the same buttons show on it with a mouse). */
+function photoActions(edit: PhotoEdit): [Action[], Action[]] {
+  return [
+    edit.canReroll ? [['New picture', <RefreshCw key="icon" aria-hidden="true" />, edit.reroll]] : [],
+    edit.canRemove ? [['Remove picture', <Trash2 key="icon" aria-hidden="true" />, edit.remove, 'danger']] : [],
+  ]
+}
+
 /** "Pin their voice" after Remember this on a finished reply: pins it for their voice in every reply
  * (companion/memory/voice.py), or unpins it. */
 function withVoice(actions: Action[], message: Message, voice: ContextType<typeof VoiceActions>): Action[] {
@@ -230,10 +243,10 @@ function withVoice(actions: Action[], message: Message, voice: ContextType<typeo
 
 /** What follows a reply once it shows: the picture it sent and a note on how it ended. The note is the app speaking,
  * not the companion, so it sits in its own box (styles.css .system-note). */
-function ReplyExtras({ message, name, note }: { message: Message; name: string; note: string | null }) {
+function ReplyExtras({ message, name, note, edit }: { message: Message; name: string; note: string | null; edit: PhotoEdit }) {
   return (
     <>
-      {message.photo && <ChatPhoto message={message} name={name} />}
+      {message.photo && <ChatPhoto message={message} name={name} edit={edit} />}
       {note && <SystemNote failed={message.status === 'failed'}>{note}</SystemNote>}
     </>
   )

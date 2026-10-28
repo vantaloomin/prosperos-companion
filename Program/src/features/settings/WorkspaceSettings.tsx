@@ -130,8 +130,7 @@ function TimezoneForm({ data, save, problem }: { data: Settings; save: Save; pro
     <section className="settings-section form-stack" aria-labelledby="time-heading">
       <h2 id="time-heading">Your time</h2>
       <SectionError problem={problem} />
-      <TextInput label="Your timezone" value={zone ?? data.user_timezone} onChange={setZone} list="settings-timezones" maxLength={64} hint={hint} />
-      <datalist id="settings-timezones">{timezones().map((item) => <option key={item} value={item} />)}</datalist>
+      <TextInput label="Your timezone" value={zone ?? data.user_timezone} onChange={setZone} suggestions={timezones()} maxLength={64} hint={hint} />
       {pc && <p className="subtle">This PC's timezone: {pc}</p>}
       {(edited || offerPc) && (
         <div className="form-actions">

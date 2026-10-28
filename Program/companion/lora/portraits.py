@@ -18,8 +18,10 @@ admission rules and keep step as the LoRA maker's generated pictures. Kept pictu
 character's reference set, and the kept profile picture becomes the companion's picture.
 Expression and outfits are drafted from fixed lists without a model, and are editable.
 """
+import hashlib
 import random
 import re
+import shutil
 
 from companion.characters import require_current
 from companion.database import encode, identifier, one, optional
@@ -29,7 +31,7 @@ from companion.images.content import classify
 from companion.images.jobs import image_settings
 from companion.images.prompts import NEGATIVE
 from companion.images.routing import route
-from companion.lora import generation, references
+from companion.lora import files, generation, references
 
 # Personality words, first match wins, and the expression they suggest.
 EXPRESSIONS = (
@@ -59,6 +61,8 @@ STEPS = (
 )
 FOLLOW = ('The attached reference picture shows this same person: keep their face, hair, skin tone and build '
           'exactly as they are there, and change only the outfit, pose and framing described here.')
+OWN = ('own', 'Your picture', 'Their profile picture, as it is')
+NO_PROFILE = 'Choose a picture of them first.'
 NO_REFERENCE = ('None of your enabled image backends can make a picture from a reference picture, so pictures 2 and '
                 '3 would show a different person. Codex, OpenRouter, the OpenAI API, or a ComfyUI server with a '
                 'reference workflow can. You can still make all three from the description alone.')
@@ -102,23 +106,34 @@ def draft(database) -> dict:
             'reference_backend': backend_line(follows[0] if follows else None)}
 
 
+def own_shot(companion) -> dict:
+    """Picture 1 when it is their profile picture as it is: nothing is made or sent for it."""
+    key, label, shot = OWN
+    return {'label': label, 'shot': shot, 'aspect': 'portrait', 'prompt': '', 'follows': None, 'tier': 'safe',
+            'reasons': [], 'route_reason': '', 'refusal': None if companion['portrait_reference_id'] else NO_PROFILE,
+            'backend': None, 'own': key}
+
+
 def plan(connection, body) -> list[dict]:
     """Each picture's prompt, classification and destination, exactly as it would be sent. The
-    first picture's backend makes the rest, so the set stays one person."""
-    definition = require_current(connection)['version']['definition']
+    first picture's backend makes the rest, so the set stays one person. With their own picture,
+    picture 1 is their profile picture and the others follow it."""
+    companion = require_current(connection)
+    definition = companion['version']['definition']
     style = image_settings(connection)['style']
-    pool = usable(connection, body.without_reference)
+    without_reference = body.without_reference and not body.own_picture
+    pool = usable(connection, without_reference)
     chosen = body.backend_id
     blocked = None
     if not pool:
         blocked = 'No image backend is enabled. Set one up in Settings to make images.' \
-            if body.without_reference else NO_REFERENCE
+            if without_reference else NO_REFERENCE
     elif chosen and chosen not in {backend['id'] for backend in pool}:
         blocked = 'That backend cannot make a picture from a reference picture. Choose another one.'
-    planned = []
-    for position, shot in enumerate(body.shots):
+    planned = [own_shot(companion)] if body.own_picture else []
+    for position, shot in enumerate(body.shots[len(planned):], start=len(planned)):
         # Every later picture follows the profile picture (Vanta, 2026-10-06).
-        follows = None if position == 0 or body.without_reference else 0
+        follows = None if position == 0 or without_reference else 0
         prompt = generation.compose(style, body.base, shot.shot) + (f' {FOLLOW}' if follows is not None else '')
         classification = classify({'prompt': prompt, 'negative': NEGATIVE,
                                    'appearance': definition.get('appearance', '')})
@@ -129,7 +144,7 @@ def plan(connection, body) -> list[dict]:
             # The chosen backend's own style starts its prompts (checked safe for it when saved).
             prompt = generation.compose(backends.style_for(target, style), body.base, shot.shot) + \
                 (f' {FOLLOW}' if follows is not None else '')
-        if position == 0 and target is not None:
+        if target is not None:
             chosen = target['id']
         planned.append({'label': shot.label, 'shot': shot.shot, 'aspect': shot.aspect, 'prompt': prompt,
                         'follows': follows, 'tier': classification.tier, 'reasons': classification.reasons,
@@ -149,15 +164,21 @@ def create(database, body) -> dict:
                                   (companion['id'],)).fetchone()
         require(busy is None, 'Pictures are already being made. Wait for them or stop them first.', 409)
         planned = plan(connection, body)
-        if planned[0]['backend'] is None:
-            code = 'no_reference_backend' if planned[0]['refusal'] == NO_REFERENCE else 'refused'
-            raise DomainError(planned[0]['refusal'], 409, code)
+        first = next(item for item in planned if not item.get('own'))
+        if planned[0]['refusal'] == NO_PROFILE or first['backend'] is None:
+            refusal = planned[0]['refusal'] if planned[0]['refusal'] == NO_PROFILE else first['refusal']
+            code = 'no_reference_backend' if refusal == NO_REFERENCE else 'refused'
+            raise DomainError(refusal, 409, code)
         generation_id = identifier()
         timestamp = database.now()
         connection.execute("INSERT INTO lora_generations (id, companion_id, base, seed, status, kind, created_at) "
                            "VALUES (?, ?, ?, ?, 'running', 'portraits', ?)",
                            (generation_id, companion['id'], body.base.strip(), body.seed, timestamp))
+        if body.own_picture:
+            add_own(database, connection, companion, generation_id, body.seed, timestamp)
         for position, item in enumerate(planned):
+            if item.get('own'):
+                continue
             target = item['backend']
             refused = target is None
             connection.execute(
@@ -170,6 +191,20 @@ def create(database, body) -> dict:
                  None if refused else target['kind'], 'failed' if refused else 'queued',
                  item['refusal'] if refused else None, timestamp if refused else None, item['follows']))
     return generation.get(database, generation_id)
+
+
+def add_own(database, connection, companion, generation_id, seed, timestamp):
+    """Picture 1 as their profile picture, already made and kept, so pictures 2 and 3 follow it."""
+    reference = references.get(connection, companion['portrait_reference_id'])
+    name = f"{identifier()}.{reference['file'].rsplit('.', 1)[-1]}"
+    shutil.copyfile(files.inside(references.directory(database), reference['file']), generation.directory(database) / name)
+    key, label, shot = OWN
+    connection.execute(
+        'INSERT INTO lora_gen_images (id, generation_id, position, label, shot, prompt, negative, aspect, seed, '
+        "classification, status, output_file, width, height, decision, reference_id, finished_at) "
+        "VALUES (?, ?, 0, ?, ?, '', '', 'portrait', ?, 'safe', 'completed', ?, ?, ?, 'kept', ?, ?)",
+        (identifier(), generation_id, label, shot, seed, name, reference['width'], reference['height'],
+         reference['id'], timestamp))
 
 
 def latest(database) -> dict | None:
@@ -196,7 +231,8 @@ def redo(database, generation_id, position) -> dict:
         require(0 <= position < len(images), 'There is no such picture.', 404)
         again = [dict(image) for image in images if dependent(images, image['position'], position)]
         require(all(image['decision'] is None for image in again), 'A picture you kept cannot be made again.', 409)
-        first = dict(images[0])
+        # Their own picture 1 went nowhere; the first picture that was made names the backend.
+        first = next((dict(image) for image in images if image['backend_id'] is not None), dict(images[0]))
         require(first['backend_id'] is not None, 'The first picture had nowhere to go.', 409)
         seed = random.SystemRandom().randrange(1, 2**31)
         for image in again:
@@ -221,6 +257,18 @@ def dependent(images, candidate, position) -> bool:
             return True
         candidate = follows.get(candidate)
     return False
+
+
+def upload_portrait(database, data: bytes, name='') -> dict:
+    """The user's own picture as the companion's profile picture. It joins their reference pictures; one
+    already there is reused."""
+    digest = hashlib.sha256(data).hexdigest()
+    with database.connect() as connection:
+        companion = require_current(connection)
+        existing = optional(connection, 'SELECT id FROM lora_references WHERE companion_id=? AND sha256=?',
+                            (companion['id'], digest))
+    reference_id = existing['id'] if existing else references.add(database, data, name or 'Your picture')['id']
+    return set_portrait(database, reference_id)
 
 
 def set_portrait(database, reference_id: str | None) -> dict:

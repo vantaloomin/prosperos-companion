@@ -128,6 +128,22 @@ export const noChoice = (slots: FileSlot[]): ModelFiles => Object.fromEntries(sl
 
 export const isChosen = (saved: ModelFiles) => Object.values(saved).some(Boolean)
 
+/** How the file list's heading describes it: the user's files, the smaller model the app picked for this computer's
+ * graphics card (companion/hardware.py fit_images), or the family's own. */
+export const filesLabel = (saved: ModelFiles, fit: string | null | undefined) =>
+  isChosen(saved) ? '(your choice)' : fit ? '(picked for this graphics card)' : '(defaults)'
+
+/** A model file's name without its folder or extension: krea2_turbo_nvfp4. */
+export const shortName = (file: string) => (file.split(/[\\/]/).pop() ?? file).replace(/\.(safetensors|gguf)$/i, '')
+
+/** The family hint's line when the model running is the one the app picked for the card, because the user hasn't
+ * chosen one (Iris): "On this 12 GB card it uses krea2_turbo_nvfp4, a smaller file that fits." */
+export function fitLine(fit: string | null | undefined, saved: ModelFiles | null, cardGb: number | null): string | null {
+  if (!fit || saved?.unet_name) return null
+  const card = cardGb === null ? 'this graphics card' : `this ${cardGb >= 10 ? Math.round(cardGb) : cardGb.toFixed(1)} GB card`
+  return `On ${card} it uses ${shortName(fit)}, a smaller file that fits.`
+}
+
 /** Download pages for the family's slots that have them, in slot order. */
 export const linksByRole = (links: ModelLink[], family: ImageFamily = 'krea2') => {
   const own = links.filter(link => (link.family ?? 'krea2') === family)

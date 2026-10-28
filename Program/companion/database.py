@@ -390,6 +390,15 @@ ADDED_COLUMNS = (
     # The shape of a new companion's family (companion/life/family_tree.py, Settings > Realism > Family shapes): 0
     # simple, 1 gentle, 2 true to life, 3 more drama.
     ('life_settings', 'family_shapes', 'INTEGER NOT NULL DEFAULT 2 CHECK (family_shapes BETWEEN 0 AND 3)'),
+    # When the user took a picture a reply sent out of the chat (companion/images/photo_edits.py); NULL while it shows.
+    ('chat_photos', 'removed_at', 'TEXT'),
+    # Local politics (companion/life/politics.py, Settings > Realism > Their days): 0 off, 1 quiet, 2 true to life,
+    # 3 lively.
+    ('life_settings', 'politics_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (politics_realism BETWEEN 0 AND 3)'),
+    # Whether pictures of the companion follow their profile picture on a backend that takes a reference
+    # (companion/images/runner.py, Settings > Images): on unless turned off, per world.
+    ('image_settings', 'follow_profile_picture',
+     'INTEGER NOT NULL DEFAULT 1 CHECK (follow_profile_picture IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

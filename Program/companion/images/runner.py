@@ -46,6 +46,14 @@ def default_adapters() -> dict:
     return {'comfyui': ComfyAdapter(), 'codex': CodexAdapter(), 'hosted': HostedAdapter()}
 
 
+def named(inputs: dict) -> str:
+    """The prompt, with "This is Sett." when the user switched on their name in pictures and the picture shows them. It
+    is added at dispatch, after the content check has read the prompt, so a name never trips it."""
+    name = (inputs.get('character_name') or '').strip()
+    if not (inputs.get('name_in_pictures') and inputs.get('pictured') and name):
+        return inputs['prompt']
+    return f"{inputs['prompt'].rstrip()} This is {name}."
+
 class ImageRunner:
     def __init__(self, database, vault, adapters=None, scheduler=None):
         self.database = database
@@ -197,9 +205,10 @@ class ImageRunner:
         job, backend, inputs = claimed
         width, height = size_for(backend['kind'], inputs['aspect'])
         key = backends.backend_key(self.database, self.vault, backend)
-        request = ImageRequest(job_id, inputs['prompt'], inputs['negative'], inputs['seed'], width, height,
+        request = ImageRequest(job_id, named(inputs), inputs['negative'], inputs['seed'], width, height,
                                backend, decode(backend['config']), key, storage.raw_directory(self.database),
-                               character_lora(backend, inputs))
+                               character_lora(backend, inputs),
+                               name=inputs.get('character_name') if inputs.get('pictured') else None)
         result = None
         followed = None
         try:
@@ -229,9 +238,11 @@ class ImageRunner:
 
     async def follow_sheet(self, request, inputs) -> str | None:
         """On Codex, a picture of the companion follows their character sheet, made first when they have
-        none (images/sheet.py). Returns how the picture drew them when it does."""
-        if request.backend['kind'] != 'codex' or not sheet.depicts_companion(inputs):
+        none (images/sheet.py); elsewhere, their profile picture. Returns how the picture drew them when it does."""
+        if not sheet.depicts_companion(inputs):
             return None
+        if request.backend['kind'] != 'codex':
+            return self.follow_profile_picture(request, inputs)
         with self.database.connect() as connection:
             companion_id = sheet.companion_of_version(connection, inputs.get('character_version_id'))
         data = await sheet.ensure(self.database, self.adapters['codex'], request.backend, request.config,
@@ -243,26 +254,40 @@ class ImageRunner:
         request.prompt = f'{request.prompt} {sheet.FOLLOW}'
         return 'text description and their character sheet'
 
+    def follow_profile_picture(self, request, inputs) -> str | None:
+        """Elsewhere, a picture of the companion follows their profile picture on a backend that takes a
+        reference, unless an adopted LoRA already draws them."""
+        if request.lora or not backends.takes_reference(request.backend):
+            return None
+        data = sheet.profile_reference(self.database, inputs.get('character_version_id'))
+        if data is None:
+            return None
+        request.reference = data
+        request.prompt = f'{request.prompt} {sheet.FOLLOW_PROFILE}'
+        return 'text description and their profile picture'
+
     def failed(self, job, backend, inputs, error: AdapterError, raw=None):
         fields = {key: value for key, value in (('remote_id', error.remote_id), ('raw_file', raw)) if value}
         if error.code == 'auth':
             backends.block(self.database, backend['id'], error.message)
         was_current = jobs.is_current(self.database, job['id'])
         jobs.finish(self.database, job['id'], 'failed', error=error.message, code=error.code, fields=fields)
-        if error.code == 'auth' or not was_current:
+        if not was_current:
             return
         with self.database.connect() as connection:
-            fallback = jobs.image_settings(connection)['fallback']
+            fallback = jobs.image_settings(connection)['fallback'] and error.code != 'auth'
         after = backend['id']
         if error.code == 'refused':
             # Reclassified NSFW, it may go to any backend that accepts NSFW, but never back to one that
             # already did and refused it.
             reclassified = jobs.reclassify_refused(self.database, job['id'], ['refused by the provider'])
             inputs, after = reclassified, (after if backends.accepts_nsfw(backend) else None)
-        # Fallback is opt-in and only to a backend the request is eligible for (F5, F6).
-        if fallback and jobs.routable(self.database, inputs, after):
+        # Fallback down the user's order is opt-in, and only to a backend the request is eligible for (F5, F6).
+        # A hosted API's or Codex's failure always tries a local ComfyUI when one is set up.
+        local_only = not fallback and not backends.is_local(backend)
+        if (fallback or local_only) and jobs.routable(self.database, inputs, after, local_only):
             jobs.enqueue(self.database, job['post_id'], 'fallback', inputs=inputs, retry_of=job['id'],
-                         after_id=after)
+                         after_id=after if not local_only else backend['id'], local_only=local_only)
             self.wake()
 
     async def cancel(self, job_id) -> dict:

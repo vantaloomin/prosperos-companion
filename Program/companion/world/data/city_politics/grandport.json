@@ -1,0 +1,464 @@
+{
+ "credit": "Written for the app from Grandport's city data. Grandport is from Neokosmos, a dark fantasy world by Oak (https://quietoak.github.io/NeokosmosWiki/), CC BY-NC-SA 4.0. The factions follow the wiki; their quarrels are extrapolated.",
+ "own_factions": true,
+ "factions": [
+  {
+   "id": "merchant-circle",
+   "name": "The Merchant Circle",
+   "kind": "council",
+   "tags": [
+    "establishment",
+    "business"
+   ],
+   "pull": 5,
+   "about": "The founders of the Republic, who rule from the Circle Hall and the counting houses.",
+   "jobs": [
+    "official",
+    "trade"
+   ],
+   "members": [
+    "edgar-grandeholm",
+    "aldous-thorne",
+    "horatio-horne"
+   ],
+   "places": [
+    "merchant-circle-hall",
+    "grandeholm-tower"
+   ],
+   "allies": [
+    "admiralty",
+    "guilds"
+   ],
+   "rivals": [
+    "royalists"
+   ]
+  },
+  {
+   "id": "ledger-of-liberty",
+   "name": "The Ledger men",
+   "kind": "society",
+   "tags": [
+    "reform"
+   ],
+   "pull": 2,
+   "about": "Readers of Thorne's Ledger of Liberty, who think the Revolution was meant for more than the rich.",
+   "jobs": [
+    "learned"
+   ],
+   "members": [
+    "eadric-wyrmscraft"
+   ],
+   "places": [
+    "thorne-library",
+    "public-press",
+    "booksellers-steps"
+   ],
+   "allies": [
+    "lower-stairs"
+   ],
+   "rivals": []
+  },
+  {
+   "id": "admiralty",
+   "name": "The Admiralty",
+   "kind": "navy",
+   "tags": [
+    "law"
+   ],
+   "pull": 4,
+   "about": "The Republic's navy and harbour watch, loyal to Admiral Horne.",
+   "jobs": [
+    "law"
+   ],
+   "places": [
+    "admiralty-fortress",
+    "signal-tower",
+    "powder-and-plum"
+   ],
+   "allies": [
+    "merchant-circle"
+   ],
+   "rivals": [
+    "royalists",
+    "ruestrian-envoys"
+   ]
+  },
+  {
+   "id": "guilds",
+   "name": "The guilds",
+   "kind": "guild",
+   "tags": [
+    "guild"
+   ],
+   "pull": 3,
+   "about": "Masons, carpenters, insurers and the rest, who keep the fire rules and the settling marks.",
+   "jobs": [
+    "trade",
+    "labor"
+   ],
+   "members": [
+    "freydis"
+   ],
+   "places": [
+    "masons-hall",
+    "carpenters-hall",
+    "insurers-exchange"
+   ],
+   "allies": [
+    "merchant-circle"
+   ],
+   "rivals": []
+  },
+  {
+   "id": "royalists",
+   "name": "The royalists",
+   "kind": "secret society",
+   "tags": [
+    "crown",
+    "tradition"
+   ],
+   "pull": 1,
+   "about": "Old Gran Porte families who whisper \"what sank may yet rise\" and wait for the exiled prince.",
+   "members": [
+    "ophir"
+   ],
+   "places": [
+    "blue-cloth",
+    "crowned-horse",
+    "kings-fall-street"
+   ],
+   "allies": [
+    "ruestrian-envoys"
+   ],
+   "rivals": [
+    "merchant-circle",
+    "admiralty"
+   ]
+  },
+  {
+   "id": "sol-eternel",
+   "name": "The mission of Sol Eternel",
+   "kind": "church",
+   "tags": [
+    "church"
+   ],
+   "pull": 2,
+   "about": "Missionaries of the Sun from the Alnhaman coast, preaching on the quays.",
+   "jobs": [
+    "church"
+   ],
+   "members": [
+    "aelric-stillhand"
+   ],
+   "places": [
+    "sol-chapel"
+   ],
+   "allies": [],
+   "rivals": []
+  },
+  {
+   "id": "ruestrian-envoys",
+   "name": "The Ruestrian envoys",
+   "kind": "foreign power",
+   "tags": [
+    "foreign"
+   ],
+   "pull": 3,
+   "about": "Agents of the Empire across the water, buying friends with cheap red wine and cheaper loans.",
+   "places": [
+    "ruestrian-cookhouse",
+    "strangers-quay"
+   ],
+   "allies": [
+    "royalists"
+   ],
+   "rivals": [
+    "admiralty"
+   ]
+  },
+  {
+   "id": "lower-stairs",
+   "name": "The Lower Stairs",
+   "kind": "neighbourhood",
+   "tags": [
+    "workers",
+    "locals"
+   ],
+   "pull": 2,
+   "about": "The poor quarter that held out through the siege on relief bread, and remembers who fed it.",
+   "jobs": [
+    "labor"
+   ],
+   "places": [
+    "relief-bread-hall",
+    "widows-kitchen",
+    "stairs-shrine"
+   ],
+   "allies": [
+    "ledger-of-liberty"
+   ],
+   "rivals": []
+  }
+ ],
+ "questions": [
+  {
+   "id": "ruestrian-harbour",
+   "title": "Ruestrian harbour rights",
+   "question": "Should Ruestrian ships be given their own berths at the Grand Quay?",
+   "sides": [
+    {
+     "name": "Open the berths",
+     "stand": "give the Empire its berths and the trade that comes with them",
+     "jobs": [
+      "trade"
+     ],
+     "words": [
+      "practical"
+     ],
+     "backers": [
+      "foreign",
+      "business",
+      "crown"
+     ]
+    },
+    {
+     "name": "Keep them out",
+     "stand": "keep the Empire's ships at Strangers' Wharf",
+     "jobs": [
+      "law",
+      "labor"
+     ],
+     "words": [
+      "cautious"
+     ],
+     "backers": [
+      "law",
+      "workers",
+      "reform"
+     ]
+    }
+   ],
+   "beats": [
+    [
+     "A Ruestrian galley was turned away from the Grand Quay.",
+     1
+    ],
+    [
+     "Ruestrian red is cheaper than ever on the wharf.",
+     0
+    ],
+    [
+     "An envoy dined at Grandeholm Tower.",
+     0
+    ],
+    [
+     "The signal tower flew the warning colours for a Ruestrian squadron.",
+     1
+    ],
+    [
+     "Dockworkers threatened to walk off if the berths are given.",
+     1
+    ]
+   ]
+  },
+  {
+   "id": "exiled-prince",
+   "title": "The exiled prince",
+   "question": "Should the Circle hunt down the royalists, or let them grumble?",
+   "sides": [
+    {
+     "name": "Let them grumble",
+     "stand": "leave old families their whispers",
+     "jobs": [
+      "learned",
+      "arts"
+     ],
+     "words": [
+      "idealist"
+     ],
+     "backers": [
+      "reform",
+      "crown"
+     ]
+    },
+    {
+     "name": "Root them out",
+     "stand": "root the royalists out before they try something",
+     "jobs": [
+      "law",
+      "official"
+     ],
+     "words": [
+      "cautious"
+     ],
+     "backers": [
+      "law",
+      "establishment"
+     ]
+    }
+   ],
+   "beats": [
+    [
+     "A crowned horse was chalked on a wall in Old Gran Porte.",
+     1
+    ],
+    [
+     "A royalist pamphlet turned up at the Inkwell.",
+     1
+    ],
+    [
+     "The Admiralty searched a house on Kings Fall Street.",
+     0
+    ],
+    [
+     "An old royalist was given a pension by the Circle.",
+     0
+    ]
+   ]
+  }
+ ],
+ "issues": [
+  {
+   "id": "relief-bread",
+   "styles": [
+    "fantasy"
+   ],
+   "title": "The price of relief bread",
+   "question": "Should the Circle keep paying for cheap bread in the Lower Stairs?",
+   "sides": [
+    {
+     "name": "Keep the bread",
+     "stand": "keep the relief bread cheap",
+     "jobs": [
+      "labor",
+      "care"
+     ],
+     "words": [
+      "idealist"
+     ],
+     "backers": [
+      "workers",
+      "reform"
+     ]
+    },
+    {
+     "name": "End the dole",
+     "stand": "end it; the siege is ten years gone",
+     "jobs": [
+      "trade"
+     ],
+     "words": [
+      "practical"
+     ],
+     "backers": [
+      "business"
+     ]
+    }
+   ],
+   "beats": {
+    "whispers": "The relief bread hall is said to be closing.",
+    "open": "The Circle names the day the cheap bread ends.",
+    "heated": "The Lower Stairs march up the Hundred Steps with siege loaves.",
+    "won": "The relief bread stays.",
+    "lost": "The relief bread ends.",
+    "fizzled": "The price goes up a little and nobody marches."
+   }
+  },
+  {
+   "id": "longitude-voyage",
+   "styles": [
+    "fantasy"
+   ],
+   "title": "Wyrmscraft's voyage",
+   "question": "Should the Circle fund Eadric Wyrmscraft's voyage to prove his longitude?",
+   "sides": [
+    {
+     "name": "Fund it",
+     "stand": "fund the voyage",
+     "jobs": [
+      "learned",
+      "labor"
+     ],
+     "words": [
+      "idealist"
+     ],
+     "backers": [
+      "reform",
+      "establishment"
+     ]
+    },
+    {
+     "name": "Waste of coin",
+     "stand": "keep the money in the counting houses",
+     "jobs": [
+      "trade"
+     ],
+     "words": [
+      "practical",
+      "cautious"
+     ],
+     "backers": [
+      "business"
+     ]
+    }
+   ],
+   "beats": {
+    "whispers": "Wyrmscraft is asking the Circle for a ship.",
+    "open": "The Circle debates the voyage.",
+    "heated": "Wyrmscraft calls the Circle cowards at the Compass Rose.",
+    "won": "The voyage is funded.",
+    "lost": "The voyage is refused.",
+    "fizzled": "Wyrmscraft goes back to his book."
+   }
+  },
+  {
+   "id": "sol-preaching",
+   "styles": [
+    "fantasy"
+   ],
+   "title": "Preaching on the quays",
+   "question": "Should the Sun's missionaries be let to preach on the Grand Quay?",
+   "sides": [
+    {
+     "name": "Let them preach",
+     "stand": "let them preach",
+     "jobs": [
+      "church",
+      "learned"
+     ],
+     "words": [
+      "idealist",
+      "devout"
+     ],
+     "backers": [
+      "church",
+      "reform"
+     ]
+    },
+    {
+     "name": "Keep the quay for work",
+     "stand": "keep the quays for work",
+     "jobs": [
+      "labor",
+      "trade"
+     ],
+     "words": [
+      "practical"
+     ],
+     "backers": [
+      "business",
+      "guild"
+     ]
+    }
+   ],
+   "beats": {
+    "whispers": "A missionary preached to the dockhands at dawn.",
+    "open": "The dock office asks the Circle to rule.",
+    "heated": "A sermon on the quay ends in a brawl.",
+    "won": "The missionaries may preach on the quay.",
+    "lost": "Preaching is kept to the chapel.",
+    "fizzled": "The mission sails on to another port."
+   }
+  }
+ ]
+}

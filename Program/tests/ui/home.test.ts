@@ -8,9 +8,13 @@ const item = (extra: Partial<HomeItem> = {}): HomeItem => ({
   origin: 'generated', since: '2026-10-05', until: null, edited: false, revision: 1, ...extra,
 })
 
-test('the home title adds the city once and starts with a capital', () => {
+test('the home title is its name with the city once, and the description is a line under it', () => {
   assert.equal(homeTitle(item({ city: 'Baltimore' })), 'A one-bedroom in a rowhouse in Fells Point, Baltimore')
-  assert.equal(homeTitle(item({ city: 'Baltimore', description: 'a flat in Baltimore' })), 'A flat in Baltimore')
+  assert.equal(itemDetail(item()), '')
+  assert.equal(homeTitle(item({ city: 'Ionia', name: 'a flat above the pits', description: 'a small flat, close to the crowds.' })), 'A flat above the pits, Ionia')
+  assert.equal(homeTitle(item({ city: 'Baltimore', name: 'a flat in Baltimore' })), 'A flat in Baltimore')
+  assert.equal(homeTitle(item({ city: 'Ionia', name: '', description: 'a flat above the pits.' })), 'A flat above the pits, Ionia')
+  assert.equal(itemDetail(item({ description: 'a small flat above the pits, close to the crowds.' })), 'A small flat above the pits, close to the crowds.')
 })
 
 test('rent reads as an estimate and is left out without one', () => {

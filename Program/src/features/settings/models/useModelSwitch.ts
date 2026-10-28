@@ -29,7 +29,7 @@ export function useModelSwitch() {
     client.setQueryData(KEY, await api<ModelsOverview>('/models/routes', { job: 'chat', profile_id: profileId }, 'PUT'))
     void client.invalidateQueries({ queryKey: ['connection'] })
   }
-  return { profiles, current: mixing ? MIX : chat, choose, canMix, mixCount, others: profiles.filter(profile => profile.id !== chat) }
+  return { profiles, current: mixing ? MIX : chat, choose, canMix, mixCount, ownWorld: !!overview?.world?.own, others: profiles.filter(profile => profile.id !== chat) }
 }
 
 /** Up to `count` other profiles to offer after a failed reply, most recently changed first. */

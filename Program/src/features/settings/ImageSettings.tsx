@@ -4,16 +4,17 @@ import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import { useRefetchOnFocus } from '../../paths'
 import { usePhoneStatus } from '../phone/phoneAccess'
-import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageFamily, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
+import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageBackendList, ImageFamily, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
 import { HardwareWarnings } from './models/HardwareCheck'
-import { HARDWARE_KEY, useHardware } from './models/hardware'
-import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { HARDWARE_KEY, useHardware, type HardwareReport } from './models/hardware'
+import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, filesLabel, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, fitLine, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { MemeSettings } from './MemeSettings'
+import { WorldImagePick } from './WorldImagePick'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
 import { imageKeyFrom } from './models/discovery'
@@ -30,7 +31,7 @@ const failure = (error: unknown, fallback: string) => error instanceof Error ? e
 export function ImageSettings() {
   const client = useQueryClient()
   const settings = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => api<Limits>('/images/settings') })
-  const backends = useQuery({ queryKey: BACKENDS_KEY, queryFn: () => api<{ backends: ImageBackend[] }>('/images/backends') })
+  const backends = useQuery({ queryKey: BACKENDS_KEY, queryFn: () => api<ImageBackendList>('/images/backends') })
   const [result, setResult] = useState<Result>(null)
   const onPhone = !!usePhoneStatus().data?.remote
   const save = async (change: Partial<Limits>, done?: string) => {
@@ -54,6 +55,7 @@ export function ImageSettings() {
       {list.length === 0 && <p className="subtle">No image backend is set up yet. Posts stay text-only until you add one.</p>}
       {list.length > 0 && !hasLocal && <p className="subtle">No enabled backend takes NSFW requests, so they will be refused.</p>}
       <Backends list={list} refresh={refresh} setResult={setResult} phone={onPhone} />
+      <WorldImagePick list={list} world={backends.data.world} refresh={refresh} setResult={setResult} />
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       <MemeSettings data={data} save={save} phone={onPhone} />
@@ -89,6 +91,8 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
         hint="Ask what they're up to, or for a selfie or a meme, and they can answer with a picture. A photo of the moment is also that moment's feed picture. Photos and selfies are made by the backends above under the same content rules; memes and GIFs work without one (below)." />
       <Toggle label="Let them send pictures without being asked" checked={data.unprompted_photos} disabled={!data.chat_photos} onChange={(value) => void save({ unprompted_photos: value })}
         hint="Now and then a reply comes with a photo or a meme, a few a day at most. If they may message you first (Life & cities), they sometimes text a photo of what they're out doing, once a day at most." />
+      <Toggle label="Keep their face from their profile picture" checked={data.follow_profile_picture} onChange={(value) => void save({ follow_profile_picture: value })}
+        hint="New pictures of them start from their profile picture, so they look like the same person every time. Only on backends that can take a reference picture. A LoRA you adopted for them is used instead. This world only." />
       <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
         hint="Only to a backend allowed to receive that request." />
       <div className="form-grid">
@@ -279,6 +283,7 @@ function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: 
 /** Which kind of model this server runs, so the built-in workflow, its files, sampling and prompt style suit it
  * (Vanta, 2026-10-13). Krea 2 until changed; saved on change. A workflow of the user's own runs whatever it says. */
 function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: object) => Promise<boolean> }) {
+  const hardware = useHardware()
   // What a switch replaced, so it can be undone (undo over confirm); only when the user had made choices.
   const [undo, setUndo] = useState<{ to: string; body: object; before: string; after: string | null } | null>(null)
   const family = familyOf(backend.family)
@@ -294,7 +299,7 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
     setUndo({ to: FAMILIES[next].sampling, body: before, before: was, after: null })
   }
   return <div className="form-stack family-picker">
-    <Field label="Model family" hint={familyHint(family, backend.custom_workflow)}>{(id, describedBy) => (
+    <Field label="Model family" hint={familyHint(family, backend.custom_workflow, fitLine(backend.model_fit, backend.model_files, biggestCard(hardware.data)))}>{(id, describedBy) => (
       <select id={id} aria-describedby={describedBy} value={backend.family ?? 'krea2'} onChange={(event) => void choose(event.target.value as ImageFamily)}>
         {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
       </select>
@@ -305,10 +310,15 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
   </div>
 }
 
+/** The memory of this computer's biggest graphics card, which the app picks model files for. */
+const biggestCard = (report: HardwareReport | undefined) =>
+  report?.computer.gpus.reduce<number | null>((most, gpu) => Math.max(most ?? 0, gpu.memory_gb), null) ?? null
+
 /** The dropdown's hint (Iris's wording). */
-function familyHint(family: ReturnType<typeof familyOf>, custom: boolean): string {
+function familyHint(family: ReturnType<typeof familyOf>, custom: boolean, fitted: string | null): string {
   if (custom) return 'Your own workflow is used for pictures; the family still sets the reference workflow.'
   const lines = [`Sets the built-in workflow, model files and sampling to ${family.sampling}'s. You can change any of them below.`]
+  if (fitted) lines.push(fitted)
   if (family.note) lines.push(family.note)
   return lines.join(' ')
 }
@@ -335,7 +345,7 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
   const store = async (body: ModelFiles) => { if (await save(body)) setDraft({}) }
   return (
     <details onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="subtle">Model files for the built-in workflow {isChosen(saved) ? '(your choice)' : '(defaults)'}</summary>
+      <summary className="subtle">Model files for the built-in workflow {filesLabel(saved, backend.model_fit)}</summary>
       <div className="form-stack">
         <p className="subtle">Pick the files your ComfyUI server has. The lists come from the server at this backend's address; nothing is downloaded or installed.</p>
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its files…</p>}
@@ -629,6 +639,7 @@ function BackendSummary({ backend }: { backend: ImageBackend }) {
       <strong>{backend.label}</strong>
       <span className="badge">{backend.accepts_nsfw ? (backend.local ? 'Local · safe and NSFW' : 'Safe and NSFW') : 'Safe only'}</span>
       {backend.experimental && <span className="badge">Experimental</span>}
+      {backend.enabled && !backend.in_world && <span className="badge">Not used in this world</span>}
     </div>
     <p className="subtle">{summaryLine(backend)}</p>
   </>

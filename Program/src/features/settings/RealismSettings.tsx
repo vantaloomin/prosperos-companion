@@ -24,12 +24,14 @@ import { INNER_VOICE_LEVELS } from '../watch/watchText'
 import { LOOK_LEVELS, LOOK_TIP } from '../character/theirLookText'
 import { WAKING_LEVELS } from '../character/theirHoursText'
 import { READ_LEVELS, READ_TIP } from './readPaceText'
+import { POLITICS_LEVELS, POLITICS_TIP } from '../today/politicsText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { SectionPending } from '../../components/SectionPending'
 import { useLifeSettings, type SaveResult } from './useLifeSettings'
 import { RealismPresets } from './RealismPresets'
+import { useWorlds } from '../worlds/useWorlds'
 
 /** Life admin (companion/life/admin.py) on the home features' shared scale: how much of the boring stuff fills their weeks. */
 const ADMIN_LEVELS = [
@@ -68,6 +70,7 @@ export function RealismIntro() {
 /** How much drama, their pace and plans that go off course: world-wide settings, so they come first. */
 export function PaceSettings() {
   const { settings, data, save, result } = useLifeSettings()
+  const world = useWorlds().data?.world.name
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
   const level = step(DRAMA_LEVELS, data.drama, 1)
   const looks = step(LOOKS_LEVELS, data.looks_realism, 2)
@@ -86,10 +89,12 @@ export function PaceSettings() {
   const shapes = step(FAMILY_SHAPES_LEVELS, data.family_shapes, 2)
   const turns = step(TURN_LEVELS, data.life_turns, 2)
   const loss = step(LOSS_LEVELS, data.loss, 2)
+  const politics = step(POLITICS_LEVELS, data.politics_realism, 2)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
-      <Field label={`Drama in your world: ${level.label}`} hint={level.hint}>
+      <Field label={`Drama in your worlds: ${level.label}`} tip="Every world follows this unless it has its own, in Life & cities > This world."
+        hint={data.world_drama === null ? level.hint : `${level.hint} ${world ?? 'This world'} has its own level, ${step(DRAMA_LEVELS, data.world_drama, 1).label}, in Life & cities.`}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.drama} label={level.label}
           onChange={(drama) => void save({ drama })} />}
       </Field>
@@ -133,6 +138,10 @@ export function PaceSettings() {
       <Field label={`Family shapes: ${shapes.label}`} hint={shapes.hint} tip="Change anyone in their family on Today > People.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.family_shapes} label={shapes.label}
           onChange={(family_shapes) => void save({ family_shapes })} />}
+      </Field>
+      <Field label={`Local politics: ${politics.label}`} hint={politics.hint} tip={POLITICS_TIP}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.politics_realism} label={politics.label}
+          onChange={(politics_realism) => void save({ politics_realism })} />}
       </Field>
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}

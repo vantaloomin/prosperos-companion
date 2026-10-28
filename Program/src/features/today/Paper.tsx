@@ -34,6 +34,7 @@ export function Paper() {
         ? <ul className="plain-list">{headlines.map((item) => <li key={'id' in item ? item.id : item.key}><strong>{item.headline}</strong> {item.text}</li>)}</ul>
         : <p className="subtle">A quiet week in {paper.city}.</p>}
       <Couples items={paper.couples} />
+      <Politics items={paper.politics} />
       {paper.seen.length > 0 && <>
         <h3>Seen around town</h3>
         <ul className="plain-list">{paper.seen.map((item) => <li key={item.companion_id}>{item.text}</li>)}</ul>
@@ -58,6 +59,15 @@ function Couples({ items }: { items?: TownPaper['couples'] }) {
   if (!items?.length) return null
   return <>
     <h3>Engagements and weddings</h3>
+    <ul className="plain-list">{items.map((item) => <li key={item.key}><strong>{item.headline}</strong> {item.text}</li>)}</ul>
+  </>
+}
+
+/** Local issues that moved that week, and factions falling out or joining forces (companion/life/politics.py). */
+function Politics({ items }: { items?: TownPaper['politics'] }) {
+  if (!items?.length) return null
+  return <>
+    <h3>Politics</h3>
     <ul className="plain-list">{items.map((item) => <li key={item.key}><strong>{item.headline}</strong> {item.text}</li>)}</ul>
   </>
 }

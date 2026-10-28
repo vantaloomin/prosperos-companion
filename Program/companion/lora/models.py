@@ -93,6 +93,8 @@ class PortraitPlan(Input):
     backend_id: str | None = None
     # Make every picture from the description alone, for backends that cannot take a reference.
     without_reference: bool = False
+    # Picture 1 is the companion's current profile picture (often the user's own), not made; the rest follow it.
+    own_picture: bool = False
     seed: int | None = Field(default=None, ge=1, lt=2**31)
 
 

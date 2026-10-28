@@ -8,7 +8,7 @@ import { Loading } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { PlaceCard } from './PlaceCard'
 import { SketchMap } from './SketchMap'
-import { byHood, mainPin, PIN_LABELS, type CityMapData, type MapPlace, type Pin } from './mapText'
+import { byHood, isHome, mainPin, PIN_LABELS, type CityMapData, type MapPlace, type Pin } from './mapText'
 import { pinMarkup } from './pins'
 
 // Leaflet and its street tiles load only for a real city.
@@ -17,7 +17,8 @@ const StreetMap = lazy(() => import('./StreetMap').then((m) => ({ default: m.Str
 /**
  * The city map (Hit List #40): where they live, work and go, and every place in their city to click. A real
  * city gets a street map; fictional, original and private cities, or a street map that cannot load, a drawn map
- * of the neighbourhoods. Opened from Today, Story mode and "Show on map" links; never shows where you are.
+ * of the neighbourhoods. Opened from Today, Story mode and "Show on map" links. Shows everyone's home in the city,
+ * yours too, but never where you are right now.
  */
 export function CityMap({ companion, place, go }: { companion: Companion; place: string | null; go: (view: View) => void }) {
   const map = useQuery({ queryKey: ['city-map'], queryFn: () => api<CityMapData>('/life/map') })
@@ -47,7 +48,7 @@ interface AreaProps { data: CityMapData; asList: boolean; selected: string | nul
 /** The map or the list, and the picked place's card: floating over the map, or opened in its row in the list. */
 function MapArea({ data, asList, selected, onSelect, streetsFailed, onFail, companion, go }: AreaProps) {
   const picked = data.places.find((item) => item.id === selected) ?? null
-  const card = (inline: boolean) => picked && <PlaceCard inline={inline} place={picked} city={data.city.id} story={data.story} companion={companion} onClose={() => onSelect(null)} go={go} />
+  const card = (inline: boolean) => picked && <PlaceCard inline={inline} place={picked} city={data.city.id} hoods={data.hoods} enclosed={data.city.enclosed === true} story={data.story} companion={companion} onClose={() => onSelect(null)} go={go} />
   return (
     <div className="map-area">
       {asList ? <PlaceList places={data.places} selected={selected} onPick={(id) => onSelect(id === selected ? null : id)} card={card(true)} />
@@ -71,7 +72,7 @@ function MapView({ data, street, failed, selected, onSelect, onFail }: ViewProps
 function MapKey() {
   const [open, setOpen] = useState(false)
   // No work pin yet: companions have no set workplace (companion/life/citymap.py).
-  const pins: (Pin | 'place')[] = ['home', 'usual', 'recent', 'scene', 'place']
+  const pins: (Pin | 'place')[] = ['home', 'yours', 'known', 'usual', 'recent', 'scene', 'place']
   return (
     <div className="map-key">
       <button type="button" className="button" aria-expanded={open} aria-label="Key" onClick={() => setOpen(!open)}><KeyRound aria-hidden="true" /><span className="map-bar-label">Key</span></button>
@@ -80,6 +81,12 @@ function MapKey() {
       </ul>}
     </div>
   )
+}
+
+/** "cafe · Their usual places"; for someone else's home, who they are ("Sett's friend"). */
+function listTag(item: MapPlace): string {
+  if (item.relation) return item.relation
+  return [isHome(item) ? '' : item.kind, item.pins.length ? PIN_LABELS[mainPin(item)] : ''].filter(Boolean).join(' · ')
 }
 
 /** The same places as a plain list by neighbourhood, for keyboards and screen readers; the picked one opens in its row. */
@@ -94,7 +101,7 @@ function PlaceList({ places, selected, onPick, card }: { places: MapPlace[]; sel
           <h2>{hood}</h2>
           <ul>{items.map((item) => <li key={item.id} className={item.id === selected ? 'picked' : undefined}>
             <button type="button" className="text-button" aria-expanded={item.id === selected} onClick={() => onPick(item.id)}>{item.name}</button>
-            <span className="subtle"> {item.kind}{item.pins.length ? ` · ${PIN_LABELS[mainPin(item)]}` : ''}</span>
+            <span className="subtle"> {listTag(item)}</span>
             {item.id === selected && card}
           </li>)}</ul>
         </section>

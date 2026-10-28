@@ -61,6 +61,8 @@ export interface ChatPhoto {
   in_feed: boolean
   /** Sent without being asked. */
   unasked: boolean
+  /** Taken out of the chat by the user; the chat shows nothing, or Undo while it is still open. */
+  removed?: boolean
   /** The shape it is made in; the chat holds that space while it loads. Older servers leave it out. */
   aspect?: 'square' | 'landscape' | 'portrait'
   /** A meme's picture: made by an image model, a template on this computer, or a reaction GIF (companion/images/gifs.py). */
@@ -160,6 +162,8 @@ export interface CharacterDefinition {
   appearance: string
   /** The In photos line pictures use (companion/images/prompts.py `in_photos`); empty follows the appearance. */
   in_photos?: string
+  /** Their name in every picture prompt (companion/images/runner.py `named`), off by default. */
+  name_in_pictures?: boolean
   /** Face shape, height, build and the rest (companion/world/looks.py); an empty field is drawn for them. */
   looks?: Looks
   routine: string
@@ -497,6 +501,10 @@ export interface LifeSettings {
   on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
+  /** This world's own drama level (companion/life/world_drama.py); null follows `drama`, which every world shares. */
+  world_drama: number | null
+  /** Their companion is the only one in this world, so storylines start a little more often for them. */
+  alone: boolean
   /** Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy. */
   upkeep_realism: number
   /** Looks that change (companion/life/grooming.py): never (0), now and then, like real life (2), often (3). */
@@ -548,6 +556,8 @@ export interface LifeSettings {
   /** Loss and grief (companion/life/loss.py): whether people can pass away (off on every preset), and how often: 0 rare, 1 now and then, 2 true to life, 3 often. */
   people_pass_away: boolean
   loss: number
+  /** Local politics (companion/life/politics.py): 0 off, 1 quiet, 2 true to life, 3 lively. */
+  politics_realism: number
 }
 
 /** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
@@ -910,8 +920,10 @@ export interface CirclePerson {
   made_room_for?: string | null
   /** The other companions who know someone in this circle, and who they are to each. */
   also?: { companion_id: string; name: string; role: string }[]
-  /** How close they and the companion feel, both ways (companion/memory/pairs.py); read-only. */
+  /** How close they and the companion feel, both ways (companion/memory/pairs.py). */
   stage?: PairStage | null
+  /** Where the user says the two of them start, 1 Just met to 5; unset is the app's pick. */
+  start_stage?: number
   /** What they think of you, once they have met you (companion/life/their_people.py). */
   met?: CircleMet | null
   now: RoutineBlock | null
@@ -1025,6 +1037,8 @@ export interface ImageBackend {
   family: ImageFamily | null
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
+  // The smaller Krea 2 model file the app picked for this computer's graphics card, used while no model is chosen.
+  model_fit: string | null
   // ComfyUI: LoRAs applied after the character's own, in order; null for other kinds.
   style_loras: StyleLora[] | null
   // ComfyUI: the built-in workflow's sampler; null in a field means the workflow's own value.
@@ -1047,9 +1061,16 @@ export interface ImageBackend {
   disclosure: string | null
   disclosure_accepted: boolean
   experimental: boolean
+  /** Whether this world draws with it (companion/images/world_choice.py). */
+  in_world: boolean
 }
 
-export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+/** Which backends this world draws with: all of them until the user picks some (`own`). `falls_back`: none of the
+ * picks is on, so every backend is used for now. `used`: the backends it draws with now, in the user's order. */
+export interface WorldImageBackends { own: boolean; picked: string[]; falls_back: boolean; used: string[] }
+export interface ImageBackendList { backends: ImageBackend[]; world: WorldImageBackends }
+
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; follow_profile_picture: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
@@ -1369,6 +1390,8 @@ export interface PlannedShot {
   backend: { id: string; label: string; kind: string; local: boolean } | null
   // Onboarding portraits: the position of the picture this one follows.
   follows?: number | null
+  // Picture 1 when it is their profile picture as it is (often the user's own): nothing is made for it.
+  own?: string
 }
 
 export interface PortraitDraft extends GenerationDraft { any_backend: boolean; reference_backend: { id: string; label: string; kind: string; local: boolean } | null }
@@ -2112,6 +2135,8 @@ export interface TownPaper {
   couples: { key: string; headline: string; text: string }[]
   seen: { companion_id: string; text: string }[]
   gossip: { text: string }[]
+  /** Local issues that moved that week (companion/life/politics.py paper_items). */
+  politics?: { key: string; headline: string; text: string; date: string }[]
   ahead: {
     events: { date: string; name: string; text: string }[]
     holidays: { date: string; name: string }[]
@@ -2119,6 +2144,64 @@ export interface TownPaper {
   }
   previous: string
   next: string | null
+}
+
+/** Local politics (companion/life/politics.py): what people in the companion's city argue about, the factions behind
+ * each side and where the companion and their people stand. Views run from 2 (strongly for the first side) to -2
+ * (strongly for the second); `by` says whether the app or the user set it. */
+export type PoliticsStage = 'whispers' | 'open' | 'heated' | 'settled' | 'ended'
+export interface PoliticsSide { name: string; stand: string }
+export interface PoliticsBeat { on: string; text: string; stage?: string; favors?: number }
+export interface PoliticsView { view: number; by: 'world' | 'you' }
+export interface PoliticsIssue {
+  id: string
+  kind: 'era' | 'local'
+  title: string
+  question: string
+  sides: PoliticsSide[]
+  stage: PoliticsStage
+  beats: PoliticsBeat[]
+  /** How many of the townsfolk who stand for the town are on each side, or don't much care. */
+  split: { first: number; second: number; neither: number }
+  /** How a local issue went, with the odds of each way (shown only with Hidden values > odds). */
+  settled: { options: { option: number; label: string; odds: number; reasons: string[]; moves?: ReasonMove[] }[]; picked: number; picked_by: 'dice' | 'user' } | null
+  settled_on: string | null
+  /** A real question of the city's year (Prohibition in 1925): it never settles against history. */
+  real: boolean
+  /** 'news' for an issue made from real local headlines (companion/life/politics_news.py). */
+  origin: 'seeded' | 'user' | 'news'
+  started: string | null
+  /** 'you' when the user set how far a local issue has got. */
+  stage_by: 'you' | null
+  /** The side each faction takes: 0 or 1, null when it stays out. */
+  lines: Record<string, number | null>
+  edited: boolean
+}
+export interface PoliticsFaction {
+  id: string
+  name: string
+  kind: string
+  about: string
+  /** 1 to 5; `change` is how far recent wins or losses moved it from `base_pull`. */
+  pull: number
+  base_pull: number
+  change: number
+  origin: 'city' | 'era' | 'user'
+  /** The companion and people they know who belong. */
+  members: string[]
+  /** The sides the user told it to take, by issue. */
+  sides: Record<string, number>
+}
+export interface PoliticsRelation { a: string; b: string; stance: number; by: 'world' | 'you' }
+export interface PoliticsPerson { key: string; name: string; role: string; kind: string; factions: string[]; views: Record<string, PoliticsView> }
+export interface TownPolitics {
+  level: number
+  city: { id: string | null; name: string | null }
+  issues: PoliticsIssue[]
+  factions: PoliticsFaction[]
+  relations: PoliticsRelation[]
+  companion: { key: string; name: string; factions: string[]; views: Record<string, PoliticsView> } | null
+  people: PoliticsPerson[]
 }
 
 /** Worlds and personas (companion/worlds.py): the user as someone in particular, and the worlds they live in. */

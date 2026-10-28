@@ -43,6 +43,7 @@ from companion.life import (
     their_hours,
     thoughts,
     upkeep,
+    world_drama,
 )
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
@@ -80,7 +81,18 @@ def settings_view(row: dict) -> dict:
 
 def read_settings(database) -> dict:
     with database.connect() as connection:
-        return settings_view(life_settings(connection))
+        return with_world(connection, settings_view(life_settings(connection)))
+
+
+def with_world(connection, view: dict) -> dict:
+    """This world's own drama level (None follows Realism) and whether its companion is on their own there."""
+    return {**view, 'world_drama': world_drama.own(connection), 'alone': world_drama.alone(connection)}
+
+
+def update_world(database, drama: int | None) -> dict:
+    with database.connect(write=True) as connection:
+        world_drama.change(connection, drama, database.now())
+        return with_world(connection, settings_view(life_settings(connection)))
 
 
 def update_settings(database, body) -> dict:
@@ -109,7 +121,7 @@ def update_settings(database, body) -> dict:
             if {'people_pass_away', 'loss'} & set(changed):
                 from companion.life import loss
                 loss.settings_changed(connection)
-        found = settings_view(life_settings(connection))
+        found = with_world(connection, settings_view(life_settings(connection)))
     if {'life_turns', 'growing_families', 'people_pass_away', 'loss'} & set(changed):
         turnover.load(database)  # The town follows Life's big turns, babies (companion/world/couples.py) and Loss.
     return found
@@ -828,15 +840,16 @@ class LifeEngine:
             LOG.exception('Fitting their hours failed.')
 
     async def quietly_observe(self):
-        """Real weather and local events for the companion's city, when the user allowed lookups for their
-        simulated day, and the daily culture digest when they turned it on. Fresh results are reused (an hour for
-        weather, twelve for events, a day for the digest); never while paused."""
+        """Real weather, local events and headlines for the companion's city, when the user allowed lookups for
+        their simulated day (headlines feed Talk of the town), and the daily culture digest when they turned it on.
+        Fresh results are reused (an hour for weather, twelve for events and headlines, a day for the digest); never
+        while paused."""
         if self.lookups is None:
             return
         with self.database.connect() as connection:
             if settings(connection)['paused_at'] is not None:
                 return
-        for category in ('weather', 'local_events'):
+        for category in ('weather', 'local_events', 'news'):
             try:
                 await self.lookups.run(category, 'companion_city', None, BACKGROUND_LOOKUP_DEADLINE)
             except Exception:  # noqa: BLE001 - the day keeps its typical weather and its own plans.

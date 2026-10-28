@@ -162,3 +162,16 @@ def test_a_companion_out_of_focus_still_shows_their_picture_but_not_their_other_
     shown = client.get('/api/lora/references/sally-picture/file')
     assert shown.status_code == 200 and shown.content == b'picture'
     assert client.get('/api/lora/references/sally-other/file').status_code == 404
+
+
+def test_a_held_reply_is_listed_at_the_time_it_showed(client, companion, clock):
+    send(client, 'Free tonight?', 'client-mira-held')
+    database = client.app.state.database
+    written, shown = database.now(), (clock.now() + timedelta(minutes=30)).isoformat(timespec='microseconds')
+    with database.connect(write=True) as connection:
+        connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, created_at, "
+                           "completed_at, held_until) VALUES (?, ?, 2, 'companion', 'yes!', 'complete', 1, ?, ?, ?)",
+                           (identifier(), companion['active_timeline_id'], written, written, shown))
+    clock.advance(timedelta(minutes=31))
+    mira = next(chat for chat in chats(client)['chats'] if chat['name'] == 'Mira')
+    assert mira['last']['role'] == 'companion' and mira['last']['at'] == shown

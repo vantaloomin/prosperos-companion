@@ -24,6 +24,10 @@ FIELDS = NUMBERS + WORDS
 WHO = {'she/her': 'woman', 'he/him': 'man', 'they/them': 'person'}
 PRONOUNS = {'woman': 'she/her', 'man': 'he/him', 'nonbinary': 'they/them'}
 AGE_WORDS = {'twent': 25, 'thirt': 35, 'fort': 45, 'fift': 55, 'sixt': 65, 'sevent': 75}
+# How old the Appearance or In photos line says they look: "in his early thirties", "mid-twenties", "a 30-year-old".
+LOOKS_AGE = re.compile(r"\b(?:(early|mid|late)[- ]?)?(twent|thirt|fort|fift|sixt|sevent)ies\b"
+                       r"|\b(1[89]|[2-9]\d)[- ]years?[- ]old\b", re.IGNORECASE)
+STAGE = {'early': -3, 'mid': 0, 'late': 3}
 # An age spelled out ("Jordan is fifty-nine", "a forty-two-year-old", "Thirty-four."), read the way
 # intimacy.own_age reads one: said as what they are, as their age, or opening who they are.
 TENS = {'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90}
@@ -41,7 +45,7 @@ COVERED = {
     'weight_kg': r'\b(?:weighs?|weight|lbs?|pounds|kg)\b',
     'build': r'\b(?:slim|slender|skinny|thin|lean|athletic|muscular|curvy|stocky|heavyset|chubby|plump|build|built|'
              r'wiry|broad[- ]shouldered|broad shoulders|full[- ]figured|plus[- ]size|fat|toned|petite|lanky|burly|'
-             r'brawny|stout|willowy)\b',
+             r'brawny|stout|willowy|muscled|beefy|hulking|thickset|powerfully built|heavily built)\b',
     'skin': r'\b(?:skin|complexion|tanned)\b',
     'face': r'\b(?:oval|round|heart[- ]shaped|square|long|diamond[- ]shaped|angular|narrow) face\b|\bface shape\b',
     'jaw': r'\b(?:jaw|jawline|chin|cheekbones)\b',
@@ -51,7 +55,8 @@ COVERED = {
     'hair': r'\b(?:hair|haired|bald|shaved head|braids|dreadlocks|locs|buzz ?cut|ponytail|bun|curls|redhead|'
             r'blonde?|brunette)\b',
     'facial_hair': r'\b(?:beard|bearded|stubble|moustache|mustache|goatee|clean[- ]shaven)\b',
-    'feature': r'\b(?:freckles?|freckled|dimples?|moles?|scars?|tattoos?|piercings?|pierced|glasses|birthmark)\b',
+    'feature': r'\b(?:freckles?|freckled|dimples?|moles?|scars?|tattoos?|piercings?|pierced|glasses|birthmark|teeth|'
+               r'canines|fangs|tusks)\b',
 }
 
 
@@ -120,6 +125,9 @@ def age_of(definition: dict, seed: str) -> int:
         return spelled(found[1])
     if age := next((age for stem, age in AGE_WORDS.items() if f'{stem}ies' in text), None):
         return age
+    if found := LOOKS_AGE.search(own_text(definition)):
+        # Their identity gives no age, but their looks do: a card's "in his early thirties" is drawn so.
+        return int(found[3]) if found[3] else AGE_WORDS[found[2].lower()] + STAGE.get((found[1] or 'mid').lower(), 0)
     return 24 + round(generators.unit(seed, 'looks-age') * 16)
 
 
@@ -154,22 +162,34 @@ def stand_in(definition: dict, seed: str) -> dict:
             'heritage': heritage_of(definition), 'goals': [''], 'occupation': ''}
 
 
+def own_text(definition: dict) -> str:
+    """What the user (or their card) wrote about how they look: the Appearance and the In photos line."""
+    return ' '.join(str(definition.get(key) or '') for key in ('appearance', 'in_photos'))
+
+
 def covered(appearance: str) -> set[str]:
     text = (appearance or '').lower()
     return {field for field, pattern in COVERED.items() if re.search(pattern, text)}
 
 
 def automatic(definition: dict, seed: str) -> dict:
-    """What empty fields use: drawn from the seed, without what the appearance text already says."""
+    """What empty fields use: drawn from the seed, without what the Appearance or In photos line already says."""
     found = drawn(seed, stand_in(definition, seed), {'era': 'modern'})
-    skip = covered(definition.get('appearance', ''))
+    skip = covered(own_text(definition))
+    if skip & {'height_cm', 'build'}:
+        skip.add('weight_kg')  # A weight drawn for a build they never had: "heavily muscled" at 62 kg.
     return {field: (None if field in NUMBERS else '') if field in skip else value for field, value in found.items()}
 
 
 def written(definition: dict) -> dict:
-    """The fields the user set on the form."""
+    """The fields the user set on the form. A townsperson's looks copied at casting (`looks.drawn`) count as the
+    app's until edited, so one the Appearance or In photos line speaks of gives way to those words: a pack notable
+    whose card says "heavily muscled" is never also drawn "stocky"."""
     own = definition.get('looks') or {}
-    return {field: own[field] for field in FIELDS if own.get(field) not in (None, '')}
+    copied = own.get('drawn') or {}
+    spoken = covered(own_text(definition)) if copied else set()
+    return {field: own[field] for field in FIELDS if own.get(field) not in (None, '')
+            and not (field in spoken and copied.get(field) == own[field])}
 
 
 def for_companion(companion_id: str, definition: dict) -> dict:

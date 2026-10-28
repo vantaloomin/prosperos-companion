@@ -282,7 +282,7 @@ def test_a_mask_never_leaves_their_own_mom_at_just_met(client, monkeypatch):
     monkeypatch.setattr(pairs, 'MASK_CHANCE', 1)
     monkeypatch.setattr(pairs, 'masked', lambda _me, _them: True)
     # A mom nudged a step down from the usual, then a step further by a mask, used to read "Just met".
-    monkeypatch.setattr(pairs, 'role_default', lambda _role, _seed: {'level': 2, 'default': 3, 'nudge': -1})
+    monkeypatch.setattr(pairs, 'role_default', lambda _role, _seed, _note='': {'level': 2, 'default': 3, 'nudge': -1})
     ok(client.post('/api/companion', json={'name': 'Mira', 'timezone': 'America/New_York',
                                            'location': 'Fells Point, Baltimore'}))
     people = ok(client.get('/api/life/circle'))

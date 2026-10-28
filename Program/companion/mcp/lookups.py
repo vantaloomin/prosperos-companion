@@ -26,9 +26,14 @@ from companion.mcp.services import CATEGORIES, active_mappings, destination, pla
 
 FRESH_FOR = {'weather': timedelta(hours=1), 'news': timedelta(hours=3), 'local_events': timedelta(hours=12),
              'link': timedelta(hours=6), 'web_search': timedelta(hours=1), 'culture': timedelta(hours=6)}
-# The once-a-day culture digest counts for a day; after a failed try it waits an hour before the next.
-FRESH_FOR_PURPOSE = {'ambient': timedelta(hours=24)}
+# The once-a-day culture digest counts for a day, the companion's city's headlines for Talk of the town half a day
+# (companion/life/politics_news.py); after a failed digest it waits an hour before the next.
+FRESH_FOR_PURPOSE = {'ambient': timedelta(hours=24), ('news', 'companion_city'): timedelta(hours=12)}
 AMBIENT_RETRY = timedelta(hours=1)
+
+
+def fresh_for(category: str, purpose: str) -> timedelta:
+    return FRESH_FOR_PURPOSE.get((category, purpose)) or FRESH_FOR_PURPOSE.get(purpose) or FRESH_FOR[category]
 # How much of the digest goes into every reply's context, and how many items of each list.
 AMBIENT_ITEMS = 2
 AMBIENT_CHARS = 1400
@@ -470,7 +475,7 @@ class Lookups:
         now, observation_id = self.now(), identifier()
         retrieved = copied_from['retrieved_at'] if copied_from else stamp(now) if status == 'ok' else None
         fresh = copied_from['fresh_until'] if copied_from else \
-            stamp(now + FRESH_FOR_PURPOSE.get(purpose, FRESH_FOR[category])) if status == 'ok' else None
+            stamp(now + fresh_for(category, purpose)) if status == 'ok' else None
         with self.database.connect(write=True) as connection:
             connection.execute(
                 'INSERT INTO context_observations (id, service_id, service_name, category, purpose, tool, arguments, '

@@ -351,7 +351,8 @@ a.button { color: inherit; text-decoration: none; }
 .versions ol { padding-left: 22px; display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .versions li span { display: block; font-size: 0.875rem; }
 .versions li small { color: var(--muted); font-size: 0.8125rem; }
-@media (max-width: 720px) { .trait-row { grid-template-columns: 1fr 110px 32px; } .trait-row > input:nth-of-type(2) { grid-column: 1 / 3; grid-row: 2; } }
+/* On a phone the trait box (with its suggestion list) gets its own row; intensity, how it shows and remove sit under it. */
+@media (max-width: 720px) { .trait-row { grid-template-columns: 110px minmax(0, 1fr) 32px; } .trait-row > .suggest { grid-column: 1 / -1; } }
 
 .memory-toolbar { margin: 4px 0 16px; }
 .feed .memory-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; max-width: 680px; }
@@ -452,6 +453,8 @@ a.button { color: inherit; text-decoration: none; }
 .sheet-group .sheet-action + .sheet-action { border-top: 1px solid var(--border); }
 .sheet-action svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--muted); }
 .sheet-action:active { background: var(--raised); }
+.sheet-action.danger, .sheet-action.danger svg { color: var(--danger); }
+.sheet-picture { align-self: flex-start; height: 56px; width: auto; max-width: 88%; margin: -4px 0 6px; border-radius: 10px; object-fit: cover; box-shadow: 0 10px 30px var(--shadow); }
 .sheet-cancel { justify-content: center; border-radius: 14px; font-weight: 600; }
 @keyframes sheet-up { from { transform: translateY(100%); } }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .message-sheet { animation: none; } }
@@ -496,6 +499,38 @@ a.button { color: inherit; text-decoration: none; }
 .today-section { max-width: 760px; margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
 .today-section h3 { font-size: 1rem; margin-top: 10px; color: var(--muted); }
 .why-it-went { margin: 0 0 6px; }
+/* Talk of the town (Iris review 2026-10-28): side shares at the bar's ends, name | select rows. */
+.politics-issue p, .politics-detail p { margin: 0; }
+.politics-title .badge { margin-left: 4px; white-space: nowrap; }
+.politics-split { display: grid; gap: 2px; margin: 4px 0; max-width: 360px; }
+.politics-split-ends { display: flex; justify-content: space-between; gap: 12px; font-size: 0.8rem; color: var(--muted); min-width: 0; }
+.politics-split-ends > span { display: flex; gap: 4px; min-width: 0; white-space: nowrap; }
+.politics-split-name { overflow: hidden; text-overflow: ellipsis; }
+.politics-split-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--border); }
+.politics-split-first { background: var(--accent); }
+.politics-split-neither { background: var(--border); }
+.politics-split-second { background: color-mix(in srgb, var(--text) 70%, transparent); }
+.politics-people, .politics-rows { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 6px 12px; align-items: center; max-width: 520px; }
+/* Views: the select column fits the longest side name (news sides are phrases), the same for every row, up to 320px. */
+.politics-people { grid-template-columns: minmax(0, 1fr) fit-content(320px); max-width: 600px; }
+.politics-people select { min-width: 180px; }
+textarea.politics-long { resize: vertical; field-sizing: content; min-height: calc(2lh + 16px); }
+.politics-rows { grid-template-columns: minmax(0, 1fr) 280px; max-width: 620px; }
+.politics-people select, .politics-rows select { width: 100%; }
+.politics-rows .circle-field { display: contents; }
+.today-section .politics-subhead { font-family: inherit; font-size: 0.875rem; font-weight: 500; color: var(--muted); margin: 12px 0 4px; }
+.politics-gets-on summary { cursor: pointer; }
+.politics-form { margin: 6px 0; max-width: 520px; }
+.politics-more { margin-left: 24px; }
+@media (max-width: 600px) {
+  .politics-split { max-width: none; }
+  .politics-rows { grid-template-columns: 1fr; }
+  .politics-rows .circle-field { display: grid; gap: 4px; }
+  .politics-people { grid-template-columns: minmax(0, 1fr); row-gap: 4px; max-width: none; }
+  .politics-people > label { display: flex; flex-wrap: wrap; column-gap: 0.25em; padding-top: 8px; }
+  .politics-people select { min-height: 44px; }
+}
+@media (pointer: coarse) { .politics-issue .text-button, .politics-faction .text-button { min-height: 44px; } }
 .why-it-went summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .why-it-went ul { margin-top: 6px; }
 .why-it-went[open] { margin-bottom: 16px; }
@@ -635,6 +670,10 @@ a.button { color: inherit; text-decoration: none; }
 .acquaintances { margin-top: 16px; }
 .diary { border-top: 1px solid var(--border); padding-top: 8px; }
 .rename-form { display: grid; gap: 6px; }
+.rename-form .grow-box { field-sizing: content; min-height: calc(2lh + 22px); max-height: calc(6lh + 22px); resize: vertical; }
+.text-button.inline { display: inline; position: relative; padding: 0 2px; color: var(--accent); text-decoration: underline; min-height: 0; }
+/* A 44px-tall tap without changing how the line looks. */
+.text-button.inline::before { content: ''; position: absolute; left: -6px; right: -6px; top: 50%; height: 44px; transform: translateY(-50%); }
 .rename-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .rename-row input { flex: 1; min-width: 140px; }
 .home-panel { margin-top: 32px; max-width: 760px; border-top: 1px solid var(--border); padding-top: 18px; display: grid; gap: 12px; }
@@ -809,6 +848,19 @@ a.button { color: inherit; text-decoration: none; }
 .gif-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%;
   background: rgb(0 0 0 / .6); color: #ffffff; cursor: pointer; }
 .gif-play svg { width: 20px; height: 20px; }
+/* New picture and Remove on a chat picture: with a mouse, in its top corner while it is hovered or focused; a touch
+   screen has them in the reply's sheet (TurnView.tsx). */
+.chat-photo-tools { position: absolute; top: 8px; right: 8px; z-index: 2; display: none; gap: 6px; }
+.photo-tool { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / .6); color: #ffffff; cursor: pointer; }
+.photo-tool svg { width: 16px; height: 16px; }
+.photo-tool:hover:not(:disabled) { background: rgb(0 0 0 / .78); }
+.photo-tool:disabled { opacity: .6; cursor: progress; }
+.photo-tool:focus-visible { outline: 2px solid #ffffff; outline-offset: 1px; box-shadow: 0 0 0 4px var(--accent); }
+@media (hover: hover) { .chat-photo-frame:is(:hover, :focus-within) .chat-photo-tools { display: flex; } }
+.chat-photo-removed { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 8px 0 0; }
+.chat-photo-removed .text-button { display: inline-flex; align-items: center; margin-left: 0; }
+.chat-photo-removed .text-button svg { width: 14px; height: 14px; }
+.chat-bubbles .chat-photo-removed, .chat-community .chat-photo-removed { padding-left: 8px; }
 .post-image { display: grid; gap: 6px; }
 /* The picture in its own shape; a tall one is cut at the bottom, never through the face at the top. */
 .post-image .photo-open-inline > img { display: block; width: 100%; height: auto; max-height: min(80vh, 760px); object-fit: cover; object-position: center top; border-radius: 10px; background: var(--accent-tint); }
@@ -894,6 +946,11 @@ a.button { color: inherit; text-decoration: none; }
 .shot-row { display: grid; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
 .shot-prompt { overflow-wrap: anywhere; }
 .reference-card > .badge { justify-self: start; }
+.first-picture { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.first-picture legend { font-weight: 500; margin-bottom: 4px; }
+.own-picture { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; min-width: 0; }
+.own-picture > img { width: 120px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
+.own-picture > .form-stack { flex: 1 1 220px; min-width: 0; }
 .crop-preview { position: relative; }
 .crop-preview img { display: block; width: 100%; border-radius: 6px; }
 .crop-box { position: absolute; border: 2px solid var(--accent); box-shadow: 0 0 0 9999px #0008; pointer-events: none; }
@@ -2162,6 +2219,13 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .map-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; } .map-card h2 { font-size: 1.05rem; }
 .map-card h3 { font-size: 0.875rem; margin-bottom: 4px; } .map-card p { margin: 0; }
 .map-history { list-style: none; padding: 0; margin: 0; } .map-history .text-button { text-align: left; }
+.map-edit { width: 100%; justify-content: center; } .map-edit-form { display: grid; gap: 6px; } .map-edit-form .rename-row { margin-top: 6px; }
+.map-edit-form select, .map-edit-form textarea { width: 100%; } .map-edit-form textarea { field-sizing: content; min-height: 2lh; max-height: 6lh; }
+.map-card > .button { width: 100%; justify-content: center; }
+.map-page .sketch-pin.pin-place.selected .sketch-ring { stroke: var(--accent-hover); stroke-width: 3; }
+.sketch-pin.pin-yours .sketch-badge { fill: var(--accent); stroke: var(--accent); } .sketch-pin.pin-yours .sketch-glyph { stroke: #fff; }
+.leaflet-marker-icon.map-pin.pin-yours, .map-key-card .map-pin.pin-yours { background: var(--accent); border-color: var(--accent); border-radius: 50%; color: #fff; padding: 2px; }
+.sketch-pin.pin-known .sketch-glyph { stroke: var(--muted); } .map-pin.pin-known { color: var(--muted); }
 .map-list { flex: 1; padding: 20px 24px 40px; overflow-y: auto; }
 .map-list li.picked, .web-list li.picked { margin: 6px 0; } .map-card.inline { position: static; width: auto; max-width: 560px; max-height: none; margin-top: 8px; box-shadow: none; }
 .sketch-hover-label { display: none; } .sketch-pin:hover .sketch-hover-label, .sketch-pin:focus-visible .sketch-hover-label { display: inline; }
@@ -2195,6 +2259,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 :root[data-motion='reduce'] .sketch-pin.pin-scene .sketch-badge { animation: none; }
 @media (max-width: 720px) {
   .map-bar { padding: 10px 16px; }
+  .map-card > .button, .map-edit-form .button { min-height: 44px; }
   .map-card { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 60%; border-radius: 14px 14px 0 0; }
 }
 .show-on-map { padding: 0 2px; font-size: 0.75rem; }
@@ -2724,9 +2789,13 @@ p.breakup-line { align-items: center; }
 @media (max-width: 720px) { .circle-form-row { grid-template-columns: 1fr; } }
 .circle-form-actions { margin-top: 4px; }
 .suggest { position: relative; display: block; min-width: 0; }
-.suggest input { padding-right: 36px; }
-.suggest input::-webkit-calendar-picker-indicator { opacity: 0; }
-.suggest svg { position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
+.suggest input { width: 100%; padding-right: 36px; }
+/* The app's own suggestion list (SuggestInput), drawn like the model picker's instead of the browser's datalist popup. */
+.suggest-popup { position: absolute; z-index: 20; left: 0; right: 0; top: 100%; margin-top: 4px; padding: 4px; max-height: 240px; scroll-margin: 12px; overflow-y: auto; border: 1px solid var(--border); border-radius: 9px; background: var(--raised); box-shadow: 0 8px 24px var(--shadow); }
+.suggest-popup [role='option'] { padding: 8px 10px; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
+.suggest-popup [role='option'][data-active='true'] { background: var(--accent); color: var(--on-accent); }
+.suggest-popup [role='option'][aria-selected='true'] { font-weight: 600; }
+.suggest > svg { position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
 .person-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .person-add-button { align-self: flex-start; }
 .person-from { display: flex; align-items: center; gap: 6px; }
@@ -2754,6 +2823,16 @@ p.breakup-line { align-items: center; }
 .circle-pet p { margin: 0; }
 .circle-pet .person-actions { margin-top: 2px; }
 /* The open pet form is its own small inset form, so its Save pet does not read as the person form's Save. */
+.circle-tie-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.circle-tie { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 14rem); gap: 12px; align-items: center; min-width: 0; }
+.circle-tie label { overflow-wrap: anywhere; }
+.circle-tie select { width: 100%; min-width: 0; }
+.circle-tie-add { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.circle-tie-add .rename-row { grid-column: 1 / -1; }
+@media (max-width: 720px) {
+  .circle-tie { grid-template-columns: 1fr; gap: 4px; }
+  .circle-tie label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+}
 .circle-pet-form { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .circle-pet-form > label, .circle-pet-form .field-label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 .circle-pet-form .field { margin: 0; }
@@ -2764,5 +2843,11 @@ p.breakup-line { align-items: center; }
 
 /* Settings > General > Updates: the link sits on the first line's right on wide windows, and on its own line under the text on a phone. */
 .update-check .notice > .text-button { align-self: flex-start; line-height: 1.55; }
+.notice .hardware-fix, .notice .hardware-after { display: block; margin-top: 8px; }
 @media (min-width: 721px) { .update-check .notice > .text-button { padding-block: 0; } }
 @media (max-width: 720px) { .update-check .notice > .text-button { flex-basis: 100%; margin-left: 23px; justify-content: flex-start; } }
+.world-image-divider { border-top: 1px solid var(--border); padding-top: 16px; margin: 8px 0 16px; }
+.world-image-pick { gap: 10px; }
+.world-image-pick legend { padding: 0; margin-bottom: 4px; font-weight: 600; }
+.world-image-list { display: flex; flex-direction: column; gap: 8px; padding-left: 12px; }
+.world-model-pick { border-bottom: 1px solid var(--border); padding-bottom: 16px; }

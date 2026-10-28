@@ -181,8 +181,8 @@ def test_hosted_chat_style_sends_the_reference_in_the_message():
     url = 'data:image/png;base64,' + base64.b64encode(png()).decode()
     body = {'choices': [{'message': {'images': [{'image_url': {'url': url}}]}}]}
     adapter = HostedAdapter(hosted_server([httpx.Response(200, json=body)], seen))
-    request = request_for('hosted', {'base_url': 'https://openrouter.ai/api/v1', 'model': 'm', 'api_style': 'chat'},
-                          provider='openrouter', key='k', reference=png(10, 12))
+    request = request_for('hosted', {'base_url': 'https://images.example.com/v1', 'model': 'm', 'api_style': 'chat'},
+                          provider='other', key='k', reference=png(10, 12))
     asyncio.run(adapter.generate(request))
     content = json.loads(seen[0].content)['messages'][0]['content']
     assert content[0] == {'type': 'text', 'text': 'A café\nAvoid: text'}

@@ -56,6 +56,13 @@ def no_pc_timezone(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_graphics_card(monkeypatch):
+    """Tests never ask the test machine for its graphics cards (nvidia-smi, PowerShell); tests/test_hardware.py and
+    tests/test_image_fit.py hand in the cards they need."""
+    monkeypatch.setattr('companion.hardware.find_gpus', lambda memory: ([], 'No graphics card in tests.'))
+
+
+@pytest.fixture(autouse=True)
 def no_hold_after_replies(monkeypatch):
     """Background work would wait for the user to pause after each reply; tests/test_scheduling.py checks that."""
     monkeypatch.setattr('companion.providers.scheduling.HOLD_AFTER_REPLY', 0)
@@ -165,6 +172,13 @@ def no_big_days(monkeypatch):
     as unrelated tests' clocks move on; tests/test_big_days.py turns them on."""
     monkeypatch.setattr('companion.life.big_days.ACTIVE', False)
     monkeypatch.setattr('companion.life.big_days.FIRST_TEXTS', False)
+
+
+@pytest.fixture(autouse=True)
+def no_politics(monkeypatch):
+    """Local politics (companion/life/politics.py) would add a section to unrelated tests' prompts and items to their
+    papers; tests/test_politics.py turns it on."""
+    monkeypatch.setattr('companion.life.politics.ACTIVE', False)
 
 
 @pytest.fixture(autouse=True)

@@ -305,6 +305,13 @@ async def redo_portrait(request: Request, generation_id: str, position: int = Qu
     return again
 
 
+@router.post('/portrait/upload')
+async def upload_portrait(request: Request, name: str = Query('', max_length=200)):
+    """The body is the user's own picture, which becomes the companion's profile picture."""
+    data = await request.body()
+    return portraits.upload_portrait(db(request), data, name)
+
+
 @router.put('/portrait')
 def set_portrait(request: Request, body: Portrait):
     return portraits.set_portrait(db(request), body.reference_id)

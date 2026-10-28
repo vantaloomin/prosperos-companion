@@ -7,8 +7,11 @@ an imported world's rooms); otherwise rules pick two to four by the place's kind
 a place always has the same ones. Each spot is written with how a sentence puts someone there
 ("out on the back patio"); `name` drops that for display ("the back patio").
 """
+import json
 import re
 
+from companion.clock import stamp
+from companion.database import many
 from companion.world import generators
 
 # Spots by place kind, with the preposition that puts someone there.
@@ -105,9 +108,12 @@ def for_place(place: dict, era: str | None = 'modern') -> list[str]:
 
 
 def for_home(home: dict | None) -> list[str]:
-    """The rooms of a home item (companion/life/home.py): the basics plus any its features add."""
+    """The rooms of a home item (companion/life/home.py): the ones the user named, else the basics plus any its
+    features add."""
     if not home:
         return []
+    if home.get('rooms'):  # Rooms the user named on the map's home card ("the den" is "in the den").
+        return [room if LEAD.match(room) else f'in {room}' for room in home['rooms']][:LIMIT]
     features = ' '.join(home.get('features') or ()).lower()
     modern = not any(word in features for word in OLD_WORLD)
     basics = ['in the kitchen', 'in the living room', 'in the bedroom'] if modern else ['by the hearth', 'in the bedroom']
@@ -148,3 +154,27 @@ def touch(entry: dict | None, seed: str, home: dict | None = None, era: str | No
     if not line:
         return entry
     return {**entry, 'summary': f"{entry['summary'].rstrip()} {line}", 'inside': line}
+
+
+# --- The user's own words for a place ---
+
+def edited(connection, city_id: str) -> dict[str, list[str]]:
+    """The spots the user gave places in this city, by place id."""
+    return {row['place_id']: json.loads(row['spots']) for row in many(
+        connection, 'SELECT place_id, spots FROM place_spots WHERE city_id=?', (city_id,))}
+
+
+def with_edits(place: dict, edits: dict[str, list[str]]) -> dict:
+    """The place with the spots the user gave it, which win over the pack's and the rules'."""
+    return {**place, 'spots': edits[place['id']]} if edits.get(place.get('id')) else place
+
+
+def edit(connection, city_id: str, place_id: str, spots: list[str], now):
+    """The user's spots for a place; none left goes back to the pack's own, else the ones rules pick."""
+    kept = list(dict.fromkeys(spot.strip() for spot in spots if spot.strip()))[:LIMIT]
+    if not kept:
+        connection.execute('DELETE FROM place_spots WHERE city_id=? AND place_id=?', (city_id, place_id))
+        return
+    connection.execute('INSERT INTO place_spots (city_id, place_id, spots, updated_at) VALUES (?, ?, ?, ?) '
+                       'ON CONFLICT(city_id, place_id) DO UPDATE SET spots=excluded.spots, updated_at=excluded.updated_at',
+                       (city_id, place_id, json.dumps(kept), stamp(now)))

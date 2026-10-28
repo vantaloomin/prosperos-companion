@@ -2852,3 +2852,94 @@ CREATE TABLE IF NOT EXISTS model_mix_state (
   mode TEXT NOT NULL DEFAULT 'random' CHECK (mode IN ('random', 'in_turn')),
   turn INTEGER NOT NULL DEFAULT 0
 );
+
+-- This world's own drama level (companion/life/world_drama.py); NULL or no row follows Settings > Realism. Kept in the
+-- world's own database: life_settings travels between worlds, this does not.
+CREATE TABLE IF NOT EXISTS world_life (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  drama INTEGER CHECK (drama BETWEEN 0 AND 3),
+  updated_at TEXT NOT NULL
+);
+
+-- Which image backends this world draws with (companion/images/world_choice.py). No row: every enabled backend, in
+-- the user's order. Backends follow the user from world to world; this row stays with its world.
+CREATE TABLE IF NOT EXISTS world_image_backends (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  backend_ids TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL
+);
+
+-- This world's own job assignments (companion/world_models.py), in place of model_routes while the row is there:
+-- {job: profile_id}. No row: the user's usual ones. Profiles follow the user from world to world; this row stays.
+CREATE TABLE IF NOT EXISTS world_model_routes (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  routes TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL
+);
+
+-- What is inside a place, as the user rewrote it on the map's place card (companion/world/inside.py): the spots the
+-- map, Story mode and their days name there. No row: the city pack's own, else the ones rules pick.
+CREATE TABLE IF NOT EXISTS place_spots (
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  spots TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, place_id)
+);
+
+-- Local politics (companion/world/politics.py, companion/life/politics.py): the user's own changes to a city's issues
+-- and factions. Seeded issues and factions are rebuilt from the city and the date; a row here is an issue or faction
+-- the user added (origin 'user') or their changes to a seeded one (origin 'edit'), or one they put away (dismissed).
+CREATE TABLE IF NOT EXISTS politics_issues (
+  city_id TEXT NOT NULL,
+  issue_id TEXT NOT NULL,
+  origin TEXT NOT NULL CHECK (origin IN ('user', 'edit')),
+  data TEXT NOT NULL DEFAULT '{}',
+  dismissed INTEGER NOT NULL DEFAULT 0 CHECK (dismissed IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, issue_id)
+);
+
+CREATE TABLE IF NOT EXISTS politics_factions (
+  city_id TEXT NOT NULL,
+  faction_id TEXT NOT NULL,
+  origin TEXT NOT NULL CHECK (origin IN ('user', 'edit')),
+  data TEXT NOT NULL DEFAULT '{}',
+  dismissed INTEGER NOT NULL DEFAULT 0 CHECK (dismissed IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, faction_id)
+);
+
+-- Someone's view on an issue as the user set it: -2 strongly the second side ... 2 strongly the first.
+CREATE TABLE IF NOT EXISTS politics_views (
+  city_id TEXT NOT NULL,
+  issue_id TEXT NOT NULL,
+  person TEXT NOT NULL,
+  view INTEGER NOT NULL CHECK (view BETWEEN -2 AND 2),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, issue_id, person)
+);
+
+-- How two factions stand as the user set it (first < second): -2 at open odds ... 2 allies.
+CREATE TABLE IF NOT EXISTS politics_relations (
+  city_id TEXT NOT NULL,
+  first TEXT NOT NULL,
+  second TEXT NOT NULL,
+  stance INTEGER NOT NULL CHECK (stance BETWEEN -2 AND 2),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, first, second)
+);
+
+-- Real local headlines about politics in the companion's real, present-day city, from a news lookup the user turned
+-- on for it (companion/life/politics_news.py): sorted into a topic, they feed Talk of the town. Gone with the lookup.
+CREATE TABLE IF NOT EXISTS politics_headlines (
+  city_id TEXT NOT NULL,
+  text TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  on_day TEXT NOT NULL,
+  observation_id TEXT NOT NULL REFERENCES context_observations(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, text)
+);

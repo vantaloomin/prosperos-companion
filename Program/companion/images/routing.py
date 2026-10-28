@@ -7,7 +7,7 @@ Google or the OpenAI API, or a Prohibited request anywhere.
 """
 from dataclasses import dataclass, field
 
-from companion.images.backends import accepts_nsfw
+from companion.images.backends import accepts_nsfw, is_local
 from companion.images.content import NSFW, PROHIBITED
 
 LOCAL_NEEDED = ('This image was classified NSFW ({reasons}), so it can only be made on a local backend or an '
@@ -34,9 +34,10 @@ def eligible(classification, backend) -> bool:
     return True
 
 
-def route(classification, backends: list[dict], requested_id=None, after_id=None) -> Route:
+def route(classification, backends: list[dict], requested_id=None, after_id=None, local_only=False) -> Route:
     """`backends` are the enabled ones in the user's order. `requested_id` is a backend the user
-    picked; `after_id` limits a fallback to backends after the one that failed."""
+    picked; `after_id` limits a fallback to backends after the one that failed, and `local_only` to the
+    local ones (a hosted API's failure falls back to a local ComfyUI)."""
     reasons = ', '.join(classification.reasons) or classification.tier
     if classification.tier == PROHIBITED:
         return Route(reason=f'prohibited: {reasons}', code='prohibited',
@@ -45,6 +46,8 @@ def route(classification, backends: list[dict], requested_id=None, after_id=None
     if after_id is not None:
         ids = [backend['id'] for backend in backends]
         candidates = backends[ids.index(after_id) + 1:] if after_id in ids else backends
+    if local_only:
+        candidates = [backend for backend in backends if is_local(backend) and backend['id'] != after_id]
     allowed = [backend for backend in candidates if eligible(classification, backend)]
     if requested_id is not None:
         picked = next((backend for backend in backends if backend['id'] == requested_id), None)

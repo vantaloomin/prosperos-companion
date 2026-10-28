@@ -368,6 +368,8 @@ def everyone_joins_in(monkeypatch):
     monkeypatch.setattr(user_posts, 'LIKES', (1,) * 5)
     monkeypatch.setattr(user_posts, 'COMMENTS', (1,) * 5)
     monkeypatch.setattr(user_posts, 'REACH', (1,) * 5)
+    monkeypatch.setattr(user_posts, 'TIE', (1,) * 5)
+    monkeypatch.setattr(user_posts, 'FAR', 0)
     monkeypatch.setattr(social, 'KNOWN_MOST', (1, 1))
     monkeypatch.setattr(social, 'MANNERS', {name: (1, 1) for name in social.MANNERS})
     monkeypatch.setattr(social, 'LIKELY', Certain())
@@ -406,6 +408,7 @@ def test_companions_and_their_circles_join_in(client, city, clock, everyone_join
     for comment in comments:
         if comment['author'] == 'person':
             assert comment['role'].startswith("Mira's ")
+    assert set(shown['audience']['likes']) <= {*people, 'Mira', 'Spock'}
     # Spock is reserved: few, dry words, never the chatty ones.
     chatty = {*user_posts.LINES['close'], *user_posts.LINES['friendly']}
     assert all(comment['text'] not in chatty for comment in comments if comment['name'] == 'Spock')
@@ -449,7 +452,40 @@ def test_a_down_or_sick_post_gets_kind_words():
         social.RESERVED_COMMENTS['down']
 
 
+def test_their_people_join_in_one_step_further_out(client, city, clock, everyone_joins_in, monkeypatch):
+    monkeypatch.setattr(user_posts, 'FAR', 1)
+    monkeypatch.setattr(user_posts, 'FAR_LIKE', 1)
+    reconcile(client)
+    made = post(client, 'New haircut!')
+    clock.advance(user_posts.FAR_WINDOW)
+    shown = next(found for found in feed(client)['posts'] if found['id'] == made['id'])
+    people = {person['name'] for person in circle_people(client)}
+    further = [name for name in shown['audience']['likes'] if name not in {*people, 'Mira'}]
+    assert further
+    with client.app.state.database.connect() as connection:
+        crowd = user_posts.crowd(connection, clock.now())
+    far = [who for who in crowd if who.get('far')]
+    assert {who['name'] for who in far} == set(further)
+    # They say whose people they are, and nothing that claims to know the user.
+    assert all(who['friend'] in people and who['role'].startswith(f"{who['friend']}'s ") for who in far)
+    assert user_posts.pool('New haircut!', far[0]) == user_posts.LINES['far']
+    assert len({who['name'] for who in crowd}) == len(crowd)
+
+
+def test_the_closer_the_companion_is_to_someone_the_more_they_notice(client, city, clock, monkeypatch):
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        reaches = {}
+        for level in range(1, 6):
+            monkeypatch.setattr(user_posts, 'tie', lambda *_args, level=level: level)
+            reaches[level] = user_posts.crowd(connection, clock.now())[1]['like']
+    assert [reaches[level] for level in range(1, 6)] == sorted(reaches.values())
+    assert reaches[1] < reaches[3] < reaches[5]
+
+
 def test_closer_means_more_of_their_circle_notices():
+    assert list(user_posts.TIE) == sorted(user_posts.TIE)
+    assert 0 < user_posts.FAR < 1
     assert list(user_posts.REACH) == sorted(user_posts.REACH)
     assert list(user_posts.LIKES) == sorted(user_posts.LIKES)
     assert list(user_posts.COMMENTS) == sorted(user_posts.COMMENTS)

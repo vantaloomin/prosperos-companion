@@ -143,13 +143,22 @@ def family_reply(family: bool):
 
 def pictured(connection, timeline_id: str, texts) -> bool:
     """Whether a picture's words name a child in the circle or a first birthday: none is ever made of them."""
+    return named_child(connection, timeline_id, texts) is not None
+
+
+def named_child(connection, timeline_id: str, texts) -> str | None:
+    """Why a picture's words are not pictured, in plain words (shown on the failed picture), or None. A child's name
+    counts only as a whole word in the same case, and a blank or one-letter name never counts."""
     text = ' '.join(str(item) for item in texts if item)
     if not text:
-        return False
+        return None
     if FIRST_BIRTHDAY.search(text):
-        return True
-    return any(re.search(rf'\b{re.escape(name)}\b', text) for name in names(connection, timeline_id, ever=True) |
-               every_name(connection))
+        return "it is about a child's first birthday, and children are never pictured"
+    found = {name.strip() for name in names(connection, timeline_id, ever=True) | every_name(connection) if name}
+    for name in sorted(item for item in found if len(item) > 1):
+        if re.search(rf'(?<!\w){re.escape(name)}(?!\w)', text):
+            return f'its words name {name}, a child in the circle, and children are never pictured'
+    return None
 
 
 def names(connection, timeline_id: str, ever: bool = False) -> set[str]:

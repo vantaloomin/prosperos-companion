@@ -55,7 +55,7 @@ export function memeAlt(name: string, photo: ChatPhoto): string {
 export function latestPhotoId(messages: Message[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index]
-    if (message.role === 'companion' && message.photo && message.photo.kind !== 'meme') return message.id
+    if (message.role === 'companion' && message.photo && message.photo.kind !== 'meme' && !message.photo.removed) return message.id
   }
   return null
 }

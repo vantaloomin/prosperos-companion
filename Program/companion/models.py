@@ -144,6 +144,9 @@ class CharacterDefinition(Input):
     # The "In photos" line pictures use in place of the appearance (companion/images/prompts.py `in_photos`); empty
     # follows the appearance, filtered to what a camera can see.
     in_photos: str = Field(default='', max_length=2000)
+    # Their name in picture prompts for every image model (Vanta, 2026-10-28), for a character a model may know by name
+    # (Sett, Spock). Off by default: a name means nothing to a model for someone original and invites lettering.
+    name_in_pictures: bool = False
     # Face shape, height, build and the rest, so every picture shows the same person; empty fields are drawn.
     looks: Looks = Field(default_factory=Looks)
     routine: str = Field(default='', max_length=8000)
@@ -578,6 +581,8 @@ class LifeSettingsUpdate(Input):
     # Loss and grief (companion/life/loss.py): whether people can pass away, and how often (0 rare ... 3 often).
     people_pass_away: bool | None = None
     loss: int | None = Field(default=None, ge=0, le=3)
+    # Local politics (companion/life/politics.py): 0 off, 1 quiet, 2 true to life, 3 lively.
+    politics_realism: int | None = Field(default=None, ge=0, le=3)
     # Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life.
     breakups: bool | None = None
     on_her_mind: bool | None = None

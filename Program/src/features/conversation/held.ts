@@ -5,9 +5,17 @@ export function isHeld(message: Pick<Message, 'held_until'>, now: number): boole
   return !!message.held_until && Date.parse(message.held_until) > now
 }
 
-/** A reply that shows at once shows every reply held before it, as the server does. */
-export function releaseHeld(messages: Message[], seq: number): Message[] {
-  return messages.map((message) => message.seq < seq && message.held_until ? { ...message, held_until: null } : message)
+/** A reply that shows at once shows every reply held before it, as the server does: from `at`, the new reply's time. */
+export function releaseHeld(messages: Message[], seq: number, at: string): Message[] {
+  return messages.map((message) => message.seq < seq && message.held_until && message.held_until > at ? { ...message, held_until: at } : message)
+}
+
+/** When the user got the message: a held reply when its time came (or when it was done, if the companion read it
+ * later and wrote it after), not when the user's text arrived. A failed one shows when it failed. */
+export function shownAt(message: Pick<Message, 'created_at' | 'completed_at' | 'held_until' | 'status'>): string {
+  if (!message.held_until) return message.created_at
+  if (message.status === 'failed' || message.status === 'incomplete') return message.completed_at ?? message.created_at
+  return message.completed_at && message.completed_at > message.held_until ? message.completed_at : message.held_until
 }
 
 /** Out of sight until its time: a held reply being written or ready. One that failed shows at once, so an error is never hidden. */

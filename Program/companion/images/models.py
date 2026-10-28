@@ -83,6 +83,7 @@ class ImageSettingsUpdate(Input):
     chat_photos: bool | None = None
     unprompted_photos: bool | None = None
     meme_formats: bool | None = None
+    follow_profile_picture: bool | None = None
     aspect: Aspect | None = None
     style: str | None = Field(default=None, max_length=500)
 
@@ -107,3 +108,8 @@ class Preview(Input):
 class GifKey(Input):
     # Empty removes the saved key.
     key: str = Field(default='', max_length=200, pattern=r'^[A-Za-z0-9]*$')
+
+
+class WorldBackends(Input):
+    """The backends this world draws with, in no particular order (the user's order decides); null for all."""
+    backend_ids: list[str] | None = Field(default=None, max_length=50)

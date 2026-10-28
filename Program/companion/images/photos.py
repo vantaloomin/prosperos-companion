@@ -454,7 +454,7 @@ def view(row) -> dict:
             # The shape it is made in, so the chat holds its space while it loads and nothing moves when it lands.
             'aspect': decode(row['job_inputs']).get('aspect', 'landscape') if row['job_inputs'] else 'landscape',
             'source': row['meme_source'] or 'model', 'src': None, 'width': None, 'height': None, 'boxes': [],
-            **ready_meme(row)}
+            'removed': row['removed_at'] is not None, **ready_meme(row)}
 
 
 PICTURES = '/api/images/memes/pictures/'
@@ -477,7 +477,7 @@ SELECT = ('SELECT photo.*, job.status AS job_status, job.output_file, job.error 
           '(SELECT COUNT(*) FROM feed_post_events link WHERE link.post_id=post.id) AS in_feed '
           'FROM chat_photos photo JOIN feed_posts post ON post.id=photo.post_id '
           'LEFT JOIN image_jobs job ON job.id=photo.job_id '
-          "WHERE post.status!='removed' AND photo.message_id IN ")
+          "WHERE post.status!='removed' AND {removed}photo.message_id IN ")
 
 
 JOB = 'id, status, output_file, error, inputs'
@@ -503,12 +503,14 @@ def followed(connection, row) -> dict:
             'job_error': job['error'], 'job_inputs': job['inputs']}
 
 
-def for_messages(connection, message_ids) -> dict[str, dict]:
+def for_messages(connection, message_ids, removed=False) -> dict[str, dict]:
+    """The photos these replies sent; one the user took out of the chat (photo_edits.py) only with `removed`."""
     found = {}
     ids = list(message_ids)
+    select = SELECT.format(removed='' if removed else 'photo.removed_at IS NULL AND ')
     for start in range(0, len(ids), 500):
         chunk = ids[start:start + 500]
-        rows = many(connection, SELECT + f"({','.join('?' * len(chunk))})", tuple(chunk))
+        rows = many(connection, select + f"({','.join('?' * len(chunk))})", tuple(chunk))
         found.update({row['message_id']: view(followed(connection, row)) for row in rows})
     return found
 
@@ -531,11 +533,12 @@ def retry(database, message_id) -> dict:
 
 
 def decorate(connection, messages: list[dict]) -> list[dict]:
-    """Message views with the photo each reply sent, if any."""
-    photos = for_messages(connection, [message['id'] for message in messages if message['role'] == 'companion'])
+    """Message views with the photo each reply sent, if any. One the user removed comes marked, so the chat can offer
+    to undo it while it is still on screen and otherwise shows nothing."""
+    photos = for_messages(connection, [message['id'] for message in messages if message['role'] == 'companion'], True)
     return [{**message, 'photo': photos.get(message['id'])} for message in messages]
 
 
-def get(database, message_id) -> dict | None:
+def get(database, message_id, removed=False) -> dict | None:
     with database.connect() as connection:
-        return for_messages(connection, [message_id]).get(message_id)
+        return for_messages(connection, [message_id], removed).get(message_id)

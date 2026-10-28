@@ -8,11 +8,19 @@
     "family": "krea2"
   },
   {
-    "name": "Krea 2 Turbo, packaged for ComfyUI (NVFP4, smaller)",
+    "name": "Krea 2 Turbo, packaged for ComfyUI (NVFP4, smaller; RTX 50-series cards)",
     "role": "model",
     "file": "krea2_turbo_nvfp4.safetensors",
     "url": "https://huggingface.co/Comfy-Org/Krea-2/tree/main/diffusion_models",
     "licence": "Krea 2 Community License, as above. The same folder also has bf16 and int8 files.",
+    "family": "krea2"
+  },
+  {
+    "name": "Krea 2 Turbo in GGUF files (for cards under 16 GB)",
+    "role": "model",
+    "file": "krea2_turbo-Q4_K_M.gguf",
+    "url": "https://huggingface.co/vantagewithai/Krea-2-Turbo-GGUF/tree/main",
+    "licence": "Krea 2 Community License, as above (a community conversion, not Krea's own). Goes in models/diffusion_models. Q6_K, Q5_K_M, Q4_K_M and Q3_K_M suit 12, 11, 10 and 8 GB cards. Needs the ComfyUI-GGUF nodes (Apache-2.0, https://github.com/city96/ComfyUI-GGUF) in custom_nodes; the built-in workflow loads a .gguf file with them.",
     "family": "krea2"
   },
   {

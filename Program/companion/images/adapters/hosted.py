@@ -1,11 +1,14 @@
 """Hosted image APIs with the user's own key (PRD F9).
 
-Two request shapes cover the tested providers:
+Three request shapes cover the tested providers:
 
 - `images`: OpenAI-style `POST /images/generations`, used by the OpenAI API and Google's
   OpenAI-compatible endpoint for its image models.
-- `chat`: `POST /chat/completions` with `modalities: ["image", "text"]`, used by OpenRouter's
-  image models, which return the picture as a data URL in `message.images`.
+- OpenRouter's own image API, `POST /images` with an aspect ratio, for every image model it lists at
+  `/images/models` (FLUX, Seedream, Recraft and the rest, not only the Google and OpenAI models that
+  also write text). Any backend at openrouter.ai uses it, whatever style it was saved with.
+- `chat`: `POST /chat/completions` with `modalities: ["image", "text"]`, which returns the picture as
+  a data URL in `message.images`; OpenRouter backends used it before its image API.
 
 A request carries only the prompt (X2), except an onboarding portrait, which also carries the
 picture it follows: in the chat message, or as the image of an OpenAI `/images/edits` request. Provider-reported usage is recorded as given; unknown
@@ -13,6 +16,9 @@ cost stays unknown. A provider's content refusal is reported as `refused`, which
 request as NSFW so it is never offered to another hosted provider (F6).
 """
 import base64
+import json
+import math
+import re
 from urllib.parse import urlsplit
 
 import httpx
@@ -25,7 +31,12 @@ TIMEOUT_SECONDS = 180
 # Request paths people paste with the base URL from a provider's docs; the adapter adds them itself.
 # How Google's and OpenAI's image models are named, since their model lists do not say what each outputs.
 IMAGE_WORDS = ('image', 'imagen', 'dall-e')
-ENDPOINT_SUFFIXES = ('/images/generations', '/images/edits', '/images/edit', '/chat/completions', '/models', '/images')
+ENDPOINT_SUFFIXES = ('/images/generations', '/images/edits', '/images/edit', '/chat/completions', '/images/models',
+                     '/models', '/images')
+# The shapes OpenRouter's image API names; each model takes the nearest it offers.
+ASPECT_RATIOS = ('1:1', '4:3', '3:4', '3:2', '2:3', '16:9', '9:16', '4:5', '5:4')
+# Whether each OpenRouter image model reads a picture as input, by id, from the last time the list was read.
+OPENROUTER_REFERENCES: dict[str, bool] = {}
 
 
 def api_base(value: str) -> str:
@@ -44,6 +55,37 @@ def refused(text: str) -> bool:
     return any(sign in lowered for sign in REFUSAL_SIGNS)
 
 
+# Anything in a provider's answer that looks like a key is cut before it is shown or stored.
+KEY_LIKE = re.compile(r'\b(?:sk|pk|rk|key|AIza)[-_A-Za-z0-9]{12,}|\b[A-Za-z0-9_-]{32,}\b')
+
+
+def said(text: str, limit: int = 300) -> str:
+    """The provider's own words about a failed request, as ' The provider said: "..."', or '' when there are none:
+    `error.message` (OpenAI, OpenRouter, Google), a top-level `message` or `detail`, else short plain text."""
+    words = ''
+    try:
+        data = json.loads(text)
+    except ValueError:
+        data = None
+    if isinstance(data, dict):
+        error = data.get('error')
+        if isinstance(error, dict):
+            error = error.get('message') or error.get('code')
+            metadata = (data.get('error') or {}).get('metadata') or {}
+            raw = metadata.get('raw') if isinstance(metadata, dict) else None
+            if isinstance(raw, str) and raw.strip() and raw.strip() not in str(error):
+                error = f'{error} ({raw})'
+        words = next((str(item) for item in (error, data.get('message'), data.get('detail')) if item), '')
+    elif data is None and text and '<' not in text[:50]:
+        words = text
+    words = KEY_LIKE.sub('[hidden]', ' '.join(words.split()))
+    if not words:
+        return ''
+    if len(words) > limit:
+        words = words[:limit].rstrip() + '…'
+    return f' The provider said: "{words}"'
+
+
 def decode_data_url(url: str) -> bytes:
     header, _, payload = url.partition(',')
     if not header.startswith('data:image/') or ';base64' not in header:
@@ -51,11 +93,25 @@ def decode_data_url(url: str) -> bytes:
     return base64.b64decode(payload, validate=False)
 
 
+def is_openrouter(config) -> bool:
+    host = urlsplit(config.get('base_url') or '').hostname or ''
+    return host == 'openrouter.ai' or host.endswith('.openrouter.ai')
+
+
+def aspect_ratio(width: int, height: int) -> str:
+    """The listed aspect ratio nearest the size asked for."""
+    def distance(ratio):
+        wide, high = ratio.split(':')
+        return abs(math.log(width / height) - math.log(int(wide) / int(high)))
+    return min(ASPECT_RATIOS, key=distance)
+
+
 def models_url(config, provider) -> str:
     """Where the provider lists its image models. NanoGPT's `/models` lists text models only, so a
-    NanoGPT address (chosen by name or entered as another API) uses its image list."""
+    NanoGPT address (chosen by name or entered as another API) uses its image list. OpenRouter's `/models`
+    leaves out models that write no text, so its image list is the one with every image model."""
     host = urlsplit(config['base_url']).hostname or ''
-    if provider == 'nanogpt' or host == 'nano-gpt.com' or host.endswith('.nano-gpt.com'):
+    if provider == 'nanogpt' or host == 'nano-gpt.com' or host.endswith('.nano-gpt.com') or is_openrouter(config):
         return config['base_url'] + '/images/models'
     return config['base_url'] + '/models'
 
@@ -82,10 +138,26 @@ def makes_images(entry: dict) -> bool | None:
     return 'image' in modalities if isinstance(modalities, list) else None
 
 
+def vector_only(entry: dict) -> bool:
+    """A model that only draws SVG (Recraft's vector models), which a photo in the app cannot show."""
+    formats = entry.get('supported_parameters') if isinstance(entry.get('supported_parameters'), dict) else {}
+    formats = formats.get('output_format') if isinstance(formats.get('output_format'), dict) else {}
+    return formats.get('values') == ['svg']
+
+
+def remember_references(entries: list[dict]):
+    """Notes which OpenRouter models read a picture, for the onboarding portraits that follow one."""
+    for entry in entries:
+        architecture = entry.get('architecture') if isinstance(entry.get('architecture'), dict) else {}
+        inputs = architecture.get('input_modalities')
+        if isinstance(inputs, list):
+            OPENROUTER_REFERENCES[str(entry.get('id'))] = 'image' in inputs
+
+
 def image_models(data, provider) -> list[dict]:
     """The image models in a provider's list, by id. Where the list says what each model outputs, only image
     models; Google's and OpenAI's lists mix text and image models without saying, so their names decide."""
-    entries = model_entries(data)
+    entries = [entry for entry in model_entries(data) if not vector_only(entry)]
     said = [makes_images(entry) for entry in entries]
     if any(value is not None for value in said):
         entries = [entry for entry, value in zip(entries, said) if value]
@@ -100,17 +172,31 @@ def image_models(data, provider) -> list[dict]:
 
 
 def takes_reference(config, provider) -> bool:
-    """Chat-style image models read a picture in the message; of the `images` style, only the
+    """Chat-style image models read a picture in the message and OpenRouter's image API takes one
+    beside the prompt, unless its list says the model reads text only; of the `images` style, only the
     OpenAI API's `/images/edits` is a tested shape for one."""
+    if is_openrouter(config):
+        return OPENROUTER_REFERENCES.get(config.get('model'), True)
     return config.get('api_style') == 'chat' or provider == 'openai'
+
+
+def data_url(picture: bytes) -> str:
+    _extension, kind = media_type(picture)
+    return f"data:{kind};base64,{base64.b64encode(picture).decode('ascii')}"
 
 
 def chat_content(prompt: str, reference: bytes | None):
     if reference is None:
         return prompt
-    _extension, kind = media_type(reference)
-    url = f"data:{kind};base64,{base64.b64encode(reference).decode('ascii')}"
-    return [{'type': 'text', 'text': prompt}, {'type': 'image_url', 'image_url': {'url': url}}]
+    return [{'type': 'text', 'text': prompt}, {'type': 'image_url', 'image_url': {'url': data_url(reference)}}]
+
+
+def openrouter_body(config, prompt: str, request) -> dict:
+    """OpenRouter's image API: the size goes as an aspect ratio, which every image model there takes."""
+    body = {'model': config['model'], 'prompt': prompt, 'aspect_ratio': aspect_ratio(request.width, request.height)}
+    if request.reference is not None:
+        body['input_references'] = [{'type': 'image_url', 'image_url': {'url': data_url(request.reference)}}]
+    return body
 
 
 class HostedAdapter:
@@ -131,7 +217,11 @@ class HostedAdapter:
         if request.reference is not None and not takes_reference(config, provider):
             raise AdapterError('incompatible', 'This image API cannot make a picture from a reference picture.')
         async with self.client(config['base_url']) as client:
-            if config.get('api_style') == 'chat':
+            if is_openrouter(config):
+                data = await self.post(client, config['base_url'] + '/images', headers,
+                                       openrouter_body(config, prompt, request))
+                image = await self.images_image(client, data)
+            elif config.get('api_style') == 'chat':
                 body = {'model': config['model'], 'modalities': ['image', 'text'],
                         'messages': [{'role': 'user', 'content': chat_content(prompt, request.reference)}]}
                 data = await self.post(client, config['base_url'] + '/chat/completions', headers, body)
@@ -166,14 +256,16 @@ class HostedAdapter:
             raise AdapterError('unavailable', 'Cannot reach the provider. Check the address and your network.') \
                 from error
         text = response.text[:2000]
+        detail = said(text) if response.status_code >= 400 else ''
         if response.status_code in (401, 403):
-            raise AdapterError('auth', 'The provider rejected the API key. Update it in Settings.')
+            raise AdapterError('auth', f'The provider rejected the API key (HTTP {response.status_code}). Update it in '
+                                       f'Settings.{detail}')
         if response.status_code == 429:
-            raise AdapterError('rate_limited', 'The provider reached a rate or usage limit. Try again later.')
+            raise AdapterError('rate_limited', f'The provider reached a rate or usage limit. Try again later.{detail}')
         if response.status_code >= 400 and refused(text):
-            raise AdapterError('refused', 'The provider refused this image under its content rules.')
+            raise AdapterError('refused', f'The provider refused this image under its content rules.{detail}')
         if not response.is_success:
-            raise AdapterError('failed', f'The provider rejected the request (HTTP {response.status_code}).')
+            raise AdapterError('failed', f'The provider rejected the request (HTTP {response.status_code}).{detail}')
         try:
             data = response.json()
         except ValueError as error:
@@ -190,9 +282,12 @@ class HostedAdapter:
             url = (image.get('image_url') or {}).get('url') if isinstance(image, dict) else None
             if isinstance(url, str):
                 return decode_data_url(url)
-        if choice.get('finish_reason') == 'content_filter' or refused(str(message.get('refusal') or '')):
-            raise AdapterError('refused', 'The provider refused this image under its content rules.')
-        raise AdapterError('invalid_output', 'The model answered without an image. Check that it is an image model.')
+        refusal, content = str(message.get('refusal') or ''), message.get('content')
+        reply = said(json.dumps({'message': refusal or (content if isinstance(content, str) else '')}))
+        if choice.get('finish_reason') == 'content_filter' or refused(refusal):
+            raise AdapterError('refused', f'The provider refused this image under its content rules.{reply}')
+        raise AdapterError('invalid_output', 'The model answered without an image. Check that it is an image '
+                                             f'model.{reply}')
 
     async def images_image(self, client, data) -> bytes:
         item = (data.get('data') or [{}])[0]
@@ -226,7 +321,10 @@ class HostedAdapter:
         if not response.is_success:
             raise AdapterError('failed', f'The provider answered HTTP {response.status_code} when listing models.')
         try:
-            return image_models(response.json(), provider)
+            data = response.json()
+            if is_openrouter(config):
+                remember_references(model_entries(data))
+            return image_models(data, provider)
         except ValueError as error:
             raise AdapterError('invalid_output', 'The provider returned an unreadable model list.') from error
 

@@ -71,6 +71,23 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.1.9 (2026-10-28)
+
+- **Talk of the town:** every city has local issues and era questions that move from whispers to settled,
+  factions that back sides and gain or lose pull, and everyone's view on them; all editable. Chat, the town paper
+  and Today know about it, Settings > Realism has a Local politics slider, and an opt-in switch reads a real
+  city's political headlines.
+- **Pictures:** every OpenRouter image model; your own picture as a companion's reference picture, followed on
+  every backend that takes one; New picture and Remove picture in chat; Krea 2 files that fit the graphics card
+  (NVFP4, GGUF); card words win over drawn looks; a per-character name switch; clearer errors and a local
+  fallback when a hosted image API fails.
+- **Each world its own way:** a world can have its own drama level, image backends and text models.
+- **Homes and the map:** homes sit where their words say, can be moved on the map, show for everyone in the city,
+  and have editable insides and quirks.
+- **Their people:** hand-added people start where their words say, family keeps out of chance friendships, links
+  between circle people are editable, and circle closeness counts on your posts.
+- **Fixes:** held replies show when they arrived; the app's own suggestion lists replace the browser's popups.
+
 ## v1.1.8 (2026-10-27)
 
 - **Families that look like real families:** a new companion's family is planned at true-to-life rates for their

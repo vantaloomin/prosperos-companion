@@ -1,11 +1,12 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { BookOpen, ChevronDown, Pencil, UserMinus, UsersRound } from 'lucide-react'
+import { BookOpen, Pencil, UserMinus, UsersRound } from 'lucide-react'
 import { api } from '../../api'
 import type { CirclePerson, ShareablePerson } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { refocus } from '../character/refocus'
+import { SuggestInput } from '../../components/SuggestInput'
 import { RELATION_WORDS, displayName, personFacts, personNow, personWork } from './circleText'
 import { useCircleHome } from './useCircleHome'
 import type { Act } from './PersonForm'
@@ -109,12 +110,8 @@ function RoleField({ id, companion, value, onChange, required = true, hint }: Ro
   return (
     <div className="circle-field">
       <label htmlFor={id}>Who they are to {companion}</label>
-      <span className="suggest">
-        <input id={id} value={value} list={`${id}-list`} maxLength={40} required={required} placeholder="Friend" autoComplete="off"
-          aria-describedby={hint ? `${id}-hint` : undefined} onChange={(event) => onChange(event.target.value)} />
-        <ChevronDown aria-hidden="true" />
-        <datalist id={`${id}-list`}>{RELATION_WORDS.map((option) => <option key={option} value={option} />)}</datalist>
-      </span>
+      <SuggestInput id={id} value={value} options={RELATION_WORDS} maxLength={40} required={required} placeholder="Friend"
+        describedBy={hint ? `${id}-hint` : undefined} onChange={onChange} />
       {hint && <small id={`${id}-hint`}>{hint}</small>}
     </div>
   )
