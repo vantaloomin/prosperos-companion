@@ -482,7 +482,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), **likeness,
+            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, **likeness,
             **children(connection, post['timeline_id'], [event[key] for event in events
                                                           for key in ('summary', 'caption', 'label', 'place')],
                        [(event['moment'].get('outing') or {}).get('id') for event in events])}
@@ -572,6 +572,7 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     if framing == 'view':
         likeness = {**likeness, 'lora': None}
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
+            'pictured': framing != 'view',
             'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
             'moment': moment, **likeness,
             **children(connection, companion['active_timeline_id'],
@@ -595,6 +596,7 @@ def build_meme(connection, meme, image_settings) -> dict:
     prompt = looks.seen(prompt)
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': 'meme',
             'aspect': 'square', 'captions': [meme['top'], meme['bottom'], meme['subject'] or ''],
+            'pictured': not meme['subject'],
             'meme': meme, **likeness}
 
 

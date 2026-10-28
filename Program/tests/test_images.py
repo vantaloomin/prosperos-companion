@@ -1387,9 +1387,10 @@ def test_an_in_photos_line_gives_way_to_the_moments_outfit_and_place_and_tag_mod
     prompt = prompts.compose('Sett', '', [event], 'Anime illustration', who='he', look=line)
     assert 'He is the only person in the picture.' in prompt and 'at home' not in prompt
     from companion.images.adapters.comfyui import solo
-    tagged, negative = solo('anima', prompt, 'text')
-    assert tagged.startswith('solo, 1boy, ') and 'multiple people' in negative
-    assert solo('krea2', prompt, 'text') == (prompt, 'text')
+    tagged, negative = solo('anima', prompt, 'text', 'Sett')
+    assert tagged.startswith('solo, 1boy, sett, ') and 'multiple people' in negative
+    assert solo('booru', 'A cafe.', 'text', 'Dana Reyes') == ('dana reyes, A cafe.', 'text')
+    assert solo('krea2', prompt, 'text', 'Sett') == (prompt, 'text')
     # Company or a crowd is never called alone.
     assert 'only person' not in prompts.compose('Sett', '', [{**event, 'activity': 'show'}], '', who='he')
     assert 'only person' not in prompts.compose('Sett', '', [{**event, 'with': 'Mia'}], '', who='he')
