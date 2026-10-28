@@ -2887,6 +2887,63 @@ CREATE TABLE IF NOT EXISTS place_spots (
   PRIMARY KEY (city_id, place_id)
 );
 
+-- Local politics (companion/world/politics.py, companion/life/politics.py): the user's own changes to a city's issues
+-- and factions. Seeded issues and factions are rebuilt from the city and the date; a row here is an issue or faction
+-- the user added (origin 'user') or their changes to a seeded one (origin 'edit'), or one they put away (dismissed).
+CREATE TABLE IF NOT EXISTS politics_issues (
+  city_id TEXT NOT NULL,
+  issue_id TEXT NOT NULL,
+  origin TEXT NOT NULL CHECK (origin IN ('user', 'edit')),
+  data TEXT NOT NULL DEFAULT '{}',
+  dismissed INTEGER NOT NULL DEFAULT 0 CHECK (dismissed IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, issue_id)
+);
+
+CREATE TABLE IF NOT EXISTS politics_factions (
+  city_id TEXT NOT NULL,
+  faction_id TEXT NOT NULL,
+  origin TEXT NOT NULL CHECK (origin IN ('user', 'edit')),
+  data TEXT NOT NULL DEFAULT '{}',
+  dismissed INTEGER NOT NULL DEFAULT 0 CHECK (dismissed IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, faction_id)
+);
+
+-- Someone's view on an issue as the user set it: -2 strongly the second side ... 2 strongly the first.
+CREATE TABLE IF NOT EXISTS politics_views (
+  city_id TEXT NOT NULL,
+  issue_id TEXT NOT NULL,
+  person TEXT NOT NULL,
+  view INTEGER NOT NULL CHECK (view BETWEEN -2 AND 2),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, issue_id, person)
+);
+
+-- How two factions stand as the user set it (first < second): -2 at open odds ... 2 allies.
+CREATE TABLE IF NOT EXISTS politics_relations (
+  city_id TEXT NOT NULL,
+  first TEXT NOT NULL,
+  second TEXT NOT NULL,
+  stance INTEGER NOT NULL CHECK (stance BETWEEN -2 AND 2),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, first, second)
+);
+
+-- Real local headlines about politics in the companion's real, present-day city, from a news lookup the user turned
+-- on for it (companion/life/politics_news.py): sorted into a topic, they feed Talk of the town. Gone with the lookup.
+CREATE TABLE IF NOT EXISTS politics_headlines (
+  city_id TEXT NOT NULL,
+  text TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  on_day TEXT NOT NULL,
+  observation_id TEXT NOT NULL REFERENCES context_observations(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (city_id, text)
+);
+
 -- The year a world runs in (companion/world_year.py, Back when): its clock runs offset_days behind real time, at real
 -- speed, from when it was made in started_year. No row: the present.
 CREATE TABLE IF NOT EXISTS world_year (

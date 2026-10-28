@@ -40,7 +40,8 @@ WORKSPACE = (
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
     'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge', 'authors_notes',
     'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books', 'city_lore_choices', 'library_vectors', 'library_passages', 'library_books', 'observer', 'user_posts', 'world_life',
-    'world_image_backends', 'world_model_routes', 'place_spots', 'world_year', 'sqlite_sequence',
+    'world_image_backends', 'world_model_routes', 'place_spots', 'politics_issues', 'politics_factions', 'politics_views',
+    'politics_relations', 'politics_headlines', 'world_year', 'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.
 CHARACTER = (

@@ -317,14 +317,14 @@ def refresh_agenda(connection, data: dict, starts_on: str, now: str) -> None:
 
 # --- Headlines from real local-event lookups ---
 
-def headlines(content: str) -> list[str]:
-    """Up to HEADLINES event lines from a lookup's text: list items and short lines, not headings or prose."""
+def headlines(content: str, most: int = HEADLINES) -> list[str]:
+    """Up to `most` event lines from a lookup's text: list items and short lines, not headings or prose."""
     found = []
     for line in (content or '').splitlines():
         text = re.sub(r'^\s*(?:[-*•]|\d+[.)])\s*', '', line).strip().strip('*_#').strip()
         if 12 <= len(text) <= 200 and not text.endswith(':') and text not in found:
             found.append(text)
-        if len(found) == HEADLINES:
+        if len(found) == most:
             break
     return found
 

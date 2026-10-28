@@ -12,6 +12,7 @@ import { EventItem } from './EventItem'
 import { MoneyPanel } from './MoneyPanel'
 import { OurFamily } from './OurFamily'
 import { Paper } from './Paper'
+import { TalkOfTheTown } from './TalkOfTheTown'
 import { Recommendations } from './Recommendations'
 import { Chapters } from './Chapters'
 import { Reactions } from './Reactions'
@@ -125,6 +126,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <MoneyPanel name={name} go={() => go('character')} />
       <Circle name={name} />
       <Paper />
+      <TalkOfTheTown name={name} />
       <Townsfolk name={name} go={go} />
     </section>
   )
