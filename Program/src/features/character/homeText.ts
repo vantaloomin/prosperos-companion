@@ -5,8 +5,9 @@ export const KIND_LABELS: Record<HomeKind, string> = { home: 'Home', pet: 'Pet',
 
 /** "A one-bedroom in a rowhouse in Fells Point, Baltimore". */
 export function homeTitle(item: HomeItem): string {
-  const description = item.description.replace(/[.\s]+$/, '')
-  const text = item.city && !description.includes(item.city) ? `${description}, ${item.city}` : description
+  // The name heads the card, with the city; the description is a body line under it (itemDetail).
+  const base = (item.name || item.description).replace(/[.\s]+$/, '')
+  const text = item.city && !base.includes(item.city) ? `${base}, ${item.city}` : base
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
@@ -21,7 +22,9 @@ export function rentText(item: HomeItem): string | null {
 
 /** The description when it says more than the name, with what is wrong right now. */
 export function itemDetail(item: HomeItem): string {
-  const parts = [item.description !== item.name ? item.description : '', item.out_of_action ? `right now ${item.out_of_action}` : '']
+  const home = item.kind === 'home'
+  const description = item.description !== item.name && (!home || item.name) ? (home ? sentence(item.description.replace(/[.\s]+$/, '')) : item.description) : ''
+  const parts = [description, item.out_of_action ? `right now ${item.out_of_action}` : '']
   return parts.filter(Boolean).join('; ')
 }
 

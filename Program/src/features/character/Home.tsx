@@ -80,7 +80,7 @@ function ItemCard({ item, view, act, gone = false }: { item: HomeItem; view: Hom
 }
 
 function ItemFacts({ item }: { item: HomeItem }) {
-  const detail = item.kind === 'home' ? '' : itemDetail(item)
+  const detail = itemDetail(item)
   const features = item.kind === 'home' ? item.features ?? [] : []
   const rent = item.kind === 'home' ? rentText(item) : null
   const since = sinceText(item)
@@ -112,12 +112,10 @@ function EditForm({ item, view, act, onDone }: { item: HomeItem; view: HomeView;
   const [name, setName] = useState(item.name)
   const [description, setDescription] = useState(item.description)
   const [variety, setVariety] = useState(item.variety)
-  // Their home's quirks, picked by the app: the user rewrites or clears them. Rewriting the description without
-  // touching them clears them, since they were picked for the old home.
+  // Their home's quirks, picked by the app: the user rewrites or clears them. Null while untouched in this edit.
   const [quirks, setQuirks] = useState<string | null>(null)
   const isHome = item.kind === 'home'
   const options = varieties(view, item.kind)
-  const shownQuirks = quirks ?? (description.trim() === item.description ? (item.features ?? []).join(', ') : '')
   const save = async (event: FormEvent) => {
     event.preventDefault()
     const features = isHome && quirks !== null ? quirks.split(/[,;]/).map((part) => part.trim()).filter(Boolean).slice(0, 4) : undefined
@@ -129,12 +127,9 @@ function EditForm({ item, view, act, onDone }: { item: HomeItem; view: HomeView;
       <label htmlFor={`home-name-${item.id}`}>Name</label>
       <input autoComplete="off" id={`home-name-${item.id}`} value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
       <label htmlFor={`home-description-${item.id}`}>Description</label>
-      <input autoComplete="off" id={`home-description-${item.id}`} value={description} maxLength={300} onChange={(event) => setDescription(event.target.value)} />
-      {isHome && <>
-        <label htmlFor={`home-quirks-${item.id}`}>Quirks</label>
-        <input autoComplete="off" id={`home-quirks-${item.id}`} aria-describedby={`home-quirks-hint-${item.id}`} value={shownQuirks} maxLength={240} placeholder="Such as a smoky hearth, a window that sticks" onChange={(event) => setQuirks(event.target.value)} />
-        <small id={`home-quirks-hint-${item.id}`} className="subtle">Little things about the place, separated by commas. Pictures and replies use them. Leave empty for none.</small>
-      </>}
+      <textarea autoComplete="off" className="grow-box" id={`home-description-${item.id}`} value={description} maxLength={300} rows={2}
+        onChange={(event) => { setDescription(event.target.value); grow(event.target) }} ref={(box) => { if (box) grow(box) }} />
+      {isHome && <Quirks item={item} description={description} quirks={quirks} setQuirks={setQuirks} />}
       {options && <VarietySelect id={`home-variety-${item.id}`} options={options} value={variety} onChange={setVariety} />}
       <div className="rename-row">
         <button type="submit" className="button primary">Save</button>
@@ -142,6 +137,32 @@ function EditForm({ item, view, act, onDone }: { item: HomeItem; view: HomeView;
       </div>
     </form>
   )
+}
+
+/** A text box grows with its text (2 to about 6 rows) where the browser cannot do it with CSS alone (field-sizing). */
+function grow(box: HTMLTextAreaElement) {
+  if (typeof CSS !== 'undefined' && CSS.supports('field-sizing', 'content')) return
+  box.style.height = 'auto'
+  box.style.height = `${box.scrollHeight + 2}px`
+}
+
+interface QuirksProps { item: HomeItem; description: string; quirks: string | null; setQuirks: (text: string) => void }
+
+/** The home's quirks. Rewriting the description without touching them clears them, since they were picked for the
+ * old home, and says so with an Undo; quirks the user typed in this edit are never cleared. */
+function Quirks({ item, description, quirks, setQuirks }: QuirksProps) {
+  const drawn = (item.features ?? []).join(', ')
+  const cleared = quirks === null && Boolean(drawn) && description.trim() !== item.description
+  const shown = quirks ?? (cleared ? '' : drawn)
+  return <>
+    <label htmlFor={`home-quirks-${item.id}`}>Quirks</label>
+    <input autoComplete="off" id={`home-quirks-${item.id}`} aria-describedby={`home-quirks-hint-${item.id}`} value={shown} maxLength={240} placeholder="Such as a smoky hearth, a window that sticks" onChange={(event) => setQuirks(event.target.value)} />
+    <small id={`home-quirks-hint-${item.id}`} className="subtle" aria-live="polite">
+      {cleared
+        ? <>Cleared because the description changed. <button type="button" className="text-button inline" onClick={() => setQuirks(drawn)}>Undo</button></>
+        : 'Little things about the place, separated by commas. Pictures and replies use them. Leave empty for none.'}
+    </small>
+  </>
 }
 
 function AddForm({ view, act, onDone }: { view: HomeView; act: Act; onDone: () => void }) {
