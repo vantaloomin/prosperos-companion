@@ -1370,3 +1370,42 @@ def test_a_comfyui_rejection_names_the_node_and_file_at_fault():
                                        'it offers. Run the compatibility check in Settings.')
     assert 'missing a node' in rejection_text({'error': {'type': 'missing_node_type', 'message': 'Node X not found'}})
     assert rejection_text({}).startswith('ComfyUI rejected the workflow: invalid workflow.')
+
+
+def test_an_in_photos_line_gives_way_to_the_moments_outfit_and_place_and_tag_models_draw_one_person():
+    # Vanta, 2026-10-28: on Anima, Sett came out twice, once in the moment's waistcoat and once in his In photos
+    # line's fur coat in its own fighting pit.
+    definition = {'name': 'Sett', 'appearance': '', 'in_photos': 'tall muscular half-vastayan man, swept-back red-brown '
+                  'hair, amber eyes, taped knuckles, open fur-collared coat over bare chest, gold chain, Ionian fighting '
+                  'pit with hanging lamps'}
+    # His own line keeps its coat, so the moment's everyday outfit gives way; the pit is no place of this moment.
+    line = prompts.in_photos(definition, 'he')
+    assert 'coat' in line and 'gold chain' in line and 'pit' not in line and prompts.own_outfit(definition)
+    assert not prompts.own_outfit({'in_photos': 'amber eyes, taped knuckles'})
+    event = {'summary': 'Spent some time on combat training.', 'place': '', 'mood': 'content', 'activity': 'hobby',
+             'hobby': {'name': 'Combat training', 'picture': 'absorbed in Combat training at home'}}
+    prompt = prompts.compose('Sett', '', [event], 'Anime illustration', who='he', look=line)
+    assert 'He is the only person in the picture.' in prompt and 'at home' not in prompt
+    from companion.images.adapters.comfyui import solo
+    tagged, negative = solo('anima', prompt, 'text')
+    assert tagged.startswith('solo, 1boy, ') and 'multiple people' in negative
+    assert solo('krea2', prompt, 'text') == (prompt, 'text')
+    # Company or a crowd is never called alone.
+    assert 'only person' not in prompts.compose('Sett', '', [{**event, 'activity': 'show'}], '', who='he')
+    assert 'only person' not in prompts.compose('Sett', '', [{**event, 'with': 'Mia'}], '', who='he')
+
+
+def test_a_moment_without_a_place_is_at_home_only_when_its_activity_is():
+    assert prompts.at_home({'place': '', 'activity': 'reading'})
+    assert prompts.at_home({'place': '', 'summary': 'Had a quiet evening.'})
+    assert not prompts.at_home({'place': '', 'activity': 'workout'})
+    assert not prompts.at_home({'place': 'Ironfist Training Hall', 'activity': 'reading'})
+    training = {'place': '', 'activity': 'hobby', 'hobby': {'name': 'Combat training',
+                                                             'picture': 'absorbed in Combat training at home'}}
+    assert not prompts.at_home(training)
+    knitting = {'place': '', 'activity': 'hobby', 'hobby': {'name': 'knitting socks',
+                                                             'picture': 'absorbed in knitting socks at home'}}
+    assert prompts.at_home(knitting)
+    from companion.life import hobbies
+    assert hobbies.custom('Combat training')['place']['kinds'] == ['fitness']
+    assert hobbies.custom('knitting socks')['place'] is None

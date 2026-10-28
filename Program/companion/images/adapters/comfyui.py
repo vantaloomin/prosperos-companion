@@ -389,6 +389,22 @@ def node_rejection(node_id: str, found: dict) -> str:
     return ''
 
 
+# Prompts' "He is the only person in the picture." (images/prompts.alone), which tag-trained families read best as tags.
+ONLY_ONE = re.compile(r'\b(She|He|They) (?:is|are) the only person in the picture\.')
+TAGGED = {'anima', 'booru'}
+SOLO_TAGS = {'She': '1girl', 'He': '1boy', 'They': '1other'}
+
+
+def solo(family: str, prompt: str, negative: str) -> tuple[str, str]:
+    """An anime family trained on booru tags draws one sentence of looks and another of the moment's outfit as two
+    people unless told "solo": the tags open the prompt and the negative keeps out a second figure."""
+    found = ONLY_ONE.search(prompt)
+    if family not in TAGGED or not found:
+        return prompt, negative
+    return (f'solo, {SOLO_TAGS[found[1]]}, {prompt}',
+            ', '.join(part for part in (negative, 'multiple people, 2boys, 2girls, multiple views, clone') if part))
+
+
 def failure_text(entry) -> str:
     for message in (entry.get('status') or {}).get('messages', []):
         if isinstance(message, list) and message and message[0] == 'execution_error':
@@ -417,8 +433,9 @@ class ComfyAdapter:
                                              if request.config.get(key) not in (None, '')}}
             name = f"{name} ({used['steps']} steps, CFG {used['cfg']:g}, {used['sampler_name']}/{used['scheduler']})"
         styles = style_loras(request.config, request.lora)
-        prompt = triggered(request.prompt, request.lora, styles)
-        values = {'{{prompt}}': prompt, '{{negative}}': request.negative, '{{seed}}': request.seed,
+        prompt, negative = solo(family_of(request.config), triggered(request.prompt, request.lora, styles),
+                                request.negative)
+        values = {'{{prompt}}': prompt, '{{negative}}': negative, '{{seed}}': request.seed,
                   '{{width}}': request.width, '{{height}}': request.height, REFERENCE: ''}
         async with self.client(request.config['base_url']) as client:
             if request.reference is not None:

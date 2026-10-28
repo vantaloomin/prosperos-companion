@@ -55,7 +55,8 @@ COVERED = {
     'hair': r'\b(?:hair|haired|bald|shaved head|braids|dreadlocks|locs|buzz ?cut|ponytail|bun|curls|redhead|'
             r'blonde?|brunette)\b',
     'facial_hair': r'\b(?:beard|bearded|stubble|moustache|mustache|goatee|clean[- ]shaven)\b',
-    'feature': r'\b(?:freckles?|freckled|dimples?|moles?|scars?|tattoos?|piercings?|pierced|glasses|birthmark)\b',
+    'feature': r'\b(?:freckles?|freckled|dimples?|moles?|scars?|tattoos?|piercings?|pierced|glasses|birthmark|teeth|'
+               r'canines|fangs|tusks)\b',
 }
 
 

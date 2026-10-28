@@ -538,23 +538,25 @@ def mentioned(items: list[dict], text: str) -> list[dict]:
         rf'(?<!\w){re.escape(item["name"])}(?!\w)', text, 0 if item['name'][:1].isupper() else re.IGNORECASE)]
 
 
-def image_hint(connection, timeline_id: str, event: dict) -> str:
+def image_hint(connection, timeline_id: str, event: dict, at_home: bool | None = None) -> str:
     """What the picture should show of their home: the room for a moment at home, and how any
-    belonging the event names looks. Empty when the home was never assembled."""
+    belonging the event names looks. Empty when the home was never assembled. `at_home` says whether the moment
+    happens there; left out, a moment with no place counts as home."""
     rows = many(connection, 'SELECT * FROM home_items WHERE timeline_id=?', (timeline_id,))
     if not rows:
         return ''
     items = [item_view(row) for row in rows]
     parts = []
     home = next((item for item in items if item['kind'] == 'home' and not item['until']), None)
-    if home and not event.get('place'):
+    there = not event.get('place') if at_home is None else at_home
+    if home and there:
         features = home.get('features') or []
         parts.append(f"At home: {home['description']}" + (f", with {' and '.join(features)}" if features else '') + '.')
     named_items = mentioned(items, event.get('summary', ''))
     parts += [f"{item['name'][:1].upper()}{item['name'][1:]} is {item['description']}." for item in named_items
               if item['description'] != item['name'] and item['kind'] != 'pet']
     parts += pet_hint(connection, timeline_id, event, [item['id'] for item in named_items if item['kind'] == 'pet'],
-                      bool(home and not event.get('place')))
+                      bool(home and there))
     return ' '.join(parts)
 
 
