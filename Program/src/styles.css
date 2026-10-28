@@ -517,6 +517,7 @@ a.button { color: inherit; text-decoration: none; }
 .today-section .politics-subhead { font-family: inherit; font-size: 0.875rem; font-weight: 500; color: var(--muted); margin: 12px 0 4px; }
 .politics-gets-on summary { cursor: pointer; }
 .politics-form { margin: 6px 0; max-width: 520px; }
+.politics-more { margin-left: 24px; }
 @media (max-width: 600px) {
   .politics-split { max-width: none; }
   .politics-rows { grid-template-columns: 1fr; }

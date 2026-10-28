@@ -281,7 +281,7 @@ function Factions({ data, save }: { data: TownPolitics; save: Save }) {
     {data.factions.length > 0
       ? <ul className="network-list politics-list">{shown.map((faction) => <FactionItem key={faction.id} faction={faction} data={data} save={save} />)}</ul>
       : <p className="subtle">No factions in {data.city.name}.</p>}
-    {sorted.length > shown.length && <p><button type="button" className="text-button" onClick={() => setAll(true)}>Show {sorted.length - shown.length} more</button></p>}
+    {sorted.length > shown.length && <p className="politics-more"><button type="button" className="text-button" onClick={() => setAll(true)}>Show {sorted.length - shown.length} more</button></p>}
     <AddFaction save={save} />
   </>)
 }
