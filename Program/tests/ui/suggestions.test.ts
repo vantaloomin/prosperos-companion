@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { suggestionsFor } from '../../src/components/suggestions.ts'
+import { shownAs, suggestionsFor } from '../../src/components/suggestions.ts'
 
 const WORDS = ['friend', 'close friend', 'best friend', 'mom', 'dad', 'sister']
 
@@ -32,4 +32,11 @@ test("text boxes offer the app's own suggestion list, never the browser's datali
     }
   }
   assert.deepEqual(popups, [])
+})
+
+test('time zones are listed with spaces, and typed spaces find their underscores', () => {
+  const zones = ['America/New_York', 'America/Argentina/La_Rioja', 'Europe/London']
+  assert.deepEqual(suggestionsFor(zones, 'new york'), ['America/New_York'])
+  assert.deepEqual(suggestionsFor(zones, 'America/New_York'), zones)
+  assert.equal(shownAs('America/Argentina/La_Rioja'), 'America/Argentina/La Rioja')
 })

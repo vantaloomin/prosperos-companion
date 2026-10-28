@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { suggestionsFor } from './suggestions'
+import { shownAs, suggestionsFor } from './suggestions'
 
 interface SuggestInputProps {
   id: string; value: string; options: string[]; onChange: (value: string) => void; onBlur?: () => void
@@ -18,6 +18,7 @@ export function SuggestInput({ id, value, options, onChange, onBlur, placeholder
   const close = () => { setOpen(false); setActive(-1) }
   const choose = (option: string) => { onChange(option); close() }
   useEffect(() => { if (showing && active >= 0) scrollToOption(list.current, active) }, [active, showing])
+  useEffect(() => keepOnScreen(showing ? list.current : null), [showing])
   const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape' && showing) { event.preventDefault(); event.stopPropagation(); close(); return }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -38,7 +39,7 @@ export function SuggestInput({ id, value, options, onChange, onBlur, placeholder
         <div ref={list} className="suggest-popup" id={`${id}-list`} role="listbox" aria-label={label ? `${label} suggestions` : 'Suggestions'}>
           {shown.map((option, index) => (
             <div key={option} id={`${id}-${index}`} role="option" aria-selected={option === value} data-active={index === active}
-              onMouseDown={(event) => event.preventDefault()} onMouseMove={() => setActive(index)} onClick={() => choose(option)}>{option}</div>
+              onMouseDown={(event) => event.preventDefault()} onMouseMove={() => setActive(index)} onClick={() => choose(option)}>{shownAs(option)}</div>
           ))}
         </div>
       )}
@@ -51,6 +52,16 @@ function comboboxProps(id: string, offered: boolean, showing: boolean, active: n
   if (!offered) return {}
   return { role: 'combobox', 'aria-expanded': showing, 'aria-controls': `${id}-list`, 'aria-autocomplete': 'list' as const,
     'aria-activedescendant': showing && active >= 0 ? `${id}-${active}` : undefined }
+}
+
+/** A list opening low on a phone would run under the tab bar or the keyboard: scroll it into view, and again once
+ * the keyboard has slid up. */
+function keepOnScreen(popup: HTMLDivElement | null) {
+  if (!popup) return
+  const reveal = () => popup.scrollIntoView({ block: 'nearest' })
+  reveal()
+  const later = window.setTimeout(reveal, 350)
+  return () => window.clearTimeout(later)
 }
 
 function scrollToOption(list: HTMLDivElement | null, index: number) {
