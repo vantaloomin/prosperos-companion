@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from companion.database import decode, encode, identifier, many, one
 from companion.errors import DomainError, require
-from companion.images import content
+from companion.images import content, world_choice
 from companion.images.adapters.comfyui import (
     DEFAULT_FAMILY,
     FAMILIES,
@@ -169,13 +169,29 @@ def view(backend: dict, connection=None) -> dict:
 
 
 def ordered(connection, enabled_only=False) -> list[dict]:
+    """Every backend in the user's order; `enabled_only`, those this world draws with (images/world_choice.py)."""
     where = 'WHERE enabled=1 ' if enabled_only else ''
-    return many(connection, f'SELECT * FROM image_backends {where}ORDER BY position, created_at')
+    rows = many(connection, f'SELECT * FROM image_backends {where}ORDER BY position, created_at')
+    return world_choice.narrowed(connection, rows) if enabled_only else rows
 
 
-def listing(database) -> list[dict]:
+def listing(database) -> dict:
     with database.connect() as connection:
-        return [view(backend, connection) for backend in ordered(connection)]
+        return listed(connection)
+
+
+def listed(connection) -> dict:
+    """The backends, each saying whether this world uses it, and what this world picked."""
+    rows = ordered(connection)
+    world = world_choice.view(connection, rows)
+    return {'backends': [{**view(row, connection), 'in_world': row['id'] in world['used']} for row in rows],
+            'world': world}
+
+
+def choose_for_world(database, backend_ids: list[str] | None) -> dict:
+    with database.connect(write=True) as connection:
+        world_choice.choose(connection, backend_ids, database.now())
+        return listed(connection)
 
 
 def get(connection, backend_id) -> dict:
@@ -337,6 +353,7 @@ def create(database, vault, body) -> dict:
             (backend_id, body.kind, provider, label, int(enabled), position, encode(config), reference,
              int(bool(body.controlled_machine)), allows, concurrency_for(body.kind, body.concurrency), accepted,
              timestamp, timestamp))
+        world_choice.joined(connection, backend_id, timestamp)
         return view(get(connection, backend_id), connection)
 
 
@@ -386,7 +403,7 @@ def move(database, backend_id, position) -> list[dict]:
         rows.insert(min(position, len(rows)), moving)
         connection.executemany('UPDATE image_backends SET position=? WHERE id=?',
                                [(index, row['id']) for index, row in enumerate(rows)])
-        return [view(row, connection) for row in ordered(connection)]
+        return listed(connection)
 
 
 def delete(database, backend_id) -> list[dict]:
@@ -394,7 +411,10 @@ def delete(database, backend_id) -> list[dict]:
     with database.connect(write=True) as connection:
         get(connection, backend_id)
         connection.execute('DELETE FROM image_backends WHERE id=?', (backend_id,))
-        return [view(row, connection) for row in ordered(connection)]
+        picks = world_choice.picked(connection)
+        if picks is not None:
+            world_choice.choose(connection, [pick for pick in picks if pick != backend_id] or None, database.now())
+        return listed(connection)
 
 
 def block(database, backend_id, reason):

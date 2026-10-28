@@ -246,7 +246,7 @@ function formChrome(companion: Companion | null, start: Start | null, create: Fo
 async function afterCreating(): Promise<View> {
   try {
     const { backends } = await api<{ backends: ImageBackend[] }>('/images/backends')
-    return backends.some((backend) => backend.enabled && !backend.blocked_reason) ? 'portraits' : 'conversation'
+    return backends.some((backend) => backend.in_world && !backend.blocked_reason) ? 'portraits' : 'conversation'
   } catch { return 'conversation' }
 }
 

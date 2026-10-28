@@ -31,6 +31,7 @@ from companion.images.models import (
     JobRetry,
     ModelProbe,
     Preview,
+    WorldBackends,
 )
 from companion.lora.appearance import current_for_images
 from companion.phone.access import via_lan
@@ -62,7 +63,13 @@ def update_settings(request: Request, body: ImageSettingsUpdate):
 
 @router.get('/backends')
 def list_backends(request: Request):
-    return {'backends': backends.listing(db(request))}
+    return backends.listing(db(request))
+
+
+@router.put('/world')
+def choose_for_world(request: Request, body: WorldBackends):
+    """Which backends this world draws with; null for all of them."""
+    return backends.choose_for_world(db(request), body.backend_ids)
 
 
 # What a paired phone may not set on an image backend: an address the PC sends requests (and a saved key) to,
@@ -115,12 +122,12 @@ def backend_workflows(request: Request, backend_id: str):
 
 @router.post('/backends/{backend_id}/move')
 def move_backend(request: Request, backend_id: str, body: BackendMove):
-    return {'backends': backends.move(db(request), backend_id, body.position)}
+    return backends.move(db(request), backend_id, body.position)
 
 
 @router.delete('/backends/{backend_id}')
 def delete_backend(request: Request, backend_id: str):
-    return {'backends': backends.delete(db(request), backend_id)}
+    return backends.delete(db(request), backend_id)
 
 
 @router.post('/backends/{backend_id}/check')

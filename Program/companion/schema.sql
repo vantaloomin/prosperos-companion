@@ -2852,3 +2852,19 @@ CREATE TABLE IF NOT EXISTS model_mix_state (
   mode TEXT NOT NULL DEFAULT 'random' CHECK (mode IN ('random', 'in_turn')),
   turn INTEGER NOT NULL DEFAULT 0
 );
+
+-- Which image backends this world draws with (companion/images/world_choice.py). No row: every enabled backend, in
+-- the user's order. Backends follow the user from world to world; this row stays with its world.
+CREATE TABLE IF NOT EXISTS world_image_backends (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  backend_ids TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL
+);
+
+-- This world's own job assignments (companion/world_models.py), in place of model_routes while the row is there:
+-- {job: profile_id}. No row: the user's usual ones. Profiles follow the user from world to world; this row stays.
+CREATE TABLE IF NOT EXISTS world_model_routes (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  routes TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL
+);

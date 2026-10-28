@@ -65,7 +65,7 @@ function isValid(plan: Plan) {
 
 function useEnabledBackends(): ImageBackend[] {
   const backends = useQuery({ queryKey: ['image-backends'], queryFn: () => api<{ backends: ImageBackend[] }>('/images/backends') })
-  return (backends.data?.backends ?? []).filter((backend) => backend.enabled && !backend.blocked_reason)
+  return (backends.data?.backends ?? []).filter((backend) => backend.in_world && !backend.blocked_reason)
 }
 
 function Planner({ close, running }: { close: () => void; running: boolean }) {

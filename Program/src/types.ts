@@ -1047,7 +1047,14 @@ export interface ImageBackend {
   disclosure: string | null
   disclosure_accepted: boolean
   experimental: boolean
+  /** Whether this world draws with it (companion/images/world_choice.py). */
+  in_world: boolean
 }
+
+/** Which backends this world draws with: all of them until the user picks some (`own`). `falls_back`: none of the
+ * picks is on, so every backend is used for now. `used`: the backends it draws with now, in the user's order. */
+export interface WorldImageBackends { own: boolean; picked: string[]; falls_back: boolean; used: string[] }
+export interface ImageBackendList { backends: ImageBackend[]; world: WorldImageBackends }
 
 export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 

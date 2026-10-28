@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import { useRefetchOnFocus } from '../../paths'
 import { usePhoneStatus } from '../phone/phoneAccess'
-import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageFamily, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
+import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageBackendList, ImageFamily, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
@@ -14,6 +14,7 @@ import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { MemeSettings } from './MemeSettings'
+import { WorldImagePick } from './WorldImagePick'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
 import { imageKeyFrom } from './models/discovery'
@@ -30,7 +31,7 @@ const failure = (error: unknown, fallback: string) => error instanceof Error ? e
 export function ImageSettings() {
   const client = useQueryClient()
   const settings = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => api<Limits>('/images/settings') })
-  const backends = useQuery({ queryKey: BACKENDS_KEY, queryFn: () => api<{ backends: ImageBackend[] }>('/images/backends') })
+  const backends = useQuery({ queryKey: BACKENDS_KEY, queryFn: () => api<ImageBackendList>('/images/backends') })
   const [result, setResult] = useState<Result>(null)
   const onPhone = !!usePhoneStatus().data?.remote
   const save = async (change: Partial<Limits>, done?: string) => {
@@ -54,6 +55,7 @@ export function ImageSettings() {
       {list.length === 0 && <p className="subtle">No image backend is set up yet. Posts stay text-only until you add one.</p>}
       {list.length > 0 && !hasLocal && <p className="subtle">No enabled backend takes NSFW requests, so they will be refused.</p>}
       <Backends list={list} refresh={refresh} setResult={setResult} phone={onPhone} />
+      <WorldImagePick list={list} world={backends.data.world} refresh={refresh} setResult={setResult} />
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       <MemeSettings data={data} save={save} phone={onPhone} />
@@ -629,6 +631,7 @@ function BackendSummary({ backend }: { backend: ImageBackend }) {
       <strong>{backend.label}</strong>
       <span className="badge">{backend.accepts_nsfw ? (backend.local ? 'Local · safe and NSFW' : 'Safe and NSFW') : 'Safe only'}</span>
       {backend.experimental && <span className="badge">Experimental</span>}
+      {backend.enabled && !backend.in_world && <span className="badge">Not used in this world</span>}
     </div>
     <p className="subtle">{summaryLine(backend)}</p>
   </>
