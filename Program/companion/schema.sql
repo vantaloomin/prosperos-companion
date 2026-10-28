@@ -2952,3 +2952,16 @@ CREATE TABLE IF NOT EXISTS world_year (
   offset_days INTEGER NOT NULL CHECK (offset_days > 0),
   created_at TEXT NOT NULL
 );
+
+-- A Back when world (companion/back_when.py): the companion it was made for, from which world and in which year, and
+-- how many years younger the persona is there. No row: an ordinary world.
+CREATE TABLE IF NOT EXISTS back_when (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  companion_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  from_world_id TEXT NOT NULL,
+  year INTEGER NOT NULL,
+  from_history INTEGER NOT NULL DEFAULT 0 CHECK (from_history IN (0, 1)),
+  persona_years INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);

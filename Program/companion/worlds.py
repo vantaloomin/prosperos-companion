@@ -26,7 +26,7 @@ from datetime import date
 from pathlib import Path
 
 from companion import backup, cast, characters, dating, library, lore, observer, restore, story, world_year
-from companion.clock import AppClock, zone
+from companion.clock import AppClock, stamp, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
 from companion.life import ages, narrator, pets, where
@@ -184,15 +184,23 @@ def write_persona(connection, persona: dict, timestamp: str, home: dict | None =
     (companion/memory/context.py), Matchlight and Where you are (companion/life/where.py)."""
     home = home or {}
     before = optional(connection, 'SELECT home_city_id FROM persona WHERE id=1')
+    age = age_here(connection, persona.get('age'))
     dating.follow_home(connection, before['home_city_id'] if before else '', home.get('city_id', ''))
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
                        'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood, kind, lifespan) '
                        'VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                       (persona['id'], persona['name'], persona['gender'], persona['age'], persona['about'],
+                       (persona['id'], persona['name'], persona['gender'], age, persona['about'],
                         timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', ''),
                         json.dumps(persona.get('pets') or []), home.get('city_id', ''), home.get('neighbourhood', ''),
                         persona.get('kind') or '', persona.get('lifespan')))
     connection.execute('UPDATE life_settings SET user_birthday=? WHERE id=1', (persona.get('birthday') or '',))
+
+
+def age_here(connection, age: int | None) -> int | None:
+    """The persona's age in this world: younger by the years a Back when world goes back (companion/back_when.py),
+    never under 18."""
+    row = optional(connection, 'SELECT persona_years FROM back_when WHERE id=1')
+    return max(age - row['persona_years'], ages.ADULT) if row and age else age
 
 
 def world_city(connection, world: dict, cities: dict[str, dict]) -> dict:
@@ -255,6 +263,12 @@ def watching_in(path: Path) -> bool:
     return bool(read_only(path, 'SELECT watching FROM observer WHERE id=1 AND watching=1'))
 
 
+def back_when_in(path: Path) -> dict | None:
+    """A Back when world's year and who it was made for (companion/back_when.py); None for any other world."""
+    rows = read_only(path, 'SELECT year, name, companion_id FROM back_when WHERE id=1')
+    return {'year': rows[0][0], 'name': rows[0][1], 'companion_id': rows[0][2]} if rows else None
+
+
 def world_view(database: Database, data: dict, world: dict, cities: dict[str, dict] | None = None) -> dict:
     if cities is None:
         with database.connect() as connection:
@@ -263,6 +277,7 @@ def world_view(database: Database, data: dict, world: dict, cities: dict[str, di
             'companions': companions_in(world_path(database.home, world)),
             'watching': watching_in(world_path(database.home, world)),
             'year': world_year.year_in(world_path(database.home, world), database.clock.real()),
+            'back_when': back_when_in(world_path(database.home, world)),
             'home': where.view(world.get('home'), cities)}
 
 
@@ -347,7 +362,8 @@ def switch(state, world_id: str) -> dict:
     database.use(target)
     mix.load(database)
     carry_settings(target, previous, database.now())
-    data['active'], world['used_at'] = world['id'], database.now()
+    # The registry orders worlds by real time: a world in a past year would otherwise sort as used long ago.
+    data['active'], world['used_at'] = world['id'], stamp(database.clock.real())
     database.world = world['id']
     with database.connect(write=True) as connection:
         settle_home(connection, world)
