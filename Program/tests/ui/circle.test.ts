@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aboutChange, ageClamp, noteCount, aboutForm, displayName, personFacts, personNow, personTies, personWork, placeWords } from '../../src/features/today/circleText.ts'
+import { aboutChange, ageClamp, noteCount, aboutForm, displayName, knowingChoices, knowingText, personFacts, personNow, personTies, personWork, placeWords, tieChoices } from '../../src/features/today/circleText.ts'
 import type { CirclePerson } from '../../src/types.ts'
 
 const person = (extra: Partial<CirclePerson> = {}): CirclePerson => ({
@@ -35,6 +35,16 @@ test('ties name a partner first, then who else they know', () => {
     'Married to Rui. Knows Ana (family).')
 })
 
+test('one-sided ties say who knows of whom', () => {
+  assert.equal(personTies(person({ knows: [{ id: 'k', name: 'Kaito', how: 'knows of' }, { id: 'n', name: 'Nari', how: 'known by' }, { id: 'a', name: 'Ana', how: 'friends' }] })),
+    'Knows Ana (friends). Knows of Kaito. Nari knows of Ebony.')
+  assert.deepEqual(tieChoices('Nari', 'Kaito').slice(-2).map((choice) => choice.label), ['One-sided: Nari knows of Kaito', 'One-sided: Kaito knows of Nari'])
+  assert.equal(knowingText(person({ knowing: 'they' }), 'Sett'), "Ebony knows of Sett · Sett doesn't know them")
+  assert.equal(knowingText(person({ knowing: 'companion' }), 'Sett'), "Sett knows of Ebony · they don't know Sett")
+  assert.equal(knowingText(person({ knowing: 'both' }), 'Sett'), null)
+  assert.equal(knowingChoices('', 'Sett')[2].label, 'One-sided: they know of Sett')
+})
+
 test('parents who parted in an older city read separated, not divorced', () => {
   assert.equal(personTies(person({ knows: [{ id: 'r', name: 'Rui', how: 'separated' }, { id: 'a', name: 'Ana', how: 'family' }] })),
     'Separated from Rui. Knows Ana (family).')
@@ -43,13 +53,18 @@ test('parents who parted in an older city read separated, not divorced', () => {
 
 test('the edit form starts from the person and sends only what changed', () => {
   const form = aboutForm(person({ pronouns: 'she/her', age: 40, employer: 'Mercy' }))
-  assert.deepEqual(form.values, { name: 'Ebony', role: 'friend', pronouns: 'she/her', job: 'Nurse', employer: 'Mercy', age: '40', local: 'here', note: '', start: '' })
+  assert.deepEqual(form.values, { name: 'Ebony', role: 'friend', pronouns: 'she/her', job: 'Nurse', employer: 'Mercy', age: '40', local: 'here', note: '', start: '', knowing: '' })
   assert.deepEqual(aboutChange(form.values, { ...form.values }, false), {})
   assert.deepEqual(aboutChange(form.values, { ...form.values, job: ' ER nurse ', age: '41', local: 'away', name: '' }, false),
     { job: 'ER nurse', age: 41, local: false })
   // Where they start: a pick is sent as a number, the app's pick again as 0.
   assert.deepEqual(aboutChange(form.values, { ...form.values, start: '3' }, false), { start_stage: 3 })
   assert.deepEqual(aboutChange({ ...form.values, start: '3' }, { ...form.values, start: '' }, false), { start_stage: 0 })
+  // Whether they know the companion: the app's pick stays '' until the user says, and '' hands it back.
+  assert.deepEqual(aboutChange(form.values, { ...form.values, knowing: 'they' }, false), { knowing: 'they' })
+  assert.deepEqual(aboutChange({ ...form.values, knowing: 'they' }, { ...form.values, knowing: '' }, false), { knowing: '' })
+  assert.equal(aboutForm(person({ knowing: 'they' })).values.knowing, '')
+  assert.equal(aboutForm(person({ knowing: 'they', knowing_set: true })).values.knowing, 'they')
   // A coworker's "Works with Dana" is not offered as a job to edit.
   assert.equal(aboutForm(person({ career: 'Works with Dana', works_with_companion: true })).values.job, '')
 })
