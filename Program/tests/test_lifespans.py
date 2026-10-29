@@ -327,7 +327,8 @@ def test_a_citys_own_kind_shows_on_a_persons_page_and_can_be_picked(client):
     relatives = [person for person in people if person.get('folk') == 'tiefling']
     assert relatives and all(person['kind']['label'] == 'Tiefling' and person['kind']['years'] == 200
                              for person in relatives)
-    friend = next(person for person in people if not person.get('folk'))
+    # Any friend who isn't a tiefling: the town may have drawn every one of them an elf.
+    friend = next(person for person in people if person.get('folk') != 'tiefling')
     picked = client.put(f"/api/life/circle/{friend['id']}/kind", json={'kind': 'tiefling', 'lifespan': None})
     assert picked.status_code == 200, picked.text
     assert picked.json()['kind']['kind'] == 'tiefling'

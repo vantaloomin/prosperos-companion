@@ -56,6 +56,16 @@ def no_pc_timezone(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def app_clock_back_in_the_present():
+    """The app-wide clock (companion/clock.CURRENT) follows the last world opened; a test that opened a world in a
+    past year (Back when) must not leave the next test reading that year (townsfolk are younger there)."""
+    from companion import clock
+    found = clock.CURRENT[0]
+    yield
+    clock.CURRENT[0] = found
+
+
+@pytest.fixture(autouse=True)
 def no_graphics_card(monkeypatch):
     """Tests never ask the test machine for its graphics cards (nvidia-smi, PowerShell); tests/test_hardware.py and
     tests/test_image_fit.py hand in the cards they need."""

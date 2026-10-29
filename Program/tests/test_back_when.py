@@ -1,11 +1,12 @@
 """Back when (companion/back_when.py): go back to a past year with a companion, in a world of its own."""
+import json
 from datetime import date
 
 import pytest
 from conftest import send
 from test_world_year import leaks
 
-from companion import back_when, back_when_rollback
+from companion import back_when, back_when_careers, back_when_rollback
 from companion.database import decode
 from companion.life import steps
 
@@ -180,3 +181,52 @@ def test_their_life_rolls_back_to_that_day(client, companion, app):
         row = connection.execute('SELECT status, details FROM circle_people WHERE id=?', (dad['id'],)).fetchone()
     assert row['status'] == 'active' and 'late' not in decode(row['details'])
     assert main(app)['version']['definition'].get('money', {}).get('career') != 'barista'
+
+
+def test_the_town_is_younger_and_only_the_grown_up_are_in_it(client, companion, app):
+    """Townsfolk are 14 years younger in 2012: whoever wasn't 18 yet isn't in town, and a retiree was working."""
+    hood = 'fells-point'
+    now = {person['key']: person for person in ok(client.get(f'/api/world/cities/baltimore/neighborhoods/{hood}/people'))}
+    ok(client.post('/api/worlds/back-when', json={'year': 2012}))
+    then = {person['key']: person for person in ok(client.get(f'/api/world/cities/baltimore/neighborhoods/{hood}/people'))}
+    assert then and set(then) < set(now)
+    assert all(now[key]['age'] - person['age'] == 14 and person['age'] >= 18 for key, person in then.items())
+    assert {key for key, person in now.items() if person['age'] < 32} == set(now) - set(then)
+    retirees = [key for key, person in now.items() if person['occupation'] == 'retired' and key in then]
+    assert retirees and any(then[key]['occupation'] != 'retired' for key in retirees)
+    place = ok(client.get('/api/world/cities/baltimore'))['places'][0]['id']
+    assert all(person['age'] >= 18 for person in ok(client.get(f'/api/world/cities/baltimore/places/{place}/people')))
+
+
+def test_work_fits_their_age_and_the_year(client, companion, app):
+    """A banker at 34 was at college at 20; a job from 2016 on wasn't there in 2012; a retired parent still worked."""
+    people = ok(client.get('/api/life/circle'))
+    with app.state.database.connect(write=True) as connection:
+        version = connection.execute('SELECT id, definition FROM character_versions WHERE id=?',
+                                     (main(app)['active_version_id'],)).fetchone()
+        definition = decode(version['definition'])
+        definition['money'] = {**(definition.get('money') or {}), 'career': 'finance-banker'}
+        connection.execute('UPDATE character_versions SET definition=? WHERE id=?',
+                           (json.dumps(definition), version['id']))
+        details = decode(connection.execute('SELECT details FROM circle_people WHERE id=?',
+                                            (people[0]['id'],)).fetchone()[0])
+        connection.execute("UPDATE circle_people SET career='', details=? WHERE id=?",
+                           (json.dumps(details | {'career': 'Retired', 'age': 68, 'local': True}), people[0]['id']))
+        connection.execute("UPDATE circle_people SET career='subscription-creator', details=? WHERE id=?",
+                           (json.dumps(decode(connection.execute('SELECT details FROM circle_people WHERE id=?',
+                                                                 (people[1]['id'],)).fetchone()[0]) | {'age': 40}),
+                            people[1]['id']))
+    ok(client.post('/api/worlds/back-when', json={'year': 2012}))
+    assert main(app)['version']['definition']['money']['career'] == 'undergraduate'
+    with app.state.database.connect() as connection:
+        rows = {row['id']: row for row in connection.execute('SELECT id, career, details FROM circle_people')}
+    dad, other = rows[people[0]['id']], rows[people[1]['id']]
+    assert dad['career'] and decode(dad['details'])['career'] != 'Retired' and decode(dad['details'])['age'] == 54
+    assert other['career'] and other['career'] != 'subscription-creator'
+
+
+def test_jobs_that_fit_stay_and_degree_work_waits():
+    banker = {'id': 'finance-banker', 'pay': '$$$$'}
+    assert back_when_careers.fits(banker, 30) and not back_when_careers.fits(banker, 20)
+    assert not back_when_careers.fits(None, 30)
+    assert not back_when_careers.fits({'id': 'undergraduate', 'pay': '$', 'ages': (18, 22)}, 30)
