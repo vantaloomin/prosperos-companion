@@ -639,7 +639,7 @@ function WorkflowActions({ flow, set }: { flow: Workflow; set: boolean }) {
 function summaryLine(backend: ImageBackend) {
   const where = backend.kind === 'codex' ? 'Codex CLI' : backend.local ? 'This computer' : backend.base_url
   const missingKey = backend.kind === 'hosted' && !backend.has_key && !backend.key_from
-  return [where, backend.model, missingKey ? 'no API key' : '', backend.key_from ? `key from ${backend.key_from}` : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')
+  return [where, backend.model, missingKey ? (backend.provider === 'novelai' ? 'no API token' : 'no API key') : '', backend.key_from ? `key from ${backend.key_from}` : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')
 }
 
 function BackendSummary({ backend }: { backend: ImageBackend }) {
