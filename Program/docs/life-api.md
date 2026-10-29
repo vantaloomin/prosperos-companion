@@ -1218,6 +1218,7 @@ POST /api/feed/{post_id}/reaction  {"reaction": "heart"} (heart, laugh, wow, sad
 POST /api/feed/{post_id}/hide
 POST /api/feed/{post_id}/unhide
 POST /api/feed/{post_id}/remove
+POST /api/feed/{post_id}/comments  {"text": "…"}   (a comment under the post; 1 to 1000 characters)
 POST /api/feed/{post_id}/discuss   {"text": "…", "client_id": "…"}
 POST /api/feed/{post_id}/answer    {"option": "Tacos", "client_id": "…"}   (question posts)
 POST /api/feed/posts               {"event_id": "…", "intro": "…"}
@@ -1287,6 +1288,22 @@ discussed with the same endpoints. Likes and comments are derived, not stored: t
 post, the active circle and the clock, arriving within a few hours of the post, at most three
 comments each. No line is said twice on one post or repeated on the few posts just before it. The companion likes and comments on friends' posts. Other companions who know the companion (a backstory, a group in common, or meetings in town: [companion/memory/pairs.py](../companion/memory/pairs.py)) like and comment on the companion's own posts from the time they were around, more often the closer they feel; someone reserved by their sheet (stoic, logical, of few words, quiet) likes now and then and seldom comments, in a few dry words, and someone warm joins in more. Their comments have `author: "companion"`. A renamed friend shows their new
 name; a removed one's posts and comments leave the feed. A branched timeline keeps the social posts from before it split off, with their read, reaction and answer state.
+
+### Comments
+
+`POST /api/feed/{post_id}/comments` leaves the user's comment under a post that isn't their own
+([companion/life/post_comments.py](../companion/life/post_comments.py)) and returns the post. Whoever posted answers
+it in the thread, once each comment: on the companion's posts the companion, written from their chat (the same
+character, memories and day as a chat reply) with the "Answering comments on their posts" prompt; on a friend's post
+that friend, from a guest-like sheet (who they are to the companion, how they come across) with the "Friends
+answering comments" prompt, knowing the user only through the companion (A/B: companion-feed-comments-ab). The
+answer is written at once and shows when the poster would have seen the comment: by Settings > Realism > "How
+quickly they read your texts" (a few minutes to a couple of hours), after the companion's work, evening out or sleep,
+or once a friend wakes up. Without a chat model, or when the answer can't be used, the comment stays unanswered.
+
+Each post carries `thread: {comments, waiting}`: the user's comments (`author: "user"`) and the answers that show by
+now (`author: "poster"`, with `name` and `reply_to`), oldest first; `waiting` is true while an answer is still to
+show. A removed post loses its comments. `discuss` still takes the post to chat instead.
 
 ### The user's own posts
 

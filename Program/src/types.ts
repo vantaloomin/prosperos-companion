@@ -838,7 +838,12 @@ export interface FeedPost {
   answer?: string | null
   image: PostImage | null
   audience: { likes: string[]; comments: FeedComment[] }
+  /** The user's comments and the poster's answers, oldest first; `waiting` while an answer is still to show. */
+  thread?: { comments: ThreadComment[]; waiting: boolean }
 }
+
+/** A comment the user left on a post (`user`) or the answer it got from whoever posted (`poster`, with their name). */
+export interface ThreadComment { id: string; author: 'user' | 'poster'; name: string | null; text: string; reply_to: string | null; at: string }
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
 
