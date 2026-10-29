@@ -1035,6 +1035,10 @@ export interface ImageBackend {
   custom_workflow: boolean
   // ComfyUI: the model family whose built-in workflow runs; null for other kinds.
   family: ImageFamily | null
+  // ComfyUI: the style the model family starts prompts with while `style` is '' (Booru: its quality tags); null for none.
+  family_style: string | null
+  // Its prompts go out as booru tags (solo, 1boy, ...) rather than sentences.
+  tag_prompts: boolean
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
   // The smaller Krea 2 model file the app picked for this computer's graphics card, used while no model is chosen.
