@@ -975,6 +975,15 @@ CITY = {
     ],
 }
 
+# The year each employer started hiring here, for worlds in a past year (Back when, companion/world/decades.py).
+FOUNDED = {
+    "Google New York": 2000,
+    "Meta New York": 2007,
+}
+for _employer in CITY['employers']:
+    if _employer['name'] in FOUNDED:
+        _employer['years'] = [FOUNDED[_employer['name']], None]
+
 if __name__ == '__main__':
     OUT.write_text(json.dumps(CITY, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
     print(f'Wrote {OUT}')
