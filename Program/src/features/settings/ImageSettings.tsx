@@ -144,7 +144,7 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
     <li className="backend-row">
       <BackendSummary backend={backend} />
       {backend.blocked_reason && (
-        <Notice tone="error" action={<button type="button" className="button" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>Signed in again</button>}>
+        <Notice tone="error" action={<button type="button" className="button" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>{backend.kind === 'codex' ? 'Signed in again' : 'Try again'}</button>}>
           {backend.blocked_reason}
         </Notice>
       )}
@@ -720,7 +720,7 @@ function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () =
       </>}
       {kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={cliPath} onChange={setCliPath} hint="Found on PATH when empty. Sign in once with codex login in a terminal; the app never sees your password or token." />}
       {kind === 'hosted' && <>
-        <Field label="Provider" hint="The image service your API key is for.">{(id, hint) => (
+        <Field label="Provider" hint="The image service you are adding.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={provider} onChange={(event) => { setProvider(event.target.value as HostedProvider); setAccepted(false) }}>
             {PROVIDERS.filter((item) => !phone || item.id !== 'other').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>

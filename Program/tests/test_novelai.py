@@ -97,7 +97,7 @@ def test_failures_are_typed(response, code):
 def test_a_missing_token_is_named():
     with pytest.raises(AdapterError) as error:
         asyncio.run(HostedAdapter(server([], [])).generate(request(key=None)))
-    assert error.value.code == 'auth' and 'NovelAI API token' in error.value.message
+    assert error.value.code == 'auth' and 'NovelAI API token under Connection' in error.value.message
 
 
 def test_no_reference_picture_is_sent():
@@ -135,7 +135,8 @@ def test_a_novelai_backend_runs_one_at_a_time_and_may_take_nsfw(client):
                           allows_nsfw=True, concurrency=3)
     assert backend['label'] == 'NovelAI' and backend['base_url'] == novelai.BASE_URL
     assert backend['concurrency'] == 1 and backend['accepts_nsfw'] and not backend['takes_reference']
-    assert 'NovelAI' in backend['disclosure'] and backend['tag_prompts']
+    assert 'only the prompt is sent' in backend['disclosure'] and 'profile picture' not in backend['disclosure']
+    assert backend['tag_prompts']
     assert backend['family_style'] == tags.ILLUSTRIOUS and backend['style'] == ''
     listed = ok(client.post('/api/images/models', json={'provider': 'novelai'}))
     assert listed['ok'] and listed['models'] == novelai.MODELS

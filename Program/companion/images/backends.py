@@ -140,9 +140,12 @@ def disclosure(backend: dict) -> str | None:
             else 'this image service'
     text = (f'Each image request sends its prompt (built from the event and the character\'s appearance '
             f'description) to {destination}. Their retention rules apply. Conversation and memories are '
-            f'not sent. Reference pictures go along when you make profile pictures: the first one goes along with '
-            f'the other two.')
-    if backend['kind'] != 'codex':
+            f'not sent.')
+    if is_novelai(backend):
+        text += ' NovelAI does not take reference pictures, so only the prompt is sent.'
+    else:
+        text += ' Reference pictures go along when you make profile pictures: the first one goes along with the other two.'
+    if backend['kind'] != 'codex' and not is_novelai(backend):
         text += (' Where it can take a reference picture, each picture of your companion also sends their profile '
                  'picture, so they keep one face (Settings > Images can turn this off).')
     if backend['kind'] == 'codex':

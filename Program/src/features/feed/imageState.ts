@@ -78,10 +78,19 @@ function destinationFor(kind: BackendKind, provider: HostedProvider): string {
   return provider === 'other' ? 'this image service' : PROVIDERS.find((item) => item.id === provider)?.label ?? 'this provider'
 }
 
+/** What goes along besides the prompt: reference pictures, Codex's character sheet, or nothing for NovelAI. */
+function referenceText(kind: BackendKind, provider: HostedProvider): string {
+  if (kind === 'hosted' && provider === 'novelai') return ' NovelAI does not take reference pictures, so only the prompt is sent.'
+  const profiles = ' Reference pictures go along when you make profile pictures: the first one goes along with the other two.'
+  return kind === 'codex'
+    ? `${profiles} With Codex, each picture of your companion also sends their character sheet, and their first picture takes two requests: one to draw the sheet (from their profile picture, if they have one), then the picture.`
+    : `${profiles} Where it can take a reference picture, each picture of your companion also sends their profile picture, so they keep one face (Settings > Images can turn this off).`
+}
+
 /** What a new backend will receive, matching the server's disclosure; null when nothing leaves this computer. */
 export function disclosureFor(kind: BackendKind, provider: HostedProvider, baseUrl: string, controlled: boolean, nsfw = false): string | null {
   if (kind === 'comfyui' && (isLoopback(baseUrl) || controlled)) return null
-  const text = `Each image request sends its prompt (built from the event and the character's appearance description) to ${destinationFor(kind, provider)}. Their retention rules apply. Conversation and memories are not sent. Reference pictures go along when you make profile pictures: the first one goes along with the other two.${kind === 'codex' ? ' With Codex, each picture of your companion also sends their character sheet, and their first picture takes two requests: one to draw the sheet (from their profile picture, if they have one), then the picture.' : ' Where it can take a reference picture, each picture of your companion also sends their profile picture, so they keep one face (Settings > Images can turn this off).'}`
+  const text = `Each image request sends its prompt (built from the event and the character's appearance description) to ${destinationFor(kind, provider)}. Their retention rules apply. Conversation and memories are not sent.${referenceText(kind, provider)}`
   return kind === 'hosted' && nsfw && NSFW_PROVIDERS.includes(provider)
     ? `${text} NSFW requests go there too, so their terms decide what they will make and keep. Prohibited requests are still never sent.`
     : text
