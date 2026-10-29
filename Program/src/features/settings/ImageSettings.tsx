@@ -73,7 +73,7 @@ function Backends({ list, refresh, setResult, phone }: { list: ImageBackend[]; r
       {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} phone={phone} />)}
     </ol>
     {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
-    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API or NanoGPT. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
+    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API, NanoGPT or NovelAI. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
     {adding ? <AddBackend phone={phone} onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
   </>
@@ -144,7 +144,7 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
     <li className="backend-row">
       <BackendSummary backend={backend} />
       {backend.blocked_reason && (
-        <Notice tone="error" action={<button type="button" className="button" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>Signed in again</button>}>
+        <Notice tone="error" action={<button type="button" className="button" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>{backend.kind === 'codex' ? 'Signed in again' : 'Try again'}</button>}>
           {backend.blocked_reason}
         </Notice>
       )}
@@ -639,7 +639,7 @@ function WorkflowActions({ flow, set }: { flow: Workflow; set: boolean }) {
 function summaryLine(backend: ImageBackend) {
   const where = backend.kind === 'codex' ? 'Codex CLI' : backend.local ? 'This computer' : backend.base_url
   const missingKey = backend.kind === 'hosted' && !backend.has_key && !backend.key_from
-  return [where, backend.model, missingKey ? 'no API key' : '', backend.key_from ? `key from ${backend.key_from}` : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')
+  return [where, backend.model, missingKey ? (backend.provider === 'novelai' ? 'no API token' : 'no API key') : '', backend.key_from ? `key from ${backend.key_from}` : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')
 }
 
 function BackendSummary({ backend }: { backend: ImageBackend }) {
@@ -666,7 +666,7 @@ function backendBody(draft: Draft, disclosure: string | null, accepted: boolean)
 }
 
 const MODEL_EXAMPLES: Record<HostedProvider, string> = {
-  openrouter: 'google/gemini-2.5-flash-image', google: 'imagen-4.0-generate-001', openai: 'gpt-image-1', nanogpt: 'hidream-o1-image', other: 'gpt-image-1',
+  openrouter: 'google/gemini-2.5-flash-image', google: 'imagen-4.0-generate-001', openai: 'gpt-image-1', nanogpt: 'hidream-o1-image', novelai: 'nai-diffusion-4-5-full', other: 'gpt-image-1',
 }
 
 /** The NSFW switch for a new image API backend; Google and the OpenAI API only say they stay safe-only. */
@@ -720,7 +720,7 @@ function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () =
       </>}
       {kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={cliPath} onChange={setCliPath} hint="Found on PATH when empty. Sign in once with codex login in a terminal; the app never sees your password or token." />}
       {kind === 'hosted' && <>
-        <Field label="Provider" hint="The image service your API key is for.">{(id, hint) => (
+        <Field label="Provider" hint="The image service you are adding.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={provider} onChange={(event) => { setProvider(event.target.value as HostedProvider); setAccepted(false) }}>
             {PROVIDERS.filter((item) => !phone || item.id !== 'other').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
@@ -746,6 +746,7 @@ function HostedKey({ provider, baseUrl, value, onChange }: { provider: HostedPro
   const [typing, setTyping] = useState(false)
   const from = imageKeyFrom(profiles, provider, baseUrl)
   if (from && !typing) return <div className="token-entry"><p>Uses the API key saved with <strong>{from.name}</strong>.</p><button type="button" className="button" onClick={() => setTyping(true)}>Use a different key</button></div>
-  return <div className="token-entry"><TextInput label="API key" type="password" value={value} onChange={onChange} hint="Saved in your system's credential store." />
+  return <div className="token-entry"><TextInput label={provider === 'novelai' ? 'API token' : 'API key'} type="password" value={value} onChange={onChange}
+    hint={provider === 'novelai' ? "Your persistent API token, from Account Settings on novelai.net. Saved in your system's credential store." : "Saved in your system's credential store."} />
     {from && <button type="button" className="text-button" onClick={() => { onChange(''); setTyping(false) }}>Use the {from.name} key</button>}</div>
 }

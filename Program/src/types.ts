@@ -1022,7 +1022,7 @@ export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed'
 export interface PostImage { status: ImageStatus; job_id: string | null; ref: string | null; error: string | null; updated_at: string | null; outdated?: boolean }
 
 export type BackendKind = 'comfyui' | 'codex' | 'hosted'
-export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'nanogpt' | 'other'
+export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'nanogpt' | 'novelai' | 'other'
 
 export interface ImageBackend {
   id: string
@@ -1040,7 +1040,7 @@ export interface ImageBackend {
   custom_workflow: boolean
   // ComfyUI: the model family whose built-in workflow runs; null for other kinds.
   family: ImageFamily | null
-  // ComfyUI: the style the model family starts prompts with while `style` is '' (Booru: its quality tags); null for none.
+  // The style the model family starts prompts with while `style` is '' (Booru and NovelAI: quality tags); null for none.
   family_style: string | null
   // Its prompts go out as booru tags (solo, 1boy, ...) rather than sentences.
   tag_prompts: boolean
