@@ -67,6 +67,29 @@ user picks the person; the app never puts them in someone else's shoes.
   them. `townsfolk.find` still names them, for their own persona. Townsfolk are always 18 or older.
 - The page reloads into the new world's chat with a one-time line ("You're Maya now. Ines is your first companion. You can change anything about yourself in Worlds.").
 
+## Back when
+
+`GET /api/worlds/back-when` and `POST /api/worlds/back-when {year, from_history}` (Feature Hit List #79, 1.2 "The Dark
+Backward", `companion/back_when.py`): go back to a past year with the main companion. It only starts from a world in
+the present, and only goes back to years when both of them were 18 or older (never before 1990).
+
+- The sheet offers three moments the app picked from what is stored: when you first met, the year before your latest
+  step (the wedding, moving in), the year before a life chapter, and a round age of theirs ("When Mira was 25"). The
+  user can pick any year in `earliest`..`latest` instead.
+- Picking one makes a world named "Back when · 2009" in the same city, with the same town (their town seed comes
+  with them), whose clock runs in that year (`world_year`), and switches to it. The world they left waits as it was.
+- What comes along: who they are, their look, their circle, family, kids, home and love life, from their active
+  timeline. What stays: chats, memories, the feed, pictures and the simulation's cursors.
+- Rolled back to that day by rules (`companion/back_when_rollback.py`): later life chapters undone, people who died
+  later alive, kids born later not born, partners met later not met, today's coworkers and later friends out of the
+  circle, everyone younger by their birth date (anyone under 18 then leaves the circle), home items from later gone.
+  Their age and the age in their own words ("34-year-old") go back too, in a new character version.
+- The two of you start as strangers. "Work it out from our history" (`from_history`, off by default) keeps the steps
+  reached by then instead, with dates worked out for steps written as history ("married ten years", "since college"),
+  and strangers before the day you met.
+- The persona is younger there by the years it goes back (the world's `back_when` row), never under 18. The worlds
+  list shows `back_when: {year, name, companion_id}` for such a world.
+
 ## Deleting
 
 A world can be deleted unless it is active or the first world (which holds the others; Start over empties it). A

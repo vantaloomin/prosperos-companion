@@ -1,8 +1,8 @@
 """Worlds and personas (companion/worlds.py): /api/worlds."""
 from fastapi import APIRouter, Request
 
-from companion import worlds
-from companion.models import Become, HomeChange, NewPersona, NewWorld, PersonaCopy, PersonaInput, WorldChange
+from companion import back_when, worlds
+from companion.models import BackWhen, Become, HomeChange, NewPersona, NewWorld, PersonaCopy, PersonaInput, WorldChange
 
 router = APIRouter(prefix='/api/worlds')
 
@@ -29,6 +29,19 @@ async def become(request: Request, body: Become):
     """Start a new life as a townsperson the user or their companion has met: a new world in the same town with
     them as the persona, and switch to it. Runs on the event loop, like a switch."""
     return worlds.become(request.app.state, body.key)
+
+
+@router.get('/back-when')
+def back_when_moments(request: Request, companion_id: str | None = None):
+    """The Back when sheet: three moments the app picked, and the years the user can pick instead."""
+    return back_when.moments(db(request), companion_id)
+
+
+@router.post('/back-when')
+async def back_when_world(request: Request, body: BackWhen):
+    """Go back to that year with the companion: a new world in it, and switch to it. Runs on the event loop, like a
+    switch."""
+    return back_when.build(request.app.state, body.year, body.from_history, body.companion_id)
 
 
 @router.patch('/{world_id}')
