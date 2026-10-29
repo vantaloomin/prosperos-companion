@@ -924,6 +924,10 @@ export interface CirclePerson {
   stage?: PairStage | null
   /** Where the user says the two of them start, 1 Just met to 5; unset is the app's pick. */
   start_stage?: number
+  /** Whether they and the companion know each other, or only one knows of the other (companion/life/circle.py
+   * `knowing`): 'they' know the companion, or the 'companion' knows of them. `knowing_set` when the user said so. */
+  knowing?: Knowing
+  knowing_set?: boolean
   /** What they think of you, once they have met you (companion/life/their_people.py). */
   met?: CircleMet | null
   now: RoutineBlock | null
@@ -1007,6 +1011,7 @@ export interface NetworkAnswer { person: Pick<NetworkPerson, 'key' | 'name' | 'd
 export interface Acquaintance extends Omit<NetworkPerson, 'depth' | 'met'> { occasion: string; met_on: string; met_at: string }
 
 export interface CircleTie { id: string; name: string; how: string }
+export type Knowing = 'both' | 'they' | 'companion'
 /** Whether the companion lives aboard a ship or station (companion/world/ships.py `vessel`), else null. */
 export interface CircleHome { aboard: 'ship' | 'station' | null }
 

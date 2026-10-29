@@ -87,13 +87,16 @@ class PersonAbout(Input):
     note: str | None = Field(default=None, max_length=300)
     # Where the two of them start with the companion, 1 Just met to 5; 0 hands it back to the app (memory/pairs.py).
     start_stage: int | None = Field(default=None, ge=0, le=5)
+    # Whether they and the companion know each other, or only one knows the other; '' hands it back to the app
+    # (circle.knowing).
+    knowing: Literal['', 'both', 'they', 'companion'] | None = None
 
 
 class PersonTie(Input):
     """How two people in the circle know each other, in the user's word ('' is not at all); None is the app's pick."""
     other_id: str = Field(min_length=1, max_length=64)
     how: Literal['friends', 'old friends', 'family', 'coworkers', 'known for years', 'rivals', 'married', 'divorced',
-                 'separated', ''] | None = None
+                 'separated', 'knows of', 'known by', ''] | None = None
 
 
 class PersonNew(PersonAbout):

@@ -475,6 +475,8 @@ def person_text(person, away: str = 'out of town') -> str:
     if person.get('married'):
         text += ' Married' + (f", goes by their married name (born {person['birth_family']})."
                               if person.get('birth_family') else '.')
+    if person.get('knowing', 'both') != 'both':
+        text += ' ' + circle.knowing_text(person['knowing'])
     if person.get('knows'):
         text += ' ' + circle.ties_text(person['knows'])
     if person.get('shared'):  # From another companion's circle (companion/life/shared_people.py).
@@ -821,6 +823,8 @@ def offer_people(packet, connection, companion, now, today):
             # family they don't talk to, and family who died before now, are in the family line (family_tree.py).
         said = circle.said(person['role'], companion['version']['definition'])  # 'mother' in 1895
         packet.offer('circle', person['id'], person_text({**person, 'role': said}, away))
+        if person.get('knowing', 'both') != 'both':
+            continue  # Someone only one of them knows: the companion doesn't follow their days.
         if moment := person_now_text({**person, 'birthday_today': person['birthday'] == today[5:]}):
             packet.offer('circle_now', person['id'], moment)
     offer_all(packet, 'circle', families.context_lines(connection, companion, now))
