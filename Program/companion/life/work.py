@@ -841,23 +841,34 @@ def touch(connection, companion: dict, entry: dict | None, block: dict, day: dat
     found = state(connection, companion['active_timeline_id'])
     if not week or not found:
         return entry
+    if entry.get('activity') == 'lunch-out':
+        if week != 'slammed':
+            return entry
+        entry = {**entry, 'activity': 'busy-shift', 'place': None}  # No lunch out in a slammed week.
     label, project = routine_label(block), project_on(connection, companion, found, day)['title']
     if (gig := shifts.setup(connection, companion)) and gig['kind'] == 'freelance' and \
             generators.unit(seed, 'gig-line') < 0.5:
         lines = GIG_OLD if shifts.old_era(connection, companion) else GIG
         summary = generators.pick(seed, 'gig', list(lines)).format(name=name, project=project)
         return {**entry, 'summary': summary, 'mood': 'busy' if week == 'slammed' else entry.get('mood')}
-    if week == 'slammed':
-        lines, posts, mood = SLAMMED, SLAMMED_POSTS, 'busy'
-    elif week == 'slow':
-        lines, posts, mood = SLOW, SLOW_POSTS, 'relaxed'
-    elif generators.unit(seed, 'project-line') < 0.4:
-        lines, posts, mood = STEADY, (), entry.get('mood')
-    else:
+    chosen = week_lines(week, seed, entry)
+    if not chosen:
         return entry
+    lines, posts, mood = chosen
     summary = generators.pick(seed, 'work-week', list(lines)).format(name=name, label=label, project=project)
     return {**entry, 'summary': summary, 'mood': mood or entry.get('mood'),
             'post': generators.pick(seed, 'work-post', list(posts)) if posts else entry.get('post')}
+
+
+def week_lines(week: str, seed: str, entry: dict) -> tuple | None:
+    """The lines, captions and mood for a work slot this week, or None to keep the slot's own account."""
+    if week == 'slammed':
+        return SLAMMED, SLAMMED_POSTS, 'busy'
+    if week == 'slow':
+        return SLOW, SLOW_POSTS, 'relaxed'
+    if generators.unit(seed, 'project-line') < 0.4:
+        return STEADY, (), entry.get('mood')
+    return None
 
 
 def routine_label(block: dict) -> str:

@@ -13,7 +13,7 @@ from companion.clock import parse, zone
 from companion.database import decode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import composer, loss, post_comments, social, user_posts
-from companion.world import decades
+from companion.world import decades, looks
 
 REACTIONS = ('heart', 'laugh', 'wow', 'sad', 'hug')
 # A photo sent in chat waits on a post keyed to the event its slot will become (companion/images/photos.py).
@@ -72,7 +72,7 @@ def said_events(connection, post, shown: list[dict]) -> list[dict]:
 
 
 def mine(event: dict, definition: dict) -> dict:
-    line = composer.mine(event['summary'], definition.get('name', ''))
+    line = composer.mine(event['summary'], definition.get('name', ''), definition and looks.pronouns_of(definition))
     return {'caption': line if event['caption'] == event['summary'] else event['caption'], 'summary': line}
 
 

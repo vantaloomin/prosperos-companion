@@ -334,11 +334,56 @@ def first_person(verb: str) -> str:
     return verb[:-2] if ES.search(lower) else verb[:-1]
 
 
-def mine(text: str | None, name: str) -> str | None:
+# A summary the model phrased (companion/life/synthesis.py) can start a sentence with the companion's pronoun
+# ("He settled down in a booth"), which their post says as "I" too: in that sentence "his" is "my", "himself"
+# "myself". Only the companion's own pronouns change; "they" only when nobody else is in the line, since "They"
+# after "Sam and Rosa" means both.
+SUBJECTS = {'he/him': ('He', ('his',), 'himself'), 'she/her': ('She', ('her',), 'herself'),
+            'they/them': ('They', ('their',), 'themselves')}
+CONTRACTED = {"He's": "I'm", "She's": "I'm", "They're": "I'm", "They've": "I've", "He'd": "I'd", "She'd": "I'd",
+              "They'd": "I'd", "He'll": "I'll", "She'll": "I'll", "They'll": "I'll"}
+THEY_SHARED = re.compile(r"\b(?:with (?!them)|met|joined|together|and I|and me)\b|\b[A-Z]\w+ and [A-Z]")
+THEY_VERBS = {'are': 'am', 'were': 'was', "aren't": "am not", "weren't": "wasn't"}
+# After "her", a word that shows it is the object ("walked her home"), so the companion's "her" there is "me".
+OBJECT_AFTER = {'home', 'to', 'up', 'down', 'out', 'in', 'off', 'back', 'over', 'around', 'and', 'with', 'for',
+                'at', 'about', 'a', 'an', 'the', 'some', 'that', 'this', 'how', 'what', 'when', 'again'}
+
+
+def own_pronouns(text: str, forms: str | None) -> str:
+    """Sentences that start with the companion's own pronoun, said as "I" (see SUBJECTS)."""
+    found = SUBJECTS.get(forms or '')
+    if not found or forms == 'they/them' and THEY_SHARED.search(text):
+        return text
+    subject, possessives, reflexive = found
+    adverbs = '|'.join(ADVERBS)
+    sentences = re.split(r'(?<=[.!?]) ', text)
+    for index, sentence in enumerate(sentences):
+        if not re.match(rf"{subject}(?:'\w+)?\b", sentence):
+            continue
+        sentence = re.sub(rf"^{subject}'\w+\b", lambda word: CONTRACTED.get(word.group(0), word.group(0)), sentence)
+        sentence = re.sub(rf"^{subject} ((?:(?:{adverbs}) )?)([\w']+)\b",
+                          lambda word: f"I {word.group(1)}"
+                                       f"{THEY_VERBS.get(word.group(2), first_person(word.group(2)))}", sentence)
+        sentence = re.sub(rf"\b(and|but|so|then|while|because|when) {subject.lower()} ((?:(?:{adverbs}) )?)([\w']+)\b",
+                          lambda word: f"{word.group(1)} I {word.group(2)}"
+                                       f"{THEY_VERBS.get(word.group(3), first_person(word.group(3)))}", sentence)
+        sentence = re.sub(rf'\b{reflexive}\b', 'myself', sentence)
+        for possessive in possessives:
+            sentence = re.sub(rf"\b{possessive}\b( [\w'-]+)?",
+                              lambda word: ('me' if possessive == 'her' and (not word.group(1) or word.group(1).strip()
+                                                                              .lower() in OBJECT_AFTER) else 'my')
+                              + (word.group(1) or ''), sentence)
+        sentences[index] = sentence
+    return ' '.join(sentences)
+
+
+def mine(text: str | None, name: str, own: str | None = None) -> str | None:
     """A summary about `name` (the companion or a circle member) said by them: "Sam kept up" reads "I kept up",
-    "Sam goes" "I go", and "Sam's" is "my" ("My" only to start a sentence)."""
+    "Sam goes" "I go", and "Sam's" is "my" ("My" only to start a sentence). With their pronouns known (`own`, "he/him"), a sentence
+    that starts "He ..." about them reads "I ..." too."""
     if not text or not name:
         return text
+    text = own_pronouns(text, own)
     text = said(text, {}, pronouns.FIRST)
     names = sorted({name.strip(), name.strip().split()[0]}, key=len, reverse=True)
     who = '(?:' + '|'.join(re.escape(each) for each in names if each) + ')'
