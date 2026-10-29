@@ -643,6 +643,8 @@ class Conversation:
                 # Texting habits (typos, lowercase) stop while they are together in person (companion/life/together.py)
                 # or on the phone (companion/life/calls.py).
                 text = texting.restyle(text, companion['version']['definition'], attempt_id)
+            elif status == 'complete' and texting.out_loud(companion['version']['definition']):
+                text = texting.spoken(text)
             connection.execute('UPDATE messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
                                (text, status, error, self.database.now(), attempt_id))
             if status == 'complete':

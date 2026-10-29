@@ -18,7 +18,7 @@ from companion.errors import require
 from companion.life import circle, job_words, named, shared_people
 from companion.world import catalog, generators
 
-FIELDS = ('name', 'role', 'pronouns', 'job', 'employer', 'age', 'local', 'note', 'start_stage')
+FIELDS = ('name', 'role', 'pronouns', 'job', 'employer', 'age', 'local', 'note', 'start_stage', 'knowing')
 NOTE_MAX = 300
 
 
@@ -46,7 +46,8 @@ def add(connection, companion: dict, world, change: dict, now) -> dict:
     note = (change.get('note') or '').strip()[:NOTE_MAX]
     made['details'] = made['details'] | {'by_hand': True, 'spared': True, 'edited': sorted(
         key for key in FIELDS if change.get(key) not in (None, ''))} | ({'note': note} if note else {}) | (
-        {'start_stage': change['start_stage']} if change.get('start_stage') else {})
+        {'start_stage': change['start_stage']} if change.get('start_stage') else {}) | (
+        {'knowing': change['knowing']} if change.get('knowing') else {})
     circle.insert(connection, timeline_id, [made], ordinal, now)
     added = one(connection, 'SELECT * FROM circle_people WHERE timeline_id=? AND ordinal=?', (timeline_id, ordinal))
     connection.execute('INSERT OR IGNORE INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?)',
@@ -98,15 +99,23 @@ def basics(made: dict, given: dict) -> dict:
         details['pronouns'] = given['pronouns']
     if 'age' in given:
         details['age'] = given['age']
-    if 'start_stage' in given:  # Where they start with the companion (memory/pairs.py); 0 is the app's pick again.
-        details.pop('start_stage', None)
-        details |= {'start_stage': given['start_stage']} if given['start_stage'] else {}
+    # Where they start with the companion (memory/pairs.py) and whether they know each other (circle.knowing); 0 or ''
+    # is the app's pick again.
+    for key in ('start_stage', 'knowing'):
+        picked(details, given, key)
     if 'note' in given:
         note = given['note'].strip()[:NOTE_MAX]
         details |= {'note': note} if note else {}
         if not note:
             details.pop('note', None)
     return made
+
+
+def picked(details: dict, given: dict, key: str):
+    """The user's pick for one of `details` when given; an empty one hands it back to the app."""
+    if key in given:
+        details.pop(key, None)
+        details |= {key: given[key]} if given[key] else {}
 
 
 def renamed_note(note: str, old: str, new: str) -> str:
