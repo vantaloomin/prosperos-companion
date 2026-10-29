@@ -69,7 +69,7 @@ export const FAMILIES: Record<ImageFamily, Family> = {
   },
   booru: {
     label: 'Booru (SDXL, Pony, Illustrious)', short: 'Booru', looks: 'SDXL, Pony or Illustrious', sampling: 'Illustrious XL', steps: 'Most SDXL models use 20 to 30.',
-    note: 'Works best with a tag-style prompt; see Prompt style.',
+    note: 'Prompts go out as booru tags (solo, 1boy and so on), after the quality tags under Prompt style.',
     reference: 'Pictures from a reference need the IPAdapter Plus nodes and its two models.',
     pack: { label: 'IPAdapter Plus', url: 'https://github.com/cubiq/ComfyUI_IPAdapter_plus', install: false },
     slots: [{ key: 'ckpt_name', label: 'Model', role: 'model', hint: 'From ComfyUI\'s models/checkpoints folder.', tip: 'One file holds the model, its text encoders and VAE. Any SDXL, Pony or Illustrious checkpoint works.' }],

@@ -42,7 +42,7 @@ from uuid import uuid4
 import httpx
 
 from companion.errors import DomainError
-from companion.images import node_packs
+from companion.images import node_packs, tags
 from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
 from companion.providers.urls import is_loopback
 
@@ -136,8 +136,10 @@ FAMILIES = {
         'vae_name': QWEN_VAE,
         'lora': re.compile(r'anima', re.IGNORECASE)}),
     # SDXL and the anime models built on it (Pony, Illustrious, NoobAI): one checkpoint file, clip skip 2. Its
-    # reference workflow steers the picture with IP-Adapter Plus (the ComfyUI_IPAdapter_plus pack).
-    'booru': Family('Booru (SDXL, Pony, Illustrious)', 'booru-sdxl', 'booru-sdxl-reference', ('ckpt_name',), style=ANIME,
+    # reference workflow steers the picture with IP-Adapter Plus (the ComfyUI_IPAdapter_plus pack). Its prompts go
+    # out as booru tags (images/tags.py), opening with the quality tags these models were trained on.
+    'booru': Family('Booru (SDXL, Pony, Illustrious)', 'booru-sdxl', 'booru-sdxl-reference', ('ckpt_name',),
+                    style=tags.ILLUSTRIOUS,
                     matching={
         'ckpt_name': re.compile(r'illustrious|pony|noob|sdxl|xl[-_ .v]|animagine', re.IGNORECASE),
         'lora': re.compile(r'illustrious|pony|noob|sdxl|xl[-_ .v]|pdxl|ilxl', re.IGNORECASE)}),
@@ -391,12 +393,37 @@ def node_rejection(node_id: str, found: dict) -> str:
 
 # Prompts' "He is the only person in the picture." (images/prompts.alone), which tag-trained families read best as tags.
 ONLY_ONE = re.compile(r'\b(She|He|They) (?:is|are) the only person in the picture\.')
-TAGGED = {'anima', 'booru'}
+TAGGED = {'anima'}
+# A workflow of the user's own that loads a tag-trained checkpoint gets tags too, whatever family the backend says.
+TAG_MODEL = re.compile(r'illustrious|noob|pony|pdxl|animagine|ilxl', re.IGNORECASE)
 SOLO_TAGS = {'She': '1girl', 'He': '1boy', 'They': '1other'}
 
 
+def tag_kind(config) -> str | None:
+    """'illustrious' or 'pony' when this backend's prompts go out as booru tags (images/tags.py): the Booru family, or
+    a workflow of the user's own on another photo family that loads such a checkpoint. None keeps the paragraph."""
+    family = family_of(config)
+    if family == 'booru':
+        return tags.flavor(config)
+    own = ' '.join(str(config.get(key) or '') for key in ('workflow', 'reference_workflow'))
+    if family in TAGGED or not TAG_MODEL.search(own):
+        return None
+    return tags.flavor({'ckpt_name': own})
+
+
+def worded(config, request, styles) -> tuple[str, str]:
+    """The prompt and negative prompt as this backend's model reads them best."""
+    family = family_of(config)
+    kind = tag_kind(config)
+    if kind is None:
+        return solo(family, triggered(request.prompt, request.lora, styles), request.negative, request.name)
+    style = config.get('style') or FAMILIES[family].style
+    prompt, negative = tags.convert(request.prompt, request.negative, request.name, style, kind)
+    return triggered(prompt, request.lora, styles), negative
+
+
 def solo(family: str, prompt: str, negative: str, name: str | None = None) -> tuple[str, str]:
-    """For an anime family trained on booru tags: their name as a tag (it may know "sett"), and "solo" for a moment of
+    """For Anima, an anime family trained on booru tags as well as sentences: their name as a tag (it may know "sett"), and "solo" for a moment of
     their own, since it draws one sentence of looks and another of the moment's outfit as two people unless told.
     The tags are added here, after the content check has read the prompt, so a name never trips it."""
     if family not in TAGGED:
@@ -437,8 +464,7 @@ class ComfyAdapter:
                                              if request.config.get(key) not in (None, '')}}
             name = f"{name} ({used['steps']} steps, CFG {used['cfg']:g}, {used['sampler_name']}/{used['scheduler']})"
         styles = style_loras(request.config, request.lora)
-        prompt, negative = solo(family_of(request.config), triggered(request.prompt, request.lora, styles),
-                                request.negative, request.name)
+        prompt, negative = worded(request.config, request, styles)
         values = {'{{prompt}}': prompt, '{{negative}}': negative, '{{seed}}': request.seed,
                   '{{width}}': request.width, '{{height}}': request.height, REFERENCE: ''}
         async with self.client(request.config['base_url']) as client:

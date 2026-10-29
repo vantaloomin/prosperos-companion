@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { MapPin } from 'lucide-react'
-import type { FeedPost } from '../../types'
+import type { FeedPost, ThreadComment } from '../../types'
 
 const LABELS: Partial<Record<FeedPost['kind'], string>> = {
   birthday: 'Birthday', holiday: 'Holiday', city: 'Around town', question: 'Asking you',
@@ -39,17 +39,38 @@ function Choices({ post, answer }: { post: FeedPost; answer: (post: FeedPost, op
 const names = (likes: string[]) => likes.length <= 2 ? likes.join(' and ') : `${likes.slice(0, 2).join(', ')} and ${likes.length - 2} more`
 
 /** Likes and comments from the companion's circle (and from the companion, on friends' posts). On the user's own
- * posts, every companion and their circles, each friend of a friend with whose they are. */
-export function Audience({ audience }: { audience: FeedPost['audience'] }) {
-  if (!audience.likes.length && !audience.comments.length) return null
+ * posts, every companion and their circles, each friend of a friend with whose they are. Then the user's own comments,
+ * each with the answer it got from whoever posted. */
+export function Audience({ audience, thread, poster }: { audience: FeedPost['audience']; thread?: FeedPost['thread']; poster: string }) {
+  const own = thread?.comments ?? []
+  if (!audience.likes.length && !audience.comments.length && !own.length) return null
   return (
     <div className="post-audience">
       {audience.likes.length > 0 && <p className="subtle"><span aria-hidden="true">❤️ </span>Liked by {names(audience.likes)}</p>}
-      {audience.comments.length > 0 && (
-        <ul className="post-comments" aria-label="Comments">
-          {audience.comments.map((comment) => <li key={`${comment.name}-${comment.at}`}><strong>{comment.name}</strong>{comment.role && <span className="post-role"> · {comment.role}</span>} {comment.text}</li>)}
-        </ul>
-      )}
+      <Comments comments={audience.comments} own={own} waiting={thread?.waiting ? firstName(poster) : null} />
     </div>
   )
+}
+
+function Comments({ comments, own, waiting }: { comments: FeedPost['audience']['comments']; own: ThreadComment[]; waiting: string | null }) {
+  if (!comments.length && !own.length) return null
+  // While an answer is on its way, a quiet line sits where it will show: under the newest comment still unanswered.
+  const answered = new Set(own.map((comment) => comment.reply_to))
+  const unanswered = waiting ? [...own].reverse().find((comment) => comment.author === 'user' && !answered.has(comment.id)) : undefined
+  return (
+    <ul className="post-comments" aria-label="Comments">
+      {comments.map((comment) => <li key={`${comment.name}-${comment.at}`}><strong>{comment.name}</strong>{comment.role && <span className="post-role"> · {comment.role}</span>} {comment.text}</li>)}
+      {own.map((comment) => <Fragment key={comment.id}>
+        <ThreadLine comment={comment} />
+        {comment === unanswered && <li className="post-comment-answer post-waiting" aria-live="polite">{waiting} hasn't seen it yet.</li>}
+      </Fragment>)}
+    </ul>
+  )
+}
+
+const firstName = (name: string) => name.trim().split(/\s+/)[0] || name
+
+function ThreadLine({ comment }: { comment: ThreadComment }) {
+  if (comment.author === 'user') return <li className="post-comment-yours"><strong>You</strong> {comment.text}</li>
+  return <li className="post-comment-answer"><strong>{comment.name}</strong> {comment.text}</li>
 }

@@ -58,6 +58,16 @@ ELDERS = True
 OLDER_PARTED = 0.04
 PARTED = {'divorced': 'Divorced from', 'separated': 'Separated from'}
 COUPLED = ('married', *PARTED)
+# One-sided ties: one of them knows of the other, who doesn't know them back. Kept as each side sees it.
+MIRROR = {'knows of': 'known by', 'known by': 'knows of'}
+# Whether someone and the companion know each other (`knowing`): both, only they know the companion ('they'), or only
+# the companion knows of them ('companion'). Someone they have never met is one-sided; a fan's words say which way.
+NEVER_MET = re.compile(r"\b(?:never (?:actually |really |even )?met|(?:hasn't|haven't|hadn't)(?: yet)? met|"
+                       r"(?:has|have|had) (?:never|not)(?: yet)? met|not met|from afar|doesn't know (?:she|he|they) "
+                       r"exists?)\b", re.IGNORECASE)
+ADMIRER = re.compile(r"\b(?:fan|fangirl|fanboy|admirer|admires|groupie|follower|stalker|obsessed|obsessive|crush)s?\b",
+                     re.IGNORECASE)
+KNOWING = ('both', 'they', 'companion')
 # Relatives who share the companion's family name unless a marriage explains otherwise.
 IMMEDIATE = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother'}
 SUFFIXES = {'jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv'}
@@ -814,18 +824,19 @@ def details_of(row: dict) -> dict:
 
 
 def own_tie(first: dict, second: dict) -> str | None:
-    """How the user says two of them know each other (set_tie), '' for not at all; None where they haven't said."""
-    for one_side, other in ((first, second), (second, first)):
+    """How the user says two of them know each other (set_tie), as the first sees it ('knows of' the second, or
+    'known by' them), '' for not at all; None where they haven't said."""
+    for one_side, other, turn in ((first, second, False), (second, first, True)):
         told = details_of(one_side).get('own_ties', {})
         if other.get('seed') in told:
-            return told[other['seed']]
+            return MIRROR.get(told[other['seed']], told[other['seed']]) if turn else told[other['seed']]
     return None
 
 
 def tie(first: dict, second: dict, older: bool = False) -> str | None:
-    """How two circle members know each other, the same every time for the same two people. In an older city
-    (before 1950) parents who parted are separated, and far fewer did (breakups.separated). What the user set
-    comes first. Friends by chance are never family: the companion's mom doesn't pal around with their rival."""
+    """How two circle members know each other, as the first sees it, the same every time for the same two people. In
+    an older city (before 1950) parents who parted are separated, and far fewer did (breakups.separated). What the user
+    set comes first. Friends by chance are never family: the companion's mom doesn't pal around with their rival."""
     told = own_tie(first, second)
     if told is not None:
         return told or None
@@ -865,26 +876,26 @@ def ties(rows: list[dict], older: bool = False) -> dict[str, list[dict]]:
         for second in rows[index + 1:]:
             if how := tie(first, second, older):
                 result[first['id']].append({'id': second['id'], 'name': second['name'], 'how': how})
-                result[second['id']].append({'id': first['id'], 'name': first['name'], 'how': how})
+                result[second['id']].append({'id': first['id'], 'name': first['name'], 'how': MIRROR.get(how, how)})
     return result
 
 
 # How the user can say two people know each other (set_tie); '' is not at all.
 TIE_WORDS = ('friends', 'old friends', 'family', 'coworkers', 'known for years', 'rivals', 'married', 'divorced',
-             'separated', '')
+             'separated', *MIRROR, '')
 
 
 def set_tie(connection, person_id: str, other_id: str, how: str | None, now) -> dict:
-    """The user's word on how two of them know each other, kept on both (by seed, so a timeline's copy keeps it);
-    None hands it back to the app."""
+    """The user's word on how two of them know each other, kept on both (by seed, so a timeline's copy keeps it), each
+    as they see it ('knows of' on one is 'known by' on the other); None hands it back to the app."""
     row, other = person(connection, person_id), person(connection, other_id)
     require(row['timeline_id'] == other['timeline_id'] and row['id'] != other['id'],
             'Pick someone else in the same circle.', 422)
     require(how is None or how in TIE_WORDS, 'Pick one of the ways listed.', 422)
-    for one_side, far in ((row, other), (other, row)):
+    for one_side, far, word in ((row, other, how), (other, row, MIRROR.get(how, how))):
         details = details_of(one_side)
         told = {key: value for key, value in details.get('own_ties', {}).items() if key != far['seed']}
-        told |= {} if how is None else {far['seed']: how}
+        told |= {} if word is None else {far['seed']: word}
         details = {key: value for key, value in details.items() if key != 'own_ties'} | (
             {'own_ties': told} if told else {})
         connection.execute('UPDATE circle_people SET details=?, revision=revision+1, updated_at=? WHERE id=?',
@@ -893,10 +904,36 @@ def set_tie(connection, person_id: str, other_id: str, how: str | None, now) -> 
 
 
 def ties_text(known: list[dict]) -> str:
-    """"Married to Rui. Knows Ana (family), Dev (coworkers).": for the chat context."""
+    """"Married to Rui. Knows Ana (family), Dev (coworkers). Knows of Kim, who doesn't know them.": for the chat
+    context."""
     partners = [f"{PARTED.get(item['how'], 'Married to')} {item['name']}." for item in known if item['how'] in COUPLED]
-    others = [f"{item['name']} ({item['how']})" for item in known if item['how'] not in COUPLED]
-    return ' '.join(partners + ([f"Knows {', '.join(others)}."] if others else []))
+    others = [f"{item['name']} ({item['how']})" for item in known if item['how'] not in (*COUPLED, *MIRROR)]
+    one_sided = [f"Knows of {item['name']}, who doesn't know them." if item['how'] == 'knows of' else
+                 f"{item['name']} knows of them; they don't know {item['name']}." for item in known
+                 if item['how'] in MIRROR]
+    return ' '.join(partners + ([f"Knows {', '.join(others)}."] if others else []) + one_sided)
+
+
+def knowing(row: dict) -> str:
+    """Whether they and the companion know each other (KNOWING): what the user set, else what the role and note of
+    someone in a role the defaults don't know say, as pairs.word_start reads them (someone never met is one-sided; a
+    fan or admirer knows the companion, anyone else is someone the companion knows of). Family always know them."""
+    from companion.memory import pairs
+    details = details_of(row)
+    if details.get('knowing') in KNOWING:
+        return details['knowing']
+    role = row.get('role') or ''
+    text = f"{role}. {details.get('note') or ''}"
+    if role_kind(role) in pairs.ROLE_DEFAULTS or role in pairs.ROLE_DEFAULTS or role_kind(role) in KIN or \
+            not (NEVER_MET.search(text) or role.casefold() == 'stranger'):
+        return 'both'
+    return 'they' if ADMIRER.search(text) else 'companion'
+
+
+def knowing_text(found: str) -> str:
+    """"They know who you are, but you don't know them.": for the chat context, '' when they know each other."""
+    return {'they': "They know who you are, but you don't know them.",
+            'companion': "You know of them, but they don't know you."}.get(found, '')
 
 
 def city_of_timeline(connection, timeline_id: str) -> dict | None:

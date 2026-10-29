@@ -73,6 +73,19 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'Added when the companion writes to you first, such as a check-in. The app picks the reason.',
            constant('companion.life.openers', 'INSTRUCTION'),
            {'reason': 'why the companion is writing, from the life sim'}),
+    Prompt('feed-comment-reply', CHAT, 'Answering comments on their posts',
+           'Added when the companion answers a comment you left under one of their posts on the feed. The app '
+           'decides when the answer shows; staying in character is enforced as in chat.',
+           constant('companion.life.post_comments', 'COMPANION_REPLY'),
+           {'post': 'what their post says', 'comment': 'your comment',
+            'earlier': 'the comments before it on the post, if any'}),
+    Prompt('feed-comment-friend', CHAT, "Friends answering comments",
+           "Who a friend is when they answer a comment you left under their post: someone from the companion's "
+           'circle, who knows you only through the companion. The app writes the rest of their sheet.',
+           constant('companion.life.post_comments', 'FRIEND_REPLY'),
+           {'who': 'their name, who they are to the companion and their work', 'host': "the companion's first name",
+            'lines': 'how others see them and how they see themselves', 'post': 'what their post says',
+            'comment': 'your comment', 'earlier': 'the comments before it on the post, if any'}),
     Prompt('voice-notes', CHAT, 'Voice notes',
            'Added to a first text that the app decided to send as a voice note. The app picks when and the voice; '
            'emoji, links and *actions* are left out of what is read aloud whatever this says.',

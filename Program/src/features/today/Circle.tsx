@@ -8,7 +8,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { stageText } from '../memories/pairText'
-import { displayName, metText, personFacts, personNow, personTies, personWork } from './circleText'
+import { displayName, knowingText, metText, personFacts, personNow, personTies, personWork } from './circleText'
 import { WhyItWent } from './WhyItWent'
 import { PersonForm, type Act } from './PersonForm'
 import { useCircleHome } from './useCircleHome'
@@ -217,7 +217,8 @@ function PersonHeader({ person, companion }: { person: CirclePerson; companion: 
       {person.also && person.also.length > 0 && <p className="subtle person-from"><UsersRound aria-hidden="true" /><span>Also {person.also.map((item, index) => <span key={item.companion_id}>
         {index > 0 && (index === person.also!.length - 1 ? ' and ' : ', ')}<CompanionLink id={item.companion_id} name={item.name} />'s {item.role}</span>)}</span></p>}
       {person.love && <p className="subtle pair-stage">{person.love}</p>}
-      {person.stage && !outOfTouch(person) && !longAgo(person) && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
+      {knowingText(person, companion) ? <p className="subtle pair-stage">{knowingText(person, companion)}</p>
+        : person.stage && !outOfTouch(person) && !longAgo(person) && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
       {person.love_odds && <WhyItWent id={person.love_odds} />}
       <MetYou person={person} />
     </header>

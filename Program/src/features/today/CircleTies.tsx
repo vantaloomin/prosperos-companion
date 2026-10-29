@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react'
 import { api } from '../../api'
 import type { CirclePerson } from '../../types'
 import { Notice } from '../../components/Feedback'
-import { TIE_CHOICES } from './circleText'
+import { tieChoices } from './circleText'
 import type { Act } from './PersonForm'
 
 type Feedback = { tone: 'info' | 'error'; text: string }
@@ -21,7 +21,7 @@ export function CircleTies({ person, act }: { person: CirclePerson; act: Act }) 
   const others = (circle.data ?? []).filter((other) => other.id !== person.id && !other.shared && other.status === 'active' && !other.late
     && !knows.some((item) => item.id === other.id))
   const save = (otherId: string, otherName: string, how: string) => act(() => api(`/life/circle/${person.id}/ties`, { other_id: otherId, how }, 'PUT'),
-    how === NOT_AT_ALL ? `${person.name} and ${otherName} don't know each other now.` : `Saved: ${person.name} and ${otherName}, ${how}.`, setFeedback)
+    savedTie(person.name, otherName, how), setFeedback)
   const headingId = `circle-ties-${person.id}`
   return (
     <section className="circle-pets circle-ties" aria-labelledby={headingId}>
@@ -33,21 +33,30 @@ export function CircleTies({ person, act }: { person: CirclePerson; act: Act }) 
         <li key={item.id} className="circle-tie">
           <label htmlFor={`${headingId}-${item.id}`}>{item.name}</label>
           <select id={`${headingId}-${item.id}`} aria-label={`How ${person.name} knows ${item.name}`} value={item.how} onChange={(event) => void save(item.id, item.name, event.target.value)}>
-            {choices(item.how).map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+            {choices(item.how, person.name, item.name).map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
             <option value={NOT_AT_ALL}>Don't know each other</option>
           </select>
         </li>))}</ul>}
-      {others.length > 0 && <AddTie id={headingId} others={others} onAdd={save} />}
+      {others.length > 0 && <AddTie id={headingId} name={person.name} others={others} onAdd={save} />}
     </section>
   )
 }
 
-/** The listed ways, with the one they have now kept when it isn't one of them. */
-function choices(how: string) {
-  return TIE_CHOICES.some((choice) => choice.value === how) ? TIE_CHOICES : [{ value: how, label: how[0].toUpperCase() + how.slice(1) }, ...TIE_CHOICES]
+/** "Saved: Kaito and Nari, friends.", or who knows of whom for a one-sided tie. */
+function savedTie(name: string, other: string, how: string) {
+  if (how === NOT_AT_ALL) return `${name} and ${other} don't know each other now.`
+  if (how === 'knows of') return `Saved: ${name} knows of ${other}, who doesn't know them.`
+  if (how === 'known by') return `Saved: ${other} knows of ${name}, who doesn't know them.`
+  return `Saved: ${name} and ${other}, ${how}.`
 }
 
-function AddTie({ id, others, onAdd }: { id: string; others: CirclePerson[]; onAdd: (otherId: string, otherName: string, how: string) => Promise<boolean> }) {
+/** The listed ways, with the one they have now kept when it isn't one of them. */
+function choices(how: string, person: string, other: string) {
+  const listed = tieChoices(person, other)
+  return listed.some((choice) => choice.value === how) ? listed : [{ value: how, label: how[0].toUpperCase() + how.slice(1) }, ...listed]
+}
+
+function AddTie({ id, name, others, onAdd }: { id: string; name: string; others: CirclePerson[]; onAdd: (otherId: string, otherName: string, how: string) => Promise<boolean> }) {
   const [open, setOpen] = useState(false)
   const [other, setOther] = useState(others[0].id)
   const [how, setHow] = useState('friends')
@@ -65,7 +74,7 @@ function AddTie({ id, others, onAdd }: { id: string; others: CirclePerson[]; onA
       <div className="circle-field">
         <label htmlFor={`${id}-how`}>How they know each other</label>
         <select id={`${id}-how`} value={how} onChange={(event) => setHow(event.target.value)}>
-          {TIE_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+          {tieChoices(name, picked.name).map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
         </select>
       </div>
       <div className="rename-row">
