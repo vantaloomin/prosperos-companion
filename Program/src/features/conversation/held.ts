@@ -22,3 +22,10 @@ export function shownAt(message: Pick<Message, 'created_at' | 'completed_at' | '
 export function waitsUntilLater(message: Pick<Message, 'held_until' | 'status'>, now: number): boolean {
   return isHeld(message, now) && (message.status === 'streaming' || message.status === 'complete')
 }
+
+/** The reply that shows last among those held until a time: the one to wait for before offering another reply. An
+ * earlier version held once and long since shown never stands in for a newer one still waiting. */
+export function lastHeld<T extends Pick<Message, 'held_until' | 'status'>>(messages: T[]): T | undefined {
+  return messages.filter((message) => message.held_until && (message.status === 'streaming' || message.status === 'complete'))
+    .reduce<T | undefined>((last, message) => (!last || message.held_until! > last.held_until! ? message : last), undefined)
+}

@@ -9,7 +9,7 @@ import { Stamp } from '../../components/Stamp'
 import { CrisisNote } from '../../components/Safety'
 import { sidecar } from '../sidecar/store'
 import { useMessageSheet, type Act, type Action } from './useMessageSheet'
-import { shownAt, waitsUntilLater } from './held'
+import { lastHeld, shownAt, waitsUntilLater } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
@@ -93,7 +93,7 @@ function choose(version: Message | undefined, onChoose: (message: Message) => vo
 /** Another reply or Retry under the newest message. Nothing while their reply waits to be read or shown: nothing went
  * wrong, they just haven't got back to you yet. Once the full reply after a holding text shows, it moves onto that. */
 function TurnRetry({ turn, isLatest, shown, followUp, onRetry, onSwitched }: { turn: Turn; isLatest: boolean; shown: Message | null; followUp?: Message; onRetry: (userId: string, profileId?: string) => void; onSwitched: (name: string) => void }) {
-  const waiting = useHeld(turn.attempts.find((attempt) => attempt.held_until && attempt.status !== 'failed' && attempt.status !== 'incomplete'))
+  const waiting = useHeld(lastHeld(turn.attempts))
   const followUpWaiting = useHeld(followUp)
   if (waiting || (followUp && !followUpWaiting)) return null
   if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} failed={shown?.status === 'failed'} onSwitched={onSwitched} onRetry={(profileId) => onRetry(turn.user!.id, profileId)} />
