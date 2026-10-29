@@ -773,6 +773,14 @@ class NewWorld(Input):
     year: int | None = Field(None, ge=1990, le=9999)
 
 
+class BackWhen(Input):
+    """Go back to a year with a companion (companion/back_when.py): the main character unless another is named.
+    `from_history` is "Work it out from our history", off: the two of you start as strangers."""
+    year: int = Field(ge=1990, le=9999)
+    from_history: bool = False
+    companion_id: str | None = Field(None, min_length=1, max_length=100)
+
+
 class RecapRead(Input):
     """The catch-up the user read, by the message it followed (companion/recap.py)."""
     since: str = Field(min_length=1, max_length=40)

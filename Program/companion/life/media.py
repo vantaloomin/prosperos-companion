@@ -62,6 +62,10 @@ YEAR_BANKS = ('modern', 'jazz-age', 'nineteenth')
 SHOWING_FORMATS = {'serial', 'film-serial', 'broadway', 'radio'}
 SHOWING_YEARS = (4, 10, 20, 40)
 SHOWING_LEAST = 100
+# Of our world's real titles, what is out now is on people's minds most and what came out long before their year the
+# least: titles from the last RECENT_YEARS weigh RECENT_LEAN, ones older than FAR_YEARS weigh FAR_LEAN.
+RECENT_YEARS, RECENT_LEAN = 10, 3.0
+FAR_YEARS, FAR_LEAN = 25, 0.5
 
 # Their interests and likes, read as the banks' genre tags.
 TAG_WORDS = {
@@ -217,11 +221,17 @@ def weight(item: dict, kind: str, me: dict, liked: set, disliked: set, born: int
         value *= 3.0
     elif tags & {'jp', 'kr'} and not tags & liked:  # what they are into wins over where they live
         value *= 0.5
-    if me['bank'] == 'modern' and item['year'] >= 2016:
-        value *= 2.0
+    if me['bank'] == 'modern':
+        value *= lean(item, me)
     if kind == 'music' and born and born + 12 <= item['year'] <= born + 28:
         value *= 2.0
     return value
+
+
+def lean(item: dict, me: dict) -> float:
+    """How much a real title's age, counted from their year, weighs on a pick: recent ones most, old ones least."""
+    age = (me.get('year') or ERA_YEARS['modern']) - item['year']
+    return RECENT_LEAN if age <= RECENT_YEARS else 1.0 if age <= FAR_YEARS else FAR_LEAN
 
 
 def candidates(me: dict, kind: str, taken: set) -> list[dict]:
