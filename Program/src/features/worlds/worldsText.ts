@@ -58,11 +58,36 @@ export function companionsLine(world: Pick<World, 'companions'>): string {
   return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`
 }
 
-/** The label under the nav button: who the user is and where. */
-export function whereLine(persona: Pick<Persona, 'name'> | null | undefined, world: Pick<World, 'name'> | null | undefined): string {
+/** A world's name with the year it is there when it runs in a past year and its name doesn't say so already:
+ * "Grandport · 2009"; "Back when · 2009" stays as it is. */
+export function worldLabel(world: Pick<World, 'name' | 'year'>): string {
+  return world.year && !world.name.includes(String(world.year)) ? `${world.name} · ${world.year}` : world.name
+}
+
+/** The label under the nav button: who the user is and where, with the year in a past world. */
+export function whereLine(persona: Pick<Persona, 'name'> | null | undefined, world: Pick<World, 'name' | 'year'> | null | undefined): string {
   const name = personaName(persona)
   if (!world) return name
-  return name ? `${name} · ${world.name}` : world.name
+  return name ? `${name} · ${worldLabel(world)}` : worldLabel(world)
+}
+
+/** The badge on a world in a past year: the year it is there now, which moves on at New Year like any other. */
+export function yearBadge(world: Pick<World, 'year'>): { text: string; label: string } | null {
+  return world.year ? { text: String(world.year), label: `It's ${world.year} there` } : null
+}
+
+// "Start in a past year" goes back as far as Back when does (companion/world_year.py EARLIEST).
+export const EARLIEST_YEAR = 1990
+// The year the creator offers first: ten years back, so the decade shows, unless the user picks another.
+const YEARS_BACK = 10
+
+/** The years a new world can start in, latest first: last year back to 1990. */
+export function pastYears(thisYear: number): number[] {
+  return Array.from({ length: Math.max(thisYear - EARLIEST_YEAR, 0) }, (_, index) => thisYear - 1 - index)
+}
+
+export function defaultPastYear(thisYear: number): number {
+  return Math.max(thisYear - YEARS_BACK, EARLIEST_YEAR)
 }
 
 export function initial(persona: Pick<Persona, 'name'> | null | undefined): string {
