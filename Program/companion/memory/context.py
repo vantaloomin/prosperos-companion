@@ -432,8 +432,8 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
             lines.append(acts)
     if intimate and (adult := intimacy.prompt_text(connection, version)):
         lines.append(adult)
-    if texts and (style := texting.instruction(definition)):
-        lines.append(style)  # Not together in person or on a call (`texts` False): nobody texts while talking.
+    if style := texting.line(definition, texts):
+        lines.append(style)  # Together in person or on a call (`texts` False) nobody texts: they talk out loud.
     return '\n'.join(lines)
 
 
