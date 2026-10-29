@@ -286,6 +286,12 @@ def test_loss_spares_the_other_parent_of_any_child_under_18_the_companion_shares
         today = steps.local_today(companion, clock.now())
         people = [dict(row) for row in connection.execute(
             "SELECT * FROM circle_people WHERE timeline_id=? AND status='active' LIMIT 2", (timeline_id,))]
+        if len(people) == 1:  # A seeded circle can be this small (seen on Windows CI): a second person, copied.
+            ordinal = connection.execute('SELECT MAX(ordinal) + 1 FROM circle_people WHERE timeline_id=?',
+                                         (timeline_id,)).fetchone()[0]
+            people.append({**people[0], 'id': identifier(), 'name': f"{people[0]['name']} Two", 'ordinal': ordinal})
+            connection.execute(f"INSERT INTO circle_people ({', '.join(people[1])}) VALUES "
+                               f"({', '.join('?' * len(people[1]))})", tuple(people[1].values()))
         ex, other = people
         assert not custody.spared(connection, ex, today) and not custody.spared(connection, other, today)
         child = (identifier(), timeline_id, ex['id'], 'own', 'Ivy', 'she/her', 'family',
