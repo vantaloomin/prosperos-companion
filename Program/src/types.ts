@@ -2390,8 +2390,11 @@ export interface WorkLifeView {
   /** A student (companion/life/work.py STUDY), and what they study. */
   studying?: boolean
   field?: string
-  /** What they are working on is the user's own words. */
+  /** What they are working on is the user's own words, and its due date the user's own. */
   own_project?: boolean
+  own_due?: boolean
+  /** Their local today, the earliest a due date can move to. */
+  today?: string
 }
 
 /** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */

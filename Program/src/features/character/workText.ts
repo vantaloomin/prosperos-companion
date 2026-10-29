@@ -61,6 +61,21 @@ export function projectField(title: string): string {
   return bare.charAt(0).toUpperCase() + bare.slice(1)
 }
 
+/** What the project form changed, and only that: the title when it differs from the field as it opened, the due date
+ * when moved. */
+export function projectChange(view: { project: { title: string; due: string } }, title: string, due: string): { title?: string; due?: string } {
+  return {
+    ...(title.trim() !== projectField(view.project.title) ? { title: title.trim() } : {}),
+    ...(due && due !== view.project.due ? { due } : {}),
+  }
+}
+
+/** The day a year on, the latest a due date can move to (companion/life/work.py DUE_AHEAD_DAYS). */
+export function yearOn(day: string): string {
+  const [year, month, date] = day.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, date + 365)).toISOString().slice(0, 10)
+}
+
 /** "Vacation: 2 of 11 days used this year. Pay: 3% above where they started." */
 export function meterText(meter: { vacation_total: number; vacation_used: number; pay_percent: number }): string {
   const change = meter.pay_percent - 100
