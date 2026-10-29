@@ -124,10 +124,19 @@
   "1990s": {
    "sent_you": "{name} left you a message.",
    "nobody_writes": "Nobody calls you",
+   "call_on": "On the phone with {name}",
+   "call_on_short": "On the phone with {name}",
+   "on_call": "On the phone",
+   "posts_tab": "Photos",
+   "post": "snapshot",
+   "posts": "snapshots",
    "selfie": "snapshot",
    "dating_tab": "Personals"
   },
   "2000s": {
+   "posts_tab": "Updates",
+   "post": "update",
+   "posts": "updates",
    "selfie": "photo"
   },
   "2010s": {},

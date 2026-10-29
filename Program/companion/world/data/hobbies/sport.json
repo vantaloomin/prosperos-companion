@@ -2912,6 +2912,94 @@
    "eras": [
     "future"
    ]
+  },
+  {
+   "text": "made it the whole length of the path without grabbing a bench",
+   "post": "Whole path. Zero benches grabbed.",
+   "level": 0,
+   "for": [
+    "rollerblading"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "learned to stop smoothly on purpose",
+   "post": "I can stop now. On purpose.",
+   "level": 1,
+   "for": [
+    "rollerblading"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "skated backwards for a whole block",
+   "post": "Backwards. A whole block.",
+   "level": 2,
+   "for": [
+    "rollerblading"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "kept up with the fast skaters on the long loop",
+   "post": "Kept up with the fast crowd today.",
+   "level": 3,
+   "for": [
+    "rollerblading"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "got through a whole step class without losing the routine",
+   "post": "Whole class. Never lost the routine.",
+   "level": 0,
+   "for": [
+    "step-aerobics"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "moved up to the higher step",
+   "post": "Higher step. Legs say hello.",
+   "level": 1,
+   "for": [
+    "step-aerobics"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "knew the whole routine before the instructor called it",
+   "post": "I knew every move before it was called.",
+   "level": 2,
+   "for": [
+    "step-aerobics"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "was asked to lead the warm-up one evening",
+   "post": "I led the warm-up tonight!",
+   "level": 3,
+   "for": [
+    "step-aerobics"
+   ],
+   "eras": [
+    "modern"
+   ]
   }
  ],
  "sessions": [
