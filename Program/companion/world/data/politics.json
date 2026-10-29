@@ -320,6 +320,10 @@
       "A new lane opened downtown.",
       0
      ]
+    ],
+    "years": [
+     2008,
+     null
     ]
    },
    {
@@ -418,6 +422,10 @@
       "Owners say the money keeps them afloat.",
       1
      ]
+    ],
+    "years": [
+     2013,
+     null
     ]
    },
    {
@@ -466,6 +474,10 @@
       "Prices fell at the shops.",
       1
      ]
+    ],
+    "years": [
+     2016,
+     null
     ]
    },
    {
@@ -509,6 +521,530 @@
      ],
      [
       "Deliveries were stuck outside the center.",
+      1
+     ]
+    ],
+    "years": [
+     2018,
+     null
+    ]
+   },
+   {
+    "id": "skate-park",
+    "title": "The skaters",
+    "question": "Should the city build a skate park, or fine skaters off the plaza?",
+    "years": [
+     1990,
+     2005
+    ],
+    "sides": [
+     {
+      "name": "Build the park",
+      "stand": "give the kids a skate park",
+      "jobs": [
+       "arts",
+       "care",
+       "labor"
+      ],
+      "words": [
+       "rebel",
+       "idealist"
+      ],
+      "backers": [
+       "reform",
+       "locals"
+      ]
+     },
+     {
+      "name": "Fine them",
+      "stand": "keep skateboards off the plaza",
+      "jobs": [
+       "trade",
+       "law"
+      ],
+      "words": [
+       "cautious"
+      ],
+      "backers": [
+       "business",
+       "law"
+      ]
+     }
+    ],
+    "beats": [
+     [
+      "A shop owner in {hood} put up a No Skateboarding sign.",
+      1
+     ],
+     [
+      "Kids filled a council meeting with their boards under their arms.",
+      0
+     ],
+     [
+      "A skater broke a wrist on the steps at {place}.",
+      0
+     ],
+     [
+      "The police handed out a dozen tickets on the plaza.",
+      1
+     ],
+     [
+      "A parent group raised money for ramps.",
+      0
+     ]
+    ]
+   },
+   {
+    "id": "big-box",
+    "title": "The big discount store",
+    "question": "Should the city let a giant discount store open on the edge of town?",
+    "years": [
+     1992,
+     2008
+    ],
+    "sides": [
+     {
+      "name": "Bring it in",
+      "stand": "let the big store open",
+      "jobs": [
+       "labor",
+       "official"
+      ],
+      "words": [
+       "practical"
+      ],
+      "backers": [
+       "business",
+       "establishment"
+      ]
+     },
+     {
+      "name": "Save Main Street",
+      "stand": "keep the big store out",
+      "jobs": [
+       "trade",
+       "arts"
+      ],
+      "words": [
+       "cautious",
+       "idealist"
+      ],
+      "backers": [
+       "locals",
+       "tradition"
+      ]
+     }
+    ],
+    "beats": [
+     [
+      "A family shop in {hood} said it would close if the store came.",
+      1
+     ],
+     [
+      "The developer promised four hundred jobs.",
+      0
+     ],
+     [
+      "Hundreds signed a petition at {place}.",
+      1
+     ],
+     [
+      "A traffic study warned of jams on the ring road.",
+      1
+     ],
+     [
+      "The council put off the vote again.",
+      0
+     ]
+    ]
+   },
+   {
+    "id": "smoking-ban",
+    "title": "Smoking in bars",
+    "question": "Should smoking be banned in bars and restaurants?",
+    "years": [
+     1995,
+     2010
+    ],
+    "real": true,
+    "sides": [
+     {
+      "name": "Clear the air",
+      "stand": "ban smoking indoors",
+      "jobs": [
+       "care",
+       "learned"
+      ],
+      "words": [
+       "idealist",
+       "cautious"
+      ],
+      "backers": [
+       "reform",
+       "church"
+      ]
+     },
+     {
+      "name": "Leave it to the owners",
+      "stand": "let each bar decide",
+      "jobs": [
+       "drink",
+       "trade"
+      ],
+      "words": [
+       "party",
+       "rebel"
+      ],
+      "backers": [
+       "business",
+       "workers"
+      ]
+     }
+    ],
+    "beats": [
+     [
+      "A bartender at {place} spoke about working in the smoke every night.",
+      0
+     ],
+     [
+      "Bar owners said they would lose their regulars.",
+      1
+     ],
+     [
+      "A doctor wrote to the paper about second-hand smoke.",
+      0
+     ],
+     [
+      "Smokers crowded the pavement outside a bar in {hood}.",
+      1
+     ],
+     [
+      "A neighboring city passed its ban first.",
+      0
+     ]
+    ]
+   },
+   {
+    "id": "y2k",
+    "title": "The year 2000 bug",
+    "question": "Should the city spend millions getting its computers ready for the year 2000?",
+    "years": [
+     1998,
+     1999
+    ],
+    "real": true,
+    "sides": [
+     {
+      "name": "Fix it now",
+      "stand": "pay to fix the computers",
+      "jobs": [
+       "learned",
+       "official"
+      ],
+      "words": [
+       "cautious",
+       "practical"
+      ],
+      "backers": [
+       "establishment",
+       "reform"
+      ]
+     },
+     {
+      "name": "It's overblown",
+      "stand": "spend the money on something real",
+      "jobs": [
+       "labor",
+       "trade"
+      ],
+      "words": [
+       "rebel"
+      ],
+      "backers": [
+       "locals",
+       "workers"
+      ]
+     }
+    ],
+    "beats": [
+     [
+      "The water department admitted its billing system shows the year in two digits.",
+      0
+     ],
+     [
+      "A consultant warned the traffic lights could fail.",
+      0
+     ],
+     [
+      "A store in {hood} sold out of bottled water and batteries.",
+      0
+     ],
+     [
+      "A councilor called the whole thing a scare.",
+      1
+     ],
+     [
+      "The city ran a test night and nothing went dark.",
+      1
+     ]
+    ]
+   },
+   {
+    "id": "red-light-cameras",
+    "title": "Red-light cameras",
+    "question": "Should the city put cameras at red lights?",
+    "years": [
+     1998,
+     2015
+    ],
+    "sides": [
+     {
+      "name": "Catch the runners",
+      "stand": "put up the cameras",
+      "jobs": [
+       "law",
+       "care"
+      ],
+      "words": [
+       "cautious"
+      ],
+      "backers": [
+       "law",
+       "establishment"
+      ]
+     },
+     {
+      "name": "A cash grab",
+      "stand": "take the cameras down",
+      "jobs": [
+       "labor",
+       "trade"
+      ],
+      "words": [
+       "rebel",
+       "practical"
+      ],
+      "backers": [
+       "locals",
+       "workers"
+      ]
+     }
+    ],
+    "beats": [
+     [
+      "A crash at a junction in {hood} put two people in the hospital.",
+      0
+     ],
+     [
+      "Drivers got tickets for turning on red.",
+      1
+     ],
+     [
+      "The camera company was found to share the fines.",
+      1
+     ],
+     [
+      "A parent group asked for cameras near the schools.",
+      0
+     ],
+     [
+      "The ticket money came in far above the forecast.",
+      1
+     ]
+    ]
+   },
+   {
+    "id": "city-wifi",
+    "title": "Free Wi-Fi",
+    "question": "Should the city build free wireless internet for everyone?",
+    "years": [
+     2004,
+     2010
+    ],
+    "real": true,
+    "sides": [
+     {
+      "name": "Wire the city",
+      "stand": "build free Wi-Fi for all",
+      "jobs": [
+       "learned",
+       "arts",
+       "care"
+      ],
+      "words": [
+       "idealist"
+      ],
+      "backers": [
+       "reform",
+       "workers"
+      ]
+     },
+     {
+      "name": "Not with our taxes",
+      "stand": "leave the internet to the companies",
+      "jobs": [
+       "trade",
+       "official"
+      ],
+      "words": [
+       "practical",
+       "cautious"
+      ],
+      "backers": [
+       "business",
+       "establishment"
+      ]
+     }
+    ],
+    "beats": [
+     [
+      "The first antennas went up on lampposts in {hood}.",
+      0
+     ],
+     [
+      "The signal dropped out indoors, people said.",
+      1
+     ],
+     [
+      "A cable company said the city was stealing its customers.",
+      1
+     ],
+     [
+      "Students did their homework on the free signal at {place}.",
+      0
+     ],
+     [
+      "The partner company asked the city for more money.",
+      1
+     ]
+    ]
+   },
+   {
+    "id": "ride-hailing",
+    "title": "Ride-hailing apps",
+    "question": "Should ride-hailing apps be allowed to pick people up here?",
+    "years": [
+     2012,
+     2017
+    ],
+    "real": true,
+    "sides": [
+     {
+      "name": "Let them drive",
+      "stand": "allow the apps",
+      "jobs": [
+       "learned",
+       "arts",
+       "labor"
+      ],
+      "words": [
+       "rebel",
+       "practical"
+      ],
+      "backers": [
+       "business",
+       "reform"
+      ]
+     },
+     {
+      "name": "Protect the cabs",
+      "stand": "hold the apps to the taxi rules",
+      "jobs": [
+       "labor",
+       "official"
+      ],
+      "words": [
+       "cautious"
+      ],
+      "backers": [
+       "workers",
+       "establishment"
+      ]
+     }
+    ],
+    "beats": [
+     [
+      "Cab drivers blocked the street outside {place}.",
+      0
+     ],
+     [
+      "An app driver was fined for a pickup in {hood}.",
+      1
+     ],
+     [
+      "Riders said they could finally get home at night.",
+      0
+     ],
+     [
+      "Taxi licenses lost half their value, the owners said.",
+      1
+     ],
+     [
+      "The app offered free rides to the council hearing.",
+      0
+     ]
+    ]
+   },
+   {
+    "id": "plastic-bags",
+    "title": "Plastic bags",
+    "question": "Should stores charge for plastic bags?",
+    "years": [
+     2010,
+     2019
+    ],
+    "sides": [
+     {
+      "name": "Charge for them",
+      "stand": "put a fee on bags",
+      "jobs": [
+       "learned",
+       "care"
+      ],
+      "words": [
+       "idealist"
+      ],
+      "backers": [
+       "reform",
+       "radical"
+      ]
+     },
+     {
+      "name": "Leave the bags be",
+      "stand": "keep bags free",
+      "jobs": [
+       "trade",
+       "labor"
+      ],
+      "words": [
+       "practical",
+       "cautious"
+      ],
+      "backers": [
+       "business",
+       "locals"
+      ]
+     }
+    ],
+    "beats": [
+     [
+      "Bags were found choking the drains in {hood}.",
+      0
+     ],
+     [
+      "A grocer said the fee would hit poor families hardest.",
+      1
+     ],
+     [
+      "A school class counted the bags in the river.",
+      0
+     ],
+     [
+      "Shoppers at {place} grumbled at the checkout.",
+      1
+     ],
+     [
+      "The bag makers paid for ads against the fee.",
       1
      ]
     ]

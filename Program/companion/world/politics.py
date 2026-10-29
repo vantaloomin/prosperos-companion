@@ -25,7 +25,7 @@ import re
 from datetime import date, timedelta
 from functools import cache
 
-from companion.world import catalog, naming, townsfolk
+from companion.world import catalog, decades, naming, townsfolk
 from companion.world.generators import pick, unit
 
 DATA = catalog.DATA / 'politics.json'
@@ -222,8 +222,9 @@ def present_year(data: dict) -> int | None:
 
 
 def in_years(question: dict, year: int | None) -> bool:
-    years = question.get('years')
-    return not years or (year is not None and years[0] <= year <= years[1])
+    """Whether a question is argued in the city's year: a modern city in a past year argues that year's
+    (naming.present_year reads it, companion/world/decades.py)."""
+    return not question.get('years') or (year is not None and decades.in_years(question, year))
 
 
 def era_questions(data: dict, day: date) -> list[dict]:

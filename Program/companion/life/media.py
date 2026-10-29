@@ -32,7 +32,7 @@ from companion.clock import app_now, parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, media_world, money
-from companion.world import generators, looks, wording
+from companion.world import decades, generators, looks, wording
 
 COMPANION = 'companion'
 BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'media'
@@ -159,12 +159,13 @@ def format_of(kind: str, tags) -> str:
 
 
 def place_of(data: dict | None) -> dict:
-    """Their bank, the year it runs to and the region it leans to, from their city."""
+    """Their bank, the year it runs to and the region it leans to, from their city. A modern city in a world that
+    runs in a past year runs to that year (companion/world/decades.py)."""
     era = (data or {}).get('era') or 'modern'
     country = ((data or {}).get('country') or 'United States').casefold()
     region = ERA_REGIONS.get(era) or next((key for key, names in REGIONS if country in names or any(
         len(name) > 3 and name in country for name in names)), 'world')
-    bank_id, year = ERA_BANKS.get(era, 'modern'), ERA_YEARS.get(era)
+    bank_id, year = ERA_BANKS.get(era, 'modern'), decades.year_of(data) or ERA_YEARS.get(era)
     own = ((data or {}).get('names') or {}).get('year')
     if own and bank_id in YEAR_BANKS:
         if era == 'other':

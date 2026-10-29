@@ -18,7 +18,7 @@ from functools import cache, lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog, intimacy, ships
+from companion.world import catalog, decades, intimacy, ships
 from companion.world.source import CatalogWorld
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
@@ -227,9 +227,11 @@ def typical_rent(city: dict, unit: str = 'one_bedroom') -> float:
 
 
 def take_home(city: dict, tier: int) -> float:
-    """Income per budget period (the city's rent period)."""
+    """Income per budget period (the city's rent period). A city dated to a past year (decades.dated) pays that
+    year's money: the US pay scale is today's, so it is read from today's rents and scaled back the same way."""
     if city['currency']['code'] == 'USD' and era_of(city) == 'modern':
-        return US_TAKE_HOME[tier] * (typical_rent(city) / US_BASE_RENT) ** COST_EXPONENT
+        share = decades.price_share(city)
+        return US_TAKE_HOME[tier] * share * (typical_rent(city) / share / US_BASE_RENT) ** COST_EXPONENT
     wage = price(city, ('wage',))
     if wage:
         multiple = MODERN_WAGE_MULTIPLE if era_of(city) == 'modern' else WAGE_MULTIPLE
@@ -341,6 +343,7 @@ def build(definition: dict) -> Profile | None:
 @lru_cache(maxsize=256)
 def cached(key: tuple) -> Profile | None:
     definition = dict(key)
+    definition.pop('year')  # Only keys the cache: a world in a past year has that year's prices.
     return build({**definition, 'money': dict(definition['money'])})
 
 
@@ -351,7 +354,8 @@ def profile(definition: dict) -> Profile | None:
     """The budget for this definition (cached: the composer asks once per option per slot)."""
     setup = definition.get('money') or {}
     key = tuple((name, definition.get(name) or '') for name in PROFILE_KEYS)
-    key += (('money', tuple(sorted((name, str(value)) for name, value in setup.items()))),)
+    key += (('money', tuple(sorted((name, str(value)) for name, value in setup.items()))),
+            ('year', decades.world_year()))
     return cached(key)
 
 

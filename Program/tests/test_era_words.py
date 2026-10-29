@@ -59,7 +59,7 @@ def test_the_words_follow_where_the_user_lives_and_the_appearance_switch(client,
     assert client.get('/api/settings').json()['period_words'] is True
     assert client.put('/api/settings', json={'period_words': False}).json()['period_words'] is False
     found = client.get('/api/world/words').json()
-    assert found == {'group': 'modern', 'on': False, 'words': era_words.table()['words']['modern']}
+    assert found == {'group': 'modern', 'decade': None, 'on': False, 'words': era_words.table()['words']['modern']}
 
 
 def test_a_notification_says_letter_in_camelot():
