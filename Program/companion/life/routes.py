@@ -96,8 +96,8 @@ class PersonAbout(Input):
 class PersonTie(Input):
     """How two people in the circle know each other, in the user's word ('' is not at all); None is the app's pick."""
     other_id: str = Field(min_length=1, max_length=64)
-    how: Literal['friends', 'old friends', 'family', 'coworkers', 'known for years', 'rivals', 'married', 'divorced',
-                 'separated', 'knows of', 'known by', ''] | None = None
+    how: Literal['friends', 'old friends', 'family', 'coworkers', 'known for years', 'rivals', 'married', 'partners',
+                 'divorced', 'separated', 'knows of', 'known by', ''] | None = None
 
 
 class PersonNew(PersonAbout):

@@ -33,6 +33,8 @@ test('ties name a partner first, then who else they know', () => {
   assert.equal(personTies(person()), null)
   assert.equal(personTies(person({ knows: [{ id: 'a', name: 'Ana', how: 'family' }, { id: 'r', name: 'Rui', how: 'married' }] })),
     'Married to Rui. Knows Ana (family).')
+  // Two dads before they could marry (circle.py could_marry).
+  assert.equal(personTies(person({ knows: [{ id: 'p', name: 'Phuc', how: 'partners' }] })), 'Partners with Phuc.')
 })
 
 test('one-sided ties say who knows of whom', () => {
