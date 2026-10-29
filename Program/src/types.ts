@@ -2399,10 +2399,17 @@ export interface MediaView {
 /** Someone the Watching page can follow (companion/life/narrator.py): a companion or a townsperson. */
 export interface WatchFocus {
   key: string
-  kind: 'companion' | 'townsperson'
+  /** A companion, someone in a companion's circle who lives in town, or someone from around town. */
+  kind: 'companion' | 'circle' | 'townsperson'
   name: string
-  /** Who they are in a few words: "Your companion · nurse", "Line cook at Blue Moon Cafe". */
+  /** Who they are in a few words: "Your companion · nurse", "Sett's mom · nurse", "Line cook at Blue Moon Cafe". */
   line: string
+  /** Why the picker offers them, for someone the user may not know: "Sett has run into them around town twice." */
+  why?: string
+  /** How a townsperson came to be offered: the main companion met them, or the app picked them for a busy week. */
+  source?: 'met' | 'busy'
+  /** The companion whose circle they are in, or who met them, by first name. */
+  owner?: string
   companion_id?: string
   town_key?: string
 }

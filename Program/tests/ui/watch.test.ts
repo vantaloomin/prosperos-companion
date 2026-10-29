@@ -1,9 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { WatchFocus, WatchLine } from '../../src/types.ts'
-import { firstName, focusGroups, inChat, INNER_VOICE_LEVELS, lineTime, stepInLabel } from '../../src/features/watch/watchText.ts'
+import { becomeLabel, firstName, focusGroups, inChat, INNER_VOICE_LEVELS, lineTime, stepInLabel } from '../../src/features/watch/watchText.ts'
 
-const person = (key: string, name: string, kind: WatchFocus['kind']) => ({ key, name, kind, line: '' }) as unknown as WatchFocus
+const person = (key: string, name: string, kind: WatchFocus['kind'], extra: Partial<WatchFocus> = {}) => ({ key, name, kind, line: '', ...extra }) as unknown as WatchFocus
 
 test('the Focus picker lists companions first, then townsfolk, and skips an empty group', () => {
   const groups = focusGroups([person('town:a', 'Ada Moss', 'townsperson'), person('companion:1', 'Rin Hale', 'companion')])
@@ -11,9 +11,23 @@ test('the Focus picker lists companions first, then townsfolk, and skips an empt
   assert.deepEqual(focusGroups([person('town:a', 'Ada', 'townsperson')]).map((group) => group.label), ['Around town'])
 })
 
-test('stepping in talks to a companion and becomes a townsperson, by first name', () => {
+test('the groups say where each person comes from: a circle, met by the companion, or a busy week', () => {
+  const groups = focusGroups([
+    person('town:b', 'Bo Lin', 'townsperson', { source: 'busy' }),
+    person('town:m', 'Mae Ro', 'townsperson', { source: 'met', owner: 'Sett' }),
+    person('circle:1', 'Ana Kay', 'circle', { owner: 'Sett' }),
+    person('circle:2', 'Cy Doe', 'circle', { owner: 'Rin' }),
+    person('companion:1', 'Sett', 'companion'),
+  ])
+  assert.deepEqual(groups.map((group) => [group.label, group.people.map((item) => item.key)]), [
+    ['Companions', ['companion:1']], ["Sett's people", ['circle:1']], ["Rin's people", ['circle:2']],
+    ['Sett has met', ['town:m']], ['Busy around town this week', ['town:b']],
+  ])
+})
+
+test('stepping in talks to a companion, and a townsperson is offered as something to try, by first name', () => {
   assert.equal(stepInLabel(person('companion:1', 'Rin Hale', 'companion')), 'Talk to Rin')
-  assert.equal(stepInLabel(person('town:a', 'Ada Moss', 'townsperson')), 'Become Ada')
+  assert.equal(becomeLabel('Ada Moss'), 'Try life as Ada')
   assert.equal(firstName('  Ada   Moss '), 'Ada')
 })
 

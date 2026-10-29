@@ -2540,6 +2540,12 @@ p.breakup-line { align-items: center; }
 .watch-title { min-width: 0; }
 .watch-title h1 { margin: 2px 0 4px; }
 .watch-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.watch-title .watch-why { margin-top: 2px; max-width: 46ch; }
+.watch-buttons > p { margin: 0; }
+/* Try life as (BecomeThem): an offer, in the accent, beside a muted Stop watching. */
+.text-button.become-link { color: var(--accent); }
+.text-button.become-link:hover { color: var(--accent-hover); text-decoration: underline; }
+@media (max-width: 720px) { .text-button.become-link { min-height: 44px; } }
 .watch-picker { display: grid; gap: 4px; min-width: 220px; }
 .watch-buttons { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
 .watch-start { display: grid; gap: 14px; justify-items: start; max-width: 600px; padding: var(--panel-pad, 16px); border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
