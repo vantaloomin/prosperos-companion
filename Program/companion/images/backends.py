@@ -18,6 +18,7 @@ from companion.images.adapters.comfyui import (
     default_sampler,
     family_of,
     has_reference,
+    tag_kind,
 )
 from companion.images.adapters.hosted import api_base
 from companion.providers.urls import is_loopback, validate_compatible_url
@@ -156,6 +157,10 @@ def view(backend: dict, connection=None) -> dict:
             'api_style': config.get('api_style'), 'cli_path': config.get('cli_path', ''),
             'custom_workflow': bool(config.get('workflow')),
             'family': family_of(config) if backend['kind'] == 'comfyui' else None,
+            # The model's own opening when the backend has none (the Booru family's quality tags), and whether
+            # its prompts go out as booru tags (images/tags.py).
+            'family_style': FAMILIES[family_of(config)].style if backend['kind'] == 'comfyui' else None,
+            'tag_prompts': backend['kind'] == 'comfyui' and tag_kind(config) is not None,
             'model_files': {key: config.get(key, '') for key in FAMILIES[family_of(config)].files}
             if backend['kind'] == 'comfyui' else None,
             'model_fit': config.get('unet_fit') if backend['kind'] == 'comfyui' else None,

@@ -256,24 +256,33 @@ function AddressField({ backend, draft, onChange }: { backend: ImageBackend; dra
   return <TextInput label={backend.kind === 'hosted' ? 'API base URL' : 'ComfyUI address'} value={draft.baseUrl} required onChange={onChange} hint={moveHint} />
 }
 
+/** What an empty Prompt style falls back to, and the hint that says so. */
+function styleFallback(backend: ImageBackend) {
+  const fallback = backend.family_style ? "the model's own" : 'the general one'
+  const hint = `Starts every prompt this backend makes, in place of the general style. Leave empty to use ${fallback}.${
+    backend.tag_prompts && !backend.family_style ? ' Prompts go out as booru tags.' : ''}`
+  return { fallback, hint, reset: backend.family_style ? "Use the model's own style" : 'Use the general style' }
+}
+
 /** The style line that starts this backend's prompts, since each model wants its own (a photo line for
- * Krea 2, a tag-style line for an anime model). Empty uses the general style above. */
+ * Krea 2, quality tags for a Booru model). Empty uses the model family's own line, else the general style above. */
 function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: string) => Promise<boolean> }) {
   const general = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => api<Limits>('/images/settings') }).data?.style
   const [draft, setDraft] = useState<string | null>(null)
   const store = async (value: string) => { if (await save(value)) setDraft(null) }
+  const { fallback, hint, reset } = styleFallback(backend)
   return (
     <details>
-      <summary className="subtle">Prompt style {backend.style ? '(its own)' : '(the general one)'}</summary>
+      <summary className="subtle">Prompt style {backend.style ? '(its own)' : `(${fallback})`}</summary>
       <div className="form-stack">
-        <TextInput label="Style for this backend" value={draft ?? backend.style} maxLength={500} placeholder={general || 'Candid, natural-light photograph'}
-          hint="Starts every prompt this backend makes, in place of the general style. Leave empty to use the general one." onChange={setDraft} />
+        <TextArea grows label="Style for this backend" value={draft ?? backend.style} maxLength={500}
+          placeholder={backend.family_style || general || 'Candid, natural-light photograph'} hint={hint} onChange={setDraft} />
         <div className="form-actions">
           {draft !== null && <>
             <button type="button" className="button primary" onClick={() => void store(draft)}>Save style</button>
             <button type="button" className="button" onClick={() => setDraft(null)}>Cancel</button>
           </>}
-          {backend.style && draft === null && <button type="button" className="text-button" onClick={() => void store('')}>Use the general style</button>}
+          {backend.style && draft === null && <button type="button" className="text-button" onClick={() => void store('')}>{reset}</button>}
         </div>
       </div>
     </details>
