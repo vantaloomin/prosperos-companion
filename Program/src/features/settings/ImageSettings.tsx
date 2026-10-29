@@ -73,7 +73,7 @@ function Backends({ list, refresh, setResult, phone }: { list: ImageBackend[]; r
       {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} phone={phone} />)}
     </ol>
     {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
-    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API or NanoGPT. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
+    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API, NanoGPT or NovelAI. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
     {adding ? <AddBackend phone={phone} onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
   </>
@@ -666,7 +666,7 @@ function backendBody(draft: Draft, disclosure: string | null, accepted: boolean)
 }
 
 const MODEL_EXAMPLES: Record<HostedProvider, string> = {
-  openrouter: 'google/gemini-2.5-flash-image', google: 'imagen-4.0-generate-001', openai: 'gpt-image-1', nanogpt: 'hidream-o1-image', other: 'gpt-image-1',
+  openrouter: 'google/gemini-2.5-flash-image', google: 'imagen-4.0-generate-001', openai: 'gpt-image-1', nanogpt: 'hidream-o1-image', novelai: 'nai-diffusion-4-5-full', other: 'gpt-image-1',
 }
 
 /** The NSFW switch for a new image API backend; Google and the OpenAI API only say they stay safe-only. */
@@ -746,6 +746,7 @@ function HostedKey({ provider, baseUrl, value, onChange }: { provider: HostedPro
   const [typing, setTyping] = useState(false)
   const from = imageKeyFrom(profiles, provider, baseUrl)
   if (from && !typing) return <div className="token-entry"><p>Uses the API key saved with <strong>{from.name}</strong>.</p><button type="button" className="button" onClick={() => setTyping(true)}>Use a different key</button></div>
-  return <div className="token-entry"><TextInput label="API key" type="password" value={value} onChange={onChange} hint="Saved in your system's credential store." />
+  return <div className="token-entry"><TextInput label={provider === 'novelai' ? 'API token' : 'API key'} type="password" value={value} onChange={onChange}
+    hint={provider === 'novelai' ? "Your persistent API token, from Account Settings on novelai.net. Saved in your system's credential store." : "Saved in your system's credential store."} />
     {from && <button type="button" className="text-button" onClick={() => { onChange(''); setTyping(false) }}>Use the {from.name} key</button>}</div>
 }

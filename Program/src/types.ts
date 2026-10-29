@@ -1022,7 +1022,7 @@ export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed'
 export interface PostImage { status: ImageStatus; job_id: string | null; ref: string | null; error: string | null; updated_at: string | null; outdated?: boolean }
 
 export type BackendKind = 'comfyui' | 'codex' | 'hosted'
-export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'nanogpt' | 'other'
+export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'nanogpt' | 'novelai' | 'other'
 
 export interface ImageBackend {
   id: string

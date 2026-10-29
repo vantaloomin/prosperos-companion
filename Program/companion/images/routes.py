@@ -100,7 +100,7 @@ def from_phone(request: Request, body: BackendFields, creating=False) -> None:
     if getattr(request.state, 'device', None) is None:
         return
     if creating and (body.kind != 'hosted' or body.provider in (None, 'other')):
-        raise DomainError('On a phone you can add OpenRouter, Google, the OpenAI API or NanoGPT. ComfyUI, Codex and '
+        raise DomainError('On a phone you can add OpenRouter, Google, the OpenAI API, NanoGPT or NovelAI. ComfyUI, Codex and '
                           f'image APIs at an address of your own are added {ON_THE_PC}.', 403)
     if any(getattr(body, field) is not None for field in PHONE_FIELDS):
         raise DomainError(f'Addresses, programs and workflows of image backends are changed {ON_THE_PC}.', 403)

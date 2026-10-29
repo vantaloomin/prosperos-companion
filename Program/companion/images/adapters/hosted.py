@@ -1,12 +1,13 @@
 """Hosted image APIs with the user's own key (PRD F9).
 
-Three request shapes cover the tested providers:
+Four request shapes cover the tested providers:
 
 - `images`: OpenAI-style `POST /images/generations`, used by the OpenAI API and Google's
   OpenAI-compatible endpoint for its image models.
 - OpenRouter's own image API, `POST /images` with an aspect ratio, for every image model it lists at
   `/images/models` (FLUX, Seedream, Recraft and the rest, not only the Google and OpenAI models that
   also write text). Any backend at openrouter.ai uses it, whatever style it was saved with.
+- NovelAI's own API (`provider` 'novelai', adapters/novelai.py), with booru-tag prompts.
 - `chat`: `POST /chat/completions` with `modalities: ["image", "text"]`, which returns the picture as
   a data URL in `message.images`; OpenRouter backends used it before its image API.
 
@@ -23,6 +24,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from companion.images.adapters import novelai
 from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
 from companion.providers.urls import network
 
@@ -175,6 +177,8 @@ def takes_reference(config, provider) -> bool:
     """Chat-style image models read a picture in the message and OpenRouter's image API takes one
     beside the prompt, unless its list says the model reads text only; of the `images` style, only the
     OpenAI API's `/images/edits` is a tested shape for one."""
+    if provider == 'novelai':
+        return False
     if is_openrouter(config):
         return OPENROUTER_REFERENCES.get(config.get('model'), True)
     return config.get('api_style') == 'chat' or provider == 'openai'
@@ -216,6 +220,8 @@ class HostedAdapter:
         headers = {'Authorization': f'Bearer {request.key}'}
         if request.reference is not None and not takes_reference(config, provider):
             raise AdapterError('incompatible', 'This image API cannot make a picture from a reference picture.')
+        if provider == 'novelai':
+            return await self.novelai(config, request)
         async with self.client(config['base_url']) as client:
             if is_openrouter(config):
                 data = await self.post(client, config['base_url'] + '/images', headers,
@@ -238,6 +244,20 @@ class HostedAdapter:
         return ImageResult(image, model=config['model'], workflow=f"{provider} {config.get('api_style')}",
                            usage=data.get('usage') if isinstance(data.get('usage'), dict) else None,
                            remote_id=data.get('id') if isinstance(data.get('id'), str) else None)
+
+    async def novelai(self, config, request) -> ImageResult:
+        """NovelAI draws from booru tags: the prompt becomes tags here, after the content check read it as written,
+        with the backend's own style as the opening tags."""
+        from companion.images import tags
+        from companion.images.adapters.comfyui import FAMILIES
+        model = config.get('model') or novelai.DEFAULT_MODEL
+        style = config.get('style') or FAMILIES['booru'].style  # as backends.own_style has it
+        prompt, negative = tags.convert(request.prompt, request.negative, name=request.name, style=style,
+                                        kind='novelai')
+        payload = novelai.body(model, prompt, negative, request.seed, request.width, request.height)
+        async with self.client(config['base_url']) as client:
+            image = await novelai.generate(client, config['base_url'], request.key, payload, said)
+        return ImageResult(image, model=model, workflow='novelai', seed=payload['parameters']['seed'])
 
     async def edit(self, client, config, headers, prompt, request) -> dict:
         """OpenAI's `/images/edits`: the reference goes up as a file beside the prompt."""
@@ -306,6 +326,8 @@ class HostedAdapter:
     async def models(self, provider, config, key=None) -> list[dict]:
         """The provider's image models, listed with the key when there is one. Sends no prompt and spends
         nothing; OpenRouter lists its models without a key."""
+        if provider == 'novelai':
+            return novelai.MODELS
         config = {**config, 'base_url': api_base(config['base_url'])}
         url = models_url(config, provider)
         try:
@@ -330,9 +352,12 @@ class HostedAdapter:
 
     async def check(self, backend, config, key=None) -> Check:
         """Lists the provider's models with the key; sends no prompt and spends no image quota."""
+        config = {**config, 'base_url': api_base(config['base_url'])}
+        if backend.get('provider') == 'novelai':
+            async with self.client(config['base_url']) as client:
+                return await novelai.check(client, config['base_url'], key, config.get('model'))
         if not key:
             return Check(False, 'Add an API key for this provider.')
-        config = {**config, 'base_url': api_base(config['base_url'])}
         try:
             async with self.client(config['base_url']) as client:
                 url = models_url(config, backend.get('provider'))

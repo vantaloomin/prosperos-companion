@@ -50,7 +50,7 @@ export function provenance(job: ImageJob): [string, string][] {
 export const BACKEND_KINDS: { id: BackendKind; label: string; hint: string }[] = [
   { id: 'comfyui', label: 'ComfyUI', hint: 'A ComfyUI server you run. On this computer it can also make NSFW images.' },
   { id: 'codex', label: 'Codex (ChatGPT subscription)', hint: "Experimental. Uses the Codex CLI's built-in image generation under your own codex login. Safe images only." },
-  { id: 'hosted', label: 'Image API', hint: 'OpenRouter, Google or another provider, with your own API key. Safe images only, unless you switch on NSFW for a provider that allows it.' },
+  { id: 'hosted', label: 'Image API', hint: 'OpenRouter, Google, NovelAI or another provider, with your own API key. Safe images only, unless you switch on NSFW for a provider that allows it.' },
 ]
 
 export const PROVIDERS: { id: HostedProvider; label: string }[] = [
@@ -58,11 +58,12 @@ export const PROVIDERS: { id: HostedProvider; label: string }[] = [
   { id: 'google', label: 'Google' },
   { id: 'openai', label: 'OpenAI API' },
   { id: 'nanogpt', label: 'NanoGPT' },
+  { id: 'novelai', label: 'NovelAI' },
   { id: 'other', label: 'Other OpenAI-compatible API' },
 ]
 
 /** Hosted providers the NSFW switch is offered for, matching the server's NSFW_PROVIDERS. */
-export const NSFW_PROVIDERS: HostedProvider[] = ['openrouter', 'nanogpt', 'other']
+export const NSFW_PROVIDERS: HostedProvider[] = ['openrouter', 'nanogpt', 'novelai', 'other']
 
 export function isLoopback(url: string): boolean {
   try {
