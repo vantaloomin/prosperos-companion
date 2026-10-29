@@ -13,7 +13,7 @@ import { shownAt, waitsUntilLater } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
-import { shownAttempt, statusDetail, unfinished, type Turn } from './turns'
+import { defaultVersion, leadVersions, shownAttempt, statusDetail, unfinished, type Turn } from './turns'
 import { pinnedIn, VoiceActions } from './voicePins'
 import { alternatives, MIX, useModelSwitch } from '../settings/models/useModelSwitch'
 
@@ -23,8 +23,11 @@ interface Props {
   live: Record<string, string>
   isLatest: boolean
   busy: boolean
-  /** `profileId`: this one reply from that profile (Try with … while the Mix is on). */
-  onRetry: (userId: string, profileId?: string) => void
+  /** Another reply to the user's message, or to the full reply after a holding text (its id). `profileId`: this one
+   * reply from that profile (Try with … while the Mix is on). */
+  onRetry: (messageId: string, profileId?: string) => void
+  /** Paged to an earlier finished version: the conversation goes on from it (companion/reply_versions.py). */
+  onChoose: (message: Message) => void
   onStop: (replyId: string) => void
   onRemember: (message: Message) => void
   onDecline: (message: Message) => void
@@ -40,6 +43,9 @@ interface Props {
   highlight?: string | null
   /** On the newest turn when it holds only the companion's messages: the user message they answer, for Retry. */
   followUpOf?: string
+  /** On the newest message of the user's: the full reply sent after the holding text, once there is one. Another reply
+   * moves onto it when it shows. */
+  followUp?: Message
 }
 
 function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }) {
@@ -47,21 +53,25 @@ function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }
 }
 
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
-export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, onBranch, onMoment, bursts, highlight, followUpOf }: Props) {
+export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onChoose, onStop, onRemember, onDecline, onEdit, onBranch, onMoment, bursts, highlight, followUpOf, followUp }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const [switched, setSwitched] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
+  const tools = { onStop, onRemember, onEdit, onBranch, onMoment }
   return (
     <>
-      <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
+      {turn.leads.map((lead, at) => (
+        <LeadView key={lead.id} versions={leadVersions(turn, lead)} name={name} live={live} highlight={highlight} tools={tools} bursts={bursts} onChoose={onChoose}
+          again={followUpOf && at === turn.leads.length - 1 && lead.held_line ? { onRetry, onSwitched: setSwitched } : undefined} />
+      ))}
       <TurnUser turn={turn} name={name} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} />
       {turn.user?.crisis_help && <CrisisNote />}
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
-          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
+          onPage={(step) => setChosen(choose(turn.attempts[index + step], onChoose))} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
       )}
-      {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUpOf={followUpOf} onSwitched={setSwitched} onRetry={(id, profileId) => { setChosen(null); onRetry(id, profileId) }} />}
+      {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUp={followUp} onSwitched={setSwitched} onRetry={(id, profileId) => { setChosen(null); onRetry(id, profileId) }} />}
       <SwitchedNote name={switched} show={isLatest && shown?.status !== 'complete'} />
     </>
   )
@@ -73,19 +83,21 @@ function SwitchedNote({ name, show }: { name: string | null; show: boolean }) {
   return <p className="turn-note" role="status">{name} answers in chat now. Switch back under More.</p>
 }
 
-/** Another reply or Retry under the newest message, or Retry under a promised full reply that failed. Nothing while
- * their reply waits to be read or shown: nothing went wrong, they just haven't got back to you yet. */
-function TurnRetry({ turn, isLatest, shown, followUpOf, onRetry, onSwitched }: { turn: Turn; isLatest: boolean; shown: Message | null; followUpOf?: string; onRetry: (userId: string, profileId?: string) => void; onSwitched: (name: string) => void }) {
-  const waiting = useHeld(turn.attempts.find((attempt) => attempt.held_until && attempt.status !== 'failed' && attempt.status !== 'incomplete'))
-  if (waiting) return null
-  if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} failed={shown?.status === 'failed'} onSwitched={onSwitched} onRetry={(profileId) => onRetry(turn.user!.id, profileId)} />
-  if (followUpOf && failedFollowUp(turn.leads.at(-1))) return <RetryAction label="Retry" onRetry={() => onRetry(followUpOf)} />
-  return null
+/** The version paged to. A finished one that is not the active one becomes it, so it stays once the conversation
+ * moves on and the next reply is written from it. */
+function choose(version: Message | undefined, onChoose: (message: Message) => void): string | null {
+  if (version?.status === 'complete' && !version.active) onChoose(version)
+  return version?.id ?? null
 }
 
-/** The full reply promised after a holding text ("brb, boss is here") that failed: it answers the user's last message. */
-function failedFollowUp(lead: Message | undefined): boolean {
-  return !!lead?.held_line && (lead.status === 'failed' || lead.status === 'incomplete')
+/** Another reply or Retry under the newest message. Nothing while their reply waits to be read or shown: nothing went
+ * wrong, they just haven't got back to you yet. Once the full reply after a holding text shows, it moves onto that. */
+function TurnRetry({ turn, isLatest, shown, followUp, onRetry, onSwitched }: { turn: Turn; isLatest: boolean; shown: Message | null; followUp?: Message; onRetry: (userId: string, profileId?: string) => void; onSwitched: (name: string) => void }) {
+  const waiting = useHeld(turn.attempts.find((attempt) => attempt.held_until && attempt.status !== 'failed' && attempt.status !== 'incomplete'))
+  const followUpWaiting = useHeld(followUp)
+  if (waiting || (followUp && !followUpWaiting)) return null
+  if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} failed={shown?.status === 'failed'} onSwitched={onSwitched} onRetry={(profileId) => onRetry(turn.user!.id, profileId)} />
+  return null
 }
 
 function RetryAction({ label, failed = false, onRetry, onSwitched }: { label: string; failed?: boolean; onRetry: (profileId?: string) => void; onSwitched?: (name: string) => void }) {
@@ -108,10 +120,28 @@ function TryAnotherModel({ onRetry, onSwitched }: { onRetry: (profileId?: string
   return <>{alternatives(models.others).map((profile) => <button key={profile.id} type="button" className="text-button" onClick={() => void tryWith(profile)}><Shuffle aria-hidden="true" />Try with {profile.name}</button>)}</>
 }
 
-/** Messages the companion sent first: shown like replies, with no versions to page through. */
+type LeadTools = Pick<ReplyProps, 'onStop' | 'onRemember' | 'onEdit' | 'onBranch' | 'onMoment'>
 
-function Leads({ messages, name, highlight, onStop, onRemember, onEdit, onBranch, onMoment, bursts }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void; onRemember: Act; onEdit: Act; onBranch: Act; onMoment: Act; bursts: boolean }) {
-  return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />)}</>
+/** A message the companion sent without a message of the user's to answer: one they sent first, or the full reply
+ * after a holding text. That one pages through its versions like a reply, and while it is the newest message it
+ * takes Another reply, or Retry when it failed (`again`). */
+function LeadView({ versions, name, live, highlight, tools, bursts, onChoose, again }: { versions: Message[]; name: string; live: Record<string, string>; highlight?: string | null; tools: LeadTools; bursts: boolean; onChoose: (message: Message) => void; again?: { onRetry: (messageId: string, profileId?: string) => void; onSwitched: (name: string) => void } }) {
+  const [chosen, setChosen] = useState<string | null>(null)
+  const pick = (id?: string | null) => (id ? versions.find((version) => version.id === id) : undefined)
+  const shown = pick(chosen) ?? pick(highlight) ?? defaultVersion(versions, !!again)!
+  const index = versions.indexOf(shown)
+  const writing = versions.some((version) => version.status === 'streaming')
+  const waiting = useHeld(shown)
+  return (
+    <>
+      <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={versions.length > 1 ? [index, versions.length] : null}
+        onPage={(step) => setChosen(choose(versions[index + step], onChoose))} {...tools} bursts={bursts} />
+      {again && !writing && !waiting && (
+        <RetryAction label={shown.status === 'complete' ? 'Another reply' : 'Retry'} failed={shown.status === 'failed'} onSwitched={again.onSwitched}
+          onRetry={(profileId) => { setChosen(null); again.onRetry(versions[0].id, profileId) }} />
+      )}
+    </>
+  )
 }
 
 function TurnUser({ turn, name, highlight, onRemember, onDecline, onEdit, onBranch, onMoment }: { turn: Turn; name: string; highlight?: string | null; onRemember: Act; onDecline: Act; onEdit: Act; onBranch: Act; onMoment: Act }) {

@@ -155,6 +155,7 @@ a.button { color: inherit; text-decoration: none; }
 .message-companion.inactive .prose { color: var(--muted); }
 .reply-tools { display: flex; align-items: center; gap: 10px; }
 .pager { display: inline-flex; align-items: center; gap: 2px; font-size: 0.75rem; color: var(--muted); }
+.pager .icon-button[aria-disabled="true"]:hover { background: none; cursor: default; }
 /* Notes from the app (a failed or stopped reply) in a box of their own, so they never read as the companion's words. */
 .system-note { display: flex; align-items: flex-start; gap: 8px; width: fit-content; max-width: 100%; margin-top: 10px; padding: 8px 12px; border: 1px dashed var(--border); border-radius: 10px; background: var(--raised); color: var(--muted); font-family: var(--ui-font); font-size: 0.8125rem; font-style: normal; line-height: 1.5; }
 .system-note > svg { width: 15px; height: 15px; margin-top: 2px; flex-shrink: 0; }
@@ -1456,6 +1457,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .chat-retro .message .speaker { margin-right: 6px; }
   .chat-retro .message > .prose, .chat-retro .message > .prose > p:first-child { display: inline; }
   .chat-retro .message > header > :is(.message-actions, .reply-tools) { float: right; margin-left: 8px; }
+  /* A reply with versions: its tools and pager take a line of their own under the text, so they never squeeze it (Iris). */
+  .chat-retro .message:has(.pager) { display: flex; flex-wrap: wrap; align-items: baseline; }
+  .chat-retro .message:has(.pager) > :not(header) { flex: 1 0 100%; }
+  .chat-retro .message:has(.pager) > header > .reply-tools { float: none; order: 1; flex: 1 0 100%; display: flex; margin: 2px 0 0; }
 }
 /* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }

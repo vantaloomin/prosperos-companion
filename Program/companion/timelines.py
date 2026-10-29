@@ -15,7 +15,7 @@ A timeline's life resumes from the moment it is chosen; time spent frozen is nev
 """
 import re
 
-from companion import consequences, pictures
+from companion import consequences, pictures, reply_versions
 from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
@@ -132,7 +132,7 @@ def fork(database, body) -> dict:
              body.label.strip() or f'Timeline {count + 1}', message['id'], cutoff, body.text))
         ids = copy_history(connection, parent['id'], new_id, through, cutoff)
         if not editing and message['role'] == 'companion':
-            show_chosen_reply(connection, ids[message['id']], message['reply_to'])
+            reply_versions.activate(connection, one(connection, 'SELECT * FROM messages WHERE id=?', (ids[message['id']],)))
         return view(connection, timeline(connection, companion, new_id), companion['active_timeline_id'])
 
 
@@ -142,14 +142,6 @@ def branch_cutoff(connection, message, timestamp) -> str:
     following = optional(connection, 'SELECT created_at FROM messages WHERE timeline_id=? AND seq>? '
                          'ORDER BY seq LIMIT 1', (message['timeline_id'], message['seq']))
     return following['created_at'] if following else timestamp
-
-
-def show_chosen_reply(connection, copy_id, reply_to):
-    """Branching at one version of a reply makes that version the one shown in the branch."""
-    if reply_to:
-        connection.execute('UPDATE messages SET active=0 WHERE timeline_id=(SELECT timeline_id FROM messages '
-                           'WHERE id=?) AND reply_to=(SELECT reply_to FROM messages WHERE id=?)', (copy_id, copy_id))
-    connection.execute('UPDATE messages SET active=1 WHERE id=?', (copy_id,))
 
 
 def columns(connection, table) -> list[str]:
@@ -342,6 +334,7 @@ def copy_messages(connection, messages, ids, new_id):
     insert(connection, 'messages', [{
         **row, 'id': ids[row['id']], 'timeline_id': new_id, 'client_id': None,
         'reply_to': ids.get(row['reply_to']) if row['reply_to'] else None,
+        'version_of': ids.get(row['version_of']) if row.get('version_of') else None,
         'status': 'incomplete' if row['status'] == 'streaming' else row['status'],
         'receipt': remap(row['receipt'], ids), 'origin_id': row['origin_id'] or row['id'],
     } for row in messages])
