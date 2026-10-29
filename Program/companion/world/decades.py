@@ -48,6 +48,13 @@ def world_year() -> int | None:
     return clock.now().year
 
 
+def years_back() -> int:
+    """How many years behind the real year the world being served runs: 0 in the present (world_year.years_back,
+    read from the clock)."""
+    behind = getattr(CURRENT[0], 'behind', None)
+    return round(behind().days / 365.2425) if behind else 0
+
+
 def modern(city: dict | None) -> bool:
     return ((city or {}).get('era') or 'modern') in MODERN_ERAS
 

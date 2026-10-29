@@ -16,13 +16,17 @@ once enough progress is made they reach it and move on to their next goal. No mo
 People don't stay forever (companion/world/turnover.py): each spot is held by one person after another as they
 move away, change jobs or retire and newcomers take their place, so who is at a place or on a street depends on
 the day (by default today, by the app clock). Someone who left is still found by their key.
+
+In a world that runs in a past year (companion/world_year.py, Back when) everyone is that many years younger
+(`back`): their work is drawn again for that age and year (a retiree is still working, nobody drives for a ride app
+in 2005), and whoever would not be grown up yet, or not born, isn't in town (`not_you`).
 """
 import functools
 import json
 import re
 from datetime import date, datetime
 
-from companion.world import catalog, generators, lifespans, turnover
+from companion.world import catalog, decades, generators, lifespans, turnover
 from companion.world.wording import regional
 
 MODERN = {'modern', 'future', 'other'}
@@ -215,11 +219,25 @@ def at_place(data: dict, place_id: str, day: date | None = None) -> list[dict]:
 
 
 def not_you(data: dict, sheets: list[dict]) -> list[dict]:
-    """Everyone but the townsperson the user became in this world (`data['you']`, companion/worlds.py). Every list
-    of townsfolk goes through here (places, residents, the Matchlight pool), so the user never meets themselves;
-    `find` still names them, for their own persona."""
+    """Everyone but the townsperson the user became in this world (`data['you']`, companion/worlds.py), and, in a
+    past year, anyone not grown up by then (`grown`). Every list of townsfolk goes through here (places, residents,
+    the Matchlight pool), so the user never meets themselves; `find` still names them, for their own persona."""
     you = data.get('you')
-    return [sheet for sheet in sheets if sheet['key'] != you] if you else sheets
+    return [sheet for sheet in sheets if sheet['key'] != you and grown(data, sheet)]
+
+
+def back() -> int:
+    """How many years younger everyone is in the world being served: 0 in the present (decades.years_back)."""
+    return decades.years_back()
+
+
+def grown(data: dict, sheet: dict) -> bool:
+    """Whether someone is grown up (18 in human terms) in the world being served; in a past year, someone the
+    present knows at 25 was 7 in 2008, or not born at all. Everyone is, in the present."""
+    if not back():
+        return True
+    life = lifespans.life_age(sheet['age'], lifespans.lifespan_of(sheet.get('folk') or lifespans.HUMAN, data))
+    return life is None or life >= lifespans.ADULT
 
 
 def seed_for(data: dict, key: str) -> str:
@@ -260,12 +278,17 @@ def find(data: dict, key: str) -> dict | None:
                 slot >= resident_count(data, hood_id) + APP_MEMBERS or \
                 generation and (slot >= resident_count(data, hood_id) or not arrival(data, parts[2], slot, generation)):
             return None
-        return resident(data, hood_id, index)
+        return kept_or_grown(data, resident(data, hood_id, index))
     place = catalog.find(data, parts[2])
     if not place or place not in data['places'] or slot >= everyone(data, place) or \
             generation and not arrival(data, place['id'], slot, generation):
         return None
-    return person(data, place, index)
+    return kept_or_grown(data, person(data, place, index))
+
+
+def kept_or_grown(data: dict, sheet: dict) -> dict | None:
+    """Someone not grown up in a past year isn't found, unless they are the user's own townsperson or a companion."""
+    return sheet if grown(data, sheet) or sheet['key'] in {data.get('you'), *data.get('kept', ())} else None
 
 
 @generators.detached
@@ -284,7 +307,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     role = (held['role'], held['role'], held['staff']) if held else _slot_role(data, place, slot)
     title = held['role'] if held else role_title(data, role, place)
     folk = notable_kind(data, notable) if notable else folk_of(data, seed)
-    age = notable['age'] if notable else seeded_real_age(data, seed, False)
+    age = (notable['age'] if notable else seeded_real_age(data, seed, False)) - back()
     life = lifespans.life_age(age, lifespans.lifespan_of(folk, data))
     name = _named(notable) if notable else generators.name(data, seed=seed, age=life)
     hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
@@ -829,7 +852,7 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
     key = key or f"town:{data['id']}:~{hood_id}:{index}"
     seed = seed_for(data, key)
     folk = folk_of(data, seed)
-    age = seeded_real_age(data, seed, True)
+    age = seeded_real_age(data, seed, True) - back()
     life = lifespans.life_age(age, lifespans.lifespan_of(folk, data))
     occupation = _occupation(data, seed, life)
     haunt = generators.pick(seed, 'haunt', where['haunts']) if where['haunts'] else None

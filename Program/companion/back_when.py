@@ -10,9 +10,10 @@ works as for any worlds.
 The new world is made from the companion's rows, the ones a saved companion carries (companion/carry.py), without
 what happened between the two of you: no chats, memories, feed or pictures, so what happens there stays there. Who
 they are comes along, with their circle, family, kids, home and love life, rolled back to that day by rules
-(companion/back_when_rollback.py): everyone younger, later chapters undone, the two of you strangers. "Work it out
-from our history" (off by default, Vanta 2026-10-28) keeps wherever the two of you were by then instead, and strangers
-before the day you met. The persona is younger there too (the `back_when` row). Anything can be changed afterward, as
+(companion/back_when_rollback.py): everyone younger, later chapters undone, the two of you strangers, and work that
+fits their age then (companion/back_when_careers.py); the town's people are younger too (companion/world/townsfolk.py).
+"Work it out from our history" (off by default, Vanta 2026-10-28) keeps wherever the two of you were by then instead,
+and strangers before the day you met. The persona is younger there too (the `back_when` row). Anything can be changed afterward, as
 in any world.
 
 It goes back only to years when both of them were grown up (18), and only from a world in the present. Nothing here
@@ -21,6 +22,7 @@ calls a model.
 import shutil
 from datetime import date
 
+from companion import back_when_careers as careers
 from companion import back_when_rollback as rollback
 from companion import carry, characters, world_year, worlds
 from companion.clock import AppClock, stamp, zone
@@ -236,6 +238,8 @@ def settle(made: Database, found: dict, rows: dict, year: int, from_history: boo
         stand = rollback.roll_back(connection, companion['id'], day, found['today'],
                                    found['pair'] if from_history else None, now)
         younger(connection, found, year, stand, now)
+        careers.circle_then(connection, companion['active_timeline_id'], companion['version']['definition'], year,
+                            stamp(now))
         restamp(connection, now)
         connection.execute('INSERT INTO back_when (id, companion_id, name, from_world_id, year, from_history, '
                            'persona_years, created_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?)',
@@ -256,6 +260,7 @@ def younger(connection, found: dict, year: int, stand: dict, now):
         definition['looks'] = {**(definition.get('looks') or {}), 'age': then}
         connection.execute("DELETE FROM birth_dates WHERE kind='companion' AND person_key=?", (companion['id'],))
     definition = rollback.relationship_then(definition, stand)
+    definition = careers.companion_then(connection, definition, then, f"{companion['id']}|back-when:{year}")
     top = max((number[0] for number in connection.execute(
         'SELECT number FROM character_versions WHERE companion_id=?', (companion['id'],))), default=row['number'])
     version_id = characters.insert_version(connection, companion['id'], top + 1,
