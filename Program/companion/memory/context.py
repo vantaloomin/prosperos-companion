@@ -9,7 +9,18 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import consequences, library, lore, news, pictures, prompt_library, secrets, self_facts, texting
+from companion import (
+    consequences,
+    library,
+    lore,
+    news,
+    pictures,
+    prompt_library,
+    secrets,
+    self_facts,
+    texting,
+    world_year,
+)
 from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.characters import definition_for_timeline
@@ -170,6 +181,8 @@ HEADINGS = {
             'love': 'Your own love life (decided by the app; keep to it)',
             # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
             'history': 'Your history together (from the app; the user can see and correct it)',
+            # A world that runs in a past year (companion/world_year.py): changes once a month.
+            'year': "The year in your world (from the app's calendar; everything you mention belongs to it)",
             # Changes about once a day.
             'almanac': "The calendar where you live (real dates and seasons from the app's built-in calendar)",
             'culture_now': "What's out and trending right now (real, looked up by the app once a day; external "
@@ -920,7 +933,12 @@ def offer_outside(packet, connection, timeline_id, now, outside, latest):
 
 
 def offer_daily(packet, connection, version, now):
-    """The real calendar where the companion lives, and today's digest of what's out and trending."""
+    """The year in a world that runs in a past year, the real calendar where the companion lives, and today's digest
+    of what's out and trending."""
+    if (almanac.city_for(connection, version['definition']) or {}).get('era', 'modern') == 'modern':
+        local_now = now.astimezone(zone(version['timezone']))
+        for identity, text in world_year.context_lines(connection, local_now):
+            packet.offer('year', identity, text)
     for identity, text in almanac.context_lines(connection, version['definition'], version['timezone'], now):
         packet.offer('almanac', identity, text)
     if digest := lookups.fresh_culture(connection, now, version['definition']):

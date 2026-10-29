@@ -1,0 +1,15 @@
+{
+ "about": "How people keep in touch in a past year (Back when, companion/world_year.py). A world that runs in a past year in a modern city gets one chat line from the span its year falls in. Each line names only what was already around at the start of its span, so nothing from a later year reaches the chat.",
+ "spans": [
+  {"from": 1990, "to": 1994, "line": "Most homes have a landline and an answering machine; pagers are common, and only a few people carry a mobile phone, a big one used for calls. People keep in touch by calling, leaving messages, writing letters and cards, and making plans in person. Almost nobody texts or has email at home."},
+  {"from": 1995, "to": 1998, "line": "The landline at home and the answering machine are still how most people call; pagers are common and more people carry a mobile phone, mostly for calls. Email and dial-up internet are new at home, and people meet in chat rooms. Texting is rare, and plans are made by phone or in person."},
+  {"from": 1999, "to": 2003, "line": "Most adults carry a small mobile phone with buttons and text in short bursts, pressing a key several times for each letter, though calls are still the main thing; every home has a landline. People email, and chat on AIM, MSN Messenger or ICQ at a computer at home."},
+  {"from": 2004, "to": 2006, "line": "Everyone has a mobile phone, mostly flip phones and sliders with a small camera, and texting on the number keys is how people keep in touch day to day; a BlackBerry means work. People chat on AIM or MSN Messenger and keep a MySpace page, and students are on Facebook."},
+  {"from": 2007, "to": 2009, "line": "Most people carry a flip phone, a slider or a BlackBerry and text all day; touchscreen smartphones are new and still a treat. Friends keep up on Facebook and MySpace, chat on MSN or AIM, and share photos by uploading them from a digital camera."},
+  {"from": 2010, "to": 2012, "line": "Smartphones are taking over (iPhone, Android, BlackBerry), though plenty of people still have a flip phone. People text, keep up on Facebook, follow friends on Twitter and snap photos on their phones; video calls are on Skype."},
+  {"from": 2013, "to": 2016, "line": "Almost everyone has a smartphone. People text and keep group chats on WhatsApp, iMessage or Facebook Messenger, post photos on Instagram and Facebook, send Snapchats, and video call on FaceTime or Skype."},
+  {"from": 2017, "to": 2019, "line": "Everyone lives on their smartphone: group chats on WhatsApp, iMessage or Messenger, Instagram posts and stories, Snapchat, voice notes, and FaceTime or video calls in the evening."},
+  {"from": 2020, "to": 2022, "line": "Everyone lives on their smartphone: group chats, Instagram stories, short videos on TikTok, voice notes, and video calls with friends and family."},
+  {"from": 2023, "to": 2025, "line": "Everyone lives on their smartphone: group chats, Instagram and TikTok, voice notes, and video calls with friends and family."}
+ ]
+}

@@ -10,8 +10,10 @@ import pytest
 from conftest import START
 
 from companion import world_year, worlds
+from companion.characters import require_current
 from companion.clock import parse
 from companion.mcp import lookups
+from companion.memory import context
 from companion.world import catalog, generators
 
 # Every seeded part of a companion's life that conftest turns off for unrelated tests, as this module found them.
@@ -110,6 +112,37 @@ def test_real_world_lookups_stay_off_in_a_past_year(client, companion, app):
         for purpose in ('conversation', 'ambient', 'companion_city'):
             assert lookups.target(connection, purpose, None, database.clock.now()) is None
         assert world_year.past(connection)
+
+
+def chat_prompt(app) -> str:
+    database = app.state.database
+    with database.connect() as connection:
+        packet = context.build(connection, require_current(connection), database.clock.now(), 6000)
+    return packet['system'] + '\n' + packet['note']
+
+
+def test_a_chat_in_a_past_year_says_the_year_and_how_people_keep_in_touch(client, companion, app):
+    assert '## The year' not in chat_prompt(app)  # Nothing changes in a present world's chats.
+    enter(client, past_world(client))
+    ok(client.post('/api/companion', json={'name': 'Dana', 'personality': 'Warm', 'timezone': 'America/New_York'}))
+    prompt = chat_prompt(app)
+    section = prompt.split('## The year', 1)[1].split('\n## ', 1)[0]
+    assert "It's October 2009." in section and 'flip phone' in section and world_year.UNHEARD in section
+    assert not [year for year in re.findall(r'\b(?:19|20)\d\d\b', prompt) if int(year) > YEAR]
+
+
+def test_the_year_stays_out_of_a_city_of_another_era(client, companion, app):
+    enter(client, past_world(client))
+    ok(client.post('/api/companion', json={'name': 'Rosa', 'personality': 'Warm', 'timezone': 'America/New_York',
+                                           'home_city': 'new-york-1925'}))
+    assert '## The year' not in chat_prompt(app)
+
+
+def test_every_year_back_to_1990_says_how_people_keep_in_touch():
+    for year in range(world_year.EARLIEST, 2026):
+        assert world_year.keeping_in_touch(year), year
+    spans = world_year.spans()
+    assert all(left['to'] + 1 == right['from'] for left, right in zip(spans, spans[1:]))
 
 
 def test_making_a_past_world_leaves_the_present_ones_clocks_alone(client, companion, app):
