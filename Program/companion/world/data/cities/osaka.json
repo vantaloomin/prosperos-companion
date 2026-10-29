@@ -6475,7 +6475,11 @@
     "data-analyst",
     "ux-designer"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1996,
+    null
+   ]
   },
   {
    "id": "kansai-electric",
@@ -6674,7 +6678,11 @@
     "retail-associate",
     "event-planner"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2001,
+    null
+   ]
   },
   {
    "id": "yoshimoto-kogyo",

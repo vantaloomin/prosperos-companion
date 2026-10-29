@@ -36,7 +36,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, many, optional
 from companion.errors import require
 from companion.life import circle, money, routine
-from companion.world import generators
+from companion.world import decades, generators
 
 COMPANION = 'companion'
 BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'kitchen'
@@ -104,6 +104,8 @@ INVITE_EVERY = 14
 RUNS_A_WEEK = 2
 INVITE_CHANCE = 0.45
 INVITE_AHEAD = (2, 5)
+# A swap that came later, and what a vegan bought before it was in the shops (a world in a past year, decades.py).
+EARLIER_SWAPS = {'oat milk': (2016, 'soy milk')}
 
 
 # --- Banks ---
@@ -117,6 +119,13 @@ def bank(bank_id: str) -> dict:
                             for name, skill, tags in raw['dishes']),
             'takeout': tuple({'dish': dish, 'cuisine': cuisine, 'source': source, 'tags': frozenset(tags.split())}
                              for dish, cuisine, source, tags in raw['takeout'])}
+
+
+def swap_then(name: str) -> str:
+    """The swap a vegan buys in the world's year: soy milk before oat milk was in the shops."""
+    first, before = EARLIER_SWAPS.get(name, (None, name))
+    year = decades.world_year()
+    return before if first and year and year < first else name
 
 
 COUNTRY_BANKS = (('modern-us', ('us', 'usa', 'united states', 'united states of america')),
@@ -610,7 +619,7 @@ class Day:
             tags = set(staple.get('tags', '').split())
             avoided = self.found['diet'] == 'vegan' and 'vegan' not in tags or tags & set(self.found['avoids'])
             if avoided and staple.get('swap'):
-                result.append({**staple, 'name': staple['swap'], 'tags': 'vegan'})
+                result.append({**staple, 'name': swap_then(staple['swap']), 'tags': 'vegan'})
             elif not avoided:
                 result.append(staple)
         return result

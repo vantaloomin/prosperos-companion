@@ -15,6 +15,7 @@ from datetime import timedelta
 from companion.clock import parse, stamp
 from companion.database import decode, many, optional
 from companion.life.chance import Draws, resolve
+from companion.world import decades
 
 # Off in tests unless a test turns it on, so schedules stay as written.
 ACTIVE = True
@@ -66,6 +67,9 @@ BEFORE_PHONES = BEFORE_SCREENS | {
     'got stuck on a long phone call': 'got caught in a long conversation',
     'a leak under the sink needed fixing': 'the roof started leaking',
     'the reservation got lost': 'the innkeeper gave the table away'}
+# A modern city's world in a past year from before phones had screens to crack (decades.py).
+SCREENS_FROM = 2008
+BEFORE_SMARTPHONES = {'the phone screen cracked': 'the car battery died'}
 ERAS = {'jazz-age': BEFORE_SCREENS, **{era: BEFORE_PHONES for era in ('medieval', 'fantasy', 'frontier', 'victorian',
                                                                        'steampunk')}}
 CHANGES = {'cancelled': {'kind': 'leisure', 'label': 'Quiet night in'},
@@ -96,6 +100,8 @@ def roll(seed: str, block: dict, company=(), tilt: dict | None = None, aboard: b
     friend = company[draws.die(len(company), 'shift', 'friend') - 1] if key == 'drop_by' else None
     reason = chain[1]['text'] if len(chain) > 1 else ''
     reason = AFLOAT.get(reason, reason) if aboard else ERAS.get(era, {}).get(reason, reason)
+    if era == 'modern' and (decades.world_year() or SCREENS_FROM) < SCREENS_FROM:
+        reason = BEFORE_SMARTPHONES.get(reason, reason)
     text = chain[0]['text'].format(minutes=minutes, reason=reason, friend=friend['name'] if friend else '')
     return {'key': key, 'minutes': minutes, 'reason': reason, 'friend': friend, 'text': text}
 

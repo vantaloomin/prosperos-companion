@@ -13,7 +13,7 @@ import hashlib
 from datetime import date, timedelta
 
 from companion.errors import DomainError
-from companion.world import catalog, lifespans, naming
+from companion.world import catalog, decades, lifespans, naming
 from companion.world import mix as town_mix
 from companion.world.schema import HEARSAY_KINDS
 
@@ -504,7 +504,8 @@ def _workplace(data: dict, career: dict, seed: str, given: str | None, avoid=())
     if record:
         summary = record.get('summary') or f'Known for {", ".join(record["known_for"][:3]).replace("-", " ")}.'
         return _named(record, 'given', summary)
-    if employers := [item for item in data['employers'] if career['id'] in item['careers']]:
+    # Someone given a job now works where there was work in the city's year (decades.current); a stored one stays.
+    if employers := [item for item in decades.current(data['employers'], data) if career['id'] in item['careers']]:
         return _named(_spread(seed, 'employer', employers, avoid), 'employer')
     if career['id'] in STUDY and data['colleges']:
         chosen = _spread(seed, 'college', data['colleges'], avoid)

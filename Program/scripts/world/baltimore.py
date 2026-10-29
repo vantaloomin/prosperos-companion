@@ -764,6 +764,16 @@ CITY['neighborhoods'].append(hood(
     'mid', ([1000, 1400], [1200, 1700], [1500, 2100]), ['apartment', 'rowhouse', 'student-housing'], 'medium',
     ['subway', 'citylink']))
 
+# The year each employer started hiring here, for worlds in a past year (Back when, companion/world/decades.py).
+FOUNDED = {
+    "Under Armour": 1996,
+    "Horseshoe Casino Baltimore": 2014,
+    "Four Seasons Hotel Baltimore": 2011,
+}
+for _employer in CITY['employers']:
+    if _employer['name'] in FOUNDED:
+        _employer['years'] = [FOUNDED[_employer['name']], None]
+
 if __name__ == '__main__':
     OUT.write_text(json.dumps(CITY, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
     print(f'Wrote {OUT}')

@@ -128,6 +128,9 @@ class Employer(Record):
     summary: Text
     careers: list[Id] = Field(min_length=1)
     source: Id
+    # The years it hired here, [from, until], either null for open: Google's Chicago office from 2006. Read only in
+    # a modern city's world that runs in a past year (companion/world/decades.py), where it is left out of new jobs.
+    years: tuple[CalendarYear | None, CalendarYear | None] | None = None
 
 
 class CareerHub(Record):

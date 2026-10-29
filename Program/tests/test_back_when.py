@@ -146,6 +146,9 @@ def test_their_own_words_say_the_age_they_were():
     younger = back_when_rollback.younger_words(definition, 34, 25)
     assert younger['identity'] == 'Mira, 25, a nurse. Aged 25 and 25 years old.'
     assert younger['background'] == 'Born 1992; 34 cats.'
+    # An identity that opens with the age, as many are written: "34. She/her."
+    opening = back_when_rollback.younger_words({'identity': '34. She/her. A nurse with 34 patients.'}, 34, 25)
+    assert opening['identity'] == '25. She/her. A nurse with 34 patients.'
 
 
 def test_steps_and_moments_name_every_step():

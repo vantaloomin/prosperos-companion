@@ -65,5 +65,30 @@
    "CAD": {"1990": 78.4, "1995": 87.6, "2000": 95.4, "2005": 107.0, "2010": 116.5, "2015": 126.6, "2020": 137.0, "2021": 141.6, "2022": 151.2, "2023": 157.1, "2024": 160.6, "2025": 164.0, "2026": 167.5},
    "AUD": {"1990": 54.0, "1995": 61.5, "2000": 69.0, "2005": 81.0, "2010": 95.0, "2015": 107.0, "2020": 116.0, "2021": 119.0, "2022": 128.0, "2023": 133.5, "2024": 138.0, "2025": 142.0, "2026": 146.0}
   }
+ },
+ "since": {
+  "about": "Things from a later year, by the first year a past world can name them: the life admin, work projects and anything else drawn from a bank leave out what names one (decades.fits).",
+  "patterns": [
+   ["\\bapps?\\b|\\bapp's\\b", 2010],
+   ["\\bonline\\b|websites?|web ?pages?|\\be-?mails?\\b|\\binbox\\b|the internet|\\bwebinars?\\b", 1997],
+   ["\\bstream(?:s|ing|ed)?\\b", 2008],
+   ["smart ?phones?|touch ?screens?|\\biphones?\\b", 2008],
+   ["social media|influencers?|\\bfollowers\\b|\\bhashtags?\\b|\\bvlogs?\\b|\\bblog posts?\\b", 2008],
+   ["\\btext(?:s|ed|ing)?\\b|text messages?", 2000],
+   ["wi-?fi|\\brouter\\b|broadband", 2003],
+   ["\\bpodcasts?\\b", 2005],
+   ["\\buploads?(?:ed|ing)?\\b|\\bdownloads?(?:ed|ing)?\\b|\\bpdfs?\\b|\\bdigital(?:ly)?\\b", 1998],
+   ["\\bzoom\\b|video ?calls?|video conferenc\\w*|\\bslack\\b|\\bremote work\\w*|work from home", 2012],
+   ["contactless|tap to pay|mobile pay\\w*|\\bvenmo\\b|\\bqr codes?\\b|e-?signatures?|\\be-?sign\\w*", 2012],
+   ["\\bpaypal\\b|e-?tickets?|e-?books?|e-?readers?|\\bkindle\\b", 2008],
+   ["electric cars?|\\bevs?\\b|charging (?:cable|port|station)s?", 2012],
+   ["password managers?|two-factor|\\b2fa\\b|\\bcloud\\b|\\bbackup drives?\\b", 2008],
+   ["\\busb\\b|\\bdvds?\\b|\\bgps\\b|\\bsat ?navs?\\b|self-checkouts?", 2003],
+   ["blu-?rays?|\\bsmart (?:tv|watch|speaker|thermostat|lock|plug)s?\\b|\\bdrones?\\b|\\bring doorbell", 2012],
+   ["\\buber\\b|\\blyft\\b|\\bdoordash\\b|\\bgrubhub\\b|\\binstacart\\b|\\bairbnb\\b|rideshares?|delivery apps?|\\be-?scooters?\\b", 2012],
+   ["\\bcell ?phones?\\b|\\bmobile phones?\\b|phone plans?|phone in (?:my |your )?pocket|\\bcell plans?\\b", 1997],
+   ["\\blaptops?\\b|\\bspreadsheets? software\\b|\\bprinter ink\\b", 1995],
+   ["\\badulting\\b|\\bbest life\\b|\\bvib(?:es|ing)\\b|self-care|\\bselfies?\\b", 2014]
+  ]
  }
 }

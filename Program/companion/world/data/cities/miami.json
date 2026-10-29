@@ -5396,7 +5396,11 @@
     "software-engineer",
     "data-analyst"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2022,
+    null
+   ]
   },
   {
    "id": "carnival",
@@ -5529,7 +5533,11 @@
     "performer",
     "event-planner"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2015,
+    null
+   ]
   },
   {
    "id": "magic-city-casino",
@@ -5543,7 +5551,11 @@
     "bartender",
     "server"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2009,
+    null
+   ]
   },
   {
    "id": "arsht-employer",
@@ -5558,7 +5570,11 @@
     "actor",
     "event-planner"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2006,
+    null
+   ]
   },
   {
    "id": "new-world-symphony",
@@ -5595,7 +5611,11 @@
     "military-sailor",
     "government-analyst"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1997,
+    null
+   ]
   },
   {
    "id": "coast-guard-miami",

@@ -6546,7 +6546,11 @@
     "graphic-designer",
     "ux-designer"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2018,
+    null
+   ]
   },
   {
    "id": "google-chicago",
@@ -6560,7 +6564,11 @@
     "ux-designer",
     "data-analyst"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2015,
+    null
+   ]
   },
   {
    "id": "united-center-employer",
@@ -6575,7 +6583,11 @@
     "server",
     "retail-associate"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1994,
+    null
+   ]
   },
   {
    "id": "navy-pier-employer",
@@ -6591,7 +6603,11 @@
     "tour-guide",
     "retail-associate"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1995,
+    null
+   ]
   },
   {
    "id": "chicago-public-media",
@@ -6661,7 +6677,11 @@
     "server",
     "line-cook"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2023,
+    null
+   ]
   },
   {
    "id": "field-museum-employer",

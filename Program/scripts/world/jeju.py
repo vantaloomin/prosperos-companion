@@ -1070,6 +1070,23 @@ CITY = {
     ],
 }
 
+# The year each employer started hiring here, for worlds in a past year (Back when, companion/world/decades.py).
+FOUNDED = {
+    "Kakao (Jeju head office)": 2014,
+    "Jeju Air": 2005,
+    "Jeju Dream Tower": 2020,
+    "Haevichi Hotel and Resort Jeju": 2003,
+    "International Convention Center Jeju": 2003,
+    "Jeju Province Development Corporation (Jeju Samdasoo)": 1995,
+    "Orion Jeju Yongamsu": 2016,
+    "Global Education City international schools": 2011,
+    "Jeju Olle Foundation": 2007,
+    "ROK Navy Jeju base": 2016,
+}
+for _employer in CITY['employers']:
+    if _employer['name'] in FOUNDED:
+        _employer['years'] = [FOUNDED[_employer['name']], None]
+
 if __name__ == '__main__':
     OUT.write_text(json.dumps(CITY, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
     print(f'Wrote {OUT}')

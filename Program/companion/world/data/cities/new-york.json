@@ -6029,7 +6029,11 @@
     "data-analyst",
     "marketing-coordinator"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2000,
+    null
+   ]
   },
   {
    "id": "meta-nyc",
@@ -6043,7 +6047,11 @@
     "ux-designer",
     "data-analyst"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2007,
+    null
+   ]
   },
   {
    "id": "nyt",

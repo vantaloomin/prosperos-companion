@@ -88,12 +88,12 @@ export default function App() {
   const sidecarOpen = useSidecarOpen()
   const sidecarWaiting = useSidecarWaiting()
   // The dating app shows a download badge until the user has set it up (src/features/dating).
-  const datingInstalled = useQuery({ queryKey: ['dating-status'], queryFn: () => api<{ installed: boolean }>('/dating/status') }).data?.installed ?? true
+  const { installed: datingInstalled, app: datingApp } = useDatingStatus()
   const { watching, shown } = useWatchView(view)
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
-      <AppNav view={shown} go={go} storyOn={storyOn} datingInstalled={datingInstalled} unread={unread} sidecarOpen={sidecarOpen} sidecarWaiting={sidecarWaiting} watching={watching} />
+      <AppNav view={shown} go={go} storyOn={storyOn} datingInstalled={datingInstalled} datingApp={datingApp} unread={unread} sidecarOpen={sidecarOpen} sidecarWaiting={sidecarWaiting} watching={watching} />
       <main id="main" className="app-main" tabIndex={-1}>
         <DebugBanner onOpen={() => go('settings/debug')} />
         <ReadyNotice openModels={() => go('settings/models')} />
@@ -200,4 +200,10 @@ function CompanionView({ view, companion, go }: { view: View; companion: Compani
   if (fromToday(view)) return view === 'people' ? <WhoKnowsWho go={go} /> : <CityMap companion={companion} place={view.startsWith('map/') ? decodeURIComponent(view.slice(4)) : null} go={go} />
   if (profileTab(view) === 'memories') return <MemoriesView view={view} companion={companion} go={go} />
   return <Conversation companion={companion} go={go} />
+}
+
+/** Whether Matchlight is set up yet, and whether it is a phone app in this world, for the nav's badge. */
+function useDatingStatus(): { installed: boolean; app: boolean } {
+  const data = useQuery({ queryKey: ['dating-status'], queryFn: () => api<{ installed: boolean; app?: boolean }>('/dating/status') }).data
+  return { installed: data?.installed ?? true, app: data?.app ?? true }
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { howText, modelHow } from '../../src/features/memories/pairText.ts'
+import { howText, modelHow, tieText } from '../../src/features/memories/pairText.ts'
 import { profileTabs, circleText, handle, placeFact, profileClass, profileTab, showsCard } from '../../src/features/profile/profileText.ts'
 
 test('the profile holds Messages, Posts, Memories and Character under their old addresses', () => {
@@ -76,4 +76,11 @@ test('the Groups backstory box shows you and saves the user, as the companions r
   assert.equal(modelHow("Friends of yours, and you're still in touch"), "Friends of the user's, and you're still in touch")
   assert.equal(modelHow('Roommates in college'), 'Roommates in college')
   assert.equal(modelHow('Met at a youth hostel in Lyon'), 'Met at a youth hostel in Lyon')
+})
+
+test('two companions who feel differently about each other read as one line', () => {
+  const stage = (level: number, name: string) => ({ level, name })
+  const tie = { companion_id: 'b', name: 'Theo Park', feels: stage(2, 'Getting to know each other'), they_feel: stage(3, 'Comfortable') }
+  assert.equal(tieText('Mira Costa', tie as never), 'Mira and Theo: Getting to know each other for Mira, Comfortable for Theo')
+  assert.equal(tieText('Mira Costa', { ...tie, they_feel: stage(2, 'Getting to know each other') } as never), 'Mira and Theo: Getting to know each other')
 })

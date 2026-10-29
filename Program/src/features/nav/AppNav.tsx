@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Lightbulb, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
+import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Lightbulb, Settings as SettingsIcon, UserPlus, UserRound, UsersRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
@@ -32,13 +32,15 @@ interface Props {
   go: (view: View) => void
   storyOn: boolean
   datingInstalled: boolean
+  /** Matchlight is a phone app to install there (not a website, the paper or the matchmaker). */
+  datingApp?: boolean
   unread: { companion: number; group: number }
   sidecarOpen: boolean
   sidecarWaiting: boolean
   watching?: boolean
 }
 
-export function AppNav({ view, go, storyOn, datingInstalled, unread, sidecarOpen, sidecarWaiting, watching }: Props) {
+export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, unread, sidecarOpen, sidecarWaiting, watching }: Props) {
   const counts: Partial<Record<string, number>> = { conversation: unread.companion, groups: unread.group }
   const ready = useSettingsMark(view)
   // Matchlight goes by the era's name: the Personals in 1895, the Matchmaker in Camelot (eraWords.ts).
@@ -55,7 +57,7 @@ export function AppNav({ view, go, storyOn, datingInstalled, unread, sidecarOpen
           </button>}
           <button type="button" className={`nav-${id}${railOnly ? ' rail-only' : ''}`} aria-current={railCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>
-            <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}
+            <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <DatingBadge app={datingApp} />}
             {id === 'settings' && <SettingsMark view={ready} />}
             <Count count={counts[id]} /><span>{id === 'dating' ? dating : label}</span>
           </button>
@@ -100,4 +102,9 @@ function SettingsMark({ view }: { view?: ReadyView }) {
     </svg>
   }
   return view?.status === 'ready' && !view.settings_seen ? <span className="nav-dot" aria-hidden="true" /> : null
+}
+
+/** Matchlight not set up yet: a download where it is a phone app, signing up anywhere else (Iris, 2026-10-29). */
+function DatingBadge({ app }: { app: boolean }) {
+  return app ? <Download className="nav-badge" aria-label="not installed" /> : <UserPlus className="nav-badge" aria-label="not signed up" />
 }

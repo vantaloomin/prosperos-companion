@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Download, Heart } from 'lucide-react'
+import { Download, Heart, UserPlus } from 'lucide-react'
 import type { Dating, DatingGender, DatingProfile, DatingWords } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { AIMS, fromPersona, GENDERS } from './datingText'
@@ -50,7 +50,7 @@ function Store({ words, surface, installing, onGet }: { words: DatingWords; surf
       <p className="subtle">{words.tagline}</p>
       {installing
         ? <><div className="dating-progress" role="progressbar" aria-label={words.getting}><span /></div><p className="subtle">{words.getting}</p></>
-        : <button type="button" className="button primary" onClick={onGet}><Download aria-hidden="true" />{words.get}</button>}
+        : <button type="button" className="button primary" onClick={onGet}>{words.app ? <Download aria-hidden="true" /> : <UserPlus aria-hidden="true" />}{words.get}</button>}
       <p className="subtle small">Free. For adults only. Everyone here is someone who lives in town.</p>
     </div>
   )
