@@ -103,11 +103,16 @@ def add_circle(web: Web, key: str, rows: list[dict], said: bool | str = False):
         person = circle.view(row)
         role = circle.era_word(person['role'], said)  # 'mother' in 1895, 'mum' in London (circle.voice).
         web.add(person['key'], person.get('full_name') or person['name'], 'circle', role)
-        web.link(key, person['key'], role)
+        found = circle.knowing(row)  # Only one knows the other: the link starts at the one who does.
+        if found == 'both':
+            web.link(key, person['key'], role)
+        else:
+            web.link(*((person['key'], key) if found == 'they' else (key, person['key'])), f'{role}, knows of')
     by_id = {row['id']: row['seed'] for row in rows}
     for person_id, known in circle.ties(rows, said in (True, 'older')).items():
-        for other in known:
-            web.link(by_id[person_id], by_id[other['id']], other['how'])
+        for other in known:  # A one-sided tie is linked from the one who knows of the other.
+            if other['how'] != 'known by':
+                web.link(by_id[person_id], by_id[other['id']], other['how'])
 
 
 def add_townsfolk(web: Web, key: str, people: list[dict]):

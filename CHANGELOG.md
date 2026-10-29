@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
+  message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
+  your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by
+  Settings > Realism > "How quickly they read your texts", and after work or sleep). You can keep the thread going.
+  "Message them instead" next to Comment still takes the post to chat.
 - **Books, shows and songs from their own world:** a companion in a made-up world used to read, watch and hum the
   same generic made-up titles whether they lived in Camelot, Oz or a fan-made world of your own. Now the titles come
   from their world: a city can list its own books, shows and songs (`media` in the city file, see Making a city),

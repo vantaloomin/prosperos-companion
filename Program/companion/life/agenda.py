@@ -515,10 +515,10 @@ def recent_activities(connection, timeline_id, subject, before) -> list[str]:
 
 def free_people(connection, timeline_id, slot) -> list[dict]:
     """Circle members with nothing busy overlapping the slot, in circle order, leaving out anyone the companion is
-    keeping away from for now (companion/consequences.py marks)."""
+    keeping away from for now (companion/consequences.py marks) and anyone only one of them knows (circle.knowing)."""
     result, avoided = [], consequences.avoided(connection, timeline_id, slot.local_date.isoformat())
     for person in circle.people(connection, timeline_id):
-        if not decode(person['schedule']) or person['id'] in avoided:
+        if not decode(person['schedule']) or person['id'] in avoided or circle.knowing(person) != 'both':
             continue
         overlapping = many(connection, 'SELECT block FROM life_agenda WHERE timeline_id=? AND subject=? '
                            'AND starts_at<? AND ends_at>?', (timeline_id, person['id'], stamp(slot.ends_at),
@@ -534,7 +534,7 @@ def birthdays(connection, timeline_id, local_date, free) -> list[dict]:
     only when free at the slot (`free` from free_people)."""
     free_ids, result = {person['id'] for person in free}, []
     for person in circle.people(connection, timeline_id):
-        if circle.birthday(person['id']) != local_date[5:]:
+        if circle.birthday(person['id']) != local_date[5:] or circle.knowing(person) != 'both':
             continue
         local = bool(decode(person['schedule']))
         if not local or person['id'] in free_ids:
@@ -662,7 +662,8 @@ def circle_view(connection, timeline_id, now, include_removed=False) -> list[dic
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' and \
             row['id'] not in at_wedding else None
         result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),
-                       'knows': known.get(row['id'], [])})
+                       'knows': known.get(row['id'], []), 'knowing': circle.knowing(row),
+                       'knowing_set': bool(details.get('knowing'))})
     return result
 
 

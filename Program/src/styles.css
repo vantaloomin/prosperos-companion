@@ -59,6 +59,8 @@ h2 { font-size: 1.25rem; }
 svg { width: 1.1em; height: 1.1em; stroke-width: 1.6; flex-shrink: 0; }
 input, select, textarea { background: var(--canvas); border: 1px solid var(--input-border, var(--border)); border-radius: 7px; padding: 10px 12px; }
 textarea { resize: vertical; line-height: 1.6; }
+/* Two lines that grow with the text, or a wrapped placeholder, to about five (Iris). */
+textarea.grows { resize: none; field-sizing: content; min-height: calc(2lh + 22px); max-height: calc(5lh + 22px); }
 ::placeholder { color: var(--faint); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .skip-link { position: absolute; left: 8px; top: 8px; transform: translateY(calc(-100% - 16px)); z-index: 10; padding: 10px 14px; background: var(--accent); color: var(--on-accent); border-radius: 7px; }
@@ -570,6 +572,7 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .reaction:hover { background: var(--raised); filter: none; opacity: 1; }
 .reaction[aria-pressed='true'] { background: var(--accent-tint); filter: none; opacity: 1; outline: 1px solid var(--accent); }
 .discuss-form { display: flex; flex-direction: column; gap: 8px; }
+.discuss-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
 /* The user's own post, at the top of the feed. */
 .own-post { display: flex; flex-direction: column; gap: 8px; max-width: 680px; margin: 4px 0 12px; }
 .own-post textarea { width: 100%; resize: none; }
@@ -1515,6 +1518,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .post-audience > p { margin: 0; font-size: 0.8125rem; }
 .post-comments { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
 .post-comments strong { font-weight: 600; }
+.post-comments .post-comment-answer { padding-left: 14px; border-left: 2px solid var(--border); }
+.post-comments .post-waiting { font-size: 0.8125rem; font-style: italic; color: var(--muted); }
 
 /* People in your life (Memories). */
 .people-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -2824,7 +2829,7 @@ p.breakup-line { align-items: center; }
 .circle-pet .person-actions { margin-top: 2px; }
 /* The open pet form is its own small inset form, so its Save pet does not read as the person form's Save. */
 .circle-tie-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.circle-tie { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 14rem); gap: 12px; align-items: center; min-width: 0; }
+.circle-tie { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 16rem); gap: 12px; align-items: center; min-width: 0; }
 .circle-tie label { overflow-wrap: anywhere; }
 .circle-tie select { width: 100%; min-width: 0; }
 .circle-tie-add { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }

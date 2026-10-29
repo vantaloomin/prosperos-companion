@@ -379,6 +379,8 @@ def with_circle(connection, a: str, b: str, me: dict, person: dict, now) -> dict
     mine = max(mine, min(base, FAMILY_FLOOR)) if close_family else mine
     if planned_family(person):
         base, mine = max(base, PLANNED_FLOOR), max(mine, PLANNED_FLOOR)
+    if circle.knowing(person) != 'both':  # Only one of them knows the other: nothing between them yet.
+        base = mine = 1
     return {'start': found['level'], 'role': person['role'], 'nudge': found['nudge'], 'how': '', 'told': False,
             'storylines': moved['reasons'], 'ab': {'level': mine, 'cooled': False},
             'ba': {'level': base, 'cooled': False}}

@@ -15,7 +15,7 @@ from datetime import date, timedelta
 from companion.life import body, money, occasions, pronouns
 from companion.world import perception
 
-COMPOSER_VERSION = 'compose-7'
+COMPOSER_VERSION = 'compose-8'
 QUIET_SHARE = 0.2
 OUTDOOR = {'park', 'waterfront', 'beach'}
 RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
@@ -616,7 +616,9 @@ def fulfil(plan: dict, definition: dict) -> dict:
 
 
 # Unresolved threads (PRD T2): a small open question in the companion's life that settles a few days
-# later, one way or the other. They stay ordinary in scale; nothing here is a major life change.
+# later, one way or the other. They stay ordinary in scale; nothing here is a major life change. Every ending
+# names whose it is ("Sam's houseplant", never "the houseplant"): the user may never have heard how it began, and a
+# model texting the news linked a bare "the houseplant" to a plant the user had talked about.
 THREAD_SHARE = 0.1
 
 
@@ -640,7 +642,7 @@ THREADS = (
             '{name} gave up waiting and fixed the leaky faucet with the help of a video.'), eras=MODERN_ONLY),
     Thread('parcel', '{name} ordered a secondhand record player and is waiting for it to arrive.',
            ('{name}\'s record player arrived, and it works.',
-            'The record player arrived with a cracked lid, but it still plays.'), eras=MODERN_ONLY),
+            '{name}\'s record player arrived with a cracked lid, but it still plays.'), eras=MODERN_ONLY),
     Thread('waitlist', '{name} joined the waitlist for an evening pottery class.',
            ('A spot opened up in the pottery class, and {name} took it.',
             'The pottery class filled up, so {name} is on the list for next term.'), eras=MODERN_ONLY),
@@ -648,19 +650,19 @@ THREADS = (
            ('{name} finished the novel just in time for book club.',
             '{name} went to book club only halfway through the novel and enjoyed it anyway.'), eras=TOWN_ERAS),
     Thread('friend-visit', 'An old friend of {name}\'s might come to visit, but nothing is settled yet.',
-           ('The friend booked the trip, and {name} is already making a list of places to go.',
-            'The friend\'s visit fell through for now; they promised to try again in the spring.')),
+           ('{name}\'s friend booked the trip, and {name} is already making a list of places to go.',
+            'The visit from {name}\'s friend fell through for now; they promised to try again in the spring.')),
     Thread('plant', '{name} is trying to rescue a drooping houseplant.',
            ('{name}\'s houseplant perked up with new leaves.',
-            'The houseplant did not make it; {name} kept a cutting just in case.'), eras=TOWN_ERAS),
+            '{name}\'s houseplant did not make it; {name} kept a cutting just in case.'), eras=TOWN_ERAS),
     Thread('lost-scarf', '{name} lost a favorite scarf somewhere around town and is retracing their steps.',
            ('Someone had handed in {name}\'s scarf at a cafe they stopped at.',
             '{name} gave up on the scarf and found a new one they like almost as much.'), eras=TOWN_ERAS),
     Thread('noisy-neighbor', 'A neighbor of {name}\'s started a noisy renovation.',
-           ('The neighbor\'s renovation wrapped up, and it is quiet again.',
+           ('The renovation next door to {name} wrapped up, and it is quiet again.',
             '{name} and the neighbor agreed on quiet hours, and it is better now.'), eras=('modern', 'jazz-age')),
     Thread('recipe', '{name} is trying to get a tricky recipe right after two failed attempts.',
-           ('The third try worked, and {name} is proud of it.',
+           ('{name}\'s third try at the recipe worked, and {name} is proud of it.',
             '{name} shelved the recipe for now after another flop.')),
     Thread('tickets', '{name} is hoping to get tickets to a show that sold out fast.',
            ('{name} found resale tickets to the show at a fair price.',
@@ -675,7 +677,7 @@ THREADS = (
            eras=OLD_ERAS),
     Thread('mending', '{name} left a torn cloak with the tailor and is waiting to have it back.',
            ('The tailor mended {name}\'s cloak so well the tear barely shows.',
-            'The tailor could only patch the cloak, but {name} likes the patch.'), eras=OLD_ERAS),
+            'The tailor could only patch {name}\'s cloak, but {name} likes the patch.'), eras=OLD_ERAS),
     Thread('lost-glove', '{name} lost a good glove somewhere about town and is retracing their steps.',
            ('A neighbor found {name}\'s glove by the well and brought it round.',
             '{name} gave up on the glove and is knitting a new pair.'), eras=OLD_ERAS),
