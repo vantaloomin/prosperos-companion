@@ -8,7 +8,9 @@ day first, over the last week:
   (companion/life/storylines.py), new chapters of their life (companion/life/chapters.py) and news they heard
   (companion/news.py), with how they feel now (companion/moods.py);
 - a townsperson: where the town's rules put them through the day and how their goal is going
-  (companion/world/townsfolk.py), and the companions who ran into them (`townsfolk_encounters`).
+  (companion/world/townsfolk.py), and the companions who ran into them (`townsfolk_encounters`);
+- someone in a companion's circle who lives in town (companion/life/circle.py): their days as their agenda went
+  (`life_agenda`), the same days the companion's own can name them in.
 
 Inner voice (Settings > Realism > Their days, `life_settings.inner_voice`) sets how much of what is on their mind the
 lines carry: 0 just what happened; 1 a few thoughts (On their mind, what a townsperson is working toward); 2 true to
@@ -537,6 +539,35 @@ def townsperson_lines(connection, sheet: dict, data: dict, now) -> list[dict]:
     return safe(connection, lines, first, (sheet.get('pronouns') or '').split('/')[0].casefold())
 
 
+
+# Someone in a companion's circle -------------------------------------------------------------------------------------
+
+def circle_lines(connection, row: dict, companion: dict, now) -> list[dict]:
+    """Their days as their agenda went (companion/life/agenda.py), with the thoughts Inner voice allows."""
+    voice, timezone = voice_level(connection), companion['version']['timezone']
+    details = decode(row['details'])
+    first = first_name(row['name'])
+    today = now.astimezone(zone(timezone)).date()
+    days = [today - timedelta(days=offset) for offset in range(DAYS - 1, -1, -1)]
+    rows = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND subject=? AND status='happened' "
+                'AND entry IS NOT NULL AND starts_at>=? AND starts_at<=? ORDER BY starts_at',
+                (row['timeline_id'], row['id'], at(days[0], time(0), timezone), stamp(now)))
+    entries = [(found, decode(found['entry'])) for found in rows]
+    standing = notable_events([{'id': found['id'], 'starts_at': found['starts_at']} for found, _entry in entries])
+    lines = []
+    for found, entry in entries:
+        if not isinstance(entry.get('summary'), str):
+            continue
+        key = f"circle:{row['id']}:{found['slot_key']}"
+        text = entry['summary'].replace(row['name'], first)
+        lines.append(item(key, found['starts_at'], 'day', text,
+                          inner=thought_after(voice, found['id'] in standing, key, entry.get('mood'), first)))
+    lived = {parse(line['at']).astimezone(zone(timezone)).date() for line in lines}
+    lines += wandering([day for day in days if day in lived], timezone, now, voice, f"circle:{row['id']}", first)
+    pronoun = (details.get('pronouns') or '').split('/')[0].casefold()
+    return safe(connection, [told_by(line, now) for line in lines], first, pronoun)
+
+
 # The page ------------------------------------------------------------------------------------------------------------
 
 def grouped(lines: list[dict], timezone: str, entries: dict[str, str]) -> list[dict]:
@@ -558,6 +589,9 @@ def lines_for(connection, focus: dict, now) -> tuple[list[dict], str]:
     if focus['kind'] == 'companion':
         companion = focus['companion']
         return companion_lines(connection, companion, now), companion['version']['timezone']
+    if focus['kind'] == 'circle':
+        companion = focus['companion']
+        return circle_lines(connection, focus['row'], companion, now), companion['version']['timezone']
     return townsperson_lines(connection, focus['sheet'], focus['data'], now), town_zone(focus['data'])
 
 
@@ -570,7 +604,8 @@ def feed(connection, focus: dict, now) -> dict:
 
 
 def public(focus: dict) -> dict:
-    return {key: focus[key] for key in ('key', 'kind', 'name', 'line', 'companion_id', 'town_key') if key in focus}
+    return {key: focus[key] for key in ('key', 'kind', 'name', 'line', 'why', 'source', 'owner', 'companion_id',
+                                         'town_key') if key in focus}
 
 
 # Who can be watched ---------------------------------------------------------------------------------------------------
@@ -611,9 +646,30 @@ def town_focus(connection, key: str, data: dict | None = None) -> dict | None:
             'sheet': sheet, 'data': data}
 
 
+def circle_focus(connection, person_id: str) -> dict | None:
+    """Someone in a companion's circle who lives in town (a week of their own there) and is grown up."""
+    from companion.characters import for_timeline
+    from companion.life import circle
+    row = optional(connection, "SELECT * FROM circle_people WHERE id=? AND status='active'", (person_id,))
+    if row is None or not decode(row['schedule']):
+        return None  # Gone from the circle, or lives out of town with no days here.
+    details = decode(row['details'])
+    companion = for_timeline(connection, row['timeline_id'])
+    if (details.get('age') or 30) < 18 or not companion or companion.get('active_timeline_id') != row['timeline_id']:
+        return None
+    owner = first_name(companion['version']['definition']['name'])
+    job = (details.get('career') or '').strip()
+    role = circle.relation(row['role'], details.get('pronouns', ''))
+    return {'key': f'circle:{person_id}', 'kind': 'circle', 'name': details.get('full_name') or row['name'],
+            'line': f"{owner}'s {role}" + (f' · {job[:1].lower()}{job[1:]}' if job else ''), 'owner': owner,
+            'why': f"In {owner}'s circle, and lives in town.", 'row': row, 'companion': companion}
+
+
 def resolve(connection, key: str) -> dict | None:
     if key.startswith('companion:'):
         return companion_focus(connection, key.split(':', 1)[1])
+    if key.startswith('circle:'):
+        return circle_focus(connection, key.split(':', 1)[1])
     if key.startswith('town:'):
         try:
             return town_focus(connection, key)
@@ -633,7 +689,9 @@ def lively(connection, now, limit: int = 3) -> list[dict]:
     busy = [sheet for sheet in people if townsfolk.story(sheet, data, today)['beat'] in ('progress', 'achieved')]
     chosen = sorted(busy or people, key=lambda sheet: generators.unit(seed, 'lively', sheet['key']))
     found = (town_focus(connection, sheet['key'], data) for sheet in chosen)
-    return [focus for focus in found if focus][:limit]
+    # Nobody here knows them yet: say why the app offers them.
+    why = 'Nobody you know has met them yet. The app picked them because they have a busy week.'
+    return [focus | {'source': 'busy', 'why': why} for focus in found if focus][:limit]
 
 
 def companions(connection) -> list[dict]:
@@ -650,11 +708,23 @@ def met(connection, now, limit: int = 8) -> list[dict]:
     if main is None:
         return []
     found = []
+    owner = first_name(main['version']['definition']['name'])
     for person in encounters.known(connection, main, now)[:limit]:
         focus = resolve(connection, person['key']) if person.get('key', '').startswith('town:') else None
         if focus:
-            found.append(focus)
+            times = {1: 'once', 2: 'twice'}.get(person['times'], f"{person['times']} times")
+            found.append(focus | {'source': 'met', 'owner': owner,
+                                  'why': f'{owner} has run into them around town {times}.'})
     return found
+
+
+def circles(connection) -> list[dict]:
+    """The people in each companion's circle who live in town, the main companion's first."""
+    rows = many(connection, "SELECT p.id FROM circle_people p JOIN companions c ON c.active_timeline_id=p.timeline_id "
+                "WHERE p.status='active' AND c.active_version_id IS NOT NULL "
+                'ORDER BY c.slot IS NULL, c.stepped_back_at DESC, p.ordinal')
+    found = (circle_focus(connection, row['id']) for row in rows)
+    return [focus for focus in found if focus]
 
 
 def first_pick(connection, now) -> dict | None:
@@ -670,12 +740,15 @@ def first_pick(connection, now) -> dict | None:
 
 
 def choices(connection, now, focus: dict | None) -> list[dict]:
-    """Who the Focus picker offers: the companions, townsfolk they have met and a few lively ones, once each."""
+    """Who the Focus picker offers, once each: the companions, the people in their circles who live in town,
+    townsfolk the main companion has met and a few lively ones."""
     seen, result = set(), []
-    for found in [*([focus] if focus else []), *companions(connection), *met(connection, now), *lively(connection, now)]:
+    for found in [*companions(connection), *circles(connection), *met(connection, now), *lively(connection, now)]:
         if found['key'] not in seen:
             seen.add(found['key'])
             result.append(public(found))
+    if focus and focus['key'] not in seen:  # Followed from an earlier week, and still here.
+        result.insert(0, public(focus))
     return result
 
 
@@ -694,8 +767,11 @@ def focus_now(connection, now, write: bool = False) -> dict | None:
 def state(connection, now, write: bool = False) -> dict:
     row = observer.row(connection)
     focus = focus_now(connection, now, write)
-    return {'watching': bool(row['watching']), 'started_at': row['started_at'], 'focus': public(focus) if focus else None,
-            'choices': choices(connection, now, focus)}
+    offered = choices(connection, now, focus)
+    # The followed person as the picker offers them, with why they are there.
+    shown = next((choice for choice in offered if focus and choice['key'] == focus['key']), None)
+    return {'watching': bool(row['watching']), 'started_at': row['started_at'],
+            'focus': shown or (public(focus) if focus else None), 'choices': offered}
 
 
 def watched_person(connection, key: str) -> tuple[dict, dict] | None:
@@ -743,6 +819,8 @@ def pronouns_of(focus: dict) -> str:
     """'she/her', or they/them when the sheet does not say (companions are they/them unless their sheet says)."""
     if focus['kind'] == 'companion':
         return companion_pronouns(focus['companion']['version']['definition'])
+    if focus['kind'] == 'circle':
+        return (decode(focus['row']['details']).get('pronouns') or '').strip() or 'they/them'
     return (focus['sheet'].get('pronouns') or '').strip() or 'they/them'
 
 

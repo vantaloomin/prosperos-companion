@@ -46,6 +46,7 @@ function WatchHeader({ data, focus, onChange, go }: HeaderProps) {
         <p className="eyebrow">{data.watching ? 'Just watching' : 'Just watch'}</p>
         <h1 id="watch-heading">{focus.name}</h1>
         <p className="subtle">{focus.line}</p>
+        {focus.why && <p className="subtle watch-why">{focus.why}</p>}
       </div>
       <div className="watch-controls">
         <FocusPicker data={data} focus={focus} onPick={(key) => void onChange({ focus: key })} />
@@ -74,10 +75,11 @@ function FocusPicker({ data, focus, onPick }: { data: Observer; focus: WatchFocu
   )
 }
 
-/** Step back in: a chat with a companion, or a new life as the townsperson being watched. */
+/** Step back in: a chat with a companion, or the offer of a separate world as the townsperson being watched. */
 function StepIn({ focus, onStop, go }: { focus: WatchFocus; onStop: () => Promise<Observer | null>; go: (view: View) => void }) {
   const client = useQueryClient()
   if (focus.kind === 'townsperson') return <BecomeThem person={{ key: focus.key, name: focus.name }} />
+  if (focus.kind !== 'companion') return null  // Someone in a companion's circle: there is nobody to step in as.
   const talk = async () => {
     if (await onStop()) await reach(client, go, 'conversation', focus.companion_id)
   }

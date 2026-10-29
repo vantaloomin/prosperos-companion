@@ -41,7 +41,7 @@ def lines(found: dict) -> list[dict]:
 def test_the_app_picks_who_to_watch_and_their_days_read_as_a_narrator_tells_them(client, companion, watching):
     assert watching['watching'] and watching['focus']['name'] == 'Mira' and watching['focus']['kind'] == 'companion'
     kinds = {choice['kind'] for choice in watching['choices']}
-    assert kinds == {'companion', 'townsperson'}  # A few lively townsfolk are offered too.
+    assert kinds == {'companion', 'circle', 'townsperson'}  # Their people in town and a few lively townsfolk too.
     found = feed(client)
     assert found['focus']['key'] == f"companion:{companion['id']}"
     days = [day['date'] for day in found['days']]
@@ -288,3 +288,22 @@ def test_the_day_of_a_death_is_told_quietly_from_then_on():
     assert list(told) == ['morning', 'died', 'museum', 'next day']
     assert told['museum']['inner'] is None and told['morning']['inner'] and told['next day']['inner']
 
+
+
+def test_the_companions_people_in_town_can_be_watched_too(client, companion, watching):
+    circle = [choice for choice in watching['choices'] if choice['kind'] == 'circle']
+    assert circle, watching['choices']  # Their mom, their friends: everyone in the circle who lives in town.
+    assert all(choice['owner'] == 'Mira' and choice['line'].startswith("Mira's ") for choice in circle)
+    found = client.put('/api/observer', json={'focus': circle[0]['key']}).json()
+    assert found['focus']['kind'] == 'circle' and found['focus']['why'] == "In Mira's circle, and lives in town."
+    told = feed(client)
+    assert told['focus']['key'] == circle[0]['key'] and lines(told)
+    first = circle[0]['name'].split()[0]
+    assert all(first in line['text'] for line in lines(told) if line['kind'] == 'day')
+
+
+def test_townsfolk_say_why_they_are_offered(client, companion, watching):
+    town = [choice for choice in watching['choices'] if choice['kind'] == 'townsperson']
+    assert town and all(choice['source'] in ('met', 'busy') and choice['why'] for choice in town)
+    busy = [choice for choice in town if choice['source'] == 'busy']
+    assert busy and all('Nobody you know has met them yet' in choice['why'] for choice in busy)
