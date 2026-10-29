@@ -91,6 +91,25 @@ def test_a_post_says_what_happened_as_i(summary, said):
     assert composer.mine(summary, 'Bradley Shaw') == said
 
 
+@pytest.mark.parametrize(('summary', 'own', 'said'), [
+    # A model-phrased line starts with the companion's pronoun; the post says it as "I" all the way through.
+    ('Sett made steady progress on the rush. He settled down in a booth at Hillside Noodle House for a while.', 'he/him',
+     'I made steady progress on the rush. I settled down in a booth at Hillside Noodle House for a while.'),
+    ("Sett ate early. He's tired, so he finally went to bed with his book.", 'he/him',
+     "I ate early. I'm tired, so I finally went to bed with my book."),
+    ('Rosa took a long walk. She found her favourite bench, and a neighbour walked her home.', 'she/her',
+     'I took a long walk. I found my favourite bench, and a neighbour walked me home.'),
+    ('Sam read for hours. They were pleased with themselves.', 'they/them', 'I read for hours. I was pleased with myself.'),
+    # Someone else's pronoun stays: "They" after two people is both of them, and Henry is not the companion.
+    ('Sam met Ava at the bar. They talked for hours.', 'they/them', 'I met Ava at the bar. They talked for hours.'),
+    ('Sett ate. Henry came by and he stayed.', 'he/him', 'I ate. Henry came by and he stayed.'),
+    ('Rosa ate. He came by.', 'she/her', 'I ate. He came by.'),
+    ('Sett ate. He settled in.', None, 'I ate. He settled in.'),
+])
+def test_a_post_says_the_companions_own_pronoun_as_i(summary, own, said):
+    assert composer.mine(summary, summary.split()[0], own) == said
+
+
 def test_the_feed_can_show_only_the_companion_or_only_the_circle(client, city, clock):
     live_days(client, clock)
     everyone = feed(client)['posts']
