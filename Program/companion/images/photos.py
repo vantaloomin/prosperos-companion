@@ -36,6 +36,7 @@ from companion.life.openers import Trigger, held
 from companion.life.synthesis import PROMPT_VERSION as WORDING_VERSION
 from companion.text_models import config_for
 from companion.workspace import overlapping_pause
+from companion.world import decades
 
 ASKS = re.compile(
     r"\b(?:what(?:'?s| are| r|'re|cha|chu)? ?(?:you|u|ya)? ?(?:up to|doing|doin'?)"
@@ -343,10 +344,12 @@ class Memes:
             if not self.allowed(connection, companion):
                 return None
             classics = bool(jobs.image_settings(connection)['meme_formats'])
+            modern = families.era_of(connection, companion['version']['definition']) in decades.MODERN_ERAS
         root = self.database.root
         if classics:
             meme_pictures.warm(root)
-        meme = memes.choose(moment, local_hour, attempt_id, recent, choice=meme_pictures.has_choice(root, classics))
+        meme = memes.choose(moment, local_hour, attempt_id, recent, choice=meme_pictures.has_choice(root, classics),
+                            year=decades.world_year() if modern else None)
         rng = random.Random(attempt_id + ':source')
         timeline_id = companion['active_timeline_id']
         if asked_gif or rng.random() < GIF_SHARE:
