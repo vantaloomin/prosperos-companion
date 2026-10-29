@@ -53,20 +53,39 @@ export function personTies(person: CirclePerson): string | null {
   return text || null
 }
 
-/** "Amaya knows of Sett · Sett doesn't know them": in place of how close they are, when only one knows the other. */
+/** "Amaya knows of Sett · they haven't met": in place of how close they are, when only one knows the other. */
 export function knowingText(person: CirclePerson, companion: string): string | null {
-  if (person.knowing === 'they') return `${person.name} knows of ${companion} · ${companion} doesn't know them`
-  if (person.knowing === 'companion') return `${companion} knows of ${person.name} · they don't know ${companion}`
-  return null
+  return person.knowing && person.knowing !== 'both' ? `${whoKnows(person.knowing, person.name, companion)} · they haven't met` : null
 }
 
-/** The choices for whether they and the companion know each other, with `name` for them ("they" while adding). */
+/** "Amaya knows of Sett" or "Sett knows of Amaya" ("They know of Sett" while adding someone not yet named). */
+function whoKnows(knowing: Knowing, name: string, companion: string): string {
+  return knowing === 'they' ? `${name ? `${name} knows` : 'They know'} of ${companion}` : `${companion} knows of ${name || 'them'}`
+}
+
+/** The choices for whether they and the companion know each other, with `name` for them. */
 export function knowingChoices(name: string, companion: string): { value: Knowing; label: string }[] {
   return [
     { value: 'both', label: 'They know each other' },
-    { value: 'companion', label: `One-sided: ${companion} knows of ${name || 'them'}` },
-    { value: 'they', label: `One-sided: ${name ? `${name} knows` : 'they know'} of ${companion}` },
+    { value: 'they', label: whoKnows('they', name, companion) },
+    { value: 'companion', label: whoKnows('companion', name, companion) },
   ]
+}
+
+/** What the app picked for whether they know the companion, while the user hasn't said; undefined when adding. */
+export const appKnowing = (person?: CirclePerson): Knowing | undefined => person && !person.knowing_set ? person.knowing ?? 'both' : undefined
+
+/** "Let the app pick (one-sided)": short enough for a phone, the hint says which way (Iris). */
+export function knowingPick(person?: CirclePerson): string {
+  const picked = appKnowing(person)
+  return picked ? `Let the app pick (${picked === 'both' ? 'they know each other' : 'one-sided'})` : 'Let the app pick'
+}
+
+/** "Amaya knows of Sett, but they haven't met. Sett won't make plans with Amaya.": what a one-sided answer means, or
+ * '' when they know each other. */
+export function knowingHint(knowing: Knowing, name: string, companion: string): string {
+  if (knowing === 'both') return ''
+  return `${whoKnows(knowing, name, companion)}, but they haven't met. ${companion} won't make plans with ${name || 'them'}.`
 }
 
 /** "Met you Oct 17, 2026 · Liked you right away", "Knows you from way back · Warmed to you", or "Meeting you soon"
@@ -175,8 +194,8 @@ export function aboutSaved(person: CirclePerson | undefined, name: string, compa
 
 /** How two people in the circle know each other, with the one-sided ways named for the two of them. */
 export function tieChoices(person: string, other: string): { value: string; label: string }[] {
-  return [...TIE_CHOICES, { value: 'knows of', label: `One-sided: ${person} knows of ${other}` },
-    { value: 'known by', label: `One-sided: ${other} knows of ${person}` }]
+  return [...TIE_CHOICES, { value: 'knows of', label: `${person} knows of ${other}` },
+    { value: 'known by', label: `${other} knows of ${person}` }]
 }
 
 /** How two people in the circle can know each other, as the user picks it (companion/life/circle.py TIE_WORDS). */

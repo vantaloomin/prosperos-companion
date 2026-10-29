@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { SuggestInput } from '../../components/SuggestInput'
 import { api } from '../../api'
 import type { CareerSummary, CirclePerson } from '../../types'
-import { NOTE_MAX, RELATION_WORDS, knowingChoices, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, placeWords, type AboutValues } from './circleText'
+import { NOTE_MAX, RELATION_WORDS, appKnowing, knowingChoices, knowingHint, knowingPick, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, placeWords, type AboutValues } from './circleText'
 import { useCircleHome } from './useCircleHome'
 import { PAIR_STAGES } from '../memories/pairText'
 
@@ -74,13 +74,13 @@ interface KnowingProps { prefix: string; person?: CirclePerson; companion: strin
 /** Whether they and the companion know each other, or only one knows of the other (companion/life/circle.py
  * `knowing`): the app picks from who they are and the note ("never met"); someone one-sided has no closeness yet. */
 function Knowing({ prefix, person, companion, values, set }: KnowingProps) {
-  const choices = knowingChoices(values.name.trim() || person?.name || '', companion)
-  const picked = person && !person.knowing_set ? choices.find((choice) => choice.value === (person.knowing ?? 'both')) : undefined
+  const name = values.name.trim() || person?.name || ''
+  const hint = knowingHint(values.knowing || appKnowing(person) || 'both', name, companion) || undefined
   return (
-    <Text id={`${prefix}-knowing`} label={`Do they and ${companion} know each other?`} hint="Someone one-sided stays out of their plans together.">
-      <select id={`${prefix}-knowing`} value={values.knowing} aria-describedby={`${prefix}-knowing-hint`} onChange={(event) => set({ knowing: knowingOf(event.target.value) })}>
-        <option value="">{picked ? `Let the app pick (${picked.label})` : 'Let the app pick'}</option>
-        {choices.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+    <Text id={`${prefix}-knowing`} label={`Do they and ${companion} know each other?`} hint={hint}>
+      <select id={`${prefix}-knowing`} value={values.knowing} aria-describedby={hint ? `${prefix}-knowing-hint` : undefined} onChange={(event) => set({ knowing: knowingOf(event.target.value) })}>
+        <option value="">{knowingPick(person)}</option>
+        {knowingChoices(name, companion).map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
       </select>
     </Text>
   )

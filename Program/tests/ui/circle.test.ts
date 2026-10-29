@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aboutChange, ageClamp, noteCount, aboutForm, displayName, knowingChoices, knowingText, personFacts, personNow, personTies, personWork, placeWords, tieChoices } from '../../src/features/today/circleText.ts'
+import { aboutChange, ageClamp, noteCount, aboutForm, displayName, knowingChoices, knowingHint, knowingText, personFacts, personNow, personTies, personWork, placeWords, tieChoices } from '../../src/features/today/circleText.ts'
 import type { CirclePerson } from '../../src/types.ts'
 
 const person = (extra: Partial<CirclePerson> = {}): CirclePerson => ({
@@ -38,11 +38,13 @@ test('ties name a partner first, then who else they know', () => {
 test('one-sided ties say who knows of whom', () => {
   assert.equal(personTies(person({ knows: [{ id: 'k', name: 'Kaito', how: 'knows of' }, { id: 'n', name: 'Nari', how: 'known by' }, { id: 'a', name: 'Ana', how: 'friends' }] })),
     'Knows Ana (friends). Knows of Kaito. Nari knows of Ebony.')
-  assert.deepEqual(tieChoices('Nari', 'Kaito').slice(-2).map((choice) => choice.label), ['One-sided: Nari knows of Kaito', 'One-sided: Kaito knows of Nari'])
-  assert.equal(knowingText(person({ knowing: 'they' }), 'Sett'), "Ebony knows of Sett · Sett doesn't know them")
-  assert.equal(knowingText(person({ knowing: 'companion' }), 'Sett'), "Sett knows of Ebony · they don't know Sett")
+  assert.deepEqual(tieChoices('Nari', 'Kaito').slice(-2).map((choice) => choice.label), ['Nari knows of Kaito', 'Kaito knows of Nari'])
+  assert.equal(knowingText(person({ knowing: 'they' }), 'Sett'), "Ebony knows of Sett · they haven't met")
+  assert.equal(knowingText(person({ knowing: 'companion' }), 'Sett'), "Sett knows of Ebony · they haven't met")
   assert.equal(knowingText(person({ knowing: 'both' }), 'Sett'), null)
-  assert.equal(knowingChoices('', 'Sett')[2].label, 'One-sided: they know of Sett')
+  assert.deepEqual(knowingChoices('', 'Sett').map((choice) => choice.label), ['They know each other', 'They know of Sett', 'Sett knows of them'])
+  assert.equal(knowingHint('they', 'Amaya', 'Sett'), "Amaya knows of Sett, but they haven't met. Sett won't make plans with Amaya.")
+  assert.equal(knowingHint('both', 'Amaya', 'Sett'), '')
 })
 
 test('parents who parted in an older city read separated, not divorced', () => {
