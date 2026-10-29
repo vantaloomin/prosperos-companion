@@ -662,7 +662,7 @@ def circle_focus(connection, person_id: str) -> dict | None:
     role = circle.relation(row['role'], details.get('pronouns', ''))
     return {'key': f'circle:{person_id}', 'kind': 'circle', 'name': details.get('full_name') or row['name'],
             'line': f"{owner}'s {role}" + (f' · {job[:1].lower()}{job[1:]}' if job else ''), 'owner': owner,
-            'why': f"In {owner}'s circle, and lives in town.", 'row': row, 'companion': companion}
+            'why': 'Lives in town.', 'row': row, 'companion': companion}
 
 
 def resolve(connection, key: str) -> dict | None:
@@ -689,9 +689,9 @@ def lively(connection, now, limit: int = 3) -> list[dict]:
     busy = [sheet for sheet in people if townsfolk.story(sheet, data, today)['beat'] in ('progress', 'achieved')]
     chosen = sorted(busy or people, key=lambda sheet: generators.unit(seed, 'lively', sheet['key']))
     found = (town_focus(connection, sheet['key'], data) for sheet in chosen)
-    # Nobody here knows them yet: say why the app offers them.
-    why = 'Nobody you know has met them yet. The app picked them because they have a busy week.'
-    return [focus | {'source': 'busy', 'why': why} for focus in found if focus][:limit]
+    # Nobody here knows them yet: say why the app offers them, by first name (their pronouns may not be known).
+    return [focus | {'source': 'busy', 'why': f"Nobody you know has met {first_name(focus['name'])} yet. Picked for a "
+                     'busy week.'} for focus in found if focus][:limit]
 
 
 def companions(connection) -> list[dict]:
@@ -714,7 +714,7 @@ def met(connection, now, limit: int = 8) -> list[dict]:
         if focus:
             times = {1: 'once', 2: 'twice'}.get(person['times'], f"{person['times']} times")
             found.append(focus | {'source': 'met', 'owner': owner,
-                                  'why': f'{owner} has run into them around town {times}.'})
+                                  'why': f"{owner} has run into {first_name(focus['name'])} around town {times}."})
     return found
 
 

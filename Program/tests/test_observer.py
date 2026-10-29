@@ -295,7 +295,7 @@ def test_the_companions_people_in_town_can_be_watched_too(client, companion, wat
     assert circle, watching['choices']  # Their mom, their friends: everyone in the circle who lives in town.
     assert all(choice['owner'] == 'Mira' and choice['line'].startswith("Mira's ") for choice in circle)
     found = client.put('/api/observer', json={'focus': circle[0]['key']}).json()
-    assert found['focus']['kind'] == 'circle' and found['focus']['why'] == "In Mira's circle, and lives in town."
+    assert found['focus']['kind'] == 'circle' and found['focus']['why'] == 'Lives in town.'
     told = feed(client)
     assert told['focus']['key'] == circle[0]['key'] and lines(told)
     first = circle[0]['name'].split()[0]
@@ -306,4 +306,5 @@ def test_townsfolk_say_why_they_are_offered(client, companion, watching):
     town = [choice for choice in watching['choices'] if choice['kind'] == 'townsperson']
     assert town and all(choice['source'] in ('met', 'busy') and choice['why'] for choice in town)
     busy = [choice for choice in town if choice['source'] == 'busy']
-    assert busy and all('Nobody you know has met them yet' in choice['why'] for choice in busy)
+    assert busy and all(choice['why'] == f"Nobody you know has met {choice['name'].split()[0]} yet. Picked for a busy week."
+                        for choice in busy)

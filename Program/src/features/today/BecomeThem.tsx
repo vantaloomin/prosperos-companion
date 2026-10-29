@@ -29,14 +29,14 @@ export function BecomeThem({ person }: { person: Pick<Townsperson, 'key' | 'name
   }
   const first = firstName(person.name)
   return (<>
-    <p><button type="button" className="text-button" disabled={busy} onClick={() => setAsking(true)}>{busy ? 'Starting…' : becomeLabel(person.name)}</button></p>
+    <p><button type="button" className="text-button become-link" disabled={busy} onClick={() => setAsking(true)}>{busy ? 'Starting…' : becomeLabel(person.name)}</button></p>
     {error && <Notice tone="error">{error}</Notice>}
     {asking && <ConfirmDialog title={`Try life as ${person.name}?`} onClose={() => setAsking(false)} actions={<>
       <button type="button" className="button" onClick={() => setAsking(false)}>Stay here</button>
       <button type="button" className="button primary" disabled={busy} onClick={() => void become()}>{busy ? 'Starting…' : `Start ${first}'s world`}</button>
     </>}>
       <p>This opens a separate world in the same town, where you live as {person.name}: {first}&apos;s job, home and friends.</p>
-      <p>Nothing here changes. This world, your companions and your chats stay exactly as they are, and you can come back any time from Worlds.</p>
+      <p>Nothing here changes. This world, your companions and your chats stay exactly as they are, and you can come back any time from Worlds, under your town&apos;s name at the top.</p>
     </ConfirmDialog>}
   </>)
 }
