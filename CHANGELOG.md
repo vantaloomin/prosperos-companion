@@ -76,6 +76,24 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.2.0 "The Dark Backward" (2026-10-29)
+
+- **Back when:** go back with a companion to a year in the past, back to 1990, from a new section on the Character
+  page. A new world opens in that year in the same town, everyone younger, as strangers by default or worked out
+  from your history; what hadn't happened yet hasn't, and jobs fit the year. New worlds can start in a past year,
+  and past-year worlds show their year.
+- **The decade around them:** real cities in a past year take on the 1990s, 2000s or 2010s: how people keep in
+  touch, the app's words, books, shows and songs, jobs, pastimes, memes and Matchlight, with nothing from later.
+  Companions know the year and haven't heard of anything newer.
+- **Posts and people:** comments on posts that whoever posted answers; one-sided ties (a fan, a singer); the
+  Watching page says why each person is there and adds the companions' people in town; Try life as.
+- **Voices:** no texting habits in person or on calls; a companion's own storyline news says whose it is; a
+  declined call is remembered as theirs.
+- **Pictures:** NovelAI; booru tags for Illustrious, NoobAI and Pony; graphics-card fit for Qwen Image, Z-Image
+  and Anima; a saved model file stays pickable.
+- **Fixes:** reply versions stay chosen and rerolls work while busy; Work life projects say where they come from
+  and their due date can move.
+
 ## v1.1.9 (2026-10-28)
 
 - **Talk of the town:** every city has local issues and era questions that move from whispers to settled,
