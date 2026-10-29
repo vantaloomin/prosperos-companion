@@ -46,7 +46,8 @@ def test_the_app_picks_who_to_watch_and_their_days_read_as_a_narrator_tells_them
     assert found['focus']['key'] == f"companion:{companion['id']}"
     days = [day['date'] for day in found['days']]
     assert days == sorted(days, reverse=True) and lines(found)
-    assert all('Mira' in line['text'] for line in lines(found) if line['kind'] in ('day', 'moment'))
+    # Their days name them; a Life deck moment may be about the world ("It went from sunny to hail ..."), so it need not.
+    assert all('Mira' in line['text'] for line in lines(found) if line['kind'] == 'day')
     assert found == feed(client)  # Seeded: the same days read the same way.
 
 
