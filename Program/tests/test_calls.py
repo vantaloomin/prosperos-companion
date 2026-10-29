@@ -158,6 +158,18 @@ def test_decline_and_no_calls_while_together(client, nearby, clock):
     assert where(client)['state'] == 'together'
 
 
+def test_a_declined_ring_tells_the_reply_who_called_and_why(client, nearby, provider, clock):
+    with client.app.state.database.connect(write=True) as connection:
+        found = calls.insert(connection, current(connection), 'them', 'ringing', clock.now(),
+                             reason={'why_called': 'you wanted to hear their voice'})
+    press(client, f"/{found['id']}/decline")
+    says(provider, 'I rang because I wanted to hear your voice.')
+    send(client, 'hi, what is happening?', 'client-call-decline')
+    said = notes(provider)
+    assert 'You phoned the user at 12:00, because you wanted to hear their voice. They saw it ring and declined it.' \
+        in said and 'they did not call you' in said
+
+
 def test_replies_on_a_call_are_not_held_and_keep_no_texting_habits(client, monkeypatch, provider, clock):
     mira(client, monkeypatch, texting={'bursts': False, 'lowercase': True, 'typos': False})
     monkeypatch.setattr(pacing, 'ACTIVE', True)
