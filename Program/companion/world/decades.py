@@ -20,6 +20,7 @@ Item 3 (decade banks) fills the data these rules read: `years` on more careers, 
 words. The rules read any of it without code changes.
 """
 import json
+import re
 from functools import cache
 from pathlib import Path
 
@@ -173,3 +174,30 @@ def picture(city: dict | None) -> dict | None:
     scene = (found.get('scene') or '').replace('{year}', str(year)).replace('{part}', part(year))
     return {'decade': decade(year), 'scene': scene, 'cameras': found.get('cameras') or {},
             'framings': found.get('framings') or {}}
+
+
+# --- Things from a later year ---
+
+@cache
+def since() -> tuple[tuple[re.Pattern, int], ...]:
+    return tuple((re.compile(pattern, re.IGNORECASE), first) for pattern, first in table()['since']['patterns'])
+
+
+def fits(text: str, year: int | None = None) -> bool:
+    """Whether words drawn from a bank (an errand, a work project) name nothing from after the world's past year:
+    "renewed the car registration online" is not a 1995 errand. Always, in the present."""
+    year = year or world_year()
+    return not year or all(year >= first for pattern, first in since() if pattern.search(text))
+
+
+# Emoji came to phones around 2011: before that, a post or comment the app writes has none (feed.everything).
+EMOJI_FROM = 2011
+EMOJI = re.compile('[\U0001F000-\U0001FAFF☀-➿️‍]+')
+
+
+def without_emoji(text: str) -> str:
+    """The text without emoji in a world before them; a line that was only emoji reads "Ha!"."""
+    year = world_year()
+    if not text or not year or year >= EMOJI_FROM or not EMOJI.search(text):
+        return text
+    return re.sub(r'\s{2,}', ' ', EMOJI.sub('', text)).strip() or 'Ha!'

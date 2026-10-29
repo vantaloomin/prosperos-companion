@@ -260,9 +260,10 @@ AGE_FIELDS = ('identity', 'background', 'appearance', 'in_photos', 'seen_as', 's
 
 
 def age_words(old: int) -> re.Pattern:
-    """Where their own words give the age they are now: "34-year-old", "34 years old", "aged 34", "Mira, 34,"."""
-    return re.compile(rf'\b{old}(?=[- ]years?[- ]old\b)|(?<=\baged ){old}\b|(?<=\bage ){old}\b|(?<=, ){old}(?=[,.;])',
-                      re.IGNORECASE)
+    """Where their own words give the age they are now: "34-year-old", "34 years old", "aged 34", "Mira, 34,", and
+    "34. She/her." opening their identity."""
+    return re.compile(rf'\b{old}(?=[- ]years?[- ]old\b)|(?<=\baged ){old}\b|(?<=\bage ){old}\b|(?<=, ){old}(?=[,.;])'
+                      rf'|^\s*{old}(?=\s*[.,;:])', re.IGNORECASE)
 
 
 def younger_words(definition: dict, old: int, new: int) -> dict:

@@ -25,7 +25,10 @@ PONY_FILE = re.compile(r'pony|pdxl', re.IGNORECASE)
 DROPPED = re.compile(r'^(?:The attached reference picture|Shot at eye level|Slight wide-angle|Phone-camera look)')
 ONLY = re.compile(r'^(She|He|They) (?:is|are) the only person in the picture$')
 THIS_IS = re.compile(r'^This is (.+)$')
-VIEW = re.compile(r'first-person phone photo of what')
+# A view picture, by today's phone or a past year's camera (decades.json framings): "first-person film snapshot".
+VIEW = re.compile(r'first-person [\w ]*?(?:photo|snapshot) of what')
+# A world in a past year says its year in a sentence (decades.json scene); these models read it as its decade's tag.
+PERIOD = re.compile(r'^It is \d{4}: .* from the (?:early |mid |late )?(\d{4}s), nothing newer$')
 MALE = re.compile(r'\b(?:man|guy|boy|male|gentleman|he|his|him)\b', re.IGNORECASE)
 FEMALE = re.compile(r'\b(?:woman|lady|girl|female|she|her|hers)\b', re.IGNORECASE)
 COMPANY = re.compile(r'\bwith (?:a |an |the |his |her |their )?(?:friends?|family|partner|date|kids?|children|everyone)'
@@ -53,7 +56,8 @@ SHOTS = (
     (r'side profile', 'profile, from side'),
     (r'three-quarter view', 'three-quarter view'),
     (r'looking back over the shoulder', 'looking back'),
-    (r'selfie', 'selfie, holding phone, looking at viewer'),
+    (r'selfie', 'selfie, looking at viewer'),
+    (r"phone's front camera", 'holding phone'),
     (r'face and shoulders', 'portrait'),
     (r'facing the camera|looking into the lens|looking at the camera', 'looking at viewer'),
     (r'plain light grey background', 'simple background, grey background'),
@@ -103,6 +107,8 @@ def convert(prompt: str, negative: str, name: str | None = None, style: str | No
             who, alone = {'She': '1girl', 'He': '1boy', 'They': '1other'}[found[1]], True
         elif THIS_IS.match(sentence):
             named = named or THIS_IS.match(sentence)[1]
+        elif PERIOD.match(sentence):
+            kept.append(f'{PERIOD.match(sentence)[1]} fashion')
         elif not DROPPED.match(sentence):
             kept.append(sentence)
     body = ' . '.join(kept)

@@ -41,3 +41,17 @@ days takes several minutes a world, longer for the bigger fantasy cities.
 drive.py saves each world's endpoints three times (`fresh`, `after-edits`, `later`); checks.py reads them. A new
 bug class is usually a new function in checks.py over `later`, plus anything the user would do by hand added to
 `Driver.edits`.
+
+## Worlds in a past year (1.2)
+
+`past_years.py` runs the same way for Back when and worlds started in a past year:
+
+    uv run python scripts/sim/past_years.py --out <folder> --days 2 --keep
+    node scripts/sim/browse.mjs <folder>
+
+Scenes: `back-when` (a Chicago world in the present, then Back when from the Character page's sheet as strangers and
+with "Work it out from our history"), `1995`, `2005` and `2015` (worlds started in that year, with a comment on a feed
+post and a one-sided person added), and `watch` (a 2004 world just watching). `past_checks.py` looks for things from
+after the world's year on screen (apps before 2009, streaming before 2007, a year that hasn't come yet, media from a
+later year), anyone aged below zero, Back when not making the two of you younger, and errors. Debug time is finished
+with `keep` before a world switch, since a world can't be left while it runs.

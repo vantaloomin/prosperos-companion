@@ -13,6 +13,7 @@ from companion.clock import parse, zone
 from companion.database import decode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import composer, loss, post_comments, social, user_posts
+from companion.world import decades
 
 REACTIONS = ('heart', 'laugh', 'wow', 'sad', 'hug')
 # A photo sent in chat waits on a post keyed to the event its slot will become (companion/images/photos.py).
@@ -203,7 +204,19 @@ def everything(connection, companion, now: str, include_hidden=False, source='al
     posts = [post for post in posts + mine if (include_hidden or post['status'] == 'visible')
              and (authors is None or post['author']['kind'] in authors)]
     post_comments.attach(connection, posts, now)
-    return sorted(posts, key=lambda post: (post['occurs_at'], post['id']), reverse=True)
+    return sorted(of_the_year(posts), key=lambda post: (post['occurs_at'], post['id']), reverse=True)
+
+
+def of_the_year(posts: list[dict]) -> list[dict]:
+    """In a world from before emoji (decades.without_emoji), the posts and comments the app wrote without them."""
+    if (decades.world_year() or decades.EMOJI_FROM) >= decades.EMOJI_FROM:
+        return posts
+    for post in posts:
+        if isinstance(post.get('text'), str) and (post.get('author') or {}).get('kind') != user_posts.USER:
+            post['text'] = decades.without_emoji(post['text'])
+        for comment in (post.get('audience') or {}).get('comments') or ():
+            comment['text'] = decades.without_emoji(comment['text'])
+    return posts
 
 
 def shown(connection, post_id, now: str) -> dict | None:

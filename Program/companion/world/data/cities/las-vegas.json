@@ -4473,7 +4473,11 @@
     "retail-associate",
     "event-planner"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2005,
+    null
+   ]
   },
   {
    "id": "venetian",
@@ -4489,7 +4493,11 @@
     "line-cook",
     "event-planner"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1999,
+    null
+   ]
   },
   {
    "id": "resorts-world",
@@ -4505,7 +4513,11 @@
     "server",
     "line-cook"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2021,
+    null
+   ]
   },
   {
    "id": "station-casinos",
@@ -4537,7 +4549,11 @@
     "musician",
     "actor"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1993,
+    null
+   ]
   },
   {
    "id": "lvcva",
@@ -4582,7 +4598,11 @@
     "accountant",
     "marketing-coordinator"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1997,
+    null
+   ]
   },
   {
    "id": "switch",
@@ -4596,7 +4616,11 @@
     "data-analyst",
     "construction-trades"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2000,
+    null
+   ]
   },
   {
    "id": "zappos",
@@ -4612,7 +4636,11 @@
     "marketing-coordinator",
     "data-analyst"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2004,
+    null
+   ]
   },
   {
    "id": "raiders",
@@ -4627,7 +4655,11 @@
     "event-planner",
     "data-analyst"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2020,
+    null
+   ]
   },
   {
    "id": "umc",
@@ -4686,7 +4718,11 @@
     "medical-researcher",
     "registered-nurse"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2010,
+    null
+   ]
   },
   {
    "id": "unlv-employer",

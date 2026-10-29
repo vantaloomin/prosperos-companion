@@ -127,6 +127,8 @@ AT_HOME = {'reading', 'slow', 'nap', 'sick-day', 'chores', 'home-cooking', None}
 # Share of the price of a month's take-home: a book, a month of streaming, a magazine and a theatre ticket.
 COSTS = {'book': 0.004, 'series': 0.0035, 'serial': 0.0015, 'play': 0.006, 'broadway': 0.01, 'film-serial': 0.002,
          'cycle': 0.0005, 'radio': 0.0}
+# Before this year a modern world watches shows on cable, not streaming (a world in a past year, decades.py).
+STREAMING_FROM = 2008
 LIBRARY_SHARE = 0.3
 
 # How far along, in four steps, by format.
@@ -661,9 +663,15 @@ def purchases(connection, timeline_id: str, start: date, end: date, definition: 
             bought.append({'text': said_here(bought_text(item), me.get('region', '')), 'date': item['started_on'], 'spend': '',
                            'cost': round(share * month, 2), 'for': 'media'})
     if streaming:
-        bought.append({'text': 'paid for a month of streaming', 'date': start.isoformat(), 'spend': '',
+        bought.append({'text': series_bill(), 'date': start.isoformat(), 'spend': '',
                        'cost': round(COSTS['series'] * month, 2), 'for': 'media'})
     return bought
+
+
+def series_bill() -> str:
+    """What watching shows costs a month: streaming, or the cable bill in a world before it (decades.py)."""
+    year = decades.world_year()
+    return 'paid the cable bill' if year and year < STREAMING_FROM else 'paid for a month of streaming'
 
 
 def bought_text(item: dict) -> str:

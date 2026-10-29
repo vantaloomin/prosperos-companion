@@ -29,7 +29,7 @@ from pathlib import Path
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import admin, job_words, money, outings, routine, shifts
-from companion.world import catalog, generators, wording
+from companion.world import catalog, decades, generators, wording
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'work_life.json'
 # Off in tests unless a test turns it on (tests/conftest.py), so other tests' days stay as written.
@@ -286,13 +286,14 @@ def projects(kind: str, group: str, trades: frozenset[str] = frozenset(), city: 
     bank = data()['projects']
     def pool(name: str) -> list[str]:
         return [item['title'] for item in bank.get(name, ()) if group in item['eras'] and in_world(item, city)
-                and (not item.get('fits') or trades & set(item['fits']))]
+                and (not item.get('fits') or trades & set(item['fits'])) and decades.fits(item['title'])]
     if kind == STUDY:
         return [title.replace('{field}', field) for title in pool(STUDY) if field or '{field}' not in title]
     found = pool(kind) if kind != 'general' else []
     if len(found) < MIN_OPTIONS:
         found += pool('general')
-    return found or [item['title'] for item in bank['general'] if group in item['eras']]
+    return found or [item['title'] for item in bank['general'] if group in item['eras'] and decades.fits(item['title'])] \
+        or [item['title'] for item in bank['general'] if group in item['eras']]
 
 
 def local_today(companion: dict, now: datetime) -> date:

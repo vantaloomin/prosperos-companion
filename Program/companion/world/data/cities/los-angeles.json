@@ -4990,7 +4990,11 @@
     "marketing-coordinator",
     "graphic-designer"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2017,
+    null
+   ]
   },
   {
    "id": "paramount",
@@ -5034,7 +5038,11 @@
     "data-analyst",
     "marketing-coordinator"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2010,
+    null
+   ]
   },
   {
    "id": "snap-inc",
@@ -5049,7 +5057,11 @@
     "data-analyst",
     "marketing-coordinator"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2012,
+    null
+   ]
   },
   {
    "id": "google-la",
@@ -5064,7 +5076,11 @@
     "data-analyst",
     "marketing-coordinator"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2011,
+    null
+   ]
   },
   {
    "id": "jpl",
@@ -5138,7 +5154,11 @@
     "server",
     "performer"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2007,
+    null
+   ]
   },
   {
    "id": "dodgers",

@@ -15,7 +15,7 @@ from companion.database import decode, encode, identifier, many, optional, setti
 from companion.errors import DomainError, require
 from companion.images import backends
 from companion.life import ages, encounters, where
-from companion.world import catalog, dating, mix, townsfolk, turnover
+from companion.world import catalog, dating, decades, mix, townsfolk, turnover
 
 # The app's name in modern and future cities: made up, so it is nobody's real app.
 APP_NAME = 'Matchlight'
@@ -32,25 +32,43 @@ SURFACES = {
     'app': {'title': APP_NAME, 'noun': 'a dating app', 'like': 'Like', 'pass': 'Pass',
             'matched': "It's a match", 'missed': 'No match with {name} this time.',
             'empty': 'Nobody new around here right now. Try another city.',
-            'tagline': 'Meet people around town.', 'get': 'Get', 'getting': 'Installing…'},
+            'tagline': 'Meet people around town.', 'get': 'Get', 'getting': 'Installing…',
+            'unseen': 'Your companions never see who you swipe on.'},
     'column': {'title': 'Personal column', 'noun': 'the personal column in the paper', 'like': 'Write to them',
                'pass': 'Turn the page', 'matched': 'A letter came back', 'missed': 'Your last letter went unanswered.',
                'empty': 'No new notices in the paper. Try another city.',
                'tagline': 'Lonely hearts, answered in confidence.', 'get': 'Buy the paper',
-               'getting': 'Fetching the paper…'},
+               'getting': 'Fetching the paper…', 'unseen': 'Your companions never see who you pass on.'},
     'matchmaker': {'title': 'The matchmaker', 'noun': 'the town matchmaker', 'like': 'Ask for an introduction',
                    'pass': 'Not this one', 'matched': 'They agreed to meet you',
                    'missed': '{name} declined the introduction.',
                    'empty': 'The matchmaker knows nobody else for you here. Try another city.',
                    'tagline': 'She knows everyone worth knowing.', 'get': 'Call on the matchmaker',
-                   'getting': 'Knocking at her door…'},
+                   'getting': 'Knocking at her door…', 'unseen': 'Your companions never see who you pass on.'},
 }
+
+
+# Before dating apps (a modern city's world in a past year, decades.py) Matchlight is a dating website.
+APPS_FROM = 2012
+SITE = {'noun': 'a dating site', 'get': 'Sign up', 'getting': 'Signing up…',
+        'unseen': 'Your companions never see who you pass on.'}
+# In the 1990s it is the personals, as the nav already calls it (era_words.json decades).
+PERSONALS_UNTIL = 1999
+PERSONALS = SITE | {'noun': 'the personals'}
 
 
 def surface(data: dict) -> str:
     if townsfolk.modern(data):
         return 'app'
     return 'column' if data.get('era') in COLUMN_ERAS else 'matchmaker'
+
+
+def words(data: dict) -> dict:
+    """What the user sees for the city's kind of matchmaking, in its year."""
+    kind, year = surface(data), decades.year_of(data)
+    if kind != 'app' or not year or year >= APPS_FROM:
+        return SURFACES[kind]
+    return SURFACES[kind] | (PERSONALS if year <= PERSONALS_UNTIL else SITE)
 
 
 # The user's profile ------------------------------------------------------------------------------------
@@ -316,12 +334,12 @@ def match(connection, key: str) -> dict | None:
         return None
     sheet, data = person(connection, key, row['town'])
     return {'sheet': sheet, 'data': data, 'town': row['town'], 'details': dating.details(sheet, data),
-            'noun': SURFACES[surface(data)]['noun'], 'met': met_on(data)}
+            'noun': words(data)['noun'], 'met': met_on(data)}
 
 
 def met_on(data: dict) -> str:
     """How a match's profile says they met: "Matched on Matchlight", or through the paper's personal column."""
-    found = SURFACES[surface(data)]
+    found = words(data)
     return f"Matched on {found['title']}" if surface(data) == 'app' else f"Matched through {found['noun']}"
 
 
@@ -366,7 +384,7 @@ def go_on_date(database, key: str, place_id: str) -> dict:
         # A date counts as meeting them in the story, so they join the user's people-met list.
         day = story.local_moment(data, database.clock.now()).date()
         story_people.meet(connection, sheet, data['id'], database.now(), day,
-                          (f"Went on a date at {place['name']} after matching on {SURFACES[surface(data)]['noun']}.",))
+                          (f"Went on a date at {place['name']} after matching on {words(data)['noun']}.",))
         connection.execute('INSERT INTO dating_dates (id, person_key, town, city_id, place_id, arrival_id, '
                            'started_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
                            (identifier(), key, row['town'], data['id'], place['id'], arrival['id'], database.now()))
@@ -396,7 +414,7 @@ def with_date(connection, data: dict, place_id: str, moment, present: list[dict]
         return present
     found = dating.details(sheet, data)
     mine = profile(connection) or {}
-    noun = SURFACES[surface(data)]['noun']
+    noun = words(data)['noun']
     looks = dating.looks_text(found['looks'], data)
     you = f"the user ({mine['name']})" if mine.get('name') else 'the user'
     note = (f" On a date with {you}: they matched through {noun} and know each other's first names, nothing more "
@@ -422,7 +440,7 @@ def state(database) -> dict:
         if row:
             sheet, _data = person(connection, row['person_key'], row['town'])
             date = {'key': row['person_key'], 'name': sheet['name'], 'place_id': row['place_id']}
-        return {'surface': kind, 'words': SURFACES[kind], 'city': {'id': data['id'], 'name': data['name']},
+        return {'surface': kind, 'words': words(data), 'city': {'id': data['id'], 'name': data['name']},
                 'profile': mine and {key: mine[key] for key in ('name', 'age', 'gender', 'interested_in', 'looking_for',
                                                                  'age_min', 'age_max', 'bio')},
                 'persona': persona(connection), 'story': story_on(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),

@@ -35,7 +35,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import home, money, outings, own_plans, routine, stays, traditions, trips
-from companion.world import catalog, generators, looks
+from companion.world import catalog, decades, generators, looks
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'life_admin.json'
 # Seeded appointments, errands and surprises; their tests turn them on (tests/conftest.py turns them off).
@@ -510,8 +510,14 @@ def recent_titles(connection, timeline_id: str, around: date) -> set[str]:
 
 
 def bank(name: str, group: str, has: set[str], payable: bool) -> list[dict]:
+    """The bank's items for this era and household; in a world in a past year, none that names something newer
+    (decades.fits: nothing renewed online in 1995)."""
     return [item for item in data()[name] if group in item['eras'] and (not item.get('needs') or item['needs'] in has)
-            and (payable or not item['cost'])]
+            and (payable or not item['cost']) and decades.fits(wording(item))]
+
+
+def wording(item: dict) -> str:
+    return ' '.join(str(item.get(key) or '') for key in ('title', 'done', 'line'))
 
 
 def plan_week(connection, companion: dict, city: dict | None, seed: str, monday: date, today: date, chances,
@@ -680,7 +686,7 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
     summary = f"{definition['name']} {doing(item)}."
     if item['line']:
         summary = f"{item['line'].rstrip('.')}. {summary}"
-    return {'summary': summary, 'post': generators.pick(item['key'], 'admin-post', list(CAPTIONS)),
+    return {'summary': summary, 'post': generators.pick(item['key'], 'admin-post', [line for line in CAPTIONS if decades.fits(line)]),
             'mood': 'content', 'activity': routine.slug(item['title']), 'place': item['place'], 'with': None,
             'weather': block.get('weather'),
             'admin': {'id': item['id'], 'key': item['key'], 'source': item['source'], 'at': item['at_time'],

@@ -5196,7 +5196,11 @@
     "data-analyst",
     "financial-analyst"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1998,
+    null
+   ]
   },
   {
    "id": "salk-institute",
@@ -5380,7 +5384,11 @@
    "careers": [
     "surf-instructor"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1996,
+    null
+   ]
   },
   {
    "id": "seaworld",

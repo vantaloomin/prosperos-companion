@@ -8,12 +8,13 @@ export function stageText(stage: PairStage, other: string): string {
   return stage.level === stage.their_level ? stage.name : `${stage.name} · ${other} feels ${stage.their_name}`
 }
 
-/** "Sally and Billy: Comfortable", or both directions when they differ. */
+/** "Sally and Billy: Comfortable", or both directions when they differ: "Sally and Billy: Close for Sally,
+ * Comfortable for Billy". */
 export function tieText(name: string, tie: PairTie): string {
   const first = name.split(' ')[0]
   const other = tie.name.split(' ')[0]
   if (tie.feels.level === tie.they_feel.level) return `${first} and ${other}: ${tie.feels.name}`
-  return `${first} feels ${tie.feels.name} with ${other}; ${other} feels ${tie.they_feel.name}`
+  return `${first} and ${other}: ${tie.feels.name} for ${first}, ${tie.they_feel.name} for ${other}`
 }
 
 /** How they know each other, as the user reads it: the app's suggestion is written for the model ("only know each
