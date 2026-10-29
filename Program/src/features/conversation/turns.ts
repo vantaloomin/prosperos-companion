@@ -7,6 +7,8 @@ export interface Turn {
   leads: Message[]
   /** Every reply attempt to this message, oldest first. */
   attempts: Message[]
+  /** Later versions of a lead (Another reply on the full reply after a holding text), by the first version's id. */
+  versions: Record<string, Message[]>
 }
 
 /** The id of the newest turn's user message, when the newest turn has one. */
@@ -43,19 +45,24 @@ export function groupTurns(messages: Message[]): Turn[] {
   const turns: Turn[] = []
   const byId = new Map<string, Turn>()
   let leads: Message[] = []
+  let versions: Record<string, Message[]> = {}
   for (const message of [...messages].sort((a, b) => a.seq - b.seq)) {
     if (message.role === 'user') {
-      const turn = { user: message, leads, attempts: [] }
+      const turn = { user: message, leads, attempts: [], versions }
       leads = []
+      versions = {}
       turns.push(turn)
       byId.set(message.id, turn)
     } else if (message.reply_to) {
       byId.get(message.reply_to)?.attempts.push(message)
+    } else if (message.version_of) {
+      // Versions of an earlier lead come before the next message of the user's, which is only sent after them.
+      if (leads.some((lead) => lead.id === message.version_of)) (versions[message.version_of] ??= []).push(message)
     } else {
       leads.push(message)
     }
   }
-  if (leads.length) turns.push({ user: null, leads, attempts: [] })
+  if (leads.length) turns.push({ user: null, leads, attempts: [], versions })
   return turns.map(settled)
 }
 
@@ -66,19 +73,37 @@ function settled(turn: Turn): Turn {
   const anchor = turn.user ?? turn.leads[0]
   const previous = built.get(anchor)
   const same = (left: Message[], right: Message[]) => left.length === right.length && left.every((message, index) => message === right[index])
-  if (previous && same(previous.attempts, turn.attempts) && same(previous.leads, turn.leads)) return previous
+  const sameVersions = (left: Record<string, Message[]>, right: Record<string, Message[]>) =>
+    Object.keys(left).length === Object.keys(right).length && Object.keys(right).every((id) => left[id] && same(left[id], right[id]))
+  if (previous && same(previous.attempts, turn.attempts) && same(previous.leads, turn.leads) && sameVersions(previous.versions, turn.versions)) return previous
   built.set(anchor, turn)
   return turn
 }
 
 /**
- * The attempt shown by default. On the latest message it is the newest attempt, so a reply being
- * written, or one that just failed, is never hidden behind an earlier one. Older messages show
- * their active reply, falling back to the newest attempt.
+ * The attempt shown by default: the active reply, the version the conversation goes on from (one the user paged
+ * back to stays). On the latest message a newer attempt that is being written, or that just failed, shows instead,
+ * so it is never hidden behind an earlier one. With no active reply, the newest attempt.
  */
 export function defaultAttempt(turn: Turn, latest = false): Message | null {
-  const active = turn.attempts.find((attempt) => attempt.active && attempt.status === 'complete')
-  return (latest ? undefined : active) ?? turn.attempts.at(-1) ?? null
+  return defaultVersion(turn.attempts, latest)
+}
+
+export function defaultVersion(versions: Message[], latest = false): Message | null {
+  const active = versions.find((attempt) => attempt.active && attempt.status === 'complete')
+  const newest = versions.at(-1) ?? null
+  return latest && newest?.status !== 'complete' ? newest : active ?? newest
+}
+
+/** The full reply sent after the holding text that answered the user's newest message, when it is in the chat. */
+export function followUpAfter(turns: Turn[]): Message | undefined {
+  const last = turns.at(-1)
+  return last && !last.user ? [...last.leads].reverse().find((lead) => !!lead.held_line) : undefined
+}
+
+/** Every version of a lead, first one first: the lead alone unless Another reply was asked for on it. */
+export function leadVersions(turn: Turn, lead: Message): Message[] {
+  return [lead, ...(turn.versions[lead.id] ?? [])]
 }
 
 export function streamingIds(messages: Message[]): string[] {
@@ -92,10 +117,24 @@ export function mergeMessages(current: Message[], incoming: (Message | null | un
   return [...byId.values()].sort((a, b) => a.seq - b.seq)
 }
 
-/** A reply that finished as active replaces any earlier active reply to the same message. */
+/** Which reply a version is a version of (companion/reply_versions.py): the message it answers, or for the full reply
+ * after a holding text, its first version. Null for a message with no other versions. */
+function versionGroup(message: Message): string | null {
+  if (message.reply_to) return `reply:${message.reply_to}`
+  const first = message.version_of ?? (message.held_line && message.role === 'companion' ? message.id : null)
+  return first && `version:${first}`
+}
+
+/** A reply that finished as active replaces any earlier active version of it. */
 export function applyFinished(current: Message[], reply: Message): Message[] {
-  const settled = reply.active ? current.map((message) => message.reply_to === reply.reply_to && message.id !== reply.id ? { ...message, active: false } : message) : current
+  const group = versionGroup(reply)
+  const settled = reply.active && group ? current.map((message) => message.id !== reply.id && versionGroup(message) === group ? { ...message, active: false } : message) : current
   return mergeMessages(settled, [reply])
+}
+
+/** Paged to an earlier version and left there: it becomes the active one, as the server records. */
+export function applyChosen(current: Message[], chosen: Message): Message[] {
+  return applyFinished(current, { ...chosen, active: true })
 }
 
 const STATUS_NOTES: Record<string, string> = {
@@ -138,5 +177,6 @@ const NO_LIVE: Record<string, string> = {}
  * shared empty map, so a memoized turn that is not streaming keeps equal props and skips re-rendering.
  */
 export function liveFor(turn: Turn, live: Record<string, string>): Record<string, string> {
-  return turn.attempts.some((attempt) => attempt.id in live) ? live : NO_LIVE
+  const writing = [...turn.attempts, ...turn.leads, ...Object.values(turn.versions).flat()]
+  return writing.some((message) => message.id in live) ? live : NO_LIVE
 }

@@ -7,7 +7,7 @@ it, the way it does when a reply is replaced (docs/architecture.md): self-facts 
 on and plans she made in that reply are noted again from the new text. Each edit keeps the text it
 replaced in `message_edits`, so it can be undone by editing back.
 """
-from companion import self_facts
+from companion import reply_versions, self_facts
 from companion.characters import for_timeline, require_current
 from companion.database import identifier, one
 from companion.errors import require
@@ -28,9 +28,7 @@ def keep(connection, message: dict) -> None:
     """An edited stopped reply becomes a finished one: the version of this turn the conversation goes on from."""
     connection.execute("UPDATE messages SET status='complete', error=NULL, completed_at=COALESCE(completed_at, ?) "
                        'WHERE id=?', (message['created_at'], message['id']))
-    if message['reply_to']:
-        connection.execute('UPDATE messages SET active=0 WHERE reply_to=?', (message['reply_to'],))
-    connection.execute('UPDATE messages SET active=1 WHERE id=?', (message['id'],))
+    reply_versions.activate(connection, message)
 
 
 def edit(database, message_id: str, text: str, expected_text: str) -> dict:

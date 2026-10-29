@@ -413,6 +413,9 @@ ADDED_COLUMNS = (
     # (companion/images/runner.py, Settings > Images): on unless turned off, per world.
     ('image_settings', 'follow_profile_picture',
      'INTEGER NOT NULL DEFAULT 1 CHECK (follow_profile_picture IN (0, 1))'),
+    # Another version of a full reply sent after a holding text (Another reply on it, companion/reply_versions.py):
+    # the first version's id. The versions page like replies to one message; one of them is active.
+    ('messages', 'version_of', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

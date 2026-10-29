@@ -26,6 +26,8 @@ export interface Message {
   held_until?: string | null
   /** The holding text sent before this full reply ("in a meeting, give me a bit"), kept as its own message. */
   held_line?: string | null
+  /** Another version of the full reply after a holding text: the first version's id (companion/reply_versions.py). */
+  version_of?: string | null
   /** Set on a full reply dropped unseen because the user wrote again first; it is never shown. */
   superseded_at?: string | null
   /** A photo of the moment this reply sent (photos in chat). */

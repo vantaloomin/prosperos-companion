@@ -21,6 +21,7 @@ from companion import (
     pictures,
     prompt_library,
     recap,
+    reply_versions,
     restore,
     self_facts,
     sidecar,
@@ -481,6 +482,12 @@ def read_picture(request: Request, picture_id: str):
 @router.post('/conversation/messages/{message_id}/alternatives')
 async def alternative(request: Request, message_id: str, wait: bool = True, profile_id: str | None = None):
     return await request.app.state.conversation.alternative(message_id, wait, profile_id)
+
+
+@router.post('/conversation/replies/{attempt_id}/choose')
+def choose_reply(request: Request, attempt_id: str):
+    """Paged back to an earlier version and left it there: the conversation goes on from it."""
+    return reply_versions.choose(db(request), attempt_id)
 
 
 @router.get('/conversation/replies/{attempt_id}/events')
