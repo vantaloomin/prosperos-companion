@@ -4661,7 +4661,11 @@
     "software-engineer",
     "data-analyst"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1996,
+    null
+   ]
   },
   {
    "id": "port-of-baltimore",
@@ -4715,7 +4719,11 @@
     "line-cook",
     "server"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2014,
+    null
+   ]
   },
   {
    "id": "baltimore-sun",
@@ -4743,7 +4751,11 @@
     "server",
     "bartender"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2011,
+    null
+   ]
   },
   {
    "id": "center-stage",

@@ -20,6 +20,7 @@ from companion import (
     moods,
     observer,
     pictures,
+    reply_versions,
     safety,
     self_checks,
     self_facts,
@@ -268,16 +269,31 @@ class Conversation:
         rows = many(connection, "SELECT * FROM messages WHERE reply_to=? AND status='streaming'", (user_message_id,))
         return next((row for row in rows if row['id'] in self.running), None)
 
-    async def alternative(self, user_message_id, wait: bool = True, profile_id: str | None = None) -> dict:
-        """Another reply to the latest message; `profile_id` writes this one reply with that profile ("Try with …"
-        while the Mix is on), leaving the Conversation profile and the Mix as they are."""
+    async def alternative(self, message_id, wait: bool = True, profile_id: str | None = None) -> dict:
+        """Another reply to the latest message, or another version of the full reply sent after a holding text
+        (`message_id` is then that reply). `profile_id` writes this one reply with that profile ("Try with …" while
+        the Mix is on), leaving the Conversation profile and the Mix as they are.
+
+        Another reply is another take on the same moment, not a new text reaching them, so it is never paced: a
+        companion who has got busy since writes it now, never "can't talk yet" (companion/reply_versions.py)."""
         with self.database.connect() as connection:
-            user = one(connection, "SELECT * FROM messages WHERE id=? AND role='user'", (user_message_id,))
+            message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
+            follow_up = self.follow_up(connection, message)
+            user = message if follow_up is None else latest_user_message(connection, message['timeline_id'])
+            require(user is not None and user['role'] == 'user', 'Only a reply to your message has other versions.', 409)
             latest = latest_user_message(connection, user['timeline_id'])
             require(latest['id'] == user['id'], 'Alternatives are available for the latest message only.', 409)
             # An old chat brought in (companion/imports/chats.py) is history; it is never answered again.
             require(user['import_id'] is None, 'This message came in from an old chat.', 409)
-        return await self.respond(user, wait, profile_id=profile_id)
+        return await self.respond(user, wait, profile_id=profile_id, again=True, follow_up=follow_up)
+
+    @staticmethod
+    def follow_up(connection, message) -> dict | None:
+        """The first version of the full reply sent after a holding text, when `message` is one of its versions."""
+        if message['role'] != 'companion':
+            return None
+        require(message['reply_to'] is None and message['held_line'], 'Ask for another reply under your message.', 409)
+        return one(connection, 'SELECT * FROM messages WHERE id=?', (message['version_of'] or message['id'],))
 
     def stop(self, attempt_id) -> bool:
         live = self.running.get(attempt_id)
@@ -312,11 +328,13 @@ class Conversation:
         except Exception:  # noqa: BLE001 - the companion continues without tools (X3).
             return []
 
-    async def respond(self, user, wait: bool = True, read_later: bool = False, profile_id: str | None = None) -> dict:
+    async def respond(self, user, wait: bool = True, read_later: bool = False, profile_id: str | None = None,
+                      again: bool = False, follow_up: dict | None = None) -> dict:
         """The attempt is saved before anything waits on a model service, so `wait=false` returns at once;
         recall and lookups for the reply happen in its own task (PRD responsiveness target). A new text may wait
-        to be read (`read_later`, companion/life/reading.py); asking for another reply never does."""
-        prepared = self.prepare(user, read_later, profile_id)
+        to be read (`read_later`, companion/life/reading.py); asking for another reply (`again`, of the full reply
+        after a holding text with `follow_up`) never does, and is never held."""
+        prepared = self.prepare(user, read_later, profile_id, again, follow_up)
         if prepared['connection'] != 'ready':
             self.after_turn()
             return {'message': self.user_view(user), 'reply': None, 'connection': prepared['connection']}
@@ -383,18 +401,15 @@ class Conversation:
                 live.listeners.discard(queue)
         yield 'done', self.reply(attempt_id)
 
-    def prepare(self, user, read_later: bool = False, profile_id: str | None = None) -> dict:
+    def prepare(self, user, read_later: bool = False, profile_id: str | None = None, again: bool = False,
+                follow_up: dict | None = None) -> dict:
         with self.database.connect(write=True) as connection:
             config = profile_config(connection, profile_id, CHAT) if profile_id else reply_config(connection, CHAT)
             if config is None:
                 return {'connection': 'not_configured'}
             companion = chat_owner(connection, user['timeline_id'])
             attempt_id, now = identifier(), self.database.now()
-            held, dropped = pacing.take_over(connection, user['timeline_id'],
-                                             pacing.hold(connection, companion, self.database.clock.now(), attempt_id,
-                                                         user['text']),
-                                             now)
-            dropped = [*dropped, *held.pop('dropped', ())]  # A reply waiting for morning, when this woke them.
+            held, dropped = self.pace(connection, companion, user, attempt_id, again, follow_up)
             held, unread = self.read_later(connection, companion, user, attempt_id, held) if read_later and \
                 held == pacing.NOT_HELD else (held, [])
             held = pacing.join(connection, user['timeline_id'], held, now)
@@ -410,15 +425,29 @@ class Conversation:
                      user['id'], companion['active_version_id'], settings(connection)['memory_revision'], now, now))
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
-                'character_version_id, memory_revision, created_at, held_until, held_line) '
-                "VALUES (?, ?, ?, 'companion', '', ?, 'streaming', 0, ?, ?, ?, ?, ?)",
+                'character_version_id, memory_revision, created_at, held_until, held_line, version_of) '
+                "VALUES (?, ?, ?, 'companion', '', ?, 'streaming', 0, ?, ?, ?, ?, ?, ?)",
                 (attempt_id, user['timeline_id'], next_seq(connection, user['timeline_id']),
-                 None if note else user['id'], companion['active_version_id'], settings(connection)['memory_revision'],
-                 now, held['held_until'], held['held_line']))
+                 None if note or follow_up else user['id'], companion['active_version_id'],
+                 settings(connection)['memory_revision'], now, held['held_until'],
+                 follow_up['held_line'] if follow_up else held['held_line'], follow_up and follow_up['id']))
         return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user,
                 'instruction': held['instruction'], 'note': note, 'dropped': [*dropped, *unread], 'unread': unread,
                 'read_at': held['held_until'] if attempt_id in self.unread else None,
                 'definition': companion['version']['definition']}
+
+    def pace(self, connection, companion, user, attempt_id, again: bool, follow_up: dict | None) -> tuple[dict, list]:
+        """Whether the reply is held, and the replies it drops (companion/life/pacing.py). Another reply is never
+        held, and still drops a full reply promised after a holding text: it answers the same message."""
+        timeline_id, now = user['timeline_id'], self.database.now()
+        if again:
+            _held, dropped = pacing.take_over(connection, timeline_id, dict(pacing.NOT_HELD), now)
+            instruction = pacing.FOLLOW_UP.format(line=follow_up['held_line']) if follow_up else None
+            return {**pacing.NOT_HELD, 'instruction': instruction}, dropped
+        held, dropped = pacing.take_over(
+            connection, timeline_id, pacing.hold(connection, companion, self.database.clock.now(), attempt_id,
+                                                 user['text']), now)
+        return held, [*dropped, *held.pop('dropped', ())]  # A reply waiting for morning, when this woke them.
 
     def read_later(self, connection, companion, user, attempt_id, held) -> tuple[dict, list[str]]:
         """Free, the reply waits a little before it is read (companion/life/reading.py); replies still waiting to be
@@ -643,11 +672,12 @@ class Conversation:
                 # Texting habits (typos, lowercase) stop while they are together in person (companion/life/together.py)
                 # or on the phone (companion/life/calls.py).
                 text = texting.restyle(text, companion['version']['definition'], attempt_id)
+            elif status == 'complete' and texting.out_loud(companion['version']['definition']):
+                text = texting.spoken(text)
             connection.execute('UPDATE messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
                                (text, status, error, self.database.now(), attempt_id))
             if status == 'complete':
-                connection.execute('UPDATE messages SET active=0 WHERE reply_to=?', (attempt['reply_to'],))
-                connection.execute('UPDATE messages SET active=1 WHERE id=?', (attempt_id,))
+                reply_versions.activate(connection, attempt)
                 finished = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
                 self_facts.note(connection, finished, self.database.now())
                 own_plans.note(connection, finished, companion, self.database.now())

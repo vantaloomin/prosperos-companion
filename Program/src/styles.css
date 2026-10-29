@@ -59,6 +59,8 @@ h2 { font-size: 1.25rem; }
 svg { width: 1.1em; height: 1.1em; stroke-width: 1.6; flex-shrink: 0; }
 input, select, textarea { background: var(--canvas); border: 1px solid var(--input-border, var(--border)); border-radius: 7px; padding: 10px 12px; }
 textarea { resize: vertical; line-height: 1.6; }
+/* Two lines that grow with the text, or a wrapped placeholder, to about five (Iris). */
+textarea.grows { resize: none; field-sizing: content; min-height: calc(2lh + 22px); max-height: calc(5lh + 22px); }
 ::placeholder { color: var(--faint); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .skip-link { position: absolute; left: 8px; top: 8px; transform: translateY(calc(-100% - 16px)); z-index: 10; padding: 10px 14px; background: var(--accent); color: var(--on-accent); border-radius: 7px; }
@@ -153,6 +155,7 @@ a.button { color: inherit; text-decoration: none; }
 .message-companion.inactive .prose { color: var(--muted); }
 .reply-tools { display: flex; align-items: center; gap: 10px; }
 .pager { display: inline-flex; align-items: center; gap: 2px; font-size: 0.75rem; color: var(--muted); }
+.pager .icon-button[aria-disabled="true"]:hover { background: none; cursor: default; }
 /* Notes from the app (a failed or stopped reply) in a box of their own, so they never read as the companion's words. */
 .system-note { display: flex; align-items: flex-start; gap: 8px; width: fit-content; max-width: 100%; margin-top: 10px; padding: 8px 12px; border: 1px dashed var(--border); border-radius: 10px; background: var(--raised); color: var(--muted); font-family: var(--ui-font); font-size: 0.8125rem; font-style: normal; line-height: 1.5; }
 .system-note > svg { width: 15px; height: 15px; margin-top: 2px; flex-shrink: 0; }
@@ -397,6 +400,15 @@ a.button { color: inherit; text-decoration: none; }
 .dialog::backdrop { background: #050504b0; }
 .dialog-body { display: flex; flex-direction: column; gap: 14px; margin: 14px 0 20px; line-height: 1.6; font-size: 0.9375rem; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+/* Back when (Character page): the app's moments and a year of the user's own, one per row. */
+.back-when-moments { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.back-when-moments legend { padding: 0; margin-bottom: 6px; font-weight: 600; }
+.back-when-moment { display: flex; gap: 12px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.back-when-moment:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
+.back-when-moment input { margin-top: 4px; flex-shrink: 0; }
+.back-when-moment > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.back-when-moment small { color: var(--muted); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.back-when-moments .field { margin-top: 6px; }
 @media (max-width: 720px) { .memory { flex-direction: column; } .memory-actions { flex-direction: row; flex-wrap: wrap; gap: 4px 14px; } }
 .message-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0 12px; }
 .message-actions .text-button { opacity: 0; font-size: 0.75rem; }
@@ -570,6 +582,7 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .reaction:hover { background: var(--raised); filter: none; opacity: 1; }
 .reaction[aria-pressed='true'] { background: var(--accent-tint); filter: none; opacity: 1; outline: 1px solid var(--accent); }
 .discuss-form { display: flex; flex-direction: column; gap: 8px; }
+.discuss-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
 /* The user's own post, at the top of the feed. */
 .own-post { display: flex; flex-direction: column; gap: 8px; max-width: 680px; margin: 4px 0 12px; }
 .own-post textarea { width: 100%; resize: none; }
@@ -1444,6 +1457,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .chat-retro .message .speaker { margin-right: 6px; }
   .chat-retro .message > .prose, .chat-retro .message > .prose > p:first-child { display: inline; }
   .chat-retro .message > header > :is(.message-actions, .reply-tools) { float: right; margin-left: 8px; }
+  /* A reply with versions: its tools and pager take a line of their own under the text, so they never squeeze it (Iris). */
+  .chat-retro .message:has(.pager) { display: flex; flex-wrap: wrap; align-items: baseline; }
+  .chat-retro .message:has(.pager) > :not(header) { flex: 1 0 100%; }
+  .chat-retro .message:has(.pager) > header > .reply-tools { float: none; order: 1; flex: 1 0 100%; display: flex; margin: 2px 0 0; }
 }
 /* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }
@@ -1515,6 +1532,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .post-audience > p { margin: 0; font-size: 0.8125rem; }
 .post-comments { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
 .post-comments strong { font-weight: 600; }
+.post-comments .post-comment-answer { padding-left: 14px; border-left: 2px solid var(--border); }
+.post-comments .post-waiting { font-size: 0.8125rem; font-style: italic; color: var(--muted); }
 
 /* People in your life (Memories). */
 .people-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -2020,7 +2039,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .group-walk-out { display: flex; align-items: center; gap: 8px; }
 
 /* Worlds and personas (src/features/worlds): the nav button says who the user is and where. */
-.app-nav .nav-world span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-nav .nav-world span:not(.nav-persona) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A world in a past year: its year under the name, whole, since a long name is cut short. */
+.app-nav .nav-world .nav-world-year { margin-top: -4px; font-variant-numeric: tabular-nums; }
 .nav-persona { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-weight: 600; font-size: 0.85rem; }
 .worlds { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
 .worlds-header, .worlds-list { max-width: 760px; width: 100%; margin: 0 auto; padding: 18px 32px 12px; display: flex; flex-direction: column; gap: 10px; }
@@ -2035,6 +2056,14 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .world-row[aria-current='true'] { background: var(--accent-tint); }
 .world-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .world-row-actions { display: flex; align-items: center; gap: 10px; }
+.world-row-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+/* A world in a past year: the year it is there, beside its name. */
+.year-badge { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.year-badge svg { width: 0.8rem; height: 0.8rem; }
+/* On the world you are in, whose row is tinted already, the badge keeps a fill a step darker. */
+.world-row[aria-current='true'] .year-badge { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+/* Phone: the buttons go under the name, lined up with it, so the name keeps the row's width (Iris, 2026-10-29). */
+@media (max-width: 480px) { .world-row-actions { flex-basis: 100%; padding-left: 58px; flex-wrap: wrap; } }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .world-rename input { flex: 1; min-width: 0; }
 /* Lined up with the world rows' names (row padding + portrait + gap), so it reads as this persona's. */
@@ -2110,6 +2139,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip .text-button { flex: none; }
 /* On a call (companion/life/calls.py): how long ticks in even digits; a ring stands out a little more. */
 .where-strip .call-length { font-variant-numeric: tabular-nums; }
+/* On a narrow strip the words give way and the call's length stays whole (Iris, 2026-10-29). */
+.where-strip > .call-text { display: flex; min-width: 0; }
+.where-strip > .call-text > span[aria-live] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.where-strip .call-length-part { flex: none; white-space: pre; }
 .where-strip.ringing { border-color: var(--accent); }
 .where-strip.quiet { background: transparent; }
 .where-strip.quiet > span, .where-strip.quiet > svg { color: var(--muted); }
@@ -2483,7 +2516,7 @@ p.breakup-line { align-items: center; }
 .kid-card .kid-form { border: 0; padding: 0; margin: 0; background: none; }
 .kid-field { display: grid; gap: 6px; min-width: 0; }
 .kid-form label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
-.kid-form .number-stepper { max-width: 280px; }
+.kid-form .number-stepper, .kid-form input[type="date"] { max-width: 280px; }
 .kid-form .kid-actions { margin-top: 4px; }
 @media (max-width: 720px) {
   .kid-card .person-actions .text-button { min-height: 44px; }
@@ -2535,6 +2568,12 @@ p.breakup-line { align-items: center; }
 .watch-title { min-width: 0; }
 .watch-title h1 { margin: 2px 0 4px; }
 .watch-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.watch-title .watch-why { margin-top: 2px; max-width: 46ch; }
+.watch-buttons > p { margin: 0; }
+/* Try life as (BecomeThem): an offer, in the accent, beside a muted Stop watching. */
+.text-button.become-link { color: var(--accent); }
+.text-button.become-link:hover { color: var(--accent-hover); text-decoration: underline; }
+@media (max-width: 720px) { .text-button.become-link { min-height: 44px; } }
 .watch-picker { display: grid; gap: 4px; min-width: 220px; }
 .watch-buttons { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
 .watch-start { display: grid; gap: 14px; justify-items: start; max-width: 600px; padding: var(--panel-pad, 16px); border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
@@ -2824,7 +2863,7 @@ p.breakup-line { align-items: center; }
 .circle-pet .person-actions { margin-top: 2px; }
 /* The open pet form is its own small inset form, so its Save pet does not read as the person form's Save. */
 .circle-tie-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.circle-tie { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 14rem); gap: 12px; align-items: center; min-width: 0; }
+.circle-tie { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 16rem); gap: 12px; align-items: center; min-width: 0; }
 .circle-tie label { overflow-wrap: anywhere; }
 .circle-tie select { width: 100%; min-width: 0; }
 .circle-tie-add { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }

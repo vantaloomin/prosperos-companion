@@ -25,7 +25,7 @@ from companion.life import (
 )
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
-from companion.world import looks, ships
+from companion.world import decades, looks, newcomers, ships
 
 PROMPT_VERSION = 6
 DEFAULT_STYLE = 'Candid, natural-light photograph'
@@ -225,12 +225,13 @@ CAMERAS = {'moment': 'Shot at eye level on a phone camera, natural colours, real
            'view': 'Phone-camera look, natural colours, everything in the scene in focus.'}
 
 
-def camera(style: str, framing='moment') -> str:
-    """Camera details for a photographic style the user left plain; a painted or drawn style keeps its own."""
+def camera(style: str, framing='moment', period: dict | None = None) -> str:
+    """Camera details for a photographic style the user left plain; a painted or drawn style keeps its own. In a past
+    year (`period`, decades.picture) the camera is one of its decade: a film snapshot in the 1990s."""
     style = style.lower()
     if 'photo' not in style or any(word in style for word in ('lens', 'mm', 'depth of field', 'shot on', 'film')):
         return ''
-    return CAMERAS.get(framing, CAMERAS['moment'])
+    return ((period or {}).get('cameras') or {}).get(framing) or CAMERAS.get(framing, CAMERAS['moment'])
 
 
 def restyle(inputs: dict, own: str | None) -> dict:
@@ -246,7 +247,7 @@ def restyle(inputs: dict, own: str | None) -> dict:
     if style == old or not prompt.startswith((f'{old} ', f'{old},')):
         return inputs
     framing = inputs.get('framing') or 'moment'
-    before, after = camera(old, framing), camera(style, framing)
+    before, after = camera(old, framing, inputs.get('period')), camera(style, framing, inputs.get('period'))
     if before and prompt.endswith(before):
         prompt = prompt[:-len(before)].rstrip()
     prompt = f"{style}{prompt[len(old):]}{' ' + after if after else ''}"
@@ -254,7 +255,7 @@ def restyle(inputs: dict, own: str | None) -> dict:
 
 
 def compose(name, appearance, events, style, setting='', dressed=False, framing='moment', who=None, sheet='',
-            look=None, aboard=False) -> str:
+            look=None, aboard=False, period=None) -> str:
     """A digest is illustrated by its first event; one picture of several outings would invent a
     moment that never happened. `dressed` means `setting` says what they wear, so the appearance's
     usual clothes are left out. The event may carry the local `hour` and `weather` for the light;
@@ -262,7 +263,8 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     the paragraph in place of the plain moment; `who` overrides the pronoun read from the appearance.
     `sheet` is their looks in words (`sheet_for`), ahead of the free-text appearance; `look` is the In photos
     line (`in_photos`), which stands in for the appearance when given. `aboard` (a ship or station) gives the ship's
-    light and says outdoor scenes as indoor ones."""
+    light and says outdoor scenes as indoor ones. `period` (decades.picture) says the year of a world that runs in a
+    past one, with a camera and framing of its decade."""
     event = events[0]
     who = who or pronoun(appearance)
     subject, possessive = PRONOUNS[who]
@@ -276,13 +278,14 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
                                                                name, who)
     expression = EXPRESSIONS.get((event.get('mood') or '').strip().lower()) or \
         (f"a {event['mood'].strip().lower()} expression" if event.get('mood') else '')
-    opening = FRAMINGS[framing].format(subject=subject.lower(), possessive=possessive) if FRAMINGS[framing] else \
+    framings = FRAMINGS | ((period or {}).get('framings') or {})
+    opening = framings[framing].format(subject=subject.lower(), possessive=possessive) if framings[framing] else \
         ''
     parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
              sheet, f'{look}.' if look else '', setting, action, alone(event, action, subject, who, framing),
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
              ship_light(event.get('hour')) if aboard else light(event.get('hour'), event.get('weather')),
-             camera(style, framing)]
+             (period or {}).get('scene') or '', camera(style, framing, period)]
     if aboard:
         parts[3:5] = [aboard_words(part) for part in parts[3:5]]
     return looks.seen(' '.join(part for part in parts if part))
@@ -467,7 +470,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
              'with': events[0]['moment'].get('with'), 'hobby': events[0]['moment'].get('hobby')}
     sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
     likeness = current_for_images(connection)
-    prompt = pet_prompt(connection, post['timeline_id'], events, image_settings)
+    prompt, period = pet_prompt(connection, post['timeline_id'], events, image_settings), period_of(connection, definition)
     if prompt:
         # A photo of their pet alone (companion/life/pets.py): nobody in it, so no likeness.
         likeness = {**likeness, 'lora': None}
@@ -475,14 +478,14 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'prompt': prompt or feed_prompt(definition, first, image_settings,
                                             setting(connection, post['timeline_id'], events[0],
                                                     not own_outfit(definition)), who, sheet,
-                                            ships.aboard(connection, definition)),
+                                            ships.aboard(connection, definition), period),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt,
+            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, 'period': period,
             'name_in_pictures': bool(definition.get('name_in_pictures')), **likeness,
             **children(connection, post['timeline_id'], [event[key] for event in events
                                                           for key in ('summary', 'caption', 'label', 'place')],
@@ -499,10 +502,17 @@ def pet_prompt(connection, timeline_id, events, image_settings) -> str:
     return pets.photo_prompt(found, shot['shows'], image_settings['style']) if found else ''
 
 
-def feed_prompt(definition, first, image_settings, worn: tuple[str, bool], who, sheet, aboard=False) -> str:
+def feed_prompt(definition, first, image_settings, worn: tuple[str, bool], who, sheet, aboard=False,
+                period=None) -> str:
     look = in_photos(definition, who, worn[1])
     return compose(definition['name'], definition.get('appearance', ''), [first], image_settings['style'], *worn, who=who,
-                   sheet=sheet, look=look, aboard=aboard)
+                   sheet=sheet, look=look, aboard=aboard, period=period)
+
+
+def period_of(connection, definition) -> dict | None:
+    """How a picture shows the year of a world that runs in a past one, from their city (decades.picture); None in
+    the present."""
+    return decades.picture(newcomers.city_for(connection, definition))
 
 
 def at_home(event) -> bool:
@@ -567,13 +577,14 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
         connection, companion['active_timeline_id'], moment))
     sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))
     look = '' if framing == 'view' else in_photos(definition, who, bool(wearing))
+    period = period_of(connection, definition)
     prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),
-                     framing, who, '' if framing == 'view' else sheet, look, ships.aboard(connection, definition))
+                     framing, who, '' if framing == 'view' else sheet, look, ships.aboard(connection, definition), period)
     likeness = current_for_images(connection)
     if framing == 'view':
         likeness = {**likeness, 'lora': None}
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
-            'pictured': framing != 'view',
+            'pictured': framing != 'view', 'period': period,
             'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
             'moment': moment, **likeness,
             **children(connection, companion['active_timeline_id'],

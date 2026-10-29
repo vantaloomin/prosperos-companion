@@ -2915,6 +2915,18 @@ CITY = {'schema_version': 1,
              'source': 'curated-2026-10'},
             {'id': 'haircut', 'item': 'Haircut', 'low': 30, 'high': 70, 'per': '', 'source': 'curated-2026-10'}]}
 
+# The year each employer started hiring here, for worlds in a past year (Back when, companion/world/decades.py).
+FOUNDED = {
+    "Netflix Hollywood": 2017,
+    "Amazon MGM Studios": 2010,
+    "Snap Inc.": 2012,
+    "Google Los Angeles": 2011,
+    "LA Live and Crypto.com Arena": 2007,
+}
+for _employer in CITY['employers']:
+    if _employer['name'] in FOUNDED:
+        _employer['years'] = [FOUNDED[_employer['name']], None]
+
 if __name__ == '__main__':
     OUT.write_text(json.dumps(CITY, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
     print(f'Wrote {OUT}')

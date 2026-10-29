@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Copy, Eye, Globe, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
+import { Copy, Eye, Globe, History, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
 import { api } from '../../api'
 import type { Persona, World, Worlds as WorldsData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -9,8 +9,8 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { PersonaForm } from './PersonaForm'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { enter, useWorlds, WORLDS_KEY } from './useWorlds'
-import { companionsLine, copyLabel, copyNote, initial, personaName, personaRef, personaRefTagged, personaSuffix, personaTitle, worldTag } from './worldsText'
-import { Toggle } from '../../components/Fields'
+import { companionsLine, copyLabel, copyNote, initial, personaName, personaRef, personaRefTagged, defaultPastYear, pastYears, personaSuffix, personaTitle, worldTag, yearBadge } from './worldsText'
+import { Field, Toggle } from '../../components/Fields'
 import { useWatchActions } from '../watch/useObserver'
 
 type Run = (action: () => Promise<unknown>) => Promise<void>
@@ -127,9 +127,10 @@ function NewWorld({ persona, cityId, run, onDone }: { persona: Persona; cityId: 
   const client = useQueryClient()
   const [city, setCity] = useState(SOMEWHERE_NEW)
   const [making, setMaking] = useState<'' | 'make' | 'watch'>('')
+  const [year, setYear] = useState<number | null>(null)
   // "Watch a city": the new world starts just watching (companion/observer.py).
   const make = (watch = false) => { setMaking(watch ? 'watch' : 'make'); return run(async () => {
-    await api('/worlds', { persona_id: persona.id, city_id: city, watch })
+    await api('/worlds', { persona_id: persona.id, city_id: city, watch, year })
     await client.invalidateQueries({ queryKey: WORLDS_KEY })
     onDone()
   }).finally(() => setMaking('')) }
@@ -137,6 +138,7 @@ function NewWorld({ persona, cityId, run, onDone }: { persona: Persona; cityId: 
     <form className="new-world form-stack" aria-label={`New world for ${personaRef(persona)}`} onSubmit={(event) => { event.preventDefault(); void make() }}
       onKeyDown={(event) => { if (event.key === 'Escape' && !making) onDone() }}>
       <CityPick value={city} currentId={cityId} disabled={!!making} autoFocus onChange={setCity} />
+      <PastYear year={year} disabled={!!making} onChange={setYear} />
       <div className="form-actions wrap">
         <button type="submit" className="button primary" disabled={!!making}>{making === 'make' ? 'Making the world…' : 'Make this world'}</button>
         <button type="button" className="button" disabled={!!making} onClick={() => void make(true)}><Eye aria-hidden="true" />{making === 'watch' ? 'Making the world…' : 'Watch a city'}</button>
@@ -144,6 +146,23 @@ function NewWorld({ persona, cityId, run, onDone }: { persona: Persona; cityId: 
       </div>
       <p className="subtle">Watch a city: see the town go on without you, following whoever you like. Step in whenever you want.</p>
     </form>
+  )
+}
+
+/** "Start in a past year" (companion/world_year.py): off, the world is in the present; on, the app offers ten years
+ * back and the user can pick any year back to 1990. The clock runs in that year at real speed. */
+function PastYear({ year, disabled, onChange }: { year: number | null; disabled: boolean; onChange: (year: number | null) => void }) {
+  const thisYear = new Date().getFullYear()
+  return (
+    <div className="past-year form-stack">
+      <Toggle label="Start in a past year" checked={year !== null} disabled={disabled} onChange={(on) => onChange(on ? defaultPastYear(thisYear) : null)}
+        hint="Its calendar runs in that year at real speed, with the phones, prices, songs and jobs of the time." />
+      {year !== null && <Field label="Year">
+        {(id) => <select id={id} value={year} disabled={disabled} onChange={(event) => onChange(Number(event.target.value))}>
+          {pastYears(thisYear).map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>}
+      </Field>}
+    </div>
   )
 }
 
@@ -203,7 +222,7 @@ function WorldRow({ world, run, store, onSwitch }: { world: World; run: Run; sto
             <button type="submit" className="button">Save</button>
             <button type="button" className="text-button" onClick={() => { setRenaming(false); setName(world.name) }}>Cancel</button>
           </form>
-        : <span className="world-row-text"><strong>{world.name}</strong><span className="subtle">{companionsLine(world)}{world.watching ? ' · Just watching' : ''}</span></span>}
+        : <span className="world-row-text"><span className="world-row-name"><strong>{world.name}</strong><YearBadge world={world} /></span><span className="subtle">{companionsLine(world)}{world.watching ? ' · Just watching' : ''}</span></span>}
       <span className="world-row-actions">
         {world.active ? <span className="subtle">You are here</span> : <button type="button" className="button" onClick={onSwitch}>Go there</button>}
         {!renaming && <button type="button" className="text-button" onClick={() => setRenaming(true)}>Rename</button>}
@@ -218,6 +237,13 @@ function WorldRow({ world, run, store, onSwitch }: { world: World; run: Run; sto
       </ConfirmDialog>}
     </li>
   )
+}
+
+/** The year it is in a world that runs in the past (Back when, or started in a past year). */
+function YearBadge({ world }: { world: World }) {
+  const badge = yearBadge(world)
+  if (!badge) return null
+  return <span className="badge year-badge" title={badge.label}><History aria-hidden="true" /><span className="visually-hidden">{badge.label}</span><span aria-hidden="true">{badge.text}</span></span>
 }
 
 /** "Just watch" (companion/observer.py) for the world the user is in: their persona sits out while everyone else's

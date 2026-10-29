@@ -73,7 +73,7 @@ function Backends({ list, refresh, setResult, phone }: { list: ImageBackend[]; r
       {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} phone={phone} />)}
     </ol>
     {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
-    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API or NanoGPT. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
+    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API, NanoGPT or NovelAI. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
     {adding ? <AddBackend phone={phone} onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
   </>
@@ -144,7 +144,7 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
     <li className="backend-row">
       <BackendSummary backend={backend} />
       {backend.blocked_reason && (
-        <Notice tone="error" action={<button type="button" className="button" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>Signed in again</button>}>
+        <Notice tone="error" action={<button type="button" className="button" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>{backend.kind === 'codex' ? 'Signed in again' : 'Try again'}</button>}>
           {backend.blocked_reason}
         </Notice>
       )}
@@ -256,24 +256,33 @@ function AddressField({ backend, draft, onChange }: { backend: ImageBackend; dra
   return <TextInput label={backend.kind === 'hosted' ? 'API base URL' : 'ComfyUI address'} value={draft.baseUrl} required onChange={onChange} hint={moveHint} />
 }
 
+/** What an empty Prompt style falls back to, and the hint that says so. */
+function styleFallback(backend: ImageBackend) {
+  const fallback = backend.family_style ? "the model's own" : 'the general one'
+  const hint = `Starts every prompt this backend makes, in place of the general style. Leave empty to use ${fallback}.${
+    backend.tag_prompts && !backend.family_style ? ' Prompts go out as booru tags.' : ''}`
+  return { fallback, hint, reset: backend.family_style ? "Use the model's own style" : 'Use the general style' }
+}
+
 /** The style line that starts this backend's prompts, since each model wants its own (a photo line for
- * Krea 2, a tag-style line for an anime model). Empty uses the general style above. */
+ * Krea 2, quality tags for a Booru model). Empty uses the model family's own line, else the general style above. */
 function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: string) => Promise<boolean> }) {
   const general = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => api<Limits>('/images/settings') }).data?.style
   const [draft, setDraft] = useState<string | null>(null)
   const store = async (value: string) => { if (await save(value)) setDraft(null) }
+  const { fallback, hint, reset } = styleFallback(backend)
   return (
     <details>
-      <summary className="subtle">Prompt style {backend.style ? '(its own)' : '(the general one)'}</summary>
+      <summary className="subtle">Prompt style {backend.style ? '(its own)' : `(${fallback})`}</summary>
       <div className="form-stack">
-        <TextInput label="Style for this backend" value={draft ?? backend.style} maxLength={500} placeholder={general || 'Candid, natural-light photograph'}
-          hint="Starts every prompt this backend makes, in place of the general style. Leave empty to use the general one." onChange={setDraft} />
+        <TextArea grows label="Style for this backend" value={draft ?? backend.style} maxLength={500}
+          placeholder={backend.family_style || general || 'Candid, natural-light photograph'} hint={hint} onChange={setDraft} />
         <div className="form-actions">
           {draft !== null && <>
             <button type="button" className="button primary" onClick={() => void store(draft)}>Save style</button>
             <button type="button" className="button" onClick={() => setDraft(null)}>Cancel</button>
           </>}
-          {backend.style && draft === null && <button type="button" className="text-button" onClick={() => void store('')}>Use the general style</button>}
+          {backend.style && draft === null && <button type="button" className="text-button" onClick={() => void store('')}>{reset}</button>}
         </div>
       </div>
     </details>
@@ -352,7 +361,7 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
         {hasMatching(server.matching) && <Toggle label={`Only ${family.short} files`} checked={familyOnly} onChange={setFamilyOnly}
           hint={`Files whose name or folder says ${family.looks}. Turn off to see every file.`} />}
-        {server.answered && <FileSlots slots={family.slots} server={server} familyOnly={familyOnly} shown={shown} onChange={(key, value) => setDraft({ ...draft, [key]: value })} />}
+        {server.answered && <FileSlots slots={family.slots} server={server} familyOnly={familyOnly} shown={shown} start={shownFiles(family.slots, {}, saved, server.defaults)} onChange={(key, value) => setDraft({ ...draft, [key]: value })} />}
         <FileActions changed={Object.keys(draft).length > 0} chosen={isChosen(saved)} busy={files.isFetching}
           save={() => void store(filesBody(family.slots, shown, server.defaults))} cancel={() => setDraft({})} reset={() => void store(noChoice(family.slots))} refresh={() => void files.refetch()} />
         <ModelLinks links={links.data?.links ?? []} family={backend.family} />
@@ -363,10 +372,10 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
 
 type ServerFiles = ReturnType<typeof serverFiles>
 
-function FileSlots({ slots, server, familyOnly, shown, onChange }: { slots: FileSlot[]; server: ServerFiles; familyOnly: boolean; shown: ModelFiles; onChange: (key: FileSlot['key'], value: string) => void }) {
+function FileSlots({ slots, server, familyOnly, shown, start, onChange }: { slots: FileSlot[]; server: ServerFiles; familyOnly: boolean; shown: ModelFiles; start: ModelFiles; onChange: (key: FileSlot['key'], value: string) => void }) {
   return <div className="form-grid">
     {slots.map((slot) => <FileField key={slot.key} slot={slot} options={server.options[slot.key]} matching={familyOnly ? server.matching[slot.key] : []}
-      value={shown[slot.key] ?? ''} fallback={server.defaults[slot.key] ?? ''} onChange={(value) => onChange(slot.key, value)} />)}
+      value={shown[slot.key] ?? ''} start={start[slot.key] ?? ''} fallback={server.defaults[slot.key] ?? ''} onChange={(value) => onChange(slot.key, value)} />)}
   </div>
 }
 
@@ -414,8 +423,8 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
         <div className="form-grid">
           <SliderNumber label="Steps" value={shown.steps} min={1} max={100} step={1} hint={family.steps} onChange={(steps) => setDraft({ ...draft, steps })} />
           <SliderNumber label="CFG" value={shown.cfg} min={0} max={30} step={0.5} hint="At 1 the negative prompt is ignored." onChange={(cfg) => setDraft({ ...draft, cfg })} />
-          <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} matching={[]} value={shown.sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
-          <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} matching={[]} value={shown.scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
+          <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} matching={[]} value={shown.sampler_name} start={shownSampler({}, saved, defaults).sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
+          <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} matching={[]} value={shown.scheduler} start={shownSampler({}, saved, defaults).scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
         </div>
         <FileActions changed={Object.keys(draft).length > 0} chosen={isTuned(saved)} busy={files.isFetching}
           save={() => void store(shown)} cancel={() => setDraft({})} reset={() => void store(defaults)} refresh={() => void files.refetch()} />
@@ -433,13 +442,14 @@ function useBackendFiles(backend: ImageBackend, open: boolean) {
   return files
 }
 
-/** A dropdown of the server's files (only `matching` when given), or a text box when it listed none. */
-function FileField({ slot, options, matching, value, fallback, onChange }: { slot: FileSlot; options: string[]; matching: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
+/** A dropdown of the server's files (only `matching` when given), or a text box when it listed none. `start` is
+ * the value it opened on, kept in the list after another file is picked even when the server lacks it. */
+function FileField({ slot, options, matching, value, start = '', fallback, onChange }: { slot: FileSlot; options: string[]; matching: string[]; value: string; start?: string; fallback: string; onChange: (value: string) => void }) {
   const { label, hint, tip, same } = slot
   if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback || same} hint={hint} tip={tip} onChange={onChange} />
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <>
     <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
-      {fileChoices(options, value, matching, matching.length > 0, same).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+      {fileChoices(options, value, matching, matching.length > 0, same, start).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
     </select>
     {/* On its own line, so the file name in the box is never cut short by it (Iris). */}
     {missingFrom(options, value) && <p className="subtle field-missing">{MISSING}</p>}
@@ -461,7 +471,7 @@ function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; save
         <p className="subtle">Extra LoRAs for the look of every picture from this server, such as a phone-photo or realism LoRA. They apply after the character's own LoRA, when one is adopted, in this order.</p>
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its LoRAs…</p>}
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
-        {server.answered && <StyleLoraRows rows={draft ?? saved} options={server.options.lora} matching={server.matching.lora} short={familyOf(backend.family).short} looks={familyOf(backend.family).looks} setRows={setDraft} />}
+        {server.answered && <StyleLoraRows rows={draft ?? saved} saved={saved} options={server.options.lora} matching={server.matching.lora} short={familyOf(backend.family).short} looks={familyOf(backend.family).looks} setRows={setDraft} />}
         {draft && <FileActions changed chosen={false} busy={files.isFetching} save={() => void store(draft)} cancel={() => setDraft(null)} reset={() => undefined} refresh={() => void files.refetch()} />}
       </div>
     </details>
@@ -470,13 +480,13 @@ function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; save
 
 const LORA_SLOT: FileSlot = { key: 'unet_name', label: 'LoRA', role: null, hint: 'From ComfyUI\'s models/loras folder.' }
 
-function StyleLoraRows({ rows, options, matching, short, looks, setRows }: { rows: StyleLora[]; options: string[]; matching: string[]; short: string; looks: string; setRows: (rows: StyleLora[]) => void }) {
+function StyleLoraRows({ rows, saved, options, matching, short, looks, setRows }: { rows: StyleLora[]; saved: StyleLora[]; options: string[]; matching: string[]; short: string; looks: string; setRows: (rows: StyleLora[]) => void }) {
   const [familyOnly, setFamilyOnly] = useState(true)
   const edit = (index: number, change: Partial<StyleLora>) => setRows(rows.map((row, at) => at === index ? { ...row, ...change } : row))
   return <>
     {matching.length > 0 && <Toggle label={`Only ${short} LoRAs`} checked={familyOnly} onChange={setFamilyOnly} hint={`LoRAs whose name or folder says ${looks}. Turn off to see every LoRA.`} />}
     {rows.map((row, index) => <div key={index} className="form-grid">
-      <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} matching={familyOnly ? matching : []} value={row.name} fallback="" onChange={(name) => edit(index, { name })} />
+      <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} matching={familyOnly ? matching : []} value={row.name} start={saved[index]?.name ?? ''} fallback="" onChange={(name) => edit(index, { name })} />
       <SliderNumber label="Strength" value={row.strength} min={-2} max={2} step={0.05} hint="0.6 to 0.8 suits most style LoRAs." onChange={(strength) => edit(index, { strength })} />
       <TextInput label="Trigger words" value={row.trigger} maxLength={200} hint="Put in front of the prompt when the LoRA needs them." onChange={(trigger) => edit(index, { trigger })} />
       <button type="button" className="text-button" onClick={() => setRows(rows.filter((_, at) => at !== index))}><Trash2 aria-hidden="true" />Remove</button>
@@ -630,7 +640,7 @@ function WorkflowActions({ flow, set }: { flow: Workflow; set: boolean }) {
 function summaryLine(backend: ImageBackend) {
   const where = backend.kind === 'codex' ? 'Codex CLI' : backend.local ? 'This computer' : backend.base_url
   const missingKey = backend.kind === 'hosted' && !backend.has_key && !backend.key_from
-  return [where, backend.model, missingKey ? 'no API key' : '', backend.key_from ? `key from ${backend.key_from}` : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')
+  return [where, backend.model, missingKey ? (backend.provider === 'novelai' ? 'no API token' : 'no API key') : '', backend.key_from ? `key from ${backend.key_from}` : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')
 }
 
 function BackendSummary({ backend }: { backend: ImageBackend }) {
@@ -657,7 +667,7 @@ function backendBody(draft: Draft, disclosure: string | null, accepted: boolean)
 }
 
 const MODEL_EXAMPLES: Record<HostedProvider, string> = {
-  openrouter: 'google/gemini-2.5-flash-image', google: 'imagen-4.0-generate-001', openai: 'gpt-image-1', nanogpt: 'hidream-o1-image', other: 'gpt-image-1',
+  openrouter: 'google/gemini-2.5-flash-image', google: 'imagen-4.0-generate-001', openai: 'gpt-image-1', nanogpt: 'hidream-o1-image', novelai: 'nai-diffusion-4-5-full', other: 'gpt-image-1',
 }
 
 /** The NSFW switch for a new image API backend; Google and the OpenAI API only say they stay safe-only. */
@@ -711,7 +721,7 @@ function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () =
       </>}
       {kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={cliPath} onChange={setCliPath} hint="Found on PATH when empty. Sign in once with codex login in a terminal; the app never sees your password or token." />}
       {kind === 'hosted' && <>
-        <Field label="Provider" hint="The image service your API key is for.">{(id, hint) => (
+        <Field label="Provider" hint="The image service you are adding.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={provider} onChange={(event) => { setProvider(event.target.value as HostedProvider); setAccepted(false) }}>
             {PROVIDERS.filter((item) => !phone || item.id !== 'other').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
@@ -737,6 +747,7 @@ function HostedKey({ provider, baseUrl, value, onChange }: { provider: HostedPro
   const [typing, setTyping] = useState(false)
   const from = imageKeyFrom(profiles, provider, baseUrl)
   if (from && !typing) return <div className="token-entry"><p>Uses the API key saved with <strong>{from.name}</strong>.</p><button type="button" className="button" onClick={() => setTyping(true)}>Use a different key</button></div>
-  return <div className="token-entry"><TextInput label="API key" type="password" value={value} onChange={onChange} hint="Saved in your system's credential store." />
+  return <div className="token-entry"><TextInput label={provider === 'novelai' ? 'API token' : 'API key'} type="password" value={value} onChange={onChange}
+    hint={provider === 'novelai' ? "Your persistent API token, from Account Settings on novelai.net. Saved in your system's credential store." : "Saved in your system's credential store."} />
     {from && <button type="button" className="text-button" onClick={() => { onChange(''); setTyping(false) }}>Use the {from.name} key</button>}</div>
 }

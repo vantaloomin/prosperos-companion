@@ -77,7 +77,7 @@ def test_older_eras_have_a_personal_column_with_initials():
 
 def test_the_deck_shows_only_single_compatible_adults_and_likes_need_a_yes_back(client, clock):
     assert ok(client.get('/api/dating'))['profile'] is None
-    assert ok(client.get('/api/dating/status')) == {'installed': False, 'name': 'Matchlight'}
+    assert ok(client.get('/api/dating/status')) == {'installed': False, 'name': 'Matchlight', 'app': True}
     assert client.put('/api/dating/profile', json=PROFILE | {'age': 17}).status_code == 422
     assert client.put('/api/dating/profile', json=PROFILE | {'age_min': 16}).status_code == 422
     opened = ok(client.put('/api/dating/profile', json=PROFILE))

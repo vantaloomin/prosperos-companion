@@ -78,3 +78,8 @@ test('every chat list, the desktop sidebar and the phone list, uses the short li
     assert.match(text, /<Stamp className="chat-row-time" value=\{chat\.last\.at\} short \/>/, file)
   }
 })
+
+test('dates read in English whatever the browser speaks, so a French one never gives "jeu. 19 nov.."', () => {
+  assert.equal(calendarDay('2026-11-19', { weekday: true }), 'Thu, Nov 19')
+  assert.ok(!calendarDay('2026-11-19', { weekday: true }).endsWith('.'))
+})

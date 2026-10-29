@@ -25,8 +25,8 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 
-from companion import backup, cast, characters, dating, library, lore, observer, restore, story
-from companion.clock import AppClock, zone
+from companion import backup, cast, characters, dating, library, lore, observer, restore, story, world_year
+from companion.clock import AppClock, stamp, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
 from companion.life import ages, narrator, pets, where
@@ -184,15 +184,23 @@ def write_persona(connection, persona: dict, timestamp: str, home: dict | None =
     (companion/memory/context.py), Matchlight and Where you are (companion/life/where.py)."""
     home = home or {}
     before = optional(connection, 'SELECT home_city_id FROM persona WHERE id=1')
+    age = age_here(connection, persona.get('age'))
     dating.follow_home(connection, before['home_city_id'] if before else '', home.get('city_id', ''))
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
                        'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood, kind, lifespan) '
                        'VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                       (persona['id'], persona['name'], persona['gender'], persona['age'], persona['about'],
+                       (persona['id'], persona['name'], persona['gender'], age, persona['about'],
                         timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', ''),
                         json.dumps(persona.get('pets') or []), home.get('city_id', ''), home.get('neighbourhood', ''),
                         persona.get('kind') or '', persona.get('lifespan')))
     connection.execute('UPDATE life_settings SET user_birthday=? WHERE id=1', (persona.get('birthday') or '',))
+
+
+def age_here(connection, age: int | None) -> int | None:
+    """The persona's age in this world: younger by the years a Back when world goes back (companion/back_when.py),
+    never under 18."""
+    row = optional(connection, 'SELECT persona_years FROM back_when WHERE id=1')
+    return max(age - row['persona_years'], ages.ADULT) if row and age else age
 
 
 def world_city(connection, world: dict, cities: dict[str, dict]) -> dict:
@@ -255,6 +263,12 @@ def watching_in(path: Path) -> bool:
     return bool(read_only(path, 'SELECT watching FROM observer WHERE id=1 AND watching=1'))
 
 
+def back_when_in(path: Path) -> dict | None:
+    """A Back when world's year and who it was made for (companion/back_when.py); None for any other world."""
+    rows = read_only(path, 'SELECT year, name, companion_id FROM back_when WHERE id=1')
+    return {'year': rows[0][0], 'name': rows[0][1], 'companion_id': rows[0][2]} if rows else None
+
+
 def world_view(database: Database, data: dict, world: dict, cities: dict[str, dict] | None = None) -> dict:
     if cities is None:
         with database.connect() as connection:
@@ -262,6 +276,8 @@ def world_view(database: Database, data: dict, world: dict, cities: dict[str, di
     return {**world, 'active': world['id'] == data['active'], 'first': not world['folder'],
             'companions': companions_in(world_path(database.home, world)),
             'watching': watching_in(world_path(database.home, world)),
+            'year': world_year.year_in(world_path(database.home, world), database.clock.real()),
+            'back_when': back_when_in(world_path(database.home, world)),
             'home': where.view(world.get('home'), cities)}
 
 
@@ -346,7 +362,8 @@ def switch(state, world_id: str) -> dict:
     database.use(target)
     mix.load(database)
     carry_settings(target, previous, database.now())
-    data['active'], world['used_at'] = world['id'], database.now()
+    # The registry orders worlds by real time: a world in a past year would otherwise sort as used long ago.
+    data['active'], world['used_at'] = world['id'], stamp(database.clock.real())
     database.world = world['id']
     with database.connect(write=True) as connection:
         settle_home(connection, world)
@@ -396,16 +413,26 @@ def starter(connection, data: dict, seed: str, timestamp: str, today: date, pers
 
 
 def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None,
-          town_mix: dict | None = None, home: dict | None = None, watch: bool = False):
+          town_mix: dict | None = None, home: dict | None = None, watch: bool = False, year: int | None = None):
     """A new world's database: the user's settings and the persona; when the user became one of a town's people
     (`town`), also a starter companion from that person's circle. Its townsfolk mix (companion/world/mix.py) is
-    `town_mix`, else the one of the world it was made from."""
+    `town_mix`, else the one of the world it was made from. `year` starts it in a past year (companion/world_year.py)."""
     restore.settle(database.path)
     if town_mix is None:
         with database.connect() as connection:
             town_mix = mix.read(connection)
-    made = Database(path, AppClock(database.clock.base))
-    carry_settings(path, database.path, made.now())
+    try:
+        made = Database(path, AppClock(database.clock.base), year)
+        fill(made, database.path, persona, city_id, seed, town, town_mix, home, watch)
+    finally:
+        # Opening it pointed the app-wide clocks at the new world; the user is still in this one.
+        database.follow()
+
+
+def fill(made: Database, source: Path, persona: dict, city_id: str, seed: str, town: str | None, town_mix: dict,
+         home: dict | None, watch: bool):
+    path = made.path
+    carry_settings(path, source, made.now())
     with made.connect(write=True) as connection, mix.using(town_mix):
         if town_mix != mix.DEFAULTS:
             mix.write(connection, town_mix, made.now())
@@ -415,8 +442,8 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
         if town is not None:
             today = made.clock.now().astimezone(zone(data['timezone'])).date()
             starter(connection, data, seed, made.now(), today, persona)
-    lore.carry_city_lore(path, database.path, data)
-    library.carry_city_books(path, database.path, data)
+    lore.carry_city_lore(path, source, data)
+    library.carry_city_books(path, source, data)
 
 
 def somewhere_new(connection, here: str, seed: str, now=None) -> str:
@@ -451,11 +478,13 @@ def unique_name(data: dict, wanted: str) -> str:
 
 def create_world(database: Database, persona_id: str | None = None, name: str | None = None,
                  city_id: str | None = None, town: str | None = None, town_mix: dict | None = None,
-                 watch: bool = False) -> dict:
+                 watch: bool = False, year: int | None = None) -> dict:
     """A new world for a persona (the active one by default), in the current city unless another is named. `town`
     reuses a town's people instead of seeding new ones (Become a townsperson). `SOMEWHERE_NEW` lets the app pick.
     `town_mix` is its townsfolk mix (Settings > Debug), else the current world's. `watch` starts it just watching
-    (Watch a city, companion/observer.py)."""
+    (Watch a city, companion/observer.py). `year` starts it in a past year (Back when, companion/world_year.py)."""
+    if year is not None:
+        world_year.check(year, database.clock.real().date())
     data = registry(database)
     active = found(data['worlds'], data['active'], 'world')
     persona = found(data['personas'], persona_id or active['persona_id'], 'persona')
@@ -468,7 +497,7 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
     path = database.root / folder / DATABASE
     home = where.picked(city, world_id)
     try:
-        build(database, path, persona, city['id'], world_id, town, town_mix, home, watch)
+        build(database, path, persona, city['id'], world_id, town, town_mix, home, watch, year)
     except BaseException:
         shutil.rmtree(path.parent, ignore_errors=True)
         raise

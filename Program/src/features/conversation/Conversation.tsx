@@ -21,7 +21,7 @@ import type { Phase } from './activity'
 import { TurnView } from './TurnView'
 import { EditDialog, ReplyEditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
-import { applyFinished, endsOlderHistory, groupTurns, lastUserMessage, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey, latestUser } from './turns'
+import { applyChosen, applyFinished, endsOlderHistory, followUpAfter, groupTurns, lastUserMessage, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey, latestUser } from './turns'
 import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
@@ -159,6 +159,10 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     const only = profileId ? `&profile_id=${encodeURIComponent(profileId)}` : ''
     try { accept(await api<SendResult>(`/conversation/messages/${userId}/alternatives?wait=false${only}`, {})) } catch (error) { fail(error) }
   }
+  const choose = async (version: Message) => {
+    update((current) => applyChosen(current, version))
+    try { await api(`/conversation/replies/${version.id}/choose`, {}) } catch (error) { fail(error); void client.invalidateQueries({ queryKey: HISTORY_KEY }) }
+  }
   const stop = async (replyId: string) => {
     try { await api(`/conversation/replies/${replyId}/stop`, {}) } catch (error) { fail(error) }
   }
@@ -226,10 +230,11 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }
 
   // Stable handlers and turns, so a streaming reply re-renders its own turn rather than the whole transcript.
-  const handlers = useRef({ retry, stop, remember, moment, toggleVoice })
-  useEffect(() => { handlers.current = { retry, stop, remember, moment, toggleVoice } })
+  const handlers = useRef({ retry, choose, stop, remember, moment, toggleVoice })
+  useEffect(() => { handlers.current = { retry, choose, stop, remember, moment, toggleVoice } })
   const turnActions = useMemo(() => ({
     retry: (id: string, profileId?: string) => void handlers.current.retry(id, profileId),
+    choose: (version: Message) => void handlers.current.choose(version),
     stop: (id: string) => void handlers.current.stop(id),
     remember: (message: Message) => void handlers.current.remember(message),
     moment: (message: Message) => handlers.current.moment(message),
@@ -243,6 +248,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const following = streamingIds(messages)
   const latestUserId = latestUser(turns)
   const lastUserId = lastUserMessage(messages)
+  const followUp = followUpAfter(turns)
   // A held reply written in the background stays out of sight: no Stop, and the user can keep writing (pacing.take_over).
   const writing = messages.filter((message) => following.includes(message.id) && !waitsUntilLater(message, appNow())).map((message) => message.id)
   const streaming = writing.length > 0
@@ -268,7 +274,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             {turns.map((turn, index) => (
               <Fragment key={turnKey(turn)}>
                 <LookNotes notes={notesBefore(look.changes, turns, index)} />
-                <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts && !together} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
+                <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onChoose={turnActions.choose} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts && !together} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} followUp={turnKey(turn) === latestUserId ? followUp : undefined} />
                 {endsOlderHistory(turns, index) && <p className="history-end subtle">Older history from an old chat ends here</p>}
               </Fragment>
             ))}

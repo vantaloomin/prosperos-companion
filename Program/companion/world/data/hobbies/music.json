@@ -1613,6 +1613,50 @@
    "eras": [
     "future"
    ]
+  },
+  {
+   "text": "finished a first mix without cutting off the end of a song",
+   "post": "First mix. No songs cut off!",
+   "level": 0,
+   "for": [
+    "mixtapes"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "drew a proper cover for a new mix",
+   "post": "Drew a cover for the new mix.",
+   "level": 1,
+   "for": [
+    "mixtapes"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "made a mix for a friend, who played it the whole drive home",
+   "post": "My mix got played the whole way home.",
+   "level": 2,
+   "for": [
+    "mixtapes"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "made a mix so good that friends asked for copies",
+   "post": "People want copies of my mix.",
+   "level": 3,
+   "for": [
+    "mixtapes"
+   ],
+   "eras": [
+    "modern"
+   ]
   }
  ],
  "sessions": [

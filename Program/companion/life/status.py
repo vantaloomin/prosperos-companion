@@ -30,7 +30,7 @@ from pathlib import Path
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional
 from companion.life import chapters, money, pacing, storylines, trips
-from companion.world import catalog, generators
+from companion.world import catalog, decades, generators
 
 LIMIT = 120
 MOODS = {'happy': ('good day ☀️', 'in a good mood, ask me anything', 'today was kind to me'),
@@ -165,7 +165,9 @@ def away(connection, companion: dict, now, retro: bool = False) -> dict | None:
     until = clock_text(local(companion, parse(ends_at)), retro)
     seed = f"{companion['id']}:{window(companion, now)}:{kind}"
     lines = retro_away(companion['version']['definition'], kind) if retro else list(AWAY[kind])
-    return {'text': generators.pick(seed, 'away', lines).format(until=until), 'glyph': GLYPHS[kind]}
+    lines = [line for line in lines if decades.fits(line)] or lines
+    return {'text': decades.without_emoji(generators.pick(seed, 'away', lines).format(until=until)),
+            'glyph': GLYPHS[kind]}
 
 
 def retro_away(definition: dict, kind: str) -> list[str]:
@@ -243,7 +245,7 @@ def day_line(connection, companion: dict, now, seed: str) -> str:
 
 def everyday(companion: dict, seed: str) -> str:
     interests = [item for item in companion['version']['definition'].get('interests') or [] if len(item) <= 40]
-    lines = [line for line in EVERYDAY if '{interest}' not in line or interests]
+    lines = [line for line in EVERYDAY if ('{interest}' not in line or interests) and decades.fits(line)]
     interest = generators.pick(seed, 'interest', interests) if interests else ''
     return generators.pick(seed, 'everyday', lines).format(interest=interest.lower())
 
@@ -274,7 +276,8 @@ def view(connection, companion: dict, now) -> dict:
     retro = retro_on(connection)
     from companion.life import together
     found = together.state(connection, companion, now)
-    return {'text': mine or written(connection, companion, now, retro), 'set_by': 'you' if mine else 'app',
+    return {'text': mine or decades.without_emoji(written(connection, companion, now, retro)),
+            'set_by': 'you' if mine else 'app',
             'away': away(connection, companion, now, retro),
             # Together or apart (companion/life/together.py), in plain words: '' while apart in the same city.
             'where': {'state': found['state'], 'kind': found['kind'], 'text': found['text']}}

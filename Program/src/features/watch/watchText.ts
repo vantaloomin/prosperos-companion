@@ -14,18 +14,32 @@ export function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || name
 }
 
-/** The picker's groups, in order: companions, then townsfolk. */
+/** The picker's groups, in order: companions, each companion's people in town, townsfolk the main companion has met,
+ * then the ones the app picked for a busy week. The group says where each person comes from. */
 export function focusGroups(choices: WatchFocus[]): { label: string; people: WatchFocus[] }[] {
-  const groups = [
-    { label: 'Companions', people: choices.filter((choice) => choice.kind === 'companion') },
-    { label: 'Around town', people: choices.filter((choice) => choice.kind === 'townsperson') },
-  ]
+  const groups = [{ label: 'Companions', people: choices.filter((choice) => choice.kind === 'companion') }]
+  const owners = [...new Set(choices.filter((choice) => choice.kind === 'circle').map((choice) => choice.owner ?? ''))]
+  for (const owner of owners) {
+    groups.push({ label: owner ? `${owner}'s people` : 'Their people', people: choices.filter((choice) => choice.kind === 'circle' && (choice.owner ?? '') === owner) })
+  }
+  const town = choices.filter((choice) => choice.kind === 'townsperson')
+  const met = town.filter((choice) => choice.source === 'met')
+  groups.push(
+    { label: met[0]?.owner ? `${met[0].owner} has met` : 'Met around town', people: met },
+    { label: 'Busy around town this week', people: town.filter((choice) => choice.source === 'busy') },
+    { label: 'Around town', people: town.filter((choice) => !choice.source) },
+  )
   return groups.filter((group) => group.people.length > 0)
 }
 
-/** What "Step in" does for this person: talk to a companion, or become a townsperson. */
+/** Talking to a companion steps back in (a townsperson's own world is BecomeThem). */
 export function stepInLabel(focus: WatchFocus): string {
-  return focus.kind === 'companion' ? `Talk to ${firstName(focus.name)}` : `Become ${firstName(focus.name)}`
+  return `Talk to ${firstName(focus.name)}`
+}
+
+/** The button that starts a separate world as a townsperson: an offer to try, not a switch. */
+export function becomeLabel(name: string): string {
+  return `Try life as ${firstName(name)}`
 }
 
 /** A line's time where they live ("9:30 AM"); how they feel now reads "Now". */

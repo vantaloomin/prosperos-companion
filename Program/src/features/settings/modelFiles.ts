@@ -69,7 +69,7 @@ export const FAMILIES: Record<ImageFamily, Family> = {
   },
   booru: {
     label: 'Booru (SDXL, Pony, Illustrious)', short: 'Booru', looks: 'SDXL, Pony or Illustrious', sampling: 'Illustrious XL', steps: 'Most SDXL models use 20 to 30.',
-    note: 'Works best with a tag-style prompt; see Prompt style.',
+    note: 'Prompts go out as booru tags (solo, 1boy and so on), after the quality tags under Prompt style.',
     reference: 'Pictures from a reference need the IPAdapter Plus nodes and its two models.',
     pack: { label: 'IPAdapter Plus', url: 'https://github.com/cubiq/ComfyUI_IPAdapter_plus', install: false },
     slots: [{ key: 'ckpt_name', label: 'Model', role: 'model', hint: 'From ComfyUI\'s models/checkpoints folder.', tip: 'One file holds the model, its text encoders and VAE. Any SDXL, Pony or Illustrious checkpoint works.' }],
@@ -97,12 +97,13 @@ export function serverFiles(data: BackendFiles | undefined, failed: string | nul
 }
 
 /** The choices for one slot: the server's files (only the family's when `familyOnly` and it has any), with the
- * current value first when the list leaves it out. */
-export function fileChoices(options: string[], current: string, matching: string[] = [], familyOnly = false, same?: string): { value: string; label: string }[] {
+ * current value and the one the dropdown opened on (`start`, the saved choice or default) first when the list
+ * leaves them out, so picking another file never loses the way back. */
+export function fileChoices(options: string[], current: string, matching: string[] = [], familyOnly = false, same?: string, start = ''): { value: string; label: string }[] {
   const shown = familyOnly && matching.length > 0 ? matching : options
   const listed = [...(same ? [{ value: '', label: same }] : []), ...shown.map(value => ({ value, label: value }))]
-  if (!current || shown.includes(current)) return listed
-  return [{ value: current, label: current }, ...listed]
+  const kept = [...new Set([current, start])].filter(value => value && !shown.includes(value))
+  return [...kept.map(value => ({ value, label: value })), ...listed]
 }
 
 /** Whether a server that listed files lacks this one, said on its own line under the dropdown (Iris). */

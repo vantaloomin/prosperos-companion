@@ -1,0 +1,94 @@
+{
+ "about": "Decade rules for Back when (1.2 \"The Dark Backward\", companion/world/decades.py). A modern city in a world that runs in a past year takes on that year's decade: what pictures look like here, its prices from `prices`, and, in their own files, its era words (era_words.json `decades`), media (media/modern.json years), careers and hobbies (`years`) and politics (politics.json `years`). Nothing here applies in the present.",
+ "decades": {
+  "1990s": {
+   "from": 1990,
+   "picture": {
+    "scene": "It is {year}: clothes, hair, phones, cars and shop fronts are from the {part} 1990s, nothing newer.",
+    "cameras": {
+     "moment": "Shot on a 35mm point-and-shoot film camera, warm colours, soft film grain, realistic skin texture.",
+     "selfie": "Film snapshot look, slight wide-angle, warm colours, soft grain, realistic skin texture.",
+     "view": "Film snapshot look, warm colours, soft grain, everything in the scene in focus."
+    },
+    "framings": {
+     "selfie": "a fictional photo taken at arm's length with a disposable film camera, face and shoulders in frame, looking into the lens",
+     "view": "a fictional first-person film snapshot of what {subject} can see right now, nobody in focus"
+    }
+   }
+  },
+  "2000s": {
+   "from": 2000,
+   "picture": {
+    "scene": "It is {year}: clothes, hair, phones, cars and shop fronts are from the {part} 2000s, nothing newer.",
+    "cameras": {
+     "moment": "Shot on a small digital point-and-shoot camera, on-camera flash, slightly cool colours, realistic skin texture.",
+     "selfie": "Early digital camera look, slight wide-angle, on-camera flash, realistic skin texture.",
+     "view": "Early digital camera look, slightly cool colours, everything in the scene in focus."
+    },
+    "framings": {
+     "selfie": "a fictional selfie taken at arm's length with a small digital camera, face and shoulders in frame, looking into the lens",
+     "view": "a fictional first-person digital camera snapshot of what {subject} can see right now, nobody in focus"
+    }
+   }
+  },
+  "2010s": {
+   "from": 2010,
+   "picture": {
+    "scene": "It is {year}: clothes, hair, phones, cars and shop fronts are from the {part} 2010s, nothing newer.",
+    "cameras": {
+     "moment": "Shot at eye level on a 2010s smartphone camera, slightly warm filtered colours, realistic skin texture.",
+     "selfie": "Slight wide-angle 2010s smartphone front-camera look, warm filtered colours, realistic skin texture.",
+     "view": "2010s smartphone camera look, warm filtered colours, everything in the scene in focus."
+    },
+    "framings": {}
+   }
+  },
+  "2020s": {
+   "from": 2020,
+   "picture": {
+    "scene": "It is {year}: clothes, hair, phones, cars and shop fronts are from the {part} 2020s, nothing newer.",
+    "cameras": {},
+    "framings": {}
+   }
+  }
+ },
+ "prices": {
+  "about": "Rough yearly consumer price levels per currency (national consumer price indexes, rounded; the years between two listed ones are filled in at a steady rate). A city's rents and prices are written in today's money, so in a past year each is scaled by that year's level over the base year's. A currency not listed follows `fallback`. Euro amounts before 1999 stay in euros: a simplification for fiction.",
+  "base": 2026,
+  "fallback": "USD",
+  "levels": {
+   "USD": {"1990": 130.7, "1995": 152.4, "2000": 172.2, "2005": 195.3, "2010": 218.1, "2015": 237.0, "2020": 258.8, "2021": 271.0, "2022": 292.7, "2023": 304.7, "2024": 313.7, "2025": 322.0, "2026": 330.0},
+   "GBP": {"1990": 60.5, "1995": 70.6, "2000": 75.0, "2005": 79.9, "2010": 89.4, "2015": 100.0, "2020": 108.7, "2021": 111.4, "2022": 121.7, "2023": 130.5, "2024": 133.9, "2025": 138.5, "2026": 142.0},
+   "EUR": {"1990": 62.0, "1995": 72.0, "2000": 78.5, "2005": 87.0, "2010": 93.5, "2015": 100.0, "2020": 105.2, "2021": 107.9, "2022": 117.0, "2023": 123.3, "2024": 126.4, "2025": 129.0, "2026": 131.5},
+   "JPY": {"1990": 91.0, "1995": 98.6, "2000": 99.1, "2005": 96.9, "2010": 96.5, "2015": 98.8, "2020": 100.0, "2021": 99.8, "2022": 102.3, "2023": 105.6, "2024": 108.5, "2025": 111.5, "2026": 113.5},
+   "KRW": {"1990": 35.6, "1995": 49.0, "2000": 60.7, "2005": 70.4, "2010": 81.5, "2015": 94.7, "2020": 100.0, "2021": 102.5, "2022": 107.7, "2023": 111.6, "2024": 114.2, "2025": 116.5, "2026": 119.0},
+   "CAD": {"1990": 78.4, "1995": 87.6, "2000": 95.4, "2005": 107.0, "2010": 116.5, "2015": 126.6, "2020": 137.0, "2021": 141.6, "2022": 151.2, "2023": 157.1, "2024": 160.6, "2025": 164.0, "2026": 167.5},
+   "AUD": {"1990": 54.0, "1995": 61.5, "2000": 69.0, "2005": 81.0, "2010": 95.0, "2015": 107.0, "2020": 116.0, "2021": 119.0, "2022": 128.0, "2023": 133.5, "2024": 138.0, "2025": 142.0, "2026": 146.0}
+  }
+ },
+ "since": {
+  "about": "Things from a later year, by the first year a past world can name them: the life admin, work projects and anything else drawn from a bank leave out what names one (decades.fits).",
+  "patterns": [
+   ["\\bapps?\\b|\\bapp's\\b", 2010],
+   ["\\bonline\\b|websites?|web ?pages?|\\be-?mails?\\b|\\binbox\\b|the internet|\\bwebinars?\\b", 1997],
+   ["\\bstream(?:s|ing|ed)?\\b", 2008],
+   ["smart ?phones?|touch ?screens?|\\biphones?\\b", 2008],
+   ["social media|influencers?|\\bfollowers\\b|\\bhashtags?\\b|\\bvlogs?\\b|\\bblog posts?\\b", 2008],
+   ["\\btext(?:s|ed|ing)?\\b|text messages?", 2000],
+   ["wi-?fi|\\brouter\\b|broadband", 2003],
+   ["\\bpodcasts?\\b", 2005],
+   ["\\buploads?(?:ed|ing)?\\b|\\bdownloads?(?:ed|ing)?\\b|\\bpdfs?\\b|\\bdigital(?:ly)?\\b", 1998],
+   ["\\bzoom\\b|video ?calls?|video conferenc\\w*|\\bslack\\b|\\bremote work\\w*|work from home", 2012],
+   ["contactless|tap to pay|mobile pay\\w*|\\bvenmo\\b|\\bqr codes?\\b|e-?signatures?|\\be-?sign\\w*", 2012],
+   ["\\bpaypal\\b|e-?tickets?|e-?books?|e-?readers?|\\bkindle\\b", 2008],
+   ["electric cars?|\\bevs?\\b|charging (?:cable|port|station)s?", 2012],
+   ["password managers?|two-factor|\\b2fa\\b|\\bcloud\\b|\\bbackup drives?\\b", 2008],
+   ["\\busb\\b|\\bdvds?\\b|\\bgps\\b|\\bsat ?navs?\\b|self-checkouts?", 2003],
+   ["blu-?rays?|\\bsmart (?:tv|watch|speaker|thermostat|lock|plug)s?\\b|\\bdrones?\\b|\\bring doorbell", 2012],
+   ["\\buber\\b|\\blyft\\b|\\bdoordash\\b|\\bgrubhub\\b|\\binstacart\\b|\\bairbnb\\b|rideshares?|delivery apps?|\\be-?scooters?\\b", 2012],
+   ["\\bcell ?phones?\\b|\\bmobile phones?\\b|phone plans?|phone in (?:my |your )?pocket|\\bcell plans?\\b", 1997],
+   ["\\blaptops?\\b|\\bspreadsheets? software\\b|\\bprinter ink\\b", 1995],
+   ["\\badulting\\b|\\bbest life\\b|\\bvib(?:es|ing)\\b|self-care|\\bselfies?\\b", 2014]
+  ]
+ }
+}

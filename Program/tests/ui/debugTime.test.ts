@@ -13,6 +13,14 @@ test('the app clock is real time until debug time moves it, then runs at its spe
   syncAppClock({ active: false, now: '2020-01-01T00:00:00Z', speed: 1 })
 })
 
+test('a world in a past year runs the app clock there, at real speed, without debug time', () => {
+  syncAppClock({ active: false, now: '2009-10-05T12:00:00Z', speed: 1, years_back: 17 })
+  assert.ok(Math.abs(appNow() - Date.parse('2009-10-05T12:00:00Z')) < 50)
+  assert.equal(realDelay(60_000), 60_000)
+  syncAppClock({ active: false, now: '2020-01-01T00:00:00Z', speed: 1, years_back: 0 })
+  assert.ok(Math.abs(appNow() - Date.now()) < 50)
+})
+
 test('the banner says it is debug time, how fast, and how a jump is going', () => {
   const now = '2026-10-08T13:30:00Z'
   assert.match(bannerText({ now, speed: 1, jumping: null }, 'UTC'), /^Debug time: it is .*1:30.* in the app\. Return to real time/)

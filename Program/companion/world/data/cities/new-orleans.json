@@ -6322,7 +6322,11 @@
     "pharmacist",
     "social-worker"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2015,
+    null
+   ]
   },
   {
    "id": "childrens-hospital",
@@ -6414,7 +6418,11 @@
     "server",
     "hotel-front-desk"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1999,
+    null
+   ]
   },
   {
    "id": "superdome-employer",
@@ -6551,7 +6559,11 @@
     "construction-trades",
     "event-planner"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2011,
+    null
+   ]
   },
   {
    "id": "city-of-new-orleans",

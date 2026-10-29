@@ -125,7 +125,8 @@
     "mockups",
     "user interviews",
     "critiques"
-   ]
+   ],
+   "years": [1995, null]
   },
   {
    "id": "financial-analyst",
@@ -1514,7 +1515,8 @@
     "payout day",
     "quarterly taxes"
    ],
-   "adult": true
+   "adult": true,
+   "years": [2016, null]
   },
   {
    "id": "cam-model",
@@ -1532,7 +1534,8 @@
     "moderators",
     "slow nights"
    ],
-   "adult": true
+   "adult": true,
+   "years": [1996, null]
   },
   {
    "id": "exotic-dancer",
@@ -1735,6 +1738,102 @@
     "jazz-age"
    ],
    "adult": true
+  },
+  {
+   "id": "video-store-clerk",
+   "name": "Video store clerk",
+   "sector": "retail",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Checking tapes and discs in and out and shelving the new releases at a video rental store.",
+   "themes": [
+    "the new releases wall",
+    "late fees",
+    "staff picks",
+    "the Friday night rush"
+   ],
+   "years": [1990, 2010]
+  },
+  {
+   "id": "photo-lab-tech",
+   "name": "Photo lab technician",
+   "sector": "retail",
+   "schedule": "shift-day",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Developing customers' rolls of film and printing doubles at a one-hour photo counter.",
+   "themes": [
+    "one-hour prints",
+    "doubles",
+    "disposable cameras",
+    "the processing machine"
+   ],
+   "years": [1990, 2008]
+  },
+  {
+   "id": "music-store-clerk",
+   "name": "Music store clerk",
+   "sector": "retail",
+   "schedule": "rotating",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Ringing up CDs and stocking the new releases at a music store in the mall.",
+   "themes": [
+    "release day",
+    "listening stations",
+    "customers humming a song",
+    "the staff picks shelf"
+   ],
+   "years": [1990, 2007]
+  },
+  {
+   "id": "web-designer",
+   "name": "Web designer",
+   "sector": "technology",
+   "schedule": "flexible",
+   "employment": "freelance",
+   "pay": "$$",
+   "summary": "Building websites for small businesses by hand, page by page.",
+   "themes": [
+    "client revisions",
+    "testing on a slow connection",
+    "hit counters",
+    "invoices"
+   ],
+   "years": [1995, 2012]
+  },
+  {
+   "id": "word-processor-operator",
+   "name": "Word processing operator",
+   "sector": "business",
+   "schedule": "office",
+   "employment": "staff",
+   "pay": "$",
+   "summary": "Typing up letters, reports and memos for a firm's partners from dictation tapes.",
+   "themes": [
+    "dictation tapes",
+    "the typing pool",
+    "memos",
+    "end-of-day deadlines"
+   ],
+   "years": [1990, 2002]
+  },
+  {
+   "id": "film-projectionist",
+   "name": "Film projectionist",
+   "sector": "entertainment",
+   "schedule": "evening",
+   "employment": "rota",
+   "pay": "$",
+   "summary": "Threading reels of film and running the projection booth at a multiplex.",
+   "themes": [
+    "reel changes",
+    "the booth",
+    "opening nights",
+    "the smell of popcorn"
+   ],
+   "years": [1990, 2012]
   }
  ]
 }

@@ -25,8 +25,12 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
     queryFn: ({ pageParam }) => api<FeedPage>(`/feed?limit=20&hidden=${hidden}&source=${source}${pageParam ? `&before=${encodeURIComponent(pageParam)}` : ''}`),
     initialPageParam: '',
     getNextPageParam: (last) => last.next_before ?? undefined,
-    // While an image is being made, look again every few seconds.
-    refetchInterval: (query) => query.state.data?.pages.some((page) => page.posts.some((post) => post.image && isActive(post.image.status))) ? 3000 : false,
+    // While an image is being made, look again every few seconds; while an answer to a comment is on its way, now and then.
+    refetchInterval: (query) => {
+      const posts = query.state.data?.pages.flatMap((page) => page.posts) ?? []
+      if (posts.some((post) => post.image && isActive(post.image.status))) return 3000
+      return posts.some((post) => post.thread?.waiting) ? 20000 : false
+    },
   })
   const name = companion.version.name
   const posts = joinPages(feed.data?.pages ?? [])
@@ -59,6 +63,10 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
     hide: (post, hide) => void run(async () => { await api(`/feed/${post.id}/${hide ? 'hide' : 'unhide'}`, {}); await client.invalidateQueries({ queryKey: ['feed'] }) }),
     remove: (post) => void run(async () => { await api(`/feed/${post.id}/remove`, {}); await client.invalidateQueries({ queryKey: ['feed'] }) }),
     discuss: (post, text) => sendToChat(`/feed/${post.id}/discuss?wait=false`, { text, client_id: newId() }),
+    openChat: () => go('conversation'),
+    comment: async (post, text) => {
+      try { replace(await api<FeedPost>(`/feed/${post.id}/comments`, { text })); setError(null); return true } catch (failure) { setError(failure instanceof Error ? failure.message : 'The comment was not posted.'); return false }
+    },
     answer: (post, option) => sendToChat(`/feed/${post.id}/answer?wait=false`, { option, client_id: newId() }),
   }
 

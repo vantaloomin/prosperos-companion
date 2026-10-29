@@ -2578,6 +2578,50 @@
    "eras": [
     "future"
    ]
+  },
+  {
+   "text": "wrote a first blog post and actually hit publish",
+   "post": "First post. Published. Eek.",
+   "level": 0,
+   "for": [
+    "blogging"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "got a first comment from a stranger on the blog",
+   "post": "A stranger commented on my blog!",
+   "level": 1,
+   "for": [
+    "blogging"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "kept the blog going every week for a whole season",
+   "post": "A post every week, all season.",
+   "level": 2,
+   "for": [
+    "blogging"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "had a blog post passed around by total strangers",
+   "post": "Total strangers are passing my post round.",
+   "level": 3,
+   "for": [
+    "blogging"
+   ],
+   "eras": [
+    "modern"
+   ]
   }
  ],
  "sessions": [

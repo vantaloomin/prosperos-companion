@@ -15,7 +15,7 @@ from datetime import date, timedelta
 from companion.life import body, money, occasions, pronouns
 from companion.world import perception
 
-COMPOSER_VERSION = 'compose-7'
+COMPOSER_VERSION = 'compose-8'
 QUIET_SHARE = 0.2
 OUTDOOR = {'park', 'waterfront', 'beach'}
 RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
@@ -334,11 +334,56 @@ def first_person(verb: str) -> str:
     return verb[:-2] if ES.search(lower) else verb[:-1]
 
 
-def mine(text: str | None, name: str) -> str | None:
+# A summary the model phrased (companion/life/synthesis.py) can start a sentence with the companion's pronoun
+# ("He settled down in a booth"), which their post says as "I" too: in that sentence "his" is "my", "himself"
+# "myself". Only the companion's own pronouns change; "they" only when nobody else is in the line, since "They"
+# after "Sam and Rosa" means both.
+SUBJECTS = {'he/him': ('He', ('his',), 'himself'), 'she/her': ('She', ('her',), 'herself'),
+            'they/them': ('They', ('their',), 'themselves')}
+CONTRACTED = {"He's": "I'm", "She's": "I'm", "They're": "I'm", "They've": "I've", "He'd": "I'd", "She'd": "I'd",
+              "They'd": "I'd", "He'll": "I'll", "She'll": "I'll", "They'll": "I'll"}
+THEY_SHARED = re.compile(r"\b(?:with (?!them)|met|joined|together|and I|and me)\b|\b[A-Z]\w+ and [A-Z]")
+THEY_VERBS = {'are': 'am', 'were': 'was', "aren't": "am not", "weren't": "wasn't"}
+# After "her", a word that shows it is the object ("walked her home"), so the companion's "her" there is "me".
+OBJECT_AFTER = {'home', 'to', 'up', 'down', 'out', 'in', 'off', 'back', 'over', 'around', 'and', 'with', 'for',
+                'at', 'about', 'a', 'an', 'the', 'some', 'that', 'this', 'how', 'what', 'when', 'again'}
+
+
+def own_pronouns(text: str, forms: str | None) -> str:
+    """Sentences that start with the companion's own pronoun, said as "I" (see SUBJECTS)."""
+    found = SUBJECTS.get(forms or '')
+    if not found or forms == 'they/them' and THEY_SHARED.search(text):
+        return text
+    subject, possessives, reflexive = found
+    adverbs = '|'.join(ADVERBS)
+    sentences = re.split(r'(?<=[.!?]) ', text)
+    for index, sentence in enumerate(sentences):
+        if not re.match(rf"{subject}(?:'\w+)?\b", sentence):
+            continue
+        sentence = re.sub(rf"^{subject}'\w+\b", lambda word: CONTRACTED.get(word.group(0), word.group(0)), sentence)
+        sentence = re.sub(rf"^{subject} ((?:(?:{adverbs}) )?)([\w']+)\b",
+                          lambda word: f"I {word.group(1)}"
+                                       f"{THEY_VERBS.get(word.group(2), first_person(word.group(2)))}", sentence)
+        sentence = re.sub(rf"\b(and|but|so|then|while|because|when) {subject.lower()} ((?:(?:{adverbs}) )?)([\w']+)\b",
+                          lambda word: f"{word.group(1)} I {word.group(2)}"
+                                       f"{THEY_VERBS.get(word.group(3), first_person(word.group(3)))}", sentence)
+        sentence = re.sub(rf'\b{reflexive}\b', 'myself', sentence)
+        for possessive in possessives:
+            sentence = re.sub(rf"\b{possessive}\b( [\w'-]+)?",
+                              lambda word: ('me' if possessive == 'her' and (not word.group(1) or word.group(1).strip()
+                                                                              .lower() in OBJECT_AFTER) else 'my')
+                              + (word.group(1) or ''), sentence)
+        sentences[index] = sentence
+    return ' '.join(sentences)
+
+
+def mine(text: str | None, name: str, own: str | None = None) -> str | None:
     """A summary about `name` (the companion or a circle member) said by them: "Sam kept up" reads "I kept up",
-    "Sam goes" "I go", and "Sam's" is "my" ("My" only to start a sentence)."""
+    "Sam goes" "I go", and "Sam's" is "my" ("My" only to start a sentence). With their pronouns known (`own`, "he/him"), a sentence
+    that starts "He ..." about them reads "I ..." too."""
     if not text or not name:
         return text
+    text = own_pronouns(text, own)
     text = said(text, {}, pronouns.FIRST)
     names = sorted({name.strip(), name.strip().split()[0]}, key=len, reverse=True)
     who = '(?:' + '|'.join(re.escape(each) for each in names if each) + ')'
@@ -616,7 +661,9 @@ def fulfil(plan: dict, definition: dict) -> dict:
 
 
 # Unresolved threads (PRD T2): a small open question in the companion's life that settles a few days
-# later, one way or the other. They stay ordinary in scale; nothing here is a major life change.
+# later, one way or the other. They stay ordinary in scale; nothing here is a major life change. Every ending
+# names whose it is ("Sam's houseplant", never "the houseplant"): the user may never have heard how it began, and a
+# model texting the news linked a bare "the houseplant" to a plant the user had talked about.
 THREAD_SHARE = 0.1
 
 
@@ -640,7 +687,7 @@ THREADS = (
             '{name} gave up waiting and fixed the leaky faucet with the help of a video.'), eras=MODERN_ONLY),
     Thread('parcel', '{name} ordered a secondhand record player and is waiting for it to arrive.',
            ('{name}\'s record player arrived, and it works.',
-            'The record player arrived with a cracked lid, but it still plays.'), eras=MODERN_ONLY),
+            '{name}\'s record player arrived with a cracked lid, but it still plays.'), eras=MODERN_ONLY),
     Thread('waitlist', '{name} joined the waitlist for an evening pottery class.',
            ('A spot opened up in the pottery class, and {name} took it.',
             'The pottery class filled up, so {name} is on the list for next term.'), eras=MODERN_ONLY),
@@ -648,19 +695,19 @@ THREADS = (
            ('{name} finished the novel just in time for book club.',
             '{name} went to book club only halfway through the novel and enjoyed it anyway.'), eras=TOWN_ERAS),
     Thread('friend-visit', 'An old friend of {name}\'s might come to visit, but nothing is settled yet.',
-           ('The friend booked the trip, and {name} is already making a list of places to go.',
-            'The friend\'s visit fell through for now; they promised to try again in the spring.')),
+           ('{name}\'s friend booked the trip, and {name} is already making a list of places to go.',
+            'The visit from {name}\'s friend fell through for now; they promised to try again in the spring.')),
     Thread('plant', '{name} is trying to rescue a drooping houseplant.',
            ('{name}\'s houseplant perked up with new leaves.',
-            'The houseplant did not make it; {name} kept a cutting just in case.'), eras=TOWN_ERAS),
+            '{name}\'s houseplant did not make it; {name} kept a cutting just in case.'), eras=TOWN_ERAS),
     Thread('lost-scarf', '{name} lost a favorite scarf somewhere around town and is retracing their steps.',
            ('Someone had handed in {name}\'s scarf at a cafe they stopped at.',
             '{name} gave up on the scarf and found a new one they like almost as much.'), eras=TOWN_ERAS),
     Thread('noisy-neighbor', 'A neighbor of {name}\'s started a noisy renovation.',
-           ('The neighbor\'s renovation wrapped up, and it is quiet again.',
+           ('The renovation next door to {name} wrapped up, and it is quiet again.',
             '{name} and the neighbor agreed on quiet hours, and it is better now.'), eras=('modern', 'jazz-age')),
     Thread('recipe', '{name} is trying to get a tricky recipe right after two failed attempts.',
-           ('The third try worked, and {name} is proud of it.',
+           ('{name}\'s third try at the recipe worked, and {name} is proud of it.',
             '{name} shelved the recipe for now after another flop.')),
     Thread('tickets', '{name} is hoping to get tickets to a show that sold out fast.',
            ('{name} found resale tickets to the show at a fair price.',
@@ -675,7 +722,7 @@ THREADS = (
            eras=OLD_ERAS),
     Thread('mending', '{name} left a torn cloak with the tailor and is waiting to have it back.',
            ('The tailor mended {name}\'s cloak so well the tear barely shows.',
-            'The tailor could only patch the cloak, but {name} likes the patch.'), eras=OLD_ERAS),
+            'The tailor could only patch {name}\'s cloak, but {name} likes the patch.'), eras=OLD_ERAS),
     Thread('lost-glove', '{name} lost a good glove somewhere about town and is retracing their steps.',
            ('A neighbor found {name}\'s glove by the well and brought it round.',
             '{name} gave up on the glove and is knitting a new pair.'), eras=OLD_ERAS),

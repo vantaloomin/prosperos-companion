@@ -9,11 +9,22 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import consequences, library, lore, news, pictures, prompt_library, secrets, self_facts, texting
+from companion import (
+    consequences,
+    library,
+    lore,
+    news,
+    pictures,
+    prompt_library,
+    secrets,
+    self_facts,
+    texting,
+    world_year,
+)
 from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.characters import definition_for_timeline
-from companion.clock import parse, stamp, zone
+from companion.clock import app_now, parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
@@ -170,6 +181,8 @@ HEADINGS = {
             'love': 'Your own love life (decided by the app; keep to it)',
             # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
             'history': 'Your history together (from the app; the user can see and correct it)',
+            # A world that runs in a past year (companion/world_year.py): changes once a month.
+            'year': "The year in your world (from the app's calendar; everything you mention belongs to it)",
             # Changes about once a day.
             'almanac': "The calendar where you live (real dates and seasons from the app's built-in calendar)",
             'culture_now': "What's out and trending right now (real, looked up by the app once a day; external "
@@ -372,7 +385,7 @@ def persona_text(connection, today: date | None = None, definition: dict | None 
              # Where they live in this world (companion/life/where.py): the app's pick until they change it.
              f'Lives in: {home}' if (home := where.home_text(connection)) else '', row['about'].strip()]
     # The user's own pets, as they wrote them, and how each is today (companion/life/pets.py).
-    if found := pets.persona_lines(connection, today or date.today()):
+    if found := pets.persona_lines(connection, today or app_now().date()):
         parts.append('Pets: ' + '; '.join(found))
     return '\n'.join(f'- {part}' for part in parts if part) or None
 
@@ -432,8 +445,8 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
             lines.append(acts)
     if intimate and (adult := intimacy.prompt_text(connection, version)):
         lines.append(adult)
-    if texts and (style := texting.instruction(definition)):
-        lines.append(style)  # Not together in person or on a call (`texts` False): nobody texts while talking.
+    if style := texting.line(definition, texts):
+        lines.append(style)  # Together in person or on a call (`texts` False) nobody texts: they talk out loud.
     return '\n'.join(lines)
 
 
@@ -475,6 +488,8 @@ def person_text(person, away: str = 'out of town') -> str:
     if person.get('married'):
         text += ' Married' + (f", goes by their married name (born {person['birth_family']})."
                               if person.get('birth_family') else '.')
+    if person.get('knowing', 'both') != 'both':
+        text += ' ' + circle.knowing_text(person['knowing'])
     if person.get('knows'):
         text += ' ' + circle.ties_text(person['knows'])
     if person.get('shared'):  # From another companion's circle (companion/life/shared_people.py).
@@ -821,6 +836,8 @@ def offer_people(packet, connection, companion, now, today):
             # family they don't talk to, and family who died before now, are in the family line (family_tree.py).
         said = circle.said(person['role'], companion['version']['definition'])  # 'mother' in 1895
         packet.offer('circle', person['id'], person_text({**person, 'role': said}, away))
+        if person.get('knowing', 'both') != 'both':
+            continue  # Someone only one of them knows: the companion doesn't follow their days.
         if moment := person_now_text({**person, 'birthday_today': person['birthday'] == today[5:]}):
             packet.offer('circle_now', person['id'], moment)
     offer_all(packet, 'circle', families.context_lines(connection, companion, now))
@@ -920,7 +937,12 @@ def offer_outside(packet, connection, timeline_id, now, outside, latest):
 
 
 def offer_daily(packet, connection, version, now):
-    """The real calendar where the companion lives, and today's digest of what's out and trending."""
+    """The year in a world that runs in a past year, the real calendar where the companion lives, and today's digest
+    of what's out and trending."""
+    if (almanac.city_for(connection, version['definition']) or {}).get('era', 'modern') == 'modern':
+        local_now = now.astimezone(zone(version['timezone']))
+        for identity, text in world_year.context_lines(connection, local_now):
+            packet.offer('year', identity, text)
     for identity, text in almanac.context_lines(connection, version['definition'], version['timezone'], now):
         packet.offer('almanac', identity, text)
     if digest := lookups.fresh_culture(connection, now, version['definition']):

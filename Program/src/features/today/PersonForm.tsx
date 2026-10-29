@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { SuggestInput } from '../../components/SuggestInput'
 import { api } from '../../api'
 import type { CareerSummary, CirclePerson } from '../../types'
-import { NOTE_MAX, RELATION_WORDS, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, placeWords, type AboutValues } from './circleText'
+import { NOTE_MAX, RELATION_WORDS, appKnowing, knowingChoices, knowingHint, knowingPick, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, placeWords, type AboutValues } from './circleText'
 import { useCircleHome } from './useCircleHome'
 import { PAIR_STAGES } from '../memories/pairText'
 
@@ -46,12 +46,8 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
       <Text id={`${prefix}-role`} label={`Who they are to ${companion}`}>
         <SuggestInput id={`${prefix}-role`} value={values.role} options={RELATION_WORDS} placeholder={person ? undefined : 'Friend'} required={!!person} maxLength={40} onChange={(role) => set({ role })} />
       </Text>
-      <Text id={`${prefix}-start`} label={`How close they are with ${companion}`} hint="Where the two of them start. It moves as their days go on.">
-        <select id={`${prefix}-start`} value={values.start} aria-describedby={`${prefix}-start-hint`} onChange={(event) => set({ start: event.target.value })}>
-          <option value="">{appPick(person)}</option>
-          {PAIR_STAGES.map((stage, index) => <option key={stage} value={String(index + 1)}>{stage}</option>)}
-        </select>
-      </Text>
+      <Knowing prefix={prefix} person={person} companion={companion} values={values} set={set} />
+      <Start prefix={prefix} person={person} companion={companion} values={values} set={set} />
       <Basics prefix={prefix} values={values} set={set} adding={!person} current={form.values.age} />
       <div className="circle-form-row circle-form-work">
         <Text id={`${prefix}-job`} label="Job" hint="In your words, like Photography student or Retired. Their hours follow the job.">
@@ -72,6 +68,38 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
     </form>
   )
 }
+
+interface KnowingProps { prefix: string; person?: CirclePerson; companion: string; values: AboutValues; set: (change: Partial<AboutValues>) => void }
+
+/** Whether they and the companion know each other, or only one knows of the other (companion/life/circle.py
+ * `knowing`): the app picks from who they are and the note ("never met"); someone one-sided has no closeness yet. */
+function Knowing({ prefix, person, companion, values, set }: KnowingProps) {
+  const name = values.name.trim() || person?.name || ''
+  const hint = knowingHint(values.knowing || appKnowing(person) || 'both', name, companion) || undefined
+  return (
+    <Text id={`${prefix}-knowing`} label={`Do they and ${companion} know each other?`} hint={hint}>
+      <select id={`${prefix}-knowing`} value={values.knowing} aria-describedby={hint ? `${prefix}-knowing-hint` : undefined} onChange={(event) => set({ knowing: knowingOf(event.target.value) })}>
+        <option value="">{knowingPick(person)}</option>
+        {knowingChoices(name, companion).map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+      </select>
+    </Text>
+  )
+}
+
+/** How close they are with the companion, where the two of them start; not for someone only one of them knows. */
+function Start({ prefix, person, companion, values, set }: KnowingProps) {
+  if ((values.knowing || person?.knowing || 'both') !== 'both') return null
+  return (
+    <Text id={`${prefix}-start`} label={`How close they are with ${companion}`} hint="Where the two of them start. It moves as their days go on.">
+      <select id={`${prefix}-start`} value={values.start} aria-describedby={`${prefix}-start-hint`} onChange={(event) => set({ start: event.target.value })}>
+        <option value="">{appPick(person)}</option>
+        {PAIR_STAGES.map((stage, index) => <option key={stage} value={String(index + 1)}>{stage}</option>)}
+      </select>
+    </Text>
+  )
+}
+
+const knowingOf = (value: string): AboutValues['knowing'] => value === 'both' || value === 'they' || value === 'companion' ? value : ''
 
 /** "Let the app pick (Comfortable)": what the app picked, while the card's own stage line is hidden (Iris). */
 const appPick = (person?: CirclePerson) => person?.stage && !person.start_stage ? `Let the app pick (${person.stage.name})` : 'Let the app pick'

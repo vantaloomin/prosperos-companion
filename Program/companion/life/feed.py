@@ -12,7 +12,8 @@ from companion.characters import definition_for_timeline, require_current
 from companion.clock import parse, zone
 from companion.database import decode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import composer, loss, social, user_posts
+from companion.life import composer, loss, post_comments, social, user_posts
+from companion.world import decades, looks
 
 REACTIONS = ('heart', 'laugh', 'wow', 'sad', 'hug')
 # A photo sent in chat waits on a post keyed to the event its slot will become (companion/images/photos.py).
@@ -71,7 +72,7 @@ def said_events(connection, post, shown: list[dict]) -> list[dict]:
 
 
 def mine(event: dict, definition: dict) -> dict:
-    line = composer.mine(event['summary'], definition.get('name', ''))
+    line = composer.mine(event['summary'], definition.get('name', ''), definition and looks.pronouns_of(definition))
     return {'caption': line if event['caption'] == event['summary'] else event['caption'], 'summary': line}
 
 
@@ -202,7 +203,20 @@ def everything(connection, companion, now: str, include_hidden=False, source='al
     authors = SOURCES.get(source)
     posts = [post for post in posts + mine if (include_hidden or post['status'] == 'visible')
              and (authors is None or post['author']['kind'] in authors)]
-    return sorted(posts, key=lambda post: (post['occurs_at'], post['id']), reverse=True)
+    post_comments.attach(connection, posts, now)
+    return sorted(of_the_year(posts), key=lambda post: (post['occurs_at'], post['id']), reverse=True)
+
+
+def of_the_year(posts: list[dict]) -> list[dict]:
+    """In a world from before emoji (decades.without_emoji), the posts and comments the app wrote without them."""
+    if (decades.world_year() or decades.EMOJI_FROM) >= decades.EMOJI_FROM:
+        return posts
+    for post in posts:
+        if isinstance(post.get('text'), str) and (post.get('author') or {}).get('kind') != user_posts.USER:
+            post['text'] = decades.without_emoji(post['text'])
+        for comment in (post.get('audience') or {}).get('comments') or ():
+            comment['text'] = decades.without_emoji(comment['text'])
+    return posts
 
 
 def shown(connection, post_id, now: str) -> dict | None:
@@ -223,6 +237,7 @@ def shown(connection, post_id, now: str) -> dict | None:
     if post:
         post.pop('_basis', None)
         post['audience'] = {'likes': [], 'comments': []}
+        post['thread'] = {'comments': [], 'waiting': False}
     return post
 
 
@@ -269,8 +284,10 @@ def mark_read(database, post_ids=None) -> dict:
 
 def set_status(database, post_id, status) -> dict:
     """Hide is reversible. Remove clears the post's own text for good; its events stay in the
-    companion's life and the conversation, since the post never owned them."""
+    companion's life and the conversation, since the post never owned them. Its comments go with it."""
     with database.connect(write=True) as connection:
+        if status == 'removed':
+            post_comments.forget(connection, post_id)
         if row := social.find(connection, post_id):
             social.set_status(connection, row, status, database.now())
             return shown(connection, post_id, database.now())

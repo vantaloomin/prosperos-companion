@@ -24,15 +24,15 @@ The user can set what they are on now on the Character page (Set by you); the da
 import json
 import math
 import re
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 
-from companion.clock import parse, stamp, zone
+from companion.clock import app_now, parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, media_world, money
-from companion.world import generators, looks, wording
+from companion.world import decades, generators, looks, wording
 
 COMPANION = 'companion'
 BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'media'
@@ -62,6 +62,10 @@ YEAR_BANKS = ('modern', 'jazz-age', 'nineteenth')
 SHOWING_FORMATS = {'serial', 'film-serial', 'broadway', 'radio'}
 SHOWING_YEARS = (4, 10, 20, 40)
 SHOWING_LEAST = 100
+# Of our world's real titles, what is out now is on people's minds most and what came out long before their year the
+# least: titles from the last RECENT_YEARS weigh RECENT_LEAN, ones older than FAR_YEARS weigh FAR_LEAN.
+RECENT_YEARS, RECENT_LEAN = 10, 3.0
+FAR_YEARS, FAR_LEAN = 25, 0.5
 
 # Their interests and likes, read as the banks' genre tags.
 TAG_WORDS = {
@@ -123,6 +127,8 @@ AT_HOME = {'reading', 'slow', 'nap', 'sick-day', 'chores', 'home-cooking', None}
 # Share of the price of a month's take-home: a book, a month of streaming, a magazine and a theatre ticket.
 COSTS = {'book': 0.004, 'series': 0.0035, 'serial': 0.0015, 'play': 0.006, 'broadway': 0.01, 'film-serial': 0.002,
          'cycle': 0.0005, 'radio': 0.0}
+# Before this year a modern world watches shows on cable, not streaming (a world in a past year, decades.py).
+STREAMING_FROM = 2008
 LIBRARY_SHARE = 0.3
 
 # How far along, in four steps, by format.
@@ -155,12 +161,13 @@ def format_of(kind: str, tags) -> str:
 
 
 def place_of(data: dict | None) -> dict:
-    """Their bank, the year it runs to and the region it leans to, from their city."""
+    """Their bank, the year it runs to and the region it leans to, from their city. A modern city in a world that
+    runs in a past year runs to that year (companion/world/decades.py)."""
     era = (data or {}).get('era') or 'modern'
     country = ((data or {}).get('country') or 'United States').casefold()
     region = ERA_REGIONS.get(era) or next((key for key, names in REGIONS if country in names or any(
         len(name) > 3 and name in country for name in names)), 'world')
-    bank_id, year = ERA_BANKS.get(era, 'modern'), ERA_YEARS.get(era)
+    bank_id, year = ERA_BANKS.get(era, 'modern'), decades.year_of(data) or ERA_YEARS.get(era)
     own = ((data or {}).get('names') or {}).get('year')
     if own and bank_id in YEAR_BANKS:
         if era == 'other':
@@ -216,11 +223,17 @@ def weight(item: dict, kind: str, me: dict, liked: set, disliked: set, born: int
         value *= 3.0
     elif tags & {'jp', 'kr'} and not tags & liked:  # what they are into wins over where they live
         value *= 0.5
-    if me['bank'] == 'modern' and item['year'] >= 2016:
-        value *= 2.0
+    if me['bank'] == 'modern':
+        value *= lean(item, me)
     if kind == 'music' and born and born + 12 <= item['year'] <= born + 28:
         value *= 2.0
     return value
+
+
+def lean(item: dict, me: dict) -> float:
+    """How much a real title's age, counted from their year, weighs on a pick: recent ones most, old ones least."""
+    age = (me.get('year') or ERA_YEARS['modern']) - item['year']
+    return RECENT_LEAN if age <= RECENT_YEARS else 1.0 if age <= FAR_YEARS else FAR_LEAN
 
 
 def candidates(me: dict, kind: str, taken: set) -> list[dict]:
@@ -320,7 +333,7 @@ def rewind_at(connection, timeline_id: str, timestamp: str):
 
 
 def stamp_now() -> str:
-    return stamp(datetime.now(UTC))
+    return stamp(app_now())
 
 
 def items(connection, timeline_id: str, kind: str | None = None) -> list[dict]:
@@ -650,9 +663,15 @@ def purchases(connection, timeline_id: str, start: date, end: date, definition: 
             bought.append({'text': said_here(bought_text(item), me.get('region', '')), 'date': item['started_on'], 'spend': '',
                            'cost': round(share * month, 2), 'for': 'media'})
     if streaming:
-        bought.append({'text': 'paid for a month of streaming', 'date': start.isoformat(), 'spend': '',
+        bought.append({'text': series_bill(), 'date': start.isoformat(), 'spend': '',
                        'cost': round(COSTS['series'] * month, 2), 'for': 'media'})
     return bought
+
+
+def series_bill() -> str:
+    """What watching shows costs a month: streaming, or the cable bill in a world before it (decades.py)."""
+    year = decades.world_year()
+    return 'paid the cable bill' if year and year < STREAMING_FROM else 'paid for a month of streaming'
 
 
 def bought_text(item: dict) -> str:

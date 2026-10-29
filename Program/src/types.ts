@@ -26,6 +26,8 @@ export interface Message {
   held_until?: string | null
   /** The holding text sent before this full reply ("in a meeting, give me a bit"), kept as its own message. */
   held_line?: string | null
+  /** Another version of the full reply after a holding text: the first version's id (companion/reply_versions.py). */
+  version_of?: string | null
   /** Set on a full reply dropped unseen because the user wrote again first; it is never shown. */
   superseded_at?: string | null
   /** A photo of the moment this reply sent (photos in chat). */
@@ -838,7 +840,12 @@ export interface FeedPost {
   answer?: string | null
   image: PostImage | null
   audience: { likes: string[]; comments: FeedComment[] }
+  /** The user's comments and the poster's answers, oldest first; `waiting` while an answer is still to show. */
+  thread?: { comments: ThreadComment[]; waiting: boolean }
 }
+
+/** A comment the user left on a post (`user`) or the answer it got from whoever posted (`poster`, with their name). */
+export interface ThreadComment { id: string; author: 'user' | 'poster'; name: string | null; text: string; reply_to: string | null; at: string }
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
 
@@ -924,6 +931,10 @@ export interface CirclePerson {
   stage?: PairStage | null
   /** Where the user says the two of them start, 1 Just met to 5; unset is the app's pick. */
   start_stage?: number
+  /** Whether they and the companion know each other, or only one knows of the other (companion/life/circle.py
+   * `knowing`): 'they' know the companion, or the 'companion' knows of them. `knowing_set` when the user said so. */
+  knowing?: Knowing
+  knowing_set?: boolean
   /** What they think of you, once they have met you (companion/life/their_people.py). */
   met?: CircleMet | null
   now: RoutineBlock | null
@@ -1007,6 +1018,7 @@ export interface NetworkAnswer { person: Pick<NetworkPerson, 'key' | 'name' | 'd
 export interface Acquaintance extends Omit<NetworkPerson, 'depth' | 'met'> { occasion: string; met_on: string; met_at: string }
 
 export interface CircleTie { id: string; name: string; how: string }
+export type Knowing = 'both' | 'they' | 'companion'
 /** Whether the companion lives aboard a ship or station (companion/world/ships.py `vessel`), else null. */
 export interface CircleHome { aboard: 'ship' | 'station' | null }
 
@@ -1017,7 +1029,7 @@ export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed'
 export interface PostImage { status: ImageStatus; job_id: string | null; ref: string | null; error: string | null; updated_at: string | null; outdated?: boolean }
 
 export type BackendKind = 'comfyui' | 'codex' | 'hosted'
-export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'nanogpt' | 'other'
+export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'nanogpt' | 'novelai' | 'other'
 
 export interface ImageBackend {
   id: string
@@ -1035,6 +1047,10 @@ export interface ImageBackend {
   custom_workflow: boolean
   // ComfyUI: the model family whose built-in workflow runs; null for other kinds.
   family: ImageFamily | null
+  // The style the model family starts prompts with while `style` is '' (Booru and NovelAI: quality tags); null for none.
+  family_style: string | null
+  // Its prompts go out as booru tags (solo, 1boy, ...) rather than sentences.
+  tag_prompts: boolean
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
   // The smaller Krea 2 model file the app picked for this computer's graphics card, used while no model is chosen.
@@ -1892,6 +1908,8 @@ export interface DebugTime {
   /** The app's time, and the PC's real time. */
   now: string
   real_now: string
+  /** How many years behind real time this world runs (a world in a past year, companion/world_year.py); 0 now. */
+  years_back?: number
   speed: number
   speeds: number[]
   started_at: string | null
@@ -1954,7 +1972,7 @@ export interface DatingMatch extends DatingCard {
 }
 /** A townsperson's one portrait (companion/dating_photos.py). */
 export interface DatingPhoto { status: 'none' | 'queued' | 'running' | 'completed' | 'failed'; error?: string | null; url?: string | null }
-export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; missed: string; empty: string; tagline: string; get: string; getting: string }
+export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; missed: string; empty: string; tagline: string; get: string; getting: string; unseen: string; /** A phone app to install: the Download glyph; else UserPlus (Iris). */ app: boolean }
 export interface Dating {
   surface: 'app' | 'column' | 'matchmaker'
   words: DatingWords
@@ -2217,8 +2235,20 @@ export interface World {
   companions: string[]
   /** Whether the user is just watching it (Observer mode, companion/observer.py). */
   watching?: boolean
+  /** The year it is there when the world runs in a past year (companion/world_year.py); null in the present. */
+  year?: number | null
+  /** A Back when world (companion/back_when.py): the year it was made for and the companion it went back with. */
+  back_when?: { year: number; name: string; companion_id: string } | null
   /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
   home: WorldHome | null
+}
+/** One moment the Back when sheet offers (companion/back_when.py `moments`): "When you first met", 2019. `age` is the
+ * companion's age then, null when it can't be told. */
+export interface BackWhenMoment { key: string; label: string; year: number; name: string; age: number | null }
+/** The Back when sheet: the app's three moments, the years the user can pick instead, and why none, when none. */
+export interface BackWhenMoments {
+  companion_id: string; name: string; moments: BackWhenMoment[]
+  earliest: number; latest: number; available: boolean; from_history: boolean; reason: string | null
 }
 export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
 /** One of the user's own pets on their persona: their words, given a life by companion/life/pets.py. */
@@ -2360,8 +2390,11 @@ export interface WorkLifeView {
   /** A student (companion/life/work.py STUDY), and what they study. */
   studying?: boolean
   field?: string
-  /** What they are working on is the user's own words. */
+  /** What they are working on is the user's own words, and its due date the user's own. */
   own_project?: boolean
+  own_due?: boolean
+  /** Their local today, the earliest a due date can move to. */
+  today?: string
 }
 
 /** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */
@@ -2385,10 +2418,17 @@ export interface MediaView {
 /** Someone the Watching page can follow (companion/life/narrator.py): a companion or a townsperson. */
 export interface WatchFocus {
   key: string
-  kind: 'companion' | 'townsperson'
+  /** A companion, someone in a companion's circle who lives in town, or someone from around town. */
+  kind: 'companion' | 'circle' | 'townsperson'
   name: string
-  /** Who they are in a few words: "Your companion · nurse", "Line cook at Blue Moon Cafe". */
+  /** Who they are in a few words: "Your companion · nurse", "Sett's mom · nurse", "Line cook at Blue Moon Cafe". */
   line: string
+  /** Why the picker offers them, for someone the user may not know: "Sett has run into them around town twice." */
+  why?: string
+  /** How a townsperson came to be offered: the main companion met them, or the app picked them for a busy week. */
+  source?: 'met' | 'busy'
+  /** The companion whose circle they are in, or who met them, by first name. */
+  owner?: string
   companion_id?: string
   town_key?: string
 }

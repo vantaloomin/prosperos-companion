@@ -2934,6 +2934,94 @@
    "eras": [
     "future"
    ]
+  },
+  {
+   "text": "carried their own computer to a LAN party for the first time",
+   "post": "Carried the whole computer over. Worth it.",
+   "level": 0,
+   "for": [
+    "lan-parties"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "stayed up until sunrise at a LAN party",
+   "post": "Sunrise. Still playing.",
+   "level": 1,
+   "for": [
+    "lan-parties"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "won the last round of the night at a LAN party",
+   "post": "Won the last round. Bragging until next time.",
+   "level": 2,
+   "for": [
+    "lan-parties"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "hosted a LAN party with every desk in the house full",
+   "post": "Every desk in the house taken. Hosting!",
+   "level": 3,
+   "for": [
+    "lan-parties"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "finished a whole song on the dance mat without failing",
+   "post": "Whole song. Did not fail!",
+   "level": 0,
+   "for": [
+    "dance-games"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "moved up a difficulty on the dance machine",
+   "post": "Up a difficulty. Feet flying.",
+   "level": 1,
+   "for": [
+    "dance-games"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "drew a small crowd at the arcade dance machine",
+   "post": "A little crowd watched me play.",
+   "level": 2,
+   "for": [
+    "dance-games"
+   ],
+   "eras": [
+    "modern"
+   ]
+  },
+  {
+   "text": "got a perfect score on a hard song at the arcade",
+   "post": "Perfect score. Hard song. Shaking.",
+   "level": 3,
+   "for": [
+    "dance-games"
+   ],
+   "eras": [
+    "modern"
+   ]
   }
  ],
  "sessions": [

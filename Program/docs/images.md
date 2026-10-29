@@ -142,14 +142,22 @@ backend is off until the user sets it up, and text never waits for an image. The
   disclosure of what each request sends. Requests carry the prompt only. Provider-reported
   `usage` is stored as given. The tested request shapes are the two above; a model behind an
   aggregator is not assumed to work until an image comes back.
-- **NSFW on an image API** (Vanta, 2026-10-07): an OpenRouter, NanoGPT or other image API backend has an
+- **NSFW on an image API** (Vanta, 2026-10-07): an OpenRouter, NanoGPT, NovelAI or other image API backend has an
   **Also take NSFW requests** switch (`allows_nsfw`), off by default, for a provider whose terms
   allow such images. Google and the OpenAI API never offer it, and Codex stays safe-only. With it on,
   the disclosure adds that NSFW requests go to that provider under its terms, and turning it on for
   an existing backend asks for the disclosure again. The local check still runs before every
   dispatch and still fails closed; the switch only adds that backend to where NSFW requests may go.
-  Prohibited requests are refused everywhere regardless. NovelAI's own image API is not an
-  OpenAI-style endpoint, so it cannot be added as "Other" yet.
+  Prohibited requests are refused everywhere regardless.
+- **NovelAI** (provider `novelai`, `images/adapters/novelai.py`): NovelAI's own image API at
+  `https://image.novelai.net`, with the persistent API token from Account Settings on novelai.net. It is not
+  OpenAI-style: `POST /ai/generate-image` answers with a ZIP holding the PNG. Its models (V3, V4, V4.5, V5) are
+  trained on booru tags, so the prompt goes through `images/tags.convert` (kind `novelai`), the same tag
+  treatment as a Booru ComfyUI family, after the local content check has read it as written; with no style of
+  its own, the backend opens with the Booru family's quality tags. Each request is one picture at 832×1216,
+  1216×832 or 1024×1024 and 28 steps, which an Opus plan makes for free; other plans spend Anlas. NovelAI makes one
+  picture at a time per account, so the backend runs one job at a time and waits out a short 429. It takes no
+  reference picture. Check reads `GET /user/subscription` (plan and whether it is active) and spends nothing.
 
 ## One graphics card or two
 
@@ -180,6 +188,23 @@ default. A `.gguf` model loads through the ComfyUI-GGUF nodes' `UnetLoaderGGUF` 
 `UNETLoader` (the one node swapped); their file list is merged into the model choices, and Check names
 the nodes when the server lacks them. They need the `gguf` Python package, so the app doesn't install
 them.
+
+### Other families on smaller cards
+
+The same pick runs for every family with smaller files (Vanta, 2026-10-28; `hardware.FITS`), each with
+its own sizes (file plus 2 GB) and the files that don't suit its built-in workflow left aside:
+
+- **Qwen Image 2.1:** int8 about 8.8 GB; else Abiray/Qwen-Image-2.1-GGUF Q6_K 7.8, Q5_K_M 7.0, Q4_K_M
+  5.9, Q3_K_M 5.0 GB. Turbo, Edit and I2I files are left aside (the workflow runs 25 steps).
+- **Z-Image Turbo:** bf16 about 13.5 GB; else NVFP4 6.2 (Blackwell only), int8 7.8, then
+  unsloth/Z-Image-Turbo-GGUF Q6_K 7.5, Q5_K_M 7.2, Q4_K_M 6.7, Q3_K_M 5.9 GB. Base and Edit files aside.
+- **Anima:** about 5.9 GB; else Abiray/Anima-base-v1.0-GGUF Q8_0 4.1 down to Q3_K_M 3.0 GB. Turbo
+  files aside.
+- **Booru** (SDXL checkpoints) has no smaller files, so nothing is picked.
+
+Changing a backend's family drops the old pick for the new family's own. A `.gguf` file counts as on
+the server only where `UnetLoaderGGUF` lists it, so the too-big warning's one-press switch never
+offers a file ComfyUI can't load (Iris).
 
 Settings > Models > This computer checks this for you (see [models.md](models.md#this-computer)), and
 Settings > Images repeats any picture warnings.

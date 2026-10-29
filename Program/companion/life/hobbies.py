@@ -33,7 +33,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import circle, routine
-from companion.world import generators, ships, wording
+from companion.world import decades, generators, ships, wording
 
 COMPANION = 'companion'
 BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'hobbies'
@@ -211,13 +211,13 @@ def places_for(item: dict, data: dict | None) -> list[dict]:
 
 
 def choose_new(seed: str, label: str, definition: dict, data: dict | None, have: list[dict]) -> dict | None:
-    """A pastime for the app to give them: one of their era the city has room for, leaning to who they are and away
-    from kinds they already have."""
+    """A pastime for the app to give them: one of their era (and, in a modern city, of its year: decades.current) the
+    city has room for, leaning to who they are and away from kinds they already have."""
     era, taken = era_of(data), {row['hobby'] for row in have}
     kinds_had = {row['kind'] for row in have if row['status'] != 'dropped'}
     leaning = natures(definition)
-    options = [item for item in catalogue()['hobbies'] if in_era(item['eras'], era) and item['id'] not in taken
-               and available(item, data) and fits_city(item, data)]
+    options = [item for item in decades.current(catalogue()['hobbies'], data) if in_era(item['eras'], era)
+               and item['id'] not in taken and available(item, data) and fits_city(item, data)]
     weights = [(3.0 if catalogue()['kinds'][item['kind']]['nature'] in leaning else 1.0) *
                (0.4 if item['kind'] in kinds_had else 1.0) for item in options]
     return generators.pick(seed, label, options, weights)

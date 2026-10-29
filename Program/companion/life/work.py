@@ -28,8 +28,9 @@ from pathlib import Path
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
+from companion.errors import require
 from companion.life import admin, job_words, money, outings, routine, shifts
-from companion.world import catalog, generators, wording
+from companion.world import catalog, decades, generators, wording
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'work_life.json'
 # Off in tests unless a test turns it on (tests/conftest.py), so other tests' days stay as written.
@@ -58,6 +59,8 @@ HUNT_WEEKS = (3, 10)
 HUNT_PAY = {'laid-off': 0.6, 'quit': 0.3}
 NEW_JOB_PAY = (0.95, 1.12)
 PROJECT_WEEKS = (3, 8)
+# How far ahead the user can move a project's due date.
+DUE_AHEAD_DAYS = 365
 # How a project turns out: (well, fine) chances by level; the rest is rough.
 OUTCOMES = {0: (0.6, 0.3), 1: (0.65, 0.3), 2: (0.55, 0.3), 3: (0.45, 0.3)}
 OUTCOME_WORDS = {'well': 'it went well', 'fine': 'it went fine', 'rough': 'it was a rough one'}
@@ -286,13 +289,14 @@ def projects(kind: str, group: str, trades: frozenset[str] = frozenset(), city: 
     bank = data()['projects']
     def pool(name: str) -> list[str]:
         return [item['title'] for item in bank.get(name, ()) if group in item['eras'] and in_world(item, city)
-                and (not item.get('fits') or trades & set(item['fits']))]
+                and (not item.get('fits') or trades & set(item['fits'])) and decades.fits(item['title'])]
     if kind == STUDY:
         return [title.replace('{field}', field) for title in pool(STUDY) if field or '{field}' not in title]
     found = pool(kind) if kind != 'general' else []
     if len(found) < MIN_OPTIONS:
         found += pool('general')
-    return found or [item['title'] for item in bank['general'] if group in item['eras']]
+    return found or [item['title'] for item in bank['general'] if group in item['eras'] and decades.fits(item['title'])] \
+        or [item['title'] for item in bank['general'] if group in item['eras']]
 
 
 def local_today(companion: dict, now: datetime) -> date:
@@ -376,22 +380,29 @@ def refreshed(connection, found: dict, career: dict | None, city: dict | None, f
     return state(connection, found['timeline_id'])
 
 
-def set_project(connection, companion: dict, title: str, now: datetime) -> dict | None:
-    """What they are working on, in the user's words, until it is due; then the next comes from the bank as before.
-    An empty title gives the app's pick back."""
-    found = ensure(connection, companion, local_today(companion, now), now)
+def set_project(connection, companion: dict, title: str | None, now: datetime, due: date | None = None) -> dict | None:
+    """What they are working on, in the user's words, and when it is due (today to a year on); then the next comes
+    from the bank as before. No title keeps it; an empty one gives the app's pick back, with the app's due date too
+    when the user had moved it."""
+    today = local_today(companion, now)
+    found = ensure(connection, companion, today, now)
     if not found:
         return None
-    project, title = found['project'], ' '.join(title.split())
-    if title:
+    require(due is None or today <= due <= today + timedelta(days=DUE_AHEAD_DAYS),
+            'Pick a due date between today and a year from now.', 422)
+    project = found['project']
+    if title is not None and (title := ' '.join(title.split())):
         project = {**project, 'title': title, 'own': True}
-    else:
+    elif title is not None:
         definition = companion['version']['definition']
         city = outings.city_data(connection, definition)
         career = career_of(definition, city)
-        project = new_project(f"work:{found['timeline_id']}:{found['career']}:own", project['index'], career, city,
-                              date.fromisoformat(project['started']), used_titles(found), field_of(definition, career))
-        project['due'] = found['project']['due']
+        fresh = new_project(f"work:{found['timeline_id']}:{found['career']}:own", project['index'], career, city,
+                            date.fromisoformat(project['started']), used_titles(found), field_of(definition, career))
+        fresh['due'] = max(fresh['due'], today.isoformat()) if project.get('own_due') else project['due']
+        project = fresh
+    if due is not None:
+        project = {**project, 'due': due.isoformat(), 'own_due': True}
     update(connection, found['timeline_id'], now, project=project)
     return state(connection, found['timeline_id'])
 
@@ -830,23 +841,34 @@ def touch(connection, companion: dict, entry: dict | None, block: dict, day: dat
     found = state(connection, companion['active_timeline_id'])
     if not week or not found:
         return entry
+    if entry.get('activity') == 'lunch-out':
+        if week != 'slammed':
+            return entry
+        entry = {**entry, 'activity': 'busy-shift', 'place': None}  # No lunch out in a slammed week.
     label, project = routine_label(block), project_on(connection, companion, found, day)['title']
     if (gig := shifts.setup(connection, companion)) and gig['kind'] == 'freelance' and \
             generators.unit(seed, 'gig-line') < 0.5:
         lines = GIG_OLD if shifts.old_era(connection, companion) else GIG
         summary = generators.pick(seed, 'gig', list(lines)).format(name=name, project=project)
         return {**entry, 'summary': summary, 'mood': 'busy' if week == 'slammed' else entry.get('mood')}
-    if week == 'slammed':
-        lines, posts, mood = SLAMMED, SLAMMED_POSTS, 'busy'
-    elif week == 'slow':
-        lines, posts, mood = SLOW, SLOW_POSTS, 'relaxed'
-    elif generators.unit(seed, 'project-line') < 0.4:
-        lines, posts, mood = STEADY, (), entry.get('mood')
-    else:
+    chosen = week_lines(week, seed, entry)
+    if not chosen:
         return entry
+    lines, posts, mood = chosen
     summary = generators.pick(seed, 'work-week', list(lines)).format(name=name, label=label, project=project)
     return {**entry, 'summary': summary, 'mood': mood or entry.get('mood'),
             'post': generators.pick(seed, 'work-post', list(posts)) if posts else entry.get('post')}
+
+
+def week_lines(week: str, seed: str, entry: dict) -> tuple | None:
+    """The lines, captions and mood for a work slot this week, or None to keep the slot's own account."""
+    if week == 'slammed':
+        return SLAMMED, SLAMMED_POSTS, 'busy'
+    if week == 'slow':
+        return SLOW, SLOW_POSTS, 'relaxed'
+    if generators.unit(seed, 'project-line') < 0.4:
+        return STEADY, (), entry.get('mood')
+    return None
 
 
 def routine_label(block: dict) -> str:
@@ -1046,4 +1068,5 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
             'events': [{'id': event['id'], 'kind': event['kind'], 'local_date': event['local_date'],
                         'text': event['text']} for event in reversed(events)][:8],
             'level': chosen, 'meter': meter, 'hours': hours, 'studying': found['kind'] == STUDY,
-            'field': found['project'].get('field', ''), 'own_project': bool(found['project'].get('own'))}
+            'field': found['project'].get('field', ''), 'own_project': bool(found['project'].get('own')),
+            'own_due': bool(found['project'].get('own_due')), 'today': today.isoformat()}

@@ -445,3 +445,44 @@ def test_a_students_days_off_and_own_project_read_as_a_students():
         'the reading list for upper-level photography'
     assert work.phrased({'title': 'a darkroom series', 'own': True}) == 'a darkroom series'
     assert work.phrased({'title': 'the fall show'}) == 'the fall show'
+
+
+def test_the_user_can_move_the_due_date_and_give_it_back_to_the_app(client, nell):
+    reconcile(client)
+    view = client.get('/api/life/work').json()['work']
+    title, today = view['project']['title'], date.fromisoformat(view['today'])
+    later = (today + timedelta(days=40)).isoformat()
+    moved = client.put('/api/life/work/project', json={'due': later}).json()['work']
+    assert moved['project']['due'] == later and moved['own_due'] and not moved['own_project']
+    assert moved['project']['title'] == title
+    for wrong in ((today - timedelta(days=1)).isoformat(), (today + timedelta(days=400)).isoformat()):
+        response = client.put('/api/life/work/project', json={'due': wrong})
+        assert response.status_code == 422 and 'a year from now' in response.text
+    both = client.put('/api/life/work/project', json={'title': 'a quilt for the fair', 'due': later}).json()['work']
+    assert both['project']['title'] == 'a quilt for the fair' and both['own_project'] and both['project']['due'] == later
+    back = client.put('/api/life/work/project', json={'title': ''}).json()['work']
+    assert not back['own_project'] and not back['own_due'] and back['project']['due'] >= today.isoformat()
+
+
+@pytest.mark.parametrize(('week', 'activity', 'place'), [('ordinary', 'lunch-out', 'Hillside Noodle House'),
+                                                         ('slow', 'lunch-out', 'Hillside Noodle House'),
+                                                         ('slammed', 'busy-shift', None)])
+def test_a_lunch_out_is_never_worded_as_the_project(monkeypatch, week, activity, place):
+    # The work week's lines once replaced a lunch out's summary and kept its noodle house and "Worth stepping out
+    # for.", so a post read "I made steady progress on the festival rush" under a lunch caption.
+    monkeypatch.setattr(work, 'ACTIVE', True)
+    monkeypatch.setattr(work, 'week_of', lambda *_: week)
+    monkeypatch.setattr(work, 'state', lambda *_: {'status': 'working'})
+    monkeypatch.setattr(work, 'project_on', lambda *_: {'title': 'the midsummer festival rush'})
+    monkeypatch.setattr(work.shifts, 'setup', lambda *_: None)
+    companion = {'active_timeline_id': 't', 'version': {'definition': {'name': 'Sett'}}}
+    entry = {'summary': 'Sett took a proper lunch break at Hillside Noodle House during the lunch hour.',
+             'post': 'Worth stepping out for.', 'activity': 'lunch-out', 'place': {'name': 'Hillside Noodle House'}}
+    for seed in range(20):
+        touched = work.touch(None, companion, entry, {'kind': 'work', 'key': 'work', 'label': 'Work'}, date(2026, 7, 1),
+                             str(seed))
+        assert touched['activity'] == activity and (touched['place'] or {}).get('name') == place
+        if week == 'slammed':
+            assert 'lunch' not in touched['summary'] and touched['post'] in work.SLAMMED_POSTS
+        else:
+            assert touched == entry

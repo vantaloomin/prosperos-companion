@@ -9,8 +9,8 @@ import { usePortrait } from '../conversation/portrait'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
 import { StatusEditor } from '../status/StatusLine'
-import { profileTabs, circleText, handle, placeFact, profileClass, profileTab, showsCard } from './profileText'
-import { useEraWords } from '../world/useEraWords'
+import { profileTabs, circleText, handle, showsHandle, placeFact, profileClass, profileTab, showsCard } from './profileText'
+import { useEraWords, useEraDecade } from '../world/useEraWords'
 import { ROUGH_PATCH_KEY, UNDO_MS, roughPatchLine, type RoughPatch } from './roughPatchText'
 
 /**
@@ -57,6 +57,7 @@ function ProfileCard({ companion, message }: { companion: Companion; message: ()
   const { identity, interests } = companion.version.definition
   const name = companion.version.name
   const portrait = usePortrait()
+  const decade = useEraDecade()
   return (
     <header className="profile-card">
       <div className="profile-titlebar" aria-hidden="true">{name} · Profile</div>
@@ -65,7 +66,7 @@ function ProfileCard({ companion, message }: { companion: Companion; message: ()
         {portrait ? <img className="profile-avatar" src={portrait} alt="" /> : <div className="profile-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>}
         <div className="profile-name">
           <h1>{name}</h1>
-          {handle(name) && <p className="profile-handle">{handle(name)}</p>}
+          {showsHandle(decade) && handle(name) && <p className="profile-handle">{handle(name)}</p>}
           <StatusEditor id={companion.id} name={name} status={companion.status} />
         </div>
         <MessageButton onClick={message} />

@@ -18,6 +18,7 @@ from companion.images.adapters.comfyui import (
     default_sampler,
     family_of,
     has_reference,
+    tag_kind,
 )
 from companion.images.adapters.hosted import api_base
 from companion.providers.urls import is_loopback, validate_compatible_url
@@ -29,10 +30,12 @@ HOSTED_DEFAULTS = {
     'openai': {'base_url': 'https://api.openai.com/v1', 'api_style': 'images', 'label': 'OpenAI API'},
     # NanoGPT's OpenAI-compatible route; its image models are listed at /images/models, not /models.
     'nanogpt': {'base_url': 'https://nano-gpt.com/api/v1', 'api_style': 'images', 'label': 'NanoGPT'},
+    # NovelAI's own image API (adapters/novelai.py), with a persistent API token.
+    'novelai': {'base_url': 'https://image.novelai.net', 'api_style': 'novelai', 'label': 'NovelAI'},
     'other': {'base_url': '', 'api_style': 'images', 'label': 'Image API'},
 }
 # Hosted providers the NSFW switch is offered for. Google and OpenAI's own API stay safe-only, like Codex.
-NSFW_PROVIDERS = {'openrouter', 'nanogpt', 'other'}
+NSFW_PROVIDERS = {'openrouter', 'nanogpt', 'novelai', 'other'}
 KIND_LABELS = {'comfyui': 'ComfyUI', 'codex': 'Codex (ChatGPT subscription)'}
 CONFIG_KEYS = ('base_url', 'model', 'workflow', 'reference_workflow', 'cli_path', 'api_style')
 # ComfyUI only: the files chosen for the built-in workflow's loaders (see adapters/comfyui.py).
@@ -85,6 +88,11 @@ def backend_key(database, vault, backend: dict) -> str | None:
         return key_for(connection, vault, backend)
 
 
+def is_novelai(backend: dict) -> bool:
+    """NovelAI's own image API, whose models read booru tags like the Booru family (adapters/novelai.py)."""
+    return backend['kind'] == 'hosted' and backend['provider'] == 'novelai'
+
+
 def is_local(backend: dict) -> bool:
     """F6: a ComfyUI instance on this computer is local; elsewhere only if the user marked it as a
     machine they control. Codex and hosted APIs are never local."""
@@ -132,9 +140,12 @@ def disclosure(backend: dict) -> str | None:
             else 'this image service'
     text = (f'Each image request sends its prompt (built from the event and the character\'s appearance '
             f'description) to {destination}. Their retention rules apply. Conversation and memories are '
-            f'not sent. Reference pictures go along when you make profile pictures: the first one goes along with '
-            f'the other two.')
-    if backend['kind'] != 'codex':
+            f'not sent.')
+    if is_novelai(backend):
+        text += ' NovelAI does not take reference pictures, so only the prompt is sent.'
+    else:
+        text += ' Reference pictures go along when you make profile pictures: the first one goes along with the other two.'
+    if backend['kind'] != 'codex' and not is_novelai(backend):
         text += (' Where it can take a reference picture, each picture of your companion also sends their profile '
                  'picture, so they keep one face (Settings > Images can turn this off).')
     if backend['kind'] == 'codex':
@@ -156,6 +167,11 @@ def view(backend: dict, connection=None) -> dict:
             'api_style': config.get('api_style'), 'cli_path': config.get('cli_path', ''),
             'custom_workflow': bool(config.get('workflow')),
             'family': family_of(config) if backend['kind'] == 'comfyui' else None,
+            # The model's own opening when the backend has none (the Booru family's quality tags), and whether
+            # its prompts go out as booru tags (images/tags.py).
+            'family_style': FAMILIES[family_of(config)].style if backend['kind'] == 'comfyui' else
+            FAMILIES['booru'].style if is_novelai(backend) else None,
+            'tag_prompts': backend['kind'] == 'comfyui' and tag_kind(config) is not None or is_novelai(backend),
             'model_files': {key: config.get(key, '') for key in FAMILIES[family_of(config)].files}
             if backend['kind'] == 'comfyui' else None,
             'model_fit': config.get('unet_fit') if backend['kind'] == 'comfyui' else None,
@@ -290,6 +306,8 @@ def own_style(backend: dict) -> str | None:
     config = decode(backend['config'])
     if config.get('style'):
         return config['style']
+    if is_novelai(backend):
+        return FAMILIES['booru'].style
     return FAMILIES[family_of(config)].style if backend['kind'] == 'comfyui' else None
 
 
@@ -318,13 +336,14 @@ def require_safe_loras(backend: dict):
 def provider_for(kind, provider) -> str:
     if kind in {'comfyui', 'codex'}:
         return kind
-    require(provider in HOSTED_DEFAULTS, 'Choose a hosted provider: OpenRouter, Google, OpenAI, NanoGPT or other.', 422)
+    require(provider in HOSTED_DEFAULTS, 'Choose a hosted provider: OpenRouter, Google, OpenAI, NanoGPT, NovelAI or other.', 422)
     return provider
 
 
-def concurrency_for(kind, requested) -> int:
-    """Codex is strictly serial (F8) and a local GPU runs one job at a time."""
-    if kind in {'comfyui', 'codex'}:
+def concurrency_for(kind, requested, provider=None) -> int:
+    """Codex is strictly serial (F8), a local GPU runs one job at a time, and NovelAI makes one picture at a time
+    per account."""
+    if kind in {'comfyui', 'codex'} or provider == 'novelai':
         return 1
     return requested or 2
 
@@ -355,7 +374,7 @@ def create(database, vault, body) -> dict:
             'controlled_machine, allows_nsfw, concurrency, disclosure_accepted_at, created_at, updated_at) '
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (backend_id, body.kind, provider, label, int(enabled), position, encode(config), reference,
-             int(bool(body.controlled_machine)), allows, concurrency_for(body.kind, body.concurrency), accepted,
+             int(bool(body.controlled_machine)), allows, concurrency_for(body.kind, body.concurrency, provider), accepted,
              timestamp, timestamp))
         world_choice.joined(connection, backend_id, timestamp)
         return view(get(connection, backend_id), connection)
@@ -393,7 +412,7 @@ def update(database, vault, backend_id, body) -> dict:
             'UPDATE image_backends SET label=?, enabled=?, config=?, credential_ref=?, controlled_machine=?, '
             'allows_nsfw=?, concurrency=?, disclosure_accepted_at=?, blocked_reason=?, updated_at=? WHERE id=?',
             (body.label or backend['label'], enabled, encode(config), reference, controlled, allows,
-             concurrency_for(backend['kind'], body.concurrency or backend['concurrency']), accepted,
+             concurrency_for(backend['kind'], body.concurrency or backend['concurrency'], backend['provider']), accepted,
              None if body.api_key else backend['blocked_reason'], timestamp, backend_id))
         return view(get(connection, backend_id), connection)
 

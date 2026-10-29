@@ -165,3 +165,15 @@ def test_paced_replies_are_on_by_default_and_can_be_turned_off(client, office, p
     clock.instant = clock.now().replace(hour=10)
     says(provider, 'right here')
     assert send(client, 'Hi', 'client-text-10')['reply']['held_until'] is None
+
+
+def test_out_loud_drops_the_habits_and_puts_capitals_back():
+    assert texting.out_loud({'voice': 'Texts in all lowercase, typos everywhere.'}) == texting.OUT_LOUD
+    assert texting.out_loud({'voice': 'Fixes typos with a *correction.', 'texting': {}}) == texting.OUT_LOUD
+    assert texting.out_loud({'texting': {'bursts': True}}) == texting.OUT_LOUD
+    assert texting.out_loud({'voice': 'Warm, wordy, loves a pun.'}) is None
+    assert texting.line({'texting': {'lowercase': True}}, True).startswith('How you text:')
+    assert texting.line({'texting': {'lowercase': True}}, False) == texting.OUT_LOUD
+    said = texting.spoken("*leans back* i'm starving. what's good?\n\n“the ziti,” she said. see https://Example.com/a")
+    assert said == "*Leans back* I'm starving. What's good?\n\n“The ziti,” she said. See https://Example.com/a"
+    assert texting.spoken('Already has Capitals, so i stay') == 'Already has Capitals, so i stay'

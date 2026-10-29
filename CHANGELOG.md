@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
+  message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
+  your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by
+  Settings > Realism > "How quickly they read your texts", and after work or sleep). You can keep the thread going.
+  "Message them instead" next to Comment still takes the post to chat.
 - **Books, shows and songs from their own world:** a companion in a made-up world used to read, watch and hum the
   same generic made-up titles whether they lived in Camelot, Oz or a fan-made world of your own. Now the titles come
   from their world: a city can list its own books, shows and songs (`media` in the city file, see Making a city),
@@ -70,6 +75,25 @@
 - **Duplicate a model profile:** each profile in Settings > Models has a Duplicate button that copies
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
+
+## v1.2.0 "The Dark Backward" (2026-10-29)
+
+- **Back when:** go back with a companion to a year in the past, back to 1990, from a new section on the Character
+  page. A new world opens in that year in the same town, everyone younger, as strangers by default or worked out
+  from your history; what hadn't happened yet hasn't, and jobs fit the year. New worlds can start in a past year,
+  and past-year worlds show their year.
+- **The decade around them:** real cities in a past year take on the 1990s, 2000s or 2010s: how people keep in
+  touch, the app's words, books, shows and songs, jobs, pastimes, memes and Matchlight, with nothing from later.
+  Companions know the year and haven't heard of anything newer.
+- **Posts and people:** comments on posts that whoever posted answers; one-sided ties (a fan, a singer); the
+  Watching page says why each person is there and adds the companions' people in town; Try life as.
+- **Voices:** no texting habits in person or on calls; a companion's own storyline news says whose it is; a
+  declined call is remembered as theirs.
+- **Pictures:** NovelAI; booru tags for Illustrious, NoobAI and Pony; graphics-card fit for Qwen Image, Z-Image
+  and Anima; a saved model file stays pickable.
+- **Fixes:** reply versions stay chosen and rerolls work while busy; Work life projects say where they come from
+  and their due date can move; posts stay in the companion's own voice; same-sex parents in past years are
+  partners until they could marry.
 
 ## v1.1.9 (2026-10-28)
 

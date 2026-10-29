@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { isHeld, releaseHeld, shownAt, waitsUntilLater } from '../../src/features/conversation/held.ts'
+import { isHeld, lastHeld, releaseHeld, shownAt, waitsUntilLater } from '../../src/features/conversation/held.ts'
 import { activityLine, nextChange } from '../../src/features/conversation/activity.ts'
 import { lastUserMessage } from '../../src/features/conversation/turns.ts'
 import type { Message } from '../../src/types.ts'
@@ -58,4 +58,12 @@ test('the activity line says what the app is doing, never that the companion is 
   assert.equal(activityLine([user, { ...later, status: 'failed' }], {}, false, now), '')
   assert.equal(activityLine([user, { ...later, superseded_at: '2026-10-05T10:05:00Z' }], {}, false, now), '')
   assert.equal(lastUserMessage([user, later]), 'u')
+})
+
+test('another reply waits for the newest held version, not an earlier one shown long ago', () => {
+  const shown = message({ id: 'a', held_until: '2026-10-05T09:00:00Z' })
+  const waiting = message({ id: 'b', held_until: '2026-10-05T10:30:00Z' })
+  const failed = message({ id: 'c', held_until: '2026-10-05T11:00:00Z', status: 'failed' })
+  assert.equal(lastHeld([shown, waiting, failed])?.id, 'b')
+  assert.equal(lastHeld([message({ id: 'd' })]), undefined)
 })

@@ -7,6 +7,9 @@ One table (world/data/era_words.json) gives every word for each era group: moder
 app picks the group from the city's era, and a city file's optional `words` block renames any word. Rules only: no
 model reads or writes these, and the chat prompt is unchanged, since the companion already speaks in the city's era.
 
+In a modern city of a world that runs in a past year, the table's `decades` block puts that decade's words over
+today's (a snapshot, not a selfie, in the 1990s), under the same switch.
+
 Only what the characters and the world say and show changes. Settings, setup, help and error messages keep today's
 words, so help and bug reports stay readable. Settings > Appearance turns it off ("Period words in period cities").
 """
@@ -14,7 +17,7 @@ import json
 import re
 from functools import cache
 
-from companion.world import catalog
+from companion.world import catalog, decades
 
 LONGEST = 80
 
@@ -30,11 +33,13 @@ def group(city: dict | None) -> str:
 
 
 def words(city: dict | None, on: bool = True) -> dict[str, str]:
-    """Every word for this city: today's, the era group's over them, then the city's own. Off, today's words."""
+    """Every word for this city: today's, the era group's over them, the decade's in a modern city of a past year
+    (Back when, companion/world/decades.py), then the city's own. Off, today's words."""
     found = table()['words']
     if not on:
         return dict(found['modern'])
-    return found['modern'] | found[group(city)] | ((city or {}).get('words') or {})
+    return found['modern'] | found[group(city)] | decades.words(table().get('decades') or {}, city) | \
+        ((city or {}).get('words') or {})
 
 
 def say(found: dict[str, str], key: str, **values: str) -> str:
@@ -85,4 +90,5 @@ def for_world(connection) -> dict:
     city = home[0] if home else newcomers.city_for(connection, companion['version']['definition']) if companion \
         else None
     on = bool(settings(connection).get('period_words', 1))
-    return {'group': group(city) if on else 'modern', 'on': on, 'words': words(city, on)}
+    return {'group': group(city) if on else 'modern', 'decade': decades.decade_of(city) if on else None, 'on': on,
+            'words': words(city, on)}

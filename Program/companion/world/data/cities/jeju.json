@@ -6010,7 +6010,11 @@
     "data-analyst",
     "marketing-coordinator"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2014,
+    null
+   ]
   },
   {
    "id": "jeju-air",
@@ -6025,7 +6029,11 @@
     "accountant",
     "software-engineer"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2005,
+    null
+   ]
   },
   {
    "id": "jeju-airport",
@@ -6057,7 +6065,11 @@
     "bartender",
     "event-planner"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2020,
+    null
+   ]
   },
   {
    "id": "shilla-jeju",
@@ -6104,7 +6116,11 @@
     "line-cook",
     "server"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2003,
+    null
+   ]
   },
   {
    "id": "icc-jeju-employer",
@@ -6117,7 +6133,11 @@
     "event-planner",
     "tour-guide"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2003,
+    null
+   ]
   },
   {
    "id": "shilla-duty-free-employer",
@@ -6145,7 +6165,11 @@
     "port-logistics",
     "accountant"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    1995,
+    null
+   ]
   },
   {
    "id": "orion-yongamsu",
@@ -6158,7 +6182,11 @@
     "port-logistics",
     "marketing-coordinator"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2016,
+    null
+   ]
   },
   {
    "id": "jeju-bank",
@@ -6197,7 +6225,11 @@
     "teacher",
     "social-worker"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2011,
+    null
+   ]
   },
   {
    "id": "jeju-olle-foundation",
@@ -6211,7 +6243,11 @@
     "event-planner",
     "marketing-coordinator"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2007,
+    null
+   ]
   },
   {
    "id": "citrus-cooperatives",
@@ -6263,7 +6299,11 @@
     "military-sailor",
     "defense-engineer"
    ],
-   "source": "curated-2026-10"
+   "source": "curated-2026-10",
+   "years": [
+    2016,
+    null
+   ]
   }
  ],
  "career_hubs": [

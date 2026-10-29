@@ -2943,3 +2943,42 @@ CREATE TABLE IF NOT EXISTS politics_headlines (
   created_at TEXT NOT NULL,
   PRIMARY KEY (city_id, text)
 );
+
+-- The year a world runs in (companion/world_year.py, Back when): its clock runs offset_days behind real time, at real
+-- speed, from when it was made in started_year. No row: the present.
+CREATE TABLE IF NOT EXISTS world_year (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  started_year INTEGER NOT NULL,
+  offset_days INTEGER NOT NULL CHECK (offset_days > 0),
+  created_at TEXT NOT NULL
+);
+
+-- A Back when world (companion/back_when.py): the companion it was made for, from which world and in which year, and
+-- how many years younger the persona is there. No row: an ordinary world.
+CREATE TABLE IF NOT EXISTS back_when (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  companion_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  from_world_id TEXT NOT NULL,
+  year INTEGER NOT NULL,
+  from_history INTEGER NOT NULL DEFAULT 0 CHECK (from_history IN (0, 1)),
+  persona_years INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+-- Comments on feed posts (companion/life/post_comments.py): the user's, and the answer each one gets from whoever
+-- posted (`author` 'poster', `name` theirs). An answer is written at once ('writing' until then) and shows from
+-- `shows_at`, when the poster would have seen the comment. Gone with the post's timeline, or when the post is removed.
+CREATE TABLE IF NOT EXISTS post_comments (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  timeline_id TEXT NOT NULL,
+  author TEXT NOT NULL CHECK (author IN ('user', 'poster')),
+  name TEXT,
+  text TEXT NOT NULL,
+  reply_to TEXT,
+  status TEXT NOT NULL CHECK (status IN ('writing', 'shown')),
+  shows_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS post_comments_post ON post_comments(post_id, created_at);

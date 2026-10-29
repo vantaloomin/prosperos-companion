@@ -17,7 +17,7 @@ import re
 from datetime import date, datetime, time, timedelta
 
 from companion import consequences, secrets
-from companion.clock import stamp, zone
+from companion.clock import app_now, stamp, zone
 from companion.database import decode, many, optional
 from companion.life import deck, money, storylines
 from companion.life.chapters import FRESH_DAYS
@@ -216,7 +216,7 @@ def last_ready(companion, now) -> date:
 
 def began(connection, companion) -> date:
     row = optional(connection, 'SELECT created_at FROM timelines WHERE id=?', (companion['active_timeline_id'],))
-    instant = datetime.fromisoformat(row['created_at']) if row else datetime.now().astimezone()
+    instant = datetime.fromisoformat(row['created_at']) if row else app_now()
     return instant.astimezone(zone(companion['version']['timezone'])).date()
 
 

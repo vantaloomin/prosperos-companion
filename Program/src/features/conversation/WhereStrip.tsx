@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { DoorOpen, EyeOff, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
 import { api } from '../../api'
+import { appNow } from '../../appTime.ts'
 import { TOGETHER_KEY } from '../today/outingText'
 import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
@@ -81,7 +82,7 @@ function CallStrip({ call, lead, short, tail, name, words, onDone }: { call: Whe
     <aside className={`where-strip${call.status === 'ringing' ? ' ringing' : ''}`} aria-label={call.status === 'ringing' ? say(words, 'call_ringing', name) : say(words, 'on_call')}>
       <CallIcon call={call} magic={magic} />
       {/* Only the state is announced; the ticking length sits outside the live region. */}
-      <span><span aria-live="polite"><CallLead lead={lead} short={short} />{tail}</span>{call.status === 'on' && call.started_at && <> · <CallLength since={call.started_at} /></>}</span>
+      <span className="call-text"><span aria-live="polite"><CallLead lead={lead} short={short} />{tail}</span>{call.status === 'on' && call.started_at && <span className="call-length-part"> · <CallLength since={call.started_at} /></span>}</span>
       {callActions(call, words).map((item) => {
         const Icon = magic ? MAGIC_GLYPHS[item.action] : CALL_GLYPHS[item.action]
         return <button key={item.action} type="button" className={item.action === 'answer' ? 'button primary call-answer' : `text-button call-${item.action}`} onClick={() => void act(item.action)}><Icon aria-hidden="true" />{item.label}</button>
@@ -106,9 +107,9 @@ function CallLead({ lead, short }: { lead: string; short?: string }) {
 
 /** How long the call has been on, ticking each second; screen readers are not told every tick. */
 function CallLength({ since }: { since: string }) {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => appNow())
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    const timer = window.setInterval(() => setNow(appNow()), 1000)
     return () => window.clearInterval(timer)
   }, [])
   return <time className="call-length" aria-hidden="true" dateTime={since}>{callClock(now - Date.parse(since))}</time>

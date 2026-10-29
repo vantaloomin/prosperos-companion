@@ -38,8 +38,8 @@ CLOSER = 0.05
 # How often a reply waiting to be read checks the time (seconds of real time).
 POLL_SECONDS = 0.5
 # What the model is told when it answers several texts at once.
-SEVERAL = ('They sent you several texts in a row before you read them. Answer them together in one reply, the way '
-           'you would after picking up your phone, rather than replying to the last one only.')
+SEVERAL = ('They sent you several texts in a row before you read them. Answer them together in one reply, not just '
+           'the last one: take up each text. If one seems to answer something you never said, ask what they mean.')
 
 
 def pace(connection, companion) -> int:
