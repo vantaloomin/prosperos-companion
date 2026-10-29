@@ -10,7 +10,8 @@ import { AdminList } from '../today/AdminList'
 import { WORK_KEY, eventDay, eventText, meterText, projectChange, projectField, timeOffText, yearOn } from './workText'
 import { panelTitle } from './panelText'
 
-const HOURS_TEXT = { staff: '', rota: ' Their shifts change each week.', freelance: ' Freelance work comes and goes, in busy and quiet spells.' }
+// A rota's changing shifts go unsaid: the "This week:" line right below shows them (Iris).
+const HOURS_TEXT = { staff: '', rota: '', freelance: ' Freelance work comes and goes, in busy and quiet spells.' }
 
 /** The companion's job in plain words: the week, the project, late nights, time off and what changed lately. Nothing
  * for a companion without work in their week. */
@@ -64,7 +65,7 @@ function WorkingOn({ view }: { view: WorkLifeView }) {
   const save = async (change: { title?: string; due?: string }) => {
     try {
       client.setQueryData(WORK_KEY, await api<{ work: WorkLifeView | null }>('/life/work/project', change, 'PUT'))
-      setNotice({ tone: 'info', text: change.title === '' ? 'The app picked it again.' : 'Saved. When it is due, the app picks what comes next.' })
+      setNotice({ tone: 'info', text: change.title === '' ? 'The app picked it again.' : 'Saved. When it’s due, the app picks what comes next.' })
       setEditing(false)
     } catch (failure) { setNotice({ tone: 'error', text: failure instanceof Error ? failure.message : 'That was not saved.' }) }
   }
