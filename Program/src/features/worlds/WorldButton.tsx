@@ -1,6 +1,6 @@
 import { UserRound } from 'lucide-react'
 import { useFollowWorld, useWorlds } from './useWorlds'
-import { initial, whereLine } from './worldsText'
+import { initial, railName, whereLine } from './worldsText'
 
 /** Who the user is and which world they are in, at the top of the nav, with the year under it in a past world; opens Worlds, where they switch persona or
  * world. It also follows a switch made on another screen (a paired phone, another tab). */
@@ -9,7 +9,7 @@ export function WorldButton({ current, onOpen }: { current: boolean; onOpen: () 
   return (
     <button type="button" className="nav-world rail-only" aria-current={current ? 'page' : undefined} onClick={onOpen}
       title={worlds ? `${whereLine(worlds.persona, worlds.world)}. Switch persona or world.` : 'Worlds'}>
-      <span className="nav-persona" aria-hidden="true">{initial(worlds?.persona) || <UserRound size={14} />}</span><span>{worlds?.world.name ?? 'Worlds'}</span>{worlds?.world.year ? <span className="nav-world-year">{worlds.world.year}</span> : null}
+      <span className="nav-persona" aria-hidden="true">{initial(worlds?.persona) || <UserRound size={14} />}</span><span>{worlds ? railName(worlds.world) : 'Worlds'}</span>{worlds?.world.year ? <span className="nav-world-year">{worlds.world.year}</span> : null}
     </button>
   )
 }

@@ -64,6 +64,12 @@ export function worldLabel(world: Pick<World, 'name' | 'year'>): string {
   return world.year && !world.name.includes(String(world.year)) ? `${world.name} · ${world.year}` : world.name
 }
 
+/** The world's name in the nav rail, where the year has a line of its own: "Back when · 1999" is "Back when". */
+export function railName(world: Pick<World, 'name' | 'year'>): string {
+  const suffix = ` · ${world.year}`
+  return world.year && world.name.endsWith(suffix) && world.name.length > suffix.length ? world.name.slice(0, -suffix.length) : world.name
+}
+
 /** The label under the nav button: who the user is and where, with the year in a past world. */
 export function whereLine(persona: Pick<Persona, 'name'> | null | undefined, world: Pick<World, 'name' | 'year'> | null | undefined): string {
   const name = personaName(persona)

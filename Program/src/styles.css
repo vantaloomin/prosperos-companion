@@ -2050,6 +2050,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* A world in a past year: the year it is there, beside its name. */
 .year-badge { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .year-badge svg { width: 0.8rem; height: 0.8rem; }
+/* On the world you are in, whose row is tinted already, the badge keeps a fill a step darker. */
+.world-row[aria-current='true'] .year-badge { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+/* Phone: the buttons go under the name, lined up with it, so the name keeps the row's width (Iris, 2026-10-29). */
+@media (max-width: 480px) { .world-row-actions { flex-basis: 100%; padding-left: 58px; flex-wrap: wrap; } }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .world-rename input { flex: 1; min-width: 0; }
 /* Lined up with the world rows' names (row padding + portrait + gap), so it reads as this persona's. */
@@ -2125,6 +2129,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip .text-button { flex: none; }
 /* On a call (companion/life/calls.py): how long ticks in even digits; a ring stands out a little more. */
 .where-strip .call-length { font-variant-numeric: tabular-nums; }
+/* On a narrow strip the words give way and the call's length stays whole (Iris, 2026-10-29). */
+.where-strip > .call-text { display: flex; min-width: 0; }
+.where-strip > .call-text > span[aria-live] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.where-strip .call-length-part { flex: none; white-space: pre; }
 .where-strip.ringing { border-color: var(--accent); }
 .where-strip.quiet { background: transparent; }
 .where-strip.quiet > span, .where-strip.quiet > svg { color: var(--muted); }

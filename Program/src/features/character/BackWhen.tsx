@@ -15,12 +15,15 @@ import { backWhenNote, backWhenYears, firstPick, firstYear, HISTORY_HINT, moment
 export function BackWhen({ id, name }: { id: string; name: string }) {
   const world = useWorlds().data?.world
   const [open, setOpen] = useState(false)
-  if (!world || world.year) return null
+  const present = !!world && !world.year
+  // Read with the page, so the copy names the year the sheet really goes back to (Iris, 2026-10-29).
+  const earliest = useBackWhen(id, present).data?.earliest
+  if (!present) return null
   return (
     <section className="settings-section form-stack" aria-labelledby="back-when-heading">
       <div>
         <h2 id="back-when-heading">Back when</h2>
-        <p className="subtle">Go back to when you and {name} were younger: the year you met, before a big step, or any year back to 1990. Phones, prices and songs are from that year.</p>
+        <p className="subtle">Go back to when you and {name} were younger: the year you met, before a big step, or any year back to {earliest ?? 'when you were both grown up'}. Phones, prices and songs are from that year.</p>
       </div>
       <div className="form-actions">
         <button type="button" className="button" onClick={() => setOpen(true)}><History aria-hidden="true" />Back when…</button>
@@ -30,8 +33,13 @@ export function BackWhen({ id, name }: { id: string; name: string }) {
   )
 }
 
+/** The sheet's moments and years (GET /api/worlds/back-when), only asked for in a world in the present. */
+function useBackWhen(id: string, enabled = true) {
+  return useQuery({ queryKey: ['back-when', id], queryFn: () => api<BackWhenMoments>(`/worlds/back-when?companion_id=${encodeURIComponent(id)}`), enabled })
+}
+
 function BackWhenSheet({ id, name, onClose }: { id: string; name: string; onClose: () => void }) {
-  const moments = useQuery({ queryKey: ['back-when', id], queryFn: () => api<BackWhenMoments>(`/worlds/back-when?companion_id=${encodeURIComponent(id)}`), staleTime: 0 })
+  const moments = useBackWhen(id)
   const data = moments.data
   return (
     <ConfirmDialog title={`Back when with ${name}`} onClose={onClose} actions={data?.available ? null : <button type="button" className="button" onClick={onClose}>Close</button>}>

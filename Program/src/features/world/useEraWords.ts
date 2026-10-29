@@ -11,6 +11,11 @@ export function useEraWords(): EraWords {
   return useEraView()?.words ?? MODERN_WORDS
 }
 
+/** The decade of a world in a past year ('1990s'), or null. */
+export function useEraDecade(): string | null {
+  return useEraView()?.decade ?? null
+}
+
 /** Whether calls are magic here: in a fantasy town talking at a distance is a scrying glass or a speaking stone, so
  * a call shows a glint of magic (Sparkles) instead of the telephone handset (Iris, 2026-10-21). */
 export function useMagicCalls(): boolean {

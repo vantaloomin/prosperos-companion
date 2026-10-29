@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { backWhenNote, backWhenYears, firstPick, firstYear, momentLine, pickedYear } from '../../src/features/character/backWhenText.ts'
-import { defaultPastYear, pastYears, whereLine, worldLabel, yearBadge } from '../../src/features/worlds/worldsText.ts'
+import { defaultPastYear, pastYears, railName, whereLine, worldLabel, yearBadge } from '../../src/features/worlds/worldsText.ts'
+import { showsHandle } from '../../src/features/profile/profileText.ts'
 
 const met = { key: 'met', label: 'When you first met', year: 2019, name: 'Back when · 2019', age: 31 }
 const round = { key: 'age:25', label: 'When Dana was 25', year: 2013, name: 'Back when · 2013', age: 25 }
@@ -42,4 +43,17 @@ test('a new world can start any year from last year back to 1990, ten years back
   assert.equal(years.length, 36)
   assert.equal(defaultPastYear(2026), 2016)
   assert.equal(defaultPastYear(1995), 1990)
+})
+
+test('the nav rail leaves the year to its own line', () => {
+  assert.equal(railName({ name: 'Back when · 1999', year: 1999 }), 'Back when')
+  assert.equal(railName({ name: 'Back when · 1999', year: 2000 }), 'Back when · 1999')
+  assert.equal(railName({ name: 'Grandport', year: 1997 }), 'Grandport')
+  assert.equal(railName({ name: 'Back when · 1999', year: null }), 'Back when · 1999')
+})
+
+test('nobody has an @handle before the 2000s', () => {
+  assert.equal(showsHandle('1990s'), false)
+  assert.equal(showsHandle('2000s'), true)
+  assert.equal(showsHandle(null), true)
 })
