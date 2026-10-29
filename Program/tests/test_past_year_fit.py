@@ -60,15 +60,17 @@ def test_shows_are_on_cable_before_streaming(year):
 
 def test_matchlight_is_a_dating_site_before_apps(year):
     city = catalog.cities()['chicago']
-    assert dating.words(city)['noun'] == 'a dating app'
+    assert dating.words(city)['noun'] == 'a dating app' and dating.words(city)['app']
     year(2005)
     words = dating.words(city)
     assert words['noun'] == 'a dating site' and words['get'] == 'Sign up' and words['title'] == dating.APP_NAME
+    assert not words['app']  # No app store: no Download glyph.
     assert dating.met_on(city) == f'Matched on {dating.APP_NAME}'
     year(1995)
     assert dating.words(city)['noun'] == 'the personals'
     # A period city keeps its own way of meeting people.
     assert dating.words(catalog.cities()['london-1895'])['noun'] == dating.SURFACES['column']['noun']
+    assert not dating.words(catalog.cities()['london-1895'])['app']
 
 
 def test_anime_tags_take_the_year_as_its_decade_and_see_a_past_view():

@@ -64,11 +64,12 @@ def surface(data: dict) -> str:
 
 
 def words(data: dict) -> dict:
-    """What the user sees for the city's kind of matchmaking, in its year."""
+    """What the user sees for the city's kind of matchmaking, in its year; `app` when it is a phone app to install
+    (the Download glyph, Iris 2026-10-29), not a website, the paper or the matchmaker."""
     kind, year = surface(data), decades.year_of(data)
     if kind != 'app' or not year or year >= APPS_FROM:
-        return SURFACES[kind]
-    return SURFACES[kind] | (PERSONALS if year <= PERSONALS_UNTIL else SITE)
+        return SURFACES[kind] | {'app': kind == 'app'}
+    return SURFACES[kind] | (PERSONALS if year <= PERSONALS_UNTIL else SITE) | {'app': False}
 
 
 # The user's profile ------------------------------------------------------------------------------------
@@ -130,9 +131,10 @@ def save_profile(database, body: dict) -> dict:
 
 
 def installed(database) -> dict:
-    """Whether the user has set the app up yet, for the sidebar's download badge."""
+    """Whether the user has set the app up yet, for the sidebar's badge, and whether it is a phone app there."""
     with database.connect() as connection:
-        return {'installed': profile(connection) is not None, 'name': APP_NAME}
+        return {'installed': profile(connection) is not None, 'name': APP_NAME,
+                'app': words(looking_in(connection, profile(connection)))['app']}
 
 
 def uninstall(database) -> dict:

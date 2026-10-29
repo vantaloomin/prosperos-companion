@@ -1970,7 +1970,7 @@ export interface DatingMatch extends DatingCard {
 }
 /** A townsperson's one portrait (companion/dating_photos.py). */
 export interface DatingPhoto { status: 'none' | 'queued' | 'running' | 'completed' | 'failed'; error?: string | null; url?: string | null }
-export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; missed: string; empty: string; tagline: string; get: string; getting: string; unseen: string }
+export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; missed: string; empty: string; tagline: string; get: string; getting: string; unseen: string; /** A phone app to install: the Download glyph; else UserPlus (Iris). */ app: boolean }
 export interface Dating {
   surface: 'app' | 'column' | 'matchmaker'
   words: DatingWords
