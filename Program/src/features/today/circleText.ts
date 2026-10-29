@@ -35,7 +35,7 @@ export function displayName(person: CirclePerson): string {
 }
 
 /** Parents in the circle: married, divorced, or separated in an older city (companion/life/circle.py `tie`). */
-const COUPLED: Record<string, string> = { married: 'Married to', divorced: 'Divorced from', separated: 'Separated from' }
+const COUPLED: Record<string, string> = { married: 'Married to', partners: 'Partners with', divorced: 'Divorced from', separated: 'Separated from' }
 
 /** One-sided ties (circle.py MIRROR): this person knows of the other, or the other knows of them. */
 const ONE_SIDED = ['knows of', 'known by']
@@ -202,5 +202,6 @@ export function tieChoices(person: string, other: string): { value: string; labe
 export const TIE_CHOICES: { value: string; label: string }[] = [
   { value: 'friends', label: 'Friends' }, { value: 'old friends', label: 'Old friends' }, { value: 'family', label: 'Family' },
   { value: 'coworkers', label: 'Coworkers' }, { value: 'known for years', label: 'Known for years' }, { value: 'rivals', label: 'Rivals' },
-  { value: 'married', label: 'Married' }, { value: 'divorced', label: 'Divorced' }, { value: 'separated', label: 'Separated' },
+  { value: 'married', label: 'Married' }, { value: 'partners', label: 'Partners' }, { value: 'divorced', label: 'Divorced' },
+  { value: 'separated', label: 'Separated' },
 ]

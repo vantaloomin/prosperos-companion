@@ -647,10 +647,10 @@ def forget_person(connection, timeline_id, person_id, now):
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
     said = circle.voice_of(connection, timeline_id)  # 'mother', not 'mom', in 1895; 'mum' in London (circle.era_word).
-    result, known = [], circle.ties(circle.people(connection, timeline_id), said == 'older')
+    data = circle.city_of_timeline(connection, timeline_id)  # Its own kinds (companion/world/lifespans.py), its year.
+    result, known = [], circle.ties(circle.people(connection, timeline_id), said == 'older', data)
     # Not at work: at the wedding, or at their own big day (companion/life/big_days.py), as its scene says.
     at_wedding = wedding.guests_there(connection, timeline_id, now) | big_days.people_there(connection, timeline_id, now)
-    data = circle.city_of_timeline(connection, timeline_id)  # Its own kinds (companion/world/lifespans.py).
     for row in circle.people(connection, timeline_id, True):
         details = decode(row['details']) or {}
         late = details.get('late')

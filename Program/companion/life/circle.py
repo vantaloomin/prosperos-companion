@@ -26,7 +26,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import ages, job_words, named
-from companion.world import catalog, generators, lifespans, naming
+from companion.world import catalog, decades, generators, lifespans, naming
 
 CIRCLE_SIZE = 5
 SIZES = {'quiet': 4, 'usual': CIRCLE_SIZE, 'social': 10}
@@ -56,8 +56,14 @@ ELDER_AGES = (75, 95)
 ELDERS = True
 # Parents in the circle who parted: a quarter today, this share in an older city, where it reads "separated".
 OLDER_PARTED = 0.04
-PARTED = {'divorced': 'Divorced from', 'separated': 'Separated from'}
+PARTED = {'divorced': 'Divorced from', 'separated': 'Separated from', 'partners': 'Partners with'}
 COUPLED = ('married', *PARTED)
+# The year two women or two men could marry, by the city's country, for a modern city's world in a past year
+# (decades.py): before it, a couple the family plan has married are partners (Vanta, 2026-10-29). A country not
+# listed is taken as the US; None is not yet.
+SAME_SEX_MARRIAGE = {'us': 2015, 'usa': 2015, 'united states': 2015, 'united kingdom': 2014, 'uk': 2014,
+                     'england': 2014, 'japan': None, 'south korea': None, 'korea': None}
+SAME_SEX_DEFAULT = 2015
 # One-sided ties: one of them knows of the other, who doesn't know them back. Kept as each side sees it.
 MIRROR = {'knows of': 'known by', 'known by': 'knows of'}
 # Whether someone and the companion know each other (`knowing`): both, only they know the companion ('they'), or only
@@ -833,7 +839,25 @@ def own_tie(first: dict, second: dict) -> str | None:
     return None
 
 
-def tie(first: dict, second: dict, older: bool = False) -> str | None:
+def tie(first: dict, second: dict, older: bool = False, city: dict | None = None) -> str | None:
+    """tie_of, with a same-sex couple the app made married partners instead before they could marry (could_marry)."""
+    how = tie_of(first, second, older)
+    if how != 'married' or could_marry(city) or own_tie(first, second) is not None:  # What the user set stays.
+        return how
+    words = {details_of(row).get('pronouns') for row in (first, second)}
+    return 'partners' if len(words) == 1 and words <= {'she/her', 'he/him'} else how
+
+
+def could_marry(city: dict | None) -> bool:
+    """Whether two women or two men could marry in the city's year: always in the present or another era."""
+    year = decades.year_of(city) if city else None
+    if not year:
+        return True
+    first = SAME_SEX_MARRIAGE.get(str(city.get('country') or '').casefold(), SAME_SEX_DEFAULT)
+    return first is not None and year >= first
+
+
+def tie_of(first: dict, second: dict, older: bool = False) -> str | None:
     """How two circle members know each other, as the first sees it, the same every time for the same two people. In
     an older city (before 1950) parents who parted are separated, and far fewer did (breakups.separated). What the user
     set comes first. Friends by chance are never family: the companion's mom doesn't pal around with their rival."""
@@ -869,20 +893,21 @@ def planned_tie(first: dict, second: dict) -> str | None:
     return kin[0]['ties'].get(kin[1]['id']) or kin[1]['ties'].get(kin[0]['id'])
 
 
-def ties(rows: list[dict], older: bool = False) -> dict[str, list[dict]]:
-    """Who each active member knows inside the circle: {person id: [{id, name, how}]}."""
+def ties(rows: list[dict], older: bool = False, city: dict | None = None) -> dict[str, list[dict]]:
+    """Who each active member knows inside the circle: {person id: [{id, name, how}]}. `city` is the companion's,
+    for its year (tie)."""
     result = {row['id']: [] for row in rows}
     for index, first in enumerate(rows):
         for second in rows[index + 1:]:
-            if how := tie(first, second, older):
+            if how := tie(first, second, older, city):
                 result[first['id']].append({'id': second['id'], 'name': second['name'], 'how': how})
                 result[second['id']].append({'id': first['id'], 'name': first['name'], 'how': MIRROR.get(how, how)})
     return result
 
 
 # How the user can say two people know each other (set_tie); '' is not at all.
-TIE_WORDS = ('friends', 'old friends', 'family', 'coworkers', 'known for years', 'rivals', 'married', 'divorced',
-             'separated', *MIRROR, '')
+TIE_WORDS = ('friends', 'old friends', 'family', 'coworkers', 'known for years', 'rivals', 'married', 'partners',
+             'divorced', 'separated', *MIRROR, '')
 
 
 def set_tie(connection, person_id: str, other_id: str, how: str | None, now) -> dict:

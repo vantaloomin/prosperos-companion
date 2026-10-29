@@ -150,3 +150,21 @@ def test_a_1995_status_is_not_just_vibing(year):
     assert 'just vibing' not in lines and 'coffee first ☕' in lines  # The emoji goes when it is shown.
     assert decades.without_emoji('coffee first ☕') == 'coffee first'
     assert not decades.fits('out, phone in pocket')
+
+
+def test_two_dads_are_partners_before_they_could_marry(year):
+    from companion.life import circle
+    def parent(key, pronouns, ties):
+        return {'id': key, 'role': 'dad', 'details': {'pronouns': pronouns, 'kin': {'id': key, 'ties': ties}}}
+    dads = parent('p1', 'he/him', {'p2': 'married'}), parent('p2', 'he/him', {'p1': 'married'})
+    mom_and_dad = parent('p1', 'she/her', {'p2': 'married'}), parent('p2', 'he/him', {'p1': 'married'})
+    chicago, osaka = catalog.cities()['chicago'], catalog.cities()['osaka']
+    assert circle.tie(*dads, city=chicago) == 'married'  # The present.
+    year(1995)
+    assert circle.tie(*dads, city=chicago) == 'partners' and circle.tie(*mom_and_dad, city=chicago) == 'married'
+    assert circle.ties_text([{'name': 'Ayinde', 'how': 'partners'}]) == 'Partners with Ayinde.'
+    told = ({**dads[0], 'details': dads[0]['details'] | {'own_ties': {'s2': 'married'}}}, {**dads[1], 'seed': 's2'})
+    assert circle.tie(*told, city=chicago) == 'married'  # What the user set stays.
+    assert circle.tie(*dads, city=catalog.cities()['new-york-1925']) == 'married'  # Another era is left alone.
+    year(2016)
+    assert circle.tie(*dads, city=chicago) == 'married' and circle.tie(*dads, city=osaka) == 'partners'
