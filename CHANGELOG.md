@@ -92,7 +92,8 @@
 - **Pictures:** NovelAI; booru tags for Illustrious, NoobAI and Pony; graphics-card fit for Qwen Image, Z-Image
   and Anima; a saved model file stays pickable.
 - **Fixes:** reply versions stay chosen and rerolls work while busy; Work life projects say where they come from
-  and their due date can move.
+  and their due date can move; posts stay in the companion's own voice; same-sex parents in past years are
+  partners until they could marry.
 
 ## v1.1.9 (2026-10-28)
 
