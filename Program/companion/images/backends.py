@@ -88,6 +88,11 @@ def backend_key(database, vault, backend: dict) -> str | None:
         return key_for(connection, vault, backend)
 
 
+def is_novelai(backend: dict) -> bool:
+    """NovelAI's own image API, whose models read booru tags like the Booru family (adapters/novelai.py)."""
+    return backend['kind'] == 'hosted' and backend['provider'] == 'novelai'
+
+
 def is_local(backend: dict) -> bool:
     """F6: a ComfyUI instance on this computer is local; elsewhere only if the user marked it as a
     machine they control. Codex and hosted APIs are never local."""
@@ -161,8 +166,9 @@ def view(backend: dict, connection=None) -> dict:
             'family': family_of(config) if backend['kind'] == 'comfyui' else None,
             # The model's own opening when the backend has none (the Booru family's quality tags), and whether
             # its prompts go out as booru tags (images/tags.py).
-            'family_style': FAMILIES[family_of(config)].style if backend['kind'] == 'comfyui' else None,
-            'tag_prompts': backend['kind'] == 'comfyui' and tag_kind(config) is not None,
+            'family_style': FAMILIES[family_of(config)].style if backend['kind'] == 'comfyui' else
+            FAMILIES['booru'].style if is_novelai(backend) else None,
+            'tag_prompts': backend['kind'] == 'comfyui' and tag_kind(config) is not None or is_novelai(backend),
             'model_files': {key: config.get(key, '') for key in FAMILIES[family_of(config)].files}
             if backend['kind'] == 'comfyui' else None,
             'model_fit': config.get('unet_fit') if backend['kind'] == 'comfyui' else None,
@@ -297,7 +303,7 @@ def own_style(backend: dict) -> str | None:
     config = decode(backend['config'])
     if config.get('style'):
         return config['style']
-    if backend['kind'] == 'hosted' and backend['provider'] == 'novelai':
+    if is_novelai(backend):
         return FAMILIES['booru'].style
     return FAMILIES[family_of(config)].style if backend['kind'] == 'comfyui' else None
 

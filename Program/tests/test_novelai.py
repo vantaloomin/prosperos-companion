@@ -7,6 +7,7 @@ import zipfile
 import httpx
 import pytest
 
+from companion.images import tags
 from companion.images.adapters import novelai
 from companion.images.adapters.base import AdapterError, ImageRequest
 from companion.images.adapters.hosted import HostedAdapter
@@ -68,7 +69,8 @@ def test_a_picture_comes_out_of_the_zip_with_tag_prompts():
     assert seen[0].headers['authorization'] == f'Bearer {TOKEN}'
     assert result.data.startswith(b'\x89PNG') and result.model == 'nai-diffusion-4-5-full' and result.seed == 5
     # Booru tags, not the paragraph: one person drawn alone.
-    assert 'solo' in sent['input'] and '1girl' in sent['input'] and 'only person' not in sent['input']
+    assert sent['input'].startswith(tags.ILLUSTRIOUS) and 'solo, 1girl' in sent['input']
+    assert 'only person' not in sent['input'] and '1boy' in sent['parameters']['negative_prompt']
 
 
 def test_a_busy_account_is_waited_out(monkeypatch):
@@ -90,6 +92,12 @@ def test_failures_are_typed(response, code):
     with pytest.raises(AdapterError) as error:
         asyncio.run(HostedAdapter(server([response], [])).generate(request()))
     assert error.value.code == code
+
+
+def test_a_missing_token_is_named():
+    with pytest.raises(AdapterError) as error:
+        asyncio.run(HostedAdapter(server([], [])).generate(request(key=None)))
+    assert error.value.code == 'auth' and 'NovelAI API token' in error.value.message
 
 
 def test_no_reference_picture_is_sent():
@@ -127,6 +135,7 @@ def test_a_novelai_backend_runs_one_at_a_time_and_may_take_nsfw(client):
                           allows_nsfw=True, concurrency=3)
     assert backend['label'] == 'NovelAI' and backend['base_url'] == novelai.BASE_URL
     assert backend['concurrency'] == 1 and backend['accepts_nsfw'] and not backend['takes_reference']
-    assert 'NovelAI' in backend['disclosure']
+    assert 'NovelAI' in backend['disclosure'] and backend['tag_prompts']
+    assert backend['family_style'] == tags.ILLUSTRIOUS and backend['style'] == ''
     listed = ok(client.post('/api/images/models', json={'provider': 'novelai'}))
     assert listed['ok'] and listed['models'] == novelai.MODELS

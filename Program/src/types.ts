@@ -1040,7 +1040,7 @@ export interface ImageBackend {
   custom_workflow: boolean
   // ComfyUI: the model family whose built-in workflow runs; null for other kinds.
   family: ImageFamily | null
-  // ComfyUI: the style the model family starts prompts with while `style` is '' (Booru: its quality tags); null for none.
+  // The style the model family starts prompts with while `style` is '' (Booru and NovelAI: quality tags); null for none.
   family_style: string | null
   // Its prompts go out as booru tags (solo, 1boy, ...) rather than sentences.
   tag_prompts: boolean

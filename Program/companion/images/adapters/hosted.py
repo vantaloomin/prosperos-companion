@@ -214,7 +214,8 @@ class HostedAdapter:
 
     async def generate(self, request) -> ImageResult:
         if not request.key:
-            raise AdapterError('auth', 'Add an API key for this provider in Settings.')
+            raise AdapterError('auth', 'Add your NovelAI API token in Settings.' if request.backend['provider'] == 'novelai'
+                               else 'Add an API key for this provider in Settings.')
         config, provider = {**request.config, 'base_url': api_base(request.config['base_url'])}, request.backend['provider']
         prompt = f'{request.prompt}\nAvoid: {request.negative}' if request.negative else request.prompt
         headers = {'Authorization': f'Bearer {request.key}'}
