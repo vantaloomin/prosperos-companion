@@ -339,9 +339,12 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         why = together.reason_text(found['reason']) if found['reason'] else 'you were busy'
         return [(f"call-missed:{found['id']}", f"- The user tried to call you at {at} and you didn't pick up: {why}. "
                  'You are texting.')]
-    answered = 'declined' if found['status'] == 'declined' else "didn't pick up"
-    return [(f"call-missed:{found['id']}", f'- You tried to call the user at {at} and they {answered}. You are '
-             'texting.')]
+    # Who rang and why, said outright: told only "they declined", models read it as a call they missed themselves.
+    why = found['reason'].get('why_called') or WHY[1]
+    answered = 'They saw it ring and declined it' if found['status'] == 'declined' else 'It rang out: they did not pick up'
+    return [(f"call-missed:{found['id']}", f'- You phoned the user at {at}, because {why}. {answered}. You placed '
+             "the call: they did not call you, and you didn't miss anything. You are texting now; if they ask, tell "
+             'them why you called.')]
 
 
 def on_lines(connection, companion: dict, found: dict, now: datetime, fresh_ids: set[str]) -> list[tuple[str, str]]:
