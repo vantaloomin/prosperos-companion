@@ -25,10 +25,11 @@ export function Field({ label, hint, tip, children }: FieldProps) {
   )
 }
 
-interface TextAreaProps extends Help { label: string; value: string; onChange: (value: string) => void; onBlur?: () => void; rows?: number; maxLength?: number; placeholder?: string }
+interface TextAreaProps extends Help { label: string; value: string; onChange: (value: string) => void; onBlur?: () => void; rows?: number; maxLength?: number; placeholder?: string; grows?: boolean }
 
-export function TextArea({ label, hint, tip, value, onChange, onBlur, rows = 3, maxLength, placeholder }: TextAreaProps) {
-  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <textarea id={id} rows={rows} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />}</Field>
+/** `grows` makes it two lines tall, growing with its text (or placeholder) to about five. */
+export function TextArea({ label, hint, tip, value, onChange, onBlur, rows = 3, maxLength, placeholder, grows }: TextAreaProps) {
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <textarea id={id} rows={grows ? 2 : rows} className={grows ? 'grows' : undefined} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />}</Field>
 }
 
 interface TextInputProps extends Help { label: string; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; suggestions?: string[]; type?: string; placeholder?: string; min?: number; max?: number; step?: number }

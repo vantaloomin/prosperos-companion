@@ -275,7 +275,7 @@ function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: 
     <details>
       <summary className="subtle">Prompt style {backend.style ? '(its own)' : `(${fallback})`}</summary>
       <div className="form-stack">
-        <TextInput label="Style for this backend" value={draft ?? backend.style} maxLength={500}
+        <TextArea grows label="Style for this backend" value={draft ?? backend.style} maxLength={500}
           placeholder={backend.family_style || general || 'Candid, natural-light photograph'} hint={hint} onChange={setDraft} />
         <div className="form-actions">
           {draft !== null && <>

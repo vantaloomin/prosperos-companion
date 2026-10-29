@@ -59,6 +59,8 @@ h2 { font-size: 1.25rem; }
 svg { width: 1.1em; height: 1.1em; stroke-width: 1.6; flex-shrink: 0; }
 input, select, textarea { background: var(--canvas); border: 1px solid var(--input-border, var(--border)); border-radius: 7px; padding: 10px 12px; }
 textarea { resize: vertical; line-height: 1.6; }
+/* Two lines that grow with the text, or a wrapped placeholder, to about five (Iris). */
+textarea.grows { resize: none; field-sizing: content; min-height: calc(2lh + 22px); max-height: calc(5lh + 22px); }
 ::placeholder { color: var(--faint); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .skip-link { position: absolute; left: 8px; top: 8px; transform: translateY(calc(-100% - 16px)); z-index: 10; padding: 10px 14px; background: var(--accent); color: var(--on-accent); border-radius: 7px; }
