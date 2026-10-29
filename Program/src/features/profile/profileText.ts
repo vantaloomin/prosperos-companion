@@ -29,6 +29,11 @@ export function showsCard(view: string): boolean {
 }
 
 /** A screen name made from their name, the way a social app would show it. */
+/** Whether a profile shows an @handle: not before the 2000s, when nobody had one (Iris, 2026-10-29). */
+export function showsHandle(decade: string | null | undefined): boolean {
+  return !decade || decade >= '2000s'
+}
+
 export function handle(name: string): string {
   const base = name.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '')
   return base ? `@${base}` : ''

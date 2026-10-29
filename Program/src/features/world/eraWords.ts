@@ -41,6 +41,8 @@ export interface EraWordsView {
   /** modern, historical, fantasy or future; modern while period words are off. */
   group: string
   on: boolean
+  /** '1990s' in a modern city of a world in a past year (companion/world/decades.py); null in the present. */
+  decade?: string | null
   words: EraWords
 }
 

@@ -333,7 +333,9 @@ def test_a_townsperson_is_their_age_now_on_matchlight_and_when_they_become_a_com
     _mira, person = met_someone(client, clock)
     seeded = person['age']
     sync(client, clock)
-    clock.instant = clock.now() + timedelta(days=365 * 3 + 2)
+    # The same day three years on: three birthdays, whatever day theirs is (days=365*3+2 crossed a fourth for a
+    # birthday in its last two days, with a leap year between).
+    clock.instant = clock.now().replace(year=clock.now().year + 3)
     known = next(found for found in client.get('/api/life/townsfolk').json() if found['key'] == person['key'])
     assert known['age'] == seeded + 3
     drafted = client.get('/api/companion/cast/draft', params={'key': person['key']}).json()

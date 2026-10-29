@@ -2235,8 +2235,18 @@ export interface World {
   watching?: boolean
   /** The year it is there when the world runs in a past year (companion/world_year.py); null in the present. */
   year?: number | null
+  /** A Back when world (companion/back_when.py): the year it was made for and the companion it went back with. */
+  back_when?: { year: number; name: string; companion_id: string } | null
   /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
   home: WorldHome | null
+}
+/** One moment the Back when sheet offers (companion/back_when.py `moments`): "When you first met", 2019. `age` is the
+ * companion's age then, null when it can't be told. */
+export interface BackWhenMoment { key: string; label: string; year: number; name: string; age: number | null }
+/** The Back when sheet: the app's three moments, the years the user can pick instead, and why none, when none. */
+export interface BackWhenMoments {
+  companion_id: string; name: string; moments: BackWhenMoment[]
+  earliest: number; latest: number; available: boolean; from_history: boolean; reason: string | null
 }
 export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
 /** One of the user's own pets on their persona: their words, given a life by companion/life/pets.py. */
