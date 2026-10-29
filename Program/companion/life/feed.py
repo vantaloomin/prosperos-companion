@@ -12,7 +12,7 @@ from companion.characters import definition_for_timeline, require_current
 from companion.clock import parse, zone
 from companion.database import decode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import composer, loss, social, user_posts
+from companion.life import composer, loss, post_comments, social, user_posts
 
 REACTIONS = ('heart', 'laugh', 'wow', 'sad', 'hug')
 # A photo sent in chat waits on a post keyed to the event its slot will become (companion/images/photos.py).
@@ -202,6 +202,7 @@ def everything(connection, companion, now: str, include_hidden=False, source='al
     authors = SOURCES.get(source)
     posts = [post for post in posts + mine if (include_hidden or post['status'] == 'visible')
              and (authors is None or post['author']['kind'] in authors)]
+    post_comments.attach(connection, posts, now)
     return sorted(posts, key=lambda post: (post['occurs_at'], post['id']), reverse=True)
 
 
@@ -223,6 +224,7 @@ def shown(connection, post_id, now: str) -> dict | None:
     if post:
         post.pop('_basis', None)
         post['audience'] = {'likes': [], 'comments': []}
+        post['thread'] = {'comments': [], 'waiting': False}
     return post
 
 
@@ -269,8 +271,10 @@ def mark_read(database, post_ids=None) -> dict:
 
 def set_status(database, post_id, status) -> dict:
     """Hide is reversible. Remove clears the post's own text for good; its events stay in the
-    companion's life and the conversation, since the post never owned them."""
+    companion's life and the conversation, since the post never owned them. Its comments go with it."""
     with database.connect(write=True) as connection:
+        if status == 'removed':
+            post_comments.forget(connection, post_id)
         if row := social.find(connection, post_id):
             social.set_status(connection, row, status, database.now())
             return shown(connection, post_id, database.now())

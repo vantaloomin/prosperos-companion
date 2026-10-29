@@ -9,6 +9,7 @@ from test_openers import check, history
 from test_together import mira, notes, says, where
 from test_voice_notes import speaker  # noqa: F401 - the fake built-in voice, used as a fixture.
 
+from companion import texting
 from companion.characters import current
 from companion.life import calls, openers, pacing
 
@@ -262,6 +263,7 @@ def test_their_texting_style_stays_out_of_the_prompt_on_a_call(client, monkeypat
     assert 'How you text:' in provider.requests[-1]['system']
     clock.advance(timedelta(hours=7))
     press(client)
-    says(provider, 'Hey.')
-    send(client, 'hey you', 'client-call-style-2')
+    says(provider, "hey. i'm here")
+    reply = send(client, 'hey you', 'client-call-style-2')['reply']
     assert 'How you text:' not in provider.requests[-1]['system']
+    assert texting.OUT_LOUD in provider.requests[-1]['system'] and reply['text'] == "Hey. I'm here"

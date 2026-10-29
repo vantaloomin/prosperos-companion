@@ -176,12 +176,26 @@ def recent_events(connection, timeline_id, now, where) -> list[dict]:
 
 def news(connection, companion, now) -> list[Trigger]:
     """An open question in the companion's life that just settled."""
-    rows = recent_events(connection, companion['active_timeline_id'], now,
-                         "kind='thread' AND json_extract(details, '$.state')='settled'")
+    timeline_id = companion['active_timeline_id']
+    rows = recent_events(connection, timeline_id, now, "kind='thread' AND json_extract(details, '$.state')='settled'")
     definition = companion['version']['definition']
-    return [Trigger(f"news:{row['id']}", 'news', 'Something in your own life just turned out: '
-                    f'{composer.said(row["summary"], definition)} '
-                    'Tell the user, the way you would text a friend.', None, (row['id'],)) for row in rows]
+    result = []
+    for row in rows:
+        began = optional(connection, "SELECT summary FROM life_events WHERE timeline_id=? AND status='committed' AND idempotency_key=?",
+                         (timeline_id, decode(row['details']).get('thread_key')))
+        result.append(Trigger(f"news:{row['id']}", 'news', news_reason(
+            composer.said(began['summary'], definition) if began else None,
+            composer.said(row['summary'], definition)), None, (row['id'],)))
+    return result
+
+
+def news_reason(opening: str | None, ending: str) -> str:
+    """How it began and how it turned out, and whose it is: the user may never have heard how it began, and a chat
+    about someone else's houseplant read as the same plant ("A report, since we discussed experiments...")."""
+    began = f'It began a few days ago: {opening} ' if opening else ''
+    return (f'Something in your own life just turned out. {began}Now: {ending} This is your own news, not about '
+            'anything or anyone the user has told you about, even if the chat touched something like it. The user may '
+            'not have heard how it began, so say what it was. Tell the user, the way you would text a friend.')
 
 
 def words(text: str) -> set[str]:

@@ -838,7 +838,12 @@ export interface FeedPost {
   answer?: string | null
   image: PostImage | null
   audience: { likes: string[]; comments: FeedComment[] }
+  /** The user's comments and the poster's answers, oldest first; `waiting` while an answer is still to show. */
+  thread?: { comments: ThreadComment[]; waiting: boolean }
 }
+
+/** A comment the user left on a post (`user`) or the answer it got from whoever posted (`poster`, with their name). */
+export interface ThreadComment { id: string; author: 'user' | 'poster'; name: string | null; text: string; reply_to: string | null; at: string }
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
 
@@ -924,6 +929,10 @@ export interface CirclePerson {
   stage?: PairStage | null
   /** Where the user says the two of them start, 1 Just met to 5; unset is the app's pick. */
   start_stage?: number
+  /** Whether they and the companion know each other, or only one knows of the other (companion/life/circle.py
+   * `knowing`): 'they' know the companion, or the 'companion' knows of them. `knowing_set` when the user said so. */
+  knowing?: Knowing
+  knowing_set?: boolean
   /** What they think of you, once they have met you (companion/life/their_people.py). */
   met?: CircleMet | null
   now: RoutineBlock | null
@@ -1007,6 +1016,7 @@ export interface NetworkAnswer { person: Pick<NetworkPerson, 'key' | 'name' | 'd
 export interface Acquaintance extends Omit<NetworkPerson, 'depth' | 'met'> { occasion: string; met_on: string; met_at: string }
 
 export interface CircleTie { id: string; name: string; how: string }
+export type Knowing = 'both' | 'they' | 'companion'
 /** Whether the companion lives aboard a ship or station (companion/world/ships.py `vessel`), else null. */
 export interface CircleHome { aboard: 'ship' | 'station' | null }
 
@@ -1017,7 +1027,7 @@ export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed'
 export interface PostImage { status: ImageStatus; job_id: string | null; ref: string | null; error: string | null; updated_at: string | null; outdated?: boolean }
 
 export type BackendKind = 'comfyui' | 'codex' | 'hosted'
-export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'nanogpt' | 'other'
+export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'nanogpt' | 'novelai' | 'other'
 
 export interface ImageBackend {
   id: string
@@ -1035,6 +1045,10 @@ export interface ImageBackend {
   custom_workflow: boolean
   // ComfyUI: the model family whose built-in workflow runs; null for other kinds.
   family: ImageFamily | null
+  // The style the model family starts prompts with while `style` is '' (Booru and NovelAI: quality tags); null for none.
+  family_style: string | null
+  // Its prompts go out as booru tags (solo, 1boy, ...) rather than sentences.
+  tag_prompts: boolean
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
   // The smaller Krea 2 model file the app picked for this computer's graphics card, used while no model is chosen.

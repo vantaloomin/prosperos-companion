@@ -131,15 +131,24 @@ def test_settled_news_needs_a_model_and_is_told_once(client, connected, provider
     from companion.models import EventProposal
     with database.connect() as connection:
         timeline_id = connection.execute('SELECT active_timeline_id FROM companions').fetchone()[0]
+    began = events.propose(database, EventProposal(
+        idempotency_key='thread:test', kind='thread', summary='Mira ordered a secondhand record player and is waiting for it.',
+        details={'state': 'open', 'thread': 'parcel', 'thread_key': 'thread:test'},
+        starts_at=(clock.now() - timedelta(days=3)).isoformat(), ends_at=(clock.now() - timedelta(days=3)).isoformat(),
+        inputs={}), timeline_id)
+    events.commit(database, began['id'])
     event = events.propose(database, EventProposal(
-        idempotency_key='settled:test', kind='thread', summary="Mira's record player arrived, and it works.",
-        details={'state': 'settled', 'thread': 'parcel', 'thread_key': 'test'},
+        idempotency_key='settled:thread:test', kind='thread', summary="Mira's record player arrived, and it works.",
+        details={'state': 'settled', 'thread': 'parcel', 'thread_key': 'thread:test'},
         starts_at=(clock.now() - timedelta(hours=3)).isoformat(), ends_at=(clock.now() - timedelta(hours=2)).isoformat(),
         inputs={}), timeline_id)
     events.commit(database, event['id'])
     provider.replies = [[Chunk('My record player finally came and it WORKS.'), Chunk('', 'stop')]]
     result = check(client)
-    assert result['kind'] == 'news' and 'record player' in provider.requests[-1]['messages'][-1]['content']
+    asked = provider.requests[-1]['messages'][-1]['content']
+    assert result['kind'] == 'news' and "Mira's record player arrived" in asked
+    # How it began, and that it is their own, not something the user told them about someone else.
+    assert 'It began a few days ago: Mira ordered a secondhand record player' in asked and 'your own news' in asked
     send(client, 'Nice!', 'client-news-01')
     clock.advance(timedelta(hours=5))
     assert check(client)['state'] == 'nothing'
