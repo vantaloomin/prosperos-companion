@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { EyeOff, Eye, MessageCircle, Trash2, UserRound } from 'lucide-react'
+import { EyeOff, Eye, MessageCircle, Send, Trash2, UserRound } from 'lucide-react'
 import type { FeedPost, Reaction } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { REACTIONS } from './feedState'
@@ -15,6 +15,7 @@ export interface PostActions {
   hide: (post: FeedPost, hidden: boolean) => void
   remove: (post: FeedPost) => void
   discuss: (post: FeedPost, text: string) => Promise<boolean>
+  comment: (post: FeedPost, text: string) => Promise<boolean>
   answer: (post: FeedPost, option: string) => Promise<boolean>
   saw: (post: FeedPost) => void
   refresh: () => void
@@ -22,7 +23,7 @@ export interface PostActions {
 
 export function PostCard({ post, name, actions }: { post: FeedPost; name: string; actions: PostActions }) {
   const card = useRef<HTMLElement>(null)
-  const [discussing, setDiscussing] = useState(false)
+  const [commenting, setCommenting] = useState(false)
   const [removing, setRemoving] = useState(false)
   // Counted as read only once at least half of the post has been on screen.
   const saw = useRef(() => actions.saw(post))
@@ -42,7 +43,7 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
       <PostHeader post={post} name={name} />
       {post.intro && <p className="post-intro">{post.intro}</p>}
       <PostBody post={post} actions={actions} />
-      <Audience audience={post.audience} />
+      <Audience audience={post.audience} thread={post.thread} poster={post.author.name} />
       <div className="post-actions">
         {!own && <>
           <span className="reactions" role="group" aria-label="React">
@@ -52,12 +53,12 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
               </button>
             ))}
           </span>
-          <button type="button" className="text-button" aria-expanded={discussing} onClick={() => setDiscussing(!discussing)}><MessageCircle aria-hidden="true" />Talk about this</button>
+          <button type="button" className="text-button" aria-expanded={commenting} onClick={() => setCommenting(!commenting)}><MessageCircle aria-hidden="true" />Comment</button>
           <button type="button" className="text-button" onClick={() => actions.hide(post, !hidden)}>{hidden ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}{hidden ? 'Show' : 'Hide'}</button>
         </>}
         <button type="button" className="text-button danger-text" onClick={() => setRemoving(true)}><Trash2 aria-hidden="true" />Remove</button>
       </div>
-      {discussing && <DiscussForm post={post} name={name} discuss={actions.discuss} onDone={() => setDiscussing(false)} />}
+      {commenting && <CommentForm post={post} name={name} actions={actions} onDone={() => setCommenting(false)} />}
       {removing && (
         <ConfirmDialog title="Remove this post?" onClose={() => setRemoving(false)} actions={<>
           <button type="button" className="button" onClick={() => setRemoving(false)}>Cancel</button>
@@ -118,21 +119,33 @@ function PostAvatar({ post }: { post: FeedPost }) {
   return <span className="post-avatar" aria-hidden="true">{post.author.name.slice(0, 1).toUpperCase()}</span>
 }
 
-function DiscussForm({ post, name, discuss, onDone }: { post: FeedPost; name: string; discuss: PostActions['discuss']; onDone: () => void }) {
+/** A comment under the post, which whoever posted answers in the thread; or the same words sent to the companion in
+ * chat, as a reply to the post. Commenting comes first: it is what the box looks like it does. */
+function CommentForm({ post, name, actions, onDone }: { post: FeedPost; name: string; actions: PostActions; onDone: () => void }) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const words = useEraWords()
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
+  const first = name.trim().split(/\s+/)[0] || name
+  const send = async (how: 'comment' | 'discuss') => {
+    if (busy || !text.trim()) return
     setBusy(true)
-    if (await discuss(post, text.trim())) onDone()
+    if (await actions[how](post, text.trim())) {
+      setText('')
+      onDone()
+    }
     setBusy(false)
   }
+  const submit = (event: FormEvent) => { event.preventDefault(); void send('comment') }
   return (
     <form className="discuss-form" onSubmit={submit}>
-      <label className="visually-hidden" htmlFor={`discuss-${post.id}`}>{say(words, 'message_about', name)}</label>
-      <textarea id={`discuss-${post.id}`} rows={2} value={text} maxLength={40000} autoFocus placeholder={say(words, 'message_about', name)} onChange={(event) => setText(event.target.value)} />
-      <div className="form-actions"><button type="submit" className="button primary" disabled={busy || !text.trim()}>Send in Chat</button></div>
+      <label className="visually-hidden" htmlFor={`comment-${post.id}`}>Write a comment</label>
+      <textarea id={`comment-${post.id}`} rows={2} value={text} maxLength={1000} autoFocus placeholder="Write a comment"
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void send('comment') } }} />
+      <div className="form-actions discuss-actions">
+        <button type="submit" className="button primary" disabled={busy || !text.trim()}>Comment</button>
+        <button type="button" className="text-button" disabled={busy || !text.trim()} onClick={() => void send('discuss')}><Send aria-hidden="true" />{say(words, 'message_to', first)} instead</button>
+      </div>
     </form>
   )
 }

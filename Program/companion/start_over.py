@@ -53,7 +53,7 @@ CHARACTER = (
 # drawn from them (world_changes with origin 'real') goes with them by ON DELETE CASCADE; changes
 # the user made to a city stay.
 HISTORY = (
-    'observer_entries', 'away_recaps', 'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
+    'observer_entries', 'away_recaps', 'context_uses', 'context_observations', 'notifications', 'chat_photos', 'post_comments', 'message_social_links', 'social_posts', 'message_post_links',
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
     'circle_shares', 'birth_dates', 'closeness_jokes', 'closeness_settings', 'people_impressions', 'people_meetups', 'step_settings', 'family_wishes', 'family_journeys', 'our_family', 'proposals', 'weddings', 'big_days', 'losses', 'step_asks', 'relationship_steps', 'love_partners', 'moving_in_shares', 'moving_in', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'breakup_reaches', 'breakups', 'rough_patch_promises', 'rough_patches', 'wakes', 'calls', 'together_asks', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'planned_weeks', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',

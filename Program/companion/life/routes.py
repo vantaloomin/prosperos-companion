@@ -40,6 +40,7 @@ from companion.life import (
     parenthood,
     pets,
     pets_routes,
+    post_comments,
     reactions,
     recommendations,
     rough_patches,
@@ -118,6 +119,10 @@ class Reaction(Input):
 class Answer(Input):
     option: str = Field(min_length=1, max_length=200)
     client_id: str = Field(min_length=8, max_length=100)
+
+
+class Comment(Input):
+    text: str = Field(min_length=1, max_length=post_comments.TEXT_LIMIT)
 
 
 class OwnPost(Input):
@@ -949,6 +954,19 @@ async def discuss(request: Request, post_id: str, body: MessageCreate, wait: boo
     message = conversation.record_user(db(request), body)
     feed.link_message(db(request), message['id'], post_id)
     return await request.app.state.conversation.send(body, wait)
+
+
+@feed_router.post('/{post_id}/comments')
+async def comment(request: Request, post_id: str, body: Comment, wait: bool = False):
+    """Comment on a post; whoever posted it answers in the thread, shown once they'd have seen it
+    (companion/life/post_comments.py). Returns the post with its thread. `wait=true` returns once the answer is
+    written, for tests; otherwise it is written after this returns."""
+    found = post_comments.add(db(request), post_id, body.text)
+    if wait:
+        await post_comments.write(request.app.state, found['reply_id'])
+    else:
+        post_comments.start(request.app.state, found['reply_id'])
+    return feed.get(db(request), post_id)
 
 
 @feed_router.post('/{post_id}/answer')

@@ -2943,3 +2943,20 @@ CREATE TABLE IF NOT EXISTS politics_headlines (
   created_at TEXT NOT NULL,
   PRIMARY KEY (city_id, text)
 );
+
+-- Comments on feed posts (companion/life/post_comments.py): the user's, and the answer each one gets from whoever
+-- posted (`author` 'poster', `name` theirs). An answer is written at once ('writing' until then) and shows from
+-- `shows_at`, when the poster would have seen the comment. Gone with the post's timeline, or when the post is removed.
+CREATE TABLE IF NOT EXISTS post_comments (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  timeline_id TEXT NOT NULL,
+  author TEXT NOT NULL CHECK (author IN ('user', 'poster')),
+  name TEXT,
+  text TEXT NOT NULL,
+  reply_to TEXT,
+  status TEXT NOT NULL CHECK (status IN ('writing', 'shown')),
+  shows_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS post_comments_post ON post_comments(post_id, created_at);
