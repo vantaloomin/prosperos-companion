@@ -10,16 +10,21 @@ The clock asks the Database how far behind the world it serves runs, per world: 
 year while the user opens another (companion/database.py PINNED).
 
 Real-world lookups (weather, news, charts: companion/mcp/lookups.py) belong to the present and stay off in a past
-year. A world's year is set when it is made (`create_world`'s `year`) and then stays: moving it later would run the
-clock back past what already happened there.
+year, and the chat says the year (`context_lines`, in a modern city). A world's year is set when it is made
+(`create_world`'s `year`) and then stays: moving it later would run the clock back past what already happened there.
 """
+import json
 import sqlite3
 from datetime import date, timedelta
+from functools import cache
 from pathlib import Path
 
 from companion.clock import PRESENT
 from companion.errors import require
 
+# The year section's last line (A/B 2026-10-29, /mnt/project-files/companion-year-chat-ab/report.md): without it,
+# replies said "babe, it's 1997" to the user's FaceTime as if they knew what was coming.
+UNHEARD = 'Anything newer is unknown to you: if the user names it, you have never heard of it.'
 # Back when goes back as far as 1990 (Vanta, 2026-10-28): the 1990s, 2000s and 2010s each get their decade.
 EARLIEST = 1990
 
@@ -102,3 +107,26 @@ def view(database) -> dict:
     with database.connect() as connection:
         row = connection.execute('SELECT started_year FROM world_year WHERE id=1').fetchone()
     return {'year': world_year(database), 'started_year': row[0] if row else None, 'years_back': years_back(database)}
+
+
+@cache
+def spans() -> list[dict]:
+    path = Path(__file__).parent / 'world' / 'data' / 'keeping_in_touch.json'
+    return json.loads(path.read_text(encoding='utf-8'))['spans']
+
+
+def keeping_in_touch(year: int) -> str | None:
+    """How people keep in touch in `year` (phones, texting, the apps of the time), naming nothing from a later year."""
+    return next((span['line'] for span in spans() if span['from'] <= year <= span['to']), None)
+
+
+def context_lines(connection, local_now) -> list[tuple[str, str]]:
+    """The 'year' section of a chat in a world that runs in a past year: the month and year it is where the companion
+    lives, how people keep in touch then, and that anything newer is unheard of. Empty in the present, so nothing
+    changes in a present world's chats."""
+    if not past(connection):
+        return []
+    lines = [('year', f"It's {local_now:%B} {local_now.year}.")]
+    if touch := keeping_in_touch(local_now.year):
+        lines.append(('keeping_in_touch', touch))
+    return [*lines, ('unheard', UNHEARD)]
