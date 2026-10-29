@@ -28,6 +28,7 @@ from pathlib import Path
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
+from companion.errors import require
 from companion.life import admin, job_words, money, outings, routine, shifts
 from companion.world import catalog, generators, wording
 
@@ -58,6 +59,8 @@ HUNT_WEEKS = (3, 10)
 HUNT_PAY = {'laid-off': 0.6, 'quit': 0.3}
 NEW_JOB_PAY = (0.95, 1.12)
 PROJECT_WEEKS = (3, 8)
+# How far ahead the user can move a project's due date.
+DUE_AHEAD_DAYS = 365
 # How a project turns out: (well, fine) chances by level; the rest is rough.
 OUTCOMES = {0: (0.6, 0.3), 1: (0.65, 0.3), 2: (0.55, 0.3), 3: (0.45, 0.3)}
 OUTCOME_WORDS = {'well': 'it went well', 'fine': 'it went fine', 'rough': 'it was a rough one'}
@@ -376,22 +379,29 @@ def refreshed(connection, found: dict, career: dict | None, city: dict | None, f
     return state(connection, found['timeline_id'])
 
 
-def set_project(connection, companion: dict, title: str, now: datetime) -> dict | None:
-    """What they are working on, in the user's words, until it is due; then the next comes from the bank as before.
-    An empty title gives the app's pick back."""
-    found = ensure(connection, companion, local_today(companion, now), now)
+def set_project(connection, companion: dict, title: str | None, now: datetime, due: date | None = None) -> dict | None:
+    """What they are working on, in the user's words, and when it is due (today to a year on); then the next comes
+    from the bank as before. No title keeps it; an empty one gives the app's pick back, with the app's due date too
+    when the user had moved it."""
+    today = local_today(companion, now)
+    found = ensure(connection, companion, today, now)
     if not found:
         return None
-    project, title = found['project'], ' '.join(title.split())
-    if title:
+    require(due is None or today <= due <= today + timedelta(days=DUE_AHEAD_DAYS),
+            'Pick a due date between today and a year from now.', 422)
+    project = found['project']
+    if title is not None and (title := ' '.join(title.split())):
         project = {**project, 'title': title, 'own': True}
-    else:
+    elif title is not None:
         definition = companion['version']['definition']
         city = outings.city_data(connection, definition)
         career = career_of(definition, city)
-        project = new_project(f"work:{found['timeline_id']}:{found['career']}:own", project['index'], career, city,
-                              date.fromisoformat(project['started']), used_titles(found), field_of(definition, career))
-        project['due'] = found['project']['due']
+        fresh = new_project(f"work:{found['timeline_id']}:{found['career']}:own", project['index'], career, city,
+                            date.fromisoformat(project['started']), used_titles(found), field_of(definition, career))
+        fresh['due'] = max(fresh['due'], today.isoformat()) if project.get('own_due') else project['due']
+        project = fresh
+    if due is not None:
+        project = {**project, 'due': due.isoformat(), 'own_due': True}
     update(connection, found['timeline_id'], now, project=project)
     return state(connection, found['timeline_id'])
 
@@ -1046,4 +1056,5 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
             'events': [{'id': event['id'], 'kind': event['kind'], 'local_date': event['local_date'],
                         'text': event['text']} for event in reversed(events)][:8],
             'level': chosen, 'meter': meter, 'hours': hours, 'studying': found['kind'] == STUDY,
-            'field': found['project'].get('field', ''), 'own_project': bool(found['project'].get('own'))}
+            'field': found['project'].get('field', ''), 'own_project': bool(found['project'].get('own')),
+            'own_due': bool(found['project'].get('own_due')), 'today': today.isoformat()}

@@ -6,10 +6,14 @@
  */
 import { appNow } from './appTime.ts'
 
+/** Month and weekday names sit inside English sentences, so they are English whatever the browser's language: a
+ * French browser gave "Due jeu. 19 nov.." (Vanta). The clock keeps the PC's own 12 or 24 hours. */
+export const DATE_LOCALE = 'en-US'
+
 const CLOCK = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
-const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: 'short' })
-const DAY = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
-const DAY_YEAR = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+const WEEKDAY = new Intl.DateTimeFormat(DATE_LOCALE, { weekday: 'short' })
+const DAY = new Intl.DateTimeFormat(DATE_LOCALE, { month: 'short', day: 'numeric' })
+const DAY_YEAR = new Intl.DateTimeFormat(DATE_LOCALE, { month: 'short', day: 'numeric', year: 'numeric' })
 const EXACT = new Intl.DateTimeFormat(undefined, { dateStyle: 'full', timeStyle: 'short' })
 
 const MINUTE = 60_000
@@ -91,13 +95,13 @@ export function exactTime(value: string): string {
 }
 
 /**
- * A calendar day ("2026-11-26") in the user's own locale, like message times, without shifting it through a
- * timezone. Every date shown in the app goes through this, so they all read the same way: in en-US "Thu, Nov 26"
- * with the weekday, "Nov 26, 2026" with the year, "November 26" with the long month.
+ * A calendar day ("2026-11-26") in English (DATE_LOCALE), without shifting it through a timezone. Every date shown
+ * in the app goes through this, so they all read the same way: "Thu, Nov 26" with the weekday, "Nov 26, 2026" with
+ * the year, "November 26" with the long month.
  */
 export function calendarDay(day: string, options: { weekday?: boolean; year?: boolean; month?: 'short' | 'long' } = {}): string {
   const [year, month, date] = day.slice(0, 10).split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, date)).toLocaleDateString(undefined, {
+  return new Date(Date.UTC(year, month - 1, date)).toLocaleDateString(DATE_LOCALE, {
     weekday: options.weekday ? 'short' : undefined, month: options.month ?? 'short', day: 'numeric',
     year: options.year ? 'numeric' : undefined, timeZone: 'UTC',
   })

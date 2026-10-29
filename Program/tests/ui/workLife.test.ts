@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { meterText, projectField, timeOffText } from '../../src/features/character/workText.ts'
+import { meterText, projectChange, projectField, timeOffText, yearOn } from '../../src/features/character/workText.ts'
 
 test('time off reads as a sentence, a run of days as one stretch', () => {
   assert.equal(timeOffText([]), 'No time off booked.')
@@ -25,4 +25,13 @@ test('a student has days with no classes, not vacation', () => {
 test('what they are working on shows without its article', () => {
   assert.equal(projectField('the reading list for upper-level photography'), 'Reading list for upper-level photography')
   assert.equal(projectField('a final portfolio review in photography'), 'Final portfolio review in photography')
+})
+
+test('the project form sends only what changed, and a due date moves up to a year on', () => {
+  const view = { project: { title: "a wedding order for the miller's daughter", due: '2026-11-19' } }
+  assert.deepEqual(projectChange(view, "Wedding order for the miller's daughter", '2026-11-19'), {})
+  assert.deepEqual(projectChange(view, "Wedding order for the miller's daughter", '2026-11-26'), { due: '2026-11-26' })
+  assert.deepEqual(projectChange(view, ' A new sign for the inn ', '2026-11-19'), { title: 'A new sign for the inn' })
+  assert.equal(yearOn('2026-10-29'), '2027-10-29')
+  assert.equal(yearOn('2027-03-01'), '2028-02-29')
 })

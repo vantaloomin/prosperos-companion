@@ -2511,7 +2511,7 @@ p.breakup-line { align-items: center; }
 .kid-card .kid-form { border: 0; padding: 0; margin: 0; background: none; }
 .kid-field { display: grid; gap: 6px; min-width: 0; }
 .kid-form label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
-.kid-form .number-stepper { max-width: 280px; }
+.kid-form .number-stepper, .kid-form input[type="date"] { max-width: 280px; }
 .kid-form .kid-actions { margin-top: 4px; }
 @media (max-width: 720px) {
   .kid-card .person-actions .text-button { min-height: 44px; }
