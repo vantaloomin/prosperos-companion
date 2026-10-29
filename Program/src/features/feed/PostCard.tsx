@@ -16,6 +16,7 @@ export interface PostActions {
   remove: (post: FeedPost) => void
   discuss: (post: FeedPost, text: string) => Promise<boolean>
   comment: (post: FeedPost, text: string) => Promise<boolean>
+  openChat: () => void
   answer: (post: FeedPost, option: string) => Promise<boolean>
   saw: (post: FeedPost) => void
   refresh: () => void
@@ -24,6 +25,8 @@ export interface PostActions {
 export function PostCard({ post, name, actions }: { post: FeedPost; name: string; actions: PostActions }) {
   const card = useRef<HTMLElement>(null)
   const [commenting, setCommenting] = useState(false)
+  // The draft outlives closing the box, so closing it by mistake loses nothing.
+  const [draft, setDraft] = useState('')
   const [removing, setRemoving] = useState(false)
   // Counted as read only once at least half of the post has been on screen.
   const saw = useRef(() => actions.saw(post))
@@ -58,7 +61,7 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
         </>}
         <button type="button" className="text-button danger-text" onClick={() => setRemoving(true)}><Trash2 aria-hidden="true" />Remove</button>
       </div>
-      {commenting && <CommentForm post={post} name={name} actions={actions} onDone={() => setCommenting(false)} />}
+      {commenting && <CommentForm post={post} name={name} actions={actions} text={draft} setText={setDraft} onDone={() => setCommenting(false)} />}
       {removing && (
         <ConfirmDialog title="Remove this post?" onClose={() => setRemoving(false)} actions={<>
           <button type="button" className="button" onClick={() => setRemoving(false)}>Cancel</button>
@@ -121,13 +124,17 @@ function PostAvatar({ post }: { post: FeedPost }) {
 
 /** A comment under the post, which whoever posted answers in the thread; or the same words sent to the companion in
  * chat, as a reply to the post. Commenting comes first: it is what the box looks like it does. */
-function CommentForm({ post, name, actions, onDone }: { post: FeedPost; name: string; actions: PostActions; onDone: () => void }) {
-  const [text, setText] = useState('')
+function CommentForm({ post, name, actions, text, setText, onDone }: { post: FeedPost; name: string; actions: PostActions; text: string; setText: (text: string) => void; onDone: () => void }) {
   const [busy, setBusy] = useState(false)
   const words = useEraWords()
   const first = name.trim().split(/\s+/)[0] || name
   const send = async (how: 'comment' | 'discuss') => {
-    if (busy || !text.trim()) return
+    if (busy) return
+    if (!text.trim()) {
+      // Nothing typed: "Message … instead" just opens the chat.
+      if (how === 'discuss') actions.openChat()
+      return
+    }
     setBusy(true)
     if (await actions[how](post, text.trim())) {
       setText('')
@@ -141,10 +148,13 @@ function CommentForm({ post, name, actions, onDone }: { post: FeedPost; name: st
       <label className="visually-hidden" htmlFor={`comment-${post.id}`}>Write a comment</label>
       <textarea id={`comment-${post.id}`} rows={2} value={text} maxLength={1000} autoFocus placeholder="Write a comment"
         onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void send('comment') } }} />
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void send('comment') }
+          if (event.key === 'Escape') { event.preventDefault(); onDone() }
+        }} />
       <div className="form-actions discuss-actions">
         <button type="submit" className="button primary" disabled={busy || !text.trim()}>Comment</button>
-        <button type="button" className="text-button" disabled={busy || !text.trim()} onClick={() => void send('discuss')}><Send aria-hidden="true" />{say(words, 'message_to', first)} instead</button>
+        <button type="button" className="text-button" disabled={busy} onClick={() => void send('discuss')}><Send aria-hidden="true" />{say(words, 'message_to', first)} instead</button>
       </div>
     </form>
   )

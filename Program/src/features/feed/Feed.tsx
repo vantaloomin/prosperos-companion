@@ -63,6 +63,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
     hide: (post, hide) => void run(async () => { await api(`/feed/${post.id}/${hide ? 'hide' : 'unhide'}`, {}); await client.invalidateQueries({ queryKey: ['feed'] }) }),
     remove: (post) => void run(async () => { await api(`/feed/${post.id}/remove`, {}); await client.invalidateQueries({ queryKey: ['feed'] }) }),
     discuss: (post, text) => sendToChat(`/feed/${post.id}/discuss?wait=false`, { text, client_id: newId() }),
+    openChat: () => go('conversation'),
     comment: async (post, text) => {
       try { replace(await api<FeedPost>(`/feed/${post.id}/comments`, { text })); setError(null); return true } catch (failure) { setError(failure instanceof Error ? failure.message : 'The comment was not posted.'); return false }
     },

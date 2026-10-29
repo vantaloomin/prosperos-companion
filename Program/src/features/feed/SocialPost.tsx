@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { MapPin } from 'lucide-react'
 import type { FeedPost, ThreadComment } from '../../types'
 
@@ -47,18 +47,23 @@ export function Audience({ audience, thread, poster }: { audience: FeedPost['aud
   return (
     <div className="post-audience">
       {audience.likes.length > 0 && <p className="subtle"><span aria-hidden="true">❤️ </span>Liked by {names(audience.likes)}</p>}
-      <Comments comments={audience.comments} own={own} />
-      {thread?.waiting && <p className="subtle post-waiting">{firstName(poster)} hasn't seen your comment yet.</p>}
+      <Comments comments={audience.comments} own={own} waiting={thread?.waiting ? firstName(poster) : null} />
     </div>
   )
 }
 
-function Comments({ comments, own }: { comments: FeedPost['audience']['comments']; own: ThreadComment[] }) {
+function Comments({ comments, own, waiting }: { comments: FeedPost['audience']['comments']; own: ThreadComment[]; waiting: string | null }) {
   if (!comments.length && !own.length) return null
+  // While an answer is on its way, a quiet line sits where it will show: under the newest comment still unanswered.
+  const answered = new Set(own.map((comment) => comment.reply_to))
+  const unanswered = waiting ? [...own].reverse().find((comment) => comment.author === 'user' && !answered.has(comment.id)) : undefined
   return (
     <ul className="post-comments" aria-label="Comments">
       {comments.map((comment) => <li key={`${comment.name}-${comment.at}`}><strong>{comment.name}</strong>{comment.role && <span className="post-role"> · {comment.role}</span>} {comment.text}</li>)}
-      {own.map((comment) => <ThreadLine key={comment.id} comment={comment} />)}
+      {own.map((comment) => <Fragment key={comment.id}>
+        <ThreadLine comment={comment} />
+        {comment === unanswered && <li className="post-comment-answer post-waiting" aria-live="polite">{waiting} hasn't seen it yet.</li>}
+      </Fragment>)}
     </ul>
   )
 }
