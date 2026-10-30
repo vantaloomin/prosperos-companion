@@ -8,7 +8,7 @@ from conftest import reconcile, send, set_life
 
 from companion.characters import require_current
 from companion.database import decode
-from companion.life import admin, body, composer, work
+from companion.life import admin, body, composer, outings, work
 from companion.providers.chat import Chunk
 from companion.world import catalog, wording
 
@@ -93,6 +93,59 @@ def test_projects_fit_the_career_and_stay_in_their_world():
     titles = {work.new_project('seed', index, careers['office-clerk'], baltimore, date(2026, 10, 5), [])['title']
               for index in range(80)}
     assert not any(word in title for title in titles for word in ('catalogue', 'organis', ' rota', 'lorry'))
+
+
+def test_a_project_tied_to_a_time_of_year_is_only_picked_when_it_is_due_then():
+    """No midsummer festival rush due at the end of October, no Christmas window in May."""
+    bank = {item['title']: item for items in work.data()['projects'].values() for item in items}
+    assert bank['the midsummer festival rush']['months'] == [5, 6, 7]
+    assert all(set(item.get('months', [])) <= set(range(1, 13)) for item in bank.values())
+    camelot = catalog.city('camelot')
+    for start in (date(2026, 10, 12), date(2027, 5, 3)):
+        for career in (None, *catalog.careers_for(camelot).values()):
+            for index in range(12):
+                project = work.new_project('seed', index, career, camelot, start, [])
+                months = bank.get(project['title'], {}).get('months')
+                assert not months or date.fromisoformat(project['due']).month in months, project
+    assert 'the midsummer festival rush' in work.projects('general', 'old', month=6)
+    assert 'the midsummer festival rush' not in work.projects('general', 'old', month=10)
+
+
+def test_a_pit_boss_the_city_has_no_career_for_runs_fight_projects():
+    """Sett runs the fighting pits: the words of who he is give him bouts and challengers, not guild orders."""
+    camelot = catalog.city('camelot')
+    sett = {'identity': 'Sett is the Boss: the man who runs the underground fighting pits of Navori.'}
+    career = work.job_of(sett, camelot)
+    assert career and career['id'] == '' and work.kind_of(career) == 'service'
+    ring = {item['title'] for item in work.data()['projects']['service'] if 'ring' in (item.get('fits') or ())}
+    found = work.titles(career, camelot, '', 10)
+    assert len(found) >= work.MIN_OPTIONS and set(found) <= ring
+    assert work.job_of({'identity': 'A night owl who loves boxing on TV.'}, camelot) is None
+    for era in ('modern', 'jazz-age', 'industrial', 'old'):
+        assert len(work.projects('service', era, frozenset({'ring'}), month=10)) >= work.MIN_OPTIONS, era
+
+
+def test_a_running_project_out_of_season_is_replaced_unless_the_user_set_its_date(client, nell):
+    reconcile(client)
+    view = client.get('/api/life/work').json()['work']
+    due = date.fromisoformat(view['project']['due'])
+    bank = {item['title']: item for items in work.data()['projects'].values() for item in items}
+    with connect(client, write=False) as connection:
+        definition = require_current(connection)['version']['definition']
+        city = outings.city_data(connection, definition)
+        career = work.job_of(definition, city)
+        stale = next(title for month in range(1, 13) for title in work.titles(career, city, '', month)
+                     if due.month not in bank.get(title, {}).get('months', [due.month]))
+    with connect(client) as connection:
+        connection.execute("UPDATE work_life SET project=json_set(project, '$.title', ?) WHERE timeline_id=?",
+                           (stale, nell['active_timeline_id']))
+    fresh = client.get('/api/life/work').json()['work']['project']
+    assert fresh['title'] != stale
+    assert work.in_season(bank.get(fresh['title'], {}), date.fromisoformat(fresh['due']).month)
+    with connect(client) as connection:
+        connection.execute("UPDATE work_life SET project=json_set(project, '$.title', ?, '$.own_due', json('true')) "
+                           'WHERE timeline_id=?', (stale, nell['active_timeline_id']))
+    assert client.get('/api/life/work').json()['work']['project']['title'] == stale
 
 
 def test_a_late_night_follows_the_work_day_and_skips_days_without_free_time():
