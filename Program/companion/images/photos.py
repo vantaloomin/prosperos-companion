@@ -51,6 +51,12 @@ VIEW = re.compile(r"\b(?:pic|picture|photo|show me)\b.{0,20}\b(?:the view|your v
                   r"(?:ing)?|where you are|around you)\b", re.IGNORECASE)
 MEME = re.compile(r"\bmemes?\b|\bgifs?\b|\bmake me (?:laugh|smile)\b|\bcheer me up\b|\bi need a laugh\b",
                   re.IGNORECASE)
+# Asking after a picture that never came ("where is the photo? I didn't receive it") asks for one now, even one
+# promised last night: the reply then sends one, so "resending now" is true.
+MISSING = re.compile(r"\b(?:where(?:'?s| is| are)|didn'?t (?:get|receive|recieve|see)|never (?:got|received|saw)|"
+                     r"(?:still )?waiting (?:on|for)) (?:the |that |your |ur |a |any )?(?:pic|picture|photo|selfie|snap)s?\b"
+                     r"|\b(?:pic|picture|photo|selfie|snap)s? (?:never|didn'?t) (?:came|come|arrived?|show(?:ed)? up|load(?:ed)?)\b",
+                     re.IGNORECASE)
 # Asking about another time is not asking what they are doing now.
 ELSEWHEN = re.compile(r"\b(?:tomorrow|tonight|later|yesterday|last (?:night|week|weekend)|earlier|next|this "
                       r"(?:weekend|evening|afternoon)|on (?:mon|tues|wednes|thurs|fri|satur|sun)day|been up to)\b",
@@ -89,6 +95,8 @@ def asked_kind(text: str) -> str | None:
     text = text or ''
     if MEME.search(text):
         return 'gif' if gifs.GIF_ASK.search(text) else 'meme'
+    if MISSING.search(text):
+        return 'selfie' if SELFIE.search(text) else 'moment'
     if ELSEWHEN.search(text):
         return None
     if SELFIE.search(text):
