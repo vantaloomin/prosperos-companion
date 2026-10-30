@@ -186,3 +186,49 @@ def test_a_model_guess_the_rules_already_kept_is_not_saved_twice(client, app, co
     run(client, app)
     dogs = [item for item in client.get('/api/memories').json() if item['subject'] == 'Dog']
     assert [item['value'] for item in dogs] == ['Pepper']
+
+
+BATS = 'we were out on the porch watching bats tonight, bats eat mosquitoes and flies and they live in the attic'
+
+
+def test_small_talk_about_animals_is_not_saved_as_someone(client, app, connected, provider):
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': "Bats' diet",
+                                     'value': 'eat mosquitoes and flies'},
+                                    {'message': 1, 'layer': 'user_fact', 'subject': "Bats' home",
+                                     'value': 'live in the attic'}])
+    send(client, BATS, 'model-0001')
+    run(client, app)
+    assert client.get('/api/memories').json() == []
+
+
+def test_people_in_the_users_life_are_still_saved(client, app, connected, provider):
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': "Mom's garden",
+                                     'value': 'grows tomatoes every summer'},
+                                    {'message': 2, 'layer': 'user_fact', 'subject': "Jo's hobby",
+                                     'value': 'climbs at the gym on weekends'}])
+    send(client, 'my mom grows tomatoes every summer and gives half of them away', 'model-0001')
+    send(client, 'Jo climbs at the gym on weekends and keeps asking me to come', 'model-0002')
+    run(client, app)
+    assert sorted(memory['subject'] for memory in client.get('/api/memories').json()) == ["Jo's hobby", "Mom's garden"]
+
+
+def test_strays_saved_by_an_earlier_prompt_are_tidied_away(client, app, connected, provider, monkeypatch):
+    from companion.memory import owners, suggest
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': "Bats' diet",
+                                     'value': 'eat mosquitoes and flies'},
+                                    {'message': 1, 'layer': 'user_fact', 'subject': 'Porch',
+                                     'value': 'watching bats tonight'}])
+    monkeypatch.setattr(owners, 'belongs', lambda *args: True)
+    send(client, BATS, 'model-0001')
+    run(client, app)
+    monkeypatch.undo()
+    database = app.state.database
+    with database.connect(write=True) as connection:
+        connection.execute("UPDATE memory_candidates SET rule='memory-suggest-4' WHERE source='model'")
+    assert len(client.get('/api/memories').json()) == 2
+    assert suggest.tidy(database) == 1
+    assert [memory['subject'] for memory in client.get('/api/memories').json()] == ['Porch']
+    assert suggest.tidy(database) == 0

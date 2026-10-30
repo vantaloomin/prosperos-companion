@@ -89,9 +89,11 @@ class MemoryWorker:
                                           lambda config: key_for(self.vault, config))
 
     async def consolidate(self):
-        """At most once per CONSOLIDATE_SECONDS, and only while automatic memory is on (M11)."""
+        """At most once per CONSOLIDATE_SECONDS: strays from earlier memory prompts go, then, only while automatic memory
+        is on, summaries and merges (M11)."""
         if time.monotonic() - self.consolidated_at < CONSOLIDATE_SECONDS:
             return
+        await asyncio.to_thread(model_suggestions.tidy, self.database)
         with self.database.connect() as connection:
             if not settings(connection)['automatic_memory']:
                 return
