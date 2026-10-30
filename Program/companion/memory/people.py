@@ -18,7 +18,7 @@ from companion.database import bump_memory_revision, decode, identifier, many, o
 from companion.errors import require
 from companion.memory import people_rules, records
 
-TOPIC_ORDER = ('work', 'home_city', 'age', 'birthday', 'studies', 'has', 'likes', 'dislikes', 'news')
+TOPIC_ORDER = ('about', 'work', 'home_city', 'age', 'birthday', 'studies', 'has', 'likes', 'dislikes', 'news')
 # How often a question may be offered, and which news is worth asking about.
 ASK_GAP_REPLIES = 8
 ASK_GAP = timedelta(hours=6)
@@ -134,7 +134,8 @@ def touch(connection, companion_id, text, timestamp):
 
 def view(person, memories) -> dict:
     mine = [memory for memory in memories if memory.get('person_id') == person['id']]
-    return {**person, 'label': label(person), 'memory_ids': [memory['id'] for memory in mine]}
+    return {**person, 'label': label(person), 'pet': person['relation'] in people_rules.PETS,
+            'memory_ids': [memory['id'] for memory in mine]}
 
 
 def listing(database) -> list[dict]:
@@ -159,6 +160,23 @@ def add(database, body) -> dict:
                        'topic': 'who'}, person)
         records.insert(connection, companion, fields, now=timestamp)
         return view(person, many(connection, 'SELECT id, person_id FROM memories WHERE person_id=?', (person['id'],)))
+
+
+def add_fact(database, person_id, body) -> dict:
+    """Something the user tells the app about someone directly, kept as a memory like any other: a new work, home,
+    age or birthday replaces the old one, which stays as history."""
+    with database.connect(write=True) as connection:
+        person = one(connection, 'SELECT * FROM user_people WHERE id=?', (person_id,))
+        companion = one(connection, 'SELECT * FROM companions WHERE id=?', (person['companion_id'],))
+        value = body.value.strip()
+        require(value, 'Write what you know about them.', 422)
+        require(body.topic in people_rules.TOPIC_LABELS and body.topic != 'who', 'Pick what it is about.', 422)
+        timestamp = database.now()
+        fields = bind({'layer': 'user_fact', 'subject': '', 'value': value, 'topic': body.topic}, person)
+        memory, _created = records.insert(connection, companion, fields, now=timestamp)
+        connection.execute('UPDATE user_people SET last_mentioned_at=?, updated_at=? WHERE id=?',
+                           (timestamp, timestamp, person_id))
+        return memory
 
 
 def update(database, person_id, body) -> dict:
