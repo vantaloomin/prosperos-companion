@@ -70,9 +70,10 @@ def blocked(connection, message) -> str | None:
 
 
 def update_plan(connection, companion, fields, timestamp) -> dict | None:
-    """"My interview got postponed" changes the open plan it names; with none, nothing is invented."""
+    """"My interview got postponed" changes the open plan it names, or one that closed on its own (the user's word
+    beats the guess); with none, nothing is invented."""
     plans = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer='plan' "
-                 "AND plan_status IN ('proposed','agreed','postponed') ORDER BY stated_at DESC", (companion['id'],))
+                 "AND (plan_status IN ('proposed','agreed','postponed') OR settled_from IS NOT NULL) ORDER BY stated_at DESC", (companion['id'],))
     target = fields['target']
     plan = next((row for row in plans if target == row['subject_key'] or target in row['value'].casefold()), None)
     if plan is None:

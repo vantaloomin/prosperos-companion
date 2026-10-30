@@ -146,6 +146,23 @@ def test_adding_someone_by_hand(client, connected):
     assert client.post('/api/people', json={}).status_code == 422
 
 
+def test_telling_more_about_someone_by_hand(client, connected):
+    person = client.post('/api/people', json={'name': 'Kitty', 'relation': 'cat'}).json()
+    assert person['pet'] is True
+    facts = f"/api/people/{person['id']}/facts"
+    note = client.post(facts, json={'value': 'Ginger, sleeps on the radiator all day'}).json()
+    assert (note['subject'], note['person_id']) == ('Kitty: About them', person['id'])
+    client.post(facts, json={'topic': 'age', 'value': '3'})
+    client.post(facts, json={'topic': 'age', 'value': '4'})
+    assert len(client.get('/api/people').json()[0]['memory_ids']) == 4, 'the old age stays as history'
+    ages = [item['value'] for item in client.get('/api/memories').json() if item['subject'] == 'Kitty: Age'
+            and item['current']]
+    assert ages == ['4']
+    assert "- Kitty (the user's cat): about them: Ginger, sleeps on the radiator all day; age: 4" in people_section(client)
+    assert client.post(facts, json={'value': '  '}).status_code == 422
+    assert client.post(facts, json={'topic': 'who', 'value': 'Tom'}).status_code == 422
+
+
 def test_a_follow_up_question_is_offered_rarely_and_once(client, connected, clock, provider):
     enable(client)
     say(client, 'My sister Jo just got engaged.')

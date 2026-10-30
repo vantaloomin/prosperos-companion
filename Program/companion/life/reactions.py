@@ -131,11 +131,12 @@ def local_start(day: date, timezone):
 
 
 def agreed_plans(connection, companion: dict, day: date) -> list[dict]:
-    """Agreed plans with the user set for that day, with a sure date; not one only an old chat mentioned."""
+    """Agreed plans with the user set for that day, with a sure date; not one only an old chat mentioned. One that
+    closed on its own once its day passed (companion/memory/plans.py) still counts."""
     history = from_old_chats(connection, companion['active_timeline_id'])
     return [row for row in many(
         connection, "SELECT id, subject, value FROM memories WHERE timeline_id=? AND status='active' AND layer='plan' "
-        "AND plan_status='agreed' AND dates_uncertain=0 AND substr(applies_from, 1, 10)=?",
+        "AND (plan_status='agreed' OR settled_from='agreed') AND dates_uncertain=0 AND substr(applies_from, 1, 10)=?",
         (companion['active_timeline_id'], day.isoformat())) if row['id'] not in history]
 
 

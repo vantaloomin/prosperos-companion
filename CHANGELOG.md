@@ -76,6 +76,16 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.2.1 (2026-10-30)
+
+- **People in your life:** each person has Tell more (a note or a topic like work, age or likes) and one card
+  with what's known about them, plus Edit details, Rename and Forget.
+- **Plans close on their own:** past plans, and undated ones not mentioned for two weeks, are taken as done and
+  fold under Done and cancelled; Assumed done offers It happened, It didn't happen and It moved.
+- **Work projects:** seasonal projects only when due; a job the city doesn't list is read from who they are.
+- **Fixes:** no claimed photos that never come, and asking for one sends it; small talk about the world is no
+  longer saved as memories, and older strays are cleared.
+
 ## v1.2.0 "The Dark Backward" (2026-10-29)
 
 - **Back when:** go back with a companion to a year in the past, back to 1990, from a new section on the Character

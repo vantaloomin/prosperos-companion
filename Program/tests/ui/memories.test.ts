@@ -16,6 +16,22 @@ test('memories group by layer in display order with pinned first and history apa
   assert.deepEqual(groups[0].history.map((item) => item.id), ['old'])
 })
 
+test('finished plans fold away under the open ones, newest first', () => {
+  const plan = (id: string, plan_status: Memory['plan_status'], updated_at = '2026-10-05T12:00:00Z') => memory(id, { layer: 'plan', plan_status, updated_at })
+  const [group] = groupMemories([plan('open', 'agreed'), plan('done', 'completed', '2026-10-02T00:00:00Z'), plan('off', 'cancelled', '2026-10-04T00:00:00Z')])
+  assert.deepEqual(group.current.map((item) => item.id), ['open'])
+  assert.deepEqual(group.finished.map((item) => item.id), ['off', 'done'])
+  assert.deepEqual(groupMemories([plan('done', 'completed')]).map((item) => item.finished.length), [1])
+})
+
+test('a plan that closed on its own says so and asks to be put right', () => {
+  const now = new Date('2026-10-05T12:00:00Z')
+  const settled = memory('trip', { layer: 'plan', plan_status: 'completed', settled_from: 'agreed', applies_from: '2026-10-01T00:00:00Z' })
+  assert.equal(followUp(settled, now), 'settled')
+  assert.deepEqual(statusLabels(settled), ['Assumed done'])
+  assert.equal(followUp({ ...settled, plan_status: 'cancelled' }, now), null)
+})
+
 test('shared moments list newest first by when they happened, pinned ones in their place', () => {
   const moment = (id: string, day: string, extra: Partial<Memory> = {}) => memory(id, { layer: 'shared_experience', stated_at: `${day}T23:00:00Z`, ...extra })
   const groups = groupMemories([moment('wedding', '2026-06-12', { pinned: true }), moment('march', '2026-03-07'), moment('may', '2026-05-16', { pinned: true }),

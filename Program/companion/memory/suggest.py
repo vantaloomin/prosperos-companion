@@ -15,16 +15,16 @@ import json
 import re
 
 from companion import prompt_library
-from companion.characters import for_timeline
+from companion.characters import by_id, for_timeline
 from companion.database import encode, identifier, many, one, optional, settings
-from companion.memory import corrections, formation
+from companion.memory import corrections, formation, owners, records
 from companion.memory.extraction import SINGLE_VALUED, Candidate, sentences, subject_key
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
 from companion.text_models import config_for
 
-PROMPT_VERSION = 'memory-suggest-4'
+PROMPT_VERSION = 'memory-suggest-5'
 BATCH = 8
 MIN_WORDS = 6
 NAMED = re.compile(r"\b[A-Z][a-z']+")
@@ -46,6 +46,10 @@ RULES = (
     '- Leave out questions, hypotheticals, jokes, roleplay, quotes of other people, moments that will not matter '
     'tomorrow ("my dog is snoring"), someone the message does not name ("she\'s a lawyer"), facts listed under a '
     'message\'s "already_saved", and anything you would have to guess.\n'
+    '- Leave out small talk about the world: general knowledge, trivia and things in general ("bats eat '
+    'mosquitoes", "owls hunt at night") are not facts about the user.\n'
+    '- A kind of animal or thing ("bats", "the neighbour\'s dogs") is never a name: only use a "subject" like '
+    '"Pepper\'s breed" when the message names Pepper as the user\'s own person or pet.\n'
     '- A message may list "known": what is already remembered. When the message says one of those is wrong or no '
     'longer true, add "corrects": that subject exactly as listed, with the corrected fact as the value.\n'
     'Examples:\n'
@@ -55,6 +59,8 @@ RULES = (
     '"Towson"}]\n'
     '"I don\'t garden anymore" with "known": ["Hobby: gardening"] gives [{"message": 1, "layer": "user_fact", '
     '"subject": "Hobby", "value": "no longer gardens", "corrects": "Hobby"}]\n'
+    '"bats eat mosquitoes and flies, my sister Ana is scared of bats" gives [{"message": 1, "layer": "user_fact", '
+    '"subject": "Ana\'s fears", "value": "scared of bats"}]\n'
     '"my dog is snoring lol" gives []'
 )
 
@@ -65,6 +71,15 @@ class SuggestionsInvalid(Exception):
 
 def owner_id(connection, message) -> str:
     return one(connection, 'SELECT companion_id FROM timelines WHERE id=?', (message['timeline_id'],))['companion_id']
+
+
+def names(connection, companion_id) -> list[str]:
+    """The people the app already knows by name: the user's people and the companion, whose facts an answer may
+    name ("Jo's job", "Sett's gift")."""
+    known = [row['name'] for row in many(connection, 'SELECT name FROM user_people WHERE companion_id=? AND name IS '
+                                         'NOT NULL', (companion_id,))]
+    companion = by_id(connection, companion_id)
+    return known + ([companion['version']['definition'].get('name') or ''] if companion else [])
 
 
 def pending(connection, limit=BATCH) -> list[dict]:
@@ -139,6 +154,8 @@ def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
         return None
     message = batch[index - 1]
     if not supported(value, message['text']) or not sentences(message['text']):
+        return None
+    if not owners.belongs(subject, message['text'], message.get('names') or ()):
         return None
     corrected = None
     if item.get('corrects') is not None:
@@ -291,9 +308,9 @@ async def suggest(database, provider, scheduler, vault_key) -> int:
         skipped = [message for message in batch if not eligible(message)]
         mark(connection, skipped, 'skipped')
         now = database.now()
-        batch = [{**message, 'known': corrections.relevant(connection, owner_id(connection, message), message['text'],
-                                                          now)}
-                 for message in batch if eligible(message)]
+        batch = [{**message, 'known': corrections.relevant(connection, owner, message['text'], now),
+                  'names': names(connection, owner)}
+                 for message in batch if eligible(message) for owner in (owner_id(connection, message),)]
         revision = row['permission_revision']
         rules = prompt_library.text(connection, 'memory-suggestions')
     if not batch:
@@ -306,3 +323,28 @@ async def suggest(database, provider, scheduler, vault_key) -> int:
         return len(batch) + len(skipped)
     record(database, batch, items, revision)
     return len(batch) + len(skipped)
+
+
+def strays(connection) -> list[str]:
+    """Memories an older prompt saved automatically about someone the message never showed is in the user's life
+    ("Bats' diet: eat mosquitoes and flies"); the user did not make them, so they go."""
+    rows = many(connection, "SELECT memories.id, memories.subject, memories.companion_id, messages.text FROM memories "
+                'JOIN memory_candidates ON memory_candidates.memory_id=memories.id '
+                'JOIN messages ON messages.id=memory_candidates.message_id '
+                "WHERE memories.origin='automatic' AND memories.status IN ('active','excluded') AND memories.pinned=0 "
+                "AND memory_candidates.source='model' AND memory_candidates.rule<>?",
+                (PROMPT_VERSION,))
+    known = {}
+    return sorted({row['id'] for row in rows if not owners.belongs(row['subject'], row['text'], known.setdefault(
+        row['companion_id'], names(connection, row['companion_id'])))})
+
+
+def tidy(database) -> int:
+    """Remove the strays left by earlier prompts. Returns how many went."""
+    with database.connect() as connection:
+        found = strays(connection)
+    gone = set()
+    for memory_id in found:
+        if memory_id not in gone:  # Deleting one memory takes its other versions with it.
+            gone.update(records.delete(database, memory_id)['deleted_memory_ids'])
+    return len(found)
