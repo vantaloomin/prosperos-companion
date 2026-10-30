@@ -355,6 +355,11 @@
     ],
     "fits": [
      "finance"
+    ],
+    "months": [
+     11,
+     12,
+     1
     ]
    },
    {
@@ -373,6 +378,11 @@
     ],
     "fits": [
      "marketing"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -426,6 +436,11 @@
     "fits": [
      "finance",
      "clerical"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -517,6 +532,10 @@
     ],
     "fits": [
      "finance"
+    ],
+    "months": [
+     10,
+     11
     ]
    },
    {
@@ -562,6 +581,11 @@
     ],
     "fits": [
      "marketing"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -655,6 +679,12 @@
     ],
     "fits": [
      "insurance"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -728,6 +758,12 @@
     ],
     "fits": [
      "property"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -800,6 +836,11 @@
     ],
     "fits": [
      "finance"
+    ],
+    "months": [
+     11,
+     12,
+     1
     ]
    },
    {
@@ -818,6 +859,12 @@
     ],
     "fits": [
      "marketing"
+    ],
+    "months": [
+     8,
+     9,
+     10,
+     11
     ]
    },
    {
@@ -963,6 +1010,12 @@
     ],
     "fits": [
      "marketing"
+    ],
+    "months": [
+     12,
+     1,
+     2,
+     3
     ]
    },
    {
@@ -991,6 +1044,11 @@
     "fits": [
      "finance",
      "marketing"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -1019,6 +1077,12 @@
     "fits": [
      "finance",
      "trade"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     12
     ]
    },
    {
@@ -1058,6 +1122,11 @@
     "fits": [
      "legal",
      "clerical"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -1217,6 +1286,11 @@
     ],
     "fits": [
      "finance"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -1237,6 +1311,12 @@
     ],
     "fits": [
      "finance"
+    ],
+    "months": [
+     8,
+     9,
+     10,
+     11
     ]
    },
    {
@@ -1257,6 +1337,11 @@
     "fits": [
      "legal",
      "clerical"
+    ],
+    "months": [
+     5,
+     6,
+     7
     ]
    },
    {
@@ -1320,7 +1405,12 @@
     "fits": [
      "clerical"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     9,
+     10,
+     11
+    ]
    },
    {
     "title": "the toll accounts for the harbour gate",
@@ -1387,6 +1477,12 @@
     "fits": [
      "finance",
      "trade"
+    ],
+    "months": [
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
@@ -1396,6 +1492,11 @@
     ],
     "fits": [
      "property"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -1417,6 +1518,11 @@
      "finance",
      "legal",
      "clerical"
+    ],
+    "months": [
+     5,
+     6,
+     7
     ]
    },
    {
@@ -1790,6 +1896,11 @@
     ],
     "fits": [
      "software"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -2026,6 +2137,11 @@
     ],
     "fits": [
      "radio"
+    ],
+    "months": [
+     1,
+     2,
+     3
     ]
    },
    {
@@ -2234,6 +2350,11 @@
     ],
     "fits": [
      "science"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -2448,6 +2569,11 @@
     ],
     "fits": [
      "science"
+    ],
+    "months": [
+     7,
+     8,
+     9
     ]
    },
    {
@@ -2486,6 +2612,11 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -2495,6 +2626,12 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     8,
+     9,
+     10,
+     11
     ]
    },
    {
@@ -2541,6 +2678,12 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -2720,6 +2863,12 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -2856,6 +3005,12 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
@@ -2911,6 +3066,11 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -2956,6 +3116,13 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     11,
+     12,
+     1,
+     2,
+     3
     ]
    },
    {
@@ -2965,6 +3132,12 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -2999,6 +3172,12 @@
     "fits": [
      "social",
      "church"
+    ],
+    "months": [
+     10,
+     11,
+     12,
+     1
     ]
    },
    {
@@ -3044,6 +3223,11 @@
     ],
     "fits": [
      "church"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -3106,6 +3290,11 @@
     "fits": [
      "clinical",
      "pharmacy"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -3180,6 +3369,12 @@
     "fits": [
      "social",
      "church"
+    ],
+    "months": [
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
@@ -3302,6 +3497,11 @@
      "clinical",
      "pharmacy",
      "church"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -3322,6 +3522,11 @@
     "fits": [
      "clinical",
      "church"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -3362,6 +3567,12 @@
     "fits": [
      "social",
      "church"
+    ],
+    "months": [
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
@@ -3381,6 +3592,11 @@
     ],
     "fits": [
      "clinical"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -3438,6 +3654,12 @@
     ],
     "fits": [
      "church"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -3491,6 +3713,12 @@
     "fits": [
      "clinical",
      "pharmacy"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     12
     ]
    },
    {
@@ -3522,6 +3750,11 @@
     "fits": [
      "school",
      "academic"
+    ],
+    "months": [
+     6,
+     7,
+     8
     ]
    },
    {
@@ -3549,6 +3782,12 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -3621,6 +3860,11 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     4,
+     5,
+     6
     ]
    },
    {
@@ -3657,6 +3901,12 @@
     ],
     "fits": [
      "library"
+    ],
+    "months": [
+     7,
+     8,
+     9,
+     10
     ]
    },
    {
@@ -3702,6 +3952,12 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -3720,6 +3976,13 @@
     ],
     "fits": [
      "library"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -3909,6 +4172,12 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -3918,6 +4187,10 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     11,
+     12
     ]
    },
    {
@@ -3963,6 +4236,12 @@
     ],
     "fits": [
      "academic"
+    ],
+    "months": [
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -3981,6 +4260,12 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     12
     ]
    },
    {
@@ -4089,6 +4374,11 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -4125,6 +4415,12 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -4134,6 +4430,12 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -4152,6 +4454,12 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     12,
+     1,
+     2,
+     3
     ]
    },
    {
@@ -4161,6 +4469,11 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -4215,6 +4528,11 @@
     ],
     "fits": [
      "academic"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -4297,6 +4615,12 @@
     ],
     "fits": [
      "academic"
+    ],
+    "months": [
+     8,
+     9,
+     10,
+     11
     ]
    },
    {
@@ -4411,6 +4735,12 @@
     ],
     "cities": [
      "emerald-city"
+    ],
+    "months": [
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -4439,6 +4769,11 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -4466,6 +4801,11 @@
     ],
     "fits": [
      "school"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -4523,6 +4863,12 @@
     ],
     "fits": [
      "academic"
+    ],
+    "months": [
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
@@ -4565,6 +4911,11 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -4602,6 +4953,12 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7
     ]
    },
    {
@@ -4611,6 +4968,11 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -4620,6 +4982,11 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     6,
+     7,
+     8
     ]
    },
    {
@@ -4629,6 +4996,10 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     9,
+     10
     ]
    },
    {
@@ -4647,6 +5018,10 @@
     ],
     "fits": [
      "leisure"
+    ],
+    "months": [
+     6,
+     7
     ]
    },
    {
@@ -4665,6 +5040,10 @@
     ],
     "fits": [
      "leisure"
+    ],
+    "months": [
+     7,
+     8
     ]
    },
    {
@@ -4732,6 +5111,11 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -4750,6 +5134,11 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     11,
+     12,
+     1
     ]
    },
    {
@@ -4788,6 +5177,11 @@
     ],
     "fits": [
      "leisure"
+    ],
+    "months": [
+     12,
+     1,
+     2
     ]
    },
    {
@@ -4806,6 +5200,12 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -4833,6 +5233,13 @@
     ],
     "fits": [
      "leisure"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -4870,6 +5277,15 @@
     ],
     "fits": [
      "hospitality"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -4898,6 +5314,14 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -4962,6 +5386,12 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -4971,6 +5401,11 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -4990,6 +5425,10 @@
     "fits": [
      "food",
      "hospitality"
+    ],
+    "months": [
+     11,
+     12
     ]
    },
    {
@@ -5009,6 +5448,11 @@
     "fits": [
      "food",
      "hospitality"
+    ],
+    "months": [
+     4,
+     5,
+     6
     ]
    },
    {
@@ -5028,6 +5472,11 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -5092,6 +5541,11 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -5102,6 +5556,12 @@
     "fits": [
      "hospitality",
      "leisure"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -5121,6 +5581,11 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -5141,6 +5606,11 @@
     "fits": [
      "hospitality",
      "household"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -5215,6 +5685,10 @@
     "fits": [
      "food",
      "hospitality"
+    ],
+    "months": [
+     11,
+     12
     ]
    },
    {
@@ -5252,6 +5726,11 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -5270,6 +5749,12 @@
     ],
     "fits": [
      "hospitality"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -5279,6 +5764,11 @@
     ],
     "fits": [
      "household"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -5297,6 +5787,13 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     10,
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
@@ -5306,6 +5803,12 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     8,
+     9,
+     10,
+     11
     ]
    },
    {
@@ -5342,6 +5845,12 @@
     ],
     "fits": [
      "household"
+    ],
+    "months": [
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -5388,6 +5897,10 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     9,
+     10
     ]
    },
    {
@@ -5406,6 +5919,12 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -5417,7 +5936,12 @@
      "food",
      "household"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     5,
+     6,
+     7
+    ]
    },
    {
     "title": "the inn's new ale for the harvest fair",
@@ -5426,6 +5950,11 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -5435,6 +5964,11 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -5444,6 +5978,11 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -5484,6 +6023,10 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     7,
+     8
     ]
    },
    {
@@ -5494,6 +6037,14 @@
     "fits": [
      "food",
      "hospitality"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -5517,7 +6068,12 @@
     "fits": [
      "household"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     9,
+     10,
+     11
+    ]
    },
    {
     "title": "the new stall rents for the cloth fair",
@@ -5560,7 +6116,12 @@
     "fits": [
      "household"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     4,
+     5,
+     6
+    ]
    },
    {
     "title": "the cookshop's new pies for pilgrims on the road",
@@ -5579,6 +6140,11 @@
     ],
     "fits": [
      "food"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -5615,6 +6181,11 @@
     ],
     "fits": [
      "retail"
+    ],
+    "months": [
+     12,
+     1,
+     2
     ]
    },
    {
@@ -5626,6 +6197,306 @@
      "household"
     ],
     "monarchy": true
+   },
+   {
+    "title": "the challengers' ladder for the season's bouts",
+    "eras": [
+     "old"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "training a new crop of young fighters",
+    "eras": [
+     "old"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "a grudge rematch half the town is betting on",
+    "eras": [
+     "old"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "redoing the odds board after a run of upsets",
+    "eras": [
+     "old"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "new sand and lamps for the fighting ring",
+    "eras": [
+     "old"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "settling a dispute over a contested bout",
+    "eras": [
+     "old"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the purse for the champion's bout",
+    "eras": [
+     "old"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "a travelling fighter come to challenge the champion",
+    "eras": [
+     "old"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "a new crop of lads for the boxing booth",
+    "eras": [
+     "industrial"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the championship purse and the side bets",
+    "eras": [
+     "industrial"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the fairground boxing booth's summer circuit",
+    "eras": [
+     "industrial"
+    ],
+    "fits": [
+     "ring"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8,
+     9
+    ]
+   },
+   {
+    "title": "keeping the gymnasium's books in order",
+    "eras": [
+     "industrial"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "a rematch the sporting papers keep writing about",
+    "eras": [
+     "industrial"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "a challenger come up from the provinces",
+    "eras": [
+     "industrial"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "new ropes and canvas for the ring",
+    "eras": [
+     "industrial"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "quieting the magistrates about the prize-fights",
+    "eras": [
+     "industrial"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the Friday-night fight card at the Armory",
+    "eras": [
+     "jazz-age"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "a contender's training camp out in the country",
+    "eras": [
+     "jazz-age"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the gate receipts from the big title bout",
+    "eras": [
+     "jazz-age"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "a rematch the sports pages can't stop writing about",
+    "eras": [
+     "jazz-age"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "signing two new fighters to the stable",
+    "eras": [
+     "jazz-age"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the outdoor ballpark fight in August",
+    "eras": [
+     "jazz-age"
+    ],
+    "fits": [
+     "ring"
+    ],
+    "months": [
+     6,
+     7,
+     8
+    ]
+   },
+   {
+    "title": "a new ring and fresh canvas at the gym",
+    "eras": [
+     "jazz-age"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "keeping the boxing commission happy",
+    "eras": [
+     "jazz-age"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the fight card for next month's event",
+    "eras": [
+     "modern"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "a fighter's training camp before a title bout",
+    "eras": [
+     "modern"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the weigh-in and press day for the main event",
+    "eras": [
+     "modern"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the gym's new amateur fight team",
+    "eras": [
+     "modern"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the promotion for a pay-per-view rematch",
+    "eras": [
+     "modern"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "sparring partners for a visiting contender",
+    "eras": [
+     "modern"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "new mats and a ring rebuild at the gym",
+    "eras": [
+     "modern"
+    ],
+    "fits": [
+     "ring"
+    ]
+   },
+   {
+    "title": "the sponsorship deals for fight night",
+    "eras": [
+     "modern"
+    ],
+    "fits": [
+     "ring"
+    ]
    }
   ],
   "handson": [
@@ -5681,6 +6552,11 @@
     ],
     "fits": [
      "sea"
+    ],
+    "months": [
+     7,
+     8,
+     9
     ]
    },
    {
@@ -5708,6 +6584,11 @@
     ],
     "fits": [
      "farming"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -5717,6 +6598,12 @@
     ],
     "fits": [
      "farming"
+    ],
+    "months": [
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -5932,6 +6819,13 @@
     ],
     "fits": [
      "crafts"
+    ],
+    "months": [
+     10,
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
@@ -5950,6 +6844,12 @@
     ],
     "fits": [
      "farming"
+    ],
+    "months": [
+     8,
+     9,
+     10,
+     11
     ]
    },
    {
@@ -6036,6 +6936,12 @@
     ],
     "fits": [
      "industry"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -6063,6 +6969,12 @@
     ],
     "fits": [
      "sea"
+    ],
+    "months": [
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -6073,6 +6985,12 @@
     "fits": [
      "crafts",
      "industry"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -6082,6 +7000,11 @@
     ],
     "fits": [
      "farming"
+    ],
+    "months": [
+     6,
+     7,
+     8
     ]
    },
    {
@@ -6157,6 +7080,13 @@
     ],
     "fits": [
      "sea"
+    ],
+    "months": [
+     6,
+     7,
+     8,
+     9,
+     10
     ]
    },
    {
@@ -6186,6 +7116,12 @@
     ],
     "fits": [
      "farming"
+    ],
+    "months": [
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -6270,6 +7206,13 @@
     "fits": [
      "crafts",
      "industry"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6,
+     7
     ]
    },
    {
@@ -6404,6 +7347,11 @@
     "fits": [
      "farming",
      "industry"
+    ],
+    "months": [
+     12,
+     1,
+     2
     ]
    },
    {
@@ -6462,6 +7410,11 @@
     ],
     "fits": [
      "farming"
+    ],
+    "months": [
+     7,
+     8,
+     9
     ]
    },
    {
@@ -6501,6 +7454,12 @@
     ],
     "fits": [
      "sea"
+    ],
+    "months": [
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -6511,7 +7470,13 @@
     "fits": [
      "crafts"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     1,
+     2,
+     3,
+     4
+    ]
    },
    {
     "title": "the new tower wall at Castle Dunmere",
@@ -6530,6 +7495,12 @@
     ],
     "fits": [
      "crafts"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7
     ]
    },
    {
@@ -6539,6 +7510,11 @@
     ],
     "fits": [
      "farming"
+    ],
+    "months": [
+     7,
+     8,
+     9
     ]
    },
    {
@@ -6606,6 +7582,11 @@
     ],
     "fits": [
      "farming"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -6646,7 +7627,13 @@
     "fits": [
      "farming"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     3,
+     4,
+     5,
+     10
+    ]
    },
    {
     "title": "the herring catch for the Lenten markets",
@@ -6655,6 +7642,11 @@
     ],
     "fits": [
      "sea"
+    ],
+    "months": [
+     1,
+     2,
+     3
     ]
    },
    {
@@ -6696,6 +7688,11 @@
     ],
     "fits": [
      "crafts"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -6752,6 +7749,12 @@
     ],
     "fits": [
      "transit"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     12
     ]
    },
    {
@@ -6779,6 +7782,11 @@
     ],
     "fits": [
      "freight"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -6880,6 +7888,12 @@
     ],
     "fits": [
      "freight"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7
     ]
    },
    {
@@ -6925,6 +7939,12 @@
     ],
     "fits": [
      "shipping"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -7063,6 +8083,12 @@
     ],
     "fits": [
      "freight"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     12
     ]
    },
    {
@@ -7164,6 +8190,12 @@
     ],
     "fits": [
      "shipping"
+    ],
+    "months": [
+     7,
+     8,
+     9,
+     10
     ]
    },
    {
@@ -7173,6 +8205,11 @@
     ],
     "fits": [
      "post"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -7183,6 +8220,12 @@
     "fits": [
      "freight",
      "transit"
+    ],
+    "months": [
+     7,
+     8,
+     9,
+     10
     ]
    },
    {
@@ -7275,6 +8318,12 @@
     ],
     "fits": [
      "post"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -7558,6 +8607,12 @@
     ],
     "fits": [
      "shipping"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     12
     ]
    },
    {
@@ -7567,6 +8622,11 @@
     ],
     "fits": [
      "shipping"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -7604,6 +8664,12 @@
     ],
     "fits": [
      "shipping"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -7623,6 +8689,11 @@
     ],
     "fits": [
      "freight"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -7795,6 +8866,13 @@
     "fits": [
      "design",
      "photo"
+    ],
+    "months": [
+     11,
+     12,
+     1,
+     2,
+     3
     ]
    },
    {
@@ -7822,6 +8900,12 @@
     ],
     "fits": [
      "music"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7
     ]
    },
    {
@@ -7896,6 +8980,13 @@
     ],
     "fits": [
      "music"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     12,
+     1
     ]
    },
    {
@@ -7968,6 +9059,12 @@
     ],
     "fits": [
      "press"
+    ],
+    "months": [
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -8043,6 +9140,13 @@
     ],
     "fits": [
      "photo"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -8052,6 +9156,13 @@
     ],
     "fits": [
      "photo"
+    ],
+    "months": [
+     7,
+     8,
+     9,
+     10,
+     11
     ]
    },
    {
@@ -8099,6 +9210,11 @@
     "fits": [
      "design",
      "press"
+    ],
+    "months": [
+     5,
+     6,
+     7
     ]
    },
    {
@@ -8181,6 +9297,12 @@
     ],
     "fits": [
      "press"
+    ],
+    "months": [
+     10,
+     11,
+     12,
+     1
     ]
    },
    {
@@ -8262,6 +9384,12 @@
     ],
     "fits": [
      "stage"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -8280,6 +9408,11 @@
     ],
     "fits": [
      "photo"
+    ],
+    "months": [
+     7,
+     8,
+     9
     ]
    },
    {
@@ -8289,6 +9422,11 @@
     ],
     "fits": [
      "stage"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -8437,6 +9575,11 @@
     "fits": [
      "design",
      "press"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -8539,6 +9682,12 @@
     ],
     "fits": [
      "photo"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -8548,6 +9697,10 @@
     ],
     "fits": [
      "stage"
+    ],
+    "months": [
+     11,
+     12
     ]
    },
    {
@@ -8584,6 +9737,12 @@
     ],
     "fits": [
      "stage"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -8611,6 +9770,11 @@
     ],
     "fits": [
      "music"
+    ],
+    "months": [
+     5,
+     6,
+     7
     ]
    },
    {
@@ -8626,6 +9790,11 @@
     ],
     "fits": [
      "stage"
+    ],
+    "months": [
+     11,
+     12,
+     1
     ]
    },
    {
@@ -8665,6 +9834,11 @@
     ],
     "fits": [
      "stage"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -8754,6 +9928,11 @@
     ],
     "fits": [
      "music"
+    ],
+    "months": [
+     2,
+     3,
+     4
     ]
    },
    {
@@ -8763,6 +9942,11 @@
     ],
     "fits": [
      "press"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -8772,6 +9956,11 @@
     ],
     "fits": [
      "stage"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -8914,6 +10103,12 @@
     "fits": [
      "police",
      "government"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7
     ]
    },
    {
@@ -9025,6 +10220,11 @@
     "fits": [
      "police",
      "government"
+    ],
+    "months": [
+     11,
+     12,
+     1
     ]
    },
    {
@@ -9180,6 +10380,13 @@
     ],
     "fits": [
      "military"
+    ],
+    "months": [
+     10,
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
@@ -9297,6 +10504,12 @@
     ],
     "fits": [
      "police"
+    ],
+    "months": [
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -9405,6 +10618,12 @@
     ],
     "fits": [
      "military"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -9423,6 +10642,11 @@
     ],
     "fits": [
      "police"
+    ],
+    "months": [
+     6,
+     7,
+     8
     ]
    },
    {
@@ -9653,6 +10877,11 @@
     ],
     "fits": [
      "police"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -9664,7 +10893,13 @@
      "police",
      "military"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     11,
+     12,
+     1,
+     2
+    ]
    },
    {
     "title": "training new men-at-arms for the border keep",
@@ -9700,6 +10935,10 @@
     ],
     "fits": [
      "police"
+    ],
+    "months": [
+     6,
+     7
     ]
    },
    {
@@ -9798,6 +11037,11 @@
     ],
     "fits": [
      "military"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -9852,6 +11096,12 @@
     ],
     "fits": [
      "military"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7
     ]
    }
   ],
@@ -9935,6 +11185,11 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     3,
+     4,
+     5
     ]
    },
    {
@@ -9988,6 +11243,11 @@
     "title": "a website refresh before the holiday season",
     "eras": [
      "modern"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -10030,6 +11290,12 @@
     "title": "the summer street-festival weekend prep",
     "eras": [
      "modern"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -10042,6 +11308,13 @@
     "title": "the year-end tax paperwork",
     "eras": [
      "modern"
+    ],
+    "months": [
+     12,
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -10054,6 +11327,11 @@
     "title": "the social media calendar for autumn",
     "eras": [
      "modern"
+    ],
+    "months": [
+     7,
+     8,
+     9
     ]
    },
    {
@@ -10096,6 +11374,11 @@
     "title": "the December rota and holiday cover plan",
     "eras": [
      "modern"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -10114,6 +11397,12 @@
     "title": "the spring open-house event",
     "eras": [
      "modern"
+    ],
+    "months": [
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -10186,6 +11475,11 @@
     "title": "the January sale planning",
     "eras": [
      "modern"
+    ],
+    "months": [
+     11,
+     12,
+     1
     ]
    },
    {
@@ -10228,12 +11522,22 @@
     "title": "the big Christmas order for the Pemberton Hotel",
     "eras": [
      "jazz-age"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
     "title": "a stall at the Fourth of July county fair",
     "eras": [
      "jazz-age"
+    ],
+    "months": [
+     5,
+     6,
+     7
     ]
    },
    {
@@ -10247,7 +11551,12 @@
     "eras": [
      "jazz-age"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     5,
+     6,
+     7
+    ]
    },
    {
     "title": "the move to bigger premises on Delancey Street",
@@ -10313,6 +11622,13 @@
     "title": "the steamship-season rush down at the piers",
     "eras": [
      "jazz-age"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -10349,6 +11665,12 @@
     "title": "the spring stock order from the Chicago wholesaler",
     "eras": [
      "jazz-age"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -10361,12 +11683,22 @@
     "title": "the Christmas window display for Halsey Avenue",
     "eras": [
      "jazz-age"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
     "title": "the year-end books for the accountant",
     "eras": [
      "jazz-age"
+    ],
+    "months": [
+     12,
+     1,
+     2
     ]
    },
    {
@@ -10416,6 +11748,10 @@
     "title": "the Whitsun fair week rush",
     "eras": [
      "industrial"
+    ],
+    "months": [
+     5,
+     6
     ]
    },
    {
@@ -10458,6 +11794,10 @@
     "title": "the Michaelmas hiring fair",
     "eras": [
      "industrial"
+    ],
+    "months": [
+     9,
+     10
     ]
    },
    {
@@ -10476,12 +11816,27 @@
     "title": "the winter coal and candle accounts",
     "eras": [
      "industrial"
+    ],
+    "months": [
+     10,
+     11,
+     12,
+     1,
+     2
     ]
    },
    {
     "title": "the cattle-drive season trade in Copper Gulch",
     "eras": [
      "industrial"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -10500,6 +11855,11 @@
     "title": "the harvest-home festivities order",
     "eras": [
      "industrial"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -10524,6 +11884,10 @@
     "title": "a stall at the Christmas market on Fleet Row",
     "eras": [
      "industrial"
+    ],
+    "months": [
+     11,
+     12
     ]
    },
    {
@@ -10561,6 +11925,11 @@
     "title": "the stock count before the winter fair",
     "eras": [
      "old"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -10593,12 +11962,22 @@
     "title": "the midsummer festival rush",
     "eras": [
      "old"
+    ],
+    "months": [
+     5,
+     6,
+     7
     ]
    },
    {
     "title": "the Harvest Moon market week",
     "eras": [
      "old"
+    ],
+    "months": [
+     8,
+     9,
+     10
     ]
    },
    {
@@ -10630,6 +12009,12 @@
     "title": "the spring fair at Brightwater Crossing",
     "eras": [
      "old"
+    ],
+    "months": [
+     2,
+     3,
+     4,
+     5
     ]
    },
    {
@@ -10659,6 +12044,10 @@
     "title": "the Yuletide feast order for the great hall",
     "eras": [
      "old"
+    ],
+    "months": [
+     11,
+     12
     ]
    },
    {
@@ -10677,6 +12066,11 @@
     "title": "the harvest-tax reckoning with the steward",
     "eras": [
      "old"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -10689,6 +12083,11 @@
     "title": "a winter's supply laid in before the snows",
     "eras": [
      "old"
+    ],
+    "months": [
+     9,
+     10,
+     11
     ]
    },
    {
@@ -10716,7 +12115,12 @@
     "eras": [
      "old"
     ],
-    "monarchy": true
+    "monarchy": true,
+    "months": [
+     3,
+     4,
+     5
+    ]
    },
    {
     "title": "the spice caravan's arrival from the south",
@@ -10736,7 +12140,11 @@
     "eras": [
      "old"
     ],
-    "fantasy": true
+    "fantasy": true,
+    "months": [
+     5,
+     6
+    ]
    }
   ],
   "adult": [
@@ -10756,6 +12164,10 @@
     ],
     "fits": [
      "creator"
+    ],
+    "months": [
+     9,
+     10
     ]
    },
    {
@@ -10784,6 +12196,12 @@
     ],
     "fits": [
      "creator"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     12
     ]
    },
    {
@@ -10840,6 +12258,10 @@
     ],
     "fits": [
      "creator"
+    ],
+    "months": [
+     12,
+     1
     ]
    },
    {
@@ -10858,6 +12280,10 @@
     ],
     "fits": [
      "creator"
+    ],
+    "months": [
+     1,
+     2
     ]
    },
    {
@@ -10909,6 +12335,13 @@
     ],
     "fits": [
      "creator"
+    ],
+    "months": [
+     4,
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -10974,6 +12407,12 @@
     "fits": [
      "creator",
      "dancer"
+    ],
+    "months": [
+     8,
+     9,
+     10,
+     11
     ]
    },
    {
@@ -11019,6 +12458,10 @@
     ],
     "fits": [
      "creator"
+    ],
+    "months": [
+     11,
+     12
     ]
    },
    {
@@ -11064,6 +12507,15 @@
     ],
     "fits": [
      "dancer"
+    ],
+    "months": [
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
     ]
    },
    {
@@ -11154,6 +12606,12 @@
     ],
     "fits": [
      "film"
+    ],
+    "months": [
+     12,
+     1,
+     2,
+     3
     ]
    },
    {
@@ -11199,6 +12657,12 @@
     ],
     "fits": [
      "film"
+    ],
+    "months": [
+     5,
+     6,
+     7,
+     8
     ]
    },
    {
@@ -11244,6 +12708,11 @@
     ],
     "fits": [
      "phone"
+    ],
+    "months": [
+     11,
+     12,
+     1
     ]
    },
    {
@@ -11415,6 +12884,12 @@
     ],
     "fits": [
      "editor"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -11490,6 +12965,11 @@
     ],
     "fits": [
      "shop"
+    ],
+    "months": [
+     10,
+     11,
+     12
     ]
    },
    {
@@ -11535,6 +13015,10 @@
     ],
     "fits": [
      "shop"
+    ],
+    "months": [
+     1,
+     2
     ]
    },
    {
@@ -11544,6 +13028,11 @@
     ],
     "fits": [
      "shop"
+    ],
+    "months": [
+     11,
+     12,
+     1
     ]
    },
    {
@@ -11713,6 +13202,14 @@
     "title": "the midterm project for {field} 201",
     "eras": [
      "modern"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -11809,6 +13306,14 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -11896,12 +13401,27 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     11,
+     12,
+     4,
+     5,
+     6
     ]
    },
    {
     "title": "a portfolio for a summer internship in {field}",
     "eras": [
      "modern"
+    ],
+    "months": [
+     11,
+     12,
+     1,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -12106,6 +13626,14 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -12184,6 +13712,13 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     11,
+     12,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -12238,6 +13773,14 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -12358,6 +13901,13 @@
     "title": "a poster for the end-of-term showcase",
     "eras": [
      "modern"
+    ],
+    "months": [
+     11,
+     12,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -12445,6 +13995,14 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -12526,6 +14084,13 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     11,
+     12,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -12577,6 +14142,13 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     11,
+     12,
+     4,
+     5,
+     6
     ]
    },
    {
@@ -12625,6 +14197,14 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     9,
+     10,
+     11,
+     2,
+     3,
+     4
     ]
    },
    {
@@ -12691,6 +14271,13 @@
      "jazz-age",
      "industrial",
      "old"
+    ],
+    "months": [
+     11,
+     12,
+     4,
+     5,
+     6
     ]
    },
    {

@@ -161,11 +161,21 @@ TRADES_BY_CAREER = {
     'town-musician': ('music',), 'minstrel': ('music', 'stage'), 'music-hall-singer': ('music', 'stage'),
     'photographer': ('photo',), 'graphic-designer': ('design',), 'fashion-assistant': ('design', 'photo'),
     'private-detective': ('police',), 'tide-waiter': ('government',),
+    'pit-fighter': ('ring',), 'arena-fighter': ('ring',), 'pit-bookmaker': ('ring',), 'prizefighter': ('ring',),
+    'boxer': ('ring',), 'wrestler': ('ring',), 'gladiator': ('ring',),
     'subscription-creator': ('creator',), 'cam-model': ('creator',), 'glamour-model': ('creator', 'film'),
     'adult-film-performer': ('film',), 'adult-video-editor': ('editor',), 'exotic-dancer': ('dancer',),
     'burlesque-performer': ('dancer',), 'phone-sex-operator': ('phone',), 'professional-dominatrix': ('domme',),
     'adult-store-clerk': ('shop',), 'erotica-author': ('author',),
 }
+# A job the city's careers don't name, read from who they are: running the fighting pits draws fight projects, not
+# a craftsman's festival orders. (pattern, sector, trades), first match.
+JOB_WORDS = (
+    (re.compile(r'\b(?:fighting|fight) (?:pits?|rings?|clubs?|gyms?|promoter)\b|\bpit ?fight\w*|\bprize ?fight\w*|'
+                r'\b(?:boxing|wrestling) (?:gym|club|promoter|ring)\b|\bboxers?\b|\bwrestlers?\b|\bgladiators?\b|'
+                r'\barena fighter', re.IGNORECASE),
+     'recreation', ('ring',)),
+)
 # Careers whose sector would put them in the wrong bank.
 KIND_BY_CAREER = {'defense-engineer': 'tech', 'scribe': 'office', 'arbiter': 'office', 'convent-teacher': 'teaching',
                   'undergraduate': 'study', 'graduate-student': 'study'}
@@ -249,6 +259,19 @@ def career_of(definition: dict, city: dict | None) -> dict | None:
         return None
 
 
+def job_of(definition: dict, city: dict | None) -> dict | None:
+    """The career their projects come from: the city's career they have, else one read from the words of who they are
+    (JOB_WORDS), with no id so their work state stays theirs. None when neither says."""
+    career = career_of(definition, city)
+    if career:
+        return career
+    text = ' '.join(definition.get(key) or '' for key in ('identity', 'background', 'routine'))
+    for pattern, sector, trades in JOB_WORDS:
+        if pattern.search(text):
+            return {'id': '', 'name': '', 'sector': sector, 'trades': trades}
+    return None
+
+
 def kind_of(career: dict | None) -> str:
     """The project bank a career draws from: adult work its own, then by sector, else the general bank."""
     if not career:
@@ -267,7 +290,8 @@ def kind_of(career: dict | None) -> str:
 def trades_of(career: dict | None) -> frozenset[str]:
     if not career:
         return frozenset()
-    return frozenset(TRADES_BY_CAREER.get(career['id']) or TRADES_BY_SECTOR.get((career.get('sector') or '').lower(), ()))
+    return frozenset(TRADES_BY_CAREER.get(career['id']) or career.get('trades')
+                     or TRADES_BY_SECTOR.get((career.get('sector') or '').lower(), ()))
 
 
 def in_world(item: dict, city: dict | None) -> bool:
@@ -281,15 +305,22 @@ def in_world(item: dict, city: dict | None) -> bool:
     return not (item.get('monarchy') and 'republic' in (city.get('country') or '').lower())
 
 
+def in_season(item: dict, month: int | None) -> bool:
+    """A project tied to a time of year (its `months`: the midsummer festival rush, the Christmas window) only when it
+    is due then; one without months, or with no month asked, any time."""
+    return not month or not item.get('months') or month in item['months']
+
+
 def projects(kind: str, group: str, trades: frozenset[str] = frozenset(), city: dict | None = None,
-             field: str = '') -> list[str]:
-    """The projects a career could be running: its kind's that fit its trades (or anyone of the kind), in its era and
-    world; the general bank joins in when that leaves too few. A student's coursework names what they study
-    (`field`), and without one stays any student's."""
+             field: str = '', month: int | None = None) -> list[str]:
+    """The projects a career could be running when one is due in `month`: its kind's that fit its trades (or anyone of
+    the kind), in its era, world and season; the general bank joins in when that leaves too few. A student's
+    coursework names what they study (`field`), and without one stays any student's."""
     bank = data()['projects']
     def pool(name: str) -> list[str]:
         return [item['title'] for item in bank.get(name, ()) if group in item['eras'] and in_world(item, city)
-                and (not item.get('fits') or trades & set(item['fits'])) and decades.fits(item['title'])]
+                and (not item.get('fits') or trades & set(item['fits'])) and in_season(item, month)
+                and decades.fits(item['title'])]
     if kind == STUDY:
         return [title.replace('{field}', field) for title in pool(STUDY) if field or '{field}' not in title]
     found = pool(kind) if kind != 'general' else []
@@ -316,15 +347,20 @@ def state(connection, timeline_id: str) -> dict | None:
 
 def new_project(seed: str, index: int, career: dict | None, city: dict | None, start: date, used: list[str],
                 field: str = '') -> dict:
-    """The next running project, from the bank, fitting their career (and what a student studies), not one of the
-    last few, in the city's own English."""
-    found = [wording.regional(city, title)
-             for title in projects(kind_of(career), era_group(city), trades_of(career), city, field)]
-    title = generators.pick(seed, f'project:{index}', [title for title in found if title not in used[-8:]] or found)
+    """The next running project, from the bank, fitting their career (and what a student studies) and the time of year
+    it is due, not one of the last few, in the city's own English."""
     weeks = PROJECT_WEEKS[0] + int(generators.unit(seed, 'weeks', index) * (PROJECT_WEEKS[1] - PROJECT_WEEKS[0] + 1))
-    due = monday_of(start) + timedelta(weeks=weeks, days=int(generators.unit(seed, 'due-day', index) * 5))
-    return {'title': title, 'index': index, 'started': start.isoformat(), 'due': max(due, start).isoformat(),
+    due = max(monday_of(start) + timedelta(weeks=weeks, days=int(generators.unit(seed, 'due-day', index) * 5)), start)
+    found = titles(career, city, field, due.month)
+    title = generators.pick(seed, f'project:{index}', [title for title in found if title not in used[-8:]] or found)
+    return {'title': title, 'index': index, 'started': start.isoformat(), 'due': due.isoformat(),
             **({'field': field} if field else {})}
+
+
+def titles(career: dict | None, city: dict | None, field: str, month: int) -> list[str]:
+    """The project titles open to them for one due in `month`, as the city says them."""
+    return [wording.regional(city, title)
+            for title in projects(kind_of(career), era_group(city), trades_of(career), city, field, month)]
 
 
 def field_of(definition: dict, career: dict | None) -> str:
@@ -339,7 +375,7 @@ def ensure(connection, companion: dict, today: date, now: datetime) -> dict | No
     if not works(definition):
         return None
     city = outings.city_data(connection, definition)
-    career = career_of(definition, city)
+    career = job_of(definition, city)
     career_id = career['id'] if career else ''
     found, field = state(connection, timeline_id), field_of(definition, career)
     if found and found['career'] == career_id:
@@ -366,13 +402,17 @@ def ensure(connection, companion: dict, today: date, now: datetime) -> dict | No
 
 def refreshed(connection, found: dict, career: dict | None, city: dict | None, field: str, today: date, now) -> dict:
     """Their work state, with a new project when the one running no longer fits: a student still on a project from
-    before students had their own (a teacher's syllabus), or coursework in what they no longer study. A project the
-    user wrote stays."""
+    before students had their own (a teacher's syllabus), or coursework in what they no longer study; or one their
+    work or its season would no longer give them (a pit boss on a festival rush, a midsummer one due in October). A
+    project the user wrote stays, and one whose due date the user set keeps its title."""
     project = found['project']
-    if STUDY not in (found['kind'], kind_of(career)):
+    if project.get('own'):
         return found
-    if project.get('own') or (found['kind'] == kind_of(career) and project.get('field', '') == field):
-        return found
+    if STUDY not in (found['kind'], kind_of(career)) or \
+            (found['kind'] == kind_of(career) and project.get('field', '') == field):
+        if project.get('own_due') or not city or \
+                project['title'] in titles(career, city, field, date.fromisoformat(project['due']).month):
+            return found
     fresh = new_project(f"work:{found['timeline_id']}:{found['career']}:{field}", project['index'] + 1, career, city,
                         today, used_titles(found), field)
     update(connection, found['timeline_id'], now, kind=kind_of(career), project=fresh,
@@ -396,7 +436,7 @@ def set_project(connection, companion: dict, title: str | None, now: datetime, d
     elif title is not None:
         definition = companion['version']['definition']
         city = outings.city_data(connection, definition)
-        career = career_of(definition, city)
+        career = job_of(definition, city)
         fresh = new_project(f"work:{found['timeline_id']}:{found['career']}:own", project['index'], career, city,
                             date.fromisoformat(project['started']), used_titles(found), field_of(definition, career))
         fresh['due'] = max(fresh['due'], today.isoformat()) if project.get('own_due') else project['due']
@@ -593,7 +633,7 @@ def next_project(connection, companion: dict, found: dict) -> dict:
     definition = companion['version']['definition']
     city = outings.city_data(connection, definition)
     start = date.fromisoformat(found['project']['due']) + timedelta(days=2)
-    career = career_of(definition, city)
+    career = job_of(definition, city)
     return new_project(f"work:{companion['active_timeline_id']}:{found['career']}", found['project']['index'] + 1,
                        career, city, start, used_titles(found), field_of(definition, career))
 
@@ -636,7 +676,7 @@ def new_job(connection, companion: dict, found: dict, day: date, now) -> dict:
            f'started a new job{" at " + employer if employer and not employer.startswith("a ") else ""}', pay,
            (pay / found['pay'] - 1) * 100, now)
     used = used_titles(found)
-    career = career_of(definition, city)
+    career = job_of(definition, city)
     project = new_project(f'work:{timeline_id}:{found["career"]}:{day.isoformat()}', found['project']['index'] + 1,
                           career, city, day, used, field_of(definition, career))
     return {'status': 'working', 'hunt_until': None, 'hunt_reason': None, 'employer': employer, 'pay': pay,
