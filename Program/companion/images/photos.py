@@ -34,6 +34,7 @@ from companion.images import content, gifs, jobs, meme_pictures, memes, prompts
 from companion.life import agenda, composer, families, feed, routine, simulation
 from companion.life.openers import Trigger, held
 from companion.life.synthesis import PROMPT_VERSION as WORDING_VERSION
+from companion.memory.context import PICTURE
 from companion.text_models import config_for
 from companion.workspace import overlapping_pause
 from companion.world import decades
@@ -57,6 +58,11 @@ MISSING = re.compile(r"\b(?:where(?:'?s| is| are)|didn'?t (?:get|receive|recieve
                      r"(?:still )?waiting (?:on|for)) (?:the |that |your |ur |a |any )?(?:pic|picture|photo|selfie|snap)s?\b"
                      r"|\b(?:pic|picture|photo|selfie|snap)s? (?:never|didn'?t) (?:came|come|arrived?|show(?:ed)? up|load(?:ed)?)\b",
                      re.IGNORECASE)
+# "No photo though. Could you try again?": after the companion spoke of a picture, asking again or saying none came
+# asks for one now.
+AGAIN = re.compile(r"\b(?:try(?:ing)?(?: it| that| one)? again|send (?:it|one|that|them) again|re-?send|one more (?:time|try)|"
+                   r"another (?:try|go|attempt))\b|\b(?:still )?no (?:pic|picture|photo|selfie|snap)s?(?: though| yet| came| "
+                   r"arrived|\?|$)", re.IGNORECASE)
 # Asking about another time is not asking what they are doing now.
 ELSEWHEN = re.compile(r"\b(?:tomorrow|tonight|later|yesterday|last (?:night|week|weekend)|earlier|next|this "
                       r"(?:weekend|evening|afternoon)|on (?:mon|tues|wednes|thurs|fri|satur|sun)day|been up to)\b",
@@ -90,12 +96,13 @@ SHARE_SELFIE_SHARE = 0.4
 SHARE_DAILY = 1
 
 
-def asked_kind(text: str) -> str | None:
-    """Which picture a message asks for: 'meme', 'selfie', 'view', 'moment', or None."""
+def asked_kind(text: str, before: str = '') -> str | None:
+    """Which picture a message asks for: 'meme', 'selfie', 'view', 'moment', or None. `before` is the companion's
+    last message, which makes "try again?" an ask when it spoke of a picture."""
     text = text or ''
     if MEME.search(text):
         return 'gif' if gifs.GIF_ASK.search(text) else 'meme'
-    if MISSING.search(text):
+    if MISSING.search(text) or AGAIN.search(text) and PICTURE.search(f"{before or ''} {text}"):
         return 'selfie' if SELFIE.search(text) else 'moment'
     if ELSEWHEN.search(text):
         return None
@@ -108,6 +115,13 @@ def asked_kind(text: str) -> str | None:
 
 def asks_for_photo(text: str) -> bool:
     return asked_kind(text) is not None
+
+
+def last_said(connection, timeline_id, seq) -> str:
+    """The companion's last finished message before message `seq`, or ''."""
+    row = optional(connection, "SELECT text FROM messages WHERE timeline_id=? AND role='companion' AND active=1 AND "
+                               "status='complete' AND seq<? ORDER BY seq DESC LIMIT 1", (timeline_id, seq))
+    return row['text'] if row else ''
 
 
 def wording(connection, composed, prepared) -> dict:
@@ -153,7 +167,9 @@ class ChatPhotos:
     def for_message(self, user, attempt_id) -> dict | None:
         """The picture this reply sends, recorded against the reply, or None. Never raises."""
         try:
-            kind = asked_kind(user['text'])
+            with self.database.connect() as connection:
+                before = last_said(connection, user['timeline_id'], user['seq'])
+            kind = asked_kind(user['text'], before)
             if kind in MEME_KINDS and not self.memes_fit(user['text']):
                 return None
             if kind is not None:

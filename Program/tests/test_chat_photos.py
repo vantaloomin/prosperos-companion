@@ -11,6 +11,7 @@ from companion.images import memes, prompts
 from companion.images.photos import asked_kind, asks_for_photo, moment_text, yours
 from companion.main import create_app
 from companion.memory import context
+from companion.providers.chat import Chunk
 from companion.providers.vault import MemoryVault
 from tests.conftest import reconcile, send, set_life
 from tests.test_images import FakeAdapter, add_backend, local_comfy
@@ -200,9 +201,33 @@ def test_a_fork_keeps_the_photo_on_the_copied_reply(client, life):
     ('wyd', 'moment'), ('send me a selfie tomorrow', None),
     # A picture that never came is asked for again now, even one promised last night.
     ("Where is the photo? I didn't recieve it.", 'moment'), ("where's the pic from last night?", 'moment'),
-    ('the photo never arrived', 'moment'), ('still waiting on that selfie', 'selfie'), ('no pics please', None)])
+    ('the photo never arrived', 'moment'), ('still waiting on that selfie', 'selfie'), ('no pics please', None),
+    ('No photo though. But could you try again?', 'moment'), ('no photo?', 'moment')])
 def test_which_picture_a_message_asks_for(text, kind):
     assert asked_kind(text) == kind
+
+
+@pytest.mark.parametrize(('text', 'before', 'kind'), [
+    ('could you try again?', 'resending the photo now', 'moment'), ('can you resend it?', 'sky pic, delivered', 'moment'),
+    ('could you try again?', 'my code failed to build', None), ('try again', '', None)])
+def test_asking_again_after_a_picture_was_spoken_of_asks_for_one(text, before, kind):
+    assert asked_kind(text, before) == kind
+
+
+def test_asking_again_after_a_promised_picture_sends_one(client, life, provider):
+    local_comfy(client)
+    provider.respond = lambda _system, _messages: [Chunk('third attempt incoming, the photo of the arena.'), Chunk('', 'stop')]
+    ask(client, 'Good morning!')
+    assert ask(client, 'could you try again?', 'ask-0002')['photo'] is not None
+
+
+def test_pictures_talked_about_and_none_sent_says_so_beside_the_message(client, life, provider):
+    provider.respond = lambda _system, _messages: [Chunk('third attempt incoming, the photo of the arena.'), Chunk('', 'stop')]
+    ask(client, 'Good morning!')
+    assert context.NO_PHOTO not in provider.requests[-1]['prompt']
+    # No backend: nothing can go, and the note says so right beside their message.
+    assert ask(client, 'No photo though. But could you try again?', 'ask-0002')['photo'] is None
+    assert context.NO_PHOTO in provider.requests[-1]['prompt']
 
 
 def jobs_for(client, photo):
