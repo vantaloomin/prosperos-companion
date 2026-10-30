@@ -317,6 +317,9 @@ NOW = {
                      'never as done, and they may change)',
        'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
                 'only what is listed here)',
+       # Pictures talked about and none goes with this reply (`about_pictures`): said right
+       # beside the message, since the system prompt's PICTURES line alone did not stop a claimed "third attempt".
+       'no_photo': 'Pictures',
        # Lorebook entries whose keywords came up in the last few messages, or whose "when" fits (companion/lore.py).
        'lore_now': 'Lore that fits the moment or what is being talked about (from your lorebook; true in your world)',
        # Passages of their reference library that match the last few messages (companion/library.py).
@@ -375,6 +378,10 @@ FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
 PICTURES = ('Pictures: you send one only when the notes list a picture you are sending with this reply. Otherwise you '
             'are sending none: never say a photo is attached, sent, on its way or being resent. If one would fit, say '
             'what you see in words instead.')
+PICTURE = re.compile(r"\b(?:pic|picture|photo|selfie|snap)s?\b", re.IGNORECASE)
+NO_PHOTO = ('- No picture goes with this reply: it could not be sent right now. Do not say one is attached, sent, '
+            'incoming, on its way or being resent, and do not promise another try. If they are waiting for one, say it '
+            "won't go through right now, or tell them what you see in words.")
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
 
 
@@ -922,13 +929,21 @@ def offer_together(packet, connection, companion, now, recent, group=None):
         packet.offer('where', identity, text)
 
 
-def offer_attachments(packet, connection, latest, photo):
-    """The feed post the user is replying to, and the photo this reply sends."""
+def about_pictures(text: str, before: str = '') -> bool:
+    """The user's message or the companion's last one speaks of a picture: a reply sent without one must not claim one."""
+    return bool(PICTURE.search(text or '') or PICTURE.search(before or ''))
+
+
+def offer_attachments(packet, connection, latest, photo, before=''):
+    """The feed post the user is replying to, and the photo this reply sends, or, with pictures talked about, that
+    none goes. `before` is the companion's last message."""
     post = linked_post(connection, latest['id']) if latest else None
     if post:
         packet.offer('feed_reference', post['id'], post_text(post))
     if photo:
         packet.offer('photo', photo['post_id'], photo['text'])
+    elif latest and about_pictures(latest['text'], before):
+        packet.offer('no_photo', 'no_photo', NO_PHOTO)
 
 
 def offer_outside(packet, connection, timeline_id, now, outside, latest):
@@ -1093,7 +1108,9 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     offer_together(packet, connection, companion, now, recent, group)
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
-    offer_attachments(packet, connection, latest, photo)
+    before = next((message['text'] for message in reversed(recent) if message['role'] == 'companion'
+                   and latest and message['seq'] < latest['seq']), '')
+    offer_attachments(packet, connection, latest, photo, before if group is None else '')
     offer_outside(packet, connection, timeline_id, now, outside, latest)
     events = lookups.fresh_city_events(connection, now)
     if events and events['id'] not in {item['id'] for item in outside or []}:
