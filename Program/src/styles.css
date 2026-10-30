@@ -1543,6 +1543,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .person-heading small { font-weight: normal; margin-left: 6px; }
 .person-form { margin: 12px 0; max-width: 420px; }
 .person-heading .memory-actions { flex-direction: row; }
+.person-add-detail { margin-top: 8px; }
 
 /* Phones (src/features/phone): room for a notch and home bar, no zoom when a field is focused, and
    the tab bar steps aside while the keyboard is up for the chat. */

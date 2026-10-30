@@ -400,7 +400,8 @@ People are stored in `user_people` (`companion/memory/people.py`); everything sa
 ordinary memory carrying `person_id`, formed under the same consent (automatic memory or Remember
 this), so correction, exclusion and deletion work as for any memory, and a person with no memories left
 is removed with the last one. Memories > People in your life lists them, with Add someone, Rename and
-Forget (`/api/people`). A name learned later ("my sister" then "my sister Ana") joins the same person and
+Forget (`/api/people`), and "Tell X more about them" under each person (`POST /api/people/{id}/facts`, a topic and
+a value): a free "About them" note or one of the topics above, saved as a memory about them like one learned in chat. A name learned later ("my sister" then "my sister Ana") joins the same person and
 renames what was said about her.
 
 The context lists each person on one line in their own section, and at most one question picked without

@@ -47,7 +47,7 @@ GRIEF = re.compile(r'\b(?:passed away|died|lost (?:his|her|their) (?:mum|mom|mot
 
 # Topics that hold one current value per person, like the user's own home city.
 SINGLE_TOPICS = {'work', 'home_city', 'birthday', 'age'}
-TOPIC_LABELS = {'who': 'Who they are', 'work': 'Work', 'home_city': 'Home city', 'birthday': 'Birthday', 'age': 'Age',
+TOPIC_LABELS = {'who': 'Who they are', 'about': 'About them', 'work': 'Work', 'home_city': 'Home city', 'birthday': 'Birthday', 'age': 'Age',
                 'likes': 'Likes', 'dislikes': 'Dislikes', 'studies': 'Studies', 'has': 'Has', 'news': 'News'}
 
 PREDICATES = (

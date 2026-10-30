@@ -1,4 +1,4 @@
-"""The people in the user's life the companion has heard about: see, add, rename and forget (PRD M6, M12)."""
+"""The people in the user's life the companion has heard about: see, add, rename, tell more about and forget (PRD M6, M12)."""
 from fastapi import APIRouter, Request
 from pydantic import Field
 
@@ -19,6 +19,12 @@ class PersonUpdate(Input):
     relation: str | None = Field(default=None, max_length=40)
 
 
+class PersonFact(Input):
+    """Something you know about them: "about" is a free note, the rest match what is learned from chat."""
+    topic: str = Field(default='about', max_length=20)
+    value: str = Field(max_length=300)
+
+
 def db(request: Request):
     return request.app.state.database
 
@@ -36,6 +42,11 @@ def add(request: Request, body: PersonCreate):
 @router.put('/{person_id}')
 def update(request: Request, person_id: str, body: PersonUpdate):
     return people.update(db(request), person_id, body)
+
+
+@router.post('/{person_id}/facts')
+def add_fact(request: Request, person_id: str, body: PersonFact):
+    return people.add_fact(db(request), person_id, body)
 
 
 @router.post('/{person_id}/delete')

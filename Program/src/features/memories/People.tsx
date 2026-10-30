@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Pencil, Trash2, UserPlus } from 'lucide-react'
+import { Pencil, Plus, Trash2, UserPlus } from 'lucide-react'
 import { api } from '../../api'
 import type { Memory, Message, Person } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { TextInput } from '../../components/Fields'
+import { Field, TextArea, TextInput } from '../../components/Fields'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { PEOPLE_KEY, groupPeople, personLine } from './memoryGroups'
 
@@ -33,6 +33,7 @@ export function People({ name, all, sources, actions, run }: { name: string; all
           <ul className="memory-list">
             {current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={all} sources={sources} actions={actions} />)}
           </ul>
+          <AddDetail person={person} name={name} run={run} />
         </section>
       ))}
     </section>
@@ -64,6 +65,57 @@ function PersonHeading({ person, run }: { person: Person; run: Run }) {
         </ConfirmDialog>
       )}
     </div>
+  )
+}
+
+/** What you can tell about someone, matching what is learned from chat. Work and studies make no sense for a pet. */
+const DETAILS: { topic: string; label: string; placeholder: string; pets: boolean; one?: string }[] = [
+  { topic: 'about', label: 'About them', placeholder: 'Anything: what they are like, how you met, what matters to them…', pets: true },
+  { topic: 'work', label: 'Work', placeholder: 'nurse at St. Mary’s', pets: false, one: 'work' },
+  { topic: 'home_city', label: 'Where they live', placeholder: 'Cork', pets: false, one: 'home' },
+  { topic: 'age', label: 'Age', placeholder: '34', pets: true, one: 'age' },
+  { topic: 'birthday', label: 'Birthday', placeholder: 'March 3', pets: true, one: 'birthday' },
+  { topic: 'studies', label: 'Studies', placeholder: 'law at Trinity', pets: false },
+  { topic: 'has', label: 'Family or pets', placeholder: 'two kids, a dog called Rex', pets: false },
+  { topic: 'likes', label: 'Likes', placeholder: 'climbing, old films', pets: true },
+  { topic: 'dislikes', label: 'Dislikes', placeholder: 'the vet, thunder', pets: true },
+  { topic: 'news', label: 'News', placeholder: 'just got engaged', pets: true },
+]
+
+/** Tell the companion more about someone: kept as a memory about them, so Correct, Pin and Delete work on it. */
+function AddDetail({ person, name, run }: { person: Person; name: string; run: Run }) {
+  const [open, setOpen] = useState(false)
+  const [topic, setTopic] = useState('about')
+  const [value, setValue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const choices = DETAILS.filter((detail) => detail.pets || !person.pet)
+  const picked = choices.find((detail) => detail.topic === topic) ?? choices[0]
+  if (!open) {
+    return <button type="button" className="text-button person-add-detail" onClick={() => setOpen(true)}><Plus aria-hidden="true" />Tell {name} more about {person.name ?? `your ${person.relation}`}</button>
+  }
+  const close = () => { setOpen(false); setValue(''); setTopic('about') }
+  const save = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!value.trim()) return
+    setSaving(true)
+    const saved = await run(() => api(`/people/${person.id}/facts`, { topic: picked.topic, value: value.trim() }), `${name} will remember that about ${person.label}.`)
+    setSaving(false)
+    if (saved) close()
+  }
+  return (
+    <form className="person-form form-stack" onSubmit={save}>
+      <Field label="What it's about">{(id, describedBy) => (
+        <select id={id} aria-describedby={describedBy} value={picked.topic} onChange={(event) => setTopic(event.target.value)}>
+          {choices.map((detail) => <option key={detail.topic} value={detail.topic}>{detail.label}</option>)}
+        </select>
+      )}</Field>
+      <TextArea label="What you know" value={value} onChange={setValue} maxLength={300} grows placeholder={picked.placeholder}
+        hint={picked.one ? `Replaces the ${picked.one} you gave before, which stays as history.` : null} />
+      <div className="form-actions">
+        <button type="submit" className="button primary" disabled={saving || !value.trim()}>Add</button>
+        <button type="button" className="button" onClick={close}>Cancel</button>
+      </div>
+    </form>
   )
 }
 
