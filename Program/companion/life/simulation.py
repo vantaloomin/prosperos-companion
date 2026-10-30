@@ -47,6 +47,7 @@ from companion.life import (
 )
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
+from companion.memory import plans
 from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
 from companion.text_models import config_for, key_for
@@ -900,6 +901,7 @@ class LifeEngine:
                 ages.sync(connection, self.now())  # Birthdays move everyone's age on (companion/life/ages.py).
                 deck.sync(connection, self.now())
                 dreams.sync(connection, self.now())
+                plans.settle(connection, self.now())  # Plans that are over close on their own.
         if self.groups is not None and not paused:
             groups.drift(self.database)  # Guests slip out of chats that have gone quiet (companion/group_guests.py).
 

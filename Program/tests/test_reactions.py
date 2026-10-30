@@ -113,6 +113,7 @@ def test_an_agreed_plan_passing_without_a_word(client, companion, clock, monkeyp
             "plan_status, stated_at, applies_from, created_at, updated_at) VALUES (?, ?, ?, 'plan', 'movie night', "
             "'movie night together', 'real', 'confirmed', 'active', 'agreed', ?, ?, ?, ?)",
             (identifier(), companion['id'], companion['active_timeline_id'], now, yesterday, now, now))
+    client.app.state.life.spread_news()  # Its day passed, so it closed on its own: it still counts as missed.
     reconcile(client)
     listed = client.get('/api/life/reactions').json()
     assert [item['choice'] for item in listed] == ['user:missed_plan']

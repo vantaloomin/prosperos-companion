@@ -623,6 +623,8 @@ def memory_text(memory, now: str | None = None) -> str:
     if memory['applies_from'] or memory['applies_until']:
         timing = f" (applies {memory['applies_from'] or '…'} to {memory['applies_until'] or '…'})"
     notes = [memory['plan_status']] if memory['plan_status'] else []
+    if memory.get('settled_from'):
+        notes.append('assumed once its day passed, not confirmed')
     if memory.get('historical'):
         notes.append('no longer current')
     if memory.get('dates_uncertain'):

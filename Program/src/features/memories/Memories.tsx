@@ -135,6 +135,14 @@ function LayerSection({ group, name, all, sources, actions, corrected }: { group
       <ul className="memory-list">
         {group.current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={all} sources={sources} actions={actions} focusOnMount={memory.id === corrected} />)}
       </ul>
+      {group.finished.length > 0 && (
+        <details className="memory-finished" open={group.finished.some((memory) => memory.id === corrected)}>
+          <summary>Done and cancelled ({group.finished.length})</summary>
+          <ul className="memory-list">
+            {group.finished.map((memory) => <MemoryCard key={memory.id} memory={memory} all={all} sources={sources} actions={actions} focusOnMount={memory.id === corrected} />)}
+          </ul>
+        </details>
+      )}
     </section>
   )
 }

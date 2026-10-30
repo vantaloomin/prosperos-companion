@@ -373,6 +373,9 @@ a.button { color: inherit; text-decoration: none; }
 .memory-source q { color: var(--text); }
 .memory-history summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .memory-history ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.875rem; color: var(--muted); }
+.memory-finished { margin-top: 12px; }
+.memory-finished summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); padding: 6px 0; }
+.memory-finished .memory-list { margin-top: 8px; }
 .memory-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 0; flex-shrink: 0; }
 .danger-text { color: var(--danger); }
 .correct-form { display: flex; flex-direction: column; gap: 8px; }
