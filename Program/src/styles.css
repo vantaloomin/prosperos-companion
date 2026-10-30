@@ -1555,7 +1555,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .person-detail-form { max-width: 420px; padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--canvas); }
 @media (max-width: 720px) {
   .person-detail-form { max-width: none; }
-  .user-person .person-actions .text-button { min-height: 44px; }
+  .user-person .person-actions { display: grid; grid-template-columns: repeat(2, max-content); gap: 0 16px; }
+  .user-person .person-actions .text-button, .user-person-header .text-button { min-height: 44px; }
 }
 
 /* Phones (src/features/phone): room for a notch and home bar, no zoom when a field is focused, and

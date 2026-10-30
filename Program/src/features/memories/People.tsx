@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ListChecks, Pencil, Pin, Plus, Trash2, UserPlus } from 'lucide-react'
+import { Check, ListChecks, Pencil, Pin, Plus, Trash2, UserPlus } from 'lucide-react'
 import { api } from '../../api'
 import type { Memory, Message, Person } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -74,7 +74,7 @@ function PersonCard({ person, memories, name, all, sources, actions, run }: { pe
           <h3 id={headingId}>{person.label}</h3>
           <p className="subtle">{personLine(person)}{age ? ` · ${age.value}` : ''}</p>
         </div>
-        {mode === 'edit' && <button type="button" className="text-button" onClick={() => setMode('view')}>Done</button>}
+        {mode === 'edit' && <button type="button" className="text-button" onClick={() => setMode('view')}><Check aria-hidden="true" />Done</button>}
       </header>
       {mode === 'rename' && <PersonForm person={person} submit="Save" onCancel={() => setMode('view')} onSave={async (body) => {
         const saved = await run(() => api<Person>(`/people/${person.id}`, body, 'PUT'), `Saved. Everything about ${body.name || `your ${body.relation}`} uses the new name.`)
