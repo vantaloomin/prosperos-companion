@@ -1543,7 +1543,20 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .person-heading small { font-weight: normal; margin-left: 6px; }
 .person-form { margin: 12px 0; max-width: 420px; }
 .person-heading .memory-actions { flex-direction: row; }
-.person-add-detail { margin-top: 8px; }
+.people .person-list { margin-top: 12px; gap: var(--card-gap); }
+.user-person { padding: var(--card-pad); }
+.user-person-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.user-person-header p { margin: 2px 0 0; }
+.user-person .pet-line { margin: 0; }
+.user-person .not-used { opacity: .6; }
+.user-person-pin { width: 14px; height: 14px; margin-left: 6px; vertical-align: -2px; }
+.user-person .memory-list { margin: 4px 0 0; }
+.user-person .person-form { margin: 4px 0; }
+.person-detail-form { max-width: 420px; padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--canvas); }
+@media (max-width: 720px) {
+  .person-detail-form { max-width: none; }
+  .user-person .person-actions .text-button { min-height: 44px; }
+}
 
 /* Phones (src/features/phone): room for a notch and home bar, no zoom when a field is focused, and
    the tab bar steps aside while the keyboard is up for the chat. */
