@@ -339,8 +339,13 @@ place or month, with what the rules kept listed as `already_saved`. The model is
 ("Sam", not "I'm Sam"), with a subject that says whose fact it is. Each message also goes with up to six of
 the user's current facts its words touch, as `known` ("Mom's interests: she loves gardening"; never a sensitive
 memory or a boundary), and the model marks an answer that says one of them is wrong or no longer true with
-`corrects`, naming that subject as sent (prompt `memory-suggest-4`). Each answer must name a message in the batch and take most of its
-words from that message, or it is dropped; so is one whose `corrects` names anything that was not sent. An
+`corrects`, naming that subject as sent (prompt `memory-suggest-5`, which also leaves out small talk about the
+world: "bats eat mosquitoes" is not a fact about the user). Each answer must name a message in the batch and take
+most of its words from that message, or it is dropped; so is one whose `corrects` names anything that was not
+sent, and one whose subject belongs to someone the message does not show is in the user's life
+(`companion/memory/owners.py`): "Bats' diet" from "bats eat mosquitoes and flies" names no relation, no known
+name, no "my bats" and no name used for one person ("Jo works", "lunch with Jo"), so it goes. Automatic memories
+an earlier prompt saved that fail the same check are removed by the hourly memory upkeep, unless pinned or edited. An
 answer marked `corrects`, or one that negates the one current memory with its layer and subject ("Mom's
 interests: not a gardener"), corrects that memory (below); a new value for a single-valued subject replaces the
 current one, like a rule-found one. Other survivors are saved as `automatic` memories (shown as
