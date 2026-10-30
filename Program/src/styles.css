@@ -373,12 +373,22 @@ a.button { color: inherit; text-decoration: none; }
 .memory-source q { color: var(--text); }
 .memory-history summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .memory-history ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.875rem; color: var(--muted); }
+.memory-finished { margin-top: 12px; }
+.memory-finished summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); padding: 6px 0; }
+.memory-finished .memory-list { margin-top: 8px; }
 .memory-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 0; flex-shrink: 0; }
 .danger-text { color: var(--danger); }
 .correct-form { display: flex; flex-direction: column; gap: 8px; }
 .correct-dates { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .correct-dates label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8125rem; color: var(--muted); }
 .memory-followup { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 6px 0; font-size: 0.875rem; }
+.memory-followup.settled { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin: 0; }
+.memory-followup-reason { color: var(--muted); font-size: 0.875rem; }
+.memory-followup-choices { display: flex; flex-wrap: wrap; gap: 0 14px; }
+.memory-followup .text-button { color: var(--accent); }
+.memory-followup .text-button:hover, .memory-followup .text-button:focus-visible { text-decoration: underline; }
+@media (max-width: 720px) { .memory-followup .text-button { min-height: 44px; } }
+.badge.assumed { border: 1px dashed var(--accent); }
 .remember-form { padding: 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin-bottom: 18px; }
 .empty-memories { max-width: 560px; margin-top: 12px; }
 .closeness { display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }

@@ -408,6 +408,8 @@ export interface Memory {
   /** The later memory that ended this one ("I moved to Boston" ends Chicago). */
   ended_by_id?: string | null
   dates_uncertain?: boolean
+  /** A plan that closed on its own once it was over: the open status it had. */
+  settled_from?: PlanStatus | null
   /** False once its applicable period has ended; it stays as history. */
   current?: boolean
   /** False for a memory from another timeline, which the current conversation does not use. */

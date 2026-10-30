@@ -7,7 +7,7 @@ import type { DeletePreview, Memory, Message, PlanStatus } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Toggle } from '../../components/Fields'
 import { useReturnFocus } from '../../components/returnFocus'
-import { addedLine, correction, dateParts, dayInput, deletePreviewText, earlierVersions, followUp, statusLabels, type Correction } from './memoryGroups'
+import { addedLine, correction, dateParts, dayInput, deletePreviewText, earlierVersions, followUp, statusLabels, type Correction, type CorrectionDraft } from './memoryGroups'
 
 export interface MemoryActions {
   correct: (memory: Memory, body: Correction) => Promise<boolean>
@@ -20,9 +20,10 @@ export interface MemoryActions {
 const date = (value: string | null) => value ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '…'
 
 export function MemoryCard({ memory, all, sources, actions, focusOnMount }: { memory: Memory; all: Memory[]; sources: Map<string, Message>; actions: MemoryActions; focusOnMount?: boolean }) {
-  const [editing, setEditing] = useState(false)
+  // 'moved': a plan that closed on its own, reopened with a new date ("It moved").
+  const [editing, setEditing] = useState<false | 'correct' | 'moved'>(false)
   const [deleting, setDeleting] = useState(false)
-  const correctButton = useReturnFocus<HTMLButtonElement>(editing)
+  const correctButton = useReturnFocus<HTMLButtonElement>(editing !== false)
   useEffect(() => { if (focusOnMount && document.activeElement === document.body) correctButton.current?.focus() }, [focusOnMount, correctButton])
   const history = earlierVersions(memory, all)
   const excluded = memory.status === 'excluded'
@@ -30,13 +31,13 @@ export function MemoryCard({ memory, all, sources, actions, focusOnMount }: { me
     <li className={`memory${excluded ? ' excluded' : ''}`}>
       <div className="memory-main">
         <p className="memory-subject">{memory.subject}</p>
-        {editing ? <CorrectForm memory={memory} onDone={() => setEditing(false)} correct={actions.correct} /> : <p className="memory-value">{memory.value}</p>}
-        <Meta memory={memory} />
-        {!editing && <FollowUp memory={memory} correct={actions.correct} onEdit={() => setEditing(true)} />}
+        {editing ? <CorrectForm memory={memory} reopen={editing === 'moved'} onDone={() => setEditing(false)} correct={actions.correct} /> : <p className="memory-value">{memory.value}</p>}
+        {editing !== 'moved' && <Meta memory={memory} />}
+        {!editing && <FollowUp memory={memory} correct={actions.correct} onEdit={(moved) => setEditing(moved ? 'moved' : 'correct')} />}
         <Sources memory={memory} sources={sources} />
         <EarlierValues history={history} />
       </div>
-      <ActionBar memory={memory} editing={editing} actions={actions} correctButton={correctButton} onEdit={() => setEditing(true)} onDelete={() => setDeleting(true)} />
+      <ActionBar memory={memory} editing={editing !== false} actions={actions} correctButton={correctButton} onEdit={() => setEditing('correct')} onDelete={() => setDeleting(true)} />
       {deleting && <DeleteDialog memory={memory} versions={history.length + 1} onClose={() => setDeleting(false)} remove={actions.remove} />}
     </li>
   )
@@ -45,7 +46,7 @@ export function MemoryCard({ memory, all, sources, actions, focusOnMount }: { me
 function Meta({ memory }: { memory: Memory }) {
   return (
     <p className="memory-meta">
-      {statusLabels(memory).map((label) => <span key={label} className="badge">{label}</span>)}
+      {statusLabels(memory).map((label) => <span key={label} className={label === 'Assumed done' ? 'badge assumed' : 'badge'}>{label}</span>)}
       {dateParts(memory, date).map((part) => <span key={part}>{part}</span>)}
     </p>
   )
@@ -65,7 +66,7 @@ function ActionBar({ memory, editing, actions, correctButton, onEdit, onDelete }
   const excluded = memory.status === 'excluded'
   return (
     <div className="memory-actions" role="group" aria-label={`Actions for ${memory.subject}`}>
-      {!excluded && !editing && <button ref={correctButton} type="button" className="text-button" onClick={onEdit}><Pencil aria-hidden="true" />Correct</button>}
+      {!excluded && !editing && <button ref={correctButton} type="button" className="text-button" onClick={() => onEdit()}><Pencil aria-hidden="true" />Correct</button>}
       {memory.authority === 'tentative' && !excluded && <button type="button" className="text-button" onClick={() => actions.confirm(memory)}><Check aria-hidden="true" />Confirm</button>}
       <PinButton memory={memory} actions={actions} />
       <button type="button" className="text-button" onClick={() => actions.exclude(memory, !excluded)} title={excluded ? 'Use this again in conversation' : 'Keep this but stop using it, including the messages it came from'}>
@@ -97,17 +98,30 @@ function Sources({ memory, sources }: { memory: Memory; sources: Map<string, Mes
 
 const PLAN_STATUSES: PlanStatus[] = ['proposed', 'agreed', 'postponed', 'cancelled', 'completed']
 
-/** A focused question: whether a past plan happened, or when an unclear date applies (PRD M8). */
-function FollowUp({ memory, correct, onEdit }: { memory: Memory; correct: MemoryActions['correct']; onEdit: () => void }) {
+/** A focused question: whether a past plan happened, or when an unclear date applies (PRD M8). A plan that closed on
+ * its own says so, with the ways to put it right. */
+function FollowUp({ memory, correct, onEdit }: { memory: Memory; correct: MemoryActions['correct']; onEdit: (moved?: boolean) => void }) {
   const question = followUp(memory, appDate())
   const mark = (plan_status: PlanStatus) => void correct(memory, { value: memory.value, plan_status })
+  if (question === 'settled') {
+    return (
+      <div className="memory-followup settled" role="group" aria-label={`Did ${memory.subject} happen?`}>
+        <span className="memory-followup-reason">{memory.applies_from || memory.applies_until ? 'Its day has passed, so it was taken as done.' : 'Nothing more was said about it for two weeks, so it was taken as done.'}</span>
+        <div className="memory-followup-choices">
+          <button type="button" className="text-button" onClick={() => mark('completed')}>It happened</button>
+          <button type="button" className="text-button" onClick={() => mark('cancelled')}>It didn't happen</button>
+          <button type="button" className="text-button" onClick={() => onEdit(true)}>It moved</button>
+        </div>
+      </div>
+    )
+  }
   if (question === 'outcome') {
     return (
       <div className="memory-followup" role="group" aria-label={`Did ${memory.subject} happen?`}>
         <span>The date has passed. Did it happen?</span>
         <button type="button" className="text-button" onClick={() => mark('completed')}>It happened</button>
         <button type="button" className="text-button" onClick={() => mark('cancelled')}>It was cancelled</button>
-        <button type="button" className="text-button" onClick={onEdit}>It moved</button>
+        <button type="button" className="text-button" onClick={() => onEdit()}>It moved</button>
       </div>
     )
   }
@@ -115,13 +129,19 @@ function FollowUp({ memory, correct, onEdit }: { memory: Memory; correct: Memory
   return (
     <div className="memory-followup">
       <span>The date was unclear, so it is only a best guess.</span>
-      <button type="button" className="text-button" onClick={onEdit}>Set the date</button>
+      <button type="button" className="text-button" onClick={() => onEdit()}>Set the date</button>
     </div>
   )
 }
 
-function CorrectForm({ memory, correct, onDone }: { memory: Memory; correct: MemoryActions['correct']; onDone: () => void }) {
-  const [draft, setDraft] = useState({ value: memory.value, plan_status: memory.plan_status, from: dayInput(memory.applies_from), until: dayInput(memory.applies_until) })
+/** "It moved" reopens the plan from a blank day: the old one has passed. */
+function firstDraft(memory: Memory, reopen: boolean): CorrectionDraft {
+  if (reopen) return { value: memory.value, plan_status: memory.settled_from ?? 'agreed', from: '', until: '' }
+  return { value: memory.value, plan_status: memory.plan_status, from: dayInput(memory.applies_from), until: dayInput(memory.applies_until) }
+}
+
+function CorrectForm({ memory, reopen, correct, onDone }: { memory: Memory; reopen: boolean; correct: MemoryActions['correct']; onDone: () => void }) {
+  const [draft, setDraft] = useState(() => firstDraft(memory, reopen))
   const [saving, setSaving] = useState(false)
   const body = correction(memory, draft)
   const submit = async (event: FormEvent) => {
@@ -135,7 +155,7 @@ function CorrectForm({ memory, correct, onDone }: { memory: Memory; correct: Mem
   return (
     <form className="correct-form" onSubmit={submit}>
       <label className="visually-hidden" htmlFor={id}>Corrected value for {memory.subject}</label>
-      <textarea id={id} aria-describedby={`${id}-hint`} rows={2} value={draft.value} maxLength={4000} autoFocus onChange={(event) => setDraft({ ...draft, value: event.target.value })} />
+      <textarea id={id} aria-describedby={`${id}-hint`} rows={2} value={draft.value} maxLength={4000} autoFocus={!reopen} onChange={(event) => setDraft({ ...draft, value: event.target.value })} />
       <div className="correct-dates">
         {memory.plan_status && (
           <label>Status
@@ -144,12 +164,12 @@ function CorrectForm({ memory, correct, onDone }: { memory: Memory; correct: Mem
             </select>
           </label>
         )}
-        <label>From<input type="date" value={draft.from} onChange={(event) => setDraft({ ...draft, from: event.target.value })} /></label>
+        <label>From<input type="date" value={draft.from} autoFocus={reopen} onChange={(event) => setDraft({ ...draft, from: event.target.value })} /></label>
         <label>Until<input type="date" value={draft.until} onChange={(event) => setDraft({ ...draft, until: event.target.value })} /></label>
       </div>
-      <p className="subtle" id={`${id}-hint`}>The old value is kept as history and stops being used from the next reply.{memory.dates_uncertain ? ' Saving the dates marks them as confirmed.' : ''}</p>
+      <p className="subtle" id={`${id}-hint`}>{reopen ? "Pick the new day, or leave it blank if there isn't one yet. " : ''}The old value is kept as history and stops being used from the next reply.{memory.dates_uncertain ? ' Saving the dates marks them as confirmed.' : ''}</p>
       <div className="form-actions">
-        <button type="submit" className="button primary" disabled={saving || !body}>Save correction</button>
+        <button type="submit" className="button primary" disabled={saving || !body}>{reopen ? 'Save new date' : 'Save correction'}</button>
         <button type="button" className="button" onClick={onDone}>Cancel</button>
       </div>
     </form>

@@ -82,7 +82,7 @@ function TimingFields({ layer, planStatus, setPlanStatus, until, setUntil }: { l
   if (layer !== 'plan' && layer !== 'temporary') return null
   return <>
     {layer === 'plan' && (
-      <Field label="Status" hint="A plan stays open until it is marked completed or cancelled. A date passing does not finish it.">
+      <Field label="Status" hint="Once its day has passed, a plan is taken as done. One with no date is taken as done after two weeks without a mention. You can change it here later.">
         {(id, hint) => <select id={id} aria-describedby={hint} value={planStatus} onChange={(event) => setPlanStatus(event.target.value as PlanStatus)}>
           {['proposed', 'agreed', 'postponed', 'completed', 'cancelled'].map((status) => <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}
         </select>}

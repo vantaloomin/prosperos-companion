@@ -13,10 +13,15 @@ export function layerTitle(layer: Layer, name: string) {
   return LAYERS.find((item) => item.id === layer)?.title(name) ?? layer
 }
 
-export interface MemoryGroup { layer: Layer; current: Memory[]; history: Memory[] }
+/** `finished`: plans that are over (done or cancelled), folded away under the open ones. */
+export interface MemoryGroup { layer: Layer; current: Memory[]; finished: Memory[]; history: Memory[] }
+
+const FINISHED: (string | null)[] = ['completed', 'cancelled']
 
 /** When a memory happened: its start, else when it was said. */
 const happened = (memory: Memory) => memory.applies_from ?? memory.stated_at
+
+const newestFirst = (a: Memory, b: Memory) => b.updated_at.localeCompare(a.updated_at)
 
 /** Shared moments newest first, by when they happened (Iris); the other layers pinned first, then by subject. */
 function orderFor(layer: Layer) {
@@ -30,12 +35,15 @@ export function groupMemories(memories: Memory[]): MemoryGroup[] {
   return LAYERS.map(({ id }) => {
     const inLayer = memories.filter((memory) => memory.layer === id && !memory.person_id)
     const order = orderFor(id)
+    const shown = inLayer.filter((memory) => memory.status !== 'superseded').sort(order)
+    const over = (memory: Memory) => id === 'plan' && FINISHED.includes(memory.plan_status)
     return {
       layer: id,
-      current: inLayer.filter((memory) => memory.status !== 'superseded').sort(order),
+      current: shown.filter((memory) => !over(memory)),
+      finished: shown.filter(over).sort(newestFirst),
       history: inLayer.filter((memory) => memory.status === 'superseded'),
     }
-  }).filter((group) => group.current.length || group.history.length)
+  }).filter((group) => group.current.length || group.finished.length || group.history.length)
 }
 
 /** Earlier values of one memory, newest first, following its supersession links. */
@@ -59,10 +67,16 @@ const FLAG_LABELS: [(memory: Memory) => boolean | undefined, string][] = [
   [(memory) => memory.sensitive, 'Sensitive'],
 ]
 
+/** A plan's status; one that closed on its own once it was over is only assumed done. */
+function planLabel(memory: Memory): string {
+  if (memory.settled_from && memory.plan_status === 'completed') return 'Assumed done'
+  return memory.plan_status ? memory.plan_status[0].toUpperCase() + memory.plan_status.slice(1) : ''
+}
+
 /** Plain-language state, never a confidence score. */
 export function statusLabels(memory: Memory): string[] {
   const labels = FLAG_LABELS.filter(([applies]) => applies(memory)).map(([, label]) => label)
-  if (memory.plan_status) labels.push(memory.plan_status[0].toUpperCase() + memory.plan_status.slice(1))
+  if (memory.plan_status) labels.push(planLabel(memory))
   if (memory.current === false && memory.status !== 'superseded' && !memory.plan_status) labels.push('No longer current')
   if (memory.retracted) labels.push('You said this was wrong')
   if (memory.dates_uncertain) labels.push('Dates uncertain')
@@ -136,8 +150,9 @@ function pastOpenPlan(memory: Memory, now: Date): boolean {
 }
 
 /** The one focused question worth asking about a memory, if any (PRD M8). */
-export function followUp(memory: Memory, now: Date): 'outcome' | 'date' | null {
+export function followUp(memory: Memory, now: Date): 'outcome' | 'settled' | 'date' | null {
   if (memory.status !== 'active') return null
+  if (memory.settled_from && memory.plan_status === 'completed') return 'settled'
   if (pastOpenPlan(memory, now)) return 'outcome'
   return memory.dates_uncertain ? 'date' : null
 }
