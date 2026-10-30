@@ -370,6 +370,11 @@ PERSONALITY = ('How you tend to act (your personality; it shows where it fits th
 TRAITS = ('Your emotional traits, expressed in character only and only about what you can know '
           '(never claim to know what the user did): ')
 FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
+# Pictures go only when the app sends one (companion/images/photos.py), listed in the notes; without that line a
+# model would claim one ("resending now") that never arrives.
+PICTURES = ('Pictures: you send one only when the notes list a picture you are sending with this reply. Otherwise you '
+            'are sending none: never say a photo is attached, sent, on its way or being resent. If one would fit, say '
+            'what you see in words instead.')
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
 
 
@@ -1047,8 +1052,8 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     texts = group is not None or not (together.in_person(connection, companion, now)
                                        or calls.on_call(connection, companion, now))
-    packet.require('character', version['id'], character_text(version, connection, intimate=extra['adult'],
-                                                              day=today, texts=texts))
+    character = character_text(version, connection, intimate=extra['adult'], day=today, texts=texts)
+    packet.require('character', version['id'], f'{character}\n{PICTURES}' if texts else character)
     if who := persona_text(connection, date.fromisoformat(today), version['definition']):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:

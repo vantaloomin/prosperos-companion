@@ -10,6 +10,7 @@ from companion.identity import CLIENT_HEADER
 from companion.images import memes, prompts
 from companion.images.photos import asked_kind, asks_for_photo, moment_text, yours
 from companion.main import create_app
+from companion.memory import context
 from companion.providers.vault import MemoryVault
 from tests.conftest import reconcile, send, set_life
 from tests.test_images import FakeAdapter, add_backend, local_comfy
@@ -134,6 +135,8 @@ def test_no_backend_means_no_photo_and_no_promise(client, life, provider):
     reply = ask(client)
     assert reply['status'] == 'complete' and reply['photo'] is None
     assert photo_section(provider) == ''
+    # Nothing goes with the reply, and the companion is told not to say a picture is sent or on its way.
+    assert context.PICTURES in provider.requests[-1]['prompt']
 
 
 def test_other_messages_and_other_times_send_no_photo(client, life, provider):
@@ -194,7 +197,10 @@ def test_a_fork_keeps_the_photo_on_the_copied_reply(client, life):
     ('send me a selfie', 'selfie'), ('can I see your face?', 'selfie'), ('pic of you rn?', 'selfie'),
     ('send me a pic of the view', 'view'), ("show me what you're seeing", 'view'),
     ('send me a meme', 'meme'), ('got any memes?', 'meme'), ('cheer me up', 'meme'), ('make me laugh', 'meme'),
-    ('wyd', 'moment'), ('send me a selfie tomorrow', None)])
+    ('wyd', 'moment'), ('send me a selfie tomorrow', None),
+    # A picture that never came is asked for again now, even one promised last night.
+    ("Where is the photo? I didn't recieve it.", 'moment'), ("where's the pic from last night?", 'moment'),
+    ('the photo never arrived', 'moment'), ('still waiting on that selfie', 'selfie'), ('no pics please', None)])
 def test_which_picture_a_message_asks_for(text, kind):
     assert asked_kind(text) == kind
 
