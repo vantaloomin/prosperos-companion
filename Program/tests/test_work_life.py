@@ -283,6 +283,36 @@ def test_a_slammed_week_puts_late_nights_on_the_calendar_that_hold_against_dinne
     assert row and 'Nell' in decode(row['entry'])['summary']
 
 
+def test_a_late_night_planned_before_its_project_changed_names_the_new_one(client, nell, clock):
+    """A save from before the season fix: "stayed late at work on the midsummer festival rush" is rewritten."""
+    reconcile(client)
+    make_slammed(client, nell)
+    reconcile(client)
+    with connect(client) as connection:
+        connection.execute("UPDATE life_admin SET done_text='stayed late at work on the midsummer festival rush' "
+                           "WHERE source='work' AND status='planned'")
+    clock.advance(timedelta(hours=1))
+    reconcile(client)
+    late = [item for item in client.get('/api/life/admin').json()['upcoming'] if item['source'] == 'work']
+    assert late and not any('midsummer' in (item['detail'] or '').lower() for item in late)
+    with connect(client, write=False) as connection:
+        texts = [row['done_text'] for row in connection.execute(
+            "SELECT done_text FROM life_admin WHERE source='work' AND status='planned'")]
+    assert texts and not any('midsummer' in text for text in texts)
+
+
+def test_a_late_night_that_cannot_move_before_its_deadline_says_so(client, nell):
+    from companion.life import admin
+    with connect(client) as connection:
+        companion = require_current(connection)
+        now = client.app.state.database.clock.now()
+        entry = admin.add(connection, companion, key='work:late:test', source='work', kind='late-night',
+                          title='Staying late at work', done='stayed late at work on the ledger', day=now.date(),
+                          at='17:00', fixed=True, deadline=now.date(), out=False, now=now)
+    response = client.post(f"/api/life/admin/{entry['id']}/move")
+    assert response.status_code == 409 and 'has to be done by' in response.text
+
+
 def test_on_light_a_late_night_moves_for_dinner_and_off_takes_them_away(client, nell, provider):
     set_life(client, work_realism=1)
     reconcile(client)

@@ -353,8 +353,11 @@ def user_move(connection, companion: dict, entry_id: str, now: datetime) -> dict
     item = get(connection, entry_id)
     require(item['timeline_id'] == companion['active_timeline_id'] and item['status'] == 'planned',
             'Only something still to do can move.', 409)
+    deadline = date.fromisoformat(item['deadline']) if item['deadline'] else None
     require(move(connection, companion, item, 'user', now, days=1) > 0,
-            'There is no free time for it in the next two weeks.', 409)
+            f'It has to be done by {deadline:%A}, {deadline:%B} {deadline.day}, and there is no other free time '
+            'before then.' if deadline and deadline < local_now(companion, now).date() + timedelta(days=MOVE_DAYS + 1)
+            else 'There is no free time for it in the next two weeks.', 409)
     return get(connection, entry_id)
 
 
