@@ -259,7 +259,7 @@ def beats(connection, companion, now, since: date, voice: int, first: str) -> li
             day = date.fromisoformat(beat['on'])
             if day >= since:
                 key = f"beat:{story['id']}:{number}"
-                result.append(item(key, at(day, AFTERNOON, timezone), 'story', beat['text'],
+                result.append(item(key, at(day, time.fromisoformat(beat['time']), timezone), 'story', beat['text'],
                                    inner=thought_after(voice, True, key, beat['tone'], first)))
     return result
 

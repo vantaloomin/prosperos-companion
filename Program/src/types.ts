@@ -507,7 +507,8 @@ export interface LifeSettings {
   on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
-  /** This world's own drama level (companion/life/world_drama.py); null follows `drama`, which every world shares. */
+  /** This world's own drama level (companion/life/world_drama.py), or null while it still follows the level carried
+   * between worlds; `drama` is always the level this world runs at. */
   world_drama: number | null
   /** Their companion is the only one in this world, so storylines start a little more often for them. */
   alone: boolean

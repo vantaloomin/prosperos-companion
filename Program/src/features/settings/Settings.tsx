@@ -13,7 +13,6 @@ import { DebugMatches } from './DebugMatches'
 import { ChatStyleSettings } from './ChatStyleSettings'
 import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
-import { WorldDrama } from './WorldDrama'
 import { LifeSettings } from './LifeSettings'
 import { AdultSideSettings, ClosenessSettings, HomeLifeSettings, LoveSettings, PaceSettings, RealismIntro } from './RealismSettings'
 import { NotificationSettings } from './NotificationSettings'
@@ -102,8 +101,8 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   const content: Record<SettingsTab, ReactNode> = {
     general: <><TimezoneSettings /><ChatStyleSettings /><OocSettings /><PauseSettings /><BackgroundSettings /><UpdateCheck /></>,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
-    life: <><WorldDrama name={name} /><LifeSettings name={name} /><Cities /><Library world /></>,
-    realism: <><RealismIntro /><PaceSettings /><LoveSettings /><HomeLifeSettings /><ClosenessSettings name={name} /><AdultSideSettings /><HiddenValues name="" /></>,
+    life: <><LifeSettings name={name} /><Cities /><Library world /></>,
+    realism: <><RealismIntro /><PaceSettings name={name} /><LoveSettings /><HomeLifeSettings /><ClosenessSettings name={name} /><AdultSideSettings /><HiddenValues name="" /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,
     images: <ImageSettings />,

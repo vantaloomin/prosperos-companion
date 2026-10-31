@@ -68,8 +68,8 @@ export function RealismIntro() {
   )
 }
 
-/** How much drama, their pace and plans that go off course: world-wide settings, so they come first. */
-export function PaceSettings() {
+/** How much drama, their pace and plans that go off course. Drama is this world's own (companion/life/world_drama.py). */
+export function PaceSettings({ name }: { name: string }) {
   const { settings, data, save, result } = useLifeSettings()
   const world = useWorlds().data?.world.name
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
@@ -95,8 +95,8 @@ export function PaceSettings() {
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
-      <Field label={`Drama in your worlds: ${level.label}`} tip="Every world follows this unless it has its own, in Life & cities > This world."
-        hint={data.world_drama === null ? level.hint : `${level.hint} ${world ?? 'This world'} has its own level, ${step(DRAMA_LEVELS, data.world_drama, 1).label}, in Life & cities.`}>
+      <Field label={`Drama in ${world ?? 'this world'}: ${level.label}`} tip="Only this world. Each of your worlds keeps its own drama level."
+        hint={data.alone && name ? `${level.hint} ${name} is the only companion here, so a little more happens to them.` : level.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.drama} label={level.label}
           onChange={(drama) => void save({ drama })} />}
       </Field>
