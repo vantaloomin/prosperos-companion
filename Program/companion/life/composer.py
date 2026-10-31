@@ -377,6 +377,22 @@ def own_pronouns(text: str, forms: str | None) -> str:
     return ' '.join(sentences)
 
 
+def own_words(text: str, who: str, own: str | None) -> str:
+    """In a sentence whose subject is `who` alone, their own "their"/"themselves" (how the banks speak of anyone)
+    and the reflexive of their pronouns are "my"/"myself": "Sam found a spot of their own" is "I found a spot of my
+    own". Left as it is when someone else may be in the sentence too: two people, or another name ("took Sam out for
+    their birthday"); a place's name ("Lou's") does not count."""
+    reflexive = (SUBJECTS.get(own or '') or ('', (), 'themselves'))[2]
+    sentences = re.split(r'(?<=[.!?]) ', text)
+    for index, sentence in enumerate(sentences):
+        rest = re.sub(rf'^{who} ', '', sentence)
+        if rest != sentence and not rest.startswith('and ') and not THEY_SHARED.search(sentence) \
+                and not re.search(r"\b[A-Z][\w-]*\b(?!'s)", rest):
+            sentence = re.sub(r'\btheir\b', 'my', sentence)
+            sentences[index] = re.sub(rf'\b(?:themselves|themself|{reflexive})\b', 'myself', sentence)
+    return ' '.join(sentences)
+
+
 def mine(text: str | None, name: str, own: str | None = None) -> str | None:
     """A summary about `name` (the companion or a circle member) said by them: "Sam kept up" reads "I kept up",
     "Sam goes" "I go", and "Sam's" is "my" ("My" only to start a sentence). With their pronouns known (`own`, "he/him"), a sentence
@@ -388,6 +404,7 @@ def mine(text: str | None, name: str, own: str | None = None) -> str | None:
     names = sorted({name.strip(), name.strip().split()[0]}, key=len, reverse=True)
     who = '(?:' + '|'.join(re.escape(each) for each in names if each) + ')'
     adverbs = '|'.join(ADVERBS)
+    text = own_words(text, who, own)
     text = re.sub(rf'^{who} and ((?:[A-Z][\w.\'-]*)(?: [A-Z][\w.\'-]*)*) ', r'\1 and I ', text)
     text = re.sub(rf"(^|[.!?] ){who}'s\b", lambda found: found.group(1) + 'My', text)
     text = re.sub(rf"\b{who}'s\b", 'my', text)
