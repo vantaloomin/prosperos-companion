@@ -142,6 +142,7 @@ ADDED_COLUMNS = (
     ('timelines', 'forked_at', 'TEXT'),
     ('timelines', 'draft', 'TEXT'),
     ('timelines', 'activated_at', 'TEXT'),
+    ('timelines', 'deleted_at', 'TEXT'),
     ('messages', 'origin_id', 'TEXT'),
     ('workspace_settings', 'user_timezone_source',
      "TEXT NOT NULL DEFAULT 'default' CHECK (user_timezone_source IN ('default', 'pc', 'chosen'))"),
