@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, X } from 'lucide-react'
+import { Check, Pencil, Trash2, Undo2, X } from 'lucide-react'
 import { api } from '../../api'
 import { TIMELINES_KEY } from '../../companion'
-import type { Message, Timeline } from '../../types'
+import type { Message, Timeline, TimelineList } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -15,15 +15,30 @@ import { useSwitchTimeline, useTimelines } from './useTimelines'
 export function TimelinePanel({ name, onClose }: { name: string; onClose: () => void }) {
   const timelines = useTimelines()
   const switchTo = useSwitchTimeline()
+  const client = useQueryClient()
   const [choosing, setChoosing] = useState<Timeline | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [deleted, setDeleted] = useState<Timeline | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const undoButton = useRef<HTMLButtonElement>(null)
+  // The deleted row's button is gone, so focus (and the view) moves to Undo, where the user can take it back.
+  useEffect(() => { if (deleted) undoButton.current?.focus() }, [deleted])
   const all = timelines.data?.timelines ?? []
+  const attempt = async (work: () => Promise<unknown>, failed: string) => {
+    try { await work(); setError(null); return true } catch (failure) { setError(failure instanceof Error ? failure.message : failed); return false }
+  }
   const confirm = async (timeline: Timeline) => {
     setChoosing(null)
-    try { await switchTo(timeline.id); setError(null) } catch (failure) { setError(failure instanceof Error ? failure.message : 'The timeline was not switched.') }
+    await attempt(() => switchTo(timeline.id), 'The timeline was not switched.')
+  }
+  const remove = async (timeline: Timeline) => {
+    if (await attempt(async () => client.setQueryData(TIMELINES_KEY, await api<TimelineList>(`/timelines/${timeline.id}`, undefined, 'DELETE')), 'The timeline was not deleted.')) setDeleted(timeline)
+  }
+  const undo = async (timeline: Timeline) => {
+    if (await attempt(async () => client.setQueryData(TIMELINES_KEY, await api<TimelineList>(`/timelines/${timeline.id}/restore`, {})), 'The timeline was not brought back.')) setDeleted(null)
   }
   return (
-    <div className="conversation-search timeline-panel" role="region" aria-label="Timelines" onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}>
+    <div className="conversation-search timeline-panel" role="region" aria-label="Timelines" onKeyDown={(event) => { if (event.key === 'Escape' && !renaming) onClose() }}>
       <div className="search-bar">
         <p className="timeline-intro">Only the current timeline moves with real time. To try something different, choose Branch from here or Edit in a message's actions (hover over it, or press and hold it on a phone).</p>
         <button type="button" className="icon-button" aria-label="Close timelines" onClick={onClose}><X aria-hidden="true" /></button>
@@ -32,20 +47,30 @@ export function TimelinePanel({ name, onClose }: { name: string; onClose: () => 
         {timelines.isPending && <Loading label="Loading timelines" />}
         {timelines.isError && <ErrorNotice error={timelines.error} />}
         {error && <Notice tone="error">{error}</Notice>}
+        {deleted && <Notice action={<button ref={undoButton} type="button" className="text-button" onClick={() => void undo(deleted)}><Undo2 aria-hidden="true" />Undo</button>}>Deleted {deleted.label}.</Notice>}
         <ul>
           {all.map((timeline) => (
             <li key={timeline.id} className="timeline-row">
-              <div className="search-result">
-                <span className="search-meta"><strong>{timeline.label}</strong><span>{timelineSummary(timeline)}</span></span>
-                {forkNote(timeline, all) && <span className="subtle">{forkNote(timeline, all)}</span>}
-                {timeline.latest_text && <span className="search-snippet">“{timeline.latest_text}”</span>}
-              </div>
-              {timeline.active
-                ? <span className="timeline-current"><Check aria-hidden="true" />Current</span>
-                : <button type="button" className="button" onClick={() => setChoosing(timeline)}>Switch to this</button>}
+              {renaming === timeline.id
+                ? <RenameTimeline timeline={timeline} onDone={() => setRenaming(null)} />
+                : <>
+                  <div className="search-result">
+                    <span className="search-meta"><strong>{timeline.label}</strong><span>{timelineSummary(timeline)}</span></span>
+                    {forkNote(timeline, all) && <span className="subtle">{forkNote(timeline, all)}</span>}
+                    {timeline.latest_text && <span className="search-snippet">“{timeline.latest_text}”</span>}
+                  </div>
+                  <div className="timeline-actions">
+                    {timeline.active
+                      ? <span className="timeline-current"><Check aria-hidden="true" />Current</span>
+                      : <button type="button" className="button" onClick={() => setChoosing(timeline)}>Switch to this</button>}
+                    <button type="button" className="icon-button" aria-label={`Rename ${timeline.label}`} title="Rename" onClick={() => setRenaming(timeline.id)}><Pencil aria-hidden="true" /></button>
+                    {!timeline.active && <button type="button" className="icon-button" aria-label={`Delete ${timeline.label}`} title="Delete" onClick={() => void remove(timeline)}><Trash2 aria-hidden="true" /></button>}
+                  </div>
+                </>}
             </li>
           ))}
         </ul>
+        {all.length > 1 && <p className="subtle timeline-footnote">To delete the timeline you're on, switch to another one first.</p>}
       </div>
       {choosing && (
         <ConfirmDialog title={`Switch to ${choosing.label}?`} onClose={() => setChoosing(null)} actions={<>
@@ -57,6 +82,40 @@ export function TimelinePanel({ name, onClose }: { name: string; onClose: () => 
         </ConfirmDialog>
       )}
     </div>
+  )
+}
+
+/** A timeline's name, changed in its row; saved on Enter or Save, left as it was on Escape or Cancel. */
+function RenameTimeline({ timeline, onDone }: { timeline: Timeline; onDone: () => void }) {
+  const client = useQueryClient()
+  const [label, setLabel] = useState(timeline.label)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const form = useRef<HTMLFormElement>(null)
+  useEffect(() => { form.current?.querySelector('input')?.select() }, [])
+  const ready = !!label.trim() && label.trim() !== timeline.label
+  const save = async () => {
+    if (!ready) { if (!label.trim()) return; onDone(); return }
+    setBusy(true)
+    try {
+      await api<Timeline>(`/timelines/${timeline.id}`, { label: label.trim() }, 'PATCH')
+      await client.invalidateQueries({ queryKey: TIMELINES_KEY })
+      onDone()
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'The name was not changed.')
+      setBusy(false)
+    }
+  }
+  return (
+    <form ref={form} className="timeline-rename" onSubmit={(event) => { event.preventDefault(); void save() }}
+      onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onDone() } }}>
+      <TextInput label="Timeline name" value={label} onChange={setLabel} maxLength={80} />
+      <div className="timeline-actions">
+        <button type="button" className="button" onClick={onDone} disabled={busy}>Cancel</button>
+        <button type="submit" className="button primary" disabled={busy || !label.trim()}>Save</button>
+      </div>
+      {error && <Notice tone="error">{error}</Notice>}
+    </form>
   )
 }
 
@@ -97,7 +156,7 @@ export function EditDialog({ message, name, branch = false, onClose, onDone }: {
         <p>{name} remembers what you said, so an edit starts an alternate timeline from just before this message. Your current conversation stays exactly as it is, and you can switch back any time.</p>
         <TextArea label="Your message" value={text} onChange={setText} rows={4} maxLength={40000} hint="Sent in place of the original message in the new timeline." />
       </>}
-      <TextInput label="Name for the new timeline (optional)" value={label} onChange={setLabel} maxLength={80} hint="Shown in the timeline list so you can tell them apart." />
+      <TextInput label="Name for the new timeline (optional)" value={label} onChange={setLabel} maxLength={80} hint="Left empty, it is named after the message. You can rename it any time in the timeline list." />
       {error && <Notice tone="error">{error}</Notice>}
     </ConfirmDialog>
   )
