@@ -82,6 +82,32 @@ export function yearBadge(world: Pick<World, 'year'>): { text: string; label: st
   return world.year ? { text: String(world.year), label: `It's ${world.year} there` } : null
 }
 
+/** When life stopped in a paused world, in English: "2:15 PM" today, "Oct 30" this year, "Oct 30, 2025" before. */
+export function pausedWhen(iso: string, now: Date): string {
+  const when = new Date(iso)
+  if (when.toDateString() === now.toDateString()) return when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const year = when.getFullYear() === now.getFullYear() ? undefined : 'numeric'
+  return when.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year })
+}
+
+type Paused = Pick<World, 'active' | 'paused' | 'paused_since' | 'paused_in_settings' | 'catches_up'>
+
+/** The line under a paused world: since when, and what going back (or resuming) does; the Worlds intro says once
+ * that only the world the user is in moves on (Iris, 2026-10-31). Null for a running world, or nothing to say. */
+export function pausedNote(world: Paused, now: Date): string | null {
+  if (!world.paused) return null
+  const when = world.paused_since ? pausedWhen(world.paused_since, now) : ''
+  if (world.paused_in_settings) {
+    const since = when ? ` since ${when}` : ''
+    return world.active
+      ? `Paused in Settings${since}. Time here is skipped until you resume.`
+      : `Paused in Settings${since}. Stays paused when you go back, until you resume.`
+  }
+  // A world never visited, with nothing to catch up on, has only its badge (Iris): it never started.
+  if (!when) return world.catches_up ? 'Catches up a little when you go back' : null
+  return `Since ${when} · ${world.catches_up ? 'catches up a little when you go back' : 'picks up where it left off'}`
+}
+
 // "Start in a past year" goes back as far as Back when does (companion/world_year.py EARLIEST).
 export const EARLIEST_YEAR = 1990
 // The year the creator offers first: ten years back, so the decade shows, unless the user picks another.

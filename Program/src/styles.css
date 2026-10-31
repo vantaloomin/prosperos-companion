@@ -2087,6 +2087,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .year-badge svg { width: 0.8rem; height: 0.8rem; }
 /* On the world you are in, whose row is tinted already, the badge keeps a fill a step darker. */
 .world-row[aria-current='true'] .year-badge { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+/* A world where life stands still: muted rather than the accent, so it reads as waiting, not as news. */
+.paused-badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
+.paused-badge svg { width: 0.75rem; height: 0.75rem; }
+.paused-note { line-height: 1.45; }
 /* Phone: the buttons go under the name, lined up with it, so the name keeps the row's width (Iris, 2026-10-29). */
 @media (max-width: 480px) { .world-row-actions { flex-basis: 100%; padding-left: 58px; flex-wrap: wrap; } }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }

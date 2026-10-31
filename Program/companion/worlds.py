@@ -22,11 +22,11 @@ import os
 import re
 import shutil
 import sqlite3
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from companion import backup, cast, characters, dating, library, lore, observer, restore, story, world_year
-from companion.clock import AppClock, stamp, zone
+from companion.clock import AppClock, parse, stamp, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
 from companion.life import ages, narrator, pets, where
@@ -269,6 +269,32 @@ def back_when_in(path: Path) -> dict | None:
     return {'year': rows[0][0], 'name': rows[0][1], 'companion_id': rows[0][2]} if rows else None
 
 
+def held_in(path: Path) -> str | None:
+    """When the user paused that world in Settings > Pause (companion/workspace.py), in real time; None when they
+    didn't. A world in a past year stamps its pause in its own year, so its offset is added back."""
+    rows = read_only(path, 'SELECT paused_at FROM workspace_settings WHERE id=1 AND paused_at IS NOT NULL')
+    if not rows:
+        return None
+    year = world_year.stored(path)
+    return stamp(parse(rows[0][0]) + timedelta(days=year['offset_days'])) if year else rows[0][0]
+
+
+def paused(world: dict, active: bool, path: Path) -> dict:
+    """Whether life stands still in a world, and since when. Only the world the user is in runs: the app has one
+    database open, so a world they left waits, and catches up a few events when they go back
+    (companion/life/simulation.py). A world paused in Settings waits even while they are in it, and skips that time.
+    `since` is when they left (worlds from before 1.2.2 never said), or when they paused it; `catches_up` is whether
+    going back fills in a little of the time away (Settings > Life, catch up on return)."""
+    held = held_in(path)
+    if held:
+        return {'paused': True, 'paused_since': held, 'paused_in_settings': True, 'catches_up': False}
+    # Nobody to catch up on in a world without companions yet.
+    catches_up = not active and bool(read_only(path, 'SELECT 1 FROM life_settings, companions WHERE life_settings.id=1 '
+                                                     'AND catch_up_on_return=1 LIMIT 1'))
+    return {'paused': not active, 'paused_since': None if active else world.get('left_at'), 'paused_in_settings': False,
+            'catches_up': catches_up}
+
+
 def world_view(database: Database, data: dict, world: dict, cities: dict[str, dict] | None = None) -> dict:
     if cities is None:
         with database.connect() as connection:
@@ -278,7 +304,8 @@ def world_view(database: Database, data: dict, world: dict, cities: dict[str, di
             'watching': watching_in(world_path(database.home, world)),
             'year': world_year.year_in(world_path(database.home, world), database.clock.real()),
             'back_when': back_when_in(world_path(database.home, world)),
-            'home': where.view(world.get('home'), cities)}
+            'home': where.view(world.get('home'), cities),
+            **paused(world, world['id'] == data['active'], world_path(database.home, world))}
 
 
 def view(database: Database) -> dict:
@@ -362,8 +389,11 @@ def switch(state, world_id: str) -> dict:
     database.use(target)
     mix.load(database)
     carry_settings(target, previous, database.now())
-    # The registry orders worlds by real time: a world in a past year would otherwise sort as used long ago.
-    data['active'], world['used_at'] = world['id'], stamp(database.clock.real())
+    # The registry orders worlds by real time: a world in a past year would otherwise sort as used long ago. The world
+    # they leave stands still from now (`paused`).
+    now = stamp(database.clock.real())
+    found(data['worlds'], data['active'], 'world')['left_at'] = now
+    data['active'], world['used_at'] = world['id'], now
     database.world = world['id']
     with database.connect(write=True) as connection:
         settle_home(connection, world)
