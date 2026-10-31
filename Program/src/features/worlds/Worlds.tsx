@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Copy, Eye, Globe, History, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
+import { Copy, Eye, Globe, History, Pause, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
 import { api } from '../../api'
 import type { Persona, World, Worlds as WorldsData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { PersonaForm } from './PersonaForm'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { enter, useWorlds, WORLDS_KEY } from './useWorlds'
-import { companionsLine, copyLabel, copyNote, initial, personaName, personaRef, personaRefTagged, defaultPastYear, pastYears, personaSuffix, personaTitle, worldTag, yearBadge } from './worldsText'
+import { companionsLine, copyLabel, copyNote, initial, personaName, personaRef, personaRefTagged, defaultPastYear, pastYears, pausedNote, personaSuffix, personaTitle, worldTag, yearBadge } from './worldsText'
 import { Field, Toggle } from '../../components/Fields'
 import { useWatchActions } from '../watch/useObserver'
 
@@ -222,7 +222,7 @@ function WorldRow({ world, run, store, onSwitch }: { world: World; run: Run; sto
             <button type="submit" className="button">Save</button>
             <button type="button" className="text-button" onClick={() => { setRenaming(false); setName(world.name) }}>Cancel</button>
           </form>
-        : <span className="world-row-text"><span className="world-row-name"><strong>{world.name}</strong><YearBadge world={world} /></span><span className="subtle">{companionsLine(world)}{world.watching ? ' · Just watching' : ''}</span></span>}
+        : <WorldText world={world} />}
       <span className="world-row-actions">
         {world.active ? <span className="subtle">You are here</span> : <button type="button" className="button" onClick={onSwitch}>Go there</button>}
         {!renaming && <button type="button" className="text-button" onClick={() => setRenaming(true)}>Rename</button>}
@@ -236,6 +236,19 @@ function WorldRow({ world, run, store, onSwitch }: { world: World; run: Run; sto
         <p>{companionsLine(world)} and everything that happened there go with it. A backup is kept in the data folder, under backups/deleted-worlds.</p>
       </ConfirmDialog>}
     </li>
+  )
+}
+
+/** A world's name and badges, its companions, and since when life has stood still there if it has (worldsText
+ * `pausedNote`): only the world the user is in runs. */
+function WorldText({ world }: { world: World }) {
+  const note = pausedNote(world, new Date())
+  return (
+    <span className="world-row-text">
+      <span className="world-row-name"><strong>{world.name}</strong><YearBadge world={world} />{world.paused && <span className="badge paused-badge"><Pause aria-hidden="true" />Paused</span>}</span>
+      <span className="subtle">{companionsLine(world)}{world.watching ? ' · Just watching' : ''}</span>
+      {note && <span className="subtle paused-note">{note}</span>}
+    </span>
   )
 }
 

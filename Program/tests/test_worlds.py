@@ -233,3 +233,26 @@ def test_a_copy_of_a_townsperson_is_not_that_townsperson_again(client, companion
     copy = ok(client.post(f"/api/worlds/personas/{data['persona']['id']}/copy", json={}))
     assert copy['name'] == 'Ana' and 'townsfolk_key' not in copy and 'town_seed' not in copy
     assert copy['worlds'][0]['city_id'] == data['world']['city_id']
+
+
+def test_a_world_the_user_left_shows_it_is_paused_and_since_when(client, companion, app):
+    # Only the world the user is in runs; one they left waits for them (tester, 1.2.1).
+    made = ok(client.post('/api/worlds', json={'name': 'Somewhere else'}))
+    data = listing(client)
+    here = data['world']
+    assert not here['paused'] and here['paused_since'] is None
+    waiting = next(world for world in data['personas'][0]['worlds'] if world['id'] == made['id'])
+    assert waiting['paused'] and not waiting['paused_in_settings']
+    ok(client.post(f"/api/worlds/{made['id']}/switch"))
+    data = listing(client)
+    left = next(world for world in data['personas'][0]['worlds'] if world['id'] == here['id'])
+    assert left['paused'] and left['paused_since'] and not left['paused_in_settings']
+    assert not data['world']['paused']
+
+
+def test_a_world_paused_in_settings_says_so_even_while_the_user_is_in_it(client, companion, app):
+    paused = ok(client.post('/api/pause', json={}))
+    here = listing(client)['world']
+    assert here['paused'] and here['paused_in_settings'] and here['paused_since'] == paused['paused_at']
+    ok(client.post('/api/resume', json={}))
+    assert not listing(client)['world']['paused']

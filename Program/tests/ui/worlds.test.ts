@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { companionsLine, copyLabel, copyNote, initial, personaName, personaRef, personaRefTagged, personaSuffix, personaTitle, whereLine, worldTag } from '../../src/features/worlds/worldsText.ts'
+import { companionsLine, copyLabel, pausedNote, pausedWhen, copyNote, initial, personaName, personaRef, personaRefTagged, personaSuffix, personaTitle, whereLine, worldTag } from '../../src/features/worlds/worldsText.ts'
 import { fromPersona } from '../../src/features/dating/datingText.ts'
 
 test('a persona without a name is never called You', () => {
@@ -50,4 +50,16 @@ test('two personas of one name are told apart by their worlds', () => {
   assert.equal(personaSuffix(false, ''), '')
   assert.equal(personaRefTagged(copy, 'Grandport +1'), 'Sam (Grandport +1)')
   assert.equal(personaRefTagged(jordan, ''), 'Jordan')
+})
+
+test('a world the user left says it is paused, since when, and what going back does', () => {
+  const now = new Date(2026, 9, 31, 14, 0)
+  assert.equal(pausedNote({ active: true, paused: false }, now), null)
+  assert.equal(pausedNote({ active: false, paused: true, paused_since: new Date(2026, 9, 30, 9).toISOString(), catches_up: true }, now),
+    'Since Oct 30. Life there waits for you and catches up a little when you go back.')
+  assert.equal(pausedNote({ active: false, paused: true, paused_since: null, catches_up: false }, now),
+    'Life there waits for you and picks up where it left off.')
+  assert.equal(pausedNote({ active: true, paused: true, paused_in_settings: true, paused_since: new Date(2026, 9, 31, 9, 5).toISOString() }, now),
+    'Paused in Settings since 9:05 AM. Nothing happens here until you resume, and that time is skipped.')
+  assert.equal(pausedWhen(new Date(2025, 11, 2).toISOString(), now), 'Dec 2, 2025')
 })

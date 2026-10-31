@@ -82,6 +82,31 @@ export function yearBadge(world: Pick<World, 'year'>): { text: string; label: st
   return world.year ? { text: String(world.year), label: `It's ${world.year} there` } : null
 }
 
+/** When life stopped in a paused world, in English: "2:15 PM" today, "Oct 30" this year, "Oct 30, 2025" before. */
+export function pausedWhen(iso: string, now: Date): string {
+  const when = new Date(iso)
+  if (when.toDateString() === now.toDateString()) return when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const year = when.getFullYear() === now.getFullYear() ? undefined : 'numeric'
+  return when.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year })
+}
+
+type Paused = Pick<World, 'active' | 'paused' | 'paused_since' | 'paused_in_settings' | 'catches_up'>
+
+/** The line under a paused world: since when, and what going back (or resuming) does. Only the world the user is in
+ * runs (companion/worlds.py `paused`), so a world they left waits for them. Null for a world that is running. */
+export function pausedNote(world: Paused, now: Date): string | null {
+  if (!world.paused) return null
+  const when = world.paused_since ? pausedWhen(world.paused_since, now) : ''
+  if (world.paused_in_settings) {
+    const since = when ? ` since ${when}` : ''
+    return world.active
+      ? `Paused in Settings${since}. Nothing happens here until you resume, and that time is skipped.`
+      : `Paused in Settings${since}. It stays paused when you go back, until you resume it.`
+  }
+  const waits = world.catches_up ? 'Life there waits for you and catches up a little when you go back.' : 'Life there waits for you and picks up where it left off.'
+  return when ? `Since ${when}. ${waits}` : waits
+}
+
 // "Start in a past year" goes back as far as Back when does (companion/world_year.py EARLIEST).
 export const EARLIEST_YEAR = 1990
 // The year the creator offers first: ten years back, so the decade shows, unless the user picks another.
