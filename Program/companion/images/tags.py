@@ -23,6 +23,9 @@ PONY_FILE = re.compile(r'pony|pdxl', re.IGNORECASE)
 
 # Sentences that tell a photo model something no tag can: the reference picture's instruction, the camera.
 DROPPED = re.compile(r'^(?:The attached reference picture|Shot at eye level|Slight wide-angle|Phone-camera look)')
+# The reference instruction that opens a picture following their profile picture (images/sheet.py FOLLOW_PROFILE).
+FOLLOWING = re.compile(r'^Make a new photo of the person in the attached reference picture\..*?replace the background '
+                       r'entirely\.\s*', re.DOTALL)
 ONLY = re.compile(r'^(She|He|They) (?:is|are) the only person in the picture$')
 THIS_IS = re.compile(r'^This is (.+)$')
 # A view picture, by today's phone or a past year's camera (decades.json framings): "first-person film snapshot".
@@ -92,7 +95,7 @@ def convert(prompt: str, negative: str, name: str | None = None, style: str | No
     """The prompt and negative prompt as tags: quality, then who (solo, 1boy, their name), then the rest in the
     paragraph's order. `style` is the line the prompt opens with (the backend's Prompt style)."""
     style = (style or '').strip().rstrip('.')
-    text = prompt.strip()
+    text = FOLLOWING.sub('', prompt.strip())
     opening = ''
     if style and text.startswith(style):
         opening, text = style, text[len(style):].lstrip(' ,.')
