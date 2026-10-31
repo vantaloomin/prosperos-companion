@@ -40,7 +40,8 @@ def posts(client, life, clock):
 
 
 def own_post(posts):
-    return next(post for post in posts if post['author']['kind'] == 'companion')
+    """One of the companion's own life posts (a moment they lived), not a town or status post they shared."""
+    return next(post for post in posts if post['author']['kind'] == 'companion' and post['events'])
 
 
 def test_the_companion_answers_a_comment_on_their_post(client, posts, life):

@@ -28,7 +28,7 @@ def commit_all(client):
             client.post(f"/api/events/{event['id']}/commit")
 
 
-def test_a_return_batch_makes_one_digest_that_waits_for_review(client, life, clock):
+def test_a_return_batch_posts_each_event_at_its_own_time_once_reviewed(client, life, clock):
     set_life(client, automatic_events=False)
     clock.advance(timedelta(days=1))
     reconcile(client)
@@ -38,12 +38,25 @@ def test_a_return_batch_makes_one_digest_that_waits_for_review(client, life, clo
     client.post(f"/api/events/{proposed[1]['id']}/reject")
     page = feed(client)
     assert len(page['posts']) == 1 and page['unread'] == 1
-    digest = page['posts'][0]
-    assert digest['kind'] == 'digest' and [event['id'] for event in digest['events']] == [proposed[0]['id']]
-    assert digest['events'][0]['caption'] == 'Lovely light today.'
-    assert digest['image']['status'] == 'none'
+    post = page['posts'][0]
+    assert post['kind'] == 'event' and [event['id'] for event in post['events']] == [proposed[0]['id']]
+    assert post['events'][0]['caption'] == 'Lovely light today.'
+    assert post['image']['status'] == 'none'
     commit_all(client)
-    assert len(feed(client)['posts'][0]['events']) == 2
+    assert all(len(post['events']) == 1 for post in feed(client)['posts'])
+
+
+def test_a_catch_up_after_days_away_is_separate_posts_at_the_times_they_happened(client, life, clock):
+    """Coming back after two days, the companion's moments are not one card stamped with the catch-up time."""
+    set_life(client, automatic_events=True)
+    back = clock.now() + timedelta(days=2)
+    clock.advance(timedelta(days=2))
+    reconcile(client)
+    posts = feed(client)['posts']
+    assert len(posts) >= 2 and all(post['kind'] == 'event' and len(post['events']) == 1 for post in posts)
+    times = [post['occurs_at'] for post in posts]
+    assert len(set(times)) == len(times) and all(time < back.isoformat() for time in times)
+    assert times == sorted(times, reverse=True)
 
 
 def test_a_corrected_event_changes_its_post(client, life, clock):
@@ -72,12 +85,13 @@ def test_read_hide_remove_and_export(client, life, clock):
     clock.advance(timedelta(days=1))
     reconcile(client)
     posts = feed(client)['posts']
-    assert len(posts) == 2 and posts[0]['occurs_at'] > posts[1]['occurs_at']
-    assert client.post('/api/feed/read', json={'post_ids': [posts[0]['id']]}).json()['unread'] == 1
+    # One post per event: three events a day over two days.
+    assert len(posts) == 6 and posts[0]['occurs_at'] > posts[1]['occurs_at']
+    assert client.post('/api/feed/read', json={'post_ids': [posts[0]['id']]}).json()['unread'] == 5
     assert client.post('/api/feed/read').json()['unread'] == 0
     client.post(f"/api/feed/{posts[0]['id']}/hide")
-    assert [post['id'] for post in feed(client)['posts']] == [posts[1]['id']]
-    assert len(feed(client, hidden=True)['posts']) == 2
+    assert [post['id'] for post in feed(client)['posts']] == [post['id'] for post in posts[1:]]
+    assert len(feed(client, hidden=True)['posts']) == 6
     client.post(f"/api/feed/{posts[0]['id']}/unhide")
     removed = client.post(f"/api/feed/{posts[1]['id']}/remove").json()
     assert removed['status'] == 'removed' and removed['events'] == []
@@ -85,7 +99,7 @@ def test_read_hide_remove_and_export(client, life, clock):
     # The events stay part of the companion's life after their post is removed.
     assert len(client.get('/api/events').json()) == 6
     exported = client.get('/api/feed/export').json()
-    assert exported['format'] == 'prospero-companion-feed' and len(exported['posts']) == 1
+    assert exported['format'] == 'prospero-companion-feed' and len(exported['posts']) == 5
 
 
 def test_pagination_is_finite_and_chronological(client, life, clock):
@@ -93,10 +107,12 @@ def test_pagination_is_finite_and_chronological(client, life, clock):
     for _ in range(3):
         clock.advance(timedelta(days=1))
         reconcile(client)
-    first = feed(client, limit=2)
-    assert len(first['posts']) == 2 and first['next_before']
-    second = feed(client, limit=2, before=first['next_before'])
-    assert len(second['posts']) == 1 and second['next_before'] is None
+    first = feed(client, limit=5)
+    assert len(first['posts']) == 5 and first['next_before']
+    second = feed(client, limit=5, before=first['next_before'])
+    assert len(second['posts']) == 4 and second['next_before'] is None
+    seen = [post['occurs_at'] for post in first['posts'] + second['posts']]
+    assert seen == sorted(seen, reverse=True)
 
 
 def test_reactions_and_discussing_a_post_in_chat(client, life, clock, provider):

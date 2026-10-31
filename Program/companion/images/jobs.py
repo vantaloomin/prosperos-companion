@@ -222,7 +222,7 @@ def recover(database):
 def automatic_candidate(database) -> str | None:
     """The next post the automatic cadence may illustrate, if any (F3). It needs the cadence and
     background activity on, no pause, room under the daily limit, and covers only single-event
-    posts made since the cadence was turned on: catch-up digests never get images (T5)."""
+    posts made since the cadence was turned on: catch-up posts never get images (T5)."""
     with database.connect() as connection:
         current, workspace = image_settings(connection), settings(connection)
         if not current['automatic_images'] or not workspace['background_activity'] or workspace['paused_at']:
@@ -236,7 +236,8 @@ def automatic_candidate(database) -> str | None:
         if companion is None:
             return None
         rows = many(connection, "SELECT * FROM feed_posts WHERE timeline_id=? AND kind='event' AND status='visible' "
-                    "AND image_status='none' AND created_at>? ORDER BY occurs_at DESC",
+                    "AND image_status='none' AND created_at>? AND (run_id IS NULL OR run_id IN "
+                    "(SELECT id FROM life_runs WHERE mode='background')) ORDER BY occurs_at DESC",
                     (companion['active_timeline_id'], current['automatic_since']))
         return next((row['id'] for row in rows if feed.post_view(connection, row)), None)
 
