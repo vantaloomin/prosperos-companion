@@ -583,6 +583,8 @@ class LifeSettingsUpdate(Input):
     loss: int | None = Field(default=None, ge=0, le=3)
     # Local politics (companion/life/politics.py): 0 off, 1 quiet, 2 true to life, 3 lively.
     politics_realism: int | None = Field(default=None, ge=0, le=3)
+    # Trolls and snark on posts (companion/life/social.py): 0 off, 1 rivals only, 2 snarky, 3 trolls.
+    trolls_realism: int | None = Field(default=None, ge=0, le=3)
     # Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life.
     breakups: bool | None = None
     on_her_mind: bool | None = None

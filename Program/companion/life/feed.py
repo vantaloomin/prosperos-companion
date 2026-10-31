@@ -199,7 +199,7 @@ def everything(connection, companion, now: str, include_hidden=False, source='al
     mine = user_posts.visible(connection, now, include_hidden=True)
     known = tuple(social.known_audience(connection, companion, parse(now)))
     everyone = tuple(user_posts.crowd(connection, parse(now))) if mine else ()
-    social.add_audiences(posts + mine, now, people, name, known, everyone)
+    social.add_audiences(posts + mine, now, people, name, known, everyone, social.trolls(connection))
     authors = SOURCES.get(source)
     posts = [post for post in posts + mine if (include_hidden or post['status'] == 'visible')
              and (authors is None or post['author']['kind'] in authors)]
