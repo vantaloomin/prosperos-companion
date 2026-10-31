@@ -86,6 +86,12 @@ def test_friends_post_from_their_diary_and_people_react(client, city, clock, mon
     ('Bradley does the dishes, then Bradley tries a new recipe.', 'I do the dishes, then I try a new recipe.'),
     ('Bradley often fixes bikes. Bradley\'s brother misses the bus.', "I often fix bikes. My brother misses the bus."),
     ("Bradley's dog runs off, but Bradley was ready.", 'My dog runs off, but I was ready.'),
+    # Bank lines (hobby milestones) speak of anyone as "their": with only the poster in the sentence, that is "my".
+    ('Bradley went to ballet. Bradley found a favourite spot of their own.',
+     'I went to ballet. I found a favourite spot of my own.'),
+    ('Bradley filled their first logbook and was proud of themselves.', 'I filled my first logbook and was proud of myself.'),
+    ("Bradley gave a talk about their favourite places at Lou's.", "I gave a talk about my favourite places at Lou's."),
+    ('Bradley drove Ana to their new flat.', 'I drove Ana to their new flat.'),
 ])
 def test_a_post_says_what_happened_as_i(summary, said):
     assert composer.mine(summary, 'Bradley Shaw') == said

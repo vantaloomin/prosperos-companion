@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from companion.life import kitchen
+
 BANKS = Path(__file__).resolve().parents[1] / 'companion' / 'world' / 'data' / 'kitchen'
 IDS = ('modern-us', 'modern-uk', 'modern-japan', 'modern-korea', 'modern-world', 'jazz-age-us', 'victorian-uk',
        'medieval', 'old-world', 'frontier-us', 'future')
@@ -71,3 +73,14 @@ def test_bank_shape_and_size(bank_id):
         assert set(staple) <= {'name', 'tags', 'swap', 'days'} and staple['name']
         assert set(staple.get('tags', '').split()) <= ALLERGENS | {'vegan'}
         assert 3 <= staple.get('days', 7) <= 30
+
+
+def test_an_evening_meal_is_never_named_for_breakfast():
+    """"Breakfast burritos" at 5 PM read oddly: dinner never draws a dish named for breakfast, and other breakfast
+    foods only now and then, unless the dish says it is dinner ("pancakes and bacon for dinner")."""
+    dishes = [{'name': 'breakfast burritos with eggs and chorizo', 'tags': frozenset({'breakfast'})},
+              {'name': 'pancakes and bacon for dinner', 'tags': frozenset({'breakfast'})},
+              {'name': 'shakshuka with pita', 'tags': frozenset({'breakfast'})},
+              {'name': 'beef and bean burritos', 'tags': frozenset()}]
+    assert [dish['name'] for dish in kitchen.evening(dishes)] == [dish['name'] for dish in dishes[1:]]
+    assert [kitchen.evening_weight(dish) for dish in dishes[1:]] == [1.0, kitchen.EVENING_BREAKFAST, 1.0]

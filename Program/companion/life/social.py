@@ -99,7 +99,8 @@ BIRTHDAY = ('Happy birthday, {name}! 🎂', 'Happy birthday to {name}, who makes
             'Another year of {name}. Lucky us. Happy birthday! 🎂')
 FAMILY_BIRTHDAY = 'Happy birthday to my favorite {role}, {name}! 🎂'
 HOLIDAY = ('Happy {holiday}, everyone!', '{holiday} and a day off. Perfect.', 'Happy {holiday}! Taking it easy today.')
-HAPPENING = ('{event} is on today{where}. Anyone going?', 'Reminder that {event} is today{where}.')
+# Worded so the verb never has to agree with the event's name ("Halloween parties", "Mardi Gras").
+HAPPENING = ('{event} today{where}. Anyone going?', "Don't forget, {event} today{where}.")
 
 COMMENTS = {
     'general': ('Love this!', 'This is so you.', 'Jealous.', 'Save me a spot next time.', 'Wait, I need details.',
