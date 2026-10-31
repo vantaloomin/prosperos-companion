@@ -92,19 +92,20 @@ export function pausedWhen(iso: string, now: Date): string {
 
 type Paused = Pick<World, 'active' | 'paused' | 'paused_since' | 'paused_in_settings' | 'catches_up'>
 
-/** The line under a paused world: since when, and what going back (or resuming) does. Only the world the user is in
- * runs (companion/worlds.py `paused`), so a world they left waits for them. Null for a world that is running. */
+/** The line under a paused world: since when, and what going back (or resuming) does; the Worlds intro says once
+ * that only the world the user is in moves on (Iris, 2026-10-31). Null for a running world, or nothing to say. */
 export function pausedNote(world: Paused, now: Date): string | null {
   if (!world.paused) return null
   const when = world.paused_since ? pausedWhen(world.paused_since, now) : ''
   if (world.paused_in_settings) {
     const since = when ? ` since ${when}` : ''
     return world.active
-      ? `Paused in Settings${since}. Nothing happens here until you resume, and that time is skipped.`
-      : `Paused in Settings${since}. It stays paused when you go back, until you resume it.`
+      ? `Paused in Settings${since}. Time here is skipped until you resume.`
+      : `Paused in Settings${since}. Stays paused when you go back, until you resume.`
   }
-  const waits = world.catches_up ? 'Life there waits for you and catches up a little when you go back.' : 'Life there waits for you and picks up where it left off.'
-  return when ? `Since ${when}. ${waits}` : waits
+  // A world never visited, with nothing to catch up on, has only its badge (Iris): it never started.
+  if (!when) return world.catches_up ? 'Catches up a little when you go back' : null
+  return `Since ${when} · ${world.catches_up ? 'catches up a little when you go back' : 'picks up where it left off'}`
 }
 
 // "Start in a past year" goes back as far as Back when does (companion/world_year.py EARLIEST).

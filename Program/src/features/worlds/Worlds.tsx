@@ -40,7 +40,7 @@ export function Worlds() {
     <section className="worlds" aria-labelledby="worlds-heading">
       <header className="worlds-header">
         <h1 id="worlds-heading">Worlds</h1>
-        <p className="subtle">{personaName(data.persona) ? <>You are <strong>{personaName(data.persona)}</strong> in </> : <>You're in </>}<strong>{data.world.name}</strong>. Each persona lives in their own worlds, with their own companions, town and history. Your settings and models come with you everywhere.</p>
+        <p className="subtle">{personaName(data.persona) ? <>You are <strong>{personaName(data.persona)}</strong> in </> : <>You're in </>}<strong>{data.world.name}</strong>. Each persona lives in their own worlds, with their own companions, town and history. Your settings and models come with you everywhere. Only the world you're in moves on. The others wait for you.</p>
         {busy && <Notice>Opening {busy}…</Notice>}
         {error && <Notice tone="error">{error}</Notice>}
       </header>
@@ -224,7 +224,7 @@ function WorldRow({ world, run, store, onSwitch }: { world: World; run: Run; sto
           </form>
         : <WorldText world={world} />}
       <span className="world-row-actions">
-        {world.active ? <span className="subtle">You are here</span> : <button type="button" className="button" onClick={onSwitch}>Go there</button>}
+        <HereOrGo world={world} run={run} onSwitch={onSwitch} />
         {!renaming && <button type="button" className="text-button" onClick={() => setRenaming(true)}>Rename</button>}
         {!world.active && !world.first && <button type="button" className="text-button" aria-label={`Delete ${world.name}`} onClick={() => setDeleting(true)}><Trash2 aria-hidden="true" /></button>}
       </span>
@@ -237,6 +237,17 @@ function WorldRow({ world, run, store, onSwitch }: { world: World; run: Run; sto
       </ConfirmDialog>}
     </li>
   )
+}
+
+/** "You are here", with Resume when this world is paused in Settings > Pause (Iris, 2026-10-31); or Go there. */
+function HereOrGo({ world, run, onSwitch }: { world: World; run: Run; onSwitch: () => void }) {
+  const client = useQueryClient()
+  if (!world.active) return <button type="button" className="button" onClick={onSwitch}>Go there</button>
+  const resume = () => run(async () => { await api('/resume', {}); await client.invalidateQueries() })
+  return <>
+    <span className="subtle">You are here</span>
+    {world.paused_in_settings && <button type="button" className="text-button" onClick={() => void resume()}>Resume</button>}
+  </>
 }
 
 /** A world's name and badges, its companions, and since when life has stood still there if it has (worldsText

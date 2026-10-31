@@ -56,10 +56,14 @@ test('a world the user left says it is paused, since when, and what going back d
   const now = new Date(2026, 9, 31, 14, 0)
   assert.equal(pausedNote({ active: true, paused: false }, now), null)
   assert.equal(pausedNote({ active: false, paused: true, paused_since: new Date(2026, 9, 30, 9).toISOString(), catches_up: true }, now),
-    'Since Oct 30. Life there waits for you and catches up a little when you go back.')
-  assert.equal(pausedNote({ active: false, paused: true, paused_since: null, catches_up: false }, now),
-    'Life there waits for you and picks up where it left off.')
+    'Since Oct 30 · catches up a little when you go back')
+  assert.equal(pausedNote({ active: false, paused: true, paused_since: new Date(2026, 9, 30, 9).toISOString(), catches_up: false }, now),
+    'Since Oct 30 · picks up where it left off')
+  assert.equal(pausedNote({ active: false, paused: true, paused_since: null, catches_up: true }, now), 'Catches up a little when you go back')
+  assert.equal(pausedNote({ active: false, paused: true, paused_since: null, catches_up: false }, now), null)
   assert.equal(pausedNote({ active: true, paused: true, paused_in_settings: true, paused_since: new Date(2026, 9, 31, 9, 5).toISOString() }, now),
-    'Paused in Settings since 9:05 AM. Nothing happens here until you resume, and that time is skipped.')
+    'Paused in Settings since 9:05 AM. Time here is skipped until you resume.')
+  assert.equal(pausedNote({ active: false, paused: true, paused_in_settings: true, paused_since: new Date(2026, 9, 30, 9).toISOString() }, now),
+    'Paused in Settings since Oct 30. Stays paused when you go back, until you resume.')
   assert.equal(pausedWhen(new Date(2025, 11, 2).toISOString(), now), 'Dec 2, 2025')
 })
