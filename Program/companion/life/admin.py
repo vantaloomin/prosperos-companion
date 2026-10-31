@@ -353,9 +353,32 @@ def user_move(connection, companion: dict, entry_id: str, now: datetime) -> dict
     item = get(connection, entry_id)
     require(item['timeline_id'] == companion['active_timeline_id'] and item['status'] == 'planned',
             'Only something still to do can move.', 409)
-    require(move(connection, companion, item, 'user', now, days=1) > 0,
-            'There is no free time for it in the next two weeks.', 409)
+    require(move(connection, companion, item, 'user', now, days=1) > 0, stuck_text(companion, item, now), 409)
     return get(connection, entry_id)
+
+
+def clock_12(minutes: int) -> str:
+    hour, minute = divmod(minutes % (24 * 60), 60)
+    return f"{(hour % 12) or 12}:{minute:02d} {'AM' if hour < 12 else 'PM'}"
+
+
+def stuck_text(companion: dict, item: dict, now: datetime) -> str:
+    """Why an entry could not move: a late night can't leave its work week, so it names the row (as the row prints
+    it), the day it has to happen by and whose time is full; anything else has no free time in two weeks."""
+    today = local_now(companion, now).date()
+    deadline = date.fromisoformat(item['deadline']) if item['deadline'] else None
+    if not deadline or deadline > today + timedelta(days=MOVE_DAYS):
+        return 'There is no free time for it in the next two weeks.'
+    day = date.fromisoformat(item['local_date'])
+    when = f'{day:%a}, {day:%b} {day.day}'
+    if item['at_time']:
+        start = minutes_of(item['at_time'])
+        when += f", {clock_12(start)} to {clock_12(start + item['minutes'])}"
+    by = 'today' if deadline <= today else 'by tomorrow' if deadline == today + timedelta(days=1) else \
+        f'by {deadline:%A}, {deadline:%B} {deadline.day}'
+    name = (companion['version']['definition'].get('name') or 'they').split()[0]
+    what = 'the late night' if item['kind'] == 'late-night' else item['title'][:1].lower() + item['title'][1:]
+    return f"Couldn't move {what} on {when}. It has to happen {by}, and {name} has no other free time before then."
 
 
 # --- Seeded appointments, deadlines, errands and surprises ---

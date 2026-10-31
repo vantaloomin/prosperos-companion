@@ -787,10 +787,13 @@ def plan_late_nights(connection, companion: dict, found: dict, today: date, chos
             # One taken off while Work life was Off comes back with it.
             connection.execute("UPDATE life_admin SET status='planned', updated_at=? WHERE timeline_id=? AND key=? "
                                "AND status='removed' AND local_date>=?", (stamp(now), timeline_id, key, today.isoformat()))
+            done = f"{STUDY_LATE_DONE if found['kind'] == STUDY else LATE_DONE}{title}"
+            # One planned before its project changed (a new job, an out-of-season project replaced) names the new one.
+            connection.execute("UPDATE life_admin SET done_text=?, updated_at=? WHERE timeline_id=? AND key=? AND "
+                               "status='planned' AND done_text<>?", (done, stamp(now), timeline_id, key, done))
             added += bool(admin.add(
                 connection, companion, key=key, source='work', kind='late-night',
-                title=STUDY_LATE_TITLE if found['kind'] == STUDY else LATE_TITLE,
-                done=f"{STUDY_LATE_DONE if found['kind'] == STUDY else LATE_DONE}{title}", day=day,
+                title=STUDY_LATE_TITLE if found['kind'] == STUDY else LATE_TITLE, done=done, day=day,
                 at=after_work(definition, day, block), minutes=min(minutes, 180),
                 fixed=chosen >= 2, deadline=last, out=False, now=now))
     return added

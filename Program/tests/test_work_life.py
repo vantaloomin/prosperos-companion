@@ -283,6 +283,39 @@ def test_a_slammed_week_puts_late_nights_on_the_calendar_that_hold_against_dinne
     assert row and 'Nell' in decode(row['entry'])['summary']
 
 
+def test_a_late_night_planned_before_its_project_changed_names_the_new_one(client, nell, clock):
+    """A save from before the season fix: "stayed late at work on the midsummer festival rush" is rewritten."""
+    reconcile(client)
+    make_slammed(client, nell)
+    reconcile(client)
+    with connect(client) as connection:
+        connection.execute("UPDATE life_admin SET done_text='stayed late at work on the midsummer festival rush' "
+                           "WHERE source='work' AND status='planned'")
+    clock.advance(timedelta(hours=1))
+    reconcile(client)
+    late = [item for item in client.get('/api/life/admin').json()['upcoming'] if item['source'] == 'work']
+    assert late and not any('midsummer' in (item['detail'] or '').lower() for item in late)
+    with connect(client, write=False) as connection:
+        texts = [row['done_text'] for row in connection.execute(
+            "SELECT done_text FROM life_admin WHERE source='work' AND status='planned'")]
+    assert texts and not any('midsummer' in text for text in texts)
+
+
+def test_a_late_night_that_cannot_move_before_its_deadline_says_so(client, nell):
+    from companion.life import admin
+    with connect(client) as connection:
+        companion = require_current(connection)
+        now = client.app.state.database.clock.now()
+        entry = admin.add(connection, companion, key='work:late:test', source='work', kind='late-night',
+                          title='Staying late at work', done='stayed late at work on the ledger', day=now.date(),
+                          at='17:00', minutes=120, fixed=True, deadline=now.date(), out=False, now=now)
+    response = client.post(f"/api/life/admin/{entry['id']}/move")
+    assert response.status_code == 409, response.text
+    day = date.fromisoformat(entry['local_date'])
+    assert response.json()['detail'] == (f"Couldn't move the late night on {day:%a}, {day:%b} {day.day}, 5:00 PM to "
+                                         '7:00 PM. It has to happen today, and Nell has no other free time before then.')
+
+
 def test_on_light_a_late_night_moves_for_dinner_and_off_takes_them_away(client, nell, provider):
     set_life(client, work_realism=1)
     reconcile(client)
@@ -539,3 +572,19 @@ def test_a_lunch_out_is_never_worded_as_the_project(monkeypatch, week, activity,
             assert 'lunch' not in touched['summary'] and touched['post'] in work.SLAMMED_POSTS
         else:
             assert touched == entry
+
+
+def test_a_late_night_that_cannot_move_names_tomorrow_or_the_date_it_has_to_happen_by():
+    from datetime import datetime, timezone
+
+    from companion.life import admin
+    companion = {'version': {'timezone': 'UTC', 'definition': {'name': 'Sett'}}}
+    now = datetime(2026, 10, 30, 12, tzinfo=timezone.utc)
+    item = {'kind': 'late-night', 'title': 'Staying late at work', 'local_date': '2026-11-01', 'at_time': '14:00',
+            'minutes': 180, 'deadline': '2026-10-31'}
+    assert admin.stuck_text(companion, item, now) == ("Couldn't move the late night on Sun, Nov 1, 2:00 PM to 5:00 PM. "
+                                                      'It has to happen by tomorrow, and Sett has no other free time '
+                                                      'before then.')
+    assert 'by Tuesday, November 3, and Sett' in admin.stuck_text(companion, {**item, 'deadline': '2026-11-03'}, now)
+    assert admin.stuck_text(companion, {**item, 'deadline': None}, now) == \
+        'There is no free time for it in the next two weeks.'
