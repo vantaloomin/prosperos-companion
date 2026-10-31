@@ -564,6 +564,8 @@ export interface LifeSettings {
   loss: number
   /** Local politics (companion/life/politics.py): 0 off, 1 quiet, 2 true to life, 3 lively. */
   politics_realism: number
+  /** Trolls and snark on posts (companion/life/social.py): 0 off, 1 rivals only, 2 snarky, 3 trolls. */
+  trolls_realism: number
 }
 
 /** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */

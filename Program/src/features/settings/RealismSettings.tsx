@@ -25,6 +25,7 @@ import { LOOK_LEVELS, LOOK_TIP } from '../character/theirLookText'
 import { WAKING_LEVELS } from '../character/theirHoursText'
 import { READ_LEVELS, READ_TIP } from './readPaceText'
 import { POLITICS_LEVELS, POLITICS_TIP } from '../today/politicsText'
+import { TROLL_LEVELS, TROLLS_TIP } from '../feed/trollsText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -90,6 +91,7 @@ export function PaceSettings() {
   const turns = step(TURN_LEVELS, data.life_turns, 2)
   const loss = step(LOSS_LEVELS, data.loss, 2)
   const politics = step(POLITICS_LEVELS, data.politics_realism, 2)
+  const snark = step(TROLL_LEVELS, data.trolls_realism, 1)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
@@ -142,6 +144,10 @@ export function PaceSettings() {
       <Field label={`Local politics: ${politics.label}`} hint={politics.hint} tip={POLITICS_TIP}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.politics_realism} label={politics.label}
           onChange={(politics_realism) => void save({ politics_realism })} />}
+      </Field>
+      <Field label={`Trolls and snark on posts: ${snark.label}`} hint={snark.hint} tip={TROLLS_TIP}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.trolls_realism} label={snark.label}
+          onChange={(trolls_realism) => void save({ trolls_realism })} />}
       </Field>
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}

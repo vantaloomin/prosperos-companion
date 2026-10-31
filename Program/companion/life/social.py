@@ -20,6 +20,12 @@ up some time after its post, a renamed friend comments under the new name and a 
 leaves the conversation. The companion likes and comments on friends' posts the same way, and
 other companions who know them (companion/memory/pairs.py) on the companion's own posts, by how
 close they feel and how reserved or warm they are.
+
+Who reacts follows how they know the poster (`stance`): on a friend's post, the rest of the circle by how they and
+that friend know each other (circle.tie), and the companion by whether they know them (circle.knowing). Someone
+who doesn't know the poster seldom even sees it and never comments; family and old friends join in most. A rival
+(by their tie, or by the words of their role for the companion) keeps quiet or gets in a dig, as Settings > Realism
+> "Trolls and snark on posts" (life_settings.trolls_realism, companion/life/post_snark.py) says.
 """
 import logging
 import re
@@ -29,7 +35,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, composer, loss, love_life, wedding
+from companion.life import circle, composer, loss, love_life, post_snark, wedding
 from companion.world.generators import pick, unit
 
 KINDS = ('status', 'friend', 'birthday', 'holiday', 'city', 'question')
@@ -139,6 +145,21 @@ RESERVED_COMMENTS = {
     'grief': ('I am here, should you need anything.', 'My thoughts are with you.'),
     'question': ('{option}.', '{option}, logically.'),
 }
+# How someone stands with the poster (`stance`) scales their chance to like and to comment (the usual chances
+# LIKELY and COMMENT_CHANCE). Someone who doesn't know the poster sees a friend-of-a-friend's post now and then
+# and leaves it at that; family and old friends join in most.
+STANCES = {'close': (1.3, 1.2), 'friendly': (1.0, 1.0), 'coworkers': (0.7, 0.5), 'cool': (0.2, 0.0),
+           'knows of': (0.25, 0.0), 'stranger': (0.08, 0.0), 'rival': (0.1, 0.0), 'usual': (1.0, 1.0)}
+TIE_STANCES = {'family': 'close', 'married': 'close', 'partners': 'close', 'old friends': 'close',
+               'known for years': 'friendly', 'friends': 'friendly', 'coworkers': 'coworkers', 'rivals': 'rival',
+               'divorced': 'cool', 'separated': 'cool', 'knows of': 'knows of', 'known by': 'stranger'}
+# Someone the role or the note calls the companion's rival (Kaito, Sett's rival).
+RIVAL_WORDS = re.compile(r"\b(?:arch-?)?(?:rival|nemesis|enemy|enemies|foe|adversary|nemeses)s?\b", re.IGNORECASE)
+# Trolls and snark on posts (life_settings.trolls_realism): 0 off, 1 rivals only (the default), 2 snarky, 3 trolls.
+# How likely a rival is to comment, times COMMENT_CHANCE; at 3 someone parted from the poster snipes too.
+TROLL_LEVELS, DEFAULT_TROLLS = 4, 1
+RIVAL_TALKS = (0.0, 0.3, 0.7, 1.2)
+COOL_TALKS = (0.0, 0.0, 0.0, 0.4)
 LOG = logging.getLogger(__name__)
 
 
@@ -182,11 +203,29 @@ def write(connection, companion, now: datetime) -> int:
 
 
 def active_people(connection, timeline_id) -> dict[str, dict]:
-    """The circle as the posts show them: the role in their era's words ('mother' in 1895, circle.era_word)."""
+    """The circle as the posts show them: the role in their era's words ('mother' in 1895, circle.era_word), with
+    how each knows the rest (`ties`, circle.ties: {other id: how}), whether they and the companion know each other
+    (`knowing`, circle.knowing) and whether they are the companion's rival (`rival`)."""
     older = circle.voice_of(connection, timeline_id)
-    return {row['id']: {'id': row['id'], 'name': row['name'], 'role': circle.era_word(row['role'], older)}
-            for row in many(connection, "SELECT id, name, role FROM circle_people WHERE timeline_id=? "
-                            "AND status='active' ORDER BY ordinal", (timeline_id,))}
+    rows = many(connection, "SELECT * FROM circle_people WHERE timeline_id=? AND status='active' ORDER BY ordinal",
+                (timeline_id,))
+    known = circle.ties(rows)
+    return {row['id']: {'id': row['id'], 'name': row['name'], 'role': circle.era_word(row['role'], older),
+                        'ties': {item['id']: item['how'] for item in known[row['id']]},
+                        'knowing': circle.knowing(row), 'rival': rival_of_companion(row)}
+            for row in rows}
+
+
+def rival_of_companion(row: dict) -> bool:
+    """Their role or note calls them the companion's rival (or nemesis, or enemy)."""
+    return bool(RIVAL_WORDS.search(f"{row.get('role') or ''}. {circle.details_of(row).get('note') or ''}"))
+
+
+def trolls(connection) -> int:
+    """Settings > Realism > Trolls and snark on posts: 0 off ... 3 trolls."""
+    row = optional(connection, 'SELECT trolls_realism FROM life_settings WHERE id=1')
+    level = row['trolls_realism'] if row else None
+    return level if level in range(TROLL_LEVELS) else DEFAULT_TROLLS
 
 
 def place_name(place) -> str:
@@ -446,6 +485,11 @@ def known_audience(connection, companion: dict, now: datetime) -> list[dict]:
     return result
 
 
+# What a dig sounds like at each level of trolls (`chances`): dry at 1, snarkier at 2, rude at 3.
+SNARK = {'rival': post_snark.RIVAL, 'snark': post_snark.RIVAL + post_snark.TROLL, 'troll': post_snark.TROLL}
+SNARK_STYLES = ('', 'rival', 'snark', 'troll')
+
+
 def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool, style: str = '') -> tuple[str, ...]:
     if by_companion:
         return COMMENTS['from_companion']
@@ -468,21 +512,65 @@ def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool, s
     return COMMENTS['question'] if kind == 'question' else COMMENTS['general']
 
 
-def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str, now: str, people: dict,
-             companion_name: str, avoid: frozenset[str] = frozenset(), known: tuple = ()) -> dict:
-    """Who liked and commented by `now`, from the post and the circle alone. The companion joins in
-    on friends' posts; friends join in on everyone's; other companions who know the companion
-    (`known_audience`) join in on the companion's own posts, if they were around when it went up.
-    No line is said twice on a post, and lines in `avoid` (said on the posts just before) are
-    left for later."""
-    occurred = parse(occurs_at)
-    crowd = [(person_id, person['name'], LIKELY.get(person['role'], 0.45), COMMENT_CHANCE, '')
-             for person_id, person in people.items()]
+def stance(who: str, author: str, people: dict) -> str:
+    """How `who` (a circle person's id, or COMPANION) stands with the post's author: a STANCES key."""
+    if author == COMPANION:  # A circle person on the companion's own post.
+        person = people.get(who, {})
+        return 'stranger' if person.get('knowing') == 'companion' else 'rival' if person.get('rival') else 'usual'
+    poster = people.get(author, {})
+    if who == COMPANION:
+        if poster.get('knowing') == 'they':  # They know the companion; the companion doesn't know them.
+            return 'stranger'
+        return 'knows of' if poster.get('knowing') == 'companion' else 'rival' if poster.get('rival') else 'usual'
+    how = people.get(who, {}).get('ties', {}).get(author)
+    return TIE_STANCES.get(how, 'friendly') if how else 'stranger'
+
+
+def sensitive(kind: str, content: dict) -> bool:
+    """A post nobody snipes at: a birthday, a question, city news, or someone sick, down or grieving."""
+    return kind in ('birthday', 'question', 'city') or content.get('text') in STATUS['grief'] or \
+        content.get('tone') in ('sick', 'down') or content.get('mood') in SICK | DOWN
+
+
+def chances(found: str, like: float, talks: float, level: int, touchy: bool) -> tuple[float, float, str]:
+    """Like and comment chances for someone of stance `found` whose usual chances are `like` and `talks`, and the
+    style their comment takes (SNARK_STYLES for a dig)."""
+    if found == 'rival' or (found == 'cool' and COOL_TALKS[level]):
+        snipes = 0.0 if touchy else (RIVAL_TALKS if found == 'rival' else COOL_TALKS)[level] * COMMENT_CHANCE
+        return (0.0 if level == 0 else like * STANCES[found][0]), snipes, SNARK_STYLES[level]
+    scale_like, scale_talk = STANCES[found]
+    return min(like * scale_like, 1), min(talks * scale_talk, 1), ''
+
+
+def crowd_of(author: str, kind: str, content: dict, occurs_at: str, people: dict, companion_name: str,
+             known: tuple, level: int) -> list[tuple]:
+    """Everyone who might react: (who, name, like chance, comment chance, style)."""
+    touchy, crowd = sensitive(kind, content), []
+    for person_id, person in people.items():
+        found = stance(person_id, author, people)
+        crowd.append((person_id, person['name'],
+                      *chances(found, LIKELY.get(person['role'], 0.45), COMMENT_CHANCE, level, touchy)))
     if author != COMPANION:
-        crowd.append((COMPANION, companion_name, COMPANION_LIKES, COMMENT_CHANCE, ''))
+        found = stance(COMPANION, author, people)
+        like, talks, style = chances(found, COMPANION_LIKES, COMMENT_CHANCE, level, touchy)
+        crowd.append((COMPANION, companion_name, like, talks, style))
     else:
         crowd += [(other['key'], other['name'], other['like'], other['comment'], other['manner'])
                   for other in known if other['since'] <= occurs_at]
+    return crowd
+
+
+def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str, now: str, people: dict,
+             companion_name: str, avoid: frozenset[str] = frozenset(), known: tuple = (),
+             level: int = DEFAULT_TROLLS) -> dict:
+    """Who liked and commented by `now`, from the post and the circle alone. The companion joins in
+    on friends' posts; friends join in on everyone's; other companions who know the companion
+    (`known_audience`) join in on the companion's own posts, if they were around when it went up.
+    How each stands with the poster (`stance`) sets their chances, and `level` (trolls) what a rival
+    says. No line is said twice on a post, and lines in `avoid` (said on the posts just before) are
+    left for later."""
+    occurred = parse(occurs_at)
+    crowd = crowd_of(author, kind, content, occurs_at, people, companion_name, known, level)
     likes, speakers = [], []
     for who, name, chance, talks, style in crowd:
         if who == author and kind != 'birthday':
@@ -499,7 +587,7 @@ def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str
     for said, who, name, seed, style in sorted(speakers)[:MAX_COMMENTS]:
         option = pick(seed, 'option', content.get('options') or [''])
         lines = [line.format(name=people.get(content.get('person'), {}).get('name', ''), option=option)
-                 for line in comment_pool(kind, content, who, who == COMPANION, style)]
+                 for line in SNARK.get(style) or comment_pool(kind, content, who, who == COMPANION, style)]
         fresh = [line for line in lines if line not in used]
         if not fresh:
             continue  # Everything this person would say was just said.
@@ -515,7 +603,7 @@ NEARBY = 10
 
 
 def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str, known: tuple = (),
-                  everyone: tuple = ()) -> None:
+                  everyone: tuple = (), level: int = DEFAULT_TROLLS) -> None:
     """Fill in each post's likes and comments, oldest first, so a line said on one post is not said
     again on the next few. Posts carry their basis as `_basis` (author, content); it is removed here.
     The user's own posts (companion/life/user_posts.py) go to `everyone` who can see them."""
@@ -531,7 +619,7 @@ def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str
             post['audience'] = user_posts.audience(post['id'], basis[1], post['occurs_at'], now, list(everyone), avoid)
         else:
             post['audience'] = audience(post['id'], post['kind'], basis[0], basis[1], post['occurs_at'], now, people,
-                                        companion_name, avoid, known)
+                                        companion_name, avoid, known, level)
         recent.append({comment['text'] for comment in post['audience']['comments']})
 
 
