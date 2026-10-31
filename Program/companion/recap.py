@@ -36,7 +36,7 @@ def chapters(connection, timeline_id: str, since: str) -> list[str]:
 def stories(connection, companion: dict, now: datetime, since_day: str) -> list[str]:
     """The latest beat of each storyline that moved on while the user was away."""
     lines = []
-    for item in storylines.visible(connection, companion, now, include_ended=True):
+    for item in storylines.visible(connection, companion, now):
         moved = [beat for beat in item['beats'] if beat['on'] > since_day]
         if moved:
             lines.append(sentence(moved[-1]['text']))

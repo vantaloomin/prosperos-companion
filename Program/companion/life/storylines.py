@@ -1,6 +1,6 @@
 """Storylines: things that unfold over days in the companion's life and their circle's (realism).
 
-"Omg, my dad just got a promotion." "I hate the new guy at work, he keeps hitting on me." "I got
+"Omg, my dad just got a promotion." "The new person at work keeps taking credit for my work." "I got
 drunk and kissed my best friend." Each storyline is a fixed template with a cast drawn from the
 circle (or the companion's own work), and two or three beats spread over the following days. Which
 storyline starts on which day, who is in it and how each beat turns out are all decided by a seed
@@ -90,13 +90,21 @@ STORIES = (
                ('{name} did not get the promotion; it went to someone else.',
                 "didn't get the promotion. it's fine. (it's not fine)", 'bad'))), (4, 10)),
     # Realistic: everyday trouble.
+    Story('credit_taker', 1, 'work', (
+        beat("A new coworker keeps taking credit for {name}'s work in meetings.",
+             'the new person at work keeps taking credit for MY work. in meetings. out loud', 'bad'),
+        either(('{name} spoke up in a meeting and made it clear whose work it was.',
+                'spoke up in the meeting today. everyone knows whose work it was now', 'good'),
+               ('{name} took the credit problem to their manager, who is keeping an eye on it.',
+                "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5)),
+    # Retired in v1.2.2; kept so storylines started before then still read.
     Story('work_creep', 1, 'work', (
         beat('A new guy at {name}\'s work keeps hitting on them, and it is getting uncomfortable.',
              'I hate the new guy at work. He keeps hitting on me.', 'bad'),
         either(('{name} told the new guy to knock it off, and he finally backed off.',
                 'update on the new guy: I told him to knock it off and he actually did', 'good'),
                ('{name} reported the new guy to their manager after he kept at it.',
-                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5)),
+                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5), own=True),
     Story('friend_breakup', 1, 'friend', (
         beat('{a} went through a breakup, and {name} spent the evening on the phone with them.',
              'rough night. {a} got dumped and I was on the phone with them for hours', 'bad'),
@@ -401,6 +409,10 @@ def advance(connection, companion, now) -> int:
     return started
 
 
+# A thought or a piece of news about an ended storyline: its topic or source is `storyline:<id>:<beat>`.
+ENDED_SOURCE = ("EXISTS (SELECT 1 FROM storylines s WHERE s.status='ended' AND {column} LIKE 'storyline:' || s.id || ':%')")
+
+
 def end_removed(connection, timeline_id, today: date):
     """Someone removed from the circle takes their unfinished storylines with them; settled ones stay told."""
     removed = {row['id'] for row in many(connection, "SELECT id FROM circle_people WHERE timeline_id=? "
@@ -531,7 +543,9 @@ def listing(database, include_ended=False) -> list[dict]:
 
 
 def end(database, storyline_id) -> list[dict]:
-    """The user ends a storyline: it leaves the context and Today, and its later beats never happen."""
+    """The user ends a storyline: it leaves the context and Today, and its later beats never happen. Nothing written
+    from it stays either: a thought it put on their mind goes (companion/life/thoughts.py) and its news stops spreading
+    (companion/news.py)."""
     from companion.characters import require_current
     with database.connect(write=True) as connection:
         row = one(connection, 'SELECT * FROM storylines WHERE id=?', (storyline_id,))

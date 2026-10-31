@@ -607,7 +607,7 @@ name. A finished one can open a conversation. `GET /api/life/recommendations` li
 ### Storylines
 
 Things unfold over days in the companion's life and their circle's (`companion/life/storylines.py`):
-"my dad just got a promotion", "the new guy at work keeps hitting on me", "I got drunk and kissed my
+"my dad just got a promotion", "the new person at work keeps taking credit for my work", "I got drunk and kissed my
 best friend". Each is a fixed template with a cast from the circle (or the companion's own work) and
 one to three beats a few days apart. Whether one starts on a day, which template and who is in it
 are decided by a seed when it starts, never by a model; a beat that can turn out more than one way is

@@ -68,7 +68,7 @@ def pick(seed: str, options) -> str:
 
 def beats(connection, companion, day: date, now) -> list[tuple]:
     first, found = first_name(companion), []
-    for item in storylines.visible(connection, companion, now, include_ended=True):
+    for item in storylines.visible(connection, companion, now):
         if item['story'] in SECRET_STORIES:
             continue
         for index, beat in enumerate(item['beats']):
@@ -225,6 +225,9 @@ def catch_up(connection, companion, now) -> int:
     timeline_id, latest = companion['active_timeline_id'], last_ready(companion, now)
     deck.catch_up(connection, companion, now)  # The day's Life deck moment is one of the things on their mind.
     day, written = max(latest - timedelta(days=WEEK - 1), began(connection, companion)), 0
+    # A storyline ended since takes its thought with it, and that day is worded again from what is left.
+    connection.execute(f"DELETE FROM thoughts WHERE timeline_id=? AND {storylines.ENDED_SOURCE.format(column='topic')}",
+                       (timeline_id,))
     kept = {row['day']: row['topic'] for row in many(connection, 'SELECT day, topic FROM thoughts WHERE timeline_id=?',
                                                      (timeline_id,))}
     while day <= latest:
