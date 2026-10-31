@@ -86,8 +86,10 @@ def read_settings(database) -> dict:
 
 
 def with_world(connection, view: dict) -> dict:
-    """This world's own drama level (None follows Realism) and whether its companion is on their own there."""
-    return {**view, 'world_drama': world_drama.own(connection), 'alone': world_drama.alone(connection)}
+    """Drama as this world runs it (its own level, kept in this world only: companion/life/world_drama.py), its own
+    level or None while it still follows the one carried from world to world, and whether its companion is alone."""
+    return {**view, 'drama': world_drama.level(connection), 'world_drama': world_drama.own(connection),
+            'alone': world_drama.alone(connection)}
 
 
 def update_world(database, drama: int | None) -> dict:
@@ -99,7 +101,11 @@ def update_world(database, drama: int | None) -> dict:
 def update_settings(database, body) -> dict:
     """Allowing or revoking automatic events advances the permission revision (T3, T7)."""
     changes = body.model_dump(exclude_none=True)
+    drama = changes.pop('drama', None)
     with database.connect(write=True) as connection:
+        if drama is not None and drama != world_drama.level(connection):
+            # Drama stays in the world it was set in (tester, 2026-10-31: "dramatic" for Sett changed Givardon too).
+            world_drama.change(connection, drama, database.now())
         row = life_settings(connection)
         changed = {key: int(value) if isinstance(value, bool) else value
                    for key, value in changes.items() if row[key] != value}
