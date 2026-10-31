@@ -255,15 +255,15 @@ class ImageRunner:
         return 'text description and their character sheet'
 
     def follow_profile_picture(self, request, inputs) -> str | None:
-        """Elsewhere, a picture of the companion follows their profile picture on a backend that takes a
-        reference, unless an adopted LoRA already draws them."""
+        """Elsewhere, a picture of the companion follows their profile picture (or its face close-up) on a backend
+        that takes a reference, unless an adopted LoRA already draws them. The instruction comes first."""
         if request.lora or not backends.takes_reference(request.backend):
             return None
         data = sheet.profile_reference(self.database, inputs.get('character_version_id'))
         if data is None:
             return None
         request.reference = data
-        request.prompt = f'{request.prompt} {sheet.FOLLOW_PROFILE}'
+        request.prompt = f'{sheet.FOLLOW_PROFILE} {request.prompt}'
         return 'text description and their profile picture'
 
     def failed(self, job, backend, inputs, error: AdapterError, raw=None):
