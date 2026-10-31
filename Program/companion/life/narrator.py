@@ -254,7 +254,7 @@ def beats(connection, companion, now, since: date, voice: int, first: str) -> li
     from companion.life import storylines
     timezone = companion['version']['timezone']
     result = []
-    for story in storylines.visible(connection, companion, now, include_ended=True, shown=True):
+    for story in storylines.visible(connection, companion, now, shown=True):
         for number, beat in enumerate(story['beats']):
             day = date.fromisoformat(beat['on'])
             if day >= since:
