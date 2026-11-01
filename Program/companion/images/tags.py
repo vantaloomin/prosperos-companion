@@ -21,8 +21,10 @@ GENDERS = {'1boy': ('1boy, male focus', '1girl, female focus'), '1girl': ('1girl
            '1other': ('1other', '')}
 PONY_FILE = re.compile(r'pony|pdxl', re.IGNORECASE)
 
-# Sentences that tell a photo model something no tag can: the reference picture's instruction, the camera.
-DROPPED = re.compile(r'^(?:The attached reference picture|Shot at eye level|Slight wide-angle|Phone-camera look)')
+# Sentences that tell a photo model something no tag can: the reference picture's instruction, the camera, "appears
+# only once" in a crowd.
+DROPPED = re.compile(r'^(?:The attached reference picture|Shot at eye level|Slight wide-angle|Phone-camera look|'
+                     r'(?:She|He|They) appears? only once)')
 ONLY = re.compile(r'^(She|He|They) (?:is|are) the only person in the picture$')
 THIS_IS = re.compile(r'^This is (.+)$')
 # A view picture, by today's phone or a past year's camera (decades.json framings): "first-person film snapshot".
