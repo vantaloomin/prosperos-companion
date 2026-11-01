@@ -99,7 +99,8 @@ def test_dinner_with_another_companion_is_in_both_their_days(client, companion):
                     'AND ends_at>?', (billy['active_timeline_id'], stamp(begins + timedelta(hours=2)), stamp(begins)))
         assert len(rows) == 1
         entry = decode(rows[0]['entry'])
-        assert entry['summary'] == 'Billy Hart had dinner with Mira at Cloud Step Inn.'
+        # Where inside the place he sat can follow (companion/world/inside.py).
+        assert entry['summary'].startswith('Billy Hart had dinner with Mira at Cloud Step Inn.')
         assert entry['joint']['slot'] == f'dinner@{begins.date()}' and parse(rows[0]['starts_at']) == begins
         assert joint.holds(connection, entry)
 
@@ -135,6 +136,6 @@ def test_dinner_with_someone_in_the_circle_is_in_their_diary(client, companion):
                       'AND ends_at>? AND entry IS NOT NULL', (timeline_id, person['id'],
                                                               stamp(begins + timedelta(hours=1, minutes=30)),
                                                               stamp(begins)))
-        assert [decode(found['entry'])['summary'] for found in theirs] == \
-            [f"{person['name']} had dinner with Mira at Cloud Step Inn."]
+        assert len(theirs) == 1
+        assert decode(theirs[0]['entry'])['summary'].startswith(f"{person['name']} had dinner with Mira at Cloud Step Inn.")
         assert parse(theirs[0]['starts_at']) == begins
