@@ -34,6 +34,7 @@ from companion.life import (
     grooming,
     hobbies,
     home,
+    joint,
     kids,
     kitchen,
     long_distance,
@@ -175,6 +176,10 @@ def extend(connection, companion, world, now) -> dict:
     written = 0
     for subject, definition, basis in found:
         written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion)
+    # The companion's outings with someone cleared that person's slots around them (companion/life/joint.py): they are
+    # composed again now, around the outing. Everyone else's cursor is already at the end, so this costs nothing.
+    for subject, definition, basis in found[:-1]:
+        written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion)
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
     started += families.advance(connection, companion, world, now)
@@ -218,6 +223,7 @@ def catch_up_in_steps(database, companion_id, world, now):
 
 
 def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion=None) -> int:
+    joint.drop_stale(connection, timeline_id, subject)
     stale = connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
                                'AND basis!=?', (timeline_id, subject, basis)).rowcount
     plans, away, arrivals = {}, {}, {}
@@ -317,28 +323,22 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
     if 'plans' in facts:
         block['plans'] = sorted(plan['id'] for plan in facts['plans'])
     company = free_people(connection, timeline_id, slot) if subject == COMPANION and not resting else []
-    if scope['shifting'] and not resting and slot.block.key not in pinned:
-        tilt = disruptions.tilts(connection, timeline_id, pairs.companion_key(scope['companion']['id']),
-                                 slot.local_date.isoformat()) if subject == COMPANION else None
-        if subject == COMPANION and block['kind'] == 'work':
-            tilt = work.tilt(connection, scope['companion'], slot.local_date, tilt)
-        shift = disruptions.roll(f'{seed}:shift', block, company, tilt, scope['aboard'],
-                                 scope['era'] or 'modern')
+    # Someone else's outing with them (companion/life/joint.py) takes this slot, as it is, or leaves it quiet.
+    together = None if resting or slot.block.key in pinned else \
+        joint.shared(connection, scope, slot, block, slot.starts_at, slot.ends_at)
+    if scope['shifting'] and not resting and slot.block.key not in pinned and not together:
+        shift = roll_shift(connection, scope, slot, block, company, seed)
     starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
     block = disruptions.shifted(block, shift)
     if shift and shift['friend']:
         company = [shift['friend']]
     if block['kind'] not in routine.RESTING:
         view = {**slot.view(), 'block': block, 'starts_at': stamp(starts_at), 'ends_at': stamp(ends_at)}
-        if slot.block.key in pinned:
-            plan = pinned[slot.block.key]
-            block = outings.marked(block, plan)
-            entry = None if plan and plan.get('continues') else plan and plan_entry(plan, block, definition)
+        if together:
+            entry = together[1]
+            starts_at = joint.start(entry, starts_at, ends_at, disruptions.MIN_LEFT)
         else:
-            entry = compose_entry(connection, scope, slot, view, company, recent, seed)
-            if subject == COMPANION:
-                entry = work.touch(connection, scope['companion'], entry, block, slot.local_date, seed)
-            entry = disruptions.entry_with(entry, shift, definition['name'])
+            entry, block = slot_entry(connection, scope, slot, view, pinned, company, recent, seed, shift)
         entry = hobbies.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
                               scope['world'], scope['now'], scope.get('timezone') or 'UTC')
         entry = kitchen.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
@@ -361,7 +361,32 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (identifier(), timeline_id, subject, slot.key, stamp(starts_at), stamp(ends_at), slot.local_date.isoformat(),
          encode(block), encode(entry) if entry else None, scope['basis'], stamp(scope['now'])))
+    joint.make_room(connection, scope, starts_at, ends_at, entry)
     return 1
+
+
+def roll_shift(connection, scope: dict, slot, block: dict, company: list, seed: str) -> dict | None:
+    """Whether the slot does not go to plan (companion/life/disruptions.py)."""
+    subject, timeline_id = scope['subject'], scope['timeline_id']
+    tilt = disruptions.tilts(connection, timeline_id, pairs.companion_key(scope['companion']['id']),
+                             slot.local_date.isoformat()) if subject == COMPANION else None
+    if subject == COMPANION and block['kind'] == 'work':
+        tilt = work.tilt(connection, scope['companion'], slot.local_date, tilt)
+    return disruptions.roll(f'{seed}:shift', block, company, tilt, scope['aboard'], scope['era'] or 'modern')
+
+
+def slot_entry(connection, scope: dict, slot, view: dict, pinned: dict, company: list, recent: list, seed: str,
+               shift: dict | None) -> tuple[dict | None, dict]:
+    """(entry, block) for a waking slot: a plan pinned to it, or the composer's pick told with any shift."""
+    block, definition = view['block'], scope['definition']
+    if slot.block.key in pinned:
+        plan = pinned[slot.block.key]
+        block = outings.marked(block, plan)
+        return (None if plan and plan.get('continues') else plan and plan_entry(plan, block, definition)), block
+    entry = compose_entry(connection, scope, slot, view, company, recent, seed)
+    if scope['subject'] == COMPANION:
+        entry = work.touch(connection, scope['companion'], entry, block, slot.local_date, seed)
+    return disruptions.entry_with(entry, shift, definition['name']), block
 
 
 def plan_entry(plan: dict, block: dict, definition: dict) -> dict:
@@ -517,8 +542,13 @@ def free_people(connection, timeline_id, slot) -> list[dict]:
     """Circle members with nothing busy overlapping the slot, in circle order, leaving out anyone the companion is
     keeping away from for now (companion/consequences.py marks) and anyone only one of them knows (circle.knowing)."""
     result, avoided = [], consequences.avoided(connection, timeline_id, slot.local_date.isoformat())
+    # Someone in the circle who is another of the user's companions goes by that companion's own day.
+    twins = joint.twins(connection, timeline_id)
     for person in circle.people(connection, timeline_id):
         if not decode(person['schedule']) or person['id'] in avoided or circle.knowing(person) != 'both':
+            continue
+        if person['id'] in twins and not joint.free(connection, twins[person['id']], slot.starts_at, slot.ends_at,
+                                                     timeline_id):
             continue
         overlapping = many(connection, 'SELECT block FROM life_agenda WHERE timeline_id=? AND subject=? '
                            'AND starts_at<? AND ends_at>?', (timeline_id, person['id'], stamp(slot.ends_at),
