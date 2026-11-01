@@ -567,3 +567,49 @@ def test_status_posts_and_questions_fit_the_world(client, clock, home, unfit):
     assert not [text for text in texts if re.search(unfit, text)]
     assert fits('Small wins today.') and not fits('Is pineapple on pizza okay?' if home == 'camelot' else
                                                   'Beach or mountains?')
+
+
+def test_a_question_is_never_asked_twice_answered_or_not(client, city, clock, monkeypatch):
+    # Vanta 2026-11-01: Sett asked "Thinking about cutting my hair short. Yes or no?" again days after it was answered.
+    monkeypatch.setattr(social, 'QUESTION_CHANCE', 1)
+    live_days(client, clock, 1)
+    first = next(post for post in feed(client)['posts'] if post['kind'] == 'question')
+    client.post(f"/api/feed/{first['id']}/answer", json={'option': first['options'][0], 'client_id': 'answer-101'}
+                ).raise_for_status()
+    for _ in range(8):  # Read each day, as the feed only writes the last few days.
+        live_days(client, clock, 1)
+        feed(client)
+    asked = [post['text'] for post in feed(client)['posts'] if post['kind'] == 'question']
+    assert len(asked) >= 9 and len(set(asked)) == len(asked)
+    # Reading again keeps each day's question as it was posted.
+    assert [post['text'] for post in feed(client)['posts'] if post['kind'] == 'question'] == asked
+
+
+def test_a_year_of_posts_keeps_finding_new_things_to_say(client, clock):
+    client.post('/api/companion', json={'name': 'Wren', 'timezone': 'UTC', 'location': 'Fells Point, Baltimore'}
+                ).raise_for_status()
+    with client.app.state.database.connect() as connection:
+        posts = social.day_posts(connection, current(connection), {}, clock.now() - timedelta(days=365), clock.now())
+    questions = [post['content']['text'] for post in posts if post['kind'] == 'question']
+    # About one day in five has a question, so a year never runs through the bank.
+    assert len(questions) > 40 and len(set(questions)) == len(questions)
+    statuses = [(post['occurs_at'], post['content']['text']) for post in posts if post['kind'] == 'status']
+    last: dict[str, datetime] = {}
+    for occurs_at, text in sorted(statuses):
+        moment = datetime.fromisoformat(occurs_at)
+        assert text not in last or moment - last[text] >= social.STATUS_GAP or text in social.STATUS['grief'], text
+        last[text] = moment
+
+
+def test_the_feed_line_banks_are_big_enough():
+    assert len(social.QUESTIONS) >= 100 and len(social.STATUS['any']) >= 100
+    assert len({text for text, _options in social.QUESTIONS}) == len(social.QUESTIONS)
+    assert all(len(options) == 2 and all(0 < len(option) <= 24 for option in options)
+               for _text, options in social.QUESTIONS)
+
+
+def test_once_every_question_was_asked_the_oldest_come_back_first():
+    questions = [('A?', ('Yes', 'No')), ('B?', ('Yes', 'No')), ('C?', ('Yes', 'No')), ('D?', ('Yes', 'No'))]
+    asked = {'A?': '2026-01-04', 'B?': '2026-01-01', 'C?': '2026-01-02', 'D?': '2026-01-03'}
+    assert {social.question_content(f'seed-{n}', questions, asked)['text'] for n in range(40)} == {'B?', 'C?'}
+    assert social.question_content('seed', questions, {'A?': '2026-01-01'})['text'] != 'A?'
