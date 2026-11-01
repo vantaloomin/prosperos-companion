@@ -216,7 +216,8 @@ def catch_up_in_steps(database, companion_id, world, now):
             return
         found = subjects(connection, companion, world, now)
     world = SameDay(world)
-    for subject, definition, basis in found:
+    # The circle again after the companion, around their outings (companion/life/joint.py), as `extend` does.
+    for subject, definition, basis in found + found[:-1]:
         with database.connect(write=True) as connection:
             extend_subject(connection, timeline_id, companion['version']['timezone'], subject, definition, basis,
                            world, now, companion)
