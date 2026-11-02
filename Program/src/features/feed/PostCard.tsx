@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { EyeOff, Eye, MessageCircle, Send, Trash2, UserRound } from 'lucide-react'
 import type { FeedPost, Reaction } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { REACTIONS } from './feedState'
+import { REACTIONS, SEEN_STEPS, seenEnough } from './feedState'
 import { PostImage } from './PostImage'
 import { Audience, SocialBody } from './SocialPost'
 import { usePortrait } from '../conversation/portrait'
@@ -28,13 +28,16 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
   // The draft outlives closing the box, so closing it by mistake loses nothing.
   const [draft, setDraft] = useState('')
   const [removing, setRemoving] = useState(false)
-  // Counted as read only once at least half of the post has been on screen.
+  // Counted as read once half of the post has been on screen, or a post taller than that has filled half the screen.
   const saw = useRef(() => actions.saw(post))
   useEffect(() => { saw.current = () => actions.saw(post) })
   useEffect(() => {
     const element = card.current
     if (post.read || !element || typeof IntersectionObserver === 'undefined') return
-    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { saw.current(); observer.disconnect() } }, { threshold: 0.5 })
+    const observer = new IntersectionObserver(([entry]) => {
+      const screen = entry.rootBounds?.height ?? window.innerHeight
+      if (entry.isIntersecting && seenEnough(entry.intersectionRatio, entry.intersectionRect.height, screen)) { saw.current(); observer.disconnect() }
+    }, { threshold: SEEN_STEPS })
     observer.observe(element)
     return () => observer.disconnect()
   }, [post.read])

@@ -576,7 +576,7 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .text-button.back-link svg { width: 18px; height: 18px; }
 
 .post-list { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
-.post { padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.post { scroll-margin-top: 72px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
 .post.hidden-post { opacity: .7; border-style: dashed; }
 .post-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .post-header .speaker { flex: 1; min-width: 0; }

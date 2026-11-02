@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { Download } from 'lucide-react'
+import { ArrowDown, Download } from 'lucide-react'
 import { api, newId } from '../../api'
 import { HISTORY_KEY, type View } from '../../companion'
 import type { Companion, FeedPage, FeedPost, FeedSource } from '../../types'
@@ -9,6 +9,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { PostCard, type PostActions } from './PostCard'
 import { ReadBatcher, joinPages, nextReaction } from './feedState'
+import { useSeekNew } from './useSeekNew'
 import { isActive } from './imageState'
 import { useEraWords } from '../world/useEraWords'
 import type { EraWords } from '../world/eraWords'
@@ -35,6 +36,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
   const name = companion.version.name
   const posts = joinPages(feed.data?.pages ?? [])
   const unread = useArrivalCount(feed.data?.pages[0]?.unread)
+  const newPosts = useSeekNew(feed, posts, source === 'all' && !hidden)
 
   const batcher = useMemo(() => new ReadBatcher((ids) => {
     void api('/feed/read', { post_ids: ids }).then(() => Promise.all([client.invalidateQueries({ queryKey: ['today'] }), client.invalidateQueries({ queryKey: ['feed'] })])).catch(() => undefined)
@@ -85,6 +87,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
         <div>
           <h2>{words.posts_tab}</h2>
           <p className="subtle">{name}'s {words.posts}, what their friends are up to, and yours{unreadText(unread)}. Nobody outside the app sees them.</p>
+          <NewPostsLink count={newPosts.offer} seek={newPosts.seek} words={words} />
         </div>
         <button type="button" className="button" onClick={() => void exportFeed()}><Download aria-hidden="true" />Export</button>
       </header>
@@ -150,6 +153,11 @@ function OwnPost({ onPosted, onError }: { onPosted: () => void; onError: (messag
 }
 
 const unreadText = (count: number) => count ? `. ${count} new` : ''
+/** To the newest post not yet seen, when it sits below posts already seen. */
+function NewPostsLink({ count, seek, words }: { count: number; seek: () => void; words: EraWords }) {
+  if (!count) return null
+  return <button type="button" className="text-button" onClick={seek}><ArrowDown aria-hidden="true" />Go to the new {count === 1 ? words.post : words.posts}</button>
+}
 
 function FeedStatus({ pending, error, retrying, retry, empty, mine, name, words }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; mine: boolean; name: string; words: EraWords }) {
   if (error) {
