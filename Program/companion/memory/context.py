@@ -585,7 +585,8 @@ def day_text(connection, companion, now: datetime) -> str:
     local = now.astimezone(tz)
     start = local.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1)
-    ahead = pacing.day_blocks(connection, companion, start, start + timedelta(days=8))
+    ahead = outings.with_user_blocks(connection, companion,
+                                     pacing.day_blocks(connection, companion, start, start + timedelta(days=8)))
     if not ahead:
         return ''
     parts = []
