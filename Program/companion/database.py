@@ -422,6 +422,10 @@ ADDED_COLUMNS = (
     # Trolls and snark on posts (companion/life/social.py, Settings > Realism > Their days): 0 off, 1 rivals only,
     # 2 snarky, 3 trolls.
     ('life_settings', 'trolls_realism', 'INTEGER NOT NULL DEFAULT 1 CHECK (trolls_realism BETWEEN 0 AND 3)'),
+    # Meeting up early and staying longer (companion/life/outings.py): the time it was planned for before Go now, and
+    # how many times the user stayed on an hour.
+    ('outings', 'early_from', 'TEXT'),
+    ('outings', 'longer', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

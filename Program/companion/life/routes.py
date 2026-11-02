@@ -648,12 +648,13 @@ def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo
 
 
 @router.post('/outings/{outing_id}/{action}')
-def change_outing(request: Request, outing_id: str, action: Literal['cancel', 'elsewhere', 'home', 'undo']):
-    """Call an outing off, have the companion pick somewhere else, head home early, or undo calling it off or
-    heading home."""
+def change_outing(request: Request, outing_id: str,
+                  action: Literal['cancel', 'elsewhere', 'home', 'undo', 'now', 'longer']):
+    """Call an outing off, have the companion pick somewhere else, meet up now, stay longer, head home early, or undo
+    calling it off or heading home."""
     database = db(request)
     change = {'cancel': outings.cancel, 'elsewhere': outings.elsewhere, 'home': outings.head_home,
-              'undo': outings.undo}[action]
+              'undo': outings.undo, 'now': outings.go_now, 'longer': outings.stay_longer}[action]
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         changed = change(connection, companion, outing_id, database.clock.now())

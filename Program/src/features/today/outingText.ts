@@ -14,6 +14,8 @@ export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
   ended_at: string | null; undo: boolean
+  /** Go now: later today, and they are free now. Stay longer: under way, and their next hour is free. */
+  early?: boolean; longer_ok?: boolean
   /** An evening out with a child of yours at home: who is watching them that night (companion/life/our_child.py). */
   sitter?: { text: string; cost: number } | null
 }

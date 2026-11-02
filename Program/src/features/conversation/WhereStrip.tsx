@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { DoorOpen, EyeOff, Home, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
+import { DoorOpen, EyeOff, Home, Hourglass, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { appNow } from '../../appTime.ts'
 import { TOGETHER_KEY } from '../today/outingText'
@@ -8,7 +8,7 @@ import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
 import { useEraWords, useMagicCalls } from '../world/useEraWords'
 import { say, type EraWords } from '../world/eraWords'
-import { WHERE_KEY, callActions, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
+import { WHERE_KEY, callActions, canStayLonger, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
 const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
 const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Phone } as Record<CallAction['action'], typeof Home>
@@ -51,7 +51,7 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
   const outing = where.outing
   if (!outing) return null
   const action = stripAction(where)
-  const act = async (verb: StripAction['action']) => {
+  const act = async (verb: StripAction['action'] | 'longer') => {
     await api(`/life/outings/${outing.id}/${verb}`, {}).catch(() => undefined)
     void client.invalidateQueries({ queryKey: TOGETHER_KEY })
     onDone()
@@ -61,6 +61,7 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
     <aside className="where-strip" aria-label="Where you are" aria-live="polite">
       <Glyph aria-hidden="true" />
       <span>{line.lead}{line.place && <a className="where-strip-place" href={`#map/${encodeURIComponent(line.place.id)}`} title="Show on map">{line.place.name}</a>}{line.tail}</span>
+      {canStayLonger(where) && <button type="button" className="text-button" onClick={() => void act('longer')}><Hourglass aria-hidden="true" />Stay longer</button>}
       {action && <StripButton action={action} onClick={() => void act(action.action)} />}
     </aside>
   )
