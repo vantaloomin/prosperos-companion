@@ -983,7 +983,17 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .shot-prompt { overflow-wrap: anywhere; }
 .reference-card > .badge { justify-self: start; }
 .first-picture { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
-.first-picture legend { font-weight: 500; margin-bottom: 4px; }
+.first-picture legend, .persona-picture legend { padding: 0; font-size: 0.875rem; font-weight: 500; margin-bottom: 4px; }
+.persona-picture { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.persona-picture-frame { position: relative; width: 120px; flex: none; border-radius: 8px; overflow: hidden; }
+.persona-picture-frame > img { display: block; width: 120px; aspect-ratio: 3 / 4; object-fit: cover; background: var(--accent-tint); }
+.persona-picture-empty { width: 120px; aspect-ratio: 3 / 4; background: var(--accent-tint); display: grid; place-items: center; color: var(--muted); }
+/* While Make one runs: the photo cards' soft fill over the picture or the empty box. */
+.persona-picture-frame.making::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--accent-tint) 70%, transparent); animation: photo-fill 5s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .persona-picture-frame.making::after { animation: none; } }
+:root[data-motion='reduce'] .persona-picture-frame.making::after { animation: none; }
+@media (max-width: 720px) { .persona-picture .own-picture { flex-direction: column; } }
+.persona-picture-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .own-picture { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; min-width: 0; }
 .own-picture > img { width: 120px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
 .own-picture > .form-stack { flex: 1 1 220px; min-width: 0; }

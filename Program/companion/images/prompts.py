@@ -312,8 +312,9 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     opening = framings[framing].format(subject=subject.lower(), possessive=possessive, object=OBJECT[who]) \
         if framings[framing] else ''
     parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
-             sheet, f'{look}.' if look else '', setting, action, alone(event, action, subject, who, framing),
-             event.get('place_look') or '',
+             sheet, f'{look}.' if look else '', setting, WITH_YOU.sub('', action) if event.get('user') else action,
+             alone(event, action, subject, who, framing),
+             beside(event, subject, who), event.get('place_look') or '',
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
              ship_light(event.get('hour')) if aboard else light(event.get('hour'), event.get('weather'), event.get('indoor')),
              (period or {}).get('scene') or '', camera(style, framing, period)]
@@ -333,11 +334,24 @@ def alone(event, action, subject, who, framing) -> str:
     """Says they are the only one in a moment of their own, so the picture shows them once (adapters/comfyui.py
     turns it into a tag-model's "solo"); nothing for a view or company. In a crowded activity (a rush at work, a show)
     there are other people, but never a second of them: told nothing, Krea drew the same face again behind them."""
-    if framing == 'view' or event.get('with') or COMPANY.search(action or ''):
+    if framing == 'view' or event.get('with') or event.get('user') or COMPANY.search(action or ''):
         return ''
     if event.get('activity') in CROWDED:
         return f"{subject} {'appear' if who == 'they' else 'appears'} only once in the picture."
     return f"{subject} {'are' if who == 'they' else 'is'} the only person in the picture."
+
+
+def beside(event, subject, who) -> str:
+    """The user beside them, in a moment they share (companion/persona_pictures.py): who the second person in the
+    picture is, so it shows two people and never draws the companion twice."""
+    if not event.get('user'):
+        return ''
+    verb = 'are' if who == 'they' else 'is'
+    return (f"Beside {OBJECT.get(who, 'them')} is one other person, {event['user']}. {subject} {verb} the main "
+            'subject; there are exactly two people in the picture.')
+
+# "with you" in a moment's own words: the picture says who "you" are (`beside`).
+WITH_YOU = re.compile(r',? with you\b', re.IGNORECASE)
 
 
 # What each activity of the life sim (companion/life/composer.py and the circle's gatherings) looks
@@ -506,6 +520,9 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
     likeness = current_for_images(connection)
     prompt, period = pet_prompt(connection, post['timeline_id'], events, image_settings), period_of(connection, definition)
+    shown = '' if prompt or not shared(connection, companion, first) else user_shown(connection)
+    if shown:
+        first['user'] = shown
     if prompt:
         # A photo of their pet alone (companion/life/pets.py): nobody in it, so no likeness.
         likeness = {**likeness, 'lora': None}
@@ -520,11 +537,26 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, 'period': period,
+            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, 'period': period, 'with_user': bool(shown),
             'name_in_pictures': bool(definition.get('name_in_pictures')), **likeness,
             **children(connection, post['timeline_id'], [event[key] for event in events
                                                           for key in ('summary', 'caption', 'label', 'place')],
                        [(event['moment'].get('outing') or {}).get('id') for event in events])}
+
+
+def shared(connection, companion, event) -> bool:
+    """Whether the user is in the moment: an outing or visit with them, or an evening at the home they share
+    (companion/life/moving_in.py), when the moment happens at home."""
+    moment = event.get('moment') or {}
+    if moment.get('outing'):
+        return True
+    if not at_home(event) or not event.get('starts_at'):
+        return False
+    from companion.life import moving_in  # the life modules build on the image ones
+    try:
+        return bool(moving_in.home_state(connection, companion, parse(event['starts_at'])))
+    except Exception:  # noqa: BLE001 - a moment that cannot be placed is drawn as their own.
+        return False
 
 
 def pet_prompt(connection, timeline_id, events, image_settings) -> str:
@@ -615,6 +647,9 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
                              moment.get('neighborhood'))
     scene_text = {**scene_text, 'label': moment.get('label'), 'place_id': moment.get('place_id')}
     scene_text.update(places.scene(connection, companion, scene_text))
+    shown = None if framing == 'view' or not moment.get('with_user') else user_shown(connection)
+    if shown:
+        scene_text['user'] = shown
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     # A moment's own outfit (a wedding's) is kept; their everyday one gives way to an In photos line that says one.
     wearing = '' if framing == 'view' else moment.get('wearing') or ('' if own_outfit(definition) else wardrobe.image_hint(
@@ -628,11 +663,18 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     if framing == 'view':
         likeness = {**likeness, 'lora': None}
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
-            'pictured': framing != 'view', 'period': period,
+            'pictured': framing != 'view', 'period': period, 'with_user': bool(shown),
             'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
             'moment': moment, **likeness,
             **children(connection, companion['active_timeline_id'],
                        [moment.get(key) for key in ('summary', 'caption', 'label', 'place')])}
+
+
+def user_shown(connection) -> str:
+    """The user in words, for a moment they share with the companion, or '' when Settings > Images leaves them out."""
+    from companion import persona_pictures  # it builds on the image modules that import this one
+    persona = persona_pictures.here(connection)
+    return persona_pictures.described(persona) if persona else ''
 
 
 def build_meme(connection, meme, image_settings) -> dict:

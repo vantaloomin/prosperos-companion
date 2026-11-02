@@ -189,17 +189,24 @@ def data_url(picture: bytes) -> str:
     return f"data:{kind};base64,{base64.b64encode(picture).decode('ascii')}"
 
 
-def chat_content(prompt: str, reference: bytes | None):
-    if reference is None:
+def pictures(request) -> list[bytes]:
+    """Every picture the new one follows, the reference first."""
+    return [] if request.reference is None else [request.reference, *request.others]
+
+
+def chat_content(prompt: str, references: list[bytes]):
+    if not references:
         return prompt
-    return [{'type': 'text', 'text': prompt}, {'type': 'image_url', 'image_url': {'url': data_url(reference)}}]
+    return [{'type': 'text', 'text': prompt},
+            *({'type': 'image_url', 'image_url': {'url': data_url(picture)}} for picture in references)]
 
 
 def openrouter_body(config, prompt: str, request) -> dict:
     """OpenRouter's image API: the size goes as an aspect ratio, which every image model there takes."""
     body = {'model': config['model'], 'prompt': prompt, 'aspect_ratio': aspect_ratio(request.width, request.height)}
     if request.reference is not None:
-        body['input_references'] = [{'type': 'image_url', 'image_url': {'url': data_url(request.reference)}}]
+        body['input_references'] = [{'type': 'image_url', 'image_url': {'url': data_url(picture)}}
+                                    for picture in pictures(request)]
     return body
 
 
@@ -231,7 +238,7 @@ class HostedAdapter:
                 image = await self.images_image(client, data)
             elif config.get('api_style') == 'chat':
                 body = {'model': config['model'], 'modalities': ['image', 'text'],
-                        'messages': [{'role': 'user', 'content': chat_content(prompt, request.reference)}]}
+                        'messages': [{'role': 'user', 'content': chat_content(prompt, pictures(request))}]}
                 data = await self.post(client, config['base_url'] + '/chat/completions', headers, body)
                 image = self.chat_image(data)
             elif request.reference is not None:
@@ -263,9 +270,13 @@ class HostedAdapter:
 
     async def edit(self, client, config, headers, prompt, request) -> dict:
         """OpenAI's `/images/edits`: the reference goes up as a file beside the prompt."""
-        extension, kind = media_type(request.reference)
         fields = {'model': config['model'], 'prompt': prompt, 'n': '1', 'size': f'{request.width}x{request.height}'}
-        files = {'image': (f'reference.{extension}', request.reference, kind)}
+        sent = pictures(request)
+        # More than one picture goes up as image[], as the edits endpoint takes several.
+        field_name = 'image[]' if len(sent) > 1 else 'image'
+        files = [(field_name, (f"reference{f'-{position}' if position else ''}.{media_type(picture)[0]}", picture,
+                               media_type(picture)[1]))
+                 for position, picture in enumerate(sent)]
         return await self.post(client, config['base_url'] + '/images/edits', headers, None, data=fields, files=files)
 
     async def post(self, client, url, headers, body, **form) -> dict:

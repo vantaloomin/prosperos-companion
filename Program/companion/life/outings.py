@@ -1276,4 +1276,4 @@ def moment(companion: dict, outing: dict, composed: dict, key: str) -> dict:
             'place': outing['place']['name'], 'neighborhood': outing['place'].get('neighborhood'),
             'label': f"Out with you at {outing['place']['name']}", 'kind': 'social',
             'hour': hour, 'weather': composed.get('weather'), 'activity': outing['activity'], 'with': None,
-            'timeline_id': companion['active_timeline_id'], 'local_date': outing['local_date']}
+            'with_user': True, 'timeline_id': companion['active_timeline_id'], 'local_date': outing['local_date']}

@@ -317,6 +317,47 @@ def with_lora(graph: dict, lora: dict, node=LORA_NODE, source=None) -> dict:
     return rewired
 
 
+def stitches(workflow: dict) -> bool:
+    """Whether a reference workflow can follow a pair of pictures side by side (`stitched`): not when its picture
+    starts from the reference (a latent_image that comes from it), which would give the picture the pair's shape."""
+    reached = {key for key, node in workflow.items() if node.get('class_type') == 'LoadImage'
+               and REFERENCE in str((node.get('inputs') or {}).get('image'))}
+    if not reached:
+        return False
+    grew = True
+    while grew:
+        grew = False
+        for key, node in workflow.items():
+            links = {name: value for name, value in (node.get('inputs') or {}).items()
+                     if isinstance(value, list) and value and str(value[0]) in reached}
+            if 'latent_image' in links:
+                return False
+            if links and key not in reached:
+                reached.add(key)
+                grew = True
+    return True
+
+
+def stitched(graph: dict, first: str, other: str) -> dict:
+    """The workflow following two pictures with its one reference: the other picture is loaded and set to the right
+    of the reference (ComfyUI's own ImageStitch node), and whatever read the reference reads the pair. Any reference
+    workflow takes it, the user's own included, since nothing in it changes but where the picture comes from."""
+    loader = next((key for key, node in graph.items() if node.get('class_type') == 'LoadImage'
+                   and (node.get('inputs') or {}).get('image') == first), None)
+    if loader is None:
+        return graph
+    numbers = [int(key) for key in graph if str(key).isdigit()]
+    load, stitch = (str(max(numbers, default=0) + step) for step in (1, 2))
+    rewired = {key: {**node, 'inputs': {name: [stitch, 0] if value == [loader, 0] else value
+                                        for name, value in (node.get('inputs') or {}).items()}}
+               for key, node in graph.items()}
+    return {**rewired,
+            load: {'class_type': 'LoadImage', 'inputs': {'image': other}},
+            stitch: {'class_type': 'ImageStitch', 'inputs': {
+                'image1': [loader, 0], 'image2': [load, 0], 'direction': 'right', 'match_image_size': True,
+                'spacing_width': 0, 'spacing_color': 'white'}}}
+
+
 def with_loras(graph: dict, character: dict | None, styles: list[dict]) -> dict:
     """The character's LoRA first, so its likeness always applies, then each style LoRA after it."""
     source = None
@@ -468,9 +509,7 @@ class ComfyAdapter:
         values = {'{{prompt}}': prompt, '{{negative}}': negative, '{{seed}}': request.seed,
                   '{{width}}': request.width, '{{height}}': request.height, REFERENCE: ''}
         async with self.client(request.config['base_url']) as client:
-            if request.reference is not None:
-                values[REFERENCE] = await self.upload(client, request)
-            graph = fill(workflow, values)
+            graph = await self.filled(client, request, workflow, values)
             if request.lora or styles:
                 graph = with_loras(graph, request.lora, styles)
             if request.lora:
@@ -516,11 +555,23 @@ class ComfyAdapter:
             raise AdapterError('failed', f'ComfyUI returned HTTP {response.status_code}.')
         return response
 
-    async def upload(self, client, request) -> str:
-        """Put the reference picture in ComfyUI's input folder under this job's own name."""
-        extension, kind = media_type(request.reference)
+    async def filled(self, client, request, workflow, values) -> dict:
+        """The workflow with its values, the reference picture uploaded first, and any other picture to follow set
+        beside it (`stitched`)."""
+        if request.reference is not None:
+            values[REFERENCE] = await self.upload(client, request)
+        graph = fill(workflow, values)
+        for position, other in enumerate(request.others, start=1):
+            graph = stitched(graph, values[REFERENCE], await self.upload(client, request, other, position))
+        return graph
+
+    async def upload(self, client, request, picture: bytes | None = None, position=0) -> str:
+        """Put the reference picture (or another one to follow) in ComfyUI's input folder under this job's own name."""
+        picture = request.reference if picture is None else picture
+        extension, kind = media_type(picture)
+        suffix = f'-{position}' if position else ''
         response = await self.call(client, 'POST', '/upload/image', data={'overwrite': 'true'},
-                                   files={'image': (f'prospero-{request.job_id}.{extension}', request.reference, kind)})
+                                   files={'image': (f'prospero-{request.job_id}{suffix}.{extension}', picture, kind)})
         body = response.json() if response.headers.get('content-type', '').startswith('application/json') else {}
         if not response.is_success or not isinstance(body.get('name'), str):
             raise AdapterError('failed', f'ComfyUI did not accept the reference picture (HTTP {response.status_code}).')
