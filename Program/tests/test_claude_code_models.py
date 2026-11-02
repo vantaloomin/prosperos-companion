@@ -160,8 +160,8 @@ def test_each_account_has_its_own_places_and_the_folder_must_be_a_full_path():
     assert resource_for(config()) == ('claude-cli', 2)
     assert resource_for(config(cli_account_dir='/home/me/.claude-second')) == ('claude-cli:/home/me/.claude-second', 2)
     assert ProfileConfig(provider='claude_code', model='sonnet', cli_account_dir=sys.prefix).cli_account_dir == sys.prefix
-    home = os.path.expanduser('~')
-    assert ProfileConfig(provider='codex', model='x', cli_account_dir='~/.codex-2').cli_account_dir == os.path.join(home, '.codex-2')
+    expanded = ProfileConfig(provider='codex', model='x', cli_account_dir='~/.codex-2').cli_account_dir
+    assert expanded == os.path.expanduser('~/.codex-2') and not expanded.startswith('~')
     for provider, folder in (('claude_code', 'claude-second'), ('openai', sys.prefix)):
         with pytest.raises(ValueError):
             ProfileConfig(provider=provider, model='sonnet', cli_account_dir=folder)
