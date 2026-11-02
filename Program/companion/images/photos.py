@@ -227,13 +227,22 @@ class ChatPhotos:
             return self.memes.send(attempt_id, moment, local_hour, recent, companion, unasked, asked_gif=kind == 'gif')
         if moment is None or unasked and self.in_chat(moment['event_key']):
             return None  # Unasked pictures are of something new.
-        return self.send_moment(attempt_id, moment, kind, unasked)
+        return self.send_moment(attempt_id, moment, self.framing(kind, now), unasked)
+
+    def framing(self, kind, now) -> str:
+        """In person with the user (companion/life/together.py), a picture is the moment as the user sees it ('scene'),
+        never a selfie or a phone photo: nobody texts a picture to the person beside them."""
+        from companion.life import together  # it builds on the life modules this one imports
+        with self.database.connect() as connection:
+            return 'scene' if together.in_person(connection, require_current(connection), now) else kind
 
     def send_moment(self, attempt_id, moment, kind, unasked=False) -> dict | None:
         post_id, job_id = self.picture(moment, kind)
         if job_id is None:
             return None
-        self.record(attempt_id, post_id, job_id, kind, moment['event_key'], moment['summary'], unasked=unasked)
+        # A scene is kept as a plain photo of the moment; its framing is in the job's inputs.
+        self.record(attempt_id, post_id, job_id, 'moment' if kind == 'scene' else kind, moment['event_key'],
+                    moment['summary'], unasked=unasked)
         return {'post_id': post_id, 'text': moment_text(moment, kind, unasked)}
 
     def picture(self, moment, kind) -> tuple[str | None, str | None]:
@@ -450,7 +459,8 @@ def recent_memes(connection, timeline_id, limit=6) -> list[str]:
 
 
 LEADS = {'moment': 'A photo of what you are doing right now', 'selfie': 'A selfie you are taking right now',
-         'view': 'A photo of what you can see right now'}
+         'view': 'A photo of what you can see right now',
+         'scene': 'A picture of this moment as the user sees it, there with you in person (nobody took or texted it)'}
 
 
 # In the day's summary "you" is the user ("Mira went to dinner at Lupa with you"): told to the companion, the user.

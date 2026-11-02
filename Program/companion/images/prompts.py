@@ -28,7 +28,7 @@ from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import decades, looks, newcomers, ships
 
-PROMPT_VERSION = 7
+PROMPT_VERSION = 8
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -239,7 +239,10 @@ def aboard_words(text: str) -> str:
 
 CAMERAS = {'moment': 'Shot at eye level on a phone camera, natural colours, realistic skin texture, shallow depth of field.',
            'selfie': 'Slight wide-angle phone-camera look, natural colours, realistic skin texture.',
-           'view': 'Phone-camera look, natural colours, everything in the scene in focus.'}
+           'view': 'Phone-camera look, natural colours, everything in the scene in focus.',
+           'scene': 'Shot at eye level from a few steps away, natural colours, realistic skin texture, the place in sharp '
+                    'focus around them.'}
+CAMERAS['scene_both'] = CAMERAS['scene']
 
 
 # A style that is not a photograph, though it may say the word ("non-photorealistic", "photo-bashed concept art").
@@ -304,8 +307,10 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     expression = EXPRESSIONS.get((event.get('mood') or '').strip().lower()) or \
         (f"a {event['mood'].strip().lower()} expression" if event.get('mood') else '')
     framings = FRAMINGS | ((period or {}).get('framings') or {})
-    opening = framings[framing].format(subject=subject.lower(), possessive=possessive) if framings[framing] else \
-        ''
+    if framing == 'scene' and event.get('user'):
+        framing = 'scene_both'  # The user is drawn beside them (companion/persona_pictures.py), not as the eyes.
+    opening = framings[framing].format(subject=subject.lower(), possessive=possessive, object=OBJECT[who]) \
+        if framings[framing] else ''
     parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
              sheet, f'{look}.' if look else '', setting, WITH_YOU.sub('', action) if event.get('user') else action,
              alone(event, action, subject, who, framing),
@@ -613,7 +618,14 @@ FRAMINGS = {
     'selfie': "a fictional selfie taken at arm's length with a phone's front camera, face and shoulders in "
               'frame, looking into the lens',
     'view': 'a fictional first-person phone photo of what {subject} can see right now, nobody in focus',
+    # In person with the user (companion/life/together.py) nobody texts a photo to the person beside them: the picture
+    # is the moment as the user sees it. A selfie there drew them twice, once at the lens and once walking behind.
+    'scene': 'a wide, atmospheric candid scene of the place, seen through the eyes of the person spending time with '
+             '{object}, {object} a few steps away and unposed, with the place all around',
+    'scene_both': 'a wide, atmospheric candid scene of two people spending time together, seen from a little way off, '
+                  'unposed, with the place all around',
 }
+OBJECT = {'she': 'her', 'he': 'him', 'they': 'them'}
 
 
 def visit_words(scene_text: dict, neighborhood: str | None) -> dict:
