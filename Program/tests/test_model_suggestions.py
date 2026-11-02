@@ -246,7 +246,7 @@ def test_the_companion_is_named_never_the_assistant(client, app, connected, prov
     request = next(request for request in provider.requests if 'help a companion app remember' in request['system'])
     assert '"to": "Mira"' in request['messages'][-1]['content']
     [memory] = client.get('/api/memories').json()
-    assert (memory['subject'], memory['value']) == ('Trust in Mira', "didn't feel afraid of Mira as if Mira were dangerous")
+    assert (memory['subject'], memory['value']) == ('Trust in Mira', "didn't feel afraid of Mira as if they were dangerous")
 
 
 def test_an_assistant_the_user_talks_about_stays_one(client, app, connected, provider):
@@ -274,5 +274,21 @@ def test_memories_an_earlier_prompt_called_the_assistant_get_the_name(client, ap
     assert [memory['subject'] for memory in client.get('/api/memories').json()] == ['Trust in assistant']
     suggest.tidy(database)
     [memory] = client.get('/api/memories').json()
-    assert (memory['subject'], memory['value']) == ('Trust in Mira', "didn't feel afraid of Mira as if Mira were dangerous")
+    assert (memory['subject'], memory['value']) == ('Trust in Mira', "didn't feel afraid of Mira as if they were dangerous")
     assert addressed.tidy(database, suggest.PROMPT_VERSION) == 0
+
+
+def test_you_becomes_the_name_in_plain_english():
+    from companion.memory.addressed import named
+    cases = {"you're the one I trust": 'Mira is the one I trust',
+             "glad you've been honest": 'glad Mira has been honest',
+             'feel safe when you are around': 'feel safe when Mira is around',
+             'you make me laugh': 'Mira makes me laugh',
+             "you don't judge, you never judge": "Mira doesn't judge, Mira never judges",
+             'you came along to the dentist': 'Mira came along to the dentist',
+             'thank you for listening': 'thank Mira for listening',
+             'likes your laugh': "likes Mira's laugh",
+             "didn't feel afraid of the assistant as if it were dangerous":
+                 "didn't feel afraid of Mira as if they were dangerous",
+             'trusts the assistant because it is kind': 'trusts Mira because they are kind'}
+    assert {text: named(text, 'Mira', 'a message') for text in cases} == cases

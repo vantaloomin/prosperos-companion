@@ -22,9 +22,62 @@ BARE = re.compile(rf"\b(in|with|of|to|for|about|toward|towards|by|from|around|at
 OPENING = re.compile(rf"^{GENERIC}\b", re.IGNORECASE)
 SAID = re.compile(r"\b(?:assistant|chat\s?bot|bot|AI|language\s+model|companion)\b", re.IGNORECASE)
 IT = re.compile(r"\bit (is|was|were|has|had|does|did|would|will|can|could)\b")
-# The user's "you" in a message to the companion is the companion.
-YOU = ((re.compile(r"\byours\b", re.IGNORECASE), "{name}'s"), (re.compile(r"\byour\b", re.IGNORECASE), "{name}'s"),
-       (re.compile(r"\byou\b", re.IGNORECASE), '{name}'))
+# The assistant's "it" as "they": "as if it were dangerous" -> "as if they were dangerous".
+THEY = {'is': 'are', 'was': 'were', 'has': 'have', 'does': 'do'}
+# The user's "you" in a message to the companion is the companion: "you're" -> "Sett is", "you make" -> "Sett makes".
+YOUR = re.compile(r"\byour(s|self)?\b", re.IGNORECASE)
+YOU = re.compile(r"\byou(?:['’](re|ve|ll|d))?\b(\s+(?:(?:never|always|also|just|really|still|often|usually|"
+                 r"sometimes|actually|even)\s+)*)?([a-z']+)?", re.IGNORECASE)
+CONTRACTED = {'re': 'is', 've': 'has', 'll': 'will', 'd': 'would'}
+AGREES = {'are': 'is', 'were': 'was', 'have': 'has', 'do': 'does', "aren't": "isn't", "weren't": "wasn't",
+          "haven't": "hasn't", "don't": "doesn't"}
+# Words after a subject "you" that keep their form: modals, past tenses, words that are not verbs.
+KEEP = {'can', 'could', 'will', 'would', 'should', 'might', 'must', 'may', "can't", "won't", "wouldn't", "couldn't",
+        "shouldn't", "didn't", 'did', 'had', 'came', 'went', 'gave', 'made', 'took', 'saw', 'said', 'got', 'knew',
+        'felt', 'left', 'brought', 'thought', 'told', 'kept', 'met', 'ran', 'sat', 'stood', 'bought', 'found',
+        'held', 'heard', 'let', 'lost', 'meant', 'paid', 'put', 'read', 'sent', 'set', 'spent', 'taught', 'won',
+        'wrote', 'drove', 'ate', 'drank', 'sang', 'began', 'became', 'chose', 'forgot', 'spoke', 'woke', 'wore',
+        'understood', 'slept', 'caught', 'fought', 'built', 'lent', 'hid', 'rode', 'fell', 'flew', 'grew', 'threw',
+        'drew', 'shook', 'broke', 'and', 'or', 'but', 'the', 'a', 'an', 'to', 'so', 'too', 'for', 'there', 'here',
+        'all', 'both', 'more', 'guys', 'two', 'as', 'at', 'in', 'on', 'with', 'of', 'than', 'that', 'this', 'when',
+        'if', 'because', 'about', 'around', 'again', 'today', 'tonight', 'now', 'back', 'up', 'out', 'me', 'my'}
+# What comes right before a "you" that is the subject: nothing, punctuation, or a word that opens a clause.
+CLAUSE = {'and', 'but', 'or', 'that', 'because', 'when', 'if', 'so', 'how', 'why', 'what', 'since', 'while', 'as',
+          'whenever', 'where', 'until', 'though', 'although', 'like', 'glad', 'love', 'how', 'think', 'know'}
+
+
+def third_person(verb: str) -> str:
+    """'make' -> 'makes', 'watch' -> 'watches', 'carry' -> 'carries'; a word that is not a base verb stays."""
+    low = verb.casefold()
+    if low in AGREES:
+        return AGREES[low]
+    if low in KEEP or low.endswith(('ed', 'ing', "n't")) or (low.endswith('s') and not low.endswith('ss')):
+        return verb
+    if low.endswith(('ss', 'sh', 'ch', 'x', 'z', 'o')):
+        return f'{verb}es'
+    if len(low) > 1 and low.endswith('y') and low[-2] not in 'aeiou':
+        return f'{verb[:-1]}ies'
+    return f'{verb}s'
+
+
+def subject(text: str, start: int) -> bool:
+    """Whether the "you" at start opens a clause (the subject), not an object ("with you", "thank you")."""
+    words = re.findall(r"[\w']+|[^\w\s]", text[:start])
+    return not words or not words[-1][0].isalnum() or words[-1].casefold() in CLAUSE
+
+
+def you(match, text: str, name: str) -> str:
+    contraction, gap, verb = match[1], match[2] or '', match[3] or ''
+    if contraction:
+        return f'{name} {CONTRACTED[contraction.casefold()]}{gap}{verb}'
+    if verb and gap and subject(text, match.start()):
+        return f'{name}{gap}{third_person(verb)}'
+    return f'{name}{gap}{verb}'
+
+
+def addressed_you(text: str, name: str) -> str:
+    text = YOUR.sub(lambda match: name if (match[1] or '').casefold() == 'self' else f"{name}'s", text)
+    return YOU.sub(lambda match: you(match, text, name), text)
 
 
 def first_name(companion) -> str:
@@ -42,10 +95,8 @@ def named(text: str, name: str, message: str) -> str:
         text = BARE.sub(lambda match: f'{match[1]} {name}', text)
         text = OPENING.sub(name, text)
         if text != before:  # "afraid of the assistant as if it were dangerous": "it" was the assistant too
-            text = IT.sub(lambda match: f'{name} {match[1]}', text)
-    for pattern, replacement in YOU:
-        text = pattern.sub(replacement.format(name=name), text)
-    return text
+            text = IT.sub(lambda match: f'they {THEY.get(match[1], match[1])}', text)
+    return addressed_you(text, name)
 
 
 def fields(subject: str, value: str, name: str, message: str) -> tuple[str, str]:
