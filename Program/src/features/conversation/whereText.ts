@@ -82,7 +82,7 @@ function outLine(outing: WhereOuting, tail: string): StripLine {
 
 /** After a meetup: "Sett is driving home, back around 6:10 PM", the time kept with its words on a phone. */
 export function headingLine(heading: WhereHeading, name: string): StripLine {
-  return { lead: `${name} is ${heading.words}`, place: null, tail: `, back around\u00a0${timeText(heading.back)}` }
+  return { lead: `${name} is ${heading.words}`, place: null, tail: `, back\u00a0around\u00a0${timeText(heading.back)}` }
 }
 
 /** A weekend visit: who is staying with whom, and until when ("until Sun, Oct 18"). */
