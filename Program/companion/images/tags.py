@@ -58,6 +58,8 @@ SHOTS = (
     (r'side profile', 'profile, from side'),
     (r'three-quarter view', 'three-quarter view'),
     (r'looking back over the shoulder', 'looking back'),
+    (r'atmospheric candid scene', 'wide shot, scenery'),
+    (r'seen through the eyes of', 'pov'),
     (r'selfie', 'selfie, looking at viewer'),
     (r"phone's front camera", 'holding phone'),
     (r'face and shoulders', 'portrait'),

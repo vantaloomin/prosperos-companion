@@ -302,6 +302,11 @@ same moment, "a pic of the view" a first-person photo with nobody in it (and so 
 phrasings, not the model, and a question about another time ("tomorrow", "tonight", "been up to")
 asks for no photo.
 
+- In person (out together, at one of your places, on a visit, or home together of an evening;
+  `companion/life/together.py`), nobody texts a photo to the person beside them. Any picture then,
+  asked for or not, is the moment as you see it: a wide, atmospheric scene of the place with them a
+  few steps away (framing `scene`), never a selfie or a view. With your picture set (Settings >
+  Images, "Show me in pictures we're in together") the scene shows the two of you from a little way off.
 - A selfie or view is another version of the moment's picture, on the same post. Each reply keeps
   the version it sent, the feed shows the newest, and asking again for the same kind in the same
   moment shows the one already made.

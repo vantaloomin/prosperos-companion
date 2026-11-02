@@ -264,7 +264,7 @@ SEEN = (
     (r'\b(?:(?:that|which)\s+(?:has\s+|had\s+)?)?(?:long[- ])?healed(?:\s+over)?\b\s*', ''),
     (r'\b(?:an?\s+)?' + SCAR_WORDS + r'scar\b', 'a faint pale mark'),
     (r'\b' + SCAR_WORDS + r'scars\b', 'faint pale marks'),
-    (r'\bscarred\b', 'marked'),
+    (r'(?-i:\bscarred\b)', 'marked'),  # lower case only: a place's name ("The Scarred Wall") stays
     (r'\b(?:an?\s+)?(?:deeply\s+|slightly\s+)?cleft\s+chin\b', 'a chin with a faint vertical dimple'),
     (r'\b(?:an?\s+)?(?:slightly\s+)?crooked\s+(smile|grin)\b', r'a lopsided \1'),
     (r'\b(?:slightly\s+)?crooked\s+teeth\b', 'slightly uneven teeth'),
