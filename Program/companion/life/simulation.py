@@ -19,7 +19,7 @@ template wording only, so a long cast costs no model calls; the one in focus is 
 import asyncio
 import logging
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from companion import events, groups, logs, news, notifications, troubleshoot
 from companion.characters import by_id, current, for_timeline
@@ -56,6 +56,7 @@ from companion.workspace import overlapping_pause
 from companion.world import turnover
 
 LOG = logging.getLogger(__name__)
+REPEAT_LOG_AFTER = timedelta(hours=1)
 
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
@@ -452,6 +453,19 @@ def claim(connection, run_id, owner, now):
 
 # Execution --------------------------------------------------------------------------------------
 
+class Repeats:
+    """Whether a failure is worth logging: a new one, or the same one again after REPEAT_LOG_AFTER."""
+
+    def __init__(self):
+        self.last, self.at = None, None
+
+    def seen(self, text: str, now: datetime) -> bool:
+        if text == self.last and now - self.at < REPEAT_LOG_AFTER:
+            return False
+        self.last, self.at = text, now
+        return True
+
+
 class LifeEngine:
     """Runs batches for one process. The lock keeps this process to one batch at a time; across
     processes the cursor transaction and event idempotency keys keep work unique."""
@@ -468,6 +482,7 @@ class LifeEngine:
         # Where the next round of companions out of focus starts, and the round running after a return.
         self.cast_offset = 0
         self.casting = None
+        self.failed = Repeats()
         # Current-context lookups (companion/mcp), first messages (companion/life/openers.py) and group chats
         # starting conversations (companion/groups.py); set by the app.
         self.lookups = None
@@ -1036,8 +1051,11 @@ class LifeEngine:
     async def quietly(self, mode):
         try:
             await self.reconcile(mode)
-        except Exception:  # noqa: BLE001 - one failed tick must not stop later ones.
-            pass
+        except Exception as error:  # noqa: BLE001 - one failed tick must not stop later ones.
+            # Logged, so a companion whose day fails on every tick shows why (tester, 2026-11-01: a whole day with no
+            # posts and nothing in the log). The same failure again within the hour is not logged again.
+            if self.failed.seen(f'{type(error).__name__}: {error}', self.now()):
+                LOG.exception("The companion's day could not move on.")
 
     async def quietly_cast(self, mode):
         try:
