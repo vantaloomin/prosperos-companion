@@ -26,6 +26,7 @@ import { WordGetsAround } from './WordGetsAround'
 import { headerOccasions } from './storyText'
 import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
 import { SCRAPBOOKS_KEY, featuredCard } from '../year/yearText'
+import { askForNew } from '../feed/feedState'
 
 const TODAY_KEY = ['today']
 
@@ -78,7 +79,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
           {data.mind && <OnTheirMind thoughts={data.mind.thoughts} name={name} />}
         </div>
         <div className="today-actions">
-          {data.feed_unread > 0 && <button type="button" className="button" onClick={() => go('feed')}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
+          {data.feed_unread > 0 && <button type="button" className="button" onClick={() => { askForNew(); go('feed') }}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
           <button type="button" className="button" onClick={() => go('map')}><MapIcon aria-hidden="true" />Map</button>
           <button type="button" className="button" onClick={() => go('people')}><Network aria-hidden="true" />Who knows who</button>
         </div>

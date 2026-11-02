@@ -9,6 +9,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { PostCard, type PostActions } from './PostCard'
 import { ReadBatcher, joinPages, nextReaction } from './feedState'
+import { useSeekNew } from './useSeekNew'
 import { isActive } from './imageState'
 import { useEraWords } from '../world/useEraWords'
 import type { EraWords } from '../world/eraWords'
@@ -35,6 +36,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
   const name = companion.version.name
   const posts = joinPages(feed.data?.pages ?? [])
   const unread = useArrivalCount(feed.data?.pages[0]?.unread)
+  const newPosts = useSeekNew(feed, posts, source === 'all' && !hidden)
 
   const batcher = useMemo(() => new ReadBatcher((ids) => {
     void api('/feed/read', { post_ids: ids }).then(() => Promise.all([client.invalidateQueries({ queryKey: ['today'] }), client.invalidateQueries({ queryKey: ['feed'] })])).catch(() => undefined)
@@ -84,7 +86,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
       <header className="page-header">
         <div>
           <h2>{words.posts_tab}</h2>
-          <p className="subtle">{name}'s {words.posts}, what their friends are up to, and yours{unreadText(unread)}. Nobody outside the app sees them.</p>
+          <p className="subtle">{name}'s {words.posts}, what their friends are up to, and yours<UnreadCount count={unread} linked={newPosts.offer > 0} seek={newPosts.seek} /> Nobody outside the app sees them.</p>
         </div>
         <button type="button" className="button" onClick={() => void exportFeed()}><Download aria-hidden="true" />Export</button>
       </header>
@@ -149,7 +151,13 @@ function OwnPost({ onPosted, onError }: { onPosted: () => void; onError: (messag
   )
 }
 
-const unreadText = (count: number) => count ? `. ${count} new` : ''
+/** ". 1 new." after the description. When the new post sits below posts already seen, the count is a link to it, kept
+ * on one line with its full stop. */
+function UnreadCount({ count, linked, seek }: { count: number; linked: boolean; seek: () => void }) {
+  if (!count) return <>.</>
+  if (!linked) return <>. {count} new.</>
+  return <>. <span className="nowrap"><button type="button" className="inline-link" aria-label="Go to the newest unread post" onClick={seek}>{count} new <span aria-hidden="true">↓</span></button>.</span></>
+}
 
 function FeedStatus({ pending, error, retrying, retry, empty, mine, name, words }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; mine: boolean; name: string; words: EraWords }) {
   if (error) {

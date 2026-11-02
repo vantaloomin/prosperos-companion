@@ -6,7 +6,7 @@ from test_groups import companion_named
 from companion.characters import by_id, require_current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many
-from companion.life import agenda, circle, composer, joint, routine
+from companion.life import agenda, body, circle, composer, joint, routine
 from companion.world.source import CatalogWorld
 
 DEFINITION = {'name': 'Mira', 'location': 'Fells Point, Baltimore'}
@@ -72,9 +72,11 @@ def dinner_with(connection, companion: dict, person: dict, starts_at, ends_at) -
     return row_id
 
 
-def test_dinner_with_another_companion_is_in_both_their_days(client, companion):
+def test_dinner_with_another_companion_is_in_both_their_days(client, companion, monkeypatch):
     """Lestara is a companion of the user's and, under her own name, in Sett's circle: the dinner Sett had with her is
     in her day too, at the same time, and not her trip to the fish stalls."""
+    # A cold, seeded by the timeline's random id, would keep Billy home now and then.
+    monkeypatch.setattr(body, 'state_on', lambda *_args: None)
     billy_id = companion_named(client, 'Billy Hart')
     database, world = client.app.state.database, client.app.state.life.world
     with database.connect(write=True) as connection:
