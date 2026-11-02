@@ -35,6 +35,7 @@ from companion.life import (
     dreams,
     feed,
     hobbies,
+    joint,
     mood,
     narrator,
     pets,
@@ -243,6 +244,15 @@ def plan_for(connection, timeline_id, slot_key) -> dict | None:
                     (timeline_id, slot_key))
 
 
+def shared_start(slot: dict, composed: dict) -> str:
+    """When the event starts: an outing shared with another companion when the outing does (companion/life/joint.py),
+    so both their timelines give it the same time."""
+    begins = ((composed or {}).get('joint') or {}).get('starts_at')
+    if not begins or not slot['starts_at'] < begins < slot['ends_at']:
+        return slot['starts_at']
+    return begins
+
+
 def settle_key(thread_key: str) -> str:
     return f'settled:{thread_key}'
 
@@ -277,12 +287,13 @@ def recent_threads(connection, timeline_id, local_date: str) -> list[str]:
 def recommended(connection, timeline_id, slot_key) -> bool:
     """The slot holds a session of a recommendation or a plan the companion made in chat, or a bold change to their
     looks (companion/life/grooming.py) or a milestone in a pastime (companion/life/hobbies.py), which they would post
-    about."""
+    about, or an outing shared with another companion (companion/life/joint.py), which is in both their days."""
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
                          "AND slot_key=? AND (json_extract(entry, '$.recommendation.id') IS NOT NULL "
                          "OR json_extract(entry, '$.own_plan.id') IS NOT NULL OR json_extract(entry, '$.outing.id') "
                          "IS NOT NULL OR json_extract(entry, '$.trip.id') IS NOT NULL OR "
-                         "json_extract(entry, '$.looks.bold')=1 OR json_extract(entry, '$.hobby.milestone') IS NOT NULL)",
+                         "json_extract(entry, '$.looks.bold')=1 OR json_extract(entry, '$.hobby.milestone') IS NOT NULL "
+                         "OR json_extract(entry, '$.joint') IS NOT NULL)",
                          (timeline_id, slot_key)))
 
 
@@ -635,7 +646,7 @@ class LifeEngine:
                      'own_plan': composed.get('own_plan'), 'outing': composed.get('outing'),
                      'trip': composed.get('trip'), 'pet_photo': composed.get('pet_photo'),
                      'hobby': composed.get('hobby')},
-            starts_at=slot['starts_at'], ends_at=slot['ends_at'],
+            starts_at=shared_start(slot, composed), ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {
                         'summary': composed['summary'], 'post': composed['post']},
@@ -658,10 +669,17 @@ class LifeEngine:
         a work block that became a day off on a public holiday."""
         if plan and not (precomputed and (precomputed['entry'] or {}).get('own_plan')):
             return composer.fulfil(events.view(plan), version['definition']), slot, None
-        if precomputed:
+        if precomputed and not self.joint_gone(precomputed['entry']):
             return precomputed['entry'], {**slot, 'block': decode(precomputed['block'])}, precomputed['prepared']
         recent_keys = [decode(event['details']).get('activity') for event in recent]
         return composer.compose(slot, version['definition'], self.world, key, recent_keys), slot, None
+
+    def joint_gone(self, entry) -> bool:
+        """An outing shared with another companion whose side of it is gone (companion/life/joint.py)."""
+        if not (entry or {}).get('joint'):
+            return False
+        with self.database.connect() as connection:
+            return not joint.holds(connection, entry)
 
     def follow_threads(self, run, slot, version, life, key) -> dict:
         """Settle an open thread whose day has come, or now and then open one (PRD T2). At most one

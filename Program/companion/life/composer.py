@@ -9,13 +9,13 @@ Some slots are deliberately quiet: an uneventful stretch is a valid outcome, not
 """
 import random
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 
 from companion.life import body, money, occasions, pronouns
 from companion.world import perception
 
-COMPOSER_VERSION = 'compose-8'
+COMPOSER_VERSION = 'compose-9'
 QUIET_SHARE = 0.2
 OUTDOOR = {'park', 'waterfront', 'beach'}
 RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
@@ -153,6 +153,36 @@ SICK = activity('sick-day', (), ['{name} stayed home with a cold, sleeping most 
                 ['Tea, blanket, tissues. Repeat.', 'Officially a couch creature today.', 'Send soup.'],
                 ['under the weather'])
 CALM = {'reading', 'home-cooking', 'coffee', 'walk', 'slow', 'nap'}
+
+# The hours (of the day the block starts, past midnight counted on from 24) an outing fits, so dinner is never at ten
+# in the morning (Vanta, 2026-11-01). One not listed fits any time.
+HOURS = {'dinner': (16, 24), 'drinks': (16, 27), 'show': (12, 25), 'museum': (8, 18), 'market': (6, 18)}
+# Time with friends before the evening: coffee or a walk together.
+DAYTIME = 16
+DAYTIME_TOGETHER = {'coffee': ('{name} met {friend} for coffee{at}.', '{name} caught up with {friend} over coffee{at}.'),
+                    'walk': ('{name} went for a walk{at} with {friend}.',)}
+DAYTIME_SOCIAL = tuple(replace(option, together=DAYTIME_TOGETHER[option.key]) for option in CATALOG['leisure']
+                       if option.key in DAYTIME_TOGETHER)
+
+
+def block_hour(block: dict) -> int:
+    hour = int((block.get('start') or '12:00')[:2])
+    return hour + 24 if hour < 5 else hour
+
+
+def fits(key: str, hour: int) -> bool:
+    low, high = HOURS.get(key, (0, 48))
+    return low <= hour < high
+
+
+def timely(options, block: dict) -> list:
+    """The options that fit the time of day; a social block before the evening is coffee or a walk with someone."""
+    hour = block_hour(block)
+    fitting = [option for option in options if fits(option.key, hour)]
+    if block.get('kind') == 'social' and hour < DAYTIME:
+        keys = {option.key for option in fitting}
+        fitting += [option for option in DAYTIME_SOCIAL if option.key not in keys]
+    return fitting or list(options)
 LOW_SHARE = 0.5
 
 
@@ -571,7 +601,7 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     low = state in body.LOW
     if not low and (outing := festival(slot, definition, world, seed, recent_activities, company, conditions)):
         return outing
-    options = within_reach(options, state, block)
+    options = timely(within_reach(options, state, block), block)
     if harsh(conditions):
         # Bad weather moves the day indoors: no walks, and no workout in the park.
         options = [option for option in options if not option.place_kinds or set(option.place_kinds) - OUTDOOR] \
@@ -627,6 +657,8 @@ PLANNABLE_TOGETHER = {
     'dinner': ('have dinner with {friend}{at}', 'had dinner with {friend}{at}'),
     'drinks': ('meet {friend} for drinks{at}', 'met {friend} for drinks{at}'),
     'show': ('see a show{at} with {friend}', 'saw a show{at} with {friend}'),
+    'coffee': ('meet {friend} for coffee{at}', 'met {friend} for coffee{at}'),
+    'walk': ('go for a walk{at} with {friend}', 'went for a walk{at} with {friend}'),
 }
 
 
@@ -651,7 +683,8 @@ def plan_ahead(definition: dict, world, seed: str, future_slots: list[dict], upc
     if entry:
         chosen, place, friend = find_activity(entry['activity']), entry['place'], entry.get('with')
     else:
-        options = [option for option in CATALOG[target['block']['kind']] if option.key in PLANNABLE]
+        options = [option for option in timely(CATALOG[target['block']['kind']], target['block'])
+                   if option.key in PLANNABLE]
         chosen = rng.choice(options)
         places = find_places(world, definition, target, chosen.place_kinds)
         place = rng.choice(places).view() if places else None
