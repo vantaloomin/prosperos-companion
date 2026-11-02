@@ -90,7 +90,7 @@ def test_sentences_the_rules_missed_still_reach_the_model(client, app, connected
     assert run(client, app) == 1
     [asked] = [request for request in provider.requests if 'help a companion app remember' in request['system']]
     sent = json.loads(asked['messages'][0]['content'])
-    assert sent == [{'message': 1, 'text': f'{LONG}.'}]
+    assert sent == [{'message': 1, 'to': 'Mira', 'text': f'{LONG}.'}]
     assert sorted(item['value'] for item in client.get('/api/memories').json()) == ['Chicago', 'weekly pottery class with Jun']
 
 
@@ -232,3 +232,47 @@ def test_strays_saved_by_an_earlier_prompt_are_tidied_away(client, app, connecte
     assert suggest.tidy(database) == 1
     assert [memory['subject'] for memory in client.get('/api/memories').json()] == ['Porch']
     assert suggest.tidy(database) == 0
+
+
+MEETUP = "Thank you, I had a good time. I didn't feel afraid of you, like you were dangerous"
+
+
+def test_the_companion_is_named_never_the_assistant(client, app, connected, provider):
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'relationship', 'subject': 'Trust in assistant',
+                                     'value': "didn't feel afraid of the assistant as if it were dangerous"}])
+    send(client, MEETUP, 'model-0001')
+    run(client, app)
+    request = next(request for request in provider.requests if 'help a companion app remember' in request['system'])
+    assert '"to": "Mira"' in request['messages'][-1]['content']
+    [memory] = client.get('/api/memories').json()
+    assert (memory['subject'], memory['value']) == ('Trust in Mira', "didn't feel afraid of Mira as if Mira were dangerous")
+
+
+def test_an_assistant_the_user_talks_about_stays_one(client, app, connected, provider):
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': "Boss's assistant",
+                                     'value': 'Priya, the assistant who runs the office'}])
+    send(client, 'my boss has a new assistant, Priya, the assistant who runs the office now', 'model-0001')
+    run(client, app)
+    [memory] = client.get('/api/memories').json()
+    assert (memory['subject'], memory['value']) == ("Boss's assistant", 'Priya, the assistant who runs the office')
+
+
+def test_memories_an_earlier_prompt_called_the_assistant_get_the_name(client, app, connected, provider, monkeypatch):
+    from companion.memory import addressed, suggest
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'relationship', 'subject': 'Trust in assistant',
+                                     'value': "didn't feel afraid of the assistant as if it were dangerous"}])
+    send(client, MEETUP, 'model-0001')
+    database = app.state.database
+    monkeypatch.setattr(addressed, 'fields', lambda subject, value, *args: (subject, value))
+    run(client, app)
+    monkeypatch.undo()
+    with database.connect(write=True) as connection:
+        connection.execute("UPDATE memory_candidates SET rule='memory-suggest-5' WHERE source='model'")
+    assert [memory['subject'] for memory in client.get('/api/memories').json()] == ['Trust in assistant']
+    suggest.tidy(database)
+    [memory] = client.get('/api/memories').json()
+    assert (memory['subject'], memory['value']) == ('Trust in Mira', "didn't feel afraid of Mira as if Mira were dangerous")
+    assert addressed.tidy(database, suggest.PROMPT_VERSION) == 0
