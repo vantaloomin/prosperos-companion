@@ -428,6 +428,10 @@ ADDED_COLUMNS = (
     ('persona', 'picture', "TEXT NOT NULL DEFAULT ''"),
     # Whether pictures of moments the user shares with a companion show the user too (Settings > Images), per world.
     ('image_settings', 'show_me', 'INTEGER NOT NULL DEFAULT 1 CHECK (show_me IN (0, 1))'),
+    # Meeting up early and staying longer (companion/life/outings.py): the time it was planned for before Go now, and
+    # how many times the user stayed on an hour.
+    ('outings', 'early_from', 'TEXT'),
+    ('outings', 'longer', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

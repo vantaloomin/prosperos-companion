@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { byHood, historyLine, mainPin, suggestion, type CityMapData, type MapPlace } from '../../src/features/map/mapText.ts'
+import { byHood, historyLine, mainPin, suggestHint, suggestion, type CityMapData, type MapPlace } from '../../src/features/map/mapText.ts'
 import { drawn, inside, labels, pathOf } from '../../src/features/map/drawn.ts'
 
 const place = (id: string, hood: string, pins: MapPlace['pins'] = []): MapPlace => ({
@@ -110,4 +110,8 @@ test("the same city lays out the same whoever's map it is and whoever lives wher
   assert.equal(new Set(after.values()).size, after.size)
   assert.equal(mainPin({ pins: ['known'] }), 'known')
   assert.equal(mainPin({ pins: ['yours'] }), 'yours')
+})
+
+test('the invite button says what happens next', () => {
+  assert.equal(suggestHint('Sett'), "This puts an invite to Sett in your chat. If they say yes, it goes on Today. When it's time, you'll be there together. No need to go anywhere.")
 })

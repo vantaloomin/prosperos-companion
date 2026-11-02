@@ -223,6 +223,35 @@ def test_heading_home_early_ends_it_now(client, mira, provider, clock):
     assert kept['status'] == 'done' and kept['memory_id'] and not kept['undo']
 
 
+def test_meeting_up_early_and_staying_longer(client, mira, provider, clock):
+    send(client, 'Dinner tonight?', 'client-out-early')
+    [outing] = listing(client)['outings']
+    assert (outing['at_time'], outing['until_time']) == ('19:00', '21:00') and not outing['early']
+    assert client.post(f"/api/life/outings/{outing['id']}/now").status_code == 409  # Hours off, and they are at work.
+    clock.advance(timedelta(hours=4, minutes=30))  # 16:30: close, but still at work until 17:00.
+    assert not listing(client)['outings'][0]['early']
+    clock.advance(timedelta(hours=1))  # 17:30: off work, free.
+    assert listing(client)['outings'][0]['early']
+    met = client.post(f"/api/life/outings/{outing['id']}/now").json()
+    assert (met['at_time'], met['early_from'], met['until_time']) == ('17:30', '19:00', '21:00')
+    reconcile(client)
+    [now] = listing(client)['outings']
+    assert now['state'] == 'now' and now['longer_ok'] and not now['early']
+    assert client.get('/api/life/where').json()['outing']['longer_ok']
+    assert client.post(f"/api/life/outings/{outing['id']}/longer").json()['until_time'] == '22:00'
+    assert client.post(f"/api/life/outings/{outing['id']}/longer").json()['until_time'] == '23:00'
+    # They sleep at 23:00, so no more.
+    assert not listing(client)['outings'][0]['longer_ok']
+    assert client.post(f"/api/life/outings/{outing['id']}/longer").status_code == 409
+    clock.advance(timedelta(hours=4, minutes=45))  # 22:15: still out, an hour later than planned.
+    assert listing(client)['outings'][0]['state'] == 'now'
+
+
+def test_times_other_people_set_do_not_move():
+    for activity in outings.FIXED:
+        assert activity in ('wedding', 'big-day', 'meet-family', 'meet-friends')
+
+
 def test_replies_are_not_held_while_out_together():
     from companion.life import pacing
     assert pacing.busy_kind({'kind': 'social', 'with_user': True}) is None

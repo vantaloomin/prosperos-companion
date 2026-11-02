@@ -553,6 +553,7 @@ def view(connection, companion: dict, now: datetime) -> dict:
         timezone = companion['version']['timezone']
         found['outing'] = {**outing, 'state': outings.state(outing, timezone, now),
                            'undo': outings.undoable_home(outing, now),
+                           'longer_ok': outings.longer_ok(connection, companion, outing, now),
                            'not_now': bool(outing['place'].get('knock')) and now - started(outing, companion)
                            < NOT_NOW_WINDOW}
     else:
