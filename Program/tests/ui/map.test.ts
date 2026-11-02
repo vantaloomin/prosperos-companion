@@ -113,5 +113,5 @@ test("the same city lays out the same whoever's map it is and whoever lives wher
 })
 
 test('the invite button says what happens next', () => {
-  assert.equal(suggestHint('Sett'), "This puts the invite in your chat. Once Sett says yes it's on Today, and when it's time you're there together, no need to go anywhere.")
+  assert.equal(suggestHint('Sett'), "This puts an invite to Sett in your chat. If they say yes, it goes on Today. When it's time, you'll be there together. No need to go anywhere.")
 })

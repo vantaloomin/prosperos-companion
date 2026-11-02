@@ -141,9 +141,10 @@ export function outingNote(outing: Outing, name: string): string {
 
 /** How meeting up works, so nobody waits for a "Go there" button that never comes: at the time they are simply there
  * together, and the chat is where it happens. '' once it is over or called off. */
-export function meetLine(outing: Pick<Outing, 'state' | 'until_time'>, name: string): string {
-  if (outing.state === 'planned') return `No need to go anywhere: when it's time, you're there together. Just talk to ${name} in the chat, face to face until ${timeText(outing.until_time)}.`
-  if (outing.state === 'now') return `You're there together now. Talk to ${name} in the chat.`
+export function meetLine(outing: Pick<Outing, 'state' | 'until_time'>): string {
+  const until = outing.until_time ? ` until ${timeText(outing.until_time)}` : ''
+  if (outing.state === 'planned') return `No need to go anywhere. When it's time, you'll be there together, and the chat turns face to face${until}.`
+  if (outing.state === 'now') return until ? `You're there together${until}.` : `You're there together now.`
   return ''
 }
 

@@ -53,7 +53,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {peopleLine(outing.place, outing.state) && <p className="subtle">{peopleLine(outing.place, outing.state)}</p>}
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
-      <MeetLine outing={outing} name={firstName(name)} />
+      <MeetLine outing={outing} />
       <SitterLine outing={outing} />
       {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <Now outing={outing} act={act} />}
@@ -62,10 +62,10 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
 }
 
 /** How it plays out: no "Go there" step, they are simply there together when it starts, and the chat is the meeting. */
-function MeetLine({ outing, name }: { outing: Outing; name: string }) {
-  const line = meetLine(outing, name)
+function MeetLine({ outing }: { outing: Outing }) {
+  const line = meetLine(outing)
   if (!line) return null
-  return <p className="subtle together-how">{line}{outing.state === 'now' && <> <a className="text-button inline" href="#conversation">Open the chat</a></>}</p>
+  return <p className="subtle together-how">{line}{outing.state === 'now' && <> <a className="text-button inline" href="#conversation">Talk face to face</a></>}</p>
 }
 
 /** An evening out with a child of yours at home: who is watching them that night (words only). */
