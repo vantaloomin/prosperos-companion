@@ -1093,7 +1093,7 @@ export interface ImageBackend {
 export interface WorldImageBackends { own: boolean; picked: string[]; falls_back: boolean; used: string[] }
 export interface ImageBackendList { backends: ImageBackend[]; world: WorldImageBackends }
 
-export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; follow_profile_picture: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; follow_profile_picture: boolean; show_me: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
@@ -2269,6 +2269,8 @@ export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
 export interface PersonaPet { name: string; kind: string; looks: string; born?: string; added?: string; age?: number | null }
 export interface Persona {
   id: string; name: string; gender: PersonaGender; age: number | null; about: string; birthday: string; created_at: string
+  /** How they look and their picture's file, for pictures of moments they share with a companion. */
+  looks?: string; picture?: string
   pets?: PersonaPet[]
   /** Kind and How long they live as picked on the Persona page ('' and null: read from About you). */
   kind?: string; lifespan?: number | null

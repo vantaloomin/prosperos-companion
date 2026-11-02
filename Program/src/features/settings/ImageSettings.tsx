@@ -93,6 +93,8 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
         hint="Now and then a reply comes with a photo or a meme, a few a day at most. If they may message you first (Life & cities), they sometimes text a photo of what they're out doing, once a day at most." />
       <Toggle label="Keep their face from their profile picture" checked={data.follow_profile_picture} onChange={(value) => void save({ follow_profile_picture: value })}
         hint="New pictures of them start from their profile picture, so they look like the same person every time. Only on backends that can take a reference picture. A LoRA you adopted for them is used instead. This world only." />
+      <Toggle label="Show me in pictures we're in together" checked={data.show_me} onChange={(value) => void save({ show_me: value })}
+        hint="Pictures of an outing, a visit or an evening at home together show you beside them, from How you look and your picture on the Persona page. This world only." />
       <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
         hint="Only to a backend allowed to receive that request." />
       <div className="form-grid">

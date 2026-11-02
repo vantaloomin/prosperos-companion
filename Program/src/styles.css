@@ -984,6 +984,10 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .reference-card > .badge { justify-self: start; }
 .first-picture { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .first-picture legend { font-weight: 500; margin-bottom: 4px; }
+.persona-picture { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.persona-picture legend { font-weight: 500; margin-bottom: 4px; }
+.persona-picture-empty { width: 120px; aspect-ratio: 3 / 4; border-radius: 8px; background: var(--accent-tint); display: grid; place-items: center; color: var(--muted); }
+.persona-picture-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .own-picture { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; min-width: 0; }
 .own-picture > img { width: 120px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
 .own-picture > .form-stack { flex: 1 1 220px; min-width: 0; }

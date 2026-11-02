@@ -144,10 +144,10 @@ class CodexAdapter:
             if request.reference is not None:
                 # The picture to follow is attached to the prompt; `--image` comes before the
                 # other options so it never swallows the `-` that reads the prompt from stdin.
-                extension, _kind = media_type(request.reference)
-                picture = Path(scratch) / f'reference.{extension}'
-                picture.write_bytes(request.reference)
-                attach = ['--image', str(picture)]
+                for position, data in enumerate([request.reference, *request.others]):
+                    picture = Path(scratch) / f"reference{f'-{position}' if position else ''}.{media_type(data)[0]}"
+                    picture.write_bytes(data)
+                    attach += ['--image', str(picture)]
             args = [cli, 'exec', *attach, '--json', '--skip-git-repo-check', '--ephemeral',
                     '--ignore-user-config', '--ignore-rules', '--sandbox', 'read-only', '--cd', scratch, '-']
             started = time.time()

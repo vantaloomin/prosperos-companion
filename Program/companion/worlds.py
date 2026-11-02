@@ -187,12 +187,13 @@ def write_persona(connection, persona: dict, timestamp: str, home: dict | None =
     age = age_here(connection, persona.get('age'))
     dating.follow_home(connection, before['home_city_id'] if before else '', home.get('city_id', ''))
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
-                       'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood, kind, lifespan) '
-                       'VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       'townsfolk_key, town_seed, pets, home_city_id, home_neighbourhood, kind, lifespan, looks, '
+                       'picture) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                        (persona['id'], persona['name'], persona['gender'], age, persona['about'],
                         timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', ''),
                         json.dumps(persona.get('pets') or []), home.get('city_id', ''), home.get('neighbourhood', ''),
-                        persona.get('kind') or '', persona.get('lifespan')))
+                        persona.get('kind') or '', persona.get('lifespan'), persona.get('looks') or '',
+                        persona.get('picture') or ''))
     connection.execute('UPDATE life_settings SET user_birthday=? WHERE id=1', (persona.get('birthday') or '',))
 
 
@@ -652,7 +653,8 @@ def create_persona(database: Database, body) -> dict:
     name = (body.name or '').strip()
     require(bool(name), 'Give the new persona a name.', 422)
     persona = {'id': identifier(), 'name': name, 'gender': body.gender or '', 'age': body.age,
-               'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now(),
+               'about': (body.about or '').strip(), 'looks': (body.looks or '').strip(), 'birthday': body.birthday or '',
+               'created_at': database.now(),
                'pets': pets.persona_entries([], [pet.model_dump() for pet in body.pets or []],
                                             database.clock.now().date()),
                'kind': body.kind or '', 'lifespan': body.lifespan}
@@ -677,7 +679,7 @@ def with_world(database: Database, persona: dict, city_id: str | None) -> dict:
 
 # What a copy of a persona takes from them: who they are, never what belongs to their worlds (where they live there,
 # or the townsperson they became in one).
-COPIED = ('name', 'gender', 'age', 'about', 'birthday', 'pets', 'kind', 'lifespan')
+COPIED = ('name', 'gender', 'age', 'about', 'looks', 'picture', 'birthday', 'pets', 'kind', 'lifespan')
 
 
 def copy_persona(database: Database, persona_id: str, city_id: str | None) -> dict:

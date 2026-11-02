@@ -40,6 +40,9 @@ class ImageRequest:
     # A picture the new one must follow (the same person), for backends that take one
     # (backends.takes_reference): the profile pictures, and pictures of the companion that follow theirs.
     reference: bytes | None = None
+    # More pictures to follow after `reference`, on the same backends: the user's own picture, in a picture of a
+    # moment they share with the companion (companion/persona_pictures.py).
+    others: list[bytes] = field(default_factory=list)
     # Their name, when the picture shows them: a tag-trained family (Anima, Booru) may know a character by name.
     name: str | None = None
 

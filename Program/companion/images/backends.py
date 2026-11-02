@@ -126,6 +126,22 @@ def takes_reference(backend: dict) -> bool:
     return hosted_takes(config, backend['provider'])
 
 
+def takes_two(backend: dict) -> bool:
+    """Whether a picture here can follow two pictures at once (the companion's and the user's): every backend that
+    takes a reference, but a ComfyUI workflow that starts from its reference picture (image-to-image, as Z-Image and
+    Anima do), where a pair side by side would come out as the picture's own shape."""
+    if not takes_reference(backend):
+        return False
+    if backend['kind'] != 'comfyui':
+        return True
+    from companion.images.adapters.comfyui import stitches, workflow_for
+    try:
+        workflow, _name = workflow_for(decode(backend['config']), reference=True)
+    except Exception:  # noqa: BLE001 - a workflow that cannot be read follows one picture, as before.
+        return False
+    return workflow is not None and stitches(workflow)
+
+
 def disclosure(backend: dict) -> str | None:
     """What a hosted request sends, shown before the provider is enabled (F9)."""
     if backend['kind'] == 'comfyui' and is_local(backend):

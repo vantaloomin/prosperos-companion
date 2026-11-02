@@ -9,16 +9,17 @@ import { lifeAge, longLived, pickedLifespan } from '../kinds/kindText'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { PersonaPets } from './PersonaPets'
 import { PersonaHome } from './PersonaHome'
+import { PersonaPicture } from './PersonaPicture'
 import { homeChanged, saveHome, useHomeDraft, type HomeDraft } from './personaHomeText'
 import { petDrafts, petsBody, type PetDraft } from './personaPetsText'
 
 const BIRTHDAY = /^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$/
 
-type Draft = { name: string; gender: PersonaGender; age: string; about: string; birthday: string; pets: PetDraft[]; kind: string; lifespan: number | null }
+type Draft = { name: string; gender: PersonaGender; age: string; about: string; looks: string; birthday: string; pets: PetDraft[]; kind: string; lifespan: number | null }
 
 function draftOf(persona?: Persona): Draft {
-  if (!persona) return { name: '', gender: '', age: '', about: '', birthday: '', pets: [], kind: '', lifespan: null }
-  return { name: persona.name, gender: persona.gender, age: persona.age ? String(persona.age) : '', about: persona.about, birthday: persona.birthday, pets: petDrafts(persona.pets),
+  if (!persona) return { name: '', gender: '', age: '', about: '', looks: '', birthday: '', pets: [], kind: '', lifespan: null }
+  return { name: persona.name, gender: persona.gender, age: persona.age ? String(persona.age) : '', about: persona.about, looks: persona.looks ?? '', birthday: persona.birthday, pets: petDrafts(persona.pets),
     kind: persona.kind ?? '', lifespan: persona.lifespan ?? null }
 }
 
@@ -93,6 +94,10 @@ export function PersonaForm({ persona, world, cityId, onSaved, onCancel, kinds }
         hint="Month and day, like 04-23. Companions remember it and wish you a happy birthday." />
       <TextArea label="About you" value={draft.about} rows={3} maxLength={2000} onChange={(about) => set({ about })}
         placeholder="Works nights as a paramedic, loves old films." />
+      <TextArea label="How you look" value={draft.looks} rows={2} maxLength={600} onChange={(looks) => set({ looks })}
+        placeholder="Short dark curls, freckles, round glasses."
+        hint="For pictures of you with a companion. A few things a camera can see." />
+      {persona && <PersonaPicture persona={persona} onChange={(data) => onSaved(data)} />}
       <PersonaPets drafts={draft.pets} onChange={(pets) => set({ pets })} persona={persona} />
       <PersonaHome moving={home.moving} disabled={saving} onChange={(next) => { home.setHome(next); setNote(null) }} />
       {!persona && <CityPick value={city} currentId={cityId} disabled={saving} onChange={setCity} />}

@@ -720,6 +720,8 @@ class PersonaInput(Input):
     # Past 120 only for a long-lived kind, picked below or read from About you (companion/worlds.py checks it).
     age: int | None = Field(None, ge=18, le=PERSONA_AGES[1])
     about: str | None = Field(None, max_length=2000)
+    # How they look, for pictures of moments they share with a companion (companion/persona_pictures.py).
+    looks: str | None = Field(None, max_length=600)
     birthday: Birthday | None = None
     pets: list[PersonaPet] | None = Field(None, max_length=8)
     # Kind and How long they live (companion/world/lifespans.py), as on the Character page: '' and None leave both to
