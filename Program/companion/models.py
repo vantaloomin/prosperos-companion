@@ -713,6 +713,11 @@ class PersonaPet(Input):
     age: int | None = Field(default=None, ge=0, le=90)
 
 
+class PictureMake(Input):
+    """Make one: How you look as the form has it, saved before the picture is made; None keeps the saved words."""
+    looks: str | None = Field(None, max_length=600)
+
+
 class PersonaInput(Input):
     """Who the user is in a persona's worlds (companion/worlds.py). Only the user says this; blanks stay blank."""
     name: str | None = Field(None, max_length=80)

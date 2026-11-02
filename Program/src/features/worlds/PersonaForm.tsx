@@ -97,7 +97,7 @@ export function PersonaForm({ persona, world, cityId, onSaved, onCancel, kinds }
       <TextArea label="How you look" value={draft.looks} rows={2} maxLength={600} onChange={(looks) => set({ looks })}
         placeholder="Short dark curls, freckles, round glasses."
         hint="For pictures of you with a companion. A few things a camera can see." />
-      {persona && <PersonaPicture persona={persona} onChange={(data) => onSaved(data)} />}
+      {persona && <PersonaPicture persona={persona} looks={draft.looks} onChange={(data) => onSaved(data)} />}
       <PersonaPets drafts={draft.pets} onChange={(pets) => set({ pets })} persona={persona} />
       <PersonaHome moving={home.moving} disabled={saving} onChange={(next) => { home.setHome(next); setNote(null) }} />
       {!persona && <CityPick value={city} currentId={cityId} disabled={saving} onChange={setCity} />}

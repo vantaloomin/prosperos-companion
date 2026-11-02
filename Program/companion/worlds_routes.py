@@ -3,7 +3,17 @@ from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
 from companion import back_when, persona_pictures, worlds
-from companion.models import BackWhen, Become, HomeChange, NewPersona, NewWorld, PersonaCopy, PersonaInput, WorldChange
+from companion.models import (
+    BackWhen,
+    Become,
+    HomeChange,
+    NewPersona,
+    NewWorld,
+    PersonaCopy,
+    PersonaInput,
+    PictureMake,
+    WorldChange,
+)
 
 router = APIRouter(prefix='/api/worlds')
 
@@ -119,9 +129,9 @@ def picture(request: Request, persona_id: str):
 
 
 @router.post('/personas/{persona_id}/picture/make')
-def make_picture(request: Request, persona_id: str):
-    """Make one from How you look, with this world's image backends."""
-    return request.app.state.persona_pictures.request(persona_id)
+def make_picture(request: Request, persona_id: str, body: PictureMake):
+    """Make one from How you look (`looks`, as typed, is saved first), with this world's image backends."""
+    return request.app.state.persona_pictures.request(persona_id, body.looks)
 
 
 @router.get('/personas/{persona_id}/picture/make')

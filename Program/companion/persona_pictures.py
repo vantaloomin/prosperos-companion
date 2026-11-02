@@ -88,6 +88,19 @@ def set_picture(database: Database, persona_id: str, name: str) -> dict:
     return worlds.view(database)
 
 
+def save_looks(database: Database, persona_id: str, looks: str):
+    """How you look as typed, saved before a picture is made from it."""
+    from companion import worlds
+    data = worlds.registry(database)
+    persona = worlds.found(data['personas'], persona_id, 'persona')
+    persona['looks'] = looks.strip()[:600]
+    worlds.save(database.root, data)
+    active = worlds.found(data['worlds'], data['active'], 'world')
+    if active['persona_id'] == persona_id:
+        with database.connect(write=True) as connection:
+            connection.execute('UPDATE persona SET looks=? WHERE id=1', (persona['looks'],))
+
+
 def upload(database: Database, persona_id: str, data: bytes) -> dict:
     return set_picture(database, persona_id, keep(database, data))
 
@@ -157,14 +170,20 @@ class PersonaPictures:
         images.others.append(self.dispatch)
 
     def status(self, persona_id: str) -> dict:
+        """The last picture asked for, and whether this world has a backend that can make one (`can_make`)."""
         with self.database.connect() as connection:
             row = optional(connection, 'SELECT status, error, backend_id FROM persona_pictures WHERE persona_id=?',
                            (persona_id,))
-        return {'status': row['status'], 'error': row['error']} if row else {'status': None, 'error': None}
+            can_make = bool(backends.ordered(connection, enabled_only=True))
+        return {'status': row['status'] if row else None, 'error': row['error'] if row else None,
+                'can_make': can_make}
 
-    def request(self, persona_id: str) -> dict:
+    def request(self, persona_id: str, looks: str | None = None) -> dict:
+        """Make one from How you look: `looks`, as the form has it, is saved to the persona first."""
         from companion import worlds
         from companion.images.jobs import image_settings
+        if looks is not None:
+            save_looks(self.database, persona_id, looks)
         persona = worlds.found(worlds.registry(self.database)['personas'], persona_id, 'persona')
         require(bool((persona.get('looks') or '').strip()), NO_LOOKS, 422)
         with self.database.connect(write=True) as connection:

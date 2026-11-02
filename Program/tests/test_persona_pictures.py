@@ -119,11 +119,14 @@ def test_a_backend_without_references_draws_you_from_words_only(client, companio
 def test_make_one_draws_you_from_how_you_look(client, companion, adapters):
     me = persona(client)
     add_backend(client, kind='hosted', provider='openrouter', api_key='k', model='google/gemini-image')
-    refused = client.post(f"/api/worlds/personas/{me['id']}/picture/make")
+    assert ok(client.get(f"/api/worlds/personas/{me['id']}/picture/make"))['can_make'] is True
+    refused = client.post(f"/api/worlds/personas/{me['id']}/picture/make", json={})
     assert refused.status_code == 422 and persona_pictures.NO_LOOKS in str(refused.json())
-    ok(client.patch(f"/api/worlds/personas/{me['id']}", json={'gender': 'man', 'age': 45, 'looks': 'grey stubble'}))
+    ok(client.patch(f"/api/worlds/personas/{me['id']}", json={'gender': 'man', 'age': 45}))
     adapters['hosted'].outcomes = [png(1024, 1536)]
-    assert ok(client.post(f"/api/worlds/personas/{me['id']}/picture/make"))['status'] == 'queued'
+    # How you look as typed, not yet saved, is saved and drawn.
+    made = client.post(f"/api/worlds/personas/{me['id']}/picture/make", json={'looks': 'grey stubble'})
+    assert ok(made)['status'] == 'queued' and persona(client)['looks'] == 'grey stubble'
     asyncio.run(client.app.state.persona_pictures.drain())
     assert ok(client.get(f"/api/worlds/personas/{me['id']}/picture/make"))['status'] == 'completed'
     sent = adapters['hosted'].requests[0]
@@ -134,8 +137,8 @@ def test_make_one_draws_you_from_how_you_look(client, companion, adapters):
 
 def test_make_one_is_refused_where_no_backend_may_draw_it(client, companion):
     me = persona(client)
-    ok(client.patch(f"/api/worlds/personas/{me['id']}", json={'looks': 'grey stubble'}))
-    assert client.post(f"/api/worlds/personas/{me['id']}/picture/make").status_code == 409
+    assert ok(client.get(f"/api/worlds/personas/{me['id']}/picture/make"))['can_make'] is False
+    assert client.post(f"/api/worlds/personas/{me['id']}/picture/make", json={'looks': 'grey stubble'}).status_code == 409
 
 
 def test_comfyui_follows_both_pictures_side_by_side_unless_its_picture_starts_from_the_reference():
