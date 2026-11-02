@@ -274,7 +274,7 @@ def test_heading_home_after_a_meetup(client, mira, provider, clock):
     reconcile(client)
     where = client.get('/api/life/where').json()
     assert where['kind'] == 'heading-home' and where['heading']['place'] == outing['place']['name']
-    assert where['heading']['words'] in heading_home.BY.values() and 'back around' in where['text']
+    assert where['heading']['words'] in heading_home.BY.values() and where['text'].lower() == where['heading']['words']
     preview = client.get('/api/context/preview').json()['prompt']
     assert 'You said goodbye to the user at' in preview
     back = where['heading']['back']

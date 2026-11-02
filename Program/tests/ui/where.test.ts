@@ -101,3 +101,9 @@ test('Stay longer shows on the strip only while under way with a free hour after
   assert.equal(canStayLonger({ ...base, outing: { ...outing, state: 'done' } }), false)
   assert.equal(canStayLonger(undefined), false)
 })
+
+test('on the way home after a meetup, with the time kept to its words', () => {
+  const line = stripLine({ state: 'apart', kind: 'heading-home', text: 'On the subway home', outing: null, heading: { outing_id: 'o', place: 'Park', by: 'subway', words: 'on the subway home', back: '17:10' } }, 'Sett')
+  assert.equal(line?.lead, 'Sett is on the subway home')
+  assert.match(line?.tail ?? '', /^, back around\u00a05:10\u00a0PM$/)
+})

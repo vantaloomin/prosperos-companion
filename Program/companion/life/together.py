@@ -486,7 +486,9 @@ def state(connection, companion: dict, now: datetime) -> dict:
     if on_way := heading_home.view(connection, companion, now):
         # On their way home after a meetup (companion/life/heading_home.py).
         return {'state': 'apart', 'kind': 'heading-home', 'outing': None,
-                'text': f"{on_way['words'][0].upper()}{on_way['words'][1:]}, back around {on_way['back']}"}
+                # No time here: the header and chat list show it as written, and the strip gives the time in the
+                # user's own clock style (Iris, 2026-11-02).
+                'text': f"{on_way['words'][0].upper()}{on_way['words'][1:]}"}
     between = where.between(connection, companion['version']['definition'])
     if between.known and between.long_distance:
         return {'state': 'apart', 'kind': 'long-distance', 'outing': None,
