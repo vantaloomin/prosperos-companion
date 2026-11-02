@@ -471,3 +471,33 @@ def test_a_visit_in_a_picture_is_a_friends_apartment_or_their_home():
     # Not a visit: unchanged.
     out = {'summary': 'Mira went out for dinner at Lupa.', 'place': 'Lupa', 'activity': 'dinner'}
     assert prompts.visit_words(out, 'Hampden') is out
+
+
+def test_in_person_a_picture_is_the_moment_as_the_user_sees_it(client, provider, adapters, clock, monkeypatch):
+    """Out together, a selfie drew the companion twice (at the lens and walking behind): nobody texts a photo to the
+    person beside them, so the picture is the scene through the user's eyes, never a selfie."""
+    from tests.test_together import mira
+    mira(client, monkeypatch)
+    local_comfy(client)
+    clock.advance(timedelta(hours=6))  # Monday 18:00, after work.
+    send(client, 'wanna come over now?', 'visit-0001')
+    reply = ask(client, 'Show me a selfie', 'ask-0003')
+    drain(client)
+    request = adapters['comfyui'].requests[-1]
+    assert 'atmospheric candid scene of the place, seen through the eyes of the person spending time with them, them ' \
+        'a few steps away' in request.prompt
+    assert not re.search(r'selfie|phone|lens', request.prompt, re.IGNORECASE), request.prompt
+    assert "came over to a friend's apartment" in request.prompt  # the friend is the user, whose eyes these are
+    assert reply['photo']['kind'] == 'moment'
+    assert 'as the user sees it, there with you in person' in photo_section(provider)
+
+
+def test_a_scene_with_the_user_drawn_beside_them_is_seen_from_a_little_way_off():
+    moment = {'summary': 'Mira went for a walk.', 'place': 'The Scarred Wall', 'activity': 'walk', 'mood': 'happy'}
+    alone = prompts.compose('Mira', 'A woman with curly hair.', [moment], 'Candid photograph', framing='scene')
+    both = prompts.compose('Mira', 'A woman with curly hair.', [{**moment, 'user': 'a man with a beard'}],
+                           'Candid photograph', framing='scene')
+    assert 'seen through the eyes of the person spending time with her, her a few steps away' in alone
+    assert 'She is the only person in the picture.' in alone
+    assert 'two people spending time together, seen from a little way off' in both
+    assert 'Shot at eye level from a few steps away' in alone and 'Shot at eye level from a few steps away' in both
