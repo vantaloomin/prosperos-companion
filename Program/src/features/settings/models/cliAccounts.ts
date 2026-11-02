@@ -42,3 +42,12 @@ export function startingAccount(accounts: CliAccount[]): CliAccount | undefined 
   if (usual?.signed_in) return usual
   return accounts.find(account => account.signed_in) ?? usual
 }
+
+export type FolderShown = 'plain' | 'open' | 'closed'
+
+/** How the typed account folder shows: plainly when there are no accounts to pick (looking off or none found), open
+ * while the folder matches none of them, and closed behind "Type an account folder instead" while one is picked. */
+export function folderShown(looking: boolean, found: number, picked: boolean): FolderShown {
+  if (!looking || !found) return 'plain'
+  return picked ? 'closed' : 'open'
+}

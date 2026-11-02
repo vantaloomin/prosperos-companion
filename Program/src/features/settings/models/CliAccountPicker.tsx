@@ -10,7 +10,7 @@ import { Notice } from '../../../components/Feedback'
 import { Toggle } from '../../../components/Fields'
 import { shownPath } from '../../../paths'
 import type { WorkspaceSettings } from '../../../types'
-import { WINDOWS, accountLabel, sameAccount, signInStep, startingAccount, type CliAccount } from './cliAccounts'
+import { type FolderShown, WINDOWS, accountLabel, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from './cliAccounts'
 import type { Provider } from './types'
 
 const KEY = ['cli-accounts']
@@ -29,7 +29,7 @@ export function CliAccountPicker({ provider, value, fresh, onPick, children }: P
   return <div className="cli-accounts form-stack">
     {enabled && <AccountList provider={provider} accounts={mine ?? []} chosen={chosen} busy={query.isFetching} onPick={onPick} onLook={() => void query.refetch()} />}
     <LookSwitch enabled={enabled} />
-    <TypedFolder open={!enabled || !chosen}>{children}</TypedFolder>
+    <TypedFolder shown={folderShown(enabled, mine?.length ?? 0, !!chosen)} picked={chosen?.account_dir}>{children}</TypedFolder>
   </div>
 }
 
@@ -69,11 +69,14 @@ function AccountNote({ chosen }: { chosen?: CliAccount }) {
   return <p className="subtle">{chosen.account_dir ? `Uses the account kept in ${shownPath(chosen.account_dir)}.` : 'Uses the account the CLI is usually signed in to.'}</p>
 }
 
-/** Closed while a found account is picked (until opened); open while looking is off or the folder matches none. */
-function TypedFolder({ open, children }: { open: boolean; children: ReactNode }) {
-  const [opened, setOpened] = useState(false)
-  return <details className="typed-folder" open={open || opened} onToggle={event => setOpened(event.currentTarget.open)}>
-    <summary>Type an account folder instead</summary>
+/** Plain with no chips to choose from; else a disclosure, closed while a found account is picked until the user
+ * opens it. Picking another account closes it again; only clicks on its summary open or close it. */
+function TypedFolder({ shown, picked, children }: { shown: FolderShown; picked?: string; children: ReactNode }) {
+  const [opened, setOpened] = useState<{ picked?: string; open: boolean }>({ open: false })
+  if (shown === 'plain') return <>{children}</>
+  const open = shown === 'open' || (opened.open && opened.picked === picked)
+  return <details className="typed-folder" open={open}>
+    <summary onClick={event => { event.preventDefault(); setOpened({ picked, open: !open }) }}>Type an account folder instead</summary>
     <div className="form-stack">{children}</div>
   </details>
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { accountLabel, folderExample, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
+import { accountLabel, folderExample, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
 
 const usual: CliAccount = { provider: 'claude_code', account_dir: '', commands: ['claude'], sources: [], signed_in: true, email: 'one@example.com' }
 const second: CliAccount = { provider: 'claude_code', account_dir: 'C:\\Users\\Jim\\.claude-account2', commands: ['claude2'], sources: [], signed_in: false, email: '' }
@@ -41,4 +41,13 @@ test('a folder typed with ~ is the same account, and the example suits the compu
   assert.ok(sameAccount(second, '~\\.claude-account2'))
   assert.equal(folderExample('claude', true), 'C:\\Users\\you\\.claude-second')
   assert.equal(folderExample('codex', false), '~/.codex-second')
+})
+
+test('the typed folder is plain with nothing to pick, open while it matches none, and closes once a found account is picked', () => {
+  assert.equal(folderShown(false, 3, false), 'plain')
+  assert.equal(folderShown(true, 0, false), 'plain')
+  const accounts = [usual, second]
+  const typed = '/somewhere/else'
+  assert.equal(folderShown(true, accounts.length, accounts.some(account => sameAccount(account, typed))), 'open')
+  assert.equal(folderShown(true, accounts.length, accounts.some(account => sameAccount(account, second.account_dir))), 'closed')
 })
