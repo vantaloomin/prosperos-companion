@@ -432,6 +432,8 @@ ADDED_COLUMNS = (
     # how many times the user stayed on an hour.
     ('outings', 'early_from', 'TEXT'),
     ('outings', 'longer', 'INTEGER NOT NULL DEFAULT 0'),
+    # Still talking as a meetup winds down, it ran on an hour on its own (companion/life/outings.py keep_going): once.
+    ('outings', 'auto_longer', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

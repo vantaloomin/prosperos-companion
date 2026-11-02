@@ -482,6 +482,13 @@ def state(connection, companion: dict, now: datetime) -> dict:
     from companion.life import moving_in
     if at_home := moving_in.home_state(connection, companion, now):
         return {**at_home, 'outing': None}  # Both home of an evening, living together.
+    from companion.life import heading_home
+    if on_way := heading_home.view(connection, companion, now):
+        # On their way home after a meetup (companion/life/heading_home.py).
+        return {'state': 'apart', 'kind': 'heading-home', 'outing': None,
+                # No time here: the header and chat list show it as written, and the strip gives the time in the
+                # user's own clock style (Iris, 2026-11-02).
+                'text': f"{on_way['words'][0].upper()}{on_way['words'][1:]}"}
     between = where.between(connection, companion['version']['definition'])
     if between.known and between.long_distance:
         return {'state': 'apart', 'kind': 'long-distance', 'outing': None,
@@ -561,6 +568,8 @@ def view(connection, companion: dict, now: datetime) -> dict:
     from companion.life import calls, long_distance
     found['call'] = calls.view(connection, companion, now)
     found['visit'] = long_distance.view(connection, companion, now)
+    from companion.life import heading_home
+    found['heading'] = heading_home.view(connection, companion, now) if found['kind'] == 'heading-home' else None
     from companion.life import moving_in
     found['home'] = moving_in.view_strip(connection, companion, now)  # Living together: home, or the user out.
     return found
