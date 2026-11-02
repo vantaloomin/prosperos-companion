@@ -2134,6 +2134,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* Out together (src/features/today/OutTogether.tsx) and the chat strip while an outing is under way (OutNow.tsx). */
 .together-list { gap: 0; }
 .together-list > .together-item { display: grid; gap: 2px; padding-block: 10px; border-top: 1px solid var(--border); }
+.together-how a { white-space: nowrap; }
 .together-list > .together-item:first-child { border-top: 0; padding-top: 0; }
 .together-item p { margin: 0; }
 .together-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
@@ -2179,6 +2180,16 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
 .where-strip > span { flex: 1; min-width: 0; }
 .where-strip .text-button { flex: none; }
+.msg-action { font-style: italic; color: var(--muted); }
+/* In your own bubble the muted colour can sit on the accent: body colour at 80% keeps it readable (Iris, 2026-11-02). */
+.chat-bubbles .message-user .msg-action { color: inherit; opacity: 0.8; }
+.where-strip-actions { display: flex; flex: none; gap: 0 4px; }
+@media (max-width: 600px) {
+  .where-strip.two-actions { flex-wrap: wrap; row-gap: 0; }
+  .where-strip.two-actions > span { flex: 1 1 calc(100% - 1rem - 8px); }
+  .where-strip.two-actions .where-strip-actions { flex: 1 1 100%; gap: 16px; padding-left: calc(1rem + 8px); }
+  .where-strip.two-actions .where-strip-actions .text-button { min-height: 44px; padding-left: 0; padding-right: 0; }
+}
 /* On a call (companion/life/calls.py): how long ticks in even digits; a ring stands out a little more. */
 .where-strip .call-length { font-variant-numeric: tabular-nums; }
 /* On a narrow strip the words give way and the call's length stays whole (Iris, 2026-10-29). */

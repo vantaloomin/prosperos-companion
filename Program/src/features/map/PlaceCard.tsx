@@ -5,7 +5,7 @@ import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Companion } from '../../types'
 import { DRAFT_KEY, newDraft, readDraft, writeDraft } from '../conversation/draft'
-import { historyLine, isHome, spotList, suggestion, type MapHood, type MapPlace } from './mapText'
+import { historyLine, isHome, spotList, suggestHint, suggestion, type MapHood, type MapPlace } from './mapText'
 
 interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void }
 
@@ -61,7 +61,7 @@ function PlaceDetails({ place, name, timezone, story, goThere, suggest, go }: De
       </li>)}</ul>
     </section>}
     {place.regulars.length > 0 && <p className="subtle">Regulars: {place.regulars.join(', ')}</p>}
-    {place.id === '~you' ? <YourHome /> : (home || !isHome(place)) && <PlaceAction story={story} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} />}
+    {place.id === '~you' ? <YourHome /> : (home || !isHome(place)) && <PlaceAction story={story} name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} />}
   </>
 }
 
@@ -170,9 +170,9 @@ function YourHome() {
 
 /** With Story mode on, moving the scene there (not offered where the scene already is); else an invitation draft: for
  * their own home (`home` is their name), dinner at their place (they cook). */
-function PlaceAction({ story, home, here, goThere, suggest }: { story: boolean; home: string | null; here: boolean; goThere: () => void; suggest: () => void }) {
-  if (home !== null) return story ? null : <button type="button" className="button primary" onClick={suggest}>Suggest dinner at {home}'s place</button>
-  if (!story) return <button type="button" className="button primary" onClick={suggest}>Suggest going together</button>
+function PlaceAction({ story, name, home, here, goThere, suggest }: { story: boolean; name: string; home: string | null; here: boolean; goThere: () => void; suggest: () => void }) {
+  if (home !== null) return story ? null : <><button type="button" className="button primary" onClick={suggest}>Suggest dinner at {home}'s place</button><p className="subtle">{suggestHint(name)}</p></>
+  if (!story) return <><button type="button" className="button primary" onClick={suggest}>Suggest going together</button><p className="subtle">{suggestHint(name)}</p></>
   return here ? null : <button type="button" className="button primary" onClick={goThere}>Go there</button>
 }
 

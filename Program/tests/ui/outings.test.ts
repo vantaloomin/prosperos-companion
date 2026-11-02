@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
+import { meetLine, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
 
 const outing: Outing = {
   id: 'o1', local_date: '2026-10-08', at_time: '19:00', until_time: '21:00', activity: 'dinner', asked_date: null,
@@ -48,4 +48,12 @@ test('called-off ones leave Today, and visits read as your place or theirs', () 
   const yours = { ...outing, activity: 'visit-yours', place: { ...outing.place, id: '~yours', name: 'Your place', kind: 'your-home', neighborhood: 'Canton' } }
   assert.equal(outingTitle(yours), 'A visit at your place')
   assert.equal(placeLine(yours.place), 'Your place in Canton')
+})
+
+test('the plan says how meeting up works, with no Go there step', () => {
+  assert.match(meetLine({ state: 'planned', until_time: '17:30' }), /^No need to go anywhere\. When it's time, you'll be there together, and the chat turns face to face until 5:30/)
+  assert.match(meetLine({ state: 'now', until_time: '17:30' }), /^You're there together until 5:30.PM\.$/)
+  assert.equal(meetLine({ state: 'now', until_time: '' }), "You're there together now.")
+  assert.equal(meetLine({ state: 'done', until_time: '17:30' }), '')
+  assert.equal(meetLine({ state: 'cancelled', until_time: '17:30' }), '')
 })
