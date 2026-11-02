@@ -5,8 +5,8 @@ Routes adapted from prosperos-study server/profile_routes.py at bbcbde4.
 from fastapi import APIRouter, Request
 
 from companion import text_models
-from companion.database import decode
-from companion.providers import balance
+from companion.database import decode, settings
+from companion.providers import balance, cli_accounts
 from companion.providers.config import (
     ConnectionProbe,
     MixUpdate,
@@ -50,6 +50,15 @@ async def delete_profile(profile_id: str, request: Request):
     # The Built-in profile gone: its server stops and "Set it up for me" is offered again (companion/ready.py).
     await request.app.state.ready.forget()
     return result
+
+
+@router.get('/cli-accounts')
+async def cli_accounts_found(request: Request):
+    """The Claude Code and Codex accounts on this computer (claude, claude2, codex…), for a profile to pick; none
+    while Settings > Models has looking for them turned off."""
+    with db(request).connect() as connection:
+        enabled = bool(settings(connection).get('find_cli_accounts', 1))
+    return {'enabled': enabled, 'accounts': await cli_accounts.accounts_with_logins() if enabled else []}
 
 
 @router.post('/discover')

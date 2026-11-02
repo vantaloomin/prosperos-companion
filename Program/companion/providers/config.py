@@ -122,8 +122,11 @@ class ProfileConfig(Input):
     # the service's /embeddings with embedding_model, so recall can use a different service from replies.
     purpose: Literal['text', 'recall'] = 'text'
     embedding_model: str = Field(default='', max_length=200)
-    # Where the Claude Code CLI is installed, when it is not on PATH. Models are set up on the PC only.
+    # Where the Claude Code or Codex CLI is installed, when it is not on PATH. Models are set up on the PC only.
     cli_path: str = Field(default='', max_length=500)
+    # The folder that keeps this profile's own account (CLAUDE_CONFIG_DIR for Claude Code, CODEX_HOME for Codex), so
+    # two accounts can each have a profile; empty uses the account the CLI is usually signed in to.
+    cli_account_dir: str = Field(default='', max_length=500)
 
     @model_validator(mode='after')
     def validate_capabilities(self, info: ValidationInfo):
@@ -132,8 +135,11 @@ class ProfileConfig(Input):
         if self.provider == 'codex' and self.temperature is not None:
             raise ValueError('Codex CLI does not support a temperature setting here.')
         self.cli_path = self.cli_path.strip()
-        if self.cli_path and (self.provider != 'claude_code' or not os.path.isabs(self.cli_path)):
-            raise ValueError('The Claude Code location must be a full path to the program on this computer.')
+        if self.cli_path and (self.provider not in CLI_PROVIDERS or not os.path.isabs(self.cli_path)):
+            raise ValueError('The CLI location must be a full path to the program on this computer.')
+        self.cli_account_dir = self.cli_account_dir.strip()
+        if self.cli_account_dir and (self.provider not in CLI_PROVIDERS or not os.path.isabs(self.cli_account_dir)):
+            raise ValueError('The account folder must be a full path to a folder on this computer.')
         if self.provider == 'claude_code' and self.reasoning_effort not in {None, 'low', 'medium', 'high', 'xhigh', 'max'}:
             raise ValueError('Claude Code takes an effort of low, medium, high, xhigh or max.')
         if self.provider == 'anthropic' and self.temperature is not None and self.temperature > 1:
