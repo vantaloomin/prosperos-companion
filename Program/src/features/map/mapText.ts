@@ -45,6 +45,11 @@ export function suggestion(place: Pick<MapPlace, 'name' | 'kind'> & { id?: strin
   return `Want to go to ${place.name} ${when}?`
 }
 
+/** Under the invite button: what happens after it, so nobody looks for a way to walk there themselves. */
+export function suggestHint(name: string): string {
+  return `This puts the invite in your chat. Once ${name} says yes it's on Today, and when it's time you're there together, no need to go anywhere.`
+}
+
 /** A home rather than a place in the city: theirs, yours, or someone else's ("~home", "~you", "~circle:…"). */
 export function isHome(place: Pick<MapPlace, 'id'>): boolean {
   return place.id.startsWith('~')

@@ -6,7 +6,7 @@ import { Notice } from '../../components/Feedback'
 import { WHERE_KEY } from '../conversation/whereText'
 import { firstName } from '../character/panelText'
 import { openWedding } from '../character/weddingText'
-import { OUTING_STATES, TOGETHER_KEY, bigDayLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
+import { OUTING_STATES, TOGETHER_KEY, bigDayLine, meetLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
 import { useTogether } from './useTogether'
 
 /** Plans with the user. The companion picked the places; the user can call them off (with Undo for the rest of the
@@ -53,11 +53,19 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {peopleLine(outing.place, outing.state) && <p className="subtle">{peopleLine(outing.place, outing.state)}</p>}
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
+      <MeetLine outing={outing} name={firstName(name)} />
       <SitterLine outing={outing} />
       {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <Now outing={outing} act={act} />}
     </li>
   )
+}
+
+/** How it plays out: no "Go there" step, they are simply there together when it starts, and the chat is the meeting. */
+function MeetLine({ outing, name }: { outing: Outing; name: string }) {
+  const line = meetLine(outing, name)
+  if (!line) return null
+  return <p className="subtle together-how">{line}{outing.state === 'now' && <> <a className="text-button inline" href="#conversation">Open the chat</a></>}</p>
 }
 
 /** An evening out with a child of yours at home: who is watching them that night (words only). */

@@ -139,6 +139,14 @@ export function outingNote(outing: Outing, name: string): string {
   return outing.rolls > 0 ? 'You asked for somewhere else.' : ''
 }
 
+/** How meeting up works, so nobody waits for a "Go there" button that never comes: at the time they are simply there
+ * together, and the chat is where it happens. '' once it is over or called off. */
+export function meetLine(outing: Pick<Outing, 'state' | 'until_time'>, name: string): string {
+  if (outing.state === 'planned') return `No need to go anywhere: when it's time, you're there together. Just talk to ${name} in the chat, face to face until ${timeText(outing.until_time)}.`
+  if (outing.state === 'now') return `You're there together now. Talk to ${name} in the chat.`
+  return ''
+}
+
 /** An item the user just changed, shown collapsed with Undo: "Called off." or "Headed home." */
 export function undoText(outing: Outing): string {
   if (!outing.undo) return ''
