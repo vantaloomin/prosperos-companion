@@ -1,6 +1,7 @@
 """The Claude Code provider against a stand-in `claude` CLI: the real CLI and a real Claude login are not used."""
 import asyncio
 import json
+import os
 import sys
 import textwrap
 
@@ -159,6 +160,8 @@ def test_each_account_has_its_own_places_and_the_folder_must_be_a_full_path():
     assert resource_for(config()) == ('claude-cli', 2)
     assert resource_for(config(cli_account_dir='/home/me/.claude-second')) == ('claude-cli:/home/me/.claude-second', 2)
     assert ProfileConfig(provider='claude_code', model='sonnet', cli_account_dir=sys.prefix).cli_account_dir == sys.prefix
+    home = os.path.expanduser('~')
+    assert ProfileConfig(provider='codex', model='x', cli_account_dir='~/.codex-2').cli_account_dir == os.path.join(home, '.codex-2')
     for provider, folder in (('claude_code', 'claude-second'), ('openai', sys.prefix)):
         with pytest.raises(ValueError):
             ProfileConfig(provider=provider, model='sonnet', cli_account_dir=folder)

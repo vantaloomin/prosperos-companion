@@ -6,6 +6,7 @@ import { api } from '../../../api'
 import { Notice } from '../../../components/Feedback'
 import { TextInput } from '../../../components/Fields'
 import { CliAccountPicker } from './CliAccountPicker'
+import { folderExample } from './cliAccounts'
 import { GenerationSettings } from './GenerationSettings'
 import { ModelCombobox } from './ModelCombobox'
 import { applyDiscovered, discoveredSettings, profileReady, recallReady, reusableKey, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
@@ -111,6 +112,7 @@ function ProviderPicker({ selected, choices, onChange }: { selected: Provider; c
     {choices.map(provider => <button key={provider} type="button" className={`button${selected === provider ? ' selected' : ''}`} aria-pressed={selected === provider} onClick={() => onChange(provider)}>{providers[provider].name}</button>)}
   </fieldset><p className="subtle">{selected === 'claude_code'
     ? <>Uses the Claude plan your Claude Code is signed in to. No key is entered here, and the app never sees your password or token. To sign in, run <code>claude</code> once in a terminal.</>
+    : selected === 'codex' ? <>Your installed Codex CLI and its existing login. Sign in with <code>codex login</code> in a terminal.</>
     : providers[selected].description}</p></>
 }
 
@@ -128,23 +130,34 @@ function ConnectionFields({ config, patch, fresh, keyEntry, found }: { config: P
 
 type CliFieldsProps = { config: ProfileConfig; patch: Patch; fresh: boolean; found?: string }
 
-function ClaudeCodeFields({ config, patch, fresh, found }: CliFieldsProps) {
+const CLI_FIELDS = {
+  claude_code: { base: 'claude', name: 'Claude Code', hint: 'For a second Claude account: a folder of its own that keeps that account\'s sign-in. Test connection says how to sign in to it. Leave empty for the account Claude Code usually uses.' },
+  codex: { base: 'codex', name: 'Codex', hint: 'For a second ChatGPT account: a folder of its own that keeps that account\'s sign-in. Test connection says how to sign in to it. Leave empty for the account Codex usually uses.' },
+} as const
+
+/** Which account and where the CLI is, for Claude Code and Codex. Folders show the home folder as ~ (expanded on save). */
+function CliFields({ config, patch, fresh, found }: CliFieldsProps) {
+  const provider = config.provider === 'codex' ? 'codex' : 'claude_code'
+  const fields = CLI_FIELDS[provider]
   return <>
-    <Notice>Claude follows Anthropic’s usage policy, so it won’t write the adult side of life. Use it for everyday chat and the other non-explicit jobs, and give adult scenes a different profile.</Notice>
-    <CliAccountPicker provider="claude_code" value={config.cli_account_dir} fresh={fresh} onPick={folder => patch({ cli_account_dir: folder })} />
-    <TextInput label="Claude Code location (optional)" value={config.cli_path ?? ''} onChange={value => patch({ cli_path: value })} maxLength={500} placeholder={found ? shownPath(found) : undefined} hint="Leave empty to use the Claude Code found on this computer." />
-    <TextInput label="Claude account folder (optional)" value={config.cli_account_dir ?? ''} onChange={value => patch({ cli_account_dir: value })} maxLength={500} placeholder="C:\Users\you\.claude-second"
-      hint="For a second Claude account: a folder of its own that keeps that account's sign-in. Test connection says how to sign in to it. Leave empty for the account Claude Code usually uses." />
+    <CliAccountPicker provider={provider} value={config.cli_account_dir} fresh={fresh} onPick={folder => patch({ cli_account_dir: folder })}>
+      <TextInput label="Account folder (optional)" value={shownPath(config.cli_account_dir ?? '')} onChange={value => patch({ cli_account_dir: value })} maxLength={500} placeholder={folderExample(fields.base)} hint={fields.hint} />
+    </CliAccountPicker>
+    <TextInput label={`${fields.name} location (optional)`} value={config.cli_path ?? ''} onChange={value => patch({ cli_path: value })} maxLength={500} placeholder={found ? shownPath(found) : undefined} hint={`Leave empty to use the ${fields.name} found on this computer.`} />
   </>
 }
 
-function CodexFields({ config, patch, fresh, found }: CliFieldsProps) {
+function ClaudeCodeFields(props: CliFieldsProps) {
+  return <>
+    <Notice>Claude follows Anthropic’s usage policy, so it won’t write the adult side of life. Use it for everyday chat and the other non-explicit jobs, and give adult scenes a different profile.</Notice>
+    <CliFields {...props} />
+  </>
+}
+
+function CodexFields(props: CliFieldsProps) {
   return <>
     <p className="subtle">Uses the Codex CLI’s own login; no key is entered here. Codex runs in an empty temporary folder with its shell, plugins, web search and tools turned off.</p>
-    <CliAccountPicker provider="codex" value={config.cli_account_dir} fresh={fresh} onPick={folder => patch({ cli_account_dir: folder })} />
-    <TextInput label="Codex location (optional)" value={config.cli_path ?? ''} onChange={value => patch({ cli_path: value })} maxLength={500} placeholder={found ? shownPath(found) : undefined} hint="Leave empty to use the Codex found on this computer." />
-    <TextInput label="ChatGPT account folder (optional)" value={config.cli_account_dir ?? ''} onChange={value => patch({ cli_account_dir: value })} maxLength={500} placeholder="C:\Users\you\.codex-second"
-      hint="For a second ChatGPT account: a folder of its own (CODEX_HOME) that keeps that account's sign-in. Leave empty for the account Codex usually uses." />
+    <CliFields {...props} />
   </>
 }
 

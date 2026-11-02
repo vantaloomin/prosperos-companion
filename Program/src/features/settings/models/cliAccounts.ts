@@ -1,12 +1,18 @@
 // The Claude Code and Codex accounts found on this PC (claude, claude2, codex2…), so a profile can pick one.
 // Ported from prosperos-dungeon src/features/settings/models/cliAccounts.ts at 6ac621f.
+import { shownPath } from '../../../paths.ts'
 import type { Provider } from './types'
+
+export const WINDOWS = typeof navigator !== 'undefined' && /win/i.test(navigator.platform)
+
+/** The typed account folder's example, for this computer. */
+export const folderExample = (base: 'claude' | 'codex', windows = WINDOWS) => windows ? `C:\\Users\\you\\.${base}-second` : `~/.${base}-second`
 
 export interface CliAccount { provider: Provider; account_dir: string; commands: string[]; sources: string[]; signed_in: boolean; email: string }
 
-const plain = (folder: string) => folder.trim().replace(/[\\/]+$/, '').replace(/\\/g, '/').toLowerCase()
+const plain = (folder: string) => shownPath(folder.trim()).replace(/[\\/]+$/, '').replace(/\\/g, '/').toLowerCase()
 
-/** Whether a profile's account folder is this account ('' is the usual account). */
+/** Whether a profile's account folder is this account ('' is the usual account), typed with ~ for the home folder or not. */
 export const sameAccount = (account: CliAccount, folder: string | undefined) => plain(account.account_dir) === plain(folder ?? '')
 
 const folderName = (folder: string) => folder.split(/[\\/]/).filter(Boolean).pop() ?? folder

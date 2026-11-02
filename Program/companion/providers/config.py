@@ -137,7 +137,8 @@ class ProfileConfig(Input):
         self.cli_path = self.cli_path.strip()
         if self.cli_path and (self.provider not in CLI_PROVIDERS or not os.path.isabs(self.cli_path)):
             raise ValueError('The CLI location must be a full path to the program on this computer.')
-        self.cli_account_dir = self.cli_account_dir.strip()
+        # The form shows the home folder as ~ (src/paths.ts shownPath), so a folder can come back that way.
+        self.cli_account_dir = os.path.expanduser(self.cli_account_dir.strip())
         if self.cli_account_dir and (self.provider not in CLI_PROVIDERS or not os.path.isabs(self.cli_account_dir)):
             raise ValueError('The account folder must be a full path to a folder on this computer.')
         if self.provider == 'claude_code' and self.reasoning_effort not in {None, 'low', 'medium', 'high', 'xhigh', 'max'}:

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { accountLabel, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
+import { accountLabel, folderExample, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
 
 const usual: CliAccount = { provider: 'claude_code', account_dir: '', commands: ['claude'], sources: [], signed_in: true, email: 'one@example.com' }
 const second: CliAccount = { provider: 'claude_code', account_dir: 'C:\\Users\\Jim\\.claude-account2', commands: ['claude2'], sources: [], signed_in: false, email: '' }
@@ -33,4 +33,12 @@ test('a new profile starts on the usual account when it is signed in, else on a 
   assert.equal(startingAccount([{ ...usual, signed_in: false }, second])?.account_dir, '')
   assert.equal(startingAccount([signedSecond]), signedSecond)
   assert.equal(startingAccount([]), undefined)
+})
+
+test('a folder typed with ~ is the same account, and the example suits the computer', () => {
+  const work: CliAccount = { ...folderOnly, account_dir: '/home/jim/.codex-work' }
+  assert.ok(sameAccount(work, '~/.codex-work'))
+  assert.ok(sameAccount(second, '~\\.claude-account2'))
+  assert.equal(folderExample('claude', true), 'C:\\Users\\you\\.claude-second')
+  assert.equal(folderExample('codex', false), '~/.codex-second')
 })

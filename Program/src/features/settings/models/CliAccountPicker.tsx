@@ -1,7 +1,7 @@
 // Settings > Models: pick which Claude or ChatGPT account a Claude Code or Codex profile uses, from the accounts
 // found on this PC (companion/providers/cli_accounts.py). Ported from prosperos-dungeon at 6ac621f; looking can be
 // turned off here, and a new profile starts on a signed-in account by itself.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { api } from '../../../api'
@@ -10,26 +10,31 @@ import { Notice } from '../../../components/Feedback'
 import { Toggle } from '../../../components/Fields'
 import { shownPath } from '../../../paths'
 import type { WorkspaceSettings } from '../../../types'
-import { accountLabel, sameAccount, signInStep, startingAccount, type CliAccount } from './cliAccounts'
+import { WINDOWS, accountLabel, sameAccount, signInStep, startingAccount, type CliAccount } from './cliAccounts'
 import type { Provider } from './types'
 
-const WINDOWS = typeof navigator !== 'undefined' && /win/i.test(navigator.platform)
 const KEY = ['cli-accounts']
 interface Found { enabled: boolean; accounts: CliAccount[] }
+interface PickerProps { provider: Provider; value?: string; fresh: boolean; onPick: (folder: string) => void; children: ReactNode }
 
-/** `fresh` is a new profile: it moves to a signed-in account by itself when the usual one is not signed in. */
-export function CliAccountPicker({ provider, value, fresh, onPick }: { provider: Provider; value?: string; fresh: boolean; onPick: (folder: string) => void }) {
+/** `fresh` is a new profile: it moves to a signed-in account by itself when the usual one is not signed in.
+ * `children` is the typed account folder, kept behind "Type an account folder instead" while a found account is picked. */
+export function CliAccountPicker({ provider, value, fresh, onPick, children }: PickerProps) {
   // Each account's sign-in is asked of its CLI, which takes a moment, so the list is kept while Settings is open.
   const query = useQuery({ queryKey: KEY, queryFn: () => api<Found>('/models/cli-accounts'), staleTime: 5 * 60_000 })
   const mine = accountsFor(query.data, provider)
   useStartingAccount(fresh && !value?.trim(), mine, onPick)
   if (!query.data && !query.isError) return <p className="subtle">Looking for accounts on this computer…</p>
-  const enabled = query.data?.enabled ?? true
+  const { enabled, chosen } = picked(query.data, mine, value)
   return <div className="cli-accounts form-stack">
-    {enabled && <AccountList provider={provider} accounts={mine ?? []} value={value} busy={query.isFetching} onPick={onPick} onLook={() => void query.refetch()} />}
+    {enabled && <AccountList provider={provider} accounts={mine ?? []} chosen={chosen} busy={query.isFetching} onPick={onPick} onLook={() => void query.refetch()} />}
     <LookSwitch enabled={enabled} />
+    <TypedFolder open={!enabled || !chosen}>{children}</TypedFolder>
   </div>
 }
+
+const picked = (found: Found | undefined, mine: CliAccount[] | null, value?: string) =>
+  ({ enabled: found?.enabled ?? true, chosen: mine?.find(account => sameAccount(account, value)) })
 
 const accountsFor = (found: Found | undefined, provider: Provider) => found ? found.accounts.filter(account => account.provider === provider) : null
 
@@ -43,24 +48,34 @@ function useStartingAccount(open: boolean, accounts: CliAccount[] | null, onPick
   }, [open, accounts, onPick])
 }
 
-function AccountList({ provider, accounts, value, busy, onPick, onLook }: { provider: Provider; accounts: CliAccount[]; value?: string; busy: boolean; onPick: (folder: string) => void; onLook: () => void }) {
-  const chosen = accounts.find(account => sameAccount(account, value))
-  const again = <button type="button" className="button" disabled={busy} onClick={onLook}><RefreshCw size={15} aria-hidden="true" />{busy ? 'Looking…' : 'Look again'}</button>
-  if (!accounts.length) return <div className="form-actions"><span className="subtle">No {provider === 'codex' ? 'Codex' : 'Claude Code'} accounts found on this computer.</span>{again}</div>
+interface ListProps { provider: Provider; accounts: CliAccount[]; chosen?: CliAccount; busy: boolean; onPick: (folder: string) => void; onLook: () => void }
+
+function AccountList({ provider, accounts, chosen, busy, onPick, onLook }: ListProps) {
+  const again = <div className="form-actions"><button type="button" className="button" disabled={busy} onClick={onLook}><RefreshCw size={15} aria-hidden="true" />{busy ? 'Looking…' : 'Look again'}</button></div>
+  if (!accounts.length) return <><p className="subtle">No {provider === 'codex' ? 'Codex' : 'Claude Code'} accounts found on this computer.</p>{again}</>
   return <>
     <fieldset className="provider-picker cli-account-list"><legend>Account</legend>
       {accounts.map(account => <button key={account.account_dir || 'usual'} type="button" className={`button${account === chosen ? ' selected' : ''}`} aria-pressed={account === chosen}
         title={account.account_dir ? shownPath(account.account_dir) : undefined} onClick={() => onPick(account.account_dir)}>{accountLabel(account)}{account.signed_in ? '' : ' (not signed in)'}</button>)}
-      {again}
     </fieldset>
     <AccountNote chosen={chosen} />
+    {again}
   </>
 }
 
 function AccountNote({ chosen }: { chosen?: CliAccount }) {
   if (!chosen) return <p className="subtle">Found from your claude and codex commands (such as claude2), your PowerShell profile and account folders. Pick one, or type a folder below.</p>
-  if (!chosen.signed_in) return <p className="subtle">This account is not signed in. Run <code>{signInStep(chosen, WINDOWS)}</code> in a terminal and sign in, then look again.</p>
+  if (!chosen.signed_in) return <Notice>This account is not signed in. Run <code>{signInStep(chosen, WINDOWS)}</code> in a terminal and sign in, then look again.</Notice>
   return <p className="subtle">{chosen.account_dir ? `Uses the account kept in ${shownPath(chosen.account_dir)}.` : 'Uses the account the CLI is usually signed in to.'}</p>
+}
+
+/** Closed while a found account is picked (until opened); open while looking is off or the folder matches none. */
+function TypedFolder({ open, children }: { open: boolean; children: ReactNode }) {
+  const [opened, setOpened] = useState(false)
+  return <details className="typed-folder" open={open || opened} onToggle={event => setOpened(event.currentTarget.open)}>
+    <summary>Type an account folder instead</summary>
+    <div className="form-stack">{children}</div>
+  </details>
 }
 
 /** On unless turned off: off, nothing is looked for and only a typed folder is used. */
@@ -76,7 +91,7 @@ function LookSwitch({ enabled }: { enabled: boolean }) {
   }
   return <>
     <Toggle label="Look for accounts on this computer" checked={enabled} onChange={checked => void save(checked)}
-      hint="Reads your claude and codex commands and account folder names to list your accounts. Sign-ins stay with the CLI and are never opened." />
+      hint="Finds your Claude Code and Codex accounts from their commands and folder names, for every profile. Sign-ins are never opened." />
     {error && <Notice tone="error">{error}</Notice>}
   </>
 }
