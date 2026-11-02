@@ -14,7 +14,7 @@ import { StoryPeople } from './StoryPeople'
 import { CityOptions } from '../world/CityOptions'
 import { ExportLinks } from '../chats/ExportLinks'
 import { AuthorsNote } from '../conversation/AuthorsNote'
-import { setFolded, useMessageBox } from '../conversation/messageBox'
+import { fitAfterSend, setFolded, useMessageBox } from '../conversation/messageBox'
 import { MessageBox } from '../conversation/MessageBoxControls'
 
 const STORY_KEY = ['story']
@@ -123,7 +123,7 @@ function StoryLine({ message }: { message: StoryMessage }) {
 function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string) => void }) {
   const [text, setText] = useState('')
   const { text: box, folded } = useMessageBox(text)
-  const submit = () => { if (text.trim() && !busy) { onSend(text.trim()); setText('') } }
+  const submit = () => { if (text.trim() && !busy) { onSend(text.trim()); setText(''); fitAfterSend() } }
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit() }
   }

@@ -9,7 +9,7 @@ import { canSend as ready, PER_MESSAGE } from './pictureState'
 import { AuthorsNote } from './AuthorsNote'
 import { useEraWords } from '../world/useEraWords'
 import { say } from '../world/eraWords'
-import { setFolded, useMessageBox } from './messageBox'
+import { fitAfterSend, setFolded, useMessageBox } from './messageBox'
 import { MessageBox } from './MessageBoxControls'
 import { talkLine } from './actionText'
 
@@ -35,11 +35,13 @@ export function Composer({ name, phoneName, chat, draft, streaming, compact, onS
   const { text, folded } = useMessageBox(draft.value.text, compact)
   const pictures = usePictureAdder(draft, withPictures !== false)
   const canSend = ready(draft.value.text, draft.value.pictures?.length ?? 0, draft.sending || streaming || pictures.busy)
-  const onKeyDown = keyHandler(canSend, streaming, onSend, onStop)
+  // A long message, or a box pulled taller, leaves it big; after sending it goes back to its usual size.
+  const send = () => { fitAfterSend(); onSend() }
+  const onKeyDown = keyHandler(canSend, streaming, send, onStop)
   const placeholder = usePlaceholder(name, phoneName, talking)
   return (<>
     {/* Sending with the button disables it; keep the keyboard in the message box for the next message. */}
-    <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) onSend() }}
+    <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) send() }}
       {...pictures.formEvents}>
       <ComposerPictures draft={draft} busy={pictures.busy} error={pictures.error} />
       <AuthorsNote key={chat} chat={chat} name={name} />
