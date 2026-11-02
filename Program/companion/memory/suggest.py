@@ -161,7 +161,8 @@ def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
     # The companion's name counts as the message's own word: "you" in it is them.
     if not supported(value, f"{message['text']} {message.get('to') or ''}") or not sentences(message['text']):
         return None
-    subject, value = addressed.fields(subject, value, message.get('to') or '', message['text'])
+    subject, value = addressed.fields(subject, value, message.get('to') or '', message['text'],
+                                      message.get('pronoun') or 'they')
     if not owners.belongs(subject, message['text'], message.get('names') or ()):
         return None
     corrected = None
@@ -317,7 +318,8 @@ async def suggest(database, provider, scheduler, vault_key) -> int:
         mark(connection, skipped, 'skipped')
         now = database.now()
         batch = [{**message, 'known': corrections.relevant(connection, owner, message['text'], now),
-                  'names': names(connection, owner), 'to': addressed.first_name(by_id(connection, owner))}
+                  'names': names(connection, owner), 'to': addressed.first_name(by_id(connection, owner)),
+                  'pronoun': addressed.pronoun_of(by_id(connection, owner))}
                  for message in batch if eligible(message) for owner in (owner_id(connection, message),)]
         revision = row['permission_revision']
         rules = prompt_library.text(connection, 'memory-suggestions')

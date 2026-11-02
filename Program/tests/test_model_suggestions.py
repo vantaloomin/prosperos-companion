@@ -290,5 +290,18 @@ def test_you_becomes_the_name_in_plain_english():
              'likes your laugh': "likes Mira's laugh",
              "didn't feel afraid of the assistant as if it were dangerous":
                  "didn't feel afraid of Mira as if they were dangerous",
-             'trusts the assistant because it is kind': 'trusts Mira because they are kind'}
+             'trusts the assistant because it is kind': 'trusts Mira because they are kind',
+             'love you very much': 'love Mira very much',
+             'know you better now': 'know Mira better now',
+             "you'd been drinking": 'Mira had been drinking',
+             "you'd know": 'Mira would know',
+             'you yourself said it': 'Mira said it'}
     assert {text: named(text, 'Mira', 'a message') for text in cases} == cases
+
+
+def test_the_assistants_it_takes_the_companions_pronouns():
+    from companion.memory.addressed import named
+    text = "didn't feel afraid of the assistant as if it were dangerous, because it is kind"
+    assert named(text, 'Sett', 'a message', 'he') == "didn't feel afraid of Sett as if he were dangerous, because he is kind"
+    assert named(text, 'Ana', 'a message', 'she') == "didn't feel afraid of Ana as if she were dangerous, because she is kind"
+    assert named(text, 'Jo', 'a message') == "didn't feel afraid of Jo as if they were dangerous, because they are kind"

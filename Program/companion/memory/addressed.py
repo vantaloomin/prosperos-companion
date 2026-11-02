@@ -40,7 +40,11 @@ KEEP = {'can', 'could', 'will', 'would', 'should', 'might', 'must', 'may', "can'
         'understood', 'slept', 'caught', 'fought', 'built', 'lent', 'hid', 'rode', 'fell', 'flew', 'grew', 'threw',
         'drew', 'shook', 'broke', 'and', 'or', 'but', 'the', 'a', 'an', 'to', 'so', 'too', 'for', 'there', 'here',
         'all', 'both', 'more', 'guys', 'two', 'as', 'at', 'in', 'on', 'with', 'of', 'than', 'that', 'this', 'when',
-        'if', 'because', 'about', 'around', 'again', 'today', 'tonight', 'now', 'back', 'up', 'out', 'me', 'my'}
+        'if', 'because', 'about', 'around', 'again', 'today', 'tonight', 'now', 'back', 'up', 'out', 'me', 'my',
+        'very', 'much', 'better', 'best', 'lots', 'less', 'most', 'anyway', 'either', 'enough', 'well', 'first',
+        'ever'}
+# "you'd been": "had", not "would", before a past participle.
+PARTICIPLES = {'been', 'gone', 'had', 'done', 'seen'}
 # What comes right before a "you" that is the subject: nothing, punctuation, or a word that opens a clause.
 CLAUSE = {'and', 'but', 'or', 'that', 'because', 'when', 'if', 'so', 'how', 'why', 'what', 'since', 'while', 'as',
           'whenever', 'where', 'until', 'though', 'although', 'like', 'glad', 'love', 'how', 'think', 'know'}
@@ -69,15 +73,26 @@ def subject(text: str, start: int) -> bool:
 def you(match, text: str, name: str) -> str:
     contraction, gap, verb = match[1], match[2] or '', match[3] or ''
     if contraction:
-        return f'{name} {CONTRACTED[contraction.casefold()]}{gap}{verb}'
+        short = contraction.casefold()
+        if short == 'd' and (verb.casefold() in PARTICIPLES or verb.casefold().endswith(('ed', 'en'))):
+            short = 'had'
+        return f'{name} {CONTRACTED.get(short, short)}{gap}{verb}'
     if verb and gap and subject(text, match.start()):
         return f'{name}{gap}{third_person(verb)}'
     return f'{name}{gap}{verb}'
 
 
 def addressed_you(text: str, name: str) -> str:
+    text = re.sub(r"\byou\s+yourself\b", 'you', text, flags=re.IGNORECASE)  # "you yourself said"
     text = YOUR.sub(lambda match: name if (match[1] or '').casefold() == 'self' else f"{name}'s", text)
     return YOU.sub(lambda match: you(match, text, name), text)
+
+
+def pronoun_of(companion) -> str:
+    """He, she or they: the companion's pronouns as their description speaks of them."""
+    from companion.world.looks import pronouns_of
+    definition = ((companion or {}).get('version') or {}).get('definition') or {}
+    return pronouns_of(definition).split('/')[0] if definition else 'they'
 
 
 def first_name(companion) -> str:
@@ -85,7 +100,7 @@ def first_name(companion) -> str:
     return (definition.get('name') or '').strip().split(' ')[0]
 
 
-def named(text: str, name: str, message: str) -> str:
+def named(text: str, name: str, message: str, pronoun: str = 'they') -> str:
     """The text with the companion called by name wherever the model called them something else."""
     if not name or not text:
         return text
@@ -95,12 +110,13 @@ def named(text: str, name: str, message: str) -> str:
         text = BARE.sub(lambda match: f'{match[1]} {name}', text)
         text = OPENING.sub(name, text)
         if text != before:  # "afraid of the assistant as if it were dangerous": "it" was the assistant too
-            text = IT.sub(lambda match: f'they {THEY.get(match[1], match[1])}', text)
+            text = IT.sub(lambda match: f"{pronoun} {THEY.get(match[1], match[1]) if pronoun == 'they' else match[1]}",
+                          text)
     return addressed_you(text, name)
 
 
-def fields(subject: str, value: str, name: str, message: str) -> tuple[str, str]:
-    return named(subject, name, message), named(value, name, message)
+def fields(subject: str, value: str, name: str, message: str, pronoun: str = 'they') -> tuple[str, str]:
+    return named(subject, name, message, pronoun), named(value, name, message, pronoun)
 
 
 def older(connection, version: str) -> list[dict]:
@@ -138,8 +154,10 @@ def tidy(database, version: str) -> int:
         companions, changed = {}, 0
         for row in older(connection, version):
             if row['companion_id'] not in companions:
-                companions[row['companion_id']] = first_name(by_id(connection, row['companion_id']))
-            subject, value = fields(row['subject'], row['value'], companions[row['companion_id']], row['text'])
+                companion = by_id(connection, row['companion_id'])
+                companions[row['companion_id']] = (first_name(companion), pronoun_of(companion))
+            name, pronoun = companions[row['companion_id']]
+            subject, value = fields(row['subject'], row['value'], name, row['text'], pronoun)
             if (subject, value) != (row['subject'], row['value']):
                 rename(connection, row, subject, value)
                 changed += 1
