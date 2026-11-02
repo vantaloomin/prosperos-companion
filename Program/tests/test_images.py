@@ -582,6 +582,23 @@ def test_automatic_cadence_is_bounded_and_skips_digests(client, companion, clock
     assert post_image(client, third)['status'] == 'none'
 
 
+def test_automatic_cadence_skips_catch_up_posts(client, companion, clock, adapters):
+    """A catch-up after time away posts each moment on its own now, and none of them gets an automatic picture (T5)."""
+    local_comfy(client)
+    ok(client.put('/api/settings', json={'background_activity': True}))
+    ok(client.put('/api/images/settings', json={'automatic_images': True, 'daily_limit': 5}))
+    post = make_post(client, clock, key='event-catch-up')
+    with client.app.state.database.connect(write=True) as connection:
+        version = connection.execute('SELECT active_version_id FROM companions WHERE slot=1').fetchone()[0]
+        connection.execute("INSERT INTO life_runs (id, timeline_id, run_key, mode, status, window_start, window_end, "
+                           "plan, character_version_id, permission_revision, created_at) SELECT 'run-1', timeline_id, "
+                           "'run-1', 'return', 'completed', occurs_at, occurs_at, '[]', ?, 0, created_at "
+                           'FROM feed_posts WHERE id=?', (version, post['id']))
+        connection.execute("UPDATE feed_posts SET run_id='run-1' WHERE id=?", (post['id'],))
+    client.app.state.images.automatic()
+    assert post_image(client, post)['status'] == 'none'
+
+
 def test_queue_limit(client, companion, clock):
     local_comfy(client)
     ok(client.put('/api/images/settings', json={'queue_limit': 1}))

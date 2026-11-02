@@ -1,8 +1,19 @@
 """Worlds and personas (companion/worlds.py): /api/worlds."""
 from fastapi import APIRouter, Request
+from fastapi.responses import FileResponse
 
-from companion import back_when, worlds
-from companion.models import BackWhen, Become, HomeChange, NewPersona, NewWorld, PersonaCopy, PersonaInput, WorldChange
+from companion import back_when, persona_pictures, worlds
+from companion.models import (
+    BackWhen,
+    Become,
+    HomeChange,
+    NewPersona,
+    NewWorld,
+    PersonaCopy,
+    PersonaInput,
+    PictureMake,
+    WorldChange,
+)
 
 router = APIRouter(prefix='/api/worlds')
 
@@ -98,3 +109,31 @@ def delete_persona(request: Request, persona_id: str):
 async def switch_persona(request: Request, persona_id: str):
     """Into the world the persona was last in."""
     return worlds.switch_persona(request.app.state, persona_id)
+
+
+@router.post('/personas/{persona_id}/picture')
+async def upload_picture(request: Request, persona_id: str):
+    """The body is the user's own picture of this persona (companion/persona_pictures.py)."""
+    return persona_pictures.upload(db(request), persona_id, await request.body())
+
+
+@router.delete('/personas/{persona_id}/picture')
+def remove_picture(request: Request, persona_id: str):
+    return persona_pictures.remove(db(request), persona_id)
+
+
+@router.get('/personas/{persona_id}/picture')
+def picture(request: Request, persona_id: str):
+    path = persona_pictures.file(db(request), persona_id)
+    return FileResponse(path, media_type=persona_pictures.TYPES[path.suffix.lstrip('.')])
+
+
+@router.post('/personas/{persona_id}/picture/make')
+def make_picture(request: Request, persona_id: str, body: PictureMake):
+    """Make one from How you look (`looks`, as typed, is saved first), with this world's image backends."""
+    return request.app.state.persona_pictures.request(persona_id, body.looks)
+
+
+@router.get('/personas/{persona_id}/picture/make')
+def making(request: Request, persona_id: str):
+    return request.app.state.persona_pictures.status(persona_id)

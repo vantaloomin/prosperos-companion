@@ -139,6 +139,11 @@ function leaveLabel(outing: WhereOuting): string {
   return outing.activity === 'wedding' || (outing.activity === 'big-day' && !outing.place.quiet) ? 'Call it a night' : 'Head home'
 }
 
+/** Stay longer on the strip, beside Head home: under way, and their next hour is free. */
+export function canStayLonger(where: WhereState | undefined): boolean {
+  return where?.outing?.state === 'now' && Boolean(where.outing.longer_ok)
+}
+
 /** Whether the chat writes in person now: texting habits like bursts stop while they are together. */
 export function inPerson(where: WhereState | undefined): boolean {
   return where?.state === 'together'

@@ -25,6 +25,7 @@ import { LOOK_LEVELS, LOOK_TIP } from '../character/theirLookText'
 import { WAKING_LEVELS } from '../character/theirHoursText'
 import { READ_LEVELS, READ_TIP } from './readPaceText'
 import { POLITICS_LEVELS, POLITICS_TIP } from '../today/politicsText'
+import { TROLL_LEVELS, TROLLS_TIP } from '../feed/trollsText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -67,8 +68,8 @@ export function RealismIntro() {
   )
 }
 
-/** How much drama, their pace and plans that go off course: world-wide settings, so they come first. */
-export function PaceSettings() {
+/** How much drama, their pace and plans that go off course. Drama is this world's own (companion/life/world_drama.py). */
+export function PaceSettings({ name }: { name: string }) {
   const { settings, data, save, result } = useLifeSettings()
   const world = useWorlds().data?.world.name
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
@@ -90,11 +91,12 @@ export function PaceSettings() {
   const turns = step(TURN_LEVELS, data.life_turns, 2)
   const loss = step(LOSS_LEVELS, data.loss, 2)
   const politics = step(POLITICS_LEVELS, data.politics_realism, 2)
+  const snark = step(TROLL_LEVELS, data.trolls_realism, 1)
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
-      <Field label={`Drama in your worlds: ${level.label}`} tip="Every world follows this unless it has its own, in Life & cities > This world."
-        hint={data.world_drama === null ? level.hint : `${level.hint} ${world ?? 'This world'} has its own level, ${step(DRAMA_LEVELS, data.world_drama, 1).label}, in Life & cities.`}>
+      <Field label={`Drama in ${world ?? 'this world'}: ${level.label}`} tip="Only this world. Each of your worlds keeps its own drama level."
+        hint={data.alone && name ? `${level.hint} ${name} is the only companion here, so a little more happens to them.` : level.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.drama} label={level.label}
           onChange={(drama) => void save({ drama })} />}
       </Field>
@@ -142,6 +144,10 @@ export function PaceSettings() {
       <Field label={`Local politics: ${politics.label}`} hint={politics.hint} tip={POLITICS_TIP}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.politics_realism} label={politics.label}
           onChange={(politics_realism) => void save({ politics_realism })} />}
+      </Field>
+      <Field label={`Trolls and snark on posts: ${snark.label}`} hint={snark.hint} tip={TROLLS_TIP}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.trolls_realism} label={snark.label}
+          onChange={(trolls_realism) => void save({ trolls_realism })} />}
       </Field>
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}

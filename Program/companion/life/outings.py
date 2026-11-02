@@ -568,16 +568,24 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
     result = {}
     for outing in in_force(connection, timeline_id, since):
         result.setdefault(outing['local_date'], []).append(
-            {'id': f"outing:{outing['id']}:{outing['rolls']}", 'at_time': outing['at_time'], 'outing': outing})
+            {'id': slot_id(outing), 'at_time': outing['at_time'], 'outing': outing})
         # A wedding runs on past its first block: the later ones are quiet, still time with the user, not free time.
         result[outing['local_date']] += [{'id': f"outing:{outing['id']}:{outing['rolls']}:{at}", 'at_time': at,
                                           'outing': outing, 'continues': True} for at in later_hours(outing)]
     return result
 
 
+def slot_id(outing: dict) -> str:
+    """The agenda's id for an outing's slot: it changes when the place does, or when they met up early, so the agenda
+    composes the slot again."""
+    moved = f":{outing['at_time']}" if outing.get('early_from') else ''
+    return f"outing:{outing['id']}:{outing['rolls']}{moved}"
+
+
 def later_hours(outing: dict) -> list[str]:
-    """The whole hours after a wedding's start, up to its end ('16:00' ... '22:00'): blocks it also takes."""
-    if outing['activity'] not in LONG_DAYS or outing['until_time'] <= outing['at_time']:
+    """The whole hours after a wedding's start, or an outing they stayed on at, up to its end ('16:00' ... '22:00'):
+    blocks it also takes."""
+    if (outing['activity'] not in LONG_DAYS and not outing.get('longer')) or outing['until_time'] <= outing['at_time']:
         return []
     return [f'{hour:02d}:00' for hour in range(int(outing['at_time'][:2]) + 1, int(outing['until_time'][:2]))]
 
@@ -1075,6 +1083,78 @@ def head_home(connection, companion: dict, outing_id: str, now: datetime) -> dic
     return get(connection, outing_id)
 
 
+# --- Meeting up early, staying longer -------------------------------------------------------------------------
+
+EARLY = timedelta(hours=3)  # How long before the time Go now is offered.
+LONGER = timedelta(hours=1)  # What Stay longer adds.
+MOST_LONGER = 3  # Stay longer at most this many times.
+FIXED = LONG_DAYS + MEETUPS  # Times set by other people: their family, their friends, a wedding or a big day.
+
+
+def hhmm(moment: datetime) -> str:
+    return moment.strftime('%H:%M')
+
+
+def early_ok(connection, companion: dict, outing: dict, now: datetime) -> bool:
+    """Go now: an outing later today, within EARLY, when nothing of theirs (work, study, sleep, an appointment) sits
+    between now and then. Not for times other people set, or a drop-in."""
+    timezone = companion['version']['timezone']
+    if outing['activity'] in FIXED or outing['place'].get('knock') or state(outing, timezone, now) != 'planned':
+        return False
+    local = now.astimezone(zone(timezone))
+    start = window(outing, timezone)[0]
+    if local.date().isoformat() != outing['local_date'] or start - now > EARLY:
+        return False
+    schedule = routine.blocks(companion['version']['definition'])[0]
+    at = hhmm(local)
+    return not busy_at(schedule, local.date(), at) and not cut_short(schedule, local.date(), at, outing['at_time']) \
+        and not booked(connection, companion, local.date(), at)
+
+
+def longer_end(outing: dict) -> str | None:
+    """The end an hour later, if that is still the same day."""
+    end = datetime.combine(date(2000, 1, 1), datetime.strptime(outing['until_time'], '%H:%M').time()) + LONGER
+    return None if end.date() > date(2000, 1, 1) else hhmm(end)
+
+
+def longer_ok(connection, companion: dict, outing: dict, now: datetime) -> bool:
+    """Stay longer: an outing under way, by an hour, when their work, study, sleep or an appointment does not start
+    in that hour, at most MOST_LONGER times. Not for times other people set."""
+    if outing['activity'] in FIXED or outing['longer'] >= MOST_LONGER or outing['ended_at'] or \
+            state(outing, companion['version']['timezone'], now) != 'now':
+        return False
+    end = longer_end(outing)
+    if end is None:
+        return False
+    schedule = routine.blocks(companion['version']['definition'])[0]
+    day = date.fromisoformat(outing['local_date'])
+    return not busy_at(schedule, day, outing['until_time']) and not cut_short(schedule, day, outing['until_time'], end) \
+        and not booked(connection, companion, day, outing['until_time'])
+
+
+def go_now(connection, companion: dict, outing_id: str, now: datetime) -> dict:
+    """Meet up now instead of later today: it starts now and ends when it would have."""
+    outing = owned(connection, companion, outing_id)
+    require(early_ok(connection, companion, outing, now), "They can't get away before the time you planned.", 409)
+    at = hhmm(now.astimezone(zone(companion['version']['timezone'])))
+    connection.execute('UPDATE outings SET early_from=COALESCE(early_from, at_time), at_time=? WHERE id=?',
+                       (at, outing_id))
+    return get(connection, outing_id)
+
+
+def stay_longer(connection, companion: dict, outing_id: str, now: datetime) -> dict:
+    """Stay on together for another hour."""
+    outing = owned(connection, companion, outing_id)
+    require(longer_ok(connection, companion, outing, now), 'They have to be somewhere after this.', 409)
+    connection.execute('UPDATE outings SET until_time=?, longer=longer+1 WHERE id=?', (longer_end(outing), outing_id))
+    return get(connection, outing_id)
+
+
+def choices(connection, companion: dict, outing: dict, now: datetime) -> dict:
+    """What Today and the chat strip can offer for this outing right now."""
+    return {'early': early_ok(connection, companion, outing, now), 'longer_ok': longer_ok(connection, companion, outing, now)}
+
+
 def undoable_home(outing: dict, now: datetime) -> bool:
     return outing['status'] == 'planned' and bool(outing['ended_at']) and now - parse(outing['ended_at']) < UNDO
 
@@ -1136,7 +1216,8 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     return [{**outing, 'state': state(outing, version['timezone'], now),
              'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
              'cost_text': money_text(companion, outing).strip(),
-             'sitter': our_child.sitter_view(connection, companion, outing)} for outing in found]
+             'sitter': our_child.sitter_view(connection, companion, outing),
+             **choices(connection, companion, outing, now)} for outing in found]
 
 
 def photo_ready(connection, now: datetime) -> list[dict]:
@@ -1195,4 +1276,4 @@ def moment(companion: dict, outing: dict, composed: dict, key: str) -> dict:
             'place': outing['place']['name'], 'neighborhood': outing['place'].get('neighborhood'),
             'label': f"Out with you at {outing['place']['name']}", 'kind': 'social',
             'hour': hour, 'weather': composed.get('weather'), 'activity': outing['activity'], 'with': None,
-            'timeline_id': companion['active_timeline_id'], 'local_date': outing['local_date']}
+            'with_user': True, 'timeline_id': companion['active_timeline_id'], 'local_date': outing['local_date']}

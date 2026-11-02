@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import zlib
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -87,6 +87,9 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.occasions.SEEDED', False)
     # And replies held while the companion is busy (companion/life/pacing.py), on by default in the app.
     monkeypatch.setattr('companion.life.pacing.ACTIVE', False)
+    # A storyline beat waits for its own seeded time of day; tests see it from midnight, and
+    # tests/test_storylines.py checks the times themselves.
+    monkeypatch.setattr('companion.life.storylines.BEAT_HOURS', (time(0, 0), time(0, 0)))
     # And the little while before a free companion reads a text (companion/life/reading.py).
     monkeypatch.setattr('companion.life.reading.ACTIVE', False)
     # Likewise group replies shown at a person's pace (companion/groups.py).

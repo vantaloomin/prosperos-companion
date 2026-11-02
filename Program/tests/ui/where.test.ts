@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { homeLine, inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
+import { canStayLonger, homeLine, inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
 import { shown } from '../../src/features/status/statusText.ts'
 
 const outing: WhereOuting = {
@@ -91,4 +91,13 @@ test('living together, the strip says home together or out, with the way to swit
     "You're out.")  // They are at work or out themselves: the strip doesn't say they're home.
   assert.equal(homeLine({ ...home, home: null }, 'Mira'), null)
   assert.ok(inPerson(home))
+})
+
+test('Stay longer shows on the strip only while under way with a free hour after', () => {
+  const base = { state: 'together', kind: 'out', text: '' } as const
+  const outing = { state: 'now', longer_ok: true } as unknown as WhereOuting
+  assert.equal(canStayLonger({ ...base, outing }), true)
+  assert.equal(canStayLonger({ ...base, outing: { ...outing, longer_ok: false } }), false)
+  assert.equal(canStayLonger({ ...base, outing: { ...outing, state: 'done' } }), false)
+  assert.equal(canStayLonger(undefined), false)
 })

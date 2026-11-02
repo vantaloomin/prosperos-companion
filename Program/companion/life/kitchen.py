@@ -86,6 +86,8 @@ MISHAPS = ('the rice stuck to the bottom of the pot', 'the recipe took twice as 
            'they were out of a key ingredient halfway through', 'the sauce never came together',
            'they forgot the pot on the stove and it boiled dry', 'the dough refused to rise')
 DINNER_AT = '19:00'
+# How likely a breakfast food is as tonight's dinner, against any other dish.
+EVENING_BREAKFAST = 0.2
 EVENING_OVER = 21  # the hour after which tonight's dinner reads as done on the panel
 OUT_ACTIVITIES = {'dinner', 'birthday', 'own-birthday', 'gathering', 'tradition', 'drinks'}
 EVENING = {'reading', 'slow', 'nap', 'chores', 'sick-day', 'home-cooking', 'groceries', None}
@@ -222,6 +224,19 @@ def dishes_for(found: dict, *, skill: int | None = None, tag: str | None = None)
     ceiling = max(1, found['skill'] if skill is None else skill)
     return [dish for dish in bank(found['bank'])['dishes'] if dish['skill'] <= ceiling
             and allowed(dish['tags'], found['diet'], found['avoids']) and (tag is None or tag in dish['tags'])]
+
+
+def evening(dishes: list[dict]) -> list[dict]:
+    """Dishes for an evening meal: none named for breakfast ("breakfast burritos" at 5 PM reads oddly). Other
+    breakfast dishes stay, rarely, as breakfast for dinner (see `evening_weight`)."""
+    return [dish for dish in dishes if 'breakfast' not in dish['name'].lower()] or dishes
+
+
+def evening_weight(dish: dict) -> float:
+    """Breakfast foods are an occasional dinner, unless the dish says it is one ("pancakes and bacon for dinner")."""
+    if 'breakfast' not in dish['tags'] or re.search(r'\b(?:dinner|supper)\b', dish['name'], re.IGNORECASE):
+        return 1.0
+    return EVENING_BREAKFAST
 
 
 def favorites(seed: str, found: dict) -> list[str]:
@@ -381,8 +396,8 @@ class Day:
                 for name in self.found.get('favorites') or () if name not in known]
 
     def pick_dish(self, day: date, label: str, exclude) -> dict | None:
-        options = [dish for dish in [*dishes_for(self.found), *self.own_dishes()] if 'bake' not in dish['tags'] and
-                   dish['name'] not in exclude]
+        options = evening([dish for dish in [*dishes_for(self.found), *self.own_dishes()] if 'bake' not in dish['tags']
+                           and dish['name'] not in exclude])
         conditions = self.weather(day) or {}
         high = conditions.get('high_f')
         busy, off = self.work_hours(day) >= 8 or self.late(day), self.work_hours(day) == 0
@@ -400,7 +415,7 @@ class Day:
                 value *= 1.5 if tags & {'big', 'treat'} else 0.7 if 'quick' in tags else 1.0
             if dish['skill'] == self.found['skill'] or self.found['skill'] == 0 and dish['skill'] == 1:
                 value *= 1.5
-            return value * (4.0 if dish['name'] in favourite else 1.0)
+            return value * evening_weight(dish) * (4.0 if dish['name'] in favourite else 1.0)
 
         return generators.pick(self.seed, f'{label}:{day.isoformat()}', options, [weight(dish) for dish in options])
 
@@ -426,8 +441,8 @@ class Day:
         return self.remember(('simple', day, fresh), lambda: self.pick_simple(day, fresh))
 
     def pick_simple(self, day: date, fresh: bool) -> dict | None:
-        options = [dish for dish in dishes_for(self.found, skill=1) if 'bake' not in dish['tags'] and
-                   ('quick' in dish['tags'] or self.sick(day) and 'warm' in dish['tags'])]
+        options = evening([dish for dish in dishes_for(self.found, skill=1) if 'bake' not in dish['tags'] and
+                           ('quick' in dish['tags'] or self.sick(day) and 'warm' in dish['tags'])])
         if fresh:
             recent = self.recent_dishes(day)
             options = [dish for dish in options if dish['name'] not in recent] or options

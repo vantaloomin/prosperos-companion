@@ -2982,3 +2982,18 @@ CREATE TABLE IF NOT EXISTS post_comments (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS post_comments_post ON post_comments(post_id, created_at);
+
+-- "Make one" for the user's own picture (companion/persona_pictures.py): one request per persona at a time, made in
+-- the world the user is in with its image backends. The finished picture is copied to the persona (worlds.json).
+CREATE TABLE IF NOT EXISTS persona_pictures (
+  persona_id TEXT PRIMARY KEY,
+  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'failed')),
+  prompt TEXT NOT NULL,
+  negative TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  backend_id TEXT,
+  error TEXT,
+  file TEXT,
+  created_at TEXT NOT NULL,
+  finished_at TEXT
+);

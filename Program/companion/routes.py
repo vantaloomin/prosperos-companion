@@ -432,6 +432,17 @@ def update_timeline(request: Request, timeline_id: str, body: TimelineUpdate):
     return timelines.update(db(request), timeline_id, body)
 
 
+@router.delete('/timelines/{timeline_id}')
+def delete_timeline(request: Request, timeline_id: str):
+    """Out of the list, with Undo; never the timeline the user is on."""
+    return timelines.delete(db(request), timeline_id)
+
+
+@router.post('/timelines/{timeline_id}/restore')
+def restore_timeline(request: Request, timeline_id: str):
+    return timelines.restore(db(request), timeline_id)
+
+
 @router.post('/timelines/{timeline_id}/activate')
 def activate_timeline(request: Request, timeline_id: str):
     result = timelines.activate(db(request), timeline_id)

@@ -19,7 +19,7 @@ template wording only, so a long cast costs no model calls; the one in focus is 
 import asyncio
 import logging
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from companion import events, groups, logs, news, notifications, troubleshoot
 from companion.characters import by_id, current, for_timeline
@@ -35,6 +35,7 @@ from companion.life import (
     dreams,
     feed,
     hobbies,
+    joint,
     mood,
     narrator,
     pets,
@@ -55,6 +56,7 @@ from companion.workspace import overlapping_pause
 from companion.world import turnover
 
 LOG = logging.getLogger(__name__)
+REPEAT_LOG_AFTER = timedelta(hours=1)
 
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
@@ -86,8 +88,10 @@ def read_settings(database) -> dict:
 
 
 def with_world(connection, view: dict) -> dict:
-    """This world's own drama level (None follows Realism) and whether its companion is on their own there."""
-    return {**view, 'world_drama': world_drama.own(connection), 'alone': world_drama.alone(connection)}
+    """Drama as this world runs it (its own level, kept in this world only: companion/life/world_drama.py), its own
+    level or None while it still follows the one carried from world to world, and whether its companion is alone."""
+    return {**view, 'drama': world_drama.level(connection), 'world_drama': world_drama.own(connection),
+            'alone': world_drama.alone(connection)}
 
 
 def update_world(database, drama: int | None) -> dict:
@@ -99,7 +103,11 @@ def update_world(database, drama: int | None) -> dict:
 def update_settings(database, body) -> dict:
     """Allowing or revoking automatic events advances the permission revision (T3, T7)."""
     changes = body.model_dump(exclude_none=True)
+    drama = changes.pop('drama', None)
     with database.connect(write=True) as connection:
+        if drama is not None and drama != world_drama.level(connection):
+            # Drama stays in the world it was set in (tester, 2026-10-31: "dramatic" for Sett changed Givardon too).
+            world_drama.change(connection, drama, database.now())
         row = life_settings(connection)
         changed = {key: int(value) if isinstance(value, bool) else value
                    for key, value in changes.items() if row[key] != value}
@@ -237,6 +245,15 @@ def plan_for(connection, timeline_id, slot_key) -> dict | None:
                     (timeline_id, slot_key))
 
 
+def shared_start(slot: dict, composed: dict) -> str:
+    """When the event starts: an outing shared with another companion when the outing does (companion/life/joint.py),
+    so both their timelines give it the same time."""
+    begins = ((composed or {}).get('joint') or {}).get('starts_at')
+    if not begins or not slot['starts_at'] < begins < slot['ends_at']:
+        return slot['starts_at']
+    return begins
+
+
 def settle_key(thread_key: str) -> str:
     return f'settled:{thread_key}'
 
@@ -271,12 +288,13 @@ def recent_threads(connection, timeline_id, local_date: str) -> list[str]:
 def recommended(connection, timeline_id, slot_key) -> bool:
     """The slot holds a session of a recommendation or a plan the companion made in chat, or a bold change to their
     looks (companion/life/grooming.py) or a milestone in a pastime (companion/life/hobbies.py), which they would post
-    about."""
+    about, or an outing shared with another companion (companion/life/joint.py), which is in both their days."""
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
                          "AND slot_key=? AND (json_extract(entry, '$.recommendation.id') IS NOT NULL "
                          "OR json_extract(entry, '$.own_plan.id') IS NOT NULL OR json_extract(entry, '$.outing.id') "
                          "IS NOT NULL OR json_extract(entry, '$.trip.id') IS NOT NULL OR "
-                         "json_extract(entry, '$.looks.bold')=1 OR json_extract(entry, '$.hobby.milestone') IS NOT NULL)",
+                         "json_extract(entry, '$.looks.bold')=1 OR json_extract(entry, '$.hobby.milestone') IS NOT NULL "
+                         "OR json_extract(entry, '$.joint') IS NOT NULL)",
                          (timeline_id, slot_key)))
 
 
@@ -435,6 +453,19 @@ def claim(connection, run_id, owner, now):
 
 # Execution --------------------------------------------------------------------------------------
 
+class Repeats:
+    """Whether a failure is worth logging: a new one, or the same one again after REPEAT_LOG_AFTER."""
+
+    def __init__(self):
+        self.last, self.at = None, None
+
+    def seen(self, text: str, now: datetime) -> bool:
+        if text == self.last and now - self.at < REPEAT_LOG_AFTER:
+            return False
+        self.last, self.at = text, now
+        return True
+
+
 class LifeEngine:
     """Runs batches for one process. The lock keeps this process to one batch at a time; across
     processes the cursor transaction and event idempotency keys keep work unique."""
@@ -451,6 +482,7 @@ class LifeEngine:
         # Where the next round of companions out of focus starts, and the round running after a return.
         self.cast_offset = 0
         self.casting = None
+        self.failed = Repeats()
         # Current-context lookups (companion/mcp), first messages (companion/life/openers.py) and group chats
         # starting conversations (companion/groups.py); set by the app.
         self.lookups = None
@@ -629,7 +661,7 @@ class LifeEngine:
                      'own_plan': composed.get('own_plan'), 'outing': composed.get('outing'),
                      'trip': composed.get('trip'), 'pet_photo': composed.get('pet_photo'),
                      'hobby': composed.get('hobby')},
-            starts_at=slot['starts_at'], ends_at=slot['ends_at'],
+            starts_at=shared_start(slot, composed), ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {
                         'summary': composed['summary'], 'post': composed['post']},
@@ -652,10 +684,17 @@ class LifeEngine:
         a work block that became a day off on a public holiday."""
         if plan and not (precomputed and (precomputed['entry'] or {}).get('own_plan')):
             return composer.fulfil(events.view(plan), version['definition']), slot, None
-        if precomputed:
+        if precomputed and not self.joint_gone(precomputed['entry']):
             return precomputed['entry'], {**slot, 'block': decode(precomputed['block'])}, precomputed['prepared']
         recent_keys = [decode(event['details']).get('activity') for event in recent]
         return composer.compose(slot, version['definition'], self.world, key, recent_keys), slot, None
+
+    def joint_gone(self, entry) -> bool:
+        """An outing shared with another companion whose side of it is gone (companion/life/joint.py)."""
+        if not (entry or {}).get('joint'):
+            return False
+        with self.database.connect() as connection:
+            return not joint.holds(connection, entry)
 
     def follow_threads(self, run, slot, version, life, key) -> dict:
         """Settle an open thread whose day has come, or now and then open one (PRD T2). At most one
@@ -1012,8 +1051,11 @@ class LifeEngine:
     async def quietly(self, mode):
         try:
             await self.reconcile(mode)
-        except Exception:  # noqa: BLE001 - one failed tick must not stop later ones.
-            pass
+        except Exception as error:  # noqa: BLE001 - one failed tick must not stop later ones.
+            # Logged, so a companion whose day fails on every tick shows why (tester, 2026-11-01: a whole day with no
+            # posts and nothing in the log). The same failure again within the hour is not logged again.
+            if self.failed.seen(f'{type(error).__name__}: {error}', self.now()):
+                LOG.exception("The companion's day could not move on.")
 
     async def quietly_cast(self, mode):
         try:

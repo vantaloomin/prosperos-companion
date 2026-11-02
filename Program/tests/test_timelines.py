@@ -323,3 +323,46 @@ def test_a_corrected_events_post_carries_over_showing_the_correction(client, com
     assert [item['summary'] for item in carried] == ['Visited the harbour']
     assert len(posts) == 1 and posts[0]['events'][0]['id'] == carried[0]['id']
     assert posts[0]['events'][0]['summary'] == 'Visited the harbour'
+
+
+def test_a_new_timeline_is_named_after_its_message_unless_the_user_names_it(client, connected, clock):
+    _first, second = conversation(client, clock, ['Morning!', 'I went hiking up the ridge trail with my sister today.'])
+    edited = fork(client, second['id'], text='I stayed home and read all day.')
+    assert edited['label'] == 'Edit: “I stayed home and read all day.”'
+    branched = client.post('/api/timelines', json={'message_id': second['id']}).json()
+    assert branched['label'] == 'After “I went hiking up the ridge trail…”'
+    assert len(branched['label']) <= 80
+    assert fork(client, second['id'], label='  The coast ')['label'] == 'The coast'
+
+
+def test_a_timeline_can_be_renamed_but_not_left_without_a_name(client, connected, clock):
+    _first, second = conversation(client, clock, ['Morning!', 'I went hiking today.'])
+    created = fork(client, second['id'])
+    renamed = client.patch(f"/api/timelines/{created['id']}", json={'label': ' Stayed in '})
+    assert renamed.status_code == 200 and renamed.json()['label'] == 'Stayed in'
+    original = client.get('/api/timelines').json()['active_id']
+    assert client.patch(f'/api/timelines/{original}', json={'label': 'Where it began'}).json()['label'] == 'Where it began'
+    assert client.patch(f"/api/timelines/{created['id']}", json={'label': '   '}).status_code == 422
+    assert client.get('/api/timelines').json()['timelines'][1]['label'] == 'Stayed in'
+
+
+def test_deleting_a_timeline_hides_it_until_undone_and_never_the_current_one(client, connected, clock):
+    _first, second = conversation(client, clock, ['Morning!', 'I went hiking today.'])
+    created = fork(client, second['id'])
+    original = client.get('/api/timelines').json()['active_id']
+    refused = client.delete(f'/api/timelines/{original}')
+    assert refused.status_code == 409 and 'Switch to another one' in refused.text
+
+    listing = client.delete(f"/api/timelines/{created['id']}").json()
+    assert [item['id'] for item in listing['timelines']] == [original]
+    assert client.post(f"/api/timelines/{created['id']}/activate").status_code == 404
+    assert client.patch(f"/api/timelines/{created['id']}", json={'label': 'Gone'}).status_code == 404
+
+    back = client.post(f"/api/timelines/{created['id']}/restore").json()
+    assert [item['id'] for item in back['timelines']] == [original, created['id']]
+    assert back['timelines'][1]['draft'] == 'Actually, I went to the coast.' and back['timelines'][1]['messages'] == 2
+
+    # The original can go too once the user is elsewhere; the branch keeps what came before it.
+    activate(client, created['id'])
+    assert [item['id'] for item in client.delete(f'/api/timelines/{original}').json()['timelines']] == [created['id']]
+    assert texts(client) == ['Morning!', 'Hello again.']

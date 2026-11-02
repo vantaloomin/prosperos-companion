@@ -10,6 +10,7 @@ changed, the backend must still be enabled, and the request is classified again 
 import asyncio
 import contextlib
 
+from companion import persona_pictures
 from companion.database import decode, encode, one, optional
 from companion.images import backends, jobs, prompts, sheet, storage
 from companion.images.adapters.base import AdapterError, ImageRequest, size_for
@@ -20,6 +21,15 @@ from companion.images.routing import eligible
 CANCEL_NOTES = {'hosted': 'Cancelled. The provider may still finish the request; its result will not be used.',
                 'codex': 'Cancelled; the Codex request was stopped.',
                 'comfyui': 'Cancelled; the request was removed from ComfyUI.'}
+
+
+# The user's picture beside the companion's: two attached pictures, or one pair side by side on ComfyUI.
+FOLLOW_USER = ('The reference pictures show the two people in this picture: the first (on the left, when they are '
+               'side by side) is the main person, the second (on the right) is the other person beside them. Keep '
+               "each one's face, hair, skin tone and build as they are there; take the outfits, pose, setting and "
+               'framing from this description.')
+FOLLOW_USER_ONLY = ('The attached reference picture shows the other person beside the main person: keep their face, '
+                    'hair, skin tone and build as they are there; take everything else from this description.')
 
 
 def character_lora(backend, inputs) -> dict | None:
@@ -212,7 +222,7 @@ class ImageRunner:
         result = None
         followed = None
         try:
-            followed = await self.follow_sheet(request, inputs)
+            followed = self.follow_user(request, inputs, await self.follow_sheet(request, inputs))
             result = await self.adapters[backend['kind']].generate(request)
             stored = storage.store(self.database, job_id, result.data)
         except asyncio.CancelledError:
@@ -265,6 +275,28 @@ class ImageRunner:
         request.reference = data
         request.prompt = f'{sheet.FOLLOW_PROFILE} {request.prompt}'
         return 'text description and their profile picture'
+
+    def follow_user(self, request, inputs, followed: str | None) -> str | None:
+        """A picture of a moment the user shares with the companion follows the user's own picture too
+        (companion/persona_pictures.py), as a second picture after the companion's, on a backend that takes two;
+        with nothing of the companion's to follow (and no LoRA drawing them), as the one reference."""
+        if not inputs.get('with_user') or request.lora:
+            return followed
+        if not (backends.takes_two(request.backend) if request.reference is not None
+                else backends.takes_reference(request.backend)):
+            return followed
+        with self.database.connect() as connection:
+            picture = persona_pictures.reference(self.database, connection)
+        if picture is None:
+            return followed
+        if request.reference is None:
+            request.reference = picture
+            request.prompt = f'{request.prompt} {FOLLOW_USER_ONLY}'
+            return 'text description and your picture'
+        request.others.append(picture)
+        # The two pictures are told apart together, in place of the one about their profile picture.
+        request.prompt = f"{request.prompt.removeprefix(f'{sheet.FOLLOW_PROFILE} ')} {FOLLOW_USER}"
+        return f'{followed}, and your picture' if followed else 'text description and your picture'
 
     def failed(self, job, backend, inputs, error: AdapterError, raw=None):
         fields = {key: value for key, value in (('remote_id', error.remote_id), ('raw_file', raw)) if value}

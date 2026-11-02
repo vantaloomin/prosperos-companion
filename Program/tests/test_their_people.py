@@ -1,4 +1,5 @@
 """Meeting their people (companion/life/their_people.py): the meet-up, first impressions, and guests who have met you."""
+import re
 from datetime import timedelta
 
 import pytest
@@ -546,4 +547,4 @@ def test_the_invitation_to_the_family_dinner_names_their_kids_but_not_with_the_a
     with client.app.state.database.connect(write=True) as connection:
         assert their_people.kids_coming(connection, current(connection)) == ''
     trigger, _outing = invite(client, clock)
-    assert 'Leo' not in trigger.reason
+    assert not re.search(r'\bLeo\b', trigger.reason)  # Their family's names are seeded: a Leonardo may come.

@@ -42,13 +42,19 @@ def test_everyone_met_or_heard_about_is_in_the_web_with_how_they_are_tied(client
     clock.instant = clock.now() + timedelta(days=8)
     build(client)
     nodes, links = read(client)
+    for _week in range(4):  # A free Friday or Saturday evening with a friend is seeded; now and then a week has none.
+        if any(node['kind'] == 'acquaintance' for node in nodes.values()):
+            break
+        clock.instant = clock.now() + timedelta(days=7)
+        build(client)
+        nodes, links = read(client)
     me, companion = nodes['you'], nodes[f"companion:{mira['id']}"]
     assert me['kind'] == 'you' and companion['main'] and tied(links, 'you', companion['id'])['kind'] == 'you'
     circle = [node for node in nodes.values() if node['kind'] == 'circle']
     assert circle and all(tied(links, companion['id'], node['id']) for node in circle)
     assert any(tied(links, companion['id'], node['id'])['label'] == node['detail'] for node in circle)
     met = [node for node in nodes.values() if node['kind'] == 'acquaintance']
-    assert met, 'a gathering every Friday should introduce someone'
+    assert met, 'a friend hosting every free Friday or Saturday evening should introduce someone'
     for node in met:
         assert tied(links, node['id'], node['id'].rsplit('/', 1)[0]), node
         assert tied(links, companion['id'], node['id'])['label'].startswith('met at ')

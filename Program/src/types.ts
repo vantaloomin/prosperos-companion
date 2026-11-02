@@ -507,7 +507,8 @@ export interface LifeSettings {
   on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
-  /** This world's own drama level (companion/life/world_drama.py); null follows `drama`, which every world shares. */
+  /** This world's own drama level (companion/life/world_drama.py), or null while it still follows the level carried
+   * between worlds; `drama` is always the level this world runs at. */
   world_drama: number | null
   /** Their companion is the only one in this world, so storylines start a little more often for them. */
   alone: boolean
@@ -564,6 +565,8 @@ export interface LifeSettings {
   loss: number
   /** Local politics (companion/life/politics.py): 0 off, 1 quiet, 2 true to life, 3 lively. */
   politics_realism: number
+  /** Trolls and snark on posts (companion/life/social.py): 0 off, 1 rivals only, 2 snarky, 3 trolls. */
+  trolls_realism: number
 }
 
 /** Where you and the open companion stand on their ladder (GET /api/life/steps); `ladder` is null for mentors, family and other. */
@@ -1090,7 +1093,7 @@ export interface ImageBackend {
 export interface WorldImageBackends { own: boolean; picked: string[]; falls_back: boolean; used: string[] }
 export interface ImageBackendList { backends: ImageBackend[]; world: WorldImageBackends }
 
-export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; follow_profile_picture: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; meme_formats: boolean; follow_profile_picture: boolean; show_me: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
@@ -2245,6 +2248,13 @@ export interface World {
   back_when?: { year: number; name: string; companion_id: string } | null
   /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
   home: WorldHome | null
+  /** Life stands still there (companion/worlds.py `paused`): every world but the one the user is in, and one paused in
+   * Settings > Pause. `paused_since` is when they left it or paused it, null when it can't be told. */
+  paused?: boolean
+  paused_since?: string | null
+  paused_in_settings?: boolean
+  /** Going back fills in a few events from the time away (Settings > Life, catch up on return). */
+  catches_up?: boolean
 }
 /** One moment the Back when sheet offers (companion/back_when.py `moments`): "When you first met", 2019. `age` is the
  * companion's age then, null when it can't be told. */
@@ -2259,6 +2269,8 @@ export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
 export interface PersonaPet { name: string; kind: string; looks: string; born?: string; added?: string; age?: number | null }
 export interface Persona {
   id: string; name: string; gender: PersonaGender; age: number | null; about: string; birthday: string; created_at: string
+  /** How they look and their picture's file, for pictures of moments they share with a companion. */
+  looks?: string; picture?: string
   pets?: PersonaPet[]
   /** Kind and How long they live as picked on the Persona page ('' and null: read from About you). */
   kind?: string; lifespan?: number | null

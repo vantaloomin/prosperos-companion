@@ -21,8 +21,10 @@ GENDERS = {'1boy': ('1boy, male focus', '1girl, female focus'), '1girl': ('1girl
            '1other': ('1other', '')}
 PONY_FILE = re.compile(r'pony|pdxl', re.IGNORECASE)
 
-# Sentences that tell a photo model something no tag can: the reference picture's instruction, the camera.
-DROPPED = re.compile(r'^(?:The attached reference picture|Shot at eye level|Slight wide-angle|Phone-camera look)')
+# Sentences that tell a photo model something no tag can: the reference picture's instruction, the camera, "appears
+# only once" in a crowd.
+DROPPED = re.compile(r'^(?:The attached reference picture|Shot at eye level|Slight wide-angle|Phone-camera look|'
+                     r'(?:She|He|They) appears? only once)')
 # The reference instruction that opens a picture following their profile picture (images/sheet.py FOLLOW_PROFILE).
 FOLLOWING = re.compile(r'^Make a new photo of the person in the attached reference picture\..*?replace the background '
                        r'entirely\.\s*', re.DOTALL)
@@ -59,6 +61,8 @@ SHOTS = (
     (r'side profile', 'profile, from side'),
     (r'three-quarter view', 'three-quarter view'),
     (r'looking back over the shoulder', 'looking back'),
+    (r'atmospheric candid scene', 'wide shot, scenery'),
+    (r'seen through the eyes of', 'pov'),
     (r'selfie', 'selfie, looking at viewer'),
     (r"phone's front camera", 'holding phone'),
     (r'face and shoulders', 'portrait'),

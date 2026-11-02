@@ -6,6 +6,7 @@ from datetime import date, timedelta
 import pytest
 from conftest import reconcile, send, set_life
 
+from companion import news
 from companion.life import body, circle, storylines
 
 WORKDAY = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'start': '09:00', 'end': '17:00', 'days': [0, 1, 2, 3, 4]},
@@ -53,7 +54,8 @@ def test_the_context_tells_every_beat_to_the_companion_as_you():
     assert 'You heard you are being considered for a promotion.' in told
     assert 'You got the promotion.' in told
     assert 'Your mom Cathy got engaged.' in told and 'Cathy, your mom, got a promotion at work.' in told
-    assert 'A new guy at your work keeps hitting on you, and it is getting uncomfortable.' in told
+    assert 'A new coworker keeps taking credit for your work in meetings.' in told
+    assert 'You took the credit problem to your manager, who is keeping an eye on it.' in told
     assert 'There are rumors of layoffs at your work.' in told
     assert "Cathy and Rui still aren't speaking; you are seeing them separately." in told
     assert 'Your mom Cathy let slip that you have a half-sibling you never knew about.' in told
@@ -123,6 +125,28 @@ def test_ending_one_takes_it_out_of_today_and_the_context(client, social, monkey
     assert item['beats'][0]['text'] not in client.get('/api/context/preview').json()['prompt']
 
 
+def test_ending_one_takes_its_thought_and_news_with_it(client, social, clock, monkeypatch):
+    monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('credit_taker'),))
+    clock.instant = clock.now().replace(hour=19)
+    reconcile(client)
+    item = client.get('/api/life/storylines').json()[0]
+    first = item['beats'][0]['text']
+    assert any(first in thought['text'] for thought in client.get('/api/today').json()['mind']['thoughts'])
+    assert spread_news(client) == ['active']
+    client.post(f"/api/life/storylines/{item['id']}/end")
+    thoughts = client.get('/api/today').json()['mind']['thoughts']
+    assert thoughts and not any(first in thought['text'] for thought in thoughts)
+    assert spread_news(client) == ['ended']
+
+
+def spread_news(client) -> list[str]:
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        news.sync(connection, database.clock.now())
+        return [row['status'] for row in connection.execute("SELECT status FROM news WHERE source LIKE 'storyline:%'")]
+
+
 def test_removing_someone_ends_their_storylines(client, social, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
     monkeypatch.setattr(storylines, 'STORIES', tuple(story for story in storylines.STORIES if story.cast == 'friend'))
@@ -147,14 +171,14 @@ def test_someone_leaving_after_a_storyline_settled_keeps_it(client, social, cloc
 
 def test_a_new_beat_can_open_a_conversation(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
-    monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('work_creep'),))
+    monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('credit_taker'),))
     set_life(client, texts_first=True)
     reconcile(client)
     clock.instant = clock.now().replace(hour=19)
     result = client.post('/api/life/texts/check').json()
     assert result['kind'] == 'storyline'
     messages = client.get('/api/conversation').json()['messages']
-    assert messages[-1]['text'] == 'I hate the new guy at work. He keeps hitting on me.'
+    assert messages[-1]['text'] == 'The new person at work keeps taking credit for MY work. in meetings. out loud'
 
 
 def test_a_fork_keeps_storylines_that_had_started(client, social, clock, monkeypatch, provider):
@@ -254,3 +278,32 @@ def test_a_city_of_another_era_has_no_phones_or_internet_in_its_storylines():
                 for said in (found.text, found.share):
                     period = storylines.fill(said, row, names, {'name': 'Wren', 'home_city': 'camelot'})
                     assert not re.search(r'\b(phone|online|texted|internet|messaged)\b', period), period
+
+
+def test_each_beat_has_its_own_time_of_day(monkeypatch):
+    """Tester, 2026-10-31: Sarek's and Spock's storylines both landed at 13:13. Beats get seeded times in waking hours."""
+    from datetime import time
+    monkeypatch.setattr(storylines, 'BEAT_HOURS', (time(8, 30), time(21, 0)))
+    times = {storylines.beat_time(f'story-{number}', 0) for number in range(200)}
+    assert len(times) > 100 and min(times) >= '08:30' and max(times) <= '21:00'
+    assert storylines.beat_time('story-1', 0) == storylines.beat_time('story-1', 0)
+
+
+def test_a_beat_today_waits_for_its_time(client, social, clock, monkeypatch):
+    from datetime import time
+    monkeypatch.setattr(storylines, 'BEAT_HOURS', (time(8, 30), time(21, 0)))
+    monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    clock.instant = clock.now().replace(hour=7, minute=0)
+    reconcile(client)
+    assert len(stored(client)) == 1 and client.get('/api/life/storylines').json() == []
+    when = storylines.beat_time(stored(client)[0]['id'], 0)
+    clock.instant = clock.now().replace(hour=int(when[:2]), minute=int(when[3:]))
+    listed = client.get('/api/life/storylines').json()
+    assert len(listed) == 1 and listed[0]['beats'][0]['time'] == when
+    # The narrator (Just watching) tells it at that time, not at one time shared by everyone.
+    from companion.characters import require_current
+    from companion.life import narrator
+    with client.app.state.database.connect() as connection:
+        lines = narrator.companion_lines(connection, require_current(connection), clock.now())
+    told = [line for line in lines if line['kind'] == 'story']
+    assert told and all(line['at'][11:16] == when for line in told)

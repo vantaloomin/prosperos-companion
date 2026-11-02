@@ -1,6 +1,6 @@
 """Storylines: things that unfold over days in the companion's life and their circle's (realism).
 
-"Omg, my dad just got a promotion." "I hate the new guy at work, he keeps hitting on me." "I got
+"Omg, my dad just got a promotion." "The new person at work keeps taking credit for my work." "I got
 drunk and kissed my best friend." Each storyline is a fixed template with a cast drawn from the
 circle (or the companion's own work), and two or three beats spread over the following days. Which
 storyline starts on which day, who is in it and how each beat turns out are all decided by a seed
@@ -22,7 +22,7 @@ the storylines they are in.
 """
 import random
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
@@ -36,6 +36,9 @@ START = CHANCES = (0.04, 0.08, 0.15, 0.28)
 RUNNING = (1, 2, 3, 4)
 REPEAT_AFTER = timedelta(days=90)
 CATCH_UP_DAYS = 14
+# A beat happens at its own time of day, seeded by the storyline and the beat (`beat_time`), so one person's news
+# and another's never land at the same moment (tester, 2026-10-31: Sarek's and Spock's both at 13:13). Waking hours.
+BEAT_HOURS = (time(8, 30), time(21, 0))
 RECENT_DAYS = 21
 SETTLED_DAYS = 60
 
@@ -90,13 +93,21 @@ STORIES = (
                ('{name} did not get the promotion; it went to someone else.',
                 "didn't get the promotion. it's fine. (it's not fine)", 'bad'))), (4, 10)),
     # Realistic: everyday trouble.
+    Story('credit_taker', 1, 'work', (
+        beat("A new coworker keeps taking credit for {name}'s work in meetings.",
+             'the new person at work keeps taking credit for MY work. in meetings. out loud', 'bad'),
+        either(('{name} spoke up in a meeting and made it clear whose work it was.',
+                'spoke up in the meeting today. everyone knows whose work it was now', 'good'),
+               ('{name} took the credit problem to their manager, who is keeping an eye on it.',
+                "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5)),
+    # Retired in v1.2.2; kept so storylines started before then still read.
     Story('work_creep', 1, 'work', (
         beat('A new guy at {name}\'s work keeps hitting on them, and it is getting uncomfortable.',
              'I hate the new guy at work. He keeps hitting on me.', 'bad'),
         either(('{name} told the new guy to knock it off, and he finally backed off.',
                 'update on the new guy: I told him to knock it off and he actually did', 'good'),
                ('{name} reported the new guy to their manager after he kept at it.',
-                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5)),
+                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5), own=True),
     Story('friend_breakup', 1, 'friend', (
         beat('{a} went through a breakup, and {name} spent the evening on the phone with them.',
              'rough night. {a} got dumped and I was on the phone with them for hours', 'bad'),
@@ -401,6 +412,10 @@ def advance(connection, companion, now) -> int:
     return started
 
 
+# A thought or a piece of news about an ended storyline: its topic or source is `storyline:<id>:<beat>`.
+ENDED_SOURCE = ("EXISTS (SELECT 1 FROM storylines s WHERE s.status='ended' AND {column} LIKE 'storyline:' || s.id || ':%')")
+
+
 def end_removed(connection, timeline_id, today: date):
     """Someone removed from the circle takes their unfinished storylines with them; settled ones stay told."""
     removed = {row['id'] for row in many(connection, "SELECT id FROM circle_people WHERE timeline_id=? "
@@ -457,17 +472,31 @@ def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
     return filled[0].upper() + filled[1:] if filled else filled
 
 
-def view(row: dict, names: dict, definition: dict, today: str, you=False) -> dict:
+def beat_time(storyline_id: str, index: int) -> str:
+    """The time of day a beat happens, 'HH:MM': seeded, so it stays put, and different for every storyline."""
+    start, end = (moment.hour * 60 + moment.minute for moment in BEAT_HOURS)
+    minutes = random.Random(f'beat-time:{storyline_id}:{index}').randrange(start, end + 1)
+    return f'{minutes // 60:02d}:{minutes % 60:02d}'
+
+
+def happened(stage: dict, row_id: str, index: int, today: str, clock: str) -> bool:
+    """A beat has happened once its day has come and, on that day, its time (`beat_time`) has too."""
+    return not stage.get('pending') and (stage['on'] < today or (stage['on'] == today and
+                                                                  beat_time(row_id, index) <= clock))
+
+
+def view(row: dict, names: dict, definition: dict, today: str, you=False, clock: str = '24:00') -> dict:
+    """`clock` is the companion's local time ('HH:MM'); a beat due later today waits for it."""
     stages = decode(row['stages'])
-    beats = [{'on': stage['on'], 'text': fill(stage['text'], row, names, definition, you),
+    beats = [{'on': stage['on'], 'time': beat_time(row['id'], index),
+              'text': fill(stage['text'], row, names, definition, you),
               'share': fill(stage['share'], row, names, definition), 'tone': stage['tone'],
               'consequence': stage.get('consequence') or stage.get('odds')}
-             for stage in stages if stage['on'] <= today and not stage.get('pending')]
+             for index, stage in enumerate(stages) if happened(stage, row['id'], index, today, clock)]
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
             'status': row['status'], 'cast': [{'id': person_id, **names[person_id]} for person_id in
                                               decode(row['cast_ids']) if person_id in names],
-            'beats': beats, 'unfolding': row['status'] == 'running' and (stages[-1]['on'] > today or
-                                                                          bool(stages[-1].get('pending')))}
+            'beats': beats, 'unfolding': row['status'] == 'running' and len(beats) < len(stages)}
 
 
 def visible(connection, companion, now, include_ended=False, you=False, shown=False) -> list[dict]:
@@ -476,7 +505,8 @@ def visible(connection, companion, now, include_ended=False, you=False, shown=Fa
     screens, which always list them."""
     from companion.life import families
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
-    today = local_today(companion, now).isoformat()
+    local = now.astimezone(zone(companion['version']['timezone']))
+    today, clock = local.date().isoformat(), local.strftime('%H:%M')
     names = {row['id']: {'name': row['name'], 'role': row['role']}
              for row in circle.people(connection, timeline_id, include_removed=True)}
     status = '' if include_ended else "AND status='running' "
@@ -484,7 +514,8 @@ def visible(connection, companion, now, include_ended=False, you=False, shown=Fa
                 'ORDER BY started_on DESC', (timeline_id, today))
     if not shown and families.withheld(connection):
         rows = [row for row in rows if row['story'] not in FAMILY]
-    return [view(row, names, definition, today, you) for row in rows]
+    found = (view(row, names, definition, today, you, clock) for row in rows)
+    return [item for item in found if item['beats']]
 
 
 def context_lines(connection, companion, now) -> list[tuple[str, str]]:
@@ -531,7 +562,9 @@ def listing(database, include_ended=False) -> list[dict]:
 
 
 def end(database, storyline_id) -> list[dict]:
-    """The user ends a storyline: it leaves the context and Today, and its later beats never happen."""
+    """The user ends a storyline: it leaves the context and Today, and its later beats never happen. Nothing written
+    from it stays either: a thought it put on their mind goes (companion/life/thoughts.py) and its news stops spreading
+    (companion/news.py)."""
     from companion.characters import require_current
     with database.connect(write=True) as connection:
         row = one(connection, 'SELECT * FROM storylines WHERE id=?', (storyline_id,))

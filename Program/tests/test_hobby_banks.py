@@ -112,3 +112,13 @@ def test_every_era_has_a_hundred_milestones_and_their_means_the_companion(kind):
     for era in ERAS:
         assert sum(in_era(item['eras'], era) for item in milestones) >= 100, era
     assert not [item['text'] for item in milestones if OTHERS_THEIR.search(item['text'])]
+
+
+def test_session_lines_never_say_they_or_their():
+    """A session line follows "Sam went to ballet." with no subject of its own, so in a post said as "I" a "their"
+    there would read as someone else ("Laughed at their own mistakes"); "they" could also be the scales or the steps
+    when the chat says it to them as "you". The lines name no one at all."""
+    for kind in kinds():
+        for line in bank(kind).get('sessions', ()):
+            assert not re.search(r"\b(?:they|their|theirs|them|themselves|themself|they're|they've|they'd)\b",
+                                 line['text'], re.IGNORECASE), line['text']

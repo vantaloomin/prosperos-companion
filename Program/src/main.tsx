@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import '@fontsource/ibm-plex-sans/400.css'
 import '@fontsource/ibm-plex-sans/500.css'
 import '@fontsource/literata/400.css'
+// Italic for actions written between asterisks in chat (conversation/actionText.ts).
+import '@fontsource/ibm-plex-sans/400-italic.css'
+import '@fontsource/literata/400-italic.css'
+import '@fontsource/atkinson-hyperlegible/latin-400-italic.css'
 import '@fontsource/atkinson-hyperlegible/latin-400.css'
 import '@fontsource/atkinson-hyperlegible/latin-700.css'
 // Name fonts for Their look in chat (src/features/conversation/theirLook.ts): one weight each, fetched only when a name uses it.

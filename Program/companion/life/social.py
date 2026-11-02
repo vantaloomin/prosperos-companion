@@ -20,7 +20,14 @@ up some time after its post, a renamed friend comments under the new name and a 
 leaves the conversation. The companion likes and comments on friends' posts the same way, and
 other companions who know them (companion/memory/pairs.py) on the companion's own posts, by how
 close they feel and how reserved or warm they are.
+
+Who reacts follows how they know the poster (`stance`): on a friend's post, the rest of the circle by how they and
+that friend know each other (circle.tie), and the companion by whether they know them (circle.knowing). Someone
+who doesn't know the poster seldom even sees it and never comments; family and old friends join in most. A rival
+(by their tie, or by the words of their role for the companion) keeps quiet or gets in a dig, as Settings > Realism
+> "Trolls and snark on posts" (life_settings.trolls_realism, companion/life/post_snark.py) says.
 """
+import json
 import logging
 import re
 from datetime import date, datetime, time, timedelta
@@ -29,7 +36,8 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, composer, loss, love_life, wedding
+from companion.life import circle, composer, loss, love_life, post_snark, wedding
+from companion.world import catalog
 from companion.world.generators import pick, unit
 
 KINDS = ('status', 'friend', 'birthday', 'holiday', 'city', 'question')
@@ -45,6 +53,7 @@ MAX_COMMENTS = 3
 REACTION_WINDOW = timedelta(hours=8)
 HOT_F, COLD_F = 86, 40
 SICK = {'sick', 'under the weather'}
+LINES = json.loads((catalog.DATA / 'feed_lines.json').read_text(encoding='utf-8'))
 DOWN = {'tired', 'hungover', 'worn out', 'sore', 'drained', 'sluggish'}
 
 STATUS = {
@@ -68,32 +77,40 @@ STATUS = {
     'books': ('{item} keeps popping up everywhere. Has anyone read it?',),
     # While grief is raw or heavy (companion/life/loss.py): nothing playful, no questions.
     'grief': ('Quiet few days.', 'Taking things slowly this week.', 'Keeping to myself for a bit.'),
-    'any': ('Small wins today.', "Some days are just quiet, and that's fine.", 'Good music, good mood.',
-            'Note to self: drink more water.'),
+    # Passing thoughts for any day (companion/world/data/feed_lines.json).
+    'any': tuple(line for group in LINES['status_any'].values() for line in group),
 }
-QUESTIONS = (
-    ('Dinner tonight?', ('Tacos', 'Ramen')),
-    ('Movie night: something scary or something cozy?', ('Scary', 'Cozy')),
-    ('Coffee or tea this morning?', ('Coffee', 'Tea')),
-    ('Thinking about cutting my hair short. Yes or no?', ('Do it', "Don't you dare")),
-    ('Early night or one more episode?', ('Early night', 'One more episode')),
-    ('Beach or mountains?', ('Beach', 'Mountains')),
-    ('Is pineapple on pizza okay?', ('Yes', 'Absolutely not')),
-    ('Sunrise or sunset?', ('Sunrise', 'Sunset')),
-)
+# Small either-or questions the user can answer: (question, (option, option)).
+QUESTIONS = tuple((row[0], tuple(row[1:])) for group in LINES['questions'].values() for row in group)
+# Which worlds a bank line fits (feed_lines.json): 'anywhen' every era, 'since_1850' none before the Victorian age,
+# 'modern' only modern and future worlds; and, in a Back when year, nothing named before it existed (SINCE).
+WHEN = {**{row[0]: group for group, rows in LINES['questions'].items() for row in rows},
+        **{line: group for group, lines in LINES['status_any'].items() for line in lines}}
+ERA_WHEN = {'medieval': {'anywhen'}, 'fantasy': {'anywhen'}}
+PAST_WHEN = {'anywhen', 'since_1850'}
+SINCE = tuple((re.compile(pattern, re.IGNORECASE), year) for pattern, year in LINES['since'])
+# A day offers this many of the any-day thoughts beside the weather, weekday, charts and interests, so a bigger bank
+# never crowds those out.
+ANY_OFFERED = 4
+# The companion never repeats a status line within this long, nor asks a question again until every other one that
+# fits their world has been asked (then the one asked longest ago comes back first).
+STATUS_GAP = timedelta(days=45)
 # Lines that belong to today (and the near future): before about 1950 nobody watches episodes or orders tacos, and
 # in a medieval or fantasy town nobody drinks coffee; aboard a ship or station there is no beach, sunrise or
 # outdoors to linger in (companion/world/ships.py). The rest suit any world.
-TODAYS = re.compile(r'\b(?:tv|episodes?|movies?|pizza|tacos|ramen|iced|couch)\b', re.IGNORECASE)
+TODAYS = re.compile(r'\b(?:tv|episodes?|movies?|pizza|tacos|ramen|iced|couch|peanut|cereal|karaoke|popcorn|brownies|'
+                    r'audio|shower|ice cream|order in)\b', re.IGNORECASE)
 COFFEE = re.compile(r'\bcoffee\b', re.IGNORECASE)
 NO_COFFEE_ERAS = {'medieval', 'fantasy'}
 TODAYS_ERAS = {'modern', 'future'}
-GROUNDED = re.compile(r'\b(?:beach|sunrise|sunset|outside|umbrella|rain)\b', re.IGNORECASE)
+GROUNDED = re.compile(r'\b(?:beach|sunrise|sunset|outside|umbrella|rain|lake|sea|snow|park|garden|hiking|swimming|'
+                      r'camping|countryside|walk|stars|window|bird|picnic|balcony|trip|weekend away)\b', re.IGNORECASE)
 BIRTHDAY = ('Happy birthday, {name}! 🎂', 'Happy birthday to {name}, who makes everything more fun. 🎉',
             'Another year of {name}. Lucky us. Happy birthday! 🎂')
 FAMILY_BIRTHDAY = 'Happy birthday to my favorite {role}, {name}! 🎂'
 HOLIDAY = ('Happy {holiday}, everyone!', '{holiday} and a day off. Perfect.', 'Happy {holiday}! Taking it easy today.')
-HAPPENING = ('{event} is on today{where}. Anyone going?', 'Reminder that {event} is today{where}.')
+# Worded so the verb never has to agree with the event's name ("Halloween parties", "Mardi Gras").
+HAPPENING = ('{event} today{where}. Anyone going?', "Don't forget, {event} today{where}.")
 
 COMMENTS = {
     'general': ('Love this!', 'This is so you.', 'Jealous.', 'Save me a spot next time.', 'Wait, I need details.',
@@ -139,6 +156,21 @@ RESERVED_COMMENTS = {
     'grief': ('I am here, should you need anything.', 'My thoughts are with you.'),
     'question': ('{option}.', '{option}, logically.'),
 }
+# How someone stands with the poster (`stance`) scales their chance to like and to comment (the usual chances
+# LIKELY and COMMENT_CHANCE). Someone who doesn't know the poster sees a friend-of-a-friend's post now and then
+# and leaves it at that; family and old friends join in most.
+STANCES = {'close': (1.3, 1.2), 'friendly': (1.0, 1.0), 'coworkers': (0.7, 0.5), 'cool': (0.2, 0.0),
+           'knows of': (0.25, 0.0), 'stranger': (0.08, 0.0), 'rival': (0.1, 0.0), 'usual': (1.0, 1.0)}
+TIE_STANCES = {'family': 'close', 'married': 'close', 'partners': 'close', 'old friends': 'close',
+               'known for years': 'friendly', 'friends': 'friendly', 'coworkers': 'coworkers', 'rivals': 'rival',
+               'divorced': 'cool', 'separated': 'cool', 'knows of': 'knows of', 'known by': 'stranger'}
+# Someone the role or the note calls the companion's rival (Kaito, Sett's rival).
+RIVAL_WORDS = re.compile(r"\b(?:arch-?)?(?:rival|nemesis|enemy|enemies|foe|adversary|nemeses)s?\b", re.IGNORECASE)
+# Trolls and snark on posts (life_settings.trolls_realism): 0 off, 1 rivals only (the default), 2 snarky, 3 trolls.
+# How likely a rival is to comment, times COMMENT_CHANCE; at 3 someone parted from the poster snipes too.
+TROLL_LEVELS, DEFAULT_TROLLS = 4, 1
+RIVAL_TALKS = (0.0, 0.3, 0.7, 1.2)
+COOL_TALKS = (0.0, 0.0, 0.0, 0.4)
 LOG = logging.getLogger(__name__)
 
 
@@ -182,11 +214,29 @@ def write(connection, companion, now: datetime) -> int:
 
 
 def active_people(connection, timeline_id) -> dict[str, dict]:
-    """The circle as the posts show them: the role in their era's words ('mother' in 1895, circle.era_word)."""
+    """The circle as the posts show them: the role in their era's words ('mother' in 1895, circle.era_word), with
+    how each knows the rest (`ties`, circle.ties: {other id: how}), whether they and the companion know each other
+    (`knowing`, circle.knowing) and whether they are the companion's rival (`rival`)."""
     older = circle.voice_of(connection, timeline_id)
-    return {row['id']: {'id': row['id'], 'name': row['name'], 'role': circle.era_word(row['role'], older)}
-            for row in many(connection, "SELECT id, name, role FROM circle_people WHERE timeline_id=? "
-                            "AND status='active' ORDER BY ordinal", (timeline_id,))}
+    rows = many(connection, "SELECT * FROM circle_people WHERE timeline_id=? AND status='active' ORDER BY ordinal",
+                (timeline_id,))
+    known = circle.ties(rows)
+    return {row['id']: {'id': row['id'], 'name': row['name'], 'role': circle.era_word(row['role'], older),
+                        'ties': {item['id']: item['how'] for item in known[row['id']]},
+                        'knowing': circle.knowing(row), 'rival': rival_of_companion(row)}
+            for row in rows}
+
+
+def rival_of_companion(row: dict) -> bool:
+    """Their role or note calls them the companion's rival (or nemesis, or enemy)."""
+    return bool(RIVAL_WORDS.search(f"{row.get('role') or ''}. {circle.details_of(row).get('note') or ''}"))
+
+
+def trolls(connection) -> int:
+    """Settings > Realism > Trolls and snark on posts: 0 off ... 3 trolls."""
+    row = optional(connection, 'SELECT trolls_realism FROM life_settings WHERE id=1')
+    level = row['trolls_realism'] if row else None
+    return level if level in range(TROLL_LEVELS) else DEFAULT_TROLLS
 
 
 def place_name(place) -> str:
@@ -196,18 +246,19 @@ def place_name(place) -> str:
 
 
 def friend_posts(connection, timeline_id, people, since, now) -> list[dict]:
-    """At most one shared entry per person a day, and a few a day across the circle."""
+    """At most one shared entry per person a day, and a few a day across the circle; never a day with none (`floor`)."""
     rows = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND subject!=? AND status='happened' "
                 'AND entry IS NOT NULL AND ends_at>? AND ends_at<=? ORDER BY starts_at',
                 (timeline_id, COMPANION, stamp(since), stamp(now)))
+    floors = floor(connection, timeline_id, people, {row['local_date'] for row in rows})
     result, posted, daily = [], set(), {}
     for row in rows:
-        entry, block = decode(row['entry']), decode(row['block'])
-        key = f"friend:{timeline_id}:{row['subject']}:{row['slot_key']}"
+        entry = decode(row['entry'])
+        key = friend_key(timeline_id, row)
         day = (row['subject'], row['local_date'])
         if row['subject'] not in people or day in posted or daily.get(row['local_date'], 0) >= FRIEND_DAILY:
             continue
-        if unit(key, 'share') >= SHARE.get(block.get('kind'), 0.1) or not isinstance(entry.get('post'), str):
+        if (not shares(key, row) and key != floors.get(row['local_date'])) or not isinstance(entry.get('post'), str):
             continue
         posted.add(day)
         daily[row['local_date']] = daily.get(row['local_date'], 0) + 1
@@ -215,6 +266,39 @@ def friend_posts(connection, timeline_id, people, since, now) -> list[dict]:
                        'content': {'text': entry['post'] or entry['summary'], 'context': entry['summary'],
                                    'place': place_name(entry.get('place')), 'mood': entry.get('mood') or ''}})
     return result
+
+
+def friend_key(timeline_id, row) -> str:
+    return f"friend:{timeline_id}:{row['subject']}:{row['slot_key']}"
+
+
+def shares(key: str, row) -> bool:
+    """Whether a circle member shares this entry: seeded, likelier for an evening out than a shift."""
+    return unit(key, 'share') < SHARE.get(decode(row['block']).get('kind'), 0.1)
+
+
+def floor(connection, timeline_id, people, local_dates) -> dict[str, str]:
+    """For a local day on which nobody in the circle would share anything, the one entry shared anyway: the nearest to
+    sharing. A small circle's quiet day otherwise left the feed empty (tester, 2026-10-31). Decided over the whole day,
+    entries still to come included, so it is the same however often the feed is read."""
+    if not local_dates:
+        return {}
+    marks = ','.join('?' * len(local_dates))
+    sharing, nearest = set(), {}
+    for row in many(connection, 'SELECT subject, slot_key, local_date, block FROM life_agenda WHERE timeline_id=? '
+                    f"AND subject!=? AND status IN ('happened', 'upcoming') AND json_type(entry, '$.post')='text' "
+                    f'AND local_date IN ({marks})', (timeline_id, COMPANION, *sorted(local_dates))):
+        if row['subject'] not in people:
+            continue
+        key = friend_key(timeline_id, row)
+        if shares(key, row):
+            sharing.add(row['local_date'])
+            continue
+        # How far the entry is from sharing: its roll over its chance.
+        distance = unit(key, 'share') / SHARE.get(decode(row['block']).get('kind'), 0.1)
+        if row['local_date'] not in nearest or distance < nearest[row['local_date']][0]:
+            nearest[row['local_date']] = (distance, key)
+    return {local_date: key for local_date, (_distance, key) in nearest.items() if local_date not in sharing}
 
 
 def local_dates(since: datetime, now: datetime, timezone: str) -> list[date]:
@@ -263,6 +347,7 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
     result = []
     days = local_dates(since, now, timezone)
     fits = fits_world(connection, definition)
+    said = Said(connection, timeline_id)
     for day in days:
         local_date, prefix = day.isoformat(), f'{timeline_id}:{day.isoformat()}'
         facts = day_facts(connection, timeline_id, local_date)
@@ -270,17 +355,17 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
         facts['culture'] = culture_picks(connection, now, definition) if day == days[-1] else {}
         grieving = loss.raw_or_heavy(connection, timeline_id, day)
         if unit(prefix, 'status') < STATUS_CHANCE:
-            text, tone = (pick(prefix, 'line', list(STATUS['grief'])), 'down') if grieving else \
-                status_text(prefix, day, facts, definition, fits)
-            result.append(own('status', f'status:{prefix}', at(day, timezone, f'status:{prefix}', 8, 22),
-                              {'text': text, 'tone': tone}))
+            occurs_at = at(day, timezone, f'status:{prefix}', 8, 22)
+            result.append(said.post('status', f'status:{prefix}', occurs_at, lambda recent: (
+                {'text': pick(prefix, 'line', list(STATUS['grief'])), 'tone': 'down'} if grieving else
+                dict(zip(('text', 'tone'), status_text(prefix, day, facts, definition, fits, recent),
+                         strict=True)))))
         if grieving:
             continue  # Only a quiet status while grief is raw or heavy.
         if unit(prefix, 'question') < QUESTION_CHANCE:
-            question, options = pick(prefix, 'question', [item for item in QUESTIONS if fits(
-                ' '.join([item[0], *item[1]]))])
-            result.append(own('question', f'question:{prefix}', at(day, timezone, f'question:{prefix}', 12, 21),
-                              {'text': question, 'options': list(options)}))
+            occurs_at = at(day, timezone, f'question:{prefix}', 12, 21)
+            result.append(said.post('question', f'question:{prefix}', occurs_at, lambda _recent: question_content(
+                prefix, [item for item in QUESTIONS if fits(' '.join([item[0], *item[1]]), item[0])], said.asked)))
         result += celebrations(prefix, day, timezone, facts, people)
     # Date nights and steps with someone they are seeing (companion/life/love_life.py).
     # The day they got engaged to the user (companion/life/wedding.py).
@@ -288,31 +373,82 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
         wedding.feed_posts(connection, companion, days, timezone)
 
 
+class Said:
+    """What the companion already said in status and question posts on this timeline, so the feed doesn't repeat
+    itself: a day already posted keeps what it said, a new status skips lines used within STATUS_GAP and a new
+    question skips every question asked before, answered or not, until all that fit have been asked."""
+
+    def __init__(self, connection, timeline_id):
+        rows = many(connection, "SELECT idempotency_key, kind, content, occurs_at FROM social_posts WHERE timeline_id=? "
+                    "AND author=? AND kind IN ('status', 'question') ORDER BY occurs_at", (timeline_id, COMPANION))
+        self.stored = {row['idempotency_key']: decode(row['content']) for row in rows}
+        self.lines: dict[str, str] = {}
+        self.asked: dict[str, str] = {}
+        for row in rows:
+            self.note(row['kind'], self.stored[row['idempotency_key']].get('text'), row['occurs_at'])
+
+    def note(self, kind, text, occurs_at):
+        if isinstance(text, str):
+            (self.asked if kind == 'question' else self.lines)[text] = occurs_at
+
+    def recent(self, occurs_at) -> set[str]:
+        moment = parse(occurs_at)
+        since, until = stamp(moment - STATUS_GAP), stamp(moment + STATUS_GAP)
+        return {text for text, said_at in self.lines.items() if since <= said_at <= until}
+
+    def post(self, kind, key, occurs_at, content) -> dict:
+        """The post under `key`: as already written, or new from `content(recent lines)`."""
+        found = self.stored.get(key) or content(self.recent(occurs_at))
+        if key not in self.stored:
+            self.note(kind, found.get('text'), occurs_at)
+        return own(kind, key, occurs_at, found)
+
+
+def question_content(seed: str, questions: list, asked: dict[str, str]) -> dict:
+    """A question not asked before; once all have been, one of the half asked longest ago."""
+    fresh = [item for item in questions if item[0] not in asked]
+    if not fresh:
+        oldest = sorted(questions, key=lambda item: asked.get(item[0], ''))
+        fresh = oldest[:max(1, len(oldest) // 2)]
+    question, options = pick(seed, 'question', fresh)
+    return {'text': question, 'options': list(options)}
+
+
 def own(kind, key, occurs_at, content) -> dict:
     return {'kind': kind, 'author': COMPANION, 'key': key, 'occurs_at': occurs_at, 'content': content}
 
 
 def fits_world(connection, definition: dict):
-    """Whether a status or question line suits the companion's world: its era (TODAYS, COFFEE) and whether they
-    live aboard (GROUNDED)."""
-    from companion.world import ships
+    """Whether a status or question line suits the companion's world: its era (WHEN, TODAYS, COFFEE), its year in a
+    Back when world (SINCE) and whether they live aboard (GROUNDED). `line` names the bank line when `text` is more
+    than it (a question with its options)."""
+    from companion.world import decades, ships
     data = city_data(connection, definition)
     era = (data or {}).get('era', 'modern')
     aboard = bool(data) and ships.enclosed(data)
+    allowed = ERA_WHEN.get(era) or (set(WHEN.values()) if era in TODAYS_ERAS else PAST_WHEN)
+    year = decades.year_of(data)
 
-    def fits(text: str) -> bool:
-        return not ((era not in TODAYS_ERAS and TODAYS.search(text)) or (era in NO_COFFEE_ERAS and COFFEE.search(text))
-                    or (aboard and GROUNDED.search(text)))
+    def fits(text: str, line: str | None = None) -> bool:
+        return WHEN.get(line or text, 'anywhen') in allowed and not (
+            (era not in TODAYS_ERAS and TODAYS.search(text)) or (era in NO_COFFEE_ERAS and COFFEE.search(text))
+            or (aboard and GROUNDED.search(text)) or (year and any(year < first for pattern, first in SINCE
+                                                                    if pattern.search(text))))
     return fits
 
 
-def status_text(seed: str, day: date, facts: dict, definition: dict, fits=lambda _text: True) -> tuple[str, str]:
-    """A thought that fits the day and the world (`fits`) and claims nothing happened. Returns the text and its
-    tone."""
+def status_text(seed: str, day: date, facts: dict, definition: dict, fits=lambda _text: True,
+                recent: set[str] = frozenset()) -> tuple[str, str]:
+    """A thought that fits the day and the world (`fits`) and claims nothing happened, and that isn't one of the
+    `recent` lines when another will do. Returns the text and its tone."""
+    def fresh(lines):
+        lines = [line for line in lines if fits(line)]
+        return [line for line in lines if line not in recent] or lines
     state = (facts['body'] or {}).get('state')
-    if state in STATUS and (lines := [line for line in STATUS[state] if fits(line)]):
+    if state in STATUS and (lines := fresh(STATUS[state])):
         return pick(seed, 'line', lines), 'sick' if state == 'sick' else 'down'
-    choices = [*STATUS['any']]
+    offered = fresh(STATUS['any'])
+    choices = [pick(seed, f'any:{n}', offered) for n in range(ANY_OFFERED)]
     weather = facts['weather'] or {}
     if weather:
         hot, cold = weather.get('high_f', 60) >= HOT_F, weather.get('high_f', 60) <= COLD_F
@@ -324,7 +460,7 @@ def status_text(seed: str, day: date, facts: dict, definition: dict, fits=lambda
     if interests:
         interest = pick(seed, 'interest', interests)
         choices += [line.format(interest=interest_text(interest)) for line in STATUS['interest']]
-    return pick(seed, 'line', [line for line in choices if fits(line)] or list(STATUS['any'])), ''
+    return pick(seed, 'line', fresh(choices) or offered or list(STATUS['any'])), ''
 
 
 def interest_text(interest: str) -> str:
@@ -446,6 +582,11 @@ def known_audience(connection, companion: dict, now: datetime) -> list[dict]:
     return result
 
 
+# What a dig sounds like at each level of trolls (`chances`): dry at 1, snarkier at 2, rude at 3.
+SNARK = {'rival': post_snark.RIVAL, 'snark': post_snark.RIVAL + post_snark.TROLL, 'troll': post_snark.TROLL}
+SNARK_STYLES = ('', 'rival', 'snark', 'troll')
+
+
 def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool, style: str = '') -> tuple[str, ...]:
     if by_companion:
         return COMMENTS['from_companion']
@@ -468,21 +609,65 @@ def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool, s
     return COMMENTS['question'] if kind == 'question' else COMMENTS['general']
 
 
-def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str, now: str, people: dict,
-             companion_name: str, avoid: frozenset[str] = frozenset(), known: tuple = ()) -> dict:
-    """Who liked and commented by `now`, from the post and the circle alone. The companion joins in
-    on friends' posts; friends join in on everyone's; other companions who know the companion
-    (`known_audience`) join in on the companion's own posts, if they were around when it went up.
-    No line is said twice on a post, and lines in `avoid` (said on the posts just before) are
-    left for later."""
-    occurred = parse(occurs_at)
-    crowd = [(person_id, person['name'], LIKELY.get(person['role'], 0.45), COMMENT_CHANCE, '')
-             for person_id, person in people.items()]
+def stance(who: str, author: str, people: dict) -> str:
+    """How `who` (a circle person's id, or COMPANION) stands with the post's author: a STANCES key."""
+    if author == COMPANION:  # A circle person on the companion's own post.
+        person = people.get(who, {})
+        return 'stranger' if person.get('knowing') == 'companion' else 'rival' if person.get('rival') else 'usual'
+    poster = people.get(author, {})
+    if who == COMPANION:
+        if poster.get('knowing') == 'they':  # They know the companion; the companion doesn't know them.
+            return 'stranger'
+        return 'knows of' if poster.get('knowing') == 'companion' else 'rival' if poster.get('rival') else 'usual'
+    how = people.get(who, {}).get('ties', {}).get(author)
+    return TIE_STANCES.get(how, 'friendly') if how else 'stranger'
+
+
+def sensitive(kind: str, content: dict) -> bool:
+    """A post nobody snipes at: a birthday, a question, city news, or someone sick, down or grieving."""
+    return kind in ('birthday', 'question', 'city') or content.get('text') in STATUS['grief'] or \
+        content.get('tone') in ('sick', 'down') or content.get('mood') in SICK | DOWN
+
+
+def chances(found: str, like: float, talks: float, level: int, touchy: bool) -> tuple[float, float, str]:
+    """Like and comment chances for someone of stance `found` whose usual chances are `like` and `talks`, and the
+    style their comment takes (SNARK_STYLES for a dig)."""
+    if found == 'rival' or (found == 'cool' and COOL_TALKS[level]):
+        snipes = 0.0 if touchy else (RIVAL_TALKS if found == 'rival' else COOL_TALKS)[level] * COMMENT_CHANCE
+        return (0.0 if level == 0 else like * STANCES[found][0]), snipes, SNARK_STYLES[level]
+    scale_like, scale_talk = STANCES[found]
+    return min(like * scale_like, 1), min(talks * scale_talk, 1), ''
+
+
+def crowd_of(author: str, kind: str, content: dict, occurs_at: str, people: dict, companion_name: str,
+             known: tuple, level: int) -> list[tuple]:
+    """Everyone who might react: (who, name, like chance, comment chance, style)."""
+    touchy, crowd = sensitive(kind, content), []
+    for person_id, person in people.items():
+        found = stance(person_id, author, people)
+        crowd.append((person_id, person['name'],
+                      *chances(found, LIKELY.get(person['role'], 0.45), COMMENT_CHANCE, level, touchy)))
     if author != COMPANION:
-        crowd.append((COMPANION, companion_name, COMPANION_LIKES, COMMENT_CHANCE, ''))
+        found = stance(COMPANION, author, people)
+        like, talks, style = chances(found, COMPANION_LIKES, COMMENT_CHANCE, level, touchy)
+        crowd.append((COMPANION, companion_name, like, talks, style))
     else:
         crowd += [(other['key'], other['name'], other['like'], other['comment'], other['manner'])
                   for other in known if other['since'] <= occurs_at]
+    return crowd
+
+
+def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str, now: str, people: dict,
+             companion_name: str, avoid: frozenset[str] = frozenset(), known: tuple = (),
+             level: int = DEFAULT_TROLLS) -> dict:
+    """Who liked and commented by `now`, from the post and the circle alone. The companion joins in
+    on friends' posts; friends join in on everyone's; other companions who know the companion
+    (`known_audience`) join in on the companion's own posts, if they were around when it went up.
+    How each stands with the poster (`stance`) sets their chances, and `level` (trolls) what a rival
+    says. No line is said twice on a post, and lines in `avoid` (said on the posts just before) are
+    left for later."""
+    occurred = parse(occurs_at)
+    crowd = crowd_of(author, kind, content, occurs_at, people, companion_name, known, level)
     likes, speakers = [], []
     for who, name, chance, talks, style in crowd:
         if who == author and kind != 'birthday':
@@ -499,7 +684,7 @@ def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str
     for said, who, name, seed, style in sorted(speakers)[:MAX_COMMENTS]:
         option = pick(seed, 'option', content.get('options') or [''])
         lines = [line.format(name=people.get(content.get('person'), {}).get('name', ''), option=option)
-                 for line in comment_pool(kind, content, who, who == COMPANION, style)]
+                 for line in SNARK.get(style) or comment_pool(kind, content, who, who == COMPANION, style)]
         fresh = [line for line in lines if line not in used]
         if not fresh:
             continue  # Everything this person would say was just said.
@@ -515,7 +700,7 @@ NEARBY = 10
 
 
 def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str, known: tuple = (),
-                  everyone: tuple = ()) -> None:
+                  everyone: tuple = (), level: int = DEFAULT_TROLLS) -> None:
     """Fill in each post's likes and comments, oldest first, so a line said on one post is not said
     again on the next few. Posts carry their basis as `_basis` (author, content); it is removed here.
     The user's own posts (companion/life/user_posts.py) go to `everyone` who can see them."""
@@ -531,7 +716,7 @@ def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str
             post['audience'] = user_posts.audience(post['id'], basis[1], post['occurs_at'], now, list(everyone), avoid)
         else:
             post['audience'] = audience(post['id'], post['kind'], basis[0], basis[1], post['occurs_at'], now, people,
-                                        companion_name, avoid, known)
+                                        companion_name, avoid, known, level)
         recent.append({comment['text'] for comment in post['audience']['comments']})
 
 

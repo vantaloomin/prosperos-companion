@@ -142,6 +142,7 @@ ADDED_COLUMNS = (
     ('timelines', 'forked_at', 'TEXT'),
     ('timelines', 'draft', 'TEXT'),
     ('timelines', 'activated_at', 'TEXT'),
+    ('timelines', 'deleted_at', 'TEXT'),
     ('messages', 'origin_id', 'TEXT'),
     ('workspace_settings', 'user_timezone_source',
      "TEXT NOT NULL DEFAULT 'default' CHECK (user_timezone_source IN ('default', 'pc', 'chosen'))"),
@@ -418,6 +419,19 @@ ADDED_COLUMNS = (
     ('messages', 'version_of', 'TEXT'),
     # An open plan that closed on its own once it was over, with the status it had (companion/memory/plans.py).
     ('memories', 'settled_from', 'TEXT'),
+    # Trolls and snark on posts (companion/life/social.py, Settings > Realism > Their days): 0 off, 1 rivals only,
+    # 2 snarky, 3 trolls.
+    ('life_settings', 'trolls_realism', 'INTEGER NOT NULL DEFAULT 1 CHECK (trolls_realism BETWEEN 0 AND 3)'),
+    # How the user looks and their picture (companion/persona_pictures.py), copied from the persona in worlds.json:
+    # pictures of moments they share with a companion show them too.
+    ('persona', 'looks', "TEXT NOT NULL DEFAULT ''"),
+    ('persona', 'picture', "TEXT NOT NULL DEFAULT ''"),
+    # Whether pictures of moments the user shares with a companion show the user too (Settings > Images), per world.
+    ('image_settings', 'show_me', 'INTEGER NOT NULL DEFAULT 1 CHECK (show_me IN (0, 1))'),
+    # Meeting up early and staying longer (companion/life/outings.py): the time it was planned for before Go now, and
+    # how many times the user stayed on an hour.
+    ('outings', 'early_from', 'TEXT'),
+    ('outings', 'longer', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

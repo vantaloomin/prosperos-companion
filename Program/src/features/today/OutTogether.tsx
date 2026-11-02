@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Home, MapPin, Moon, Undo2, X } from 'lucide-react'
+import { Footprints, Home, Hourglass, MapPin, Moon, Undo2, X } from 'lucide-react'
 import { api } from '../../api'
 import { Notice } from '../../components/Feedback'
 import { WHERE_KEY } from '../conversation/whereText'
 import { firstName } from '../character/panelText'
 import { openWedding } from '../character/weddingText'
-import { OUTING_STATES, TOGETHER_KEY, bigDayLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
+import { OUTING_STATES, TOGETHER_KEY, bigDayLine, meetLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
 import { useTogether } from './useTogether'
 
 /** Plans with the user. The companion picked the places; the user can call them off (with Undo for the rest of the
@@ -22,6 +22,7 @@ export function OutTogether({ name }: { name: string }) {
     try { await api(path, {}) } catch (failure) { setError(failure instanceof Error ? failure.message : 'That did not work.') }
     void client.invalidateQueries({ queryKey: TOGETHER_KEY })
     void client.invalidateQueries({ queryKey: ['today'] })
+    void client.invalidateQueries({ queryKey: WHERE_KEY })  // The chat strip: under way, or on longer.
   }
   return (
     <section className="today-section" aria-labelledby="together-heading">
@@ -53,11 +54,19 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {peopleLine(outing.place, outing.state) && <p className="subtle">{peopleLine(outing.place, outing.state)}</p>}
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
+      <MeetLine outing={outing} />
       <SitterLine outing={outing} />
       {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <Now outing={outing} act={act} />}
     </li>
   )
+}
+
+/** How it plays out: no "Go there" step, they are simply there together when it starts, and the chat is the meeting. */
+function MeetLine({ outing }: { outing: Outing }) {
+  const line = meetLine(outing)
+  if (!line) return null
+  return <p className="subtle together-how">{line}{outing.state === 'now' && <> <a className="text-button inline" href="#conversation">Talk face to face</a></>}</p>
 }
 
 /** An evening out with a child of yours at home: who is watching them that night (words only). */
@@ -66,17 +75,18 @@ function SitterLine({ outing }: { outing: Outing }) {
   return <p className="subtle">{outing.sitter.text}</p>
 }
 
-/** Head home, or Call it a night after a long day: your wedding, or a big day in their circle (not a funeral). */
+/** Stay longer when their next hour is free; Head home, or Call it a night after a long day: your wedding, or a big day in their circle (not a funeral). */
 function Now({ outing, act }: { outing: Outing; act: (path: string) => Promise<void> }) {
   const long = outing.activity === 'wedding' || (outing.activity === 'big-day' && !outing.place.quiet)
   return (
     <div className="together-actions">
+      {outing.longer_ok && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/longer`)}><Hourglass aria-hidden="true" />Stay longer</button>}
       <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}>{long ? <><Moon aria-hidden="true" />Call it a night</> : <><Home aria-hidden="true" />Head home</>}</button>
     </div>
   )
 }
 
-/** Call it off or somewhere else; the wedding is changed on its card on the Character page (companion/life/wedding.py),
+/** Go now when they are free before the time, call it off or somewhere else; the wedding is changed on its card on the Character page (companion/life/wedding.py),
  * and a big day is theirs, so the user can only say they can't make it (companion/life/big_days.py). */
 function Planned({ outing, name, act }: { outing: Outing; name: string; act: (path: string) => Promise<void> }) {
   if (outing.activity === 'wedding') return (
@@ -89,6 +99,7 @@ function Planned({ outing, name, act }: { outing: Outing; name: string; act: (pa
   )
   return (
     <div className="together-actions">
+      {outing.early && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/now`)}><Footprints aria-hidden="true" />Go now</button>}
       {outing.activity !== 'dinner-in' && outing.activity !== 'meet-family' && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/elsewhere`)}><MapPin aria-hidden="true" />Somewhere else</button>}
       <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
     </div>
