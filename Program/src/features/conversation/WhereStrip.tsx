@@ -57,12 +57,16 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
     onDone()
   }
   const Glyph = where.kind === 'out' && outing.state !== 'done' ? MapPin : Home  // Headed home is always the house.
+  const longer = canStayLonger(where)
   return (
-    <aside className="where-strip" aria-label="Where you are" aria-live="polite">
+    // With two buttons the phone puts them on a row of their own under the text (Iris, 2026-11-02).
+    <aside className={longer ? 'where-strip two-actions' : 'where-strip'} aria-label="Where you are" aria-live="polite">
       <Glyph aria-hidden="true" />
       <span>{line.lead}{line.place && <a className="where-strip-place" href={`#map/${encodeURIComponent(line.place.id)}`} title="Show on map">{line.place.name}</a>}{line.tail}</span>
-      {canStayLonger(where) && <button type="button" className="text-button" onClick={() => void act('longer')}><Hourglass aria-hidden="true" />Stay longer</button>}
-      {action && <StripButton action={action} onClick={() => void act(action.action)} />}
+      {longer ? <div className="where-strip-actions">
+        <button type="button" className="text-button" onClick={() => void act('longer')}><Hourglass aria-hidden="true" />Stay longer</button>
+        {action && <StripButton action={action} onClick={() => void act(action.action)} />}
+      </div> : action && <StripButton action={action} onClick={() => void act(action.action)} />}
     </aside>
   )
 }
