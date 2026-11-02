@@ -116,9 +116,15 @@ FOLLOW = ('The attached image is a character reference sheet of this same person
           'not a reference sheet: no panels, no grey studio background.')
 
 
-# Off the Codex sheet: a picture of the companion follows their profile picture (Vanta, 2026-10-28).
-FOLLOW_PROFILE = ('The attached reference picture shows this same person: keep their face, hair, skin tone and build '
-                  'exactly as they are there; take the outfit, pose, setting and framing from this description.')
+# Off the Codex sheet: a picture of the companion follows their profile picture (Vanta, 2026-10-28). It opens the
+# prompt, since an edit model (Krea 2 Edit, Anima Edit) reads it as the instruction: told only at the end, it kept the
+# reference's own beach and pose and Sett's "great pit roaring under the lamps" came out as the profile picture again.
+FOLLOW_PROFILE = ('Make a new photo of the person in the attached reference picture. Take only who they are from it: '
+                  'their face, hair, skin tone and build. Do not keep its background, setting, pose, framing, light or '
+                  'clothes; take all of those from this description, and replace the background entirely.')
+# The face close-up made from the profile picture (lora/portraits.py STEPS) is followed in its place when kept: a face
+# on a plain background gives an edit model the person with no scene or pose to carry over.
+CLOSE_UP = 'Face close-up'
 
 
 def depicts_companion(inputs: dict) -> bool:
@@ -192,14 +198,36 @@ def profile_picture(database, connection, companion: dict) -> bytes | None:
 
 
 def profile_reference(database, version_id: str | None) -> bytes | None:
-    """The profile picture a picture of the companion follows, or None when the world has that switched off
-    (Settings > Images) or they have no profile picture."""
+    """The picture a picture of the companion follows: their face close-up when one made since the profile picture was
+    kept, else the profile picture; None when the world has that switched off (Settings > Images) or they have no
+    profile picture."""
     from companion.images.jobs import image_settings  # jobs builds on the image modules that import this one
     with database.connect() as connection:
         if not image_settings(connection)['follow_profile_picture']:
             return None
         companion = by_id(connection, companion_of_version(connection, version_id) or '')
-        return None if companion is None else profile_picture(database, connection, companion)
+        if companion is None:
+            return None
+        return close_up(database, connection, companion) or profile_picture(database, connection, companion)
+
+
+def close_up(database, connection, companion: dict) -> bytes | None:
+    """Their kept face close-up, made no earlier than the profile picture was added, or None."""
+    if not companion.get('portrait_reference_id'):
+        return None
+    row = optional(connection, "SELECT closeup.file FROM lora_gen_images image "
+                               "JOIN lora_generations generation ON generation.id=image.generation_id "
+                               "JOIN lora_references closeup ON closeup.id=image.reference_id "
+                               "JOIN lora_references profile ON profile.id=? "
+                               "WHERE generation.kind='portraits' AND generation.companion_id=? AND image.label=? "
+                               "AND image.decision='kept' AND closeup.created_at >= profile.created_at "
+                               "ORDER BY closeup.created_at DESC LIMIT 1",
+                   (companion['portrait_reference_id'], companion['id'], CLOSE_UP))
+    if row is None:
+        return None
+    with contextlib.suppress(OSError):
+        return files.inside(files.folder(database, 'references'), row['file']).read_bytes()
+    return None
 
 
 async def ensure(database, adapter, backend: dict, config: dict, key, raw_dir, companion_id: str | None,

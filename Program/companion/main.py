@@ -78,6 +78,7 @@ from companion.mcp import weather as observed_weather
 from companion.mcp.lookups import Lookups
 from companion.memory import closeness_routes, history_routes, people_routes
 from companion.memory.worker import MemoryWorker
+from companion.persona_pictures import PersonaPictures
 from companion.phone import access as phone_access
 from companion.phone import lan as phone_lan
 from companion.phone import push as phone_push
@@ -163,6 +164,7 @@ async def lifespan(app):
     lora_evaluation.recover(app.state.database)
     lora_generation.recover(app.state.database)
     app.state.dating_photos.recover()
+    app.state.persona_pictures.recover()
     tasks = [asyncio.create_task(app.state.life.run_forever()),
              asyncio.create_task(app.state.images.run_forever()),
              asyncio.create_task(app.state.push.run_forever()),
@@ -234,6 +236,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
                                                app.state.openers, app.state.vault)
     app.state.images.share = app.state.conversation.photos.share
     app.state.dating_photos = DatingPhotos(app.state.database, app.state.vault, app.state.images)
+    app.state.persona_pictures = PersonaPictures(app.state.database, app.state.vault, app.state.images)
     # The photo of a finished outing with the user and the picture on a postcard from a trip.
     app.state.images.others += [lambda: outings.photograph(app.state.database),
                                 lambda: trips.picture_postcards(app.state.database)]

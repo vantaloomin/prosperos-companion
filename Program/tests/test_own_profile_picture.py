@@ -29,7 +29,7 @@ def test_pictures_of_them_follow_the_profile_picture_where_a_backend_takes_one(c
     first = generate(client, make_post(client, clock))
     drain(client)
     sent = adapters['hosted'].requests[0]
-    assert sent.reference == OWN and sent.prompt.endswith(sheet.FOLLOW_PROFILE)
+    assert sent.reference == OWN and sent.prompt.startswith(sheet.FOLLOW_PROFILE)
     job = ok(client.get(f"/api/images/jobs/{first['id']}"))
     assert job['identity_method'] == 'text description and their profile picture'
     # The stored request stays the plain one, so a retry elsewhere starts clean.
@@ -73,3 +73,28 @@ def test_the_other_profile_pictures_are_made_from_your_own(client, companion, ad
     ok(client.post(f"/api/lora/portraits/{done['id']}/redo", params={'position': 1}))
     again = wait_portraits(client)
     assert again['images'][1]['status'] == 'completed' and adapters['hosted'].requests[2].reference == OWN
+
+
+def test_pictures_of_them_follow_the_kept_face_close_up_with_the_instruction_first(client, companion, clock, adapters):
+    """A face on a plain background gives an edit model the person and no scene: the profile picture's own beach and
+    pose came back in place of the pit the moment described."""
+    add_backend(client, kind='hosted', provider='openrouter', api_key='k', model='google/gemini-image')
+    ok(upload(client))
+    draft = ok(client.get('/api/lora/portraits/draft'))
+    close = png(1024, 1024)
+    adapters['hosted'].outcomes = [png(1024, 1536), close]
+    ok(client.post('/api/lora/portraits', json=plan(draft, own_picture=True)))
+    done = wait_portraits(client)
+    database = client.app.state.database
+    # Not kept yet: the profile picture is followed.
+    assert sheet.profile_reference(database, companion['active_version_id']) == OWN
+    ok(client.post(f"/api/lora/generation-images/{done['images'][2]['id']}/keep"))
+    assert sheet.profile_reference(database, companion['active_version_id']) == close
+    generate(client, make_post(client, clock))
+    drain(client)
+    sent = adapters['hosted'].requests[-1]
+    assert sent.reference == close and sent.prompt.startswith(sheet.FOLLOW_PROFILE)
+    # A new profile picture of their own: its close-up is not made yet, so the new picture is followed.
+    other = png(900, 1300)
+    ok(upload(client, other, 'new.png'))
+    assert sheet.profile_reference(database, companion['active_version_id']) == other

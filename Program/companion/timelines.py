@@ -75,16 +75,17 @@ def view(connection, row: dict, active_id: str) -> dict:
 def listing(database) -> dict:
     with database.connect() as connection:
         companion = require_current(connection)
-        rows = many(connection, 'SELECT * FROM timelines WHERE companion_id=? ORDER BY created_at, rowid',
-                    (companion['id'],))
+        rows = many(connection, 'SELECT * FROM timelines WHERE companion_id=? AND deleted_at IS NULL '
+                    'ORDER BY created_at, rowid', (companion['id'],))
         return {'active_id': companion['active_timeline_id'],
                 'timelines': [view(connection, row, companion['active_timeline_id']) for row in rows]}
 
 
-def timeline(connection, companion, timeline_id) -> dict:
+def timeline(connection, companion, timeline_id, deleted: bool = False) -> dict:
+    """One of the companion's timelines; a deleted one only when asked for (to bring it back)."""
     row = optional(connection, 'SELECT * FROM timelines WHERE id=? AND companion_id=?',
                    (timeline_id, companion['id']))
-    require(row is not None, 'That timeline could not be found.', 404)
+    require(row is not None and (deleted or row['deleted_at'] is None), 'That timeline could not be found.', 404)
     return row
 
 
@@ -93,10 +94,52 @@ def update(database, timeline_id, body) -> dict:
         companion = require_current(connection)
         timeline(connection, companion, timeline_id)
         if body.label is not None:
+            require(bool(body.label.strip()), 'Give the timeline a name.', 422)
             connection.execute('UPDATE timelines SET label=? WHERE id=?', (body.label.strip(), timeline_id))
         if body.clear_draft:
             connection.execute('UPDATE timelines SET draft=NULL WHERE id=?', (timeline_id,))
         return view(connection, timeline(connection, companion, timeline_id), companion['active_timeline_id'])
+
+
+def delete(database, timeline_id) -> dict:
+    """Take a timeline out of the list. The one the user is on stays: they switch away first, so there is always a
+    current timeline to come back to. Nothing is erased, so Undo (restore) brings it back as it was, and the branches
+    taken from it still remember what happened there before they split off (companion/lineage.py)."""
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        timeline(connection, companion, timeline_id)
+        require(timeline_id != companion['active_timeline_id'],
+                "You're on this timeline. Switch to another one before deleting it.", 409)
+        connection.execute('UPDATE timelines SET deleted_at=? WHERE id=?', (database.now(), timeline_id))
+    return listing(database)
+
+
+def restore(database, timeline_id) -> dict:
+    """Undo a delete: the timeline is back in the list, set aside as it was."""
+    with database.connect(write=True) as connection:
+        timeline(connection, require_current(connection), timeline_id, deleted=True)
+        connection.execute('UPDATE timelines SET deleted_at=NULL WHERE id=?', (timeline_id,))
+    return listing(database)
+
+
+LABEL_WORDS = 36
+
+
+def snippet(text: str) -> str:
+    """The start of a message, cut at a word, for a timeline's name."""
+    words = ' '.join((text or '').split())
+    if len(words) <= LABEL_WORDS:
+        return words
+    cut = words[:LABEL_WORDS].rsplit(' ', 1)[0] or words[:LABEL_WORDS]
+    return f'{cut.rstrip(",.;:!?")}…'
+
+
+def auto_label(message: dict, text: str | None, count: int) -> str:
+    """A name for a new timeline the user did not name: the words it was edited to, or the message it branched at."""
+    words = snippet(text if text is not None else message['text'])
+    if not words:
+        return f'Timeline {count + 1}'
+    return f'Edit: “{words}”' if text is not None else f'After “{words}”'
 
 
 # Forking ----------------------------------------------------------------------------------------
@@ -129,7 +172,7 @@ def fork(database, body) -> dict:
             'INSERT INTO timelines (id, companion_id, parent_id, forked_after_seq, status, created_at, label, '
             "fork_message_id, forked_at, draft) VALUES (?, ?, ?, ?, 'frozen', ?, ?, ?, ?, ?)",
             (new_id, companion['id'], parent['id'], through, timestamp,
-             body.label.strip() or f'Timeline {count + 1}', message['id'], cutoff, body.text))
+             body.label.strip() or auto_label(message, body.text, count), message['id'], cutoff, body.text))
         ids = copy_history(connection, parent['id'], new_id, through, cutoff)
         if not editing and message['role'] == 'companion':
             reply_versions.activate(connection, one(connection, 'SELECT * FROM messages WHERE id=?', (ids[message['id']],)))
@@ -380,7 +423,7 @@ def activate(database, timeline_id) -> dict:
     timeline, which the caller stops; they could never become active there anyway."""
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        target = timeline(connection, companion, timeline_id)
+        target = timeline(connection, companion, timeline_id)  # Never a deleted one: bring it back first.
         previous, stopped = companion['active_timeline_id'], []
         if target['id'] != previous:
             timestamp = database.now()

@@ -46,7 +46,7 @@ def found(connection, companion: dict, now) -> list[dict]:
     today = storylines.local_today(companion, now)
     since = (today - timedelta(days=RECENT_DAYS)).isoformat()
     result = []
-    for item in storylines.visible(connection, companion, now, include_ended=True):
+    for item in storylines.visible(connection, companion, now):
         if item['story'] in secrets.STORY_SECRETS:
             continue
         for index, beat in enumerate(item['beats']):
@@ -64,8 +64,11 @@ def found(connection, companion: dict, now) -> list[dict]:
 
 
 def register(connection, companion: dict, now) -> None:
-    """New news starts with the companion; a chapter's news follows its title and ends when it is undone."""
+    """New news starts with the companion; a chapter's news follows its title and ends when it is undone, and a
+    storyline's ends when the user ends the storyline."""
     key, timestamp = pairs.companion_key(companion['id']), stamp(now)
+    connection.execute(f"UPDATE news SET status='ended' WHERE timeline_id=? AND status='active' AND "
+                       f"{storylines.ENDED_SOURCE.format(column='source')}", (companion['active_timeline_id'],))
     current = {item['source']: item for item in found(connection, companion, now)}
     for item in current.values():
         news_id = identifier()

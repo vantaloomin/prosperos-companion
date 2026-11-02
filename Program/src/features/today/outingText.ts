@@ -14,6 +14,8 @@ export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
   ended_at: string | null; undo: boolean
+  /** Go now: later today, and they are free now. Stay longer: under way, and their next hour is free. */
+  early?: boolean; longer_ok?: boolean
   /** An evening out with a child of yours at home: who is watching them that night (companion/life/our_child.py). */
   sitter?: { text: string; cost: number } | null
 }
@@ -137,6 +139,15 @@ export function outingNote(outing: Outing, name: string): string {
   if (outing.state === 'done') return outing.cost_text ? outing.cost_text.replace(/^You paid/, `${name} paid`) : ''
   if (outing.named) return 'You picked the place.'
   return outing.rolls > 0 ? 'You asked for somewhere else.' : ''
+}
+
+/** How meeting up works, so nobody waits for a "Go there" button that never comes: at the time they are simply there
+ * together, and the chat is where it happens. '' once it is over or called off. */
+export function meetLine(outing: Pick<Outing, 'state' | 'until_time'>): string {
+  const until = outing.until_time ? ` until ${timeText(outing.until_time)}` : ''
+  if (outing.state === 'planned') return `No need to go anywhere. When it's time, you'll be there together, and the chat turns face to face${until}.`
+  if (outing.state === 'now') return until ? `You're there together${until}.` : `You're there together now.`
+  return ''
 }
 
 /** An item the user just changed, shown collapsed with Undo: "Called off." or "Headed home." */

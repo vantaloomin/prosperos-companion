@@ -5,8 +5,10 @@ current committed revision of each, so a correction updates the post, a pending 
 until it is committed, and a rejected one never appears. A post with nothing committed to show
 is left out of the feed and the unread count.
 
-Return batches make one digest post; background batches make one post per event (T5). The
-image columns are a hook for a later image job: the text never waits for an image.
+Every batch makes one post per event, stamped when that event ended, so a catch-up after days away
+reads as the separate moments they were rather than one card with one time. Older return batches
+made one 'digest' post; those stay as they are. The image columns are a hook for a later image
+job: the text never waits for an image.
 """
 from companion.characters import definition_for_timeline, require_current
 from companion.clock import parse, zone
@@ -104,19 +106,15 @@ def create(connection, timeline_id, kind, key, event_ids, occurs_at, timestamp, 
 
 
 def publish_run(connection, run, results, timestamp) -> list[str]:
-    """One digest for a return batch, one post per event for a background batch (T5). An event
-    photographed in chat while it was happening joins its photo's post instead. Returns the
-    background batch's posts, which may be announced as notifications."""
+    """One post per event, at the time it ended, for a return (catch-up) batch and a background batch
+    alike. An event photographed in chat while it was happening joins its photo's post instead.
+    Returns the background batch's posts, which may be announced as notifications; a catch-up
+    batch announces nothing, since the user is already back."""
     event_ids = [result['event_id'] for result in results
                  if result.get('event_id') and result['outcome'] in {'proposed', 'committed'}]
-    photographed = {event_id: post_id for event_id in event_ids if (post_id := photo_post(connection, event_id))}
-    if run['mode'] != 'background':
-        rest = [event_id for event_id in event_ids if event_id not in photographed]
-        if rest:
-            create(connection, run['timeline_id'], 'digest', f"digest:{run['id']}", rest, run['window_end'],
-                   timestamp, run['id'])
-        return []
-    return [photographed.get(event_id) or event_post(connection, run, event_id, timestamp) for event_id in event_ids]
+    posts = [photo_post(connection, event_id) or event_post(connection, run, event_id, timestamp)
+             for event_id in event_ids]
+    return posts if run['mode'] == 'background' else []
 
 
 def event_post(connection, run, event_id, timestamp) -> str:
@@ -199,7 +197,7 @@ def everything(connection, companion, now: str, include_hidden=False, source='al
     mine = user_posts.visible(connection, now, include_hidden=True)
     known = tuple(social.known_audience(connection, companion, parse(now)))
     everyone = tuple(user_posts.crowd(connection, parse(now))) if mine else ()
-    social.add_audiences(posts + mine, now, people, name, known, everyone)
+    social.add_audiences(posts + mine, now, people, name, known, everyone, social.trolls(connection))
     authors = SOURCES.get(source)
     posts = [post for post in posts + mine if (include_hidden or post['status'] == 'visible')
              and (authors is None or post['author']['kind'] in authors)]

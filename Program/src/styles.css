@@ -631,8 +631,21 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .timeline-row .search-result { flex: 1; min-width: 0; }
 .timeline-current { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .9rem; padding: 0 12px; }
 .timeline-current svg { width: 16px; height: 16px; }
+.timeline-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.timeline-rename { flex: 1; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 8px; padding: 6px 12px; }
+.timeline-rename .notice { grid-column: 1 / -1; }
+.timeline-footnote { margin: 10px 12px 0; font-size: .85rem; }
+.timeline-row .search-meta { flex-wrap: wrap; row-gap: 2px; }
+.timeline-panel .notice { align-items: center; }
 @media (max-width: 720px) {
   .timeline-row { flex-direction: column; align-items: stretch; gap: 4px; }
+  .timeline-actions { padding: 0 4px; gap: 8px; }
+  .timeline-actions .icon-button { width: 44px; height: 44px; }
+  .timeline-panel .notice .text-button { min-height: 44px; }
+  .timeline-actions .button { flex: 1; }
+  .timeline-rename { grid-template-columns: 1fr; }
+  .timeline-rename .timeline-actions { justify-content: flex-end; }
+  .timeline-rename .timeline-actions .button { flex: 0 0 auto; }
   .search-bar { padding: 10px 12px; }
   .search-results { padding: 0 12px 12px; }
 }
@@ -970,7 +983,17 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .shot-prompt { overflow-wrap: anywhere; }
 .reference-card > .badge { justify-self: start; }
 .first-picture { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
-.first-picture legend { font-weight: 500; margin-bottom: 4px; }
+.first-picture legend, .persona-picture legend { padding: 0; font-size: 0.875rem; font-weight: 500; margin-bottom: 4px; }
+.persona-picture { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.persona-picture-frame { position: relative; width: 120px; flex: none; border-radius: 8px; overflow: hidden; }
+.persona-picture-frame > img { display: block; width: 120px; aspect-ratio: 3 / 4; object-fit: cover; background: var(--accent-tint); }
+.persona-picture-empty { width: 120px; aspect-ratio: 3 / 4; background: var(--accent-tint); display: grid; place-items: center; color: var(--muted); }
+/* While Make one runs: the photo cards' soft fill over the picture or the empty box. */
+.persona-picture-frame.making::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--accent-tint) 70%, transparent); animation: photo-fill 5s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .persona-picture-frame.making::after { animation: none; } }
+:root[data-motion='reduce'] .persona-picture-frame.making::after { animation: none; }
+@media (max-width: 720px) { .persona-picture .own-picture { flex-direction: column; } }
+.persona-picture-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .own-picture { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; min-width: 0; }
 .own-picture > img { width: 120px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
 .own-picture > .form-stack { flex: 1 1 220px; min-width: 0; }
@@ -2087,6 +2110,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .year-badge svg { width: 0.8rem; height: 0.8rem; }
 /* On the world you are in, whose row is tinted already, the badge keeps a fill a step darker. */
 .world-row[aria-current='true'] .year-badge { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+/* A world where life stands still: muted rather than the accent, so it reads as waiting, not as news. */
+.paused-badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
+.paused-badge svg { width: 0.75rem; height: 0.75rem; }
+.paused-note { line-height: 1.45; }
 /* Phone: the buttons go under the name, lined up with it, so the name keeps the row's width (Iris, 2026-10-29). */
 @media (max-width: 480px) { .world-row-actions { flex-basis: 100%; padding-left: 58px; flex-wrap: wrap; } }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
@@ -2117,6 +2144,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* Out together (src/features/today/OutTogether.tsx) and the chat strip while an outing is under way (OutNow.tsx). */
 .together-list { gap: 0; }
 .together-list > .together-item { display: grid; gap: 2px; padding-block: 10px; border-top: 1px solid var(--border); }
+.together-how a { white-space: nowrap; }
 .together-list > .together-item:first-child { border-top: 0; padding-top: 0; }
 .together-item p { margin: 0; }
 .together-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
@@ -2162,6 +2190,16 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
 .where-strip > span { flex: 1; min-width: 0; }
 .where-strip .text-button { flex: none; }
+.msg-action { font-style: italic; color: var(--muted); }
+/* In your own bubble the muted colour can sit on the accent: body colour at 80% keeps it readable (Iris, 2026-11-02). */
+.chat-bubbles .message-user .msg-action { color: inherit; opacity: 0.8; }
+.where-strip-actions { display: flex; flex: none; gap: 0 4px; }
+@media (max-width: 600px) {
+  .where-strip.two-actions { flex-wrap: wrap; row-gap: 0; }
+  .where-strip.two-actions > span { flex: 1 1 calc(100% - 1rem - 8px); }
+  .where-strip.two-actions .where-strip-actions { flex: 1 1 100%; gap: 16px; padding-left: calc(1rem + 8px); }
+  .where-strip.two-actions .where-strip-actions .text-button { min-height: 44px; padding-left: 0; padding-right: 0; }
+}
 /* On a call (companion/life/calls.py): how long ticks in even digits; a ring stands out a little more. */
 .where-strip .call-length { font-variant-numeric: tabular-nums; }
 /* On a narrow strip the words give way and the call's length stays whole (Iris, 2026-10-29). */

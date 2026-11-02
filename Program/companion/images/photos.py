@@ -34,6 +34,7 @@ from companion.images import content, gifs, jobs, meme_pictures, memes, prompts
 from companion.life import agenda, composer, families, feed, routine, simulation
 from companion.life.openers import Trigger, held
 from companion.life.synthesis import PROMPT_VERSION as WORDING_VERSION
+from companion.memory.context import PICTURE
 from companion.text_models import config_for
 from companion.workspace import overlapping_pause
 from companion.world import decades
@@ -57,6 +58,11 @@ MISSING = re.compile(r"\b(?:where(?:'?s| is| are)|didn'?t (?:get|receive|recieve
                      r"(?:still )?waiting (?:on|for)) (?:the |that |your |ur |a |any )?(?:pic|picture|photo|selfie|snap)s?\b"
                      r"|\b(?:pic|picture|photo|selfie|snap)s? (?:never|didn'?t) (?:came|come|arrived?|show(?:ed)? up|load(?:ed)?)\b",
                      re.IGNORECASE)
+# "No photo though. Could you try again?": after the companion spoke of a picture, asking again or saying none came
+# asks for one now.
+AGAIN = re.compile(r"\b(?:try(?:ing)?(?: it| that| one)? again|send (?:it|one|that|them) again|re-?send|one more (?:time|try)|"
+                   r"another (?:try|go|attempt))\b|\b(?:still )?no (?:pic|picture|photo|selfie|snap)s?(?: though| yet| came| "
+                   r"arrived|\?|$)", re.IGNORECASE)
 # Asking about another time is not asking what they are doing now.
 ELSEWHEN = re.compile(r"\b(?:tomorrow|tonight|later|yesterday|last (?:night|week|weekend)|earlier|next|this "
                       r"(?:weekend|evening|afternoon)|on (?:mon|tues|wednes|thurs|fri|satur|sun)day|been up to)\b",
@@ -90,12 +96,13 @@ SHARE_SELFIE_SHARE = 0.4
 SHARE_DAILY = 1
 
 
-def asked_kind(text: str) -> str | None:
-    """Which picture a message asks for: 'meme', 'selfie', 'view', 'moment', or None."""
+def asked_kind(text: str, before: str = '') -> str | None:
+    """Which picture a message asks for: 'meme', 'selfie', 'view', 'moment', or None. `before` is the companion's
+    last message, which makes "try again?" an ask when it spoke of a picture."""
     text = text or ''
     if MEME.search(text):
         return 'gif' if gifs.GIF_ASK.search(text) else 'meme'
-    if MISSING.search(text):
+    if MISSING.search(text) or AGAIN.search(text) and PICTURE.search(f"{before or ''} {text}"):
         return 'selfie' if SELFIE.search(text) else 'moment'
     if ELSEWHEN.search(text):
         return None
@@ -108,6 +115,13 @@ def asked_kind(text: str) -> str | None:
 
 def asks_for_photo(text: str) -> bool:
     return asked_kind(text) is not None
+
+
+def last_said(connection, timeline_id, seq) -> str:
+    """The companion's last finished message before message `seq`, or ''."""
+    row = optional(connection, "SELECT text FROM messages WHERE timeline_id=? AND role='companion' AND active=1 AND "
+                               "status='complete' AND seq<? ORDER BY seq DESC LIMIT 1", (timeline_id, seq))
+    return row['text'] if row else ''
 
 
 def wording(connection, composed, prepared) -> dict:
@@ -135,6 +149,11 @@ def place_text(place) -> str:
     return place.get('name', '') if isinstance(place, dict) else ''
 
 
+def place_key(place) -> str | None:
+    """The city place's id, which the picture reads its look from (images/places.py)."""
+    return place.get('id') if isinstance(place, dict) else None
+
+
 def place_area(place) -> str | None:
     """The place's neighbourhood, which a picture of a visit names in place of "Your place" (images/prompts.py)."""
     return place.get('neighborhood') if isinstance(place, dict) else None
@@ -153,7 +172,9 @@ class ChatPhotos:
     def for_message(self, user, attempt_id) -> dict | None:
         """The picture this reply sends, recorded against the reply, or None. Never raises."""
         try:
-            kind = asked_kind(user['text'])
+            with self.database.connect() as connection:
+                before = last_said(connection, user['timeline_id'], user['seq'])
+            kind = asked_kind(user['text'], before)
             if kind in MEME_KINDS and not self.memes_fit(user['text']):
                 return None
             if kind is not None:
@@ -206,13 +227,22 @@ class ChatPhotos:
             return self.memes.send(attempt_id, moment, local_hour, recent, companion, unasked, asked_gif=kind == 'gif')
         if moment is None or unasked and self.in_chat(moment['event_key']):
             return None  # Unasked pictures are of something new.
-        return self.send_moment(attempt_id, moment, kind, unasked)
+        return self.send_moment(attempt_id, moment, self.framing(kind, now), unasked)
+
+    def framing(self, kind, now) -> str:
+        """In person with the user (companion/life/together.py), a picture is the moment as the user sees it ('scene'),
+        never a selfie or a phone photo: nobody texts a picture to the person beside them."""
+        from companion.life import together  # it builds on the life modules this one imports
+        with self.database.connect() as connection:
+            return 'scene' if together.in_person(connection, require_current(connection), now) else kind
 
     def send_moment(self, attempt_id, moment, kind, unasked=False) -> dict | None:
         post_id, job_id = self.picture(moment, kind)
         if job_id is None:
             return None
-        self.record(attempt_id, post_id, job_id, kind, moment['event_key'], moment['summary'], unasked=unasked)
+        # A scene is kept as a plain photo of the moment; its framing is in the job's inputs.
+        self.record(attempt_id, post_id, job_id, 'moment' if kind == 'scene' else kind, moment['event_key'],
+                    moment['summary'], unasked=unasked)
         return {'post_id': post_id, 'text': moment_text(moment, kind, unasked)}
 
     def picture(self, moment, kind) -> tuple[str | None, str | None]:
@@ -317,7 +347,7 @@ class ChatPhotos:
         until = parse(shown['ends_at']).astimezone(zone(version['timezone'])).strftime('%H:%M')
         return {'event_key': key, 'summary': words['summary'], 'caption': words['post'], 'name': version['definition']['name'],
                 'mood': composed.get('mood', ''), 'place': place_text(composed.get('place')),
-                'neighborhood': place_area(composed.get('place')),
+                'neighborhood': place_area(composed.get('place')), 'place_id': place_key(composed.get('place')),
                 'label': shown['block']['label'], 'kind': shown['block']['kind'], 'until': until,
                 'rain': bool((composed.get('weather') or {}).get('rain')), 'timeline_id': timeline_id,
                 'ends_at': shown['ends_at'], 'activity': composed.get('activity'), 'block_kind': shown['block']['kind'],
@@ -429,7 +459,8 @@ def recent_memes(connection, timeline_id, limit=6) -> list[str]:
 
 
 LEADS = {'moment': 'A photo of what you are doing right now', 'selfie': 'A selfie you are taking right now',
-         'view': 'A photo of what you can see right now'}
+         'view': 'A photo of what you can see right now',
+         'scene': 'A picture of this moment as the user sees it, there with you in person (nobody took or texted it)'}
 
 
 # In the day's summary "you" is the user ("Mira went to dinner at Lupa with you"): told to the companion, the user.

@@ -5,7 +5,7 @@ import { MODERN_WORDS, say, type EraWords } from '../world/eraWords.ts'
 export const WHERE_KEY = ['where']
 
 /** Out somewhere, at their place, at yours, or a knock at your door; apart in the same city, or long distance; on a call, or ringing you; a weekend visit across the distance, them staying with you or you with them. */
-export type WhereKind = 'apart' | 'long-distance' | 'out' | 'theirs' | 'yours' | 'knock' | 'call' | 'ringing' | 'staying' | 'hosting' | 'home'
+export type WhereKind = 'apart' | 'heading-home' | 'long-distance' | 'out' | 'theirs' | 'yours' | 'knock' | 'call' | 'ringing' | 'staying' | 'hosting' | 'home'
 export interface WhereOuting extends Outing { not_now: boolean }
 /** A call (companion/life/calls.py): on, ringing, or one that just ended or went unanswered. `direction` is who called: 'you' or 'them'. */
 export interface WhereCall { id: string; direction: 'you' | 'them'; status: 'ringing' | 'on' | 'missed' | 'declined' | 'ended'; started_at: string | null; until_at: string | null; ended_at: string | null }
@@ -13,7 +13,9 @@ export interface WhereCall { id: string; direction: 'you' | 'them'; status: 'rin
 export interface WhereVisit { id: string; direction: 'to-you' | 'host'; city_name: string; start_date: string; end_date: string; leave_at: string }
 /** Living together (companion/life/moving_in.py): both home of an evening, or you out for a while (`until`). */
 export interface WhereHome { status: 'home' | 'out'; until?: string; they_home?: boolean }
-export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string; outing: WhereOuting | null; call?: WhereCall | null; visit?: WhereVisit | null; home?: WhereHome | null }
+/** On their way home after a meetup (companion/life/heading_home.py): how ('walk', 'car', 'bus', ...), in words ("driving home"), and when they are back ('18:10'). */
+export interface WhereHeading { outing_id: string; place: string; by: string; words: string; back: string }
+export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string; outing: WhereOuting | null; call?: WhereCall | null; visit?: WhereVisit | null; home?: WhereHome | null; heading?: WhereHeading | null }
 export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string }
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
@@ -26,11 +28,19 @@ export interface CallAction { action: 'answer' | 'decline' | 'end' | 'call'; lab
 
 /** Null while apart: the strip shows only time together, or a call. */
 export function stripLine(where: WhereState | undefined, name: string, words: EraWords = MODERN_WORDS): StripLine | null {
-  if (where?.call) return callLine(where.call, name, words)
-  if (where?.visit) return visitLine(where.visit, name)
-  const outing = where?.outing
-  if (!where || !outing) return null
+  if (!where) return null
+  const other = otherLine(where, name, words)
+  if (other) return other
+  const outing = where.outing
+  if (!outing) return null
   return outing.state === 'done' ? endedLine(where.kind, outing, name) : liveLine(where.kind, outing, name)
+}
+
+/** A call, a weekend visit, or on their way home: anything on the strip but an outing. */
+function otherLine(where: WhereState, name: string, words: EraWords): StripLine | null {
+  if (where.call) return callLine(where.call, name, words)
+  if (where.visit) return visitLine(where.visit, name)
+  return where.heading ? headingLine(where.heading, name) : null
 }
 
 function endedLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
@@ -68,6 +78,11 @@ function outLine(outing: WhereOuting, tail: string): StripLine {
   // A big day in their circle (companion/life/big_days.py): "At Leo's wedding at Druid Hill Park".
   if (outing.activity === 'big-day' && outing.place.title) return mapped(`At ${outing.place.title} at `, outing, tail)
   return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail }
+}
+
+/** After a meetup: "Sett is driving home, back around 6:10 PM", the time kept with its words on a phone. */
+export function headingLine(heading: WhereHeading, name: string): StripLine {
+  return { lead: `${name} is ${heading.words}`, place: null, tail: `, back\u00a0around\u00a0${timeText(heading.back)}` }
 }
 
 /** A weekend visit: who is staying with whom, and until when ("until Sun, Oct 18"). */
@@ -137,6 +152,11 @@ export function stripAction(where: WhereState | undefined): StripAction | null {
  * funeral ends plainly with Head home. */
 function leaveLabel(outing: WhereOuting): string {
   return outing.activity === 'wedding' || (outing.activity === 'big-day' && !outing.place.quiet) ? 'Call it a night' : 'Head home'
+}
+
+/** Stay longer on the strip, beside Head home: under way, and their next hour is free. */
+export function canStayLonger(where: WhereState | undefined): boolean {
+  return where?.outing?.state === 'now' && Boolean(where.outing.longer_ok)
 }
 
 /** Whether the chat writes in person now: texting habits like bursts stop while they are together. */

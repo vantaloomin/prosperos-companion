@@ -5,7 +5,7 @@ import json
 
 import httpx
 
-from companion.images import backends, tags
+from companion.images import backends, sheet, tags
 from companion.images.adapters.comfyui import FAMILIES, ComfyAdapter, built_in, tag_kind
 from companion.lora import generation, portraits
 from tests.test_images import ComfyStandIn, request_for
@@ -86,3 +86,11 @@ def test_tags_are_picked_from_the_family_or_a_workflow_that_loads_a_tag_model():
         is None
     booru = {'kind': 'comfyui', 'config': json.dumps({'family': 'booru'})}
     assert backends.own_style(booru) == tags.ILLUSTRIOUS
+
+
+def test_the_reference_instruction_that_opens_a_prompt_is_left_out_of_the_tags():
+    style = tags.ILLUSTRIOUS
+    plain, _ = tags.convert(f'{style}. He is the only person in the picture. Sett at the pit.', '', 'Sett', style)
+    following, _ = tags.convert(f'{sheet.FOLLOW_PROFILE} {style}. He is the only person in the picture. Sett at the '
+                                'pit.', '', 'Sett', style)
+    assert following == plain

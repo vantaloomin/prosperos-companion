@@ -10,6 +10,7 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
+from companion.images import places
 from companion.life import (
     composer,
     families,
@@ -27,7 +28,7 @@ from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import decades, looks, newcomers, ships
 
-PROMPT_VERSION = 6
+PROMPT_VERSION = 8
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -35,6 +36,11 @@ NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplica
 def place_name(event) -> str:
     place = decode(event['details']).get('place') or {}
     return place.get('name', '') if isinstance(place, dict) else ''
+
+
+def place_id(event) -> str | None:
+    place = decode(event['details']).get('place') or {}
+    return place.get('id') if isinstance(place, dict) else None
 
 
 def when(event) -> dict:
@@ -50,7 +56,8 @@ def scene(connection, post_id) -> list[dict]:
                                    (post_id,)).fetchall():
         event = feed.current_revision(connection, link['event_id'])
         if event and event['status'] == 'committed':
-            result.append({**feed.event_view(event), 'place': place_name(event), 'moment': when(event)})
+            result.append({**feed.event_view(event), 'place': place_name(event), 'place_id': place_id(event),
+                           'moment': when(event)})
     return result
 
 
@@ -142,6 +149,15 @@ def plural_verb(verb: str) -> str:
     return verb[:-1] if verb.endswith('s') and not verb.endswith(('ss', 'us')) else verb
 
 
+# The age the looks sheet opens with ("A tall man in his mid twenties"), left out when the user's own In photos line
+# says one: two ages read as two people.
+SHEET_AGE = re.compile(r' in (?:his|her|their) (?:early|mid|late) [a-z]+ies\b')
+
+
+def one_age(sheet: str, look: str) -> str:
+    return SHEET_AGE.sub('', sheet, count=1) if sheet and look and looks.LOOKS_AGE.search(look) else sheet
+
+
 def visible(appearance: str, name: str, who: str) -> str:
     """What a camera can show of them: impressions ("looks like someone who...") are dropped and
     backstory is cut off a clause ("a scar on her chin from a derby fall" keeps the mark), and old injuries are said
@@ -156,9 +172,10 @@ def visible(appearance: str, name: str, who: str) -> str:
     return '. '.join(f'{sentence[:1].upper()}{sentence[1:]}' for sentence in kept)
 
 
-def light(hour, weather) -> str:
-    """The light of the moment's hour and weather, or '' when neither is known."""
-    weather = weather or {}
+def light(hour, weather, indoor=None) -> str:
+    """The light of the moment's hour and weather, or '' when neither is known. Indoors (`indoor`, from the place's
+    city entry, companion/images/places.py) a night is lamplight with no streetlights, and the weather stays outside."""
+    weather = {} if indoor else weather or {}
     if hour is None:
         parts = []
     elif 5 <= hour < 8:
@@ -172,7 +189,7 @@ def light(hour, weather) -> str:
     elif 18 <= hour < 20:
         parts = ['low golden evening light']
     else:
-        parts = ['night, lit by warm lamps and streetlights']
+        parts = ['night, lit by warm lamps' if indoor else 'night, lit by warm lamps and streetlights']
     if weather.get('rain'):
         parts.append('a grey, rainy day with wet surfaces' if hour is None or 6 <= hour < 20 else 'rain-wet streets')
     elif isinstance(weather.get('high_f'), (int, float)) and weather['high_f'] <= 38:
@@ -222,14 +239,24 @@ def aboard_words(text: str) -> str:
 
 CAMERAS = {'moment': 'Shot at eye level on a phone camera, natural colours, realistic skin texture, shallow depth of field.',
            'selfie': 'Slight wide-angle phone-camera look, natural colours, realistic skin texture.',
-           'view': 'Phone-camera look, natural colours, everything in the scene in focus.'}
+           'view': 'Phone-camera look, natural colours, everything in the scene in focus.',
+           'scene': 'Shot at eye level from a few steps away, natural colours, realistic skin texture, the place in sharp '
+                    'focus around them.'}
+CAMERAS['scene_both'] = CAMERAS['scene']
+
+
+# A style that is not a photograph, though it may say the word ("non-photorealistic", "photo-bashed concept art").
+NOT_PHOTO = re.compile(r'non-?photo|\b(?:illustrat\w*|paint\w*|drawn|drawing|sketch\w*|anime|manga|cartoon\w*|comic|'
+                       r'cel[- ]shaded|watercolou?r|oil on|ink|digital art|concept art|splash art|render\w*|3d|pixel art|'
+                       r'stylized|stylised)\b', re.IGNORECASE)
 
 
 def camera(style: str, framing='moment', period: dict | None = None) -> str:
     """Camera details for a photographic style the user left plain; a painted or drawn style keeps its own. In a past
     year (`period`, decades.picture) the camera is one of its decade: a film snapshot in the 1990s."""
     style = style.lower()
-    if 'photo' not in style or any(word in style for word in ('lens', 'mm', 'depth of field', 'shot on', 'film')):
+    if 'photo' not in style or NOT_PHOTO.search(style) or \
+            any(word in style for word in ('lens', 'mm', 'depth of field', 'shot on', 'film')):
         return ''
     return ((period or {}).get('cameras') or {}).get(framing) or CAMERAS.get(framing, CAMERAS['moment'])
 
@@ -271,6 +298,7 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     where = f" at {event['place']}" if event['place'] and event['place'] not in event['summary'] else ''
     if look is None:
         look = visible(without_clothes(appearance) if dressed else appearance, name, who)
+    sheet = one_age(sheet, look)
     style = (style or DEFAULT_STYLE).strip().rstrip('.')
     setting = re.sub(r'(^|\.\s+)Wearing\b', lambda m: f"{m.group(1)}{subject} {'are' if who == 'they' else 'is'} wearing",
                      setting)
@@ -279,12 +307,16 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     expression = EXPRESSIONS.get((event.get('mood') or '').strip().lower()) or \
         (f"a {event['mood'].strip().lower()} expression" if event.get('mood') else '')
     framings = FRAMINGS | ((period or {}).get('framings') or {})
-    opening = framings[framing].format(subject=subject.lower(), possessive=possessive) if framings[framing] else \
-        ''
+    if framing == 'scene' and event.get('user'):
+        framing = 'scene_both'  # The user is drawn beside them (companion/persona_pictures.py), not as the eyes.
+    opening = framings[framing].format(subject=subject.lower(), possessive=possessive, object=OBJECT[who]) \
+        if framings[framing] else ''
     parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
-             sheet, f'{look}.' if look else '', setting, action, alone(event, action, subject, who, framing),
+             sheet, f'{look}.' if look else '', setting, WITH_YOU.sub('', action) if event.get('user') else action,
+             alone(event, action, subject, who, framing),
+             beside(event, subject, who), event.get('place_look') or '',
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
-             ship_light(event.get('hour')) if aboard else light(event.get('hour'), event.get('weather')),
+             ship_light(event.get('hour')) if aboard else light(event.get('hour'), event.get('weather'), event.get('indoor')),
              (period or {}).get('scene') or '', camera(style, framing, period)]
     if aboard:
         parts[3:5] = [aboard_words(part) for part in parts[3:5]]
@@ -300,10 +332,26 @@ COMPANY = re.compile(r'\b(?:with|together|friends?|family|date|partner|everyone|
 
 def alone(event, action, subject, who, framing) -> str:
     """Says they are the only one in a moment of their own, so the picture shows them once (adapters/comfyui.py
-    turns it into a tag-model's "solo"); nothing for a view, company or a crowded activity."""
-    if framing == 'view' or event.get('with') or event.get('activity') in CROWDED or COMPANY.search(action or ''):
+    turns it into a tag-model's "solo"); nothing for a view or company. In a crowded activity (a rush at work, a show)
+    there are other people, but never a second of them: told nothing, Krea drew the same face again behind them."""
+    if framing == 'view' or event.get('with') or event.get('user') or COMPANY.search(action or ''):
         return ''
+    if event.get('activity') in CROWDED:
+        return f"{subject} {'appear' if who == 'they' else 'appears'} only once in the picture."
     return f"{subject} {'are' if who == 'they' else 'is'} the only person in the picture."
+
+
+def beside(event, subject, who) -> str:
+    """The user beside them, in a moment they share (companion/persona_pictures.py): who the second person in the
+    picture is, so it shows two people and never draws the companion twice."""
+    if not event.get('user'):
+        return ''
+    verb = 'are' if who == 'they' else 'is'
+    return (f"Beside {OBJECT.get(who, 'them')} is one other person, {event['user']}. {subject} {verb} the main "
+            'subject; there are exactly two people in the picture.')
+
+# "with you" in a moment's own words: the picture says who "you" are (`beside`).
+WITH_YOU = re.compile(r',? with you\b', re.IGNORECASE)
 
 
 # What each activity of the life sim (companion/life/composer.py and the circle's gatherings) looks
@@ -468,9 +516,13 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     first = {**events[0], 'hour': local_hour(events[0]['starts_at'], companion['version']['timezone']),
              'weather': events[0]['moment'].get('weather'), 'activity': events[0]['moment'].get('activity'),
              'with': events[0]['moment'].get('with'), 'hobby': events[0]['moment'].get('hobby')}
+    first.update(places.scene(connection, companion, first))
     sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
     likeness = current_for_images(connection)
     prompt, period = pet_prompt(connection, post['timeline_id'], events, image_settings), period_of(connection, definition)
+    shown = '' if prompt or not shared(connection, companion, first) else user_shown(connection)
+    if shown:
+        first['user'] = shown
     if prompt:
         # A photo of their pet alone (companion/life/pets.py): nobody in it, so no likeness.
         likeness = {**likeness, 'lora': None}
@@ -485,11 +537,26 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, 'period': period,
+            'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, 'period': period, 'with_user': bool(shown),
             'name_in_pictures': bool(definition.get('name_in_pictures')), **likeness,
             **children(connection, post['timeline_id'], [event[key] for event in events
                                                           for key in ('summary', 'caption', 'label', 'place')],
                        [(event['moment'].get('outing') or {}).get('id') for event in events])}
+
+
+def shared(connection, companion, event) -> bool:
+    """Whether the user is in the moment: an outing or visit with them, or an evening at the home they share
+    (companion/life/moving_in.py), when the moment happens at home."""
+    moment = event.get('moment') or {}
+    if moment.get('outing'):
+        return True
+    if not at_home(event) or not event.get('starts_at'):
+        return False
+    from companion.life import moving_in  # the life modules build on the image ones
+    try:
+        return bool(moving_in.home_state(connection, companion, parse(event['starts_at'])))
+    except Exception:  # noqa: BLE001 - a moment that cannot be placed is drawn as their own.
+        return False
 
 
 def pet_prompt(connection, timeline_id, events, image_settings) -> str:
@@ -549,7 +616,14 @@ FRAMINGS = {
     'selfie': "a fictional selfie taken at arm's length with a phone's front camera, face and shoulders in "
               'frame, looking into the lens',
     'view': 'a fictional first-person phone photo of what {subject} can see right now, nobody in focus',
+    # In person with the user (companion/life/together.py) nobody texts a photo to the person beside them: the picture
+    # is the moment as the user sees it. A selfie there drew them twice, once at the lens and once walking behind.
+    'scene': 'a wide, atmospheric candid scene of the place, seen through the eyes of the person spending time with '
+             '{object}, {object} a few steps away and unposed, with the place all around',
+    'scene_both': 'a wide, atmospheric candid scene of two people spending time together, seen from a little way off, '
+                  'unposed, with the place all around',
 }
+OBJECT = {'she': 'her', 'he': 'him', 'they': 'them'}
 
 
 def visit_words(scene_text: dict, neighborhood: str | None) -> dict:
@@ -571,6 +645,11 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     scene_text = visit_words({key: moment.get(key) for key in ('summary', 'caption', 'mood', 'place', 'hour',
                                                                 'weather', 'activity', 'with', 'hobby')},
                              moment.get('neighborhood'))
+    scene_text = {**scene_text, 'label': moment.get('label'), 'place_id': moment.get('place_id')}
+    scene_text.update(places.scene(connection, companion, scene_text))
+    shown = None if framing == 'view' or not moment.get('with_user') else user_shown(connection)
+    if shown:
+        scene_text['user'] = shown
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     # A moment's own outfit (a wedding's) is kept; their everyday one gives way to an In photos line that says one.
     wearing = '' if framing == 'view' else moment.get('wearing') or ('' if own_outfit(definition) else wardrobe.image_hint(
@@ -584,11 +663,18 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     if framing == 'view':
         likeness = {**likeness, 'lora': None}
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
-            'pictured': framing != 'view', 'period': period,
+            'pictured': framing != 'view', 'period': period, 'with_user': bool(shown),
             'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
             'moment': moment, **likeness,
             **children(connection, companion['active_timeline_id'],
                        [moment.get(key) for key in ('summary', 'caption', 'label', 'place')])}
+
+
+def user_shown(connection) -> str:
+    """The user in words, for a moment they share with the companion, or '' when Settings > Images leaves them out."""
+    from companion import persona_pictures  # it builds on the image modules that import this one
+    persona = persona_pictures.here(connection)
+    return persona_pictures.described(persona) if persona else ''
 
 
 def build_meme(connection, meme, image_settings) -> dict:

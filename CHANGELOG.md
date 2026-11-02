@@ -76,6 +76,21 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.2.2 (2026-11-02)
+
+- **Meeting up in person:** the plan card says how meetups work; Go now and Stay longer; a date runs on an hour
+  by itself when you're still talking and they're free; afterwards they head home and text from the road;
+  *actions* show in italics.
+- **You in the pictures:** How you look and Your picture on the persona; shared moments show you beside your
+  companion (per-world switch in Settings > Images); in-person pictures are the scene as you see it, not a
+  selfie; pictures show their place; promised photos follow the scene, not the profile picture.
+- **The feed:** no repeated questions, far bigger era-fitting question and thought banks, one catch-up post per
+  moment, reactions by who knows the poster with a Trolls and snark slider, and never a day with no circle posts.
+- **Worlds:** Drama is set per world; storyline moments at their own times; Paused badge and Resume on the
+  Worlds page; rename and delete forked timelines; shared outings show in both people's days.
+- **Fixes:** late nights name the current project, ending a storyline clears what it put on their mind, and
+  background failures are logged.
+
 ## v1.2.1 (2026-10-30)
 
 - **People in your life:** each person has Tell more (a note or a topic like work, age or likes) and one card

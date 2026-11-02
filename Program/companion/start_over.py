@@ -37,7 +37,7 @@ WORKSPACE = (
     'app_identity', 'workspace_settings', 'pauses', 'pause_catch_ups', 'connection', 'model_profiles',
     'model_routes', 'model_mix', 'model_mix_state', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'townsfolk_mix', 'townsfolk_personality', 'town_levels', 'image_settings',
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
-    'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
+    'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos', 'persona_pictures',
     'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge', 'authors_notes',
     'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books', 'city_lore_choices', 'library_vectors', 'library_passages', 'library_books', 'observer', 'user_posts', 'world_life',
     'world_image_backends', 'world_model_routes', 'place_spots', 'politics_issues', 'politics_factions', 'politics_views',

@@ -302,6 +302,11 @@ same moment, "a pic of the view" a first-person photo with nobody in it (and so 
 phrasings, not the model, and a question about another time ("tomorrow", "tonight", "been up to")
 asks for no photo.
 
+- In person (out together, at one of your places, on a visit, or home together of an evening;
+  `companion/life/together.py`), nobody texts a photo to the person beside them. Any picture then,
+  asked for or not, is the moment as you see it: a wide, atmospheric scene of the place with them a
+  few steps away (framing `scene`), never a selfie or a view. With your picture set (Settings >
+  Images, "Show me in pictures we're in together") the scene shows the two of you from a little way off.
 - A selfie or view is another version of the moment's picture, on the same post. Each reply keeps
   the version it sent, the feed shows the newest, and asking again for the same kind in the same
   moment shows the one already made.
@@ -428,6 +433,30 @@ hair, skin tone and build and to take the outfit, pose and setting from its own 
   drew the character. Sheets go with the character (kept by Start over, removed with the companion)
   and are carried in backups.
 
+## You in pictures you share
+
+A persona may say **How you look** and have **Your picture** on the Persona page
+(`companion/persona_pictures.py`): one the user uploads, or one made with **Make one** from How you
+look by this world's image backends (a fixed template, classified and routed like any picture). Both
+belong to the persona in `worlds.json`, so each of their worlds uses them; the file is kept in the data
+folder's `persona-pictures/`, named by its content.
+
+- A picture of a moment the user is in shows them beside the companion: an outing or a visit with
+  them (their outing photo and its feed post), their wedding and big days they go to, and a moment at
+  home of an evening once they live together. The prompt says who the second person is ("Beside them
+  is one other person, a woman in her early thirties, short dark curls") and that there are exactly two
+  people; "with you" is taken out of the moment's words.
+- On a backend that takes reference pictures, the user's picture follows the companion's as a second
+  reference: OpenRouter and chat-style APIs get both, OpenAI's edits get both as `image[]`, Codex
+  attaches both, and ComfyUI loads it beside the reference with its own ImageStitch node, in the
+  built-in reference workflow or the user's own. A ComfyUI workflow that starts from its reference
+  (Z-Image, Anima) follows the companion's picture only. With no picture of the companion to follow
+  (and no LoRA), the user's picture is the one reference. Elsewhere the user is drawn from words.
+- The user's picture only goes to the backend the job was already routed to, so NSFW routing is as
+  for any picture. It is shown once they said how they look or have a picture, and Settings >
+  Images > **Show me in pictures we're in together** (`show_me`, per world) leaves them out.
+- A job that followed it records "..., and your picture" as how it drew them.
+
 ## Interface
 
 Settings has an **Images** section: add a ComfyUI server, a Codex backend or an image API, accept
@@ -470,3 +499,13 @@ All writes need the `x-companion-client: workspace` header.
 
 A post's `image` is `{status, job_id, ref, error, updated_at}`: `ref` is the id of the job whose
 file is shown, which can differ from `job_id` while a replacement is queued, running or failed.
+
+Your picture (`companion/worlds_routes.py`):
+
+| Route | |
+|---|---|
+| `POST /api/worlds/personas/{id}/picture` | The body is the picture (PNG, JPEG or WebP); returns the worlds view |
+| `DELETE /api/worlds/personas/{id}/picture` | Takes it off the persona |
+| `GET /api/worlds/personas/{id}/picture` | The file |
+| `POST /api/worlds/personas/{id}/picture/make` | Make one from How you look; `{status, error}` |
+| `GET /api/worlds/personas/{id}/picture/make` | `{status, error}` of the last one asked for |

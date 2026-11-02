@@ -4,6 +4,7 @@ from datetime import date, timedelta
 import pytest
 from conftest import reconcile, send, set_life
 
+from companion.clock import stamp
 from companion.database import decode
 from companion.life import body, composer, outings
 from companion.providers.chat import Chunk
@@ -223,6 +224,76 @@ def test_heading_home_early_ends_it_now(client, mira, provider, clock):
     assert kept['status'] == 'done' and kept['memory_id'] and not kept['undo']
 
 
+def test_meeting_up_early_and_staying_longer(client, mira, provider, clock):
+    send(client, 'Dinner tonight?', 'client-out-early')
+    [outing] = listing(client)['outings']
+    assert (outing['at_time'], outing['until_time']) == ('19:00', '21:00') and not outing['early']
+    assert client.post(f"/api/life/outings/{outing['id']}/now").status_code == 409  # Hours off, and they are at work.
+    clock.advance(timedelta(hours=4, minutes=30))  # 16:30: close, but still at work until 17:00.
+    assert not listing(client)['outings'][0]['early']
+    clock.advance(timedelta(hours=1))  # 17:30: off work, free.
+    assert listing(client)['outings'][0]['early']
+    met = client.post(f"/api/life/outings/{outing['id']}/now").json()
+    assert (met['at_time'], met['early_from'], met['until_time']) == ('17:30', '19:00', '21:00')
+    reconcile(client)
+    [now] = listing(client)['outings']
+    assert now['state'] == 'now' and now['longer_ok'] and not now['early']
+    assert client.get('/api/life/where').json()['outing']['longer_ok']
+    assert client.post(f"/api/life/outings/{outing['id']}/longer").json()['until_time'] == '22:00'
+    assert client.post(f"/api/life/outings/{outing['id']}/longer").json()['until_time'] == '23:00'
+    # They sleep at 23:00, so no more.
+    assert not listing(client)['outings'][0]['longer_ok']
+    assert client.post(f"/api/life/outings/{outing['id']}/longer").status_code == 409
+    clock.advance(timedelta(hours=4, minutes=45))  # 22:15: still out, an hour later than planned.
+    assert listing(client)['outings'][0]['state'] == 'now'
+
+
+def test_still_talking_at_the_end_runs_on_an_hour_once(client, mira, provider, clock):
+    send(client, 'Dinner tonight?', 'client-out-auto')
+    [outing] = listing(client)['outings']
+    assert (outing['at_time'], outing['until_time']) == ('19:00', '21:00')
+    clock.advance(timedelta(hours=7, minutes=30))  # 19:30: well before the end, nothing changes.
+    send(client, 'This is lovely', 'client-out-auto-1')
+    assert listing(client)['outings'][0]['until_time'] == '21:00'
+    clock.advance(timedelta(hours=1, minutes=20))  # 20:50: nearly over.
+    preview = client.get('/api/context/preview').json()['prompt']
+    assert 'you are free for another hour' in preview
+    send(client, 'Tell me more about that', 'client-out-auto-2')
+    [longer] = listing(client)['outings']
+    assert longer['until_time'] == '22:00' and longer['auto_longer'] == 1 and longer['longer'] == 1
+    clock.advance(timedelta(hours=1, minutes=5))  # 21:55: still talking, but it only runs on by itself once.
+    send(client, 'One more story?', 'client-out-auto-3')
+    assert listing(client)['outings'][0]['until_time'] == '22:00'
+
+
+def test_heading_home_after_a_meetup(client, mira, provider, clock):
+    from companion.life import heading_home
+    send(client, 'Dinner tonight?', 'client-out-way')
+    [outing] = listing(client)['outings']
+    clock.advance(timedelta(hours=9, minutes=1))  # 21:01: just over.
+    reconcile(client)
+    where = client.get('/api/life/where').json()
+    assert where['kind'] == 'heading-home' and where['heading']['place'] == outing['place']['name']
+    assert where['heading']['words'] in heading_home.BY.values() and where['text'].lower() == where['heading']['words']
+    preview = client.get('/api/context/preview').json()['prompt']
+    assert 'You said goodbye to the user at' in preview
+    back = where['heading']['back']
+    assert '21:10' <= back <= '22:15'
+    clock.advance(timedelta(minutes=heading_home.LONGEST + 1))
+    assert client.get('/api/life/where').json()['kind'] != 'heading-home'
+
+
+def test_the_way_home_follows_distance_and_the_city():
+    from companion.life import heading_home
+    assert heading_home.BY['walk'] == 'walking home'
+    assert set(heading_home.HANDS_BUSY) <= set(heading_home.BY)
+
+
+def test_times_other_people_set_do_not_move():
+    for activity in outings.FIXED:
+        assert activity in ('wedding', 'big-day', 'meet-family', 'meet-friends')
+
+
 def test_replies_are_not_held_while_out_together():
     from companion.life import pacing
     assert pacing.busy_kind({'kind': 'social', 'with_user': True}) is None
@@ -378,3 +449,16 @@ def test_a_plan_said_yes_to_goes_ahead_while_just_watching_and_is_told(client, m
             if line['id'] == f"outing:{done['id']}"]
     assert [line['text'][:47] for line in told] == ['You and Mira went out together for dinner at Ou']
     assert not told[0]['text'].endswith(('October 7.', '2026.')) and 'the user' not in told[0]['text']
+
+
+def test_driving_home_holds_a_reply_until_they_are_in(client, mira, monkeypatch, clock):
+    from companion.life import heading_home, pacing
+    monkeypatch.setattr(pacing, 'ACTIVE', True)
+    back = clock.now() + timedelta(minutes=20)
+    with client.app.state.database.connect() as connection:
+        from companion.characters import current
+        companion = current(connection)
+        monkeypatch.setattr(heading_home, 'heading', lambda *_args: {'by': 'car', 'back_at': back})
+        assert pacing.hold(connection, companion, clock.now(), 'seed')['held_until'] == stamp(back)
+        monkeypatch.setattr(heading_home, 'heading', lambda *_args: {'by': 'bus', 'back_at': back})
+        assert heading_home.held_until(connection, companion, clock.now()) is None

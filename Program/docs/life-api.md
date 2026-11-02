@@ -607,7 +607,7 @@ name. A finished one can open a conversation. `GET /api/life/recommendations` li
 ### Storylines
 
 Things unfold over days in the companion's life and their circle's (`companion/life/storylines.py`):
-"my dad just got a promotion", "the new guy at work keeps hitting on me", "I got drunk and kissed my
+"my dad just got a promotion", "the new person at work keeps taking credit for my work", "I got drunk and kissed my
 best friend". Each is a fixed template with a cast from the circle (or the companion's own work) and
 one to three beats a few days apart. Whether one starts on a day, which template and who is in it
 are decided by a seed when it starts, never by a model; a beat that can turn out more than one way is
@@ -1044,6 +1044,23 @@ carries `shift: {key, minutes, reason, friend, text}`; the composed entry starts
 chat context lists today's shifts so far, so the companion knows why they were late, and paced
 replies follow the day as it turned out. The Life setting `day_shifts` (on by default) turns it off
 for slots written from then on.
+
+## Shared outings
+
+An outing a companion's entry shares with someone (`with`) is in both their days
+(`companion/life/joint.py`). The other person's slot it starts in holds the same outing at the same time, told from
+their side ("Lestara had dinner with Sett at Cloud Step Inn."), with `joint: {timeline_id, slot, person, starts_at,
+ends_at}`; any other slot of theirs it fills 30 minutes or more of stays quiet. A new entry clears the other
+person's upcoming slots it touches so they are written again around it; a shared entry whose other half is gone (the
+plan changed) is written again on its own.
+
+Someone in the circle can be another of the user's companions: the same full name, or the same first name for someone
+the user wrote into the description or edited. Then the outing is in that companion's own timeline, and they are only
+picked as company when their own day is free then: no work, study or sleep in their routine, and nothing already
+planned. Their side of the outing is always one of the slots a catch-up writes as an event, at the outing's time.
+
+Outings fit the time of day their block starts: dinner and drinks from 16:00, a show from noon, the museum from
+08:00 to 18:00 and the market from 06:00 to 18:00. A social block before 16:00 is coffee or a walk with someone.
 
 ## Routine
 

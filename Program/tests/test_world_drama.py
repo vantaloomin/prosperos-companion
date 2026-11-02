@@ -21,16 +21,31 @@ def level(client) -> int:
 def test_a_world_follows_realism_until_it_has_its_own(client, companion):
     settings = ok(client.get('/api/life/settings'))
     assert settings['world_drama'] is None and settings['alone']
-    set_life(client, drama=3)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE life_settings SET drama=3 WHERE id=1')  # The level carried from world to world.
     assert level(client) == 3
     changed = ok(client.put('/api/life/world', json={'drama': 0}))
-    assert changed['world_drama'] == 0 and changed['drama'] == 3
+    assert changed['world_drama'] == 0 and changed['drama'] == 0
     assert level(client) == 0
-    # Realism still moves, but this world keeps its own.
-    set_life(client, drama=2)
-    assert level(client) == 0 and ok(client.get('/api/life/settings'))['world_drama'] == 0
     assert ok(client.put('/api/life/world', json={'drama': None}))['world_drama'] is None
-    assert level(client) == 2
+    assert level(client) == 3
+
+
+def test_the_realism_slider_sets_this_world_only(client, companion):
+    """Tester, 2026-10-31: "dramatic" for Sett's world changed Givardon too. The slider now sets this world's own."""
+    changed = set_life(client, drama=3)
+    assert changed['drama'] == 3 and changed['world_drama'] == 3 and level(client) == 3
+    with client.app.state.database.connect() as connection:
+        assert connection.execute('SELECT drama FROM life_settings WHERE id=1').fetchone()[0] == 1
+    made = ok(client.post('/api/worlds', json={'name': 'Somewhere else'}))
+    ok(client.post(f"/api/worlds/{made['id']}/switch"))
+    assert ok(client.get('/api/life/settings'))['drama'] == 1
+    set_life(client, drama=0)
+    first = next(world for world in ok(client.get('/api/worlds'))['personas'][0]['worlds'] if world['first'])
+    ok(client.post(f"/api/worlds/{first['id']}/switch"))
+    assert ok(client.get('/api/life/settings'))['drama'] == 3
+    ok(client.post(f"/api/worlds/{made['id']}/switch"))
+    assert ok(client.get('/api/life/settings'))['drama'] == 0
 
 
 def test_only_a_real_level_or_none(client, companion):
