@@ -81,6 +81,9 @@ def hold(connection, companion, now, seed: str, text: str = '') -> dict:
     from companion.life import calls
     if calls.on_call(connection, companion, now):
         return dict(NOT_HELD)  # On the phone (companion/life/calls.py), they answer as they talk.
+    from companion.life import heading_home
+    if back := heading_home.held_until(connection, companion, now):
+        return {**NOT_HELD, 'held_until': stamp(back)}  # Driving home after a meetup: they answer once in.
     found = block_now(connection, companion, now) if ACTIVE and life and life['paced_replies'] else None
     kind = busy_kind(found[0]) if found else None
     if kind is None:

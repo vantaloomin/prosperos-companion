@@ -906,6 +906,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         found = state(outing, version['timezone'], now)
         if found == 'now':
             result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing, now)))
+            if ending := ending_line(connection, companion, outing, now):
+                result.append((f"outing:{outing['id']}:ending", ending))
         elif found == 'planned':
             result.append((f"outing:{outing['id']}", planned_line(outing)))
             # The wedding is kept on the latest message (companion/life/wedding.py), not one that asked for it.
@@ -922,6 +924,9 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
             paid = money_text(companion, outing)
             had = their_people.what(outing, past=True) if outing['activity'] in MEETUPS else what(outing)
             result.append((f"outing:{outing['id']}:done", f"- Earlier you and the user had {had}; it is over now.{paid}"))
+    from companion.life import heading_home
+    if on_way := heading_home.context_line(connection, companion, now):
+        result.append(on_way)  # On their way home from it (companion/life/heading_home.py).
     return result
 
 
@@ -1120,8 +1125,15 @@ def longer_end(outing: dict) -> str | None:
 def longer_ok(connection, companion: dict, outing: dict, now: datetime) -> bool:
     """Stay longer: an outing under way, by an hour, when their work, study, sleep or an appointment does not start
     in that hour, at most MOST_LONGER times. Not for times other people set."""
-    if outing['activity'] in FIXED or outing['longer'] >= MOST_LONGER or outing['ended_at'] or \
-            state(outing, companion['version']['timezone'], now) != 'now':
+    if state(outing, companion['version']['timezone'], now) != 'now':
+        return False
+    return room_after(connection, companion, outing)
+
+
+def room_after(connection, companion: dict, outing: dict) -> bool:
+    """Another hour fits after this outing: their work, study, sleep or an appointment does not start in it, it stays
+    the same day, and it has not run on MOST_LONGER times already. Not for times other people set."""
+    if outing['activity'] in FIXED or outing['longer'] >= MOST_LONGER or outing['ended_at']:
         return False
     end = longer_end(outing)
     if end is None:
@@ -1148,6 +1160,55 @@ def stay_longer(connection, companion: dict, outing_id: str, now: datetime) -> d
     require(longer_ok(connection, companion, outing, now), 'They have to be somewhere after this.', 409)
     connection.execute('UPDATE outings SET until_time=?, longer=longer+1 WHERE id=?', (longer_end(outing), outing_id))
     return get(connection, outing_id)
+
+
+ENDING = timedelta(minutes=20)  # How close to the end they bring up staying on, or having to go.
+
+
+def next_thing(companion: dict, outing: dict) -> str:
+    """What takes them after the outing's end, in a few words ('work', 'sleep'), or ''."""
+    schedule = routine.blocks(companion['version']['definition'])[0]
+    day = date.fromisoformat(outing['local_date'])
+    end = longer_end(outing) or '23:59'
+    found = next((block.view() for block in schedule if block.on(day) and block.view()['kind'] in NOT_BUSY and
+                  outing['until_time'] <= block.view()['start'] < end), None)
+    return found['label'].lower() if found else ''
+
+
+def ending_line(connection, companion: dict, outing: dict, now: datetime) -> str | None:
+    """Near the end of a meetup: whether they could stay on, so they say so themselves, or that they have to go.
+    Not for times other people set (the day runs as it runs)."""
+    end = window(outing, companion['version']['timezone'])[1]
+    if outing['activity'] in FIXED or outing['place'].get('knock') or not now >= end - ENDING:
+        return None
+    if room_after(connection, companion, outing):
+        return (f"- It is nearly {outing['until_time']}, when you meant to head off, but you are free for another hour. "
+                "If the moment fits, you can say you could stay a bit longer, or ask if they want to.")
+    reason = next_thing(companion, outing)
+    return (f"- It is nearly {outing['until_time']} and you have to head off then"
+            f"{f' ({reason})' if reason else ''}. When it fits, start to wrap up warmly.")
+
+
+TALKING = timedelta(minutes=15)  # A message this close to the end, or this soon after it, means still talking.
+
+
+def keep_going(connection, companion: dict, message: dict, now: datetime) -> dict | None:
+    """The user still talking as a meetup winds down: it runs on an hour on its own, once, when that hour is free,
+    so a date never ends mid-conversation. Stay longer stays on offer after that. Saying goodbye ends it as before
+    (companion/life/together.py), and a meetup already settled (finish_due) stays over."""
+    if message['role'] != 'user' or in_character.out_of_character(message['text']):
+        return None
+    timezone = companion['version']['timezone']
+    since = (now.astimezone(zone(timezone)).date() - timedelta(days=1)).isoformat()
+    for outing in in_force(connection, companion['active_timeline_id'], since):
+        end = window(outing, timezone)[1]
+        if outing['status'] != 'planned' or outing['auto_longer'] or not end - TALKING <= now < end + TALKING:
+            continue
+        if room_after(connection, companion, outing):
+            connection.execute('UPDATE outings SET until_time=?, longer=longer+1, auto_longer=1 WHERE id=?',
+                               (longer_end(outing), outing['id']))
+            return get(connection, outing['id'])
+    return None
 
 
 def choices(connection, companion: dict, outing: dict, now: datetime) -> dict:
