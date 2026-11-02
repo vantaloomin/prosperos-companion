@@ -920,13 +920,62 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
                            f"- {when} you and the user got married at {outing['place']['name']}; the wedding "
                            'is over now.'))
         elif now - window(outing, version['timezone'])[1] < RECENT:
-            from companion.life import their_people
-            paid = money_text(companion, outing)
-            had = their_people.what(outing, past=True) if outing['activity'] in MEETUPS else what(outing)
-            result.append((f"outing:{outing['id']}:done", f"- Earlier you and the user had {had}; it is over now.{paid}"))
+            result.append((f"outing:{outing['id']}:done", done_line(connection, companion, outing, now)))
     from companion.life import heading_home
     if on_way := heading_home.context_line(connection, companion, now):
         result.append(on_way)  # On their way home from it (companion/life/heading_home.py).
+    return result
+
+
+def done_line(connection, companion: dict, outing: dict, now: datetime) -> str:
+    """An outing that ended in the last RECENT hours: when it was, and whether it was their first time out together,
+    so a reply later that day doesn't talk as if the day held only work (tester, 2026-11-02: Sett's first date)."""
+    from companion.life import their_people
+    timezone = companion['version']['timezone']
+    start, end = window(outing, timezone)
+    today = now.astimezone(zone(timezone)).date().isoformat()
+    when = 'Earlier today' if outing['local_date'] == today else 'Yesterday'  # Past midnight.
+    had = their_people.what(outing, past=True) if outing['activity'] in MEETUPS else what(outing)
+    first = ' It was the first time the two of you went out together.' if first_time(connection, companion, outing) \
+        else ''
+    return (f"- {when} ({hhmm(start.astimezone(zone(timezone)))}-{hhmm(end.astimezone(zone(timezone)))}) you and the "
+            f"user had {had}; it is over now.{first}{money_text(companion, outing)}")
+
+
+def first_time(connection, companion: dict, outing: dict) -> bool:
+    """No outing with the user went ahead before this one on this timeline (a knock sent home at once doesn't count)."""
+    from companion.life import together
+    timezone = companion['version']['timezone']
+    start = window(outing, timezone)[0]
+    return not any(other['id'] != outing['id'] and window(other, timezone)[1] <= start
+                   and not together.turned_away(other, timezone)
+                   for other in in_force(connection, companion['active_timeline_id']))
+
+
+def with_user_blocks(connection, companion: dict, ahead: list[tuple]) -> list[tuple]:
+    """The companion's day blocks (companion/life/pacing.py day_blocks) with each block an outing took shown as the
+    outing itself, at its own hours: the agenda marks the routine block it lands in ("Bathhouse and cards 14:00-20:00")
+    and the day line read that label, so a reply that evening said the day was only work (tester, 2026-11-02)."""
+    from companion.life import together
+    marked_blocks = [item for item in ahead if item[0].get('with_user')]
+    if not marked_blocks:
+        return ahead
+    timezone = companion['version']['timezone']
+    since = (marked_blocks[0][1].astimezone(zone(timezone)).date() - timedelta(days=1)).isoformat()
+    spans = [(outing, *window(outing, timezone)) for outing in in_force(connection, companion['active_timeline_id'],
+                                                                         since)
+             if not together.turned_away(outing, timezone)]
+    result, shown = [], set()
+    for block, starts_at, ends_at in ahead:
+        found = [span for span in spans if span[1] < ends_at and span[2] > starts_at] if block.get('with_user') else []
+        if not found:
+            result.append((block, starts_at, ends_at))
+            continue
+        for outing, start, end in found:
+            if outing['id'] not in shown:
+                shown.add(outing['id'])
+                result.append(({'kind': 'outing', 'label': f'with the user, {what(outing)}', 'with_user': True},
+                               start, end))
     return result
 
 
